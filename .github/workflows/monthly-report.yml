@@ -1,0 +1,67 @@
+# Monthly Macro Report — automated generation
+#
+# Runs on the 1st of each month at 6 AM UTC, and on manual trigger from the
+# Actions tab. Pulls FRED data, generates Markdown + HTML reports, commits the
+# data store and reports back to the repo, and uploads the HTML as an artifact.
+#
+# Required secrets:
+#   FRED_API_KEY — set in repo Settings → Secrets and variables → Actions
+#
+# Manual trigger:
+#   GitHub UI → Actions → "Monthly Macro Report" → Run workflow
+
+name: Monthly Macro Report
+
+on:
+  schedule:
+    # https://crontab.guru/#0_6_1_*_*
+    - cron: "0 6 1 * *"  # 06:00 UTC on the 1st of every month
+  workflow_dispatch:      # enables the manual "Run workflow" button
+
+# Allow the action to push back to the repo
+permissions:
+  contents: write
+
+jobs:
+  build-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate report
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          ALTDATA_STORE: data_store
+        run: python -m monthly_macro.run --verbose
+
+      - name: Upload HTML as run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-macro-report
+          path: reports/*.html
+          retention-days: 90
+
+      - name: Commit data store and report back to repo
+        run: |
+          git config user.name  "monthly-macro-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data_store reports
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Monthly Macro Report — $(date -u +%Y-%m-%d)"
+            git push
+          fi
