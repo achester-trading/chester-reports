@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Macro Report</title>
+<style>
+:root {
+  --navy: #0f2747;
+  --navy-2: #16335c;
+  --navy-line: #21436f;
+  --ink: #1a1f29;
+  --muted: #5b6675;
+  --paper: #f7f5f0;
+  --card: #ffffff;
+  --rule: #e4e0d6;
+  --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <h1>Monthly Macro Report</h1>
+<p><strong>Date:</strong> Saturday, May 30, 2026
+<strong>Generated:</strong> 2026-05-30 20:26 UTC
+<strong>Pipeline version:</strong> v1 (FRED-only)</p>
+<hr />
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pipeline Status</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p>This report is <strong>data-populated</strong> from the FRED API. Narrative synthesis
+sections are marked <code>[NARRATIVE PLACEHOLDER]</code> and should be added by hand
+or by a downstream LLM step before publication.</p>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary class="section-head">
+        <span class="section-title">I. Executive Summary</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p><em>[NARRATIVE PLACEHOLDER — regime characterization paragraph]</em></p>
+<h3>Headwinds (auto-detected)</h3>
+<ul>
+<li><strong>Sahm Rule at 0.33</strong> — approaching 0.50 trigger</li>
+<li><strong>Real wages -0.21% YoY</strong> — household stress</li>
+</ul>
+<h3>Tailwinds (auto-detected)</h3>
+<ul>
+<li><strong>HY OAS at 2.72%</strong> — credit at cycle tights</li>
+</ul>
+<h3>Market-Impact Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis]</em></p>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary class="section-head">
+        <span class="section-title">II. Pillar Snapshot</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p><em>Auto-populated from the data store. See each pillar for full detail.</em></p>
+<table>
+<thead>
+<tr>
+<th>Pillar</th>
+<th>Status</th>
+<th>Headline Readings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1<br>Labor</td>
+<td>cooling not breaking</td>
+<td>• Sahm 0.33<br>• Claims (see table)<br>• U3 (see table)</td>
+</tr>
+<tr>
+<td>2<br>Momentum</td>
+<td>data-dependent</td>
+<td>• 2s10s +46bp<br>• Housing (see table)</td>
+</tr>
+<tr>
+<td>3<br>Liquidity</td>
+<td>see table</td>
+<td>• NFCI -0.51<br>• M2 YoY +4.7%<br>• Fed BS $6.70T</td>
+</tr>
+<tr>
+<td>4<br>Inflation</td>
+<td>see table</td>
+<td>• CPI 3.8%<br>• Core CPI 2.7%<br>• WTI $97.63</td>
+</tr>
+<tr>
+<td>5<br>Sentiment</td>
+<td>live-feed pending</td>
+<td>• VIX 15.74<br><em>(BofA B&amp;B, NAAIM, 13F = manual / future fetchers)</em></td>
+</tr>
+<tr>
+<td>6<br>Val &amp; Credit</td>
+<td>credit-driven</td>
+<td>• HY OAS 2.72%<br>• CCC OAS 9.35%<br><em>(CAPE, FwdPE = manual)</em></td>
+</tr>
+<tr>
+<td>7<br>Global</td>
+<td>see table</td>
+<td>• DXY 119.29<br>• 10Y 4.45%</td>
+</tr>
+<tr>
+<td>8<br>Sovereign</td>
+<td>structural watch</td>
+<td>• Debt/GDP (see table)<br>• R vs G (see Pillar 8)</td>
+</tr>
+<tr>
+<td>9<br>Banking</td>
+<td>private credit watch</td>
+<td><em>(SLOOS, private credit = manual / future fetchers)</em></td>
+</tr>
+<tr>
+<td>10<br>Commentary</td>
+<td>manual / desk roster</td>
+<td><em>(Pillar 10 commentary is manual or fetcher-driven)</em></td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 1 — Labor Market Vitality</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nonfarm payrolls, total</td>
+<td>158,736K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Unemployment rate (U-3)</td>
+<td>4.30%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Initial claims, 4-week avg</td>
+<td>209,000K</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Labor force participation rate</td>
+<td>61.80%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Employment-population ratio</td>
+<td>59.10%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Avg weekly hours, private</td>
+<td>34.30</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Unemployed 27+ weeks</td>
+<td>1,833K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Job openings, total (JOLTS)</td>
+<td>6,866K</td>
+<td>Mar 2026</td>
+</tr>
+<tr>
+<td>Hires level, total (JOLTS)</td>
+<td>5,554K</td>
+<td>Mar 2026</td>
+</tr>
+<tr>
+<td>Quits rate (JOLTS)</td>
+<td>2.00%</td>
+<td>Mar 2026</td>
+</tr>
+<tr>
+<td>Layoffs &amp; discharges (JOLTS)</td>
+<td>1,867K</td>
+<td>Mar 2026</td>
+</tr>
+<tr>
+<td><strong>Sahm Rule</strong> <em>(computed)</em></td>
+<td>0.33</td>
+<td>Apr 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 2 — Macroeconomic Momentum</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Real GDP</td>
+<td>24,152.7B</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>2-year Treasury yield</td>
+<td>3.99%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>10-year Treasury yield</td>
+<td>4.45%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>30-year Treasury yield</td>
+<td>4.98%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Housing starts, total</td>
+<td>1,465K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Housing starts, single-family</td>
+<td>930K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Building permits, total</td>
+<td>1,423K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Existing home sales</td>
+<td>4,020,000K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>New home sales, single-family</td>
+<td>622K</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>30-year mortgage rate</td>
+<td>6.53%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Avg hourly earnings, private</td>
+<td>$37.41</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Mortgage delinquency rate (1-4 family)</td>
+<td>1.89%</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>Credit card delinquency, 30+ days</td>
+<td>2.92%</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>Credit card charge-off rate</td>
+<td>3.84%</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>Auto loan delinquency, 30+ days</td>
+<td>1.49%</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>Household debt, total</td>
+<td>20,934,549.0B</td>
+<td>Oct 2025</td>
+</tr>
+<tr>
+<td><strong>Real GDP YoY</strong> <em>(computed)</em></td>
+<td>2.57%</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td><strong>Yield Curve 2s10s</strong> <em>(computed)</em></td>
+<td>+46 bp</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td><strong>Housing Starts YoY</strong> <em>(computed)</em></td>
+<td>4.64%</td>
+<td>Apr 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 3 — Systemic Liquidity</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fed balance sheet, total assets</td>
+<td>6,704,383M</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Overnight reverse repo</td>
+<td>11.7B</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Treasury General Account balance</td>
+<td>830,296.0B</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>M2 money stock</td>
+<td>22,804.5B</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Chicago Fed NFCI</td>
+<td>-0.51</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>NFCI leverage subindex</td>
+<td>0.36</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Bank reserves at Fed</td>
+<td>3,066,560.0B</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td><strong>M2 YoY Growth</strong> <em>(computed)</em></td>
+<td>4.72%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td><strong>Fed Net Liquidity (rough)</strong> <em>(computed)</em></td>
+<td>-823.60T</td>
+<td>May 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 4 — Inflation Dynamics</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPI, all items</td>
+<td>332.41</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Core CPI (ex food/energy)</td>
+<td>335.42</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>PCE price index</td>
+<td>130.90</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Core PCE</td>
+<td>129.63</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Sticky CPI, 1-mo annualized</td>
+<td>0.38%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Sticky Core CPI, 1-mo ann</td>
+<td>0.39%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>Flexible CPI, 1-mo ann</td>
+<td>1.36%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td>10-year breakeven inflation</td>
+<td>2.38%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>5y5y forward inflation expectation</td>
+<td>2.24%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>WTI crude oil</td>
+<td>$97.63</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Brent crude oil</td>
+<td>$102.75</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Natural gas, Henry Hub</td>
+<td>$3.10</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td><strong>Headline CPI YoY</strong> <em>(computed)</em></td>
+<td>3.78%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td><strong>Core CPI YoY</strong> <em>(computed)</em></td>
+<td>2.74%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td><strong>PCE YoY</strong> <em>(computed)</em></td>
+<td>3.77%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td><strong>Core PCE YoY</strong> <em>(computed)</em></td>
+<td>3.29%</td>
+<td>Apr 2026</td>
+</tr>
+<tr>
+<td><strong>Real Wages YoY</strong> <em>(computed)</em></td>
+<td>-0.21%</td>
+<td>Apr 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 5 — Investor Sentiment & Positioning</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VIX</td>
+<td>15.74</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>U Michigan consumer sentiment</td>
+<td>49.80</td>
+<td>Apr 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 6 — Valuation & Credit Spreads</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IG corporate OAS</td>
+<td>0.73%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>HY corporate OAS</td>
+<td>2.72%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>CCC &amp; lower OAS</td>
+<td>9.35%</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>BB OAS</td>
+<td>1.61%</td>
+<td>May 2026</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 7 — Global Interconnectivity</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dollar broad index (FRB)</td>
+<td>119.29</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>USD/EUR exchange rate</td>
+<td>$1.16</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>JPY/USD exchange rate</td>
+<td>159.20</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>CNY/USD exchange rate</td>
+<td>6.79</td>
+<td>May 2026</td>
+</tr>
+<tr>
+<td>Gold spot, London PM fix</td>
+<td><strong>B</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 8 — Sovereign Health & Debt Cycle</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Synthesis</h3>
+<p><em>[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar, matrix implication]</em></p>
+<h3>Data</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Latest</th>
+<th>As of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Federal debt held by public / GDP</td>
+<td>122.57%</td>
+<td>Oct 2025</td>
+</tr>
+<tr>
+<td>Federal outlays</td>
+<td>7,679.0B</td>
+<td>Jan 2026</td>
+</tr>
+<tr>
+<td>Goods &amp; services balance</td>
+<td>-60,307M</td>
+<td>Mar 2026</td>
+</tr>
+<tr>
+<td><strong>R (Core PCE basis)</strong> <em>(computed)</em></td>
+<td>1.16%</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>R (CPI basis)</strong> <em>(computed)</em></td>
+<td>0.67%</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>G (Real GDP YoY)</strong> <em>(computed)</em></td>
+<td>2.57%</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>R &gt; G regime</strong></td>
+<td>NO</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Changed Since Last Report:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated — compare to prior month's data]</em></li>
+</ul>
+<p><strong>Watch in Next 30 Days:</strong></p>
+<ul>
+<li><em>[manual or LLM-generated]</em></li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 9 — Banking System Health</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p><em>[Manual — SLOOS / private credit metrics, future fetcher]</em></p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">Pillar 10 — Commentary & Narrative Flow</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p><em>[Manual — desk roster + commentary, future fetcher]</em></p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">III. Macroeconomic Matrix — Outlook & Probabilities</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p><em>[Manual — scenarios and probabilities]</em></p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section">
+      <summary class="section-head">
+        <span class="section-title">IV. Appendix</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <h3>Appendix A — Coverage Summary</h3>
+<ul>
+<li>FRED series pulled: <strong>59 / 60</strong></li>
+<li>Failures:</li>
+<li><code>gold</code>: HTTP 400 from https://api.stlouisfed.org/fred/series/observations: {"error_code":400,"error_message":"Bad Request.  The </li>
+</ul>
+<h3>Appendix B — Production Pipeline Roadmap</h3>
+<ul>
+<li>Phase 1 (this version): FRED ingestion ✓</li>
+<li>Phase 2: market data (yfinance / IBKR / FlashAlpha)</li>
+<li>Phase 3: scrapers (BofA Flow Show, AAII, NAAIM, OpenInsider)</li>
+<li>Phase 4: 13F fetcher (SEC EDGAR)</li>
+<li>Phase 5: commentary engine + narrative LLM step</li>
+<li>Phase 6: monthly orchestration + email delivery</li>
+</ul>
+<h3>Appendix C — Illustrative Options-Trade Expressions</h3>
+<p><em>[Manual section — preserved from prior reports; refresh when narrative is added]</em></p>
+<p><em>End of Monthly Macro Report — pipeline v1 (FRED-only).</em></p>
+      </div>
+    </details>
+
+  <footer>Generated as a standalone HTML artifact — tap section headers to expand/collapse</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function(t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+document.getElementById('expandAll').addEventListener('click', function() {
+  document.querySelectorAll('details.section').forEach(function(d) { d.open = true; });
+});
+document.getElementById('collapseAll').addEventListener('click', function() {
+  document.querySelectorAll('details.section').forEach(function(d) { d.open = false; });
+});
+</script>
+</body>
+</html>
