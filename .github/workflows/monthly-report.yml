@@ -4,13 +4,11 @@ name: Monthly Macro Report
 
 on:
   schedule:
-    # https://crontab.guru/#0_6_1_*_*
-     - cron: "10 23 * * *"  # TEMP TEST 4 — fires at 23:10 UTC (7:10 PM ET); revert after
-  workflow_dispatch:      # enables the manual "Run workflow" button
+    - cron: "10 23 * * *"  # TEMP TEST 4 — fires at 23:10 UTC (7:10 PM ET); revert after test confirms
+  workflow_dispatch:
 
-# Allow the action to push back to the repo
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-report:
@@ -37,21 +35,11 @@ jobs:
           ALTDATA_STORE: data_store
         run: python -m monthly_macro.run --verbose
 
-      - name: Upload HTML as run artifact
+      - name: Upload report files as run artifact
         uses: actions/upload-artifact@v5
         with:
           name: monthly-macro-report
-          path: reports/*.html
+          path: |
+            reports/*.md
+            reports/*.html
           retention-days: 90
-
-      - name: Commit data store and report back to repo
-        run: |
-          git config user.name  "monthly-macro-bot"
-          git config user.email "bot@users.noreply.github.com"
-          git add data_store reports
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Monthly Macro Report — $(date -u +%Y-%m-%d)"
-            git push
-          fi
