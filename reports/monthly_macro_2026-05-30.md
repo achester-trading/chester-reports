@@ -1,7 +1,7 @@
 # Monthly Macro Report
 
 **Date:** Saturday, May 30, 2026
-**Generated:** 2026-05-30 20:34 UTC
+**Generated:** 2026-05-30 20:39 UTC
 **Pipeline version:** v1 (FRED-only)
 
 ---
@@ -261,7 +261,6 @@ or by a downstream LLM step before publication.
 | USD/EUR exchange rate | $1.16 | May 2026 |
 | JPY/USD exchange rate | 159.20 | May 2026 |
 | CNY/USD exchange rate | 6.79 | May 2026 |
-| Gold spot, London PM fix | **B** |  |
 
 **What Changed Since Last Report:**
 
@@ -325,9 +324,8 @@ or by a downstream LLM step before publication.
 
 ### Appendix A — Coverage Summary
 
-- FRED series pulled: **59 / 60**
-- Failures:
-  - `gold`: HTTP 400 from https://api.stlouisfed.org/fred/series/observations: {"error_code":400,"error_message":"Bad Request.  The 
+- FRED series pulled: **59 / 59**
+- No failures.
 
 ### Appendix B — Production Pipeline Roadmap
 
