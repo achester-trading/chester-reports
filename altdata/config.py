@@ -102,8 +102,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("usd_eur",          "DEXUSEU",    "USD/EUR exchange rate",           "7", "$",    "daily"),
     SeriesSpec("usd_jpy",          "DEXJPUS",    "JPY/USD exchange rate",           "7", "JPY",  "daily"),
     SeriesSpec("usd_cny",          "DEXCHUS",    "CNY/USD exchange rate",           "7", "CNY",  "daily"),
-    SeriesSpec("gold",             "GOLDPMGBD229NLBM","Gold spot, London PM fix",   "7", "$",    "daily"),
-
+    
     # Pillar 8 — Sovereign
     SeriesSpec("fed_debt_pct_gdp", "GFDEGDQ188S","Federal debt held by public / GDP","8","%",    "quarterly"),
     SeriesSpec("fed_outlays",      "FGEXPND",    "Federal outlays",                 "8", "B",    "quarterly"),
