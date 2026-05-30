@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Local environment files (contain secrets — never commit)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Test artifacts (we want to ship test_*.py source but not transient outputs)
+test_store/
+.pytest_cache/
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db
