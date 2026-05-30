@@ -1,2 +1,6 @@
-# chester-reports
-Macro report data pipeline and outputs
+"""monthly_macro — the Monthly Macro Report generator.
+
+Reads from altdata.store, computes derived metrics, and renders the report.
+"""
+
+__version__ = "1.0.0"
