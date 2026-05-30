@@ -1,7 +1,7 @@
 # Monthly Macro Report
 
 **Date:** Saturday, May 30, 2026
-**Generated:** 2026-05-30 20:26 UTC
+**Generated:** 2026-05-30 20:34 UTC
 **Pipeline version:** v1 (FRED-only)
 
 ---
