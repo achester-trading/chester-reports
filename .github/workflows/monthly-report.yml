@@ -1,14 +1,4 @@
 # Monthly Macro Report — automated generation
-#
-# Runs on the 1st of each month at 6 AM UTC, and on manual trigger from the
-# Actions tab. Pulls FRED data, generates Markdown + HTML reports, commits the
-# data store and reports back to the repo, and uploads the HTML as an artifact.
-#
-# Required secrets:
-#   FRED_API_KEY — set in repo Settings → Secrets and variables → Actions
-#
-# Manual trigger:
-#   GitHub UI → Actions → "Monthly Macro Report" → Run workflow
 
 name: Monthly Macro Report
 
