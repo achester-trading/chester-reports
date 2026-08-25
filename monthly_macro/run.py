@@ -77,6 +77,12 @@ def main():
             print("Check that FRED_API_KEY is set and valid.", file=sys.stderr)
             sys.exit(1)
 
+    # Tag FRED-only counts so the appendix can report sources separately.
+    fetch_summary["fred_total"] = fetch_summary["total"]
+    fetch_summary["fred_success"] = fetch_summary["success"]
+    fetch_summary.setdefault("mkt_total", 0)
+    fetch_summary.setdefault("mkt_success", 0)
+
     # ---- Phase 2: pull market data (yfinance) ----
     if not args.skip_fetch:
         try:
@@ -88,6 +94,8 @@ def main():
             fetch_summary["success"] += mkt_summary["success"]
             fetch_summary["failed"].extend(mkt_summary["failed"])
             fetch_summary["series"].update(mkt_summary["series"])
+            fetch_summary["mkt_total"] = mkt_summary["total"]
+            fetch_summary["mkt_success"] = mkt_summary["success"]
         except Exception:
             log.exception("yfinance fetch failed entirely; continuing with FRED data only")
 
