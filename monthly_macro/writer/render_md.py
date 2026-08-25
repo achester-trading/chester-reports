@@ -87,9 +87,10 @@ def render_masthead(report_date: dt.date) -> str:
 
 ## Pipeline Status
 
-This report is **data-populated** from the FRED API. Narrative synthesis
-sections are marked `[NARRATIVE PLACEHOLDER]` and should be added by hand
-or by a downstream LLM step before publication.
+This report is **data-populated** from the FRED API and yfinance market data,
+with narrative synthesis generated automatically by the Phase 5 Claude step.
+Any section still showing `[NARRATIVE PLACEHOLDER]` indicates that generation
+was skipped or failed for that section; see the note at the end of the report.
 
 """
 
@@ -260,7 +261,9 @@ def render_appendix(fetch_summary: dict) -> str:
     parts = [
         "## IV. Appendix\n",
         "### Appendix A — Coverage Summary\n",
-        f"- FRED series pulled: **{fetch_summary['success']} / {fetch_summary['total']}**",
+        f"- Data series pulled: **{fetch_summary['success']} / {fetch_summary['total']}**",
+        f"  - FRED macro series: {fetch_summary.get('fred_success', '—')} / {fetch_summary.get('fred_total', '—')}",
+        f"  - Market series (yfinance): {fetch_summary.get('mkt_success', '—')} / {fetch_summary.get('mkt_total', '—')}",
     ]
     if fetch_summary.get("failed"):
         parts.append("- Failures:")
@@ -270,12 +273,12 @@ def render_appendix(fetch_summary: dict) -> str:
         parts.append("- No failures.")
 
     parts.append("\n### Appendix B — Production Pipeline Roadmap\n")
-    parts.append("- Phase 1 (this version): FRED ingestion ✓")
-    parts.append("- Phase 2: market data (yfinance / IBKR / FlashAlpha)")
-    parts.append("- Phase 3: scrapers (BofA Flow Show, AAII, NAAIM, OpenInsider)")
-    parts.append("- Phase 4: 13F fetcher (SEC EDGAR)")
-    parts.append("- Phase 5: commentary engine + narrative LLM step")
-    parts.append("- Phase 6: monthly orchestration + email delivery")
+    parts.append("- Phase 1: FRED ingestion — **shipped** ✓")
+    parts.append("- Phase 2: market data via yfinance — **shipped** ✓ (IBKR / FlashAlpha future)")
+    parts.append("- Phase 3: scrapers (BofA Flow Show, AAII, NAAIM, OpenInsider) — planned")
+    parts.append("- Phase 4: 13F fetcher (SEC EDGAR) — planned")
+    parts.append("- Phase 5: narrative LLM step — **shipped** ✓ (commentary engine future)")
+    parts.append("- Phase 6: monthly orchestration — **shipped** ✓ via GitHub Actions (email delivery future)")
 
     parts.append("\n### Appendix C — Illustrative Options-Trade Expressions\n")
     parts.append("*[Manual section — preserved from prior reports; refresh when narrative is added]*\n")
