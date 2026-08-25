@@ -30,6 +30,7 @@ jobs:
       - name: Generate report
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ALTDATA_STORE: data_store
         run: python -m monthly_macro.run --verbose
 
