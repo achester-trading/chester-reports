@@ -5,3 +5,9 @@ requests>=2.31,<3.0       # HTTP for FRED and other APIs
 pandas>=2.0,<3.0          # Time-series data handling
 python-dateutil>=2.8,<3.0 # Date arithmetic
 markdown>=3.5,<4.0        # Markdown -> HTML conversion
+
+# Phase 2: market data (no API key required)
+yfinance>=0.2.40,<1.0
+
+# Phase 5: Claude narrative step
+anthropic>=0.40.0,<1.0
