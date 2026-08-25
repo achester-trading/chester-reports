@@ -20,8 +20,10 @@ from pathlib import Path
 
 from altdata.store import Store
 from altdata.sources import fred as fred_source
+from altdata.sources import yfinance_source
 from .writer.render_md import render_report
 from .writer.build_html import build_html
+from .narrative import add_narratives
 
 
 def setup_logging(verbose: bool = False):
@@ -39,6 +41,8 @@ def main():
                     help="Skip FRED fetch (use existing store)")
     ap.add_argument("--out-dir", default="reports",
                     help="Where to write the report files (default: reports/)")
+    ap.add_argument("--skip-narrative", action="store_true",
+                    help="Skip the Claude narrative step even if ANTHROPIC_API_KEY is set")
     ap.add_argument("--lookback-days", type=int, default=1500,
                     help="FRED history to pull, in days (default: 1500 ~= 4 years)")
     ap.add_argument("--verbose", "-v", action="store_true")
@@ -73,7 +77,21 @@ def main():
             print("Check that FRED_API_KEY is set and valid.", file=sys.stderr)
             sys.exit(1)
 
-    # ---- Phase 2: render markdown ----
+    # ---- Phase 2: pull market data (yfinance) ----
+    if not args.skip_fetch:
+        try:
+            mkt_summary = yfinance_source.pull(store)
+            log.info("yfinance fetch: %d/%d symbols succeeded",
+                     mkt_summary["success"], mkt_summary["total"])
+            # Merge into the FRED summary so the appendix reflects both.
+            fetch_summary["total"] += mkt_summary["total"]
+            fetch_summary["success"] += mkt_summary["success"]
+            fetch_summary["failed"].extend(mkt_summary["failed"])
+            fetch_summary["series"].update(mkt_summary["series"])
+        except Exception:
+            log.exception("yfinance fetch failed entirely; continuing with FRED data only")
+
+    # ---- Phase 3: render markdown ----
     report_date = dt.date.today()
     log.info("Rendering markdown report for %s", report_date)
     md = render_report(store, fetch_summary, report_date)
@@ -84,6 +102,20 @@ def main():
     md_path = out_dir / f"monthly_macro_{report_date.isoformat()}.md"
     md_path.write_text(md)
     log.info("Wrote markdown: %s (%d bytes)", md_path, len(md))
+
+    # ---- Phase 5: Claude narrative ----
+    if args.skip_narrative:
+        log.info("Narrative step skipped (--skip-narrative)")
+    else:
+        md_before = md
+        try:
+            md = add_narratives(md)
+        except Exception:
+            log.exception("Narrative step raised unexpectedly; using data-only report")
+            md = md_before
+        if md != md_before:
+            md_path.write_text(md)
+            log.info("Rewrote markdown with narratives: %s (%d bytes)", md_path, len(md))
 
     # ---- Phase 3: build HTML ----
     log.info("Building styled HTML")
