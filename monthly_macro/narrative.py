@@ -86,9 +86,23 @@ def _section_for(pos: int, sections: list[tuple[int, int, str]], full_md: str) -
 
 
 def _snapshot_context(md: str) -> str:
-    """Pull the Pillar Snapshot table (if present) as cross-pillar context."""
-    m = re.search(r"^## Pillar Snapshot.*?(?=^## )", md, re.MULTILINE | re.DOTALL)
-    return m.group(0) if m else ""
+    """Pull the Pillar Snapshot table (if present) as cross-pillar context.
+
+    The heading may carry a roman-numeral or numeric prefix (e.g.
+    "## II. Pillar Snapshot"), so match on the phrase rather than the
+    start of the heading text. Falls back to an empty string only when
+    no snapshot section exists at all.
+    """
+    m = re.search(
+        r"^##[^\n]*Pillar Snapshot[^\n]*$.*?(?=^## )",
+        md,
+        re.MULTILINE | re.DOTALL,
+    )
+    if m:
+        return m.group(0)
+    log.warning("Pillar Snapshot section not found — narratives will lack "
+                "cross-pillar context and may wrongly report other pillars as empty")
+    return ""
 
 
 def _generate(client, model: str, hint: str, section_md: str, snapshot_md: str) -> str:
