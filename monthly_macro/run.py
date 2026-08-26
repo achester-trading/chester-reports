@@ -26,6 +26,7 @@ from .writer.build_html import build_html
 from .narrative import add_narratives
 from .snapshot import build_current, load_prior_snapshot, write_snapshot
 from altdata import config as altconfig
+from state.emit import emit
 
 
 def setup_logging(verbose: bool = False):
@@ -152,6 +153,33 @@ def main():
     html_path = out_dir / f"monthly_macro_{report_date.isoformat()}.html"
     html_path.write_text(html)
     log.info("Wrote HTML: %s (%d bytes)", html_path, len(html))
+
+    # ---- Emit state to the dashboard Worker (telemetry; never fatal) ----
+    try:
+        snap_series = change_ctx["current"]["series"] if change_ctx else {}
+        def _v(k):
+            e = snap_series.get(k) or {}
+            return e.get("value")
+        emit(
+            report_key="monthly_macro",
+            status="published",
+            headline=f"Monthly Macro {report_date.isoformat()} — "
+                     f"{fetch_summary['success']}/{fetch_summary['total']} series",
+            detail={
+                "series_ok": fetch_summary["success"],
+                "series_total": fetch_summary["total"],
+                "failures": [k for k, _ in fetch_summary.get("failed", [])],
+                "hy_oas": _v("hy_oas"),
+                "ccc_oas": _v("ccc_oas"),
+                "vix": _v("vix"),
+                "nfci": _v("nfci"),
+                "yield_10y": _v("yield_10y"),
+                "narrative": not args.skip_narrative,
+            },
+            as_of=report_date,
+        )
+    except Exception:
+        log.exception("State emission raised unexpectedly; report is unaffected")
 
     print(f"\n✅ Report generated:")
     print(f"   {md_path}")
