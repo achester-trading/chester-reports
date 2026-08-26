@@ -1,0 +1,420 @@
+{
+  "generated_at": "2026-05-30T20:39:46+00:00",
+  "note": "Backfilled from the May 30 2026 report to enable change detection.",
+  "report_date": "2026-05-30",
+  "series": {
+    "ahe_yoy": {
+      "date": "2026-04-01",
+      "description": "Avg hourly earnings, private",
+      "pillar": "2",
+      "units": "$",
+      "value": 37.41
+    },
+    "auto_delinq": {
+      "date": "2026-01-01",
+      "description": "Auto loan delinquency, 30+ days",
+      "pillar": "2",
+      "units": "%",
+      "value": 1.49
+    },
+    "avg_wkly_hours": {
+      "date": "2026-04-01",
+      "description": "Avg weekly hours, private",
+      "pillar": "1",
+      "units": "hrs",
+      "value": 34.3
+    },
+    "bank_reserves": {
+      "date": "2026-05-01",
+      "description": "Bank reserves at Fed",
+      "pillar": "3",
+      "units": "B",
+      "value": 3066560.0
+    },
+    "bb_oas": {
+      "date": "2026-05-01",
+      "description": "BB OAS",
+      "pillar": "6",
+      "units": "%",
+      "value": 1.61
+    },
+    "breakeven_10y": {
+      "date": "2026-05-01",
+      "description": "10-year breakeven inflation",
+      "pillar": "4",
+      "units": "%",
+      "value": 2.38
+    },
+    "breakeven_5y5y": {
+      "date": "2026-05-01",
+      "description": "5y5y forward inflation expectation",
+      "pillar": "4",
+      "units": "%",
+      "value": 2.24
+    },
+    "brent": {
+      "date": "2026-05-01",
+      "description": "Brent crude oil",
+      "pillar": "4",
+      "units": "$",
+      "value": 102.75
+    },
+    "cc_chargeoff": {
+      "date": "2026-01-01",
+      "description": "Credit card charge-off rate",
+      "pillar": "2",
+      "units": "%",
+      "value": 3.84
+    },
+    "cc_delinq_30": {
+      "date": "2026-01-01",
+      "description": "Credit card delinquency, 30+ days",
+      "pillar": "2",
+      "units": "%",
+      "value": 2.92
+    },
+    "ccc_oas": {
+      "date": "2026-05-01",
+      "description": "CCC & lower OAS",
+      "pillar": "6",
+      "units": "%",
+      "value": 9.35
+    },
+    "claims_4wk": {
+      "date": "2026-05-01",
+      "description": "Initial claims, 4-week avg",
+      "pillar": "1",
+      "units": "K",
+      "value": 209000.0
+    },
+    "core_cpi": {
+      "date": "2026-04-01",
+      "description": "Core CPI (ex food/energy)",
+      "pillar": "4",
+      "units": "idx",
+      "value": 335.42
+    },
+    "core_pce": {
+      "date": "2026-04-01",
+      "description": "Core PCE",
+      "pillar": "4",
+      "units": "idx",
+      "value": 129.63
+    },
+    "cpi": {
+      "date": "2026-04-01",
+      "description": "CPI, all items",
+      "pillar": "4",
+      "units": "idx",
+      "value": 332.41
+    },
+    "current_account": {
+      "date": "2026-03-01",
+      "description": "Goods & services balance",
+      "pillar": "8",
+      "units": "M",
+      "value": -60307.0
+    },
+    "dxy": {
+      "date": "2026-05-01",
+      "description": "Broad Dollar Index (DTWEXBGS, FRB)",
+      "pillar": "7",
+      "units": "idx",
+      "value": 119.29
+    },
+    "emp_pop_ratio": {
+      "date": "2026-04-01",
+      "description": "Employment-population ratio",
+      "pillar": "1",
+      "units": "%",
+      "value": 59.1
+    },
+    "existing_homes": {
+      "date": "2026-04-01",
+      "description": "Existing home sales",
+      "pillar": "2",
+      "units": "K",
+      "value": 4020000.0
+    },
+    "fed_balance": {
+      "date": "2026-05-01",
+      "description": "Fed balance sheet, total assets",
+      "pillar": "3",
+      "units": "M",
+      "value": 6704383.0
+    },
+    "fed_debt_pct_gdp": {
+      "date": "2025-10-01",
+      "description": "Federal debt held by public / GDP",
+      "pillar": "8",
+      "units": "%",
+      "value": 122.57
+    },
+    "fed_outlays": {
+      "date": "2026-01-01",
+      "description": "Federal outlays",
+      "pillar": "8",
+      "units": "B",
+      "value": 7679.0
+    },
+    "flex_cpi": {
+      "date": "2026-04-01",
+      "description": "Flexible CPI, 1-mo ann",
+      "pillar": "4",
+      "units": "%",
+      "value": 1.36
+    },
+    "hires_total": {
+      "date": "2026-03-01",
+      "description": "Hires level, total (JOLTS)",
+      "pillar": "1",
+      "units": "K",
+      "value": 5554.0
+    },
+    "housing_permits": {
+      "date": "2026-04-01",
+      "description": "Building permits, total",
+      "pillar": "2",
+      "units": "K",
+      "value": 1423.0
+    },
+    "housing_starts": {
+      "date": "2026-04-01",
+      "description": "Housing starts, total",
+      "pillar": "2",
+      "units": "K",
+      "value": 1465.0
+    },
+    "housing_starts_sf": {
+      "date": "2026-04-01",
+      "description": "Housing starts, single-family",
+      "pillar": "2",
+      "units": "K",
+      "value": 930.0
+    },
+    "hy_oas": {
+      "date": "2026-05-01",
+      "description": "HY corporate OAS",
+      "pillar": "6",
+      "units": "%",
+      "value": 2.72
+    },
+    "ig_oas": {
+      "date": "2026-05-01",
+      "description": "IG corporate OAS",
+      "pillar": "6",
+      "units": "%",
+      "value": 0.73
+    },
+    "job_openings": {
+      "date": "2026-03-01",
+      "description": "Job openings, total (JOLTS)",
+      "pillar": "1",
+      "units": "K",
+      "value": 6866.0
+    },
+    "layoffs": {
+      "date": "2026-03-01",
+      "description": "Layoffs & discharges (JOLTS)",
+      "pillar": "1",
+      "units": "K",
+      "value": 1867.0
+    },
+    "lfp_rate": {
+      "date": "2026-04-01",
+      "description": "Labor force participation rate",
+      "pillar": "1",
+      "units": "%",
+      "value": 61.8
+    },
+    "lt_unemp": {
+      "date": "2026-04-01",
+      "description": "Unemployed 27+ weeks",
+      "pillar": "1",
+      "units": "K",
+      "value": 1833.0
+    },
+    "m2": {
+      "date": "2026-04-01",
+      "description": "M2 money stock",
+      "pillar": "3",
+      "units": "B",
+      "value": 22804.5
+    },
+    "mortgage_30y": {
+      "date": "2026-05-01",
+      "description": "30-year mortgage rate",
+      "pillar": "2",
+      "units": "%",
+      "value": 6.53
+    },
+    "mortgage_delinq": {
+      "date": "2026-01-01",
+      "description": "Mortgage delinquency rate (1-4 family)",
+      "pillar": "2",
+      "units": "%",
+      "value": 1.89
+    },
+    "natgas": {
+      "date": "2026-05-01",
+      "description": "Natural gas, Henry Hub",
+      "pillar": "4",
+      "units": "$",
+      "value": 3.1
+    },
+    "new_homes": {
+      "date": "2026-04-01",
+      "description": "New home sales, single-family",
+      "pillar": "2",
+      "units": "K",
+      "value": 622.0
+    },
+    "nfci": {
+      "date": "2026-05-01",
+      "description": "Chicago Fed NFCI",
+      "pillar": "3",
+      "units": "idx",
+      "value": -0.51
+    },
+    "nfci_lev": {
+      "date": "2026-05-01",
+      "description": "NFCI leverage subindex",
+      "pillar": "3",
+      "units": "idx",
+      "value": 0.36
+    },
+    "nfp": {
+      "date": "2026-04-01",
+      "description": "Nonfarm payrolls, total",
+      "pillar": "1",
+      "units": "K",
+      "value": 158736.0
+    },
+    "pce": {
+      "date": "2026-04-01",
+      "description": "PCE price index",
+      "pillar": "4",
+      "units": "idx",
+      "value": 130.9
+    },
+    "quits_rate": {
+      "date": "2026-03-01",
+      "description": "Quits rate (JOLTS)",
+      "pillar": "1",
+      "units": "%",
+      "value": 2.0
+    },
+    "real_gdp": {
+      "date": "2026-01-01",
+      "description": "Real GDP",
+      "pillar": "2",
+      "units": "B",
+      "value": 24152.7
+    },
+    "rrp": {
+      "date": "2026-05-01",
+      "description": "Overnight reverse repo",
+      "pillar": "3",
+      "units": "B",
+      "value": 11.7
+    },
+    "sticky_core": {
+      "date": "2026-04-01",
+      "description": "Sticky Core CPI, 1-mo ann",
+      "pillar": "4",
+      "units": "%",
+      "value": 0.39
+    },
+    "sticky_cpi": {
+      "date": "2026-04-01",
+      "description": "Sticky CPI, 1-mo annualized",
+      "pillar": "4",
+      "units": "%",
+      "value": 0.38
+    },
+    "tga": {
+      "date": "2026-05-01",
+      "description": "Treasury General Account balance",
+      "pillar": "3",
+      "units": "B",
+      "value": 830296.0
+    },
+    "total_hh_debt": {
+      "date": "2025-10-01",
+      "description": "Household debt, total",
+      "pillar": "2",
+      "units": "B",
+      "value": 20934549.0
+    },
+    "u3_rate": {
+      "date": "2026-04-01",
+      "description": "Unemployment rate (U-3)",
+      "pillar": "1",
+      "units": "%",
+      "value": 4.3
+    },
+    "uoM_sent": {
+      "date": "2026-04-01",
+      "description": "U Michigan consumer sentiment",
+      "pillar": "5",
+      "units": "idx",
+      "value": 49.8
+    },
+    "usd_cny": {
+      "date": "2026-05-01",
+      "description": "CNY/USD exchange rate",
+      "pillar": "7",
+      "units": "CNY",
+      "value": 6.79
+    },
+    "usd_eur": {
+      "date": "2026-05-01",
+      "description": "USD/EUR exchange rate",
+      "pillar": "7",
+      "units": "$",
+      "value": 1.16
+    },
+    "usd_jpy": {
+      "date": "2026-05-01",
+      "description": "JPY/USD exchange rate",
+      "pillar": "7",
+      "units": "JPY",
+      "value": 159.2
+    },
+    "vix": {
+      "date": "2026-05-01",
+      "description": "VIX",
+      "pillar": "5",
+      "units": "idx",
+      "value": 15.74
+    },
+    "wti": {
+      "date": "2026-05-01",
+      "description": "WTI crude oil",
+      "pillar": "4",
+      "units": "$",
+      "value": 97.63
+    },
+    "yield_10y": {
+      "date": "2026-05-01",
+      "description": "10-year Treasury yield",
+      "pillar": "2",
+      "units": "%",
+      "value": 4.45
+    },
+    "yield_2y": {
+      "date": "2026-05-01",
+      "description": "2-year Treasury yield",
+      "pillar": "2",
+      "units": "%",
+      "value": 3.99
+    },
+    "yield_30y": {
+      "date": "2026-05-01",
+      "description": "30-year Treasury yield",
+      "pillar": "2",
+      "units": "%",
+      "value": 4.98
+    }
+  }
+}
