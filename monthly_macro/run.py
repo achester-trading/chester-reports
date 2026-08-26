@@ -24,6 +24,8 @@ from altdata.sources import yfinance_source
 from .writer.render_md import render_report
 from .writer.build_html import build_html
 from .narrative import add_narratives
+from .snapshot import build_current, load_prior_snapshot, write_snapshot
+from altdata import config as altconfig
 
 
 def setup_logging(verbose: bool = False):
@@ -99,10 +101,23 @@ def main():
         except Exception:
             log.exception("yfinance fetch failed entirely; continuing with FRED data only")
 
-    # ---- Phase 3: render markdown ----
+    # ---- Snapshot memory: compare against the last run before rendering ----
     report_date = dt.date.today()
+    try:
+        current_snap = build_current(store, altconfig.FRED_SERIES)
+        prior_snap = load_prior_snapshot(report_date)
+        change_ctx = {"current": current_snap, "prior": prior_snap}
+        if prior_snap:
+            log.info("Change detection active vs %s", prior_snap.get("report_date"))
+        else:
+            log.info("No prior snapshot — baseline run, change lines will say so")
+    except Exception:
+        log.exception("Snapshot comparison failed; rendering without change lines")
+        change_ctx = None
+
+    # ---- Phase 3: render markdown ----
     log.info("Rendering markdown report for %s", report_date)
-    md = render_report(store, fetch_summary, report_date)
+    md = render_report(store, fetch_summary, report_date, change_ctx=change_ctx)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -110,6 +125,12 @@ def main():
     md_path = out_dir / f"monthly_macro_{report_date.isoformat()}.md"
     md_path.write_text(md)
     log.info("Wrote markdown: %s (%d bytes)", md_path, len(md))
+
+    # ---- Persist this run's snapshot for next month's comparison ----
+    try:
+        write_snapshot(store, report_date, altconfig.FRED_SERIES)
+    except Exception:
+        log.exception("Could not write snapshot; next run will lack a comparison point")
 
     # ---- Phase 5: Claude narrative ----
     if args.skip_narrative:
