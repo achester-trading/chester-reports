@@ -98,7 +98,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("bb_oas",           "BAMLH0A1HYBB","BB OAS",                         "6", "%",    "daily"),
 
     # Pillar 7 — Global / FX
-    SeriesSpec("dxy",              "DTWEXBGS",   "Dollar broad index (FRB)",        "7", "idx",  "daily"),
+    SeriesSpec("dxy",              "DTWEXBGS",   "Broad Dollar Index (DTWEXBGS, FRB)",        "7", "idx",  "daily"),
     SeriesSpec("usd_eur",          "DEXUSEU",    "USD/EUR exchange rate",           "7", "$",    "daily"),
     SeriesSpec("usd_jpy",          "DEXJPUS",    "JPY/USD exchange rate",           "7", "JPY",  "daily"),
     SeriesSpec("usd_cny",          "DEXCHUS",    "CNY/USD exchange rate",           "7", "CNY",  "daily"),
