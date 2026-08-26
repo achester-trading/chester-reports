@@ -16,6 +16,10 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v5
+        with:
+          # Full history so a rebase can replay cleanly if the remote moved
+          # ahead while this run was in flight.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -33,20 +37,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ALTDATA_STORE: data_store
           SNAPSHOT_DIR: snapshots
+          CHESTER_STATE_URL: ${{ secrets.CHESTER_STATE_URL }}
+          CHESTER_STATE_TOKEN: ${{ secrets.CHESTER_STATE_TOKEN }}
         run: python -m monthly_macro.run --verbose
 
-      - name: Commit run snapshot
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add snapshots/
-          if git diff --staged --quiet; then
-            echo "No snapshot changes to commit."
-          else
-            git commit -m "Snapshot: monthly macro run $(date -u +%Y-%m-%d)"
-            git push
-          fi
-
+      # Upload BEFORE the commit step. The report is the product; a git
+      # problem must never cost you the artifact.
       - name: Upload report files as run artifact
         uses: actions/upload-artifact@v5
         with:
@@ -55,3 +51,31 @@ jobs:
             reports/*.md
             reports/*.html
           retention-days: 90
+
+      # Snapshot persistence is best-effort. If someone commits to main while
+      # this run is in flight, rebase and retry rather than failing the run.
+      - name: Commit run snapshot
+        continue-on-error: true
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add snapshots/
+          if git diff --staged --quiet; then
+            echo "No snapshot changes to commit."
+            exit 0
+          fi
+          git commit -m "Snapshot: monthly macro run $(date -u +%Y-%m-%d)"
+          for attempt in 1 2 3; do
+            echo "Push attempt $attempt..."
+            if git push; then
+              echo "Snapshot pushed."
+              exit 0
+            fi
+            echo "Push rejected — rebasing onto remote and retrying."
+            git pull --rebase --autostash origin main || {
+              echo "Rebase failed; leaving remote untouched."
+              exit 0
+            }
+          done
+          echo "Could not push snapshot after 3 attempts. Report is unaffected;"
+          echo "next run will write a fresh snapshot."
