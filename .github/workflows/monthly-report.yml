@@ -6,7 +6,7 @@ on:
    workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # required to commit the run snapshot back to the repo
 
 jobs:
   build-report:
@@ -32,7 +32,20 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ALTDATA_STORE: data_store
+          SNAPSHOT_DIR: snapshots
         run: python -m monthly_macro.run --verbose
+
+      - name: Commit run snapshot
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add snapshots/
+          if git diff --staged --quiet; then
+            echo "No snapshot changes to commit."
+          else
+            git commit -m "Snapshot: monthly macro run $(date -u +%Y-%m-%d)"
+            git push
+          fi
 
       - name: Upload report files as run artifact
         uses: actions/upload-artifact@v5
