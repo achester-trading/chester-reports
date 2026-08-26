@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_MODEL = os.environ.get("NARRATIVE_MODEL", "claude-opus-4-8")
 MAX_TOKENS_PER_CALL = 1200
-MAX_CALLS = 25  # cost guard; report currently has ~14 placeholders
+MAX_CALLS = 30  # cost guard; report currently has 18 placeholders (10 synthesis + 8 watch)
 
 # Matches the exact marker style render_md.py emits, e.g.:
 #   *[NARRATIVE PLACEHOLDER — 4-paragraph synthesis]*
