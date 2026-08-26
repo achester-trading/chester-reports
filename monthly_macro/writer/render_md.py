@@ -194,7 +194,8 @@ def render_pillar_snapshot(store: Store, derived: dict) -> str:
     return "\n".join(out) + "\n\n---\n"
 
 
-def render_pillar(pillar_num: str, title: str, store: Store, derived: dict) -> str:
+def render_pillar(pillar_num: str, title: str, store: Store, derived: dict,
+                  change_ctx: Optional[dict] = None) -> str:
     """Generic pillar renderer: synthesis placeholder, then full data table for
     every series mapped to this pillar."""
     parts = [
@@ -250,9 +251,16 @@ def render_pillar(pillar_num: str, title: str, store: Store, derived: dict) -> s
             parts.append(f"| **R > G regime** | {flag_str} | |")
 
     parts.append("\n**What Changed Since Last Report:**\n")
-    parts.append("- *[manual or LLM-generated — compare to prior month's data]*\n")
+    if change_ctx:
+        from ..snapshot import changes_for_pillar
+        parts.extend(changes_for_pillar(
+            pillar_num, change_ctx.get("current", {}), change_ctx.get("prior")))
+        parts.append("")
+    else:
+        parts.append("- *Snapshot comparison unavailable for this run.*\n")
     parts.append("\n**Watch in Next 30 Days:**\n")
-    parts.append("- *[manual or LLM-generated]*\n")
+    parts.append("*[NARRATIVE PLACEHOLDER — 2-3 forward-looking bullet points: "
+                 "which specific series to watch and what reading would change the pillar's read]*\n")
     return "\n".join(parts) + "\n---\n"
 
 
@@ -287,7 +295,8 @@ def render_appendix(fetch_summary: dict) -> str:
 
 # ---------------------------------------------------------------------------
 
-def render_report(store: Store, fetch_summary: dict, report_date: Optional[dt.date] = None) -> str:
+def render_report(store: Store, fetch_summary: dict, report_date: Optional[dt.date] = None,
+                  change_ctx: Optional[dict] = None) -> str:
     """Assemble the full Markdown report."""
     if report_date is None:
         report_date = dt.date.today()
@@ -298,14 +307,14 @@ def render_report(store: Store, fetch_summary: dict, report_date: Optional[dt.da
         render_masthead(report_date),
         render_executive_summary(store, derived),
         render_pillar_snapshot(store, derived),
-        render_pillar("1", "Labor Market Vitality", store, derived),
-        render_pillar("2", "Macroeconomic Momentum", store, derived),
-        render_pillar("3", "Systemic Liquidity", store, derived),
-        render_pillar("4", "Inflation Dynamics", store, derived),
-        render_pillar("5", "Investor Sentiment & Positioning", store, derived),
-        render_pillar("6", "Valuation & Credit Spreads", store, derived),
-        render_pillar("7", "Global Interconnectivity", store, derived),
-        render_pillar("8", "Sovereign Health & Debt Cycle", store, derived),
+        render_pillar("1", "Labor Market Vitality", store, derived, change_ctx),
+        render_pillar("2", "Macroeconomic Momentum", store, derived, change_ctx),
+        render_pillar("3", "Systemic Liquidity", store, derived, change_ctx),
+        render_pillar("4", "Inflation Dynamics", store, derived, change_ctx),
+        render_pillar("5", "Investor Sentiment & Positioning", store, derived, change_ctx),
+        render_pillar("6", "Valuation & Credit Spreads", store, derived, change_ctx),
+        render_pillar("7", "Global Interconnectivity", store, derived, change_ctx),
+        render_pillar("8", "Sovereign Health & Debt Cycle", store, derived, change_ctx),
         "## Pillar 9 — Banking System Health\n\n*[Manual — SLOOS / private credit metrics, future fetcher]*\n\n---\n",
         "## Pillar 10 — Commentary & Narrative Flow\n\n*[Manual — desk roster + commentary, future fetcher]*\n\n---\n",
         "## III. Macroeconomic Matrix — Outlook & Probabilities\n\n*[Manual — scenarios and probabilities]*\n\n---\n",
