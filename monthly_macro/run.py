@@ -28,6 +28,11 @@ from .snapshot import build_current, load_prior_snapshot, write_snapshot
 from altdata import config as altconfig
 from state.emit import emit
 
+# Windows consoles default to cp1252, which cannot encode the check marks
+# the report and the summary print use. Force UTF-8 on stdout.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 
 def setup_logging(verbose: bool = False):
     level = logging.DEBUG if verbose else logging.INFO
@@ -124,7 +129,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     md_path = out_dir / f"monthly_macro_{report_date.isoformat()}.md"
-    md_path.write_text(md)
+    md_path.write_text(md, encoding="utf-8")
     log.info("Wrote markdown: %s (%d bytes)", md_path, len(md))
 
     # ---- Persist this run's snapshot for next month's comparison ----
@@ -144,14 +149,14 @@ def main():
             log.exception("Narrative step raised unexpectedly; using data-only report")
             md = md_before
         if md != md_before:
-            md_path.write_text(md)
+            md_path.write_text(md, encoding="utf-8")
             log.info("Rewrote markdown with narratives: %s (%d bytes)", md_path, len(md))
 
     # ---- Phase 3: build HTML ----
     log.info("Building styled HTML")
     html = build_html(md)
     html_path = out_dir / f"monthly_macro_{report_date.isoformat()}.html"
-    html_path.write_text(html)
+    html_path.write_text(html, encoding="utf-8")
     log.info("Wrote HTML: %s (%d bytes)", html_path, len(html))
 
     # ---- Emit state to the dashboard Worker (telemetry; never fatal) ----
