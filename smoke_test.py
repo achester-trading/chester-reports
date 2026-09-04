@@ -12,6 +12,11 @@ import shutil
 import tempfile
 import traceback
 
+# Windows consoles default to cp1252, which cannot encode the check marks
+# and box-drawing characters the report uses. Force UTF-8 on stdout.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # Make sure we use a temp store
 TMP_STORE = tempfile.mkdtemp(prefix="smoketest_store_")
 os.environ["ALTDATA_STORE"] = TMP_STORE
@@ -87,12 +92,12 @@ def main():
         print(f"  Tables: {html.count('<table>')}")
 
         # Write to a temp output for inspection
-        outdir = "/tmp/smoke_out"
+        outdir = os.path.join(tempfile.gettempdir(), "smoke_out")
         os.makedirs(outdir, exist_ok=True)
         md_path = os.path.join(outdir, "smoke.md")
         html_path = os.path.join(outdir, "smoke.html")
-        open(md_path, "w").write(md)
-        open(html_path, "w").write(html)
+        open(md_path, "w", encoding="utf-8").write(md)
+        open(html_path, "w", encoding="utf-8").write(html)
         print(f"Outputs: {md_path}, {html_path}")
         print("\n✅ SMOKE TEST PASSED")
 

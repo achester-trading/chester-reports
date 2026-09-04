@@ -80,13 +80,18 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 
 ### Known cleanup
 
-Three strays exist as of this commit, documented so they are not mistaken for
-structure: `README.md` holds a Python module docstring rather than a readme;
-`compute.py` at the repo root is a one-line file carrying
-`altdata/sources/__init__.py`'s docstring (the real one is
-`monthly_macro/compute.py`); and `.github/workflows/monthly_macro/__init__.py`
-is a misplaced copy of the `monthly_macro` package docstring. `smoke_test.py`
-also writes its inspection output to `/tmp/smoke_out`, which fails on Windows.
+Resolved: the root-level `compute.py` (a misplaced copy of
+`altdata/sources/__init__.py`'s docstring) and
+`.github/workflows/monthly_macro/__init__.py` were deleted, the package
+docstring they carried now lives in `monthly_macro/__init__.py`, `README.md` is
+a real readme, and `smoke_test.py` writes to `tempfile.gettempdir()` with
+explicit UTF-8 so it runs on Windows.
+
+Still open: `.github/workflows/.gitignore` duplicates coverage the root
+`.gitignore` already provides. And `monthly_macro/run.py` has the Windows
+encoding bug `smoke_test.py` just shed — `Path.write_text()` and the closing
+`print` both assume a UTF-8 default, so a local run on Windows will fail on the
+report's check marks. CI is Linux, so this only bites locally.
 
 ## Standing rules
 
