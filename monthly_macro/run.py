@@ -29,9 +29,11 @@ from altdata import config as altconfig
 from state.emit import emit
 
 # Windows consoles default to cp1252, which cannot encode the check marks
-# the report and the summary print use. Force UTF-8 on stdout.
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# the report prints or the em-dashes the log lines use. Force UTF-8 on
+# both streams (logging writes to stderr).
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 def setup_logging(verbose: bool = False):
