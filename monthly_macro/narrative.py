@@ -12,7 +12,7 @@ Architecture decisions:
    cross-pillar awareness. Higher quality than one mega-prompt.
 
 2. **Opus for the monthly.** Model comes from $NARRATIVE_MODEL, defaulting to
-   claude-opus-4-8 — monthly cadence means the cost delta is trivial and the
+   claude-opus-5 — monthly cadence means the cost delta is trivial and the
    synthesis quality matters. (The daily pathway, when built, uses Sonnet.)
 
 3. **Graceful degradation, three layers:**
@@ -33,7 +33,7 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MODEL = os.environ.get("NARRATIVE_MODEL", "claude-opus-4-8")
+DEFAULT_MODEL = os.environ.get("NARRATIVE_MODEL", "claude-opus-5")
 MAX_TOKENS_PER_CALL = 1200
 MAX_CALLS = 30  # cost guard; report currently has 18 placeholders (10 synthesis + 8 watch)
 
