@@ -13,6 +13,7 @@ Adding a metric? Add an entry here. Everything else picks it up automatically.
 """
 
 from __future__ import annotations
+import os
 from dataclasses import dataclass
 
 
@@ -175,3 +176,12 @@ CONVENTION_CAVEAT: str = (
 CHAIN_DIR: str = "data/chains"
 COMPUTED_DIR: str = "data/computed"
 PIN_LOG_PATH: str = "data/pin_log.csv"
+
+# Off-box backup for the raw chains. They are the one asset in this system
+# that cannot be re-fetched -- yfinance serves no history -- so every run
+# copies the day's chains somewhere that is not this laptop.
+# Env-overridable so the VPS can retarget it without a code edit.
+BACKUP_DIR: str = os.environ.get(
+    "CHESTER_BACKUP_DIR",
+    "C:/Users/arich/OneDrive/chester-reports/chains",
+)

@@ -28,9 +28,10 @@ with r from config.RISK_FREE_RATE. If a future vendor supplies gamma directly,
 a `gamma` column in the chain is used as-is and gamma_source records which path
 each row took -- no code change needed when the tier changes.
 
-PRIMARY SERIES. `dollar_gamma_per_1pct` is the headline number: the dollar
-change in dealer delta for a 1% move in spot, i.e. GEX_strike x spot x 0.01.
-Net GEX is reported alongside it in the units of the formula above.
+PRIMARY SERIES. `shares_per_1pct` is the stored primary -- the change in dealer
+delta, in shares, for a 1% move in spot. `dollar_gamma_per_1pct` is derived from
+it (shares x spot) rather than computed independently, so the two cannot drift,
+and raw notional (`net_gex`) is kept as the underlying quantity.
 
 Usage:
     python tools/gex_compute.py                    # newest snapshot, all symbols
@@ -254,6 +255,47 @@ def max_pain(rows: list[dict]) -> Optional[float]:
     return best_s
 
 
+def dominant_bucket_at_strike(rows: list[dict], spot: float,
+                              strike: Optional[float]) -> Optional[str]:
+    """Which expiry bucket contributes most |GEX| at one strike.
+
+    The architecture wants the pin rate segmented by expiry type. A symbol-level
+    bucket share does not answer that: what matters is which expiry is actually
+    driving the level being scored. So the reference strike is classified by the
+    expiry that dominates it, not by the book as a whole.
+    """
+    if strike is None:
+        return None
+    totals: dict[str, float] = defaultdict(float)
+    for r in rows:
+        if r.get("strike") != strike:
+            continue
+        g, oi = r.get("gamma"), r.get("open_interest") or 0.0
+        if g is None or oi <= 0:
+            continue
+        totals[bucket_for(r["expiry"], r.get("dte") or 0)] += abs(g * oi * 100.0 * spot)
+    return max(totals, key=totals.__getitem__) if totals else None
+
+
+def dominant_bucket_by_oi(rows: list[dict], strike: Optional[float]) -> Optional[str]:
+    """Which expiry bucket holds most OI at one strike.
+
+    Max pain is an OI-weighted payout minimum, not a gamma construct, so its
+    reference strike is classified by open interest rather than by |GEX|.
+    """
+    if strike is None:
+        return None
+    totals: dict[str, float] = defaultdict(float)
+    for r in rows:
+        if r.get("strike") != strike:
+            continue
+        oi = r.get("open_interest") or 0.0
+        if oi <= 0:
+            continue
+        totals[bucket_for(r["expiry"], r.get("dte") or 0)] += oi
+    return max(totals, key=totals.__getitem__) if totals else None
+
+
 def _profile(rows: list[dict], spot: float) -> dict:
     """Aggregate per-strike GEX and the levels derived from it."""
     by_strike: dict[float, float] = defaultdict(float)
@@ -273,17 +315,23 @@ def _profile(rows: list[dict], spot: float) -> dict:
             put_gex[k] += notional
 
     if not by_strike:
-        return {"net_gex": None, "dollar_gamma_per_1pct": None,
+        return {"net_gex": None, "shares_per_1pct": None,
+                "dollar_gamma_per_1pct": None,
                 "gamma_flip": None, "call_wall": None, "put_wall": None,
                 "strikes": 0}
 
     pairs = sorted(by_strike.items())
     net = sum(v for _, v in pairs)
+    # Architecture: store shares and dollars per 1% move, and treat raw notional
+    # as derived. shares_per_1pct is the primary quantity; the dollar figure is
+    # computed from it rather than independently, so the two cannot drift.
+    shares_1pct = net * 0.01
     positives = [(k, v) for k, v in pairs if v > 0]
     negatives = [(k, v) for k, v in pairs if v < 0]
     return {
         "net_gex": net,
-        "dollar_gamma_per_1pct": net * spot * 0.01,
+        "shares_per_1pct": shares_1pct,
+        "dollar_gamma_per_1pct": shares_1pct * spot,
         "gamma_flip_cum_strikes": gamma_flip(pairs, spot),
         "gamma_flip_cum_all": gamma_flip_all(pairs),
         "call_wall": max(positives, key=lambda kv: kv[1])[0] if positives else None,
@@ -354,6 +402,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         p["expiries"] = sorted({r["expiry"] for r in brows})
         buckets[b] = p
 
+    mp = max_pain(usable)
     per_strike = overall.pop("per_strike", [])
     return {
         "symbol": symbol,
@@ -365,7 +414,12 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         "gamma_source": ("vendor" if quality["gamma_supplied"] else "computed_bs_from_iv"),
         "risk_free_rate": config.RISK_FREE_RATE,
         "overall": overall,
-        "max_pain": max_pain(usable),
+        "max_pain": mp,
+        # Expiry that dominates each reference level, so the pin rate can be
+        # segmented by expiry type as the architecture requires.
+        "expiry_type": dominant_bucket_at_strike(
+            usable, spot, overall.get("peak_abs_gex_strike")),
+        "max_pain_expiry_type": dominant_bucket_by_oi(usable, mp),
         "buckets": buckets,
         "quality": quality,
         "per_strike": per_strike,

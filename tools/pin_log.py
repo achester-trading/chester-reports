@@ -23,6 +23,16 @@ CLOSE PRICE. The EOD run takes its chain snapshot after the bell, so the spot
 carried on that snapshot is the close. `close_source` records which it was, so
 a mid-session run is never silently scored as an end-of-day result.
 
+EXPIRY TYPE. `expiry_type` classifies the peak-GEX reference strike by the
+expiry bucket contributing the most |GEX| *at that strike*; `max_pain_expiry_type`
+classifies the max-pain strike by the bucket holding the most OI there, since max
+pain is an OI construct rather than a gamma one. Symbol-level bucket shares do
+not answer this -- what matters is which expiry drives the level being scored.
+
+UNITS. `shares_per_1pct` is the stored primary (change in dealer delta, in
+shares, per 1% move); `dollar_gamma_per_1pct` is derived from it, and raw
+notional (`net_gex`) is kept as the underlying quantity.
+
 FORWARD COMPATIBILITY. The schema carries columns for data this tier cannot
 serve yet -- vendor OI, per-strike arrays, dealer polarity. They are written
 empty today and populate themselves when the tier changes, so no migration is
@@ -58,7 +68,8 @@ PIN_COLUMNS = [
     "call_wall", "call_wall_dist_bps", "call_wall_hit",
     "put_wall", "put_wall_dist_bps", "put_wall_hit",
     "gamma_flip", "flip_dist_bps", "spot_above_flip",
-    "net_gex", "dollar_gamma_per_1pct",
+    "expiry_type", "max_pain_expiry_type",
+    "net_gex", "shares_per_1pct", "dollar_gamma_per_1pct",
     "share_0dte", "share_weekly", "share_monthly", "share_quarterly",
     "convention_version", "gamma_source", "strikes_used", "rows_in",
     # --- reserved for a paid tier; empty today, no migration when they fill --
@@ -104,7 +115,13 @@ def row_for(computed: dict, close: Optional[float] = None,
         "flip_dist_bps": dist_bps(close, o.get("gamma_flip")),
         "spot_above_flip": (None if not (close and o.get("gamma_flip"))
                             else close > o["gamma_flip"]),
+        # Expiry that dominates each reference level -- lets the pin rate be
+        # segmented by expiry type, which is the whole point of logging it.
+        "expiry_type": computed.get("expiry_type"),
+        "max_pain_expiry_type": computed.get("max_pain_expiry_type"),
         "net_gex": o.get("net_gex"),
+        # Shares is the stored primary; dollars is derived from it upstream.
+        "shares_per_1pct": o.get("shares_per_1pct"),
         "dollar_gamma_per_1pct": o.get("dollar_gamma_per_1pct"),
         "convention_version": computed.get("convention_version"),
         "gamma_source": computed.get("gamma_source"),

@@ -29,6 +29,7 @@ import datetime as dt
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -39,6 +40,56 @@ import gex_compute          # noqa: E402
 import pin_log              # noqa: E402
 
 
+def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
+    """Zip the day's raw chains and copy them off this machine.
+
+    The chains are the one asset here that cannot be re-fetched -- yfinance
+    serves no history -- so a laptop failure loses the sample permanently. This
+    is insurance, not a stage the pipeline depends on, so it never raises.
+
+    The zip is built in a temp directory and verified before it is copied, so a
+    truncated archive never lands in the backup folder looking valid. A same-day
+    re-run overwrites its own zip rather than accumulating duplicates.
+    """
+    import shutil
+    import tempfile
+    import zipfile
+
+    src = Path(config.CHAIN_DIR) / date_str
+    out: dict = {"ok": False, "date": date_str, "source": str(src)}
+    if not src.exists():
+        out["error"] = f"no chain directory for {date_str}"
+        return out
+
+    files = sorted(p for p in src.iterdir() if p.is_file())
+    if not files:
+        out["error"] = "chain directory is empty"
+        return out
+
+    dest_dir = Path(backup_dir or config.BACKUP_DIR)
+    tmp_zip = Path(tempfile.gettempdir()) / f"chains_{date_str}.zip"
+    try:
+        with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as z:
+            for f in files:
+                z.write(f, arcname=f.name)
+        # Verify before it is allowed anywhere near the backup folder.
+        with zipfile.ZipFile(tmp_zip) as z:
+            if z.testzip() is not None:
+                raise RuntimeError("zip failed CRC verification")
+            if len(z.namelist()) != len(files):
+                raise RuntimeError(f"zip holds {len(z.namelist())} of {len(files)} files")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / tmp_zip.name
+        shutil.copy2(tmp_zip, dest)
+        out.update(ok=True, files=len(files), bytes=dest.stat().st_size,
+                   dest=str(dest))
+    except Exception as e:  # noqa: BLE001 -- backup must never end the run
+        out["error"] = f"{type(e).__name__}: {e}"
+    finally:
+        tmp_zip.unlink(missing_ok=True)
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="EOD options pass")
     ap.add_argument("--symbols", nargs="*", help="Override the configured universe")
@@ -47,6 +98,10 @@ def main() -> int:
     ap.add_argument("--max-expiries", type=int, default=None)
     ap.add_argument("--close-source", default="eod_chain_snapshot_spot",
                     help="Label recorded on every pin-log row")
+    ap.add_argument("--skip-backup", action="store_true",
+                    help="Skip the off-box chain backup")
+    ap.add_argument("--backup-dir", default=None,
+                    help="Override config.BACKUP_DIR")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -106,6 +161,19 @@ def main() -> int:
         return 3
     log.info("  scored: %d rows", len(rows))
 
+    # ---- Stage 4: off-box backup of the irreplaceable raw chains ---------
+    backup = None
+    if args.skip_backup:
+        log.info("Stage 4 skipped -- backup disabled")
+    else:
+        log.info("Stage 4: backing up chains")
+        backup = backup_chains(started.date().isoformat(), args.backup_dir)
+        if backup.get("ok"):
+            log.info("  backed up %d files (%s bytes) -> %s",
+                     backup["files"], f"{backup['bytes']:,}", backup["dest"])
+        else:
+            log.warning("  BACKUP FAILED: %s", backup.get("error"))
+
     # ---- Summary ---------------------------------------------------------
     print(f"\n{'sym':<6} {'spot':>9} {'$gamma/1%':>16} {'flip':>9} "
           f"{'maxpain':>9} {'peakGEX':>9} {'hit':>4}")
@@ -125,7 +193,19 @@ def main() -> int:
     elapsed = (dt.datetime.now(dt.timezone.utc) - started).total_seconds()
     print(f"\n  peak-GEX pins within {config.PIN_TOLERANCE_BPS}bps: {hits}/{len(rows)}")
     print(f"  pin log: {config.PIN_LOG_PATH}")
+    if backup is None:
+        print("  backup:  skipped")
+    elif backup.get("ok"):
+        print(f"  backup:  {backup['files']} files, {backup['bytes']:,} bytes "
+              f"-> {backup['dest']}")
+    else:
+        print(f"  backup:  FAILED -- {backup.get('error')}")
     print(f"  elapsed: {elapsed:.0f}s")
+    # Everything else succeeded, but a failed backup leaves the one
+    # irreplaceable asset with a single copy. Distinct exit code so cron alerts
+    # on it instead of reporting a clean run.
+    if backup is not None and not backup.get("ok"):
+        return 4
     return 0
 
 

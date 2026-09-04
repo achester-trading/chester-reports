@@ -32,12 +32,13 @@ EOD runner, FlashAlpha cross-check. Gaps against Session −1, Part 22–26 and 
 white-paper §2.8 disposition. **Not built tonight — listed only.**
 
 Pin log / schema
-- [ ] `pin_log` lacks `expiry_type` per row. Doc requires the pin rate segmented
-      by expiry type; bucket *shares* are stored but the row itself is not typed,
-      so the segmentation cannot be run.
-- [ ] Store **share gamma per 1% move** alongside dollar gamma. Doc: "shares and
-      dollars per 1% move — store that, and treat raw notional as derived." We
-      store dollars + raw notional only.
+- [x] **DONE 4 Sep.** `expiry_type` + `max_pain_expiry_type` added. The peak-GEX
+      reference strike is classified by the expiry bucket contributing most |GEX|
+      *at that strike*; max pain is classified by the bucket holding most OI
+      there, since max pain is an OI construct, not a gamma one.
+- [x] **DONE 4 Sep.** `shares_per_1pct` is now the stored primary and
+      `dollar_gamma_per_1pct` is derived from it (shares x spot), so the two
+      cannot drift. Raw notional kept as `net_gex`.
 - [ ] Re-running a past date rewrites its row at the *current* tolerance. Doc:
       tolerance "declared in advance and never revised after the fact." Rows do
       carry their own `tolerance_bps`, so make a backfill refuse to change it.
@@ -76,6 +77,12 @@ Point-in-time and provenance (Part 26.2)
 - [ ] No Security Master identity layer (26.2 #6); bare tickers only.
 
 Durability and coverage
+- [ ] **Replace the OneDrive backup with VPS-side storage when cron moves there.**
+      `run_eod.py` stage 4 zips `data/chains/<date>/` and copies it to
+      `config.BACKUP_DIR` (OneDrive today, env-overridable via
+      `CHESTER_BACKUP_DIR`). That is a stopgap for a laptop, not a runtime
+      answer: Part 25 rules the VPS primary, so the backup target should become
+      box-side storage plus an off-box copy.
 - [ ] Raw chains live only on this Windows box, gitignored. Part 25 rules the VPS
       the primary runtime with outputs on the box, so gitignoring is right — but
       the data is the one asset that cannot be recovered, and it currently has no
