@@ -163,6 +163,72 @@ def gamma_flip(strike_gex: list[tuple[float, float]],
     return min(crossings, key=lambda c: abs(c - spot))
 
 
+def net_gex_at_spot(rows: list[dict], candidate: float, r: float) -> float:
+    """Total signed GEX if spot were `candidate`, gamma re-evaluated there.
+
+    Gamma is a function of spot, so moving spot changes every strike's
+    contribution -- which is the whole point of a flip level.
+    """
+    total = 0.0
+    for row in rows:
+        iv, k = row.get("implied_vol"), row.get("strike")
+        oi = row.get("open_interest") or 0.0
+        if not (iv and k) or oi <= 0 or iv <= 0 or iv >= MAX_SANE_IV:
+            continue
+        g = bs_gamma(candidate, k, iv, max(row.get("dte") or 0, 0) / 365.0, r)
+        if g is None:
+            continue
+        notional = g * oi * 100.0 * candidate
+        total += notional if row.get("right") == "C" else -notional
+    return total
+
+
+def zero_gamma_level(rows: list[dict], spot: float, r: float,
+                     band: float = 0.15, steps: int = 60) -> Optional[float]:
+    """The zero-gamma level: the spot at which net dealer gamma changes sign.
+
+    This is the standard 'gamma flip'. It is NOT the same thing as the zero
+    crossing of GEX accumulated across strikes at a fixed spot -- that curve
+    answers a different question and can fail to cross at all for a book that
+    is one-signed at today's spot, which is exactly what it did for SPY, QQQ
+    and IWM on 4 Sep while the vendor reported a flip just above spot.
+
+    Scans a +/-band window around spot, takes the sign change nearest spot,
+    then bisects for precision. Returns None if net gamma holds one sign across
+    the whole window -- a genuinely one-signed book has no flip in range, and
+    inventing one would be worse than reporting none.
+    """
+    if not spot or spot <= 0:
+        return None
+    lo, hi = spot * (1.0 - band), spot * (1.0 + band)
+    xs = [lo + (hi - lo) * i / steps for i in range(steps + 1)]
+    vals = [(x, net_gex_at_spot(rows, x, r)) for x in xs]
+
+    brackets = []
+    for (x0, v0), (x1, v1) in zip(vals, vals[1:]):
+        if v0 == 0:
+            brackets.append((x0, x0))
+        elif (v0 < 0 < v1) or (v0 > 0 > v1):
+            brackets.append((x0, x1))
+    if not brackets:
+        return None
+
+    x0, x1 = min(brackets, key=lambda b: abs((b[0] + b[1]) / 2 - spot))
+    if x0 == x1:
+        return round(x0, 4)
+    v0 = net_gex_at_spot(rows, x0, r)
+    for _ in range(40):                     # ~1e-12 relative precision
+        mid = (x0 + x1) / 2
+        vm = net_gex_at_spot(rows, mid, r)
+        if vm == 0:
+            return round(mid, 4)
+        if (v0 < 0) != (vm < 0):
+            x1 = mid
+        else:
+            x0, v0 = mid, vm
+    return round((x0 + x1) / 2, 4)
+
+
 def max_pain(rows: list[dict]) -> Optional[float]:
     """Strike at which total in-the-money payout to option holders is smallest.
 
@@ -218,8 +284,8 @@ def _profile(rows: list[dict], spot: float) -> dict:
     return {
         "net_gex": net,
         "dollar_gamma_per_1pct": net * spot * 0.01,
-        "gamma_flip": gamma_flip(pairs, spot),
-        "gamma_flip_all": gamma_flip_all(pairs),
+        "gamma_flip_cum_strikes": gamma_flip(pairs, spot),
+        "gamma_flip_cum_all": gamma_flip_all(pairs),
         "call_wall": max(positives, key=lambda kv: kv[1])[0] if positives else None,
         "put_wall": min(negatives, key=lambda kv: kv[1])[0] if negatives else None,
         "peak_abs_gex_strike": max(pairs, key=lambda kv: abs(kv[1]))[0],
@@ -268,6 +334,12 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         usable.append(r)
 
     overall = _profile(usable, spot)
+    # Primary flip = standard zero-gamma level (spot at which net dealer gamma
+    # changes sign). The cumulative-across-strikes crossing is retained beside
+    # it under gamma_flip_cum_strikes; the two answer different questions and
+    # disagreeing is expected, not a bug.
+    overall["gamma_flip"] = zero_gamma_level(usable, spot, config.RISK_FREE_RATE)
+    overall["gamma_flip_method"] = "zero_gamma_level_spot_scan"
 
     buckets: dict[str, dict] = {}
     total_abs = sum(abs(s["gex"]) for s in overall.get("per_strike", [])) or 0.0
