@@ -139,6 +139,11 @@ ENDPOINTS: list[ProbeSpec] = [
 EXPIRY_RE = re.compile(r"expir|expiry|exp_?date|exp_?dt|dte|tenor|maturity", re.I)
 STRIKE_RE = re.compile(r"strike|\bstrk\b", re.I)
 OI_RE = re.compile(r"open_?int|\boi\b", re.I)
+# Q3 needs these two separated from OI. A derived level moving is meaningless
+# if spot moved underneath it -- GEX is gamma x OI x spot^2, so a settled OI
+# base still produces a moving gamma_flip whenever the underlying ticks.
+SPOT_RE = re.compile(r"underlying_?price|\bspot\b|last_?price|\bmark\b", re.I)
+TIMESTAMP_RE = re.compile(r"as_?of|timestamp|_at$|_feed$|\bnode\b|version", re.I)
 POLARITY_RE = re.compile(
     r"customer|dealer|market_?maker|\bmm\b|polarity|initiat|aggress|"
     r"buy_?sell|bid_?ask_?side|\bside\b|direction|net_?flow|sweep|"
@@ -325,7 +330,8 @@ def build_session(key: str) -> requests.Session:
 
 def diff_payloads(first: ProbeResult, second: ProbeResult) -> dict:
     """Compare two fetches of the same profile, scalar by scalar."""
-    diff: dict = {"comparable": False, "oi_changed": [], "any_changed": [],
+    diff: dict = {"comparable": False, "any_changed": [], "oi_changed": [],
+                  "spot_changed": [], "stamp_changed": [], "derived_changed": [],
                   "oi_fields_seen": 0, "shared_fields": 0}
     if not (first and second and first.ok and second.ok):
         return diff
@@ -334,10 +340,20 @@ def diff_payloads(first: ProbeResult, second: ProbeResult) -> dict:
     diff["comparable"] = bool(shared)
     diff["shared_fields"] = len(shared)
     for k in sorted(shared):
-        if a[k] != b[k]:
-            diff["any_changed"].append((k, a[k], b[k]))
-            if OI_RE.search(k.split(".")[-1]):
-                diff["oi_changed"].append((k, a[k], b[k]))
+        if a[k] == b[k]:
+            continue
+        entry = (k, a[k], b[k])
+        diff["any_changed"].append(entry)
+        leaf = k.split(".")[-1]
+        # Order matters: a field is classified once, most-specific first.
+        if OI_RE.search(leaf):
+            diff["oi_changed"].append(entry)
+        elif SPOT_RE.search(leaf):
+            diff["spot_changed"].append(entry)
+        elif TIMESTAMP_RE.search(leaf) or TIMESTAMP_RE.search(k):
+            diff["stamp_changed"].append(entry)
+        else:
+            diff["derived_changed"].append(entry)
     diff["oi_fields_seen"] = sum(1 for k in shared
                                  if OI_RE.search(k.split(".")[-1]))
     return diff
@@ -425,20 +441,45 @@ def print_report(results: list[ProbeResult], oi: Optional[dict],
 
     # ---- Q2 -------------------------------------------------------------
     print("\nQ2  Per-strike payload: expiry field or aggregate-only?")
-    strike_results = [r for r in ok if r.spec and r.spec.per_strike]
+    # Every 2xx payload is inspected, not just the ones flagged per-strike --
+    # on a restricted tier the endpoints that answer Q2 may not be the ones
+    # that were expected to.
     verdict = ("UNKNOWN -- authentication failed, no payload to inspect."
                if auth_failed else
-               "NO PER-STRIKE ENDPOINT RETURNED 2xx -- cannot answer.")
-    for r in strike_results:
+               "NO 2xx PAYLOAD CARRIES STRIKE DATA -- cannot answer.")
+    best = 0  # 0 none, 1 strike-only, 2 strike+expiry, 3 per-strike array
+    for r in ok:
         exp = matching_fields(r.payload, EXPIRY_RE)
         strikes = matching_fields(r.payload, STRIKE_RE)
+        oi = matching_fields(r.payload, OI_RE)
+        if not (exp or strikes or oi):
+            continue
+        arrayed = [s for s in strikes if "[]" in s]
         print(f"      {r.name}")
-        print(f"        strike-ish fields: {strikes or 'none'}")
-        print(f"        expiry-ish fields: {exp or 'none'}")
-        if strikes:
-            verdict = ("PER-EXPIRY -- payload carries both strike and expiry fields."
-                       if exp else
-                       "AGGREGATE-BY-STRIKE ONLY -- strike fields present, no expiry field.")
+        print(f"        strike-ish: {strikes or 'none'}")
+        print(f"        expiry-ish: {exp or 'none'}")
+        print(f"        OI-ish:     {oi or 'none'}")
+        # A strike array with no OI/exposure values beside it is a chain
+        # *grid* -- the set of listed strikes -- not a per-strike exposure
+        # profile. Conflating the two would tell the logger it has data it
+        # does not have.
+        if arrayed and exp and oi and best < 4:
+            best, verdict = 4, (
+                f"PER-STRIKE EXPOSURE ROWS -- {r.name} exposes {arrayed[0]} "
+                f"with OI values, keyed by expiry.")
+        elif arrayed and exp and best < 3:
+            best, verdict = 3, (
+                f"EXPIRY-KEYED STRIKE GRID ONLY -- {r.name} lists "
+                f"{arrayed[0]} per expiry, but carries no OI or exposure "
+                f"values per strike. Chain metadata, not an exposure profile.")
+        elif strikes and exp and best < 2:
+            best, verdict = 2, (
+                f"STRIKE AND EXPIRY FIELDS PRESENT in {r.name}, but as scalars "
+                f"-- no per-strike array at this tier.")
+        elif strikes and best < 1:
+            best, verdict = 1, (
+                f"AGGREGATE-BY-STRIKE ONLY -- {r.name} carries scalar strike "
+                f"fields, no expiry, no per-strike array.")
     print(f"\n  VERDICT: {verdict}")
 
     # ---- Q3 -------------------------------------------------------------
@@ -456,20 +497,35 @@ def print_report(results: list[ProbeResult], oi: Optional[dict],
                 verdicts.append(f"{name}=UNKNOWN")
                 continue
             print(f"        fields compared: {d['shared_fields']}"
-                  f"  OI-named: {d['oi_fields_seen']}")
-            print(f"        OI fields moved: {len(d['oi_changed'])}"
-                  f"  any field moved: {len(d['any_changed'])}")
-            for k, a, b in d["oi_changed"][:6]:
-                print(f"          {k}: {a} -> {b}")
-            if d["oi_fields_seen"] == 0 and not d["any_changed"]:
-                verdicts.append(f"{name}=FROZEN (no field moved, no OI field found)")
+                  f"  OI-named fields present: {d['oi_fields_seen']}")
+            print(f"        moved -- OI:{len(d['oi_changed'])} "
+                  f"spot:{len(d['spot_changed'])} "
+                  f"derived:{len(d['derived_changed'])} "
+                  f"timestamps:{len(d['stamp_changed'])}")
+            for label, key in (("OI", "oi_changed"), ("spot", "spot_changed"),
+                               ("derived", "derived_changed")):
+                for k, a, b in d[key][:4]:
+                    print(f"          [{label}] {k}: {a} -> {b}")
+
+            # The whole point of the split: a derived level moving proves
+            # nothing on its own. Only an OI field moving proves live OI.
+            if d["oi_fields_seen"] == 0:
+                verdicts.append(
+                    f"{name}=UNMEASURABLE (no OI field exposed at this tier"
+                    + (f"; {len(d['derived_changed'])} derived value(s) moved "
+                       f"while spot also moved -- consistent with recompute "
+                       f"over settled OI" if d["derived_changed"] and d["spot_changed"]
+                       else f"; {len(d['derived_changed'])} derived value(s) moved "
+                            f"with spot unchanged -- worth a closer look"
+                       if d["derived_changed"] else "; nothing moved") + ")")
             elif d["oi_changed"]:
-                verdicts.append(f"{name}=LIVE ({len(d['oi_changed'])} OI fields moved)")
-            elif d["any_changed"]:
-                verdicts.append(f"{name}=OI STATIC "
-                                f"({len(d['any_changed'])} non-OI fields moved)")
+                verdicts.append(f"{name}=LIVE OI ({len(d['oi_changed'])} OI field(s) moved)")
+            elif d["derived_changed"] or d["spot_changed"]:
+                verdicts.append(f"{name}=SETTLED OI (OI fields present and frozen; "
+                                f"{len(d['derived_changed'])} derived, "
+                                f"{len(d['spot_changed'])} spot moved)")
             else:
-                verdicts.append(f"{name}=FROZEN")
+                verdicts.append(f"{name}=FROZEN (OI present, nothing moved)")
         print(f"\n  VERDICT: {'; '.join(verdicts)}"
               f"  [gap {OI_RECHECK_SECONDS}s, market hours required for meaning]")
 
@@ -598,14 +654,22 @@ def main() -> int:
     oi_symbol = None
     if not quota_exhausted:
         oi_symbol = TEST_SYMBOLS[0]
+        # Re-fetch every symbol-scoped endpoint that actually returned 2xx --
+        # not just the ones pre-flagged per-strike. On a restricted tier the
+        # only endpoints that can speak to Q3 may be the unexpected ones.
+        # /v1/account is deliberately excluded: it carries PII and says
+        # nothing about market data staleness.
         got_200 = {r.spec.name for r in results
-                   if r.ok and r.spec and r.spec.per_strike
+                   if r.ok and r.spec and r.spec.per_symbol
                    and r.symbol == oi_symbol}
-        candidates = [s for s in ENDPOINTS if s.per_strike and s.name in got_200]
+        candidates = [s for s in ENDPOINTS
+                      if s.name in got_200 and s.name != "account"]
         if candidates:
             oi_results = oi_stability(session, base, candidates, oi_symbol)
         else:
-            print("  Q3: skipped -- no per-strike endpoint returned 2xx.")
+            print("  Q3: skipped -- no symbol endpoint returned 2xx.")
+        print(f"  Q3: {len(oi_results)} endpoint(s) diffed "
+              f"({', '.join(oi_results) or 'none'})")
 
     print_report(results, oi_results, oi_symbol)
     return 0
