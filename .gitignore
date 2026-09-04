@@ -220,3 +220,6 @@ __marimo__/
 
 # Probe output — raw vendor payloads stay local
 tools/probe_output/
+
+# Local data lake — raw chains and computed snapshots stay local
+data/

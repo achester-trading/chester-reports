@@ -130,3 +130,48 @@ def all_fred_ids() -> list[str]:
 
 def series_for_pillar(pillar: str) -> list[SeriesSpec]:
     return [s for s in FRED_SERIES if s.pillar == pillar]
+
+
+# ---------------------------------------------------------------------------
+# Options / GEX pipeline (Session -1 logger)
+# ---------------------------------------------------------------------------
+
+# Index/ETF core. The single-name universe comes from docs/architecture-v3.md,
+# which is not committed yet -- SINGLE_NAMES stays empty until it lands rather
+# than being guessed, since a wrong universe silently corrupts every pin stat.
+INDEX_ETF_SYMBOLS: list[str] = ["SPY", "QQQ", "IWM"]
+SINGLE_NAMES: list[str] = [
+    "NVDA", "AAPL", "MSFT", "AMZN", "META", "GOOGL",
+    "TSLA", "MSTR", "COIN", "ASTS",
+]
+# SPX and SPCX join this universe when the paid vendor lands -- yfinance has no
+# SPX index-option coverage, which is the gap Part B's vendor review exists to
+# close. Adding them here before then would produce empty chains, not errors.
+PENDING_VENDOR_SYMBOLS: list[str] = ["SPX", "SPCX"]
+
+def options_universe() -> list[str]:
+    """Symbols the chain fetcher pulls. 15 once the singles land."""
+    return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+# Pin-log tolerance. 25 basis points of spot, declared here so the logger and
+# any later backfill agree on what counts as a hit.
+PIN_TOLERANCE_BPS: float = 25.0
+
+# Black-Scholes inputs. yfinance ships no greeks, so gamma is always computed
+# from the chain's own IV.
+RISK_FREE_RATE: float = 0.043
+
+# Sign convention marker written onto every computed output. Bump this string
+# if the dealer-positioning assumption below ever changes.
+CONVENTION_VERSION: str = "dealers-hand-v1"
+CONVENTION_CAVEAT: str = (
+    "Standard signing assumption: dealers are long calls (+gamma) and short "
+    "puts (-gamma). This is a convention, not observed positioning -- actual "
+    "dealer books are unobservable from public chains. Flip-side readings "
+    "(customer-hand) invert every sign."
+)
+
+# Local data lake (gitignored).
+CHAIN_DIR: str = "data/chains"
+COMPUTED_DIR: str = "data/computed"
+PIN_LOG_PATH: str = "data/pin_log.csv"
