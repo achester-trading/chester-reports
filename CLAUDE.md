@@ -19,11 +19,15 @@ The state keys are already reserved in `state/emit.py:VALID_KEYS` (which also
 carries a sixth, `gamma_weekly`). Treat that set as the registry of report
 identities — a new report adds its key there before anything else.
 
-`docs/architecture-v3.md` **will be the canonical planning document** for the
-system once it is committed. It does not exist in the repo yet. When it lands,
-read it before making structural decisions, and prefer it over this file wherever
-the two disagree — CLAUDE.md describes the code as it stands, architecture-v3
-describes where it is going.
+`docs/chester-reports-architecture-v3.md` **is the canonical planning document**
+for the system. It is committed, and it declares its own authority in
+**Part 26 — FINAL ARCHITECTURE CHANGE ORDER (controlling)**. Read it before
+making structural decisions, and prefer it over this file wherever the two
+disagree: CLAUDE.md describes the code as it stands, the architecture document
+governs where it is going and overrides this file on intent.
+
+`docs/` also carries `chester-reports-master-schedule.md` and
+`white-paper-library-guide.md`.
 
 ## Repo layout
 
