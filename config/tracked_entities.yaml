@@ -1,0 +1,154 @@
+# tracked_entities.yaml -- named entities the system treats specially.
+#
+# Architecture Part 11. Today there is exactly one entry and it is a HARD
+# RESTRICTION: no trade recommendation is generated for any instrument in the
+# Brookfield complex. Diagnostic and strategic coverage is unaffected -- the
+# complex may be analysed, discussed and tracked. It may not be recommended.
+#
+# ENFORCEMENT IS AT WRITE TIME, IN TWO PLACES, ON PURPOSE.
+#   1. register.Register.record() raises RestrictedInstrumentError.
+#   2. A SQLite BEFORE INSERT trigger raises regardless of who is inserting.
+# The second exists because the first can be bypassed by anything that opens
+# the database directly. The architecture's line is "a narrative instruction is
+# a suggestion, a schema constraint is a rule" -- so it is literally a schema
+# constraint, not only a Python check.
+#
+# TICKERS HERE ARE NORMALISED ROOTS. register.instruments.normalise() strips
+# exchange and class suffixes and extracts the underlying from an option
+# symbol, so BN.TO, BN.PR.A, bn, O:BN260918C00050000 and BN 260918C50 all
+# resolve to BN. Listing the variants would be redundant and would rot.
+#
+# WHY THIS EXISTS. Ari works within the structure -- Argo -> Clearbrook ->
+# Brookfield Wealth Solutions -> BAM -- and has stated he will not trade
+# Brookfield-related securities. Writing it here makes the restriction
+# structural rather than a matter of discipline.
+#
+# ASYMMETRIC COST drives every scope call below. A false negative (a Brookfield
+# recommendation reaching output) is a compliance problem; a false positive
+# costs one declined idea. Where a case is genuinely ambiguous the wide net
+# wins. Where an instrument is simply not Brookfield, it is not blocked --
+# a rule that blocks unrelated things looks arbitrary and stops being obeyed.
+
+version: 1
+updated: 2026-09-05
+
+entities:
+
+  brookfield:
+    name: The Brookfield complex
+    restricted: true
+    restriction: no_recommendations
+    coverage_allowed: [diagnostic, strategic, tracking]
+    rationale: >-
+      Operator works within the structure (Argo -> Clearbrook -> Brookfield
+      Wealth Solutions -> BAM) and has stated he will not trade
+      Brookfield-related securities. Any instrument added to the complex
+      inherits the flag.
+
+    # --- tier 1: core listed equity ---------------------------------------
+    tickers:
+      - {root: BN,    entity: Brookfield Corporation, tier: 1, valid_from: 2022-12-09,
+         note: "Parent. Was Brookfield Asset Management Inc. before the 2022 spin-off."}
+      - {root: BAM,   entity: Brookfield Asset Management Ltd., tier: 1, valid_from: 2022-12-09,
+         note: "CAUTION: BAM meant the entity now called BN before 2022-12-09."}
+      - {root: BNT,   entity: Brookfield Wealth Solutions Ltd., tier: 1, valid_from: 2024-01-01,
+         note: "Operator's own chain. Was BNRE, was BAMR."}
+      - {root: BNRE,  entity: Brookfield Reinsurance Ltd., tier: 1, valid_from: 2021-06-01,
+         note: "Former ticker of BNT. Blocked so historical references resolve."}
+      - {root: BAMR,  entity: Brookfield Asset Management Reinsurance, tier: 1, valid_from: 2021-06-01,
+         note: "Former ticker of BNT."}
+
+      # --- tier 2: paired partnership / corporation affiliates ------------
+      - {root: BEP,   entity: Brookfield Renewable Partners L.P., tier: 2, valid_from: 2011-11-28}
+      - {root: BEPC,  entity: Brookfield Renewable Corporation, tier: 2, valid_from: 2020-07-30}
+      - {root: BIP,   entity: Brookfield Infrastructure Partners L.P., tier: 2, valid_from: 2008-01-31}
+      - {root: BIPC,  entity: Brookfield Infrastructure Corporation, tier: 2, valid_from: 2020-03-31}
+      - {root: BBU,   entity: Brookfield Business Partners L.P., tier: 2, valid_from: 2016-06-20}
+      - {root: BBUC,  entity: Brookfield Business Corporation, tier: 2, valid_from: 2022-03-15}
+
+      # --- tier 3: property, preferreds and notes -------------------------
+      # The architecture calls the property preferreds "the canary" -- they
+      # moved hard during office stress while parent equity stayed calm.
+      - {root: BPY,   entity: Brookfield Property Partners L.P., tier: 3, valid_from: 2013-04-15,
+         note: "Common taken private 2021; preferreds still listed."}
+      - {root: BPYU,  entity: Brookfield Property REIT Inc., tier: 3, valid_from: 2018-08-28}
+      - {root: BPYPP, entity: Brookfield Property Partners 6.50% Pref Series 1, tier: 3, valid_from: 2019-01-01}
+      - {root: BPYPO, entity: Brookfield Property Partners 6.375% Pref Series 2, tier: 3, valid_from: 2019-01-01}
+      - {root: BPYPN, entity: Brookfield Property Partners 5.75% Pref Series 3, tier: 3, valid_from: 2020-01-01}
+      - {root: BPYPM, entity: Brookfield Property Partners Pref Series, tier: 3, valid_from: 2020-01-01}
+      - {root: DTLAP, entity: Brookfield DTLA Fund Office Trust Investor Inc., tier: 3, valid_from: 2013-10-15}
+      - {root: BNH,   entity: Brookfield Finance Inc. notes, tier: 3, valid_from: 2017-01-01}
+      - {root: BNJ,   entity: Brookfield Finance Inc. notes, tier: 3, valid_from: 2017-01-01}
+      - {root: BEPH,  entity: Brookfield Renewable perpetual subordinated notes, tier: 3, valid_from: 2021-01-01}
+      - {root: BEPI,  entity: Brookfield Renewable perpetual subordinated notes, tier: 3, valid_from: 2021-01-01}
+      - {root: BEPJ,  entity: Brookfield Renewable perpetual subordinated notes, tier: 3, valid_from: 2021-01-01}
+      - {root: BIPH,  entity: Brookfield Infrastructure Finance ULC notes, tier: 3, valid_from: 2020-01-01}
+      - {root: BIPI,  entity: Brookfield Infrastructure perpetual subordinated notes, tier: 3, valid_from: 2021-01-01}
+      - {root: BIPJ,  entity: Brookfield Infrastructure perpetual subordinated notes, tier: 3, valid_from: 2021-01-01}
+
+      # --- tier 4: affiliated managers and funds --------------------------
+      # Ruled IN, 2026-09-05. Oaktree shares Brookfield as controlling parent
+      # (~70%), so it is information adjacency rather than brand similarity.
+      - {root: OAK,   entity: Oaktree Capital Group LLC, tier: 4, valid_from: 2019-09-30,
+         note: "Brookfield-controlled since 2019. Common private; preferreds OAK.PR.A/B normalise here."}
+      - {root: OCSL,  entity: Oaktree Specialty Lending Corp., tier: 4, valid_from: 2019-09-30,
+         note: "Oaktree-managed BDC."}
+      - {root: BIRET, entity: Brookfield India Real Estate Trust, tier: 4, valid_from: 2021-02-16}
+
+    # --- entity-name matching ---------------------------------------------
+    # For instruments whose TICKER is too generic to block safely. Ruled
+    # 2026-09-05: match these by name, never by bare ticker, so that an
+    # unrelated future issuer using the symbol is not silently blocked -- a
+    # rule that misfires invisibly is worse than one that asks.
+    name_patterns:
+      - brookfield
+      - oaktree
+    name_only:
+      - ticker: RA
+        entity: Brookfield Real Assets Income Fund
+        tier: 4
+        reason: >-
+          "RA" is a two-letter symbol that could be reused by any issuer.
+          Blocked by entity name; a bare RA reaches the register and must be
+          checked by hand.
+      - ticker: INF
+        entity: Brookfield Global Listed Infrastructure Income Fund
+        tier: 4
+        reason: >-
+          Same as RA. "INF" is generic enough that a bare-ticker block would
+          eventually fire on something unrelated.
+
+    # --- reviewed and deliberately NOT restricted --------------------------
+    # Recorded so the decision is durable. Without this the question gets
+    # re-argued every time somebody notices the historical link.
+    reviewed_and_excluded:
+      - ticker: EAF
+        entity: GrafTech International Ltd.
+        reviewed: 2026-09-05
+        reason: >-
+          Brookfield took it public in 2018 and has since sold down. Not
+          Brookfield-controlled today, so there is no information adjacency to
+          protect against. Blocking it would make the rule look arbitrary.
+      - ticker: TSU
+        entity: Trisura Group Ltd.
+        reviewed: 2026-09-05
+        reason: >-
+          Spun out of Brookfield in 2017 and independent since. Same reasoning
+          as EAF.
+
+    # --- known limits of a ticker-keyed rule --------------------------------
+    known_limits:
+      security_master_gap: >-
+        This blocklist is keyed on tickers, which is the Part 26.2 #6 Security
+        Master gap, and Brookfield is close to the worst case for it: BAM meant
+        Brookfield Asset Management Inc. -- the entity now called BN -- before
+        the 2022 spin-off, and BN did not belong to Brookfield at all then. A
+        point-in-time query over pre-2022 history keyed on either symbol
+        resolves to the wrong issuer. valid_from is recorded on every row so a
+        future identity layer can use it. The FORWARD restriction is unaffected
+        because only new decisions are blocked, and every root above is
+        Brookfield's today.
+      verification: >-
+        Compiled 2026-09-05 from the corporate structure, NOT from a live
+        filing. Verify against current SEC/SEDAR filings before treating the
+        list as complete. Additions inherit the flag automatically.

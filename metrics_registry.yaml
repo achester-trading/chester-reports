@@ -422,6 +422,10 @@ bulk_imports:
     source: fred
     members_from: altdata.config.FRED_SERIES
     member_key: key
+    # The observation store writes these as "fred.nfp", not "nfp", so that a
+    # future non-FRED series of the same name cannot collide. The registry has
+    # to agree or a join between the two silently finds nothing.
+    key_prefix: "fred." 
     expected_members: 59
     units: from_member          # SeriesSpec.units
     native_horizon: from_member # SeriesSpec.freq

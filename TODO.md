@@ -360,3 +360,50 @@ source, mechanism group, native horizon, units and a written rationale.
 - [ ] The registry has no notion of a metric's *quality* weight. The solver's
       twinned-vol finding (43-49% of rows, 5-8x wider tail) is the first case
       that would want one.
+
+## Session 5 core (5 Sep 2026) — point-in-time store, register, restriction
+
+`altdata/observations.py` (SQLite, three clocks, one as-of join),
+`register/` (decisions, immutable packets, the Brookfield rule),
+`config/tracked_entities.yaml` (29 restricted roots + name matching),
+`tools/validate_register.py` (33 checks, wired into CI alongside the registry
+gate). CSV writers keep running — `altdata/store.py` now dual-writes.
+Migrated 20,372 observations across 59 keys; re-running writes 0.
+
+- [ ] **Migrated `available_at` is an ESTIMATE and is tagged as one.** The CSVs
+      carry `as_of` (pull time), an upper bound on availability, not the release
+      time — for a series revised between release and pull it OVERSTATES how
+      early we knew, the direction that leaks. Migrated rows carry
+      `source='fred:csv_migrated'` so they stay distinguishable. Visible in real
+      data: every migrated row has `available_at = 2026-05-30`, so an as-of
+      query before that date returns nothing. **Backfill true release times
+      from FRED's ALFRED vintage API to fix this properly.**
+- [ ] Only `altdata/store.py` dual-writes so far. The options pipeline
+      (exposure profiles, pin log) still writes CSV only and is not in the
+      point-in-time store. Decide whether exposure metrics belong there or stay
+      file-based — they are per-session snapshots, not revised series, so the
+      case is weaker than for FRED.
+- [ ] The register has no writer yet. Nothing produces decisions, which is why
+      every metric is still `trigger_eligible: false`. The register exists so
+      that the first thing that does produce one cannot bypass it.
+- [ ] `code_dirty` was 1 on the first real packet, because the tree had
+      uncommitted work. That is honest and correct, but a packet built during
+      an actual decision should be built from a clean tree; consider refusing
+      to attach a packet with `code_dirty=1` once decisions are real.
+
+### Brookfield restriction — rulings, 5 Sep 2026
+
+Tier 4 (Oaktree + Brookfield-branded funds) IN — Oaktree shares Brookfield as
+controlling parent, so it is information adjacency, not brand similarity.
+`RA`/`INF` by entity NAME only, never bare ticker — both are generic enough
+that a symbol block would eventually fire on an unrelated issuer, and a rule
+that misfires invisibly is worse than one that asks. `EAF`/`TSU` reviewed and
+deliberately excluded, recorded with the reason so it is not re-argued.
+
+- [ ] **The list is from the corporate structure, not a live filing.** Verify
+      against current SEC/SEDAR filings before treating it as complete.
+- [ ] Ticker-keyed blocking is the Part 26.2 #6 Security Master gap, and
+      Brookfield is close to the worst case: `BAM` meant the entity now called
+      `BN` before the 2022 spin-off. `valid_from` is recorded on every row for a
+      future identity layer. The FORWARD restriction is unaffected — only new
+      decisions are blocked, and every root is Brookfield's today.

@@ -40,3 +40,10 @@ jobs:
 
       - name: Registry gate
         run: python tools/check_registry.py --verbose
+
+      # The Brookfield restriction is a hard invariant, so it is checked by the
+      # build rather than by whoever remembers to run it. Groups A-C need no
+      # data; the replay acceptance test skips loudly here because data/ is
+      # gitignored and it is an acceptance check against real stored chains.
+      - name: Register, point-in-time and restriction gate
+        run: python tools/validate_register.py

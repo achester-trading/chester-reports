@@ -56,16 +56,34 @@ class Store:
         as_of = session.utc_iso()
         path = self._path(key)
         n = 0
+        rows_written: list[tuple] = []
         with path.open("w", newline="") as fp:
             w = csv.writer(fp)
             w.writerow(["date", "value", "source", "as_of"])
             for date, value in observations:
+                rows_written.append((date, value))
                 if value is None:
                     val_str = ""
                 else:
                     val_str = f"{value}"
                 w.writerow([date, val_str, source, as_of])
                 n += 1
+
+        # DUAL WRITE, this week. The SQLite point-in-time store is a migration,
+        # not a cutover: the CSV above stays the human-readable copy and the
+        # fallback if anything in the new store turns out wrong. Guarded so a
+        # SQLite failure can never cost us the CSV write that already succeeded
+        # -- the new store is the one on trial, not this one.
+        try:
+            from . import observations as _obs
+            with _obs.ObservationStore() as db:
+                db.write_many([
+                    {"registry_key": f"{source}.{key}", "instrument": None,
+                     "observed_at": d, "available_at": as_of,
+                     "value": v, "source": source}
+                    for d, v in rows_written if v is not None])
+        except Exception:  # noqa: BLE001 -- never break the CSV path
+            pass
         return n
 
     def read(self, key: str) -> list[dict]:
