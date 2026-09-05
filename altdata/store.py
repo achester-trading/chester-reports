@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
+from . import session
+
 
 # Default location: $ALTDATA_STORE, else ./data_store
 DEFAULT_STORE_DIR = os.environ.get("ALTDATA_STORE", "data_store")
@@ -51,7 +53,7 @@ class Store:
 
         Returns count of rows written.
         """
-        as_of = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        as_of = session.utc_iso()
         path = self._path(key)
         n = 0
         with path.open("w", newline="") as fp:

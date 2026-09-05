@@ -53,31 +53,15 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from altdata import config  # noqa: E402
+from altdata import config   # noqa: E402
+from altdata import session  # noqa: E402
 import quality_gates    # noqa: E402
 
 log = logging.getLogger(__name__)
 
-EASTERN = "America/New_York"
-
-
-def session_date(fetched_at: Optional[str]) -> Optional[str]:
-    """US trading-session date for a UTC fetch timestamp.
-
-    Compute time in UTC is the wrong key: an EOD run at 20:30 ET is already the
-    next day in UTC, which would file a Friday session under Saturday and
-    silently split the pin log across two dates.
-    """
-    if not fetched_at:
-        return None
-    try:
-        from zoneinfo import ZoneInfo
-        ts = dt.datetime.fromisoformat(fetched_at)
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=dt.timezone.utc)
-        return ts.astimezone(ZoneInfo(EASTERN)).date().isoformat()
-    except Exception:  # noqa: BLE001
-        return fetched_at[:10]
+# session_date now lives in altdata.session so every module keys sessions the
+# same way. Re-exported because callers already import it from here.
+session_date = session.session_date
 
 
 SQRT_2PI = math.sqrt(2.0 * math.pi)
@@ -506,7 +490,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
     per_strike = overall.pop("per_strike", [])
     return {
         "symbol": symbol,
-        "computed_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "computed_at": session.utc_iso(),
         "fetched_at": fetched_at,
         "session_date": session_date(fetched_at),
         "spot": spot,
@@ -588,10 +572,11 @@ def newest_chains(date: Optional[str] = None,
 
 
 def write_computed(result: dict, base_dir: Optional[str] = None) -> Path:
-    day = (result.get("computed_at") or "")[:10] or dt.date.today().isoformat()
+    day = result.get("session_date") or session.session_date(
+        result.get("fetched_at") or result.get("computed_at"))
     out_dir = Path(base_dir or config.COMPUTED_DIR) / day
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%H%M%SZ")
+    stamp = session.utc_stamp("%H%M%SZ")
     path = out_dir / f"{result['symbol']}_{stamp}_gex.json"
     path.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     return path

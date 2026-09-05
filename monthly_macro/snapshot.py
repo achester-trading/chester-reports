@@ -30,6 +30,8 @@ import datetime as dt
 from pathlib import Path
 from typing import Optional
 
+from altdata import session
+
 log = logging.getLogger(__name__)
 
 SNAPSHOT_DIR = Path(os.environ.get("SNAPSHOT_DIR", "snapshots"))
@@ -52,7 +54,7 @@ def write_snapshot(store, report_date: dt.date, specs) -> Path:
     _ensure_dir()
     payload = {
         "report_date": report_date.isoformat(),
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": session.utc_iso(timespec="microseconds"),
         "series": {},
     }
     for s in specs:

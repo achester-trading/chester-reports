@@ -34,6 +34,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from altdata import config
+from altdata import session
 from altdata.sources import options_chain
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
 import gex_compute          # noqa: E402
@@ -114,7 +115,7 @@ def main() -> int:
     log = logging.getLogger("run_eod")
 
     universe = args.symbols or config.options_universe()
-    started = dt.datetime.now(dt.timezone.utc)
+    started = session.utc_now()
     print(f"EOD options pass -- {started.isoformat(timespec='seconds')}")
     print(f"  universe:   {len(universe)} symbols")
     print(f"  convention: {config.CONVENTION_VERSION}")
@@ -170,9 +171,9 @@ def main() -> int:
         # Key the backup on the trading session the chains belong to, not the
         # UTC run date. An EOD run after 20:00 ET is already the next day in
         # UTC, which made this look for a chain directory that never existed.
-        session = next((c.get("session_date") for c in computed.values()
-                        if c.get("session_date")), None) or started.date().isoformat()
-        backup = backup_chains(session, args.backup_dir)
+        session_key = next((c.get("session_date") for c in computed.values()
+                            if c.get("session_date")), None) or session.session_date()
+        backup = backup_chains(session_key, args.backup_dir)
         if backup.get("ok"):
             log.info("  backed up %d files (%s bytes) -> %s",
                      backup["files"], f"{backup['bytes']:,}", backup["dest"])
@@ -195,7 +196,7 @@ def main() -> int:
               f"{f(o.get('peak_abs_gex_strike'))} {h:>4}")
 
     hits = sum(1 for r in rows if r.get("peak_gex_hit"))
-    elapsed = (dt.datetime.now(dt.timezone.utc) - started).total_seconds()
+    elapsed = (session.utc_now() - started).total_seconds()
     print(f"\n  peak-GEX pins within {config.PIN_TOLERANCE_BPS}bps: {hits}/{len(rows)}")
     print(f"  pin log: {config.PIN_LOG_PATH}")
     if backup is None:

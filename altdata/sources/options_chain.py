@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Optional
 
 from .. import config
+from .. import session
 
 log = logging.getLogger(__name__)
 
@@ -55,10 +56,6 @@ CHAIN_COLUMNS = [
     "bid", "ask", "last_price", "volume", "open_interest", "implied_vol",
     "in_the_money", "contract_symbol",
 ]
-
-
-def _utcnow() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc)
 
 
 def _spot_for(ticker) -> Optional[float]:
@@ -154,7 +151,7 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
     """
     import yfinance as yf   # lazy, same pattern as yfinance_source
 
-    fetched_at = _utcnow().isoformat(timespec="seconds")
+    fetched_at = session.utc_iso()
     manifest: dict = {
         "symbol": symbol,
         "fetched_at": fetched_at,
@@ -185,7 +182,7 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
         expiries = expiries[:max_expiries]
     manifest["expiries_fetched"] = len(expiries)
 
-    today = _utcnow().date()
+    today = session.session_date_obj()
     for exp in expiries:
         try:
             exp_date = dt.date.fromisoformat(exp)
@@ -216,10 +213,9 @@ def write_snapshot(symbol: str, rows: list[dict], manifest: dict,
     """Write one symbol's raw chain + quality manifest. Returns (csv, json)."""
     import csv as csvmod
 
-    stamp = _utcnow()
-    day_dir = Path(base_dir or config.CHAIN_DIR) / stamp.date().isoformat()
+    day_dir = Path(base_dir or config.CHAIN_DIR) / session.session_date()
     day_dir.mkdir(parents=True, exist_ok=True)
-    tag = f"{symbol}_{stamp.strftime(SNAPSHOT_FMT)}"
+    tag = f"{symbol}_{session.utc_stamp(SNAPSHOT_FMT)}"
 
     csv_path: Optional[Path] = None
     if rows:

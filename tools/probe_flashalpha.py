@@ -58,6 +58,8 @@ if hasattr(sys.stdout, "reconfigure"):
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = REPO_ROOT / ".env"
 OUT_DIR = Path(__file__).resolve().parent / "probe_output"
+sys.path.insert(0, str(REPO_ROOT))
+from altdata import session  # noqa: E402
 
 TEST_SYMBOLS = ["SPY", "SPX"]
 OI_RECHECK_SECONDS = 60
@@ -266,7 +268,7 @@ class ProbeResult:
 def save_raw(name: str, record: dict) -> str:
     """Write one raw response to probe_output/ with a UTC timestamp."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    stamp = session.utc_stamp("%Y%m%dT%H%M%S.%fZ")
     slug = re.sub(r"[^A-Za-z0-9._-]+", "_", name)[:80]
     path = OUT_DIR / f"{stamp}_{slug}.json"
     path.write_text(redact(json.dumps(record, indent=2, default=str)),
@@ -303,7 +305,7 @@ def probe(session: requests.Session, base: str, name: str, path: str,
 
     saved = save_raw(name, {
         "probe": name,
-        "requested_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "requested_at": session.utc_iso(timespec="microseconds"),
         "method": method,
         "url": redact(url),
         "params": {k: redact(str(v)) for k, v in call_params.items()},

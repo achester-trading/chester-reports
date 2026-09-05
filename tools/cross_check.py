@@ -51,7 +51,8 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from altdata import config  # noqa: E402
+from altdata import config   # noqa: E402
+from altdata import session  # noqa: E402
 import gex_compute          # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ def compare(symbol: str, ours: dict, theirs: dict) -> dict:
 
     return {
         "symbol": symbol,
-        "checked_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "checked_at": session.utc_iso(),
         "our_spot": our_spot,
         "their_spot": their_spot,
         "spot_diff": (round(our_spot - their_spot, 4)
@@ -174,10 +175,10 @@ def compare(symbol: str, ours: dict, theirs: dict) -> dict:
 
 
 def write_results(results: list[dict], out_dir: Optional[str] = None) -> tuple[Path, Path]:
-    day = dt.date.today().isoformat()
+    day = session.session_date()
     d = Path(out_dir or CROSS_CHECK_DIR) / day
     d.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%H%M%SZ")
+    stamp = session.utc_stamp("%H%M%SZ")
 
     json_path = d / f"cross_check_{stamp}.json"
     json_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")

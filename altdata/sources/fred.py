@@ -19,6 +19,7 @@ from typing import Optional
 
 from ._base import http_get_json, FetchError
 from .. import config
+from .. import session
 from ..store import Store
 
 log = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ def _parse_value(raw: str) -> Optional[float]:
 def _fetch_series(fred_id: str, api_key: str, lookback_days: int) -> list[tuple[str, Optional[float]]]:
     """Fetch one FRED series and return list of (date, value)."""
     from datetime import date, timedelta
-    start = (date.today() - timedelta(days=lookback_days)).isoformat()
+    start = (session.session_date_obj() - timedelta(days=lookback_days)).isoformat()
     params = {
         "series_id": fred_id,
         "api_key": api_key,

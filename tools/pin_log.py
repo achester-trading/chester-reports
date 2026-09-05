@@ -61,7 +61,8 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from altdata import config  # noqa: E402
+from altdata import config   # noqa: E402
+from altdata import session  # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -114,11 +115,11 @@ def row_for(computed: dict, close: Optional[float] = None,
         "put_wall": o.get("put_wall"),
     }
     row: dict = {
-        # Trading-session date (US/Eastern), not compute date -- see
-        # gex_compute.session_date for why UTC is the wrong key here.
+        # Trading-session date (US/Eastern), never the compute date --
+        # see altdata.session for why UTC is the wrong key here.
         "date": (computed.get("session_date")
-                 or (computed.get("computed_at") or "")[:10]
-                 or dt.date.today().isoformat()),
+                 or session.session_date(computed.get("fetched_at")
+                                         or computed.get("computed_at"))),
         "symbol": computed.get("symbol"),
         "close": close,
         "close_source": close_source,

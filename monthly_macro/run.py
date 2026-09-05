@@ -26,6 +26,7 @@ from .writer.build_html import build_html
 from .narrative import add_narratives
 from .snapshot import build_current, load_prior_snapshot, write_snapshot
 from altdata import config as altconfig
+from altdata import session
 from state.emit import emit
 
 # Windows consoles default to cp1252, which cannot encode the check marks
@@ -110,7 +111,7 @@ def main():
             log.exception("yfinance fetch failed entirely; continuing with FRED data only")
 
     # ---- Snapshot memory: compare against the last run before rendering ----
-    report_date = dt.date.today()
+    report_date = session.session_date_obj()
     try:
         current_snap = build_current(store, altconfig.FRED_SERIES)
         prior_snap = load_prior_snapshot(report_date)

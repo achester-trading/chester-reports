@@ -26,6 +26,7 @@ from typing import Optional
 
 from altdata.store import Store
 from altdata import config
+from altdata import session
 from .. import compute
 
 
@@ -80,7 +81,7 @@ def render_masthead(report_date: dt.date) -> str:
     return f"""# Monthly Macro Report
 
 **Date:** {report_date.strftime('%A, %B %d, %Y')}
-**Generated:** {dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}
+**Generated:** {session.utc_stamp('%Y-%m-%d %H:%M UTC')}
 **Pipeline version:** v1 (FRED-only)
 
 ---
@@ -299,7 +300,7 @@ def render_report(store: Store, fetch_summary: dict, report_date: Optional[dt.da
                   change_ctx: Optional[dict] = None) -> str:
     """Assemble the full Markdown report."""
     if report_date is None:
-        report_date = dt.date.today()
+        report_date = session.session_date_obj()
 
     derived = compute.compute_all(store)
 

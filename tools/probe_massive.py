@@ -56,6 +56,8 @@ if hasattr(sys.stdout, "reconfigure"):
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = REPO_ROOT / ".env"
 OUT_DIR = Path(__file__).resolve().parent / "probe_output"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from altdata import session  # noqa: E402
 
 DEFAULT_BASE = "https://api.massive.com"
 PACING_SECONDS = 13.0            # Basic is 5/min; stay under it
@@ -101,7 +103,7 @@ def credentials() -> tuple[Optional[str], str, list[str]]:
 
 def save_raw(name: str, record: dict) -> str:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    stamp = session.utc_stamp("%Y%m%dT%H%M%S.%fZ")
     slug = re.sub(r"[^A-Za-z0-9._-]+", "_", name)[:80]
     p = OUT_DIR / f"{stamp}_massive_{slug}.json"
     p.write_text(redact(json.dumps(record, indent=2, default=str)), encoding="utf-8")

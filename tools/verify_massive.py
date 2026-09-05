@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from altdata import session  # noqa: E402
 from probe_massive import (  # noqa: E402
     OUT_DIR, SNAPSHOT_PATH, _SECRETS, call, credentials,
 )
@@ -120,7 +122,7 @@ def main() -> int:
     q2_verdict = "UNKNOWN -- no SPX contract available to test."
     q2_pass = False
     if ticker:
-        today = dt.date.today()
+        today = session.session_date_obj()
         start = (today - dt.timedelta(days=3 * 365)).isoformat()
         r = call(base, AGGS_PATH.format(ticker=ticker, start=start,
                                         end=today.isoformat()),

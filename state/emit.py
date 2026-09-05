@@ -29,6 +29,8 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
+from altdata import session
+
 log = logging.getLogger(__name__)
 
 VALID_KEYS = {
@@ -65,7 +67,7 @@ def emit(report_key: str,
 
     payload = {
         "status": status,
-        "as_of": (as_of or dt.date.today()).isoformat(),
+        "as_of": (as_of.isoformat() if as_of else session.session_date()),
         "headline": headline,
         "detail": detail or {},
     }

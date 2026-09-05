@@ -65,7 +65,8 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from altdata import config  # noqa: E402
+from altdata import config   # noqa: E402
+from altdata import session  # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -211,7 +212,7 @@ def evaluate(rows: list[dict]) -> dict:
         verdict = "ok"
 
     return {
-        "evaluated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "evaluated_at": session.utc_iso(),
         "data_quality": verdict,
         "usable_for_percentiles": liq["pass"],
         "liquidity_floor": liq,
