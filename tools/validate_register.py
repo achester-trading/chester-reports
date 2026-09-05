@@ -32,7 +32,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
-from altdata import observations, session   # noqa: E402
+from altdata import config, observations, session  # noqa: E402
 from register import instruments, manifest  # noqa: E402
 from register.store import Register, RestrictedInstrumentError  # noqa: E402
 import exposure_compute as ec               # noqa: E402
@@ -234,6 +234,91 @@ def group_c(db_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+def group_e(db_path: str) -> None:
+    print(f"\n{LINE}\nE. THE DECISION CLI\n{LINE}")
+    import subprocess
+    def run_cli(*a):
+        return subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
+                               "--db", db_path, *a],
+                              capture_output=True, text=True, cwd=str(REPO))
+
+    ok_args = ["record", "--instrument", "SPY", "--direction", "long",
+               "--thesis", "t", "--edge-type", "positioning",
+               "--horizon", "swing", "--invalidation", "below 760"]
+    r = run_cli(*ok_args, "--dry-run")
+    check(r.returncode == 0 and "DRY RUN" in r.stdout,
+          "a clean instrument dry-runs to exit 0")
+    check("no decision written" in r.stdout, "the dry run says it wrote nothing")
+
+    reg = Register(db_path)
+    before = len(reg.all())
+    reg.close()
+    run_cli(*ok_args, "--dry-run")
+    reg = Register(db_path)
+    check(len(reg.all()) == before,
+          "a dry run really writes nothing -- the register is unchanged")
+    reg.close()
+
+    # THE CASE THAT MATTERS: the restriction must fire in dry-run too, or the
+    # dry run reports "this is what would happen" while omitting the one thing
+    # that would not.
+    r = run_cli("record", "--instrument", "BN.TO", "--direction", "long",
+                "--thesis", "t", "--edge-type", "structural",
+                "--horizon", "positional", "--invalidation", "x", "--dry-run")
+    check(r.returncode == 2, "a restricted instrument dry-runs to exit 2")
+    check("REFUSED" in r.stdout and "brookfield" in r.stdout,
+          "the dry run REFUSES it rather than reporting what would happen")
+
+    # Invalidation is required by the CLI, not merely NOT NULL in the schema:
+    # an argument you can omit gets filled in later, which is when it stops
+    # being an invalidation.
+    r = run_cli("record", "--instrument", "SPY", "--direction", "long",
+                "--thesis", "t", "--edge-type", "positioning",
+                "--horizon", "swing", "--dry-run")
+    check(r.returncode != 0 and "invalidation" in (r.stderr + r.stdout),
+          "a decision with no invalidation is refused by the CLI")
+
+
+def group_f() -> None:
+    print(f"\n{LINE}\nF. PROVENANCE AND THE TOLERANCE POLICY\n{LINE}")
+    import pin_log as pl
+    chains = ec.newest_chains("2026-09-04", ["SPY"])
+    if not chains:
+        SKIPPED.append("provenance/tolerance: no stored SPY chain")
+        print("  SKIP  no stored SPY chain")
+        return
+    rows = ec.load_chain(chains["SPY"])
+    prof = ec.compute_symbol([dict(r) for r in rows], "SPY")
+    check(prof["greeks_source"] == "computed_bs_from_yf_iv",
+          f"vendor-IV profile is labelled {prof['greeks_source']!r}")
+    solved = [{**r, "iv_source": "solved_bs_v1"} for r in rows]
+    check(ec.compute_symbol(solved, "SPY")["greeks_source"] == "solved_bs_v1",
+          "solver-IV profile is labelled solved_bs_v1, distinctly")
+    mixed = ec.compute_symbol(
+        [dict(r) for r in rows[:400]] +
+        [{**r, "iv_source": "solved_bs_v1"} for r in rows[400:]], "SPY")
+    check(mixed["greeks_source"].startswith("mixed:"),
+          f"a mixed profile reports AS mixed ({mixed['greeks_source'][:44]}...)")
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        logp = str(Path(td) / "pin.csv")
+        pl.run(date="2026-09-04", log_path=logp)
+        first = pl.declared_tolerances(logp)
+        original = config.PIN_TOLERANCE_BPS
+        try:
+            config.PIN_TOLERANCE_BPS = 500.0
+            pl.run(date="2026-09-04", log_path=logp)
+            after = pl.declared_tolerances(logp)
+            check(after == first,
+                  "a rerun PRESERVES each row's declared tolerance when config moved")
+            pl.run(date="2026-09-04", log_path=logp, allow_regrade=True)
+            regraded = pl.declared_tolerances(logp)
+            check(all(v == 500.0 for v in regraded.values()),
+                  "--allow-regrade is the ONLY way the declared tolerance moves")
+        finally:
+            config.PIN_TOLERANCE_BPS = original
+
+
 def group_d() -> None:
     print(f"\n{LINE}\nD. REPLAY: Friday's run, from its own packet\n{LINE}")
     day = "2026-09-04"
@@ -305,6 +390,8 @@ def main() -> int:
         group_a(db)
         group_b(db)
         group_c(db)
+        group_e(db)
+    group_f()
     group_d()
 
     tail = f", {len(SKIPPED)} skipped" if SKIPPED else ""

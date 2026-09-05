@@ -125,6 +125,9 @@ PIN_COLUMNS = [
     # 0DTE at settlement reports OI structure and no greeks. Kept so the
     # bucket's size stays visible on the row after its greeks stopped being.
     "oi_0dte", "oi_0dte_put_call_ratio", "min_t_load_bearing_buckets",
+    # Which IV produced the greeks behind this grading. Constant until 5 Sep,
+    # which meant a solved-IV grading and a vendor-IV grading looked identical.
+    "greeks_source",
 ]
 
 
@@ -244,6 +247,7 @@ def row_for(computed: dict, close: Optional[float] = None,
         row[f"{name}_hit"] = is_hit(d, tol)
 
     z = b.get("0dte") or {}
+    row["greeks_source"] = computed.get("greeks_source")
     row["oi_0dte"] = z.get("oi_total")
     row["oi_0dte_put_call_ratio"] = z.get("oi_put_call_ratio")
     # Named, not counted: which bucket is leaning on the floor matters more
@@ -278,6 +282,31 @@ def append_rows(rows: list[dict], path: Optional[str] = None) -> Path:
         w.writeheader()
         w.writerows(merged)
     return p
+
+
+def declared_tolerances(path: Optional[str] = None) -> dict:
+    """The tolerance each already-graded row was scored at.
+
+    THE TOLERANCE IS DECLARED IN ADVANCE AND NEVER REVISED AFTER THE FACT --
+    the architecture's words, and this file's `revision_policy: never`.
+
+    A rerun that regraded old rows at today's config value would be marking its
+    own homework: widen the tolerance and every past miss silently becomes a
+    hit, with nothing in the file recording that the bar moved. So a row that
+    already exists keeps the tolerance it was graded at, and
+    config.PIN_TOLERANCE_BPS applies only to rows written for the first time.
+    """
+    p = Path(path or config.PIN_LOG_PATH)
+    if not p.exists():
+        return {}
+    out: dict = {}
+    with p.open(encoding="utf-8", newline="") as fp:
+        for r in csv.DictReader(fp):
+            try:
+                out[(r.get("date"), r.get("symbol"))] = float(r.get("tolerance_bps"))
+            except (TypeError, ValueError):
+                continue
+    return out
 
 
 def load_computed(date: Optional[str] = None, symbols: Optional[list[str]] = None,
@@ -356,10 +385,31 @@ def _load_day(day: Path, symbols: Optional[list[str]] = None) -> dict[str, dict]
 
 def run(date: Optional[str] = None, symbols: Optional[list[str]] = None,
         computed_dir: Optional[str] = None, log_path: Optional[str] = None,
-        close_source: str = "chain_snapshot_spot") -> list[dict]:
+        close_source: str = "chain_snapshot_spot",
+        allow_regrade: bool = False) -> list[dict]:
     computed = load_computed(date, symbols, computed_dir)
-    rows = [row_for(c, close_source=close_source)
-            for c in computed.values() if not c.get("error")]
+    declared = {} if allow_regrade else declared_tolerances(log_path)
+
+    rows, preserved = [], []
+    for c in computed.values():
+        if c.get("error"):
+            continue
+        key = (c.get("session_date")
+               or session.session_date(c.get("fetched_at") or c.get("computed_at")),
+               c.get("symbol"))
+        tol = declared.get(key)
+        if tol is not None and tol != config.PIN_TOLERANCE_BPS:
+            preserved.append((key, tol))
+        rows.append(row_for(c, close_source=close_source, tolerance_bps=tol))
+
+    for key, tol in preserved:
+        log.info("preserved declared tolerance %.1fbps for %s %s "
+                 "(config now %.1f) -- a graded row is not regraded",
+                 tol, key[0], key[1], config.PIN_TOLERANCE_BPS)
+    if allow_regrade:
+        log.warning("REGRADING: every row scored at config's current %.1fbps, "
+                    "overwriting the tolerance it was declared at. This is a "
+                    "methodology change, not a rerun.", config.PIN_TOLERANCE_BPS)
     if rows:
         append_rows(rows, log_path)
     return rows
@@ -372,6 +422,10 @@ def main() -> int:
     ap.add_argument("--computed-dir", default=None)
     ap.add_argument("--log-path", default=None)
     ap.add_argument("--close-source", default="chain_snapshot_spot")
+    ap.add_argument("--allow-regrade", action="store_true",
+                    help="Rescore EXISTING rows at config's current tolerance. "
+                         "A deliberate methodology change; a plain rerun "
+                         "preserves each row's declared tolerance.")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -381,7 +435,7 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     rows = run(args.date, args.symbols, args.computed_dir, args.log_path,
-               args.close_source)
+               args.close_source, args.allow_regrade)
     if not rows:
         print("No computed snapshots to score. Run tools/gex_compute.py first.")
         return 1

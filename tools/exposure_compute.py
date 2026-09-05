@@ -213,6 +213,17 @@ SQRT_2PI = math.sqrt(2.0 * math.pi)
 MIN_T = 1.0 / (365.0 * 24.0)     # 1 hour, so 0DTE gamma and charm stay finite
 MAX_SANE_IV = 5.0                # 500% vol; above this the quote is garbage
 
+# WHICH IMPLIED VOL PRODUCED A GREEK. The label travels on the profile and on
+# every pin-log row, because a greek solved from option prices and one taken
+# from the vendor's own IV column are not the same measurement and must never
+# be indistinguishable in the store. tools/iv_solver.py tags every row it
+# touches with iv_source; anything untagged came from the chain's IV column.
+IV_SOURCE_LABELS = {
+    "solved_bs_v1": "solved_bs_v1",          # tools/iv_solver.py
+    None: "computed_bs_from_yf_iv",          # the chain's own IV column
+}
+DEFAULT_IV_LABEL = "computed_bs_from_yf_iv"
+
 DAYS_PER_YEAR = 365.0            # charm is per year; the book reads per day
 VOL_POINT = 0.01                 # vanna is per 1.00 of vol; the book reads per point
 CONTRACT_MULTIPLIER = 100.0      # shares per option contract
@@ -283,6 +294,33 @@ FIELD_MECHANISM_GROUPS: dict[str, str] = {
     "oi_concentration": "chain_quality",
     "oi_weighted_dte": "chain_quality",
 }
+
+
+def iv_label(row: dict) -> str:
+    """The greeks_source label for one row, from its IV provenance."""
+    return IV_SOURCE_LABELS.get(row.get("iv_source"), DEFAULT_IV_LABEL)
+
+
+def _iv_counter(row: dict) -> str:
+    return ("greeks_from_solver" if iv_label(row) == "solved_bs_v1"
+            else "greeks_from_yf_iv")
+
+
+def greeks_source_for(quality: dict) -> str:
+    """One label for the profile, or an explicit mix.
+
+    A mixed profile is reported AS a mix rather than as whichever source
+    happened to dominate. Two IV paths inside one number is a fact a reader
+    needs, and "mostly the vendor's" is not a provenance.
+    """
+    yf = quality.get("greeks_from_yf_iv", 0)
+    solved = quality.get("greeks_from_solver", 0)
+    if solved and yf:
+        return (f"mixed:computed_bs_from_yf_iv+solved_bs_v1"
+                f"({solved}/{yf + solved} solved)")
+    if solved:
+        return "solved_bs_v1"
+    return DEFAULT_IV_LABEL
 
 
 def is_settled_capture(fetched_at=None) -> bool:
@@ -893,7 +931,11 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
                # full delta/vanna/charm set; chex_floored_rows counts rows whose
                # time input hit MIN_T, which is where a 0DTE charm number stops
                # being a measurement and becomes an extrapolation.
-               "greeks_solved": 0, "greeks_unsolved": 0, "chex_floored_rows": 0}
+               "greeks_solved": 0, "greeks_unsolved": 0, "chex_floored_rows": 0,
+               # Per-row IV provenance, counted rather than assumed, so a mixed
+               # profile is visible as a mix instead of collapsing to whichever
+               # label happened to be written first.
+               "greeks_from_yf_iv": 0, "greeks_from_solver": 0}
     if not spot:
         return {"symbol": symbol, "error": "no spot in snapshot", "quality": quality}
 
@@ -924,6 +966,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
                 extra.update({k: greeks[k] for k in ("delta", "vanna", "charm")})
                 quality["greeks_solved"] += 1
                 quality["chex_floored_rows"] += int(greeks["t_floored"])
+                quality[_iv_counter(r)] += 1
             else:
                 quality["greeks_unsolved"] += 1
             usable.append({**r, **extra})
@@ -942,6 +985,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         quality["gamma_computed"] += 1
         quality["greeks_solved"] += 1
         quality["chex_floored_rows"] += int(greeks["t_floored"])
+        quality[_iv_counter(r)] += 1
         usable.append({**r, "gamma": greeks["gamma"], "delta": greeks["delta"],
                        "vanna": greeks["vanna"], "charm": greeks["charm"]})
 
@@ -1039,8 +1083,13 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         # FIELD as well. A consumer counting confluence reads this map, not the
         # scalar above.
         "field_mechanism_groups": FIELD_MECHANISM_GROUPS,
-        "gamma_source": ("vendor" if quality["gamma_supplied"] else "computed_bs_from_iv"),
-        "greeks_source": "computed_bs_from_iv",
+        "gamma_source": ("vendor" if quality["gamma_supplied"]
+                         else greeks_source_for(quality)),
+        # Varies with the IV that produced it -- see IV_SOURCE_LABELS. Hardcoded
+        # until now, which made a solver-IV profile and a vendor-IV profile
+        # indistinguishable in the store. That was the prerequisite blocking
+        # SPX Greeks from going live.
+        "greeks_source": greeks_source_for(quality),
         "risk_free_rate": config.RISK_FREE_RATE,
         # What this capture is, and therefore what it is allowed to claim.
         "capture": "settled_eod" if settled else "intraday",
@@ -1101,6 +1150,9 @@ def load_chain(path: Path) -> list[dict]:
                 # Written by altdata.sources.massive_chain on symbols whose
                 # Greeks are gated. Absent on yfinance chains, which is the
                 # ungated case -- see the fence in compute_symbol.
+                # Set by tools/iv_solver.py on any row it solved. Absent on
+                # a raw vendor chain, which is itself the provenance.
+                "iv_source": (rec.get("iv_source") or None),
                 "greeks_status": (rec.get("greeks_status") or None),
                 "vendor": (rec.get("vendor") or None),
                 "spot_source": (rec.get("spot_source") or None),

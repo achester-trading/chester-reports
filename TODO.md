@@ -605,3 +605,46 @@ sync now writes `~/.chester/ibkr_sync_status` and, only on a clean run,
 `~/.chester/ibkr_sync_last_success`, whose AGE is how long the portfolio series
 has had a hole in it. Same state vocabulary as the watchdog's health file, so
 the two agree on what a failure is called and not merely that one happened.
+
+## Provenance, tolerance policy and the decision CLI (5 Sep 2026)
+
+- [x] **DONE. `greeks_source` varies with the IV path.** `computed_bs_from_yf_iv`
+      for the chain's own IV, `solved_bs_v1` when tools/iv_solver.py fed it, and
+      a mixed profile reports AS mixed with the solved fraction rather than
+      collapsing to whichever dominated. iv_solver already tagged every row with
+      `iv_source`; the label now rides that through to the profile and onto every
+      pin-log row. **This was the prerequisite blocking SPX Greeks.**
+- [x] **DONE. The pin log honours row-level `tolerance_bps`.** A rerun preserves
+      each row's declared tolerance and logs that it did; only `--allow-regrade`
+      moves it, and says loudly that it is a methodology change. Demonstrated:
+      widening config 25 -> 500bps leaves a rerun at 25bps with the SAME miss,
+      while --allow-regrade turns that miss into a hit. That is precisely the
+      marking-your-own-homework failure the policy exists to stop.
+
+`tools/decide.py` is the register's first writer. It exists NOW, before anything
+produces a recommendation automatically, so the first thing that does cannot
+route around it.
+
+- [ ] **The CLI's shape was inferred.** No spec for it existed in the repo. It
+      follows the register schema and Part 7 (invalidation is a REQUIRED
+      argument, not an optional one -- an argument you can omit gets filled in
+      later, which is exactly when it stops being an invalidation) and 26.7's
+      edge taxonomy as a closed set. Review it against what you actually meant.
+- [ ] Every recorded decision gets a packet at write time. `code_dirty` reads 1
+      whenever the tree is dirty, which it was during development; a real
+      decision should be recorded from a clean tree.
+- [ ] No `supersede` or `set-status` subcommand yet. The register supports both
+      (Part 7 revision creates a new record); the CLI does not expose them.
+- [ ] The CLI has no DECISION_BLOCKED check (26.2 #7). A recommendation whose
+      inputs are missing or stale should be blocked while the report still
+      publishes; today the CLI records regardless and only the empty manifest
+      hints at it.
+
+### A bug the first dry run showed
+
+`_inputs_for` took the newest directory holding ANY chains, so on a day the
+vendor capture ran alone it pinned SPX and SPCX into a **SPY** decision's
+manifest. A packet that pins the WRONG inputs is worse than one that pins none:
+it claims a lineage it does not have, and the claim is indistinguishable from a
+true one. It now walks back until it finds the instrument's own chain, and
+reports an empty manifest with a reason when there is none.

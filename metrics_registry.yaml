@@ -819,7 +819,7 @@ bulk_imports:
       this block exists so the CI check can prove the column list is covered.
     source: yfinance
     members_from: tools.pin_log.PIN_COLUMNS
-    expected_members: 79
+    expected_members: 80
     trigger_eligible: false
     mechanism_group: pin_outcome
     native_horizon: daily
@@ -876,6 +876,10 @@ non_metrics:
     - skipped_insane_iv
     - skipped_no_oi
     - chex_floored_rows
+    # Per-row IV provenance counters behind greeks_source. Diagnostics about
+    # how a number was made, not numbers.
+    - greeks_from_yf_iv
+    - greeks_from_solver
     - strikes
     - strikes_used
     - contracts
