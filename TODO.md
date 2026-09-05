@@ -109,3 +109,14 @@ because no ATM strike happened to dominate the call side.
 - [ ] Decide which put-wall definition the pin log should score against. It
       currently uses `put_wall` (net GEX, all strikes); `put_wall_otm` is the
       tradeable one and the one the vendor agrees with.
+
+## Trading calendar (added 5 Sep 2026)
+
+- [ ] **Extend `altdata/session.py:NYSE_HOLIDAYS` past 2027 during Q4 2027.**
+      The table covers 2026-2027 only. Past its last year `is_trading_session`
+      fails open -- unknown weekdays run -- so the failure is a wasted holiday
+      fetch, not a lost session, but it is still a failure. Source:
+      https://www.nyse.com/markets/hours-calendars.
+- [ ] Early closes are tabulated and treated as sessions. If intraday sampling
+      ever lands, its 15:30 ET sample must consult `is_early_close()` -- the
+      market is already shut by then on those days.

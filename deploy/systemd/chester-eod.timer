@@ -8,6 +8,12 @@ Documentation=https://github.com/achester-trading/chester-reports
 # the direction that matters, since the whole point is "shortly after the close".
 # systemd resolves the timezone per firing, so DST is handled without a second
 # entry and without maintenance. Requires systemd >= 252; Ubuntu 24.04 ships 255.
+#
+# Mon-Fri is only half the calendar -- systemd has no idea what Labor Day is.
+# Market holidays are handled a layer down, by the trading-calendar guard in
+# run_eod_cron.sh, which exits 0 without running. The timer stays dumb on
+# purpose: the holiday table is a repo commit the box pulls, not a unit file
+# somebody has to edit on the box.
 OnCalendar=Mon-Fri 16:10 America/New_York
 
 # Fire at the stated minute. systemd's default AccuracySec is 1min and it will

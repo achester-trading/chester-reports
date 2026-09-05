@@ -8,42 +8,103 @@
 # clean exit, and this reads its age. Nothing here trusts the pipeline's
 # opinion of itself.
 #
-# WEEKEND AWARENESS. The timer runs Mon-Fri at 16:10 ET, so the gap from
+# NON-SESSION AWARENESS. The timer runs Mon-Fri at 16:10 ET, so the gap from
 # Friday's run to Monday's is ~72h and a flat 26h threshold would alarm every
-# single weekend. The allowance widens on Sat, Sun, and Monday before the run
-# window, and is tight the rest of the time.
+# single weekend. Market holidays make that worse, not merely longer: Labor Day
+# stretches Friday-to-Tuesday to ~96h, which a fixed "weekend" allowance of 74h
+# would call STALE on a box that is behaving perfectly.
+#
+# So the allowance is not a table of special cases, it is derived. Ask the
+# calendar -- altdata.session, the same holiday table run_eod_cron.sh consults
+# before deciding to skip -- when the last run was actually DUE, and allow that
+# gap plus a grace period. Weekends, holidays, and holiday-extended weekends
+# all fall out of the one calculation, and a genuinely missed weekday run is
+# caught a couple of hours after its window instead of a day later.
+#
+# The old fixed windows survive as the fallback for a box that cannot reach the
+# calendar (no interpreter, no checkout). That path is weekend-aware only, and
+# says so in its output rather than quietly being less careful.
 #
 # Exit codes, suitable for a monitor or a cron alert:
 #   0 healthy · 1 stale · 2 no heartbeat at all · 3 last run failed
 #
 # Overridable:
 #   CHESTER_STATE_DIR   (~/.chester)
-#   CHESTER_MAX_AGE_H   weekday allowance in hours (26)
-#   CHESTER_WEEKEND_H   weekend/Monday-morning allowance in hours (74)
+#   CHESTER_REPO        checkout to read the calendar from (~/chester-reports)
+#   CHESTER_MAX_AGE_H   floor on the allowance, in hours (26)
+#   CHESTER_GRACE_H     slack past the moment a run was due, in hours (2)
+#   CHESTER_WEEKEND_H   fallback-only weekend allowance in hours (74)
+#   CHESTER_CHECK_DATE  evaluate against this ET instant ("YYYY-MM-DD HH:MM")
+#                       instead of now, for testing
 
 set -uo pipefail
 
 STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
+REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 HEARTBEAT="$STATE_DIR/eod_heartbeat"
 STATUS="$STATE_DIR/eod_status"
 MAX_AGE_H="${CHESTER_MAX_AGE_H:-26}"
+GRACE_H="${CHESTER_GRACE_H:-2}"
 WEEKEND_H="${CHESTER_WEEKEND_H:-74}"
 
-# Decide the allowance in market time, not the box's timezone. The box may well
-# run UTC; the schedule is ET, and the weekend it needs to tolerate is ET's.
-ET_DOW=$(TZ=America/New_York date +%u)     # 1=Mon .. 7=Sun
-ET_HOUR=$(TZ=America/New_York date +%-H)
-ET_NOW=$(TZ=America/New_York date '+%Y-%m-%d %H:%M %Z')
-
-if [[ $ET_DOW -ge 6 ]] || { [[ $ET_DOW -eq 1 ]] && [[ $ET_HOUR -lt 17 ]]; }; then
-    ALLOWED_H=$WEEKEND_H
-    WINDOW="weekend/Monday-morning"
+# Evaluate in market time, not the box's timezone. The box may well run UTC;
+# the schedule is ET, and the calendar it has to respect is the exchange's.
+FAKE_NOW="${CHESTER_CHECK_DATE:-}"
+if [[ -n "$FAKE_NOW" ]]; then
+    NOW_EPOCH=$(TZ=America/New_York date -d "$FAKE_NOW" +%s)
 else
-    ALLOWED_H=$MAX_AGE_H
-    WINDOW="weekday"
+    NOW_EPOCH=$(date +%s)
+fi
+ET_DOW=$(TZ=America/New_York date -d "@$NOW_EPOCH" +%u)     # 1=Mon .. 7=Sun
+ET_HOUR=$(TZ=America/New_York date -d "@$NOW_EPOCH" +%-H)
+ET_DATE=$(TZ=America/New_York date -d "@$NOW_EPOCH" +%F)
+ET_NOW=$(TZ=America/New_York date -d "@$NOW_EPOCH" '+%Y-%m-%d %H:%M ET')
+
+# The interpreter that owns the holiday table. Preferring the venv keeps this
+# on the same Python the pipeline runs; python3 is enough for a stdlib module.
+CAL_PY=""
+if [[ -x "$REPO/.venv/bin/python" ]]; then
+    CAL_PY="$REPO/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+    CAL_PY="python3"
 fi
 
-echo "EOD heartbeat check  ($ET_NOW, $WINDOW window: ${ALLOWED_H}h)"
+# Which session should have produced the newest heartbeat? Today's, once
+# today's 16:10 run has had time to finish; otherwise the last session before
+# today. A non-session today -- Saturday or Labor Day alike -- takes the same
+# branch, which is precisely the "treat a skipped holiday like a weekend"
+# behaviour the wrapper's skip path depends on.
+DUE_SESSION=""
+if [[ -n "$CAL_PY" ]] && [[ -d "$REPO" ]]; then
+    if [[ $ET_HOUR -ge 17 ]] && (cd "$REPO" && "$CAL_PY" -m altdata.session is-session "$ET_DATE" >/dev/null 2>&1); then
+        DUE_SESSION="$ET_DATE"
+    else
+        DUE_SESSION=$( (cd "$REPO" && "$CAL_PY" -m altdata.session prev-session "$ET_DATE") 2>/dev/null )
+    fi
+    # Anything unexpected on stdout means the calendar did not answer; an empty
+    # DUE_SESSION drops us into the fallback rather than into date arithmetic
+    # on a garbage string.
+    [[ "$DUE_SESSION" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || DUE_SESSION=""
+fi
+
+if [[ -n "$DUE_SESSION" ]]; then
+    # Runs start at 16:10 ET and take minutes, so 17:00 is when one is owed.
+    DUE_EPOCH=$(TZ=America/New_York date -d "$DUE_SESSION 17:00" +%s)
+    GAP_H=$(( (NOW_EPOCH - DUE_EPOCH) / 3600 ))
+    [[ $GAP_H -lt 0 ]] && GAP_H=0
+    ALLOWED_H=$(( GAP_H + GRACE_H ))
+    [[ $ALLOWED_H -lt $MAX_AGE_H ]] && ALLOWED_H=$MAX_AGE_H
+    WINDOW="due after the $DUE_SESSION session"
+elif [[ $ET_DOW -ge 6 ]] || { [[ $ET_DOW -eq 1 ]] && [[ $ET_HOUR -lt 17 ]]; }; then
+    ALLOWED_H=$WEEKEND_H
+    WINDOW="fallback weekend/Monday-morning, NO holiday table"
+else
+    ALLOWED_H=$MAX_AGE_H
+    WINDOW="fallback weekday, NO holiday table"
+fi
+
+echo "EOD heartbeat check  ($ET_NOW)"
+echo "  allowance      : ${ALLOWED_H}h  ($WINDOW)"
 
 if [[ ! -f "$HEARTBEAT" ]]; then
     echo "  CRITICAL no heartbeat file at $HEARTBEAT"
@@ -52,7 +113,6 @@ if [[ ! -f "$HEARTBEAT" ]]; then
     exit 2
 fi
 
-NOW_EPOCH=$(date +%s)
 HB_EPOCH=$(stat -c %Y "$HEARTBEAT" 2>/dev/null || echo 0)
 AGE_S=$(( NOW_EPOCH - HB_EPOCH ))
 AGE_H=$(( AGE_S / 3600 ))
@@ -79,7 +139,7 @@ if [[ -f "$STATUS" ]] && grep -q '^rc=[^0]' "$STATUS" 2>/dev/null; then
 fi
 
 if [[ $AGE_H -gt $ALLOWED_H ]]; then
-    echo "  STALE ${AGE_H}h exceeds the ${ALLOWED_H}h $WINDOW allowance"
+    echo "  STALE ${AGE_H}h exceeds the ${ALLOWED_H}h allowance ($WINDOW)"
     exit 1
 fi
 
