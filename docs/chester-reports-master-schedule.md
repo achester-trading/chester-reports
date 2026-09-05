@@ -259,6 +259,23 @@ here are scheduling pointers only.*
 - Conditional Prediction-Market Atlas + confidence-modification right as
   champion/challenger — deferred until the PM resolution archive accumulates
   (Part 27).
+
+*Build-week additions (5 Sep, approved in-session):*
+
+- Trading-calendar guard in session_date() — holiday/weekend skip with logged
+  non_session exit (BEFORE Mon 16:10: Labor Day would otherwise capture stale
+  chains). ~30 min.
+- Greeks extension: exposure_compute.py — GEX/DEX/VEX/CHEX per strike ×
+  4 expiry buckets, dealers-hand-v1 signs, per-bucket DEX expiration-release
+  line, mechanism_group=dealer_chain_derived (one cluster, never four votes,
+  per 26.9). Backfill from 2026-09-04 chains. ~1 session.
+- Intraday cadence (after Tuesday's first autonomous settled capture proves
+  clean): 09:45 full chain re-fetch (captures the day's 0DTE structure),
+  12:30 spot re-evaluation (no fetch; distance-to-flip, active walls, 0DTE
+  decay), 16:10 settled capture unchanged and sole writer of history/pin
+  rows. Intraday output to a separate intraday/ path labeled
+  profile_reval vs chain_refresh — never mingled with settled history.
+  Precursor to Part 28 A1's nine-run schedule. ~1–2h incl. two VPS timers.
 - **Calendar: renew the cron-job.org PAT April 2027** — only if the Actions
   fallback is still alive by then; drops entirely once the VPS migration
   (out-of-band 1b) is proven.
