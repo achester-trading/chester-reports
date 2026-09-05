@@ -12,3 +12,10 @@ yfinance>=0.2.40,<1.0
 # Phase 5: Claude narrative step
 anthropic>=0.40.0,<1.0
 PyYAML>=6.0
+
+# Gate 1: IBKR read-only sync (architecture 26.11).
+# ib_async, NOT ib_insync. The original was archived after its author's death
+# in 2024; ib_async is the maintained community continuation with a
+# near-identical API. Named here before any Gate 1 code exists so nothing is
+# ever written against the dead library.
+ib_async>=1.0,<3.0

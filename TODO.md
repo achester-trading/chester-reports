@@ -407,3 +407,47 @@ deliberately excluded, recorded with the reason so it is not re-argued.
       `BN` before the 2022 spin-off. `valid_from` is recorded on every row for a
       future identity layer. The FORWARD restriction is unaffected — only new
       decisions are blocked, and every root is Brookfield's today.
+
+## IBKR Gate 1 — Portfolio Truth (5 Sep 2026)
+
+`ib_insync` -> `ib_async` swapped before any Gate 1 code existed, which was the
+point: it appeared **only in documentation** (architecture Part 26.11 and the
+systematic-book whitepaper), never in requirements.txt and never imported, so
+nothing was ever written against the archived library. `ib_async>=1.0` is now a
+declared dependency.
+
+`altdata/sources/ibkr_portfolio.py` + `scripts/sync_ibkr.sh` +
+`tools/validate_ibkr_portfolio.py` (34 checks, in CI). Reads NAV, cash, buying
+power, margin, cushion and per-position qty/cost/value/PnL into the observation
+store as `source=ibkr_paper`, 13 registered metrics, all
+`mechanism_group=portfolio_truth`, all `trigger_eligible: false`.
+
+- [ ] **LIVE TEST PENDING ON THE VPS.** Everything so far is against fakes. Once
+      Gateway is up: `python -m altdata.sources.ibkr_portfolio --dry-run`, then
+      without `--dry-run`, then wire `scripts/sync_ibkr.sh` to a systemd timer
+      following the `deploy/systemd/` pattern. The connection-refused path is
+      the one thing already proven against reality (exit 3 on a closed port).
+- [ ] Gate 1's pass condition is a RECONCILIATION -- does the register's
+      mark-to-market agree with the broker's? That needs the register to hold
+      decisions, which it does not yet. Portfolio Truth is the input side only.
+- [ ] The other three read-only services of 26.11 are unbuilt: Portfolio Risk
+      (actual Greeks, factor/currency exposure), Expression Intelligence
+      (bid/ask, IV, What-If commission and margin), Execution Evaluation
+      (fills, arrival price, slippage).
+- [ ] `ACCOUNT_TAGS` covers nine summary tags. IBKR serves many more; add on
+      demand rather than pulling everything, since most of it is noise.
+
+### A real bug the IBKR work exposed in the point-in-time store
+
+The as-of join compares `available_at` LEXICOGRAPHICALLY so SQLite can use an
+index, and that only matches chronological order when every value has the same
+width. It does not: `'...T12:34:56.789012+00:00'` sorts AFTER
+`'...T12:34:56+00:00'` because `.` (0x2E) > `+` (0x2B). FRED writes seconds and
+broker snapshots write microseconds, so **every broker row was invisible to any
+second-resolution cutoff** -- it looked like it had not happened yet.
+
+Fixed by canonicalising every instant to fixed-width microsecond UTC on write
+and on query, with a regression test in `tools/validate_register.py`. The store
+was wiped and re-migrated (20,372 rows, regenerable from the CSVs). Worth
+remembering the shape of this: it only surfaced because a second source with a
+different timestamp precision arrived.

@@ -2065,7 +2065,8 @@ validator.
 
 ## Gate 1 — Read-only sync
 
-`ib_insync` connection. Account, positions, and marks into the store. **No order
+`ib_async` connection (the maintained fork of the archived `ib_insync`; see
+requirements.txt). Account, positions, and marks into the store. **No order
 capability in the code at all** — not disabled, not commented out, absent.
 
 Worth building early regardless of whether you ever automate: it gives the

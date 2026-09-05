@@ -76,6 +76,10 @@ vocabularies:
     - dealer_chain_oi
     - chain_quality
     - pin_outcome
+    # Broker state. Its own group because it is an OBSERVATION OF OUR OWN BOOK
+    # rather than of the market -- it can never confirm a market signal, and
+    # letting it share a group with one would be self-confirmation.
+    - portfolio_truth
     # Macro, by pillar. Pillars are genuinely different mechanisms -- labour and
     # liquidity can confirm each other; two labour series cannot.
     - macro_labor
@@ -408,6 +412,82 @@ metrics:
     description: >-
       |dist_bps| within config.PIN_TOLERANCE_BPS. A CONDITIONER, not a signal,
       until effective n is meaningful -- the sample is currently one session.
+
+  # --- Portfolio Truth (architecture 26.11 Gate 1) --------------------------
+  # Read-only broker state. native_horizon is intraday because each row is an
+  # instant, not a period: NAV describes the moment it was read.
+  portfolio.nav:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+    description: Net liquidation value. The account's mark-to-market worth.
+  portfolio.cash:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.buying_power:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.gross_position_value:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.init_margin:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.maint_margin:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.excess_liquidity:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.available_funds:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.cushion:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: ratio
+    description: >-
+      Excess liquidity as a fraction of net liquidation. The margin-stress
+      reading; the one to watch rather than the absolute margin figures.
+  portfolio.position_qty:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: shares
+    description: >-
+      Signed position size, keyed on the contract's localSymbol so two options
+      on one underlying cannot collide.
+  portfolio.position_avg_cost:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: price
+  portfolio.position_market_value:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
+  portfolio.position_unrealized_pnl:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    units: usd
 
 # -----------------------------------------------------------------------------
 bulk_imports:

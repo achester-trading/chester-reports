@@ -47,3 +47,11 @@ jobs:
       # gitignored and it is an acceptance check against real stored chains.
       - name: Register, point-in-time and restriction gate
         run: python tools/validate_register.py
+
+      # Runs entirely against fakes -- ib_async is imported lazily inside
+      # connect(), so this needs no broker library and contacts no Gateway.
+      # It is in CI for the Gate 1 invariant: the module's own source must
+      # contain no order-placing call. "Absent, not disabled" is a claim about
+      # the source text, so the build checks the source text.
+      - name: Portfolio Truth gate (no order capability)
+        run: python tools/validate_ibkr_portfolio.py

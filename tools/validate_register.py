@@ -119,6 +119,24 @@ def group_a(db_path: str) -> None:
           "a forward-DATED record stays visible (leakage is about knowing, "
           "not about the period)")
 
+    # REGRESSION: mixed-precision instants. The join compares available_at
+    # lexicographically so SQLite can use an index, and that only matches
+    # chronological order when every value is the same width. A microsecond
+    # stamp sorts AFTER a second-resolution one for the same instant, because
+    # '.' > '+'. FRED writes seconds and broker snapshots write microseconds,
+    # so without canonicalisation the broker rows were invisible to any
+    # second-resolution cutoff -- they looked like they had not happened yet.
+    store.write("test.precision", None, "2026-09-04",
+                "2026-09-04T20:10:00+00:00", 1.0, source="fred")
+    store.write("test.precision", None, "2026-09-05",
+                "2026-09-05T11:22:33.456789+00:00", 2.0, source="ibkr_paper")
+    mixed = store.as_of("test.precision", as_of="2026-09-05T12:00:00+00:00")
+    check(len(mixed) == 2,
+          "a MICROSECOND row and a SECOND row are both visible to one cutoff")
+    tight = store.as_of("test.precision", as_of="2026-09-05T11:22:33+00:00")
+    check(len(tight) == 1 and tight[0]["value_num"] == 1.0,
+          "a cutoff mid-second correctly excludes the later microsecond row")
+
     # Idempotence: re-ingesting the same vintage is a no-op, not a duplicate.
     before = store.count()
     store.write("test.series", None, "2026-08-01",

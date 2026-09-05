@@ -50,6 +50,7 @@ Usage:
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import sqlite3
@@ -57,6 +58,37 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
 from . import session
+
+
+def canonical_instant(ts: Optional[str]) -> Optional[str]:
+    """Fixed-width UTC ISO-8601 with microseconds.
+
+    THE AS-OF JOIN COMPARES available_at LEXICOGRAPHICALLY, because that is what
+    lets SQLite use an index. String ordering only matches chronological
+    ordering when every value has the SAME WIDTH, and ISO-8601 does not
+    guarantee that: '2026-09-05T12:34:56.789012+00:00' sorts AFTER
+    '2026-09-05T12:34:56+00:00' even though it is later by well under a second,
+    because '.' (0x2E) sorts above '+' (0x2B).
+
+    That is not hypothetical here. FRED rows are written at second resolution
+    and broker snapshots at microsecond resolution, so without canonicalisation
+    a microsecond row is invisible to any second-resolution cutoff -- it looks
+    like it has not happened yet. Every instant is therefore normalised to one
+    width on the way in and on the way to a query.
+
+    An unparseable value is returned unchanged rather than dropped: it is
+    somebody else's data problem, and silently discarding it would be worse.
+    """
+    if ts is None:
+        return None
+    text = str(ts).strip()
+    try:
+        parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc).isoformat(timespec="microseconds")
 
 DEFAULT_DB = os.environ.get("CHESTER_DB", "data/chester.db")
 
@@ -160,7 +192,7 @@ class ObservationStore:
             if num is None and txt is None:
                 continue          # a value-less row carries nothing; skip it
             payload.append((r["registry_key"], r.get("instrument"),
-                            r["observed_at"], r["available_at"],
+                            r["observed_at"], canonical_instant(r["available_at"]),
                             r.get("ingested_at") or ingested, num, txt,
                             r["source"], r.get("run_id")))
         if not payload:
@@ -182,7 +214,11 @@ class ObservationStore:
         default for a live run and the wrong one for a historical study --
         pass the cutoff explicitly whenever reproducing a past decision.
         """
-        cutoff = as_of or session.utc_iso()
+        # Microseconds, not the default seconds. Truncating "now" to the
+        # second and then padding it to .000000 puts the cutoff EARLIER than
+        # any row written later in that same second, which would hide a
+        # just-written observation from the query that follows it.
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
         cur = self.conn.execute(AS_OF_SQL, {"key": registry_key,
                                             "instrument": instrument,
                                             "as_of": cutoff})

@@ -165,6 +165,56 @@ sources:
         symbols, 60-70% rejected on wide spreads. This is why the settled
         profile excludes DTE=0 by rule rather than by workaround.
 
+  ibkr_paper:
+    name: Interactive Brokers, paper account via local IB Gateway
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [portfolio, positions, margin]
+    geography: [US]
+    latency: real-time on request
+    timestamp_reliability: high
+    timestamp_notes: >-
+      A broker balance has no release lag: the value is true at the instant it
+      is read and knowable at the same instant, so observed_at and available_at
+      are equal by construction rather than by approximation. This is the
+      opposite of FRED, where the gap between the two is the whole point.
+      IBKR's own account values update on its schedule, so a reading is a
+      snapshot of what the broker was reporting, not a continuous series.
+    license: brokerage account; not redistributable
+    allowed_reports: []
+    implemented_by: altdata/sources/ibkr_portfolio.py
+    status: live
+    epistemic_note: >-
+      PAPER account. Positions and NAV are simulated and must never be read as
+      the operator's real book. The source id is derived FROM THE PORT
+      (4002/7497 -> ibkr_paper, 4001/7496 -> ibkr_live), so a row cannot claim
+      to be paper while holding live balances. allowed_reports is empty: this
+      is Portfolio Truth for reconciliation, not a report input.
+    caveats:
+      - >-
+        READ-ONLY, enforced twice. connect() passes readonly=True so the API
+        session rejects orders at the socket, and the validation gate greps the
+        module's source for order-placing calls. Architecture 26.11 Gate 1
+        requires no order capability "not disabled, not commented out, absent".
+
+  ibkr_live:
+    name: Interactive Brokers, live account via local IB Gateway
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [portfolio, positions, margin]
+    geography: [US]
+    latency: real-time on request
+    timestamp_reliability: high
+    timestamp_notes: As ibkr_paper.
+    license: brokerage account; not redistributable
+    allowed_reports: []
+    implemented_by: altdata/sources/ibkr_portfolio.py
+    status: not_yet_used
+    epistemic_note: >-
+      Registered so that a live reading has somewhere honest to land, NOT
+      because anything connects live today. connect() refuses a live port
+      unless allow_live=True is passed explicitly.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:
