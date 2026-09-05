@@ -1,0 +1,106 @@
+# VPS runtime install — EOD options pass
+
+Part 25 ruling: **the VPS runs code, it never edits code.** Everything here is
+pulled from the repo. The only things created on the box are directories, the
+`.env` secrets file, and the two symlinks/copies systemd needs.
+
+These are **user** units, not system units. The job runs as your user, out of
+your home directory, against your `.env` — running it as root would buy nothing
+and would put a secrets file in root's home.
+
+## 1. Prerequisites on the box
+
+```bash
+sudo apt update && sudo apt install -y git python3-venv
+git clone https://github.com/achester-trading/chester-reports.git ~/chester-reports
+cd ~/chester-reports
+python3 -m venv .venv
+.venv/bin/pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python smoke_test.py          # no network needed; must print PASSED
+```
+
+## 2. Secrets
+
+```bash
+install -m 600 /dev/null ~/chester-reports/.env
+nano ~/chester-reports/.env             # type real values; never paste keys into a chat
+chmod 600 ~/chester-reports/.env        # belt and braces
+```
+
+`.env` is gitignored. It is the one file the box owns and the repo never sees.
+
+## 3. Directories the wrapper expects
+
+```bash
+mkdir -p ~/logs ~/backups/chains ~/.chester
+chmod +x ~/chester-reports/scripts/*.sh
+```
+
+## 4. Install the timer
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ~/chester-reports/deploy/systemd/chester-eod.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now chester-eod.timer
+```
+
+**Enable lingering, or the timer only runs while you are logged in:**
+
+```bash
+sudo loginctl enable-linger "$USER"
+```
+
+This is the single most common way a user timer silently never fires.
+
+## 5. Verify
+
+```bash
+systemctl --user list-timers chester-eod.timer     # check NEXT is 16:10 ET
+systemctl --user cat chester-eod.timer             # confirm what is installed
+systemd-analyze calendar 'Mon-Fri 16:10 America/New_York' --iterations=5
+```
+
+That last command is the one that proves DST is handled: it prints the next
+five firings as real UTC instants, so you can see the hour shift across a DST
+boundary rather than trusting it.
+
+## 6. Run once by hand before trusting the timer
+
+```bash
+~/chester-reports/scripts/run_eod_cron.sh; echo "exit=$?"
+tail -40 ~/logs/run_eod-$(date +%Y-%m).log
+~/chester-reports/scripts/check_heartbeat.sh; echo "health=$?"
+```
+
+## Health checking
+
+`scripts/check_heartbeat.sh` exits `0` healthy, `1` stale, `2` no heartbeat
+ever, `3` last run failed. It widens its allowance across weekends because the
+Friday-to-Monday gap is ~72h by design.
+
+Wire it to whatever alerts you; a second user timer running it each morning is
+the obvious next step, and is deliberately not installed here — an alerting
+path nobody reads is worse than none.
+
+## Exit codes from the pass itself
+
+| code | meaning |
+|---|---|
+| 0 | clean; heartbeat touched |
+| 1 | no chains captured — the irreplaceable stage failed |
+| 2 | compute failed; chains are stored, rerun with `--skip-fetch` |
+| 3 | pin scoring failed; chains and profiles are stored |
+| 4 | ran fine but the off-box backup failed — the data has one copy |
+
+Only `0` touches the heartbeat. `4` is deliberately not a success: the chains
+cannot be re-fetched, so a single copy is not a healthy state.
+
+## Timezone note
+
+The box may run UTC — that is fine and expected. The timer names
+`America/New_York` explicitly and `check_heartbeat.sh` evaluates its weekend
+window in ET, so neither depends on the host timezone. Do **not** "fix" this by
+setting the box to ET; that would make every other UTC-reasoning tool on the
+machine wrong instead.

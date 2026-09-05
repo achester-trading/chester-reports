@@ -1,0 +1,27 @@
+[Unit]
+Description=Run the chester-reports EOD options pass weekdays at 16:10 ET
+Documentation=https://github.com/achester-trading/chester-reports
+
+[Timer]
+# Wall-clock ET, not UTC. 16:10 ET is 20:10 UTC in EDT and 21:10 UTC in EST, so
+# any fixed UTC schedule silently drifts an hour twice a year -- and drifts in
+# the direction that matters, since the whole point is "shortly after the close".
+# systemd resolves the timezone per firing, so DST is handled without a second
+# entry and without maintenance. Requires systemd >= 252; Ubuntu 24.04 ships 255.
+OnCalendar=Mon-Fri 16:10 America/New_York
+
+# Fire at the stated minute. systemd's default AccuracySec is 1min and it will
+# also randomise within that window; for a market-close job the minute is the
+# point, so pin it.
+AccuracySec=1s
+RandomizedDelaySec=0
+
+# Persistent=false deliberately. A catch-up run after downtime would fetch
+# whatever the chain looks like whenever the box came back -- possibly a
+# different session, or a weekend -- and file it as a capture. A missing day is
+# visible and honest; a mislabelled day is neither. The heartbeat checker is
+# what surfaces the gap.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

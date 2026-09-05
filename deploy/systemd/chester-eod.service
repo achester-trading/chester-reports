@@ -1,0 +1,37 @@
+[Unit]
+Description=chester-reports EOD options pass (chains -> GEX -> pin log -> backup)
+Documentation=https://github.com/achester-trading/chester-reports
+# Fetching chains needs the network; without this the timer can fire during
+# boot before DNS is up and burn the day's capture on a resolution failure.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# The wrapper does the pull, the run, the log and the heartbeat. Keeping the
+# unit thin means changing the run procedure is a repo commit the box pulls,
+# not a systemd edit on the box -- Part 25: the VPS runs code, never edits it.
+ExecStart=%h/chester-reports/scripts/run_eod_cron.sh
+
+# A chain fetch across the universe takes a few minutes; this is a ceiling that
+# stops a hung HTTP call holding the lock until tomorrow's run.
+TimeoutStartSec=30min
+
+# No restart-on-failure: a failed EOD pass should surface through the heartbeat
+# checker, not be retried into a rate limit. Data missed at 16:10 is not
+# recovered by trying again at 16:11.
+Restart=no
+
+# Modest hardening. The job needs the network, the repo, and its own state and
+# backup directories under $HOME -- nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-write
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=default.target

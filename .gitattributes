@@ -1,0 +1,16 @@
+# This repo is authored on Windows (core.autocrlf=true) and executed on a Linux
+# VPS. Anything the box runs must arrive with LF endings: a shell script with
+# CRLF fails on Linux with a bare "bad interpreter: /bin/bash^M", and a systemd
+# unit with CRLF is silently mis-parsed. Pin those explicitly rather than
+# relying on each machine's autocrlf setting.
+*.sh            text eol=lf
+*.service       text eol=lf
+*.timer         text eol=lf
+
+# Python is executed on both sides; LF everywhere keeps diffs clean.
+*.py            text eol=lf
+
+# Data and docs follow the platform default.
+*.md            text
+*.csv           text
+*.json          text
