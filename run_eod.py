@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from altdata import config
 from altdata import session
+from altdata.sources import massive_chain
 from altdata.sources import options_chain
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
 import exposure_compute     # noqa: E402
@@ -115,9 +116,14 @@ def main() -> int:
     log = logging.getLogger("run_eod")
 
     universe = args.symbols or config.options_universe()
+    # The vendor-only symbols ride along unless --symbols narrowed the run.
+    # They are captured but never computed; see Stage 1b.
+    vendor_universe = [] if args.symbols else config.massive_universe()
     started = session.utc_now()
     print(f"EOD options pass -- {started.isoformat(timespec='seconds')}")
-    print(f"  universe:   {len(universe)} symbols")
+    print(f"  universe:   {len(universe)} symbols with Greeks"
+          + (f" + {len(vendor_universe)} ingestion-only "
+             f"({', '.join(vendor_universe)})" if vendor_universe else ""))
     print(f"  convention: {config.CONVENTION_VERSION}")
     print(f"  tolerance:  {config.PIN_TOLERANCE_BPS}bps\n")
 
@@ -138,6 +144,29 @@ def main() -> int:
         except Exception:
             log.exception("Stage 1 failed outright")
             return 1
+
+        # ---- Stage 1b: the vendor-only symbols --------------------------
+        # SPX and SPCX, which yfinance does not serve. INGESTION ONLY: their
+        # rows carry greeks_status=pending_solver_gate and stage 2 refuses
+        # them. Captured now regardless, because Massive serves open interest
+        # from the live snapshot only -- bars go back two years, OI has no
+        # history at all, so a night not captured is gone the same way a
+        # yfinance night is.
+        #
+        # Never fatal. These two are additive; the 13 that carry the report
+        # must not be lost because a second vendor had a bad night.
+        if vendor_universe:
+            log.info("Stage 1b: fetching vendor chains (%s)",
+                     ", ".join(vendor_universe))
+            try:
+                vs = massive_chain.pull(symbols=vendor_universe)
+                log.info("  vendor chains: %d/%d symbols, %d rows",
+                         vs["success"], vs["total"],
+                         sum(e["rows"] for e in vs["symbols"].values()))
+                for sym, why in vs.get("failed", []):
+                    log.warning("  %s not captured: %s", sym, why)
+            except Exception:
+                log.exception("Stage 1b failed; the yfinance chains are safe")
 
     # ---- Stage 2: compute ------------------------------------------------
     log.info("Stage 2: computing exposure (GEX/DEX/VEX/CHEX)")

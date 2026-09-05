@@ -136,16 +136,43 @@ row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
       GEX *profile* under both IV sources. Gate is now three-valued
       (PASS/FAIL/INCONCLUSIVE) so a check that cannot see the book reports
       neither green nor red.
-- [ ] **The gate is still RED, for two reasons, neither loosenable.**
-      1. `dollar gamma/1% (ex-0DTE)` diverges **23.1%** against a 10% tolerance
-         on SPY. Not a coverage artifact: restricting BOTH profiles to the
-         8,199 rows that solved gives 27.6% (QQQ 82.7%, NVDA 4.5%). It is
-         genuine IV disagreement in the TAIL -- median |IV diff| is 0.0177 and
-         passes, but p90 is **0.136** and max 0.95. A median-based check cannot
-         see the tail that moves gamma. Consider adding a p90 bound to the IV
-         check, and work out why the tail is fat before touching the 10%.
-      2. `0DTE GEX profile` is INCONCLUSIVE at 1.6% coverage and structurally
-         cannot improve at a 16:10 snapshot -- see below.
+- [ ] **INVESTIGATION: the fat IV tail that fails the gamma check.** The gate
+      is RED only on `dollar gamma/1% (ex-0DTE)`, 23.086% against a 10%
+      tolerance. Everything needed to start is below; do not touch the 10%
+      until the cause is known.
+
+      *Evidence, SPY 2026-09-04 16:10 ET capture unless noted:*
+      - Median |IV diff| **0.0177** (passes the 0.02 gate) but **p90 0.136**
+        and **max 0.951**. The distribution's centre agrees and its tail does
+        not. A median-based check structurally cannot see the tail that moves
+        gamma, which is why four checks pass while the gamma check fails.
+      - Not a coverage artifact. Restricting BOTH profiles to only the rows
+        that co-solved: SPY **27.6%**, QQQ **82.7%**, NVDA **4.5%**.
+      - **QQQ being the worst is itself the clue.** QQQ is not the least
+        liquid name in the universe -- ASTS and MSTR are -- so the driver is
+        not liquidity alone. Whatever it is, it is worse on QQQ than on NVDA
+        by 18x.
+
+      *Hypothesis to test first:* the tail concentrates in (a) ITM-twinned
+      rows, where a solved OTM vol is propagated to its ITM twin, and (b)
+      near-expiry contracts. Both are places where one solved vol is doing
+      work far from where it was measured. SPY's reject counter already shows
+      **3,497 rows `solved_from_twin`** against 8,199 compared -- 43% of the
+      comparison is twinned vol, not directly solved vol.
+
+      *If that holds,* the fix is a design question about the CHECK, not a
+      loosening of it: compare the profiles **vega-weighted or quality-
+      weighted** rather than raw, so a strike contributes to the comparison in
+      proportion to how well its vol is actually known. A raw integral gives a
+      twinned deep-ITM vol the same vote as a directly solved ATM one.
+      Weighting is a statement about measurement confidence; raising the
+      threshold is a statement about tolerating error. Only the first is
+      defensible here.
+
+      *Also worth splitting out:* report the gamma diff for directly-solved
+      rows and twinned rows separately. If directly-solved rows come in under
+      10% on their own, that localises the whole problem to twinning.
+
 - [ ] **0DTE IV is unsolvable at the close, on every symbol.** Coverage across
       all 13 on 2026-09-04: 0.0%-2.4%, with 60-70% rejected `wide_spread`. At
       16:09 ET the day's contracts are at or past expiry and a penny-wide
@@ -187,3 +214,44 @@ one look identical. Selection now ranks by the `fetched_at` the rows carry,
 nearest `config.EOD_SNAPSHOT_TARGET_ET` (16:10, matching the timer). This moves
 every 2026-09-04 number: SPY $gamma/1% -988M -> -1,172M, NVDA 1.67bn -> 4.15bn,
 QQQ -339M -> -3.26bn. Earlier rows in the pin log were computed the old way.
+
+## SPX + SPCX ingestion (5 Sep 2026) — landed, Greeks deferred
+
+`altdata/sources/massive_chain.py` captures both into the shared chain schema.
+Verified live: SPX 28,024 rows / 20,909 with OI / 55 expiries / 113 pages;
+SPCX 3,182 rows / 2,503 with OI / 18 expiries. Tuesday captures **15 symbols:
+13 with full Greeks, 2 ingestion-pending-solver.**
+
+Every row carries `greeks_status=pending_solver_gate`, and `exposure_compute`
+refuses any chain carrying it — the deferral is enforced from the data, so it
+cannot be lost by someone passing a wider `--symbols`.
+
+- [ ] **Compute SPX/SPCX Greeks once the solver gate goes green.** Nothing else
+      blocks them: chains are being stored from today, and the spot problem is
+      solved — put-call parity recovers the forward from the option prices, so
+      the `I:SPX` 403 does not bite. Sanity check on the first capture: parity
+      spot **7710.94** against SPY's 770.24 close x10 = 7702, 0.12% apart.
+- [ ] Backfill is impossible for these two and that is now permanent, not
+      pending: Massive serves OI from the live snapshot only. Whatever OI
+      history SPX ends up with starts 2026-09-05.
+- [ ] `MASSIVE_MAX_PAGES` is 400 (100k contracts). SPX used 113. Revisit if a
+      capture ever reports `truncated`.
+
+### Two directory hazards found and fixed while wiring this
+
+Both were latent before today and both silently produced wrong output rather
+than an error.
+
+1. `pin_log.load_computed` scored profiles by the directory it read but keyed
+   the ROW on the profile's own `session_date`. Pre-fix profiles sitting in a
+   UTC-named directory therefore wrote rows for a different day, replacing good
+   ones — this clobbered the four-Greek backfill mid-session before it was
+   caught. Now a profile whose session disagrees with its directory is skipped,
+   including one whose `session_date` is null and would otherwise fall back to
+   deriving the date from `fetched_at`.
+2. Both `newest_chains` and `load_computed` took "the latest directory" as
+   "the latest data". With two vendors writing on different days, a
+   Massive-only Saturday capture made the latest directory one the yfinance
+   symbols never appear in, and the run reported no chains while a complete set
+   sat one directory back. Both now walk back to the newest directory that
+   actually holds something for the symbols asked for.

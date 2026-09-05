@@ -244,16 +244,36 @@ def append_rows(rows: list[dict], path: Optional[str] = None) -> Path:
 
 def load_computed(date: Optional[str] = None, symbols: Optional[list[str]] = None,
                   base_dir: Optional[str] = None) -> dict[str, dict]:
-    """Newest computed snapshot per symbol for a date (default: latest day)."""
+    """Scoreable computed profiles for a session (default: the newest that has
+    any).
+
+    "Newest that has any", not "newest directory". Two things now write here
+    that a pin log cannot score: the vendor symbols, whose Greeks are deferred,
+    and pre-fix profiles whose directory disagrees with their own session_date.
+    A directory holding only those is empty as far as this function is
+    concerned, and stopping at it would report no rows while a complete set sat
+    one directory back.
+    """
     root = Path(base_dir or config.COMPUTED_DIR)
     if not root.exists():
         return {}
-    days = sorted(p for p in root.iterdir() if p.is_dir())
+    days = sorted((p for p in root.iterdir() if p.is_dir()), reverse=True)
     if not days:
         return {}
-    day = (root / date) if date else days[-1]
-    if not day.exists():
-        return {}
+    if date:
+        day = root / date
+        if not day.exists():
+            return {}
+        return _load_day(day, symbols)
+    for day in days:
+        found = _load_day(day, symbols)
+        if any(not rec.get("error") for rec in found.values()):
+            return found
+    return {}
+
+
+def _load_day(day: Path, symbols: Optional[list[str]] = None) -> dict[str, dict]:
+    """Every scoreable profile in one session directory, newest per symbol."""
     out: dict[str, dict] = {}
     # Both names: *_exposure.json is what exposure_compute writes now, *_gex.json
     # is what it wrote before the four-Greek extension. Reading both means old
@@ -261,14 +281,38 @@ def load_computed(date: Optional[str] = None, symbols: Optional[list[str]] = Non
     # combined list by mtime means the newest still wins per symbol.
     files = sorted([*day.glob("*_exposure.json"), *day.glob("*_gex.json")],
                    key=lambda q: q.stat().st_mtime)
+    wanted = day.name
     for p in files:
         sym = p.name.split("_")[0]
         if symbols and sym not in symbols:
             continue
         try:
-            out[sym] = json.loads(p.read_text(encoding="utf-8"))
+            rec = json.loads(p.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             log.warning("unreadable computed snapshot: %s", p)
+            continue
+        # The directory names a session and so does the file. They disagree
+        # only for profiles written before session_date existed, when the
+        # directory was keyed on the UTC date -- and such a file, loaded from
+        # the directory it sits in, would be scored under the DIFFERENT date it
+        # claims, silently replacing good rows for a day this run never looked
+        # at. Skip rather than trust either: the file is pre-fix, so its
+        # numbers are suspect for the same reason its path is.
+        #
+        # A null session_date is the same hazard wearing a different hat: the
+        # oldest profiles predate the field entirely, and row_for would fall
+        # back to deriving the date from fetched_at -- landing the row on some
+        # other day just as silently. So derive it here and compare that, and
+        # if even fetched_at cannot place the profile, skip it. A profile that
+        # cannot say which session it describes has no business in a log whose
+        # primary key is the session.
+        got = rec.get("session_date") or session.session_date(
+            rec.get("fetched_at") or rec.get("computed_at"))
+        if got != wanted:
+            log.warning("skipping %s: session %s but sits in %s "
+                        "(pre-fix artifact)", p.name, got, wanted)
+            continue
+        out[sym] = rec
     return out
 
 

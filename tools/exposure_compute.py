@@ -713,6 +713,22 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
     spot = next((r["spot"] for r in rows if r.get("spot")), None)
     fetched_at = next((r["fetched_at"] for r in rows if r.get("fetched_at")), None)
 
+    # The deferral fence, enforced from the DATA rather than from a symbol
+    # list. A chain whose rows say their Greeks are gated does not get Greeks,
+    # whoever asked and whatever universe they passed. Massive writes this on
+    # SPX and SPCX because that tier serves no IV for index underlyings and the
+    # solved-IV path is red in tools/validate_iv_solver.py; computing anyway
+    # would produce numbers that look exactly like the trustworthy ones.
+    gated = {r.get("greeks_status") for r in rows} - {None, ""}
+    if gated:
+        return {"symbol": symbol,
+                "error": f"greeks deferred: {'/'.join(sorted(gated))}",
+                "greeks_status": sorted(gated)[0],
+                "mechanism_group": MECHANISM_GROUP,
+                "session_date": session.session_date(
+                    next((r.get("fetched_at") for r in rows if r.get("fetched_at")), None)),
+                "quality": {"rows_in": len(rows), "deferred": True}}
+
     quality = {"rows_in": len(rows), "gamma_computed": 0, "gamma_supplied": 0,
                "skipped_no_iv": 0, "skipped_insane_iv": 0, "skipped_no_oi": 0,
                # Four-Greek extension. greeks_solved counts rows carrying the
@@ -873,6 +889,12 @@ def load_chain(path: Path) -> list[dict]:
                 "bid": _to_float(rec.get("bid")),
                 "ask": _to_float(rec.get("ask")),
                 "gamma": _to_float(rec.get("gamma")),   # absent today, vendor later
+                # Written by altdata.sources.massive_chain on symbols whose
+                # Greeks are gated. Absent on yfinance chains, which is the
+                # ungated case -- see the fence in compute_symbol.
+                "greeks_status": (rec.get("greeks_status") or None),
+                "vendor": (rec.get("vendor") or None),
+                "spot_source": (rec.get("spot_source") or None),
             })
     return rows
 
@@ -933,25 +955,39 @@ def newest_chains(date: Optional[str] = None,
     root = Path(base_dir or config.CHAIN_DIR)
     if not root.exists():
         return {}
-    days = sorted(p for p in root.iterdir() if p.is_dir())
+    days = sorted((p for p in root.iterdir() if p.is_dir()), reverse=True)
     if not days:
         return {}
-    day = (root / date) if date else days[-1]
-    if not day.exists():
-        return {}
 
-    best: dict[str, tuple[tuple, Path]] = {}
-    for p in sorted(day.glob("*.csv")):
-        sym = p.name.split("_")[0]
-        if symbols and sym not in symbols:
-            continue
-        ts = snapshot_fetched_at(p)
-        # Negated epoch so that, at equal distance from the target, the later
-        # observation sorts first.
-        rank = (*_closeness_to_target(ts), -(ts.timestamp() if ts else 0.0))
-        if sym not in best or rank < best[sym][0]:
-            best[sym] = (rank, p)
-    return {sym: p for sym, (_, p) in sorted(best.items())}
+    def _pick(day: Path) -> dict[str, Path]:
+        best: dict[str, tuple[tuple, Path]] = {}
+        for p in sorted(day.glob("*.csv")):
+            sym = p.name.split("_")[0]
+            if symbols and sym not in symbols:
+                continue
+            ts = snapshot_fetched_at(p)
+            # Negated epoch so that, at equal distance from the target, the
+            # later observation sorts first.
+            rank = (*_closeness_to_target(ts), -(ts.timestamp() if ts else 0.0))
+            if sym not in best or rank < best[sym][0]:
+                best[sym] = (rank, p)
+        return {sym: p for sym, (_, p) in sorted(best.items())}
+
+    if date:
+        day = root / date
+        return _pick(day) if day.exists() else {}
+
+    # No date given: the newest day that actually holds chains for the symbols
+    # asked for, not merely the newest directory. Two vendors write here now
+    # and they do not always write on the same days -- a Massive-only capture
+    # would otherwise make "latest" a day the yfinance symbols never appear in,
+    # and the run would report no chains while a perfectly good set sat one
+    # directory back.
+    for day in days:
+        found = _pick(day)
+        if found:
+            return found
+    return {}
 
 
 def write_computed(result: dict, base_dir: Optional[str] = None) -> Path:

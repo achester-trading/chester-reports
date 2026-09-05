@@ -148,11 +148,51 @@ SINGLE_NAMES: list[str] = [
 # SPX and SPCX join this universe when the paid vendor lands -- yfinance has no
 # SPX index-option coverage, which is the gap Part B's vendor review exists to
 # close. Adding them here before then would produce empty chains, not errors.
+#
+# As of 5 Sep these two are served by altdata.sources.massive_chain, INGESTION
+# ONLY -- see MASSIVE_SYMBOLS below. They stay listed here because they remain
+# pending for Greeks, which is the sense that matters downstream.
 PENDING_VENDOR_SYMBOLS: list[str] = ["SPX", "SPCX"]
 
+# Symbols only Massive can serve. Chains are captured and stored; no Greeks are
+# computed for them, because this tier serves no IV for index underlyings and
+# the solved-IV path is gated on tools/validate_iv_solver.py, which is red.
+# Every row they produce carries greeks_status=pending_solver_gate and
+# exposure_compute refuses it, so the deferral is enforced by the data rather
+# than by remembering.
+MASSIVE_SYMBOLS: list[str] = ["SPX", "SPCX"]
+
+# True where spot must be inferred from put-call parity because the tier will
+# not sell the underlying's level (I:SPX returns 403). False where the vendor
+# serves an ordinary equity close.
+MASSIVE_SPOT_FROM_PARITY: dict[str, bool] = {"SPX": True, "SPCX": False}
+
+# TICKER REUSE FENCE. A symbol here has been used by more than one issuer, so
+# reference data returns contracts belonging to a company that no longer owns
+# the ticker. Contracts expiring before the date are dropped at ingestion.
+#
+# SPCX: the current underlying is Space Exploration Technologies Corp Class A,
+# listed 2026-06-12, whose options first traded 2026-06-16 -- confirmed by the
+# three most liquid contracts all opening that day. The same symbol previously
+# belonged to a SPAC/new-issue ETF, and its contracts (expiring 2021-01-15 and
+# 2026-01-16, strikes 16-35 against the current 70-145+) are still returned by
+# an expired=true query. Blending them would join two unrelated companies into
+# one series. This is the Part 26.2 #6 Security Master gap, fenced by hand
+# until an identity layer exists.
+UNDERLYING_VERIFIED_FROM: dict[str, str] = {"SPCX": "2026-06-16"}
+
 def options_universe() -> list[str]:
-    """Symbols the chain fetcher pulls. 15 once the singles land."""
+    """Symbols the yfinance chain fetcher pulls. 13 today."""
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+def massive_universe() -> list[str]:
+    """Symbols the Massive chain fetcher pulls. Ingestion only."""
+    return list(MASSIVE_SYMBOLS)
+
+def full_universe() -> list[str]:
+    """Everything captured nightly, from either vendor. 15 symbols: 13 with
+    full Greeks, 2 stored pending the solver gate."""
+    return options_universe() + massive_universe()
 
 # Pin-log tolerance. 25 basis points of spot, declared here so the logger and
 # any later backfill agree on what counts as a hit.
