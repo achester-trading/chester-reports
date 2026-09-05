@@ -526,3 +526,82 @@ an override is the box editing code, which the rule forbids).
       the bug.
 - [ ] Still unverified from here: `%h/ibc/gatewaystart.sh`. Confirm IBC's
       install path on the box before the first start.
+
+## Registry semantic pass (5 Sep 2026) — 26.4 fields on all 57 metrics
+
+`native_horizon` reviewed and `information_half_life`, `invalidated_by`,
+`observation_type`, `revision_policy` added to every metric and both bulk
+blocks, vocabulary-checked by `tools/check_registry.py`. Note the count: **57,
+not 44** — 44 was right until Portfolio Truth added 13.
+
+Two additions beyond 26.4's letter, approved 5 Sep, recorded here because they
+are ours and not the architecture's:
+
+- **`invalidated_by`.** Half-life gates decision use, so it must be the TIGHTER
+  constraint; an expiry rewrite is a hard invalidation, not decay. Encoding the
+  rewrite as a half-life would have licensed acting on a ten-day-old gamma flip
+  merely because no expiry had intervened, when a fresh one is computed nightly.
+- **`recomputed`** as a third `revision_policy`. Neither `never` nor `revised`
+  describes what happened twice this week: the mtime fix and the settlement
+  rule REWROTE Friday's numbers. A methodology change is not the source
+  restating.
+
+**Every dealers-hand-v1 metric is `inferred`, not `calculated`** (28 of them).
+The signing convention is an assumption about inventory that public chains
+cannot observe — under the customer-hand reading every sign inverts. Calling it
+`calculated` lends the arithmetic's certainty to the assumption beneath it. OI
+constructs stay `calculated`: `max_pain` would be unchanged if every implied vol
+in the chain were wrong, which is the test for which side of that line a field
+sits on.
+
+- [ ] **PREREQUISITE FOR SPX GOING LIVE: `greeks_source` is hardcoded to
+      `computed_bs_from_iv`.** Solver-IV-derived greeks are `inferred` like all
+      dealer-signed metrics — the solver is a second inference layer, not a
+      different observation type — so the distinction cannot live on the metric
+      entry. It has to be per row, and that field is the place. Today it does
+      not vary, so a yfinance-IV profile and a solved-IV profile are
+      indistinguishable in the store. Make it emit `solved_bs_v1` before SPX
+      Greeks are computed.
+- [ ] **The pin backfill now VIOLATES a declared policy, not a preference.**
+      `pin.*` is `revision_policy: never` because the architecture says the
+      tolerance is "declared in advance and never revised after the fact". The
+      code still regrades an old row at today's tolerance on a re-run. Rows
+      carry their own `tolerance_bps`, so the fix is for a backfill to refuse
+      to change it.
+- [ ] ALFRED remains uningested; `fred_macro` declares
+      `revision_source: ALFRED -- not yet ingested` so the gap is visible in
+      the registry rather than only in this file.
+
+### Per-field mechanism_group — the code/registry gap is closed
+
+`exposure_compute.FIELD_MECHANISM_GROUPS` stamps 41 fields (27 derived / 8 OI /
+6 quality) and the profile emits it as `field_mechanism_groups`.
+`check_registry` asserts the code map and the registry agree field by field, so
+the two cannot drift apart again. A consumer counting confluence reads that map,
+not the profile-level scalar.
+
+### systemd: silent-ignore is now a five-time pattern
+
+`tools/validate_systemd_units.py`, closed allowlist over all 9 shipped units,
+in CI. Verified it catches every historical instance: a directive in the wrong
+section, an invalid enumerated value, and an unknown directive. An unrecognised
+directive FAILS rather than being skipped — a typo and something nobody vetted
+look identical from here, and the vetting is the value.
+
+- [x] **DONE 5 Sep. `ProtectHome=read-write` on `chester-eod.service` was
+      invalid** (`yes|no|read-only|tmpfs`) and silently ignored. **It was hiding
+      a second defect:** `ProtectSystem=strict` mounts the whole tree read-only,
+      so the unit had no writable path for logs, state, backups or the data lake
+      and would have failed on its first real write. Added `ReadWritePaths`.
+- [ ] `systemd-analyze verify` on the box would catch a superset of this and
+      needs systemd, which the authoring machine has not got. Run it once on
+      the VPS as a cross-check of the allowlist.
+
+### Portfolio sync gaps are now visible without reading a log
+
+`SuccessExitStatus=0 3 4 5 6` is deliberate — none of those is a systemd
+failure — but it means `systemctl status` shows GREEN on a failed sync. The
+sync now writes `~/.chester/ibkr_sync_status` and, only on a clean run,
+`~/.chester/ibkr_sync_last_success`, whose AGE is how long the portfolio series
+has had a hole in it. Same state vocabulary as the watchdog's health file, so
+the two agree on what a failure is called and not merely that one happened.

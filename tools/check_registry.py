@@ -56,6 +56,11 @@ SOURCES_PATH = REPO / "source_registry.yaml"
 
 REQUIRED_FOR_TRIGGER = ("source", "mechanism_group", "native_horizon", "units")
 
+# 26.4 fields, required on every metric. Vocabulary-checked like the rest, so a
+# typo becomes a build failure rather than a new silent category.
+SEMANTIC_FIELDS = ("information_half_life", "invalidated_by",
+                   "observation_type", "revision_policy")
+
 
 class Failures:
     """Collects every failure rather than stopping at the first.
@@ -240,6 +245,12 @@ def main() -> int:
         u = m.get("units")
         if u not in (mvocab.get("units") or []):
             f.add("units vocabulary", f"{mid}: {u!r}")
+        for field in SEMANTIC_FIELDS:
+            got = m.get(field)
+            if got is None:
+                f.add(f"{field} declared", f"{mid}: missing")
+            elif got not in (mvocab.get(field) or []):
+                f.add(f"{field} vocabulary", f"{mid}: {got!r}")
 
         # THE DECISION RULE.
         eligible = m.get("trigger_eligible", defaults.get("trigger_eligible", False))
@@ -281,6 +292,28 @@ def main() -> int:
         if block.get("source") not in src:
             f.add("source resolves", f"{bid}: source {block.get('source')!r} unknown")
 
+    # --- CODE vs REGISTRY on mechanism_group -------------------------------
+    # The registry distinguished dealer_chain_derived from dealer_chain_oi
+    # while the engine stamped one group for the whole profile. That gap was
+    # logged and then closed; this is what stops it reopening. Two places
+    # asserting the same fact drift the moment nothing compares them.
+    try:
+        import exposure_compute as _ec
+        by_leaf = {}
+        for mid, m in entries.items():
+            by_leaf.setdefault(mid.rsplit(".", 1)[-1], (mid, (m or {}).get("mechanism_group")))
+        for field, group in _ec.FIELD_MECHANISM_GROUPS.items():
+            if field not in by_leaf:
+                f.add("code field registered",
+                      f"exposure_compute stamps {field!r} but no metric ends in it")
+                continue
+            mid, reg_group = by_leaf[field]
+            if reg_group != group:
+                f.add("mechanism_group agrees",
+                      f"{field}: code says {group!r}, {mid} says {reg_group!r}")
+    except Exception as e:  # noqa: BLE001
+        f.add("mechanism_group cross-check", f"could not run: {type(e).__name__}: {e}")
+
     # --- 1: drift ----------------------------------------------------------
     covered = registry_coverage(metrics)
     emitted = emitted_fields()
@@ -299,6 +332,12 @@ def main() -> int:
     print(f"  metrics registered   : {len(entries)}")
     print(f"  bulk-import members  : {n_bulk} across {len(bulk)} block(s)")
     print(f"  sources registered   : {len(src)}")
+    try:
+        import exposure_compute as _ec2
+        print(f"  field groups checked : {len(_ec2.FIELD_MECHANISM_GROUPS)} "
+              f"(code vs registry)")
+    except Exception:  # noqa: BLE001
+        pass
     print(f"  trigger_eligible     : "
           f"{sum(1 for m in entries.values() if (m or {}).get('trigger_eligible'))}"
           f"  (default {defaults.get('trigger_eligible')})")

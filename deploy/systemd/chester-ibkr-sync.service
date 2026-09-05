@@ -1,0 +1,40 @@
+[Unit]
+Description=Portfolio Truth sync (read-only IBKR account state)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+# Only meaningful while the Gateway is up. If the Gateway is stopped on purpose
+# the sync stops too rather than logging a connection refusal every 30 minutes.
+After=ibgateway.service
+BindsTo=ibgateway.service
+
+# The sync's own exit codes distinguish the failures, so a restart is never the
+# right response: "Gateway not running" and "signed out" are not fixed by
+# trying again, they are fixed by the watchdog or by a human. StartLimit is set
+# in [Unit] because that is where systemd reads it -- under [Service] it is
+# silently ignored, which this repo has now got wrong twice.
+StartLimitIntervalSec=1h
+StartLimitBurst=6
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/sync_ibkr.sh
+
+# Exit codes are the sync's, passed through by the wrapper:
+#   0 ok · 3 Gateway not running · 4 not responding · 5 signed out · 6 API error
+# None of them is a systemd-level failure worth restarting: the run happened
+# and reported. Treat them as success so the timer keeps its schedule, and read
+# ~/.chester/ibgateway_health or the log for the verdict.
+SuccessExitStatus=0 3 4 5 6
+
+TimeoutStartSec=5min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# Enable the TIMER, not this unit, and only after the Gateway gate in
+# README.md section 4 has been cleared.

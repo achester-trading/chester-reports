@@ -41,6 +41,12 @@ CLIENT_ID="${IBKR_CLIENT_ID:-17}"
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 LOG="$LOG_DIR/ibkr_sync-$(date +%Y-%m).log"
 LOCK="$STATE_DIR/ibkr_sync.lock"
+# A verdict a monitor can read without grepping a log. The unit declares
+# SuccessExitStatus=0 3 4 5 6 -- deliberately, since none of those is a systemd
+# failure -- which means `systemctl status` shows GREEN on a failed sync. The
+# log line alone is therefore not enough to keep a gap visible: something has
+# to hold the last outcome where a check can find it.
+STATUS="$STATE_DIR/ibkr_sync_status"
 
 log() { printf '%s %s\n' "$(date --iso-8601=seconds)" "$*" >>"$LOG"; }
 
@@ -75,10 +81,24 @@ log "=== sync start sha=$SHA pull=$PULL_STATUS target=$HOST:$PORT client=$CLIENT
 RC=$?
 
 case $RC in
-    0) log "sync ok" ;;
-    3) log "GATEWAY NOT RUNNING -- start IB Gateway on $HOST:$PORT" ;;
-    4) log "GATEWAY NOT RESPONDING -- API disabled, clientId $CLIENT_ID in use, or a dialog is blocking" ;;
-    5) log "NOT AUTHENTICATED -- Gateway is running and signed out" ;;
-    *) log "IBKR error rc=$RC" ;;
+    0) STATE=ok;              MSG="sync ok" ;;
+    3) STATE=not_listening;   MSG="GATEWAY NOT RUNNING -- start IB Gateway on $HOST:$PORT" ;;
+    4) STATE=not_responding;  MSG="GATEWAY NOT RESPONDING -- API disabled, clientId $CLIENT_ID in use, or a dialog is blocking" ;;
+    5) STATE=signed_out;      MSG="NOT AUTHENTICATED -- Gateway is running and signed out" ;;
+    *) STATE=api_error;       MSG="IBKR error rc=$RC" ;;
 esac
+log "$MSG"
+
+# Same state vocabulary the watchdog writes to ~/.chester/ibgateway_health, so
+# the two agree on what a failure is called as well as on what one is.
+printf 'state=%s rc=%s sha=%s at=%s
+'     "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
+
+# last_success is only ever touched on a clean sync, so the AGE of this file is
+# how long the portfolio series has had a hole in it -- visible without reading
+# a month of log.
+if [[ $RC -eq 0 ]]; then
+    printf 'state=ok rc=0 sha=%s at=%s
+' "$SHA" "$(date --iso-8601=seconds)"         >"$STATE_DIR/ibkr_sync_last_success"
+fi
 exit $RC

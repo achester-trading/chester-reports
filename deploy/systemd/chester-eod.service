@@ -25,10 +25,23 @@ Restart=no
 
 # Modest hardening. The job needs the network, the repo, and its own state and
 # backup directories under $HOME -- nothing else.
+#
+# ProtectHome= TAKES yes|no|read-only|tmpfs. It does NOT take read-write, which
+# is what this said until the VPS deployment caught it -- another directive
+# systemd ignores without complaint. `no` is the value that means what
+# read-write was trying to say: do not hide $HOME.
+#
+# But ProtectHome alone was never enough, and that is the deeper bug. With
+# ProtectSystem=strict the ENTIRE filesystem is mounted read-only except /dev,
+# /proc and /sys, so $HOME is unwritable whatever ProtectHome says. The job
+# writes logs, state, backups and the data lake, so those paths have to be
+# named. Without ReadWritePaths this unit would have failed on its first real
+# write -- the invalid directive was hiding a second defect behind it.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=read-write
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/backups %h/chester-reports
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

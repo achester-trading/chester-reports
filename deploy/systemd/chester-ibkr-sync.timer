@@ -1,0 +1,31 @@
+[Unit]
+Description=Sync Portfolio Truth every 30 minutes during the session
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# Weekday session hours in ET, every half hour. Portfolio state is a SERIES of
+# snapshots, not a current value -- each sync appends rather than replaces --
+# so the cadence decides the resolution of the record, not its freshness.
+#
+# Bounded to 09:00-17:00 deliberately. Outside those hours the account does not
+# move, and the 01:00 ET Gateway restart would otherwise be probed straight
+# through by a sync reporting a failure that is a scheduled event.
+#
+# Wall-clock ET for the same reason as everything else here: a fixed UTC
+# schedule drifts an hour twice a year, and this one would drift out of the
+# session it is meant to cover.
+OnCalendar=Mon-Fri 09..17:00/30 America/New_York
+
+# The sync opens one API connection on a fixed clientId. Jitter keeps it off
+# the exact minute where the watchdog also probes, so the two do not collide
+# on the Gateway and blame each other.
+RandomizedDelaySec=90
+
+# Persistent=false: a catch-up sync after downtime would append a snapshot
+# stamped now but describing whenever the box came back, and a gap in a series
+# of snapshots is more honest than a misdated one.
+Persistent=false
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# [Install]
+# WantedBy=timers.target

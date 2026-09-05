@@ -221,6 +221,69 @@ CONTRACT_MULTIPLIER = 100.0      # shares per option contract
 # module docstring and architecture 26.9.
 MECHANISM_GROUP = "dealer_chain_derived"
 
+# PER-FIELD mechanism groups. The profile-level MECHANISM_GROUP above is the
+# dominant one and was, until now, the ONLY one stamped -- which quietly told a
+# reader that max pain and gamma flip are the same cluster. They are not.
+#
+# 26.9 requires settled OI, effective OI and flow polarity kept distinct, and
+# max pain is an OI construct rather than a gamma one: it is a payout minimum
+# over open interest and would be unchanged if every implied vol in the chain
+# were wrong. Treating an OI level as confirmation of a gamma level is
+# double-counting one chain through two lenses -- the exact failure the tag
+# exists to prevent.
+#
+# tools/check_registry.py asserts this map agrees with metrics_registry.yaml
+# field by field, so the two cannot drift apart again.
+FIELD_MECHANISM_GROUPS: dict[str, str] = {
+    # --- gamma and the levels derived from it ---------------------------
+    "net_gex": "dealer_chain_derived",
+    "shares_per_1pct": "dealer_chain_derived",
+    "dollar_gamma_per_1pct": "dealer_chain_derived",
+    "gamma_flip": "dealer_chain_derived",
+    "gamma_flip_cum_strikes": "dealer_chain_derived",
+    "call_wall": "dealer_chain_derived",
+    "put_wall": "dealer_chain_derived",
+    "put_wall_otm": "dealer_chain_derived",
+    "call_wall_otm": "dealer_chain_derived",
+    "put_wall_gamma": "dealer_chain_derived",
+    "peak_abs_gex_strike": "dealer_chain_derived",
+    "gex": "dealer_chain_derived",
+    "call_gex": "dealer_chain_derived",
+    "put_gex": "dealer_chain_derived",
+    "share_of_total_abs_gex": "dealer_chain_derived",
+    # --- delta, vanna, charm: same chain, same cluster -------------------
+    "dex_shares": "dealer_chain_derived",
+    "dex_notional": "dealer_chain_derived",
+    "abs_dex_shares": "dealer_chain_derived",
+    "dex": "dealer_chain_derived",
+    "share_of_total_abs_dex": "dealer_chain_derived",
+    "share_of_abs_dex": "dealer_chain_derived",
+    "vex_shares_per_volpt": "dealer_chain_derived",
+    "vex_notional_per_volpt": "dealer_chain_derived",
+    "vex": "dealer_chain_derived",
+    "chex_shares_per_day": "dealer_chain_derived",
+    "chex_notional_per_day": "dealer_chain_derived",
+    "chex": "dealer_chain_derived",
+    # --- OI constructs: a DIFFERENT mechanism ---------------------------
+    # Unchanged by any implied vol in the chain. That is the test for which
+    # side of this line a field belongs on.
+    "max_pain": "dealer_chain_oi",
+    "put_wall_oi": "dealer_chain_oi",
+    "oi_total": "dealer_chain_oi",
+    "oi_calls": "dealer_chain_oi",
+    "oi_puts": "dealer_chain_oi",
+    "oi_put_call_ratio": "dealer_chain_oi",
+    "oi_strikes": "dealer_chain_oi",
+    "spot": "dealer_chain_oi",
+    # --- quality, which is evidence ABOUT the chain, not from it --------
+    "floored_share_of_abs_gex": "chain_quality",
+    "data_quality": "chain_quality",
+    "liquidity_floor": "chain_quality",
+    "iv_dispersion": "chain_quality",
+    "oi_concentration": "chain_quality",
+    "oi_weighted_dte": "chain_quality",
+}
+
 
 def is_settled_capture(fetched_at=None) -> bool:
     """Was this snapshot taken at or after the close, in ET?
@@ -970,6 +1033,12 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         # GEX, DEX, VEX and CHEX are four views of one chain, not four signals.
         # Architecture 26.9: they form a single confluence cluster.
         "mechanism_group": MECHANISM_GROUP,
+        # ...but not every field in this profile is in that cluster. The OI
+        # constructs are their own mechanism and the quality gates are evidence
+        # about the chain rather than from it, so the group is stamped PER
+        # FIELD as well. A consumer counting confluence reads this map, not the
+        # scalar above.
+        "field_mechanism_groups": FIELD_MECHANISM_GROUPS,
         "gamma_source": ("vendor" if quality["gamma_supplied"] else "computed_bs_from_iv"),
         "greeks_source": "computed_bs_from_iv",
         "risk_free_rate": config.RISK_FREE_RATE,

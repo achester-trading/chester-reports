@@ -63,3 +63,11 @@ jobs:
       # no Gateway, no network.
       - name: IB Gateway watchdog policy
         run: bash tools/validate_ibgateway_watchdog.sh
+
+      # Silent-ignore is a four-time pattern: a directive in the wrong section,
+      # an invalid value, and a hardening stanza that hid a missing
+      # ReadWritePaths. systemd accepts all of them and does something other
+      # than what the file says. Closed allowlist, so an unvetted directive
+      # fails the build.
+      - name: systemd unit directives
+        run: python tools/validate_systemd_units.py

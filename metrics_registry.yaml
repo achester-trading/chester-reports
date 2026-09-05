@@ -67,6 +67,50 @@ vocabularies:
     - boolean
     - date
     - from_member            # bulk blocks only: the member's own declared units
+  # 26.4: every signal carries a native horizon AND an information half-life.
+  # Outside them a metric may DISPLAY as context but may not affect a decision.
+  # They are different questions and a metric can be short on one and long on
+  # the other -- a pin outcome describes a single session and never decays.
+  information_half_life:
+    - intraday            # dead within the session; a stale read is not truth
+    - session             # superseded by the next capture
+    - to_next_expiry      # structurally REWRITTEN when the contributing
+                          # options expire, not merely superseded
+    - until_next_release  # valid until the source's next scheduled print
+    - week
+    - month
+    - permanent           # a recorded historical fact; never decays
+  # HALF-LIFE GATES DECISION USE, so it must be the TIGHTER constraint. An
+  # expiry rewrite is a hard invalidation, not a half-life: encoding it as one
+  # would license acting on a ten-day-old gamma flip merely because no expiry
+  # had intervened, when a fresh one is computed every night. So the half-life
+  # is `session` and the rewrite gets its own field.
+  invalidated_by:
+    - none
+    - expiry_rewrite      # the contributing options expire and the profile is
+                          # structurally rebuilt -- not decay, deletion
+    - position_change     # any fill makes the previous reading untrue
+  # 26.4 OBSERVATION_TYPE.
+  observation_type:
+    - observed            # a source reported it; we did not compute it
+    - calculated          # computed deterministically from stored inputs
+    - inferred            # derived under a model or assumption that can be
+                          # wrong in a way arithmetic cannot be. EVERY
+                          # dealers-hand-v1 metric is here: the signing
+                          # convention is an assumption about inventory that
+                          # public chains cannot observe, and under the
+                          # customer-hand reading every sign inverts. Calling
+                          # it `calculated` would lend the arithmetic's
+                          # certainty to the assumption underneath it.
+  # 26.4 REVISION_POLICY. One rule, one real exception:
+  #   observed   -> never       a snapshot is a snapshot
+  #   calculated -> recomputed  a methodology change REWRITES it, which is not
+  #                             the same thing as the source restating
+  #   FRED       -> revised     the source itself restates
+  revision_policy:
+    - never
+    - recomputed
+    - revised
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -116,12 +160,20 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd
     description: Raw signed gamma notional across strikes. Underlying quantity.
   exposure.shares_per_1pct:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares_per_1pct
     description: >-
       STORED PRIMARY for gamma. Change in dealer delta, in shares, per 1% move.
@@ -129,6 +181,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd_per_1pct
     derived_from: exposure.shares_per_1pct
     description: shares_per_1pct x spot. Derived so the two cannot drift.
@@ -136,6 +192,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
     description: >-
       Spot at which net dealer gamma changes sign, by scan and bisection.
@@ -144,6 +204,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
     description: >-
       Zero crossing of GEX cumulated across strikes at fixed spot. A DIFFERENT
@@ -152,17 +216,29 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
   exposure.put_wall:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
     description: Extreme negative GEX strike, all strikes. Not the tradeable one.
   exposure.put_wall_otm:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
     description: >-
       Extreme negative GEX restricted to OTM. Matches the vendor and is the
@@ -172,22 +248,38 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
   exposure.put_wall_gamma:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
   exposure.put_wall_oi:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: calculated
+    revision_policy: recomputed
     units: price
     description: Largest OTM put OI shelf. An OI construct, not a gamma one.
   exposure.peak_abs_gex_strike:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: price
     description: >-
       Largest |GEX| strike. EX-0DTE at a settled capture -- with 0DTE in it was
@@ -198,6 +290,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares
     description: >-
       STORED PRIMARY for delta. What the dealer OPTION BOOK is long; the hedge
@@ -208,18 +304,30 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd
     derived_from: exposure.dex_shares
   exposure.abs_dex_shares:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares
     description: Gross delta, as a denominator that does not cancel.
   exposure.expiration_release.dex_shares:
     source: yfinance
     mechanism_group: dealer_chain_derived
-    native_horizon: daily
+    native_horizon: monthly
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares
     description: >-
       Dated dealer-delta unwind: hedge scheduled to be released at one expiry.
@@ -227,7 +335,11 @@ metrics:
   exposure.expiration_release.share_of_abs_dex:
     source: yfinance
     mechanism_group: dealer_chain_derived
-    native_horizon: daily
+    native_horizon: monthly
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: fraction
 
   # --- VEX / CHEX -----------------------------------------------------------
@@ -235,6 +347,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares_per_volpt
     description: >-
       Vanna. VOL-TRIGGERED: does nothing until IV moves. Collapses to ~0 in
@@ -243,12 +359,20 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd_per_volpt
     derived_from: exposure.vex_shares_per_volpt
   exposure.chex_shares_per_day:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares_per_day
     description: >-
       Charm. TIME-TRIGGERED: resolves over hours to days, not on a price move.
@@ -258,6 +382,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd_per_day
     derived_from: exposure.chex_shares_per_day
 
@@ -269,32 +397,56 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd
     description: Signed dealer gamma notional at one strike.
   exposure.per_strike.call_gex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd
   exposure.per_strike.put_gex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: usd
   exposure.per_strike.dex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares
   exposure.per_strike.vex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares_per_volpt
   exposure.per_strike.chex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: shares_per_day
 
   # --- bucket shares --------------------------------------------------------
@@ -302,11 +454,19 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: fraction
   exposure.share_of_total_abs_dex:
     source: yfinance
     mechanism_group: dealer_chain_derived
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
     units: fraction
     description: >-
       Deliberately separate from the gamma share: 0DTE dominates gamma while
@@ -315,6 +475,10 @@ metrics:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: fraction
     description: >-
       Share of a bucket's |GEX| resting on the MIN_T floor. MIN_T is a guard
@@ -325,6 +489,10 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: calculated
+    revision_policy: recomputed
     units: price
     description: >-
       Strike minimising total ITM payout. An OI construct: unaffected by the
@@ -333,31 +501,55 @@ metrics:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
     units: count
   exposure.oi_calls:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
     units: count
   exposure.oi_puts:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
     units: count
   exposure.oi_put_call_ratio:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: calculated
+    revision_policy: recomputed
     units: ratio
   exposure.oi_strikes:
     source: yfinance
     mechanism_group: dealer_chain_oi
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
     units: count
   exposure.spot:
     source: yfinance
     mechanism_group: dealer_chain_oi
-    native_horizon: daily
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
     units: price
     description: >-
       For massive-sourced symbols this is derived from the put-call parity
@@ -368,29 +560,49 @@ metrics:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: label
     description: ok / degraded / excluded. Governs whether a day may enter a base rate.
   gates.liquidity_floor:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: boolean
   gates.iv_dispersion:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: ratio
     description: Normalised IV surface roughness. Threshold PROVISIONAL, uncalibrated.
   gates.oi_concentration:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: ratio
     description: OI Herfindahl and effective strike count.
   gates.oi_weighted_dte:
     source: yfinance
     mechanism_group: chain_quality
     native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: days
 
   # --- pin outcomes ---------------------------------------------------------
@@ -400,6 +612,10 @@ metrics:
     source: yfinance
     mechanism_group: pin_outcome
     native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
     units: bps
     description: >-
       Signed distance from a scored level to the close. Applies to max_pain,
@@ -408,6 +624,10 @@ metrics:
     source: yfinance
     mechanism_group: pin_outcome
     native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
     units: boolean
     description: >-
       |dist_bps| within config.PIN_TOLERANCE_BPS. A CONDITIONER, not a signal,
@@ -420,47 +640,83 @@ metrics:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
     description: Net liquidation value. The account's mark-to-market worth.
   portfolio.cash:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.buying_power:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.gross_position_value:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.init_margin:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.maint_margin:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.excess_liquidity:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.available_funds:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.cushion:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: ratio
     description: >-
       Excess liquidity as a fraction of net liquidation. The margin-stress
@@ -469,6 +725,10 @@ metrics:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: shares
     description: >-
       Signed position size, keyed on the contract's localSymbol so two options
@@ -477,16 +737,28 @@ metrics:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: price
   portfolio.position_market_value:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
   portfolio.position_unrealized_pnl:
     source: ibkr_paper
     mechanism_group: portfolio_truth
     native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
     units: usd
 
 # -----------------------------------------------------------------------------
@@ -509,6 +781,23 @@ bulk_imports:
     expected_members: 59
     units: from_member          # SeriesSpec.units
     native_horizon: from_member # SeriesSpec.freq
+    # FRED INHERITS ITS RELEASE CADENCE. A monthly series is current until the
+    # next monthly print; a daily one is stale in a day. One half-life across
+    # 59 series of four different frequencies would be wrong for most of them.
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    # THE ONE SOURCE THAT REVISES. GDP, payrolls and most of the macro set are
+    # restated, sometimes more than once. A revision shares its observed_at
+    # with the original print and differs in available_at -- exactly what the
+    # point-in-time store exists to hold.
+    #
+    # ALFRED is FRED's vintage archive and holds the true release times. We do
+    # NOT read it yet: migrated rows carry available_at = the pull time, an
+    # upper bound that OVERSTATES how early we knew. Backfilling real vintages
+    # from ALFRED is the open item.
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
     trigger_eligible: false
     mechanism_group_from_member: pillar
     mechanism_group_map:
@@ -534,6 +823,16 @@ bulk_imports:
     trigger_eligible: false
     mechanism_group: pin_outcome
     native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    # NEVER. A graded outcome is history. The architecture is explicit that the
+    # tolerance is "declared in advance and never revised after the fact", so a
+    # backfill that regrades an old row at today's tolerance is a violation of
+    # this policy, not a variation on it. See TODO -- the code does not honour
+    # this yet, and declaring it here is what makes that a defect rather than a
+    # matter of taste.
+    revision_policy: never
     units: from_member
 
 # -----------------------------------------------------------------------------
@@ -603,6 +902,9 @@ non_metrics:
     - quality
     - expiration_release
     - per_strike
+    # The per-field mechanism_group map. Structure that says how to READ the
+    # metrics, not a metric.
+    - field_mechanism_groups
   labels:
     - strike
     - expiry
