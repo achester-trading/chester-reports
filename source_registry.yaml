@@ -1,0 +1,177 @@
+# source_registry.yaml -- where facts come from, and how much each is worth.
+#
+# Architecture 26.10. Tiers run A0 (machine-readable primary) -> A1 -> B (global
+# wires) -> C (specialist / local) -> D (desks) -> E, and the binding rule is:
+# LOWER TIERS NEVER OVERWRITE HIGHER-TIER FACTS. That rule is the reason this
+# file exists rather than a comment somewhere -- SPY and SPX overlap today
+# across two vendors of different tiers, and something has to say which wins.
+#
+# `derived` is not one of the architecture's tiers. It is added here for our own
+# computations, which are not sources at all: they inherit the tier and the
+# timestamp reliability of whatever they read, and saying so explicitly stops a
+# derived number from quietly acquiring more authority than its input.
+#
+# timestamp_reliability is about WHEN, not WHAT. A source can be perfectly
+# accurate and still unable to say when its numbers were true; that is a
+# different defect and it breaks different things (point-in-time joins, staleness
+# checks, the entire pin log, which is keyed on a session).
+#
+# Every claim below that says "verified" was measured, and the probe that
+# measured it is named. Anything not verified says so.
+
+version: 1
+updated: 2026-09-05
+
+vocabularies:
+  tier: [A0, A1, B, C, D, E, derived]
+  timestamp_reliability: [high, medium, low, unknown]
+  epistemic_role: [primary_fact, redistributed_primary, unofficial_mirror,
+                   cross_check, own_computation]
+
+sources:
+
+  fred:
+    name: Federal Reserve Economic Data (St. Louis Fed)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro, rates, credit, fx, sovereign]
+    geography: [US, global]
+    latency: release-time; series-dependent
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Observations carry their own dates and the store records an as_of per row.
+      The known failure here is not timestamps but silent deprecation: roughly
+      one to two configured series a year stop updating, and the API returns an
+      empty or stale observation set rather than an error.
+    license: public domain, API key required
+    allowed_reports: [monthly_macro, disruptive_themes, top_bottom, alt_asset,
+                      daily_cascade]
+    implemented_by: altdata/sources/fred.py
+    status: live
+
+  yfinance:
+    name: Yahoo Finance (via the unofficial yfinance package)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [equity_prices, option_chains]
+    geography: [US]
+    latency: near-real-time, undocumented
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Rows carry lastTradeDate, which the IV solver uses for its staleness gate,
+      but the feed publishes no timestamp contract and nothing is guaranteed.
+      Treat a quote age as indicative. Separately and importantly: it serves NO
+      history for option chains, so an uncaptured session is lost permanently.
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [daily_cascade, gamma_weekly]
+    implemented_by:
+      - altdata/sources/yfinance_source.py
+      - altdata/sources/options_chain.py
+    status: live
+    caveats:
+      - No SPX index options; that gap is why massive was added.
+      - Tier C. Where it overlaps a higher tier on the same fact, it loses.
+
+  massive:
+    name: Massive (formerly Polygon.io), Options Starter
+    tier: A1
+    epistemic_role: redistributed_primary
+    domain: [option_chains, option_reference, equity_prices]
+    geography: [US]
+    latency: near-real-time
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Every record carries last_updated to nanosecond precision. ONE SHARP
+      EXCEPTION, verified by probe on 5 Sep: open interest has NO timestamp and
+      NO history. The `?date=` parameter is ignored -- three different dates
+      returned the identical open_interest -- the daily aggregates carry no OI
+      field, and the point-in-time contract reference returns terms without it.
+      So OI is a live snapshot with no as-of, and any OI history must be
+      accumulated by capture, never backfilled.
+    license: paid subscription, Starter tier
+    allowed_reports: [daily_cascade, gamma_weekly]
+    implemented_by: altdata/sources/massive_chain.py
+    status: live
+    entitlements_verified: 2026-09-05
+    entitlements:
+      option_reference: served
+      option_open_interest: served (live snapshot only)
+      option_implied_volatility: NOT served for index underlyings (0/250 sampled
+        near the money on SPX and VIX; SPY served 225/250)
+      option_greeks: NOT served for index underlyings (same sample)
+      index_level: NOT entitled -- I:SPX aggregates return HTTP 403
+      history_depth: 2 years, rolling; verified by explicit 403 beyond it
+    caveats:
+      - >-
+        Because IV is not served for index underlyings, every SPX Greek would
+        rest on solved IV. SPX and SPCX are therefore INGESTION ONLY today and
+        their rows carry greeks_status=pending_solver_gate.
+      - >-
+        SPCX is a reused ticker. Reference data returns contracts from a prior
+        issuer; config.UNDERLYING_VERIFIED_FROM fences them out.
+
+  flashalpha:
+    name: FlashAlpha, Basic plan
+    tier: C
+    epistemic_role: cross_check
+    domain: [option_analytics]
+    geography: [US]
+    latency: near-real-time
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Probed 4 Sep and could not be established. No OI field is exposed on any
+      endpoint reachable at Basic, so OI vintage is unmeasurable. A 60s intraday
+      diff showed the strike grid frozen while gamma_flip moved only as spot
+      moved, consistent with recompute over a settled OI base -- consistent
+      with, not proof of.
+    license: paid subscription, Basic plan
+    allowed_reports: []
+    implemented_by: tools/cross_check.py
+    status: live
+    epistemic_note: >-
+      NOT A DATA SOURCE. It is an independent recomputation used to cross-check
+      our own, and allowed_reports is deliberately empty: nothing it says may
+      reach a report directly. Per-strike exposure, OI and flow polarity are all
+      gated above Basic, so the intended check -- recomputing from their own
+      per-strike payload to catch a silent methodology change -- is impossible.
+      What we run instead compares our profile against their aggregate: same
+      purpose, weaker evidence.
+    rate_limit: 250/day, verified live via X-RateLimit-Limit
+
+  solver_derived:
+    name: Implied volatility solved from option prices (Black-76, put-call parity)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [option_analytics]
+    geography: [US]
+    latency: inherits from the chain it reads
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Carries no timestamp of its own; it is as of the chain it was solved from.
+    license: n/a
+    allowed_reports: [daily_cascade, gamma_weekly]
+    implemented_by: tools/iv_solver.py
+    status: gated
+    gate: tools/validate_iv_solver.py
+    gate_status: PASS as of 2026-09-05
+    caveats:
+      - >-
+        Solves the OTM wing and propagates each strike's vol to its ITM twin.
+        43-49% of a typical comparison is twinned rather than directly measured
+        vol, and the twinned rows carry a 5-8x wider IV tail (p90 0.159-0.355
+        against 0.024-0.071). A per-row quality weight is the open follow-up.
+      - >-
+        Cannot solve 0DTE at a settled capture: 0.0-2.4% coverage across all 13
+        symbols, 60-70% rejected on wide spreads. This is why the settled
+        profile excludes DTE=0 by rule rather than by workaround.
+
+# Which source wins when two describe the same fact. Tier order does the work;
+# this records the one live collision so it is not re-derived each time.
+precedence:
+  - fact: option chain for a symbol both vendors serve
+    winner: massive
+    loser: yfinance
+    reason: >-
+      A1 redistributed primary outranks a C-tier unofficial mirror. Not yet
+      exercised -- the two universes are currently disjoint (massive serves only
+      SPX and SPCX) -- but it is the rule the day they overlap.

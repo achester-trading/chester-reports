@@ -331,3 +331,32 @@ than an error.
    symbols never appear in, and the run reported no chains while a complete set
    sat one directory back. Both now walk back to the newest directory that
    actually holds something for the symbols asked for.
+
+## Registries (5 Sep 2026) — minimal-but-real first cut
+
+`metrics_registry.yaml` (44 metrics + 138 bulk members across 2 blocks),
+`source_registry.yaml` (5 sources), and one CI gate, `tools/check_registry.py`,
+wired to `.github/workflows/registry-check.yml` on every push and PR.
+
+**Every metric is `trigger_eligible: false`.** That is the honest state, not a
+placeholder: no recommendation path exists and the pin-log sample is one
+session. The gate refuses to let anything become trigger-eligible without a
+source, mechanism group, native horizon, units and a written rationale.
+
+- [ ] **Refine FRED mechanism groups below pillar level.** Nine pillars is the
+      right first cut — liquidity and labour can confirm each other, two labour
+      series cannot — but within a pillar some series still move together
+      (initial claims and continuing claims are not two votes). Split when a
+      confluence rule actually reads them.
+- [ ] **`exposure_compute` stamps one `mechanism_group` per profile
+      (`dealer_chain_derived`), but the registry distinguishes
+      `dealer_chain_derived` from `dealer_chain_oi`.** Max pain and the OI
+      shelves are OI constructs, not gamma ones, and architecture 26.9 wants
+      settled OI kept separate. The registry is ahead of the code here on
+      purpose; align the code's stamp when something consumes the distinction.
+- [ ] Source `precedence` records one rule (massive A1 beats yfinance C on a
+      shared chain) that is **not yet exercised** — the two universes are
+      disjoint today. It becomes live the first time both serve one symbol.
+- [ ] The registry has no notion of a metric's *quality* weight. The solver's
+      twinned-vol finding (43-49% of rows, 5-8x wider tail) is the first case
+      that would want one.

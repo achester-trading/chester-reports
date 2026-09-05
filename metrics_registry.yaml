@@ -1,0 +1,542 @@
+# metrics_registry.yaml -- every metric this system computes, and what it may
+# be used for.
+#
+# Architecture 26.14 gate 3: signal rights, horizons, mechanism groups and
+# source semantics validated. This is the minimal-but-real first cut: it covers
+# what exists TODAY and is expected to grow with use. Where a field is not yet
+# worth deciding per-metric, a documented default carries it rather than a
+# guess dressed up as a decision.
+#
+# -----------------------------------------------------------------------------
+# SCHEMA
+# -----------------------------------------------------------------------------
+#
+# Three kinds of entry, and the distinction is what makes the CI check bite:
+#
+#   metrics:       things that could feed a decision. Each declares the four
+#                  required fields. Registered individually.
+#   bulk_imports:  families too large to hand-enumerate, whose truth already
+#                  lives in code. The block declares shared fields and points at
+#                  the code with `members_from`; the checker expands it. This is
+#                  deliberate -- copying 59 series into YAML would create two
+#                  registries that drift apart, which is worse than one.
+#   non_metrics:   fields that are provenance, diagnostics or labels and are
+#                  NOT metrics. Declared so that "unregistered" and "knowingly
+#                  not a metric" are different states. Without this list the
+#                  drift check cannot tell a new metric from a new comment.
+#
+# Required on every metric:
+#
+#   source            an id from source_registry.yaml
+#   mechanism_group   which cluster it belongs to for confluence purposes.
+#                     Metrics sharing a group are ONE piece of evidence, never
+#                     several. This is the field that stops four Greeks from
+#                     being counted as four votes (architecture 26.9).
+#   native_horizon    the horizon the metric actually describes. Not how often
+#                     it is computed -- what it is about.
+#   units             from the vocabulary below.
+#   trigger_eligible  whether this metric may, on its own, move a decision.
+#
+# TRIGGER_ELIGIBLE DEFAULTS TO FALSE, AND EVERY METRIC IS FALSE TODAY. Nothing
+# in this repo produces a recommendation yet, and the pin-log base rate has an
+# effective n too small to act on. A metric earns trigger eligibility by
+# demonstrated performance, not by existing. Flipping one to true is a
+# deliberate, reviewable edit -- which is the point of writing it down.
+
+version: 1
+updated: 2026-09-05
+
+vocabularies:
+  native_horizon: [intraday, daily, weekly, monthly, quarterly, structural]
+  units:
+    - usd                    # a dollar amount
+    - usd_per_1pct           # dollars per 1% move in spot
+    - usd_per_volpt          # dollars per 1 implied-vol point
+    - usd_per_day            # dollars per calendar day
+    - shares                 # shares of the underlying
+    - shares_per_1pct
+    - shares_per_volpt
+    - shares_per_day
+    - price                  # a price or strike, in the underlying's currency
+    - bps                    # basis points
+    - ratio                  # unbounded ratio
+    - fraction               # 0..1
+    - count
+    - days
+    - label                  # closed-vocabulary string
+    - boolean
+    - date
+    - from_member            # bulk blocks only: the member's own declared units
+  mechanism_group:
+    # Dealer chain. The greeks and the OI structure are SEPARATE groups on
+    # purpose -- architecture 26.9 requires settled OI, effective OI and flow
+    # polarity kept distinct, and max pain is an OI construct rather than a
+    # gamma one. Everything inside dealer_chain_derived is one cluster.
+    - dealer_chain_derived
+    - dealer_chain_oi
+    - chain_quality
+    - pin_outcome
+    # Macro, by pillar. Pillars are genuinely different mechanisms -- labour and
+    # liquidity can confirm each other; two labour series cannot.
+    - macro_labor
+    - macro_momentum
+    - macro_consumer_stress
+    - macro_liquidity
+    - macro_inflation
+    - macro_sentiment
+    - macro_valuation_credit
+    - macro_global_fx
+    - macro_sovereign
+
+defaults:
+  trigger_eligible: false
+  status: active
+  # Documented so a missing field is a default, not an oversight.
+  rationale: >-
+    Nothing here may move a decision on its own. No recommendation path exists,
+    and the pin-log sample is far too small for any level to have earned it.
+
+# -----------------------------------------------------------------------------
+# Exposure engine -- tools/exposure_compute.py
+# -----------------------------------------------------------------------------
+# Every greek-derived metric below shares mechanism_group dealer_chain_derived,
+# which is the same string the engine stamps on each profile. They are four
+# derivatives of one object: same open interest, same vol surface, same signing
+# assumption. Treating any two of them as independent confirmation is
+# double-counting one chain.
+
+metrics:
+
+  # --- GEX family -----------------------------------------------------------
+  exposure.net_gex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd
+    description: Raw signed gamma notional across strikes. Underlying quantity.
+  exposure.shares_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares_per_1pct
+    description: >-
+      STORED PRIMARY for gamma. Change in dealer delta, in shares, per 1% move.
+  exposure.dollar_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd_per_1pct
+    derived_from: exposure.shares_per_1pct
+    description: shares_per_1pct x spot. Derived so the two cannot drift.
+  exposure.gamma_flip:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+    description: >-
+      Spot at which net dealer gamma changes sign, by scan and bisection.
+      Blank is meaningful and flip_reason says which blank it is.
+  exposure.gamma_flip_cum_strikes:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+    description: >-
+      Zero crossing of GEX cumulated across strikes at fixed spot. A DIFFERENT
+      question from gamma_flip; the two disagreeing is expected.
+  exposure.call_wall:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+  exposure.put_wall:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+    description: Extreme negative GEX strike, all strikes. Not the tradeable one.
+  exposure.put_wall_otm:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+    description: >-
+      Extreme negative GEX restricted to OTM. Matches the vendor and is the
+      tradeable reading. Immune to the at-the-money artifact that broke the
+      peak strike, since an ATM strike cannot be an OTM wall.
+  exposure.call_wall_otm:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+  exposure.put_wall_gamma:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+  exposure.put_wall_oi:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: price
+    description: Largest OTM put OI shelf. An OI construct, not a gamma one.
+  exposure.peak_abs_gex_strike:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: price
+    description: >-
+      Largest |GEX| strike. EX-0DTE at a settled capture -- with 0DTE in it was
+      an artifact of the MIN_T floor and pinned at the money by construction.
+
+  # --- DEX family -----------------------------------------------------------
+  exposure.dex_shares:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares
+    description: >-
+      STORED PRIMARY for delta. What the dealer OPTION BOOK is long; the hedge
+      is the opposite sign. One-signed under dealers-hand-v1, so the magnitude
+      and its distribution across expiries carry the information and the
+      direction carries none.
+  exposure.dex_notional:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd
+    derived_from: exposure.dex_shares
+  exposure.abs_dex_shares:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares
+    description: Gross delta, as a denominator that does not cancel.
+  exposure.expiration_release.dex_shares:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares
+    description: >-
+      Dated dealer-delta unwind: hedge scheduled to be released at one expiry.
+      Mechanical consequence of contracts expiring, not a forecast.
+  exposure.expiration_release.share_of_abs_dex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: fraction
+
+  # --- VEX / CHEX -----------------------------------------------------------
+  exposure.vex_shares_per_volpt:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares_per_volpt
+    description: >-
+      Vanna. VOL-TRIGGERED: does nothing until IV moves. Collapses to ~0 in
+      0DTE, which is a property of the greek and not a data fault.
+  exposure.vex_notional_per_volpt:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd_per_volpt
+    derived_from: exposure.vex_shares_per_volpt
+  exposure.chex_shares_per_day:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares_per_day
+    description: >-
+      Charm. TIME-TRIGGERED: resolves over hours to days, not on a price move.
+      Diverges as 1/sqrt(T), which is why a settled capture reports none for
+      0DTE and why the intraday cadence will need a fractional time to expiry.
+  exposure.chex_notional_per_day:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd_per_day
+    derived_from: exposure.chex_shares_per_day
+
+  # --- per-strike profile ---------------------------------------------------
+  # The aggregates above are sums of these. Registered separately because a
+  # reader can act on the SHAPE -- where the exposure sits across strikes --
+  # without ever touching the scalar, and a shape is a different claim.
+  exposure.per_strike.gex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd
+    description: Signed dealer gamma notional at one strike.
+  exposure.per_strike.call_gex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd
+  exposure.per_strike.put_gex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: usd
+  exposure.per_strike.dex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares
+  exposure.per_strike.vex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares_per_volpt
+  exposure.per_strike.chex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: shares_per_day
+
+  # --- bucket shares --------------------------------------------------------
+  exposure.share_of_total_abs_gex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: fraction
+  exposure.share_of_total_abs_dex:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    units: fraction
+    description: >-
+      Deliberately separate from the gamma share: 0DTE dominates gamma while
+      carrying little delta, and one number cannot say both.
+  exposure.floored_share_of_abs_gex:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: fraction
+    description: >-
+      Share of a bucket's |GEX| resting on the MIN_T floor. MIN_T is a guard
+      and must never be load-bearing; past 5% the bucket flags itself.
+
+  # --- OI structure (a different mechanism from the greeks) -----------------
+  exposure.max_pain:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: price
+    description: >-
+      Strike minimising total ITM payout. An OI construct: unaffected by the
+      MIN_T floor, so it reads every row including settled 0DTE.
+  exposure.oi_total:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: count
+  exposure.oi_calls:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: count
+  exposure.oi_puts:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: count
+  exposure.oi_put_call_ratio:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: ratio
+  exposure.oi_strikes:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: count
+  exposure.spot:
+    source: yfinance
+    mechanism_group: dealer_chain_oi
+    native_horizon: daily
+    units: price
+    description: >-
+      For massive-sourced symbols this is derived from the put-call parity
+      forward, not a printed index level; spot_source records which.
+
+  # --- data-quality gates ---------------------------------------------------
+  gates.data_quality:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: label
+    description: ok / degraded / excluded. Governs whether a day may enter a base rate.
+  gates.liquidity_floor:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: boolean
+  gates.iv_dispersion:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: ratio
+    description: Normalised IV surface roughness. Threshold PROVISIONAL, uncalibrated.
+  gates.oi_concentration:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: ratio
+    description: OI Herfindahl and effective strike count.
+  gates.oi_weighted_dte:
+    source: yfinance
+    mechanism_group: chain_quality
+    native_horizon: daily
+    units: days
+
+  # --- pin outcomes ---------------------------------------------------------
+  # A different mechanism from the levels themselves: these measure whether a
+  # level was reached, which is evidence ABOUT the levels, not more of it.
+  pin.dist_bps:
+    source: yfinance
+    mechanism_group: pin_outcome
+    native_horizon: daily
+    units: bps
+    description: >-
+      Signed distance from a scored level to the close. Applies to max_pain,
+      peak_gex, call_wall, put_wall, call_wall_otm, put_wall_otm.
+  pin.hit:
+    source: yfinance
+    mechanism_group: pin_outcome
+    native_horizon: daily
+    units: boolean
+    description: >-
+      |dist_bps| within config.PIN_TOLERANCE_BPS. A CONDITIONER, not a signal,
+      until effective n is meaningful -- the sample is currently one session.
+
+# -----------------------------------------------------------------------------
+bulk_imports:
+
+  fred_macro:
+    description: >-
+      The 59 FRED series behind the Monthly Macro report. Enumerated in code
+      with key, units, freq and pillar; duplicating them here would create two
+      registries that drift. mechanism_group is assigned by pillar, because
+      pillars are genuinely different mechanisms -- liquidity and labour can
+      confirm each other, two labour series cannot.
+    source: fred
+    members_from: altdata.config.FRED_SERIES
+    member_key: key
+    expected_members: 59
+    units: from_member          # SeriesSpec.units
+    native_horizon: from_member # SeriesSpec.freq
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "2": macro_momentum
+      "2F": macro_consumer_stress
+      "3": macro_liquidity
+      "4": macro_inflation
+      "5": macro_sentiment
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "8": macro_sovereign
+
+  pin_log_columns:
+    description: >-
+      The pin log's column set, which IS the file format and is append-only.
+      Registered as a block against the code so a new column cannot appear
+      unregistered. The metrics it carries are registered individually above;
+      this block exists so the CI check can prove the column list is covered.
+    source: yfinance
+    members_from: tools.pin_log.PIN_COLUMNS
+    expected_members: 79
+    trigger_eligible: false
+    mechanism_group: pin_outcome
+    native_horizon: daily
+    units: from_member
+
+# -----------------------------------------------------------------------------
+# Not metrics. Provenance, diagnostics and labels -- they describe a metric or
+# the run that produced it. Listed so the drift check can tell a new metric from
+# a new field, and so that adding one is a deliberate act.
+non_metrics:
+  provenance:
+    - symbol
+    - session_date
+    - fetched_at
+    - computed_at
+    - spot_source
+    - vendor
+    - source_chain
+    - computed_path
+    - convention_version
+    - convention_caveat
+    - mechanism_group
+    - gamma_source
+    - greeks_source
+    - risk_free_rate
+    - capture
+    - settled_0dte_rule
+    - greeks_status
+    - underlying_verified_from
+    - close_source
+    - tolerance_bps
+    - evaluated_at
+    - rule
+  diagnostics:
+    - rows_in
+    - exposure_rows
+    - settled_0dte_excluded_rows
+    - gamma_computed
+    - gamma_supplied
+    - greeks_solved
+    - greeks_unsolved
+    - skipped_no_iv
+    - skipped_insane_iv
+    - skipped_no_oi
+    - chex_floored_rows
+    - strikes
+    - strikes_used
+    - contracts
+    - flip_reason
+    - flip_band_pct
+    - gamma_flip_method
+    - gamma_flip_cum_all
+    - min_t_load_bearing
+    - excluded_from_exposure_aggregates
+    - greeks
+    - expiries
+    - usable_for_percentiles
+    # Emitted by a DEFERRED profile -- the vendor symbols, whose Greeks are
+    # gated behind the solver. The absence of a metric is itself a fact the
+    # record has to carry, so these are declared rather than unregistered.
+    - error
+    - deferred
+  containers:
+    # Structural keys that hold metrics rather than being ones. Declared so the
+    # drift check does not mistake a new section for a new number.
+    - overall
+    - buckets
+    - gates
+    - quality
+    - expiration_release
+    - per_strike
+  labels:
+    - strike
+    - expiry
+    - dte
+    - bucket
+    - expiry_type
+    - max_pain_expiry_type
+    - unwind_direction
+    - cumulative_share_of_abs_dex
+
+# -----------------------------------------------------------------------------
+# Reserved for a tier we do not have. Present in the pin log, written empty.
+# Registered so they are known-absent rather than unregistered.
+reserved:
+  source: massive
+  status: not_yet_served
+  members:
+    - vendor_oi_total
+    - vendor_gamma_flip
+    - vendor_call_wall
+    - vendor_put_wall
+    - vendor_source
