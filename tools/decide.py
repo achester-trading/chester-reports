@@ -17,6 +17,15 @@ WHAT IT REFUSES, AND WHY THAT IS THE POINT
     CHECK constraints in the schema, so a typo is refused by the database and
     not merely by this file.
 
+  * A DECISION WHOSE INPUTS ARE STALE OR MISSING. 26.2 #7: a report may
+    publish degraded, a recommendation may not. Every signal in --signals-used
+    is checked at entry time against ITS OWN registry half-life, and a stale or
+    missing one leaves the decision recorded but `draft` with a blocked_reason,
+    never `active`. It is recorded rather than refused because an abstention is
+    a decision and the register logs abstentions too -- the blocked ones are
+    the record of what the system could not answer, and deleting them would
+    leave only the days it happened to be ready.
+
   * A decision with no invalidation. Part 7: invalidation is defined before the
     position exists, never mid-week. The register makes it NOT NULL; this makes
     it a required argument, so it cannot be filled in later "when we see how it
@@ -53,6 +62,7 @@ from register.store import (                      # noqa: E402
     Register, RestrictedInstrumentError,
 )
 import exposure_compute as ec                     # noqa: E402
+import freshness                                  # noqa: E402
 
 LINE = "=" * 78
 
@@ -109,6 +119,7 @@ def cmd_record(args) -> int:
         print(f"  operator_action : {args.operator_action or '(none yet)'}")
         print(f"  thesis          : {args.thesis}")
         print(f"  invalidation    : {args.invalidation}")
+        print(f"  signals_used    : {', '.join(sorted(args.signals_used))}")
 
         # THE RESTRICTION, CHECKED IN DRY RUN TOO.
         print(f"\n  restriction check")
@@ -138,6 +149,33 @@ def cmd_record(args) -> int:
             return 2
         print(f"    clear -- {norm!r} is not restricted")
 
+        # ---- DECISION_BLOCKED (26.2 #7) --------------------------------
+        fresh = freshness.check_signals(args.signals_used, norm)
+        print(f"\n  signal freshness ({len(args.signals_used)} declared)")
+        for v in fresh["verdicts"]:
+            mark = "STALE" if v["stale"] else " ok  "
+            where = v["where"] or "not found"
+            print(f"    [{mark}] {v['key']:<30} {str(v['half_life'] or '?'):<18} "
+                  f"{where}")
+            print(f"             {v['reason']}")
+        status = args.status
+        blocked_reason = fresh["blocked_reason"]
+        if fresh["blocked"]:
+            print(f"\n  DECISION_BLOCKED -- {len(fresh['stale'])} of "
+                  f"{len(args.signals_used)} signals unusable")
+            print(f"    The report may still publish; the RECOMMENDATION may not.")
+            print(f"    Recorded as `draft` with a blocked_reason, never active.")
+            print(f"\n    what would unblock it:")
+            for v in fresh["stale"]:
+                print(f"      {v['key']}")
+                print(f"        -> {v['unblock'] or 'refresh the source'}")
+            if status == "active":
+                print(f"\n    requested status `active` downgraded to `draft`")
+                status = "draft"
+        else:
+            print(f"\n  DECISION_OK -- every declared signal is inside its "
+                  f"half-life")
+
         # The packet, built now rather than reconstructed later.
         inputs, inputs_note = _inputs_for(args.instrument)
         pkt = manifest.build_packet(run_id, session.utc_iso(), cutoff, inputs,
@@ -147,7 +185,9 @@ def cmd_record(args) -> int:
                                         "horizon": args.horizon,
                                         "edge_type": args.edge_type,
                                         "thesis": args.thesis,
-                                        "invalidation": args.invalidation}})
+                                        "invalidation": args.invalidation,
+                                        "signals_used": sorted(args.signals_used),
+                                        "blocked_reason": blocked_reason}})
         print(f"\n  decision packet (26.2 #3 -- must replay exactly)")
         print(f"    run_id              : {pkt['run_id']}")
         print(f"    git_sha             : {pkt['git_sha'][:12]}"
@@ -166,21 +206,31 @@ def cmd_record(args) -> int:
 
         if args.dry_run:
             print(f"\n  DRY RUN -- no decision written, no packet attached.")
-            print(f"  Re-run without --dry-run to record it.")
+            print(f"  Re-run without --dry-run to record it"
+                  + (" -- it will land as draft, blocked."
+                     if blocked_reason else "."))
             print(LINE)
-            return 0
+            # Exit 3 on a blocked dry run too. A dry run's job is to say what
+            # WOULD happen, and exiting 0 would say "fine" about a decision
+            # that is not -- which is the one thing a dry run must not do.
+            return 3 if blocked_reason else 0
 
         did = reg.record(instrument=args.instrument, direction=args.direction,
                          thesis=args.thesis, edge_type=args.edge_type,
                          horizon=args.horizon, invalidation=args.invalidation,
-                         size=args.size, status=args.status,
-                         operator_action=args.operator_action, run_id=run_id)
+                         size=args.size, status=status,
+                         operator_action=args.operator_action, run_id=run_id,
+                         signals_used=sorted(args.signals_used),
+                         blocked_reason=blocked_reason)
         pid = reg.attach_packet(did, pkt)
-        print(f"\n  RECORDED")
+        print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
         print(f"    packet id   : {pid}  (immutable)")
+        print(f"    status      : {status}")
+        if blocked_reason:
+            print(f"    blocked     : {blocked_reason[:120]}")
         print(LINE)
-        return 0
+        return 3 if blocked_reason else 0
     finally:
         reg.close()
 
@@ -246,6 +296,10 @@ def main() -> int:
     # Required, not optional. Part 7: defined before the position exists.
     r.add_argument("--invalidation", required=True,
                    help="the pre-set condition that ends this, written NOW")
+    r.add_argument("--signals-used", required=True, nargs="+", metavar="KEY",
+                   help="Registry keys this decision rests on. Required: a "
+                        "decision citing no evidence cannot be checked, and an "
+                        "unchecked decision is the thing 26.2 #7 forbids.")
     r.add_argument("--size", default=None)
     r.add_argument("--status", default="draft", choices=STATUSES)
     r.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS)

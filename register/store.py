@@ -103,7 +103,14 @@ CREATE TABLE IF NOT EXISTS decisions (
     thesis_state     TEXT CHECK (thesis_state IS NULL
                                  OR thesis_state IN {THESIS_STATES!r}),
     superseded_by    TEXT REFERENCES decisions(id),
-    run_id           TEXT
+    run_id           TEXT,
+    -- 26.2 #7: decision eligibility is not report eligibility. A recommendation
+    -- whose inputs are missing or stale is DECISION_BLOCKED -- it is still
+    -- recorded, because an abstention is a decision and the register logs
+    -- abstentions too, but it lands as draft and never as active.
+    -- blocked_reason is why; NULL means nothing blocked it.
+    signals_used     TEXT,
+    blocked_reason   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS decision_packets (
@@ -190,6 +197,15 @@ class Register:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        # Databases created before 26.2 #7 landed lack these two columns.
+        # ALTER is the whole migration: both are nullable and NULL means
+        # "nothing blocked it", which is the right reading of a pre-existing row.
+        for col in ("signals_used TEXT", "blocked_reason TEXT"):
+            try:
+                self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
+            except sqlite3.OperationalError:
+                pass                       # already present
+        self.conn.commit()
         self.restrictions = (instruments.Restrictions(entities_path)
                              if entities_path else instruments.restrictions())
         self.sync_restrictions()
@@ -223,7 +239,9 @@ class Register:
                thesis_state: Optional[str] = None,
                decision_time: Optional[str] = None,
                run_id: Optional[str] = None,
-               decision_id: Optional[str] = None) -> str:
+               decision_id: Optional[str] = None,
+               signals_used: Optional[list] = None,
+               blocked_reason: Optional[str] = None) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
         The restriction check happens FIRST -- before validation, before any
@@ -244,14 +262,24 @@ class Register:
 
         did = decision_id or str(uuid.uuid4())
         now = session.utc_iso()
+
+        # THE 26.2 #7 SEMANTIC, ENFORCED HERE RATHER THAN IN THE CALLER. A
+        # blocked decision cannot be active, whoever asks. Downgrading in the
+        # CLI alone would leave the invariant one careless caller away from
+        # being false, and this is the invariant the whole check exists for.
+        if blocked_reason and status == "active":
+            status = "draft"
+
         self.conn.execute(
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
-            " invalidation, status, operator_action, thesis_state, run_id)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " invalidation, status, operator_action, thesis_state, run_id,"
+            " signals_used, blocked_reason)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
-             operator_action, thesis_state, run_id))
+             operator_action, thesis_state, run_id,
+             json.dumps(signals_used or []), blocked_reason))
         self.conn.commit()
         return did
 
@@ -315,6 +343,14 @@ class Register:
             raise ValueError(f"status must be one of {STATUSES}")
         if operator_action is not None and operator_action not in OPERATOR_ACTIONS:
             raise ValueError(f"operator_action must be one of {OPERATOR_ACTIONS}")
+        if status == "active":
+            row = self.get(decision_id)
+            if row and row.get("blocked_reason"):
+                raise ValueError(
+                    f"decision {decision_id} is DECISION_BLOCKED "
+                    f"({row['blocked_reason']}) and cannot be made active. "
+                    f"Clear the block by refreshing its inputs and recording a "
+                    f"new decision; a blocked row is not promoted in place.")
         self.conn.execute(
             "UPDATE decisions SET status = ?, operator_action = COALESCE(?, operator_action)"
             " WHERE id = ?", (status, operator_action, decision_id))

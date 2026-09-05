@@ -244,7 +244,10 @@ def group_e(db_path: str) -> None:
 
     ok_args = ["record", "--instrument", "SPY", "--direction", "long",
                "--thesis", "t", "--edge-type", "positioning",
-               "--horizon", "swing", "--invalidation", "below 760"]
+               "--horizon", "swing", "--invalidation", "below 760",
+               # Signals that ARE fresh, so this exercises the clean path
+               # rather than accidentally testing the block.
+               "--signals-used", "exposure.gamma_flip", "pin.hit"]
     r = run_cli(*ok_args, "--dry-run")
     check(r.returncode == 0 and "DRY RUN" in r.stdout,
           "a clean instrument dry-runs to exit 0")
@@ -264,7 +267,8 @@ def group_e(db_path: str) -> None:
     # that would not.
     r = run_cli("record", "--instrument", "BN.TO", "--direction", "long",
                 "--thesis", "t", "--edge-type", "structural",
-                "--horizon", "positional", "--invalidation", "x", "--dry-run")
+                "--horizon", "positional", "--invalidation", "x", "--dry-run",
+                "--signals-used", "exposure.gamma_flip")
     check(r.returncode == 2, "a restricted instrument dry-runs to exit 2")
     check("REFUSED" in r.stdout and "brookfield" in r.stdout,
           "the dry run REFUSES it rather than reporting what would happen")
@@ -274,9 +278,52 @@ def group_e(db_path: str) -> None:
     # being an invalidation.
     r = run_cli("record", "--instrument", "SPY", "--direction", "long",
                 "--thesis", "t", "--edge-type", "positioning",
-                "--horizon", "swing", "--dry-run")
+                "--horizon", "swing", "--dry-run",
+                "--signals-used", "exposure.gamma_flip")
     check(r.returncode != 0 and "invalidation" in (r.stderr + r.stdout),
           "a decision with no invalidation is refused by the CLI")
+
+    # ---- DECISION_BLOCKED (26.2 #7) --------------------------------------
+    blocked = ["record", "--instrument", "SPY", "--direction", "long",
+               "--thesis", "t", "--edge-type", "positioning",
+               "--horizon", "swing", "--invalidation", "x",
+               "--status", "active",
+               "--signals-used", "exposure.gamma_flip", "portfolio.nav"]
+    r = run_cli(*blocked, "--dry-run")
+    check(r.returncode == 3, "a blocked dry run exits 3, not 0")
+    check("DECISION_BLOCKED" in r.stdout, "the dry run says DECISION_BLOCKED")
+    check("what would unblock it" in r.stdout,
+          "it prints what would unblock it, not merely that it is blocked")
+    check("downgraded to `draft`" in r.stdout,
+          "a requested `active` is visibly downgraded")
+
+    r = run_cli(*blocked)
+    check(r.returncode == 3, "the real write also exits 3 when blocked")
+    reg = Register(db_path)
+    rows = [d for d in reg.all() if d.get("blocked_reason")]
+    check(bool(rows), "a blocked decision is RECORDED, not refused -- an "
+                      "abstention is a decision")
+    if rows:
+        d = rows[-1]
+        check(d["status"] == "draft",
+              "it lands as draft even though `active` was requested")
+        check("portfolio.nav" in (d["blocked_reason"] or ""),
+              "blocked_reason names the signal that blocked it")
+        check("exposure.gamma_flip" in (d["signals_used"] or ""),
+              "signals_used is stored on the row")
+        raises(lambda: reg.set_status(d["id"], "active"), ValueError,
+               "a blocked row cannot later be promoted to active")
+    reg.close()
+
+    # And the other side of 26.2 #7: fresh inputs must NOT block, or the check
+    # is just an outage.
+    r = run_cli("record", "--instrument", "SPY", "--direction", "long",
+                "--thesis", "t", "--edge-type", "positioning",
+                "--horizon", "swing", "--invalidation", "x", "--dry-run",
+                "--signals-used", "exposure.gamma_flip", "pin.hit")
+    check(r.returncode == 0 and "DECISION_OK" in r.stdout,
+          "signals inside their half-life are DECISION_OK -- Friday's close on "
+          "a Saturday is current, not stale")
 
 
 def group_f() -> None:

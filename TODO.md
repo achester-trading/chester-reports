@@ -648,3 +648,48 @@ manifest. A packet that pins the WRONG inputs is worse than one that pins none:
 it claims a lineage it does not have, and the claim is indistinguishable from a
 true one. It now walks back until it finds the instrument's own chain, and
 reports an empty manifest with a reason when there is none.
+
+## DECISION_BLOCKED (26.2 #7) — 5 Sep 2026
+
+`tools/freshness.py` + wired into `tools/decide.py`. Every signal in
+`--signals-used` (now REQUIRED -- a decision citing no evidence cannot be
+checked, and an unchecked decision is what 26.2 #7 forbids) is assessed at entry
+time against ITS OWN registry `information_half_life`, not one global timeout.
+
+Stale or missing -> the decision is still RECORDED, lands as `draft` with a
+`blocked_reason`, and can never be `active`. Recorded rather than refused
+because an abstention is a decision and the register logs abstentions: the
+blocked rows are the record of what the system could not answer, and dropping
+them would leave only the days it happened to be ready.
+
+The invariant is enforced in `Register.record()`, not in the CLI -- downgrading
+only in the CLI would leave it one careless caller away from false. `set_status`
+also refuses to promote a blocked row in place.
+
+Exit codes: 0 clean, 2 restricted instrument, 3 DECISION_BLOCKED. A blocked DRY
+RUN exits 3 as well; a dry run's job is to say what would happen, and a 0 would
+say "fine" about a decision that is not.
+
+### A judgment worth revisiting
+
+**Friday's close on a Saturday is NOT stale**, and the block does not fire on
+it. A `session` half-life is assessed against the most recent COMPLETED trading
+session (via the NYSE calendar), so on a Saturday that is Friday and Friday's
+data is the current vintage. Blocking it would forbid the process Part 7 is
+built on -- the Friday session is what SETS the swing thesis. What does block on
+a Saturday is anything with an `intraday` half-life, because nothing is trading
+and no intraday reading can describe a closed market.
+
+- [ ] Two bugs the first transcripts exposed, both fixed: the lookup passed the
+      decision's ticker to every store, so FRED rows (instrument=NULL) and
+      portfolio rows (keyed on the ACCOUNT, not the symbol) all reported as
+      missing -- a false block, which is the failure that teaches people to
+      ignore the check. And `fred.anything` passed the registry check via the
+      bulk block, then failed as missing data, blaming the pipeline for a typo.
+- [ ] `INTRADAY_MAX_AGE_H = 4.0` and `FREQ_MAX_AGE_DAYS` are declared constants
+      with no calibration behind them. They are a first cut; tighten once there
+      is a real sync cadence to measure against.
+- [ ] Supersede / set-status subcommands remain unbuilt, as agreed. The register
+      supports both; the CLI does not expose them.
+- [ ] The decision CLI is `tools/decide.py`, not `new_decision.py`. Renaming is
+      cheap if the other name is preferred -- say so rather than both existing.
