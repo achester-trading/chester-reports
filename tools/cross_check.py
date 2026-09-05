@@ -70,6 +70,11 @@ COMPARISONS = [
     ("call_wall_maxpos", "overall.call_wall",       "max_positive_gamma"),
     ("put_wall",        "overall.put_wall",         "put_wall"),
     ("put_wall_maxneg", "overall.put_wall",         "max_negative_gamma"),
+    # Which definition does their put_wall actually track?
+    ("put_wall_gamma",  "overall.put_wall_gamma",   "put_wall"),
+    ("put_wall_oi",     "overall.put_wall_oi",      "put_wall"),
+    ("put_wall_otm",    "overall.put_wall_otm",     "put_wall"),
+    ("call_wall_otm",   "overall.call_wall_otm",    "call_wall"),
     ("magnet",          "max_pain",                 "zero_dte_magnet"),
     ("peak_gex_vs_oi",  "overall.peak_abs_gex_strike", "highest_oi_strike"),
 ]

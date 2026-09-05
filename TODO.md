@@ -46,15 +46,17 @@ Pin log / schema
       Nothing in the output says the sample is too small to act on yet.
 
 Data-quality gates (none of these exist yet)
-- [ ] **Liquidity floor** — hard rule: exclude thin books from skew/OI-percentile
-      work. Doc prefers bid/ask tightness over an OI threshold; we already store
-      `bid`/`ask` per contract, so this is computable from stored chains.
-- [ ] **IV dispersion / surface roughness** as a data-quality gate, not an
-      analytic — high roughness downgrades confidence in everything derived that
-      day. Doc: "Nothing else in the system catches a bad options day."
-- [ ] **OI concentration (Herfindahl)** — strike-level twin of expiry-bucket
-      concentration; signals discontinuous rather than decaying regime change.
-- [ ] **OI-weighted DTE** — single number for short- vs long-dated positioning.
+- [x] **DONE 5 Sep.** Liquidity floor: total OI/volume against thresholds
+      declared in config. Median relative bid/ask spread is also reported (the
+      doc's preferred tightness measure, SPY 0.016 vs ASTS 0.143 — clearly
+      discriminating), so the gate can move onto spread once calibrated.
+- [x] **DONE 5 Sep.** IV dispersion implemented as a gate. Threshold is
+      PROVISIONAL — a normalised roughness figure has no natural scale.
+      Observed 0.033–0.239 across 13 symbols against a 0.35 ceiling; calibrate
+      once a real sample exists.
+- [x] **DONE 5 Sep.** OI Herfindahl + effective strike count (SPY 109 effective
+      strikes vs ASTS 30 — concentration varies ~4x across the universe).
+- [x] **DONE 5 Sep.** OI-weighted DTE (SPY 103d shortest, TSLA 184d longest).
 
 Cross-check
 - [ ] No **declared divergence threshold or alert**. Doc: "Log the recompute
@@ -89,3 +91,21 @@ Durability and coverage
       backup and no VPS home. Migrate + back up before the sample has real value.
 - [ ] SPX absent (yfinance has no index options). Blocks the doc's Session −1
       universe of SPX/SPY/QQQ/IWM. Pending the Part B vendor decision.
+
+## Put-wall definition resolved (5 Sep)
+
+FlashAlpha's `put_wall` is the extreme-GEX strike **restricted to OTM**, not the
+extreme across all strikes. Verified against both symbols: SPY 760 = 760, QQQ
+700 = 700, zero divergence, where the all-strikes version was 19 points off on
+QQQ because the ATM 719 strike carries the largest negative GEX (-0.37bn)
+without being a wall in any tradeable sense.
+
+Four definitions now computed side by side rather than collapsed:
+`put_wall` (net GEX, all strikes), `put_wall_gamma` (put-only gamma, sits ATM),
+`put_wall_oi` (largest OTM put OI shelf), and `put_wall_otm` (matches the
+vendor). `call_wall_otm` added for symmetry — it already agreed, but only
+because no ATM strike happened to dominate the call side.
+
+- [ ] Decide which put-wall definition the pin log should score against. It
+      currently uses `put_wall` (net GEX, all strikes); `put_wall_otm` is the
+      tradeable one and the one the vendor agrees with.

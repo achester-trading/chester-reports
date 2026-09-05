@@ -341,7 +341,39 @@ def _profile(rows: list[dict], spot: float) -> dict:
         return {"net_gex": None, "shares_per_1pct": None,
                 "dollar_gamma_per_1pct": None,
                 "gamma_flip": None, "call_wall": None, "put_wall": None,
+                "put_wall_gamma": None, "put_wall_oi": None,
+                "put_wall_otm": None, "call_wall_otm": None,
                 "strikes": 0}
+
+    # Two competing put-wall definitions, reported side by side rather than
+    # collapsed. They answer different questions and last night they disagreed
+    # by 19 points on QQQ:
+    #   gamma -- the strike carrying the most put gamma, which sits near the
+    #            money because gamma peaks at the money
+    #   oi    -- the largest OTM put OI shelf, which is the level traders mean
+    #            by "put wall": where size actually sits below spot
+    put_wall_gamma = (max(put_gex.items(), key=lambda kv: kv[1])[0]
+                      if put_gex else None)
+    otm_put_oi: dict[float, float] = defaultdict(float)
+    for r in rows:
+        if r.get("right") != "P":
+            continue
+        k, oi = r.get("strike"), r.get("open_interest") or 0.0
+        if k and oi > 0 and k < spot:
+            otm_put_oi[k] += oi
+    put_wall_oi = (max(otm_put_oi.items(), key=lambda kv: kv[1])[0]
+                   if otm_put_oi else None)
+
+    # Third definition, and the one FlashAlpha turns out to use: the extreme
+    # GEX strike restricted to OTM. Verified 5 Sep -- it reproduces their
+    # put_wall on both SPY (760) and QQQ (700), where the all-strikes version
+    # disagreed by 19 points on QQQ because the ATM strike carries the largest
+    # negative GEX without being a wall in any tradeable sense.
+    _pairs_all = sorted(by_strike.items())
+    otm_below = [(k, v) for k, v in _pairs_all if k < spot and v < 0]
+    otm_above = [(k, v) for k, v in _pairs_all if k > spot and v > 0]
+    put_wall_otm = min(otm_below, key=lambda kv: kv[1])[0] if otm_below else None
+    call_wall_otm = max(otm_above, key=lambda kv: kv[1])[0] if otm_above else None
 
     pairs = sorted(by_strike.items())
     net = sum(v for _, v in pairs)
@@ -360,6 +392,10 @@ def _profile(rows: list[dict], spot: float) -> dict:
         "call_wall": max(positives, key=lambda kv: kv[1])[0] if positives else None,
         "put_wall": min(negatives, key=lambda kv: kv[1])[0] if negatives else None,
         "peak_abs_gex_strike": max(pairs, key=lambda kv: abs(kv[1]))[0],
+        "put_wall_gamma": put_wall_gamma,
+        "put_wall_oi": put_wall_oi,
+        "put_wall_otm": put_wall_otm,
+        "call_wall_otm": call_wall_otm,
         "strikes": len(pairs),
         "per_strike": [{"strike": k, "gex": v,
                         "call_gex": call_gex.get(k, 0.0),
