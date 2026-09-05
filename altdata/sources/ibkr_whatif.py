@@ -50,12 +50,31 @@ The real read-only enforcement is SERVER-side: Gateway's
 Configure > Settings > API > "Read-Only API" checkbox. That one does reject
 order submission, and this module cannot weaken it.
 
-The consequence, which is an operator decision and not ours to make: because
-What-If travels as a placeOrder message, a Gateway with Read-Only API enabled
-is expected to refuse What-If too. If it does, the choice is between Gate 1.5's
-expression economics and Gate 1's strongest external guarantee. That refusal is
-classified as `WhatIfNotPermitted` with the tradeoff spelled out, rather than
-surfacing as a generic timeout -- because the fix is a decision, not a retry.
+-----------------------------------------------------------------------------
+SETTLED, 5 Sep 2026: READ-ONLY REFUSES WHAT-IF. THIS MODULE IS FOR GATE 2.
+-----------------------------------------------------------------------------
+
+The prediction above was tested on the VPS and confirmed. Evidence line, the
+Gateway's own words:
+
+    "The API interface is currently in Read-Only mode"
+
+THE RULING: Read-Only API stays ON through the hand-placed-orders phase, and
+comes off at Gate 2 by design -- when code-side guards replace it, rather than
+as a concession bought to make a preview work. A safety setting removed early
+to unblock a feature is how such settings stop being safety settings.
+
+So this module is not the live path today. It is kept intact, tested and unused
+until Gate 2, and the cost fields it would have produced come instead from
+altdata/sources/ibkr_costs.py, which prices from IBKR's published schedule and
+tags every record `cost_source="estimated_from_schedule"`. Nothing that reads
+expected_cost may confuse the two: What-If output from this module carries
+`cost_source="whatif"`, and the distinction is the whole reason both fields
+exist.
+
+Note what does NOT need Gate 2: the account read. `accountSummary` is a read,
+not an order, and Read-Only permits it -- which is why the schedule estimator
+can still measure the account's real leverage instead of assuming Reg T.
 
 -----------------------------------------------------------------------------
 THE DOUBLE.MAX_VALUE SENTINEL
@@ -416,6 +435,9 @@ def preview(ib, instrument: str, direction: str, quantity: float,
             f"{sec_type}")
     out = parse_state(state, desc, baseline)
     out.update({
+        # The broker priced this. ibkr_costs writes estimated_from_schedule
+        # instead, and nothing downstream may treat the two as equivalent.
+        "cost_source": "whatif",
         "instrument": instrument.upper(),
         "direction": direction,
         "action": side,

@@ -69,6 +69,7 @@ from register.store import (                      # noqa: E402
 )
 import exposure_compute as ec                     # noqa: E402
 import expression_check                           # noqa: E402
+import pin_log                                    # noqa: E402
 import freshness                                  # noqa: E402
 
 LINE = "=" * 78
@@ -130,6 +131,74 @@ def _expression_block(args) -> list[dict]:
     return warns
 
 
+def _price_for(instrument: str, args) -> tuple[Optional[float], str]:
+    """The price the estimate is struck on, and where it came from.
+
+    Preference order, and the reason for it: an explicit --price wins because
+    the operator said so; then a limit price, which IS the contemplated price;
+    then the spot on the newest computed profile for this symbol -- the same
+    number the decision itself rests on, already pinned in the packet's data
+    manifest, and needing no extra network call.
+
+    Returns (None, reason) rather than a guess when there is nothing. A cost
+    estimate on an invented price is worse than no cost estimate.
+    """
+    if getattr(args, "price", None) is not None:
+        return float(args.price), "--price"
+    if getattr(args, "limit_price", None) is not None:
+        return float(args.limit_price), "--limit-price (the contemplated price)"
+    try:
+        computed = pin_log.load_computed(symbols=[instruments.normalise(instrument)])
+        rec = computed.get(instruments.normalise(instrument)) or {}
+        spot = rec.get("spot")
+        if spot:
+            return float(spot), (f"spot from the {rec.get('session_date')} "
+                                 f"computed profile")
+    except Exception as e:  # noqa: BLE001 -- a missing profile is not an error
+        log_note = f"{type(e).__name__}"
+        return None, f"no price available ({log_note})"
+    return None, "no price available (no --price, no limit, no computed profile)"
+
+
+def _estimate_block(args, warns: list[dict]) -> dict:
+    """Gate 1.5's schedule-derived fallback, per the 5 Sep Read-Only ruling.
+
+    The account read still happens and still matters: Read-Only permits
+    accountSummary, so the margin side is struck on the account's MEASURED
+    leverage rather than an assumed Reg T 4x. A failed account read degrades to
+    commission-only rather than to nothing.
+    """
+    from altdata.sources import ibkr_costs           # noqa: PLC0415
+    from altdata.sources import ibkr_portfolio       # noqa: PLC0415
+
+    port = args.preview_port
+    price, price_src = _price_for(args.instrument, args)
+    print(f"\n  Gate 1.5 expression economics -- SCHEDULE ESTIMATE")
+    print(f"    cost_source     : {ibkr_costs.COST_SOURCE}  "
+          f"(What-If is refused under Read-Only API; ruling of 5 Sep)")
+
+    baseline: dict = {}
+    try:
+        baseline = ibkr_costs.read_baseline(host=args.preview_host, port=port,
+                                            allow_live=args.allow_live)
+        print(f"    account         : read OK from {args.preview_host}:{port} "
+              f"[{ibkr_portfolio.mode_for_port(port)}]")
+    except ibkr_portfolio.IbkrError as e:
+        print(f"    account         : UNAVAILABLE ({type(e).__name__}) -- "
+              f"commission only, margin fields None")
+        print(f"      {str(e).splitlines()[0]}")
+
+    est = ibkr_costs.estimate(
+        args.instrument, args.direction, float(args.quantity), price,
+        sec_type=args.sec_type, baseline=baseline, action=args.action,
+        premium=args.limit_price if args.sec_type == "OPT" else None,
+        port=port, price_source=price_src)
+    est["expression_warnings"] = warns
+    est["account_read_ok"] = bool(baseline)
+    print(ibkr_costs.format_estimate(est, indent="    "))
+    return est
+
+
 def _preview_block(args, warns: list[dict]) -> Optional[dict]:
     """Gate 1.5's What-If, run BEFORE the decision is recorded.
 
@@ -164,13 +233,15 @@ def _preview_block(args, warns: list[dict]) -> Optional[dict]:
               f"evidence about\n    the thesis; the packet will record that no "
               f"preview was taken, which is\n    different from a preview that "
               f"found no cost.")
-        return {"available": False, "error": type(e).__name__,
+        return {"available": False, "cost_source": "whatif_unavailable",
+                "error": type(e).__name__,
                 "error_detail": str(e).splitlines()[0],
                 "attempted_at": session.utc_iso(),
                 "expression_warnings": warns}
     except Exception as e:  # noqa: BLE001
         print(f"    PREVIEW UNAVAILABLE -- {type(e).__name__}: {e}")
-        return {"available": False, "error": type(e).__name__,
+        return {"available": False, "cost_source": "whatif_unavailable",
+                "error": type(e).__name__,
                 "error_detail": str(e), "attempted_at": session.utc_iso(),
                 "expression_warnings": warns}
 
@@ -178,6 +249,32 @@ def _preview_block(args, warns: list[dict]) -> Optional[dict]:
     p["available"] = True
     p["expression_warnings"] = warns
     return p
+
+
+def _economics_block(args, warns: list[dict]) -> Optional[dict]:
+    """Route to What-If or the schedule estimate, per --preview-mode.
+
+    `estimate` is the DEFAULT because of the 5 Sep ruling: Read-Only stays on
+    through this phase, so a What-If attempt would burn a connection timeout
+    per decision and fail every time. `whatif` and `auto` stay available so
+    Gate 2 needs no code change here -- only a different flag.
+    """
+    if not args.preview:
+        return None
+    mode = args.preview_mode
+    if mode == "estimate":
+        return _estimate_block(args, warns)
+    if mode == "whatif":
+        return _preview_block(args, warns)
+    # auto: the broker first, the rate card if it refuses.
+    p = _preview_block(args, warns)
+    if p and p.get("available"):
+        return p
+    print(f"\n    falling back to the schedule estimate")
+    est = _estimate_block(args, warns)
+    est["whatif_attempted"] = True
+    est["whatif_error"] = (p or {}).get("error")
+    return est
 
 
 def cmd_record(args) -> int:
@@ -260,7 +357,7 @@ def cmd_record(args) -> int:
         # check is free and always runs; the What-If needs a Gateway and runs
         # only when asked for.
         warns = _expression_block(args)
-        expected_cost = _preview_block(args, warns) if args.preview else None
+        expected_cost = _economics_block(args, warns)
 
         # The packet, built now rather than reconstructed later.
         inputs, inputs_note = _inputs_for(args.instrument)
@@ -329,7 +426,8 @@ def cmd_record(args) -> int:
         elif expected_cost.get("available"):
             c = (expected_cost.get("commission") or {}).get("estimate")
             im = (expected_cost.get("margin") or {}).get("init_change")
-            print(f"    economics   : commission "
+            print(f"    economics   : [{expected_cost.get('cost_source')}] "
+                  f"commission "
                   + (f"{c:,.2f}" if isinstance(c, (int, float)) else "n/a")
                   + ", init margin "
                   + (f"{im:+,.2f}" if isinstance(im, (int, float)) else "n/a"))
@@ -363,7 +461,10 @@ def _expected_cost_line(raw) -> str:
     im = (ec_.get("margin") or {}).get("init_change")
     bp = (ec_.get("buying_power") or {}).get("buying_power_delta_est")
     n = len(ec_.get("expression_warnings") or [])
-    return (f"commission {c}, init margin change {im}, buying power delta "
+    # cost_source FIRST. Whether the broker priced this or we did is the most
+    # important thing about the number, and it must not be readable past.
+    return (f"[{ec_.get('cost_source', 'unknown')}] commission {c}, init "
+            f"margin change {im}, buying power delta "
             f"{bp} [{ec_.get('mode')}, {n} expression warning(s)]"
             + (f", INHERITED from {ec_['inherited_from']}"
                if ec_.get("inherited_from") else ""))
@@ -631,9 +732,18 @@ def main() -> int:
 
     # -- Gate 1.5
     r.add_argument("--preview", action="store_true",
-                   help="Run the IBKR What-If before recording and store the "
-                        "economics in the packet as expected_cost. Read-only; "
-                        "no order is ever sent.")
+                   help="Price the contemplated expression before recording "
+                        "and store it in the packet as expected_cost.")
+    r.add_argument("--preview-mode", default="estimate",
+                   choices=("estimate", "whatif", "auto"),
+                   help="estimate (default): IBKR's published schedule plus "
+                        "the account's measured leverage -- What-If is refused "
+                        "under Read-Only API per the 5 Sep ruling. whatif: the "
+                        "broker preview, for Gate 2. auto: try the broker, "
+                        "fall back to the schedule.")
+    r.add_argument("--price", type=float, default=None,
+                   help="Price to strike the estimate on. Defaults to the spot "
+                        "on the newest computed profile for the instrument.")
     r.add_argument("--preview-host", default="127.0.0.1")
     r.add_argument("--preview-port", type=int, default=4002,
                    help="4002 Gateway paper (default), 4001 live. The port is "

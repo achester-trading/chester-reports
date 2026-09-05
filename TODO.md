@@ -696,19 +696,42 @@ and no intraday reading can describe a closed market.
 
 ## Gate 1.5 (26.11) -- open
 
-- [ ] **The What-If / Read-Only API conflict is unresolved and is the
-      operator's call.** IBKR's What-If travels as a placeOrder message with
-      `whatIf=True`, so a Gateway with Read-Only API enabled is expected to
-      refuse previews along with orders. If it does, Gate 1.5's expression
-      economics and Gate 1's strongest external guarantee cannot both be on.
-      Untested -- no Gateway has been reachable from the authoring machine.
-      `WhatIfNotPermitted` exists to make the refusal legible when it happens.
-- [ ] **No live What-If has ever run.** Every number in
-      `tools/validate_ibkr_whatif.py` is a fixture. The first live run on the
-      VPS must confirm: the commission estimate is populated for a 100-share
-      SPY order, the margin fields are not all Double.MAX_VALUE, and
-      `BuyingPower/AvailableFunds` yields a sane multiplier for the paper
-      account. Until then `expected_cost` has never held a real number.
+- [x] **SETTLED 5 Sep 2026: Read-Only API refuses What-If.** Measured on the
+      VPS. Evidence line, the Gateway's own words:
+
+          "The API interface is currently in Read-Only mode"
+
+      RULING: Read-Only stays ON through the hand-placed-orders phase and comes
+      off at Gate 2 by design, when code-side guards replace it -- not as a
+      concession bought to unblock a feature. `ibkr_whatif.py` is kept intact
+      and unused until then; `--preview-mode whatif` is the flag that turns it
+      back on, so Gate 2 needs no code change here.
+- [ ] **The commission schedule in config is UNVERIFIED and must be confirmed.**
+      `IBKR_COMMISSION_SCHEDULE_VERIFIED = False`, and the flag propagates into
+      every `expected_cost` record. interactivebrokers.com returned HTTP 403 to
+      automated fetches of both `/en/pricing/commissions-stocks.php` and
+      `commissions-home.php` on 5 Sep 2026, so the per-share rate ($0.0035),
+      order floor ($0.35) and 1% cap were declared from the published Tiered
+      schedule rather than read in-session. This is the FlashAlpha failure mode
+      exactly, so it is flagged rather than trusted. Two things to confirm by
+      hand: the figures themselves, and that this ACCOUNT is on Tiered rather
+      than Fixed -- the structure is an account setting the API does not
+      expose, and Fixed bundles the exchange and regulatory fees that Tiered
+      bills separately.
+- [ ] **The estimate is a FLOOR, not an all-in cost.** Tiered excludes exchange,
+      clearing and regulatory pass-throughs, which on a $0.35 commission are not
+      a rounding error. First real fill should be compared against the estimate
+      and the gap recorded -- that comparison is also what would flip
+      `IBKR_COMMISSION_SCHEDULE_VERIFIED`.
+- [ ] **Short stock margin is not modelled.** The measured leverage multiplier
+      describes the account's long-side treatment; Reg T requires 150% for a
+      short. A SELL of stock carries an explicit caveat in the record rather
+      than a silent under-margin. Model it before any short is recorded.
+- [ ] **No live What-If has ever run, and now none will until Gate 2.** Every
+      number in `tools/validate_ibkr_whatif.py` is a fixture. When Read-Only
+      comes off, the first live run must confirm: commission populated for a
+      100-share SPY order, margin fields not all Double.MAX_VALUE, and
+      `BuyingPower/AvailableFunds` yielding a sane multiplier.
 - [ ] The expression rules are mechanism arguments, not calibrated thresholds.
       `carry_edge_no_accrual` fires at <=7 DTE and `HORIZON_DAYS` maps swing to
       21 days; both are declared, neither is measured. Revisit once outcomes

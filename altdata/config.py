@@ -371,3 +371,67 @@ IV_SOLVER_DTE0_MIN_COVERAGE: float = 0.50       # of 0DTE contracts with OI
 # the net needs the absolute uncertainty, which the gate now prints and which
 # no ratio can substitute for.
 IV_SOLVER_GAMMA_DENOMINATOR: str = "gross"      # "gross" | "net"
+
+
+# ---------------------------------------------------------------------------
+# GATE 1.5 FALLBACK -- IBKR COMMISSION SCHEDULE
+# ---------------------------------------------------------------------------
+# THE RULING, 5 Sep 2026. IB Gateway refuses What-If under Read-Only API --
+# measured on the VPS, error text "The API interface is currently in Read-Only
+# mode". What-If travels as a placeOrder message with whatIf=True, so a Gateway
+# that blocks order submission blocks previews with it. Read-Only STAYS ON
+# through the hand-placed-orders phase and comes off at Gate 2 by design, when
+# code-side guards replace it. So expected_cost comes from this schedule until
+# then, and altdata/sources/ibkr_whatif.py is kept intact for Gate 2 rather
+# than deleted.
+#
+# UNVERIFIED, AND EVERY PACKET SAYS SO. 26.17 requires vendor docs be verified
+# before coding against them. interactivebrokers.com returned HTTP 403 to
+# automated fetches of both /en/pricing/commissions-stocks.php and
+# commissions-home.php on 5 Sep 2026, so these figures were declared from the
+# published US Tiered schedule rather than read off the page in-session. That
+# is a real gap, not a formality: it is exactly the shape of the FlashAlpha
+# episode, where a plausible-looking vendor number turned out to be invented.
+# IBKR_COMMISSION_SCHEDULE_VERIFIED gates it, propagates into expected_cost,
+# and flips only when a human has read the page or a real fill has confirmed
+# the arithmetic.
+IBKR_COMMISSION_SCHEDULE_SOURCE: str = (
+    "https://www.interactivebrokers.com/en/pricing/commissions-stocks.php")
+IBKR_COMMISSION_SCHEDULE_AS_OF: str = "2026-09-05"
+IBKR_COMMISSION_SCHEDULE_VERIFIED: bool = False
+IBKR_COMMISSION_SCHEDULE_VERIFY_NOTE: str = (
+    "Declared from the published US Tiered schedule; IBKR returns HTTP 403 to "
+    "automated fetches, so no in-session read of the primary source was "
+    "possible. Confirm the per-share rate, the order floor, the 1% cap, and "
+    "that this ACCOUNT is on Tiered rather than Fixed -- the structure is an "
+    "account setting and cannot be inferred from the API.")
+
+# Which structure THIS account is on. An assumption, not an observation: the
+# API does not expose it. Fixed bundles exchange and regulatory fees; Tiered
+# charges them separately, which is why the two differ by more than their
+# headline rates.
+IBKR_ACCOUNT_COMMISSION_STRUCTURE: str = "tiered"
+
+# US STOCKS, IBKR Pro Tiered, lowest monthly-volume band (<=300k shares/month).
+# The band matters: the per-share rate steps down at higher monthly volume, and
+# this system will not approach those tiers.
+IBKR_STK_TIERED_PER_SHARE: float = 0.0035
+IBKR_STK_TIERED_MIN_PER_ORDER: float = 0.35
+IBKR_STK_TIERED_MAX_PCT_OF_TRADE: float = 0.01
+
+# US OPTIONS, IBKR Pro Tiered, per contract by premium band:
+# (premium_at_or_above, per_contract). Ordered high to low.
+IBKR_OPT_TIERED_PER_CONTRACT: tuple = ((0.10, 0.65), (0.05, 0.50), (0.0, 0.25))
+IBKR_OPT_TIERED_MIN_PER_ORDER: float = 1.00
+
+# THE ESTIMATE IS A FLOOR, NOT AN ALL-IN COST. Tiered quotes the broker's own
+# commission only; exchange, clearing and regulatory pass-throughs are billed
+# on top and vary by venue, order type and whether the order added or removed
+# liquidity -- none of which is knowable before the fill. On a 100-share order
+# whose commission floor is $0.35 those add-ons are not a rounding error.
+# Recorded as a named exclusion in every estimate rather than folded into a
+# fudge factor.
+IBKR_TIERED_EXCLUDES_PASSTHROUGH: bool = True
+IBKR_TIERED_EXCLUSIONS: tuple = ("exchange fees", "clearing fees",
+                                 "regulatory fees (SEC/FINRA)",
+                                 "liquidity add/remove adjustments")
