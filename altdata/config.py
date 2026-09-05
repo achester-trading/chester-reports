@@ -243,3 +243,30 @@ IV_SOLVER_MAX_FLIP_DIFF_PCT: float = 0.25       # percent of spot
 IV_SOLVER_WALLS_MUST_MATCH_EXACTLY: bool = True
 IV_SOLVER_MAX_GAMMA_DIFF_PCT: float = 10.0      # percent of dollar gamma/1%
 IV_SOLVER_MIN_SOLVE_RATE: float = 0.80          # of the eligible OTM wing
+
+# DTE=0 IS EXCLUDED FROM THE SOLVER-VS-YFINANCE IV COMPARISON. Declared here
+# rather than buried in the gate, because a silent exclusion is
+# indistinguishable from a bug, and this one changes what the gate certifies.
+#
+# The reason is not that 0DTE is inconvenient. It is that at the 16:10 ET close
+# snapshot the day's expiring contracts have no usable two-sided market left:
+# measured across all 13 symbols on 2026-09-04, the solver could price between
+# 0.0% and 2.4% of 0DTE contracts carrying open interest, rejecting 60-70% of
+# them as `wide_spread` -- a penny-wide market on a two-cent option is a 100%
+# relative spread. Comparing two IV series where one of them barely exists is
+# not a measurement of agreement.
+#
+# THE SOLVER STILL SOLVES 0DTE IN PRODUCTION. This flag governs the validation
+# comparison only; nothing is carved out of iv_solver itself.
+IV_SOLVER_EXCLUDE_DTE0: bool = True
+
+# ...and because excluding it silently would leave 0DTE unchecked, the bucket
+# gets its own substitute check: its GEX PROFILE under solved IV must match the
+# profile under yfinance IV within IV_SOLVER_MAX_GAMMA_DIFF_PCT. A profile is an
+# integral over strikes, so it tolerates per-strike IV noise that a strike-by-
+# strike comparison would flag.
+#
+# That argument holds only while enough of the bucket actually solves. Below
+# this coverage the two "profiles" are integrals over different domains, and
+# the check reports INCONCLUSIVE rather than a pass it has not earned.
+IV_SOLVER_DTE0_MIN_COVERAGE: float = 0.50       # of 0DTE contracts with OI

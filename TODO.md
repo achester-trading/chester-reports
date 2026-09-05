@@ -129,19 +129,38 @@ GEX/DEX/VEX/CHEX Black-Scholes from stored chains and IV, all four bucketed
 `data/expiration_release.csv`, `mechanism_group=dealer_chain_derived` on every
 row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
 
-- [ ] **0DTE gamma is numerically unstable, and the IV-solver gate now FAILS
-      because of it.** `tools/validate_iv_solver.py` reports SPY dollar
-      gamma/1% diverging -436% between yfinance IV and solved IV. All of it is
-      the 0DTE bucket: +196M on yfinance IV vs -5,235M on solved IV, while
-      every other bucket agrees within 15%. Two compounding causes:
-      only 6 of 382 0DTE rows solve at all, and with T floored at MIN_T (1
-      hour) a single near-ATM contract carries ~$377M of gamma, so the bucket
-      is dominated by sigma rather than by positioning.
-      The gate was passing before only because the chain it was reading had no
-      0DTE contracts in it (see the snapshot bug below) — it was being
-      evaluated on the easy subset. **Decide: raise MIN_T to something
-      defensible, or exclude 0DTE from the solver comparison explicitly and
-      say so in the gate.** Do not loosen the thresholds; that buries it.
+- [x] **DONE 5 Sep.** DTE=0 excluded from the solver-vs-yfinance IV comparison
+      and from the whole-book profile checks, declared in
+      `config.IV_SOLVER_EXCLUDE_DTE0` with the evidence; the solver still
+      solves 0DTE in production. A substitute 0DTE check compares the bucket's
+      GEX *profile* under both IV sources. Gate is now three-valued
+      (PASS/FAIL/INCONCLUSIVE) so a check that cannot see the book reports
+      neither green nor red.
+- [ ] **The gate is still RED, for two reasons, neither loosenable.**
+      1. `dollar gamma/1% (ex-0DTE)` diverges **23.1%** against a 10% tolerance
+         on SPY. Not a coverage artifact: restricting BOTH profiles to the
+         8,199 rows that solved gives 27.6% (QQQ 82.7%, NVDA 4.5%). It is
+         genuine IV disagreement in the TAIL -- median |IV diff| is 0.0177 and
+         passes, but p90 is **0.136** and max 0.95. A median-based check cannot
+         see the tail that moves gamma. Consider adding a p90 bound to the IV
+         check, and work out why the tail is fat before touching the 10%.
+      2. `0DTE GEX profile` is INCONCLUSIVE at 1.6% coverage and structurally
+         cannot improve at a 16:10 snapshot -- see below.
+- [ ] **0DTE IV is unsolvable at the close, on every symbol.** Coverage across
+      all 13 on 2026-09-04: 0.0%-2.4%, with 60-70% rejected `wide_spread`. At
+      16:09 ET the day's contracts are at or past expiry and a penny-wide
+      market on a two-cent option is a 100% relative spread. So neither IV
+      source is verifiable for 0DTE, and the 6 rows that DO solve dominate the
+      bucket -- they carry -5.2bn of the -5.235bn solved 0DTE gamma, against
+      +196M for the other 376 on yfinance IV. **The deeper question this
+      raises: at a post-close snapshot the 0DTE contracts have already settled,
+      so their true remaining gamma is zero and the MIN_T floor is inventing
+      it. Decide whether 0DTE belongs in an EOD profile at all.**
+- [ ] **The two snapshot qualities pull in opposite directions.** The 16:10
+      capture is right for OI and 0DTE completeness; the 22:44 capture had
+      cleaner quotes (gate read -4.55% there, ex-0DTE 23.1% here). Worth
+      measuring whether a late-evening capture should feed the IV solver while
+      the close capture feeds OI.
 - [ ] **Charm in 0DTE is an extrapolation, not a measurement.** Charm scales as
       1/sqrt(T) and diverges as T -> 0, so 0DTE carries the largest per-day
       charm in the book. NVDA 2026-09-04: 0DTE charm +20.4M sh/day against a

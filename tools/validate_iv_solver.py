@@ -79,9 +79,26 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
     solved = iv_solver.solve_chain(rows, config.RISK_FREE_RATE, as_of=fetched)
     q = solved["quality"]
 
+    # DTE=0 is excluded from the IV comparison and from the whole-book profile
+    # checks, and gets its own substitute check below. config.IV_SOLVER_EXCLUDE_DTE0
+    # carries the reasoning; in one line, the day's expiring contracts have no
+    # usable two-sided market at the close, so there is no second IV series to
+    # compare against.
+    ex0 = config.IV_SOLVER_EXCLUDE_DTE0
+    def _keep(r) -> bool:
+        return (not ex0) or (r.get("dte") or 0) > 0
+
+    # 0DTE solver coverage, measured so the exclusion is evidenced rather than
+    # asserted every time the gate runs.
+    z_oi = [r for r in solved["rows"]
+            if (r.get("dte") or 0) == 0 and (r.get("open_interest") or 0) > 0]
+    z_solved = [r for r in z_oi if r.get("solved_iv") is not None]
+    dte0_coverage = (len(z_solved) / len(z_oi)) if z_oi else None
+
     # ---- A: per-strike IV agreement -------------------------------------
     pairs = [(r["solved_iv"], r["implied_vol"]) for r in solved["rows"]
-             if r.get("solved_iv") is not None
+             if _keep(r)
+             and r.get("solved_iv") is not None
              and r.get("implied_vol") is not None
              and 0 < r["implied_vol"] < 5.0]
     diffs = [a - b for a, b in pairs]
@@ -97,10 +114,13 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
     }
 
     # ---- B: profile agreement -------------------------------------------
-    # Same rows, same engine, only the IV column swapped.
-    rows_yf = [dict(r) for r in rows]
+    # Same rows, same engine, only the IV column swapped. Excludes 0DTE when
+    # the flag is set; the bucket is checked separately in E.
+    rows_yf = [dict(r) for r in solved["rows"] if _keep(r)]
     rows_sv = []
     for r in solved["rows"]:
+        if not _keep(r):
+            continue
         rr = dict(r)
         rr["implied_vol"] = r.get("solved_iv")
         rows_sv.append(rr)
@@ -154,13 +174,59 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
                        f"put {b_stats['put_wall_yf']}/{b_stats['put_wall_solved']}"))
 
     gd = b_stats["gamma_diff_pct"]
-    checks.append(("dollar gamma/1%",
+    checks.append((("dollar gamma/1% (ex-0DTE)" if ex0 else "dollar gamma/1%"),
                    gd is not None and abs(gd) <= config.IV_SOLVER_MAX_GAMMA_DIFF_PCT,
                    f"{gd}% vs <= +/-{config.IV_SOLVER_MAX_GAMMA_DIFF_PCT}%"))
 
-    passed = all(ok for _, ok, _ in checks)
+    # ---- E: substitute 0DTE check ---------------------------------------
+    # 0DTE is out of A and B, so it gets checked as a PROFILE instead of strike
+    # by strike: the bucket's GEX under solved IV against the same bucket under
+    # yfinance IV. A profile is an integral over strikes and tolerates the
+    # per-strike IV noise that a pairwise comparison would flag.
+    #
+    # Status is three-valued. Below config.IV_SOLVER_DTE0_MIN_COVERAGE the two
+    # profiles are integrals over different domains and the check returns None
+    # -- INCONCLUSIVE, not a pass. A check that cannot see the thing it is
+    # checking must not report green.
+    dte0 = {"coverage": (round(dte0_coverage, 4) if dte0_coverage is not None else None),
+            "solved": len(z_solved), "with_oi": len(z_oi),
+            "gex_yf": None, "gex_solved": None, "diff_pct": None}
+    if ex0:
+        z_rows = [r for r in solved["rows"] if (r.get("dte") or 0) == 0]
+        if z_rows:
+            z_yf = profile_from([dict(r) for r in z_rows], symbol)
+            z_sv = profile_from([{**r, "implied_vol": r.get("solved_iv")}
+                                 for r in z_rows], symbol)
+            gy = (z_yf.get("overall") or {}).get("dollar_gamma_per_1pct")
+            gs = (z_sv.get("overall") or {}).get("dollar_gamma_per_1pct")
+            dte0["gex_yf"], dte0["gex_solved"] = gy, gs
+            dte0["diff_pct"] = (round(pct_diff(gs, gy), 3)
+                                if gy not in (None, 0) and gs is not None else None)
+
+        cov_ok = (dte0_coverage is not None
+                  and dte0_coverage >= config.IV_SOLVER_DTE0_MIN_COVERAGE)
+        if not cov_ok:
+            status = None
+            detail = (f"INCONCLUSIVE -- solver priced {dte0['solved']}/"
+                      f"{dte0['with_oi']} 0DTE contracts with OI "
+                      f"({(dte0_coverage or 0) * 100:.1f}%), below the "
+                      f"{config.IV_SOLVER_DTE0_MIN_COVERAGE * 100:.0f}% needed "
+                      f"for the profiles to cover the same book")
+        else:
+            d0 = dte0["diff_pct"]
+            status = (d0 is not None
+                      and abs(d0) <= config.IV_SOLVER_MAX_GAMMA_DIFF_PCT)
+            detail = (f"{d0}% vs <= +/-{config.IV_SOLVER_MAX_GAMMA_DIFF_PCT}% "
+                      f"(coverage {(dte0_coverage or 0) * 100:.1f}%)")
+        checks.append(("0DTE GEX profile", status, detail))
+
+    failed = any(ok is False for _, ok, _ in checks)
+    inconclusive = any(ok is None for _, ok, _ in checks)
     return {"symbol": symbol, "chain": str(path), "quality": q,
-            "iv": a_stats, "profile": b_stats, "checks": checks, "pass": passed}
+            "iv": a_stats, "profile": b_stats, "checks": checks,
+            "dte0": dte0, "excluded_dte0": ex0,
+            "pass": not failed and not inconclusive,
+            "failed": failed, "inconclusive": inconclusive}
 
 
 def main() -> int:
@@ -206,24 +272,43 @@ def main() -> int:
               else f"     $gamma/1%       {gy}  {gs}")
         print(f"     {'':<16}{'':>16}{'':>16}   ({b['gamma_diff_pct']}%)")
 
+        if res["excluded_dte0"]:
+            d = res["dte0"]
+            print(f"\n  0DTE (excluded from A and B; checked as a profile in E)")
+            print(f"     solver coverage {d['solved']}/{d['with_oi']} contracts "
+                  f"with OI ({(d['coverage'] or 0) * 100:.1f}%)")
+            if isinstance(d["gex_yf"], (int, float)):
+                print(f"     bucket $gamma/1%  yfIV {d['gex_yf']:>18,.0f}   "
+                      f"solved {d['gex_solved']:>18,.0f}   ({d['diff_pct']}%)")
+
+        label = {True: "PASS", False: "FAIL", None: "INCONCL"}
         print(f"\n  GATE")
         for name, ok, detail in res["checks"]:
-            print(f"     [{'PASS' if ok else 'FAIL'}] {name:<28} {detail}")
-        print(f"\n  VERDICT: {res['symbol']} "
-              f"{'PASSES' if res['pass'] else 'FAILS'} the solver gate")
+            print(f"     [{label[ok]:^7}] {name:<28} {detail}")
+        verdict = ("PASSES" if res["pass"] else
+                   "FAILS" if res["failed"] else "is INCONCLUSIVE on")
+        print(f"\n  VERDICT: {res['symbol']} {verdict} the solver gate")
 
     if not results:
         print("No symbols validated.")
         return 1
 
-    all_pass = all(r["pass"] for r in results)
+    any_fail = any(r["failed"] for r in results)
+    any_inc = any(r["inconclusive"] for r in results)
+    all_pass = not any_fail and not any_inc
     print(f"\n{LINE}")
-    print(f"OVERALL: {'PASS' if all_pass else 'FAIL'} -- "
-          + ("SPX may go live on solved IV."
-             if all_pass else
-             "SPX stays out until the failing checks are resolved."))
+    if all_pass:
+        print("OVERALL: PASS -- SPX may go live on solved IV.")
+    elif any_fail:
+        print("OVERALL: FAIL -- SPX stays out until the failing checks are resolved.")
+    else:
+        # Distinct from FAIL on purpose. Nothing disagreed; part of the book
+        # could not be examined, which is a different thing to report and a
+        # different thing to fix.
+        print("OVERALL: INCONCLUSIVE -- nothing failed, but a check could not "
+              "see enough of the book to certify it. SPX stays out.")
     print(LINE)
-    return 0 if all_pass else 1
+    return 0 if all_pass else 1 if any_fail else 2
 
 
 if __name__ == "__main__":
