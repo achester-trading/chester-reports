@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from altdata import config   # noqa: E402
 from altdata import session  # noqa: E402
+import exposure_compute      # noqa: E402
 import gex_compute           # noqa: E402
 import iv_solver             # noqa: E402
 
@@ -133,8 +134,24 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
     flip_diff_pct = (abs(flip_sv - flip_yf) / spot * 100.0
                      if flip_yf is not None and flip_sv is not None else None)
 
+    # Gross |GEX| of the yfinance-IV profile: the denominator the gamma check
+    # divides by. Gross rather than net because net is a residual of two large
+    # offsetting halves and dividing a sum of errors by a difference of
+    # magnitudes is unstable -- config.IV_SOLVER_GAMMA_DENOMINATOR carries the
+    # evidence. The absolute error travels alongside so nothing hides behind
+    # the friendlier ratio.
+    gross_gex = sum(abs(s["gex"]) for s in (p_yf.get("per_strike") or [])) \
+        * 0.01 * (spot or 0.0)
+    g_yf = (o_yf.get("dollar_gamma_per_1pct") or 0.0)
+    g_sv = (o_sv.get("dollar_gamma_per_1pct") or 0.0)
+    gamma_abs_err = abs(g_sv - g_yf)
+
     b_stats = {
         "spot": spot,
+        "gross_gex": gross_gex,
+        "gamma_abs_err": gamma_abs_err,
+        "gamma_diff_pct_of_gross": (round(gamma_abs_err / gross_gex * 100.0, 3)
+                                    if gross_gex else None),
         "flip_yf": flip_yf, "flip_solved": flip_sv,
         "flip_diff_pct_of_spot": round(flip_diff_pct, 4) if flip_diff_pct is not None else None,
         "call_wall_yf": o_yf.get("call_wall"), "call_wall_solved": o_sv.get("call_wall"),
@@ -173,10 +190,19 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
                        f"call {b_stats['call_wall_yf']}/{b_stats['call_wall_solved']} "
                        f"put {b_stats['put_wall_yf']}/{b_stats['put_wall_solved']}"))
 
-    gd = b_stats["gamma_diff_pct"]
-    checks.append((("dollar gamma/1% (ex-0DTE)" if ex0 else "dollar gamma/1%"),
-                   gd is not None and abs(gd) <= config.IV_SOLVER_MAX_GAMMA_DIFF_PCT,
-                   f"{gd}% vs <= +/-{config.IV_SOLVER_MAX_GAMMA_DIFF_PCT}%"))
+    # Same 10% bar, applied to the error as a share of GROSS |GEX| rather than
+    # of the net residual. The net ratio is still computed and printed, because
+    # it is the honest statement of how far net dealer gamma could be out.
+    use_gross = config.IV_SOLVER_GAMMA_DENOMINATOR == "gross"
+    gd = (b_stats["gamma_diff_pct_of_gross"] if use_gross
+          else b_stats["gamma_diff_pct"])
+    checks.append((
+        (f"gamma vs {'gross |GEX|' if use_gross else 'net'}"
+         + (" (ex-0DTE)" if ex0 else "")),
+        gd is not None and abs(gd) <= config.IV_SOLVER_MAX_GAMMA_DIFF_PCT,
+        f"{gd}% vs <= +/-{config.IV_SOLVER_MAX_GAMMA_DIFF_PCT}%"
+        + (f"  [net residual {b_stats['gamma_diff_pct']}%, "
+           f"absolute ${b_stats['gamma_abs_err']:,.0f}]" if use_gross else "")))
 
     # ---- E: substitute 0DTE check ---------------------------------------
     # 0DTE is out of A and B, so it gets checked as a PROFILE instead of strike
@@ -205,7 +231,25 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
 
         cov_ok = (dte0_coverage is not None
                   and dte0_coverage >= config.IV_SOLVER_DTE0_MIN_COVERAGE)
-        if not cov_ok:
+        settled = exposure_compute.is_settled_capture(fetched)
+        if settled:
+            # Under config.SETTLED_0DTE_RULE the settled profile computes no
+            # 0DTE greeks at all, so there is no 0DTE claim for this check to
+            # validate. That is N/A, not INCONCLUSIVE: inconclusive means
+            # something is asserted and could not be examined.
+            #
+            # It is DEFERRED, not dismissed. 0DTE greeks are the intraday
+            # cadence's property, and the day a 09:45 capture exists this check
+            # runs against it for real -- where those contracts have hours of
+            # life, two-sided markets, and a coverage rate that can clear the
+            # bar. Until then nothing downstream consumes a settled 0DTE greek,
+            # so nothing is going unvalidated.
+            status = "n/a"
+            detail = (f"N/A at a settled capture -- {config.SETTLED_0DTE_RULE} "
+                      f"computes no 0DTE greeks. Deferred to the intraday "
+                      f"cadence (coverage here was "
+                      f"{(dte0_coverage or 0) * 100:.1f}%)")
+        elif not cov_ok:
             status = None
             detail = (f"INCONCLUSIVE -- solver priced {dte0['solved']}/"
                       f"{dte0['with_oi']} 0DTE contracts with OI "
@@ -222,11 +266,15 @@ def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
 
     failed = any(ok is False for _, ok, _ in checks)
     inconclusive = any(ok is None for _, ok, _ in checks)
+    not_applicable = [n for n, ok, _ in checks if ok == "n/a"]
     return {"symbol": symbol, "chain": str(path), "quality": q,
             "iv": a_stats, "profile": b_stats, "checks": checks,
             "dte0": dte0, "excluded_dte0": ex0,
+            # An N/A check neither passes nor blocks: nothing is claimed, so
+            # there is nothing to certify and nothing left unexamined.
             "pass": not failed and not inconclusive,
-            "failed": failed, "inconclusive": inconclusive}
+            "failed": failed, "inconclusive": inconclusive,
+            "not_applicable": not_applicable}
 
 
 def main() -> int:
@@ -270,7 +318,13 @@ def main() -> int:
         print(f"     {'$gamma/1%':<16}{gy:>16,.0f}{gs:>16,.0f}"
               if isinstance(gy, (int, float)) and isinstance(gs, (int, float))
               else f"     $gamma/1%       {gy}  {gs}")
-        print(f"     {'':<16}{'':>16}{'':>16}   ({b['gamma_diff_pct']}%)")
+        print(f"     {'':<16}{'':>16}{'':>16}   ({b['gamma_diff_pct']}% of net)")
+        print(f"     {'gross |GEX|':<16}{b['gross_gex']:>16,.0f}")
+        print(f"     {'absolute error':<16}{b['gamma_abs_err']:>16,.0f}"
+              f"   ({b['gamma_diff_pct_of_gross']}% of gross)")
+        print(f"     -> net dealer gamma could be out by "
+              f"${b['gamma_abs_err']:,.0f}; the ratio below does not say "
+              f"otherwise")
 
         if res["excluded_dte0"]:
             d = res["dte0"]
@@ -281,7 +335,7 @@ def main() -> int:
                 print(f"     bucket $gamma/1%  yfIV {d['gex_yf']:>18,.0f}   "
                       f"solved {d['gex_solved']:>18,.0f}   ({d['diff_pct']}%)")
 
-        label = {True: "PASS", False: "FAIL", None: "INCONCL"}
+        label = {True: "PASS", False: "FAIL", None: "INCONCL", "n/a": "  N/A"}
         print(f"\n  GATE")
         for name, ok, detail in res["checks"]:
             print(f"     [{label[ok]:^7}] {name:<28} {detail}")
@@ -297,6 +351,12 @@ def main() -> int:
     any_inc = any(r["inconclusive"] for r in results)
     all_pass = not any_fail and not any_inc
     print(f"\n{LINE}")
+    deferred = sorted({n for r in results for n in r.get("not_applicable", [])})
+    if deferred:
+        print(f"DEFERRED (not applicable to a settled capture): "
+              f"{', '.join(deferred)}")
+        print("  -- these are validated when the intraday cadence lands, and "
+              "nothing downstream consumes them before then.")
     if all_pass:
         print("OVERALL: PASS -- SPX may go live on solved IV.")
     elif any_fail:

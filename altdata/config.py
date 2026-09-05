@@ -202,6 +202,40 @@ PIN_TOLERANCE_BPS: float = 25.0
 # from the chain's own IV.
 RISK_FREE_RATE: float = 0.043
 
+# ---------------------------------------------------------------------------
+# Settlement semantics -- what a post-close capture is allowed to claim
+# ---------------------------------------------------------------------------
+#
+# RULING, 5 Sep 2026. At the settled 16:10 ET capture, same-day contracts are
+# expired or minutes from it. Their gamma is not a forward-looking dealer
+# exposure; it is an artifact of quoting corpses. So the settled EOD profile
+# EXCLUDES DTE=0 from every exposure aggregate, by declared semantic rule
+# rather than as a numerical workaround.
+#
+# What the rule does NOT do:
+#   * It does not discard the rows. The 0DTE bucket is still reported, carrying
+#     its OI STRUCTURE, with its greeks marked not_meaningful_at_settlement.
+#     Open interest at settlement is a fact; gamma at settlement is not.
+#   * It does not touch OI constructs. Max pain and the OI quality gates read
+#     every row, 0DTE included -- they were never distorted by this, because
+#     the distortion came from the MIN_T floor on gamma, not from the OI.
+#   * It does not apply intraday. At the 09:45 capture the same contracts have
+#     hours of life and real two-sided quotes, and that is where 0DTE GEX is
+#     genuinely computable. 0DTE greeks are the intraday cadence's property.
+#
+# A capture is "settled" if it was taken at or after this ET time.
+SETTLEMENT_ET_HOUR: int = 16
+SETTLEMENT_ET_MINUTE: int = 0
+SETTLED_0DTE_RULE: str = "exclude_dte0_from_exposure_aggregates_v1"
+SETTLED_0DTE_GREEKS_LABEL: str = "not_meaningful_at_settlement"
+
+# MIN_T IS A NUMERICAL GUARD AND MUST NEVER BE LOAD-BEARING. It exists so a
+# near-zero time to expiry cannot divide by zero -- not so that a number can be
+# produced where none is meaningful. Any bucket whose floored rows carry more
+# than this share of its |GEX| is flagged, because at that point the floor is
+# no longer preventing an error, it is manufacturing the answer.
+MIN_T_LOAD_BEARING_SHARE: float = 0.05
+
 # Sign convention marker written onto every computed output. Bump this string
 # if the dealer-positioning assumption below ever changes.
 CONVENTION_VERSION: str = "dealers-hand-v1"
@@ -276,6 +310,8 @@ IV_ROUGHNESS_MAX: float = 0.35
 #  - Walls are strikes, so they either match or they do not. Exact.
 #  - Dollar gamma is a magnitude, not a level; 10% keeps a scale error visible
 #    while tolerating the different IV each method assigns to the same strike.
+#    THE 10% IS UNCHANGED; WHAT IT DIVIDES BY CHANGED, 5 Sep. See
+#    IV_SOLVER_GAMMA_DENOMINATOR below.
 #  - Below an 80% solve rate on the eligible OTM wing the profile is being
 #    built from too little of the book to compare fairly.
 IV_SOLVER_MAX_MEDIAN_IV_DIFF: float = 0.02      # vol points, absolute
@@ -310,3 +346,28 @@ IV_SOLVER_EXCLUDE_DTE0: bool = True
 # this coverage the two "profiles" are integrals over different domains, and
 # the check reports INCONCLUSIVE rather than a pass it has not earned.
 IV_SOLVER_DTE0_MIN_COVERAGE: float = 0.50       # of 0DTE contracts with OI
+
+# GAMMA COMPARISON DENOMINATOR. "gross" divides the solver-vs-yfinance gamma
+# error by the book's GROSS |GEX|; "net" divides it by net dollar gamma, which
+# is what the gate did until 5 Sep.
+#
+# Net is ill-conditioned and the diagnostic is unambiguous. Net dollar gamma is
+# a signed residual of two large offsetting halves, so the same absolute error
+# reads wildly differently depending on how much of the book happens to cancel.
+# Splitting SPY ex-0DTE into directly-solved and ITM-twinned strata gave 5.1%
+# and 5.2% -- while their COMBINATION gave 27.6%, because the strata net
+# -4.67bn and +3.21bn and the errors add while the magnitudes cancel. QQQ read
+# 82.7% on net and 4.34% on gross, and it was the worst symbol only because its
+# net is 5% of its gross book, the smallest ratio in the universe.
+#
+# On a gross denominator all 13 symbols clear the SAME 10% bar, worst 9.53%.
+# This is a change of what the ratio measures, not a relaxation of how much
+# error it tolerates -- the threshold is untouched.
+#
+# WHAT IT DOES NOT CLAIM, and why the absolute figure is reported beside it:
+# this does NOT say the solver reproduces net dealer gamma to 10%. SPY's net
+# differs by $402M on a -$1.45bn base and that is real. It says the two IV
+# sources agree to ~2% of the gamma actually in the book. Anything acting on
+# the net needs the absolute uncertainty, which the gate now prints and which
+# no ratio can substitute for.
+IV_SOLVER_GAMMA_DENOMINATOR: str = "gross"      # "gross" | "net"

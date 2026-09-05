@@ -71,6 +71,32 @@ Intraday
       the doc's settled-OI caveat applies to **our** yfinance chains too — OI is
       settled, so intraday snapshots measure *spot traversing a static profile*,
       not positioning evolution. Must be labelled as such in the output.
+- [ ] **The intraday cadence now OWNS 0DTE greeks** (ruling, 5 Sep). A settled
+      capture computes none; the 09:45 fetch is where those contracts have
+      hours of life, real two-sided markets and a solver coverage rate that can
+      clear the gate, so that is where 0DTE GEX is computed and where the pin
+      log's 0DTE segmentation gets real data. `exposure_compute.is_settled_capture`
+      already switches on capture time, so an intraday chain gets full 0DTE
+      greeks with no further change. Two things to build alongside it:
+      the gate's `0DTE GEX profile` check currently reports N/A at a settled
+      capture and is waiting for an intraday one to run against for real; and
+      an intraday 15:30 sample must consult `is_early_close()`, since on those
+      days the market is already shut by then.
+- [ ] **PREREQUISITE, found by the MIN_T flag on its first run: intraday 0DTE
+      greeks need a FRACTIONAL time to expiry, and the code does not have one
+      yet.** `dte` is an integer day count, so a same-day contract is `dte=0`
+      whatever the clock says, `t_years = 0/365 = 0`, and MIN_T floors it to one
+      hour. At 09:45 roughly 6.25 hours remain — about 6x MIN_T — so the floor
+      would understate T sixfold and overstate gamma by ~sqrt(6) ~ 2.4x.
+      Relabelling Friday's chain as a 09:45 capture reproduces this exactly:
+      the 0DTE bucket comes back with `floored_share_of_abs_gex = 1.0` and
+      `min_t_load_bearing = True`, every row on the floor.
+      So moving 0DTE greeks to the intraday cadence does NOT by itself make
+      them meaningful — the cadence must compute time to expiry from the
+      capture instant to the session close (respecting early closes, where the
+      close is 13:00 ET) rather than from a day count. The flag is doing its
+      job: MIN_T is load-bearing here, and it says so instead of quietly
+      returning a number.
 
 Point-in-time and provenance (Part 26.2)
 - [ ] No `available_at` on any record (26.2 #2, point-in-time correctness).
@@ -180,66 +206,51 @@ row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
       relative to its own size. On a gross denominator QQQ is 4.34%, better
       than average.
 
-- [ ] **DECIDE: denominate the gate's gamma check by gross |GEX|.** The
-      diagnosis above is complete; this is the remaining action. Note what it
-      does and does not claim. It does NOT say the solver reproduces net dealer
-      gamma to 10% -- on SPY the net differs by 402M on a -1.45bn base and that
-      is real. It says the two IV sources agree to ~2% of the gamma actually
-      in the book, and that the net is too small a residual to divide by. If
-      the net is what a downstream consumer acts on, its uncertainty must be
-      reported in absolute terms alongside, not hidden by a friendlier ratio.
-      Keep the twinning finding regardless: 43-49% of every comparison is
-      propagated vol carrying a 5-8x wider tail, which is worth a separate
-      quality flag even once the denominator is fixed.
+- [x] **DONE 5 Sep. Gamma check now divides by gross |GEX| at the unchanged
+      10% bar** (`config.IV_SOLVER_GAMMA_DENOMINATOR = "gross"`). SPY reads
+      1.592% of gross where it read 23.086% of net. The gate PASSES.
+      Per the caveat, the absolute net uncertainty is printed beside it and is
+      not hidden by the friendlier ratio -- SPY's line reads
+      `[net residual 23.086%, absolute $315,983,913]`, and the profile section
+      spells out "net dealer gamma could be out by $315,983,913".
+- [ ] Keep the twinning finding on the books regardless of the denominator:
+      43-49% of every comparison is propagated ITM vol carrying a 5-8x wider
+      tail (p90 0.159-0.355 vs 0.024-0.071). That deserves a per-row quality
+      flag so a consumer can weight by how well each strike's vol is known.
+      Not urgent now that the gate is sound; still true.
 
-- [ ] **RESOLVED 5 Sep: Tuesday's pin verdicts are NOT readable as they
-      stand. The 7/13 peak-GEX hit rate is an artifact of the MIN_T floor.**
+- [x] **RULED AND APPLIED 5 Sep. The pin artifact is gone.** The 7/13 rate was
+      the MIN_T floor planting peak-GEX at the money; under the settlement rule
+      the settled peak is the ex-0DTE peak and Friday rewrites to **0/13** on
+      peak, call_wall_otm and put_wall_otm alike. A one-day sample where
+      nothing pinned is a real result; the 54% was not.
+      Pin scoring now keys on the ex-0DTE peak PLUS the two OTM walls, which
+      never had this problem -- a wall is the extreme GEX strike restricted to
+      out-of-the-money, so an at-the-money artifact could not become one however
+      large it grew. That makes them the control on the peak, not just two more
+      levels.
 
-          peak-GEX pins within 25bps, all rows        : 7/13
-          peak-GEX pins within 25bps, ex-floored rows : 0/13
-          peak strike MOVED when floored rows removed : 9/13
+- [x] **RESOLVED BY RULING 5 Sep.** 0DTE IV is unsolvable at the close on every
+      symbol (coverage 0.0-2.4%, 60-70% rejected `wide_spread`) and the ruling
+      accepts that rather than working around it: at a settled capture those
+      contracts are expired or minutes from it, so their gamma is an artifact
+      of quoting corpses, not a forward-looking exposure. The settled profile
+      excludes DTE=0 from every exposure aggregate by declared semantic rule
+      (`config.SETTLED_0DTE_RULE`); the bucket still reports OI structure with
+      greeks marked `not_meaningful_at_settlement`. OI constructs -- max pain,
+      the quality gates -- are untouched, because the distortion was never in
+      the OI.
 
-      Every hit sits within 16bps of spot and most within 1bp -- AAPL 320.00
-      vs 319.97, IWM 296.00 vs 295.97, QQQ 719.00 vs 718.96, MSFT 500.00 vs
-      499.70. That is not a pin, it is the nearest listed strike to spot.
-      0DTE gamma scales as 1/sqrt(T) and peaks at the money, so a floored 0DTE
-      row plants the peak-GEX strike AT the money by construction, and the pin
-      test then asks whether the strike nearest spot is near spot. It is
-      tautological, and it will read as a 54% hit rate forever.
-
-      Floored share of |GEX| is large enough to dominate on most names:
-      AAPL 87.0%, NVDA 54.1%, META 28.7%, MSTR 28.6%, MSFT 19.4%, ASTS 19.6%,
-      QQQ 17.9%, IWM 13.2%. SPY is the exception at 1.0%, and SPY is one of
-      the four whose peak strike did NOT move.
-
-      Do not read Tuesday's pin column until the 0DTE-in-EOD question below is
-      settled. Both candidate answers fix this: excluding settled contracts
-      removes the floored rows outright, and a defensible MIN_T stops the
-      1/sqrt(T) blowup from dominating.
-
-- [ ] **0DTE IV is unsolvable at the close, on every symbol.** Coverage across
-      all 13 on 2026-09-04: 0.0%-2.4%, with 60-70% rejected `wide_spread`. At
-      16:09 ET the day's contracts are at or past expiry and a penny-wide
-      market on a two-cent option is a 100% relative spread. So neither IV
-      source is verifiable for 0DTE, and the 6 rows that DO solve dominate the
-      bucket -- they carry -5.2bn of the -5.235bn solved 0DTE gamma, against
-      +196M for the other 376 on yfinance IV. **The deeper question this
-      raises: at a post-close snapshot the 0DTE contracts have already settled,
-      so their true remaining gamma is zero and the MIN_T floor is inventing
-      it. Decide whether 0DTE belongs in an EOD profile at all.**
 - [ ] **The two snapshot qualities pull in opposite directions.** The 16:10
       capture is right for OI and 0DTE completeness; the 22:44 capture had
       cleaner quotes (gate read -4.55% there, ex-0DTE 23.1% here). Worth
       measuring whether a late-evening capture should feed the IV solver while
       the close capture feeds OI.
-- [ ] **Charm in 0DTE is an extrapolation, not a measurement.** Charm scales as
-      1/sqrt(T) and diverges as T -> 0, so 0DTE carries the largest per-day
-      charm in the book. NVDA 2026-09-04: 0DTE charm +20.4M sh/day against a
-      whole-symbol total of +19.3M — the bucket flips the symbol's sign, on 108
-      rows resting on the MIN_T floor. `chex_floored_rows` is carried per
-      symbol and per bucket so this is checkable. Decide whether the headline
-      CHEX should exclude 0DTE. (Vanna needs no such treatment: it genuinely
-      collapses to ~0 in 0DTE, SPY 0.7% of book vanna.)
+- [x] **SUPERSEDED 5 Sep for settled captures.** NVDA's +20.4M sh/day 0DTE
+      charm no longer appears: a settled profile computes no 0DTE greeks at
+      all. The finding stands for the INTRADAY cadence, where charm is real and
+      `chex_floored_rows` remains the counter to check.
+
 - [ ] **DEX direction is uninformative under `dealers-hand-v1`** and will stay
       that way. Long calls carry positive delta and SHORT puts also carry
       positive delta, so net DEX is positive for every symbol, bucket and
@@ -248,16 +259,37 @@ row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
       `unwind_direction` only becomes a real variable if Alpha-tier flow
       polarity ever replaces the assumed +1/-1.
 
-### Fixed in passing, but it revises committed history
+### Selection and semantic boundaries in the committed history
 
-`newest_chains` selected the day's chain by file **mtime**. For 2026-09-04 that
-picked the 22:44 ET capture, taken hours after the close, by which time all 425
-0DTE contracts had expired off the chain — so the whole 0DTE bucket was silently
+Two changes now revise numbers that were already committed. Rows written either
+side of each are not comparable, and nothing on an old row says so, which is
+why both are recorded here rather than only in a commit message.
+
+**Boundary 1 -- snapshot selection (earlier on 5 Sep).** `newest_chains`
+selected the day's chain by file **mtime**. For 2026-09-04 that picked the
+22:44 ET capture, taken hours after the close, by which time all 425 0DTE
+contracts had expired off the chain — so the whole 0DTE bucket was silently
 absent and nothing downstream could tell, because a missing bucket and an empty
 one look identical. Selection now ranks by the `fetched_at` the rows carry,
-nearest `config.EOD_SNAPSHOT_TARGET_ET` (16:10, matching the timer). This moves
+nearest `config.EOD_SNAPSHOT_TARGET_ET` (16:10, matching the timer). Moved
 every 2026-09-04 number: SPY $gamma/1% -988M -> -1,172M, NVDA 1.67bn -> 4.15bn,
-QQQ -339M -> -3.26bn. Earlier rows in the pin log were computed the old way.
+QQQ -339M -> -3.26bn.
+
+**Boundary 2 -- settlement semantics (this ruling).** The settled profile now
+excludes DTE=0 from every exposure aggregate. Moved them again, in the other
+direction: SPY -1,172M -> **-1,369M**, NVDA 4.15bn -> **1.68bn**, QQQ -3.26bn ->
+**-542M**. NVDA and QQQ move most because floored rows carried 54.1% and 17.9%
+of their |GEX|; SPY moves least because it carried 1.0%.
+
+Rows written under the new rule carry `capture`, `settled_0dte_rule`,
+`exposure_rows` and `settled_0dte_excluded_rows` so the boundary is legible
+from the data. **Rows predating it carry none of those columns, and an empty
+`capture` is the marker for "computed under the old rule".**
+
+*Rewritten under the ruling:* 2026-09-04 (Friday), all 13 symbols. There are no
+Thursday rows to rewrite — the only sessions on disk are 2026-09-04 (48 chain
+files) and the 2026-09-05 Saturday Massive-only capture, so Friday is the
+entire affected history.
 
 ## SPX + SPCX ingestion (5 Sep 2026) — landed, Greeks deferred
 

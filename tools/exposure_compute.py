@@ -55,6 +55,13 @@ DEX -- delta exposure.  The dealer OPTION BOOK's delta, in shares.
         hedge held      -dex_shares of stock
         unwind at expiry  +dex_shares traded           (+ = dealer BUYS back)
 
+    That last line is the expiration-release output. When a contract expires
+    its delta goes to zero, the hedge against it is no longer needed, and the
+    dealer trades out of it. A large positive DEX rolling off is mechanical
+    dealer buying; a large negative DEX rolling off is mechanical selling.
+    `unwind_direction` states which, per expiry, so the reader never has to
+    re-derive the sign.
+
     DEX IS ONE-SIGNED UNDER THIS CONVENTION, AND THAT IS NOT A BUG. A long call
     has positive delta; a SHORT put also has positive delta. Both legs of
     dealers-hand-v1 therefore contribute positively and net DEX is positive for
@@ -70,13 +77,6 @@ DEX -- delta exposure.  The dealer OPTION BOOK's delta, in shares.
     replace the assumed +1/-1 with observed dealer sides. That is Alpha-tier
     data this system does not have; the column exists so the ladder does not
     have to change shape on the day it does.
-
-    That last line is the expiration-release output. When a contract expires
-    its delta goes to zero, the hedge against it is no longer needed, and the
-    dealer trades out of it. A large positive DEX rolling off is mechanical
-    dealer buying; a large negative DEX rolling off is mechanical selling.
-    `unwind_direction` states which, per expiry, so the reader never has to
-    re-derive the sign.
 
 VEX -- vanna exposure.  d(delta)/d(vol), in shares per ONE VOL POINT.
 
@@ -118,10 +118,52 @@ as a level price reacts to.
     bucket carries the largest per-day charm in the book, not the smallest.
     What is bounded is not the rate but the total: delta has only hours left in
     which to resolve to 0 or 1, so a per-DAY rate on a contract with two hours
-    to live is an extrapolation of something that cannot run a full day. MIN_T
-    floors T at one hour, which caps the divergence, and `chex_floored_rows`
-    counts how many rows hit that floor -- if a 0DTE charm figure is large,
-    check that counter before believing it.
+    to live is an extrapolation of something that cannot run a full day.
+
+    That divergence is why a SETTLED capture no longer reports 0DTE greeks at
+    all -- see the settlement section below. On an INTRADAY capture, where
+    those contracts still have hours of life, charm is reported and
+    `chex_floored_rows` is the counter to check before believing a large one.
+
+-----------------------------------------------------------------------------
+SETTLEMENT SEMANTICS -- WHY A SETTLED PROFILE HAS NO 0DTE GREEKS
+-----------------------------------------------------------------------------
+
+At the 16:10 ET capture the day's contracts are expired or minutes from it.
+Their gamma is not a forward-looking dealer exposure; it is an artifact of
+quoting corpses. A settled profile therefore excludes DTE=0 from every exposure
+aggregate -- GEX, DEX, VEX, CHEX, the walls, the flip, the peak strike -- by
+declared semantic rule (config.SETTLED_0DTE_RULE), not as a numerical dodge.
+
+The 0DTE bucket is still reported. It carries its OI STRUCTURE, and its four
+greeks are replaced by config.SETTLED_0DTE_GREEKS_LABEL. Open interest at
+settlement is a fact; gamma at settlement is not. OI constructs -- max pain,
+the quality gates -- read every row including 0DTE, because the distortion was
+never in the OI, only in gamma via the MIN_T floor.
+
+The rule is conditioned on the CAPTURE, not the calendar. `is_settled_capture`
+asks whether the snapshot was taken at or after 16:00 ET. At the 09:45 capture
+the same contracts have hours of life and real two-sided markets, and their
+gamma is the most meaningful in the book -- so 0DTE greeks are the intraday
+cadence's property, and that is where the pin log's 0DTE segmentation will get
+real data. Nothing here discards them; it declines to compute them from a
+corpse.
+
+What this repaired, measured on 2026-09-04: the peak-GEX pin rate read 7/13
+with floored rows in and 0/13 without, and the peak strike moved on 9 of 13
+symbols. Every "hit" sat within 16bps of spot and most within 1bp, because
+0DTE gamma scales as 1/sqrt(T) and peaks at the money -- so a floored row
+planted the peak strike AT the money and the pin test then asked whether the
+strike nearest spot is near spot. Floored rows carried 87.0% of AAPL's |GEX|
+and 54.1% of NVDA's.
+
+MIN_T IS A GUARD AND MUST NEVER BE LOAD-BEARING. It stops a division by zero;
+it does not license a number where none is meaningful. Every bucket reports
+`floored_share_of_abs_gex`, and any bucket over
+config.MIN_T_LOAD_BEARING_SHARE sets `min_t_load_bearing` -- at that point the
+floor is no longer preventing an error, it is manufacturing the answer. The
+flag fires on the profile, not in a comment, so a future capture that drifts
+back into this cannot do it quietly.
 
 GREEKS SOURCE. yfinance ships no greeks, so all four are computed Black-Scholes
 from the chain's own implied vol with r = config.RISK_FREE_RATE:
@@ -178,6 +220,22 @@ CONTRACT_MULTIPLIER = 100.0      # shares per option contract
 # Every row emitted here belongs to one confluence cluster, not four. See the
 # module docstring and architecture 26.9.
 MECHANISM_GROUP = "dealer_chain_derived"
+
+
+def is_settled_capture(fetched_at=None) -> bool:
+    """Was this snapshot taken at or after the close, in ET?
+
+    The 0DTE exclusion is a property of the CAPTURE, not of the calendar date:
+    the same contracts that are corpses at 16:10 are the liveliest thing in the
+    book at 09:45. Anything with no timestamp is treated as settled, because
+    every capture this pipeline has taken so far is an EOD one and the
+    conservative reading is the one that refuses to compute.
+    """
+    if fetched_at is None:
+        return True
+    et = session.to_eastern(fetched_at)
+    return (et.hour, et.minute) >= (config.SETTLEMENT_ET_HOUR,
+                                    config.SETTLEMENT_ET_MINUTE)
 
 
 def dealer_position(right: str) -> float:
@@ -660,6 +718,43 @@ def _profile(rows: list[dict], spot: float) -> dict:
     }
 
 
+def _strike_gex(rows: list[dict], spot: float) -> dict[float, float]:
+    """Signed GEX per strike for an arbitrary subset of rows.
+
+    Used to weigh one subset against another -- floored rows against their own
+    bucket, say -- where counting rows would be the wrong measure, because one
+    at-the-money contract can outweigh two hundred wings.
+    """
+    out: dict[float, float] = defaultdict(float)
+    for r in rows:
+        g, oi, k = r.get("gamma"), r.get("open_interest") or 0.0, r.get("strike")
+        if g is None or not k or oi <= 0:
+            continue
+        out[k] += dealer_position(r["right"]) * g * oi * CONTRACT_MULTIPLIER * spot
+    return out
+
+
+def _oi_structure(rows: list[dict]) -> dict:
+    """Open-interest shape of a set of rows, with no reference to any greek.
+
+    This is what a settled 0DTE bucket is allowed to report. OI at settlement
+    is an observed fact about what was outstanding; gamma at settlement is an
+    extrapolation from a quote nobody would trade against.
+    """
+    call_oi = sum(r.get("open_interest") or 0.0 for r in rows if r.get("right") == "C")
+    put_oi = sum(r.get("open_interest") or 0.0 for r in rows if r.get("right") == "P")
+    total = call_oi + put_oi
+    strikes = {r.get("strike") for r in rows if r.get("strike")}
+    return {
+        "contracts": len(rows),
+        "oi_total": total,
+        "oi_calls": call_oi,
+        "oi_puts": put_oi,
+        "oi_put_call_ratio": round(put_oi / call_oi, 4) if call_oi else None,
+        "oi_strikes": len(strikes),
+    }
+
+
 def expiration_release(rows: list[dict], spot: float) -> list[dict]:
     """Dated dealer-delta unwind: how much hedge rolls off at each expiry.
 
@@ -787,13 +882,27 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         usable.append({**r, "gamma": greeks["gamma"], "delta": greeks["delta"],
                        "vanna": greeks["vanna"], "charm": greeks["charm"]})
 
-    overall = _profile(usable, spot)
+    # ---- settlement semantics ------------------------------------------
+    # At a settled capture the day's contracts are corpses; their gamma is an
+    # artifact, not an exposure. Exposure aggregates are built WITHOUT them.
+    # OI constructs below still read `usable` in full -- the distortion was
+    # never in the open interest. See config.SETTLED_0DTE_RULE.
+    settled = is_settled_capture(fetched_at)
+    if settled:
+        exposure_rows = [r for r in usable if (r.get("dte") or 0) > 0]
+        excluded = [r for r in usable if (r.get("dte") or 0) <= 0]
+    else:
+        exposure_rows, excluded = usable, []
+    quality["exposure_rows"] = len(exposure_rows)
+    quality["settled_0dte_excluded_rows"] = len(excluded)
+
+    overall = _profile(exposure_rows, spot)
     # Primary flip = standard zero-gamma level (spot at which net dealer gamma
     # changes sign). The cumulative-across-strikes crossing is retained beside
     # it under gamma_flip_cum_strikes; the two answer different questions and
     # disagreeing is expected, not a bug.
     _flip, _flip_reason = zero_gamma_level_with_reason(
-        usable, spot, config.RISK_FREE_RATE)
+        exposure_rows, spot, config.RISK_FREE_RATE)
     overall["gamma_flip"] = _flip
     overall["flip_reason"] = _flip_reason
     overall["flip_band_pct"] = 15.0
@@ -806,6 +915,24 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         brows = [r for r in usable if bucket_for(r["expiry"], r.get("dte") or 0) == b]
         if not brows:
             continue
+
+        # The settled 0DTE bucket reports OI structure and refuses to report
+        # greeks. Reported, not dropped: open interest at settlement is a fact.
+        if settled and b == "0dte":
+            buckets[b] = {
+                **_empty_greek_aggregates(),
+                "net_gex": None, "shares_per_1pct": None,
+                "dollar_gamma_per_1pct": None,
+                "greeks": config.SETTLED_0DTE_GREEKS_LABEL,
+                "excluded_from_exposure_aggregates": True,
+                "rule": config.SETTLED_0DTE_RULE,
+                "share_of_total_abs_gex": None,
+                "share_of_total_abs_dex": None,
+                "expiries": sorted({r["expiry"] for r in brows}),
+                **_oi_structure(brows),
+            }
+            continue
+
         p = _profile(brows, spot)
         b_abs = sum(abs(s["gex"]) for s in p.get("per_strike", []))
         p.pop("per_strike", None)
@@ -816,12 +943,18 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
             round((p.get("abs_dex_shares") or 0.0) / total_abs_dex, 4)
             if total_abs_dex else None)
         p["expiries"] = sorted({r["expiry"] for r in brows})
-        # Rows in this bucket whose charm rests on the MIN_T floor. Concentrated
-        # in 0DTE by construction; carried per bucket so a reader can see at a
-        # glance whether a bucket's charm is measured or extrapolated.
-        p["chex_floored_rows"] = sum(
-            1 for r in brows
-            if max(r.get("dte") or 0, 0) / DAYS_PER_YEAR < MIN_T)
+        p.update(_oi_structure(brows))
+        # MIN_T is a guard, never load-bearing. A bucket whose floored rows
+        # carry more than config.MIN_T_LOAD_BEARING_SHARE of its own |GEX| says
+        # so on the profile: past that point the floor is not preventing an
+        # error, it is manufacturing the answer.
+        floored = [r for r in brows
+                   if max(r.get("dte") or 0, 0) / DAYS_PER_YEAR < MIN_T]
+        f_abs = sum(abs(v) for v in _strike_gex(floored, spot).values())
+        share = (f_abs / b_abs) if b_abs else 0.0
+        p["chex_floored_rows"] = len(floored)
+        p["floored_share_of_abs_gex"] = round(share, 4)
+        p["min_t_load_bearing"] = share > config.MIN_T_LOAD_BEARING_SHARE
         buckets[b] = p
 
     mp = max_pain(usable)
@@ -840,14 +973,21 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         "gamma_source": ("vendor" if quality["gamma_supplied"] else "computed_bs_from_iv"),
         "greeks_source": "computed_bs_from_iv",
         "risk_free_rate": config.RISK_FREE_RATE,
+        # What this capture is, and therefore what it is allowed to claim.
+        "capture": "settled_eod" if settled else "intraday",
+        "settled_0dte_rule": config.SETTLED_0DTE_RULE if settled else None,
         "overall": overall,
-        # Dated dealer-delta unwind, earliest expiry first.
-        "expiration_release": expiration_release(usable, spot),
+        # Dated dealer-delta unwind, earliest expiry first. Built from the
+        # exposure rows, so a settled capture's own expiry is absent -- its
+        # unwind is not upcoming, it is happening as the snapshot is taken.
+        "expiration_release": expiration_release(exposure_rows, spot),
+        # OI constructs read every row, 0DTE included. Max pain is a payout
+        # minimum over open interest and was never touched by the MIN_T floor.
         "max_pain": mp,
         # Expiry that dominates each reference level, so the pin rate can be
         # segmented by expiry type as the architecture requires.
         "expiry_type": dominant_bucket_at_strike(
-            usable, spot, overall.get("peak_abs_gex_strike")),
+            exposure_rows, spot, overall.get("peak_abs_gex_strike")),
         "max_pain_expiry_type": dominant_bucket_by_oi(usable, mp),
         "buckets": buckets,
         "quality": quality,

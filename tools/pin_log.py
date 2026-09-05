@@ -110,6 +110,21 @@ PIN_COLUMNS = [
     "charm_0dte", "charm_weekly", "charm_monthly", "charm_quarterly",
     "next_expiry", "next_expiry_dte", "next_expiry_dex_shares",
     "next_expiry_unwind_direction", "chex_floored_rows",
+    # --- appended 5 Sep 2026: settlement semantics ------------------------
+    # Under the ruling, the settled EOD profile excludes DTE=0 from every
+    # exposure aggregate, so peak_gex_strike above is now the EX-0DTE peak.
+    # These record which rule produced the row, because rows written either
+    # side of the change are not comparable and nothing else on the row says so.
+    "capture", "settled_0dte_rule", "exposure_rows", "settled_0dte_excluded_rows",
+    # The OTM walls, scored alongside the peak. They never had the 0DTE problem
+    # -- a wall is the extreme GEX strike restricted to out-of-the-money, so an
+    # at-the-money artifact could not become one however large it grew. That
+    # makes them the control on the peak, not merely two more levels.
+    "call_wall_otm", "call_wall_otm_dist_bps", "call_wall_otm_hit",
+    "put_wall_otm", "put_wall_otm_dist_bps", "put_wall_otm_hit",
+    # 0DTE at settlement reports OI structure and no greeks. Kept so the
+    # bucket's size stays visible on the row after its greeks stopped being.
+    "oi_0dte", "oi_0dte_put_call_ratio", "min_t_load_bearing_buckets",
 ]
 
 
@@ -213,6 +228,29 @@ def row_for(computed: dict, close: Optional[float] = None,
     row["next_expiry_dte"] = nxt.get("dte")
     row["next_expiry_dex_shares"] = nxt.get("dex_shares")
     row["next_expiry_unwind_direction"] = nxt.get("unwind_direction")
+
+    # --- settlement semantics ---------------------------------------------
+    row["capture"] = computed.get("capture")
+    row["settled_0dte_rule"] = computed.get("settled_0dte_rule")
+    row["exposure_rows"] = q.get("exposure_rows")
+    row["settled_0dte_excluded_rows"] = q.get("settled_0dte_excluded_rows")
+
+    # The OTM walls, scored on the same tolerance as everything else.
+    for name in ("call_wall_otm", "put_wall_otm"):
+        level = o.get(name)
+        d = dist_bps(close, level)
+        row[name] = level
+        row[f"{name}_dist_bps"] = d
+        row[f"{name}_hit"] = is_hit(d, tol)
+
+    z = b.get("0dte") or {}
+    row["oi_0dte"] = z.get("oi_total")
+    row["oi_0dte_put_call_ratio"] = z.get("oi_put_call_ratio")
+    # Named, not counted: which bucket is leaning on the floor matters more
+    # than how many are, and an empty string reads as "none" without ambiguity.
+    row["min_t_load_bearing_buckets"] = ",".join(
+        sorted(k for k, v in b.items() if isinstance(v, dict)
+               and v.get("min_t_load_bearing"))) or None
     return {k: row.get(k) for k in PIN_COLUMNS}
 
 
