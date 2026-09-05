@@ -201,3 +201,28 @@ LIQUIDITY_MIN_TOTAL_VOLUME: float = 2_000.0
 # roughness figure has no natural scale, and calibrating it against the same
 # symbols it judges would be circular. Revisit once a real sample exists.
 IV_ROUGHNESS_MAX: float = 0.35
+
+# ---------------------------------------------------------------------------
+# IV solver validation gate (tools/validate_iv_solver.py)
+# ---------------------------------------------------------------------------
+
+# SPX goes live on solved IV only when SPY-via-solver reproduces
+# SPY-via-yfinance inside these bounds. Declared BEFORE the first comparison is
+# run, so the gate cannot be quietly widened to fit whatever came out.
+#
+# Reasoning for each number:
+#  - 2 vol points is the width of a typical listed bid/ask in vol terms, so
+#    agreeing inside it means the two methods differ by less than the market's
+#    own quote uncertainty.
+#  - The flip is a level traders act on; 0.25% of spot is ~1.9 points on SPY,
+#    below the 1-point strike grid, so tighter would be measuring rounding.
+#  - Walls are strikes, so they either match or they do not. Exact.
+#  - Dollar gamma is a magnitude, not a level; 10% keeps a scale error visible
+#    while tolerating the different IV each method assigns to the same strike.
+#  - Below an 80% solve rate on the eligible OTM wing the profile is being
+#    built from too little of the book to compare fairly.
+IV_SOLVER_MAX_MEDIAN_IV_DIFF: float = 0.02      # vol points, absolute
+IV_SOLVER_MAX_FLIP_DIFF_PCT: float = 0.25       # percent of spot
+IV_SOLVER_WALLS_MUST_MATCH_EXACTLY: bool = True
+IV_SOLVER_MAX_GAMMA_DIFF_PCT: float = 10.0      # percent of dollar gamma/1%
+IV_SOLVER_MIN_SOLVE_RATE: float = 0.80          # of the eligible OTM wing

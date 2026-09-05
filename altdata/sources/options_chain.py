@@ -54,7 +54,7 @@ SNAPSHOT_FMT = "%H%M%SZ"
 CHAIN_COLUMNS = [
     "symbol", "fetched_at", "spot", "expiry", "dte", "right", "strike",
     "bid", "ask", "last_price", "volume", "open_interest", "implied_vol",
-    "in_the_money", "contract_symbol",
+    "in_the_money", "contract_symbol", "last_trade_date",
 ]
 
 
@@ -112,6 +112,10 @@ def _frame_to_rows(df, symbol: str, fetched_at: str, spot: Optional[float],
             "implied_vol": num("impliedVolatility"),
             "in_the_money": bool(rec.get("inTheMoney")) if rec.get("inTheMoney") is not None else None,
             "contract_symbol": rec.get("contractSymbol"),
+            # Feeds the IV solver's staleness gate; absent on chains captured
+            # before this column existed, which degrades to "age unknown".
+            "last_trade_date": (str(rec.get("lastTradeDate"))
+                                if rec.get("lastTradeDate") is not None else None),
         })
     return rows
 
