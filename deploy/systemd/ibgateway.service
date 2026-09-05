@@ -5,14 +5,42 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 After=network-online.target
 Wants=network-online.target
 
+# StartLimitIntervalSec and StartLimitBurst live in [Unit], NOT [Service].
+# systemd moved them here in v230 and silently IGNORES them under [Service] --
+# no warning, no error, the unit just has no restart-storm guard at all. They
+# were in the wrong section until the VPS deployment caught it, which means the
+# guard documented below was never actually in force.
+#
+# A restart storm against IBKR's auth endpoint gets the account throttled, and
+# a hung Gateway will not be fixed by trying again quickly regardless.
+StartLimitIntervalSec=1h
+StartLimitBurst=4
+
 [Service]
 Type=simple
 
 # IBC supervises the Gateway: it drives the login dialog, handles the daily
 # re-auth prompt, and keeps the window alive headlessly. Credentials live in
 # IBC's config.ini on the box, mode 600, and never in this repo.
-ExecStart=%h/ibc/gatewaystart.sh
-Environment=DISPLAY=:0
+#
+# TWO THINGS HERE WERE WRONG AND THE BOX HAD TO PAPER OVER BOTH.
+#
+# -inline. Without it, gatewaystart.sh BACKGROUNDS IBC and returns immediately.
+# Under Type=simple systemd treats the main process exiting as the service
+# exiting, so the unit flaps: started, "succeeded", restarted, forever, while
+# the real IBC process it spawned is left unsupervised outside the cgroup.
+# -inline keeps IBC in the foreground so the thing systemd is watching is the
+# thing that matters.
+#
+# xvfb-run, not Environment=DISPLAY=:0. There is no :0 on a headless box --
+# that names a physical display that does not exist, so IBC's Java GUI fails to
+# find an X server and dies or hangs before it ever reaches the login. xvfb-run
+# starts a virtual X server, picks a free display number with --auto-servernum,
+# and EXPORTS DISPLAY into the child itself. Setting DISPLAY by hand here would
+# override that and reintroduce the bug, so it is deliberately absent.
+#
+# Requires the xvfb package: sudo apt install -y xvfb
+ExecStart=/usr/bin/xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" %h/ibc/gatewaystart.sh -inline
 
 # THE RESTART POLICY IS NOT THE HEALTH CHECK, AND THIS IS THE WHOLE POINT.
 #
@@ -28,11 +56,6 @@ Environment=DISPLAY=:0
 # waiting on a login dialog from one serving an API.
 Restart=on-failure
 RestartSec=30s
-
-# A restart storm against IBKR's auth endpoint gets the account throttled, and
-# a hung Gateway will not be fixed by trying again quickly regardless.
-StartLimitIntervalSec=1h
-StartLimitBurst=4
 
 # The Gateway takes tens of seconds to come up and IBC drives a GUI to do it.
 TimeoutStartSec=5min

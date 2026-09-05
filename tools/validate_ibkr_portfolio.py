@@ -238,12 +238,29 @@ def group_d() -> None:
               "an option position is keyed on localSymbol, not the bare symbol, "
               "so two contracts on one underlying cannot collide")
 
+        # LINEAGE. Without run_id a row is unattributable the moment history
+        # accumulates: two syncs a minute apart become indistinguishable, and a
+        # packet cannot claim lineage over rows it cannot identify as its own.
+        run_ids = [r[0] for r in store.conn.execute(
+            "SELECT DISTINCT run_id FROM observations").fetchall()]
+        check(len(run_ids) == 1 and run_ids[0],
+              f"every row carries exactly one run_id ({run_ids})")
+        check(run_ids[0].startswith("ibkr_portfolio-"),
+              f"run_id follows session.new_run_id's convention ({run_ids[0]})")
+        check(res["run_id"] == run_ids[0],
+              "the sync reports the same run_id it stamped on the rows")
+        check(not any(r[0] is None for r in store.conn.execute(
+            "SELECT run_id FROM observations").fetchall()),
+              "no row is left unattributed")
+
         cushion = store.latest_as_of("portfolio.cushion", instrument="DU1234567")
         check(cushion is not None and abs(cushion["value_num"] - 0.904) < 1e-9,
               "cushion (the margin-stress reading) is captured")
 
         before = store.count()
-        ibkr.sync(port=4002, db_path=db, ib_factory=lambda: FakeIB())
+        second = ibkr.sync(port=4002, db_path=db, ib_factory=lambda: FakeIB())
+        check(second["run_id"] != res["run_id"],
+              "a second sync gets a DIFFERENT run_id -- two runs are two runs")
         check(store.count() > before,
               "a later sync ADDS a snapshot rather than replacing one -- "
               "portfolio state is a series, not a current value")

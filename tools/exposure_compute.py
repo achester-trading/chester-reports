@@ -1208,7 +1208,8 @@ def append_release(rows: list[dict], path: Optional[str] = None) -> Optional[Pat
 
 def run(symbols: Optional[list[str]] = None, date: Optional[str] = None,
         base_dir: Optional[str] = None, out_dir: Optional[str] = None,
-        release_path: Optional[str] = None) -> dict:
+        release_path: Optional[str] = None,
+        run_id: Optional[str] = None) -> dict:
     chains = newest_chains(date, symbols, base_dir)
     if not chains:
         log.warning("No chain snapshots found under %s", base_dir or config.CHAIN_DIR)
@@ -1218,6 +1219,12 @@ def run(symbols: Optional[list[str]] = None, date: Optional[str] = None,
     for sym, path in chains.items():
         try:
             res = compute_symbol(load_chain(path), sym)
+            # Stamped here rather than inside compute_symbol: compute_symbol is
+            # a pure function of a chain and must stay replayable without a
+            # run identity, which is exactly what the packet's output_hash
+            # depends on. The run_id is a property of the WRITE, not the maths.
+            if run_id:
+                res["run_id"] = run_id
             res["source_chain"] = str(path)
             res["computed_path"] = str(write_computed(res, out_dir))
             release.extend(release_rows(res))

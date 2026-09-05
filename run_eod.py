@@ -104,6 +104,9 @@ def main() -> int:
                     help="Skip the off-box chain backup")
     ap.add_argument("--backup-dir", default=None,
                     help="Override config.BACKUP_DIR")
+    ap.add_argument("--run-id", default=None,
+                    help="Override the generated run id (default "
+                         "run_eod-<utc stamp>)")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -115,12 +118,20 @@ def main() -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     log = logging.getLogger("run_eod")
 
+    # One identity for this pass, stamped onto every profile it writes, using
+    # the shared convention in altdata.session. Until now run_eod had no run_id
+    # at all -- its run identity was implicit in `started` and the output
+    # filenames -- so nothing it produced could be attributed to a run after
+    # the fact, and a packet claiming lineage over it was claiming lineage over
+    # rows it could not identify.
+    run_id = args.run_id or session.new_run_id("run_eod")
     universe = args.symbols or config.options_universe()
     # The vendor-only symbols ride along unless --symbols narrowed the run.
     # They are captured but never computed; see Stage 1b.
     vendor_universe = [] if args.symbols else config.massive_universe()
     started = session.utc_now()
     print(f"EOD options pass -- {started.isoformat(timespec='seconds')}")
+    print(f"  run id:     {run_id}")
     print(f"  universe:   {len(universe)} symbols with Greeks"
           + (f" + {len(vendor_universe)} ingestion-only "
              f"({', '.join(vendor_universe)})" if vendor_universe else ""))
@@ -171,7 +182,7 @@ def main() -> int:
     # ---- Stage 2: compute ------------------------------------------------
     log.info("Stage 2: computing exposure (GEX/DEX/VEX/CHEX)")
     try:
-        computed = exposure_compute.run(symbols=universe)
+        computed = exposure_compute.run(symbols=universe, run_id=run_id)
     except Exception:
         log.exception("Stage 2 failed; chains are stored and can be recomputed "
                       "with --skip-fetch")

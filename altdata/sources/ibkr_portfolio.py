@@ -262,8 +262,13 @@ def read_state(ib, port: int = DEFAULT_PORT) -> dict:
             "positions": holdings}
 
 
-def to_observations(state: dict) -> list[dict]:
+def to_observations(state: dict, run_id: Optional[str] = None) -> list[dict]:
     """Flatten broker state into point-in-time observation rows.
+
+    Every row carries the producing run's run_id. Without it a Portfolio Truth
+    row is unattributable the moment history accumulates: two syncs a minute
+    apart are indistinguishable in the store, and no packet can claim lineage
+    over rows it cannot identify as its own.
 
     observed_at == available_at == the read instant, and that is correct here
     rather than lazy: a broker balance has no release lag. The value is true at
@@ -272,6 +277,7 @@ def to_observations(state: dict) -> list[dict]:
     """
     read_at = state["read_at"]
     src = state["source"]
+    run_id = run_id or state.get("run_id")
     rows: list[dict] = []
 
     for account, tags in (state.get("account_values") or {}).items():
@@ -281,7 +287,8 @@ def to_observations(state: dict) -> list[dict]:
                 continue
             rows.append({"registry_key": key, "instrument": account,
                          "observed_at": read_at, "available_at": read_at,
-                         "value": got["value"], "source": src})
+                         "value": got["value"], "source": src,
+                         "run_id": run_id})
 
     for h in state.get("positions") or []:
         # Instrument is the contract's local symbol where there is one -- an
@@ -298,17 +305,22 @@ def to_observations(state: dict) -> list[dict]:
                 continue
             rows.append({"registry_key": key, "instrument": inst,
                          "observed_at": read_at, "available_at": read_at,
-                         "value": h[field], "source": src})
+                         "value": h[field], "source": src,
+                         "run_id": run_id})
     return rows
 
 
 def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
          client_id: int = DEFAULT_CLIENT_ID, timeout: float = DEFAULT_TIMEOUT,
          allow_live: bool = False, dry_run: bool = False,
-         db_path: Optional[str] = None, ib_factory=None) -> dict:
+         db_path: Optional[str] = None, ib_factory=None,
+         run_id: Optional[str] = None) -> dict:
     """Connect, read, write, disconnect. The whole job."""
     from .. import observations  # noqa: PLC0415
 
+    # Generated per sync, not per row, so every row from one connection shares
+    # one identity. Overridable so a wrapper can stamp its own.
+    run_id = run_id or session.new_run_id("ibkr_portfolio")
     ib = connect(host, port, client_id, timeout, allow_live, ib_factory)
     try:
         state = read_state(ib, port)
@@ -318,13 +330,13 @@ def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
         except Exception:  # noqa: BLE001 -- a failed disconnect is not the story
             log.warning("disconnect failed; the read already succeeded")
 
-    rows = to_observations(state)
+    rows = to_observations(state, run_id)
     written = 0
     if not dry_run and rows:
         with observations.ObservationStore(db_path) as db:
             written = db.write_many(rows)
 
-    return {"read_at": state["read_at"], "mode": state["mode"],
+    return {"run_id": run_id, "read_at": state["read_at"], "mode": state["mode"],
             "source": state["source"], "accounts": state["accounts"],
             "positions": len(state["positions"]),
             "observations": len(rows), "written": written, "dry_run": dry_run,
@@ -344,6 +356,9 @@ def main() -> int:
                     help="Required to connect on a live port. Read-only either way.")
     ap.add_argument("--dry-run", action="store_true", help="Connect and print; write nothing")
     ap.add_argument("--db", default=None)
+    ap.add_argument("--run-id", default=None,
+                    help="Override the generated run id (default "
+                         "ibkr_portfolio-<utc stamp>)")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -358,7 +373,7 @@ def main() -> int:
     # can tell "start the Gateway" from "sign in" without reading a log.
     try:
         res = sync(args.host, args.port, args.client_id, args.timeout,
-                   args.allow_live, args.dry_run, args.db)
+                   args.allow_live, args.dry_run, args.db, run_id=args.run_id)
     except GatewayNotRunning as e:
         print(f"\nGATEWAY NOT RUNNING\n  {e}", file=sys.stderr)
         return 3
@@ -373,6 +388,7 @@ def main() -> int:
         return 6
 
     print(f"\nPortfolio Truth -- {res['source']} ({res['mode']} mode)")
+    print(f"  run id     : {res['run_id']}")
     print(f"  read at    : {res['read_at']}")
     print(f"  accounts   : {', '.join(res['accounts'])}")
     for account, tags in res["account_values"].items():

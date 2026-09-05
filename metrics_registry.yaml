@@ -561,6 +561,7 @@ non_metrics:
     - greeks_status
     - underlying_verified_from
     - close_source
+    - run_id
     - tolerance_bps
     - evaluated_at
     - rule

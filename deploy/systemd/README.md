@@ -229,6 +229,15 @@ year and would walk into the reset window every spring.
 
 ## 4. Install — and the gate on `enable`
 
+IBC's Gateway is a Java GUI, so a headless box needs a virtual X server. The
+unit runs it under `xvfb-run` and does **not** set `DISPLAY` — `xvfb-run
+--auto-servernum` picks a free display and exports it itself, and setting
+`DISPLAY=:0` by hand names a physical display that does not exist here:
+
+```bash
+sudo apt install -y xvfb
+```
+
 ```bash
 mkdir -p ~/.config/systemd/user
 cp ~/chester-reports/deploy/systemd/ibgateway*.{service,timer} ~/.config/systemd/user/
@@ -285,3 +294,27 @@ If health says `restart suppressed`, the watchdog has given up on purpose and
 wants a human. Check `config.ini` credentials first — that is what the
 suppression is usually telling you — then clear
 `~/.chester/ibgateway_watchdog.state` to restore the budget.
+
+
+## If the box has an `override.conf` for `ibgateway.service`
+
+Three defects in the repo unit made one necessary, and all three are fixed as of
+this commit. Each failed **silently**, which is why a real deployment found them
+and reading the file did not:
+
+| Defect | Symptom | Fix |
+|---|---|---|
+| `Environment=DISPLAY=:0` | no X server; IBC dies or hangs before the login | run under `xvfb-run --auto-servernum`, set no `DISPLAY` |
+| missing `-inline` | `gatewaystart.sh` backgrounds and returns, so `Type=simple` sees the service exit and flaps forever while the real IBC runs unsupervised outside the cgroup | pass `-inline` |
+| `StartLimit*` in `[Service]` | systemd moved these to `[Unit]` in v230 and **ignores them silently** under `[Service]` — the restart-storm guard was never in force | moved to `[Unit]` |
+
+So the override can go:
+
+```bash
+rm -rf ~/.config/systemd/user/ibgateway.service.d/
+systemctl --user daemon-reload
+systemctl --user cat ibgateway.service     # confirm no drop-in remains
+```
+
+Per Part 25 the VPS runs code, it never edits it — an override.conf is the box
+editing code, so removing it puts the deployment back inside the rule.

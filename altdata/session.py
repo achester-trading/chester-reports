@@ -96,6 +96,27 @@ def utc_stamp(fmt: str = "%Y%m%dT%H%M%SZ") -> str:
     return utc_now().strftime(fmt)
 
 
+def new_run_id(producer: str) -> str:
+    """A run's identity: '<producer>-<utc stamp>'.
+
+    ONE convention, defined here rather than per-producer, because the whole
+    value of a run_id is that rows from different producers can be traced to
+    the run that made them. Two producers inventing two formats gives you two
+    opaque strings instead of a lineage.
+
+    An INSTANT, not a session date -- a run is a thing that happened at a
+    moment, and two runs for the same trading session must be distinguishable.
+
+    MICROSECONDS, not the seconds the output filenames use. A run id whose
+    resolution is coarser than the rate at which runs can start is not an
+    identity: two syncs in the same second would share one, and rows from two
+    different runs would be indistinguishable in the store -- which is the
+    precise failure a run_id exists to prevent. The date-time prefix still
+    sorts and reads alongside the filenames; only the tail is finer.
+    """
+    return f"{producer}-{utc_stamp('%Y%m%dT%H%M%S.%fZ')}"
+
+
 # ---------------------------------------------------------------------------
 # Sessions -- which trading day a record belongs to. Always ET.
 # ---------------------------------------------------------------------------

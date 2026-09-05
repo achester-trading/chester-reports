@@ -490,3 +490,39 @@ sync and watchdog cannot drift apart on what "healthy" means.
 - [ ] `ExecStart=%h/ibc/gatewaystart.sh` assumes IBC is installed at `~/ibc`.
       Verify that path on the box before the first start; it is the one thing
       here that was not verifiable from this machine.
+
+## VPS deployment fixes (5 Sep 2026)
+
+Two defects the deployment found, both invisible from this machine.
+
+**run_id lineage.** `ibkr_portfolio` never passed `run_id`, so every Portfolio
+Truth row landed unattributable — two syncs a minute apart were
+indistinguishable in the store and no packet could claim lineage over rows it
+could not identify as its own. There was also **no convention to follow**:
+`run_eod` had no run_id either, only an implicit identity in `started` and its
+output filenames. So `session.new_run_id(producer)` is now the single
+convention, `<producer>-<utc stamp>`, and BOTH producers use it.
+
+- [ ] run_id is stamped on exposure profiles and on Portfolio Truth rows. The
+      pin log does not carry one yet — it is derived from profiles that do, so
+      the lineage is reachable, but a direct column would save a join.
+- [ ] `new_run_id` uses MICROSECOND resolution. Seconds was not an identity:
+      two syncs in the same second shared one id, which is exactly the failure
+      a run_id exists to prevent. Caught by the test, not by review.
+
+**Three unit defects, all silent.** The box was carrying an `override.conf` to
+work around them; it can now be deleted (README has the command, and per Part 25
+an override is the box editing code, which the rule forbids).
+
+| Defect | Why it was invisible |
+|---|---|
+| `Environment=DISPLAY=:0` | names a physical display that does not exist headless; IBC's Java GUI dies or hangs before the login, looking like the credential hang |
+| missing `-inline` | `gatewaystart.sh` backgrounds and returns, so `Type=simple` sees the service exit and flaps while real IBC runs unsupervised outside the cgroup |
+| `StartLimit*` in `[Service]` | systemd moved these to `[Unit]` in v230 and **ignores them silently** under `[Service]` — the restart-storm guard was never in force |
+
+- [ ] `xvfb` is now a prerequisite (`sudo apt install -y xvfb`), added to the
+      README. The unit deliberately sets no `DISPLAY`: `xvfb-run
+      --auto-servernum` exports its own, and setting it by hand reintroduces
+      the bug.
+- [ ] Still unverified from here: `%h/ibc/gatewaystart.sh`. Confirm IBC's
+      install path on the box before the first start.

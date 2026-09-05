@@ -180,6 +180,40 @@ grep -q 'WATCHDOG_CLIENT_ID:-18' "$WATCHDOG" \
     && ok "watchdog probes on clientId 18, not the sync's 17" \
     || bad "watchdog shares a clientId with the sync"
 
+# The three defects the VPS drop-in had to work around. Every one of them
+# failed SILENTLY -- a wrong DISPLAY, a missing flag, and a stanza in a section
+# systemd ignores. None produces an error message, which is why a real
+# deployment found them and reading the file did not.
+GW="$REPO/deploy/systemd/ibgateway.service"
+
+# Anchored, so it reads the DIRECTIVE and not the comment that explains why the
+# directive is absent. A check that trips on its own explanation is a check
+# somebody eventually deletes.
+grep -qE '^Environment=DISPLAY' "$GW" \
+    && bad "DISPLAY is set by hand -- that overrides xvfb-run's own display" \
+    || ok "no hand-set DISPLAY directive; xvfb-run exports its own"
+grep -q 'xvfb-run' "$GW" \
+    && ok "ExecStart goes through xvfb-run (a headless box has no :0)" \
+    || bad "no xvfb-run -- IBC's GUI would have no X server to attach to"
+grep -q 'auto-servernum' "$GW" \
+    && ok "--auto-servernum picks a free display rather than assuming one" \
+    || bad "xvfb-run without --auto-servernum"
+grep -q 'gatewaystart.sh -inline' "$GW" \
+    && ok "-inline passed: IBC stays in the foreground for Type=simple" \
+    || bad "-inline missing -- gatewaystart.sh backgrounds and the unit flaps"
+
+# StartLimit* belong in [Unit]; systemd IGNORES them under [Service], silently.
+UNIT_SECTION="$(sed -n '/^\[Unit\]/,/^\[Service\]/p' "$GW")"
+SVC_SECTION="$(sed -n '/^\[Service\]/,$p' "$GW")"
+grep -q 'StartLimitIntervalSec' <<<"$UNIT_SECTION" \
+    && ok "StartLimitIntervalSec is in [Unit], where systemd actually reads it" \
+    || bad "StartLimitIntervalSec is not in [Unit]"
+grep -q 'StartLimitBurst' <<<"$UNIT_SECTION" \
+    && ok "StartLimitBurst is in [Unit]" || bad "StartLimitBurst is not in [Unit]"
+grep -qE '^StartLimit' <<<"$SVC_SECTION" \
+    && bad "a StartLimit* directive is still in [Service], where it is IGNORED" \
+    || ok "no StartLimit* left in [Service] (there it would be silently ignored)"
+
 echo
 echo "=============================================================================="
 echo "$PASS passed, $FAIL failed"
