@@ -136,42 +136,86 @@ row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
       GEX *profile* under both IV sources. Gate is now three-valued
       (PASS/FAIL/INCONCLUSIVE) so a check that cannot see the book reports
       neither green nor red.
-- [ ] **INVESTIGATION: the fat IV tail that fails the gamma check.** The gate
-      is RED only on `dollar gamma/1% (ex-0DTE)`, 23.086% against a 10%
-      tolerance. Everything needed to start is below; do not touch the 10%
-      until the cause is known.
+- [x] **DIAGNOSED 5 Sep: the gamma check fails on an ill-conditioned
+      DENOMINATOR, not on solver error.** No threshold has been changed. The
+      recommended fix is a change of denominator, which is a statement about
+      what the metric measures, not a relaxation of how much error it tolerates.
 
-      *Evidence, SPY 2026-09-04 16:10 ET capture unless noted:*
-      - Median |IV diff| **0.0177** (passes the 0.02 gate) but **p90 0.136**
-        and **max 0.951**. The distribution's centre agrees and its tail does
-        not. A median-based check structurally cannot see the tail that moves
-        gamma, which is why four checks pass while the gamma check fails.
-      - Not a coverage artifact. Restricting BOTH profiles to only the rows
-        that co-solved: SPY **27.6%**, QQQ **82.7%**, NVDA **4.5%**.
-      - **QQQ being the worst is itself the clue.** QQQ is not the least
-        liquid name in the universe -- ASTS and MSTR are -- so the driver is
-        not liquidity alone. Whatever it is, it is worse on QQQ than on NVDA
-        by 18x.
+      *The hypothesis was half right.* The IV tail IS concentrated in twinned
+      rows -- p90 |dIV| is 0.024-0.071 on directly-measured rows against
+      0.159-0.355 on twinned ones, 5-8x higher on every symbol. But the gamma
+      divergence does NOT live there. Split ex-0DTE into strata:
 
-      *Hypothesis to test first:* the tail concentrates in (a) ITM-twinned
-      rows, where a solved OTM vol is propagated to its ITM twin, and (b)
-      near-expiry contracts. Both are places where one solved vol is doing
-      work far from where it was measured. SPY's reject counter already shows
-      **3,497 rows `solved_from_twin`** against 8,199 compared -- 43% of the
-      comparison is twinned vol, not directly solved vol.
+          SPY   measured  5.1%   twinned  5.2%   COMBINED  27.6%
+          QQQ   measured 11.8%   twinned  9.5%   COMBINED  82.7%
+          TSLA  measured 26.4%   twinned 19.4%   COMBINED 137.6%
 
-      *If that holds,* the fix is a design question about the CHECK, not a
-      loosening of it: compare the profiles **vega-weighted or quality-
-      weighted** rather than raw, so a strike contributes to the comparison in
-      proportion to how well its vol is actually known. A raw integral gives a
-      twinned deep-ITM vol the same vote as a directly solved ATM one.
-      Weighting is a statement about measurement confidence; raising the
-      threshold is a statement about tolerating error. Only the first is
-      defensible here.
+      Each stratum is tighter than their combination, which is impossible for
+      an ordinary error budget and is the tell.
 
-      *Also worth splitting out:* report the gamma diff for directly-solved
-      rows and twinned rows separately. If directly-solved rows come in under
-      10% on their own, that localises the whole problem to twinning.
+      *Cause.* Net dollar gamma is a signed residual of two large offsetting
+      halves, and the strata split the book along exactly the axis that
+      cancels: measured rows are the OTM wing (dealers short puts, so it nets
+      NEGATIVE) and twinned rows are their ITM twins (nets POSITIVE). For SPY,
+      -4.67bn + 3.21bn = -1.45bn. The errors ADD (236M + 166M = 402M) while the
+      nets CANCEL, so the same absolute error becomes a far larger percentage.
+      A percent-of-net tolerance on a quantity that nearly cancels is unstable
+      by construction.
+
+      *Evidence, same error measured against gross |GEX| instead of net, all 13
+      symbols, ex-0DTE, co-solved rows only:*
+
+          worst on a NET denominator   : 137.6%  (TSLA)
+          worst on a GROSS denominator :   9.53% (AAPL)
+
+      **Every symbol passes the existing 10% bar on a gross denominator.**
+      Full set, err/NET vs err/GROSS: AAPL 12.6/9.53, AMZN 11.9/7.13,
+      ASTS 18.4/7.21, COIN 0.9/0.54, GOOGL 29.8/7.10, IWM 2.6/1.23,
+      META 3.5/2.66, MSFT 5.9/5.22, MSTR 0.9/0.72, NVDA 4.5/3.52,
+      QQQ 82.7/4.34, SPY 27.6/2.04, TSLA 137.6/8.92.
+
+      *This also explains the QQQ clue, and it was not liquidity.* QQQ's net
+      gamma is -661M against 12.6bn gross -- the net is 5% of the book, the
+      smallest ratio in the universe -- so QQQ has the smallest denominator
+      relative to its own size. On a gross denominator QQQ is 4.34%, better
+      than average.
+
+- [ ] **DECIDE: denominate the gate's gamma check by gross |GEX|.** The
+      diagnosis above is complete; this is the remaining action. Note what it
+      does and does not claim. It does NOT say the solver reproduces net dealer
+      gamma to 10% -- on SPY the net differs by 402M on a -1.45bn base and that
+      is real. It says the two IV sources agree to ~2% of the gamma actually
+      in the book, and that the net is too small a residual to divide by. If
+      the net is what a downstream consumer acts on, its uncertainty must be
+      reported in absolute terms alongside, not hidden by a friendlier ratio.
+      Keep the twinning finding regardless: 43-49% of every comparison is
+      propagated vol carrying a 5-8x wider tail, which is worth a separate
+      quality flag even once the denominator is fixed.
+
+- [ ] **RESOLVED 5 Sep: Tuesday's pin verdicts are NOT readable as they
+      stand. The 7/13 peak-GEX hit rate is an artifact of the MIN_T floor.**
+
+          peak-GEX pins within 25bps, all rows        : 7/13
+          peak-GEX pins within 25bps, ex-floored rows : 0/13
+          peak strike MOVED when floored rows removed : 9/13
+
+      Every hit sits within 16bps of spot and most within 1bp -- AAPL 320.00
+      vs 319.97, IWM 296.00 vs 295.97, QQQ 719.00 vs 718.96, MSFT 500.00 vs
+      499.70. That is not a pin, it is the nearest listed strike to spot.
+      0DTE gamma scales as 1/sqrt(T) and peaks at the money, so a floored 0DTE
+      row plants the peak-GEX strike AT the money by construction, and the pin
+      test then asks whether the strike nearest spot is near spot. It is
+      tautological, and it will read as a 54% hit rate forever.
+
+      Floored share of |GEX| is large enough to dominate on most names:
+      AAPL 87.0%, NVDA 54.1%, META 28.7%, MSTR 28.6%, MSFT 19.4%, ASTS 19.6%,
+      QQQ 17.9%, IWM 13.2%. SPY is the exception at 1.0%, and SPY is one of
+      the four whose peak strike did NOT move.
+
+      Do not read Tuesday's pin column until the 0DTE-in-EOD question below is
+      settled. Both candidate answers fix this: excluding settled contracts
+      removes the floored rows outright, and a defensible MIN_T stops the
+      1/sqrt(T) blowup from dominating.
 
 - [ ] **0DTE IV is unsolvable at the close, on every symbol.** Coverage across
       all 13 on 2026-09-04: 0.0%-2.4%, with 60-70% rejected `wide_spread`. At
