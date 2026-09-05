@@ -1,0 +1,33 @@
+[Unit]
+Description=IB Gateway health watchdog (the real health authority)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+# Only meaningful while the Gateway unit is up. If the Gateway is stopped on
+# purpose the watchdog stops too, rather than restarting something a human
+# deliberately shut down.
+After=ibgateway.service
+BindsTo=ibgateway.service
+
+[Service]
+Type=oneshot
+
+# The probe IS the sync's own connection, so "healthy" has exactly one
+# definition in this system. See scripts/ibgateway_watchdog.sh.
+ExecStart=%h/chester-reports/scripts/ibgateway_watchdog.sh
+
+# The watchdog restarts ibgateway.service, so it needs to be able to talk to
+# the user manager. Nothing here needs privilege beyond that.
+NoNewPrivileges=true
+PrivateTmp=true
+
+# A probe that hangs is itself a symptom, but it must not pin the timer.
+TimeoutStartSec=3min
+
+# Exit 2 means "unhealthy and restart suppressed -- a human is required".
+# Neither 1 nor 2 is a systemd failure worth restarting: the watchdog did its
+# job and reported. Treat them as success at the unit level so the timer keeps
+# firing, and read the log or the status file for the verdict.
+SuccessExitStatus=0 1 2
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# Nothing in this deployment auto-starts. See ibgateway.service and README.md
+# section 4. Enable the TIMER, not this unit.

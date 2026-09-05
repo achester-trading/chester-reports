@@ -451,3 +451,42 @@ and on query, with a regression test in `tools/validate_register.py`. The store
 was wiped and re-migrated (20,372 rows, regenerable from the CSVs). Worth
 remembering the shape of this: it only surfaced because a second source with a
 different timestamp precision arrived.
+
+## IB Gateway runtime units (5 Sep 2026) — written, NOT enabled
+
+`deploy/systemd/ibgateway.service`, `ibgateway-watchdog.{service,timer}`,
+`ibgateway-restart.{service,timer}`, `scripts/ibgateway_watchdog.sh`,
+`tools/validate_ibgateway_watchdog.sh` (25 checks, in CI). The VPS drafts were
+awaiting repo adoption; these supersede them and are the authoritative version.
+
+**The design constraint is a VPS finding: on bad credentials IBC sits at 294MB,
+`active (running)`, with no port, forever.** The process never exits, so
+`Restart=on-failure` never fires and `systemctl status` is a green light over a
+dead service. systemd cannot distinguish a Gateway waiting on an unanswered
+login dialog from one serving an API. Hence the watchdog is the health
+authority and `~/.chester/ibgateway_health` is the thing to read.
+
+Health has exactly one definition: the watchdog's probe IS the portfolio sync's
+connection path (`--dry-run`), and its verdict is that command's exit code, so
+sync and watchdog cannot drift apart on what "healthy" means.
+
+- [ ] **NOTHING IS ENABLED AND NOTHING AUTO-STARTS.** Every `[Install]` is
+      commented out, so `systemctl --user enable` fails until a human
+      uncomments it. The gate: one witnessed clean supervised start — a
+      listening 4002 **and** `state=ok` in the health file. A listening port
+      alone does not clear it, because `signed_out` also listens.
+      README.md section 4 has the procedure.
+- [ ] Daily restart is 01:00 ET, deliberately AFTER IBKR's 23:45–00:45 reset
+      window rather than before it: restarting at 22:00 would leave the Gateway
+      up through the reset, which is how a stale session is acquired. Pinned to
+      `America/New_York` so it cannot drift into the window at a DST boundary.
+- [ ] The restart budget stops at 3/day on purpose. The hang is caused by bad
+      credentials and no restart fixes those; an uncapped watchdog would loop
+      forever, looking like action while the real fault stayed unreported. Past
+      the cap it exits 2 and names `config.ini` in the log.
+- [ ] Watchdog probes on clientId 18, sync on 17. Sharing one would make the
+      watchdog report `not_responding` whenever it probed during a sync and
+      blame itself for the collision.
+- [ ] `ExecStart=%h/ibc/gatewaystart.sh` assumes IBC is installed at `~/ibc`.
+      Verify that path on the box before the first start; it is the one thing
+      here that was not verifiable from this machine.

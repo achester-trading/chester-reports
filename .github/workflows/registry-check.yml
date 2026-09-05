@@ -55,3 +55,11 @@ jobs:
       # the source text, so the build checks the source text.
       - name: Portfolio Truth gate (no order capability)
         run: python tools/validate_ibkr_portfolio.py
+
+      # The watchdog restarts a service, which makes its decision logic the
+      # most consequential shell here: a wrong branch either restarts nothing
+      # when the Gateway is wedged, or restarts forever against credentials no
+      # restart can fix. Both are quiet failures. Fully stubbed -- no systemd,
+      # no Gateway, no network.
+      - name: IB Gateway watchdog policy
+        run: bash tools/validate_ibgateway_watchdog.sh

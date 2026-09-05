@@ -1,0 +1,29 @@
+[Unit]
+Description=Scheduled daily restart of IB Gateway
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+After=ibgateway.service
+
+[Service]
+Type=oneshot
+
+# IBKR expires the API session daily, so a Gateway left running indefinitely
+# stops serving without crashing -- the same shape of failure as the login
+# hang, and equally invisible to systemd. Restarting on a schedule is cheaper
+# than detecting the expiry.
+#
+# `restart` rather than stop-then-start: it is one transaction to the user
+# manager, so there is no window in which the unit is neither stopped nor
+# starting and the watchdog sees a half-state.
+ExecStart=/usr/bin/systemctl --user restart ibgateway.service
+
+# Clear the watchdog's failure and restart counters. A SCHEDULED restart is
+# not evidence of a fault, and leaving the counters standing would let three
+# ordinary daily restarts trip the watchdog's daily cap and suppress a real
+# recovery. The watchdog owns the file; this is the one other writer.
+ExecStartPost=/bin/sh -c 'rm -f "${CHESTER_STATE_DIR:-$HOME/.chester}"/ibgateway_watchdog.state'
+
+NoNewPrivileges=true
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# Enable the TIMER, not this unit, and only after the gate in README.md
+# section 4 has been cleared.

@@ -1,0 +1,37 @@
+[Unit]
+Description=Restart IB Gateway daily at 01:00 ET, clear of IBKR's reset window
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 01:00 America/New_York. Three constraints pick this hour and only this hour
+# satisfies all three:
+#
+#   * AVOID 23:45-00:45 ET. That is IBKR's own nightly server reset. A Gateway
+#     restarted into it reconnects to a backend that is itself restarting, and
+#     the login either fails or succeeds into a session that dies minutes
+#     later -- which then looks exactly like the empty-dialog hang and burns
+#     the watchdog's restart budget chasing a scheduled outage.
+#   * AFTER the window, not before. Restarting at 22:00 leaves the Gateway up
+#     THROUGH the reset, which is how a stale session is acquired in the first
+#     place. Coming up at 01:00 means the session is fresh against a settled
+#     backend.
+#   * Nowhere near 16:10 ET, where the EOD pass runs.
+#
+# Wall-clock ET, not UTC: a fixed UTC time drifts an hour twice a year and
+# would walk into the reset window every spring. systemd resolves the zone per
+# firing. Requires systemd >= 252; Ubuntu 24.04 ships 255.
+OnCalendar=*-*-* 01:00:00 America/New_York
+
+# The restart is cheap and the window is wide, so a little jitter costs
+# nothing and avoids hammering IBKR's auth endpoint on the exact minute along
+# with everyone else who picked a round hour.
+RandomizedDelaySec=5min
+
+# Persistent=false: a catch-up restart after the box was down would fire at an
+# arbitrary moment, possibly inside the reset window or mid-session. A missed
+# daily restart is caught by the watchdog within five minutes anyway.
+Persistent=false
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# [Install]
+# WantedBy=timers.target

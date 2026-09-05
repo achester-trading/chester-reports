@@ -1,0 +1,54 @@
+[Unit]
+Description=IB Gateway under IBC (read-only API for Portfolio Truth)
+Documentation=https://github.com/achester-trading/chester-reports
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# IBC supervises the Gateway: it drives the login dialog, handles the daily
+# re-auth prompt, and keeps the window alive headlessly. Credentials live in
+# IBC's config.ini on the box, mode 600, and never in this repo.
+ExecStart=%h/ibc/gatewaystart.sh
+Environment=DISPLAY=:0
+
+# THE RESTART POLICY IS NOT THE HEALTH CHECK, AND THIS IS THE WHOLE POINT.
+#
+# Observed on the VPS with bad credentials: IBC sits at 294MB RSS, systemd
+# reports active (running), and NO PORT EVER OPENS. Forever. The process does
+# not exit, so Restart=on-failure never fires, and `systemctl --user status`
+# is a green light over a dead service.
+#
+# So Restart=on-failure below covers only the honest failure -- a crash. The
+# hang it cannot see is ibgateway-watchdog.service's job, and the watchdog is
+# the health authority for this unit. Do not add a systemd-level health notion
+# here and imagine it replaces the watchdog; systemd cannot tell a Gateway
+# waiting on a login dialog from one serving an API.
+Restart=on-failure
+RestartSec=30s
+
+# A restart storm against IBKR's auth endpoint gets the account throttled, and
+# a hung Gateway will not be fixed by trying again quickly regardless.
+StartLimitIntervalSec=1h
+StartLimitBurst=4
+
+# The Gateway takes tens of seconds to come up and IBC drives a GUI to do it.
+TimeoutStartSec=5min
+TimeoutStopSec=2min
+KillSignal=SIGTERM
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# There is no [Install] section, so `systemctl --user enable ibgateway` will
+# fail with "no installation config" until somebody uncomments the block
+# below. That failure is the gate, not an oversight.
+#
+# Uncomment ONLY after witnessing one clean supervised start: a successful
+# login and a listening 4002. README.md section 4 has the procedure.
+#
+# [Install]
+# WantedBy=default.target

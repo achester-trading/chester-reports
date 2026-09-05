@@ -1,0 +1,24 @@
+[Unit]
+Description=Probe IB Gateway health every 5 minutes
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# Five minutes. The failure this exists to catch -- the empty-dialog hang --
+# is permanent once it happens, so detection speed only decides how long a
+# dead Gateway looks alive. Faster than this buys nothing and spends API
+# connections; much slower and a hang can outlast a whole session.
+OnCalendar=*:0/5
+Persistent=false
+
+# Do not start probing the instant the Gateway unit starts: IBC drives a GUI
+# login that takes tens of seconds, and probing into it would count healthy
+# startup as a failure and burn the restart budget on nothing.
+OnActiveSec=3min
+
+# Spread the probe off the exact minute boundary, where the EOD pass and the
+# portfolio sync already sit.
+RandomizedDelaySec=20
+
+# --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
+# [Install]
+# WantedBy=timers.target
