@@ -23,6 +23,12 @@ CLOSE PRICE. The EOD run takes its chain snapshot after the bell, so the spot
 carried on that snapshot is the close. `close_source` records which it was, so
 a mid-session run is never silently scored as an end-of-day result.
 
+DATA QUALITY. Every row carries `data_quality` (ok / degraded / excluded) plus
+the four gate values behind it. An `excluded` row failed the liquidity floor and
+must not enter skew or OI-percentile work; a `degraded` row has a rough IV
+surface and should be trusted less. The flag travels with the row so a bad
+options day can never silently join the pin base rate.
+
 EXPIRY TYPE. `expiry_type` classifies the peak-GEX reference strike by the
 expiry bucket contributing the most |GEX| *at that strike*; `max_pain_expiry_type`
 classifies the max-pain strike by the bucket holding the most OI there, since max
@@ -72,6 +78,7 @@ PIN_COLUMNS = [
     "net_gex", "shares_per_1pct", "dollar_gamma_per_1pct",
     "share_0dte", "share_weekly", "share_monthly", "share_quarterly",
     "convention_version", "gamma_source", "strikes_used", "rows_in",
+    "data_quality", "liquidity_pass", "iv_roughness", "oi_hhi", "oi_weighted_dte",
     # --- reserved for a paid tier; empty today, no migration when they fill --
     "vendor_oi_total", "vendor_gamma_flip", "vendor_call_wall",
     "vendor_put_wall", "vendor_source",
@@ -97,6 +104,7 @@ def row_for(computed: dict, close: Optional[float] = None,
     o = computed.get("overall") or {}
     b = computed.get("buckets") or {}
     q = computed.get("quality") or {}
+    g = computed.get("gates") or {}
     close = close if close is not None else computed.get("spot")
 
     levels = {
@@ -106,7 +114,11 @@ def row_for(computed: dict, close: Optional[float] = None,
         "put_wall": o.get("put_wall"),
     }
     row: dict = {
-        "date": (computed.get("computed_at") or "")[:10] or dt.date.today().isoformat(),
+        # Trading-session date (US/Eastern), not compute date -- see
+        # gex_compute.session_date for why UTC is the wrong key here.
+        "date": (computed.get("session_date")
+                 or (computed.get("computed_at") or "")[:10]
+                 or dt.date.today().isoformat()),
         "symbol": computed.get("symbol"),
         "close": close,
         "close_source": close_source,
@@ -127,6 +139,12 @@ def row_for(computed: dict, close: Optional[float] = None,
         "gamma_source": computed.get("gamma_source"),
         "strikes_used": o.get("strikes"),
         "rows_in": q.get("rows_in"),
+        # A bad-chain day must never enter the base rate unmarked.
+        "data_quality": g.get("data_quality"),
+        "liquidity_pass": (g.get("liquidity_floor") or {}).get("pass"),
+        "iv_roughness": (g.get("iv_dispersion") or {}).get("roughness"),
+        "oi_hhi": (g.get("oi_concentration") or {}).get("hhi"),
+        "oi_weighted_dte": (g.get("oi_weighted_dte") or {}).get("oi_weighted_dte"),
     }
     for name, level in levels.items():
         d = dist_bps(close, level)

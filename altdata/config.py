@@ -185,3 +185,19 @@ BACKUP_DIR: str = os.environ.get(
     "CHESTER_BACKUP_DIR",
     "C:/Users/arich/OneDrive/chester-reports/chains",
 )
+
+# ---------------------------------------------------------------------------
+# Data-quality gates (tools/quality_gates.py)
+# ---------------------------------------------------------------------------
+
+# Liquidity floor -- a HARD RULE, declared in advance. Below these a symbol is
+# excluded from skew and OI-percentile work entirely, not merely downgraded:
+# confident-looking percentiles on thin books are worse than no metric.
+LIQUIDITY_MIN_TOTAL_OI: float = 25_000.0
+LIQUIDITY_MIN_TOTAL_VOLUME: float = 2_000.0
+
+# IV surface roughness ceiling: normalised mean |second difference| of IV across
+# adjacent strikes, median over expiry/right series. PROVISIONAL -- a normalised
+# roughness figure has no natural scale, and calibrating it against the same
+# symbols it judges would be circular. Revisit once a real sample exists.
+IV_ROUGHNESS_MAX: float = 0.35

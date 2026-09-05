@@ -54,8 +54,31 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from altdata import config  # noqa: E402
+import quality_gates    # noqa: E402
 
 log = logging.getLogger(__name__)
+
+EASTERN = "America/New_York"
+
+
+def session_date(fetched_at: Optional[str]) -> Optional[str]:
+    """US trading-session date for a UTC fetch timestamp.
+
+    Compute time in UTC is the wrong key: an EOD run at 20:30 ET is already the
+    next day in UTC, which would file a Friday session under Saturday and
+    silently split the pin log across two dates.
+    """
+    if not fetched_at:
+        return None
+    try:
+        from zoneinfo import ZoneInfo
+        ts = dt.datetime.fromisoformat(fetched_at)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=dt.timezone.utc)
+        return ts.astimezone(ZoneInfo(EASTERN)).date().isoformat()
+    except Exception:  # noqa: BLE001
+        return fetched_at[:10]
+
 
 SQRT_2PI = math.sqrt(2.0 * math.pi)
 MIN_T = 1.0 / (365.0 * 24.0)     # 1 hour, so 0DTE gamma stays finite
@@ -408,6 +431,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         "symbol": symbol,
         "computed_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "fetched_at": fetched_at,
+        "session_date": session_date(fetched_at),
         "spot": spot,
         "convention_version": config.CONVENTION_VERSION,
         "convention_caveat": config.CONVENTION_CAVEAT,
@@ -422,6 +446,9 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         "max_pain_expiry_type": dominant_bucket_by_oi(usable, mp),
         "buckets": buckets,
         "quality": quality,
+        # Data-quality gates over the same chain. Carried on the profile so the
+        # pin log can refuse to let a bad day into the base rate silently.
+        "gates": quality_gates.evaluate(rows),
         "per_strike": per_strike,
     }
 
@@ -452,6 +479,10 @@ def load_chain(path: Path) -> list[dict]:
                 "strike": _to_float(rec.get("strike")),
                 "open_interest": _to_float(rec.get("open_interest")),
                 "implied_vol": _to_float(rec.get("implied_vol")),
+                # Needed by the data-quality gates, not by the GEX maths.
+                "volume": _to_float(rec.get("volume")),
+                "bid": _to_float(rec.get("bid")),
+                "ask": _to_float(rec.get("ask")),
                 "gamma": _to_float(rec.get("gamma")),   # absent today, vendor later
             })
     return rows
