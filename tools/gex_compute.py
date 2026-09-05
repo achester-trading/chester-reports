@@ -207,6 +207,43 @@ def net_gex_at_spot(rows: list[dict], candidate: float, r: float) -> float:
     return total
 
 
+def zero_gamma_level_with_reason(rows: list[dict], spot: float, r: float,
+                                 band: float = 0.15, steps: int = 60
+                                 ) -> tuple[Optional[float], str]:
+    """zero_gamma_level, plus a code saying why a None is None.
+
+    A blank flip is not self-explanatory: it could mean the book is genuinely
+    one-signed across the window, that the scan found nothing, or that there
+    was no usable data at all. Those demand different responses -- the first is
+    a real market state, the last is a broken snapshot -- so the reason travels
+    with the row rather than leaving a reader to guess.
+    """
+    if not spot or spot <= 0:
+        return None, "no_spot"
+    usable = [x for x in rows
+              if (x.get("implied_vol") or 0) > 0
+              and (x.get("open_interest") or 0) > 0
+              and x.get("strike")]
+    if not usable:
+        return None, "no_usable_rows"
+
+    lo, hi = spot * (1.0 - band), spot * (1.0 + band)
+    level = zero_gamma_level(rows, spot, r, band=band, steps=steps)
+    if level is not None:
+        return level, "crossing_found"
+
+    # One-signed across the whole window: report which sign, because a book
+    # that is short gamma everywhere in range reads very differently from one
+    # that is long gamma everywhere.
+    lo_val = net_gex_at_spot(rows, lo, r)
+    hi_val = net_gex_at_spot(rows, hi, r)
+    if lo_val >= 0 and hi_val >= 0:
+        return None, "one_signed_positive_in_band"
+    if lo_val <= 0 and hi_val <= 0:
+        return None, "one_signed_negative_in_band"
+    return None, "no_crossing_found_in_band"
+
+
 def zero_gamma_level(rows: list[dict], spot: float, r: float,
                      band: float = 0.15, steps: int = 60) -> Optional[float]:
     """The zero-gamma level: the spot at which net dealer gamma changes sign.
@@ -445,7 +482,11 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
     # changes sign). The cumulative-across-strikes crossing is retained beside
     # it under gamma_flip_cum_strikes; the two answer different questions and
     # disagreeing is expected, not a bug.
-    overall["gamma_flip"] = zero_gamma_level(usable, spot, config.RISK_FREE_RATE)
+    _flip, _flip_reason = zero_gamma_level_with_reason(
+        usable, spot, config.RISK_FREE_RATE)
+    overall["gamma_flip"] = _flip
+    overall["flip_reason"] = _flip_reason
+    overall["flip_band_pct"] = 15.0
     overall["gamma_flip_method"] = "zero_gamma_level_spot_scan"
 
     buckets: dict[str, dict] = {}

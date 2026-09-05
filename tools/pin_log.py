@@ -73,7 +73,7 @@ PIN_COLUMNS = [
     "peak_gex_strike", "peak_gex_dist_bps", "peak_gex_hit",
     "call_wall", "call_wall_dist_bps", "call_wall_hit",
     "put_wall", "put_wall_dist_bps", "put_wall_hit",
-    "gamma_flip", "flip_dist_bps", "spot_above_flip",
+    "gamma_flip", "flip_dist_bps", "spot_above_flip", "flip_reason",
     "expiry_type", "max_pain_expiry_type",
     "net_gex", "shares_per_1pct", "dollar_gamma_per_1pct",
     "share_0dte", "share_weekly", "share_monthly", "share_quarterly",
@@ -127,6 +127,9 @@ def row_for(computed: dict, close: Optional[float] = None,
         "flip_dist_bps": dist_bps(close, o.get("gamma_flip")),
         "spot_above_flip": (None if not (close and o.get("gamma_flip"))
                             else close > o["gamma_flip"]),
+        # Why a blank flip is blank -- a one-signed book is a market state, an
+        # empty snapshot is a fault, and the column must not conflate them.
+        "flip_reason": o.get("flip_reason"),
         # Expiry that dominates each reference level -- lets the pin rate be
         # segmented by expiry type, which is the whole point of logging it.
         "expiry_type": computed.get("expiry_type"),
