@@ -167,7 +167,12 @@ def main() -> int:
         log.info("Stage 4 skipped -- backup disabled")
     else:
         log.info("Stage 4: backing up chains")
-        backup = backup_chains(started.date().isoformat(), args.backup_dir)
+        # Key the backup on the trading session the chains belong to, not the
+        # UTC run date. An EOD run after 20:00 ET is already the next day in
+        # UTC, which made this look for a chain directory that never existed.
+        session = next((c.get("session_date") for c in computed.values()
+                        if c.get("session_date")), None) or started.date().isoformat()
+        backup = backup_chains(session, args.backup_dir)
         if backup.get("ok"):
             log.info("  backed up %d files (%s bytes) -> %s",
                      backup["files"], f"{backup['bytes']:,}", backup["dest"])
