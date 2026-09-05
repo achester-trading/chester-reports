@@ -40,8 +40,13 @@ later from memory, which is the only version of this that works.
     python tools/decide.py record --instrument SPY --direction long \\
         --thesis "..." --edge-type positioning --horizon swing \\
         --invalidation "close below 760" --dry-run
+    python tools/decide.py set-status --id <id> --status active \\
+        --operator-action TAKE
     python tools/decide.py list
     python tools/decide.py show <id>
+
+A STATUS CHANGE IS A NEW RECORD, NOT AN EDIT. Part 7: overwriting destroys the
+grading trail. `set-status` supersedes -- see cmd_set_status.
 """
 
 from __future__ import annotations
@@ -282,6 +287,160 @@ def cmd_show(args) -> int:
         reg.close()
 
 
+def cmd_set_status(args) -> int:
+    """Change a decision's status by SUPERSEDING it, never by editing it.
+
+    Part 7 rule 3: revision creates a new record. The original keeps its status,
+    its operator_action and its packet exactly as written, gains `superseded_by`
+    pointing at the successor, and is frozen by trigger from that moment. An
+    in-place UPDATE would leave the register saying the decision had always been
+    active and always TAKEn -- erasing that it was a draft first, and erasing the
+    interval in which the operator decided. That interval is the grading trail.
+
+    Register.set_status() still exists and still mutates in place. Nothing in
+    production calls it: it is exercised only by the validation suite, which uses
+    it to prove the freeze and DECISION_BLOCKED constraints hold against a direct
+    writer. This command is the reason it has no other caller.
+    """
+    reg = Register(args.db)
+    try:
+        old = reg.get(args.id)
+        if not old:
+            print(f"no decision {args.id!r}")
+            return 1
+
+        action = args.operator_action or old["operator_action"]
+        print(f"{LINE}\nSET STATUS -- by supersession, per Part 7\n{LINE}")
+        print(f"  decision        : {old['id']}")
+        print(f"  instrument      : {old['instrument']}  {old['direction']} "
+              f"{old['horizon']}")
+        print(f"  thesis          : {old['thesis']}")
+        print(f"  from            : status {old['status']:<8} action "
+              f"{old['operator_action'] or '(none)'}")
+        print(f"  to              : status {args.status:<8} action "
+              f"{action or '(none)'}")
+
+        # A frozen row cannot take the pointer, and the trigger would abort the
+        # UPDATE anyway. Refusing here names WHICH row to act on instead.
+        if old["superseded_by"]:
+            print(f"\n  REFUSED -- already superseded by {old['superseded_by']}")
+            print(f"    That row is frozen and stays exactly as written. Set the "
+                  f"status on\n    the successor; a chain with two live heads is "
+                  f"not a chain.")
+            print(LINE)
+            return 1
+
+        if args.status == old["status"] and action == old["operator_action"]:
+            print(f"\n  NO CHANGE -- nothing written.")
+            print(f"    Part 7 rule 4: revision has a bar. A superseding record "
+                  f"that changes\n    nothing is noise in the trail that grades "
+                  f"revisions per cycle.")
+            print(LINE)
+            return 0
+
+        signals = json.loads(old["signals_used"] or "[]")
+        blocked_reason = old["blocked_reason"]
+
+        # 26.2 #7 AT THE MOMENT OF ACTIVATION, not only at the moment of
+        # recording. A draft written this morning on signals that have since gone
+        # stale must not become active tonight. Without this re-check,
+        # `set-status --status active` is precisely the route around
+        # DECISION_BLOCKED that the record path closes.
+        if args.status == "active":
+            fresh = freshness.check_signals(signals, old["instrument_norm"])
+            print(f"\n  signal freshness, RE-CHECKED NOW ({len(signals)} carried "
+                  f"forward)")
+            for v in fresh["verdicts"]:
+                mark = "STALE" if v["stale"] else " ok  "
+                print(f"    [{mark}] {v['key']:<30} "
+                      f"{str(v['half_life'] or '?'):<18} "
+                      f"{v['where'] or 'not found'}")
+                print(f"             {v['reason']}")
+            if fresh["blocked"] or blocked_reason:
+                print(f"\n  REFUSED -- DECISION_BLOCKED")
+                print(f"    {fresh['blocked_reason'] or blocked_reason}")
+                for v in fresh["stale"]:
+                    print(f"      {v['key']}")
+                    print(f"        -> {v['unblock'] or 'refresh the source'}")
+                print(f"\n    Nothing written, and the draft is not copied into a "
+                      f"second blocked\n    row -- it already stands as the record "
+                      f"of what could not be activated.\n    Refresh the inputs "
+                      f"and record a new decision.")
+                print(LINE)
+                return 3
+            print(f"\n  DECISION_OK -- every declared signal is inside its "
+                  f"half-life")
+
+        if args.dry_run:
+            print(f"\n  DRY RUN -- nothing written, nothing superseded.")
+            print(LINE)
+            return 0
+
+        run_id = args.run_id or session.new_run_id("set-status")
+        now = session.utc_iso()
+        new_id = reg.supersede(
+            args.id,
+            instrument=old["instrument"], direction=old["direction"],
+            thesis=old["thesis"], edge_type=old["edge_type"],
+            horizon=old["horizon"], invalidation=old["invalidation"],
+            size=old["size"], status=args.status, operator_action=action,
+            thesis_state=old["thesis_state"], run_id=run_id,
+            decision_time=now, signals_used=signals,
+            blocked_reason=blocked_reason)
+
+        # The successor gets its own packet, because a decision without one
+        # cannot be replayed and `show` would report none. Its INPUTS are the
+        # original's, carried forward by content hash: a status change consults
+        # no market data, so re-hashing tonight's chains would pin inputs this
+        # decision never saw. What is taken fresh is the code and the clock --
+        # the operator acted now, against this SHA.
+        old_pkt = reg.packet(args.id)
+        dm = (json.loads(old_pkt["data_manifest_json"]) if old_pkt
+              else {"files": [], "hash": "", "file_count": 0})
+        pkt = {
+            "run_id": run_id,
+            "decision_time": now,
+            "available_at_cutoff": (old_pkt["available_at_cutoff"] if old_pkt
+                                    else now),
+            "git_sha": manifest.git_sha(),
+            "code_dirty": manifest.code_dirty(),
+            "data_manifest": dm,
+            "data_manifest_hash": (old_pkt["data_manifest_hash"] if old_pkt
+                                   else dm.get("hash", "")),
+            "output_hash": manifest.output_hash(
+                {"decision": {"supersedes": args.id,
+                              "instrument": old["instrument"],
+                              "direction": old["direction"],
+                              "horizon": old["horizon"],
+                              "edge_type": old["edge_type"],
+                              "thesis": old["thesis"],
+                              "invalidation": old["invalidation"],
+                              "status": args.status,
+                              "operator_action": action,
+                              "signals_used": sorted(signals),
+                              "blocked_reason": blocked_reason}}),
+            "volatile_fields": list(manifest.VOLATILE_FIELDS),
+            **manifest.registry_versions(),
+        }
+        pid = reg.attach_packet(new_id, pkt)
+
+        frozen = reg.get(args.id)
+        print(f"\n  SUPERSEDED -- two rows, not one edited row")
+        print(f"    old : {args.id}")
+        print(f"          status {frozen['status']}, action "
+              f"{frozen['operator_action'] or '(none)'}, superseded_by "
+              f"{frozen['superseded_by']}")
+        print(f"          frozen -- further UPDATEs abort at the trigger")
+        print(f"    new : {new_id}")
+        print(f"          status {args.status}, action {action or '(none)'}")
+        print(f"          packet {pid}  (inputs inherited, "
+              f"{dm.get('file_count', 0)} file(s))")
+        print(LINE)
+        return 0
+    finally:
+        reg.close()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Record a decision in the register")
     ap.add_argument("--db", default=None)
@@ -309,6 +468,17 @@ def main() -> int:
                    help="Show exactly what would be written, including the "
                         "restriction check, and write nothing.")
     r.set_defaults(func=cmd_record)
+
+    ss = sub.add_parser("set-status",
+                        help="change a decision's status by superseding it")
+    ss.add_argument("--id", required=True)
+    ss.add_argument("--status", required=True, choices=STATUSES)
+    ss.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS,
+                    help="Carried forward from the superseded row if omitted.")
+    ss.add_argument("--run-id", default=None)
+    ss.add_argument("--dry-run", action="store_true",
+                    help="Show what would be superseded, and write nothing.")
+    ss.set_defaults(func=cmd_set_status)
 
     l = sub.add_parser("list", help="list recorded decisions")
     l.set_defaults(func=cmd_list)
