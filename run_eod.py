@@ -37,7 +37,7 @@ from altdata import config
 from altdata import session
 from altdata.sources import options_chain
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
-import gex_compute          # noqa: E402
+import exposure_compute     # noqa: E402
 import pin_log              # noqa: E402
 
 
@@ -140,9 +140,9 @@ def main() -> int:
             return 1
 
     # ---- Stage 2: compute ------------------------------------------------
-    log.info("Stage 2: computing GEX")
+    log.info("Stage 2: computing exposure (GEX/DEX/VEX/CHEX)")
     try:
-        computed = gex_compute.run(symbols=universe)
+        computed = exposure_compute.run(symbols=universe)
     except Exception:
         log.exception("Stage 2 failed; chains are stored and can be recomputed "
                       "with --skip-fetch")

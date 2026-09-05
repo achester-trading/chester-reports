@@ -120,3 +120,51 @@ because no ATM strike happened to dominate the call side.
 - [ ] Early closes are tabulated and treated as sessions. If intraday sampling
       ever lands, its 15:30 ET sample must consult `is_early_close()` -- the
       market is already shut by then on those days.
+
+## Four-Greek extension — open items (5 Sep 2026)
+
+Landed: `gex_compute.py` -> `exposure_compute.py` (import shim kept), per-strike
+GEX/DEX/VEX/CHEX Black-Scholes from stored chains and IV, all four bucketed
+0DTE/weekly/monthly/quarterly, dated expiration-release ladder in
+`data/expiration_release.csv`, `mechanism_group=dealer_chain_derived` on every
+row, pin log 44 -> 66 columns append-only. Backfilled from 2026-09-04.
+
+- [ ] **0DTE gamma is numerically unstable, and the IV-solver gate now FAILS
+      because of it.** `tools/validate_iv_solver.py` reports SPY dollar
+      gamma/1% diverging -436% between yfinance IV and solved IV. All of it is
+      the 0DTE bucket: +196M on yfinance IV vs -5,235M on solved IV, while
+      every other bucket agrees within 15%. Two compounding causes:
+      only 6 of 382 0DTE rows solve at all, and with T floored at MIN_T (1
+      hour) a single near-ATM contract carries ~$377M of gamma, so the bucket
+      is dominated by sigma rather than by positioning.
+      The gate was passing before only because the chain it was reading had no
+      0DTE contracts in it (see the snapshot bug below) — it was being
+      evaluated on the easy subset. **Decide: raise MIN_T to something
+      defensible, or exclude 0DTE from the solver comparison explicitly and
+      say so in the gate.** Do not loosen the thresholds; that buries it.
+- [ ] **Charm in 0DTE is an extrapolation, not a measurement.** Charm scales as
+      1/sqrt(T) and diverges as T -> 0, so 0DTE carries the largest per-day
+      charm in the book. NVDA 2026-09-04: 0DTE charm +20.4M sh/day against a
+      whole-symbol total of +19.3M — the bucket flips the symbol's sign, on 108
+      rows resting on the MIN_T floor. `chex_floored_rows` is carried per
+      symbol and per bucket so this is checkable. Decide whether the headline
+      CHEX should exclude 0DTE. (Vanna needs no such treatment: it genuinely
+      collapses to ~0 in 0DTE, SPY 0.7% of book vanna.)
+- [ ] **DEX direction is uninformative under `dealers-hand-v1`** and will stay
+      that way. Long calls carry positive delta and SHORT puts also carry
+      positive delta, so net DEX is positive for every symbol, bucket and
+      expiry — 269 of 269 rows on the first backfill, with no negative possible
+      in principle. Magnitude, dating and day-over-day change are the signal;
+      `unwind_direction` only becomes a real variable if Alpha-tier flow
+      polarity ever replaces the assumed +1/-1.
+
+### Fixed in passing, but it revises committed history
+
+`newest_chains` selected the day's chain by file **mtime**. For 2026-09-04 that
+picked the 22:44 ET capture, taken hours after the close, by which time all 425
+0DTE contracts had expired off the chain — so the whole 0DTE bucket was silently
+absent and nothing downstream could tell, because a missing bucket and an empty
+one look identical. Selection now ranks by the `fetched_at` the rows carry,
+nearest `config.EOD_SNAPSHOT_TARGET_ET` (16:10, matching the timer). This moves
+every 2026-09-04 number: SPY $gamma/1% -988M -> -1,172M, NVDA 1.67bn -> 4.15bn,
+QQQ -339M -> -3.26bn. Earlier rows in the pin log were computed the old way.

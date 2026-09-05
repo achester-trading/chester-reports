@@ -177,6 +177,23 @@ CHAIN_DIR: str = "data/chains"
 COMPUTED_DIR: str = "data/computed"
 PIN_LOG_PATH: str = "data/pin_log.csv"
 
+# Which snapshot represents a session, when a day holds several. Matches the
+# systemd timer's 16:10 ET firing: the EOD profile is meant to describe the book
+# at the close, so the capture nearest the bell wins.
+#
+# This is declared rather than inferred because the alternative -- "the newest
+# file" -- is wrong in a way that hides. A snapshot taken late in the evening
+# has already lost the day's 0DTE contracts to expiry, so it silently drops the
+# bucket that carries most of the gamma, and file mtime is not an observation
+# time at all: a copy, a restore or a backup rewrites it.
+EOD_SNAPSHOT_TARGET_ET: str = "16:10"
+
+# Dated dealer-delta unwind, one row per (session, symbol, expiry). Kept out of
+# the pin log because it is many rows per symbol per day, where the pin log is
+# deliberately exactly one -- mixing the two cardinalities in one file would
+# make every pin-rate query start with a de-duplication step.
+EXPIRATION_RELEASE_PATH: str = "data/expiration_release.csv"
+
 # Off-box backup for the raw chains. They are the one asset in this system
 # that cannot be re-fetched -- yfinance serves no history -- so every run
 # copies the day's chains somewhere that is not this laptop.

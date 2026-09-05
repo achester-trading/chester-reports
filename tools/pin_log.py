@@ -39,10 +39,21 @@ UNITS. `shares_per_1pct` is the stored primary (change in dealer delta, in
 shares, per 1% move); `dollar_gamma_per_1pct` is derived from it, and raw
 notional (`net_gex`) is kept as the underlying quantity.
 
+FOUR GREEKS, ONE CLUSTER. Since 5 Sep the row also carries dealer DEX, vanna
+and charm per bucket, plus the nearest expiration-release figure. Every one of
+them is derived from the SAME chain, OI and IV as the gamma columns, so
+`mechanism_group = dealer_chain_derived` travels on the row: architecture 26.9
+requires them to be read as one confluence cluster and never as four
+independent confirmations. The full dated unwind ladder is many rows per symbol
+and lives in config.EXPIRATION_RELEASE_PATH; only the nearest expiry is
+summarised here, because this file is deliberately one row per symbol per day.
+
 FORWARD COMPATIBILITY. The schema carries columns for data this tier cannot
 serve yet -- vendor OI, per-strike arrays, dealer polarity. They are written
 empty today and populate themselves when the tier changes, so no migration is
-needed and old rows stay directly comparable to new ones.
+needed and old rows stay directly comparable to new ones. Column order is
+append-only: new columns go on the end and no existing column ever moves, so a
+file written months apart still parses as one table.
 
 Usage:
     python tools/pin_log.py                  # score today's computed snapshots
@@ -83,6 +94,22 @@ PIN_COLUMNS = [
     # --- reserved for a paid tier; empty today, no migration when they fill --
     "vendor_oi_total", "vendor_gamma_flip", "vendor_call_wall",
     "vendor_put_wall", "vendor_source",
+    # --- appended 5 Sep 2026: four-Greek extension --------------------------
+    # Appended at the END, after the reserved block, because append-only means
+    # no existing column changes position -- not that new columns must sit
+    # anywhere in particular. The reserved vendor names above are untouched.
+    #
+    # mechanism_group is the same value on every row (dealer_chain_derived) and
+    # is stored anyway: a row that travels away from this file must carry the
+    # fact that its four Greeks are ONE piece of evidence, not four votes.
+    "mechanism_group",
+    "dex_shares", "dex_notional",
+    "vex_shares_per_volpt", "chex_shares_per_day",
+    "dex_0dte", "dex_weekly", "dex_monthly", "dex_quarterly",
+    "vanna_0dte", "vanna_weekly", "vanna_monthly", "vanna_quarterly",
+    "charm_0dte", "charm_weekly", "charm_monthly", "charm_quarterly",
+    "next_expiry", "next_expiry_dte", "next_expiry_dex_shares",
+    "next_expiry_unwind_direction", "chex_floored_rows",
 ]
 
 
@@ -162,6 +189,30 @@ def row_for(computed: dict, close: Optional[float] = None,
     for reserved in ("vendor_oi_total", "vendor_gamma_flip", "vendor_call_wall",
                      "vendor_put_wall", "vendor_source"):
         row.setdefault(reserved, None)
+
+    # --- four-Greek extension --------------------------------------------
+    # All from the same chain, the same OI and the same signing assumption as
+    # the gamma columns above, which is what mechanism_group records.
+    row["mechanism_group"] = computed.get("mechanism_group")
+    row["dex_shares"] = o.get("dex_shares")
+    row["dex_notional"] = o.get("dex_notional")
+    row["vex_shares_per_volpt"] = o.get("vex_shares_per_volpt")
+    row["chex_shares_per_day"] = o.get("chex_shares_per_day")
+    row["chex_floored_rows"] = q.get("chex_floored_rows")
+    for bucket in ("0dte", "weekly", "monthly", "quarterly"):
+        bk = b.get(bucket) or {}
+        row[f"dex_{bucket}"] = bk.get("dex_shares")
+        row[f"vanna_{bucket}"] = bk.get("vex_shares_per_volpt")
+        row[f"charm_{bucket}"] = bk.get("chex_shares_per_day")
+
+    # Headline of the expiration release. The full dated ladder is many rows
+    # per symbol and lives in its own file (config.EXPIRATION_RELEASE_PATH);
+    # only the nearest one belongs on a one-row-per-day record.
+    nxt = next(iter(computed.get("expiration_release") or []), {})
+    row["next_expiry"] = nxt.get("expiry")
+    row["next_expiry_dte"] = nxt.get("dte")
+    row["next_expiry_dex_shares"] = nxt.get("dex_shares")
+    row["next_expiry_unwind_direction"] = nxt.get("unwind_direction")
     return {k: row.get(k) for k in PIN_COLUMNS}
 
 
@@ -204,7 +255,13 @@ def load_computed(date: Optional[str] = None, symbols: Optional[list[str]] = Non
     if not day.exists():
         return {}
     out: dict[str, dict] = {}
-    for p in sorted(day.glob("*_gex.json"), key=lambda q: q.stat().st_mtime):
+    # Both names: *_exposure.json is what exposure_compute writes now, *_gex.json
+    # is what it wrote before the four-Greek extension. Reading both means old
+    # profiles stay scoreable and nothing on disk needs migrating; sorting the
+    # combined list by mtime means the newest still wins per symbol.
+    files = sorted([*day.glob("*_exposure.json"), *day.glob("*_gex.json")],
+                   key=lambda q: q.stat().st_mtime)
+    for p in files:
         sym = p.name.split("_")[0]
         if symbols and sym not in symbols:
             continue
