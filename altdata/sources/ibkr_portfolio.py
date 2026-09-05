@@ -14,13 +14,22 @@ not disabled, not commented out, absent", and this module is written to that
 literally. It never imports an order type, never constructs one, and never
 calls placeOrder. Two things enforce it rather than assert it:
 
-    * connect() passes readonly=True, so the API session itself rejects order
-      submission at the socket. A bug here cannot place a trade.
     * tools/validate_ibkr_portfolio.py greps this module's own source for
-      order-placing calls and fails the build if any appear.
+      order-placing calls and fails the build if any appear. THIS is the
+      guarantee: code that does not exist cannot run.
+    * connect() passes readonly=True as a second layer.
 
-The second exists because readonly=True is a runtime argument someone could
-later change; the source check is what makes its absence structural.
+CORRECTED 5 Sep 2026, and worth stating plainly because the earlier version of
+this docstring was wrong in a way that mattered. It claimed readonly=True made
+"the API session itself reject order submission at the socket", so that "a bug
+here cannot place a trade". It does not. Read in ib_async 2.1.0 (ib.py:2057,
+2061), the client-side readonly flag does exactly one thing: it skips fetching
+open and completed orders at startup. It installs no check on placeOrder.
+
+The real read-only enforcement is SERVER-side -- Gateway's
+Configure > Settings > API > "Read-Only API" checkbox -- and no client flag
+substitutes for it. The order of the two bullets above is therefore the order
+of their strength, which is the reverse of how they were originally written.
 
 -----------------------------------------------------------------------------
 THE PORT IS THE MODE

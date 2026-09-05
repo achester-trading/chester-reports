@@ -689,7 +689,33 @@ and no intraday reading can describe a closed market.
 - [ ] `INTRADAY_MAX_AGE_H = 4.0` and `FREQ_MAX_AGE_DAYS` are declared constants
       with no calibration behind them. They are a first cut; tighten once there
       is a real sync cadence to measure against.
-- [ ] Supersede / set-status subcommands remain unbuilt, as agreed. The register
-      supports both; the CLI does not expose them.
+- [x] Supersede / set-status subcommands. `decide.py set-status` now supersedes
+      per Part 7 rule 3 rather than mutating -- `Register.set_status()` keeps
+      its in-place UPDATE but has no production caller, existing only so the
+      validation suite can prove the freeze constraint against a direct writer.
+
+## Gate 1.5 (26.11) -- open
+
+- [ ] **The What-If / Read-Only API conflict is unresolved and is the
+      operator's call.** IBKR's What-If travels as a placeOrder message with
+      `whatIf=True`, so a Gateway with Read-Only API enabled is expected to
+      refuse previews along with orders. If it does, Gate 1.5's expression
+      economics and Gate 1's strongest external guarantee cannot both be on.
+      Untested -- no Gateway has been reachable from the authoring machine.
+      `WhatIfNotPermitted` exists to make the refusal legible when it happens.
+- [ ] **No live What-If has ever run.** Every number in
+      `tools/validate_ibkr_whatif.py` is a fixture. The first live run on the
+      VPS must confirm: the commission estimate is populated for a 100-share
+      SPY order, the margin fields are not all Double.MAX_VALUE, and
+      `BuyingPower/AvailableFunds` yields a sane multiplier for the paper
+      account. Until then `expected_cost` has never held a real number.
+- [ ] The expression rules are mechanism arguments, not calibrated thresholds.
+      `carry_edge_no_accrual` fires at <=7 DTE and `HORIZON_DAYS` maps swing to
+      21 days; both are declared, neither is measured. Revisit once outcomes
+      exist to grade expression failures against.
+- [ ] `expected_cost` is deliberately NOT in `output_hash` -- commission tiers
+      and margin state move, and an identical decision should not fail replay
+      for that. If 26.16 #5 later needs the economics to be part of what
+      replays, that is a schema decision, not a hash tweak.
 - [ ] The decision CLI is `tools/decide.py`, not `new_decision.py`. Renaming is
       cheap if the other name is preferred -- say so rather than both existing.

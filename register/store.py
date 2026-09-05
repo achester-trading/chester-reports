@@ -127,7 +127,15 @@ CREATE TABLE IF NOT EXISTS decision_packets (
     metrics_registry_version TEXT NOT NULL,
     source_registry_version  TEXT NOT NULL,
     output_hash              TEXT NOT NULL,
-    volatile_fields          TEXT NOT NULL
+    volatile_fields          TEXT NOT NULL,
+    -- Gate 1.5 (26.11): the live economics of the contemplated expression --
+    -- commission, margin impact, buying-power delta -- as measured by IBKR's
+    -- What-If at decision time, plus any 26.7 expression warnings. NULL means
+    -- no preview was run, which is DIFFERENT from a preview that found no
+    -- cost, and the two must stay distinguishable: 26.16 #5 grades whether a
+    -- thesis was rejected on real economics, and "we never looked" cannot be
+    -- allowed to read as "it was free".
+    expected_cost_json       TEXT
 );
 
 -- Restricted roots are mirrored into the DB so the trigger can see them. The
@@ -205,6 +213,13 @@ class Register:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
                 pass                       # already present
+        # Same migration for the packet's Gate 1.5 economics. NULL on a
+        # pre-existing packet is the honest reading: no preview was run.
+        try:
+            self.conn.execute("ALTER TABLE decision_packets "
+                              "ADD COLUMN expected_cost_json TEXT")
+        except sqlite3.OperationalError:
+            pass
         self.conn.commit()
         self.restrictions = (instruments.Restrictions(entities_path)
                              if entities_path else instruments.restrictions())
@@ -302,8 +317,9 @@ class Register:
             "INSERT INTO decision_packets (packet_id, decision_id, created_at,"
             " run_id, decision_time, available_at_cutoff, git_sha, code_dirty,"
             " data_manifest_hash, data_manifest_json, metrics_registry_version,"
-            " source_registry_version, output_hash, volatile_fields)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " source_registry_version, output_hash, volatile_fields,"
+            " expected_cost_json)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (pid, decision_id, session.utc_iso(), packet["run_id"],
              packet["decision_time"], packet["available_at_cutoff"],
              packet["git_sha"], int(packet.get("code_dirty", 0)),
@@ -312,7 +328,9 @@ class Register:
              str(packet["metrics_registry_version"]),
              str(packet["source_registry_version"]),
              packet["output_hash"],
-             json.dumps(sorted(packet.get("volatile_fields", [])))))
+             json.dumps(sorted(packet.get("volatile_fields", []))),
+             (json.dumps(packet["expected_cost"], sort_keys=True, default=str)
+              if packet.get("expected_cost") is not None else None)))
         self.conn.commit()
         return pid
 

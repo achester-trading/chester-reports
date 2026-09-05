@@ -141,8 +141,11 @@ def group_a() -> None:
               "bracketOrder", "cancelOrder", "reqIds", "Order("]
     found = [b for b in banned if b in body]
     check(not found, f"no order-placing call appears in the source ({found or 'none'})")
+    # NOT "the session rejects orders at the socket" -- it does not, and the
+    # label used to say so. ib_async's readonly only skips fetching orders at
+    # startup; the absence check above is the actual guarantee.
     check("readonly=True" in body,
-          "connect() passes readonly=True -- the session rejects orders at the socket")
+          "connect() passes readonly=True (a second layer, not the guarantee)")
 
     ib = FakeIB()
     ibkr.connect(port=4002, ib_factory=lambda: ib)

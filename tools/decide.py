@@ -55,6 +55,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -67,6 +68,7 @@ from register.store import (                      # noqa: E402
     Register, RestrictedInstrumentError,
 )
 import exposure_compute as ec                     # noqa: E402
+import expression_check                           # noqa: E402
 import freshness                                  # noqa: E402
 
 LINE = "=" * 78
@@ -104,6 +106,78 @@ def _inputs_for(instrument: str) -> tuple[list[Path], str]:
             return [hit], f"{root_sym} chain from session {day.name}"
     return [], (f"no stored chain for {root_sym} -- manifest is empty and this "
                 f"decision pins no market inputs")
+
+
+def _expression_block(args) -> list[dict]:
+    """The 26.7 expression check. Prints, warns, and never blocks.
+
+    Warning only, deliberately. The map from edge to structure is judgement
+    with real exceptions, and a hard gate on judgement is a gate that gets
+    routed around -- at which point the system has neither the gate nor the
+    record. Recording the mismatch is what makes 26.7's error decomposition
+    possible later: without it, a right thesis expressed wrongly returns as a
+    bad signal and the system unlearns something true.
+    """
+    warns = expression_check.check(
+        edge_type=args.edge_type, horizon=args.horizon,
+        sec_type=args.sec_type, expiry=args.expiry, structure=args.structure)
+    print(f"\n  expression check (26.7 -- warning only, nothing is blocked)")
+    print(f"    shape           : {args.sec_type}"
+          + (f" exp {args.expiry}" if args.expiry else "")
+          + (f" {args.structure}" if args.structure else "")
+          + f"   for a {args.edge_type} edge on a {args.horizon} horizon")
+    print(expression_check.format_warnings(warns))
+    return warns
+
+
+def _preview_block(args, warns: list[dict]) -> Optional[dict]:
+    """Gate 1.5's What-If, run BEFORE the decision is recorded.
+
+    Before, not after, because the economics are an input to the decision. A
+    preview taken afterwards documents a trade already made; taken first it can
+    still change the answer, which is the whole of 26.16 #5.
+
+    A failed preview NEVER blocks recording. The Gateway being down is not
+    evidence about the thesis, and refusing to record a decision because a
+    broker connection failed would lose the decision and keep the outage.
+    """
+    from altdata.sources import ibkr_whatif       # noqa: PLC0415 -- lazy
+    from altdata.sources import ibkr_portfolio    # noqa: PLC0415
+
+    port = args.preview_port
+    print(f"\n  Gate 1.5 What-If preview (26.11 -- read-only, no order is sent)")
+    print(f"    gateway         : {args.preview_host}:{port}  "
+          f"[{ibkr_whatif.ibkr.mode_for_port(port)}]")
+    try:
+        p = ibkr_whatif.run(
+            args.instrument, args.direction, float(args.quantity),
+            host=args.preview_host, port=port,
+            client_id=args.preview_client_id, allow_live=args.allow_live,
+            order_type=args.order_type, limit_price=args.limit_price,
+            sec_type=args.sec_type, expiry=args.expiry, strike=args.strike,
+            right=args.right, action=args.action)
+    except ibkr_portfolio.IbkrError as e:
+        print(f"    PREVIEW UNAVAILABLE -- {type(e).__name__}")
+        for line in str(e).splitlines():
+            print(f"      {line}")
+        print(f"    The decision is still recorded. A broker outage is not "
+              f"evidence about\n    the thesis; the packet will record that no "
+              f"preview was taken, which is\n    different from a preview that "
+              f"found no cost.")
+        return {"available": False, "error": type(e).__name__,
+                "error_detail": str(e).splitlines()[0],
+                "attempted_at": session.utc_iso(),
+                "expression_warnings": warns}
+    except Exception as e:  # noqa: BLE001
+        print(f"    PREVIEW UNAVAILABLE -- {type(e).__name__}: {e}")
+        return {"available": False, "error": type(e).__name__,
+                "error_detail": str(e), "attempted_at": session.utc_iso(),
+                "expression_warnings": warns}
+
+    print(ibkr_whatif.format_preview(p, indent="    "))
+    p["available"] = True
+    p["expression_warnings"] = warns
+    return p
 
 
 def cmd_record(args) -> int:
@@ -181,6 +255,13 @@ def cmd_record(args) -> int:
             print(f"\n  DECISION_OK -- every declared signal is inside its "
                   f"half-life")
 
+        # ---- 26.7 expression check, then Gate 1.5 economics -------------
+        # Both run before the write, and both are advisory. The expression
+        # check is free and always runs; the What-If needs a Gateway and runs
+        # only when asked for.
+        warns = _expression_block(args)
+        expected_cost = _preview_block(args, warns) if args.preview else None
+
         # The packet, built now rather than reconstructed later.
         inputs, inputs_note = _inputs_for(args.instrument)
         pkt = manifest.build_packet(run_id, session.utc_iso(), cutoff, inputs,
@@ -192,7 +273,16 @@ def cmd_record(args) -> int:
                                         "thesis": args.thesis,
                                         "invalidation": args.invalidation,
                                         "signals_used": sorted(args.signals_used),
-                                        "blocked_reason": blocked_reason}})
+                                        "blocked_reason": blocked_reason,
+                                        "expression_warnings":
+                                            [w["code"] for w in warns]}})
+        # Attached AFTER build_packet rather than folded into its outputs. The
+        # economics are volatile by nature -- commission tiers and margin state
+        # move -- and hashing them into output_hash would make an otherwise
+        # identical decision fail replay for a reason that says nothing about
+        # the decision. The expression warnings ARE hashed: they are a function
+        # of the declared shape, so they must reproduce.
+        pkt["expected_cost"] = expected_cost
         print(f"\n  decision packet (26.2 #3 -- must replay exactly)")
         print(f"    run_id              : {pkt['run_id']}")
         print(f"    git_sha             : {pkt['git_sha'][:12]}"
@@ -232,12 +322,51 @@ def cmd_record(args) -> int:
         print(f"    decision id : {did}")
         print(f"    packet id   : {pid}  (immutable)")
         print(f"    status      : {status}")
+        print(f"    expression  : {expression_check.summarise(warns)}")
+        if expected_cost is None:
+            print(f"    economics   : no preview run (expected_cost is NULL, "
+                  f"which is not zero)")
+        elif expected_cost.get("available"):
+            c = (expected_cost.get("commission") or {}).get("estimate")
+            im = (expected_cost.get("margin") or {}).get("init_change")
+            print(f"    economics   : commission "
+                  + (f"{c:,.2f}" if isinstance(c, (int, float)) else "n/a")
+                  + ", init margin "
+                  + (f"{im:+,.2f}" if isinstance(im, (int, float)) else "n/a"))
+        else:
+            print(f"    economics   : preview attempted and unavailable "
+                  f"({expected_cost.get('error')})")
         if blocked_reason:
             print(f"    blocked     : {blocked_reason[:120]}")
         print(LINE)
         return 3 if blocked_reason else 0
     finally:
         reg.close()
+
+
+def _expected_cost_line(raw) -> str:
+    """One-line summary of a stored expected_cost blob, for `show`.
+
+    NULL and "we looked and it was free" are rendered differently on purpose;
+    26.16 #5 turns on being able to tell them apart.
+    """
+    if not raw:
+        return "(no preview was run -- NULL, which is not zero)"
+    try:
+        ec_ = json.loads(raw)
+    except (TypeError, ValueError):
+        return "(unparseable)"
+    if not ec_.get("available"):
+        return (f"preview attempted and unavailable: {ec_.get('error')} "
+                f"at {ec_.get('attempted_at')}")
+    c = (ec_.get("commission") or {}).get("estimate")
+    im = (ec_.get("margin") or {}).get("init_change")
+    bp = (ec_.get("buying_power") or {}).get("buying_power_delta_est")
+    n = len(ec_.get("expression_warnings") or [])
+    return (f"commission {c}, init margin change {im}, buying power delta "
+            f"{bp} [{ec_.get('mode')}, {n} expression warning(s)]"
+            + (f", INHERITED from {ec_['inherited_from']}"
+               if ec_.get("inherited_from") else ""))
 
 
 def cmd_list(args) -> int:
@@ -281,6 +410,8 @@ def cmd_show(args) -> int:
             for k, v in p.items():
                 if k == "data_manifest_json":
                     v = f"{len(json.loads(v).get('files', []))} file(s)"
+                if k == "expected_cost_json":
+                    v = _expected_cost_line(v)
                 print(f"    {k:<24} {v}")
         return 0
     finally:
@@ -422,6 +553,18 @@ def cmd_set_status(args) -> int:
             "volatile_fields": list(manifest.VOLATILE_FIELDS),
             **manifest.registry_versions(),
         }
+        # The entry economics carry forward with the thesis, tagged as
+        # INHERITED. A status change runs no What-If, so presenting the
+        # original's commission and margin as a fresh measurement would date a
+        # decayable number to the wrong day; dropping them would lose the only
+        # economics the trade has. Tagging keeps both facts.
+        if old_pkt and old_pkt.get("expected_cost_json"):
+            try:
+                inherited = json.loads(old_pkt["expected_cost_json"])
+                inherited["inherited_from"] = args.id
+                pkt["expected_cost"] = inherited
+            except (TypeError, ValueError):
+                pass
         pid = reg.attach_packet(new_id, pkt)
 
         frozen = reg.get(args.id)
@@ -467,6 +610,37 @@ def main() -> int:
     r.add_argument("--dry-run", action="store_true",
                    help="Show exactly what would be written, including the "
                         "restriction check, and write nothing.")
+
+    # -- the contemplated SHAPE. Feeds the 26.7 expression check always, and
+    #    the Gate 1.5 What-If when --preview is passed. Defaults describe the
+    #    simplest expression, so a decision that names no shape is treated as
+    #    shares rather than as unknown.
+    r.add_argument("--sec-type", default="STK", choices=("STK", "OPT"))
+    r.add_argument("--quantity", type=float, default=100,
+                   help="Shares, or contracts for OPT. Used by --preview.")
+    r.add_argument("--order-type", default="MKT", choices=("MKT", "LMT"))
+    r.add_argument("--limit-price", type=float, default=None)
+    r.add_argument("--expiry", default=None, help="OPT only, YYYYMMDD")
+    r.add_argument("--strike", type=float, default=None, help="OPT only")
+    r.add_argument("--right", default=None, choices=("C", "P"), help="OPT only")
+    r.add_argument("--structure", default=None,
+                   help="Multi-leg shape if there is one (vertical, risk "
+                        "reversal); a single leg leaves this unset")
+    r.add_argument("--action", default=None, choices=("BUY", "SELL"),
+                   help="Required for flat/hedge, which do not imply a side")
+
+    # -- Gate 1.5
+    r.add_argument("--preview", action="store_true",
+                   help="Run the IBKR What-If before recording and store the "
+                        "economics in the packet as expected_cost. Read-only; "
+                        "no order is ever sent.")
+    r.add_argument("--preview-host", default="127.0.0.1")
+    r.add_argument("--preview-port", type=int, default=4002,
+                   help="4002 Gateway paper (default), 4001 live. The port is "
+                        "the mode.")
+    r.add_argument("--preview-client-id", type=int, default=18)
+    r.add_argument("--allow-live", action="store_true",
+                   help="Permit a preview against a LIVE port.")
     r.set_defaults(func=cmd_record)
 
     ss = sub.add_parser("set-status",
