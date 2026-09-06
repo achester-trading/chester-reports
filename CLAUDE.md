@@ -30,13 +30,15 @@ governs where it is going and overrides this file on intent.
 `white-paper-library-guide.md`, plus the white paper library itself in
 `docs/whitepapers/`.
 
-**Two of those documents exist in two formats.** For the library guide and
-`docs/whitepapers/dealers-hand-whitepaper.md`, **the HTML is canonical for
+**Three of those documents exist in two formats.** For the library guide,
+`docs/whitepapers/dealers-hand-whitepaper.md` (XIII) and
+`docs/options-expression-whitepaper.md` (XXII), **the HTML is canonical for
 reading** (it carries the rendered tables, the anchor navigation, and the
-Dealer's Hand's computed figures) and **the Markdown is canonical for
-editing** — edit the `.md` and regenerate the HTML from it, never the reverse.
-An HTML file that disagrees with its `.md` is stale, not a second opinion.
-Every other paper is Markdown only.
+computed figures) and **the Markdown is canonical for editing** — edit the `.md`
+and regenerate the HTML from it, never the reverse. An HTML file that disagrees
+with its `.md` is stale, not a second opinion. Every other paper is Markdown
+only. The same rule applies to re-uploading a paper from a local copy: pull
+first, or the upload silently reverts whatever the repo learned since.
 
 **The library guide is canonical for the papers' series numerals.** A paper's
 masthead carries the numeral the guide assigns it; inside a paper, cross-

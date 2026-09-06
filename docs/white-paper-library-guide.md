@@ -9,6 +9,22 @@ the system consumes it through a compact claims registry (claims, falsifiers,
 evidence links); the papers themselves are for the human and for writing that
 registry.*
 
+**Three documents exist in two formats, and the two formats have different jobs.**
+This guide, *The Dealer's Hand* (XIII) and *Options as Expression* (XXII) are
+each published as HTML alongside their Markdown source. **The HTML is canonical
+for reading** — it carries the rendered tables, the anchor navigation and the
+computed figures the Markdown can only hold as placeholders. **The Markdown is
+canonical for editing** — every change is made in the `.md` and the HTML is
+regenerated from it, never the other way round. An edit made only in the HTML is
+lost at the next regeneration, and an HTML file that disagrees with its `.md` is
+stale by definition rather than a second opinion. Every other paper in the
+library is Markdown only, and the question does not arise.
+
+*(This note was added on 6 September and removed the same afternoon by a
+full-file re-upload from a local copy that predated it — which is the editing
+hazard the rule describes, arriving before the rule was a day old. Edit the
+`.md` in the repo, or re-upload from a copy that has pulled.)*
+
 ---
 
 ## Contents
@@ -732,6 +748,8 @@ have since been dispositioned into the v17 architecture.
 
 ## XIII. The Dealer's Hand
 **Companion to: Daily Cascade — dealer positioning · word count not yet measured · illustrated edition: 15 computed figures + 2 worked ledgers**
+
+**Formats.** HTML canonical for reading (it carries the figures); Markdown canonical for editing (the `.md` is the source the HTML is regenerated from, and holds figure placeholders). The same rule governs this guide and *Options as Expression* — see the front matter.
 
 **What it contains.** The paper that derives the mechanics the Daily Cascade
 paper applies. Where Paper V gives reading rules for gamma, walls and flips, this
