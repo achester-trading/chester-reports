@@ -21,6 +21,13 @@ needs systemd, which the machine these are AUTHORED on does not have. So this
 checks what can be checked from the text: every directive we ship is known, in
 a section systemd reads it from, and carries a value from its enumeration.
 
+AND THE CHECKS ARE THEMSELVES CHECKED. Every unit this repo ships is green by
+design, so the real corpus exercises none of the failure paths -- a check that
+quietly stopped firing would look exactly like a clean build. SELF_TESTS drives
+synthetic units carrying one defect each through the same scanner, so the
+wrong-section check in particular is proved to fire on every run rather than
+the last time somebody tried it by hand.
+
 DELIBERATELY A CLOSED ALLOWLIST. An unrecognised directive FAILS rather than
 being skipped. That is the point: a typo and a directive nobody vetted look
 identical from here, and the vetting is the value. Adding a directive means
@@ -117,11 +124,18 @@ def bad(m: str) -> None:
     print(f"  FAIL  {m}")
 
 
-def check_unit(path: Path) -> None:
+def scan(text: str) -> tuple[int, list[str]]:
+    """Directives seen, and everything wrong with them.
+
+    Split out from check_unit so the SELF-TESTS below can drive it with
+    synthetic units. A validator whose own checks are never exercised is a
+    validator that can lose one silently -- which is the same failure class it
+    exists to catch.
+    """
     section = None
     seen = 0
     problems: list[str] = []
-    for n, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for n, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         # A commented-out [Install] is the enable gate, not a section.
         if not line or line.startswith("#") or line.startswith(";"):
@@ -152,6 +166,11 @@ def check_unit(path: Path) -> None:
                 f"line {n}: {key}={value!r} is not one of "
                 f"{sorted(values)} -- systemd ignores or rejects it")
 
+    return seen, problems
+
+
+def check_unit(path: Path) -> None:
+    seen, problems = scan(path.read_text(encoding="utf-8"))
     if problems:
         for p in problems:
             bad(f"{path.name}: {p}")
@@ -159,9 +178,62 @@ def check_unit(path: Path) -> None:
         ok(f"{path.name}: {seen} directives, all known, sited and valued")
 
 
+# Synthetic units carrying one defect each. The wrong-section case is the
+# reason this block exists: the four silent-ignore incidents that produced this
+# validator were ALL a directive systemd reads from somewhere else, and a check
+# for that which quietly stopped working would look exactly like a clean build.
+# The unit files are green by design, so nothing in the real corpus exercises
+# these paths -- these do.
+SELF_TESTS: list[tuple[str, str, str]] = [
+    ('StartLimit* under [Service] is caught (defect 1, the original)',
+     "[Unit]\nDescription=x\n[Service]\nStartLimitIntervalSec=1h\nExecStart=/bin/true\n",
+     'systemd reads it from [Unit]'),
+    ('StartLimitBurst under [Service] is caught too, not just its sibling',
+     "[Unit]\nDescription=x\n[Service]\nStartLimitBurst=4\nExecStart=/bin/true\n",
+     'systemd reads it from [Unit]'),
+    ('a [Service] directive under [Unit] is caught in the other direction',
+     "[Unit]\nDescription=x\nExecStart=/bin/true\n",
+     'systemd reads it from [Service]'),
+    ('a [Timer] directive in a [Service] section is caught',
+     "[Unit]\nDescription=x\n[Service]\nOnCalendar=daily\n",
+     'systemd reads it from [Timer]'),
+    ('ProtectHome=read-write is caught (defect 2: valid directive, dead value)',
+     "[Unit]\nDescription=x\n[Service]\nProtectHome=read-write\nExecStart=/bin/true\n",
+     'is not one of'),
+    ('an unknown directive fails rather than being skipped',
+     "[Unit]\nDescription=x\n[Service]\nProtectEverything=yes\nExecStart=/bin/true\n",
+     'unknown directive'),
+    ('a directive before any section header is not silently accepted',
+     "ExecStart=/bin/true\n",
+     'IGNORED here'),
+    ('a correct unit produces no problems at all',
+     "[Unit]\nDescription=x\nStartLimitBurst=4\n[Service]\nType=oneshot\nExecStart=/bin/true\nProtectHome=no\n",
+     ''),
+]
+
+
+def self_test() -> None:
+    """Prove the checks fire, before trusting them on the real units."""
+    print(f"{LINE}\nSelf-test: the checks themselves\n{LINE}")
+    for name, text, expect in SELF_TESTS:
+        _, problems = scan(text)
+        if not expect:
+            if problems:
+                bad(f"{name} -- but got: {problems}")
+            else:
+                ok(name)
+            continue
+        if any(expect in p for p in problems):
+            ok(name)
+        else:
+            bad(f"{name} -- expected {expect!r}, got: {problems or 'nothing'}")
+    print()
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    self_test()
     units = sorted(list(UNIT_DIR.glob("*.service")) + list(UNIT_DIR.glob("*.timer")))
     print(f"{LINE}\nsystemd units shipped in deploy/systemd/\n{LINE}")
     if not units:
