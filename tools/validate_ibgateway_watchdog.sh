@@ -37,7 +37,14 @@ printf '%s\n' "$*" >>"$SYSTEMCTL_CALLS"
 case "$*" in
     *is-active*) [[ "${UNIT_ACTIVE:-1}" == "1" ]] && exit 0 || exit 3 ;;
     *MemoryCurrent*) echo "308281344"; exit 0 ;;
-    *restart*) [[ "${RESTART_OK:-1}" == "1" ]] && exit 0 || exit 1 ;;
+    *restart*)
+        # Snapshot the watchdog's state file AT THE MOMENT the restart is
+        # issued. The budget has to be on disk before the restart is spent,
+        # so this is where it must already be readable.
+        if [[ -n "${STATE_SNAPSHOT:-}" ]] && [[ -f "${WD_STATE:-}" ]]; then
+            cp "$WD_STATE" "$STATE_SNAPSHOT"
+        fi
+        [[ "${RESTART_OK:-1}" == "1" ]] && exit 0 || exit 1 ;;
 esac
 exit 0
 STUB
@@ -54,6 +61,7 @@ STUB
 chmod +x "$BIN/systemctl" "$BIN/flock" "$BIN/fake_python"
 
 export SYSTEMCTL_CALLS="$SANDBOX/systemctl.calls"
+export WD_STATE="$SANDBOX/state/ibgateway_watchdog.state"
 export PATH="$BIN:$PATH"
 
 # run <probe_rc> -> RC, and STATE/LOG readable afterwards
@@ -112,6 +120,28 @@ restarted && bad "failure 2 must not restart" || ok "failure 2 of 3 -> still no 
 run 3
 restarted && ok "failure 3 of 3 -> RESTART issued" || bad "failure 3 -> no restart"
 [[ $RC -eq 1 ]] && ok "restart path -> exit 1" || bad "restart path -> exit $RC"
+
+# --- the budget is PERSISTED BEFORE the restart is issued ------------------
+#
+# `systemctl restart` blocks until the unit starts or times out.
+# ibgateway.service allows 5 minutes; the watchdog unit allows 3. So a Gateway
+# hung on its login dialog holds the restart open past the watchdog's own
+# timeout, systemd kills the watchdog mid-call, and an increment written after
+# the call never lands. The next run reads the same count and restarts again --
+# an unbounded loop against the one fault a restart cannot fix. The counter has
+# to be on disk BEFORE it is spent, and this asserts that from inside the
+# restart itself rather than after it returned.
+reset_state
+export STATE_SNAPSHOT="$SANDBOX/state.at-restart"
+rm -f "$STATE_SNAPSHOT"
+run 3; run 3; run 3
+if [[ -f "$STATE_SNAPSHOT" ]] && grep -q '^RESTARTS=1$' "$STATE_SNAPSHOT"; then
+    ok "RESTARTS=1 was already on disk when the restart was issued"
+else
+    bad "the restart budget was not persisted before the restart: $(cat "$STATE_SNAPSHOT" 2>/dev/null | tr '
+' ' ')"
+fi
+unset STATE_SNAPSHOT
 
 # --- recovery clears the failure counter ----------------------------------
 run 0
@@ -176,6 +206,17 @@ grep -q 'America/New_York' "$REPO/deploy/systemd/ibgateway-restart.timer" \
 grep -qE 'OnCalendar=\*-\*-\* 01:00:00' "$REPO/deploy/systemd/ibgateway-restart.timer" \
     && ok "restart at 01:00 ET -- clear of IBKR's 23:45-00:45 reset window" \
     || bad "restart time is not 01:00"
+# BindsTo= on the watchdog stops it whenever ibgateway.service stops -- taking
+# the watchdog down at exactly the moment it exists for. A watchdog that cannot
+# run while its subject is down is not a watchdog.
+WD_UNIT="$REPO/deploy/systemd/ibgateway-watchdog.service"
+grep -qE '^BindsTo=' "$WD_UNIT" \
+    && bad "watchdog BindsTo= its subject -- it dies with the thing it restarts" \
+    || ok "no BindsTo= : the watchdog outlives the unit it restarts"
+grep -qE '^After=ibgateway\.service' "$WD_UNIT" \
+    && ok "After=ibgateway.service keeps the ordering" \
+    || bad "watchdog has no After= ordering on its subject"
+
 grep -q 'WATCHDOG_CLIENT_ID:-18' "$WATCHDOG" \
     && ok "watchdog probes on clientId 18, not the sync's 17" \
     || bad "watchdog shares a clientId with the sync"

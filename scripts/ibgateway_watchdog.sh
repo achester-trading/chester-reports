@@ -175,6 +175,26 @@ fi
 
 RESTARTS=$((RESTARTS + 1))
 FAILS=0
+
+# PERSIST THE BUDGET BEFORE SPENDING IT, NOT AFTER.
+#
+# The increment used to reach disk only via report(), which runs after
+# `systemctl restart` returns -- and that call BLOCKS until the unit starts or
+# times out. ibgateway.service allows TimeoutStartSec=5min; this unit allows
+# TimeoutStartSec=3min. So a Gateway that hangs on the login dialog holds the
+# restart open past the watchdog's own timeout, systemd kills the watchdog
+# mid-call, and the increment is lost. Every subsequent run then reads the same
+# RESTARTS and restarts again: an unbounded restart loop against the exact
+# fault the budget exists to stop, since a wrong password in config.ini is
+# never fixed by trying again.
+#
+# A crash, a reboot, or an OOM kill between here and report() has the same
+# effect. Writing first makes the counter conservative under every one of them:
+# the worst case is a restart charged to the budget that never happened, which
+# costs one restart of headroom and fails safe. The alternative fails open, and
+# it fails open precisely when the Gateway is at its most wedged.
+save_state
+
 log "  restarting $UNIT (restart $RESTARTS of $MAX_RESTARTS_PER_DAY today)"
 if systemctl --user restart "$UNIT"; then
     log "  restart issued"

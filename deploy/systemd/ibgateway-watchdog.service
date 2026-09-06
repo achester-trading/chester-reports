@@ -1,11 +1,30 @@
 [Unit]
 Description=IB Gateway health watchdog (the real health authority)
 Documentation=file:///%h/chester-reports/deploy/systemd/README.md
-# Only meaningful while the Gateway unit is up. If the Gateway is stopped on
-# purpose the watchdog stops too, rather than restarting something a human
-# deliberately shut down.
+# THE WATCHDOG MUST OUTLIVE THE UNIT IT RESTARTS. BindsTo= was here and was
+# exactly backwards: it stops this unit whenever ibgateway.service stops, so
+# the one moment the watchdog exists for -- a Gateway that has died or wedged
+# -- is the moment systemd would have taken the watchdog down with it. A
+# watchdog that cannot run while its subject is down is not a watchdog.
+#
+# After= keeps the ordering. Wants= is a weak pull, so the Gateway being
+# absent, failed or stopped never blocks this unit from starting and reporting.
+#
+# The "do not restart what a human deliberately stopped" rule was never
+# BindsTo='s to enforce and does not go away with it: ibgateway_watchdog.sh
+# checks `systemctl is-active` before probing and reports unit_inactive without
+# restarting. That is the right layer for it -- a policy about intent belongs
+# in the thing that reads the intent, not in a dependency edge.
+#
+# CAVEAT ON Wants=, worth knowing before the enable gate is cleared: Wants= is
+# a START dependency, so systemd will attempt to start ibgateway.service
+# whenever this unit starts -- every five minutes. That will pull a
+# deliberately stopped Gateway back up before the script's is-active guard ever
+# runs, making that guard unreachable in practice. If a deliberate stop needs
+# to stick, drop Wants= and keep After= alone; ordering is all this unit
+# actually requires.
 After=ibgateway.service
-BindsTo=ibgateway.service
+Wants=ibgateway.service
 
 [Service]
 Type=oneshot
