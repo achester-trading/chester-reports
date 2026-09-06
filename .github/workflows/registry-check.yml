@@ -64,6 +64,14 @@ jobs:
       - name: IB Gateway watchdog policy
         run: bash tools/validate_ibgateway_watchdog.sh
 
+      # The heartbeat check is the only alarm that says the pipeline died, so
+      # its wrapper's failure mode is that it reports healthy or reports
+      # nothing -- and both read as all-clear. The checker is stubbed here, so
+      # this tests the verdict mapping, the outage clock, and the rule that a
+      # delivery which did not happen is RECORDED rather than swallowed.
+      - name: Heartbeat caller policy
+        run: bash tools/validate_heartbeat_caller.sh
+
       # Silent-ignore is a four-time pattern: a directive in the wrong section,
       # an invalid value, and a hardening stanza that hid a missing
       # ReadWritePaths. systemd accepts all of them and does something other

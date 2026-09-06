@@ -1,0 +1,41 @@
+[Unit]
+Description=Check the EOD heartbeat and deliver the verdict
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# No After= or BindsTo= on anything. A monitor that only runs when the thing it
+# monitors is up cannot report that the thing is down.
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/check_heartbeat_cron.sh
+
+# SuccessExitStatus is DELIBERATELY ABSENT, which means only 0 counts as
+# success and a stale or missing heartbeat leaves this unit in systemd's failed
+# state until the next healthy check clears it.
+#
+# That is the opposite of chester-ibkr-sync.service, which lists 3 4 5 6 as
+# success, and the difference is worth stating: there, a sync that reports a
+# down Gateway is a sync that WORKED, so failing the unit would confuse "the
+# job broke" with "the job found something". Here the job's entire product is
+# the alarm. `systemctl --user list-units --failed` becomes a fourth delivery
+# channel for free, and a red light is the correct reading of a dead pipeline.
+#
+# A failed oneshot does not stop its timer: the next 08:30 fires regardless and
+# a healthy check clears the state. So there is no restart storm to guard and
+# no StartLimit to set.
+
+TimeoutStartSec=2min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The checker reads the repo (for the holiday table) and the state dir; the
+# wrapper writes the log, the state files and the alert. ProtectSystem=strict
+# makes everything else read-only, so these three are named explicitly --
+# omitting them is how chester-eod.service would have failed on its first write.
+ReadWritePaths=%h/logs %h/.chester
+ReadOnlyPaths=%h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

@@ -1,0 +1,36 @@
+[Unit]
+Description=Check the EOD heartbeat every morning at 08:30 ET
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 08:30 ET, EVERY day including weekends and holidays -- not Mon-Fri like the
+# EOD timer it watches. Two reasons.
+#
+# First, the checker is calendar-aware: it derives its allowance from when a run
+# was last DUE, so a Saturday check correctly reports OK on Friday's heartbeat
+# rather than alarming. Running it on a closed day costs nothing and proves the
+# monitor is still alive on the days nothing else runs.
+#
+# Second, 08:30 is before the session and after any overnight repair window, so
+# a verdict is waiting when the day starts. It is also where the 07:00 Morning
+# Brief will read the alert file from once D4 lands -- deliberately AFTER the
+# brief rather than before, for now: the brief does not exist yet, and until it
+# does, a human reading this at 08:30 beats a file written at 06:55 that nobody
+# opens. Move it to 06:45 when the brief becomes the reader.
+OnCalendar=*-*-* 08:30:00 America/New_York
+
+# Persistent=true, unlike chester-ibkr-sync.timer, and the difference matters.
+# A missed sync would append a portfolio snapshot stamped now but describing
+# whenever the box came back -- a misdated observation, worse than a gap. This
+# writes no dated record of anything: it measures the heartbeat's age AT THE
+# MOMENT IT RUNS. A catch-up check after downtime is simply a late check, and a
+# late check that finds a four-day-old heartbeat is exactly the alarm wanted.
+Persistent=true
+
+# Nothing else contends for this minute and the check takes under a second, but
+# a small spread keeps it off the top of the minute where cron-shaped jobs pile
+# up on a shared box.
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

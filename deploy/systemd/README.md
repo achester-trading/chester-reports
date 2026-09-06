@@ -122,9 +122,10 @@ bash ~/chester-reports/tools/validate_session_calendar.sh
 That drives both scripts against injected dates in a sandbox — no network, no
 clock changes, and the real checkout is untouched.
 
-Wire it to whatever alerts you; a second user timer running it each morning is
-the obvious next step, and is deliberately not installed here — an alerting
-path nobody reads is worse than none.
+That second timer is now **built** — see section 7 below. The caution this
+paragraph used to carry ("an alerting path nobody reads is worse than none") is
+answered there rather than dropped: the check delivers four ways, and it
+records whether each delivery actually happened.
 
 ## Exit codes from the pass itself
 
@@ -138,6 +139,111 @@ path nobody reads is worse than none.
 
 Only `0` touches the heartbeat. `4` is deliberately not a success: the chains
 cannot be re-fetched, so a single copy is not a healthy state.
+
+## 7. Install the heartbeat check — the caller the checker never had
+
+`check_heartbeat.sh` existed for days with nothing on the box running it. The
+EOD wrapper wrote the heartbeat faithfully on every clean exit and no process
+ever read it, which is the inverted-heartbeat design half-built: the alarm is
+the *absence* of a signal, and an absence nobody looks for is a silence. The
+pass could have failed every night for six weeks and the first symptom would
+have been a report with a hole in it.
+
+```bash
+cp ~/chester-reports/deploy/systemd/chester-heartbeat.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user start chester-heartbeat.service     # run it once, now
+systemctl --user status chester-heartbeat.service    # read the verdict
+systemctl --user enable --now chester-heartbeat.timer
+systemctl --user list-timers chester-heartbeat.timer # NEXT should be 08:30 ET
+```
+
+Unlike the Gateway units there is no gate held over this one: it is read-only,
+it writes nothing but its own log and state, and it cannot affect the pipeline
+it watches. Enable it the day it lands.
+
+### What it produces
+
+| Path | What it is |
+|---|---|
+| `~/logs/heartbeat_check-YYYY-MM.log` | one line per check, verdict first. `grep -c 'verdict=ok'` over a month is an uptime figure; `grep -v 'verdict=ok'` is the incident list |
+| `~/.chester/heartbeat_check_status` | the latest verdict, one line, for a monitor that does not want to parse a log |
+| `~/.chester/heartbeat_check_last_ok` | touched **only** when the box is healthy, so **its age is the length of the outage** — the same trick `ibkr_sync_last_success` uses |
+| `~/.chester/alerts/eod_heartbeat.json` | machine-readable, written on **every** check including healthy ones, for the 07:00 Morning Brief to read when D4 lands |
+
+The alert file is written even when everything is fine on purpose. A brief that
+only ever sees a file when something is wrong cannot tell "all clear" from "the
+monitor stopped running", and that distinction is the entire point. The reader
+ages `checked_at` on this file the same way it would age any other source.
+
+### The four delivery channels, weakest to strongest
+
+1. **The log line** — always written, needs someone to look.
+2. **`heartbeat_check_last_ok`** — its age answers "how long has this been
+   broken" without reading anything.
+3. **`systemctl --user list-units --failed`** — `chester-heartbeat.service`
+   declares no `SuccessExitStatus`, so **only exit 0 counts as success** and a
+   stale or missing heartbeat leaves the unit red until a healthy check clears
+   it. This is deliberately the opposite of `chester-ibkr-sync.service`, which
+   marks 3/4/5/6 as success: there, a sync reporting a down Gateway is a sync
+   that *worked*; here, the alarm is the product. A failed oneshot does not
+   stop its timer — 08:30 fires again regardless.
+4. **Email**, if the box can send it:
+
+```bash
+sudo apt install -y bsd-mailx msmtp-mta     # or whatever this box already has
+systemctl --user edit chester-heartbeat.service
+#   [Service]
+#   Environment=CHESTER_ALERT_EMAIL=you@example.com
+```
+
+Mail is attempted **only on a non-healthy verdict**. A daily "everything is
+fine" is an email nobody reads by week three, and an unread channel is worse
+than no channel because it feels like coverage.
+
+**Prove the channel before trusting its silence.** Once, by hand:
+
+```bash
+CHESTER_ALERT_EMAIL=you@example.com CHESTER_ALERT_EMAIL_ALWAYS=1 \
+  ~/chester-reports/scripts/check_heartbeat_cron.sh
+grep delivery ~/logs/heartbeat_check-$(date +%Y-%m).log
+```
+
+The delivery outcome is **recorded, never assumed** — `delivery=mail`,
+`mail_failed`, `no_mta`, or `no_address` lands in the log and in the alert
+file. A box with no mail transport says so on the day it is installed rather
+than during the outage it was supposed to report. That is not defensiveness;
+it is the fifth instance of this repo's signature defect, where a thing is
+configured, looks wired, and quietly does nothing.
+
+### Why it runs every day, and why 08:30
+
+Every day including weekends and holidays, unlike the Mon–Fri EOD timer it
+watches. The checker derives its allowance from the calendar, so a Saturday
+check correctly reports OK against Friday's heartbeat rather than alarming —
+and running on a closed day proves the monitor is still alive on the days
+nothing else runs.
+
+08:30 ET is before the session and after any overnight repair window, so a
+verdict is waiting when the day starts. It sits **after** the future 07:00
+Morning Brief on purpose: the brief does not exist yet, and until it does, a
+human reading this at 08:30 beats a file written at 06:55 that nobody opens.
+Move it to 06:45 when the brief becomes the reader.
+
+`Persistent=true`, unlike `chester-ibkr-sync.timer`. A missed sync would append
+a portfolio snapshot stamped now but describing whenever the box came back — a
+misdated observation, worse than a gap. This writes no dated record of
+anything; it measures the heartbeat's age at the moment it runs. A catch-up
+check after downtime is a late check, and a late check finding a four-day-old
+heartbeat is exactly the alarm wanted.
+
+### Exit codes
+
+`0` healthy · `1` stale · `2` no heartbeat ever · `3` last run failed · `9` the
+check itself could not run. That last one is deliberately outside the
+checker's range: "the monitor is broken" must not read as "the pipeline
+failed", or somebody debugs the wrong machine.
+
 
 ## Timezone note
 

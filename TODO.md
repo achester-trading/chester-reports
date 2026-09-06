@@ -972,8 +972,9 @@ probes before wiring; nothing displaces Tuesday's debut check.
   `CHESTER_STATE_URL`, `CHESTER_STATE_TOKEN`.
 - **`registry-check.yml` runs on push and pull_request** — unaffected by
   retiring the external scheduler.
-- **The VPS timer roster is four units**, none of them the Monthly and none of
-  them a Daily: `chester-eod.timer` (Mon–Fri 16:10 ET),
+- **The VPS timer roster is four units** (five with `chester-heartbeat.timer`,
+  added 6 Sep — see "D0 finding closed" at the end of this file), none of them
+  the Monthly and none of them a Daily: `chester-eod.timer` (Mon–Fri 16:10 ET),
   `chester-ibkr-sync.timer` (Mon–Fri 09..17:00/30 ET),
   `ibgateway-restart.timer` (01:00 ET daily), `ibgateway-watchdog.timer`
   (every 5 min). **Retiring cron-job.org therefore requires building the
@@ -1154,3 +1155,80 @@ an annotation in place (D2, D4, D5) and the rest is new work below.*
 - [ ] **Guide, XIII entry: "Where Paper V gives reading rules for gamma"** is a
       pre-reorder numeral inside the document that is canonical for numerals. It
       means the Daily Cascade paper, now XII.
+
+---
+
+# D0 finding closed: the heartbeat had no caller (6 Sep 2026) — BUILT
+
+*The D0 inventory turned up one live defect rather than a gap in the plan.
+`scripts/check_heartbeat.sh` had existed since the calendar work with **nothing
+on the box running it** — no timer, no unit, no caller except
+`validate_session_calendar.sh` driving it in a sandbox. The inverted-heartbeat
+design was half-built: `run_eod_cron.sh` writes the heartbeat on every clean
+exit and no process ever read it. The EOD pass could have failed every night
+for the six weeks the system narrative describes and the first symptom would
+have been a report with a hole in it. Built before D1 because it is the thing
+that tells you D1 is needed.*
+
+**Landed:** `scripts/check_heartbeat_cron.sh` ·
+`deploy/systemd/chester-heartbeat.{service,timer}` (08:30 ET daily) ·
+`tools/validate_heartbeat_caller.sh` (24 assertions, in CI) · README section 7.
+
+- [x] Daily 08:30 ET timer, **every day including weekends and holidays** —
+      the checker is calendar-aware, so a Saturday check reports OK against
+      Friday's heartbeat, and running on a closed day proves the monitor is
+      alive on the days nothing else is.
+- [x] **Four delivery channels**, weakest to strongest: the verdict-keyed log
+      line (`grep -c 'verdict=ok'` over a month is an uptime figure);
+      `~/.chester/heartbeat_check_last_ok`, touched only when healthy so **its
+      age is the outage length**; `systemctl --user list-units --failed`,
+      because the unit declares **no `SuccessExitStatus`** and only exit 0
+      counts; and email when the box can send it.
+- [x] `~/.chester/alerts/eod_heartbeat.json`, **written on every check
+      including healthy ones**, at a path fixed now for D4's Morning Brief. A
+      brief that only sees a file when something is wrong cannot distinguish
+      "all clear" from "the monitor stopped", which is the whole point of an
+      inverted heartbeat. The reader ages `checked_at` on it like any source.
+- [x] **Delivery outcome recorded, never assumed** — `delivery=mail` /
+      `mail_failed` / `no_mta` / `no_address` in both the log and the alert.
+      A box with no mail transport says so the day it is installed rather than
+      during the outage it was meant to report. Sixth instance of the
+      configured-looks-wired-does-nothing pattern; this one is instrumented.
+- [x] Exit `9` for "the check itself could not run", deliberately outside the
+      checker's 0–3 range: the monitor being broken must not read as the
+      pipeline having failed, or somebody debugs the wrong machine.
+- [x] The validator was **proved to fail on its target defect** (mutate
+      `last_ok` to be touched unconditionally → 2 FAILs), not merely to pass.
+      A first attempt at that mutation silently did not match and the suite
+      stayed green — caught by disbelieving the green line, which is the
+      31.5(b) rule applied to a test rather than to a docstring.
+
+## Two design departures worth remembering
+
+- **This wrapper does NOT `git pull`,** unlike `run_eod_cron.sh` and
+  `sync_ibkr.sh`. Part 25 has the box pull before running; a monitor is the
+  exception, because a pull that hangs or fails would become a heartbeat
+  failure — the monitor reporting on itself. The checker reads a local file and
+  a local holiday table and needs no fresher code than the box has.
+- **`Persistent=true`,** unlike `chester-ibkr-sync.timer`. A missed sync would
+  append a snapshot stamped now but describing whenever the box came back — a
+  misdated observation, worse than a gap. This writes no dated record; it
+  measures the heartbeat's age at the moment it runs, so a catch-up check is a
+  late check, and a late check finding a four-day-old heartbeat is the alarm.
+
+## Still owed on the box (Part 25 — the VPS runs code, this repo cannot install it)
+
+- [ ] **Pull, copy the two units, enable the timer.** README section 7. No gate
+      held over this one, unlike the Gateway units: it is read-only, writes
+      only its own log and state, and cannot affect what it watches.
+- [ ] **Prove the email channel once, then trust its silence.** `apt install
+      bsd-mailx msmtp-mta` (or whatever the box has), set
+      `CHESTER_ALERT_EMAIL` via `systemctl --user edit`, and run once with
+      `CHESTER_ALERT_EMAIL_ALWAYS=1`. Until that is done the log will read
+      `delivery=no_address`, which is honest but is not an alarm anyone
+      receives.
+- [ ] **Confirm the first real verdict.** The box's own `eod_heartbeat` decides
+      whether the first 08:30 reads `ok` or `no_heartbeat`; the latter would be
+      a real finding about the EOD timer, not about this check.
+- [ ] **`systemd-analyze verify chester-heartbeat.{service,timer}`** on the box,
+      folding into the existing cross-check item for the directive allowlist.
