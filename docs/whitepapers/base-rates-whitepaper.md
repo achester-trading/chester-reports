@@ -3,7 +3,7 @@
 ## What Markets Usually Do — and How Far Back "Usually" Goes
 
 **Companion white paper — chester-reports library**
-**Series placement:** with the market-timing layer, beside *Tops and Bottoms* (numeral assigned by the library guide on commit; cross-references in this paper are by name)
+**Series placement:** Companion **XX** — with the market-timing layer, beside *Tops and Bottoms* (X), per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
 **Version:** 1.0 — September 2026
 **Status:** Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.
 

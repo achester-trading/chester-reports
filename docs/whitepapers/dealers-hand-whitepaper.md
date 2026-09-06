@@ -2,7 +2,9 @@
 
 ### Options, Gamma, and the Mechanics Behind §06 — An Elaboration of Daily Cascade Chapter 2
 
-**Companion IX · Version 1.0 · August 30, 2026**
+**Companion XIII · Version 1.0 · August 30, 2026**
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. The illustrated HTML edition is canonical for reading; this Markdown file is canonical for editing.*
 
 ---
 
@@ -1109,5 +1111,5 @@ Three computed indicators, all cheap once the §06 feed is live, all belonging i
 
 ---
 
-*Companion IX · Version 1.1 · extended September 5, 2026 with Part V (the multi-horizon book) and Figures 16–21. This paper is the controlling elaboration of Daily Cascade Chapter 2; the two are consistent on mechanics, and this paper is the one that derives them. Report figures are the 0700 §06 values on the reference Friday. The setups are structured judgment awaiting the outcome-logging layer (Daily Cascade backlog, Tier 1, item 1) that will grade them.*
+*Companion XIII · Version 1.1 · extended September 5, 2026 with Part V (the multi-horizon book) and Figures 16–21. This paper is the controlling elaboration of Daily Cascade Chapter 2; the two are consistent on mechanics, and this paper is the one that derives them. Report figures are the 0700 §06 values on the reference Friday. The setups are structured judgment awaiting the outcome-logging layer (Daily Cascade backlog, Tier 1, item 1) that will grade them.*
 

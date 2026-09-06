@@ -27,7 +27,21 @@ disagree: AGENTS.md describes the code as it stands, the architecture document
 governs where it is going and overrides this file on intent.
 
 `docs/` also carries `chester-reports-master-schedule.md` and
-`white-paper-library-guide.md`.
+`white-paper-library-guide.md`, plus the white paper library itself in
+`docs/whitepapers/`.
+
+**Two of those documents exist in two formats.** For the library guide and
+`docs/whitepapers/dealers-hand-whitepaper.md`, **the HTML is canonical for
+reading** (it carries the rendered tables, the anchor navigation, and the
+Dealer's Hand's computed figures) and **the Markdown is canonical for
+editing** — edit the `.md` and regenerate the HTML from it, never the reverse.
+An HTML file that disagrees with its `.md` is stale, not a second opinion.
+Every other paper is Markdown only.
+
+**The library guide is canonical for the papers' series numerals.** A paper's
+masthead carries the numeral the guide assigns it; inside a paper, cross-
+references to other papers are **by name, never by numeral**, because the
+numerals were reassigned once already and every in-text numeral broke.
 
 ## Repo layout
 

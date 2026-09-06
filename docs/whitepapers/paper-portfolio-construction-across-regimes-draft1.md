@@ -1,7 +1,9 @@
 # Portfolio Construction Across Regimes
 ## The Bridge Between Anticipating Disruption and Positioning for It
 
-**Companion to: the full five-report stack — Disruptive Themes, Monthly Macro, Top & Bottom, Alternative Asset, Daily Cascade · Draft 1 · ~4,400 words · 31 August 2026**
+**Companion XVII · Companion to: the full five-report stack — Disruptive Themes, Monthly Macro, Top & Bottom, Alternative Asset, Daily Cascade · Draft 1 · ~4,400 words · 31 August 2026**
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
 ---
 

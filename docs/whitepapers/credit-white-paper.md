@@ -4,7 +4,9 @@
 
 **Version 1.0 — August 2026**
 
-*Companion paper XI in the chester-reports library — prepared for Top & Bottom, Monthly Macro, and Disruptive Themes*
+*Companion paper **VI** in the chester-reports library — prepared for Top & Bottom, Monthly Macro, and Disruptive Themes*
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
 ---
 

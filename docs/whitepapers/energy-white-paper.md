@@ -4,13 +4,15 @@
 
 **Version 1.0 — August 2026**
 
-*Companion paper XII in the chester-reports library — prepared for the Alternative Asset Report and Monthly Macro*
+*Companion paper **VII** in the chester-reports library — prepared for the Alternative Asset Report and Monthly Macro*
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
 ---
 
 ## Purpose and How to Use This Document
 
-Energy is the input to everything else in the report system — the cost base of the metals in paper VII, the inflation impulse that moved the Fed and the ECB in paper VIII, the term structure signal in paper XIII, the geopolitical channel in Disruptive Themes. It is also the commodity complex with the worst forecasting record and the most confident forecasters, which is a combination worth understanding before trusting any number.
+Energy is the input to everything else in the report system — the cost base of the metals in the *Metals* paper, the inflation impulse that moved the Fed and the ECB in *The Rate and Liquidity Machine*, the term structure signal in the *Volatility* paper, the geopolitical channel in Disruptive Themes. It is also the commodity complex with the worst forecasting record and the most confident forecasters, which is a combination worth understanding before trusting any number.
 
 The paper carries one emphasis, agreed in advance: **power and the AI-load thesis.** Electricity is the energy commodity where the 2020s changed the structure rather than the cycle, and it is the one with the thinnest coverage in the existing library. Part IV is the longest.
 
@@ -335,7 +337,7 @@ The petrodollar channel belongs to the currency paper (VIII): Gulf export revenu
 
 ## 26. Energy and Metals
 
-The bridge to paper VII, in both directions. Energy is the cost curve for all mining — diesel, electricity, and acid set the floor under copper, gold, and silver production costs, and the 2026 sulfuric-acid episode showed a cheap energy-adjacent input binding a metal's supply. In the other direction, the electrification build-out that drives copper demand is the same grid build-out that Part IV describes: transformers, lines, and substations are copper intensity, so the power squeeze and the copper thesis are one structural story read through two commodities. The metals paper owns copper; the cross-reference is the point.
+The bridge to the *Metals* paper, in both directions. Energy is the cost curve for all mining — diesel, electricity, and acid set the floor under copper, gold, and silver production costs, and the 2026 sulfuric-acid episode showed a cheap energy-adjacent input binding a metal's supply. In the other direction, the electrification build-out that drives copper demand is the same grid build-out that Part IV describes: transformers, lines, and substations are copper intensity, so the power squeeze and the copper thesis are one structural story read through two commodities. The metals paper owns copper; the cross-reference is the point.
 
 ---
 ---
@@ -399,7 +401,7 @@ The energy-specific dislocations that reflect metal actually moving, parallel to
 
 ## 32. Positioning and Sentiment
 
-COT managed-money net length in crude and gas, percentile-ranked, contrarian at the tails — the crude net length hit extremes on both sides within 2026, marking the March spike and the June ceasefire trough. Options skew: call skew in crude marks disruption-hedging demand (the current state); put skew marks glut fear. The physical-trust premia in uranium. And the OVX regime read, owned by paper XIII: oil vol leading equity vol has been the reliable 2026 sequence.
+COT managed-money net length in crude and gas, percentile-ranked, contrarian at the tails — the crude net length hit extremes on both sides within 2026, marking the March spike and the June ceasefire trough. Options skew: call skew in crude marks disruption-hedging demand (the current state); put skew marks glut fear. The physical-trust premia in uranium. And the OVX regime read, owned by the *Volatility* paper: oil vol leading equity vol has been the reliable 2026 sequence.
 
 ## 33. Cross-Asset Confirmation
 

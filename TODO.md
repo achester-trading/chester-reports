@@ -771,7 +771,9 @@ Daily with Friday/Sunday and a closed learning loop.
       composite (29's rule 1). Feeds the Daily's Backdrop immediately and seeds
       T&B (Sessions 10–14), which refines rather than replaces it. Per 30.8,
       VIX term structure (VX1/VX2/VX3 slope, contango → backwardation) joins as
-      a declared state machine once CFE Enhanced is subscribed.
+      a declared state machine once CFE Enhanced is subscribed. **+31.2: D2 also
+      emits `regime.debt_cycle_state` (+1.5h)** — see the Part 31 section below;
+      it is a regime output, not a pillar row.
 - [ ] **D3 — Session 4-lite (3h). BLOCKS ANY DAILY NARRATIVE.** 30.3: numbers
       in the store are gated, prose is not. Payload-constrained generation on
       the Monthly's pattern, a numeral audit that FAILS THE BLOCK when a number
@@ -781,7 +783,9 @@ Daily with Friday/Sunday and a closed learning loop.
       reading the store, render, `daily_cascade_state.json`, drafted setups
       becoming `decide.py` drafts. **Two VPS timers first (07:00, 16:30)**; the
       remaining seven of Part 28's nine are added as each block earns trust.
-      `auto_publish: false`.
+      `auto_publish: false`. **+31.3: D4 also lands overnight gap attribution
+      (1h) and the country-fund NAV-premium series (0.5h)** — see the Part 31
+      section below; both are Backdrop-context rights only.
 - [ ] **D5 — 15b-lite (3h): the loop closes.** Shadow outcome at its horizon
       for EVERY decision from stored prices — **taken, declined and draft
       alike**, which is what makes the loop learn when no trade is placed.
@@ -789,6 +793,8 @@ Daily with Friday/Sunday and a closed learning loop.
       `hypotheses` table (Part 29 registers seven) on the same grading path,
       and the Friday Weekly Reflection as a query over it with narrative on
       top. Execution-quality analytics land here too — see 30.8 adopted #1.
+      **31.5(a) affirms this step and its scope verbatim** — taken, declined and
+      draft alike — so D5 is unchanged, not expanded, by Part 31.
 - [ ] **D6 — 15a-lite (2–3h): Sunday Forward Plan.** Register state + regime +
       calendar + Part 27 v1 movers + lessons-retrieved-before-decision.
 
@@ -972,3 +978,179 @@ probes before wiring; nothing displaces Tuesday's debut check.
   `ibgateway-restart.timer` (01:00 ET daily), `ibgateway-watchdog.timer`
   (every 5 min). **Retiring cron-job.org therefore requires building the
   replacement trigger — it is not a deletion.**
+
+---
+
+# Part 31 reconciliation (6 Sep 2026)
+
+*Read against Part 31 — the only new architecture part carrying system
+obligations. Five papers landed in `docs/whitepapers/`; Part 31's own framing is
+that **most of a paper changes nothing** and it records only where one obliges
+the system to change. **Nothing built in this pass.** Total ~8.5–9.5h, and 31.7
+is explicit that it **folds into Track D and T&B rather than opening a track**,
+so the D-order in "Track D — the ruled order of work" above is unchanged.
+Nothing in Part 31 supersedes an item already in this file; three D-steps gained
+an annotation in place (D2, D4, D5) and the rest is new work below.*
+
+## Folded into existing D-steps — annotated above, listed here for the total
+
+- [ ] **31.2 — `regime.debt_cycle_state`, inside D2 (+1.5h).** The long-cycle
+      debt resolution as ONE mechanism state with two mutually exclusive
+      branches sharing antecedents: **deflationary liquidation** (falling
+      inflation with rising real yields, currency strengthening; destroys
+      equities/credit/real estate, protects long governments, cash, gold after
+      revaluation) and **inflationary repression** (nominal yields capped below
+      inflation, persistent negative real yields, gold rising against real
+      yields; destroys **bonds and cash in real terms**, protects gold,
+      commodities, real assets, equities partially). Observables — debt/GDP and
+      its full-employment trajectory, the structural deficit, **net interest as
+      a share of revenue**, foreign-official absorption share, term-premium
+      behavior when growth expectations fall, real yields vs inflation, gold vs
+      real yields — are in the store or cheap to add. **Ruling: read together as
+      one state, never as separate pillar rows** (26.9 applied to a new
+      cluster). `observation_type: inferred`, with the honest counter-case in
+      the registry note: no demonstrated debt/GDP threshold, Japan at twice the
+      ratio, the reserve-currency exception.
+- [ ] **31.2 sizing consequence — the operative half, and it is a RULE, not a
+      metric.** The Doctrine's duration sleeve is a **deflation** hedge
+      specifically. Book A's Contraction band raises duration, which is the
+      right instrument for branch one and the **wrong** one for branch two. The
+      tail-hedge budget's expression therefore depends on which branch the state
+      reads, and the dependency is recorded in advance **so the choice is not
+      made under stress.** Lands with the branch logic; touches the Doctrine's
+      Book A bands, not only code.
+- [ ] **31.3(a) — overnight gap attribution, with D4 (1h). The cheapest win in
+      the International Equities paper.** The 07:00 report reports the gap
+      today; it will attribute it: Tokyo close-to-close, the European session's
+      move at time of writing, the futures move outside both, and the release or
+      headline in whichever window dominated. Data is already available —
+      index-futures continuous series plus regional index closes. New metrics
+      `overnight.gap_attribution_*`, `observation_type: calculated`,
+      `half_life: session`. **Rights: Backdrop context only — may NOT generate a
+      Book C setup.**
+- [ ] **31.3(b) — country-fund premium to stale NAV, with D4 (0.5h).** Premium
+      to last-published NAV computed at the U.S. close for the tracked country
+      and regional funds. The registry entry must say **explicitly that this is
+      a timing artifact, not a mispricing** — `observation_type: observed`,
+      `half_life: intraday`, with the note that a stop placed on a country fund
+      is triggered by exactly this artifact. Rights: Backdrop context, plus a
+      **Book B expression warning when an international candidate's stop sits
+      inside the typical artifact range.**
+
+## New work Part 31 adds outside the D-steps
+
+- [ ] **31.1 — `tools/base_rates.py` (2–3h, gated on D2 for the store's
+      series). A base rate is a computed observation, not a table in a paper.**
+      The reason is the replay guarantee: *a base rate cited in a decision
+      packet must be replayable as of the date it was cited, or the packet's
+      guarantee is void the first time a table is updated.* Computes the paper's
+      Part I and II tables from series already in the store — return
+      distributions at four frequencies with p25/median/p75, intra-year drawdown
+      distribution, drawdown frequency and duration by depth band, streak and
+      gap statistics, correlation by regime, VIX distribution — each written as
+      an observation with `available_at`, `registry_key: baserate.*`,
+      `observation_type: calculated`, `native_horizon: strategic`,
+      `half_life: permanent`, `revision_policy: recomputed`,
+      `trigger_eligible: false`. Recomputed annually by a scheduled job and on
+      any methodology change.
+- [ ] **31.1 drift flag — a base rate that moves more than a declared tolerance
+      on recomputation is FLAGGED FOR REVIEW.** A changing base rate is itself
+      information. The tolerance is declared in advance, the same discipline as
+      the pin log's `tolerance_bps`, and a recompute never silently regrades.
+- [ ] **31.1 — figures the system cannot compute go to the claims registry
+      (26.5), not the observation store**: the pre-1970 episodes, the
+      international drawdowns, the literature citations, each with its source.
+      Gated on the claims registry existing (S14 dependency).
+- [ ] **31.1 → `decide.py` gains an optional `base_rate_cited` field**, so a
+      variant-perception thesis records the consensus it departs from. Small,
+      and `decide.py` already exists.
+- [ ] **31.1 → report convention: any report stating a magnitude may state its
+      percentile against the base rate** ("a 2.1% decline, 88th percentile of
+      daily moves"). The Daily's Backdrop block **adopts it as a standing
+      convention** when D4 lands.
+- [ ] **31.1 → Top & Bottom carries the bear-rally base rate** in its top-side
+      language: three to five 5%+ counter-trend rallies inside a −20% decline,
+      p75 of the largest at +16%. This governs how a top call is **held**, not
+      how it is made. Lands with T&B (Sessions 10–14), beside the extended
+      episode set already listed above.
+- [ ] **31.3(c) — `currency_exposure` on `decide.py` (0.5h, immediate; no
+      gate).** A hedged and an unhedged instrument on the same market are **two
+      different instruments, never interchangeable.** Field values
+      `unhedged` / `hedged` / `n_a`, **mandatory for any non-USD-denominated
+      underlying**, and `tools/expression_check.py` flags an unhedged
+      international position whose thesis makes no mention of the currency —
+      the Rule 11 test applied to the leg the ticker hides. Note the ordering:
+      this is the one Part 31 item that needs nothing built first.
+- [ ] **31.3 universe consequence — the chain-capture universe gains no symbols
+      by default.** The international candidates are Book A and Book B
+      instruments read from price series, not options. An international ETF
+      entering Book C passes the existing liquidity floor like anything else.
+      Recorded so D1b's universe collapse does not quietly widen.
+- [ ] **31.4 — Positioning & Flows Tables A–C enter the claims registry
+      (1h, S14 dependency), NOT the observation store**, because they are cited
+      estimates rather than computed series. The registry note carries the
+      paper's **three-denominator warning verbatim**: direct ownership of U.S.
+      equity, global AUM by institution type, and equity-relevant AUM are three
+      different measurements — and **forced-flow footprint = equity exposure ×
+      turnover × rule-boundness** is the fourth and the one the system sizes by.
+- [ ] **31.4 — the discretionary holders' failure-mode signatures each become a
+      `mechanism_group`** so the confluence guard counts them once: platform
+      degrossing, redemption waves, liability-driven collateral calls,
+      currency-hedge rebalancing, market-maker withdrawal. **Market-maker
+      withdrawal is NOT a separate metric** — it is what the absorption
+      measurement already detects, and the registry says so rather than creating
+      a second reading of one fact. (Same defect class as "four Greeks ≠ four
+      votes"; the registry entry is the enforcement.)
+- [ ] **31.5(b) — the Systematic Book's failure classes become validator
+      obligations**, promoting Part 30.2's catalogue from narrative to standing
+      rules, **with one addition that is new law: a safety property is verified
+      by READING THE ENFORCING CODE, not the comment that describes it.** This
+      came from the client library's read-only flag doing nothing of the kind.
+      **Any future docstring asserting an enforcement guarantee cites the line
+      that enforces it** — applies to `ibkr_portfolio.py`, `register/store.py`'s
+      restriction path, and every validator shipped from here on.
+
+## 31.6 — what Part 31 explicitly does NOT change (binding; recorded so it stays that way)
+
+- [ ] **No new signal family. The Part 26 freeze holds.** None of the papers
+      introduces one.
+- [ ] **No metric in any of the four papers is `trigger_eligible`.** The
+      international sleeve, the debt-cycle branches and the base rates are
+      **conditioners and references** — they inform a thesis, size an
+      expectation, and set the bar for a variant view. **None of them generates
+      a packet.**
+- [ ] **Seasonality is `trigger_eligible: false` PERMANENTLY AND BY
+      CONSTRUCTION**, not pending evidence — a calendar effect has no
+      counterparty story that survives Rule 6. Enforce it in the registry entry
+      so no later pass can promote it once there is data.
+- [ ] **The presidential/midterm-cycle conditional enters as a DATED REGISTER
+      HYPOTHESIS**, not a metric — it joins the `hypotheses` table D5 builds.
+
+## Library bookkeeping from the same drop (not architecture, but owed)
+
+- [ ] **The HTML editions of the library guide and the Dealer's Hand are not in
+      the repo.** Only the Markdown arrived in `af57d1c`/`88b1490`; the sole
+      committed `.html` is `reports/monthly_macro_2026-05-30.html`. The
+      md-canonical-for-editing / html-canonical-for-reading rule is now recorded
+      in the guide and in `CLAUDE.md`/`AGENTS.md`, but the artifact it points at
+      is missing — commit the two HTML files, or the rule names files that do
+      not exist.
+- [ ] **Two papers in the guide's roster have no file in `docs/whitepapers/`:**
+      **X** (Tops and Bottoms) and **XII** (The Daily Cascade Paper). Both have
+      full entries in the guide, and both are cited as dependencies by papers
+      that ARE committed.
+- [ ] **`paper-building-and-validating-a-systematic-book-draft1.md` (31 Aug,
+      ~4,900 words) is superseded by `systematic-book-whitepaper.md`** (6 Sep,
+      ~9,100 words, as-built) — same title, same numeral XIX, two files. The
+      older one was written *before* Gate 1 as a specification; the newer one
+      states plainly that the integration was built first and the paper written
+      the other way round. Retire or archive the draft; two files answering to
+      one numeral is the numbering hazard the guide exists to prevent.
+- [ ] **The guide has no per-paper entry for XX (Base Rates) or XXI
+      (International Equities)** — both appear in the at-a-glance table and the
+      contents list, neither has a `## XX.` / `## XXI.` section. XVII's entry
+      sits in "In draft and planned" rather than in sequence, which reads as
+      deliberate; XX and XXI read as an omission.
+- [ ] **Guide, XIII entry: "Where Paper V gives reading rules for gamma"** is a
+      pre-reorder numeral inside the document that is canonical for numerals. It
+      means the Daily Cascade paper, now XII.

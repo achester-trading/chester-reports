@@ -5,6 +5,7 @@
 **Prepared for:** Ari Chester
 **Version:** 1.0
 **Companion to:** Monthly Macro Report v16 and successors
+**Series placement:** Companion **III** — per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
 
 ---
 

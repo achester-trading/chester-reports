@@ -6,6 +6,8 @@
 
 *Prepared as the educational backdrop for the Alternative Asset Report*
 
+**Series placement:** Companion **VIII** — per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
+
 ---
 
 ## Purpose and How to Use This Document

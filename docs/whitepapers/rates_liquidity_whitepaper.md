@@ -5,7 +5,7 @@
 **Prepared for:** Ari Chester
 **Version:** 1.0
 **Anchor date:** August 30, 2026
-**Position in library:** Companion paper ten. Sits beneath the Monthly Macro Working Manual and above the report-specific field guides.
+**Series placement:** Companion **IV** — per the library guide, which is canonical for numerals. Sits beneath the Monthly Macro Working Manual and above the report-specific field guides. Cross-references in this paper are by name.
 
 ---
 

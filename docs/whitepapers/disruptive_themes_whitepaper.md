@@ -2,7 +2,9 @@
 
 ### Foundations and Field Guide to the Five-Force Framework
 
-**Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype**
+**Companion I · Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype**
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
 *One-time context document. The report is the dashboard; this is the manual. Everything here is written to be read once, thoroughly, so that every subsequent two-month refresh can be read in five minutes with full comprehension. Market levels and events are anchored to the last week of August 2026 and will age; the mechanics, history, and scenario architecture are built to last the life of the framework.*
 

@@ -4,7 +4,9 @@
 
 **Version 1.0 — August 2026**
 
-*Prepared as the educational backdrop for the Alternative Asset Report — the eighth paper in the series*
+*Prepared as the educational backdrop for the Alternative Asset Report*
+
+**Series placement:** Companion **V** — per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
 
 ---
 
