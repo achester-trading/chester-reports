@@ -176,6 +176,38 @@ only ever sees a file when something is wrong cannot tell "all clear" from "the
 monitor stopped running", and that distinction is the entire point. The reader
 ages `checked_at` on this file the same way it would age any other source.
 
+### It also checks the box's units against the repo
+
+`validate_systemd_units.py` reads `deploy/systemd/` and cannot see what is
+actually installed. That gap is not theoretical: the repo's `ibgateway.service`
+was correct and the box's copy in `~/.config/systemd/user/` was not, at the same
+time, for a week — the gate stayed green while the journal printed `Unknown key
+name ... ignoring` on every load. **A `git pull` never touches installed units.**
+
+So every check compares each installed unit against its `deploy/systemd/` copy
+and reports two kinds of divergence:
+
+- **modified** — the installed bytes differ. The box is running something the
+  repo did not write.
+- **override** — a `<unit>.d/*.conf` drop-in. The unit file can match byte for
+  byte and systemd still does something else, which is exactly how a box-local
+  workaround outlives the defect it worked around.
+
+A unit in `deploy/systemd/` with no installed copy is **not** drift — most are
+deliberately not installed, and flagging them would train you to ignore this.
+
+Drift on an otherwise healthy box is **exit 8**, so `systemctl --user
+list-units --failed` goes red. A pipeline verdict always wins: a stale
+heartbeat stays exit 1 and the drift is recorded alongside it, because fixing
+the drift must never make a dead pipeline look healthy.
+
+The fix is always the same two commands:
+
+```bash
+cp ~/chester-reports/deploy/systemd/<unit> ~/.config/systemd/user/
+systemctl --user daemon-reload
+```
+
 ### The four delivery channels, weakest to strongest
 
 1. **The log line** — always written, needs someone to look.
@@ -277,8 +309,9 @@ heartbeat is exactly the alarm wanted.
 
 ### Exit codes
 
-`0` healthy · `1` stale · `2` no heartbeat ever · `3` last run failed · `9` the
-check itself could not run. That last one is deliberately outside the
+`0` healthy · `1` stale · `2` no heartbeat ever · `3` last run failed · `8`
+healthy but installed units have drifted from the repo · `9` the check itself
+could not run. That last one is deliberately outside the
 checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 

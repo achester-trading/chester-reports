@@ -17,24 +17,23 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 # one. The daily cap could not fire because the thing that increments it was
 # being killed by the thing it was counting.
 #
-# After= keeps the ordering. Wants= is a weak pull, so the Gateway being
-# absent, failed or stopped never blocks this unit from starting and reporting.
+# After= AND NOTHING ELSE. Ordering is the entire dependency this unit needs.
 #
-# The "do not restart what a human deliberately stopped" rule was never
-# BindsTo='s to enforce and does not go away with it: ibgateway_watchdog.sh
-# checks `systemctl is-active` before probing and reports unit_inactive without
-# restarting. That is the right layer for it -- a policy about intent belongs
-# in the thing that reads the intent, not in a dependency edge.
+# NO Wants=, and that absence is the point. Wants= is a START dependency, so
+# systemd would attempt to start ibgateway.service every time this unit fires
+# -- every five minutes -- and a deliberately stopped Gateway would be back up
+# before the script's is-active guard ever ran. A DELIBERATE STOP MUST STICK:
+# the order-placement procedure depends on being able to take the Gateway down
+# and have it stay down, and a monitor that quietly undoes an operator's
+# `systemctl stop` is worse than no monitor, because the operator believes the
+# thing is off.
 #
-# CAVEAT ON Wants=, worth knowing before the enable gate is cleared: Wants= is
-# a START dependency, so systemd will attempt to start ibgateway.service
-# whenever this unit starts -- every five minutes. That will pull a
-# deliberately stopped Gateway back up before the script's is-active guard ever
-# runs, making that guard unreachable in practice. If a deliberate stop needs
-# to stick, drop Wants= and keep After= alone; ordering is all this unit
-# actually requires.
+# So the "do not restart what a human deliberately stopped" rule lives where it
+# can actually read the intent: ibgateway_watchdog.sh checks
+# `systemctl is-active` before probing and reports unit_inactive without
+# restarting. That is the mechanism. A dependency edge cannot express intent,
+# which is why BindsTo= was wrong in one direction and Wants= in the other.
 After=ibgateway.service
-Wants=ibgateway.service
 
 [Service]
 Type=oneshot

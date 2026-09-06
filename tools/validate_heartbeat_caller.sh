@@ -158,6 +158,69 @@ else
     bad "a box that has never been healthy does not say so"
 fi
 
+printf '\n%s\nUnit drift, checked where the stale file actually lives\n%s\n' "$LINE" "$LINE"
+
+# The repo's units were correct and the box's were not, at the same time, for a
+# week: validate_systemd_units.py reads deploy/systemd/ and was green while the
+# journal printed "Unknown key name ... ignoring" on every load of an installed
+# unit that predated the fix. No check in this repository can assert against a
+# file the repository does not ship, so the assertion has to run on the box.
+UNITS="$SANDBOX/units"
+mkdir -p "$UNITS"
+
+drift_of() { sed -n 's/.*drift=\([a-z_]*\).*/\1/p' "$STATUS"; }
+
+rm -f "$UNITS"/*.service "$UNITS"/*.timer
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$(drift_of)" == "none_installed" ]] && [[ "$RC" == "0" ]]; then
+    ok "no installed units -> none_installed, not a false alarm"
+else
+    bad "empty unit dir reported drift=$(drift_of) exit=$RC"
+fi
+
+cp "$REPO"/deploy/systemd/*.service "$REPO"/deploy/systemd/*.timer "$UNITS/"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$(drift_of)" == "clean" ]] && [[ "$RC" == "0" ]]; then
+    ok "installed units matching the repo -> clean, exit 0"
+else
+    bad "identical units reported drift=$(drift_of) exit=$RC"
+fi
+
+echo "# a box-local edit" >>"$UNITS/chester-eod.service"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$(drift_of)" == "drifted" ]] && [[ "$RC" == "8" ]]; then
+    ok "a modified installed unit -> drifted, exit 8"
+else
+    bad "modified unit reported drift=$(drift_of) exit=$RC (wanted drifted/8)"
+fi
+if grep -q 'chester-eod.service(modified)' "$ALERT"; then
+    ok "the alert names the unit and how it diverged"
+else
+    bad "the alert does not name the drifted unit"
+fi
+
+# The case that actually hid: the unit file matches perfectly and a drop-in
+# changes what systemd does. A comparison of unit files alone sees nothing.
+cp "$REPO/deploy/systemd/chester-eod.service" "$UNITS/chester-eod.service"
+mkdir -p "$UNITS/ibgateway.service.d"
+echo "[Service]" >"$UNITS/ibgateway.service.d/override.conf"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if grep -q 'ibgateway.service(override)' "$ALERT"; then
+    ok "a .d/ drop-in is drift even when the unit file matches byte for byte"
+else
+    bad "an override.conf went undetected: $(grep unit_drift_units "$ALERT")"
+fi
+
+# Drift must never mask a dead pipeline. Fixing the drift would otherwise make
+# a stale heartbeat look healthy.
+run 1 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$RC" == "1" ]] && [[ "$(state_of)" == "stale" ]] && [[ "$(drift_of)" == "drifted" ]]; then
+    ok "a stale pipeline outranks drift; drift is still recorded alongside it"
+else
+    bad "pipeline verdict was overwritten: state=$(state_of) exit=$RC drift=$(drift_of)"
+fi
+rm -rf "$UNITS/ibgateway.service.d"
+
 printf '\n%s\nDelivery outcome is recorded, never swallowed\n%s\n' "$LINE" "$LINE"
 
 # No address configured. This is the default state of a fresh box and it must

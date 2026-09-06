@@ -217,6 +217,18 @@ grep -qE '^After=ibgateway\.service' "$WD_UNIT" \
     && ok "After=ibgateway.service keeps the ordering" \
     || bad "watchdog has no After= ordering on its subject"
 
+# No Wants= either. Wants= is a START dependency, so it would pull the
+# Gateway back up every five minutes -- and a deliberate stop must stick,
+# because the order-placement procedure depends on being able to take the
+# Gateway down and have it stay down. The is-active guard in the script is
+# the mechanism for that; a dependency edge cannot read intent.
+grep -qE '^Wants=ibgateway' "$WD_UNIT" \
+    && bad "watchdog Wants= its subject -- it would restart a deliberate stop" \
+    || ok "no Wants= : a deliberate systemctl stop stays stopped"
+grep -q 'is-active' "$WATCHDOG" \
+    && ok "the script checks is-active before probing (the real mechanism)" \
+    || bad "nothing stops the watchdog restarting a deliberately stopped unit"
+
 grep -q 'WATCHDOG_CLIENT_ID:-18' "$WATCHDOG" \
     && ok "watchdog probes on clientId 18, not the sync's 17" \
     || bad "watchdog shares a clientId with the sync"

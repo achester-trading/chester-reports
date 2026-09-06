@@ -34,11 +34,18 @@
 #   1 stale          -> the EOD pass has not completed inside its allowance
 #   2 no heartbeat   -> it has NEVER completed cleanly on this box
 #   3 last run failed-> it ran and exited non-zero; the status file says why
+#   8 unit drift     -> the pipeline is healthy AND an installed systemd unit
+#                       differs from its deploy/systemd/ copy, or carries a
+#                       drop-in override. Reported here rather than in CI
+#                       because no check in the repo can see a file the repo
+#                       does not ship -- which is how the box ran a stale
+#                       ibgateway.service for a week while the gate stayed
+#                       green. A pipeline verdict always wins over this one.
 #   9 check failed   -> the wrapper could not run the checker (env problem).
 #                       Distinct from the four above: this is the monitor
 #                       broken, not the pipeline.
 #
-# The unit declares SuccessExitStatus=0 ONLY, so 1/2/3/9 leave the unit in
+# The unit declares SuccessExitStatus=0 ONLY, so 1/2/3/8/9 leave the unit in
 # systemd's failed state on purpose. `systemctl --user list-units --failed` is
 # a free fourth delivery channel and this is the one job where a red light is
 # the product. That is the opposite of chester-ibkr-sync.service, which marks
@@ -58,6 +65,7 @@
 #                        to prove the channel works before trusting its silence
 #   CHESTER_CHECK_DATE   passed through to the checker, for testing
 #   CHESTER_CHECKER      checker path ($REPO/scripts/check_heartbeat.sh)
+#   CHESTER_SYSTEMD_USER_DIR  installed units (~/.config/systemd/user)
 
 set -uo pipefail
 
@@ -101,6 +109,7 @@ case $RC in
     1) STATE=stale;            HEADLINE="STALE the EOD pass has not completed inside its allowance" ;;
     2) STATE=no_heartbeat;     HEADLINE="CRITICAL the EOD pass has NEVER completed cleanly on this box" ;;
     3) STATE=last_run_failed;  HEADLINE="FAILED the last EOD run exited non-zero -- see eod_status" ;;
+    8) STATE=unit_drift;       HEADLINE="DRIFT installed units differ from the repo" ;;
     9) STATE=check_failed;     HEADLINE="BROKEN the heartbeat check itself could not run" ;;
     *) STATE=unknown;          HEADLINE="UNKNOWN checker exited $RC" ;;
 esac
@@ -130,21 +139,109 @@ else
     UNHEALTHY_SINCE="never_healthy"
 fi
 
+# ---- the unit drift check --------------------------------------------------
+#
+# WHY THIS LIVES IN THE HEARTBEAT AND NOT IN CI. The repo's units were correct
+# and the box's were not, at the same time, for days. `validate_systemd_units.py`
+# reads deploy/systemd/ and was green throughout; the journal was printing
+# "Unknown key name ... ignoring" on every load of an installed unit that
+# predated the fix. Nothing in this repository can assert against a file it does
+# not ship, so the assertion has to run where the stale file is.
+#
+# Two kinds of divergence, and the second is the one that hid for a week:
+#
+#   DRIFT     an installed unit whose bytes differ from deploy/systemd/. The box
+#             is running something the repo did not write, and `git pull` will
+#             never fix it because a pull does not touch ~/.config/systemd/user.
+#   OVERRIDE  a <unit>.d/ drop-in. The unit file matches perfectly and systemd
+#             is still doing something else -- an override.conf is invisible to
+#             any comparison of the unit file alone, which is precisely how a
+#             box-local workaround outlives the defect it worked around.
+#
+# NOT drift: a unit in deploy/systemd/ with no installed copy. Most of them are
+# deliberately not installed -- the whole enable gate depends on that -- so
+# reporting it would train the reader to ignore this section.
+#
+# Comparison is `cmp -s` on the bytes. A semantic diff would need a systemd
+# parser and would forgive whitespace; whitespace in a unit file is not
+# meaningful to systemd but a byte difference is still a file the repo did not
+# write, and "close enough" is how the installed copy drifted in the first
+# place.
+
+UNIT_SRC="$REPO/deploy/systemd"
+UNIT_DST="${CHESTER_SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
+DRIFT_COUNT=0
+DRIFT_NAMES=""
+DRIFT_STATE=clean
+
+drift_note() {           # drift_note <kind> <unit>
+    DRIFT_COUNT=$((DRIFT_COUNT + 1))
+    DRIFT_NAMES="${DRIFT_NAMES:+$DRIFT_NAMES }$2($1)"
+    log "  DRIFT $1: $2"
+}
+
+if [[ ! -d "$UNIT_DST" ]]; then
+    DRIFT_STATE=no_unit_dir
+    log "unit drift: no installed-unit directory at $UNIT_DST"
+elif [[ ! -d "$UNIT_SRC" ]]; then
+    DRIFT_STATE=no_repo_units
+    log "unit drift: no repo unit directory at $UNIT_SRC"
+else
+    INSTALLED=0
+    for src in "$UNIT_SRC"/*.service "$UNIT_SRC"/*.timer; do
+        [[ -e "$src" ]] || continue
+        unit="$(basename "$src")"
+        dst="$UNIT_DST/$unit"
+        [[ -e "$dst" ]] || continue          # not installed is not drift
+        INSTALLED=$((INSTALLED + 1))
+        if ! cmp -s "$src" "$dst"; then
+            drift_note modified "$unit"
+        fi
+        # A drop-in wins over the unit file, so a matching unit file proves
+        # nothing on its own.
+        if compgen -G "$UNIT_DST/$unit.d/*.conf" >/dev/null 2>&1; then
+            drift_note override "$unit"
+        fi
+    done
+    if [[ $DRIFT_COUNT -gt 0 ]]; then
+        DRIFT_STATE=drifted
+    elif [[ $INSTALLED -eq 0 ]]; then
+        DRIFT_STATE=none_installed
+    fi
+    log "unit drift: $DRIFT_STATE ($INSTALLED installed, $DRIFT_COUNT divergent)"
+fi
+
+# Drift does NOT overwrite the pipeline verdict. A dead pipeline is more urgent
+# than a stale unit file, and collapsing the two would mean fixing the drift
+# made the pipeline look healthy. So the verdict stays the checker's, and drift
+# only speaks when the checker had nothing to say:
+#
+#   exit 8  the pipeline is healthy AND units have drifted
+#
+# 8 is outside the checker's 0-3 and distinct from 9 (the monitor itself broke),
+# so `systemctl --user list-units --failed` goes red for a reason that can be
+# read off the exit code alone.
+if [[ "$STATE" == "ok" ]] && [[ "$DRIFT_STATE" == "drifted" ]]; then
+    STATE=unit_drift
+    RC=8
+    HEADLINE="DRIFT installed units differ from the repo: $DRIFT_NAMES"
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -171,6 +268,9 @@ python_json() {
     printf '  "heartbeat_age_hours": %s,\n' "$AGE_H"
     printf '  "unhealthy_since": %s,\n' \
         "$([[ -z "$UNHEALTHY_SINCE" ]] && echo null || printf '"%s"' "$UNHEALTHY_SINCE")"
+    printf '  "unit_drift": "%s",\n' "$DRIFT_STATE"
+    printf '  "unit_drift_count": %s,\n' "$DRIFT_COUNT"
+    printf '  "unit_drift_units": "%s",\n' "$DRIFT_NAMES"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }
