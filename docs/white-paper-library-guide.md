@@ -9,22 +9,6 @@ the system consumes it through a compact claims registry (claims, falsifiers,
 evidence links); the papers themselves are for the human and for writing that
 registry.*
 
-**Three documents exist in two formats, and the two formats have different jobs.**
-This guide, *The Dealer's Hand* (XIII) and *Options as Expression* (XXII) are
-each published as HTML alongside their Markdown source. **The HTML is canonical
-for reading** — it carries the rendered tables, the anchor navigation and the
-computed figures the Markdown can only hold as placeholders. **The Markdown is
-canonical for editing** — every change is made in the `.md` and the HTML is
-regenerated from it, never the other way round. An edit made only in the HTML is
-lost at the next regeneration, and an HTML file that disagrees with its `.md` is
-stale by definition rather than a second opinion. Every other paper in the
-library is Markdown only, and the question does not arise.
-
-*(This note was added on 6 September and removed the same afternoon by a
-full-file re-upload from a local copy that predated it — which is the editing
-hazard the rule describes, arriving before the rule was a day old. Edit the
-`.md` in the repo, or re-upload from a copy that has pulled.)*
-
 ---
 
 ## Contents
@@ -53,12 +37,15 @@ hazard the rule describes, arriving before the rule was a day old. Edit the
 | XII | The Daily Cascade Paper | Micro & execution |
 | XIII | The Dealer's Hand | Micro & execution |
 | XIV | Technical Indicators | Micro & execution |
+| XXII | Options as Expression | Micro & execution |
 | XV | Equities: A Structural Framework | Market structure |
 | XXI | International Equities | Market structure |
+| XXIV | Earnings: The Reaction Is the Object | Market structure |
 | XVI | Positioning & Flows | Positioning & the book |
 | XVII | Portfolio Construction Across Regimes | Positioning & the book |
 | XVIII | The Operating Doctrine | Positioning & the book |
 | XIX | Building and Validating a Systematic Book | Positioning & the book |
+| XXIII | Evidence and Inference | Positioning & the book |
 
 **Back matter**
 - [In draft and planned](#in-draft-and-planned)
@@ -84,6 +71,7 @@ hazard the rule describes, arriving before the rule was a day old. Edit the
 | Micro & execution | **XI** | Volatility: A Structural Framework | Execution layer, Daily Cascade, expressibility | ~15,000 words | The price of insurance — VRP, crowding and unwinds as one fact; regime identification and cross-asset vol; the options-ETF complex at scale |
 |  | **XII** | The Daily Cascade Paper | Daily Cascade | ~15,000 words (est.) | Operating manual for the intraday suite — five blocks, dealer-gamma reading rules, the dependency map |
 |  | **XIII** | The Dealer's Hand | Daily Cascade (dealer positioning) | not yet measured · illustrated edition **v1.1** (HTML canonical; md carries figure placeholders) | Derives the dealer-hedging mechanics from first principles — sign conventions, who is on which side, the JHEQX exception — with 21 computed figures and 2 worked ledgers; **Part V adds the multi-horizon book (GEX/DEX by bucket, 0DTE session taxonomy)**; elaborates Daily Cascade Ch. 2 |
+|  | **XXIV** | Earnings: The Reaction Is the Object | The event-reaction setup; the cohort monitor's revision flags; the single-name books' valuation vocabulary | Draft 1 · ~4,300 words, 9 computed figures · HTML canonical | The print is not the event — the managed consensus, the whisper, the revision cycle and its second-derivative flag; the implied move against a name's own history, the event premium, positioning into the print; the four quadrants (guidance beats the print), gap–fade–drift, reaction-versus-expectation as the tradeable object; **the denominator problem — five P/Es on one stock**, when book value means anything, EV multiples, cash versus earnings, **the sector multiple map and the cycle inversion (cyclicals cheapest on trailing at the peak)**; sector grammar with insurance as the worked example |
 |  | **XXII** | Options as Expression | Book C's every trade; Book A's convexity sleeve; the expression check | Draft 1 · ~6,200 words, 10 computed figures · HTML canonical | Choosing the instrument after choosing the view — the four primitives as shapes, your greeks versus the dealer's, verticals and the four numbers, time spreads, the three costs (decay, the volatility crush, the spread tax); and the engineered payoffs: buffered funds, **synthetic principal protection from a cash-equivalent fund plus long-dated calls**, and **dual-directional structures built as bills-plus-iron-butterfly rather than as barrier notes** — with the tenor arithmetic showing why option cost grows as √T while funding grows as T |
 |  | **XIV** | Technical Indicators | Daily Cascade + execution layer | ~6,350 words, 5 figures | Price-derived measures — the lag argument, the five permitted clusters, levels by mechanism, the traps, and the wall keeping technicals out of the composite |
 | Market structure | **XV** | Equities: A Structural Framework | Top & Bottom, Daily Cascade, Disruptive Themes (Factor II) | ~8,350 words | The residual claim, the index as a momentum machine, factors, the concentration and its fulcrum, the AI rings and the new listings, scenario families, what to watch by cadence |
@@ -91,6 +79,7 @@ hazard the rule describes, arriving before the rule was a day old. Edit the
 | Positioning & the book | **XVI** | Positioning & Flows | Every report's positioning line; the tail watch; the heat factor map | Draft 1.1 · ~10,300 words | Who is forced to move, when, and whether the market is absorbing them — **the participant map (ownership share vs. volume share, forced vs. discretionary, mid-2026 figures)**, ten mechanical-holder types plus the discretionary holders' mechanical failure modes (degrossing, redemptions, liability-driven rate shocks, currency-hedge rebalancing, market-maker withdrawal), the master calendar, absorption as response-per-unit-stimulus, six flow models with stated uncertainty, the seven-group independence table |
 | | **XVII** | Portfolio Construction Across Regimes | All reports → positioning | Draft 1 · ~4,400 words | Preview edition — frame, vocabulary, sizing disciplines, open questions — with a four-condition trigger for the empirical Draft 2 (register data + IBKR Gate 1) |
 | | **XVIII** | The Operating Doctrine | How every report is consumed; how capital is deployed | **v1.0 · Doctrine** · ~25,600 words | The four books, the three regime dials, the kill-switch ladder, the volatile-day protocol, twenty-nine rules each traced to its Wizard origin and its enforcement point, the honest arithmetic of the return target, and the adoption sequence. Changes only at the monthly session |
+| | **XXIII** | Evidence and Inference: How to Read Your Own Ledger | How every register figure is read; the promotion gates; the trust matrix's sample-size rules | Draft 1 · ~4,100 words, 5 computed figures · HTML canonical | The error bar on everything — a year cannot exclude zero, two years give the sign, five give the size; effective sample size; **regime as a sample size** (the doctrine's most important cut is permanently the thinnest); forking paths, overfitting, survivorship, outcome bias; Bayes in sentences and mechanism as evidence; **the shadow outcome as a 3.5× sample multiplier**; the decidability table of every register cut at three horizons; Kelly under edge uncertainty; edge decay detected in the mechanism, not the P&L |
 | | **XIX** | Building and Validating a Systematic Book | Trading infrastructure; the register; IBKR gates | Draft 1 · ~9,100 words · as-built | The register and its immutable packets, DECISION_BLOCKED, the three senses of read-only (and which was false), execution mechanics, sizing and cost as code, the five named failure classes, tax as an expression decision, the compliance boundary, the gate ladder and the honest not-yet-built list |
 
 *Numerals are the canonical series IDs, assigned here in reading order from the top down — the macro and disruptive layer first, then the structural asset classes, then market timing, then the micro and execution layer. Where a paper's masthead carries a different number, the masthead is relabelled to match this guide when it is committed to `docs/`. Word counts marked (est.) are estimated from page counts; the others are measured. Detailed summaries follow, one page per paper. File this guide in the repo's
@@ -748,8 +737,6 @@ have since been dispositioned into the v17 architecture.
 
 ## XIII. The Dealer's Hand
 **Companion to: Daily Cascade — dealer positioning · word count not yet measured · illustrated edition: 15 computed figures + 2 worked ledgers**
-
-**Formats.** HTML canonical for reading (it carries the figures); Markdown canonical for editing (the `.md` is the source the HTML is regenerated from, and holds figure placeholders). The same rule governs this guide and *Options as Expression* — see the front matter.
 
 **What it contains.** The paper that derives the mechanics the Daily Cascade
 paper applies. Where Paper V gives reading rules for gamma, walls and flips, this
