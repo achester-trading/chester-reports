@@ -1,6 +1,6 @@
 # The White Paper Library — A Reader's Guide
 
-*Sixteen companion documents as of 1 September 2026 — fifteen full papers plus one preview draft, roughly 264,000 words — with two more planned.
+*Nineteen companion documents as of 6 September 2026 — sixteen full papers, one doctrine, and two Draft-1 editions written the week the execution layer was built, roughly 307,000 words.
 The reports say what is happening; the papers explain the machinery, so each
 refresh can be read quickly without re-deriving the framework. Every report has
 at least one companion, and the tail watch has its own. Per the Final
@@ -9,136 +9,44 @@ the system consumes it through a compact claims registry (claims, falsifiers,
 evidence links); the papers themselves are for the human and for writing that
 registry.*
 
-## Executive summary — the current read, September 2026
+---
 
-*This section is the perishable half of the guide: one synthesis of what the
-fifteen papers currently say about this market. The per-paper pages below are
-the timeless half. Rewrite this section each quarter; the pages should barely
-move.*
+## Contents
 
-**The regime in one sentence:** a late-cycle, extraordinarily concentrated
-market running on mechanical bids and spent buffers, priced for continuity by
-its aggregates while its cross-sections, its plumbing, and one physical market
-dissent — with every thread transmitting through a single variable, the long
-yield.
+**Front matter**
+1. [The library at a glance](#the-library-at-a-glance) — the full roster in one table
+2. [Cross-references and interdependencies](#cross-references-and-interdependencies) — what depends on what
+3. [From the library to the trade](#from-the-library-to-the-trade) — how a paper becomes a decision
 
-**Start with the machine that prices everything else.** Net federal interest
-has crossed its 1991 record share of revenue at roughly half the 1991 yield —
-the stock is doing the work — and the policy response is a chain of
-maturity-shortening operations: buybacks doubled, the Treasury's own cash
-account floated as a funding source, a coordinated yen intervention designed
-partly to keep the largest foreign holder from selling. The Rates & Liquidity
-paper's history says this rhymes with 1942–51, when the Fed subordinated policy
-to Treasury financing and independence returned only by negotiation — and the
-same paper's instrument inventory says the levers that matter now are
-Treasury's, not the Fed's. Against that, the Currencies paper's central caution:
-the sitting Fed chair is hawkish, debating hikes, and a fiscal-dominance thesis
-must explain how it survives a central bank actively fighting inflation. That
-tension — quasi-monetary fiscal operations under a hawkish chairman — is the
-single most important unresolved question in the system, and the
-TGA-versus-reserves series is its referee.
+**The papers, in reading order**
 
-**The markets are split on the verdict, and the split is the information.**
-Bonds priced the operations as trivial: the ten-year returned to its highs
-within a week. Hard assets priced the precedent: gold up 14% in a month to
-records — but the Metals paper's decomposition says the *paper* bid did it,
-with physical demand at a five-year low, which is the fragile-rally
-configuration, not a confirmed debasement regime. The structural bid is the
-official sector — central banks absorbing most of mine supply, the
-reserve-share convergence gap unfilled — and the Currencies paper's data says
-de-dollarization, where real, flows into gold rather than any rival currency.
-Meanwhile the liquidity buffer beneath all of it is spent: the reverse-repo
-facility at zero, reserves falling, every marginal drain now landing where it
-can hurt.
+| # | Paper | Layer |
+|---|---|---|
+| I | Foundations and Field Guide to the Five-Force Framework | Macro & disruptive |
+| II | The Twenty-Five — Tail Scenarios | Macro & disruptive |
+| III | The Monthly Macro Report: A Working Manual | Macro & disruptive |
+| IV | The Rate and Liquidity Machine | Macro & disruptive |
+| V | Currencies: A Structural Framework | Macro & disruptive |
+| VI | Credit: A Structural Framework | Structural asset classes |
+| VII | Energy: A Structural Framework | Structural asset classes |
+| VIII | Metals: A Structural Framework | Structural asset classes |
+| IX | Digital Assets: A Structural Framework | Structural asset classes |
+| X | Tops and Bottoms: Every Major U.S. Turning Point Since 1970 | Market timing |
+| XX | Base Rates: What Markets Usually Do | Market timing |
+| XI | Volatility: A Structural Framework | Micro & execution |
+| XII | The Daily Cascade Paper | Micro & execution |
+| XIII | The Dealer's Hand | Micro & execution |
+| XIV | Technical Indicators | Micro & execution |
+| XV | Equities: A Structural Framework | Market structure |
+| XXI | International Equities | Market structure |
+| XVI | Positioning & Flows | Positioning & the book |
+| XVII | Portfolio Construction Across Regimes | Positioning & the book |
+| XVIII | The Operating Doctrine | Positioning & the book |
+| XIX | Building and Validating a Systematic Book | Positioning & the book |
 
-**Credit is the dissenting pillar, and it dissents the way the Credit paper
-predicts.** The index sits in its richest decile while the CCC tier has blown
-out and — the paper's best finding — private-credit marks show low volatility
-*across time* and high dispersion *across managers*, which cannot both be true
-if marks track a common value. The cycle is a lending-standards cycle; spreads
-move last; and the visible tail plus the manufactured smoothness say standards
-are already turning where the marginal borrower actually lives.
-
-**The equity market is the concentration, and the concentration is one trade.**
-Seven companies are roughly a third of the index — the highest top-cohort share
-since the Nifty Fifty — and the Equities paper's honest verdict is
-double-edged: this is the most earnings-justified concentration episode on
-record (roughly 31% of earnings, 70% of economic profit), *and* that is
-precisely what every prior episode looked like at its peak, because the
-casualty is never the businesses but the multiple, and the mechanism is
-deceleration at a price that assumes none. The trade's fulcrum is the compute
-supplier, whose balance sheet now carries the cycle — half a trillion of
-forward commitments against a $96 billion quarter, five customers at 70% of
-receivables — with the 2021–22 unwind template loaded and three lines to watch
-(inventory, receivables aging, the margin trough) before any revenue headline.
-The mega-IPO wave adds to the same trade: index fast-entry rules now feed the
-passive machine companies with no public earnings history and small floats
-against scheduled lockup supply. Hyperscaler capex guidance is the master
-series for all of it; whether ring-four revenue ever arrives — whether anyone
-besides the suppliers gets paid — is the decisive one.
-
-**The loudest divergence in the system is physical.** The strait has been
-effectively shut for six months, war-risk premiums have repriced two hundred
-fold, Gulf exports have halved — and crude sits at pre-crisis prices. The
-Energy paper's buffer frame sharpens rather than resolves it: the buffers that
-normally absorb such a shock are at or below five-year lows, and spare capacity
-trapped behind the chokepoint is not spare. Either the world has adapted or a
-large tail is being underwritten at normal premiums; the framework holds both
-hypotheses with a decision date rather than an opinion. And beneath the oil
-story, the paper's power thesis is already resolved: a capacity market clearing
-at its administrative price cap while still short of its reliability
-requirement is genuine physical scarcity, domestic and structural — the place
-where the energy system and the AI trade collide, with the same single point of
-failure: hyperscaler capex.
-
-**The monetary architecture is moving in plain sight.** Stablecoin issuers are
-load-bearing in published Treasury financing plans — private money creation
-inside sovereign finance — which sharpens both crypto tails at once (a depeg is
-now a bill-market event; a regulatory reversal removes a marginal buyer by
-decree), while bitcoin's violent month on a Fed speech says the asset behavior
-is fully intact. The Digital Assets paper's frame holds: the infrastructure
-question and the asset question are separating, and the infrastructure is
-winning the official embrace while the asset keeps its beta.
-
-**The volatility surface prices none of this.** Implied sits in the low teens
-while the Volatility paper counts an options-income complex sixty times the
-size of the products that produced February 2018 — different vehicles, same
-premium-harvesting crowd — and flags the April 2025 haven anomaly, when the
-hedges sold with the risk, as the template for what a modern unwind could look
-like if the resolution mechanism itself is impaired. Insurance is cheap at
-exactly the moment the list of things it would have to insure is long.
-
-**Four threads run through all of it, and they are the library's real
-findings.** *The buffers are spent* — RRP at zero, oil inventories below
-five-year lows, grid reserve margins short, the credit tail already paying —
-while every headline aggregate reads calm. *The surfaces are held by mechanical
-bids* — passive flow, buybacks, stablecoin reserves, the official gold bid —
-and mechanical bids fail differently: on calendars and rules, not on
-valuations, and without reversing when things get cheap. *The divergences are
-the tells* — physical-versus-price in energy, CCC-versus-IG in credit,
-paper-versus-physical in gold, cap-versus-equal-weight in equities,
-PCE-versus-CPI in inflation — because when an aggregate and its cross-section
-disagree, the cross-section is usually early. And *everything rides the same
-bus*: the long yield correlates the tail clusters, prices the concentration's
-duration, sets the fiscal arithmetic, and decides the debasement trade. The
-book's aggregate exposure to it is the book's real position.
-
-**The path the whole framework is least positioned for is named, deliberately:
-inflation re-acceleration.** Producer prices at a four-year high, the Fed's
-preferred core measure running well above core CPI in the unusual direction,
-guidance withdrawn, hike odds priced — every pillar currently assumes
-disinflation, which is itself the reason to weight the alternative.
-
-**What would rewrite this summary,** in either direction: the TGA-and-reserves
-series confirming or refuting the monetization leg; any top-five capex cut, or
-two more quarters of the supplier's balance-sheet lines outgrowing sales;
-strait transits recovering — or a re-closure that finally moves price;
-ring-four revenue arriving at scale; core PCE decelerating through three
-percent; the equal-weight index quietly taking leadership. Each is observable,
-each is logged, and the register — not the library — will grade whether reading
-all of this made the trading any better. That is the standing caution: the
-system is now long sophistication, and the only cure for the sophistication
-trap is graded results.
+**Back matter**
+- [In draft and planned](#in-draft-and-planned)
+- [Appendix — Executive summary: the current read](#appendix--executive-summary-the-current-read-september-2026) *(perishable; rewritten quarterly)*
 
 ---
 
@@ -156,14 +64,17 @@ trap is graded results.
 |  | **VIII** | Metals: A Structural Framework | Alternative Asset | ~17,100 words | Gold, silver, copper as three distinct assets — stock-vs-flow frame, signal hierarchies, false signals, position construction |
 |  | **IX** | Digital Assets: A Structural Framework | Alternative Asset | ~19,150 words | Long-horizon crypto self-sufficiency — taxonomy, value accrual, honest bull and bear, forecast track records |
 | Market timing | **X** | Tops and Bottoms: Every Major U.S. Turning Point Since 1970 | Top & Bottom | ~16,000 words (est.) · 3 formats | Eight bears and the near-misses on one template, forward returns standardized, calibration against 13 episodes |
+|  | **XX** | Base Rates: What Markets Usually Do | Every thesis, before it is written; Top & Bottom (extended episode set); the tail watch | Draft 1 · ~7,500 words | The denominators — return and drawdown distributions, streaks and mean reversion, correlation by regime, earnings and options base rates, costs; seasonality with its decay evidence and the midterm-cycle conditional; percentiles (p25/median/p75) throughout rather than means; the pre-1970 downturn extension (1907, 1929–32, 1937–38, 1946–47, 1961–62) that doubles the Tops & Bottoms calibration sample; **and Part IV — how bad it can get outside the U.S. record: Japan's 34 years, Weimar, Greece, Argentina, the markets that went to zero, the long-term debt cycle's two resolutions, and what protected capital in each** |
 | Micro & execution | **XI** | Volatility: A Structural Framework | Execution layer, Daily Cascade, expressibility | ~15,000 words | The price of insurance — VRP, crowding and unwinds as one fact; regime identification and cross-asset vol; the options-ETF complex at scale |
 |  | **XII** | The Daily Cascade Paper | Daily Cascade | ~15,000 words (est.) | Operating manual for the intraday suite — five blocks, dealer-gamma reading rules, the dependency map |
-|  | **XIII** | The Dealer's Hand | Daily Cascade (dealer positioning) | not yet measured · illustrated edition | Derives the dealer-hedging mechanics from first principles — sign conventions, who is on which side, the JHEQX exception — with 15 computed figures and 2 worked ledgers; elaborates Daily Cascade Ch. 2 |
+|  | **XIII** | The Dealer's Hand | Daily Cascade (dealer positioning) | not yet measured · illustrated edition **v1.1** (HTML canonical; md carries figure placeholders) | Derives the dealer-hedging mechanics from first principles — sign conventions, who is on which side, the JHEQX exception — with 21 computed figures and 2 worked ledgers; **Part V adds the multi-horizon book (GEX/DEX by bucket, 0DTE session taxonomy)**; elaborates Daily Cascade Ch. 2 |
 |  | **XIV** | Technical Indicators | Daily Cascade + execution layer | ~6,350 words, 5 figures | Price-derived measures — the lag argument, the five permitted clusters, levels by mechanism, the traps, and the wall keeping technicals out of the composite |
 | Market structure | **XV** | Equities: A Structural Framework | Top & Bottom, Daily Cascade, Disruptive Themes (Factor II) | ~8,350 words | The residual claim, the index as a momentum machine, factors, the concentration and its fulcrum, the AI rings and the new listings, scenario families, what to watch by cadence |
-| Planned | **XVI** | Positioning & Flows | Every report's positioning line; the tail watch | planned — next | Who is forced to move and when — CTA triggers, vol-control and risk-parity rebalancing, pension and buyback calendars, expiration cycles, COT and 13F |
+|  | **XXI** | International Equities: Europe, Japan, China, and the Rest of the World | Book A's allocation sleeve; Book B candidates; the Daily Cascade's overnight read; Disruptive Themes (AI supply chain); the tail watch (Taiwan) | Draft 1.1 · ~9,300 words | The global map and home-bias arithmetic; **the 55-year record of alternating leadership (five flips, ~decade runs, the current U.S. run the longest and widest)**; the decomposition of fifteen years of U.S. outperformance (a third currency, a third multiple, a third earnings) and which parts can repeat; the currency term and the hedged/unhedged decision as a recorded choice; Europe, UK, Japan, China, Taiwan/Korea, India and EM one at a time; instruments and their traps — stale NAV as live price discovery, withholding tax by account type, the session clock behind the overnight gap; **correlation's long rise, its regime dependence and downside asymmetry, and why daily correlation is a clock artifact**; **a full part on China — three markets, the dilution/state-allocation explanation of the lost decade, the technology record sector by sector, the winning-the-industry-without-earning-a-return trap, and four ten-year scenarios**; **and a ten-year probabilistic view of relative returns built from decomposed components, with falsification conditions per scenario** |
+| Positioning & the book | **XVI** | Positioning & Flows | Every report's positioning line; the tail watch; the heat factor map | Draft 1.1 · ~10,300 words | Who is forced to move, when, and whether the market is absorbing them — **the participant map (ownership share vs. volume share, forced vs. discretionary, mid-2026 figures)**, ten mechanical-holder types plus the discretionary holders' mechanical failure modes (degrossing, redemptions, liability-driven rate shocks, currency-hedge rebalancing, market-maker withdrawal), the master calendar, absorption as response-per-unit-stimulus, six flow models with stated uncertainty, the seven-group independence table |
 | | **XVII** | Portfolio Construction Across Regimes | All reports → positioning | Draft 1 · ~4,400 words | Preview edition — frame, vocabulary, sizing disciplines, open questions — with a four-condition trigger for the empirical Draft 2 (register data + IBKR Gate 1) |
-| | **XVIII** | Building and Validating a Systematic Book | Trading infrastructure | planned — before IBKR Gate 1 | Execution and microstructure, sizing and drawdown control, backtesting methodology, tax and account mechanics, the compliance boundary |
+| | **XVIII** | The Operating Doctrine | How every report is consumed; how capital is deployed | **v1.0 · Doctrine** · ~25,600 words | The four books, the three regime dials, the kill-switch ladder, the volatile-day protocol, twenty-nine rules each traced to its Wizard origin and its enforcement point, the honest arithmetic of the return target, and the adoption sequence. Changes only at the monthly session |
+| | **XIX** | Building and Validating a Systematic Book | Trading infrastructure; the register; IBKR gates | Draft 1 · ~9,100 words · as-built | The register and its immutable packets, DECISION_BLOCKED, the three senses of read-only (and which was false), execution mechanics, sizing and cost as code, the five named failure classes, tax as an expression decision, the compliance boundary, the gate ladder and the honest not-yet-built list |
 
 *Numerals are the canonical series IDs, assigned here in reading order from the top down — the macro and disruptive layer first, then the structural asset classes, then market timing, then the micro and execution layer. Where a paper's masthead carries a different number, the masthead is relabelled to match this guide when it is committed to `docs/`. Word counts marked (est.) are estimated from page counts; the others are measured. Detailed summaries follow, one page per paper. File this guide in the repo's
 `docs/` index so future sessions know the library exists.*
@@ -199,13 +110,14 @@ what a paper needs; read across to see what breaks if it is wrong.
 | IX Digital Assets | Taxonomy, value accrual, the stablecoin–Treasury link | V (currency), IV (bill demand), XI (crypto vol) | I (Factor V), II (scenarios 4, 18, 23), III (real-assets pillar) |
 | X Tops and Bottoms | Historical turning points, the 13-episode calibration, forward-return distributions | III (pillars), VI (credit overlay), I (concentration) | The composite's top-side language; XVII (sizing by regime) |
 | XI Volatility | The price of insurance, VRP as one fact, vol regimes, expressibility | XIII (dealer mechanics, not re-derived), IV, VII (OVX) | XII (regime lines), XIV (regime gate), every paper's "how to express it" |
-| XII Daily Cascade | The five blocks, reading rules, the dependency map | XIII (derives what XII applies), XI, XIV | The intraday reports; XVIII (execution rules) |
+| XII Daily Cascade | The five blocks, reading rules, the dependency map | XIII (derives what XII applies), XI, XIV | The intraday reports; XIX (execution rules); XVIII (Book C) |
 | XIII Dealer's Hand | Hedging mechanics from first principles, sign conventions, the JHEQX exception | — (foundational; corrected XII) | XII, XI, XIV (levels by mechanism) |
 | XIV Technical Indicators | Price-derived regime and levels, the traps, the wall | XIII (hedging levels), XII (blocks), XI (vol regime) | Execution only; nothing upstream |
 | XV Equities | Earnings cycle, buybacks, index and passive mechanics, factors, single names | I (Factor II), VI (financing), X (turning points), XVI (flows) | X's overlays; XII; II (scenarios 20, 22, 24) |
-| XVI Positioning & Flows *(planned)* | The mechanical holders and their calendars | II (price-insensitive buyers), XIII (dealer flow), XI (vol-control) | XII's Confirmation block; XIV's systematic-trigger levels; XV |
-| XVII Portfolio Construction *(Draft 1)* | Cross-asset sizing, hedge cost, rebalancing disciplines | X, XI, IV, V, VI, VIII, IX, XV | The book |
-| XVIII Systematic Book *(planned)* | Execution, sizing, validation, tax and compliance mechanics | XII, XIII, XIV, XVI, X (calibration lessons) | The automated layer |
+| XVI Positioning & Flows *(Draft 1)* | The mechanical holders, their calendars, absorption | II (price-insensitive buyers), XIII (dealer flow), XI (vol-control), XIV (trigger levels) | XII's Confirmation block; XVIII's trust matrix rows and Rule 16 factor map; XIX's heat calculator; XV |
+| XVII Portfolio Construction *(Draft 1)* | Cross-asset sizing, hedge cost, rebalancing disciplines | X, XI, IV, V, VI, VIII, IX, XV | XVIII's Book A bands; the book |
+| XVIII Operating Doctrine *(v1.0)* | Books, dials, switches, rules, target arithmetic, adoption | Every paper (consumes the whole library); XIII (gamma dial), XI (vol dial), III (macro dial), X (override) | XIX (what enforces it); the operator |
+| XIX Systematic Book *(Draft 1, as-built)* | Register, execution, sizing-as-code, validation, tax, compliance, the gate ladder | XVIII (the rules it enforces), XII, XIII, XIV, XVI, X (calibration lessons) | The execution layer; Gate 2 |
 
 **Where a wrong paper does the most damage.** Three papers are load-bearing for
 everything beneath them: **Rates & Liquidity** (if the funding-channel read is
@@ -785,7 +697,7 @@ free data tier cannot compute stated as gaps in-render.
 **What it contains.** The operating manual for the intraday report system —
 and, in its Chapter 24, the **canonical analytical backlog** for all Daily
 Cascade refinements (three tiers, 22 ranked items; the guide stays canonical
-for numbering, Ch. 24 for that backlog). The
+for numbering, Ch. 24 for that backlog — Ch. 24 is the canonical *analytical* backlog for Daily Cascade refinements; the architecture doc's deferred list carries scheduling pointers only). The
 five blocks (Direction, Market Base, Confirmation, Backdrop, Execution) and the
 ~24 numbered sections beneath them, with per-section reading rules. The dealer
 positioning chapter is the technical core — gamma flip, call and put walls, the
@@ -938,15 +850,142 @@ dashboard mapped to the reports; Appendix B tabulates the historical episodes.
 
 ---
 
+## XVI. Positioning & Flows
+**Companion to: every report's positioning line, the tail watch, the Confirmation block · Draft 1 · ~8,350 words, nine parts + appendix**
+
+**What it contains.** The paper about the part of the market that does not
+think. Part II maps ten mechanical-holder types — options dealers, leveraged
+ETFs, vol-control and risk-parity funds, CTAs, index funds and committees,
+month-end rebalancers, corporate buybacks, positioning surveys, retail, and
+forced sellers — each with its rule, its observability (announced, inferable,
+hidden), and the system's data. Part III is the master calendar with the
+event-classification table that keeps a reconstitution-day auction from ever
+reading as discretionary flow. Part IV is the spine: absorption as *response
+per unit of stimulus*, stated once as a primitive and worked through four
+examples — the closing auction (absorption reversal vs pressure continuation),
+the yen (positioning × velocity against risk-asset response), the leveraged-ETF
+rebalance ((L² − L) × AUM × r, the one flow computable in advance), and index
+inclusion (the pre-positioned path vs the effective-day auction). Part V gives
+six flow models with the honesty rule for inferred flows — direction and timing
+reliable, magnitude always banded. Part VI is about not misreading positioning:
+levels are vulnerabilities, changes with catalysts are signals; percentiles
+against own history; COT's three-day lag; FINRA's two series that are not the
+same; RTAT's censored sample. Part VII supplies the seven-group independence
+table (the units that vote under the architecture's correlated-confirmation
+rule) and the first factor map for the doctrine's Rule 16 heat calculation.
+Part VIII is the data-status table — built, computable, forward-only, GAP.
+
+**Timeless takeaways:**
+- **A flow is a pressure, not a forecast; the information is in the response
+  per unit of pressure** — a forced seller met by deep demand is a bullish
+  fact wearing a bearish headline.
+- **An extreme positioning level is a vulnerability; it becomes a signal only
+  with a catalyst, and its size is the flow the catalyst can release** — the
+  record yen short was profitable for months before August 2024.
+- **Count mechanisms, not series** — five surveys saying bullish are one fact;
+  vol-control, CTA and leveraged-ETF selling on a down day are one flow seen
+  three times; the seven groups are the votes.
+- **Compute the flows you can, log the ones you can only observe, and never
+  buy history to shortcut the second** — leveraged-ETF rebalances are exact,
+  auction absorption is forward-only from September 2026, and the difference
+  decides what can be backtested.
+
+---
+
+## XVIII. The Operating Doctrine
+**Governs: how every report is consumed and how capital is deployed · v1.0 · ~25,600 words, nine parts + appendix · changes only at the monthly session (Rule 20)**
+
+**What it contains.** Different in kind from the rest of the library: it says
+how the operator is to behave given what the reports say, in the first person,
+written against the trader he has been. Part I is the card — one page, reread
+weekly. Part IV is the horizon ladder: four books with separate edge families,
+owning reports, risk figures and loss stops — Allocation (bands by Macro dial,
+with a floor as binding as the ceiling), Swing (Livermore entries, Brandt
+exits, a five-session stop on any counter-trend position), Tactical (defined
+risk from the 0700 list, the volatile-day protocol as its fence), Opportunistic
+(fifteen minutes to a packet or a pass, and a ring-fenced tail-hedge budget
+where the cynicism is allowed to live). Part V is the three dials — Macro,
+Volatility, Gamma — acting multiplicatively on size and conjunctively on
+permission, with the trust matrix that answers "should this signal be trusted
+*now*." Part VI wires the cascade: top-down sets the budget, bottom-up spends
+it and may veto but never enlarge; the Decision Packet as the unit of action;
+the semi-automation contract. Part VII is the risk doctrine and the honest
+arithmetic of the $5,000–$10,000-a-week aspiration — shown to be a Sharpe-4
+process if unconditional, and a lumpy-year model if regime-conditional — with
+a budget-first ladder of promotion gates. Part VIII is twenty-nine rules, each
+traced to its Market Wizards origin, the way this book has failed before, and
+the component that enforces it. Part IX is the ledger, the six post-mortem
+questions, edge decay, adapting without drifting, and the adoption sequence:
+Book A first, Book C second restricted to positive gamma, B third, D last.
+
+**Timeless takeaways:**
+- **Prediction accuracy is not the objective; edge, sizing, asymmetry and loss
+  control are, and they can be assembled from contradictory methods** — the
+  Wizards agree on almost nothing except the operating system.
+- **The operator is a design input, not an apology** — every known bias gets a
+  named rule, a ledger cut read first, and a structural cost; a tail thesis is
+  a hedge budget, not a position; the allocation floor exists because of 2008.
+- **Size to the opportunity, never to the P&L goal** — sizing to a target
+  guarantees size is largest when the edge is weakest; quarter-Kelly is a
+  ceiling invisible until the register has measured the edge.
+- **Re-entry after a switch happens at a scheduled session, never sooner** —
+  a switch reset by the next morning's mood is not a switch.
+
+---
+
+## XIX. Building and Validating a Systematic Book
+**Companion to: the trading infrastructure, the register, the IBKR gates · Draft 1 · ~9,100 words, eight parts + appendix · as-built after Gate 1 (5 Sep 2026)**
+
+**What it contains.** Planned as the specification the broker integration
+would be built to; written, instead, after the integration was built in a
+weekend, as the as-built record with a forward section. Part II is the
+register: a decision (not a trade) as the unit, packets immutable by database
+trigger and replayed exactly as the acceptance test, supersession in place of
+edits, DECISION_BLOCKED as the freshness gate between report and trade
+(including the Saturday-vintage ruling and the two false-block bugs that
+mattered more than the true blocks), and the two-layer Brookfield enforcement.
+Part III is execution: the three senses of "read-only" and which one turned
+out false; the What-If preview refused under Read-Only in the vendor's own
+words and the ruling that keeps Read-Only on through the hand-placed phase;
+server-side brackets, limits that say something, GTC into a closed market; the
+one-session-per-username constraint; the opportunistic book's stricter rules.
+Part IV is sizing and cost as code — risk dollars over distance to
+invalidation, dial multipliers stamped on every packet, the Fixed commission
+schedule verified by hand with provenance, the kill-switch ladder as
+measurement today and refusal tomorrow. Part V is validation on three clocks,
+the "a gate must be verified to fail and must not pass on nothing" discipline,
+the IV solver's three-round path to an earned green, the **five named failure
+classes** of the build (none found by reading), shadow outcomes for every
+decision taken or not, and what can and cannot be backtested. Part VI makes
+tax an expression decision (Section 1256 vs ETF options; wash sales between
+Book C and Book A's beta sleeve; assignment risk for an absent operator). Part
+VII is the compliance boundary. Part VIII is the gate ladder and the honest
+not-yet-built list. The appendix walks decision #1 end to end.
+
+**Timeless takeaways:**
+- **A safety claim is a hypothesis until a test or the vendor's own refusal
+  confirms it** — the client flag that "prevented trading" prevented nothing;
+  the guarantee was the server's setting plus the absence of code.
+- **Identity and time bugs are found by tests and deployment, never by
+  reading** — five failure classes, zero caught by inspection; assert every
+  directive, canonicalize every timestamp, key every write on the session.
+- **Grade the decisions you did not take** — shadow outcomes for declined and
+  drafted decisions are what make "doing nothing is a position" measurable.
+- **The thesis, the instrument, and the tax treatment are three decisions** —
+  an index thesis in SPX options and the same thesis in SPY options are not the
+  same trade after tax, after assignment risk, or after the wash-sale rule.
+
+---
+
 ## In draft and planned
 
-**XVI. Positioning & Flows.** *Next.* The systematic map of who is forced to move and
-when — the operational sequel to The Twenty-Five's price-insensitive buyer
-thesis. CTA trend models and their published trigger estimates; vol-control and
-risk-parity rebalancing; pension and quarter-end flows; buyback windows;
-expiration cycles beyond gamma; COT, 13F and fund flows as positioning reads.
-Answers the one question no other paper does: what has to happen mechanically
-this week regardless of anyone's view. Feeds the Confirmation block directly.
+**XVI and XIX — Draft 1 editions exist** (6 September 2026), written the week the
+register, the broker connection and the closing-auction and retail sources were
+built or admitted. Both are forward-looking by construction — XVI's absorption
+base rates and XIX's measured edge accumulate from September 2026 — and both
+declare what would trigger their second editions: sixty sessions of auction
+history and a forced-flow episode watched in real time for XVI; Gate 2 and the
+first hundred closed decisions for XIX.
 
 **XVII. Portfolio Construction Across Regimes — Draft 1 exists** (~4,400
 words, preview edition). The frame, vocabulary, sizing disciplines and open
@@ -957,18 +996,11 @@ mark-to-market. Expected Draft 2: late Q4 2026 to Q1 2027. (The
 trading-the-curve material originally scoped here was folded into the Credit
 paper's Position Construction part instead.)
 
-**XVIII. Building and Validating a Systematic Book.** *Before IBKR Gate 1.*
-Execution and microstructure, position sizing and drawdown control, backtesting
-methodology — overfitting, walk-forward, effective n, the Top & Bottom
-calibration lessons generalized — plus the unglamorous layer that decides net
-returns: tax treatment of options (Section 1256, straddle rules, wash sales
-across the register), margin and financing costs, account structure, and the
-personal-trading compliance boundary stated as a rule set.
-
 **Deliberately deferred.** The behavioral paper — size creep after wins, thesis
 attachment, overtrading in chop, narrative capture by one's own research — is
 written in six months *from the register*, when it is this operator's data
-rather than the literature. Real estate, emerging markets and China, and
+rather than the literature; the Operating Doctrine's Section 9.2 specifies the
+seven categorical fields it will need, populated from day one. Real estate, emerging markets and China, and
 agriculture beyond the fertilizer chain remain real but lower-priority
 candidates.
 
@@ -977,3 +1009,140 @@ scarce is calibration data and execution discipline under live conditions, and a
 library this size carries the sophistication trap — being highly informed
 substituting for being right, with every loss articulately explained. The
 register is the antidote and outranks any paper on this list.
+
+---
+
+## Appendix — Executive summary: the current read (September 2026)
+
+*This section is the most perishable material in the guide: it is a snapshot of what the library collectively says about the market **at one date**, and it is rewritten quarterly. It sits at the end for that reason — the tables, the cross-references and the per-paper entries above are durable; this is not. If the date above is more than a quarter old, treat what follows as history rather than as a read.*
+
+*This section is the perishable half of the guide: one synthesis of what the
+fifteen papers currently say about this market. The per-paper pages below are
+the timeless half. Rewrite this section each quarter; the pages should barely
+move.*
+
+**The regime in one sentence:** a late-cycle, extraordinarily concentrated
+market running on mechanical bids and spent buffers, priced for continuity by
+its aggregates while its cross-sections, its plumbing, and one physical market
+dissent — with every thread transmitting through a single variable, the long
+yield.
+
+**Start with the machine that prices everything else.** Net federal interest
+has crossed its 1991 record share of revenue at roughly half the 1991 yield —
+the stock is doing the work — and the policy response is a chain of
+maturity-shortening operations: buybacks doubled, the Treasury's own cash
+account floated as a funding source, a coordinated yen intervention designed
+partly to keep the largest foreign holder from selling. The Rates & Liquidity
+paper's history says this rhymes with 1942–51, when the Fed subordinated policy
+to Treasury financing and independence returned only by negotiation — and the
+same paper's instrument inventory says the levers that matter now are
+Treasury's, not the Fed's. Against that, the Currencies paper's central caution:
+the sitting Fed chair is hawkish, debating hikes, and a fiscal-dominance thesis
+must explain how it survives a central bank actively fighting inflation. That
+tension — quasi-monetary fiscal operations under a hawkish chairman — is the
+single most important unresolved question in the system, and the
+TGA-versus-reserves series is its referee.
+
+**The markets are split on the verdict, and the split is the information.**
+Bonds priced the operations as trivial: the ten-year returned to its highs
+within a week. Hard assets priced the precedent: gold up 14% in a month to
+records — but the Metals paper's decomposition says the *paper* bid did it,
+with physical demand at a five-year low, which is the fragile-rally
+configuration, not a confirmed debasement regime. The structural bid is the
+official sector — central banks absorbing most of mine supply, the
+reserve-share convergence gap unfilled — and the Currencies paper's data says
+de-dollarization, where real, flows into gold rather than any rival currency.
+Meanwhile the liquidity buffer beneath all of it is spent: the reverse-repo
+facility at zero, reserves falling, every marginal drain now landing where it
+can hurt.
+
+**Credit is the dissenting pillar, and it dissents the way the Credit paper
+predicts.** The index sits in its richest decile while the CCC tier has blown
+out and — the paper's best finding — private-credit marks show low volatility
+*across time* and high dispersion *across managers*, which cannot both be true
+if marks track a common value. The cycle is a lending-standards cycle; spreads
+move last; and the visible tail plus the manufactured smoothness say standards
+are already turning where the marginal borrower actually lives.
+
+**The equity market is the concentration, and the concentration is one trade.**
+Seven companies are roughly a third of the index — the highest top-cohort share
+since the Nifty Fifty — and the Equities paper's honest verdict is
+double-edged: this is the most earnings-justified concentration episode on
+record (roughly 31% of earnings, 70% of economic profit), *and* that is
+precisely what every prior episode looked like at its peak, because the
+casualty is never the businesses but the multiple, and the mechanism is
+deceleration at a price that assumes none. The trade's fulcrum is the compute
+supplier, whose balance sheet now carries the cycle — half a trillion of
+forward commitments against a $96 billion quarter, five customers at 70% of
+receivables — with the 2021–22 unwind template loaded and three lines to watch
+(inventory, receivables aging, the margin trough) before any revenue headline.
+The mega-IPO wave adds to the same trade: index fast-entry rules now feed the
+passive machine companies with no public earnings history and small floats
+against scheduled lockup supply. Hyperscaler capex guidance is the master
+series for all of it; whether ring-four revenue ever arrives — whether anyone
+besides the suppliers gets paid — is the decisive one.
+
+**The loudest divergence in the system is physical.** The strait has been
+effectively shut for six months, war-risk premiums have repriced two hundred
+fold, Gulf exports have halved — and crude sits at pre-crisis prices. The
+Energy paper's buffer frame sharpens rather than resolves it: the buffers that
+normally absorb such a shock are at or below five-year lows, and spare capacity
+trapped behind the chokepoint is not spare. Either the world has adapted or a
+large tail is being underwritten at normal premiums; the framework holds both
+hypotheses with a decision date rather than an opinion. And beneath the oil
+story, the paper's power thesis is already resolved: a capacity market clearing
+at its administrative price cap while still short of its reliability
+requirement is genuine physical scarcity, domestic and structural — the place
+where the energy system and the AI trade collide, with the same single point of
+failure: hyperscaler capex.
+
+**The monetary architecture is moving in plain sight.** Stablecoin issuers are
+load-bearing in published Treasury financing plans — private money creation
+inside sovereign finance — which sharpens both crypto tails at once (a depeg is
+now a bill-market event; a regulatory reversal removes a marginal buyer by
+decree), while bitcoin's violent month on a Fed speech says the asset behavior
+is fully intact. The Digital Assets paper's frame holds: the infrastructure
+question and the asset question are separating, and the infrastructure is
+winning the official embrace while the asset keeps its beta.
+
+**The volatility surface prices none of this.** Implied sits in the low teens
+while the Volatility paper counts an options-income complex sixty times the
+size of the products that produced February 2018 — different vehicles, same
+premium-harvesting crowd — and flags the April 2025 haven anomaly, when the
+hedges sold with the risk, as the template for what a modern unwind could look
+like if the resolution mechanism itself is impaired. Insurance is cheap at
+exactly the moment the list of things it would have to insure is long.
+
+**Four threads run through all of it, and they are the library's real
+findings.** *The buffers are spent* — RRP at zero, oil inventories below
+five-year lows, grid reserve margins short, the credit tail already paying —
+while every headline aggregate reads calm. *The surfaces are held by mechanical
+bids* — passive flow, buybacks, stablecoin reserves, the official gold bid —
+and mechanical bids fail differently: on calendars and rules, not on
+valuations, and without reversing when things get cheap. *The divergences are
+the tells* — physical-versus-price in energy, CCC-versus-IG in credit,
+paper-versus-physical in gold, cap-versus-equal-weight in equities,
+PCE-versus-CPI in inflation — because when an aggregate and its cross-section
+disagree, the cross-section is usually early. And *everything rides the same
+bus*: the long yield correlates the tail clusters, prices the concentration's
+duration, sets the fiscal arithmetic, and decides the debasement trade. The
+book's aggregate exposure to it is the book's real position.
+
+**The path the whole framework is least positioned for is named, deliberately:
+inflation re-acceleration.** Producer prices at a four-year high, the Fed's
+preferred core measure running well above core CPI in the unusual direction,
+guidance withdrawn, hike odds priced — every pillar currently assumes
+disinflation, which is itself the reason to weight the alternative.
+
+**What would rewrite this summary,** in either direction: the TGA-and-reserves
+series confirming or refuting the monetization leg; any top-five capex cut, or
+two more quarters of the supplier's balance-sheet lines outgrowing sales;
+strait transits recovering — or a re-closure that finally moves price;
+ring-four revenue arriving at scale; core PCE decelerating through three
+percent; the equal-weight index quietly taking leadership. Each is observable,
+each is logged, and the register — not the library — will grade whether reading
+all of this made the trading any better. That is the standing caution: the
+system is now long sophistication, and the only cure for the sophistication
+trap is graded results.
+
+---
