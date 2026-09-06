@@ -30,15 +30,36 @@ governs where it is going and overrides this file on intent.
 `white-paper-library-guide.md`, plus the white paper library itself in
 `docs/whitepapers/`.
 
-**Three of those documents exist in two formats.** For the library guide,
-`docs/whitepapers/dealers-hand-whitepaper.md` (XIII) and
-`docs/options-expression-whitepaper.md` (XXII), **the HTML is canonical for
-reading** (it carries the rendered tables, the anchor navigation, and the
-computed figures) and **the Markdown is canonical for editing** — edit the `.md`
-and regenerate the HTML from it, never the reverse. An HTML file that disagrees
-with its `.md` is stale, not a second opinion. Every other paper is Markdown
-only. The same rule applies to re-uploading a paper from a local copy: pull
-first, or the upload silently reverts whatever the repo learned since.
+**Five of those documents exist in two formats.** The library guide,
+`docs/whitepapers/dealers-hand-whitepaper.md` (XIII),
+`docs/options-expression-whitepaper.md` (XXII),
+`docs/whitepapers/evidence-inference-whitepaper.md` (XXIII) and
+`docs/whitepapers/earnings-whitepaper.md` (XXIV) each declare in their own
+masthead that the HTML edition is canonical. For all five, **the HTML is
+canonical for reading** (it carries the rendered tables, the anchor navigation,
+and the computed figures — XXIII's masthead says outright that its figures live
+only there) and **the Markdown is canonical for editing** — edit the `.md` and
+regenerate the HTML from it, never the reverse. An HTML file that disagrees with
+its `.md` is stale, not a second opinion. Every other paper is Markdown only.
+The same rule applies to re-uploading a paper from a local copy: pull first, or
+the upload silently reverts whatever the repo learned since.
+
+**This paragraph is the durable copy of that rule, and it is here because the
+guide's copy keeps being destroyed.** The rule was written into
+`docs/white-paper-library-guide.md` on 6 September and deleted the same
+afternoon by a full-file re-upload from a stale local copy; it was restored in
+`8bf2f89` and deleted again hours later by `a3839ff`, the same way. Three
+writes, two deletions, one day. A rule that lives only in the file it governs is
+erased by the exact act it exists to prevent, so it now lives in two places: the
+guide's front matter, where a reader of the guide meets it, and here, which no
+upload flow touches. **If the two ever disagree, this file wins, and the guide's
+front matter should be restored from it.** Its absence from the guide is
+evidence of a stale re-upload, not evidence that the rule was retired.
+
+Note also that no `.html` is tracked in this repo — `git ls-files docs` returns
+Markdown only. The canonical-for-reading editions live outside version control,
+which is why "regenerate from the `.md`" is a manual discipline rather than
+something the build enforces.
 
 **The library guide is canonical for the papers' series numerals.** A paper's
 masthead carries the numeral the guide assigns it; inside a paper, cross-

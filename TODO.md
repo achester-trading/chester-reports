@@ -1231,6 +1231,38 @@ that tells you D1 is needed.*
   measures the heartbeat's age at the moment it runs, so a catch-up check is a
   late check, and a late check finding a four-day-old heartbeat is the alarm.
 
+## CI gate structure (6 Sep 2026) — one failure must not hide the others
+
+- [ ] **Make `registry-check.yml`'s gates run independently.** The job runs
+      seven checks as seven sequential steps, so the first failure ends the job
+      and every later step reports `skipped`. When
+      `validate_register.py` (step 6) went red at `55630fb`, it took the
+      Portfolio Truth gate, the IB Gateway watchdog policy, the heartbeat
+      caller policy and the systemd directive allowlist down with it —
+      **sixteen consecutive runs in which four gates did not execute and
+      nothing said so.** `skipped` reads as "not applicable" at a glance; it
+      meant "unknown" for a day.
+      - The cost of the coupling is not the delay, it is the false reading. A
+        red X on the workflow says one thing is broken. It in fact said one
+        thing is broken and four things are unmeasured, and the difference only
+        surfaced because the failure was investigated rather than triaged.
+      - Two ways to fix it, and they are not equivalent. `continue-on-error`
+        per step keeps one job and lets every gate run, but the job's own
+        conclusion then needs assembling or a real failure goes green — trading
+        a masking bug for a swallowing bug, which is worse. A matrix job (one
+        gate per job, `fail-fast: false`) gives each gate its own pass/fail line
+        and its own log, and the workflow fails if any job does. Prefer the
+        matrix; the seven checks share only the checkout and a `pip install
+        PyYAML`, so there is nothing to serialise for.
+      - Blocks nothing today — all seven are green as of `2e58f87`. It is a
+        wanted change to the reporting, not to the checks.
+- [ ] **Decide whether the two IBKR cost validators belong in the gate.**
+      `validate_ibkr_costs.py` and `validate_ibkr_whatif.py` are not in
+      `registry-check.yml`, so the commission rate-card change in `7faaf64` was
+      verified only by hand on the box. They need no data and no network — the
+      same profile as the checks already in the workflow. Fold them in with the
+      matrix above rather than as two more sequential steps.
+
 ## Still owed on the box (Part 25 — the VPS runs code, this repo cannot install it)
 
 - [x] **NOTED 2026-09-06: the box holds a write-capable deploy key.** Added

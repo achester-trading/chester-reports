@@ -9,6 +9,28 @@ the system consumes it through a compact claims registry (claims, falsifiers,
 evidence links); the papers themselves are for the human and for writing that
 registry.*
 
+**Five documents exist in two formats, and the two formats have different jobs.**
+This guide, *The Dealer's Hand* (XIII), *Options as Expression* (XXII),
+*Evidence and Inference* (XXIII) and *Earnings* (XXIV) are each published as
+HTML alongside their Markdown source. **The HTML is canonical for reading** — it
+carries the rendered tables, the anchor navigation and the computed figures the
+Markdown can only hold as placeholders; XXIII's masthead says outright that its
+figures live only there. **The Markdown is canonical for editing** — every
+change is made in the `.md` and the HTML is regenerated from it, never the other
+way round. An edit made only in the HTML is lost at the next regeneration, and
+an HTML file that disagrees with its `.md` is stale by definition rather than a
+second opinion. Every other paper in the library is Markdown only, and the
+question does not arise.
+
+*(This note has now been written three times and deleted twice — added on
+6 September, removed the same afternoon by a full-file re-upload from a local
+copy that predated it, restored in `8bf2f89`, removed again hours later by
+`a3839ff` the same way. That is the editing hazard the rule describes, deleting
+the rule. **The durable copy lives in `CLAUDE.md`, which no upload flow
+touches**; if this paragraph is missing from the guide, it was dropped by a
+stale re-upload rather than retired, and should be restored from there. Edit the
+`.md` in the repo, or re-upload from a copy that has pulled.)*
+
 ---
 
 ## Contents
