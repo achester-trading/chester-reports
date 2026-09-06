@@ -23,6 +23,8 @@ Runs against a temporary database, so it never touches data/chester.db.
 
 from __future__ import annotations
 
+import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -234,19 +236,88 @@ def group_c(db_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-def group_e(db_path: str) -> None:
+def seed_fresh_signals(td: str) -> dict:
+    """Synthesise the two inputs group E's clean path needs, and return the env
+    that points `decide.py` at them.
+
+    Why this exists. `exposure.gamma_flip` resolves through the newest computed
+    profile and `pin.hit` through the pin log -- both under `data/`, which is
+    gitignored. On a fresh CI checkout neither exists, so both read as "no
+    observation found", the clean-path assertions below get a DECISION_BLOCKED,
+    and the gate fails for a reason that is about the checkout rather than
+    about the code. That is what happened from 55630fb onward.
+
+    Deleting the assertion was the other option and it is the wrong one: it is
+    the half of 26.2 #7 that proves the freshness check DISCRIMINATES. A check
+    that only ever blocks is indistinguishable from an outage, and a gate that
+    cannot tell those apart is not a gate. So seed the inputs instead.
+
+    These are the thinnest records the two locators will accept -- a session
+    date and a symbol. They are not plausible market data and are not meant to
+    be: nothing here computes on them, the locators only read their freshness.
+    The blocked-path assertions above stay honest because `portfolio.nav` is
+    deliberately NOT seeded, so the block still has exactly one cause and the
+    test still names it.
+    """
+    root = Path(td) / "signals"
+    computed = root / "computed"
+    last = session.last_trading_session().isoformat()
+    (computed / last).mkdir(parents=True, exist_ok=True)
+    (computed / last / f"SPY_{last}_exposure.json").write_text(
+        json.dumps({"symbol": "SPY", "session_date": last,
+                    "synthetic": "validate_register group E fixture"}),
+        encoding="utf-8")
+
+    pin = root / "pin_log.csv"
+    import pin_log as pl  # noqa: PLC0415
+    with pin.open("w", encoding="utf-8", newline="") as fp:
+        import csv  # noqa: PLC0415
+        w = csv.DictWriter(fp, fieldnames=pl.PIN_COLUMNS, extrasaction="ignore")
+        w.writeheader()
+        w.writerow({"date": last, "symbol": "SPY"})
+
+    return {"CHESTER_COMPUTED_DIR": str(computed),
+            "CHESTER_PIN_LOG_PATH": str(pin)}
+
+
+def group_e(db_path: str, td: str) -> None:
     print(f"\n{LINE}\nE. THE DECISION CLI\n{LINE}")
     import subprocess
+    env = {**os.environ, **seed_fresh_signals(td)}
     def run_cli(*a):
         return subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
                                "--db", db_path, *a],
-                              capture_output=True, text=True, cwd=str(REPO))
+                              capture_output=True, text=True, cwd=str(REPO),
+                              env=env)
+
+    # The seeding is itself worth asserting. If it silently stopped working --
+    # a renamed env var, a changed locator -- every clean-path check below
+    # would fail with a blocked decision and point at the CLI instead of at
+    # the fixture.
+    #
+    # `config` was imported before the env was set, so the in-process check has
+    # to be pointed at the fixture by hand and pointed back afterwards. Leaving
+    # it repointed would redirect group F's pin-log reads at an empty file and
+    # turn a real check into a false skip.
+    import freshness                             # noqa: PLC0415
+    saved = (config.COMPUTED_DIR, config.PIN_LOG_PATH)
+    config.COMPUTED_DIR = env["CHESTER_COMPUTED_DIR"]
+    config.PIN_LOG_PATH = env["CHESTER_PIN_LOG_PATH"]
+    try:
+        check(not freshness.check_signals(
+                  ["exposure.gamma_flip", "pin.hit"], "SPY")["blocked"],
+              "fixture: both seeded signals locate and read fresh")
+        check(freshness.check_signals(["portfolio.nav"], "SPY")["blocked"],
+              "fixture: portfolio.nav is deliberately NOT seeded, so the "
+              "blocked path below has exactly one cause")
+    finally:
+        config.COMPUTED_DIR, config.PIN_LOG_PATH = saved
 
     ok_args = ["record", "--instrument", "SPY", "--direction", "long",
                "--thesis", "t", "--edge-type", "positioning",
                "--horizon", "swing", "--invalidation", "below 760",
-               # Signals that ARE fresh, so this exercises the clean path
-               # rather than accidentally testing the block.
+               # Signals that ARE fresh -- seeded above -- so this exercises
+               # the clean path rather than accidentally testing the block.
                "--signals-used", "exposure.gamma_flip", "pin.hit"]
     r = run_cli(*ok_args, "--dry-run")
     check(r.returncode == 0 and "DRY RUN" in r.stdout,
@@ -437,7 +508,7 @@ def main() -> int:
         group_a(db)
         group_b(db)
         group_c(db)
-        group_e(db)
+        group_e(db, td)
     group_f()
     group_d()
 

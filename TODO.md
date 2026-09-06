@@ -1233,6 +1233,19 @@ that tells you D1 is needed.*
 
 ## Still owed on the box (Part 25 — the VPS runs code, this repo cannot install it)
 
+- [x] **NOTED 2026-09-06: the box holds a write-capable deploy key.** Added
+      after a commit authored on the box stranded itself — the work was
+      committed locally and had no way out, because the box could pull over
+      HTTPS but not push. The key closes that. **It is a recovery path, not a
+      license.** Part 25's rule is unchanged and unweakened: *the VPS runs
+      code; it never edits code.* Authoring still belongs in the repo
+      workflow; what changed is only that rescuing a commit that should not
+      have been made here no longer needs a human at a second machine. A
+      standing escape hatch invites use, so the test stays the same one as
+      before it existed — if a change could have been made on the laptop, it
+      should have been. Each time it is used, record the exception in the
+      commit message the way `7faaf64` does.
+
 - [ ] **Pull, copy the two units, enable the timer.** README section 7. No gate
       held over this one, unlike the Gateway units: it is read-only, writes
       only its own log and state, and cannot affect what it watches.

@@ -247,9 +247,17 @@ CONVENTION_CAVEAT: str = (
 )
 
 # Local data lake (gitignored).
+#
+# The computed-profile directory and the pin log are env-overridable for the
+# same reason BACKUP_DIR is -- a caller that is not this working tree needs to
+# retarget them without a code edit. The concrete caller is the CI gate:
+# `data/` is gitignored, so on a fresh checkout these two paths point at
+# nothing, and every signal that resolves through them reads as MISSING. That
+# is correct for real data and wrong for a test that needs to exercise the
+# not-missing path. See tools/validate_register.py group E.
 CHAIN_DIR: str = "data/chains"
-COMPUTED_DIR: str = "data/computed"
-PIN_LOG_PATH: str = "data/pin_log.csv"
+COMPUTED_DIR: str = os.environ.get("CHESTER_COMPUTED_DIR", "data/computed")
+PIN_LOG_PATH: str = os.environ.get("CHESTER_PIN_LOG_PATH", "data/pin_log.csv")
 
 # Which snapshot represents a session, when a day holds several. Matches the
 # systemd timer's 16:10 ET firing: the EOD profile is meant to describe the book
