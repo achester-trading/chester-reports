@@ -105,18 +105,21 @@ Point-in-time and provenance (Part 26.2)
 - [ ] No Security Master identity layer (26.2 #6); bare tickers only.
 
 Durability and coverage
-- [ ] **Replace the OneDrive backup with VPS-side storage when cron moves there.**
-      `run_eod.py` stage 4 zips `data/chains/<date>/` and copies it to
-      `config.BACKUP_DIR` (OneDrive today, env-overridable via
-      `CHESTER_BACKUP_DIR`). That is a stopgap for a laptop, not a runtime
-      answer: Part 25 rules the VPS primary, so the backup target should become
-      box-side storage plus an off-box copy.
-- [ ] Raw chains live only on this Windows box, gitignored. Part 25 rules the VPS
-      the primary runtime with outputs on the box, so gitignoring is right — but
-      the data is the one asset that cannot be recovered, and it currently has no
-      backup and no VPS home. Migrate + back up before the sample has real value.
-- [ ] SPX absent (yfinance has no index options). Blocks the doc's Session −1
-      universe of SPX/SPY/QQQ/IWM. Pending the Part B vendor decision.
+- [~] **SUPERSEDED by 30.1 #1 (D1a).** Was: replace the OneDrive backup with
+      VPS-side storage. The VPS half happened and made things WORSE, which is
+      the audit's point: the zip now lands in `~/backups/chains`, on the same
+      disk as the data it protects. A backup on the same disk is not a backup.
+      The ruling is Hetzner server backups plus an `rclone` off-box sync of
+      `data/` + `~/backups/` + `~/state/`.
+- [~] **SUPERSEDED by 30.1 #1 (D1a).** The VPS-home half is done. The backup
+      half is not, and the stakes rose: 30.1 rules the point-in-time store "the
+      system's memory; it must survive the box." Chains are no longer the only
+      irreplaceable asset — the store, the register and the packets are too.
+- [~] **RESOLVED then SUPERSEDED by 30.1 #2 (D1b).** SPX/SPCX ingestion landed
+      via Massive Starter. The audit goes further: yfinance is a single point of
+      failure carrying 13 of 15 symbols' chains and every price, so **Massive
+      becomes primary for all 15** and yfinance is demoted to fallback and
+      cross-check.
 
 ## Put-wall definition resolved (5 Sep)
 
@@ -742,3 +745,230 @@ and no intraday reading can describe a closed market.
       replays, that is a schema decision, not a hash tweak.
 - [ ] The decision CLI is `tools/decide.py`, not `new_decision.py`. Renaming is
       cheap if the other name is preferred -- say so rather than both existing.
+
+---
+
+# Part 29 + Part 30 reconciliation (5 Sep 2026)
+
+*Read against Change Order #3 (Part 29, eight tactical additions) and Audit #2
+(Part 30, Track D). **Nothing built in this pass** — this is the reconciliation
+only. Items above marked `[~]` are superseded by a ruling below.*
+
+## Track D — the ruled order of work (30.7)
+
+Track D supersedes every informal "next" in this file. ~15–18h to a running
+Daily with Friday/Sunday and a closed learning loop.
+
+- [ ] **D0 — Daily run-state inventory (0.5h). Out-of-band item 4, still open;
+      retire cron-job.org.** Gate: *nothing is built on an unconfirmed
+      pipeline.* Repo-side findings are recorded under "D0 — what the repo
+      already answers" below; the rest needs the principal.
+- [ ] **D1 — Durability trio (2h).** Three separate tasks, broken out below.
+- [ ] **D2 — `regime.py` (2h).** Macro regime state from series ALREADY in the
+      store (net liquidity, HY OAS, curve, realized/implied vol, breadth,
+      dealer gamma regime), written as an observation with its own
+      `available_at`. Declared thresholds, state machine — not a 0–100
+      composite (29's rule 1). Feeds the Daily's Backdrop immediately and seeds
+      T&B (Sessions 10–14), which refines rather than replaces it. Per 30.8,
+      VIX term structure (VX1/VX2/VX3 slope, contango → backwardation) joins as
+      a declared state machine once CFE Enhanced is subscribed.
+- [ ] **D3 — Session 4-lite (3h). BLOCKS ANY DAILY NARRATIVE.** 30.3: numbers
+      in the store are gated, prose is not. Payload-constrained generation on
+      the Monthly's pattern, a numeral audit that FAILS THE BLOCK when a number
+      appears that is not in its payload, and a directional check. Ruling
+      verbatim: *"A Daily that can invent a number is worse than no Daily."*
+- [ ] **D4 — Daily Cascade pipeline (3–4h).** Block payload builders (Part 20)
+      reading the store, render, `daily_cascade_state.json`, drafted setups
+      becoming `decide.py` drafts. **Two VPS timers first (07:00, 16:30)**; the
+      remaining seven of Part 28's nine are added as each block earns trust.
+      `auto_publish: false`.
+- [ ] **D5 — 15b-lite (3h): the loop closes.** Shadow outcome at its horizon
+      for EVERY decision from stored prices — **taken, declined and draft
+      alike**, which is what makes the loop learn when no trade is placed.
+      Taken decisions additionally reconcile to Portfolio Truth fills. Plus a
+      `hypotheses` table (Part 29 registers seven) on the same grading path,
+      and the Friday Weekly Reflection as a query over it with narrative on
+      top. Execution-quality analytics land here too — see 30.8 adopted #1.
+- [ ] **D6 — 15a-lite (2–3h): Sunday Forward Plan.** Register state + regime +
+      calendar + Part 27 v1 movers + lessons-retrieved-before-decision.
+
+**Then, in this order (30.7):** Part 29 items 1–4 · intraday cadence (gated on
+Tuesday's debut + capture-instant T) · T&B full · remaining v17 core (S1/S2
+leftovers, S3b, ALFRED, alert delivery) · Part 29 items 5–9 · Part 28 A1/A3 ·
+Sessions 8–9 with Part 27 v1.
+
+## D1 — the durability trio, as three tasks
+
+- [ ] **D1a — Off-box backup (30.1 #1).** Hetzner server backups (console
+      click, ~20% of box price) AND `rclone` nightly sync of `data/` +
+      `~/backups/` + `~/state/` to cloud storage. Touches: a new
+      `scripts/rclone_sync.sh`; new `deploy/systemd/chester-backup.{service,timer}`
+      asserted by `tools/validate_systemd_units.py` per 30.2(b);
+      `run_eod.py:backup_chains()` and `config.BACKUP_DIR` for the target.
+      Needs from the principal: the Hetzner console click, and an rclone remote
+      + credentials.
+- [ ] **D1b — Massive primary for all 15 symbols (30.1 #2, ~1h).** yfinance is
+      an unofficial API that breaks periodically and currently carries 13 of 15
+      symbols' chains AND every price. Touches: `altdata/sources/massive_chain.py`
+      (vendor-only today → primary); `altdata/sources/options_chain.py`
+      (yfinance → fallback + cross-check); `run_eod.py` stages 1 and 1b merge;
+      `config.options_universe()` / `massive_universe()` /
+      `PENDING_VENDOR_SYMBOLS` collapse into one universe;
+      `tools/exposure_compute.py` — **the `greeks_source` split collapses**,
+      since solver IV then feeds every symbol identically, which also retires
+      the SPX-specific `greeks_status=pending_solver_gate` path. Watch: Massive
+      rows must carry the staleness fields the data-quality gates read
+      (`last_trade_date`), and the yfinance cross-check inherits FlashAlpha's
+      old role as the independent witness.
+- [ ] **D1c — SQLite WAL + busy_timeout + repo-wide write lock (30.1 #3,
+      ~30 min). BEFORE ANY NEW WRITER SHIPS.** Confirmed in the repo: neither
+      `register/store.py` nor `altdata/observations.py` sets WAL or
+      `busy_timeout` — both open with `PRAGMA foreign_keys = ON` and nothing
+      else. And the three existing `flock` calls
+      (`scripts/run_eod_cron.sh:59`, `sync_ibkr.sh:43`,
+      `ibgateway_watchdog.sh:73`) each lock **their own script against a second
+      copy of itself** — `eod.lock`, `ibkr_sync.lock`,
+      `ibgateway_watchdog.lock`. None of them guards the database, so two
+      different writers collide today with nothing in the way. Touches: both
+      store classes' `__init__`; a shared lock helper; every writer
+      (`run_eod.py`, `pin_log.py`, `decide.py`, the IBKR sync, the heartbeat).
+      Roster this must survive: EOD, heartbeat, Portfolio Truth every 30 min,
+      Gateway watchdog, plus incoming intraday, MOC sampler and seven Daily
+      runs. Failure mode named in the ruling: `database is locked` errors *that
+      look like data gaps*.
+
+## Part 30 standing rules — bind every future change
+
+- [ ] **30.2(a) — identity and time, enforced by the registry gate.** Every new
+      writer and every new source passes through `session_date()`, canonical
+      microsecond UTC, and `run_id`-on-write. No exceptions. The weekend's
+      whole failure population (UTC-vs-session ×3, mtime-vs-observation ×2,
+      silently-ignored systemd directives ×5, timestamp-precision ×2,
+      run_id-precision ×2) was identity and time bugs, every one caught by a
+      test or a deployment and never by reading.
+- [ ] **30.2(b) — every shipped systemd directive is asserted by the
+      validator.** The unknown-directive trap stays.
+- [ ] **30.4 — REPORTS NEVER FETCH.** Fetchers are timers that write the store;
+      every report block queries the store as-of. One pull per source per
+      cadence, shared by all nine Daily runs, the Weekend, the Monthly and T&B.
+      This is the data-efficiency rule and the leakage rule at once. **Any
+      block found fetching is a defect** — applies to the Daily's builders when
+      D4 lands, and is worth auditing `monthly_macro` against.
+- [ ] **30.8 ops — the IBKR market-data line budget is a registry-level fact.**
+      100 concurrent lines by default; more cost money. CAP-SPX at full
+      constituent breadth is infeasible on that budget. Record it in the source
+      registry so the MOC sampler does not discover it at 15:50.
+
+## Part 30.8 — market-data feeds, approved ~$12.55/mo
+
+- [ ] Subscribe, each tied to an existing consumer: **NYSE/Arca/MKT order
+      imbalances ($3.00)** — 29.4's auction probe fails without the
+      entitlement; **CFE Enhanced ($4.50) + CBOE Streaming Indexes ($3.50)** —
+      fill four of the Volatility paper's eight `not_yet_sourced` regime tells
+      and feed D2; **CME L1 ($1.55)** — ES/NQ/RTY overnight for the Daily's
+      Market Base; **OPRA L1 ($1.50)** — intraday cadence only, where Massive's
+      15-minute delay bites. **FX ($0)**.
+- [ ] **Nasdaq Closing Cross (NOII) stays a marked GAP.** NYSE-family auction
+      data is never presented as market-wide.
+- [ ] Deferred until a consumer names them: CBOT, NYMEX, COMEX.
+- [ ] **30.8 adopted #1 — executions, fills and commissions into Portfolio
+      Truth (read-only).** This is what makes 26.7's *execution error*
+      measurable rather than estimated, and it lands in D5 as execution-quality
+      analytics: slippage vs decision-time price, implementation shortfall,
+      fill-vs-limit. Also the first real check on the Gate 1.5 cost estimate —
+      see the schedule-verification item above.
+- [ ] **30.8 adopted #2 — portfolio-impact line.** Every regime change and
+      alert annotated with the held book's sensitivity (beta, net delta/gamma
+      from Portfolio Truth × the exposure engine).
+- [ ] **30.8 adopted #3 — standard derived forms as a registry convention.**
+      One generic function computing level, own-history percentile, z,
+      momentum, acceleration, divergence, regime, anomaly, confidence for any
+      registered metric. A convention over the store, not a new layer.
+- [ ] **30.8 adopted #4 — ETF-vs-underlying closing-flow divergence** (Arca) as
+      a 29.4 metric.
+
+## Part 29 — after Track D, in 29.9's order
+
+Ordering rule: **forward-only loggers first** (every day unlogged is lost);
+probes before wiring; nothing displaces Tuesday's debut check.
+
+- [ ] 1. RTAT10 fetcher + 2016 backfill + derived metrics (29.3) — 2h. Free
+      key. **Do first: it is the rare historied source**, so percentiles seed
+      on day one and it is backtestable against 2021/2022. Registry flag
+      `sample: top10_censored` on every derived metric — head of the
+      distribution, never market-wide breadth.
+- [ ] 2. Cohort registry + nightly consensus logging + return attribution
+      (29.2) — 2h. **Starts the estimate-history clock**; decomposition reads
+      `insufficient_history` until Q4. Seed: DELL, NVDA, SMCI, AVGO, HPE.
+- [ ] 3. Probes: IBKR imbalance ticks (29.4) and IBKR borrow fields (29.7) —
+      1h, read-only. Gated on the 30.8 imbalance subscription.
+- [ ] 4. `response_ratio(stimulus, response, window)` primitive (29.0) — 1h.
+      Four items reduce to it: MOC absorption, Dell revision-velocity,
+      meme attention divergence, PM–asset divergence. `observation_type:
+      calculated`.
+- [ ] 5. Yen monitor v0 (29.1) — 2–3h. Five mechanism groups, FXY chains
+      through the exposure engine, JGB CSV. ORANGE needs three groups, RED
+      five.
+- [ ] 6. Meme v0 (29.7) — 4–5h. ApeWisdom, FINRA, borrow series, funnel,
+      lifecycle state machine, board, register rules.
+- [ ] 7. ZEC theme block + DAT entity template + CYPH instance (29.5–29.6) —
+      4–5h. Every figure enters the claims registry (26.5) and is **verified
+      via EDGAR before any report cites it**.
+- [ ] 8. MOC sampler + event table + pin-log column (29.4) — 2.5h. New cadence:
+      **15:50–16:00 sampler at ~30s** on the VPS.
+- [ ] 9. PM phase 2 (29.8) — 5–7h. Gated on Part 27 v1 through one live event.
+
+## Part 29 requirements that land on code already built
+
+- [ ] **29.7 → `tools/expression_check.py`: a bare meme short must be flagged
+      with the unbounded-loss note.** Meme shorts default to defined-risk. The
+      module has no short-side rule at all today — its six rules are about edge
+      shape, none about unbounded loss.
+- [ ] **29.7 → the register: `book: opportunistic`.** New column or tag, with
+      `edge_type: behavioral`, horizon intraday/swing, and a **declared sizing
+      cap in config (per-name and aggregate % of NAV) — numbers set by the
+      principal, not at 09:31.**
+- [ ] **29.7 → invalidation semantics: short invalidation includes borrow
+      conditions** (CTB above X or availability below Y invalidates even if
+      price has not moved). `decide.py --invalidation` is free text today.
+- [ ] **29.7 → attention metrics get `half_life: intraday`** so
+      DECISION_BLOCKED refuses entries on stale mentions. The freshness check
+      already enforces this once the metrics are registered.
+- [ ] **29.4 → event classification table in `altdata/session.py`, beside the
+      holiday table:** NORMAL / MONTH_END / QUARTER_END / INDEX_REBALANCE /
+      OPEX / TRIPLE_WITCHING / ETF_REBALANCE. *A reconstitution-day imbalance
+      is never discretionary flow.*
+- [ ] **29.1 → FXY options through the exposure engine** as the FX-vol
+      mechanism group (IV and skew as the risk-reversal analog). The engine
+      takes a new symbol; the universe question is D1b's.
+- [ ] **29.6 → CYPH joins the chain universe**, subject to the existing
+      liquidity floor.
+- [ ] **29.2 → `kill_condition` on registry entries** (Dell's: backlog
+      conversion stalls). Already an open Session 2 item; 29.2 gives it its
+      first concrete instance.
+
+## D0 — what the repo already answers
+
+*Determined by reading the repo, so the inventory does not have to re-ask.*
+
+- **The Daily Cascade has no code. None.** What exists is the reservation only:
+  `daily_cascade` in `state/emit.py:VALID_KEYS`, three `allowed_reports` rows
+  in `source_registry.yaml`, and a "Not yet built" row in `CLAUDE.md` and
+  `AGENTS.md`. There is no `daily_cascade/` package, no runner, no block
+  builders.
+- **`monthly_macro/run.py` is the only caller of `emit()`.** So the dashboard
+  has never received a `daily_cascade` state record from this repo.
+- **`.github/workflows/monthly-report.yml` has `on: workflow_dispatch:` and no
+  `schedule:` block.** GitHub therefore never fires it by itself — an external
+  caller must POST to the dispatch API. That external caller is the thing D0
+  retires, and **nothing in the repo replaces it yet.**
+- **The workflow consumes four secrets:** `FRED_API_KEY`, `ANTHROPIC_API_KEY`,
+  `CHESTER_STATE_URL`, `CHESTER_STATE_TOKEN`.
+- **`registry-check.yml` runs on push and pull_request** — unaffected by
+  retiring the external scheduler.
+- **The VPS timer roster is four units**, none of them the Monthly and none of
+  them a Daily: `chester-eod.timer` (Mon–Fri 16:10 ET),
+  `chester-ibkr-sync.timer` (Mon–Fri 09..17:00/30 ET),
+  `ibgateway-restart.timer` (01:00 ET daily), `ibgateway-watchdog.timer`
+  (every 5 min). **Retiring cron-job.org therefore requires building the
+  replacement trigger — it is not a deletion.**
