@@ -3,7 +3,7 @@
 ## What Markets Usually Do — and How Far Back "Usually" Goes
 
 **Companion white paper — chester-reports library**
-**Series placement:** Companion **XX** — with the market-timing layer, beside *Tops and Bottoms* (X), per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
+**Series placement:** with the market-timing layer, beside *Tops and Bottoms* (numeral assigned by the library guide on commit; cross-references in this paper are by name)
 **Version:** 1.0 — September 2026
 **Status:** Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.
 
@@ -14,6 +14,38 @@
 Every other paper in this library explains a mechanism. This one supplies the denominators. It exists because the Operating Doctrine's central edge concept — variant perception — is arithmetic on a base rate: to hold a view that differs from consensus you must first know what ordinarily happens, and most trading error is a failure of that first step rather than of the second. A trader who does not know that the S&P 500 has closed higher on roughly 54% of days since 1928 will read a three-day losing streak as information. A trader who does not know that a 10% drawdown occurs in most years will treat one as a regime change. A trader who does not know that the median analyst estimate is beaten about three-quarters of the time will read a beat as a surprise.
 
 The paper is deliberately boring, and that is its function. It is a reference to consult *before* writing a thesis, in the way one consults a mortality table before pricing a policy — a comparison the operator will find familiar. The Doctrine's Rule 6 requires that an edge name its counterparty and say why it persists; this paper is where the claim "and here is what normally happens instead" gets its number.
+
+---
+
+## Executive summary — the twelve things this paper says
+
+*For the reader who will consult the tables later and wants the conclusions now.*
+
+1. **Ordinary is not average.** The interquartile range of a year runs from about −1% to +25%. A year near the +10% mean is rare. Any thesis that needs a "normal year" is a thesis about an uncommon event.
+
+2. **A 10% decline is an annual event, and half of all years see one.** The average intra-year drawdown is 14%, in years that finish positive three times in four. Treating a correction as the start of 2008 is the specific mechanism by which the Book A floor gets breached, and this operator's record says he does it.
+
+3. **A bear takes about a year to complete and contains three to five rallies of 5% or more**, any of which will feel like the bottom. Conviction is unreliable in exactly that window, which is why a short campaign ends on the bottom signal and not on judgment.
+
+4. **The equity premium arrives in a minority of days, and those days cluster inside drawdowns.** Being out of the market during stress is not neutral; it is where the return is forfeited. This is the arithmetic behind the allocation floor.
+
+5. **Daily direction has no memory; trend is a cross-sectional, multi-week phenomenon.** A three-day streak is noise. A name at a twelve-month high with twelve-month relative strength is a documented anomaly. Book B enters on pivotal points, not streaks, for this reason.
+
+6. **Volatility clusters and correlations converge in stress.** The Volatility dial is a state, not a level; diversification weakens exactly when it is being relied on; the heat cap across books counts correlated positions once because in the crisis row they *are* one.
+
+7. **The stock–bond hedge is a regime statistic that one long disinflationary period made look permanent.** 2022 falsified it. The duration sleeve is a deflation hedge specifically — Part IV's central practical claim, arriving here from the correlation table.
+
+8. **Seasonality is real, small, decaying since publication, and never a thesis.** The one exception worth *watching* is the midterm-year cycle — 2026 is one — which enters the register as a hypothesis, not a signal.
+
+9. **A beat is not a surprise and guidance beats the print.** Three-quarters of companies beat. The tradeable object is the reaction relative to positioning, and the long single option into a print is a negative-expectancy trade on average because the implied move has slightly exceeded the realized move.
+
+10. **Options decay as √T; a third expire worthless, not ninety percent; same-day expiries are half of index option volume.** The verticals-by-default rule follows from decay and from spread cost together — at Book C's size, a wide single-name option can consume a tenth of the risk budget in the round trip.
+
+11. **The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.** Extending to 1907 doubles the sample and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.
+
+12. **The tail the operator worries about sits near the 95th percentile of the historical distribution, not beyond it.** Japan's thirty-four years and 1929's twenty-five are developed-market events within living memory. No single hedge covers both resolutions of a debt cycle. That is why the tail budget is convex and renewed rather than held — and why a portfolio hedged for 2008 is not hedged for 1946.
+
+---
 
 Three conventions run throughout. **Every figure carries its window**, because a base rate computed since 1928 and one computed since 2009 are different claims about different worlds; where the two disagree materially, both are given. **Every figure carries a source class** — measured from data the system holds, computed from public series, or cited from the literature — because the system's registry distinguishes them and so should the reader. And **no figure is a forecast.** A base rate is what happened in a sample; the future is not obliged to resemble it, and Chapter 9 is the honest account of where these numbers are least trustworthy.
 
@@ -38,6 +70,13 @@ The paper has three parts. Part I is the return and drawdown distribution — th
 
 *Source class: computed from public index series, 1928–2026.*
 
+**What to take from this table.**
+
+- *Read the positive-share column as the cost of sitting out.* A 54% daily edge is invisible; a 74% annual edge is the whole game. The operator who is out of the market "waiting for clarity" is declining a three-in-four bet, every year, on the strength of a coin-flip daily read.
+- *The mean is below the median at every frequency.* The distribution is left-skewed — a few very bad days pull the average down. This is not a reason to be out; it is the reason the Doctrine has a volatile-day protocol rather than a market-timing rule. The bad days are handled by size, not by absence.
+- *The ten-year and twenty-year rows describe one country.* Chapter 16 says why they cannot be generalized. Use them to size patience, not to promise outcomes.
+- *For the short side specifically:* the base rate is against you 54% of days, 62% of months, 74% of years. A short thesis must name what makes this the minority case, and the Doctrine's extra-confirmation rule for shorts is that requirement made procedural.
+
 The two readings that matter most. **The equity risk premium arrives in a minority of the time**: a small number of very good days carry the compounded return, and the frequently cited finding that missing the best ten or twenty days over a multi-decade span destroys most of the return is real, with the essential companion fact that those days cluster inside drawdowns, adjacent to the worst days. This is the arithmetic behind the Doctrine's Book A floor: being out of the market during stress is not a neutral act. **And the annual mean is not a typical year.** Returns cluster in the tails: the S&P's annual return has fallen between +8% and +12% — the neighborhood of its own average — in a small minority of years. "An average year" is a statistical artifact, not an experience.
 
 ### 1.2 Volatility
@@ -52,6 +91,13 @@ The two readings that matter most. **The equity risk premium arrives in a minori
 
 *Source class: computed.* Volatility clusters — the autocorrelation of absolute returns is one of the most robust facts in finance — which is why the Doctrine's Volatility dial is a state rather than a level, and why the volatile-day protocol assumes the next day resembles this one more than it resembles the average.
 
+**What to take from this table.**
+
+- *Fifty ±1% days a year is the ordinary texture of the market.* A 1% move is not news, not a signal, and not a reason to touch a position. The volatile-day protocol's triggers are set well above this level for that reason.
+- *The largest single-day decline in an ordinary year is about −3%.* Anything larger is regime information — a Rising or Stressed reading — and is the moment to halve size rather than to judge the move.
+- *Volatility clusters, so the first ±2% day is the best predictor of the second.* Reduce on the first, not the third. The operator's record of "periodic damage in extreme volatility" is, mechanically, a record of acting on the third.
+- *The Calm column is where Book C's fade-toward-pin setup lives and the Stressed column is where it dies.* Same setup, opposite expectancy — the trust matrix's regime rows are this table's columns.
+
 ### 1.3 Percentiles, not averages
 
 The mean is the least useful summary of any of these distributions, and the paper gives quartiles wherever it can. The convention throughout: **p25 / median / p75**, with the mean beside them when the gap between mean and median is itself informative.
@@ -65,6 +111,13 @@ The mean is the least useful summary of any of these distributions, and the pape
 | VIX daily close | ~13.5 | ~17.6 | ~22.5 | ~19.5 | p95 near 33; the distribution is heavily right-skewed |
 
 *Source class: computed from public index series, 1928–2026 for returns, 1990–2026 for VIX; figures rounded and approximate.*
+
+**What to take from this table.**
+
+- *The p25 annual return is about −1%.* One year in four is roughly flat-to-down. A flat year is not a failed year and not evidence that a thesis was wrong; it is the lower quartile of ordinary.
+- *The p75 intra-year drawdown is −18%.* One year in four contains a decline that would trip the Doctrine's Drawdown I switch if it were fully held with no regime response. The bands exist so that it is not fully held when the Volatility dial has already said Stressed.
+- *VIX's median is about 17.6 and its p75 about 22.5.* A VIX in the low twenties is the upper-ordinary range, not stress. Stress begins near the p95, around 33 — which is where the volatile-day protocol's threshold sits, on purpose.
+- *For sizing:* the interquartile range of a year is twenty-six points wide. A position sized so that a −1% year is survivable and a +25% year is participated in is a position sized to the distribution. A position sized to the mean is sized to a fiction.
 
 The annual row is the one to carry. A year that ends −1% and a year that ends +25% are both inside the interquartile range: **the ordinary experience of a year is nothing like +10%.** Any thesis whose payoff depends on a "normal year" is a thesis about a rare event.
 
@@ -94,15 +147,34 @@ The same episodes as a distribution rather than as averages:
 
 *Source class: computed across the extended episode set of Part III; small samples — see Chapter 16.*
 
+**What to take from these two tables.**
+
+- *The drawdown ladder maps directly to the Doctrine's switches.* −5% three or four times a year is noise the daily switch should never see; −10% about annually is the correction the weekly and monthly switches are calibrated against; −20% every four or five years is the bear the Drawdown I switch and the regime dials exist for. Each switch is set at a frequency, and the frequencies are these.
+- *Median recovery from a bear is about two years; p75 is four to five.* A book that is de-risked at the bottom and waits for "confirmation" will typically miss the first year of a two-year recovery — which, by Chapter 1's clustering finding, is where a disproportionate share of the return lives. The bottom-signal override exists to force re-entry against this instinct.
+- *The p75 bear is −48%.* One bear in four is a halving. The allocation bands' floors are set so that the book participates; the bands' ceilings are set so that a halving costs the book its band-weighted share and not the whole.
+- *The counter-trend rally row is the short-seller's table.* Median +10%, p75 +16%, extreme +46%. A short campaign will face three to five of these, and each will look like the turn. The rule that a short closes on the bottom signal — not on conviction — is written against this row.
+
 The operator's stated history includes being under-invested since 2008 and periodically damaged in extreme volatility. Both are addressed by different rows of this table. **A −10% drawdown is an annual event, not a signal** — treating each as the beginning of 2008 is the mechanism by which the Book A floor gets breached. **And a −20% bear takes the better part of a year to complete** — which is why the Doctrine's Top & Bottom override permits adding at the bottom rather than requiring a call at the top, and why a short campaign that has worked for two months is not thereby vindicated.
 
 ### 2.2 Intra-year drawdowns versus annual outcomes
 
 The single most useful fact in this chapter: the average *intra-year* maximum drawdown for the S&P 500 is roughly 14%, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.
 
+**What to take from it.**
+
+- *Write the drawdown number on the card.* Fourteen percent is the ordinary intra-year experience. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.
+- *The operator's known bias — reading a correction as a regime change — has a numerical antidote:* the question at any −10% is not "is this 2008?" but "is this the one year in four where it exceeds −18%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it.
+- *The floor is the instrument here.* The bands' floors exist so that a −14% year is held through, not traded around.
+
 ### 2.3 The shape of a decline
 
 Declines are not smooth. Within bear markets, the largest single-day *advances* in history cluster — October 1929, October 2008, March 2020 — and 5%+ counter-trend rallies are routine. The base rate for the operator's short book: **during a −20% or worse decline, expect three to five rallies of 5% or more**, any of which will feel like the bottom. The Doctrine's rule that a short campaign ends on the Top & Bottom bottom signal rather than on conviction exists because this base rate makes conviction unreliable in exactly this window.
+
+**What to take from it.**
+
+- *The best days live inside the worst months.* The clustering of the largest advances inside bears is why "sell now, buy back when it's calmer" underperforms holding through: the buy-back happens after the days that mattered.
+- *For the short book, size for five rallies, not one.* A short sized so that a single +10% counter-trend rally trips its stop is a short that will be stopped out of a correct thesis three to five times per bear. Sizing and stop placement in Book B's short rules are written against this row.
+- *For the long book, the rally is not the signal.* A +8% bounce in a −25% decline is the median counter-trend move and carries no information about the bottom. The bottom signal is the composite, not the rally.
 
 ## Chapter 3 — Seasonality
 
@@ -144,6 +216,13 @@ Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesi
 
 *Source class: computed and literature.* The reading for Book B: **trend persistence is a cross-sectional and multi-week phenomenon, not a daily one.** A three-day streak is noise; a name at a 12-month high with 12-month relative strength is a documented anomaly. The Doctrine's Book B entry at a pivotal point rather than on a streak follows directly.
 
+**What to take from this table.**
+
+- *A streak is a coin sequence.* Five up days in a row happens about one week in twenty by chance. It is not momentum, not exhaustion, and not a reason to act in either direction.
+- *The overnight row is the Daily Cascade's reason to exist.* Most of the index's cumulative return has accrued outside regular hours. The 07:00 report reads a session that has already happened — two foreign sessions plus futures — and the gap it reports is where the day's return usually already sits.
+- *Gap-fill is a size-dependent base rate.* Small gaps fill more often than not; large gaps under half the time. A Book C fade of a 1.5% gap is a below-coin-flip bet before positioning is considered; the setup requires the positioning read to move it above.
+- *Momentum's crash after bear bottoms is the trust matrix's "momentum: Off after a bottom signal" row.* The strategy that works for most of the cycle is the one that loses most at the turn.
+
 ## Chapter 5 — Correlation and diversification
 
 | Regime | S&P 500 / 10-year Treasury correlation | Average pairwise stock correlation |
@@ -153,6 +232,12 @@ Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesi
 | Crisis | Bonds usually rally, but not always (2022, and the March 2020 dash-for-cash days) | 0.60–0.85 |
 
 *Source class: computed.* The base rate that governs Book A's duration sleeve: **the stock–bond hedge is regime-dependent and was negative for one unusually long disinflationary period.** Sizing a duration sleeve as a hedge on the 1998–2020 correlation is sizing on a sample that 2022 falsified. And the crisis row is the reason the Doctrine caps heat across books at a common factor: correlations converge exactly when diversification is being relied upon.
+
+**What to take from this table.**
+
+- *Ask which row you are in before sizing the hedge.* In the disinflationary row, duration hedges equity; in the inflationary row, it amplifies the loss. The Macro dial's Overheat and Tightening states are the inflationary row, and the Doctrine's bands cut duration in exactly those states for this reason.
+- *Pairwise correlation of 0.7–0.9 in crisis means a portfolio of ten names is roughly one position.* The heat calculator's "count correlated positions once at their common factor" is this row applied. Six long semiconductors and a long NQ call spread is one trade with three tickers.
+- *The crisis row is also the diversification-across-countries finding of the International Equities paper:* correlations converge in joint downside moves and not in joint upside. The insurance is against the single-country tail, not the bad quarter.
 
 ---
 
@@ -171,6 +256,13 @@ Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesi
 
 *Source class: literature and computed.* Two consequences for the books. **A beat is not a surprise**; the tradeable object is the reaction relative to the positioning-implied expectation, which is the Daily Cascade's event-reaction setup. And **the long-option expression into an earnings print is a losing trade on average** — the IV crush is a base rate, and the Doctrine's expression table should never default to it.
 
+**What to take from this table.**
+
+- *Seventy-five percent beat, so a beat is the null hypothesis.* The information is in the reaction, the guidance, and the off-diagonal quadrants — beat-and-lower, miss-and-raise. The Earnings paper is built on this row.
+- *The implied move slightly exceeds the realized on average.* Selling the event has positive expectancy and catastrophic tails; buying it has negative expectancy and a fat right tail. Neither is a strategy. The signal is the implied move against the name's own history.
+- *Front-month IV falls by a third to a half the next morning.* A long call bought into the print is fighting that collapse; a post-print entry on the reaction is buying after it. The order of operations is the edge.
+- *Post-earnings drift persists in smaller names.* The Book B swing on a surprise, entered after the crush and held on the sixty-day clock, is the expression of this row.
+
 ## Chapter 7 — Options: decay, moneyness, and the cost of being wrong on timing
 
 | Fact | Base rate |
@@ -184,6 +276,13 @@ Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesi
 
 *Source class: exchange statistics and computed.* The Doctrine's Book C default of vertical spreads follows from row three and row six together: a spread caps the theta bleed and halves the number of spreads crossed.
 
+**What to take from this table.**
+
+- *Delta is a probability.* A 30-delta option finishes in the money about 30% of the time. A trader buying it is making a 30% bet and should size and price it as one — which is why the Options paper's verticals rule pays no more than a third of the width.
+- *The "options expire worthless" folk claim is false, and the reason matters:* a third are closed early, which means most option positions are managed, not held to expiry. Management is the skill; expiry is the exception.
+- *Theta's √T acceleration is the reason short-dated options are decay instruments and long-dated ones are volatility instruments.* The tenor decision is a decision about which greek you are buying.
+- *Half of index option volume is same-day.* The 0DTE book is now the market's largest intraday flow; the Dealer's Hand and the intraday cadence exist because of this row.
+
 ## Chapter 8 — Expiries, auctions, and the clock inside the day
 
 | Fact | Base rate |
@@ -196,6 +295,13 @@ Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesi
 | Average daily range as a share of price | ~1.0–1.3% in calm regimes; 2–3% in stressed |
 
 *Source class: exchange statistics.* These are the numbers the Positioning & Flows paper's calendar assumes and the market-on-close module measures against.
+
+**What to take from this table.**
+
+- *The closing auction is a tenth of the day and the majority of a reconstitution-day name.* An imbalance read on a classified day is the calendar's flow, not a holder's decision — the event-classification table exists to prevent this misreading.
+- *The first and last thirty minutes carry disproportionate range.* The Doctrine's three-touch rhythm — 07:00, 10:00, the close — is built around this: the operator is absent during the low-information middle of the session by design.
+- *Quarterly witching is the year's largest expiry release.* The Dealer's Hand's expiration-release ladder is largest on these four days, and the post-expiry rewrite of the dealer book is the reason the Weekend report uses post-expiry state.
+- *Average daily range doubles in stressed regimes.* A stop placed at "1% below entry" in a Calm regime is inside the noise in a Stressed one; stop distance is a function of the regime's range, not a fixed percent.
 
 ## Chapter 9 — Costs, and the arithmetic of turnover
 
