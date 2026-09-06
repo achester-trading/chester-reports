@@ -1256,6 +1256,50 @@ that tells you D1 is needed.*
         PyYAML`, so there is nothing to serialise for.
       - Blocks nothing today — all seven are green as of `2e58f87`. It is a
         wanted change to the reporting, not to the checks.
+- [ ] **Assert that every file in `scripts/` is executable** — a new check next
+      to `validate_systemd_units.py` in the gate, asserting the committed mode
+      is `100755` for every `scripts/*.sh` and `scripts/*.py` a unit invokes.
+      **Requested for the laptop session to build.** This is the sixth member
+      of the silent-failure family and it fits the family's fix exactly: assert
+      rather than trust. `check_heartbeat_cron.sh` was committed `100644` while
+      every other script in `scripts/` is `100755`; the unit failed `203/EXEC`
+      and would have failed identically at 08:30 every morning. It stayed
+      hidden because an older box-local unit was calling `check_heartbeat.sh`
+      directly and bypassing the wrapper, so "the timer is installed" was true
+      while "the wrapper has ever run" was false. Read the mode out of the git
+      index (`git ls-files -s`), not off the working tree — a local `chmod +x`
+      that is never committed is the same defect wearing a disguise, and the
+      working tree would report it fixed.
+
+- [ ] **The Gateway watchdog restarts in an unbounded loop, and its own daily
+      budget cannot stop it.** `ibgateway-watchdog.service` declares
+      `BindsTo=ibgateway.service`. When the watchdog issues
+      `systemctl --user restart ibgateway.service`, that restart STOPS the unit
+      it is bound to, so systemd tears the watchdog down with SIGTERM in the
+      middle of its own restart call — before `report()` reaches `save_state`.
+      `RESTARTS` is therefore never persisted. It reloads as 0 on the next tick
+      forever, and the `MAX_RESTARTS_PER_DAY=3` cap — the guard written
+      specifically to stop a watchdog looping on a fault a restart cannot fix —
+      never increments past 0.
+      - Observed 2026-09-06: `restart 1 of 3 today` logged repeatedly while the
+        state file stayed frozen at `RESTARTS=0 RESTART_DAY=2026-09-05`, four
+        restarts inside two seconds, 84 launch attempts in one day. The Gateway
+        needs ~90s to authenticate and open 4002 and was being restarted after
+        ~1s, so it could never finish. systemd's own `StartLimit` then latched
+        `start-limit-hit` and all three units went red.
+      - Two defects, and both need fixing: `BindsTo=` should be `After=` +
+        `Wants=` (the watchdog must OUTLIVE the thing it restarts — a monitor
+        torn down by its own remedy cannot record that it applied one), and the
+        restart path should persist state BEFORE issuing the restart rather
+        than after, so the budget survives even an unclean exit.
+      - Related, same file, same family: `ibgateway.service:34` sets
+        `StartLimitIntervalSec` in `[Service]`, where systemd ignores it — it
+        belongs in `[Unit]`. The journal says so on every single load
+        (`Unknown key name ... ignoring`) and nothing reads the journal. The
+        start-limit thresholds in force are the defaults, not the ones the file
+        appears to declare. `validate_systemd_units.py`'s allowlist should be
+        catching a known directive in the wrong section, and did not.
+
 - [ ] **Decide whether the two IBKR cost validators belong in the gate.**
       `validate_ibkr_costs.py` and `validate_ibkr_whatif.py` are not in
       `registry-check.yml`, so the commission rate-card change in `7faaf64` was
