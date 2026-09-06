@@ -188,14 +188,48 @@ ages `checked_at` on this file the same way it would age any other source.
    marks 3/4/5/6 as success: there, a sync reporting a down Gateway is a sync
    that *worked*; here, the alarm is the product. A failed oneshot does not
    stop its timer — 08:30 fires again regardless.
-4. **Email**, if the box can send it:
+4. **Email**, if the box can send it. Two ways, and the second needs no root:
 
 ```bash
+# (a) a local MTA -- `mail` or `sendmail` on PATH
 sudo apt install -y bsd-mailx msmtp-mta     # or whatever this box already has
+
+# (b) direct SMTP -- no MTA, no root. Put the credentials in .env:
+#   SMTP_USER=you@example.com
+#   SMTP_PASSWORD=<an app password, not the account password>
+#   SMTP_TO=where-alerts-go@example.com
+# and give the unit the file plus the box's state dir:
 systemctl --user edit chester-heartbeat.service
 #   [Service]
-#   Environment=CHESTER_ALERT_EMAIL=you@example.com
+#   EnvironmentFile=-%h/chester-reports/.env
+#   Environment=CHESTER_STATE_DIR=%h/state
+#   ReadWritePaths=%h/state
 ```
+
+Direct SMTP is **preferred over the MTA when both are configured**, on purpose.
+It is the weaker mechanism in isolation — it holds a password in the process
+environment, where an MTA would not — but an operator who put credentials in
+`.env` chose that path deliberately, and a half-configured local MTA that
+accepts a message and drops it is precisely the silent channel this whole
+section exists to refuse. `scripts/send_smtp_alert.py` takes everything from
+the environment and nothing from `argv`, because `argv` is world-readable via
+`ps` for the life of the call, and it redacts the password out of any error
+string before that string reaches the log.
+
+**Three things this unit needs that are easy to miss**, all of them the
+silently-ignored-directive failure class:
+
+- `EnvironmentFile` — the wrapper reads no `.env` itself, so without this the
+  credentials never reach the process and delivery resolves to `no_address`.
+- `CHESTER_STATE_DIR` — if the EOD wrapper writes its heartbeat somewhere other
+  than the checker's `~/.chester` default (on this box, `~/state`), a monitor
+  left on the default reports `CRITICAL / no heartbeat` forever while the
+  pipeline runs perfectly. A false alarm that never clears is worse than no
+  alarm: it trains the operator to ignore the real one.
+- `ReadWritePaths=%h/state` — the unit sets `ProtectSystem=strict` and names
+  `~/logs` and `~/.chester`. Redirect the state dir without extending this and
+  every write is refused. `ReadWritePaths` is additive across drop-ins, so the
+  override extends the set rather than replacing it.
 
 Mail is attempted **only on a non-healthy verdict**. A daily "everything is
 fine" is an email nobody reads by week three, and an unread channel is worse
@@ -204,14 +238,18 @@ than no channel because it feels like coverage.
 **Prove the channel before trusting its silence.** Once, by hand:
 
 ```bash
-CHESTER_ALERT_EMAIL=you@example.com CHESTER_ALERT_EMAIL_ALWAYS=1 \
-  ~/chester-reports/scripts/check_heartbeat_cron.sh
+# `set -a` exports what .env defines without ever echoing it
+( set -a; . ~/chester-reports/.env; set +a
+  CHESTER_STATE_DIR=$HOME/state CHESTER_ALERT_EMAIL_ALWAYS=1 \
+    ~/chester-reports/scripts/check_heartbeat_cron.sh )
 grep delivery ~/logs/heartbeat_check-$(date +%Y-%m).log
 ```
 
-The delivery outcome is **recorded, never assumed** — `delivery=mail`,
-`mail_failed`, `no_mta`, or `no_address` lands in the log and in the alert
-file. A box with no mail transport says so on the day it is installed rather
+The delivery outcome is **recorded, never assumed** — `delivery=smtp`,
+`smtp_failed`, `smtp_unconfigured`, `mail`, `mail_failed`, `no_mta`, or
+`no_address` lands in the log and in the alert file. `smtp_unconfigured` is
+kept distinct from `smtp_failed` because "no credentials" and "the server
+refused us" need different fixes, and one label for both would hide which. A box with no mail transport says so on the day it is installed rather
 than during the outage it was supposed to report. That is not defensiveness;
 it is the fifth instance of this repo's signature defect, where a thing is
 configured, looks wired, and quietly does nothing.

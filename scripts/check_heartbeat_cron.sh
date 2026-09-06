@@ -50,7 +50,10 @@
 #   CHESTER_LOG_DIR      log directory            (~/logs)
 #   CHESTER_STATE_DIR    heartbeat/status dir     (~/.chester)
 #   CHESTER_ALERT_DIR    alert drop for the brief ($CHESTER_STATE_DIR/alerts)
-#   CHESTER_ALERT_EMAIL  address to mail on a non-healthy verdict (unset = none)
+#   CHESTER_ALERT_EMAIL  address to mail on a non-healthy verdict (unset = none;
+#                        falls back to SMTP_TO from the environment)
+#   SMTP_USER/SMTP_PASSWORD/SMTP_HOST/SMTP_PORT   direct SMTP, used in
+#                        preference to a local MTA when both are present
 #   CHESTER_ALERT_EMAIL_ALWAYS=1   mail the healthy verdict too, for one day,
 #                        to prove the channel works before trusting its silence
 #   CHESTER_CHECK_DATE   passed through to the checker, for testing
@@ -63,7 +66,10 @@ LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"
 STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
 ALERT_DIR="${CHESTER_ALERT_DIR:-$STATE_DIR/alerts}"
 CHECKER="${CHESTER_CHECKER:-$REPO/scripts/check_heartbeat.sh}"
-ALERT_EMAIL="${CHESTER_ALERT_EMAIL:-}"
+# SMTP_TO is the address the .env already carries for this box, so an
+# operator who configured SMTP does not also have to restate the recipient.
+# CHESTER_ALERT_EMAIL still wins where both are set.
+ALERT_EMAIL="${CHESTER_ALERT_EMAIL:-${SMTP_TO:-}}"
 
 mkdir -p "$LOG_DIR" "$STATE_DIR" "$ALERT_DIR"
 LOG="$LOG_DIR/heartbeat_check-$(date +%Y-%m).log"
@@ -197,7 +203,24 @@ unhealthy since   : ${UNHEALTHY_SINCE:-n/a}
 
 --- checker output ---
 $OUT"
-        if command -v mail >/dev/null 2>&1; then
+        # DIRECT SMTP FIRST, when it is configured. Not because it is better
+        # than a local MTA -- it is worse, it holds a password in the process
+        # environment -- but because an operator who put SMTP credentials in
+        # .env chose this path deliberately, and a half-configured local MTA
+        # that accepts mail and drops it is exactly the silent channel this
+        # whole block exists to refuse. Explicit configuration beats whatever
+        # happens to be on PATH.
+        if [[ -n "${SMTP_USER:-}" && -n "${SMTP_PASSWORD:-}" ]]; then
+            # Secrets travel in the environment, never in argv: argv is world-
+            # readable through `ps` for the life of the call.
+            SMTP_RCPT="$ALERT_EMAIL" SMTP_SUBJECT="$SUBJECT" SMTP_BODY="$BODY" \
+                python3 "$REPO/scripts/send_smtp_alert.py" 2>>"$LOG"
+            case $? in
+                0) DELIVERY=smtp ;;
+                1) DELIVERY=smtp_unconfigured ;;
+                *) DELIVERY=smtp_failed ;;
+            esac
+        elif command -v mail >/dev/null 2>&1; then
             if printf '%s\n' "$BODY" | mail -s "$SUBJECT" "$ALERT_EMAIL" 2>>"$LOG"; then
                 DELIVERY=mail
             else
