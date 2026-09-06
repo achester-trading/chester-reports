@@ -2065,8 +2065,7 @@ validator.
 
 ## Gate 1 — Read-only sync
 
-`ib_async` connection (the maintained fork of the archived `ib_insync`; see
-requirements.txt). Account, positions, and marks into the store. **No order
+`ib_insync` connection. Account, positions, and marks into the store. **No order
 capability in the code at all** — not disabled, not commented out, absent.
 
 Worth building early regardless of whether you ever automate: it gives the
@@ -4590,3 +4589,393 @@ a time · A2 Daily narrative + register-draft wiring — ~2–3 sessions
 (~6–8h), AFTER the store (S5) and grading harness (15b) · A3 DT Stages 1–3
 + review-gate UI — ~3 sessions (~7–9h) · A4 Alt Asset live fetchers —
 existing Session 11 scope, unchanged.
+
+---
+
+# Part 29 — Change Order #3: Eight Tactical Additions (post-freeze amendment #3)
+
+*Principal-directed, 5 Sep 2026, ruled item by item in session. Admitted
+under §26.10 as sources, entities, composites, and one register book —
+**no new signal family**; §26.8's moratorium holds. Every item was reviewed
+against a written external recommendation and adapted on the same four
+rules: (1) regime state machines with declared thresholds replace weighted
+0–100 composites; (2) correlated confirmation counts once (§26.9); (3) no
+unsourced metric enters the registry — substitutes or `not_yet_sourced`;
+(4) paid data only after free data demonstrates a named gap. Five
+weighted composites were declined (yen, cohort, PMSS, ICS, MCC).*
+
+## 29.0 Shared primitive — response per unit of stimulus
+
+Four items independently reduce to the same computation: **how much
+response a unit of stimulus buys, and whether that ratio is deteriorating.**
+MOC absorption (price displacement / normalized imbalance), Dell
+revision-velocity vs price-velocity, meme attention divergence (price
+response / mention surge), and PM–asset divergence (asset move /
+probability move). Implement once as `response_ratio(stimulus, response,
+window)` with a declared baseline and a deterioration flag; the four
+items call it. `observation_type: calculated`.
+
+## 29.1 Yen Carry Stress Monitor → composite in the `global` pillar
+
+Four-state regime machine — NORMAL / ELEVATED / UNWIND / SYSTEMIC —
+escalated by the count of active **mechanism groups (one vote each)**:
+FX velocity (USDJPY, AUDJPY, EURJPY 5d/20d yen-appreciation, declared
+2/4/6% first cuts with percentile calibration vs 1998 and Aug 2024) ·
+positioning (CFTC TFF leveraged-fund JPY, percentile vs 3y/5y — joins with
+Session 16) · FX vol (**FXY options through the exposure engine**: IV and
+skew as the risk-reversal analog) · Japan rates/BoJ (MOF daily JGB CSV;
+BoJ-decision probability **from Part 27 contracts**) · risk-asset
+confirmation (Nikkei + NDX + SOX + HY OAS as ONE group) · plumbing (MOVE,
+dealer gamma regime, cross-asset correlation). ORANGE needs three groups,
+RED five. Carry-unwind vs capital-repatriation distinguished as separate
+lines. Dropped as unsourceable: CTA/vol-control estimates, Treasury depth.
+Rendered as a Weekend/Tail "funding-stress view" over EXISTING pieces — not
+a new category. Rights: sizing conditioner + tail-state input; may raise a
+hedge-review flag; never triggers. Horizon swing; half-life session
+(velocity) / weekly (positioning). Language kept verbatim: *"an amplifier
+of global deleveraging, not a stand-alone crash signal."*
+
+## 29.2 Speculative Cohort Monitor → `internals` + Session 14 + `tracked_entities`
+
+Membership by declared screen, not by list — three rules feeding ONE cohort
+registry: momentum-fundamental (12m return and multiple-expansion share
+above thresholds), retail-attention (29.3), meme-lifecycle (29.7). Exited
+names kept (Session 19 survivorship rule). Seed: DELL, NVDA, SMCI, AVGO,
+HPE. Dell's declared role: **bellwether for hyperscaler capex converting to
+realized server revenue/backlog** — `kill_condition`: backlog conversion
+stalls. Per name, two clocks: quarterly fundamentals (events ingest; backlog
+from filings tagged `inferred` where qualitative) and daily/weekly crowding
+(engine call skew, OI concentration, 0DTE share, IV percentile; FINRA short
+interest biweekly; cross-name correlation). Core computation: **return
+attribution — estimate-revision change × multiple change** — and the
+second-derivative flag (revision velocity decelerating while price velocity
+accelerates). **Forward-only:** nightly logging of consensus EPS / forward
+P/E starts now; decomposition reads `insufficient_history` until Q4.
+Cycle-maturity read = leaders-vs-adjacents multiple-expansion spread.
+Declined: 0–10 Speculative Temperature; "narrative simplification" and
+social attention unless sourced (29.3 sources it).
+
+## 29.3 Retail Trading Activity → `sentiment` family, source #5
+
+Nasdaq Data Link **RTAT10** (free; daily top-10 retail activity share +
+−100/+100 sentiment; **history to 2016 — the rare historied source**;
+percentiles seed day one; backtestable vs 2021/2022). Registry flag
+`sample: top10_censored` on every derived metric — head of the
+distribution, never market-wide breadth. Derived: concentration,
+persistence (consecutive days in top 10), new-entrant shock, price/retail
+divergence (via 29.0), meme-cohort heat (merged into 29.2's registry).
+Institutional-vs-retail waits for Session 19 13F. Nasdaq enters the source
+registry as an adapter with per-dataset probes **on demand against a named
+gap** — the standing "discover and test premium samples" crawler is
+declined as a data-shopping loop; 26.2.9 champion/challenger is the
+evaluation engine. Caveats recorded: Nasdaq aggregates central-bank data
+FRED serves better; legacy WIKI is discontinued.
+
+## 29.4 Market-on-Close → intraday cadence + pin log + T&B
+
+Absorption is the metric (indicative-price displacement per unit of
+normalized imbalance, via 29.0); raw imbalance is display only. Price × flow
+four-regime matrix (confirmed accumulation / bearish divergence / confirmed
+distribution / bullish divergence) is the state. **Event classification
+table** in `altdata/session.py` beside the holiday table: NORMAL /
+MONTH_END / QUARTER_END / INDEX_REBALANCE / OPEX / TRIPLE_WITCHING /
+ETF_REBALANCE — a reconstitution-day imbalance is never discretionary flow.
+Data: **IBKR auction-imbalance ticks through the Gateway** (probe first) for
+the universe, SPY/QQQ/IWM, and sector ETFs (XLK, XLF, XLI, XLE, XLV, XLU,
+XLP, XLY) as the rotation proxy; opening-auction ticks free from the same
+path. `not_yet_sourced`: market-wide auction breadth, constituent-weighted
+flow. New cadence: **15:50–16:00 sampler at ~30s** on the VPS (absorption
+needs the curve). Forward-only; 5d/20d CAP readable in weeks. Four
+strategies registered as dated **hypotheses**, not builds: Absorption
+Reversal, Pressure Continuation, Price/Flow Divergence, Sector Rotation.
+Rights: execution-horizon conditioner, overnight-persistence read; CAP
+feeds T&B once historied; never triggers. Confluence note: MOC flow and
+dealer gamma are genuinely independent mechanisms — two votes. Declined:
+ICS ±100 composite.
+
+## 29.5 Privacy-Coin Theme → Alt Asset crypto block sub-theme
+
+ZEC price/realized vol/beta to BTC (yfinance), share of crypto cap,
+**shielded-pool transaction share** (Zcash explorer API — the use-vs-
+speculation metric; probe first), hashrate/difficulty, exchange-listing
+count as the regulatory gauge, XMR as the delisted peer, Part 27 contracts
+where they exist. Existing family.
+
+## 29.6 Digital-Asset-Treasury entity type → `tracked_entities`; CYPH as instance #2
+
+Generalize the MSTR template: holdings, cost basis, **fully-diluted share
+count with warrants and ATM as first-class fields**, mNAV, premium/discount,
+**asset-per-fully-diluted-share as the primary KPI** (total holdings are a
+vanity metric under an ATM). CYPH adds mining hashrate share with implied
+monthly production under a declared share-decay assumption, and the
+treasury → mining → issuance loop as a named reflexivity flag. Every figure
+from the source analysis (323,394 ZEC, $341.83 basis, 107.8M shares, 43.29M
+warrant, 4.2 GSol/s, $33.3M) enters the **claims registry (26.5)** as a claim
+with its filing as source, verified via EDGAR before any report cites it.
+DAT premium across vehicles = third cohort membership signal. CYPH joins the
+chain universe subject to the liquidity floor. Rights: crypto conditioner;
+DAT premium feeds T&B as a sentiment extreme; the cohort sizing cap applies
+to any personal position.
+
+## 29.7 Meme / Crowding Lifecycle → cohort layer + **opportunistic book**
+
+**Lifecycle state machine replaces the MCC composite:** dormant → emerging →
+ignition → acceleration → squeeze → euphoria → exhaustion → unwind →
+dead-cat, transitions declared on three axes — attention velocity (Δ, Δ²
+mentions), positioning tightness (SI, CTB change, availability change),
+price/volume response. **Each phase carries permitted expressions:** long
+squeeze only in ignition/acceleration; shorts only in exhaustion/unwind
+with borrow improving; **DO_NOT_SHORT flag** whenever CTB rises or
+availability falls, regardless of valuation. Attention divergence (29.0) is
+the exhaustion tell. Sources, free tier first: ApeWisdom (discovery, mention
+acceleration), FINRA (semi-monthly SI anchor + Reg SHO daily short volume,
+with "daily short volume ≠ short interest" encoded), **IBKR borrow data via
+the Gateway as a time series** (shortable shares, fee rate — the
+tradability layer no vendor reproduces), Massive volume anomalies, the
+exposure engine (call skew, 0DTE share). ORTEX unlocks only when a logged
+case shows FINRA's lag cost a setup; Quiver, X, Reddit-direct, Stocktwits
+declined. Discovery is a funnel (ApeWisdom movers + volume anomalies + short-
+volume spikes → ~a dozen candidates → enriched), never a universe scan.
+Board: a small block in Part 28's 07:00 and 09:20 runs, allowed to say "no
+candidates." Breadth of names in ignition-or-later feeds T&B as cycle
+maturity.
+
+**Register rules for the opportunistic book (condition of admission):**
+`book: opportunistic`, `edge_type: behavioral`, horizon intraday/swing;
+declared sizing cap in config (per-name and aggregate % of NAV — numbers
+set by the principal, not at 09:31); **short invalidation includes borrow
+conditions** (CTB above X or availability below Y invalidates even if price
+hasn't moved); **meme shorts default to defined-risk** — a bare short is
+flagged by the expression check with the unbounded-loss note; attention
+metrics `half_life: intraday` so DECISION_BLOCKED refuses entries on stale
+mentions; the three strategies (squeeze long, exhaustion short,
+attention-divergence short) register as hypotheses graded through
+close_decision.
+
+## 29.8 Prediction Market Engine — phase 2 (extends Part 27)
+
+Adopted from the fuller brief: **cross-asset divergence engine** (PM
+repriced → expected transmission → observed response → divergence, via
+29.0; the five candidate explanations logged as the investigation template;
+never assume the PM is right) · **canonical-event abstraction** above
+contracts (where resolution-criteria-verbatim lives) · **asset transmission
+map** as declared config extending Session 8's event chains, quarterly
+review — not "learning" · **news-divergence classification** (NEWS_CONFIRMED
+/ NEWS_LED / PREDICTION_MARKET_LED / FLOW_DRIVEN / UNEXPLAINED) · **lead/lag
+analysis** in the calibration archive — the test that can retire a
+venue-category. **ForecastEx via the IBKR Gateway** as a third real-money
+venue, read-only. Declined: PMSS 0–100 and EVENT_IMPACT 0–100 (impact = a
+declared tier from transmission-map reach); 1H/6H horizons and continuous
+polling (daily/weekly/monthly ΔP; intraday only inside a declared event
+window); eight dedicated tables (snapshots are observations in the store;
+maps are config); Tier-2 venues as confirmation (Metaculus, Manifold,
+PredictIt = discovery only); weight-tuning monthly review (26.2.9 instead).
+**Gated on Part 27 v1 running through one live event**, so the transmission
+map's first entry is an observed case.
+
+## 29.9 Build order and hours
+
+Ordering rule: **forward-only loggers start first** (every day unlogged is
+lost); probes before wiring; nothing displaces Tuesday's debut check.
+
+| # | Item | Hrs | Gate / dependency |
+|---|---|---|---|
+| 1 | RTAT10 fetcher + 2016 backfill + derived metrics (29.3) | 2 | free key; historied — do first |
+| 2 | Cohort registry + nightly consensus logging + return attribution (29.2) | 2 | starts the estimate-history clock |
+| 3 | Probes: IBKR imbalance ticks (29.4) and IBKR borrow fields (29.7) | 1 | Gateway, read-only |
+| 4 | `response_ratio` primitive (29.0) | 1 | — |
+| 5 | Yen monitor v0 — five groups, FXY chains, JGB CSV (29.1) | 2–3 | positioning joins with S16 (+1h pull-forward) |
+| 6 | Meme v0 — ApeWisdom, FINRA, borrow series, funnel, lifecycle, board, register rules (29.7) | 4–5 | probes in #3 |
+| 7 | ZEC theme block + DAT entity template + CYPH instance (29.5–29.6) | 4–5 | explorer probe; EDGAR claims verification |
+| 8 | MOC sampler + event table + pin-log column (29.4) | 2.5 | probe in #3 positive |
+| 9 | PM phase 2 (29.8) | 5–7 | Part 27 v1 + one live event |
+| | **Total** | **~24–29h** | none enters v17's core gates |
+
+**Blocklist reminder:** nothing here touches the Brookfield restriction —
+every candidate from every funnel passes the register trigger like any
+other instrument.
+
+---
+
+# Part 30 — Audit #2 (5 Sep 2026): findings after the build weekend, and Track D
+
+*Second architecture-and-quality audit, run after ~20 hours of build and
+three amendments. Scope: durability, stability, extensibility, accuracy;
+whether reporting talks to every part; data efficiency; whether the system
+yields trackable recommendations with a closed learning loop even when
+trades are not placed. Findings are rulings, not suggestions.*
+
+## 30.1 Durability — three real gaps, all cheap
+
+1. **Off-box backup does not exist.** The nightly chain zip lands in
+   `~/backups/chains` — on the same disk as the data. Ruling: enable
+   Hetzner's server backups (one console click, ~20% of the box price) AND
+   an `rclone` nightly sync of `data/` + `~/backups/` + `~/state/` to cloud
+   storage. The point-in-time store is now the system's memory; it must
+   survive the box.
+2. **yfinance is a single point of failure for the exposure engine** — an
+   unofficial API that breaks periodically, carrying 13 of 15 symbols'
+   chains and every price. Ruling: **Massive becomes the primary chain
+   source for all 15 symbols** (Starter already serves all US-listed
+   options; `massive_chain.py` exists), yfinance demoted to fallback and
+   cross-check. Solver IV then feeds every symbol identically — which also
+   collapses the `greeks_source` split. ~1h.
+3. **SQLite under concurrent writers.** The timer roster now includes EOD,
+   heartbeat, Portfolio Truth every 30 min, Gateway watchdog, and — coming —
+   intraday, MOC sampler, and seven Daily runs. Multiple writers on one
+   SQLite file produce `database is locked` failures that look like data
+   gaps. Ruling: WAL journal mode, `busy_timeout`, and a repo-wide write
+   lock (`flock` on a store lockfile, the EOD wrapper's pattern) before any
+   new writer ships. ~30 min.
+
+## 30.2 Stability — holding, two rules to keep it that way
+
+The weekend's failure classes (UTC-vs-session date ×3, mtime-vs-observation
+×2, silently-ignored systemd directives ×5, timestamp-precision ×2,
+run_id-precision ×2) were all *identity and time* bugs, all caught by tests
+or deployment, never by reading. Two standing rules: **(a)** every new
+writer and every new source passes through `session_date()`, canonical
+microsecond UTC, and `run_id`-on-write — no exceptions, enforced by the
+registry gate; **(b)** every shipped systemd directive is asserted by the
+validator (the unknown-directive trap stays).
+
+## 30.3 Accuracy — one missing gate blocks the Daily
+
+Numbers in the store are gated (solver, cross-check, data-quality, replay).
+**Prose is not.** The Daily's LLM narrative has no anti-fabrication guard
+yet — Session 4's numeral whitelist against the payload is unbuilt. Ruling:
+**Session 4-lite ships before any Daily narrative publishes** — payload-
+constrained generation (the Monthly's pattern), a numeral audit that fails
+the block if a number appears that isn't in its payload, and a directional
+check. A Daily that can invent a number is worse than no Daily.
+
+## 30.4 Extensibility — proven, one consolidation
+
+The registry-plus-store pattern absorbed eight additions without a schema
+change; entity types (DAT) and the cohort registry (three membership rules)
+generalize. Consolidation: **reports never fetch.** Fetchers are timers that
+write the store; every report block queries the store as-of. This is the
+data-efficiency rule — one pull per source per cadence, shared by all nine
+Daily runs, the Weekend, the Monthly, and T&B — and the leakage rule at
+once. Any block found fetching is a defect.
+
+## 30.5 The learning loop — closed in code except one link
+
+Present: register + immutable packets + set-status supersession +
+DECISION_BLOCKED freshness + expression check + close_decision with the 26.7
+decomposition + pin-log calibration. **Missing: automated outcomes.** Ruling
+— Session 15b-lite: **every decision gets a shadow outcome at its horizon
+from stored prices — taken, declined, and draft alike** — so abstentions and
+unplaced drafts are graded exactly as trades are (this is what makes the
+loop learn "even if trades are not placed"); taken decisions additionally
+reconcile to Portfolio Truth fills. Plus a `hypotheses` table (Part 29
+registers seven) with the same grading path. The Friday Weekly Reflection
+is then a query over this table with narrative on top — Part 28's "biggest
+quality gain" made real.
+
+## 30.6 Reporting integration — the Backdrop needs a regime spine
+
+Every block reads the store, but the Daily's Backdrop and T&B both need a
+**macro regime state** that nothing computes yet. Ruling: `regime.py` —
+a declared-threshold state from series already in the store (net liquidity,
+HY OAS, curve, realized/implied vol, breadth from yfinance, dealer gamma
+regime) writing `regime_state` as an observation with its own
+`available_at`. Regime-lite feeds the Daily immediately and seeds the full
+T&B (Sessions 10–14), which refines rather than replaces it.
+
+## 30.7 Track D — the Daily-first sequence (~15–18h to a running Daily with Friday/Sunday and a closed loop)
+
+| # | Step | Hrs | Delivers |
+|---|---|---|---|
+| D0 | Daily run-state inventory (out-of-band 4, still open); retire cron-job.org | 0.5 | nothing built on an unconfirmed pipeline |
+| D1 | Durability trio: Hetzner backups + rclone off-box; Massive primary for all chains; SQLite WAL + write lock | 2 | the memory survives; one chain source; no locked-DB gaps |
+| D2 | `regime.py` — macro regime state from the store | 2 | Backdrop spine; T&B seed |
+| D3 | Session 4-lite — payload-constrained narrative + numeral audit | 3 | prose can't fabricate |
+| D4 | Daily Cascade pipeline — block payload builders (Part 20) reading the store, render, `daily_cascade_state.json`, drafted setups → `decide.py` drafts, two VPS timers first (07:00, 16:30), the rest of Part 28's nine added as each block earns trust; `auto_publish: false` | 3–4 | the Daily runs |
+| D5 | 15b-lite — shadow outcomes for every decision + hypotheses table + Friday Weekly Reflection (register-driven grading, Opus) | 3 | the loop closes |
+| D6 | 15a-lite — Sunday Forward Plan: register state + regime + calendar + Part 27 v1 movers + lessons-before-decision | 2–3 | Friday/Sunday cadence complete |
+
+**Then, in this order:** Part 29 items 1–4 (RTAT10, cohort logging, IBKR
+probes, `response_ratio`) · intraday cadence (gated on Tuesday's debut +
+capture-instant T) · T&B full (Sessions 10–14) for the mature regime ·
+remaining v17 core (S1/S2 leftovers, S3b, ALFRED, alert delivery) · Part
+29 items 5–9 · Part 28 A1/A3 · Sessions 8–9 with Part 27 v1.
+
+Everything above D-track reuses built components — `narrative.py`, the
+store, `decide.py`, Portfolio Truth, the exposure engine — which is why the
+estimate is short. Nothing here loosens a gate.
+
+## 30.8 IBKR market-data layer — ruling on the "$18.70 package"
+
+*Reviewed against an external recommendation to subscribe IBKR's
+non-professional feed bundle. The provider-role split it proposes is
+already this architecture's practice; the ruling is about which feeds fill
+a NAMED gap (moratorium rule 4) and which parts of the proposal are
+re-architecture in disguise.*
+
+**Provider roles (affirmed, and encoded as source-registry precedence
+rows):** Massive = securities system of record (equities, options, history,
+whole-market scans) · IBKR = portfolio/execution truth (authoritative) +
+real-time cross-asset + auction flow + live-quote validation · FRED = macro
+· Nasdaq Data Link = specialty, on-demand. Never silently average; provenance
+per observation — already law.
+
+**Feeds approved, each tied to a consumer that already exists:**
+- **NYSE / NYSE Arca / NYSE MKT order imbalances ($3.00)** — required for
+  the auction ticks Part 29.4 planned to probe; the probe would fail without
+  the entitlement. Cheapest possible fill of a named gap. **Nasdaq Closing
+  Cross (NOII) remains a marked GAP** until a route is found — NYSE-family
+  data is never presented as market-wide.
+- **CFE Enhanced (VIX futures, $4.50) + CBOE Streaming Indexes ($3.50)** —
+  fill four of the Volatility paper's eight regime tells that were
+  `not_yet_sourced`: VIX term structure (VX1/VX2/VX3 slope, contango →
+  backwardation as a declared state machine), VVIX, skew indexes. Feed
+  `regime.py` (D2) and the tail watch. The state transitions, not the
+  level, are the object.
+- **CME L1 ($1.55)** — ES/NQ/RTY overnight returns, gaps, and cash/futures
+  basis for the Daily's Market Base block and the 07:00 Morning Brief.
+- **OPRA L1 ($1.50)** — real-time option quotes for the **intraday cadence
+  only** (09:45 0DTE refresh, where Massive's 15-minute delay bites);
+  Massive stays the options warehouse — no second one.
+- **FX ($0)** — USDJPY/AUDJPY/EURJPY intraday for the yen monitor's velocity
+  group during stress; JPY=X daily remains the EOD source.
+
+**Deferred (no named consumer at EOD resolution yet):** CBOT, NYMEX, COMEX
+— yfinance's delayed continuous futures serve the rates, energy, and metals
+pillars at daily cadence; revisit when an intraday consumer names them.
+Approved spend: **~$12.55/month now**, full $18.70 when the deferred three
+earn a consumer. Data-sharing from the live account to paper stays on.
+
+**Ops constraint to encode:** IBKR market-data *lines* are capped (100
+concurrent by default; more cost money). CAP-SPX at full constituent breadth
+is infeasible on that budget; Part 29.4's scope stands — universe + index
+ETFs + sector ETFs, with SPY's own auction and Arca ETF flows as the
+market-wide proxy. The line budget is a registry-level fact, not a
+surprise for the sampler to discover.
+
+**Adopted as additions the proposal surfaced:**
+1. **Executions, fills, and commissions into Portfolio Truth** (read-only)
+   — enables **execution-quality analytics** in D5: slippage vs
+   decision-time price, implementation shortfall, fill-vs-limit — which is
+   what makes the 26.7 decomposition's *execution error* measurable rather
+   than estimated. Gate 1.5's stated purpose, finally with data.
+2. **Portfolio-impact line** — every regime change and alert annotated
+   with the held book's sensitivity (beta, net delta/gamma from Portfolio
+   Truth × the exposure engine): "what does this mean for what we own."
+   Small, and it makes the Daily read as advice to a portfolio rather than
+   commentary on a market.
+3. **Standard derived forms as a registry convention** — level, own-history
+   percentile, z, momentum, acceleration, divergence, regime, anomaly,
+   confidence — computed by one generic function for any registered metric
+   (the `response_ratio` pattern generalized). Not a new layer: a
+   convention over the store.
+4. **ETF-vs-underlying closing-flow divergence** (Arca) as a 29.4 metric.
+
+**Declined:** the proposed layer stack (raw → normalization → domain
+engines → standard signal layer → cross-asset fusion → master system) as a
+rebuild — the store, registry, pillars, `regime.py`, and T&B already *are*
+those layers under other names; "auction flow as a new signal family" —
+Part 29.4 admitted it as a flow/execution conditioner and that
+classification holds; CAP-* aggregates beyond the line budget. The
+"independent witnesses" principle (§20) is affirmed as a restatement of
+§26.9 — it is already the rule that made five composites unnecessary.

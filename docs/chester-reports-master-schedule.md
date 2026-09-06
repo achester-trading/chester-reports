@@ -3,10 +3,91 @@
 *Every session, every deferred item, total timing. Companion to the architecture
 document, which holds the detail for each line here.*
 
-**Grand total: ~196–207 hours nominal** (rebased from ~152 by the Final Change
+**Grand total: ~220–236 hours nominal** (rebased from ~152 by the Final Change
 Order — and to be re-based again after Sessions 5–6). But the first ~35 hours
 build the trustworthy core that changes your life; the last
 63 is optional forever.
+
+
+---
+
+# STATUS LEDGER — as of Saturday 5 September 2026 (end of build weekend)
+
+*Two days of build (Fri 4 – Sat 5 Sep), ~20–24 hours at the keyboard.
+Legend: ✅ done · 🟡 partial · ⬜ not started · ⭐ exceeded scope.*
+
+## Out-of-band (preconditions)
+
+| # | Item | Nominal | Status |
+|---|---|---|---|
+| 1 | FlashAlpha entitlement probe | 0.75–1h | ✅ Verdict: Basic = levels only; self-compute adopted, $299/mo Growth declined |
+| 2 | Repo catch-up + docs commit | 1h | ✅ docs/, 16 whitepapers, CLAUDE.md, Windows-proofing |
+| 3 | VPS migration | 1.5–2h | ✅⭐ systemd timers (DST-proven), holiday guard, swap, unattended-upgrades, fail2ban |
+| 4 | Daily Cascade v12 batch + run-state inventory | 1–1.5h | ⬜ still gates Part 28 A1 |
+| 5 | Factor III re-run (Themes) | chat | ⬜ |
+| 6 | Tail Scan inventory | chat | ⬜ |
+
+## v17 core sessions
+
+| # | Session | Nominal | Status |
+|---|---|---|---|
+| −1 | GEX logger | 1.5h | ✅⭐ Self-computed 4-Greek engine (GEX/DEX/VEX/CHEX × 4 buckets), IV solver gated green, vendor cross-check to the strike, pin log, 15 symbols (SPX/SPCX ingestion via Massive $29) |
+| 0 | Claude Code setup | 1.5h | ✅ laptop + VPS, Max subscription |
+| 1 | Clear the board | 2.5h | 🟡 model pinning ✅, cleanup ✅; scorecard hunt, v16 freeze, `never_run`, D1 binding, secrets audit ⬜ |
+| 2 | Registries + validator | 4.5h (+1.5–2) | 🟡 metrics registry (44 + 138 bulk), source registry, CI gate, semantic pass (horizons, half-lives, obs_type, invalidated_by) ✅; `effective_n`, `kill_condition`, `themes`, seasonality, commodity pass-through, surprise metrics ⬜ |
+| 3a | Market data plumbing | 2.0h | ⬜ |
+| 3b | Rates and policy | 3.25h (+1) | ⬜ |
+| 3c | Fiscal and demand | 2.25h | ⬜ |
+| 5 | The store | 5.25h (+2–3) | 🟡 point-in-time observations store, as-of join + leakage test, decision register, immutable packets, Brookfield trigger (29 roots), Friday replay EXACT ✅; vintage tables (policy_path, election_odds, index_members, narratives, expectations, tail_watch), Security Master proper, local mirror ⬜ |
+| 4 | Provenance chain (narrative) | 3.5h | ⬜ packets exist; numeric audit / canary ⬜ |
+| 6 | Backfill (ALFRED, percentiles) | 2.75h (+2–3) | 🟡 replay/forensic harness ✅; ALFRED backfill ⬜ (migrated rows carry pull-time available_at) |
+| 7 | Alerting and dormancy | 2.0h | 🟡 heartbeat w/ derived holiday allowance, Gateway watchdog ✅; welcome-back digest, alert delivery ⬜ |
+| 8 | Events ingest | 4.75h (+1–1.5) | ⬜ |
+| 9 | Forward calendar | 2.0h (+PM engine 1h) | ⬜ |
+
+## Execution track and additions
+
+| Item | Nominal | Status |
+|---|---|---|
+| IBKR Gate 1 (Portfolio Truth, read-only) | 3–4h | ✅ Gateway headless under systemd + watchdog; 30-min sync timers; paper account in store |
+| Decision CLI (decide.py, set-status, DECISION_BLOCKED) | unbudgeted | ✅⭐ |
+| First tracked paper trade | — | ✅ SPY 100 @773.17 GTC, decision fae90045 active, resting for Tue |
+| IBKR Gate 1.5 (What-If, expression analytics) | 4–6h | ⬜ **next** |
+| Trading-calendar guard | 0.5h | ✅ |
+| Greeks extension | 1 session | ✅ |
+| Intraday cadence (09:45 / 12:30) | 1–2h | ⬜ prerequisite: capture-instant T; gated on Tue clean capture |
+| SPX/SPCX greeks live | — | ⬜ prerequisite: greeks_source varies by IV path |
+| Part 27 PM engine | ~3h | ⬜ |
+| Part 28 automation (A1–A4) | 13–17h | ⬜ |
+| Part 29 tactical additions (8 items) | 24–29h | ⬜ ruled 5 Sep; build order in 29.9 |
+| v17.5 elevated backlog | ~7h | ⬜ (Daily Cascade audit still gates register→Daily) |
+| v18 / v19 / deferred | ~32h / ~13h / ~63h | ⬜ |
+
+## Hours
+
+- **Nominal retired:** ~23–25h of scheduled work, plus ~8–10h of unbudgeted
+  exceedance (IV solver, four Greeks, decision CLI, Gateway hardening).
+- **Actual elapsed:** ~20–24h across two days — first time the estimate drift
+  has run backward.
+- **Trustworthy core (~35h):** ~22h done; ~12–15h remaining — S1/S2
+  remainders, S3b contract, S4 provenance chain, S6 ALFRED, S7 delivery.
+- **Grand total remaining, nominal:** ~170–180h of the ~196–207 — but the
+  register is already earning (decision #1 resting), which was the point.
+
+## NEXT — Track D (Daily-first, per Audit #2 / Part 30)
+
+D0 run inventory 0.5h → D1 durability trio 2h (+ IBKR feed subscriptions ~$12.55/mo per Part 30.8: imbalances, CFE, CBOE indexes, CME, OPRA) → D2 regime.py 2h (VIX term-structure state machine included) → D3
+Session 4-lite numeral audit 3h → D4 Daily pipeline 3–4h → D5 15b-lite shadow
+outcomes + fills/commissions + execution-quality analytics + Friday Reflection 3–4h → D6 15a-lite Sunday Forward Plan 2–3h.
+**~15–18h to a running Daily with Friday/Sunday and a closed learning
+loop.** Then Part 29 items 1–4, intraday cadence, T&B full, remaining core.
+
+## Standing state (what runs without you)
+Mon 7 Sep: 16:10 timer fires → pulls → SKIPs Labor Day. Tue 8 Sep 08:30:
+heartbeat check passes on derived ~90h allowance. Tue 16:10: first autonomous
+capture, 15 symbols. Portfolio Truth every 30 min 09–17 ET. Gateway daily
+restart 01:00 ET. SPY order works Tuesday's open; Portfolio Truth catches it.
+Tue: intraday OI diff on Massive (settles the settled-OI question).
 
 ---
 
@@ -76,15 +157,15 @@ probably already covered. ~30 minutes.
 | **IBKR Gate 1.5 (new)** | 1 gate | **~4–6** | Expression & execution analytics |
 | **Out-of-band batch** | probe · v12 · monthly catch-up · VPS · T&B plumbing | **~7** | Preconditions |
 
-**Nominal total: ~196–207h** (was ~152; includes Part 27's ~3h and Part 28's ~13–17h automation track). Per the Final Change Order this
+**Nominal total: ~220–236h** (was ~152; includes Part 27's ~3h, Part 28's ~13–17h automation track, and Part 29's ~24–29h tactical additions). Per the Final Change Order this
 number is provisional by design: **rebase after Sessions 5–6** — several
 allowances replace budgeted work, others hide unestimable complexity. The
 number that matters more: **~35h from tonight to the trustworthy core**
 (probe → out-of-band → Sessions 1–6 with their allowances → gates 1–5
 passing).
-| **Total (nominal)** | | **~196–207** | Rebase after Sessions 5–6 |
+| **Total (nominal)** | | **~220–236** | Rebase after Sessions 5–6 |
 
-**Revised upward at every estimate: 130 → 142 → 152 → ~186 → ~200 nominal.** Scope grew each time:
+**Revised upward at every estimate: 130 → 142 → 152 → ~186 → ~200 → ~228 nominal** (but actuals ran under nominal for the first time in the build weekend). Scope grew each time:
 the AI theme, Brookfield tracking, crypto in three places, Factor V, elections,
 the four-bank frame, seasonality, the size ladder, options metrics, expiry
 buckets, the edge layer, and the 25-scenario tail watch. **Assume this drifts
@@ -217,6 +298,12 @@ complexity; do NOT mechanically add to the ~152h total.*
 | 19 | Institutional positioning + survivorship-resistant panels | 1.5–2.5h | Populations distinct |
 | IBKR Gate 1 | Portfolio Truth + reconciliation | existing+ | Book is canonical |
 | **IBKR Gate 1.5 (NEW)** | Risk, What-If, expression & execution analytics | **4–6h** | Trade Card sees real economics |
+
+**Change Order #3 — eight tactical additions (Part 29, amendment #3)** —
+sources, entities, composites, one opportunistic register book; no new
+signal family; ~24–29h; forward-only loggers first. Build order in 29.9:
+RTAT10 → cohort logging → IBKR probes → response_ratio primitive → yen v0
+→ meme v0 → ZEC/DAT/CYPH → MOC sampler → PM phase 2 (gated on Part 27 v1).
 
 **Automation track (Part 28, amendment #2)** — sequenced after its
 prerequisites, not a new phase:
