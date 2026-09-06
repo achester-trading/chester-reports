@@ -3921,6 +3921,26 @@ IS the production gate above merged into existing plumbing; GEX vendor
 cross-check and indicator de-duplication are already in Session −1 and the
 Technical Indicators paper's cluster rule respectively.
 
+**Handoff note reconciliation (6 Sep 2026) — Dealer's Hand v1.1 Part V
+pointers, with build-weekend status:**
+- DEX split by bucket (0DTE vs monthly) — **DONE** in the Greeks extension
+  (`exposure_compute.py`, four buckets, expiration-release ladder).
+- Flip-stack width (monthly flip − 0DTE flip, pts and % of spot) — now
+  **cheap (~30 min)** since per-bucket flips exist; add as an exposure
+  output and a Daily §06 delta-table row. Detail: Dealer's Hand Ch. 18.4/21.4.
+- Wall-migration flag (held/migrated on first test, per bucket, per session)
+  — **deferred**, ~2h, needs the intraday cadence (first-test timing).
+  Detail: Dealer's Hand Ch. 20.2/21.4.
+- Rename checklist: the 0700 "Tier 6 · Single-Name Watch" banner joins the
+  v12 tier→block rename task (out-of-band item 4 / D0) — never renamed
+  ad hoc.
+- Retail-positioning lines (~2h + ~3h contingent) — **merged into Part 29.3
+  (RTAT10)**; not scheduled twice.
+- The production gate above maps to built machinery: freshness stamps =
+  `available_at` + `freshness.check_signals`; D4 adopts it as an acceptance
+  criterion — no Daily block publishes on a payload lacking a live,
+  fresh source.
+
 ---
 
 # Part 23 — Build log: Top & Bottom session (3 Sep 2026)
@@ -4979,3 +4999,72 @@ Part 29.4 admitted it as a flow/execution conditioner and that
 classification holds; CAP-* aggregates beyond the line budget. The
 "independent witnesses" principle (§20) is affirmed as a restatement of
 §26.9 — it is already the rule that made five composites unnecessary.
+
+---
+
+# Part 31 — Library additions and the report changes they require (6 Sep 2026)
+
+*Three papers were written after Audit #2 — Base Rates, International Equities, and the two Draft-1 editions of Positioning & Flows and Building and Validating a Systematic Book. Papers are reference, not code, and most of what they contain changes nothing. This part records only the places where a paper obliges the SYSTEM to change: a new series to log, a new field, a new report line, or a rights entry. Everything else in those papers is consumed by reading.*
+
+## 31.1 Base Rates → a computed reference, not a static document
+
+**The problem the paper creates.** A base rate cited in a decision packet must be replayable as of the date it was cited, or the packet's replay guarantee is void the first time a table is updated. A paper's tables are prose; the register needs observations.
+
+**Ruling.** `tools/base_rates.py` computes the paper's Part I and Part II tables from series already in the store — return distributions at four frequencies with p25/median/p75, intra-year drawdown distribution, drawdown frequency and duration by depth band, streak and gap statistics, correlation by regime, VIX distribution — and writes each as an observation with `available_at`, `registry_key: baserate.*`, `observation_type: calculated`, `native_horizon: strategic`, `half_life: permanent`, `revision_policy: recomputed`, `trigger_eligible: false`. Recomputed annually by a scheduled job and on any methodology change. **A base rate that moves by more than a declared tolerance on recomputation is flagged for review** — a changing base rate is itself information. Figures the system cannot compute (the pre-1970 episodes, the international drawdowns, the literature citations) enter the **claims registry (26.5)** with their sources, not the observation store.
+
+**Report consequences.**
+- Every report that states a magnitude gains the option of stating its percentile against the base rate — "a 2.1% decline, 88th percentile of daily moves" — and the Daily's Backdrop block adopts it as a standing convention.
+- The Top & Bottom report's top-side language carries the **bear-rally base rate** (three to five 5%+ counter-trend rallies inside a −20% decline; p75 of the largest is +16%), because that governs how a top call is *held* rather than made.
+- The `decide.py` packet gains an optional `base_rate_cited` field, so a variant-perception thesis records the consensus it departs from.
+
+## 31.2 Base Rates Part IV → the long-cycle tail scenario, with two branches
+
+**Ruling.** The tail watch gains a standing scenario, **long-cycle debt resolution**, with two mutually exclusive branches that share antecedents and have opposite instrumentation:
+
+| Branch | Destroys | Protects | Distinguishing tell |
+|---|---|---|---|
+| Deflationary liquidation | Equities, credit, real estate | Long governments of the solvent sovereign, cash, gold after revaluation | Falling inflation with rising real yields; currency strengthening |
+| Inflationary repression | **Bonds and cash in real terms** | Gold, commodities, real assets, equities partially | Nominal yields capped below inflation; persistent negative real yields; gold rising against real yields |
+
+The observables are already in the store or are cheap to add: federal debt/GDP and its full-employment trajectory, the structural deficit, **net interest as a share of revenue**, the foreign-official share of issuance absorption, term premium behavior when growth expectations fall, real yields versus inflation, and gold against real yields. **Ruling: these are read together as one mechanism state, not as separate pillar rows** — a `regime.debt_cycle_state` output of the regime engine (D2), with `observation_type: inferred` and the honest counter-case (no demonstrated debt/GDP threshold; Japan at twice the ratio; the reserve-currency exception) carried in the registry note.
+
+**And the sizing consequence, which is the operative one:** the Doctrine's duration sleeve is a *deflation* hedge specifically, and the two branches want opposite instruments. Book A's Contraction band raises duration for the first branch and is the wrong instrument for the second. The tail-hedge budget's expression therefore depends on which branch the state reads — recorded as a rule so the choice is not made under stress.
+
+## 31.3 International Equities → three concrete system changes
+
+**(a) Overnight gap attribution — a new Backdrop line, and the cheapest win in the paper.** The 07:00 report currently reports the gap. It will now attribute it: the Tokyo session's close-to-close move, the European session's move at the time of writing, the futures move outside both, and the release or headline in whichever window dominated. Data: index futures continuous series plus the regional index closes, all available today. New metrics `overnight.gap_attribution_*`, `observation_type: calculated`, `half_life: session`, rights: Backdrop context only — **may not generate a Book C setup.**
+
+**(b) Country-fund premium to stale NAV as a live read on the coming session.** For the tracked country and regional funds, premium to last-published NAV is computed at the U.S. close. The registry entry is explicit that this is **a timing artifact, not a mispricing** — `observation_type: observed`, `half_life: intraday`, with a note that a stop placed on a country fund is triggered by exactly this artifact. Rights: Backdrop context; Book B expression warning when an international candidate's stop sits inside the typical artifact range.
+
+**(c) The hedging decision becomes a register field.** A hedged and an unhedged instrument on the same market are **two different instruments**, never interchangeable. `decide.py` gains a `currency_exposure` field (`unhedged` / `hedged` / `n_a`) that is mandatory for any non-USD-denominated underlying, and the expression check flags an unhedged international position whose thesis makes no mention of the currency — the Rule 11 test applied to the leg the ticker hides.
+
+**Universe consequence.** The chain-capture universe gains no symbols by default; the international candidates are Book A and Book B instruments read from price series, not options. Should an international ETF ever enter Book C, it passes the liquidity floor like anything else.
+
+## 31.4 Positioning & Flows → the participant map as registry facts
+
+The paper's Tables A–C (beneficial ownership by sector; cross-cutting attributes; who trades and when they are forced) enter the **claims registry** with their sources and a review date — not the observation store, because they are cited estimates rather than computed series. The registry note carries the paper's three-denominator warning verbatim: direct ownership of U.S. equity, global AUM by institution type, and equity-relevant AUM are three different measurements, and **forced-flow footprint = equity exposure × turnover × rule-boundness** is the fourth and the one the system sizes by.
+
+The discretionary holders' failure-mode signatures (platform degrossing, redemption waves, liability-driven collateral calls, currency-hedge rebalancing, market-maker withdrawal) each become a `mechanism_group` in the registry so the confluence guard counts them once. **Market-maker withdrawal is not a separate metric** — it is what the absorption measurement already detects, and the registry says so rather than creating a second reading of one fact.
+
+## 31.5 Systematic Book → two obligations on the build
+
+**(a) The shadow-outcome grader is confirmed as the closing link (Track D step 5), with the scope the paper states:** every decision is graded at its horizon from stored prices — **taken, declined, and draft alike** — and taken decisions are additionally reconciled to the fill. This is what makes abstention a row with a number in it and what turns drafted-but-untraded packets into a calibration series for the report that drafted them.
+
+**(b) The failure-class rules become validator obligations.** The paper's Chapter 13 catalogue is promoted from narrative to standing rules already recorded in Part 30.2, with one addition it makes explicit: **a safety property is verified by reading the enforcing code, not the comment that describes it** — the rule that came from the client library's read-only flag doing nothing of the kind. Any future docstring asserting an enforcement guarantee cites the line that enforces it.
+
+## 31.6 What none of these papers change
+
+No new signal family; the Part 26 freeze holds. No metric in any of the four papers is `trigger_eligible`. Seasonality is `trigger_eligible: false` **permanently and by construction** rather than pending evidence, because a calendar effect has no counterparty story that survives Rule 6 — the presidential-cycle conditional enters as a dated register hypothesis instead. And the international sleeve, the debt-cycle branches, and the base rates are all *conditioners and references*: they inform a thesis, size an expectation, and set the bar for a variant view. None of them generates a packet.
+
+## 31.7 Hours
+
+| Item | Hrs | Gate |
+|---|---|---|
+| `base_rates.py` + registry entries + annual job + drift flag | 2–3 | after D2 (needs the store's series) |
+| `regime.debt_cycle_state` branch logic + observables | 1.5 | inside D2 |
+| Overnight gap attribution | 1 | with D4's Backdrop block |
+| Country-fund premium series | 0.5 | with D4 |
+| `currency_exposure` field + expression check rule | 0.5 | immediate; `decide.py` exists |
+| Claims-registry entries for the cited tables | 1 | needs the claims registry (S14 dependency) |
+| Top & Bottom extended episode set + bear-rally language | 2 | with T&B (S10–14) |
+| **Total** | **~8.5–9.5h** | folded into Track D and T&B, not a new track |

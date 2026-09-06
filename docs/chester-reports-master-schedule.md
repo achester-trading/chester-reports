@@ -3,7 +3,7 @@
 *Every session, every deferred item, total timing. Companion to the architecture
 document, which holds the detail for each line here.*
 
-**Grand total: ~220–236 hours nominal** (rebased from ~152 by the Final Change
+**Grand total: ~229–246 hours nominal** (rebased from ~152 by the Final Change
 Order — and to be re-based again after Sessions 5–6). But the first ~35 hours
 build the trustworthy core that changes your life; the last
 63 is optional forever.
@@ -60,6 +60,7 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⭐ exceeded scope.*
 | Part 27 PM engine | ~3h | ⬜ |
 | Part 28 automation (A1–A4) | 13–17h | ⬜ |
 | Part 29 tactical additions (8 items) | 24–29h | ⬜ ruled 5 Sep; build order in 29.9 |
+| Part 31 library-driven additions (7 items) | 8.5–9.5h | ⬜ ruled 6 Sep; folded into Track D and T&B |
 | v17.5 elevated backlog | ~7h | ⬜ (Daily Cascade audit still gates register→Daily) |
 | v18 / v19 / deferred | ~32h / ~13h / ~63h | ⬜ |
 
@@ -75,6 +76,8 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⭐ exceeded scope.*
   register is already earning (decision #1 resting), which was the point.
 
 ## NEXT — Track D (Daily-first, per Audit #2 / Part 30)
+
+**Part 31 additions (~8.5–9.5h) fold into the steps below, not beside them:** currency_exposure field (0.5h, immediate) · debt-cycle branch state inside D2 (1.5h) · overnight gap attribution + country-fund premium with D4 (1.5h) · base_rates.py after D2 (2–3h) · claims-registry entries (1h) · T&B extended episode set (2h, with S10–14).
 
 D0 run inventory 0.5h → D1 durability trio 2h (+ IBKR feed subscriptions ~$12.55/mo per Part 30.8: imbalances, CFE, CBOE indexes, CME, OPRA) → D2 regime.py 2h (VIX term-structure state machine included) → D3
 Session 4-lite numeral audit 3h → D4 Daily pipeline 3–4h → D5 15b-lite shadow
@@ -157,13 +160,13 @@ probably already covered. ~30 minutes.
 | **IBKR Gate 1.5 (new)** | 1 gate | **~4–6** | Expression & execution analytics |
 | **Out-of-band batch** | probe · v12 · monthly catch-up · VPS · T&B plumbing | **~7** | Preconditions |
 
-**Nominal total: ~220–236h** (was ~152; includes Part 27's ~3h, Part 28's ~13–17h automation track, and Part 29's ~24–29h tactical additions). Per the Final Change Order this
+**Nominal total: ~229–246h** (was ~152; includes Part 27's ~3h, Part 28's ~13–17h automation track, and Part 29's ~24–29h tactical additions). Per the Final Change Order this
 number is provisional by design: **rebase after Sessions 5–6** — several
 allowances replace budgeted work, others hide unestimable complexity. The
 number that matters more: **~35h from tonight to the trustworthy core**
 (probe → out-of-band → Sessions 1–6 with their allowances → gates 1–5
 passing).
-| **Total (nominal)** | | **~220–236** | Rebase after Sessions 5–6 |
+| **Total (nominal)** | | **~229–246** | Rebase after Sessions 5–6 |
 
 **Revised upward at every estimate: 130 → 142 → 152 → ~186 → ~200 → ~228 nominal** (but actuals ran under nominal for the first time in the build weekend). Scope grew each time:
 the AI theme, Brookfield tracking, crypto in three places, Factor V, elections,
@@ -343,6 +346,9 @@ here are scheduling pointers only.*
 - Phase 3 sentiment scrapers (BofA B&B, NAAIM, AAII, OpenInsider);
   news API layer (Pillar 10); Phase 4 13F via EDGAR — fold into S14/S27 scope.
 - QRA parsing → marginal issuance mix (follow-on to bill share).
+- Dealer's Hand v1.1 indicator lines (handoff 6 Sep): flip-stack width
+  ~0.5h (cheap now), wall-migration flag ~2h (needs intraday cadence); DEX
+  split by bucket DONE. Retail-positioning lines merged into Part 29.3.
 - Conditional Prediction-Market Atlas + confidence-modification right as
   champion/challenger — deferred until the PM resolution archive accumulates
   (Part 27).
