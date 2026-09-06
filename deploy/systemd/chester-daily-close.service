@@ -1,0 +1,36 @@
+[Unit]
+Description=Daily Cascade close debrief (16:30 ET, data only)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# After= the EOD pass, so on a boot that starts both, this queues behind the
+# thing that produces its inputs. It is ordering only, never a requirement:
+# the report reads STORED data, so it must still run and report an empty
+# payload when the EOD pass did not. A report that stays silent because its
+# upstream failed hides exactly the failure worth knowing about.
+After=chester-eod.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_daily_close.sh
+
+# 0 built and sent - 2 built, archived, NOT sent. Both are successful runs of
+# this unit: the report exists either way and delivery is transport. 1 is NOT
+# here, deliberately -- "no payload" means nothing was computed for the
+# session, which is a real failure and should show red.
+SuccessExitStatus=0 2
+
+# Generous: the store is local and nothing is fetched, but a first run after a
+# long gap walks back through computed directories.
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# reports/ is inside the checkout because the archive lives with the repo per
+# 32.3, so the checkout is writable here -- unlike chester-heartbeat.service,
+# which only reads it.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

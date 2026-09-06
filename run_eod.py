@@ -40,6 +40,7 @@ from altdata.sources import options_chain
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
 import exposure_compute     # noqa: E402
 import pin_log              # noqa: E402
+from state.emit import emit  # noqa: E402
 
 
 def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
@@ -247,12 +248,65 @@ def main() -> int:
     else:
         print(f"  backup:  FAILED -- {backup.get('error')}")
     print(f"  elapsed: {elapsed:.0f}s")
+    # ---- Stage 5: the state record (D4d) ---------------------------------
+    #
+    # THE JOB THAT RUNS EVERY DAY WAS INVISIBLE TO THE DASHBOARD. Until this,
+    # monthly_macro/run.py was the only caller of emit() in the repo, so the
+    # one pipeline that fires nightly had never reported its existence -- and
+    # the Worker computes staleness from what producers report, which means a
+    # producer that reports nothing cannot be shown as stale either. It was
+    # absent rather than late, and absent is the state nobody notices.
+    #
+    # Producers report as_of and NEVER freshness, per state/emit.py: the age is
+    # the Worker's to compute at read time, so a dead pipeline cannot claim to
+    # be healthy. as_of is the SESSION, not the run instant, for the same
+    # reason the backup keys on it -- an EOD run after 20:00 ET is already
+    # tomorrow in UTC, and a state record dated tomorrow would read as fresher
+    # than it is.
+    #
+    # emit() never raises and returns False when unconfigured, so this cannot
+    # affect the exit code. Telemetry that can fail a run is worse than none.
+    status = "ok"
+    if backup is not None and not backup.get("ok"):
+        status = "degraded"
+    if any(r.get("error") for r in computed.values()):
+        status = "degraded"
+    emit("gamma_weekly", status,
+         headline=(f"{len(computed)} profiles, {len(rows)} pin rows, "
+                   f"{hits}/{len(rows)} peak-GEX pins"),
+         detail={"run_id": run_id,
+                 "symbols": len(computed),
+                 "pin_rows": len(rows),
+                 "peak_gex_hits": hits,
+                 "tolerance_bps": config.PIN_TOLERANCE_BPS,
+                 "convention_version": config.CONVENTION_VERSION,
+                 "backup": (None if backup is None else bool(backup.get("ok"))),
+                 "elapsed_s": round(elapsed, 1)},
+         as_of=_session_date(computed))
+
     # Everything else succeeded, but a failed backup leaves the one
     # irreplaceable asset with a single copy. Distinct exit code so cron alerts
     # on it instead of reporting a clean run.
     if backup is not None and not backup.get("ok"):
         return 4
     return 0
+
+
+def _session_date(computed: dict):
+    """The session these profiles describe, as a date. None if unknowable.
+
+    Deliberately NOT today's date as a fallback: emit() defaults as_of to the
+    current session when passed None, and a wrong-but-plausible date is worse
+    than an absent one on a record whose whole job is to say how old the data
+    is.
+    """
+    import datetime as _dt  # noqa: PLC0415
+    s = next((c.get("session_date") for c in computed.values()
+              if c.get("session_date")), None)
+    try:
+        return _dt.date.fromisoformat(s) if s else None
+    except (TypeError, ValueError):
+        return None
 
 
 if __name__ == "__main__":

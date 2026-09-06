@@ -283,6 +283,123 @@ checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 
 
+## 8. Install the 16:30 close debrief (D4c)
+
+The first Daily Cascade run that exists as code. It reads what the 16:10 EOD
+pass produced twenty minutes earlier and emails it as HTML — exposure table,
+pin verdicts, regime placeholders, portfolio truth. **No prose**, by ruling:
+narrative arrives at D4e, after the numeral audit exists to fail a block that
+invents a number, and CI checks the package for an LLM import rather than
+trusting the intention.
+
+```bash
+cp ~/chester-reports/deploy/systemd/chester-daily-close.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+
+# Prove it before scheduling it. Builds and archives, sends nothing.
+CHESTER_CLOSE_DRY_RUN=1 ~/chester-reports/scripts/run_daily_close.sh; echo "exit=$?"
+ls -la ~/chester-reports/reports/daily_close_*.html
+
+systemctl --user enable --now chester-daily-close.timer
+systemctl --user list-timers chester-daily-close.timer   # NEXT should be 16:30 ET
+```
+
+### Credentials
+
+Delivery uses the **same SMTP variables** `scripts/send_smtp_alert.py` already
+uses, so one credential set serves both the heartbeat alert and the reports and
+the two cannot drift apart. In `~/chester-reports/.env`, mode 600:
+
+```
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_TO=you@gmail.com
+# SMTP_HOST=smtp.gmail.com     # default
+# SMTP_PORT=587                # default
+```
+
+The recipient is resolved `SMTP_RCPT` → `CHESTER_ALERT_EMAIL` → `SMTP_TO`, the
+same three the heartbeat path resolves, so **a box already configured for
+alerts is already configured for reports.** If you have `SMTP_TO` set from
+section 7, there is nothing to add here.
+
+Sending through your own authenticated relay rather than direct from the box is
+deliberate — a cloud host sending its own mail lands in spam, and a report in a
+spam folder was not delivered. Nothing is ever passed on the command line: argv
+is readable by every process on the box and lands in shell history.
+
+### What it writes
+
+| Path | What it is |
+|---|---|
+| `~/chester-reports/reports/daily_close_<session>.html` | the permanent archive, written **before** the send |
+| `~/logs/daily_close-YYYY-MM.log` | per-run log, including the delivery outcome |
+| `~/.chester/daily_close_status` | last verdict, one line |
+
+The archive is written first and the send cannot affect it. That is the whole
+of 32.3's "the record does not depend on an inbox": a mail server having a bad
+day costs the delivery and never the report.
+
+**The archives are gitignored.** 32.3 puts them in the checkout; committing one
+HTML file per session forever, from a box whose standing rule is that it runs
+code and never edits it, is a separate decision. They live on the box and are
+swept up by the off-box backup (D1a). Revisit if the archive belongs in git
+history.
+
+### Exit codes, and why 2 is a success
+
+| code | meaning | unit |
+|---|---|---|
+| 0 | built and delivered | success |
+| 1 | **no payload** — nothing computed for the session | **failure, shows red** |
+| 2 | built and archived, delivery failed | success |
+
+`SuccessExitStatus=0 2` on purpose. The report is the product and delivery is
+transport, so a failed send is not a failed run — the report exists on disk and
+can be re-sent. But `1` means the EOD pass produced nothing, which is a real
+fault upstream and must show red rather than be absorbed by a report that
+politely says nothing.
+
+### The schedule
+
+`OnCalendar=Mon-Fri 16:30 America/New_York`, with a two-minute randomised delay
+so it cannot start inside the EOD pass. Mon–Fri handles weekends; **NYSE
+holidays are the wrapper's calendar guard**, reading the same table as
+`run_eod_cron.sh` — systemd knows about Saturdays and nothing about Labor Day.
+On a holiday the wrapper logs `SKIP non_session`, exits 0 and touches nothing,
+so a quiet Monday cannot erase Friday's verdict.
+
+`Persistent=false`, unlike the heartbeat timer. A catch-up run hours later would
+email a report headed with today's date describing a session the reader has
+already lived through; the archive for any past session is regenerable at will
+with `--session`, so a missed send is better than a late one that looks current.
+
+### Regenerating a past session
+
+```bash
+cd ~/chester-reports
+.venv/bin/python -m daily_cascade.close_report --session 2026-09-04 --dry-run
+```
+
+Every read goes through an as-of cutoff, so `--as-of` reproduces what was
+knowable at a past instant rather than what is known now.
+
+## 9. The EOD state record
+
+`run_eod.py` now emits a `gamma_weekly` state record on every run. Until this,
+`monthly_macro/run.py` was the only caller of `emit()` in the repo — the one job
+that fires nightly had never reported its existence, so the dashboard could not
+show it as stale either. It was absent, and absent is the state nobody notices.
+
+Needs `CHESTER_STATE_URL` and `CHESTER_STATE_TOKEN` in `.env`. Without them the
+emit logs one line and skips; it never raises and never changes the exit code,
+because telemetry that can fail a run is worse than none.
+
+The close report emits under `daily_cascade` and the EOD pass under
+`gamma_weekly` — two producers, two keys, so neither overwrites the other's
+freshness on the dashboard.
+
+
 ## Timezone note
 
 The box may run UTC — that is fine and expected. The timer names

@@ -223,3 +223,11 @@ tools/probe_output/
 
 # Local data lake — raw chains and computed snapshots stay local
 data/
+
+# Generated Daily Cascade archives. 32.3 has the report written into the
+# checkout so the record does not depend on an inbox -- but committing one HTML
+# file per session, forever, from a box whose standing rule is that it runs code
+# and never edits it, is a different decision and not one this file should make
+# quietly. They are kept on the box and swept up by the off-box backup (D1a);
+# revisit if the archive should be in git history instead.
+reports/daily_close_*.html

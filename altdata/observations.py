@@ -240,6 +240,21 @@ class ObservationStore:
             (registry_key, instrument, observed_at))
         return [dict(r) for r in cur.fetchall()]
 
+    def instruments(self, registry_key: str) -> list[str]:
+        """Every non-null instrument this key has been written for.
+
+        as_of() matches `instrument IS :instrument`, which is exact by design
+        -- a query for SPY must not silently return the macro row keyed on
+        NULL. That leaves no way to ask "which symbols do I hold", which is
+        precisely what a positions block needs, so it is a separate question
+        with a separate method rather than a looser join.
+        """
+        cur = self.conn.execute(
+            "SELECT DISTINCT instrument FROM observations "
+            " WHERE registry_key = ? AND instrument IS NOT NULL ORDER BY 1",
+            (registry_key,))
+        return [r[0] for r in cur.fetchall()]
+
     def keys(self) -> list[str]:
         cur = self.conn.execute(
             "SELECT DISTINCT registry_key FROM observations ORDER BY 1")

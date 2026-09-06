@@ -1,0 +1,23 @@
+[Unit]
+Description=Close debrief at 16:30 ET on trading days
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 16:30 ET, twenty minutes after the EOD pass. Mon-Fri here handles weekends;
+# NYSE holidays are the wrapper's calendar guard, same table as the EOD run.
+# systemd knows about Saturdays and nothing about Labor Day.
+OnCalendar=Mon-Fri 16:30 America/New_York
+
+# The EOD pass takes a few minutes and this must not start inside it. The
+# ordering dependency covers a shared boot; the delay covers the ordinary case
+# where both are timer-fired and systemd has no reason to sequence them.
+RandomizedDelaySec=120
+
+# Persistent=false. A catch-up run hours later would email a report headed with
+# today's date describing a session the reader has already lived through, and
+# the archive for that session is regenerable at any time with --session. A
+# missed send is better than a late one that looks current.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

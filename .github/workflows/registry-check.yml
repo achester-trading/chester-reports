@@ -72,6 +72,15 @@ jobs:
       - name: Heartbeat caller policy
         run: bash tools/validate_heartbeat_caller.sh
 
+      # The D4c report. Checks the rulings rather than the output: that the
+      # data-only edition contains no path to generated prose (read from the
+      # source, not promised in a comment), that the archive survives a failed
+      # send, that delivery names every outcome instead of returning quietly,
+      # and that a missing value never reaches the page as a blank cell. No
+      # SMTP, no network, no store.
+      - name: Daily close report gate
+        run: python tools/validate_daily_close.py
+
       # The sixth member of the silent-failure family: a script committed
       # 100644 fails ExecStart with 203/EXEC, every morning, with output
       # nowhere but the journal. Reads the git INDEX rather than the working
