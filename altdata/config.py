@@ -374,7 +374,7 @@ IV_SOLVER_GAMMA_DENOMINATOR: str = "gross"      # "gross" | "net"
 
 
 # ---------------------------------------------------------------------------
-# GATE 1.5 FALLBACK -- IBKR COMMISSION SCHEDULE
+# GATE 1.5 -- IBKR COMMISSION SCHEDULE
 # ---------------------------------------------------------------------------
 # THE RULING, 5 Sep 2026. IB Gateway refuses What-If under Read-Only API --
 # measured on the VPS, error text "The API interface is currently in Read-Only
@@ -385,53 +385,73 @@ IV_SOLVER_GAMMA_DENOMINATOR: str = "gross"      # "gross" | "net"
 # then, and altdata/sources/ibkr_whatif.py is kept intact for Gate 2 rather
 # than deleted.
 #
-# UNVERIFIED, AND EVERY PACKET SAYS SO. 26.17 requires vendor docs be verified
-# before coding against them. interactivebrokers.com returned HTTP 403 to
-# automated fetches of both /en/pricing/commissions-stocks.php and
-# commissions-home.php on 5 Sep 2026, so these figures were declared from the
-# published US Tiered schedule rather than read off the page in-session. That
-# is a real gap, not a formality: it is exactly the shape of the FlashAlpha
-# episode, where a plausible-looking vendor number turned out to be invented.
-# IBKR_COMMISSION_SCHEDULE_VERIFIED gates it, propagates into expected_cost,
-# and flips only when a human has read the page or a real fill has confirmed
-# the arithmetic.
+# US STOCKS -- VERIFIED 2026-09-05.
+# source: Client Portal, hand-read by operator.
+# This account is on FIXED pricing, not Tiered: USD 0.005 per share, $1.00
+# minimum per order, 1% of trade value maximum, ALL-IN. Both readings that
+# 26.17 required are now closed -- the figures themselves, and the account's
+# structure. Client Portal is the only place the structure is visible; the API
+# does not expose it, which is why it was an assumption until a human looked.
+#
+# This REPLACES the Tiered figures ($0.0035/share, $0.35 floor) declared here
+# on 5 Sep 2026 when interactivebrokers.com returned HTTP 403 to automated
+# fetches of commissions-stocks.php. Those numbers were wrong in both
+# directions at once: the wrong structure, and -- because Fixed bundles the
+# pass-throughs Tiered bills separately -- the wrong claim about what the
+# estimate covers. The FlashAlpha check earned its keep here.
 IBKR_COMMISSION_SCHEDULE_SOURCE: str = (
     "https://www.interactivebrokers.com/en/pricing/commissions-stocks.php")
 IBKR_COMMISSION_SCHEDULE_AS_OF: str = "2026-09-05"
-IBKR_COMMISSION_SCHEDULE_VERIFIED: bool = False
+IBKR_COMMISSION_SCHEDULE_VERIFIED: bool = True
+IBKR_COMMISSION_SCHEDULE_VERIFIED_ON: str = "2026-09-05"
+IBKR_COMMISSION_SCHEDULE_VERIFIED_BY: str = (
+    "Client Portal, hand-read by operator")
 IBKR_COMMISSION_SCHEDULE_VERIFY_NOTE: str = (
-    "Declared from the published US Tiered schedule; IBKR returns HTTP 403 to "
-    "automated fetches, so no in-session read of the primary source was "
-    "possible. Confirm the per-share rate, the order floor, the 1% cap, and "
-    "that this ACCOUNT is on Tiered rather than Fixed -- the structure is an "
-    "account setting and cannot be inferred from the API.")
+    "US STOCKS verified 2026-09-05, hand-read from IBKR Client Portal: this "
+    "account is on FIXED pricing -- $0.005/share, $1.00 order minimum, 1% of "
+    "trade value cap, all-in. Client Portal is the only place the "
+    "Fixed-vs-Tiered structure is visible; the API does not expose it. US "
+    "OPTIONS are NOT verified and still carry Tiered per-contract bands, which "
+    "do not describe a Fixed account -- see IBKR_OPT_COMMISSION_VERIFIED.")
 
-# Which structure THIS account is on. An assumption, not an observation: the
-# API does not expose it. Fixed bundles exchange and regulatory fees; Tiered
-# charges them separately, which is why the two differ by more than their
-# headline rates.
-IBKR_ACCOUNT_COMMISSION_STRUCTURE: str = "tiered"
+# Which structure THIS account is on. No longer an assumption: read off Client
+# Portal on 2026-09-05. Fixed bundles exchange and regulatory fees into the
+# headline rate; Tiered bills them separately.
+IBKR_ACCOUNT_COMMISSION_STRUCTURE: str = "fixed"
 
-# US STOCKS, IBKR Pro Tiered, lowest monthly-volume band (<=300k shares/month).
-# The band matters: the per-share rate steps down at higher monthly volume, and
-# this system will not approach those tiers.
-IBKR_STK_TIERED_PER_SHARE: float = 0.0035
-IBKR_STK_TIERED_MIN_PER_ORDER: float = 0.35
-IBKR_STK_TIERED_MAX_PCT_OF_TRADE: float = 0.01
+# US STOCKS, IBKR Pro FIXED. Verified -- see above.
+IBKR_STK_FIXED_PER_SHARE: float = 0.005
+IBKR_STK_FIXED_MIN_PER_ORDER: float = 1.00
+IBKR_STK_FIXED_MAX_PCT_OF_TRADE: float = 0.01
+IBKR_STK_COMMISSION_VERIFIED: bool = True
 
-# US OPTIONS, IBKR Pro Tiered, per contract by premium band:
+# Fixed is ALL-IN for stocks: exchange, clearing and regulatory pass-throughs
+# are inside the per-share rate, not billed on top. So the stock estimate is
+# the whole number, not a floor -- the opposite of what this file said while it
+# assumed Tiered. Nothing is excluded, so nothing is named.
+IBKR_STK_IS_ALL_IN: bool = True
+IBKR_STK_EXCLUSIONS: tuple = ()
+
+# US OPTIONS, IBKR Pro TIERED, per contract by premium band:
 # (premium_at_or_above, per_contract). Ordered high to low.
+#
+# UNVERIFIED, AND STRUCTURALLY STALE. These are Tiered bands on an account now
+# known to be Fixed, so they do not describe this account's option costs at
+# all. They are left in place rather than guessed at: inventing a Fixed
+# per-contract rate to fill the hole is precisely the FlashAlpha move. The
+# mismatch is declared here and rides in every option estimate's packet, so an
+# option cost cannot be read as trustworthy by accident. No option has been
+# traded; this blocks nothing today.
+IBKR_OPT_SCHEDULE_STRUCTURE: str = "tiered"
+IBKR_OPT_COMMISSION_VERIFIED: bool = False
 IBKR_OPT_TIERED_PER_CONTRACT: tuple = ((0.10, 0.65), (0.05, 0.50), (0.0, 0.25))
 IBKR_OPT_TIERED_MIN_PER_ORDER: float = 1.00
 
-# THE ESTIMATE IS A FLOOR, NOT AN ALL-IN COST. Tiered quotes the broker's own
-# commission only; exchange, clearing and regulatory pass-throughs are billed
-# on top and vary by venue, order type and whether the order added or removed
-# liquidity -- none of which is knowable before the fill. On a 100-share order
-# whose commission floor is $0.35 those add-ons are not a rounding error.
-# Recorded as a named exclusion in every estimate rather than folded into a
-# fudge factor.
-IBKR_TIERED_EXCLUDES_PASSTHROUGH: bool = True
-IBKR_TIERED_EXCLUSIONS: tuple = ("exchange fees", "clearing fees",
-                                 "regulatory fees (SEC/FINRA)",
-                                 "liquidity add/remove adjustments")
+# Tiered quotes the broker's own commission only; the pass-throughs below are
+# billed on top and vary by venue, order type and whether the order added or
+# removed liquidity -- none knowable before the fill. Recorded as named
+# exclusions rather than folded into a fudge factor.
+IBKR_OPT_IS_ALL_IN: bool = False
+IBKR_OPT_EXCLUSIONS: tuple = ("exchange fees", "clearing fees",
+                              "regulatory fees (SEC/FINRA)",
+                              "liquidity add/remove adjustments")

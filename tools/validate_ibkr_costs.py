@@ -67,31 +67,32 @@ def group_a() -> None:
 
 
 def group_b() -> None:
-    print(f"\n{LINE}\nB. STOCK COMMISSION\n{LINE}")
-    # 100 shares x 0.0035 = 0.35, exactly at the floor.
+    print(f"\n{LINE}\nB. STOCK COMMISSION (Fixed, verified 2026-09-05)\n{LINE}")
+    # 100 shares x $0.005 = $0.50 raw, which the $1.00 order minimum lifts.
     c = ic.commission_stk(100, 770.67)
-    check(abs(c["raw_per_share_total"] - 0.35) < 1e-9,
-          "100 shares x $0.0035 = $0.35 per-share total")
-    check(abs(c["estimate"] - 0.35) < 1e-9, "estimate is $0.35")
+    check(abs(c["raw_per_share_total"] - 0.50) < 1e-9,
+          "100 shares x $0.005 = $0.50 per-share total")
+    check(abs(c["estimate"] - 1.00) < 1e-9 and c["floor_applied"] is True,
+          "the $1.00 order minimum lifts it to $1.00 and says floor_applied")
     check(c["cap_applied"] is False,
-          "the 1% cap ($770.67) does not bind a $0.35 commission")
+          "the 1% cap ($770.67) does not bind a $1.00 commission")
 
-    # 10 shares: raw 0.035, floor lifts it to 0.35 -- a 10x effect.
+    # 10 shares: raw $0.05, floor lifts it to $1.00 -- a 20x effect.
     c2 = ic.commission_stk(10, 770.67)
-    check(abs(c2["estimate"] - 0.35) < 1e-9 and c2["floor_applied"] is True,
-          "10 shares is floored to $0.35 and says floor_applied")
+    check(abs(c2["estimate"] - 1.00) < 1e-9 and c2["floor_applied"] is True,
+          "10 shares is floored to $1.00 and says floor_applied")
 
     # A penny stock where 1% of trade value binds: 1000 shares at $0.02 =
-    # $20 notional, 1% = $0.20, below both the raw $3.50 and the $0.35 floor.
+    # $20 notional, 1% = $0.20, below both the raw $5.00 and the $1.00 floor.
     c3 = ic.commission_stk(1000, 0.02)
     check(c3["cap_applied"] is True and abs(c3["estimate"] - 0.20) < 1e-9,
           "the 1% cap binds on a low-value trade and is applied last")
-    check(c3["estimate"] < config.IBKR_STK_TIERED_MIN_PER_ORDER,
+    check(c3["estimate"] < config.IBKR_STK_FIXED_MIN_PER_ORDER,
           "the cap can take the commission BELOW the floor -- cap wins, as "
           "IBKR's schedule has it")
 
     c4 = ic.commission_stk(100, None)
-    check(c4["cap"] is None and abs(c4["estimate"] - 0.35) < 1e-9,
+    check(c4["cap"] is None and abs(c4["estimate"] - 1.00) < 1e-9,
           "with no price there is no cap, and the floor still applies")
 
 
@@ -169,24 +170,46 @@ def group_f() -> None:
     print(f"\n{LINE}\nF. PROVENANCE TRAVELS WITH THE NUMBER\n{LINE}")
     e = ic.estimate("SPY", "long", 100, 770.67, baseline=BASELINE)
     s = e["schedule"]
-    check(s["verified"] is False,
-          "the schedule is marked UNVERIFIED (IBKR 403s automated fetches)")
+    check(s["verified"] is True,
+          "the stock schedule is VERIFIED -- hand-read, not declared")
+    check(s["verified_by"] == "Client Portal, hand-read by operator"
+          and s["verified_on"] == "2026-09-05",
+          "who read it and when both ride along in the record")
     check(s["source"].startswith("https://") and s["as_of"] == "2026-09-05",
           "source URL and as-of date ride along in the record")
-    check(s["structure"] == "tiered", "the assumed account structure is named")
-    check("Fixed" in s["verify_note"] or "Tiered" in s["verify_note"],
-          "the note says the account's structure is itself an assumption")
-    check(e["is_floor_not_all_in"] is True and len(e["excludes"]) >= 3,
-          "the estimate declares itself a FLOOR and names what it excludes")
-    check(any("regulatory" in x for x in e["excludes"]),
-          "regulatory pass-throughs are named among the exclusions")
+    check(s["structure"] == "fixed" and s["account_structure"] == "fixed",
+          "the account structure is named, and is no longer an assumption")
+    check(s["structure_mismatch"] is False,
+          "the stock card matches the account it is pricing for")
+    check(e["is_floor_not_all_in"] is False and e["excludes"] == [],
+          "Fixed is ALL-IN for stocks, so nothing is excluded and the estimate "
+          "does not call itself a floor")
+    check("FIXED" in s["verify_note"] or "Fixed" in s["verify_note"],
+          "the note records the structure that was read")
+
+    # The option card was NOT verified and is still Tiered. It must not inherit
+    # the stock card's hand-read just by sharing a config file with it.
+    o = ic.estimate("SPY", "long", 10, 5.00, sec_type="OPT", baseline=BASELINE)
+    so = o["schedule"]
+    check(so["verified"] is False,
+          "the OPTION schedule is still UNVERIFIED -- it did not inherit the "
+          "stock card's verification")
+    check(so["verified_by"] is None and so["verified_on"] is None,
+          "an unverified card carries no borrowed provenance stamp")
+    check(so["structure"] == "tiered" and so["structure_mismatch"] is True,
+          "the option card is Tiered on a Fixed account, and SAYS so")
+    check(o["is_floor_not_all_in"] is True and len(o["excludes"]) >= 3,
+          "the option estimate still declares itself a FLOOR and names what it "
+          "excludes")
+    check(any("regulatory" in x for x in o["excludes"]),
+          "regulatory pass-throughs are named among the option exclusions")
 
 
 def group_g() -> None:
     print(f"\n{LINE}\nG. HONEST DEGRADATION\n{LINE}")
     e = ic.estimate("SPY", "long", 100, None, baseline={})
     check(e["notional"] is None, "no price means no notional")
-    check(e["commission"]["estimate"] == 0.35,
+    check(e["commission"]["estimate"] == 1.00,
           "commission still estimates -- the rate card needs no account")
     check(e["margin"]["init_change"] is None
           and e["buying_power"]["buying_power_delta_est"] is None,

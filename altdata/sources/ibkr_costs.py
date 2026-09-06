@@ -43,9 +43,12 @@ account's own initial-margin rate inverted rather than Reg T's 50% assumed. If
 the account holds nothing, the maint/init ratio is unmeasurable and maintenance
 margin is reported None rather than guessed.
 
-DECLARED, in config, with source and date: the commission rate card. It is
-marked UNVERIFIED there -- IBKR returns 403 to automated fetches -- and that
-flag rides along in every estimate this module produces.
+DECLARED, in config, with source and date: the commission rate card. Stocks
+were hand-read from Client Portal on 2026-09-05 and are VERIFIED -- Fixed
+pricing, all-in. Options are NOT: they still carry Tiered bands on a Fixed
+account, so their card matches nothing. The two are flagged separately, and
+whichever applies rides along in every estimate this module produces, along
+with a structure_mismatch flag when the card and the account disagree.
 
 DERIVED, exactly: buying-power delta is -notional. Not an approximation --
 BuyingPower = AvailableFunds x m and AvailableFunds falls by notional/m, so the
@@ -89,9 +92,9 @@ METHOD_VERSION = "schedule_v1"
 
 
 def commission_stk(shares: float, price: Optional[float]) -> dict:
-    """IBKR Pro Tiered, US stocks. Floor and cap both applied and both named."""
-    per_share = config.IBKR_STK_TIERED_PER_SHARE
-    floor = config.IBKR_STK_TIERED_MIN_PER_ORDER
+    """IBKR Pro FIXED, US stocks. Floor and cap both applied and both named."""
+    per_share = config.IBKR_STK_FIXED_PER_SHARE
+    floor = config.IBKR_STK_FIXED_MIN_PER_ORDER
     raw = abs(shares) * per_share
     est = max(raw, floor)
     floor_applied = est > raw
@@ -99,7 +102,7 @@ def commission_stk(shares: float, price: Optional[float]) -> dict:
     cap = None
     cap_applied = False
     if price is not None:
-        cap = abs(shares) * price * config.IBKR_STK_TIERED_MAX_PCT_OF_TRADE
+        cap = abs(shares) * price * config.IBKR_STK_FIXED_MAX_PCT_OF_TRADE
         if est > cap:
             est, cap_applied = cap, True
 
@@ -111,7 +114,7 @@ def commission_stk(shares: float, price: Optional[float]) -> dict:
         "cap_applied": cap_applied,
         "currency": "USD",
         "rate_card": (f"{per_share} per share, {floor} order floor, "
-                      f"{config.IBKR_STK_TIERED_MAX_PCT_OF_TRADE:.1%} cap"),
+                      f"{config.IBKR_STK_FIXED_MAX_PCT_OF_TRADE:.1%} cap"),
     }
 
 
@@ -255,6 +258,15 @@ def estimate(instrument: str, direction: str, quantity: float,
             else {"buying_power_delta_est": None,
                   "derivation": "no price available, so no notional"})
 
+    # Which rate card actually priced this, and whether it matches the account.
+    if sec == "OPT":
+        card_structure = config.IBKR_OPT_SCHEDULE_STRUCTURE
+        card_verified = config.IBKR_OPT_COMMISSION_VERIFIED
+    else:
+        card_structure = config.IBKR_ACCOUNT_COMMISSION_STRUCTURE
+        card_verified = config.IBKR_STK_COMMISSION_VERIFIED
+    structure_mismatch = card_structure != config.IBKR_ACCOUNT_COMMISSION_STRUCTURE
+
     return {
         "cost_source": COST_SOURCE,
         "method_version": METHOD_VERSION,
@@ -278,16 +290,29 @@ def estimate(instrument: str, direction: str, quantity: float,
         "run_id": run_id,
         # The rate card's provenance travels WITH the number, so a packet read
         # in six months does not have to guess which schedule produced it.
+        # Stock and option cards are verified INDEPENDENTLY: the account is
+        # Fixed and the stock card was hand-read on 2026-09-05, while the
+        # option card is still Tiered bands and describes no account we have.
+        # One shared flag would let the verified stock card vouch for it.
         "schedule": {
-            "structure": config.IBKR_ACCOUNT_COMMISSION_STRUCTURE,
+            "structure": card_structure,
+            "account_structure": config.IBKR_ACCOUNT_COMMISSION_STRUCTURE,
+            "structure_mismatch": structure_mismatch,
             "source": config.IBKR_COMMISSION_SCHEDULE_SOURCE,
             "as_of": config.IBKR_COMMISSION_SCHEDULE_AS_OF,
-            "verified": config.IBKR_COMMISSION_SCHEDULE_VERIFIED,
+            "verified": card_verified,
+            # Stamped only when the card really was read; an unverified card
+            # carries no borrowed provenance.
+            "verified_on": (config.IBKR_COMMISSION_SCHEDULE_VERIFIED_ON
+                            if card_verified else None),
+            "verified_by": (config.IBKR_COMMISSION_SCHEDULE_VERIFIED_BY
+                            if card_verified else None),
             "verify_note": config.IBKR_COMMISSION_SCHEDULE_VERIFY_NOTE,
         },
-        "excludes": (list(config.IBKR_TIERED_EXCLUSIONS)
-                     if config.IBKR_TIERED_EXCLUDES_PASSTHROUGH else []),
-        "is_floor_not_all_in": bool(config.IBKR_TIERED_EXCLUDES_PASSTHROUGH),
+        "excludes": list(config.IBKR_OPT_EXCLUSIONS if sec == "OPT"
+                         else config.IBKR_STK_EXCLUSIONS),
+        "is_floor_not_all_in": (not config.IBKR_OPT_IS_ALL_IN) if sec == "OPT"
+                               else (not config.IBKR_STK_IS_ALL_IN),
     }
 
 
@@ -344,6 +369,11 @@ def format_estimate(e: dict, indent: str = "  ") -> str:
     if not sch.get("verified"):
         L.append(f"{indent}  SCHEDULE UNVERIFIED ({sch.get('as_of')}) -- "
                  f"{sch.get('source')}")
+    if sch.get("structure_mismatch"):
+        L.append(f"{indent}  SCHEDULE STRUCTURE MISMATCH: rate card is "
+                 f"{sch.get('structure')} but this account is "
+                 f"{sch.get('account_structure')} -- this is not this "
+                 f"account's cost")
     if e.get("is_floor_not_all_in"):
         L.append(f"{indent}  FLOOR, NOT ALL-IN. Excludes: "
                  f"{', '.join(e.get('excludes') or [])}")

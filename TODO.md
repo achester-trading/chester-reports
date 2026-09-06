@@ -709,23 +709,38 @@ and no intraday reading can describe a closed market.
       concession bought to unblock a feature. `ibkr_whatif.py` is kept intact
       and unused until then; `--preview-mode whatif` is the flag that turns it
       back on, so Gate 2 needs no code change here.
-- [ ] **The commission schedule in config is UNVERIFIED and must be confirmed.**
-      `IBKR_COMMISSION_SCHEDULE_VERIFIED = False`, and the flag propagates into
-      every `expected_cost` record. interactivebrokers.com returned HTTP 403 to
-      automated fetches of both `/en/pricing/commissions-stocks.php` and
-      `commissions-home.php` on 5 Sep 2026, so the per-share rate ($0.0035),
-      order floor ($0.35) and 1% cap were declared from the published Tiered
-      schedule rather than read in-session. This is the FlashAlpha failure mode
-      exactly, so it is flagged rather than trusted. Two things to confirm by
-      hand: the figures themselves, and that this ACCOUNT is on Tiered rather
-      than Fixed -- the structure is an account setting the API does not
-      expose, and Fixed bundles the exchange and regulatory fees that Tiered
-      bills separately.
-- [ ] **The estimate is a FLOOR, not an all-in cost.** Tiered excludes exchange,
-      clearing and regulatory pass-throughs, which on a $0.35 commission are not
-      a rounding error. First real fill should be compared against the estimate
-      and the gap recorded -- that comparison is also what would flip
-      `IBKR_COMMISSION_SCHEDULE_VERIFIED`.
+- [x] **SETTLED 2026-09-05: the stock schedule is VERIFIED, and this account is
+      FIXED, not Tiered.** Hand-read from Client Portal by the operator: USD
+      0.005 per share, $1.00 minimum per order, 1% of trade value maximum,
+      all-in. `IBKR_COMMISSION_SCHEDULE_VERIFIED = True`, with `..._VERIFIED_ON`
+      and `..._VERIFIED_BY` riding in every stock `expected_cost` packet. Both
+      readings 26.17 asked for are closed at once -- the figures, and the
+      structure, which only Client Portal exposes.
+
+      The declared Tiered card was wrong twice over: wrong rate ($0.0035 /
+      $0.35 against $0.005 / $1.00) and wrong claim about what it covered. A
+      100-share SPY order was estimated at $0.35 and is actually $1.00 -- and
+      note WHY that hid: under Tiered the per-share total landed exactly on the
+      floor, so `floor_applied` was False and the estimate looked like
+      arithmetic rather than a minimum. Under Fixed the minimum plainly binds.
+      The FlashAlpha check earned its keep.
+- [x] **SETTLED for stocks: the estimate is ALL-IN, not a floor.** Fixed bundles
+      the exchange, clearing and regulatory pass-throughs that Tiered bills
+      separately, so a stock `expected_cost` is the whole number:
+      `is_floor_not_all_in` is False and `excludes` is empty. This INVERTS what
+      this file said while it assumed Tiered. Still worth doing, with a changed
+      purpose: compare the first real fill against the estimate and record the
+      gap -- now a check ON a verified card, not the thing that would verify it.
+- [ ] **The OPTION card is unverified AND structurally stale: Tiered bands on a
+      Fixed account.** Only stocks were hand-read. The per-contract bands
+      (0.65 / 0.50 / 0.25 by premium) describe a schedule this account is not
+      on, so an option `expected_cost` is not this account's cost. Left in place
+      rather than guessed at -- inventing a Fixed per-contract rate to fill the
+      hole is exactly the FlashAlpha move. `IBKR_OPT_COMMISSION_VERIFIED = False`
+      and `schedule.structure_mismatch = True` ride in the packet and
+      `format_estimate` prints both, so it cannot be read as trustworthy by
+      accident. No option has been traded, so this blocks nothing today. Hand-read
+      the option schedule off Client Portal before the first option decision.
 - [ ] **Short stock margin is not modelled.** The measured leverage multiplier
       describes the account's long-side treatment; Reg T requires 150% for a
       short. A SELL of stock carries an explicit caveat in the record rather
