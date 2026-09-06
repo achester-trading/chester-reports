@@ -1256,7 +1256,14 @@ that tells you D1 is needed.*
         PyYAML`, so there is nothing to serialise for.
       - Blocks nothing today — all seven are green as of `2e58f87`. It is a
         wanted change to the reporting, not to the checks.
-- [ ] **Assert that every file in `scripts/` is executable** — a new check next
+- [x] **Assert that every file in `scripts/` is executable** — BUILT 6 Sep as
+      `tools/validate_exec_bits.py`, in CI. Reads `git ls-files -s`, so a local
+      `chmod +x` that never reaches a commit still fails. Second half added
+      beyond the request: every in-repo `ExecStart=` target is resolved back to
+      an index entry, so a unit pointing at an untracked or non-executable file
+      fails the build rather than 203/EXEC-ing at 03:00.
+
+- [ ] ~~Assert that every file in `scripts/` is executable~~ — a new check next
       to `validate_systemd_units.py` in the gate, asserting the committed mode
       is `100755` for every `scripts/*.sh` and `scripts/*.py` a unit invokes.
       **Requested for the laptop session to build.** This is the sixth member

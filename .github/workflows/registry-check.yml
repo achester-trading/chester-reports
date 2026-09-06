@@ -72,6 +72,15 @@ jobs:
       - name: Heartbeat caller policy
         run: bash tools/validate_heartbeat_caller.sh
 
+      # The sixth member of the silent-failure family: a script committed
+      # 100644 fails ExecStart with 203/EXEC, every morning, with output
+      # nowhere but the journal. Reads the git INDEX rather than the working
+      # tree, because the index is the only mode a `git pull` can deliver --
+      # and because Windows has no exec bit, so a script authored on the
+      # laptop is born 100644 and `chmod +x` there changes nothing.
+      - name: Executable bits in the git index
+        run: python tools/validate_exec_bits.py
+
       # Silent-ignore is a four-time pattern: a directive in the wrong section,
       # an invalid value, and a hardening stanza that hid a missing
       # ReadWritePaths. systemd accepts all of them and does something other
