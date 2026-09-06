@@ -80,10 +80,9 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⭐ exceeded scope.*
 **Part 31 additions (~8.5–9.5h) fold into the steps below, not beside them:** currency_exposure field (0.5h, immediate) · debt-cycle branch state inside D2 (1.5h) · overnight gap attribution + country-fund premium with D4 (1.5h) · base_rates.py after D2 (2–3h) · claims-registry entries (1h) · T&B extended episode set (2h, with S10–14).
 
 D0 run inventory 0.5h → D1 durability trio 2h (+ IBKR feed subscriptions ~$12.55/mo per Part 30.8: imbalances, CFE, CBOE indexes, CME, OPRA) → D2 regime.py 2h (VIX term-structure state machine included) → D3
-Session 4-lite numeral audit 3h → D4 Daily pipeline 3–4h → D5 15b-lite shadow
+Session 4-lite numeral audit 3h → D4a–g Daily build 13.5h (see Part 32 — it is a BUILD, not a migration) → D5 15b-lite shadow
 outcomes + fills/commissions + execution-quality analytics + Friday Reflection 3–4h → D6 15a-lite Sunday Forward Plan 2–3h.
-**~15–18h to a running Daily with Friday/Sunday and a closed learning
-loop.** Then Part 29 items 1–4, intraday cadence, T&B full, remaining core.
+**~25–28h to a running Daily with Friday/Sunday and a closed learning loop** (revised from 15–18h: Part 32's D0 inventory found no Daily code exists — the report layer is a first build. A real automated email arrives after the first ~4h.) Then Part 29 items 1–4, intraday cadence, T&B full, remaining core.
 
 ## Standing state (what runs without you)
 Mon 7 Sep: 16:10 timer fires → pulls → SKIPs Labor Day. Tue 8 Sep 08:30:

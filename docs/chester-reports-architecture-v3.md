@@ -5068,3 +5068,51 @@ No new signal family; the Part 26 freeze holds. No metric in any of the four pap
 | Claims-registry entries for the cited tables | 1 | needs the claims registry (S14 dependency) |
 | Top & Bottom extended episode set + bear-rally language | 2 | with T&B (S10–14) |
 | **Total** | **~8.5–9.5h** | folded into Track D and T&B, not a new track |
+
+---
+
+# Part 32 — The Daily Cascade is a build, not a migration (6 Sep 2026)
+
+*D0's inventory returned a finding that changes Track D's shape and its estimate. Recorded here because the schedule was optimistic in a way worth knowing before, not after.*
+
+## 32.1 The finding
+
+**No Daily Cascade code exists in the repository.** Every Daily report to date was produced inside a chat session: the operator asked, data was gathered conversationally, prose was written, an artifact came back. That is why the reports have been good and why they have never run without him.
+
+Two related discoveries from the same inventory:
+
+- **The EOD pass emits no state record.** `monthly_macro/run.py` is the only caller of the emit path, so the one job that runs every day is invisible to the dashboard by construction.
+- **`check_heartbeat.sh` has no caller.** The inverted-heartbeat design is half-built: the EOD wrapper writes the heartbeat faithfully and nothing reads it. **The EOD pass could fail every night for six weeks and nothing would notice.** This is the single most urgent defect in the system and it precedes all new work.
+- **cron-job.org is a single-purpose button-pusher.** `monthly-report.yml` has `workflow_dispatch` and no `schedule`, so deleting the external job silently ends the Monthly. Its replacement is one line — a `schedule: - cron: "0 6 1 * *"` block — which removes the PAT, the third party, and the renewal calendar item at once. **Prove then retire: add the block, watch one run fire on 1 October, delete the external job after.**
+
+## 32.2 What this changes, and what it does not
+
+D4's estimate moves from 3–4 hours to **8–10**, because the report layer is a first build rather than a migration. What does *not* change is the expensive half: the data already exists. The exposure engine computes the dealer surface nightly, the store holds the macro series, Portfolio Truth holds positions, and the regime engine supplies the dials. **The missing work is the last mile only** — assemble a payload, generate constrained prose over it, audit the numerals, render, and deliver.
+
+## 32.3 The delivery ruling — reports are pushed, not fetched
+
+The operator's binding constraint is time, and a report that must be opened is a report that will be read late or not at all. **Delivery is by HTML email rendered in the message body**, sent through an authenticated SMTP relay on the operator's own mail account rather than direct from the box, because direct sending from a cloud host lands in spam. A copy is simultaneously written to the repository as the permanent archive, so the record does not depend on an inbox.
+
+The delivery layer is built **once**, before any report content, and every run in the cascade uses it. Its requirements: a `deliver()` function taking a subject, an HTML body, and a state record; credentials in `.env` at mode 600; a send failure that logs distinctly and never fails the run that produced the report; and the same run-status and heartbeat semantics as every other writer.
+
+## 32.4 Build one report, then configure eight
+
+The nine-run schedule is not nine builds. **The 16:30 close debrief is built first**, because its inputs are already computed twenty minutes earlier by the EOD pass and nothing new must be fetched. That one report proves the entire chain end to end; the remaining runs are payload configuration against a proven pipeline.
+
+The ordered sequence, replacing the old D4:
+
+| Step | Hrs | Delivers |
+|---|---|---|
+| **D4a** Heartbeat caller + delivery layer | 2 | A timer that reads the heartbeat and emails on failure; `deliver()` proven. **The operator is told when something breaks.** |
+| **D4b** `schedule:` block in monthly-report.yml | 0.1 | The Monthly's replacement scheduler, to be proven 1 October |
+| **D4c** Data-only 16:30 email | 2 | A nightly automated report — exposure table, pin verdicts, positions — with **no LLM prose**, so the chain is proven before narrative is trusted |
+| **D4d** `run_eod` emits a state record | 0.5 | The daily job stops being invisible to the dashboard |
+| **D4e** Narrative on the 16:30 report | 2 | The real Daily, one run — gated on D3's numeral audit |
+| **D4f** The 07:00 morning brief | 3 | The run that shapes the day: overnight gap attribution, dials, setup list, drafted packets into the register |
+| **D4g** Remaining runs + register drafts | 4 | The full cascade, `auto_publish: false` until each earns trust |
+
+**~13.5 hours, and a real automated report arrives in the operator's inbox after the first four.**
+
+## 32.5 The rule that makes it safe
+
+Every report in the cascade publishes under Part 28's gate — drafted setups enter the register as `status: draft` and never as trades — and no block publishes on a payload lacking a live, fresh source. D4c's data-only edition exists precisely so that the delivery chain is proven while prose is still untrusted; **narrative is added only after the numeral audit (D3) can fail a block that invents a number.**
