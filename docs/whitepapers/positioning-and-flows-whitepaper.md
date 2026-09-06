@@ -114,6 +114,35 @@ The ratio between the two volume columns is each participant's *forcing multiple
 
 Every figure in Tables A–C is a range and a snapshot, drawn from flow-of-funds data, exchange and wholesaler disclosures, industry-association statistics, and the academic literature on passive ownership. The registry carries them as `observation_type: inferred` with a review date, and the heightened column is the least well-documented of the three: stress-day attribution comes from episode studies and auction statistics rather than any standing series, and it is to be replaced by the system's own closing-auction sampler readings as those accumulate.
 
+**Table D — the cross-tabulation: WHO × HOW, estimated.** Tables A, B and C describe three different axes — legal owner, management mandate, trading behavior — as three separate lists, which leaves the reader unable to see where a row of one lands in a column of another. This table crosses the first two: rows are the owner sectors of Table A, columns are the mandate types of Table B, and each cell is the estimated share of the total U.S. equity market held by that owner under that mandate. **Rows sum to Table A; columns sum to a mandate breakdown that is itself 100%.** Every cell is an estimate and is carried in the claims registry as `inferred` with a review date.
+
+| Owner (rows sum to A) ↓ · Mandate → | Passive / index | Active professional | Self-directed | Hedge funds | Official / sovereign | Systematic rule-driven | Market-maker inventory | **Row total** |
+|---|---|---|---|---|---|---|---|---|
+| Households, direct | — | 7 (advised SMAs) | **27** | **4** | — | — | — | **38** |
+| Mutual funds | **10** | **10** | — | — | — | — | — | **20** |
+| Foreign | 8 | 8 | — | — | 2 | — | — | **18** |
+| ETFs | 8.5 | 0.2 | — | — | — | 0.3 (leveraged/inverse) | — | **9** |
+| Pensions | 6 | 2.5 | — | — | — | 0.5 (risk parity, vol targets) | — | **9** |
+| Other (broker-dealers, banks, closed-end) | — | 3 | — | — | — | — | 1 | **4** |
+| Insurers | 0.5 | 1.5 | — | — | — | — | — | **2** |
+| **Column total** | **33** | **32** | **27** | **4** | **2** | **~1.5** | **1** | **~100** |
+
+*Source class: inferred, mid-2026; the row totals are the Federal Reserve's, the column totals are consistent with the passive-ownership literature and industry flow data, and the cells are the paper's allocation of the one to the other. The systematic column understates the *futures* footprint of CTAs and vol-control strategies, which own little cash equity and much index exposure — see Table C.*
+
+**The third layer — what forces each mandate to trade.** The diagram adds it. Owners on the left, mandates in the middle, forcing mechanisms on the right; ribbon width is share of the market.
+
+*[Figure — owner → mandate → forcing-mechanism diagram; rendered in the HTML edition]*
+
+Four things the cross-tabulation makes visible that the three lists could not.
+
+*Passive is not a sector; it is a third of every large sector.* Mutual funds are half passive, ETFs almost entirely, pensions two-thirds, foreign holders nearly half. The index-event forcing mechanism therefore reaches into every owner row at once — which is why reconstitution day is the year's largest close regardless of who owns what.
+
+*Self-directed households are the largest single cell in the table, and the only large cell with an attention-driven forcing mechanism.* Twenty-seven percent of the market responds to velocity of attention rather than to a rule or a mandate. That cell, and the retail-attention data of Part 29.3, is why the paper treats attention as a flow variable.
+
+*Hedge funds are four percent of ownership and fifteen percent of the tape* — the ratio between their cell in this table and their row in Table C is the paper's forcing-multiple concept in a single comparison. Ownership share measures presence; volume share measures activity; the gap is turnover, and the degrossing mechanism is what turns it into forced flow.
+
+*The systematic column is tiny in cash equity and large in derivatives.* CTAs, vol-control and risk-parity strategies together hold perhaps a percent and a half of listed shares directly and control several times that through index futures. **The cross-tabulation measures the cash market; the forcing mechanisms that matter most for intraday flow sit in a derivative layer above it** — dealers hedging option books, systematic funds resizing futures — that owns almost no equity and moves a great deal of it. Table C's rows for those participants, and *The Dealer's Hand*, are that layer.
+
 Three readings of the table carry into the rest of the paper.
 
 *Ownership is concentrated in slow money; volume is concentrated in fast money.* Households, passive funds, active managers, and pensions own roughly nine-tenths of the market and transact a minority of the tape on an ordinary day. Market makers, retail traders, and hedge funds are the majority of the tape and a small share of the ownership. Forced flow is the moment slow money is made to behave like fast money — a pension at quarter-end, a passive fund on reconstitution day — and the tape's capacity to absorb it is set by the fast money's willingness to take the other side.
