@@ -9,17 +9,6 @@ the system consumes it through a compact claims registry (claims, falsifiers,
 evidence links); the papers themselves are for the human and for writing that
 registry.*
 
-**Two documents exist in two formats, and the two formats have different jobs.**
-This guide and *The Dealer's Hand* are both published as HTML alongside their
-Markdown source. **The HTML is canonical for reading** — it carries the rendered
-tables, the anchor navigation and, in the Dealer's Hand, the 21 computed figures
-the Markdown can only hold as placeholders. **The Markdown is canonical for
-editing** — every change is made in the `.md` and the HTML is regenerated from
-it, never the other way round. An edit made only in the HTML is lost at the next
-regeneration, and an HTML file that disagrees with its `.md` is stale by
-definition rather than a second opinion. Every other paper in the library is
-Markdown only, and the question does not arise.
-
 ---
 
 ## Contents
@@ -79,6 +68,7 @@ Markdown only, and the question does not arise.
 | Micro & execution | **XI** | Volatility: A Structural Framework | Execution layer, Daily Cascade, expressibility | ~15,000 words | The price of insurance — VRP, crowding and unwinds as one fact; regime identification and cross-asset vol; the options-ETF complex at scale |
 |  | **XII** | The Daily Cascade Paper | Daily Cascade | ~15,000 words (est.) | Operating manual for the intraday suite — five blocks, dealer-gamma reading rules, the dependency map |
 |  | **XIII** | The Dealer's Hand | Daily Cascade (dealer positioning) | not yet measured · illustrated edition **v1.1** (HTML canonical; md carries figure placeholders) | Derives the dealer-hedging mechanics from first principles — sign conventions, who is on which side, the JHEQX exception — with 21 computed figures and 2 worked ledgers; **Part V adds the multi-horizon book (GEX/DEX by bucket, 0DTE session taxonomy)**; elaborates Daily Cascade Ch. 2 |
+|  | **XXII** | Options as Expression | Book C's every trade; Book A's convexity sleeve; the expression check | Draft 1 · ~6,200 words, 10 computed figures · HTML canonical | Choosing the instrument after choosing the view — the four primitives as shapes, your greeks versus the dealer's, verticals and the four numbers, time spreads, the three costs (decay, the volatility crush, the spread tax); and the engineered payoffs: buffered funds, **synthetic principal protection from a cash-equivalent fund plus long-dated calls**, and **dual-directional structures built as bills-plus-iron-butterfly rather than as barrier notes** — with the tenor arithmetic showing why option cost grows as √T while funding grows as T |
 |  | **XIV** | Technical Indicators | Daily Cascade + execution layer | ~6,350 words, 5 figures | Price-derived measures — the lag argument, the five permitted clusters, levels by mechanism, the traps, and the wall keeping technicals out of the composite |
 | Market structure | **XV** | Equities: A Structural Framework | Top & Bottom, Daily Cascade, Disruptive Themes (Factor II) | ~8,350 words | The residual claim, the index as a momentum machine, factors, the concentration and its fulcrum, the AI rings and the new listings, scenario families, what to watch by cadence |
 |  | **XXI** | International Equities: Europe, Japan, China, and the Rest of the World | Book A's allocation sleeve; Book B candidates; the Daily Cascade's overnight read; Disruptive Themes (AI supply chain); the tail watch (Taiwan) | Draft 1.1 · ~9,300 words | The global map and home-bias arithmetic; **the 55-year record of alternating leadership (five flips, ~decade runs, the current U.S. run the longest and widest)**; the decomposition of fifteen years of U.S. outperformance (a third currency, a third multiple, a third earnings) and which parts can repeat; the currency term and the hedged/unhedged decision as a recorded choice; Europe, UK, Japan, China, Taiwan/Korea, India and EM one at a time; instruments and their traps — stale NAV as live price discovery, withholding tax by account type, the session clock behind the overnight gap; **correlation's long rise, its regime dependence and downside asymmetry, and why daily correlation is a clock artifact**; **a full part on China — three markets, the dilution/state-allocation explanation of the lost decade, the technology record sector by sector, the winning-the-industry-without-earning-a-return trap, and four ten-year scenarios**; **and a ten-year probabilistic view of relative returns built from decomposed components, with falsification conditions per scenario** |
@@ -742,8 +732,6 @@ have since been dispositioned into the v17 architecture.
 
 ## XIII. The Dealer's Hand
 **Companion to: Daily Cascade — dealer positioning · word count not yet measured · illustrated edition: 15 computed figures + 2 worked ledgers**
-
-**Formats.** HTML canonical for reading (it carries the figures); Markdown canonical for editing (the `.md` is the source the HTML is regenerated from, and holds figure placeholders). The same rule governs this guide — see the front matter.
 
 **What it contains.** The paper that derives the mechanics the Daily Cascade
 paper applies. Where Paper V gives reading rules for gamma, walls and flips, this
