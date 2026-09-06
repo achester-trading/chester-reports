@@ -19,7 +19,7 @@
 # Every claim below that says "verified" was measured, and the probe that
 # measured it is named. Anything not verified says so.
 
-version: 1
+version: 2
 updated: 2026-09-05
 
 vocabularies:
@@ -192,10 +192,16 @@ sources:
       is Portfolio Truth for reconciliation, not a report input.
     caveats:
       - >-
-        READ-ONLY, enforced twice. connect() passes readonly=True so the API
-        session rejects orders at the socket, and the validation gate greps the
-        module's source for order-placing calls. Architecture 26.11 Gate 1
-        requires no order capability "not disabled, not commented out, absent".
+        READ-ONLY. The guarantee is the ABSENCE OF CODE: the module constructs
+        no order type and the validation gate greps its source for order-placing
+        calls, per 26.11 Gate 1's "not disabled, not commented out, absent".
+        CORRECTED 5 Sep: this entry previously claimed connect()'s readonly=True
+        made the API session "reject orders at the socket". It does not. In
+        ib_async 2.1.0 that flag only skips fetching open and completed orders
+        at startup (ib.py:2057, 2061); it installs no check on placeOrder. The
+        real read-only enforcement is server-side, Gateway's Read-Only API
+        setting -- which is also why What-If is refused (see ibkr_whatif.py).
+        readonly=True is a second layer, not the guarantee.
 
   ibkr_live:
     name: Interactive Brokers, live account via local IB Gateway
@@ -215,6 +221,169 @@ sources:
       because anything connects live today. connect() refuses a live port
       unless allow_live=True is passed explicitly.
 
+
+  # --- IBKR market-data entitlements (Part 30.8) --------------------------
+  #
+  # Activated on the LIVE account 5 Sep 2026 and shared to paper, $12.50/mo
+  # total. Four separate entries rather than one `ibkr_market_data` block,
+  # because they are four separate entitlements that will pass or fail their
+  # probes independently -- a single row would have to average four answers.
+  #
+  # NOTHING IS WIRED. Every one carries allowed_reports: [] and
+  # status: not_yet_used until its probe returns. `intended_consumer` records
+  # what each was bought FOR (moratorium rule 4: paid data only against a named
+  # gap) without granting a right the probe has not yet earned. The distinction
+  # matters: allowed_reports is permission, intended_consumer is intent, and
+  # writing the intent into the permission field is how an unverified feed ends
+  # up in a report.
+  #
+  # timestamp_reliability is `unknown` on all four, and that is a measurement
+  # rather than a shrug -- this file's rule is that anything not verified says
+  # so, and none of these has been read once.
+
+  ibkr_md_nyse_imbalances:
+    name: NYSE / NYSE Arca / NYSE MKT Order Imbalances (via IB Gateway)
+    tier: A1
+    epistemic_role: redistributed_primary
+    domain: [auction_flow, order_imbalance]
+    geography: [US]
+    latency: real-time during the closing auction window
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Not measured. The auction imbalance feed publishes indicative price and
+      imbalance updates on the exchange's own cadence through the close; whether
+      the ticks carry a usable exchange timestamp or only an arrival time is
+      exactly what the probe must establish, because absorption is a curve and a
+      curve without reliable time is a scatter.
+    license: exchange market-data subscription via IBKR; not redistributable
+    cost_usd_month: 3.00
+    subscribed: 2026-09-05
+    account: live, shared to paper
+    allowed_reports: []
+    implemented_by: null
+    status: not_yet_used
+    entitlement_probe: pending Tuesday 2026-09-08
+    intended_consumer: >-
+      Part 29.4 Market-on-Close. Absorption = indicative-price displacement per
+      unit of normalized imbalance (via the 29.0 response_ratio primitive); raw
+      imbalance is display only. Universe + SPY/QQQ/IWM + sector ETFs
+      (XLK XLF XLI XLE XLV XLU XLP XLY) as the rotation proxy. Opening-auction
+      ticks come free on the same path. Build item 29.9 #3 (probe) then #8
+      (sampler).
+    probe_must_establish:
+      - Which of the three exchanges actually return imbalance ticks, separately.
+      - Whether ticks carry an exchange timestamp or only an arrival time.
+      - The update cadence inside 15:50-16:00, against the planned ~30s sampler.
+      - Whether sector ETFs on Arca are served on the same entitlement.
+      - How many market-data lines a full universe subscription consumes.
+    caveats:
+      - >-
+        NASDAQ CLOSING CROSS (NOII) IS NOT COVERED AND REMAINS A MARKED GAP.
+        NYSE-family imbalance data is never to be presented as market-wide
+        breadth; a Nasdaq-listed name's closing auction is invisible here. 30.8
+        keeps this a GAP until a route is found rather than papering it over
+        with the NYSE number.
+      - >-
+        A reconstitution-day imbalance is never discretionary flow. 29.4's event
+        classification table (NORMAL / MONTH_END / QUARTER_END /
+        INDEX_REBALANCE / OPEX / TRIPLE_WITCHING / ETF_REBALANCE) must exist
+        before any imbalance reading is interpreted.
+
+  ibkr_md_cfe_enhanced:
+    name: CFE Enhanced -- Cboe Futures Exchange, VIX futures (via IB Gateway)
+    tier: A1
+    epistemic_role: redistributed_primary
+    domain: [volatility, futures]
+    geography: [US]
+    latency: real-time
+    timestamp_reliability: unknown
+    timestamp_notes: Not measured; no reading taken.
+    license: exchange market-data subscription via IBKR; not redistributable
+    cost_usd_month: 4.50
+    subscribed: 2026-09-05
+    account: live, shared to paper
+    allowed_reports: []
+    implemented_by: null
+    status: not_yet_used
+    entitlement_probe: pending Tuesday 2026-09-08
+    intended_consumer: >-
+      regime.py (Track D, D2) and the tail watch. VIX term structure as a
+      DECLARED STATE MACHINE -- VX1/VX2/VX3 slope, contango to backwardation --
+      not a level and not a composite. With CBOE Streaming Indexes it fills four
+      of the Volatility paper's eight regime tells that were not_yet_sourced.
+      30.8's wording is binding here: the state TRANSITIONS are the object, not
+      the level.
+    probe_must_establish:
+      - That VX front-month through third-month quote under this entitlement.
+      - Contract roll handling -- which contract is VX1 across an expiry.
+      - Whether settlement values are served or only live quotes.
+
+  ibkr_md_cboe_indexes:
+    name: Cboe Streaming Market Indexes (via IB Gateway)
+    tier: A1
+    epistemic_role: redistributed_primary
+    domain: [volatility, indexes]
+    geography: [US]
+    latency: real-time
+    timestamp_reliability: unknown
+    timestamp_notes: Not measured; no reading taken.
+    license: exchange market-data subscription via IBKR; not redistributable
+    cost_usd_month: 3.50
+    subscribed: 2026-09-05
+    account: live, shared to paper
+    allowed_reports: []
+    implemented_by: null
+    status: not_yet_used
+    entitlement_probe: pending Tuesday 2026-09-08
+    intended_consumer: >-
+      regime.py (D2) and the tail watch, alongside CFE Enhanced: VVIX and the
+      skew indexes. Also a candidate index-level source for SPX, which massive
+      does NOT serve (I:SPX aggregates return HTTP 403) -- today ^GSPC via
+      yfinance fills that, at tier C. If SPX quotes under this entitlement it
+      replaces a C-tier mirror with an A1 redistributed primary, which is a
+      precedence upgrade and not merely a convenience.
+    probe_must_establish:
+      - Exactly which index symbols are entitled -- VIX, VVIX, SKEW, SPX, others.
+      - Whether SPX index level is included (see the precedence note below).
+      - Update cadence, and whether values are streamed or snapshot-on-request.
+
+  ibkr_md_opra:
+    name: OPRA Level 1 -- US option quotes (via IB Gateway)
+    tier: A1
+    epistemic_role: redistributed_primary
+    domain: [option_quotes]
+    geography: [US]
+    latency: real-time
+    timestamp_reliability: unknown
+    timestamp_notes: Not measured; no reading taken.
+    license: exchange market-data subscription via IBKR; not redistributable
+    cost_usd_month: 1.50
+    subscribed: 2026-09-05
+    account: live, shared to paper
+    allowed_reports: []
+    implemented_by: null
+    status: not_yet_used
+    entitlement_probe: pending Tuesday 2026-09-08
+    intended_consumer: >-
+      THE INTRADAY CADENCE ONLY -- the 09:45 0DTE refresh, where massive's
+      15-minute delay bites hardest and where the solver currently cannot work
+      at all (0.0-2.4% 0DTE coverage at a settled capture, 60-70% rejected on
+      wide spreads). Bought against that named gap and no other.
+    probe_must_establish:
+      - Real-time bid/ask on 0DTE SPY and SPX contracts near the money.
+      - The market-data line cost of a chain subscription, against the 100-line
+        default budget -- a full 0DTE chain could exhaust it alone.
+      - Whether quote size and exchange are served, for the spread-quality gate.
+    caveats:
+      - >-
+        MASSIVE STAYS THE OPTIONS WAREHOUSE -- no second one. 30.8 is explicit.
+        OPRA is a real-time window for one cadence, not a history source and not
+        a replacement chain vendor; it serves no history at all.
+      - >-
+        This is the one entry here that collides with an existing A1 source on
+        the same fact. See precedence below: the split is by ROLE, not by tier,
+        because the tiers are equal.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:
@@ -225,3 +394,30 @@ precedence:
       A1 redistributed primary outranks a C-tier unofficial mirror. Not yet
       exercised -- the two universes are currently disjoint (massive serves only
       SPX and SPCX) -- but it is the rule the day they overlap.
+  - fact: real-time option quotes for a symbol both serve
+    winner: massive
+    loser: ibkr_md_opra
+    reason: >-
+      SPLIT BY ROLE, NOT BY TIER -- both are A1, so tier decides nothing here
+      and something else has to. Massive is the options warehouse and the only
+      one: it serves history, it is what every stored chain was captured from,
+      and a second warehouse would mean two disagreeing OI series with no rule
+      to pick between them. OPRA's entitlement is a real-time WINDOW for the
+      intraday cadence (09:45 0DTE), where massive's 15-minute delay is the
+      named gap it was bought to fill. Outside that cadence OPRA does not
+      contribute, and it never backfills -- it serves no history.
+    pending: >-
+      Not yet exercised. OPRA is unprobed and unwired; this is the rule for the
+      day the intraday cadence ships.
+
+  - fact: SPX index level
+    winner: ibkr_md_cboe_indexes
+    loser: yfinance
+    reason: >-
+      IF the probe confirms SPX is entitled under Cboe Streaming Indexes, an A1
+      redistributed primary outranks the C-tier ^GSPC mirror that fills this
+      today. Massive cannot compete for it at all -- I:SPX aggregates return
+      HTTP 403, so it is not entitled to the fact.
+    pending: >-
+      CONDITIONAL on the Tuesday probe. Until it returns, ^GSPC via yfinance
+      remains the SPX index level and this row is intent, not practice.
