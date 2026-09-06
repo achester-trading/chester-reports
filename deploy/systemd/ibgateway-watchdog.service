@@ -7,6 +7,16 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 # -- is the moment systemd would have taken the watchdog down with it. A
 # watchdog that cannot run while its subject is down is not a watchdog.
 #
+# OBSERVED, 6 Sep 2026, and worse than the theory. `systemctl restart` STOPS
+# the unit before starting it, and BindsTo= propagated that stop straight back
+# here: systemd SIGTERMed the watchdog in the middle of its own restart call,
+# every time, so the restart counter never reached disk. The log read
+# "restart 1 of 3 today" over and over while the state file stayed frozen at
+# RESTARTS=0 -- four restarts in two seconds, 84 launch attempts in a day,
+# against a Gateway that needs ~90s to authenticate and was being killed after
+# one. The daily cap could not fire because the thing that increments it was
+# being killed by the thing it was counting.
+#
 # After= keeps the ordering. Wants= is a weak pull, so the Gateway being
 # absent, failed or stopped never blocks this unit from starting and reporting.
 #

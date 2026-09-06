@@ -1263,23 +1263,24 @@ that tells you D1 is needed.*
       an index entry, so a unit pointing at an untracked or non-executable file
       fails the build rather than 203/EXEC-ing at 03:00.
 
-- [ ] ~~Assert that every file in `scripts/` is executable~~ — a new check next
-      to `validate_systemd_units.py` in the gate, asserting the committed mode
-      is `100755` for every `scripts/*.sh` and `scripts/*.py` a unit invokes.
-      **Requested for the laptop session to build.** This is the sixth member
-      of the silent-failure family and it fits the family's fix exactly: assert
-      rather than trust. `check_heartbeat_cron.sh` was committed `100644` while
-      every other script in `scripts/` is `100755`; the unit failed `203/EXEC`
-      and would have failed identically at 08:30 every morning. It stayed
-      hidden because an older box-local unit was calling `check_heartbeat.sh`
-      directly and bypassing the wrapper, so "the timer is installed" was true
-      while "the wrapper has ever run" was false. Read the mode out of the git
-      index (`git ls-files -s`), not off the working tree — a local `chmod +x`
-      that is never committed is the same defect wearing a disguise, and the
-      working tree would report it fixed.
-
-- [ ] **The Gateway watchdog restarts in an unbounded loop, and its own daily
-      budget cannot stop it.** `ibgateway-watchdog.service` declares
+- [x] **FIXED 6 Sep (`a08c092`). The Gateway watchdog restarts in an unbounded
+      loop, and its own daily budget cannot stop it.** `BindsTo=` is now
+      `After=` + `Wants=`, and `save_state` runs BEFORE `systemctl restart` is
+      issued. `validate_ibgateway_watchdog.sh` asserts both: the systemctl stub
+      snapshots the state file at the instant it is called and the test requires
+      `RESTARTS=1` to already be on disk, and a second check fails the build if
+      `BindsTo=` ever returns. Proved to fail on the defect — reverting
+      `save_state` shows `RESTARTS=0` at restart time.
+      - **Correction to `a08c092`'s commit message**, which named the wrong
+        primary mechanism: it argued the counter was lost to a TIMEOUT race
+        (`systemctl restart` blocking past the watchdog's 3min
+        `TimeoutStartSec`). That race is real but it is not what the box
+        observed. The observed mechanism is this item's: `BindsTo=` means the
+        restart STOPS the unit the watchdog is bound to, so systemd SIGTERMs the
+        watchdog immediately, mid-call — no timeout needed. Both paths are
+        closed by the same two fixes, but the record should name the one that
+        actually fired.
+      - **Original diagnosis, kept for the evidence:** `ibgateway-watchdog.service` declares
       `BindsTo=ibgateway.service`. When the watchdog issues
       `systemctl --user restart ibgateway.service`, that restart STOPS the unit
       it is bound to, so systemd tears the watchdog down with SIGTERM in the
@@ -1299,13 +1300,26 @@ that tells you D1 is needed.*
         torn down by its own remedy cannot record that it applied one), and the
         restart path should persist state BEFORE issuing the restart rather
         than after, so the budget survives even an unclean exit.
-      - Related, same file, same family: `ibgateway.service:34` sets
-        `StartLimitIntervalSec` in `[Service]`, where systemd ignores it — it
-        belongs in `[Unit]`. The journal says so on every single load
-        (`Unknown key name ... ignoring`) and nothing reads the journal. The
-        start-limit thresholds in force are the defaults, not the ones the file
-        appears to declare. `validate_systemd_units.py`'s allowlist should be
-        catching a known directive in the wrong section, and did not.
+      - Related, same family — **and the diagnosis needs one correction, which
+        changes where the fix goes.** The REPO's `ibgateway.service` already
+        carries `StartLimitIntervalSec`/`StartLimitBurst` in `[Unit]`, at lines
+        16-17; line 34 is a comment. They were moved there by the earlier
+        VPS-deployment-fixes pass. And `validate_systemd_units.py` DOES catch a
+        known directive in the wrong section — injecting `StartLimit*` back
+        under `[Service]` produces two FAILs naming `[Unit]`.
+        **So the journal line is coming from the BOX's installed copy, not from
+        the repo**, and the validator never saw it because the validator reads
+        `deploy/systemd/` and the stale file is in `~/.config/systemd/user/`.
+        The fix is therefore a redeploy on the box — copy the units again and
+        `daemon-reload` — not a repo edit. Nothing in this repo can assert
+        against a file it does not ship; the gap is real and it is a deployment
+        gap. Worth a box-side check that diffs the installed units against
+        `deploy/systemd/` and reports drift, since silent drift between the two
+        is now a demonstrated failure mode.
+      - Since the repo's checks were green while the box was broken, the
+        validator gained SELF-TESTS (`70dd833`): the shipped units are green by
+        design, so nothing in the corpus exercised the wrong-section branch and
+        it could have stopped working invisibly.
 
 - [ ] **Decide whether the two IBKR cost validators belong in the gate.**
       `validate_ibkr_costs.py` and `validate_ibkr_whatif.py` are not in

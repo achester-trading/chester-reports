@@ -178,15 +178,25 @@ FAILS=0
 
 # PERSIST THE BUDGET BEFORE SPENDING IT, NOT AFTER.
 #
-# The increment used to reach disk only via report(), which runs after
-# `systemctl restart` returns -- and that call BLOCKS until the unit starts or
-# times out. ibgateway.service allows TimeoutStartSec=5min; this unit allows
-# TimeoutStartSec=3min. So a Gateway that hangs on the login dialog holds the
-# restart open past the watchdog's own timeout, systemd kills the watchdog
-# mid-call, and the increment is lost. Every subsequent run then reads the same
-# RESTARTS and restarts again: an unbounded restart loop against the exact
-# fault the budget exists to stop, since a wrong password in config.ini is
-# never fixed by trying again.
+# The increment used to reach disk only via report(), which runs AFTER
+# `systemctl restart` returns -- and the watchdog frequently did not survive
+# that call.
+#
+# What actually happened on the box, 6 Sep 2026: the unit declared
+# BindsTo=ibgateway.service, and `systemctl restart` stops a unit before
+# starting it, so the stop propagated back and systemd SIGTERMed the watchdog
+# mid-call. The increment never landed. The log read "restart 1 of 3 today"
+# repeatedly while the state file stayed frozen at RESTARTS=0 -- four restarts
+# in two seconds, 84 launch attempts in one day, against a Gateway needing ~90s
+# to authenticate. The cap could not fire because the process that increments
+# it was being killed by the restart it was counting. BindsTo= is gone now, but
+# the ordering defect it exposed is fixed here rather than left to depend on
+# that.
+#
+# The same loss happens without BindsTo=: `systemctl restart` blocks until the
+# unit starts or times out, ibgateway.service allows TimeoutStartSec=5min and
+# this unit allows 3min, so a Gateway hung on its login dialog outlasts the
+# watchdog and systemd kills it mid-call anyway.
 #
 # A crash, a reboot, or an OOM kill between here and report() has the same
 # effect. Writing first makes the counter conservative under every one of them:
