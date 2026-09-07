@@ -30,13 +30,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Only what the check itself needs. The gate reads the registries and
-      # imports altdata.config and tools.pin_log for their declared members;
-      # it does not fetch anything, so the heavy data dependencies stay out.
+      # The full requirements, not just PyYAML. The gates were installing one
+      # package and relying on none of the covered modules ever importing
+      # pandas -- an undeclared invariant that one `import` would have broken,
+      # with a failure message about the import rather than about the rule.
+      # smoke_test.py and the IV solver gate need the real set anyway.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "PyYAML>=6.0"
+          pip install -r requirements.txt
 
       - name: Registry gate
         run: python tools/check_registry.py --verbose
@@ -98,6 +100,25 @@ jobs:
       # laptop is born 100644 and `chmod +x` there changes nothing.
       - name: Executable bits in the git index
         run: python tools/validate_exec_bits.py
+
+      # The IV solver decides whether SPX Greeks may be computed at all, and
+      # exposure_compute is the largest module in the repo. Neither was gated
+      # per commit until now. Needs the stored chains, so it skips loudly in CI
+      # where data/ is gitignored -- the point is that a code change breaking
+      # the harness fails here rather than on the box.
+      - name: IV solver gate
+        run: python tools/validate_iv_solver.py
+
+      # The calendar guard decides whether the pipeline runs at all. It drives
+      # both shell scripts against injected dates in a sandbox: no network, no
+      # clock changes, and the real checkout is untouched.
+      - name: Trading calendar guard
+        run: bash tools/validate_session_calendar.sh
+
+      # The only end-to-end test of the Monthly, and it ran in no workflow.
+      # Synthetic store, no network.
+      - name: Monthly pipeline smoke test
+        run: python smoke_test.py
 
       # Silent-ignore is a four-time pattern: a directive in the wrong section,
       # an invalid value, and a hardening stanza that hid a missing
