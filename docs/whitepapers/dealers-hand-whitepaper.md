@@ -2,7 +2,7 @@
 
 ### Options, Gamma, and the Mechanics Behind §06 — An Elaboration of Daily Cascade Chapter 2
 
-**Companion XIII · Version 1.0 · August 30, 2026**
+**Companion XIII · Version 1.1 · August 30, 2026, extended September 5, 2026**
 
 *Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. The illustrated HTML edition is canonical for reading; this Markdown file is canonical for editing.*
 

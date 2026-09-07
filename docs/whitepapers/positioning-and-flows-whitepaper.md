@@ -4,7 +4,7 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XVI** — after *Equities* (XV) and before *Portfolio Construction Across Regimes* (XVII), per the library guide. Cross-references in this paper are by name.
-**Version:** 1.0 — Draft, 6 September 2026
+**Version:** 1.2 — Draft, 6 September 2026
 **Status:** Framework with as-built sources. Three of its inputs (dealer exposure by bucket, closing-auction flow, retail activity) were built or admitted in the first week of September 2026; the rest are specified with their data status stated honestly. Reread when the closing-auction sampler has sixty sessions of history and when the first fifty positioning-conditioned decisions have closed.
 
 ---

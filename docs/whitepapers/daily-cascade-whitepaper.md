@@ -2,7 +2,9 @@
 
 ### A Field Guide to the Analytical Sections, and the Architecture That Generates Them
 
-**Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Supersedes v1.0 (August 30, 2026)**
+**Companion XII · Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Supersedes v1.0 (August 30, 2026)**
+
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
 ---
 

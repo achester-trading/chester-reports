@@ -3,8 +3,8 @@
 ## Choosing the Instrument After You Have Chosen the View
 
 **Companion white paper — chester-reports library**
-**Series placement:** with the micro and execution layer, after *Volatility* and *The Dealer's Hand* (numeral assigned by the library guide on commit; cross-references in this paper are by name)
-**Version:** 1.0 — September 2026
+**Series placement:** Companion **XXII** — with the micro and execution layer, after *Volatility* and *The Dealer's Hand* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+**Version:** 1.4 — September 2026
 **Status:** Framework and manual. Governs the expression half of every packet. The HTML edition is canonical — the figures live only there.
 
 ---

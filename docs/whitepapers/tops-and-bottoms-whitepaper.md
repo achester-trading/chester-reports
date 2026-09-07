@@ -2,8 +2,10 @@
 
 **A Study of U.S. Equity Market Turning Points, 1970–2026**
 
-*Companion white paper to the Turning Point · Top & Bottom Report*
-May 2026 · Not investment advice
+**Companion white paper — chester-reports library**
+**Series placement:** Companion **X** — with the market-timing layer, before *Base Rates* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+**Version:** 1.0 — May 2026
+**Status:** Reference. Companion to the Turning Point · Top & Bottom Report. Not investment advice.
 
 ## Contents
 

@@ -3,7 +3,7 @@
 ## The Reaction Is the Object
 
 **Companion white paper — chester-reports library**
-**Series placement:** with the market-structure layer, after *Equities* and *International Equities* (numeral assigned by the library guide on commit; cross-references by name)
+**Series placement:** Companion **XXIV** — with the market-structure layer, after *Equities* and *International Equities* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.0 — September 2026
 **Status:** Framework and manual. Governs the earnings-event setup, the cohort monitor's revision flags, and the valuation vocabulary the single-name books use. The HTML edition is canonical.
 

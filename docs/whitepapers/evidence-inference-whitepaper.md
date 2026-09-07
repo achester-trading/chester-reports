@@ -3,7 +3,7 @@
 ## How to Read Your Own Ledger
 
 **Companion white paper — chester-reports library**
-**Series placement:** with the positioning and book layer, immediately before *Building and Validating a Systematic Book* (numeral assigned by the library guide on commit; cross-references by name)
+**Series placement:** Companion **XXIII** — with the positioning and book layer, immediately before *Building and Validating a Systematic Book* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.0 — September 2026
 **Status:** Doctrine-adjacent. Governs how every figure the register prints is to be read. The HTML edition is canonical — the figures live only there.
 

@@ -4,7 +4,7 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXI** — with the market-structure layer, immediately after *Equities: A Structural Framework* (XV), per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
-**Version:** 1.0 — September 2026
+**Version:** 1.1 — September 2026
 **Status:** Framework. Supplies the non-U.S. equity map for Book A's allocation decision, Book B's candidate set, and the Daily Cascade's overnight read.
 
 ---
