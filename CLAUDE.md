@@ -30,12 +30,19 @@ governs where it is going and overrides this file on intent.
 `white-paper-library-guide.md`, plus the white paper library itself in
 `docs/whitepapers/`.
 
-**Five of those documents exist in two formats.** The library guide,
-`docs/whitepapers/dealers-hand-whitepaper.md` (XIII),
-`docs/whitepapers/options-expression-whitepaper.md` (XXII),
-`docs/whitepapers/evidence-inference-whitepaper.md` (XXIII) and
-`docs/whitepapers/earnings-whitepaper.md` (XXIV) each declare in their own
-masthead that the HTML edition is canonical. For all five, **the HTML is
+**Seven of those documents exist in two formats** — the library guide and the
+six papers that carry computed figures:
+
+| | File |
+|---|---|
+| V | `docs/whitepapers/currencies-whitepaper.md` |
+| XIII | `docs/whitepapers/dealers-hand-whitepaper.md` |
+| XIV | `docs/whitepapers/technical-indicators-whitepaper.md` |
+| XXII | `docs/whitepapers/options-expression-whitepaper.md` |
+| XXIII | `docs/whitepapers/evidence-inference-whitepaper.md` |
+| XXIV | `docs/whitepapers/earnings-whitepaper.md` |
+
+For all seven, **the HTML is
 canonical for reading** (it carries the rendered tables, the anchor navigation,
 and the computed figures — XXIII's masthead says outright that its figures live
 only there) and **the Markdown is canonical for editing** — edit the `.md` and
@@ -56,15 +63,36 @@ upload flow touches. **If the two ever disagree, this file wins, and the guide's
 front matter should be restored from it.** Its absence from the guide is
 evidence of a stale re-upload, not evidence that the rule was retired.
 
-Note also that no `.html` is tracked in this repo — `git ls-files docs` returns
-Markdown only. The canonical-for-reading editions live outside version control,
-which is why "regenerate from the `.md`" is a manual discipline rather than
-something the build enforces.
+Built HTML editions live in `docs/html/`, one per HTML-canonical paper, named
+`<slug>-whitepaper.html`; `make library-check` warns when one is missing.
 
 **The library guide is canonical for the papers' series numerals.** A paper's
 masthead carries the numeral the guide assigns it; inside a paper, cross-
 references to other papers are **by name, never by numeral**, because the
 numerals were reassigned once already and every in-text numeral broke.
+
+### Library conventions
+
+- **Cross-references are by name.** Inside a paper's body, other papers are
+  cited by name only, title forms ("White Paper I") included. Mastheads keep
+  their own numeral and may name their neighbours'. (D1)
+- **The Daily Cascade is v2 in the library.** That is its architecture version.
+  Report build numbers (v12) live in code and commit messages, not in papers.
+  (D3)
+- **Rule citations carry their namespace.** Outside the Doctrine, its rules are
+  `Doctrine Rule N` — any phrasing naming the Doctrine in the same sentence
+  counts. Section-local rules cited from another paper carry the owner's prefix:
+  `DC 2.7.1` (Daily Cascade), `DH 18.1` (Dealer's Hand). Inside the owning
+  paper, unprefixed dotted IDs stay. Bare `Rule N` outside the Doctrine is not
+  allowed. (D4)
+- **Filenames** are `docs/whitepapers/<slug>-whitepaper.md`, hyphens only, slug
+  from the paper's title, no version or draft number. Superseded editions go to
+  `docs/whitepapers/archive/`. (D6)
+- **Quoted market levels name their series and as-of date.** Levels are not
+  retro-aligned across papers. Spread levels are ICE BofA OAS via FRED
+  (`BAMLH0A0HYM2`, `BAMLC0A0CM`, `BAMLH0A3HYC`) unless stated otherwise. (D7)
+- **Numerals are stable accession IDs, never reassigned.** They are not reading
+  order; reading order is what the guide's tables show. (D8)
 
 ## Repo layout
 

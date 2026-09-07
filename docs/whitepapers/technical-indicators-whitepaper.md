@@ -4,6 +4,8 @@
 
 **Version 1.1 · September 1, 2026 · Companion to the Daily Cascade and the execution layer · Worked illustrations added in v1.1**
 
+**Status:** Framework. The HTML edition is canonical — the five figures live only there.
+
 *This is among the shortest papers in the library, deliberately. Technical analysis has generated more written material than any other subject in markets, and most of it fails a simple test stated in Chapter 1. What survives that test fits in a short document. The paper's job is to say precisely what price-derived indicators can contribute to this system, wall off what they cannot, and name the traps — several of which this system's own methodology rules were built to catch in other domains and apply here with full force.*
 
 ---

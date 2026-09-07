@@ -7,6 +7,7 @@
 *Prepared as the educational backdrop for the Alternative Asset Report*
 
 **Series placement:** Companion **V** — per the library guide, which is canonical for numerals. Cross-references in this paper are by name.
+**Status:** Framework. The HTML edition is canonical — the eight FX figures live only there.
 
 ---
 
