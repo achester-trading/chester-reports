@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chester Reports — Audit #3</title>
+<style>
+ :root{--ink:#1a1a1a;--mut:#5b5b5b;--rule:#d8d4cc;--bg:#fbfaf8;--accent:#7a5c2e;}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--ink);
+   font:16px/1.65 Georgia,'Iowan Old Style',serif;}
+ main{max-width:52rem;margin:0 auto;padding:3rem 1.4rem 6rem;}
+ h1{font-size:2.1rem;line-height:1.2;margin:0 0 .3rem;letter-spacing:-.01em}
+ h2{font-size:1.35rem;margin:2.6rem 0 .8rem;padding-bottom:.3rem;
+   border-bottom:1px solid var(--rule);letter-spacing:-.005em}
+ h3{font-size:1.08rem;margin:1.8rem 0 .5rem;color:var(--accent)}
+ p,li{color:var(--ink)}
+ em{color:var(--mut)}
+ hr{border:0;border-top:1px solid var(--rule);margin:2.4rem 0}
+ table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.86rem;
+   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.45}
+ th,td{border:1px solid var(--rule);padding:.45rem .6rem;text-align:left;vertical-align:top}
+ th{background:#f2efe9;font-weight:600}
+ tr:nth-child(even) td{background:#fdfdfb}
+ code{background:#f2efe9;padding:.1em .35em;border-radius:3px;font-size:.85em}
+ blockquote{margin:1.2rem 0;padding:.6rem 1rem;border-left:3px solid var(--accent);
+   background:#f6f3ed;color:var(--mut)}
+ a{color:var(--accent)}
+ @media print{body{background:#fff}main{max-width:none;padding:0}}
+ @media (max-width:600px){main{padding:1.6rem 1rem 4rem}table{font-size:.78rem}h1{font-size:1.6rem}}
+</style></head><body>
+<main>
+<h1 id="chester-reports-audit-3">Chester Reports — Audit #3</h1>
+<h2 id="an-end-to-end-re-evaluation-of-the-architecture-and-the-workplan">An End-to-End Re-evaluation of the Architecture and the Workplan</h2>
+<p><strong>Date:</strong> 6 September 2026 · <strong>Scope:</strong> the entire system as documented, as reported by build sessions, and as it actually runs · <strong>Status:</strong> audit only; no changes made · <strong>Auditor's disclosure:</strong> the auditor authored most of the architecture under review. Where a finding indicts prior design, the design was mine.</p>
+<p><strong>What this audit could and could not inspect.</strong> The repository itself was not available to this review. The code-level findings below rest on the build sessions' own reports (which have been candid and specific) and on the documented design; a companion instruction for a repository-level pass appears in Section M. Everything else — the philosophy, the signal architecture, the horizon and regime design, the reports, the learning loop, the workplan — was inspected in full.</p>
+<hr />
+<h1 id="a-executive-assessment">A. Executive Assessment</h1>
+<p><strong>The headline, stated once and defended throughout:</strong> this is a system with institutional-grade <em>safeguards</em> and near-zero <em>evidence</em>. It has a point-in-time store with three clocks, an immutable decision register, a metrics registry that refuses to let an unvalidated signal trigger, a Brookfield blocklist enforced at two layers, a validator family that has caught seven silent-failure defects in a week, and a written doctrine with a kill-switch ladder. It also has ~330,000 words of research, one production pipeline, one report that runs on a schedule, one paper trade, and <strong>zero graded outcomes.</strong> The documentation is roughly a year ahead of the code, and the code is roughly a year ahead of the evidence.</p>
+<p>That is not a failure. It is the correct order for a system whose stated first principle is that nothing triggers until it has earned trust. But it means every score below must be read as a score of <em>design</em> on the left and of <em>demonstrated value</em> on the right, and the gap between the two is the audit's subject.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Design</th>
+<th>Demonstrated</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Conceptual coherence</td>
+<td>8</td>
+<td>—</td>
+<td>The Doctrine, the confluence rule, the horizon taxonomy and the trust matrix are mutually consistent and unusually explicit. Debt: three amendments to a "freeze" in 48 hours; seven planning documents</td>
+</tr>
+<tr>
+<td>Investment usefulness</td>
+<td>6</td>
+<td><strong>2</strong></td>
+<td>Nothing the system produced has yet been traded on a system-generated signal. The one trade was hand-reasoned and hand-placed. Usefulness is a hypothesis</td>
+</tr>
+<tr>
+<td>Analytical rigor</td>
+<td>8</td>
+<td>4</td>
+<td>The papers are rigorous <em>as reasoning</em>. No claim in them has been tested against the system's own data, because the system has almost none</td>
+</tr>
+<tr>
+<td>Signal quality</td>
+<td>—</td>
+<td><strong>3</strong></td>
+<td>44 metrics and 138 bulk members registered; all <code>trigger_eligible: false</code>; the one measured base rate (pins) is 0/13. Quality is unmeasured, which is the honest state and the right default</td>
+</tr>
+<tr>
+<td>Data integrity</td>
+<td>8</td>
+<td><strong>4</strong></td>
+<td>The store is excellent by design. In practice (repository pass, 6 Sep): <strong>the database is not in any backup — one copy, on one box</strong>; the FRED dual-write swallows every SQLite error silently; no WAL or busy_timeout; migrated rows carry upper-bound timestamps; HTML editions untracked</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td>7</td>
+<td>5</td>
+<td>The declarative spine is right. The report layer does not exist; the market-state object exists only as a plan; the Daily Cascade — the consumer everything was built for — is a chat artifact</td>
+</tr>
+<tr>
+<td>Software quality</td>
+<td>—</td>
+<td><strong>5</strong></td>
+<td>The validator family is the best thing in the codebase. Against it (repository pass): no test framework; four validators — including the IV solver's and the calendar guard's — run in no CI; 34 <code>sys.path.insert</code> calls and <code>tools/</code> not a package; five copies of the .env parser and three of the secret redactor; a fixed bug preserved verbatim in a duplicate</td>
+</tr>
+<tr>
+<td>Maintainability</td>
+<td>5</td>
+<td>4</td>
+<td>One operator with hours a week; a 278KB controlling document; three sequencing schemes (Sessions −1…15, Parts 27–32, Tracks A–D)</td>
+</tr>
+<tr>
+<td>Extensibility</td>
+<td>7</td>
+<td>6</td>
+<td>The registry's <code>members_from</code> and the mechanism-group tagging are the right abstractions. Adding a report still requires writing a report</td>
+</tr>
+<tr>
+<td>Usability</td>
+<td>4</td>
+<td><strong>3</strong></td>
+<td>Until this weekend nothing pushed to the operator. The first automated email arrived today. The operator cannot answer "what runs when" without a document</td>
+</tr>
+<tr>
+<td>Reporting quality</td>
+<td>7</td>
+<td>4</td>
+<td>Chat-produced reports are well written and not graded, not delta-based, and not exception-first</td>
+</tr>
+<tr>
+<td>Forecasting discipline</td>
+<td>7</td>
+<td>3</td>
+<td>Every structure for grading exists on paper: register, shadow grader, Brier for scenarios. None has a single row</td>
+</tr>
+<tr>
+<td>Calibration</td>
+<td>—</td>
+<td><strong>1</strong></td>
+<td>No forecast has been scored. The pin log's 0/13 is the only calibration datum in the system</td>
+</tr>
+<tr>
+<td>Risk awareness</td>
+<td>9</td>
+<td>7</td>
+<td>The Doctrine, the ladder, the blocklist, DECISION_BLOCKED. Gap: the Doctrine is not enforced at the moment of order entry, which is manual and outside the register's gate</td>
+</tr>
+<tr>
+<td>Cost efficiency</td>
+<td>8</td>
+<td>8</td>
+<td>~$45/month in data, ~€5 hosting, one subscription. The expensive resource is the operator's time, and the workplan spends it as if it were abundant</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Overall: a 7 on design, a 3 on demonstrated value, and the entire remaining project is closing that gap without widening the design.</strong> <em>The repository pass lowered two demonstrated scores: the data the design protects so carefully is backed up nowhere, and the report the system has shipped for four months has no defense against an invented number beyond an instruction to the model.</em></p>
+<hr />
+<h1 id="b-current-architecture-map-how-it-actually-works-today">B. Current Architecture Map — how it actually works today</h1>
+<pre><code>DATA SOURCES        yfinance chains (13) · Massive (SPX/SPCX chains) · FRED (59 series, dual-written)
+                    · IBKR Gateway (portfolio, +5 paid feeds) · Polymarket/Kalshi (planned)
+        ↓
+INGESTION           EOD pass 16:10 ET on VPS (systemd) · IBKR sync every 30 min · Monthly fetchers (GitHub Actions)
+        ↓
+NORMALIZATION       session_date() helper · instrument_norm · registry-enforced column names · CI gate on drift
+        ↓
+STORAGE             data/chester.db — observations (observed/available/ingested) · decisions + immutable packets
+                    · portfolio truth · pin log · chain snapshots zipped nightly; off-box backup (rclone: PLANNED)
+        ↓
+FEATURE CREATION    exposure_compute: 4 Greeks × 4 buckets · IV solver w/ gates · walls/flip/pin · base_rates (PLANNED)
+        ↓
+SIGNAL GENERATION   metrics_registry: 44 + 138 members, ALL trigger_eligible:false · mechanism groups declared
+        ↓
+ANALYSIS / MODELS   regime.py (PLANNED, D2) · CPI lead composite (designed) · tail watch table (designed)
+        ↓
+SYNTHESIS           Part 15 edge layer (designed) · confluence rule (designed; enforced only in decide.py's signal list)
+        ↓
+REGIME              three dials — Macro / Vol / Gamma (Doctrine; no code)
+        ↓
+PORTFOLIO / TRADE   decide.py: record/list/show/set-status; DECISION_BLOCKED on stale signals; Brookfield trigger
+                    · order placement: MANUAL in paper TWS, outside the register's gate
+        ↓
+REPORTING           Monthly Macro (runs; cron-job.org → Actions) · Daily Cascade (CHAT ONLY — no code)
+                    · Top &amp; Bottom, Disruptive Themes, Alt Asset (chat only) · D4c close report (built today, not enabled)
+        ↓
+HUMAN DECISION      the operator, reading chat outputs; one paper trade placed by hand
+        ↓
+OUTCOME TRACKING    pin log (13 rows, 0 hits) · register (2 decision rows) · Portfolio Truth (9 rows) · shadow grader: NONE
+        ↓
+FEEDBACK / LEARNING none. No graded forecast, no calibration series, no rule ever revised on evidence
+</code></pre>
+<p><strong>What runs unattended today:</strong> the EOD capture and Greeks; the IBKR sync and Gateway supervision; the heartbeat and (as of today) its email; the Monthly on an external button. <strong>What does not:</strong> every report the operator reads, every synthesis step, every regime assessment, every grade.</p>
+<hr />
+<h1 id="c-major-strengths-preserve-without-argument">C. Major Strengths — preserve without argument</h1>
+<ol>
+<li><strong>The point-in-time store with three clocks and the as-of join.</strong> This is the one thing most retail systems never build and most institutional ones build wrong. The leakage test in CI is the proof it works.</li>
+<li><strong>The immutable decision packet.</strong> UPDATE/DELETE triggers, <code>superseded_by</code>, replay proven EXACT from Friday's packet. This is what makes a learning loop possible at all.</li>
+<li><strong>The registry's refusal.</strong> <code>trigger_eligible: false</code> as the default, <code>observation_type</code> and <code>half_life</code> as fields, DECISION_BLOCKED when a signal is stale. The system cannot currently trade on anything, and that is by design, and that design is correct.</li>
+<li><strong>The validator family and its posture — assert, don't trust.</strong> Directive-in-wrong-section, exec bits from the index, ExecStart resolved to tracked files, drift between installed and shipped units, the no-prose CI check. Seven silent failures caught in seven days. This is the most valuable engineering habit in the system.</li>
+<li><strong>The self-computed exposure engine with a vendor cross-check</strong> that caught two definitional bugs and one load-bearing floor. Independent computation plus independent verification is the pattern.</li>
+<li><strong>The Brookfield restriction at two layers.</strong> Python raise plus SQLite trigger, 29 roots, instrument normalization. A compliance control that would survive a code bug.</li>
+<li><strong>The Doctrine's risk layer.</strong> Dollars of risk not notional; the tier system tied to alignment; the kill-switch ladder; adds on confirmation only. This is a professional risk framework, and it is written down.</li>
+<li><strong>The honesty conventions.</strong> Source class on every figure, inferred/observed/calculated, "net could be out by $X" printed every run, the decidability table, the Base Rates card. The system tells the truth about what it does not know.</li>
+<li><strong>The confluence rule</strong> — mechanism groups vote once. It is the single most important defense against the correlated-signal failure that this audit's own Section 4 warns of.</li>
+</ol>
+<hr />
+<h1 id="d-major-weaknesses-ranked">D. Major Weaknesses — ranked</h1>
+<p><strong>D1. The learning loop has no data and no near-term prospect of enough.</strong> Zero graded outcomes. The shadow grader — the single largest multiplier of evidence available — is Track D step 5, behind four other steps. <em>Evidence and Inference</em> computed that even at full cadence the register decides five questions in three years. The system's core promise — that rules change on evidence — cannot be honored for at least a year, and the workplan spends the intervening hours on new signal families instead of on grading.</p>
+<p><strong>D2. The Daily Cascade, the consumer everything was built for, does not exist.</strong> Discovered this weekend. Every report the operator has ever read was produced by hand in a chat. The market-intelligence system has, until today, been a market-intelligence <em>conversation</em> with a data pipeline underneath it.</p>
+<p><strong>D3. Signal proliferation ahead of signal validation.</strong> Nine Doctrine families; 44 metrics plus 138 members; 25 tail scenarios; 5 disruptive factors; 11 macro pillars; Part 29's eight tactical additions (24–29 hours); Part 27's prediction-market engine; a crypto forecast at three horizons; a Thailand pillar. All correctly gated from triggering — and all consuming the operator's scarcest resource, which is the hours that could grade what exists.</p>
+<p><strong>D4. The Doctrine is not enforced where it matters.</strong> Order entry is manual in TWS. The register records the decision; nothing prevents an order that contradicts it, exceeds its size, or ignores a switch. The kill-switch ladder is a document. Gate 2 and the expression check are the mechanism, and both are behind the Daily build.</p>
+<p><strong>D5. Planning sprawl.</strong> Seven planning documents (architecture v3 at 278KB with 32 parts, narrative, roadmap, compressed plan, v17 build plan, work plan v2, master schedule), three sequencing schemes, a "controlling" change order amended three times in two days, and a nominal total of 229–246 hours against an operator with perhaps five a week. The plan is not a plan; it is a backlog with ambitions. <em>This is the auditor's own debt.</em></p>
+<p><strong>D6. The reports restate levels rather than surface change, and nothing is exception-first.</strong> The Monthly is ~30 pages of pillars; the Daily blocks are narrative. There is no "what changed since last run," no percentile stamp on magnitudes, no alert that fires only on a threshold. D4a's heartbeat email is the first exception-based delivery in the system's life.</p>
+<p><strong>D7. The market-state object does not exist.</strong> Every report — when it existed as a chat — recreated its own worldview from the same inputs. <code>regime.py</code> is the seed and is unbuilt. Until it exists, the reports cannot be consistent with each other except by the author's memory.</p>
+<p><strong>D8. Data lineage is designed but not closed.</strong> The packet replays; the chain snapshots exist; but the migrated FRED rows carry an upper-bound <code>available_at</code> that the freshness check treats as stale, the HTML editions of the papers are outside version control, and no report claim can yet be traced to a raw observation because no report is generated from the store.</p>
+<hr />
+<h1 id="e-architectural-debt-where-incremental-additions-accumulated">E. Architectural Debt — where incremental additions accumulated</h1>
+<table>
+<thead>
+<tr>
+<th>Debt</th>
+<th>How it accumulated</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>32 architecture Parts, four "controlling" documents</strong></td>
+<td>Each session's findings appended rather than folded; three post-freeze amendments</td>
+<td>A new session must read 5,000 lines to know the rules</td>
+</tr>
+<tr>
+<td><strong>Three sequencing schemes</strong></td>
+<td>Sessions (−1…15) → Parts 27–32 → Tracks A–D; each re-sequenced the last</td>
+<td>Nobody, including the author, can state the order without a table</td>
+</tr>
+<tr>
+<td><strong>Eleven macro pillars feeding three regime dials</strong></td>
+<td>The pillars were designed before the dials; the dials were designed in the Doctrine without revisiting the pillars</td>
+<td>11 inputs, 3 outputs, no stated mapping</td>
+</tr>
+<tr>
+<td><strong>Five reports designed as peers</strong></td>
+<td>Each added when a need appeared; the narrative's Part 5 was written to reconcile them after the fact</td>
+<td>Disruptive Themes and Alt Asset reach the Daily only through the operator's memory</td>
+</tr>
+<tr>
+<td><strong>25 tail scenarios</strong></td>
+<td>Added one at a time as risks were noticed; the paper groups them into ~6 mechanism families</td>
+<td>The tail watch tracks 25 states for ~6 mechanisms</td>
+</tr>
+<tr>
+<td><strong>The alt-data chats' additions (Part 29)</strong></td>
+<td>Eight ideas from separate conversations, each good, admitted as a set</td>
+<td>24–29 hours of build for zero graded families</td>
+</tr>
+<tr>
+<td><strong>Two <code>-ALT-branch</code> paper duplicates, seven planning docs, untracked HTML</strong></td>
+<td>Parallel authoring without a merge step</td>
+<td>Confusion about which is canonical, on the very day the rule about canonicality was deleted three times</td>
+</tr>
+<tr>
+<td><strong>The declarative spine designed, the report layer imagined</strong></td>
+<td>Sessions 2–7 built the spine well; the consumer was assumed to exist</td>
+<td>D2 (32.1): the Daily is a build, not a migration</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="f-missing-capabilities-ranked-by-expected-information-value">F. Missing Capabilities — ranked by expected information value</h1>
+<ol>
+<li><strong>Outcome grading for every decision (taken, declined, drafted).</strong> Multiplies evidence 3–4×; grades the reports as well as the trades. Without it nothing else can be evaluated. <em>Highest value in the system, by a wide margin.</em></li>
+<li><strong>A canonical market-state object</strong> — the dimensions, each with state / direction / rate of change / percentile / confidence / horizon / supporting / contradicting. The substrate every report reads instead of recomputing.</li>
+<li><strong>Exception-first delivery</strong> — thresholds, percentile crossings, correlation breaks, regime-transition probability, positioning extremes — pushed, not fetched. D4a began it.</li>
+<li><strong>A contradiction table</strong> — price vs breadth, equities vs credit, prediction markets vs assets, vol vs tail probability, macro vs cyclicals. Part 15's edge layer specifies most of it; nothing computes it.</li>
+<li><strong>Portfolio-level heat and factor view</strong> — the Doctrine specifies the cap across books at a common factor; nothing computes net beta-equivalent exposure, factor overlap, or crowding across the register's open decisions.</li>
+<li><strong>Probability calibration ledger</strong> — Brier and calibration for every scenario weight, tail probability, and prediction-market read the system emits. The 25 scenarios have carried probabilities for months with no scoring.</li>
+<li><strong>Change-based metrics</strong> — level, change, rate of change, percentile, z-score, extreme flag as standard derived forms for every registered metric (Part 30's "standard derived forms" convention, unbuilt).</li>
+<li><strong>Order-entry enforcement</strong> — the register's gate at the point of execution; the expression check's refusals made binding; Gate 2.</li>
+<li><strong>Dispersion and cross-sectional opportunity</strong> — the system is almost entirely index-level; the cohort monitor is the only cross-sectional instrument and it is unbuilt.</li>
+<li>
+<p><strong>Expectations vs realized</strong> — the surprise metrics in the registry backlog; the economic-surprise machinery that would let the Monthly say "versus what was expected" rather than "versus last month."</p>
+</li>
+<li>
+<p><strong>A narrative register and the news scan as a stored, graded function</strong> — added on review; see Section I. Stories tracked as dated entities with state and evidence, graded on their implied outcomes.</p>
+</li>
+</ol>
+<p><em>Not missing, and not to be added:</em> insider-activity feeds, order-book depth, alternative data beyond what is scheduled. See Section P.</p>
+<hr />
+<h1 id="g-redundant-low-value-components-delete-or-consolidate">G. Redundant / Low-Value Components — delete or consolidate</h1>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Verdict</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Six of the seven planning documents</td>
+<td><strong>Merge into one</strong></td>
+<td>One roadmap with one status ledger. The architecture doc becomes a reference, frozen at Part 32, with new decisions as short dated addenda that <em>replace</em> text rather than append</td>
+</tr>
+<tr>
+<td>Top &amp; Bottom as a standalone report</td>
+<td><strong>Subordinate</strong></td>
+<td>It is a state variable — a verdict and a composite — that belongs in the market-state object and prints inside the Monthly and the Weekly. Its research value is the paper, not the report</td>
+</tr>
+<tr>
+<td>Alternative Asset as a standalone report</td>
+<td><strong>Merge into Monthly</strong></td>
+<td>A section, not a document; its metals/energy/digital content already has a paper each</td>
+</tr>
+<tr>
+<td>Disruptive Themes as a monthly</td>
+<td><strong>Quarterly</strong></td>
+<td>Structural by definition; the paper's factor states move on quarters, and its own refresh flag was designed because it went stale as a monthly</td>
+</tr>
+<tr>
+<td>25 tail scenarios as 25 states</td>
+<td><strong>Collapse to mechanism families</strong> with the 25 as instances</td>
+<td>The paper already groups them; the watch table should track families with instance detail</td>
+</tr>
+<tr>
+<td>11 macro pillars as peers</td>
+<td><strong>Subordinate to the three dials</strong> with a stated mapping</td>
+<td>Pillars are inputs; dials are the regime. State which pillars feed which dial and at what weight, and stop printing eleven scores</td>
+</tr>
+<tr>
+<td>Part 29.5 privacy-coin theme</td>
+<td><strong>Keep</strong> (operator's ruling, 6 Sep)</td>
+<td>Judged a potential structural theme; the shielded-pool logger is forward-only and cheap</td>
+</tr>
+<tr>
+<td>Part 29.6 DAT entity type</td>
+<td><strong>Retire</strong></td>
+<td>Zero contribution to the four books' edges</td>
+</tr>
+<tr>
+<td>Part 29.4 MOC absorption, 29.7 meme lifecycle</td>
+<td><strong>Defer the build; start the logging now</strong> (operator's ruling)</td>
+<td>The auction-tick sampler and the borrow/FINRA/attention series are forward-only loggers — an hour each, and the history is irreplaceable. The state machines and hypotheses wait for graded decisions and are built against a year of data instead of none</td>
+</tr>
+<tr>
+<td>Part 27 v1 + 29.8 prediction-market phase 2</td>
+<td><strong>Defer; phase 2 retire</strong></td>
+<td>The v1 changes-over-levels idea is sound; phase 2 (cross-asset divergence engine, ForecastEx) is a research project</td>
+</tr>
+<tr>
+<td>Session 12.5 Thailand / THB pillar</td>
+<td><strong>Remove from the pillars; becomes a standalone quarterly report</strong> (spec: <code>thailand-monitor-spec.md</code>), deferred to after Phase 5</td>
+<td>Personal-finance decision support, isolated from the dials and the register</td>
+</tr>
+<tr>
+<td>Crypto running forecast at 12m/3y/5y</td>
+<td><strong>Retire the forecast; keep the metrics</strong></td>
+<td>Ungradeable at the long horizons within the system's life; the eight metrics are useful, the forecast is a narrative</td>
+</tr>
+<tr>
+<td>The dashboard (never built)</td>
+<td><strong>Do not build</strong></td>
+<td>Email is the dashboard. A dashboard requires the operator to look; the system's principle is that it finds him</td>
+</tr>
+<tr>
+<td>The <code>-ALT-branch</code> duplicates</td>
+<td><strong>Delete</strong></td>
+<td>Already excluded from upload; remove from outputs</td>
+</tr>
+<tr>
+<td>FlashAlpha Basic ($)</td>
+<td>Already retired</td>
+<td>Correct</td>
+</tr>
+<tr>
+<td>cron-job.org</td>
+<td>Retiring</td>
+<td>Correct sequencing (prove, then delete)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="h-ideal-end-state-architecture">H. Ideal End-State Architecture</h1>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────┐
+│ DATA LAYER            sources registry · fetchers · point-in-time store  │
+│                       (observed / available / ingested) · snapshots      │
+│                       · off-box backup · lineage: every row has a source │
+├─────────────────────────────────────────────────────────────────────────┤
+│ FEATURE / SIGNAL      metrics registry (the contract) · standard derived │
+│ LAYER                 forms (level, Δ, rate, percentile, z, extreme)      │
+│                       · mechanism groups · base rates as observations    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ MARKET-STATE /        ONE object, recomputed daily: ~12 dimensions ×     │
+│ REGIME LAYER          {state, direction, rate, percentile, confidence,   │
+│                       horizon, supporting[], contradicting[]}            │
+│                       + three dials + transition risk + contradiction    │
+│                       table + debt-cycle branch state                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ANALYTICAL / CAUSAL   causal chains as declared paths through the state  │
+│ LAYER                 object (macro→policy→rates→liquidity→positioning   │
+│                       →factor→microstructure); the edge layer (priced    │
+│                       vs expected); scenario weights with Brier scoring; │
+│                       the narrative register (stories as dated, graded   │
+│                       entities over stored events)                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ OPPORTUNITY &amp; RISK    setups drafted from the state object (not from     │
+│ LAYER                 reports); heat &amp; factor view across open decisions │
+│                       ; tail budget state; exception detector            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ TRADE / PORTFOLIO     the register (unchanged) · expression check binding│
+│ LAYER                 · order gate at entry (Gate 2) · Portfolio Truth   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ REPORTING &amp; ALERTING  4 canonical outputs + alerts, ALL rendered from    │
+│                       the state object + register; LLM writes prose     │
+│                       over a payload; numeral audit before send; email  │
+├─────────────────────────────────────────────────────────────────────────┤
+│ OUTCOME / LEARNING    shadow grader (every decision) · Brier ledger ·    │
+│ LAYER                 error decomposition · champion/challenger · the    │
+│                       decidability table as the review's expectations   │
+└─────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>Three rules make the diagram binding rather than decorative. <strong>No report computes.</strong> Every figure a report prints is read from the state object or the register with its provenance. <strong>No signal reaches a report except through a mechanism group</strong>, and no group votes twice. <strong>No prose is generated without a payload and no payload is sent without a numeral audit.</strong></p>
+<hr />
+<h1 id="i-ideal-report-architecture">I. Ideal Report Architecture</h1>
+<p>Five documents replaced by four canonical outputs plus alerts, each answering the seven questions (what changed, why it matters, what the market believes, where the disagreement is, what to watch, is there a trade, what would change the view).</p>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>Cadence</th>
+<th>Decision it supports</th>
+<th>Content rule</th>
+<th>Replaces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Daily State</strong></td>
+<td>07:00 ET, and a data-only close edition at 16:30</td>
+<td>The day's regime stamp; Book C setups; does anything need attention</td>
+<td><strong>Deltas first.</strong> Overnight gap attributed; dials; changes since yesterday/week; exceptions; drafted setups into the register as <code>draft</code>. Nothing published on a stale source</td>
+<td>Daily Cascade's 9 runs (the intraday reads become <em>alerts</em>, not reports)</td>
+</tr>
+<tr>
+<td><strong>Weekly Tactical</strong></td>
+<td>Sunday</td>
+<td>Book B and C stance for the week; the Friday reflection folded in</td>
+<td>The week's graded decisions and rule breaks; the state object's week-over-week; the setups list; the calendar</td>
+<td>Friday Reflection + Sunday Plan</td>
+</tr>
+<tr>
+<td><strong>Monthly Regime &amp; Allocation</strong></td>
+<td>First weekend</td>
+<td>Book A's bands; the dials; the scenario weights and their scores</td>
+<td>Half the current Monthly's length; pillars <em>subordinated</em> to dials; every scenario weight printed with last month's and its Brier to date; Top &amp; Bottom verdict and Alt Asset as sections</td>
+<td>Monthly Macro + Alt Asset + Top &amp; Bottom report</td>
+</tr>
+<tr>
+<td><strong>Quarterly Structural</strong></td>
+<td>Quarter-end</td>
+<td>Structural positioning; the tail budget; theme states</td>
+<td>Disruptive Themes' factor states; tail-family states; the library guide's executive summary rewritten; the international sleeve's hypotheses reviewed</td>
+<td>Disruptive Themes + tail scan + guide summary</td>
+</tr>
+<tr>
+<td><strong>Alerts</strong></td>
+<td>On exception</td>
+<td>Immediate attention</td>
+<td>Fires on: threshold crossings, percentile extremes, regime-transition probability, contradiction-table entries, heartbeat/drift, portfolio-impact of a move. Silent otherwise</td>
+<td>The intraday runs; the dashboard that was never built</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Length rule — restated after review (6 Sep):</strong> there are <strong>no word counts.</strong> The budget for <em>repetition</em> is zero — background lives in the papers, and a metric whose half-life exceeds the report's cadence is not reprinted, only its change — but the budget for <em>insight</em> is whatever the insight needs. The 07:00 news scan, the Sunday reflection, and the monthly and quarterly run as long as the analysis warrants. The one discipline that replaces a word count: <strong>the insight goes at the top and the depth follows</strong> — the first screen answers "what changed and does it matter," so a long report can be stopped after a screen without losing the decision, and a short one cannot bury it. The conditionals and the close anchor are terse by design, because they are deltas; if one runs long, the exception gate has failed.</p>
+<p><strong>The daily cadence, as ruled (6 Sep) — three anchors, five conditionals plus Sunday:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Slot</th>
+<th>Kind</th>
+<th>Unique content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>07:00</strong></td>
+<td>Anchor</td>
+<td>Tokyo closed, Europe four hours in, overnight complete; the regime stamp; <strong>the news and narrative scan (below)</strong>; folds in 21:45</td>
+</tr>
+<tr>
+<td>09:15</td>
+<td>Conditional</td>
+<td>08:30 releases with 45 minutes of reaction; SPX global-hours tape complete; publishes on a tier-1/2 release, a futures move past threshold, or a dial change</td>
+</tr>
+<tr>
+<td>10:30</td>
+<td>Conditional</td>
+<td>Opening range complete; 10:00 releases in; live 0DTE gamma from the 09:45 capture; breadth, TICK, VIX change</td>
+</tr>
+<tr>
+<td>15:00</td>
+<td>Conditional</td>
+<td>The predictable last-hour flows computed before they happen — leveraged-ETF rebalance from the day's return, vol-control exposure change, pin distance; FOMC reaction on Fed days; the trade-into-the-close read</td>
+</tr>
+<tr>
+<td><strong>16:45</strong></td>
+<td>Anchor</td>
+<td>Cash close, MOC outcome, ES settlement, the first fifteen minutes of after-hours earnings reactions, post-close futures drift; folds in 09:15, 10:30, 15:00</td>
+</tr>
+<tr>
+<td>21:45</td>
+<td>Conditional</td>
+<td>ES reopen (nearly four hours), Tokyo open, Shanghai/HK open at 21:30, Chinese releases; USD/JPY and JGBs for the yen monitor</td>
+</tr>
+<tr>
+<td><strong>Sunday 05:00</strong></td>
+<td>Anchor (Weekly)</td>
+<td>Friday's data, the week's grades and rule breaks, the calendar, weekend developments to that point</td>
+</tr>
+<tr>
+<td>Sunday 21:45</td>
+<td>Conditional</td>
+<td>ES reopen, Asia open, weekend policy announcements and the market's first reaction</td>
+</tr>
+</tbody>
+</table>
+<p>The 12:30 chain capture keeps running for data and feeds an alert only. <strong>The LLM is called only when an exception gate opens</strong>; a conditional with nothing to say costs a query and produces one line.</p>
+<p><strong>The news and narrative scan — a first-class function, not an afterthought.</strong> The audit's first draft under-weighted this, and the operator corrected it. Markets trade stories, and a system that reads only numbers is blind to the variable that moves positioning before the numbers confirm it. The rule is not "no narrative"; it is <strong>"narrative with the same discipline as signals."</strong></p>
+<ul>
+<li><strong>Ingested, not fetched at render.</strong> Headlines, releases, speeches, filings, and prediction-market moves enter the store through the events-ingest layer with timestamps (Part 18's "replacing news consumption" design, built rather than described). The 07:00 scan reads stored events; it does not search at render time, so what it says is reproducible and gradeable.</li>
+<li><strong>A narrative register.</strong> Each story the market is trading is a tracked entity — <em>AI capex durability</em>, <em>fiscal dominance</em>, <em>the yen carry</em>, <em>the midterm cycle</em> — with a state (emerging / consensus / contested / fading), a direction, the evidence for and against, the market-state dimensions and prediction-market contracts it links to, and a date. Narratives are graded like forecasts: did the outcome the story implied occur at the horizon the story implied?</li>
+<li><strong>The 07:00 anchor's narrative block</strong> is where the long-form commentary lives: which stories gained or lost force overnight, which are consensus and which contested, where the market's story and the data disagree (the contradiction table, read as narrative), and what would change each. The Sunday reflection carries the week's narrative arc; the Monthly the regime's; the Quarterly the structural themes'.</li>
+<li><strong>Where the LLM belongs.</strong> This is the layer where a reasoning model earns its cost — synthesis across domains, hypothesis generation, explaining an anomaly — over a payload of stored events and state, with every numeral audited and every claim traceable to a stored event or an observation.</li>
+</ul>
+<hr />
+<h1 id="j-canonical-signal-taxonomy">J. Canonical Signal Taxonomy</h1>
+<pre><code>observation           one row in the store: source, timestamps, value, quality flag
+   ↓
+metric                registered: observation_type, native_horizon, half_life, revision_policy,
+                      trigger_eligible, mechanism_group, standard derived forms
+   ↓
+mechanism group       the unit that votes — e.g. dealer_chain_derived, index_rebalance, carry_funding
+   ↓
+signal family         the Doctrine's nine: macro regime · valuation · positioning extremes ·
+                      trend/momentum · variant perception · thematic · event reaction ·
+                      dealer positioning · session structure  (+ forced flows, mispriced optionality
+                      as Book D's two)
+   ↓
+market dimension      the state object's rows: growth · inflation · policy · rates · liquidity ·
+                      credit · trend · breadth · volatility · positioning · sentiment · valuation ·
+                      earnings · funding stress · geopolitical · tail
+   ↓
+horizon-specific view intraday · 1–5d · 1–4w · 1–3m · 3–12m · 1–3y · structural — a signal reaches
+                      only the horizons its native_horizon and half_life permit
+   ↓
+opportunity / risk set drafted setups and flagged risks, each naming its family, its mechanism
+                      groups (voted once), its horizon, and what is already priced
+</code></pre>
+<p><strong>Classification per signal, required in the registry</strong> (most fields exist; two are added): <em>economic mechanism</em> (exists as <code>rationale</code>), <em>leading/coincident/lagging</em>, <em>directional/confirmatory/contextual/risk-warning</em> (new), <em>regime dependence</em> (exists), <em>falsifier</em> (new — <code>kill_condition</code>, already in the backlog), <em>crowding/decay susceptibility</em> (new). <strong>Redundancy rule:</strong> any two metrics sharing a mechanism group are one signal; any two in different groups that correlate above a stated threshold over a year are flagged as suspected redundancy and reviewed.</p>
+<hr />
+<h1 id="k-canonical-market-state-model">K. Canonical Market-State Model</h1>
+<p>One object, recomputed by the EOD pass, versioned, and stored as an observation with <code>available_at</code>:</p>
+<pre><code>market_state:
+  as_of, version
+  dials: macro {state, since, transition_prob}, vol {…}, gamma {…}
+  dimensions[16]:
+    growth: {state: expanding|slowing|contracting, direction: +/−/0, rate_of_change, 
+             percentile_5y, confidence: high|med|low, horizon: 1-3m,
+             supporting: [metric_ids], contradicting: [metric_ids], last_changed}
+    …
+  contradictions[]: {pair, magnitude, since, persistence_days}
+  debt_cycle_branch: {state: none|deflationary|inflationary, confidence, observables}
+  tail_families[]: {family, state, probability, brier_to_date}
+  exceptions[]: {what, threshold, value, since}
+</code></pre>
+<p><strong>Rules.</strong> Every report reads this and only this for its regime content. A dimension changes state only on a declared rule, and every change is an event the alerts may fire on. <em>Contradicting</em> is never empty by omission — the object records "none found" as a positive claim. Confidence derives from staleness and sample, never from the author. And the object is graded: each dial's state at t is scored against the realized regime at t+horizon, which is the calibration series the trust matrix's regime rows require.</p>
+<hr />
+<h1 id="l-learning-calibration-framework-how-the-system-would-know-it-is-improving">L. Learning / Calibration Framework — how the system would know it is improving</h1>
+<p>The structures exist on paper; this section states what "improving" would mean in numbers.</p>
+<table>
+<thead>
+<tr>
+<th>Series</th>
+<th>Computed from</th>
+<th>Improving means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shadow expectancy by owning report, by regime</strong></td>
+<td>shadow grader over drafts and declines</td>
+<td>The intervals narrow and the sign stabilizes; a report whose drafts grade negative in a regime loses that regime's publish right</td>
+</tr>
+<tr>
+<td><strong>Decline hit-rate</strong></td>
+<td>graded declines</td>
+<td>Falls toward the taken hit-rate — the veto is neither too loose nor too tight</td>
+</tr>
+<tr>
+<td><strong>Brier score of every emitted probability</strong></td>
+<td>scenario weights, tail probabilities, PM reads</td>
+<td>Falls; and is <em>reported beside the probability</em> so the reader discounts it correctly</td>
+</tr>
+<tr>
+<td><strong>Dial calibration</strong></td>
+<td>dial state vs realized regime at horizon</td>
+<td>Transition calls become earlier without more false positives</td>
+</tr>
+<tr>
+<td><strong>Rule-break count</strong></td>
+<td>register</td>
+<td>Trends to zero — the Doctrine's own gate for Book D</td>
+</tr>
+<tr>
+<td><strong>Estimate drift</strong></td>
+<td>schedule vs actual hours</td>
+<td>Runs backward, as it did this week</td>
+</tr>
+<tr>
+<td><strong>Numeral-audit failure rate</strong></td>
+<td>D3 over every narrative</td>
+<td>Falls; a narrative that fails the audit is the LLM confound made visible</td>
+</tr>
+<tr>
+<td><strong>The decidability table, revisited</strong></td>
+<td><em>Evidence and Inference</em> Ch. 13</td>
+<td>At each quarterly review, the predicted "decidable / suggestive / never" is compared with what the register could actually decide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hindsight-bias controls:</strong> grades computed by code from stored prices, never by the operator; the error decomposition filled in before the P&amp;L is visible; superseded packets frozen. <strong>The single most important rule:</strong> no signal's weight, no trust-matrix cell, and no rule changes except at a session, on a printed sample size, with the challenger having run.</p>
+<hr />
+<h1 id="m-software-data-refactoring-plan-prioritized">M. Software / Data Refactoring Plan — prioritized</h1>
+<h2 id="m0-repository-pass-findings-claude-code-read-only-30bc12b-17753-lines-8-packages">M.0 Repository pass — findings (Claude Code, read-only, @ 30bc12b, 17,753 lines, 8 packages)</h2>
+<p><em>Verified by execution or by reading the enforcing code. The full pass is in <code>docs/audit-3-repository-pass.md</code>; this section carries what changes the plan.</em></p>
+<p><strong>P0 — data loss or silent corruption</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0-1</td>
+<td><code>data/chester.db</code> is gitignored and <strong>excluded from <code>backup_chains</code></strong> — observations, register, immutable packets have exactly one copy, on one VPS</td>
+<td>Add the DB and <code>pin_log.csv</code> to the nightly zip <em>and</em> land the rclone sweep over <code>data/</code></td>
+</tr>
+<tr>
+<td>P0-2</td>
+<td><code>altdata/store.py:85</code> — <code>except Exception: pass</code> swallows every SQLite failure; the dual-write can be dead for weeks while the CSV looks healthy. <em>The exact defect the heartbeat work was built to eliminate, still live in the FRED path</em></td>
+<td>Log at WARNING; write a <code>dual_write_failed</code> counter the heartbeat reads</td>
+</tr>
+<tr>
+<td>P0-3</td>
+<td>No <code>journal_mode=WAL</code>, no <code>busy_timeout</code>, on either connection; <code>flock</code> guards scripts, never the DB; <code>ibkr-sync</code> (16:30 ±90s) and <code>daily-close</code> (16:30 ±120s) aim at the same minute</td>
+<td><code>PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000</code> in both <code>__init__</code>s (D1c); the cadence ruling's move of the close to 16:45 separates the timers as well</td>
+</tr>
+</tbody>
+</table>
+<p><strong>P1 — a wrong number reaches a report</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1-1</td>
+<td><code>quality_gates.newest_chains</code> still carries <strong>both halves of the capture-selection bug fixed in <code>exposure_compute</code></strong> — preserved verbatim in a duplicate; dormant only because the caller passes rows in</td>
+<td>Delete the duplicate; import <code>exposure_compute.newest_chains</code></td>
+</tr>
+<tr>
+<td>P1-2</td>
+<td><strong>No numeral audit exists.</strong> The Monthly's sole defense against a fabricated figure is the system-prompt sentence "Never invent numbers"; the prompt is truncated Markdown, not a payload; output is checked only for non-emptiness</td>
+<td>D3, before any further narrative ships</td>
+</tr>
+<tr>
+<td>P1-3</td>
+<td><code>validate_iv_solver.py</code> and <code>validate_session_calendar.sh</code> — the largest module and the calendar guard — run in <strong>no CI</strong></td>
+<td>Add both to <code>registry-check.yml</code></td>
+</tr>
+<tr>
+<td>P1-4</td>
+<td>No unit has <code>EnvironmentFile=</code>; no wrapper sources <code>.env</code>; <code>FRED_API_KEY</code> and <code>CHESTER_STATE_TOKEN</code> are <code>os.environ</code>-only → <strong>D4d's state emit cannot fire on the box</strong> and will log "not set" on every run</td>
+<td><code>EnvironmentFile=-%h/chester-reports/.env</code> on the units that need it</td>
+</tr>
+<tr>
+<td>P1-5</td>
+<td><code>render.money()</code> raises on a non-numeric value and nothing catches it — one bad field destroys the nightly report and its archive (confirmed by execution)</td>
+<td>Return the dash on <code>ValueError</code>/<code>TypeError</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>P2 — structural</strong> (34 <code>sys.path.insert</code>; <code>tools/</code> not a package and <code>altdata</code> importing upward from it; five <code>.env</code> parsers and three <code>redact()</code>s; six "newest file" walk-backs with three ranking rules; no test framework — 11 bespoke validators, no shared runner; <code>smoke_test.py</code> in no workflow; <code>register/store.py:213</code> swallows <code>OperationalError</code>; symbol identity parsed from filenames in three places) <strong>and P3 — hygiene</strong> (dead <code>gex_compute.py</code> shim; CLAUDE.md's layout stale; <code>monthly-report.yml</code> still has no <code>schedule:</code> — D4b unbuilt; twelve <code>logging.basicConfig</code>s; CI's PyYAML-only install an undeclared invariant; <code>CHAIN_DIR</code> the one non-overridable path).</p>
+<p><strong>The pattern the pass named, and the audit adopts as its engineering thesis:</strong> this repository catches silent failures <em>after</em> they bite and asserts against them permanently — six classes, each with a validator proved to fail on its defect. Every P0 and P1 above is the same shape one step earlier: a failure path that exists, has no assertion, and would announce itself only as missing data. The Phase 0 work is to move the assertion in front of the failure.</p>
+<h2 id="m1-prioritized-changes-revised-against-the-repository-pass">M.1 Prioritized changes (revised against the repository pass)</h2>
+<p><em>Findings from the sessions' reports; the repository pass below will extend them.</em></p>
+<ol>
+<li><strong>P0 — The database into the backup, tonight</strong> (P0-1), then rclone off-box. The store is the system, and it currently has one copy.</li>
+<li><strong>P0 — WAL + busy_timeout on both connections</strong> (P0-3); the close report to 16:45 per the cadence ruling.</li>
+<li><strong>P0 — The dual-write stops failing silently</strong> (P0-2): log, counter, heartbeat reads it.</li>
+<li><strong>P1 — The five P1s in one session:</strong> dedupe <code>newest_chains</code>; add the two missing validators to CI; <code>EnvironmentFile=</code> on the units; the render guard; and D3's numeral audit scheduled as the next narrative work — no new prose ships before it.</li>
+<li><strong>P1 — A single <code>make validate</code></strong> running every validator, and CI gates that run independently.</li>
+<li><strong>P1 — Commit the HTML editions and regenerate-and-diff them in CI.</strong> The "canonical for reading" rule is a discipline about files git has never seen.</li>
+<li><strong>P1 — One planning document.</strong> Merge; freeze the architecture at Part 32 as reference; new decisions as replacing addenda.</li>
+<li><strong>P1 — Standard derived forms as a registry convention</strong> (level/Δ/rate/percentile/z/extreme) computed by one function, not per-report.</li>
+<li><strong>P1 — ALFRED backfill of the migrated FRED rows</strong> so the freshness check stops treating history as stale.</li>
+<li><strong>P2 — Model pinning per report and a model-version column on every narrative artifact</strong> (Finding 3 of Audit #1, still open).</li>
+<li><strong>P2 — Secrets audit</strong> (Session 1 leftover), now that SMTP credentials live on the box.</li>
+<li><strong>P2 — Independent-gates CI matrix</strong> (<code>fail-fast: false</code>), per the TODO written today.</li>
+</ol>
+<p><strong>The repository-level pass has been run</strong> (M.0 above). The instruction that produced it, for the record:</p>
+<blockquote>
+<p>Produce a software-engineering audit of this repository, changing nothing. Report: module boundaries and their coupling; every writer to data/chester.db and whether a lock protects it; test coverage by module; every place a secret is read and how; every hard-coded path, format, or vendor assumption; every place an LLM is called and whether the call is gated by a payload and a numeral audit; every script not executed by any timer or workflow; duplicated logic across modules; and the ten most brittle lines. Rank findings P0–P3 with a one-line fix each. Do not fix anything.</p>
+</blockquote>
+<hr />
+<h1 id="n-migration-roadmap">N. Migration Roadmap</h1>
+<p><strong>Classification of existing components</strong></p>
+<table>
+<thead>
+<tr>
+<th>KEEP</th>
+<th>KEEP BUT REFACTOR</th>
+<th>MERGE</th>
+<th>REPLACE</th>
+<th>RETIRE</th>
+<th>NEW</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>store · register · packets · registry · validators · exposure engine · Portfolio Truth · heartbeat · Doctrine · library</td>
+<td>Monthly (halve; subordinate pillars; deltas) · CLAUDE.md as the single durable rules file · TODO as the single backlog</td>
+<td>six planning docs → one · T&amp;B + Alt Asset → Monthly sections · Friday + Sunday → Weekly · Themes + tail scan → Quarterly</td>
+<td>chat-produced Daily → generated Daily State · nine intraday runs → alerts · 25 scenarios → families</td>
+<td>Thailand pillar · privacy-coin theme · DAT entity · crypto long forecast · dashboard · ALT duplicates</td>
+<td>state object · shadow grader · Brier ledger · contradiction table · heat view · order gate · exception detector</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phases, re-sequenced for an operator with limited hours</strong> — the governing principle is <em>evidence before expansion</em>:</p>
+<p><em>Ruled 6 Sep: execution order is </em><em>Phase 0 → 1 → 3 → 2 → 4 → 5 → 6</em><em> — delivery first, the grader immediately after (it needs drafted setups to grade, and the 07:00 anchor produces them), the state object once there is something to read it. 6a loggers and 6b slots run alongside Phases 1–2.</em></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Content</th>
+<th>Hours</th>
+<th>Exit criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 — Safeguards (now)</strong></td>
+<td>WAL + lock · off-box backup · independent CI gates · HTML tracked · one planning doc</td>
+<td>5</td>
+<td>A dead pipeline is noticed within a day; a lost box loses nothing</td>
+</tr>
+<tr>
+<td><strong>1 — Deliver (this month)</strong></td>
+<td>D4c data-only close report enabled · D4f morning brief · alerts for heartbeat, drift, exceptions</td>
+<td>8</td>
+<td>The operator receives two emails a day he did not produce</td>
+</tr>
+<tr>
+<td><strong>2 — State (next)</strong></td>
+<td>regime.py → the market-state object v1 with 8 dimensions · standard derived forms · contradiction table v1</td>
+<td>8</td>
+<td>Every report reads the object; the Daily prints "what changed"</td>
+</tr>
+<tr>
+<td><strong>3 — Grade (before anything new)</strong></td>
+<td>Shadow grader over drafts, declines, takes · Brier ledger for scenario weights · numeral audit</td>
+<td>8</td>
+<td>Every decision has a grade at its horizon; the first calibration number exists</td>
+</tr>
+<tr>
+<td><strong>4 — Consolidate reports</strong></td>
+<td>Weekly Tactical · Monthly halved with Brier beside every weight · Quarterly Structural</td>
+<td>10</td>
+<td>Five documents become four outputs plus alerts</td>
+</tr>
+<tr>
+<td><strong>5 — Enforce</strong></td>
+<td>Order gate at entry · expression check binding · heat/factor view</td>
+<td>6</td>
+<td>An order that contradicts the register cannot be placed without an override recorded</td>
+</tr>
+<tr>
+<td><strong>6 — Expand, on evidence</strong></td>
+<td>Part 27 v1 · Part 29 items 1–4 · intraday cadence · cohort monitor — <strong>each admitted only when Phase 3 has graded the family it extends</strong></td>
+<td>as earned</td>
+<td>150 graded decisions across two regimes before any new family triggers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 6, itemized (ruled 6 Sep) — ~91 hours; loggers first, delivery second, analysis on logged data last and gated:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Sub-phase</th>
+<th>Items</th>
+<th>Hrs</th>
+<th>Gate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6a Forward-only loggers</td>
+<td>RTAT10 · nightly consensus/revision log · IBKR auction-tick sampler (29.4 logging) · borrow/FINRA/ApeWisdom series (29.7 logging) · shielded-pool explorer (29.5)</td>
+<td>6</td>
+<td>None — start in Phase 1</td>
+</tr>
+<tr>
+<td>6b Intraday slots</td>
+<td>capture-instant T + 09:45/12:30 captures · 09:15 · 10:30 · 15:00 · 21:45 · Sunday 21:45</td>
+<td>10</td>
+<td>Phase 1; Tuesday clean capture</td>
+</tr>
+<tr>
+<td>6c Events, calendar, edge layer, <strong>narrative register</strong></td>
+<td>events ingest with consensus/actual/surprise (S8) · forward calendar (S9) · surprise metrics · Part 15 edge layer · narrative register and the 07:00 scan over stored events</td>
+<td>14</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>6d Prediction markets v1</td>
+<td>Polymarket + Kalshi · changes-over-levels, attention shock, venue disagreement · weekend probability-delta proxy</td>
+<td>4</td>
+<td>6c</td>
+</tr>
+<tr>
+<td>6e Macro completeness</td>
+<td>S3a market data · S3b rates &amp; policy · S3c fiscal &amp; demand · CPI lead composite · ALFRED backfill</td>
+<td>12</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>6f State object v2, tail families</td>
+<td>16 dimensions with transition probabilities · dial calibration · tail families (~6) with Brier · debt-cycle branch</td>
+<td>8</td>
+<td>Phase 3</td>
+</tr>
+<tr>
+<td>6g Cross-sectional and funding</td>
+<td>speculative-cohort monitor (29.2 analysis) · yen carry monitor (29.1)</td>
+<td>8</td>
+<td>6a has a quarter of history</td>
+</tr>
+<tr>
+<td>6h Analysis on logged data</td>
+<td>MOC absorption hypotheses (29.4) · meme lifecycle machine (29.7) · privacy-coin theme analysis (29.5) · <code>response_ratio</code> (29.0)</td>
+<td>10</td>
+<td><strong>150 graded decisions across two regimes; ≥ 6 months of 6a history</strong></td>
+</tr>
+<tr>
+<td>6i Report completions</td>
+<td>T&amp;B harness with the extended episode set · Themes refresh automated for the Quarterly · Alt Asset live fetchers</td>
+<td>10</td>
+<td>Phase 4</td>
+</tr>
+<tr>
+<td>6j Execution gates</td>
+<td>Gate 2 (Read-Only off, What-If, fills reconciled) · Gate 3 (brackets from packets with approval) · execution analytics</td>
+<td>8</td>
+<td>Phase 5; a month of validated paper refusals</td>
+</tr>
+<tr>
+<td>6k Tools from the papers</td>
+<td><code>base_rates.py</code> · <code>structure_compare.py</code> on live vol · <code>currency_exposure</code>, <code>expression_family</code>, <code>leverage_form</code> rules</td>
+<td>5</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>6l Claims registry</td>
+<td>cited tables with sources and review dates</td>
+<td>2</td>
+<td>None</td>
+</tr>
+<tr>
+<td>6m Thailand Monitor</td>
+<td>fetchers, quarterly report, four alerts, payment-dates table</td>
+<td>4</td>
+<td>After everything above</td>
+</tr>
+<tr>
+<td><strong>Phase 6 total</strong></td>
+<td></td>
+<td><strong>~91</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Grand total, Phases 0–6</strong></td>
+<td></td>
+<td><strong>~136</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>6a and 6b run alongside Phases 1–2 — they are logging and delivery, and every week of delay in a logger is a week of history lost. 6h is the only sub-phase with a hard evidence gate.</p>
+<p><strong>Total to the end of Phase 5: ~45 hours.</strong> The current plan's nominal 229–246 reaches the same place after ~120 and then spends the rest on Phase 6 before Phase 3 has produced a number. <strong>The re-sequencing does not add work; it moves grading from step 5 of Track D to before every expansion, and it deletes roughly 60 hours of Phase 6 outright.</strong></p>
+<hr />
+<h1 id="o-top-20-recommendations-ranked">O. Top 20 Recommendations — ranked</h1>
+<ol>
+<li>Build the shadow grader before any new signal family. (P0; 4h; depends on D4c's payload; highest information value in the system)</li>
+<li>Enable D4c tonight and D4f this week — receive the system's output by email, daily. (P0; done/3h)</li>
+<li>WAL + write lock, off-box backup, independent CI gates. (P0; 3h)</li>
+<li>One planning document; architecture frozen as reference. (P0; 2h; the auditor's own debt)</li>
+<li>Build the market-state object from <code>regime.py</code>; every report reads it. (P1; 4h)</li>
+<li>Deltas and percentiles as the Daily's first block; levels as an appendix. (P1; 2h)</li>
+<li>Brier-score every scenario weight and print it beside the weight. (P1; 2h)</li>
+<li>Subordinate the eleven pillars to the three dials with a stated mapping. (P1; 2h)</li>
+<li>Collapse the 25 tail scenarios into mechanism families with instances. (P1; 1h)</li>
+<li>Merge Top &amp; Bottom and Alt Asset into the Monthly; halve the Monthly. (P1; 3h)</li>
+<li>Order gate at entry — Gate 2 — with overrides recorded. (P1; 4h)</li>
+<li>Contradiction table v1: six pairs, computed from the state object, alert on persistence. (P1; 3h)</li>
+<li>Heat and factor view across open decisions. (P2; 3h)</li>
+<li>Standard derived forms as one function. (P2; 2h)</li>
+<li>Commit HTML editions; regenerate-and-diff in CI. (P2; 1h)</li>
+<li>ALFRED backfill. (P2; 3h)</li>
+<li>Model pinning and a model-version column on every narrative. (P2; 1h)</li>
+<li>Retire Thailand pillar, privacy-coin theme, DAT entity, crypto long forecast. (P2; 0h — deletion)</li>
+<li>Secrets audit now that SMTP lives on the box. (P2; 1h)</li>
+<li>Part 27 v1 only, after Phase 3, as the first <em>new</em> family admitted on the new rule. (P4; 3h)</li>
+</ol>
+<hr />
+<h1 id="p-top-10-things-to-stop-doing">P. Top 10 Things to Stop Doing</h1>
+<ol>
+<li><strong>Stop adding signal families before one is graded.</strong> Part 29's eight, Part 27's two phases, the cohort monitor — all wait for Phase 3.</li>
+<li><strong>Stop amending the frozen architecture with appendices.</strong> Replace text; do not append parts.</li>
+<li><strong>Stop maintaining seven planning documents.</strong> One.</li>
+<li><strong>Stop producing reports in chat.</strong> Every report the operator reads is generated from the store or it is not a report.</li>
+<li><strong>Stop restating levels.</strong> A metric whose half-life exceeds the report's cadence is not reprinted; only its change is.</li>
+<li><strong>Stop treating tail scenarios as 25 peers.</strong> Families with instances.</li>
+<li><strong>Stop building the Thailand pillar, the privacy-coin theme, the DAT template, and the crypto three-horizon forecast</strong> inside the trading system.</li>
+<li><strong>Stop designing the dashboard.</strong> Email is the dashboard.</li>
+<li><strong>Stop authoring code on the box.</strong> Four exceptions in a day; two were justified. The deploy key is a recovery path.</li>
+<li><strong>Stop estimating in nominal hours against a 230-hour backlog.</strong> Estimate in phases with exit criteria, and let Phase 6 be earned.</li>
+</ol>
+<hr />
+<h1 id="q-unknowns-questions-this-audit-cannot-answer">Q. Unknowns — questions this audit cannot answer</h1>
+<ol>
+<li><strong>Whether any of the nine signal families has an edge.</strong> Zero graded decisions. The only calibration datum is 0/13 pins — an honest start and no information.</li>
+<li><strong>What the code actually looks like</strong> — coupling, coverage, brittleness. The repository pass in Section M answers this.</li>
+<li><strong>Whether the operator will read two emails a day.</strong> The system's usefulness is bounded by this, and it is untested.</li>
+<li><strong>How the dials behave across a regime change</strong> — none has occurred inside the register's life. <em>Evidence and Inference</em> says this cut will be thin for years.</li>
+<li><strong>Whether the Read-Only-off gate (Gate 2) can be reached</strong> — it requires a month of validated paper refusals, and the refusals require the order gate, which is Phase 5.</li>
+<li><strong>The true cost of the LLM layer at nine runs a day</strong> — unmeasured because the runs do not exist; the exception-first design in Section I should cut it by most.</li>
+<li><strong>Whether the pin log's tolerance (25 bps) is right</strong> — declared, never tuned, correctly; but a base rate of zero says nothing about the tolerance until n is large.</li>
+<li><strong>Whether the 0DTE-in-EOD exclusion is complete</strong> — the intraday cadence that would prove it is unbuilt.</li>
+</ol>
+<hr />
+<h1 id="the-final-question">The Final Question</h1>
+<p><em>If I inherited this system today and my own capital depended on the quality of its decisions for the next ten years:</em></p>
+<p><strong>I would preserve</strong> the point-in-time store, the immutable register, the registry's refusal to trigger, the validator family's posture, the exposure engine with its cross-check, the Brookfield restriction, the Doctrine's risk layer, and the honesty conventions. These are worth more than everything else combined, and most trading systems — retail or institutional — never build them. I would also preserve the library, and stop adding to it: twenty-four papers is a curriculum, not a backlog.</p>
+<p><strong>I would tear down</strong> the planning sprawl — seven documents to one, 32 parts to a frozen reference — and the report layer as designed: five peer reports become four outputs and alerts, all generated from a state object none of them currently has. I would tear down the pretense that a 230-hour backlog is a plan for someone with five hours a week.</p>
+<p><strong>I would rebuild</strong> the consumer side around three things in this order: <em>delivery</em> (the operator receives the system's output without asking), <em>state</em> (one market-state object every output reads), and <em>grading</em> (every decision, taken or not, scored by code at its horizon). Nothing else in the roadmap matters until those three exist, because until they do the system is a well-instrumented pipeline feeding a conversation.</p>
+<p><strong>I would refuse to add</strong> any new signal family, data vendor, asset-class module, or report until 150 decisions have been graded across two regimes — and I would write that refusal into the registry as a rule rather than into a document as an intention, because the last three days show that intentions in documents get amended. I would refuse the prediction-market divergence engine, the meme lifecycle machine, the privacy-coin theme, the DAT template, and the Thailand pillar, not because they are wrong but because each is a claim to know something interesting, and the Doctrine's own first distinction — knowing something interesting versus having a repeatable edge — says that interesting things belong in papers and edges belong in the register, and the register is empty.</p>
+<p>The candid summary: <strong>the system's design is better than its evidence by a wide margin, its safeguards are better than its delivery, and its plan is larger than its operator.</strong> The fix for all three is the same — grade before you expand, deliver before you design, and cut the plan to what closes the loop.</p>
+<hr />
+<h1 id="appendix-log-of-data-and-analyses-removed-from-the-system-6-sep-2026">Appendix — Log of Data and Analyses Removed from the System (6 Sep 2026)</h1>
+<p><em>Every item retired by this audit, with the reason and where the idea is archived so it can be revived if the evidence changes. Nothing on this list was deleted from the documentation; each remains in the architecture document at the part cited.</em></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Was</th>
+<th>Reason retired</th>
+<th>Archived at</th>
+<th>Revival condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prediction-market phase 2 — cross-asset divergence engine, canonical-event abstraction, ForecastEx via Gateway</td>
+<td>Part 29.8 (~6h)</td>
+<td>A research project on top of an unbuilt v1; no consumer until the tail table has a graded probability column</td>
+<td>Architecture Part 29.8</td>
+<td>PM v1 (6d) live for two quarters with a Brier series</td>
+</tr>
+<tr>
+<td>DAT entity type — CYPH instance, fully-diluted-share-per-ZEC KPI</td>
+<td>Part 29.6 (~3h)</td>
+<td>Zero contribution to the four books' edges; single-instance template</td>
+<td>Architecture Part 29.6</td>
+<td>A second instance with a register decision attached</td>
+</tr>
+<tr>
+<td>Crypto running forecast at 12m / 3y / 5y</td>
+<td>Part 12 (~4h)</td>
+<td>Ungradeable at the long horizons within the system's life; a narrative, not a metric. <strong>The eight crypto metrics are kept</strong></td>
+<td>Architecture Part 12</td>
+<td>Never as a forecast; the 12-month horizon may return as a graded scenario weight</td>
+</tr>
+<tr>
+<td>Thailand / THB as a global pillar feeding the dials</td>
+<td>Session 12.5</td>
+<td>Personal-finance context inside a regime input; <strong>becomes a standalone quarterly report (6m)</strong></td>
+<td>Architecture Session 12.5; <code>thailand-monitor-spec.md</code></td>
+<td>— (relocated, not removed)</td>
+</tr>
+<tr>
+<td>The dashboard</td>
+<td>Various; never built</td>
+<td>Requires the operator to look; email is the dashboard; alerts find him</td>
+<td>Narrative Part 1 (alerting pulled ahead of dashboard)</td>
+<td>Never</td>
+</tr>
+<tr>
+<td>25 tail scenarios as 25 peer states</td>
+<td>Part 16 tail watch table</td>
+<td>Collapsed to ~6 mechanism families with the 25 as instances; Brier per family</td>
+<td>Architecture Part 16; <em>The Twenty-Five</em> paper</td>
+<td>— (restructured, not removed)</td>
+</tr>
+<tr>
+<td>11 macro pillars as peer scores</td>
+<td>Sessions 12–13, Monthly</td>
+<td>Subordinated to the three dials with a stated mapping; pillar scores no longer printed as eleven peers</td>
+<td>Architecture Session 12</td>
+<td>— (restructured)</td>
+</tr>
+<tr>
+<td>Top &amp; Bottom as a standalone report</td>
+<td>Session 10–14, narrative Part 5</td>
+<td>A state variable — verdict and composite — inside the state object, printed in Monthly and Weekly; <strong>the paper and the calibration harness are kept</strong></td>
+<td>Architecture Part 23; <em>Tops and Bottoms</em> paper</td>
+<td>— (subordinated)</td>
+</tr>
+<tr>
+<td>Alternative Asset as a standalone report</td>
+<td>Sessions 10–11</td>
+<td>A Monthly section; its fetchers are kept (6i)</td>
+<td>Architecture Sessions 10–11</td>
+<td>— (merged)</td>
+</tr>
+<tr>
+<td>Disruptive Themes as a monthly</td>
+<td>Part 13</td>
+<td>Quarterly; structural by definition; went stale as a monthly</td>
+<td>Architecture Parts 13, 13b</td>
+<td>— (re-cadenced)</td>
+</tr>
+<tr>
+<td>The nine intraday Daily runs as reports</td>
+<td>Part 28</td>
+<td>Replaced by three anchors and five conditionals; the LLM called only on exception</td>
+<td>Architecture Part 28</td>
+<td>— (restructured)</td>
+</tr>
+<tr>
+<td>v18 / v19 / deferred backlog (~45h of items)</td>
+<td>Part 5 deferred; master schedule</td>
+<td>Claims without evidence infrastructure; each may be re-proposed individually against the 6h gate</td>
+<td>Architecture Part 5; master schedule v18/v19 rows</td>
+<td>Individually, on a graded family it extends</td>
+</tr>
+<tr>
+<td>Six of seven planning documents</td>
+<td>narrative, roadmap, compressed plan, v17 build plan, work plan v2, master schedule</td>
+<td>Merged into one roadmap with one status ledger; the architecture frozen as reference at Part 32</td>
+<td>The documents themselves, retained read-only</td>
+<td>Never</td>
+</tr>
+<tr>
+<td>The <code>-ALT-branch</code> paper duplicates</td>
+<td>outputs</td>
+<td>Superseded by the canonical editions</td>
+<td>Deleted from outputs</td>
+<td>Never</td>
+</tr>
+<tr>
+<td>Hard word counts on reports</td>
+<td>Audit #3 first draft, Section I</td>
+<td>Replaced by "zero budget for repetition, insight as long as it needs, insight first"</td>
+<td>This audit</td>
+<td>Never</td>
+</tr>
+<tr>
+<td>FlashAlpha Basic</td>
+<td>Part 9</td>
+<td>Self-computed exposure engine replaced it; vendor kept as an occasional cross-check only</td>
+<td>Architecture Part 9</td>
+<td>Never as a data source</td>
+</tr>
+<tr>
+<td>cron-job.org</td>
+<td>Part 24</td>
+<td>Replaced by a <code>schedule:</code> block; deleted after the 1 October run proves the replacement</td>
+<td>Architecture Part 32.1</td>
+<td>Never</td>
+</tr>
+</tbody>
+</table>
+<p><em>Kept on review, against the audit's first draft:</em> Part 29.5 privacy-coin theme (operator's ruling — potential structural theme; logger only until 6h); Part 29.4 and 29.7 loggers (start in 6a; analysis gated in 6h); the news and narrative scan (elevated to a first-class function, Section I).</p>
+</main></body></html>
