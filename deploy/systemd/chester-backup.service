@@ -1,0 +1,29 @@
+[Unit]
+Description=Nightly off-box backup sweep (rclone copy, never sync)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/rclone_sync.sh
+
+# NOT listed as success: 1 (no rclone, no remote, no venv), 2 (the database
+# snapshot failed), 3 (a tree did not copy). Every one of those means the
+# off-box copy did not happen, and a backup that quietly did not happen is the
+# failure this whole unit exists to prevent. Only 0 is success, so
+# `systemctl --user list-units --failed` goes red until a sweep completes.
+
+# Large trees over a slow uplink. Generous, but bounded -- a sweep still
+# running when the next one is due would be a real problem, not a slow night.
+TimeoutStartSec=2h
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# rclone reads its own config from ~/.config/rclone; the staged snapshot is
+# written under the state dir; the repo's data/ is read-only to this unit.
+ReadWritePaths=%h/logs %h/.chester
+ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

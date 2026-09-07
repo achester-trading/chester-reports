@@ -1,0 +1,26 @@
+[Unit]
+Description=Off-box backup sweep, nightly at 02:30 ET
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 02:30 ET, EVERY day. Not Mon-Fri: a weekend is when a box is least watched
+# and a backup is most valuable, and there is data to protect whether or not
+# the market opened.
+#
+# 02:30 sits after the 01:00 Gateway restart has settled and hours before the
+# 08:30 heartbeat check, so a long sweep cannot collide with either. It is also
+# well clear of the 09:00-17:00 Portfolio Truth sync window, which matters
+# because the snapshot is cheapest when nothing is writing.
+OnCalendar=*-*-* 02:30:00 America/New_York
+
+# Persistent=true. A box that was down at 02:30 should sweep when it comes
+# back: unlike a portfolio snapshot, a late backup is not a misdated
+# observation, it is a backup. The one thing worse than a late copy is no copy.
+Persistent=true
+
+# The uplink is shared with nothing else at this hour, but a few minutes of
+# spread costs nothing and keeps this off the exact minute.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

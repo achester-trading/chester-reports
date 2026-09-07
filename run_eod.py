@@ -34,6 +34,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from altdata import config
+from altdata import observations
 from altdata import session
 from altdata.sources import massive_chain
 from altdata.sources import options_chain
@@ -44,12 +45,22 @@ from state.emit import emit  # noqa: E402
 
 
 def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
-    """Zip the day's raw chains and copy them off this machine.
+    """Zip the day's raw chains AND the databases, and copy them off the box.
 
-    The chains are the one asset here that cannot be re-fetched -- yfinance
-    serves no history -- so a laptop failure loses the sample permanently. This
-    is insurance, not a stage the pipeline depends on, so it never raises.
+    THE CHAINS WERE NEVER THE ONLY IRREPLACEABLE THING HERE. They were the
+    first, and for a while the only one: yfinance serves no history, so a night
+    not captured is gone. But the store caught up. `data/chester.db` now holds
+    the point-in-time observation history, the decision register, and the
+    immutable decision packets that make a past run replayable -- and it is
+    gitignored, so until this change it existed in exactly one place, on one
+    VPS, with no copy anywhere. Losing it would not lose a night; it would lose
+    the record that the system had ever decided anything.
 
+    `data/pin_log.csv` joins for the same reason: it is graded history with a
+    declared tolerance per row, and its whole value is that it cannot be
+    regenerated at today's config.
+
+    This is insurance, not a stage the pipeline depends on, so it never raises.
     The zip is built in a temp directory and verified before it is copied, so a
     truncated archive never lands in the backup folder looking valid. A same-day
     re-run overwrites its own zip rather than accumulating duplicates.
@@ -71,25 +82,55 @@ def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
 
     dest_dir = Path(backup_dir or config.BACKUP_DIR)
     tmp_zip = Path(tempfile.gettempdir()) / f"chains_{date_str}.zip"
+    tmp_db = Path(tempfile.gettempdir()) / f"chester_{date_str}.db"
+    # Namespaced inside the archive so a restore cannot confuse a database with
+    # a chain CSV, and so the chain files keep the flat layout every existing
+    # restore assumes.
+    extras: list[tuple[Path, str]] = []
+    included: list[str] = []
+    try:
+        db_path = Path(observations.DEFAULT_DB)
+        if db_path.exists():
+            observations.snapshot_sqlite(db_path, tmp_db)
+            extras.append((tmp_db, f"db/{db_path.name}"))
+            included.append(db_path.name)
+        else:
+            out["db_note"] = f"no database at {db_path}"
+    except Exception as e:  # noqa: BLE001
+        # A database that could not be snapshotted must NOT quietly produce a
+        # zip that looks complete. Record it and let the caller's exit 4 fire.
+        out["error"] = f"database snapshot failed: {type(e).__name__}: {e}"
+        tmp_db.unlink(missing_ok=True)
+        return out
+
+    pin = Path(config.PIN_LOG_PATH)
+    if pin.exists():
+        extras.append((pin, f"state/{pin.name}"))
+        included.append(pin.name)
+
     try:
         with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as z:
             for f in files:
                 z.write(f, arcname=f.name)
+            for f, arc in extras:
+                z.write(f, arcname=arc)
         # Verify before it is allowed anywhere near the backup folder.
+        expected = len(files) + len(extras)
         with zipfile.ZipFile(tmp_zip) as z:
             if z.testzip() is not None:
                 raise RuntimeError("zip failed CRC verification")
-            if len(z.namelist()) != len(files):
-                raise RuntimeError(f"zip holds {len(z.namelist())} of {len(files)} files")
+            if len(z.namelist()) != expected:
+                raise RuntimeError(f"zip holds {len(z.namelist())} of {expected} files")
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / tmp_zip.name
         shutil.copy2(tmp_zip, dest)
         out.update(ok=True, files=len(files), bytes=dest.stat().st_size,
-                   dest=str(dest))
+                   dest=str(dest), extras=included)
     except Exception as e:  # noqa: BLE001 -- backup must never end the run
         out["error"] = f"{type(e).__name__}: {e}"
     finally:
         tmp_zip.unlink(missing_ok=True)
+        tmp_db.unlink(missing_ok=True)
     return out
 
 

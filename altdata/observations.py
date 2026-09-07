@@ -145,6 +145,43 @@ SELECT observed_at, value_num, value_text, source, available_at, run_id
 """
 
 
+def snapshot_sqlite(src: Path, dest: Path) -> dict:
+    """Consistent copy of a LIVE SQLite database, via the online backup API.
+
+    NOT shutil.copy2, and the difference is not pedantry. The EOD pass runs at
+    16:10, inside the Portfolio Truth sync window (Mon-Fri 09:00-17:00 every 30
+    minutes), and the nightly off-box sweep runs while nothing guarantees the
+    database is idle either. A plain file copy taken mid-transaction produces a
+    file that OPENS CLEANLY and is missing rows -- a backup that looks valid and
+    is not, which is worse than no backup because it is trusted.
+
+    sqlite3's backup() holds a read lock for the duration and is the supported
+    way to snapshot a database that may have a writer. It lives here, in the
+    module that owns the database, so the EOD zip and the rclone sweep cannot
+    drift into copying it two different ways.
+
+    Raises on failure. A caller that wants a backup failure to be non-fatal
+    catches it and says so; silence is not on offer.
+    """
+    src = Path(src)
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.unlink(missing_ok=True)
+    conn = sqlite3.connect(f"file:{src}?mode=ro", uri=True)
+    try:
+        out = sqlite3.connect(str(dest))
+        try:
+            conn.backup(out)
+            rows = out.execute(
+                "SELECT COUNT(*) FROM observations").fetchone()[0]
+        finally:
+            out.close()
+    finally:
+        conn.close()
+    return {"src": str(src), "dest": str(dest),
+            "bytes": dest.stat().st_size, "observations": rows}
+
+
 class ObservationStore:
     """Append-only point-in-time store. Never updates, never deletes."""
 
@@ -317,3 +354,33 @@ def migrate_csv_store(store_dir: Optional[str] = None,
     finally:
         db.close()
     return out
+
+
+def _main(argv) -> int:
+    """`python -m altdata.observations snapshot <dest>` for the backup sweep.
+
+    A CLI rather than an inline `python -c` in the shell script, so the
+    snapshot rule has exactly one implementation and the script cannot quietly
+    fall back to `cp` the next time somebody edits it.
+    """
+    if len(argv) >= 1 and argv[0] == "snapshot":
+        dest = Path(argv[1]) if len(argv) > 1 else Path("chester_snapshot.db")
+        src = Path(argv[2]) if len(argv) > 2 else Path(DEFAULT_DB)
+        if not src.exists():
+            print(f"no database at {src}")
+            return 1
+        try:
+            info = snapshot_sqlite(src, dest)
+        except Exception as exc:  # noqa: BLE001 -- the caller is a shell script
+            print(f"snapshot failed: {type(exc).__name__}: {exc}")
+            return 2
+        print(f"snapshot ok {info['dest']} "
+              f"({info['bytes']:,} bytes, {info['observations']:,} observations)")
+        return 0
+    print("usage: python -m altdata.observations snapshot <dest> [src]")
+    return 2
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    raise SystemExit(_main(_sys.argv[1:]))

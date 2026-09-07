@@ -72,6 +72,15 @@ jobs:
       - name: Heartbeat caller policy
         run: bash tools/validate_heartbeat_caller.sh
 
+      # P0-1. The store is the system and it had one copy: data/chester.db is
+      # gitignored, so git has never seen it. Checks that the database is in
+      # the archive, that the snapshot is a consistent online-backup copy
+      # rather than a file copy that can be torn, that a failed snapshot does
+      # NOT leave a complete-looking zip, and that the sweep copies and never
+      # syncs -- `rclone sync` would replicate a local deletion to the backup.
+      - name: Backup path gate
+        run: python tools/validate_backup.py
+
       # The D4c report. Checks the rulings rather than the output: that the
       # data-only edition contains no path to generated prose (read from the
       # source, not promised in a comment), that the archive survives a failed

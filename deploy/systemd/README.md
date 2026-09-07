@@ -433,6 +433,59 @@ The close report emits under `daily_cascade` and the EOD pass under
 freshness on the dashboard.
 
 
+## 10. Install the off-box backup sweep (D1a)
+
+`data/chester.db` holds the observation history, the decision register and the
+immutable packets. It is gitignored, so git has never seen it, and before this
+it existed in exactly one place. The EOD zip now carries it; this copies
+everything off the box nightly.
+
+```bash
+sudo apt install -y rclone
+rclone config                       # create a remote, e.g. `b2` or `drive`
+rclone lsd <remote>:                # prove it authenticates
+
+cp ~/chester-reports/deploy/systemd/chester-backup.{service,timer} ~/.config/systemd/user/
+systemctl --user edit chester-backup.service
+#   [Service]
+#   Environment=CHESTER_RCLONE_REMOTE=b2:chester-backup
+systemctl --user daemon-reload
+
+~/chester-reports/scripts/rclone_sync.sh; echo "exit=$?"   # prove it once
+systemctl --user enable --now chester-backup.timer
+```
+
+**Without `CHESTER_RCLONE_REMOTE` the script exits 1 and copies nothing** — it
+refuses to look like it ran. That is the failure mode a backup must not have.
+
+### What it copies, and what it deliberately does not do
+
+| Remote path | Source |
+|---|---|
+| `db/` | a dated, consistent snapshot of `chester.db` |
+| `data/` | chains, computed profiles, the pin log |
+| `backups/` | the EOD zips |
+| `state/` | heartbeat, status files, the brief's alert |
+
+**`rclone copy`, never `rclone sync`.** `sync` makes the remote match the
+source, so a local deletion — a bad restore, an `rm -rf` on the wrong path, a
+disk that comes back empty — is faithfully replicated and the backup is gone at
+the exact moment it was needed. `copy` only ever adds. Pruning the remote is a
+deliberate human act, never a side effect of the thing that protects you.
+
+**The database is snapshotted, not copied.** A live SQLite file read mid-write
+produces a database that opens cleanly and is missing rows — a backup that
+looks valid and is not, which is worse than none because it is trusted. Both
+the EOD zip and this sweep go through `altdata.observations.snapshot_sqlite`,
+so the two cannot drift. The staged copy is dated, so the remote accumulates
+history: a corruption found on Thursday needs Tuesday's file, and copy
+semantics only help if the names differ.
+
+Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
+venv) · `2` the snapshot failed · `3` at least one tree did not copy. The unit
+declares no `SuccessExitStatus`, so anything but a completed sweep shows red.
+
+
 ## Timezone note
 
 The box may run UTC — that is fine and expected. The timer names
