@@ -62,7 +62,25 @@ def dash(title: str = "not available") -> str:
 
 
 def num(v, dp: int = 2) -> str:
-    return dash() if v is None else f"{float(v):,.{dp}f}"
+    """A number, or the dash. NEVER an exception.
+
+    float(v) raises on anything non-numeric, and close_report.py has no try
+    around render(), so one bad field would kill the whole nightly report --
+    including the archive, which is written from the same string. A report that
+    refuses to render because one cell is a string is strictly worse than a
+    report with one dash in it: the dash is visible and the missing report is
+    not.
+
+    The payload reads value_num out of SQLite (REAL or NULL) so today every
+    caller passes a float or None. "Today" is the operative word; the profile
+    JSONs are written by a different path and nothing constrains their types.
+    """
+    if v is None:
+        return dash()
+    try:
+        return f"{float(v):,.{dp}f}"
+    except (TypeError, ValueError):
+        return dash(f"not numeric: {v!r}")
 
 
 def money(v) -> str:
@@ -75,7 +93,11 @@ def money(v) -> str:
     """
     if v is None:
         return dash()
-    v = float(v)
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        # Same rule as num(): a bad cell costs a cell, never the report.
+        return dash(f"not numeric: {v!r}")
     a = abs(v)
     if a >= 1e9:
         return f"{v / 1e9:,.2f}bn"
@@ -87,7 +109,12 @@ def money(v) -> str:
 
 
 def pct(v) -> str:
-    return dash() if v is None else f"{float(v) * 100:,.1f}%"
+    if v is None:
+        return dash()
+    try:
+        return f"{float(v) * 100:,.1f}%"
+    except (TypeError, ValueError):
+        return dash(f"not numeric: {v!r}")
 
 
 def hit(v) -> str:

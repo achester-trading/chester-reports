@@ -167,6 +167,26 @@ def group_c() -> None:
         else:
             bad(f"{name}(None) produced {out!r}")
 
+    # A NON-NUMERIC VALUE COSTS A CELL, NEVER THE REPORT. close_report.py has
+    # no try around render(), and the archive is written from the same string,
+    # so an exception here would destroy the nightly report AND its permanent
+    # copy over one bad field. Verified with the values a store or a profile
+    # JSON could actually produce.
+    for fn, name in ((render.num, "num"), (render.money, "money"),
+                     (render.pct, "pct")):
+        for junk in ("n/a", "", [], {}, object()):
+            try:
+                out = fn(junk)
+            except Exception as exc:  # noqa: BLE001
+                bad(f"{name}({junk!r}) raised {type(exc).__name__} -- "
+                    f"one bad cell would kill the report and its archive")
+                break
+            if "mdash" not in out:
+                bad(f"{name}({junk!r}) returned {out!r}, not a dash")
+                break
+        else:
+            ok(f"{name}() returns a dash on every non-numeric value, never raises")
+
     empty = {"report": "daily_close", "session": "2026-01-02",
              "generated_at": "x", "as_of": "y", "run_id": "z",
              "convention_version": "dealers-hand-v1", "tolerance_bps": 25.0,
