@@ -146,7 +146,7 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — 14 of them, no network, no box. It keeps
+**`make validate` runs every gate** — 15 of them, no network, no box. It keeps
 going past a failure and summarises at the end, because the question after a
 change is "what did I break", not "what did I break first"; `make validate-fast`
 stops at the first failure for a tight edit loop. The list lives in the
@@ -155,6 +155,14 @@ and a local run cannot hold different lists — which is how four validators
 drifted out of CI while still passing locally. Adding a gate means adding one
 line to the Makefile. (`make` is absent on a stock Windows box; the validators
 all run directly too.)
+
+One of the fifteen is the library's own: `tools/check_library.py`, also reachable
+as **`make library-check`**, which is the one to run while editing a paper rather
+than code. It enforces the Library conventions above — cite by name, the masthead
+owns the version, one namespace per rule, consecutive parts and figures — plus
+the guide's roster, every path this file names, and every link under `docs/`. It
+fails on those and warns on a missing built HTML edition, a stale word total, and
+a forward reference to a paper that now exists.
 
 ### Known cleanup
 

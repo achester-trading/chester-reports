@@ -35,7 +35,8 @@ PY_VALIDATORS := \
 	tools/validate_iv_solver.py \
 	tools/validate_daily_close.py \
 	tools/validate_exec_bits.py \
-	tools/validate_systemd_units.py
+	tools/validate_systemd_units.py \
+	tools/check_library.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \
@@ -44,7 +45,14 @@ SH_VALIDATORS := \
 
 EXTRA := smoke_test.py
 
-.PHONY: validate validate-fast list
+.PHONY: validate validate-fast list library-check
+
+# The white paper library's own gate, on its own target because it is the one
+# a human runs while editing a paper rather than while editing code. It is in
+# PY_VALIDATORS too, so `make validate` and CI both run it without a second
+# list to keep in step.
+library-check:
+	@$(PYTHON) tools/check_library.py
 
 list:
 	@echo "python:"; for v in $(PY_VALIDATORS) $(EXTRA); do echo "  $$v"; done
