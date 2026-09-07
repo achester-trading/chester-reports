@@ -143,6 +143,21 @@ def _fetch_fredgraph(series_id: str) -> pd.Series | None:
         return None
 
 
+def _fetch_fred(series_id: str) -> pd.Series | None:
+    """fredgraph first, the keyed API as the fallback.
+
+    Spelled out rather than written `_fetch_fredgraph(id) or _fetch_fred_api(id)`
+    because `or` on a pandas Series raises "The truth value of a Series is
+    ambiguous". Every pair but DXY carries a fred_id, so that expression killed
+    every online run on its second series -- the failure looked like a pandas
+    problem and was a control-flow one.
+    """
+    s = _fetch_fredgraph(series_id)
+    if s is None or s.empty:
+        s = _fetch_fred_api(series_id)
+    return None if s is None or s.empty else s
+
+
 def _fetch_fred_api(series_id: str) -> pd.Series | None:
     key = os.environ.get("FRED_API_KEY")
     if not key:
@@ -203,14 +218,14 @@ def load_series(key: str, cache_dir: str, max_age_days: int = 7,
     if not offline:
         s, src = None, None
         if fred_id:
-            s = _fetch_fredgraph(fred_id) or _fetch_fred_api(fred_id)
+            s = _fetch_fred(fred_id)
             src = f"fred:{fred_id}" if s is not None else None
         if s is None and yf_ticker:
             s = _fetch_yf(yf_ticker)
             src = f"yf:{yf_ticker}" if s is not None else None
         # DXY special case: fall back to the Fed broad index (2006+)
         if s is None and key == "DXY":
-            s = _fetch_fredgraph("DTWEXBGS") or _fetch_fred_api("DTWEXBGS")
+            s = _fetch_fred("DTWEXBGS")
             src = "fred:DTWEXBGS" if s is not None else None
         if s is not None:
             s = s[s.index.date >= START]

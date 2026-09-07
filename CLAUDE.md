@@ -183,27 +183,39 @@ encoding bug `smoke_test.py` just shed — `Path.write_text()` and the closing
 `print` both assume a UTF-8 default, so a local run on Windows will fail on the
 report's check marks. CI is Linux, so this only bites locally.
 
-And `make figures` does not run clean. `altdata/fx_charts.py` and its anchor
-dataset `altdata/fx_anchors.py` are committed now and matplotlib is in
-`requirements.txt`, so the module imports and the offline path draws all eight
-charts. Two things still block it:
+And **`make figures` runs, but its output is not what is committed.** The module,
+its anchor dataset and matplotlib are all in place, and the FRED path works —
+an online run now pulls 6,900–7,800 daily observations per pair. That is the
+problem: `docs/figures/currencies/` holds the *anchor reconstruction*, roughly
+34 points a pair, and the regenerated charts are drawn from live daily history.
+They disagree on the data, not the rendering — USD/THB's thirty-year range goes
+from "25.3 to 55.8 (~75% of the midpoint)" to "22.75 to 56.1 (~85%)", USD/CHF's
+span from ~88% to ~86%.
 
-**The FRED path raises.** `load_series` does
-`_fetch_fredgraph(fred_id) or _fetch_fred_api(fred_id)`, and `or` on a pandas
-Series is a `ValueError: The truth value of a Series is ambiguous`. Every pair
-except DXY carries a `fred_id`, so an online run dies on the second series.
-`--offline` avoids it entirely; the target passes no such flag.
+Two further gaps sit under that. The regenerated charts mark only each series'
+min and max, ignoring the curated `marks_long`/`marks_five` callouts the anchor
+dataset carries ("8.28 peg", "1997–2005", "now") — `fx_charts.py` never reads
+those fields, so the committed figures were drawn by a later fx_charts than the
+3 September snapshot. And the captions in `docs/figures/currencies/index.md`
+say "approximate reconstruction", which a daily-data edition would falsify.
 
-**The offline output is not the committed figures.** Same underlying series —
-the thirty-year range annotations agree to the decimal — but different
-presentation: matplotlib's default four-year x-ticks instead of the committed
-five-year ones, and only the series min/max marked instead of the curated
-callouts the anchor dataset carries in its unused `marks_long`/`marks_five`
-fields ("8.28 peg", "1997–2005", "now"). The five-year panels also end on
-different values. The committed figures were evidently drawn by a later
-fx_charts than the one in the 3 September snapshot. Until that is reconciled,
-`docs/figures/currencies/` is canonical and this target is not to be run over
-it.
+**So `docs/figures/currencies/` stays canonical and `make figures` is not to be
+run over it** until someone decides whether the paper wants the reconstruction
+or the real series. Adopting the real series means updating those captions and
+the paper's Part V note in the same change.
+
+**The 3 September package's report layer is not in this repo.** Its
+`altdata/report/` carries thirteen modules with no counterpart here by name or
+by content — `narratives.py` and `narratives_extended.py` (166 KB between
+them), `cases_and_positioning.py`, `weekly_scan.py` and
+`weekly_scan_prompt.py`, `export.py`, `generate.py`, `peers.py`, `signals.py`,
+`assets.py`, `sources.py`, `__main__.py`, `__init__.py`. That is a report
+generator, and the Alternative Asset report is presumably built from it, which
+means the pipeline for one of the five reports lives outside version control.
+Deciding where that report is generated from — import the layer, rewrite it
+against the current `altdata/`, or leave it out deliberately — is open.
+Note `sources.py`: dropping it flat into `altdata/` would shadow the
+`altdata/sources/` package.
 
 ## Standing rules
 
