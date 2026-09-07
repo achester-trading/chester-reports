@@ -29,6 +29,7 @@ Usage:
 from __future__ import annotations
 
 import base64
+import hashlib
 import html as htmllib
 import re
 import sys
@@ -48,6 +49,23 @@ OUT = ROOT / "docs" / "html"
 
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
         ".gif": "image/gif", ".webp": "image/webp"}
+
+
+def source_sha256(path: Path) -> str:
+    """The fingerprint a built edition carries of the .md it was built from.
+
+    tools/check_library.py recomputes this and compares it against the
+    <meta name="source-sha256"> in the built file. That is how a stale edition
+    is found now that mtimes are known not to survive a checkout, so the two
+    copies of this function have to agree -- and they say so loudly if they
+    ever stop, because a drift makes all 24 editions warn at once.
+
+    Line endings are normalised first: .gitattributes lets .md follow the
+    platform, so the same paper is CRLF on the authoring Windows box and LF on
+    Linux CI, and the raw bytes would fingerprint the checkout, not the paper.
+    """
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------- structure
@@ -379,6 +397,7 @@ def build(md_path: Path) -> tuple[str, list[str]]:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="%s">
 <title>%s</title>
 <style>%s</style>
 </head>
@@ -402,7 +421,8 @@ def build(md_path: Path) -> tuple[str, list[str]]:
 <script>%s</script>
 </body>
 </html>
-""" % (htmllib.escape(title), CSS, block("\n".join(head_lines)), toc_html,
+""" % (source_sha256(md_path), htmllib.escape(title), CSS,
+       block("\n".join(head_lines)), toc_html,
        "\n".join(accordions), md_path.relative_to(ROOT).as_posix(), JS)
     return html, report
 

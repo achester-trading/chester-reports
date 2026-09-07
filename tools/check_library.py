@@ -14,9 +14,9 @@ looking for.
 Every check here is one of those rules. FAIL means the library is now wrong in
 a way a reader would act on -- a figure a paper references and the repo does
 not have, a numeral cited where a name belongs. WARN means something is
-drifting and a human should decide: a built edition older than its source is
-one `make html` away from correct, and a fresh clone stamps every file with
-the same checkout time, so staleness cannot be a build failure.
+drifting and a human should decide: a built edition whose source has moved on
+is one `make html` away from correct. INFO is neither -- it says a check
+declined to look, which is only ever about a path git is told to ignore.
 
 THE REGISTRY BELOW IS THE MAP FROM NUMERAL TO FILE. It is the one thing the
 guide cannot supply (it names titles, not paths) and the filenames cannot
@@ -25,7 +25,9 @@ one line to it -- the same discipline as adding a validator to the Makefile or
 a report key to state/emit.py:VALID_KEYS.
 """
 
+import hashlib
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -72,6 +74,7 @@ ROMAN = {r: i for i, r in enumerate(REGISTRY, start=1)}
 
 fails: list[str] = []
 warns: list[str] = []
+infos: list[str] = []
 
 
 def fail(check, msg):
@@ -80,6 +83,48 @@ def fail(check, msg):
 
 def warn(check, msg):
     warns.append(f"[{check}] {msg}")
+
+
+def info(check, msg):
+    infos.append(f"[{check}] {msg}")
+
+
+def gitignored(paths):
+    """Which of these paths git is told to ignore.
+
+    Ask git rather than reimplementing its matching: the root .gitignore is
+    not the only one in the tree, and the rules have negations and anchoring
+    that a quick fnmatch gets wrong in exactly the cases worth getting right.
+    If git is not on the box, nothing is reported ignored and the caller
+    behaves as it did before -- erring toward checking a path, not skipping it.
+    """
+    if not paths:
+        return set()
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(ROOT), "check-ignore", "-z", "--stdin"],
+            input="\0".join(paths).encode("utf-8"),
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    except OSError:
+        return set()
+    return {s for s in done.stdout.decode("utf-8").split("\0") if s}
+
+
+def source_sha256(path):
+    """The fingerprint tools/build_paper_html.py stamps into a built edition.
+
+    Kept in both files deliberately: this gate carries no third-party imports
+    and the builder needs `markdown`, so importing one from the other would
+    make the gate unrunnable wherever the builder is not installed. The
+    duplication is self-policing -- if the two ever disagree, check 10 warns
+    on all 24 editions at once.
+
+    Line endings are normalised first: .gitattributes lets .md follow the
+    platform, so the same paper is CRLF on the authoring Windows box and LF on
+    Linux CI, and the raw bytes would fingerprint the checkout, not the paper.
+    """
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def paper_files():
@@ -267,11 +312,20 @@ def check_6_filenames():
 
 
 def check_7_claude_paths():
-    """Every path CLAUDE.md names exists -- except the ones it says it deleted."""
+    """Every path CLAUDE.md names exists -- except the ones it says it deleted.
+
+    And except the ones git is told to ignore. CLAUDE.md names `build/`, which
+    `make figures` writes and a fresh clone does not have; a path whose whole
+    job is to be absent from the repository cannot be evidence that CLAUDE.md
+    is wrong. Those are reported as info, because a skipped check should say so
+    out loud rather than pass silently -- but not as a warning, because there
+    is nothing here for a human to decide.
+    """
     text = CLAUDE.read_text(encoding="utf-8")
     cleanup = text.find("### Known cleanup")
     if cleanup != -1:
         text = text[:cleanup]
+    toks = []
     for tok in set(re.findall(r"`([^`\s]+)`", text)):
         # Only repo-relative paths. Not $ENV_VARS, not URLs, not the
         # <slug> placeholders in the naming rules, and not the file:SYMBOL form
@@ -279,7 +333,13 @@ def check_7_claude_paths():
         tok = tok.split(":")[0]
         if "/" not in tok or tok.startswith(("$", "http")) or "<" in tok:
             continue
-        if not (ROOT / tok.rstrip("/")).exists():
+        toks.append(tok)
+    toks = sorted(set(toks))
+    ignored = gitignored(toks)
+    for tok in toks:
+        if tok in ignored:
+            info(7, f"CLAUDE.md names {tok}, which .gitignore covers -- not checked")
+        elif not (ROOT / tok.rstrip("/")).exists():
             fail(7, f"CLAUDE.md names {tok}, which does not exist")
 
 
@@ -329,8 +389,16 @@ def check_10_figures_and_builds():
 
     A missing figure is a FAIL -- a paper that references artwork the repo
     does not have is wrong in a way a reader meets immediately. A stale build
-    is a WARN, because the fix is `make html` and because a fresh clone gives
-    every file the same checkout time.
+    is a WARN, because the fix is one `make html`.
+
+    STALENESS IS A HASH, NOT A TIMESTAMP. This check compared mtimes until it
+    was pointed out that git does not record them: every file in a fresh clone
+    is stamped with the checkout, in whatever order the checkout happened to
+    write them, so the answer was noise on any machine that had not just run
+    the build. tools/build_paper_html.py therefore stamps each edition with
+    the SHA-256 of the .md it was built from, and this recomputes it. An
+    edition with no stamp is one built before this existed -- also a `make
+    html` away, and reported the same way.
     """
     for f in sorted((ROOT / "docs").rglob("*.md")):
         text = re.sub(r"`[^`\n]*`", "", f.read_text(encoding="utf-8"))
@@ -341,14 +409,25 @@ def check_10_figures_and_builds():
                 fail(10, f"{f.relative_to(ROOT)}: figure {tgt} does not exist "
                          f"({alt[:40]})")
 
+    stamp = re.compile(r'<meta name="source-sha256" content="([0-9a-f]{64})"')
     for built in sorted(HTML.glob("*.html")):
         src = PAPERS / f"{built.stem}.md"
         if not src.exists():
             src = ROOT / "docs" / f"{built.stem}.md"
         if not src.exists():
             warn(10, f"docs/html/{built.name}: no .md it could have been built from")
-        elif built.stat().st_mtime < src.stat().st_mtime:
-            warn(10, f"docs/html/{built.name} is older than {src.name} -- run `make html`")
+            continue
+        # The stamp is a <meta> in the head; an edition with figures inlined
+        # runs to megabytes, and none of the rest of it is any of this check's
+        # business.
+        with built.open(encoding="utf-8") as fh:
+            m = stamp.search(fh.read(4096))
+        if m is None:
+            warn(10, f"docs/html/{built.name} carries no source-sha256 -- "
+                     f"run `make html`")
+        elif m.group(1) != source_sha256(src):
+            warn(10, f"docs/html/{built.name} was built from a different "
+                     f"{src.name} -- run `make html`")
 
 
 def check_11_wordcount(papers):
@@ -414,6 +493,8 @@ def main():
     check_12_stale(papers)
     check_13_agents()
 
+    for i in infos:
+        print(f"info {i}")
     for w in warns:
         print(f"warn {w}")
     for f in fails:
