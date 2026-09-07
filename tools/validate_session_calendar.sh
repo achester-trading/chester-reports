@@ -268,6 +268,40 @@ else
     bad "no interpreter for the checker to read the calendar with -- section skipped"
 fi
 
+
+head_ "4. dual-write divergence is its own verdict"
+
+# altdata/store.py swallows a SQLite failure so it cannot cost the CSV write
+# that already succeeded, and appends to ~/.chester/dual_write_failed instead.
+# If the checker did not read that record the swallow would be silent again --
+# which is the defect, not the fix. A fresh heartbeat must NOT report OK while
+# the two stores disagree.
+DW_SB="$(mktemp -d)"
+mkdir -p "$DW_SB/state"
+printf 'rc=0 sha=test at=%s\n' "$(date --iso-8601=seconds)" >"$DW_SB/state/eod_heartbeat"
+CHESTER_REPO="$REPO_ROOT" CHESTER_STATE_DIR="$DW_SB/state" \
+    bash "$REPO_ROOT/scripts/check_heartbeat.sh" >/dev/null 2>&1
+rc_clean=$?
+printf '2026-01-01T00:00:00Z fred.vix OperationalError: database is locked\n' \
+    >"$DW_SB/state/dual_write_failed"
+out_div="$(CHESTER_REPO="$REPO_ROOT" CHESTER_STATE_DIR="$DW_SB/state" \
+    bash "$REPO_ROOT/scripts/check_heartbeat.sh" 2>&1)"
+rc_div=$?
+rm -rf "$DW_SB"
+
+[[ $rc_clean -eq 0 ]] \
+    && ok "a fresh heartbeat with no dual-write record is healthy (exit 0)" \
+    || bad "a clean box reported exit $rc_clean"
+[[ $rc_div -eq 4 ]] \
+    && ok "a recorded dual-write failure -> exit 4, distinct from stale/failed" \
+    || bad "divergence reported exit $rc_div, wanted 4"
+grep -q "DIVERGED" <<<"$out_div" \
+    && ok "the checker names the divergence" \
+    || bad "the divergence verdict is not in the output"
+grep -q "dual_write_failed" <<<"$out_div" \
+    && ok "and names the file to clear once the pull is re-run" \
+    || bad "the output does not say how to clear it"
+
 # ---------------------------------------------------------------------------
 head_ "$PASS passed, $FAIL failed"
 if [[ $FAIL -eq 0 ]]; then

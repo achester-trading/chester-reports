@@ -34,6 +34,10 @@
 #   1 stale          -> the EOD pass has not completed inside its allowance
 #   2 no heartbeat   -> it has NEVER completed cleanly on this box
 #   3 last run failed-> it ran and exited non-zero; the status file says why
+#   4 store diverged  -> the pipeline is fresh, but altdata/store.py recorded a
+#                       swallowed dual-write failure: the CSV store has rows the
+#                       database does not. Every run involved exited 0, which is
+#                       exactly why this needs a channel of its own.
 #   8 unit drift     -> the pipeline is healthy AND an installed systemd unit
 #                       differs from its deploy/systemd/ copy, or carries a
 #                       drop-in override. Reported here rather than in CI
@@ -45,7 +49,7 @@
 #                       Distinct from the four above: this is the monitor
 #                       broken, not the pipeline.
 #
-# The unit declares SuccessExitStatus=0 ONLY, so 1/2/3/8/9 leave the unit in
+# The unit declares SuccessExitStatus=0 ONLY, so 1/2/3/4/8/9 leave the unit in
 # systemd's failed state on purpose. `systemctl --user list-units --failed` is
 # a free fourth delivery channel and this is the one job where a red light is
 # the product. That is the opposite of chester-ibkr-sync.service, which marks
@@ -109,6 +113,7 @@ case $RC in
     1) STATE=stale;            HEADLINE="STALE the EOD pass has not completed inside its allowance" ;;
     2) STATE=no_heartbeat;     HEADLINE="CRITICAL the EOD pass has NEVER completed cleanly on this box" ;;
     3) STATE=last_run_failed;  HEADLINE="FAILED the last EOD run exited non-zero -- see eod_status" ;;
+    4) STATE=store_diverged;   HEADLINE="DIVERGED the CSV and SQLite stores disagree -- a dual-write failed" ;;
     8) STATE=unit_drift;       HEADLINE="DRIFT installed units differ from the repo" ;;
     9) STATE=check_failed;     HEADLINE="BROKEN the heartbeat check itself could not run" ;;
     *) STATE=unknown;          HEADLINE="UNKNOWN checker exited $RC" ;;

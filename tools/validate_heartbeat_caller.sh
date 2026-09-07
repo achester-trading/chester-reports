@@ -77,8 +77,8 @@ state_of() { sed -n 's/^state=\([a-z_]*\).*/\1/p' "$STATUS"; }
 printf '%s\ncheck_heartbeat_cron.sh -- verdict mapping\n%s\n' "$LINE" "$LINE"
 
 # --- 1. every exit code gets its own verdict, and is passed through ---------
-declare -A EXPECT=([0]=ok [1]=stale [2]=no_heartbeat [3]=last_run_failed)
-for rc in 0 1 2 3; do
+declare -A EXPECT=([0]=ok [1]=stale [2]=no_heartbeat [3]=last_run_failed [4]=store_diverged)
+for rc in 0 1 2 3 4; do
     run "$rc"
     got="$(state_of)"
     if [[ "$got" == "${EXPECT[$rc]}" ]] && [[ "$RC" == "$rc" ]]; then

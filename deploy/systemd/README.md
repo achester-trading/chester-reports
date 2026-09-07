@@ -77,7 +77,19 @@ tail -40 ~/logs/run_eod-$(date +%Y-%m).log
 ## Health checking
 
 `scripts/check_heartbeat.sh` exits `0` healthy, `1` stale, `2` no heartbeat
-ever, `3` last run failed.
+ever, `3` last run failed, `4` **the CSV and SQLite stores have diverged**.
+
+That last one is not about freshness. `altdata/store.py` writes every series to
+both stores; a SQLite failure there is deliberately swallowed so it cannot cost
+the CSV write that already succeeded, and it appends a line to
+`~/.chester/dual_write_failed` instead. The run that caused it exits 0 and the
+heartbeat stays warm, so nothing about age would ever reveal it. Clear the file
+after re-running the affected pull:
+
+```bash
+cat ~/.chester/dual_write_failed        # what failed, and when
+rm ~/.chester/dual_write_failed         # only after the pull is re-run
+```
 
 It does not use a fixed threshold. It asks `altdata.session` when a run was
 last *due* — the most recent trading session, holidays included — and allows

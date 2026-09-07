@@ -25,8 +25,17 @@
 # calendar (no interpreter, no checkout). That path is weekend-aware only, and
 # says so in its output rather than quietly being less careful.
 #
+# DUAL-WRITE FAILURES ARE A HEALTH FACT TOO. altdata/store.py writes every
+# series to the CSV store and to SQLite; a SQLite failure there is deliberately
+# swallowed so it cannot cost the CSV write that already succeeded, and it
+# appends a line to ~/.chester/dual_write_failed instead. That file existing
+# means the two stores have DIVERGED -- the CSV has rows the database does not
+# -- which is a data-integrity failure that no amount of heartbeat freshness
+# would reveal, because the run that caused it exited 0.
+#
 # Exit codes, suitable for a monitor or a cron alert:
 #   0 healthy · 1 stale · 2 no heartbeat at all · 3 last run failed
+#   4 the pipeline is fresh but the CSV and SQLite stores have diverged
 #
 # Overridable:
 #   CHESTER_STATE_DIR   (~/.chester)
@@ -43,6 +52,7 @@ STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
 REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 HEARTBEAT="$STATE_DIR/eod_heartbeat"
 STATUS="$STATE_DIR/eod_status"
+DUAL_WRITE="$STATE_DIR/dual_write_failed"
 MAX_AGE_H="${CHESTER_MAX_AGE_H:-26}"
 GRACE_H="${CHESTER_GRACE_H:-2}"
 WEEKEND_H="${CHESTER_WEEKEND_H:-74}"
@@ -141,6 +151,21 @@ fi
 if [[ $AGE_H -gt $ALLOWED_H ]]; then
     echo "  STALE ${AGE_H}h exceeds the ${ALLOWED_H}h allowance ($WINDOW)"
     exit 1
+fi
+
+# Freshness was the only question this file used to answer. It is not the only
+# way the store can be wrong: a swallowed dual-write leaves the CSV and SQLite
+# copies divergent while every run exits 0 and the heartbeat stays warm.
+# Reported LAST, so a stale or failed pipeline still wins the verdict -- that is
+# the more urgent fault, and collapsing the two would let fixing one hide the
+# other.
+if [[ -s "$DUAL_WRITE" ]]; then
+    DW_N=$(wc -l <"$DUAL_WRITE" | tr -d ' ')
+    echo "  DIVERGED ${DW_N} dual-write failure(s) recorded"
+    echo "           last: $(tail -1 "$DUAL_WRITE")"
+    echo "           the CSV store has rows the database does not. Re-run the"
+    echo "           affected pull, then clear $DUAL_WRITE"
+    exit 4
 fi
 
 echo "  OK"
