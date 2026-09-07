@@ -32,7 +32,7 @@ governs where it is going and overrides this file on intent.
 
 **Five of those documents exist in two formats.** The library guide,
 `docs/whitepapers/dealers-hand-whitepaper.md` (XIII),
-`docs/options-expression-whitepaper.md` (XXII),
+`docs/whitepapers/options-expression-whitepaper.md` (XXII),
 `docs/whitepapers/evidence-inference-whitepaper.md` (XXIII) and
 `docs/whitepapers/earnings-whitepaper.md` (XXIV) each declare in their own
 masthead that the HTML edition is canonical. For all five, **the HTML is

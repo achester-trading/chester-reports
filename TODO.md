@@ -1155,13 +1155,14 @@ an annotation in place (D2, D4, D5) and the rest is new work below.*
       **X** (Tops and Bottoms) and **XII** (The Daily Cascade Paper). Both have
       full entries in the guide, and both are cited as dependencies by papers
       that ARE committed.
-- [ ] **`paper-building-and-validating-a-systematic-book-draft1.md` (31 Aug,
+- [x] **`archive/systematic-book-draft1-2026-08-31.md` (31 Aug,
       ~4,900 words) is superseded by `systematic-book-whitepaper.md`** (6 Sep,
       ~9,100 words, as-built) — same title, same numeral XIX, two files. The
       older one was written *before* Gate 1 as a specification; the newer one
       states plainly that the integration was built first and the paper written
       the other way round. Retire or archive the draft; two files answering to
       one numeral is the numbering hazard the guide exists to prevent.
+      Archived to `docs/whitepapers/archive/` in `library-audit-1/S1`.
 - [ ] **The guide has no per-paper entry for XX (Base Rates) or XXI
       (International Equities)** — both appear in the at-a-glance table and the
       contents list, neither has a `## XX.` / `## XXI.` section. XVII's entry
