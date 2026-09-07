@@ -128,7 +128,7 @@ Bank reserves fall below the level at which dealers are willing to intermediate 
 
 The reason this sits at the top of the list is that every subsequent scenario in this family, and several outside it, terminate in this mechanism. It is the common failure mode.
 
-**What makes today structurally different from 2019.** The September 2019 repo episode occurred at reserve levels *higher* than those prevailing now. Three buffers that existed then are diminished or gone. The reverse repo facility, which held over $2 trillion at its peak and functioned as a shock absorber that could be drained without touching reserves, is effectively exhausted. Reserves stand near $2.94 trillion, and every dollar of new bill issuance now drains them directly rather than pulling from the RRP. And the Treasury General Account, at roughly $950 billion, is both large and, per the Twist discussion in White Paper I, potentially mobile: a TGA drawdown *adds* reserves, a TGA build *drains* them, and the account is currently the subject of an unresolved policy question about funding buybacks. The system's shock absorber has been replaced by a variable that policy might move for unrelated reasons.
+**What makes today structurally different from 2019.** The September 2019 repo episode occurred at reserve levels *higher* than those prevailing now. Three buffers that existed then are diminished or gone. The reverse repo facility, which held over $2 trillion at its peak and functioned as a shock absorber that could be drained without touching reserves, is effectively exhausted. Reserves stand near $2.94 trillion, and every dollar of new bill issuance now drains them directly rather than pulling from the RRP. And the Treasury General Account, at roughly $950 billion, is both large and, per the Twist discussion in the *Foundations* paper, potentially mobile: a TGA drawdown *adds* reserves, a TGA build *drains* them, and the account is currently the subject of an unresolved policy question about funding buybacks. The system's shock absorber has been replaced by a variable that policy might move for unrelated reasons.
 
 ### Precedent
 
@@ -136,7 +136,7 @@ The reason this sits at the top of the list is that every subsequent scenario in
 
 **March 2020** is the severe instance and the more instructive one, because the failure occurred in the asset that is supposed to be the refuge. For roughly a week, Treasuries sold off during a flight to safety, as leveraged basis positions unwound and dealers refused to absorb the paper. The world's hedge asset failed at its one job until the Fed bought at a scale that made the failure moot. Every subsequent conversation about market functioning descends from that week.
 
-**The disanalogy that matters:** in both episodes the Fed's balance sheet was available and its use was uncontroversial. The current configuration adds a complication White Paper I develops at length — a central bank whose chairman has staked his credibility on discipline and on the proposition that inflation is a choice, facing a fiscal authority whose financing needs are large and growing. The plumbing response is technically identical to easing, and will be read as easing by some portion of the market regardless of how it is framed.
+**The disanalogy that matters:** in both episodes the Fed's balance sheet was available and its use was uncontroversial. The current configuration adds a complication the *Foundations* paper develops at length — a central bank whose chairman has staked his credibility on discipline and on the proposition that inflation is a choice, facing a fiscal authority whose financing needs are large and growing. The plumbing response is technically identical to easing, and will be read as easing by some portion of the market regardless of how it is framed.
 
 ### Tripwire
 
@@ -202,7 +202,7 @@ Long-end **realized** volatility rather than implied is the correct primary, bec
 
 ### Current state
 
-**Loading.** The 30-year sits near 5.21%, a level White Paper I notes as above the threshold strategists had flagged. Rate volatility has been elevated through the guidance withdrawal. What is unknown, and unknowable from public data, is the leverage embedded in US liability-matching structures at these yields. That opacity is the scenario's defining feature.
+**Loading.** The 30-year sits near 5.21%, a level the *Foundations* paper notes as above the threshold strategists had flagged. Rate volatility has been elevated through the guidance withdrawal. What is unknown, and unknowable from public data, is the leverage embedded in US liability-matching structures at these yields. That opacity is the scenario's defining feature.
 
 ### Transmission
 
@@ -210,7 +210,7 @@ Long-end **realized** volatility rather than implied is the correct primary, bec
 
 ### Mutations
 
-**Scope drift — the technique is no longer only pensions.** Any leveraged liability-matcher qualifies. Insurance general accounts running duration against annuity books, leveraged endowment overlays, and increasingly the digital-asset treasury companies discussed in White Paper I's Chapter 5, which hold volatile assets against fixed obligations and margin structures. The physics are identical; only the collateral differs. *Instrument:* none consolidated. **Gap.**
+**Scope drift — the technique is no longer only pensions.** Any leveraged liability-matcher qualifies. Insurance general accounts running duration against annuity books, leveraged endowment overlays, and increasingly the digital-asset treasury companies discussed in the *Foundations* paper's Chapter 5, which hold volatile assets against fixed obligations and margin structures. The physics are identical; only the collateral differs. *Instrument:* none consolidated. **Gap.**
 
 **Substitution — the collateral call arrives through clearing rather than bilateral repo.** Centrally cleared margin rises mechanically with volatility, which means a clearinghouse can generate the same forced-selling loop without any bilateral counterparty making a decision. This mutation is systemically *more* dangerous because it is fully automatic. *Instrument:* clearing margin requirement changes, which are published but not tracked anywhere in the system today. **Gap.**
 
@@ -284,7 +284,7 @@ The trigger can be a faster-than-expected Bank of Japan normalization, a widenin
 
 **August 2024** is the recent live-fire test: a modest BoJ move and a soft US payroll print together produced a violent multi-day unwind, a Nikkei decline of over 12% in a session, and a global volatility spike that resolved within weeks. The episode calibrates the *speed* and *breadth* of this mechanism without telling us anything reliable about its ceiling. **1998** is the deeper precedent, when a yen move of roughly 15% in days contributed to LTCM's failure.
 
-**Today's specific configuration:** the early-August coordinated intervention described in White Paper I — Japan selling European assets rather than Treasuries, with the Fed promoting FIMA repo — was explicitly designed to prevent the largest foreign holder from having to sell US paper. That the architecture was necessary is the evidence that this scenario is not dormant.
+**Today's specific configuration:** the early-August coordinated intervention described in the *Foundations* paper — Japan selling European assets rather than Treasuries, with the Fed promoting FIMA repo — was explicitly designed to prevent the largest foreign holder from having to sell US paper. That the architecture was necessary is the evidence that this scenario is not dormant.
 
 ### Tripwire
 
@@ -392,7 +392,7 @@ BDC price-to-NAV is the primary because it is daily and public. A persistent, se
 
 ### Current state
 
-**Loading.** The CCC−BB differential near 855 basis points is the credit market's own statement that the marginal borrower is distressed while the index is calm, which White Paper I identifies as Factor II's central dissent. Private credit is where a large share of that marginal borrower now lives.
+**Loading.** The CCC−BB differential near 855 basis points is the credit market's own statement that the marginal borrower is distressed while the index is calm, which the *Foundations* paper identifies as Factor II's central dissent. Private credit is where a large share of that marginal borrower now lives.
 
 ### Transmission
 
@@ -502,7 +502,7 @@ Peripheral and semi-core spreads widen to the point where the ECB's willingness 
 
 # FAMILY C — CONCENTRATION AND THE BUILDOUT
 
-*Scenarios 3 and 20. The two scenarios that sit directly on top of White Paper I's Factors I and II, and the pair most likely to fire together, because the buildout and the concentration are the same ten companies viewed from two angles.*
+*Scenarios 3 and 20. The two scenarios that sit directly on top of the *Foundations* paper's Factors I and II, and the pair most likely to fire together, because the buildout and the concentration are the same ten companies viewed from two angles.*
 
 ## Scenario 3 · AI capex halt
 
@@ -520,7 +520,7 @@ The second-order mechanism is the bullwhip. Because scarcity produced double-ord
 
 ### Precedent
 
-**2021–22 in the same complex** is the direct template and is discussed at length in White Paper I: crypto-driven scarcity, double-ordering, an air pocket, channel inventory, a revenue miss, and a roughly 60% drawdown in the supplier's equity against an end market that remained healthy.
+**2021–22 in the same complex** is the direct template and is discussed at length in the *Foundations* paper: crypto-driven scarcity, double-ordering, an air pocket, channel inventory, a revenue miss, and a roughly 60% drawdown in the supplier's equity against an end market that remained healthy.
 
 **Lucent and Nortel, 1999–2002**, are the vendor-financing precedent and the darker one. Both booked revenue on sales financed with their own capital to thinly capitalized customers. When the customers failed, the receivables and the recognized revenue vanished together. The structural feature that made it fatal was not the credit loss; it was that **the income statement could not distinguish financed demand from earned demand until the financing stopped.**
 
@@ -616,7 +616,7 @@ Single-name gamma is available through the FlashAlpha subscription and is the fa
 
 # FAMILY D — PHYSICAL SHOCKS AND GEOPOLITICS
 
-*Scenarios 7, 8, 12, 17. The family whose events happen in the physical world and whose transmission depends on whether markets choose to price them. White Paper I's Chapter 3 supplies the machinery; this family supplies the tail cases.*
+*Scenarios 7, 8, 12, 17. The family whose events happen in the physical world and whose transmission depends on whether markets choose to price them. The *Foundations* paper's Chapter 3 supplies the machinery; this family supplies the tail cases.*
 
 ## Scenario 7 · Chokepoint disruption–price divergence resolves
 
@@ -662,7 +662,7 @@ The instrument is explicitly a **ratio against a price**, which is the correct c
 
 **Aliasing — with 8 and 17.** A chokepoint event, a Taiwan event, and a catastrophe-driven insurance event all present initially as a shipping and insurance repricing.
 
-**Re-specification trigger.** Already fired once. The next one: if the two-quarter rule resolves for adaptation, the scenario should be re-scoped again, from divergence to **precedent risk** — the question of what the demonstrated survivability of a closed chokepoint does to the price of the next closure elsewhere. That mutation is the direct bridge to scenario 8 and is developed in White Paper I's revised Chapter 3.
+**Re-specification trigger.** Already fired once. The next one: if the two-quarter rule resolves for adaptation, the scenario should be re-scoped again, from divergence to **precedent risk** — the question of what the demonstrated survivability of a closed chokepoint does to the price of the next closure elsewhere. That mutation is the direct bridge to scenario 8 and is developed in the *Foundations* paper's revised Chapter 3.
 
 ### Report routing
 
@@ -708,7 +708,7 @@ The cadence question is the instructive one. This is the highest-impact scenario
 
 ### Mutations
 
-**Scope drift — the event is economic rather than military.** Export controls, entity listings, or a mineral-licensing cutoff can remove a large share of the same value without a single ship moving. This mutation is already partly realized, and it is the reason White Paper I's revised Chapter 3 argues the geoeconomic half of the factor is the near-certain path while the military half is the tail. *Instrument:* export license issuance, entity list additions, effective tariff rates. **Gap.**
+**Scope drift — the event is economic rather than military.** Export controls, entity listings, or a mineral-licensing cutoff can remove a large share of the same value without a single ship moving. This mutation is already partly realized, and it is the reason the *Foundations* paper's revised Chapter 3 argues the geoeconomic half of the factor is the near-certain path while the military half is the tail. *Instrument:* export license issuance, entity list additions, effective tariff rates. **Gap.**
 
 **Substitution — the chokepoint is the undersea cable, not the strait.** Taiwan's connectivity runs through a small number of cables that have already proven cuttable, and a connectivity interruption produces financial and operational disruption with full deniability. *Instrument:* cable incident reporting. **Gap.**
 
@@ -718,7 +718,7 @@ The cadence question is the instructive one. This is the highest-impact scenario
 
 ### Report routing
 
-**Primary: Disruptive Themes**, where White Paper I's revised Chapter 3 now carries the theater analysis, the escalation ladder, and the decade probabilities. **Secondary: Monthly Macro, Tail Scan section**, which is the correct quarterly home. Taiwan export orders, foundry revenue, war-risk quotations, and PLA activity data are all uninstrumented and go to the build queue. Semiconductor equities are already visible through the Daily Cascade.
+**Primary: Disruptive Themes**, where the *Foundations* paper's revised Chapter 3 now carries the theater analysis, the escalation ladder, and the decade probabilities. **Secondary: Monthly Macro, Tail Scan section**, which is the correct quarterly home. Taiwan export orders, foundry revenue, war-risk quotations, and PLA activity data are all uninstrumented and go to the build queue. Semiconductor equities are already visible through the Daily Cascade.
 
 ---
 
@@ -830,7 +830,7 @@ The source list flags this as **the scenario most frameworks are least positione
 
 ### Precedent
 
-**1966–1982** is the multi-wave template, and its central lesson is that the second and third waves were larger than the first because credibility had been spent. **1974** is the supply-shock-into-extended-market case that White Paper I identifies as the closest historical rhyme to the current factor configuration. **2021–22** is the recent instance of the assumption failing: almost no participant pre-specified what data, by what date, would count as being wrong about transitory, so nobody was.
+**1966–1982** is the multi-wave template, and its central lesson is that the second and third waves were larger than the first because credibility had been spent. **1974** is the supply-shock-into-extended-market case that the *Foundations* paper identifies as the closest historical rhyme to the current factor configuration. **2021–22** is the recent instance of the assumption failing: almost no participant pre-specified what data, by what date, would count as being wrong about transitory, so nobody was.
 
 ### Tripwire
 
@@ -880,7 +880,7 @@ That signature — front end down, term premium up, currency down, gold up — i
 
 **1972** is the classic instance, with monetary accommodation ahead of an election contributing to the inflation of the following decade. **1951** is the resolution precedent: the Treasury–Fed Accord ended a period in which the Treasury effectively set monetary policy, and it stands as the institutional wall that the fiscal-dominance mechanics of Factor IV would breach from the other direction. **Turkey, repeatedly**, is the modern demonstration of the full sequence.
 
-**The current configuration is genuinely ambiguous**, which White Paper I develops as the Warsh A/B question: an orthodox hawk executing regime change on the Fed's own terms, versus hawkish rhetoric providing cover while the institution accommodates the fiscal need. Both theses predict identical *rhetoric*. Only the realized mean path separates them.
+**The current configuration is genuinely ambiguous**, which the *Foundations* paper develops as the Warsh A/B question: an orthodox hawk executing regime change on the Fed's own terms, versus hawkish rhetoric providing cover while the institution accommodates the fiscal need. Both theses predict identical *rhetoric*. Only the realized mean path separates them.
 
 ### Tripwire
 
@@ -1032,7 +1032,7 @@ This is the correct construction and the hardest to instrument, because it requi
 
 ### Current state
 
-**Dormant, with a widening gap.** The migration is behind schedule against an uncertain clock. White Paper I carries the PQC migration gap as Factor V's designated structural headwind for this reason.
+**Dormant, with a widening gap.** The migration is behind schedule against an uncertain clock. The *Foundations* paper carries the PQC migration gap as Factor V's designated structural headwind for this reason.
 
 ### Transmission
 
@@ -1192,7 +1192,7 @@ Net passive creation is the primary and is available at weekly frequency. Retire
 
 ### Transmission
 
-**Factor II** structurally. This is the scenario that would most cleanly produce White Paper I's Lost-Decade Grind: no crash, no crisis, simply the disappearance of a mechanical bid that made every dip buyable for four decades.
+**Factor II** structurally. This is the scenario that would most cleanly produce the *Foundations* paper's Lost-Decade Grind: no crash, no crisis, simply the disappearance of a mechanical bid that made every dip buyable for four decades.
 
 ### Mutations
 
@@ -1390,7 +1390,7 @@ The single most important operational fact in this paper: **these do not fire in
 
 **The plumbing cascade — 1 + 19 + 9 + 25.** One event with four names. A duration shock generates collateral calls, forced selling meets constrained dealer balance sheet, an auction clears badly into the stress, and the wrapper that promised liquidity discovers it cannot deliver. Any one firing should raise attention on the other three immediately. The framework will not be able to identify which one it is looking at, and should say so.
 
-**The buildout cluster — 3 + 20 + 14 (data-center mutation) + 24 (AI-adjacent mutation).** A capex halt reprices the concentrated index, the infrastructure credit financed against contracted demand, and the investment-grade paper issued to build it. This cluster is the direct tail-side expression of White Paper I's Factors I and II, and its credit legs would move faster than its equity legs.
+**The buildout cluster — 3 + 20 + 14 (data-center mutation) + 24 (AI-adjacent mutation).** A capex halt reprices the concentrated index, the infrastructure credit financed against contracted demand, and the investment-grade paper issued to build it. This cluster is the direct tail-side expression of the *Foundations* paper's Factors I and II, and its credit legs would move faster than its equity legs.
 
 **The bill-market cluster — 4 + 23 + 9 + 1.** Stablecoin demand for bills is load-bearing in Treasury financing. Whether that demand fails (4), is removed by rule (23), or simply proves insufficient at auction (9), the consequence lands in a reserve system with no buffer (1). Four routes, one destination.
 
@@ -1400,7 +1400,7 @@ The single most important operational fact in this paper: **these do not fire in
 
 **The settlement cluster — 13 + 18 + 8.** Aliased in the opening hours by construction, as §Family F argues.
 
-**The correlating variable across all six clusters is the long yield**, which White Paper I identifies as the common bus. Every cluster either originates in it, transmits through it, or is amplified by it.
+**The correlating variable across all six clusters is the long yield**, which the *Foundations* paper identifies as the common bus. Every cluster either originates in it, transmits through it, or is amplified by it.
 
 ## The coverage audit and build queue
 
@@ -1562,4 +1562,4 @@ The build queue in Part 2 is the operational output of this paper. The routing m
 
 What remains unaddressed is the framing argument of §0.1, and it should stay unaddressed rather than be papered over: the event that ends up mattering most is not on this list, because it cannot be. Everything here widens the lit area. Nothing here illuminates the dark.
 
-*Version 1.0 · August 29, 2026 · Companion to the Monthly Macro Report Part 16 and to Disruptive Themes v3.0-prototype. Direction reliable, precision illustrative — here as in White Paper I.*
+*Version 1.0 · August 29, 2026 · Companion to the Monthly Macro Report Part 16 and to Disruptive Themes v3.0-prototype. Direction reliable, precision illustrative — here as in the *Foundations* paper.*

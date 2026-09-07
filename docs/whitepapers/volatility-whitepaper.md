@@ -14,7 +14,7 @@
 
 Volatility is the one variable that appears in every report in the system. The Daily Cascade reads it intraday; Top & Bottom carries it in the complacency overlay; Disruptive Themes inherits its fat-tail lineage from Mandelbrot and Taleb; the Alternative Asset report sizes positions by it. Yet nowhere in the library, until now, has volatility been treated as a subject in its own right — as a market with its own supply and demand, its own participants, its own history of catastrophe, and its own signals.
 
-This paper fills that gap. It sits beside two existing papers and is careful not to repeat them. *The Dealer's Hand* (IX) owns dealer-hedging mechanics — gamma exposure, sign conventions, who is on which side of the options market. *The Daily Cascade Paper* (V) owns the intraday reading rules. This paper treats dealer positioning as one input among several to a larger question — **which volatility regime is the market in, and how close is the boundary** — and refers to IX and V for the mechanics rather than rebuilding them.
+This paper fills that gap. It sits beside two existing papers and is careful not to repeat them. *The Dealer's Hand* owns dealer-hedging mechanics — gamma exposure, sign conventions, who is on which side of the options market. *The Daily Cascade Paper* owns the intraday reading rules. This paper treats dealer positioning as one input among several to a larger question — **which volatility regime is the market in, and how close is the boundary** — and refers to those two papers for the mechanics rather than rebuilding them.
 
 **Three principles govern the writing.**
 
@@ -148,7 +148,7 @@ Three second-order measures complete the equity-vol toolkit, and each is more us
 
 Zero-days-to-expiry options — contracts expiring the same day they are traded — have become the dominant instrument in the S&P 500 options market. They constituted roughly 60% of SPX option volume through 2025, with monthly records above 62%, averaging over 2.4 million contracts a day; retail traders accounted for roughly half. SPX options as a whole reached a record 74% share of all S&P 500-linked derivatives volume, against 58% in 2020.
 
-**What 0DTE changed.** The front end of the surface now has enormous open interest that expires every afternoon. The gamma from these positions is concentrated in the final hours of the session and disappears at the close — *The Dealer's Hand* (IX) and the Daily Cascade paper (V) cover the mechanics and the intraday reading in full, and this paper defers to them. The structural point for the volatility framework is that 0DTE has *decoupled intraday realised volatility from close-to-close realised volatility*. Large intraday ranges are pinned or reversed into the close by the expiring gamma, so daily close-to-close volatility — the input to every historical volatility model and the VIX's implicit benchmark — has been suppressed relative to what the intraday tape actually experiences. The October 2025 configuration of a 16.7 VIX against 5.9% realised is partly this effect.
+**What 0DTE changed.** The front end of the surface now has enormous open interest that expires every afternoon. The gamma from these positions is concentrated in the final hours of the session and disappears at the close — *The Dealer's Hand* and the Daily Cascade paper cover the mechanics and the intraday reading in full, and this paper defers to them. The structural point for the volatility framework is that 0DTE has *decoupled intraday realised volatility from close-to-close realised volatility*. Large intraday ranges are pinned or reversed into the close by the expiring gamma, so daily close-to-close volatility — the input to every historical volatility model and the VIX's implicit benchmark — has been suppressed relative to what the intraday tape actually experiences. The October 2025 configuration of a 16.7 VIX against 5.9% realised is partly this effect.
 
 **What it did not change.** The overnight gap and the regime transition. 0DTE structure dies at the close; it provides no protection against, and no information about, the moves that happen between sessions or the moves that overwhelm the pinning when a regime breaks. The August 2024 spike opened with a gap; the April 2025 spike was driven by overnight policy announcements. A framework that reads 0DTE-suppressed daily volatility as a measure of regime stability is reading the wrong clock.
 
@@ -171,7 +171,7 @@ The MOVE index is the rates market's VIX: a yield-curve-weighted index of one-mo
 - **March 2023.** MOVE began climbing several days before the VIX responded to the regional-bank stress. Bond traders saw the duration mismatch on bank balance sheets as a rates problem before equity traders saw it as a bank problem.
 - **August 2026.** MOVE moved from its 36th percentile to its 89th and back to the 54th within three weeks as the 30-year touched 5.33% — its highest since 2007 — and Treasury doubled its buyback programme to \$4 billion a month in response. Equity vol barely registered; the VIX rose 0.9 points in the worst week. Whether this proves a contained rates episode or the first leg of something that propagates is the live question of the moment, and the framework's answer is: watch MOVE, not the VIX, for the resolution.
 
-**A structural note on what MOVE measures now.** Because the index weights the front end and belly, it is most sensitive to near-term Fed uncertainty. The recent pattern — MOVE falling while the long end sells off — indicates the market has stabilised its view of the next few Fed decisions while the long end reprices for structural reasons (term premium, supply, the fiscal trajectory that *Rates & Liquidity* (X) and *Currencies* (VIII) examine). Cboe's VXTLT, which measures 20-year-bond implied volatility, captures the long end directly and jumped from its 13th to its 32nd percentile in the same week. For the fiscal-dominance scenario, VXTLT may become the more relevant series.
+**A structural note on what MOVE measures now.** Because the index weights the front end and belly, it is most sensitive to near-term Fed uncertainty. The recent pattern — MOVE falling while the long end sells off — indicates the market has stabilised its view of the next few Fed decisions while the long end reprices for structural reasons (term premium, supply, the fiscal trajectory that *Rates & Liquidity* and *Currencies* examine). Cboe's VXTLT, which measures 20-year-bond implied volatility, captures the long end directly and jumped from its 13th to its 32nd percentile in the same week. For the fiscal-dominance scenario, VXTLT may become the more relevant series.
 
 ## 12. Commodity Volatility
 
@@ -189,13 +189,13 @@ Currency volatility is the lowest of any major asset class — G10 pairs realise
 
 **The August 2024 case is the one to internalise**, because it demonstrated FX vol propagating into equity vol on a global scale. The yen carry trade — borrow yen at near-zero rates, invest in higher-yielding assets including US equities — had grown through years of BoJ dovishness into a position estimated in the hundreds of billions of dollars. A BoJ rate hike on 31 July, combined with a weak US jobs print on 2 August, triggered yen appreciation, which forced carry-trade unwinds, which forced selling of the assets the carry had funded. Japanese equities fell 12% on 5 August, their worst day since 1987. The VIX printed 65 intraday. The entire episode resolved within two weeks. It began in a currency, propagated through positioning, and arrived in equities last.
 
-**Reading FX vol for the framework.** Yen implied volatility and the yen risk reversal (the skew between yen calls and puts) are the leading indicators for a carry unwind. Dollar funding stress — visible in the cross-currency basis, which *Currencies* (VIII) covers — is the leading indicator for a liquidity-driven transition. Both fire before the VIX. In the current configuration, the coordinated US–Japan intervention of July 2026 has reset yen positioning, and yen vol has been supported by intervention risk rather than by fundamentals; a repeat of the 2024 sequence would require the carry to rebuild first, which is observable in the CFTC yen position.
+**Reading FX vol for the framework.** Yen implied volatility and the yen risk reversal (the skew between yen calls and puts) are the leading indicators for a carry unwind. Dollar funding stress — visible in the cross-currency basis, which *Currencies* covers — is the leading indicator for a liquidity-driven transition. Both fire before the VIX. In the current configuration, the coordinated US–Japan intervention of July 2026 has reset yen positioning, and yen vol has been supported by intervention risk rather than by fundamentals; a repeat of the 2024 sequence would require the carry to rebuild first, which is observable in the CFTC yen position.
 
 ## 14. Credit Volatility
 
 Credit volatility is measured through options on the CDX indices and, less directly, through the implied volatility of credit ETFs. It is the least-watched of the cross-asset vol measures and, in a credit-driven downturn, the most important.
 
-**The relationship to equity vol** runs through the capital structure: equity is a call option on the firm's assets, credit is short a put on them, and the two are priced off the same underlying uncertainty. In an equity-led selloff, equity vol rises first and credit vol follows as spreads widen. In a credit-led downturn — 2007–2008, or the pattern the *Credit* paper (XI) will argue is forming in private credit — credit vol and spread dispersion rise first, and equity vol follows once the credit problem becomes an earnings problem. The Top & Bottom report's HY-acceleration overlay is designed to catch exactly this sequence; the volatility framework's contribution is that credit *vol* — the price of protection against spread widening — tends to rise before spreads themselves widen, for the same reason implied leads realised everywhere.
+**The relationship to equity vol** runs through the capital structure: equity is a call option on the firm's assets, credit is short a put on them, and the two are priced off the same underlying uncertainty. In an equity-led selloff, equity vol rises first and credit vol follows as spreads widen. In a credit-led downturn — 2007–2008, or the pattern the *Credit* paper will argue is forming in private credit — credit vol and spread dispersion rise first, and equity vol follows once the credit problem becomes an earnings problem. The Top & Bottom report's HY-acceleration overlay is designed to catch exactly this sequence; the volatility framework's contribution is that credit *vol* — the price of protection against spread widening — tends to rise before spreads themselves widen, for the same reason implied leads realised everywhere.
 
 **The cross-read.** CDX implied vol rising while VIX is flat indicates that credit participants are paying for protection the equity market is not demanding. In May 2025 the reverse occurred — credit vol and spreads both fell, with investors resetting hedges as tariff fears receded — and it correctly signalled the equity recovery. The two markets disagree rarely, and the disagreements are worth more than the agreements.
 
@@ -250,7 +250,7 @@ Each episode is treated briefly, on the same template: the trigger, the mechanis
 
 **Resolution.** The Fed's facilities, TARP, and eventually quantitative easing; the equity low came in March 2009, four months after the vol peak.
 
-**Lesson.** The vol peak and the price low are different events. The vol peak marks maximum uncertainty; the price low comes when the uncertainty has resolved into a known bad outcome. Buying the vol peak is buying uncertainty, which is usually right; buying the price low requires waiting for the resolution. And the sequence — credit first, liquidity second, equity last — is the credit-led template that the *Credit* paper (XI) is designed to detect early.
+**Lesson.** The vol peak and the price low are different events. The vol peak marks maximum uncertainty; the price low comes when the uncertainty has resolved into a known bad outcome. Buying the vol peak is buying uncertainty, which is usually right; buying the price low requires waiting for the resolution. And the sequence — credit first, liquidity second, equity last — is the credit-led template that the *Credit* paper is designed to detect early.
 
 ## 19. 2015 and 2018: The ETN Era
 
@@ -345,7 +345,7 @@ Section 2 stated the mechanism; this section names it as a cycle, because it is 
 
 **Stability breeds vol selling.** A calm market rewards premium collection; premium collection attracts capital; capital sells more volatility.
 
-**Vol selling breeds stability.** The selling suppresses implied vol, the hedging of the sold options (dealers long gamma, per IX) dampens realised vol, and the calm that results appears to validate the strategy.
+**Vol selling breeds stability.** The selling suppresses implied vol, the hedging of the sold options (dealers long gamma, per *The Dealer's Hand*) dampens realised vol, and the calm that results appears to validate the strategy.
 
 **Stability breeds fragility.** The position grows, the wings get cheaper, the vol-targeting complex levers up against the low realised vol, and the distance between the market's positioning and its ability to absorb a shock widens.
 
@@ -443,7 +443,7 @@ In order of weight for regime identification.
 
 **6. Realised versus implied.** The spread between trailing realised and current implied. A wide positive spread (implied far above realised) is the premium at its widest, which is crowding at its most rewarded — the October 2025 configuration. Realised crossing above implied is the regime having already changed.
 
-**7. Dealer gamma and positioning.** The GEX reading, the gamma flip level, and its drift toward spot — read exactly as *The Dealer's Hand* (IX) and the Daily Cascade paper (V) specify. This paper places it seventh not because it is unimportant but because it is intraday and equity-only, and the regime question is longer-horizon and cross-asset. Flip drift rising toward spot is the one dealer-positioning reading that belongs in a weekly regime assessment.
+**7. Dealer gamma and positioning.** The GEX reading, the gamma flip level, and its drift toward spot — read exactly as *The Dealer's Hand* and the Daily Cascade paper specify. This paper places it seventh not because it is unimportant but because it is intraday and equity-only, and the regime question is longer-horizon and cross-asset. Flip drift rising toward spot is the one dealer-positioning reading that belongs in a weekly regime assessment.
 
 **8. The VIX level.** Last. It confirms what the structure has already said, and it is the only signal that commentary reports.
 
@@ -519,7 +519,7 @@ This Part maps regimes rather than forecasting levels, because volatility foreca
 
 **What works.** Trailing realised volatility predicts near-term realised volatility with useful accuracy — the GARCH family's core finding, and the reason vol targeting improves risk-adjusted returns. Implied volatility predicts realised volatility better than trailing realised does over one-month horizons, because it incorporates the event calendar. The variance risk premium's *sign* is predictable — implied exceeds realised in most months — even though its magnitude is not.
 
-**What fails.** Every model that extrapolates the current regime fails at the transition, by construction. The February 2018 products were sized for a distribution that excluded a 100% VIX day because none had occurred. Risk models in March 2020 assigned probabilities in the small fractions of a percent to moves that then occurred on consecutive days. The sell-side "VIX forecast" — typically a year-end level published in December — has the same record as the FX consensus documented in *Currencies* (VIII): unanimously wrong in the years that mattered, because the years that mattered were the ones in which the regime changed.
+**What fails.** Every model that extrapolates the current regime fails at the transition, by construction. The February 2018 products were sized for a distribution that excluded a 100% VIX day because none had occurred. Risk models in March 2020 assigned probabilities in the small fractions of a percent to moves that then occurred on consecutive days. The sell-side "VIX forecast" — typically a year-end level published in December — has the same record as the FX consensus documented in *Currencies*: unanimously wrong in the years that mattered, because the years that mattered were the ones in which the regime changed.
 
 **The honest use of forecasts.** Not for expectations of level. For the regime map: what configuration of indicators corresponds to which state, and what the historical frequency of transitions from the current state has been.
 
@@ -546,7 +546,7 @@ Subjective, stated with reasoning, for a three-month horizon.
 | **Regime persists** — VIX stays 12–20, contango holds | ~55% | The modal outcome from a low-vol state on any three-month window; the equity-vol episode of 2026 is behind, and the Fed's September decision is largely priced (hold at 67%) |
 | **Spike without transition** — VIX to 22–30 briefly, no deep inversion, reversion within weeks | ~25% | The 2024–2026 pattern; policy or geopolitical catalysts are abundant and resolution has been fast |
 | **Transition to high-vol regime** — sustained inversion, VIX above 25 for weeks | ~15% | Requires propagation from rates (the live channel) or credit; the August 2026 rates episode is the candidate originating market |
-| **Crisis** — VIX above 40 | ~5% | The base rate; would most plausibly follow the yields-up/dollar-down configuration that *Currencies* (VIII) flags as the fiscal-dominance signature, or a credit event |
+| **Crisis** — VIX above 40 | ~5% | The base rate; would most plausibly follow the yields-up/dollar-down configuration that *Currencies* flags as the fiscal-dominance signature, or a credit event |
 
 **What would move these.** MOVE sustaining above its 75th percentile for more than two weeks would raise the transition probability materially. Term-structure flattening without a spot move would raise it further. Implied correlation rising would move it to the base case. The Fed's 15–16 September meeting is the scheduled catalyst; the Treasury market's response to the buyback expansion is the unscheduled one.
 
@@ -581,7 +581,7 @@ The options-ETF complex has not been through a sustained bear market at its curr
 
 ## 42. Cross-Asset Vol in a Fiscal-Dominance World
 
-If the fiscal trajectory that *Currencies* (VIII) and *Rates & Liquidity* (X) describe produces the yields-up/dollar-down configuration as a recurring feature rather than a January 2026 anomaly, the structure of volatility changes.
+If the fiscal trajectory that *Currencies* and *Rates & Liquidity* describe produces the yields-up/dollar-down configuration as a recurring feature rather than a January 2026 anomaly, the structure of volatility changes.
 
 **MOVE becomes the master variable (~35%).** Rates volatility is structurally elevated as the long end reprices for term premium and supply; equity vol becomes a derivative of rates vol; the risk-parity and vol-targeting complex is permanently smaller because bond vol no longer diversifies; and the framework's signal hierarchy — already placing cross-asset vol second — moves MOVE to first.
 
@@ -668,7 +668,7 @@ FOMC 15–16 September, 27–28 October, 8–9 December. CPI and PCE. Treasury r
 
 **Dispersion** — Long single-stock volatility against short index volatility; profits when correlation is low.
 
-**GEX, gamma flip** — Dealer gamma exposure and the spot level at which it changes sign. Defined and derived in *The Dealer's Hand* (IX).
+**GEX, gamma flip** — Dealer gamma exposure and the spot level at which it changes sign. Defined and derived in *The Dealer's Hand*.
 
 **Implied correlation** — The average pairwise correlation among index constituents implied by the gap between index and constituent implied volatilities.
 
@@ -702,13 +702,13 @@ FOMC 15–16 September, 27–28 October, 8–9 December. CPI and PCE. Treasury r
 
 **Rates vol:** ICE MOVE index; Cboe VXTLT.
 
-**Commodity and FX vol:** Cboe OVX and GVZ; Bloomberg for FX implied vol and risk reversals; the CFTC yen position (VIII).
+**Commodity and FX vol:** Cboe OVX and GVZ; Bloomberg for FX implied vol and risk reversals; the CFTC yen position (see *Currencies*).
 
 **Credit vol:** CDX option data via dealers; the Top & Bottom HY-acceleration overlay as the accessible proxy.
 
 **Positioning:** CFTC Commitments of Traders (VIX futures, Friday); ETF flow data for VIX products, covered-call, and buffer funds; Cboe monthly 0DTE and volume reports.
 
-**Dealer positioning:** per *The Dealer's Hand* (IX) and the Daily Cascade paper (V), with the vendor and cross-check dispositions in the v17 architecture.
+**Dealer positioning:** per *The Dealer's Hand* and the Daily Cascade paper, with the vendor and cross-check dispositions in the v17 architecture.
 
 **Research:** Cboe Insights (weekly, free, and the best regular cross-asset vol commentary available); OptionMetrics; the sell-side derivatives desks' weekly notes; academic literature on the variance risk premium (Bollerslev, Carr and Wu) for the foundations.
 

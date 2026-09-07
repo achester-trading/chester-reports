@@ -18,7 +18,7 @@ The paper carries two emphases, agreed in advance. **Private credit and the bifu
 
 **Three principles govern the writing.** The paper treats the lending-standards cycle, not the spread cycle, as the underlying object — spreads are the last thing to move, and a framework built on them is a framework that reads the news after it happens. It treats dispersion as the signal and level as the noise, because the 2020s' default cycle is happening inside averages that look benign. And it is explicit about what is untested: private credit at its current scale and structure has not been through a full cycle, and the paper refuses to pretend the historical record for bank-syndicated loans transfers cleanly.
 
-**Boundaries.** *Rates & Liquidity* (X) owns the price of money and the Treasury–Fed plumbing; this paper takes the funding channel as given and references it — but Section 29 trades the curve directly, because the long yield is the common bus of the whole book and nothing else in the library expresses a view on it. *Currencies* (VIII) owns dollar-funding stress. Top & Bottom (V) owns the implementation of the credit overlays in the scorecard. *Volatility* (XIII) owns credit vol as a cross-asset signal. This paper owns the borrower's ability to pay, the lender's willingness to lend, and the instruments that price both.
+**Boundaries.** *Rates & Liquidity* owns the price of money and the Treasury–Fed plumbing; this paper takes the funding channel as given and references it — but Section 29 trades the curve directly, because the long yield is the common bus of the whole book and nothing else in the library expresses a view on it. *Currencies* owns dollar-funding stress. The Top & Bottom report owns the implementation of the credit overlays in the scorecard. *Volatility* owns credit vol as a cross-asset signal. This paper owns the borrower's ability to pay, the lender's willingness to lend, and the instruments that price both.
 
 **Timing note.** Written on 31 August 2026 in a configuration that is the paper's own thesis in miniature. The ICE BofA high-yield index option-adjusted spread sits at 269 basis points, in the richest decile of its history against a long-run median near 450; investment grade at 81; BBB at 100. The leveraged-loan payment default rate is 0.93% by amount — yet liability-management exercises account for roughly two-thirds of default activity by issuer count, and the dual-track default rate that includes them runs several points higher. The distress ratio has ticked up to 6.89%. Private credit has just been through its first genuine liquidity event: record redemption requests of 12.1% of net assets from non-traded BDCs in the first quarter, with one manager receiving requests for 40.7% of its technology-focused vehicles while reporting non-accruals of 0.6% — a gap between what investors believe and what marks say that is the bifurcation problem in a single number. The Fed is at 3.50–3.75% and debating hikes, which means the floating-rate cost shock that leveraged borrowers have carried since 2022 is not being relieved. The July Senior Loan Officer survey reported commercial-and-industrial standards *easier* than their post-2005 midpoint while every other category sits at the tight end of its range. That is a late-cycle configuration: the loosest standards in the segment with the most leverage.
 
@@ -37,7 +37,7 @@ A spread decomposes into at least four components, and the proportions shift acr
 
 **Expected loss.** The probability of default multiplied by the loss given default. For investment-grade credit this is a small fraction of the spread — historical five-year cumulative default rates for BBB issuers run near 1.5%, implying expected annual losses of perhaps 15–20 basis points against spreads of 100. For high yield it is larger but still a minority of the spread in most years.
 
-**Risk premium.** Compensation for bearing the *variance* of losses, which is negatively skewed and correlated with everything else going wrong. This is the credit analogue of the variance risk premium that *Volatility* (XIII) describes, and it is the largest component of the spread in normal times.
+**Risk premium.** Compensation for bearing the *variance* of losses, which is negatively skewed and correlated with everything else going wrong. This is the credit analogue of the variance risk premium that *Volatility* describes, and it is the largest component of the spread in normal times.
 
 **Liquidity premium.** Compensation for the difficulty of selling. It is small in calm markets and can become the entire spread in stress, when bids vanish. The March 2020 widening of the high-yield spread to 1,087 basis points was mostly liquidity; expected losses had not moved that far.
 
@@ -160,7 +160,7 @@ The signals that exploit credit's lead, ranked by how early they fire and specif
 
 **7. Spread level.** Last. It confirms what the others have said. A level in the richest decile is a statement about how much room there is to widen, not about whether widening is coming.
 
-**The combination rule.** Standards tightening plus dispersion widening plus acceleration firing plus divergence from equities — all four together — has preceded every credit-led equity drawdown in the available history. Any one alone is noise. The discipline, as in *Volatility* (XIII), is the count.
+**The combination rule.** Standards tightening plus dispersion widening plus acceleration firing plus divergence from equities — all four together — has preceded every credit-led equity drawdown in the available history. Any one alone is noise. The discipline, as in *Volatility*, is the count.
 
 ## 10. Corporate Credit: Bull, Bear, and Range
 
@@ -316,7 +316,7 @@ Commercial mortgage-backed securities pool commercial real estate loans and tran
 
 **Extend-and-pretend as the resolution.** Trepp's alternative measure — including loans past maturity but current on interest, the "performing matured balloon" category — puts the delinquency rate at 9.06%, 152 basis points above the headline. Those are loans that have been extended by special servicers or lenders rather than foreclosed, because foreclosure would crystallise a loss the lender prefers to defer. The mechanism is the CMBS analogue of amend-and-extend in Section 14, and its effect is the same: the cycle is real, it is being deferred, and the deferral concentrates the eventual recognition.
 
-**Where the losses land.** Regional banks, which hold roughly half of all commercial real-estate debt and whose CRE concentration is the reason the March 2023 episode occurred. CMBS B-piece holders, who take the first loss on the securitised portion. And the private real-estate lenders and debt funds that expanded into the gap banks left. Top & Bottom (V) implements the regional-bank stress indicators; this paper's contribution is the read on the securitised channel and the observation that the maturity-driven delinquency is the leading edge.
+**Where the losses land.** Regional banks, which hold roughly half of all commercial real-estate debt and whose CRE concentration is the reason the March 2023 episode occurred. CMBS B-piece holders, who take the first loss on the securitised portion. And the private real-estate lenders and debt funds that expanded into the gap banks left. The Top & Bottom report implements the regional-bank stress indicators; this paper's contribution is the read on the securitised channel and the observation that the maturity-driven delinquency is the leading edge.
 
 ## 19. RMBS and Housing Credit
 
@@ -361,7 +361,7 @@ Credit's relationship to the policy rate runs through two channels that currentl
 
 **The refinancing-wall channel.** Fixed-rate borrowers face the rate shock only at maturity, which concentrates the stress in the years when the low-coupon vintages come due. For high-yield bonds, the 2020–2021 issuance — the largest vintage in the market's history, at the lowest coupons — matures 2027–2029. For CRE, 2024–2027. The wall is a schedule, and the schedule is known.
 
-**The interaction with the Treasury market.** The 30-year Treasury at 5.33% in August 2026 — its highest since 2007 — raises the risk-free base against which all credit is priced, and the term-premium expansion that *Rates & Liquidity* (X) and *Currencies* (VIII) examine feeds directly into the cost of long-dated corporate issuance. IG issuers financing AI infrastructure at ten-to-thirty-year maturities are paying for that term premium. A sustained long-end selloff is a credit tightening independent of the Fed.
+**The interaction with the Treasury market.** The 30-year Treasury at 5.33% in August 2026 — its highest since 2007 — raises the risk-free base against which all credit is priced, and the term-premium expansion that *Rates & Liquidity* and *Currencies* examine feeds directly into the cost of long-dated corporate issuance. IG issuers financing AI infrastructure at ten-to-thirty-year maturities are paying for that term premium. A sustained long-end selloff is a credit tightening independent of the Fed.
 
 ## 23. Credit and Equities: The Lead-Lag Evidence
 
@@ -377,7 +377,7 @@ Section 3 stated the mechanism. This section states the evidence and its limits,
 
 ## 24. Credit and Liquidity
 
-The funding channel belongs to *Rates & Liquidity* (X) and is referenced rather than rebuilt. Three points specific to credit.
+The funding channel belongs to *Rates & Liquidity* and is referenced rather than rebuilt. Three points specific to credit.
 
 **Dealer balance-sheet capacity** determines whether credit reprices smoothly or gaps. Post-2008 rules reduced the capacity of banks to warehouse corporate bonds; the result is that credit markets are liquid in calm conditions and illiquid in stress, and that spread widening in a stress episode is discontinuous. The March 2020 move to 1,087 basis points was a liquidity gap, not a credit repricing.
 
@@ -406,7 +406,7 @@ This Part is educational description of structures commonly used, not a recommen
 
 **Credit ETFs.** HYG and JNK for high yield; LQD for investment grade; BKLN and SRLN for leveraged loans; the CLO-tranche ETFs (JAAA for AAA, JBBB for mezzanine); HYGH and similar for rate-hedged high yield. Liquid, accessible, and subject to a structural problem: **most retail credit exposure is a duration bet.** LQD's seven-year duration means its returns are dominated by Treasury yields; HYG's four-year duration is smaller but still material. An investor who wants credit-spread exposure without rate exposure needs either the rate-hedged variants, the floating-rate loan products, or a Treasury futures overlay.
 
-**CDX and CDS.** The credit default swap indices — CDX IG (125 investment-grade names) and CDX HY (100 high-yield names) — are the cleanest pure-spread instruments: no duration, no coupon, liquid, and the vehicle through which institutional credit views are expressed. CDX options exist and are the source of the credit-vol signal in *Volatility* (XIII). Single-name CDS provides borrower-specific protection. Institutional access; retail exposure is indirect.
+**CDX and CDS.** The credit default swap indices — CDX IG (125 investment-grade names) and CDX HY (100 high-yield names) — are the cleanest pure-spread instruments: no duration, no coupon, liquid, and the vehicle through which institutional credit views are expressed. CDX options exist and are the source of the credit-vol signal in *Volatility*. Single-name CDS provides borrower-specific protection. Institutional access; retail exposure is indirect.
 
 **BDC equity.** The listed BDCs — ARCC, OBDC, MAIN, BXSL, and others — are the only liquid exposure to private credit. Their discount or premium to net asset value is both an instrument and a signal: buying a BDC at a 20% discount is buying private-credit marks at 80 cents, which is either the market's honest estimate or an opportunity, and the framework's view is that it is more the former than the latter until non-accruals across the category have peaked.
 
@@ -444,7 +444,7 @@ This Part is educational description of structures commonly used, not a recommen
 
 ## 29. Rates as a Trade, Not a Policy
 
-*Rates & Liquidity* (X) explains the machine — the regime, the Fed's and Treasury's instruments, the plumbing. This section is about expressing a view on what the machine produces. It belongs in the credit paper because credit is where the need is most acute: IG is duration in a credit costume (Section 5), the refinancing wall is a rate schedule (Section 22), and the 30-year Treasury at 5.33% — its highest since 2007 — is the variable that ran through the currency paper's fiscal-dominance signature, the volatility paper's MOVE read, and the metals paper's real-yield model in the same week. The long yield is the book's common bus. A book that reads it in five papers should be able to trade it in one.
+*Rates & Liquidity* explains the machine — the regime, the Fed's and Treasury's instruments, the plumbing. This section is about expressing a view on what the machine produces. It belongs in the credit paper because credit is where the need is most acute: IG is duration in a credit costume (Section 5), the refinancing wall is a rate schedule (Section 22), and the 30-year Treasury at 5.33% — its highest since 2007 — is the variable that ran through the currency paper's fiscal-dominance signature, the volatility paper's MOVE read, and the metals paper's real-yield model in the same week. The long yield is the book's common bus. A book that reads it in five papers should be able to trade it in one.
 
 ### The curve, 27 August 2026
 
@@ -475,7 +475,7 @@ A curve trade is a DV01-neutral pair — long one tenor, short another, sized so
 
 **Carry and roll-down.** A curve position has carry — the net coupon and financing of the two legs — and roll-down — the gain or loss as each leg ages along the curve. In a positively sloped curve a steepener typically has *negative* carry (the long front leg yields less than the short back leg costs to borrow) and the position must be right about the shape within a horizon the carry allows. The steeper the curve, the more the steepener pays to wait; this is the discipline that separates a curve trade from a curve opinion.
 
-**The 2026 configuration.** The bear steepener has been the fiscal-dominance trade, and it has paid: the long end rose while the Fed turned hawkish, which is the combination the currency paper (VIII) flags as the creditor-confidence signature. Its two failure modes are the two regime changes in that paper: a Fed that capitulates (the trade becomes a bull steepener — still a steepener, different leg leading) and a Fed that hikes credibly enough to anchor the long end (a bear flattener, which is the trade's loss).
+**The 2026 configuration.** The bear steepener has been the fiscal-dominance trade, and it has paid: the long end rose while the Fed turned hawkish, which is the combination the *Currencies* paper flags as the creditor-confidence signature. Its two failure modes are the two regime changes in that paper: a Fed that capitulates (the trade becomes a bull steepener — still a steepener, different leg leading) and a Fed that hikes credibly enough to anchor the long end (a bear flattener, which is the trade's loss).
 
 ### Term premium
 
@@ -523,11 +523,11 @@ Treasury futures settle by delivery of a bond from an eligible basket, and the s
 
 | Paper | The long-yield exposure | The direct expression |
 |---|---|---|
-| **Credit (XI)** | IG duration; the 2027–28 refinancing wall; the floating-rate cohort's cost | ZN/TN short against IG; 2s10s for the cutting-cycle relief trade |
-| **Currencies (VIII)** | Fiscal dominance = yields up, dollar down | 10s30s bear steepener; long breakevens |
-| **Metals (VII)** | Gold's broken real-yield model | Real-duration long (TIPS) as the "model returns" trade |
-| **Volatility (XIII)** | MOVE and VXTLT as the originating market | Long-dated payer swaptions when MOVE is low; VXTLT calls |
-| **Energy (XII)** | Energy → inflation → the long end | Breakeven long as the structural-power-inflation floor |
+| **Credit** | IG duration; the 2027–28 refinancing wall; the floating-rate cohort's cost | ZN/TN short against IG; 2s10s for the cutting-cycle relief trade |
+| **Currencies** | Fiscal dominance = yields up, dollar down | 10s30s bear steepener; long breakevens |
+| **Metals** | Gold's broken real-yield model | Real-duration long (TIPS) as the "model returns" trade |
+| **Volatility** | MOVE and VXTLT as the originating market | Long-dated payer swaptions when MOVE is low; VXTLT calls |
+| **Energy** | Energy → inflation → the long end | Breakeven long as the structural-power-inflation floor |
 
 ### Sizing and risk
 
@@ -556,7 +556,7 @@ In order of weight for cycle timing.
 
 **6. Credit-equity divergence.** Spreads widening while equities rise. Sixth in timing but first in value when it fires, because it is the configuration in which the lender has changed its assessment and the equity holder has not.
 
-**7. Cross-asset confirmation.** Credit vol (XIII), MOVE, the funding measures (X). Confirms that the credit move is propagating rather than isolated.
+**7. Cross-asset confirmation.** Credit vol (the *Volatility* paper), MOVE, the funding measures (*Rates & Liquidity*). Confirms that the credit move is propagating rather than isolated.
 
 **8. Spread level.** Last. Room to widen, not likelihood of widening.
 
@@ -603,7 +603,7 @@ The specific series, with sources and what each says.
 
 **Credit against equities** — Section 23; the divergence signal.
 
-**Credit against credit vol** — CDX implied volatility rising ahead of spreads, per *Volatility* (XIII), is the credit market buying protection before it needs it.
+**Credit against credit vol** — CDX implied volatility rising ahead of spreads, per *Volatility*, is the credit market buying protection before it needs it.
 
 **Credit against rates vol** — MOVE rising with spreads widening is a rates-driven credit tightening (2022); spreads widening with MOVE flat is credit-specific (2007, 2014).
 
@@ -744,7 +744,7 @@ CLO equity distributions and issuance. New-issue calendar health (deals pulled, 
 
 ## Tier 3: Cross-Asset
 
-CDX implied vol (XIII). MOVE and VXTLT. Cross-currency basis and SOFR–IORB (X, VIII). The 30-year Treasury and IG issuance terms; 2s10s and 10s30s; ten-year breakevens and real yields; long-end swap spreads; the ten-year and bond futures basis (Section 29).
+CDX implied vol (*Volatility*). MOVE and VXTLT. Cross-currency basis and SOFR–IORB (*Rates & Liquidity*, *Currencies*). The 30-year Treasury and IG issuance terms; 2s10s and 10s30s; ten-year breakevens and real yields; long-end swap spreads; the ten-year and bond futures basis (Section 29).
 
 ## Tier 4: Calendar and Policy
 

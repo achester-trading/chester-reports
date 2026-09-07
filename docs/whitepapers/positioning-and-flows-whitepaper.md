@@ -209,7 +209,7 @@ where *r* is the day's index return. For a 2× fund the factor is 2; for a 3× f
 
 **The rule.** Companies repurchasing shares are the largest single source of net equity demand in most years, and the flow has a calendar: most firms suspend discretionary repurchases in a blackout window that begins roughly two weeks before quarter-end and runs until a day or two after the earnings release, then resume. The corporate bid is therefore absent for a predictable stretch each quarter — the stretch that includes the quarter-end rebalance and the first weeks of earnings season — and returns in a wave afterward. Announced authorizations are public; execution pace within an authorization is not.
 
-**Observability.** The blackout calendar is inferable from the earnings calendar (which the events layer already tracks); authorizations are announced; execution is hidden until the quarterly filing. *Equities* (Companion XV) treats buybacks as an earnings-cycle input; this paper treats them as a flow with an absence window.
+**Observability.** The blackout calendar is inferable from the earnings calendar (which the events layer already tracks); authorizations are announced; execution is hidden until the quarterly filing. *Equities* treats buybacks as an earnings-cycle input; this paper treats them as a flow with an absence window.
 
 **The system's data.** The earnings calendar from events ingest; the derived blackout window per name and in aggregate; announced authorizations from filings. The window is computable now from Session 8's events; aggregate execution estimates are Part V.
 

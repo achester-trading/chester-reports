@@ -247,4 +247,4 @@ Fourteen rows. Five clusters. That is the entire permitted surface, and the annu
 
 ---
 
-*Version 1.1 — September 2026. Companion XIV. The shortest paper in the library, for the reasons Chapter 1 states. Cross-references: the Dealer's Hand (IX) for hedging-derived levels; the Daily Cascade paper (V) for the block structure and candlestick display discipline; the Monthly manual (III) for the macro-momentum pillar this paper deliberately does not touch.*
+*Version 1.1 — September 2026. Companion XIV. The shortest paper in the library, for the reasons Chapter 1 states. Cross-references: the Dealer's Hand for hedging-derived levels; the Daily Cascade paper for the block structure and candlestick display discipline; the Monthly manual for the macro-momentum pillar this paper deliberately does not touch.*
