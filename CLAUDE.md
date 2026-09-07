@@ -117,7 +117,16 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
-`python smoke_test.py` for a no-network end-to-end check.
+
+**`make validate` runs every gate** — 14 of them, no network, no box. It keeps
+going past a failure and summarises at the end, because the question after a
+change is "what did I break", not "what did I break first"; `make validate-fast`
+stops at the first failure for a tight edit loop. The list lives in the
+`Makefile` and `.github/workflows/registry-check.yml` reads it from there, so CI
+and a local run cannot hold different lists — which is how four validators
+drifted out of CI while still passing locally. Adding a gate means adding one
+line to the Makefile. (`make` is absent on a stock Windows box; the validators
+all run directly too.)
 
 ### Known cleanup
 

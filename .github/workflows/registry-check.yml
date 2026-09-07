@@ -1,14 +1,25 @@
-# Registry gate — no metric feeds a decision without a registry entry.
+# The gates. Every validator this repo ships, each in its own job.
 #
-# The single check standing behind metrics_registry.yaml and
-# source_registry.yaml. A registry nobody validates is a document, not a
-# control: it drifts the first time someone adds a column, and the drift is
-# invisible until a decision gets made on an unregistered number.
+# WHY A MATRIX AND NOT SEQUENTIAL STEPS. As a single job the gates ran in
+# order and the first failure ended the run, so a change touching two areas
+# reported one problem and hid the other -- and the fix-rerun-discover-the-next
+# loop cost a round trip per defect. `fail-fast: false` runs all of them and
+# reports all of them, which is what a human wants after a change: not "what
+# did I break first" but "what did I break".
 #
-# Runs on every push and pull request, because the failure it catches is
-# introduced by a code edit and is cheapest to fix in the same change.
+# It also isolates them. A gate that dies on an import error no longer takes
+# the rest of the suite with it, which is exactly how tools/validate_backup.py
+# hid a syntax error for two commits while its siblings kept passing.
+#
+# THE LIST LIVES IN THE MAKEFILE, NOT HERE. `make validate` and this workflow
+# read one list, so neither can quietly hold a shorter one -- which is how four
+# validators drifted out of CI while still passing locally. The matrix below is
+# generated from the Makefile at run time.
+#
+# Runs on every push and pull request, because the failures these catch are
+# introduced by a code edit and are cheapest to fix in the same change.
 
-name: Registry gate
+name: Gates
 
 on:
   push:
@@ -17,9 +28,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  registry:
+  # One job resolves the list so the matrix and the Makefile cannot disagree.
+  enumerate:
+    runs-on: ubuntu-latest
+    outputs:
+      gates: ${{ steps.list.outputs.gates }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: list
+        run: |
+          # `make list` prints the interpreter too; take only the indented
+          # entries, which are the gate paths.
+          gates=$(make list | sed -n 's/^  //p' | grep -E '\.(py|sh)$' | \
+                  python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+          echo "gates=$gates" >> "$GITHUB_OUTPUT"
+          echo "Gates: $gates"
+
+  gate:
+    needs: enumerate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      # THE POINT OF THIS FILE. Every gate reports, whatever the others do.
+      fail-fast: false
+      matrix:
+        gate: ${{ fromJson(needs.enumerate.outputs.gates) }}
+
+    name: ${{ matrix.gate }}
 
     steps:
       - name: Check out repo
@@ -29,101 +64,37 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+          cache: pip
 
-      # The full requirements, not just PyYAML. The gates were installing one
-      # package and relying on none of the covered modules ever importing
-      # pandas -- an undeclared invariant that one `import` would have broken,
-      # with a failure message about the import rather than about the rule.
-      # smoke_test.py and the IV solver gate need the real set anyway.
+      # The full requirements, not a hand-picked subset. The old workflow
+      # installed only PyYAML and worked because no covered module happened to
+      # import pandas -- an undeclared invariant that one new import would have
+      # broken, with a failure message about the import rather than the rule.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Registry gate
-        run: python tools/check_registry.py --verbose
+      # Shell gates run under bash, Python gates under python. The suffix is
+      # the only difference and the Makefile already encodes which is which.
+      - name: ${{ matrix.gate }}
+        run: |
+          case "${{ matrix.gate }}" in
+            *.sh) bash "${{ matrix.gate }}" ;;
+            *)    python "${{ matrix.gate }}" ;;
+          esac
 
-      # The Brookfield restriction is a hard invariant, so it is checked by the
-      # build rather than by whoever remembers to run it. Groups A-C need no
-      # data; the replay acceptance test skips loudly here because data/ is
-      # gitignored and it is an acceptance check against real stored chains.
-      - name: Register, point-in-time and restriction gate
-        run: python tools/validate_register.py
-
-      # Runs entirely against fakes -- ib_async is imported lazily inside
-      # connect(), so this needs no broker library and contacts no Gateway.
-      # It is in CI for the Gate 1 invariant: the module's own source must
-      # contain no order-placing call. "Absent, not disabled" is a claim about
-      # the source text, so the build checks the source text.
-      - name: Portfolio Truth gate (no order capability)
-        run: python tools/validate_ibkr_portfolio.py
-
-      # The watchdog restarts a service, which makes its decision logic the
-      # most consequential shell here: a wrong branch either restarts nothing
-      # when the Gateway is wedged, or restarts forever against credentials no
-      # restart can fix. Both are quiet failures. Fully stubbed -- no systemd,
-      # no Gateway, no network.
-      - name: IB Gateway watchdog policy
-        run: bash tools/validate_ibgateway_watchdog.sh
-
-      # The heartbeat check is the only alarm that says the pipeline died, so
-      # its wrapper's failure mode is that it reports healthy or reports
-      # nothing -- and both read as all-clear. The checker is stubbed here, so
-      # this tests the verdict mapping, the outage clock, and the rule that a
-      # delivery which did not happen is RECORDED rather than swallowed.
-      - name: Heartbeat caller policy
-        run: bash tools/validate_heartbeat_caller.sh
-
-      # P0-1. The store is the system and it had one copy: data/chester.db is
-      # gitignored, so git has never seen it. Checks that the database is in
-      # the archive, that the snapshot is a consistent online-backup copy
-      # rather than a file copy that can be torn, that a failed snapshot does
-      # NOT leave a complete-looking zip, and that the sweep copies and never
-      # syncs -- `rclone sync` would replicate a local deletion to the backup.
-      - name: Backup path gate
-        run: python tools/validate_backup.py
-
-      # The D4c report. Checks the rulings rather than the output: that the
-      # data-only edition contains no path to generated prose (read from the
-      # source, not promised in a comment), that the archive survives a failed
-      # send, that delivery names every outcome instead of returning quietly,
-      # and that a missing value never reaches the page as a blank cell. No
-      # SMTP, no network, no store.
-      - name: Daily close report gate
-        run: python tools/validate_daily_close.py
-
-      # The sixth member of the silent-failure family: a script committed
-      # 100644 fails ExecStart with 203/EXEC, every morning, with output
-      # nowhere but the journal. Reads the git INDEX rather than the working
-      # tree, because the index is the only mode a `git pull` can deliver --
-      # and because Windows has no exec bit, so a script authored on the
-      # laptop is born 100644 and `chmod +x` there changes nothing.
-      - name: Executable bits in the git index
-        run: python tools/validate_exec_bits.py
-
-      # The IV solver decides whether SPX Greeks may be computed at all, and
-      # exposure_compute is the largest module in the repo. Neither was gated
-      # per commit until now. Needs the stored chains, so it skips loudly in CI
-      # where data/ is gitignored -- the point is that a code change breaking
-      # the harness fails here rather than on the box.
-      - name: IV solver gate
-        run: python tools/validate_iv_solver.py
-
-      # The calendar guard decides whether the pipeline runs at all. It drives
-      # both shell scripts against injected dates in a sandbox: no network, no
-      # clock changes, and the real checkout is untouched.
-      - name: Trading calendar guard
-        run: bash tools/validate_session_calendar.sh
-
-      # The only end-to-end test of the Monthly, and it ran in no workflow.
-      # Synthetic store, no network.
-      - name: Monthly pipeline smoke test
-        run: python smoke_test.py
-
-      # Silent-ignore is a four-time pattern: a directive in the wrong section,
-      # an invalid value, and a hardening stanza that hid a missing
-      # ReadWritePaths. systemd accepts all of them and does something other
-      # than what the file says. Closed allowlist, so an unvetted directive
-      # fails the build.
-      - name: systemd unit directives
-        run: python tools/validate_systemd_units.py
+  # A single required check to point branch protection at, since the matrix
+  # legs have generated names that change when a gate is added.
+  gates-passed:
+    needs: gate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All gates passed
+        run: |
+          if [ "${{ needs.gate.result }}" != "success" ]; then
+            echo "At least one gate failed -- see the individual jobs above."
+            exit 1
+          fi
+          echo "Every gate passed."
