@@ -16,7 +16,8 @@
 #   make list            what would run
 #   make library-check   the white paper library's gate, on its own
 #   make html            rebuild docs/html/ from the papers' .md
-#   make figures         redraw the Currencies charts from live FX history
+#   make figures         redraw the Currencies charts into build/ and report
+#   make figures ADOPT=1 ...and replace docs/figures/currencies/ with them
 #
 # PYTHON defaults to the venv, which is where PyYAML and pandas live. A bare
 # `python` on this repo's authoring machine has neither, and the failure looks
@@ -58,32 +59,55 @@ EXTRA := smoke_test.py
 html:
 	@$(PYTHON) tools/build_paper_html.py
 
-# THE CURRENCIES CHARTS, REDRAWN FROM DATA. altdata/fx_charts.py fetches thirty
-# years of FX history (or falls back to its packaged anchors under --offline)
-# and draws the eight figures Part V carries. It writes fx_<key>.svg; the paper
-# references fig-NN.svg, so the target renames them into place in the order the
-# paper uses: comparative first, then the seven pairs.
+# THE CURRENCIES CHARTS, REDRAWN FROM DATA -- INTO build/, NOT INTO docs/.
+#
+# altdata/fx_charts.py draws the eight figures Part V carries. It writes
+# fx_<key>.svg; the paper references fig-NN.svg, so the target renames them in
+# the order the paper uses -- comparative first, then the seven pairs.
+#
+# THE TARGET DOES NOT TOUCH docs/figures/. It renders into build/, prints what
+# changed, and stops. That is not caution for its own sake: the repo's
+# generator is behind the one that drew the committed figures (it ignores the
+# anchor dataset's curated marks and defaults to live daily data where the
+# committed set is the offline reconstruction the captions describe), so a
+# plain refresh would silently replace a curated figure with a worse one and
+# falsify its caption at the same time. See CLAUDE.md's Known cleanup.
+#
+#   make figures            render + report, docs/figures/ untouched
+#   make figures ADOPT=1    render + report, then replace docs/figures/
+#
+# ADOPT=1 is a deliberate act with follow-on work: the captions in
+# docs/figures/currencies/index.md and the paper's Part V note both describe
+# the reconstruction, and a daily-data edition falsifies both.
 #
 # It needs matplotlib, pandas, and altdata/fx_anchors.py. Any of those missing
-# is a skip, not a failure -- the committed figures under docs/figures/ are the
-# fallback, and `make html` never depends on this target.
+# is a skip, not a failure -- `make html` never depends on this target.
 FX_FIGS := docs/figures/currencies
+FX_BUILD := build/figures/currencies
 # One shell for the whole recipe: a skip has to skip the rename too, and make
 # gives each recipe LINE its own shell, so an `exit 0` on line two would not
 # stop line three from copying files that were never drawn.
 figures:
 	@if [ ! -f altdata/fx_charts.py ]; then \
 	  echo "no altdata/fx_charts.py -- skipping"; \
-	elif ! $(PYTHON) -m altdata.fx_charts --svg-dir $(FX_FIGS)/_fx; then \
-	  echo "fx_charts did not run -- keeping the committed figures"; \
-	  rm -rf $(FX_FIGS)/_fx; \
+	elif ! $(PYTHON) -m altdata.fx_charts --svg-dir $(FX_BUILD)/_fx; then \
+	  echo "fx_charts did not run -- nothing built, docs/figures/ untouched"; \
+	  rm -rf $(FX_BUILD)/_fx; \
 	else \
 	  n=1; for k in comparative dxy eur jpy gbp chf cny thb; do \
-	    cp "$(FX_FIGS)/_fx/fx_$$k.svg" "$$(printf '$(FX_FIGS)/fig-%02d.svg' $$n)" || exit 1; \
+	    cp "$(FX_BUILD)/_fx/fx_$$k.svg" "$$(printf '$(FX_BUILD)/fig-%02d.svg' $$n)" || exit 1; \
 	    n=$$((n + 1)); \
 	  done; \
-	  rm -rf $(FX_FIGS)/_fx; \
-	  echo "8 currency figures redrawn -- now run 'make html'"; \
+	  rm -rf $(FX_BUILD)/_fx; \
+	  echo; $(PYTHON) tools/diff_figures.py $(FX_FIGS) $(FX_BUILD); echo; \
+	  if [ "$(ADOPT)" = "1" ]; then \
+	    cp $(FX_BUILD)/fig-*.svg $(FX_FIGS)/; \
+	    echo "ADOPTED -- $(FX_FIGS)/ replaced. Now reconcile the captions in"; \
+	    echo "  $(FX_FIGS)/index.md and the paper's Part V note, then 'make html'."; \
+	  else \
+	    echo "$(FX_BUILD)/ built; $(FX_FIGS)/ untouched."; \
+	    echo "  Re-run as 'make figures ADOPT=1' to replace the committed set."; \
+	  fi; \
 	fi
 
 # The white paper library's own gate, on its own target because it is the one

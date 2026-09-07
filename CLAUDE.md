@@ -47,9 +47,10 @@ is the only file anyone edits. Nothing lives only in an HTML edition any more.
   upload one into it.
 - **`make figures`** redraws the eight Currencies charts from
   `altdata/fx_charts.py` and its packaged anchor dataset `altdata/fx_anchors.py`,
-  and skips rather than fails when either is absent. It does **not** run clean
-  today — see Known cleanup — and the committed figures remain canonical until
-  it does.
+  and skips rather than fails when either is absent. It renders into `build/`
+  and reports what changed; it **replaces** the committed figures only when
+  invoked as `make figures ADOPT=1`. Do not adopt yet — the generator is behind
+  the one that drew them, see Known cleanup.
 
 **The rule this replaced, and why the replacement is the point.** For a week the
 library ran on "the HTML edition is canonical for reading, the Markdown is
@@ -183,26 +184,37 @@ encoding bug `smoke_test.py` just shed — `Path.write_text()` and the closing
 `print` both assume a UTF-8 default, so a local run on Windows will fail on the
 report's check marks. CI is Linux, so this only bites locally.
 
-And **`make figures` runs, but its output is not what is committed.** The module,
-its anchor dataset and matplotlib are all in place, and the FRED path works —
-an online run now pulls 6,900–7,800 daily observations per pair. That is the
-problem: `docs/figures/currencies/` holds the *anchor reconstruction*, roughly
-34 points a pair, and the regenerated charts are drawn from live daily history.
-They disagree on the data, not the rendering — USD/THB's thirty-year range goes
-from "25.3 to 55.8 (~75% of the midpoint)" to "22.75 to 56.1 (~85%)", USD/CHF's
-span from ~88% to ~86%.
+**`altdata/fx_charts.py` is behind the generator that drew the committed
+Currencies figures, and has to catch up before it can replace them.** The
+module, its anchor dataset and matplotlib are all in place and an online run
+completes, but three things say the committed set came from a later fx_charts
+than the 3 September snapshot:
 
-Two further gaps sit under that. The regenerated charts mark only each series'
-min and max, ignoring the curated `marks_long`/`marks_five` callouts the anchor
-dataset carries ("8.28 peg", "1997–2005", "now") — `fx_charts.py` never reads
-those fields, so the committed figures were drawn by a later fx_charts than the
-3 September snapshot. And the captions in `docs/figures/currencies/index.md`
-say "approximate reconstruction", which a daily-data edition would falsify.
+- **Curated marks.** `fx_anchors.py` carries `marks_long` and `marks_five` —
+  hand-written callouts like "8.28 peg", "1997–2005", "now". The committed
+  figures draw them. `fx_charts.py` never reads either field: `fig_currency`
+  calls `_extreme_label()` and marks the series min and max instead, which for
+  USD/CNY lands on the December-1996 start point rather than the peg era.
+- **Source default.** The committed figures are the offline anchor
+  reconstruction — their captions say so outright — while the generator
+  defaults to live daily FRED history and only falls back to anchors. Roughly
+  180 path nodes a chart against 1,300, and the data moves with it: USD/THB's
+  thirty-year range reads "25.3 to 55.8 (~75% of the midpoint)" committed and
+  "22.75 to 56.1 (~85%)" regenerated; USD/CHF's span goes ~88% to ~86%.
+- **Captions.** `_caption()` must produce what the paper's Part V note and
+  `docs/figures/currencies/index.md` already say — annual anchors with daily
+  extremes marked, indicative of range and not tick data — rather than
+  contradicting them.
 
-**So `docs/figures/currencies/` stays canonical and `make figures` is not to be
-run over it** until someone decides whether the paper wants the reconstruction
-or the real series. Adopting the real series means updating those captions and
-the paper's Part V note in the same change.
+Until all three are fixed, **the committed figures stay canonical.**
+`make figures` therefore renders into `build/figures/currencies/` and prints a
+per-file report from `tools/diff_figures.py`; it writes into `docs/figures/`
+only when invoked as `make figures ADOPT=1`, which is a deliberate act that
+also obliges reconciling the captions and the Part V note.
+
+Fix the `:286` NumPy `DeprecationWarning` in the same pass — `s.index.max() +
+pd.Timedelta(days=40)` on a bare integer, seven warnings per run today and an
+error in a future NumPy.
 
 **The 3 September package's report layer is not in this repo.** Its
 `altdata/report/` carries thirteen modules with no counterpart here by name or
