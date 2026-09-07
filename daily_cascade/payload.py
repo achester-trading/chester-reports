@@ -1,5 +1,5 @@
 """
-The 16:30 close payload — plain data, assembled from what the store already
+The close payload — plain data, assembled from what the store already
 holds. No fetching, no interpretation, no prose.
 
 -----------------------------------------------------------------------------
@@ -7,9 +7,9 @@ REPORTS NEVER FETCH (30.4)
 -----------------------------------------------------------------------------
 
 Nothing here opens a socket. The EOD pass runs at 16:10, computes the dealer
-surface, scores the pin log and writes the observation store; twenty minutes
-later this reads what that produced. That ordering is the reason 32.4 makes the
-16:30 run the first one built — it cannot fail for a reason the report layer
+surface, scores the pin log and writes the observation store; thirty-five
+minutes later this reads what that produced. That ordering is the reason 32.4 makes the
+close run the first one built — it cannot fail for a reason the report layer
 owns, so a failure here is a real finding rather than a new bug.
 
 It is also the leakage rule. Every read goes through an as-of cutoff, so the

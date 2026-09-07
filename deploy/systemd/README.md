@@ -316,7 +316,7 @@ checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 
 
-## 8. Install the 16:30 close debrief (D4c)
+## 8. Install the 16:45 close debrief (D4c)
 
 The first Daily Cascade run that exists as code. It reads what the 16:10 EOD
 pass produced twenty minutes earlier and emails it as HTML — exposure table,
@@ -334,7 +334,7 @@ CHESTER_CLOSE_DRY_RUN=1 ~/chester-reports/scripts/run_daily_close.sh; echo "exit
 ls -la ~/chester-reports/reports/daily_close_*.html
 
 systemctl --user enable --now chester-daily-close.timer
-systemctl --user list-timers chester-daily-close.timer   # NEXT should be 16:30 ET
+systemctl --user list-timers chester-daily-close.timer   # NEXT should be 16:45 ET
 ```
 
 ### Credentials
@@ -395,7 +395,7 @@ politely says nothing.
 
 ### The schedule
 
-`OnCalendar=Mon-Fri 16:30 America/New_York`, with a two-minute randomised delay
+`OnCalendar=Mon-Fri 16:45 America/New_York`, with a two-minute randomised delay
 so it cannot start inside the EOD pass. Mon–Fri handles weekends; **NYSE
 holidays are the wrapper's calendar guard**, reading the same table as
 `run_eod_cron.sh` — systemd knows about Saturdays and nothing about Labor Day.

@@ -13,9 +13,9 @@ before trusting the interesting part:
     deliver.py        the delivery layer, built ONCE and used by every run
     payload.py        the store, read as-of, assembled into plain data
     render.py         payload -> HTML. No prose, no interpretation.
-    close_report.py   the 16:30 close debrief — the first run (D4c)
+    close_report.py   the 16:45 close debrief — the first run (D4c)
 
-The 16:30 run is first because its inputs are already computed twenty minutes
+The close run is first because its inputs are already computed half an hour
 earlier by the EOD pass, so nothing new has to be fetched and the report cannot
 fail for a reason the report layer owns. It is DATA ONLY by ruling (32.5):
 narrative is added at D4e, after D3's numeral audit exists to fail a block that

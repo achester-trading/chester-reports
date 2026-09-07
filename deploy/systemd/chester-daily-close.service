@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily Cascade close debrief (16:30 ET, data only)
+Description=Daily Cascade close debrief (16:45 ET, data only)
 Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 
 # After= the EOD pass, so on a boot that starts both, this queues behind the

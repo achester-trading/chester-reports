@@ -1,11 +1,11 @@
 """
-The 16:30 close debrief. D4c — the first Daily Cascade run to exist as code.
+The 16:45 close debrief. D4c — the first Daily Cascade run to exist as code.
 
     python -m daily_cascade.close_report              # build, archive, send
     python -m daily_cascade.close_report --dry-run    # build and archive only
     python -m daily_cascade.close_report --session 2026-09-04
 
-WHY THIS ONE FIRST (32.4). Its inputs are computed twenty minutes earlier by
+WHY THIS ONE FIRST (32.4). Its inputs are computed half an hour earlier by
 the EOD pass, so it fetches nothing and cannot fail for a reason the report
 layer owns. That makes it the cheapest possible end-to-end proof of the chain:
 payload -> render -> deliver -> archive -> state record. The other eight runs

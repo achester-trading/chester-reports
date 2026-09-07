@@ -138,6 +138,37 @@ def group_a() -> None:
             ok("a missing source raises rather than yielding an empty backup")
 
 
+def group_wal() -> None:
+    """Both stores open in WAL with a busy timeout -- P0-3."""
+    print(f"
+{LINE}
+A2. Concurrency pragmas on every connection (P0-3)
+{LINE}")
+    sys.path.insert(0, str(REPO))
+    from register.store import Register  # noqa: PLC0415
+
+    with tempfile.TemporaryDirectory() as d:
+        for cls, name in ((observations.ObservationStore, "ObservationStore"),
+                          (Register, "Register")):
+            s = cls(str(Path(d) / "t.db"))
+            try:
+                jm = s.conn.execute("PRAGMA journal_mode").fetchone()[0]
+                bt = s.conn.execute("PRAGMA busy_timeout").fetchone()[0]
+            finally:
+                s.conn.close()
+            # WAL persists in the file header, so the second class inherits it
+            # -- which is itself the point: one database, one journal mode, no
+            # way for two openers to disagree about it.
+            if str(jm).lower() == "wal":
+                ok(f"{name} opens in WAL, so a reader is not blocked by a writer")
+            else:
+                bad(f"{name} journal_mode={jm}; a reader fails while the sync writes")
+            if bt >= 5000:
+                ok(f"{name} busy_timeout={bt}ms -- a collision waits, not errors")
+            else:
+                bad(f"{name} busy_timeout={bt}; SQLite's default 0 fails instantly")
+
+
 def group_b() -> None:
     """The EOD zip carries the database and the pin log."""
     print(f"\n{LINE}\nB. backup_chains -- the store is in the archive\n{LINE}")
@@ -280,6 +311,7 @@ def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     group_a()
+    group_wal()
     group_b()
     group_c()
     group_d()

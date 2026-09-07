@@ -204,10 +204,10 @@ def group_d() -> None:
     print(f"\n{LINE}\nD. Schedule and unit wiring\n{LINE}")
     t = (REPO / "deploy/systemd/chester-daily-close.timer").read_text(encoding="utf-8")
     s = (REPO / "deploy/systemd/chester-daily-close.service").read_text(encoding="utf-8")
-    if "OnCalendar=Mon-Fri 16:30 America/New_York" in t:
-        ok("timer fires 16:30 ET Mon-Fri, zone-pinned")
+    if "OnCalendar=Mon-Fri 16:45 America/New_York" in t:
+        ok("timer fires 16:45 ET Mon-Fri, zone-pinned -- clear of the 16:30 sync")
     else:
-        bad("timer is not 16:30 America/New_York")
+        bad("timer is not 16:45 America/New_York")
     if re.search(r"^Persistent=false", t, re.M):
         ok("Persistent=false -- no catch-up report dated today for a session "
            "the reader already lived through")

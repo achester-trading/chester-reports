@@ -1,17 +1,28 @@
 [Unit]
-Description=Close debrief at 16:30 ET on trading days
+Description=Close debrief at 16:45 ET on trading days
 Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 
 [Timer]
-# 16:30 ET, twenty minutes after the EOD pass. Mon-Fri here handles weekends;
-# NYSE holidays are the wrapper's calendar guard, same table as the EOD run.
-# systemd knows about Saturdays and nothing about Labor Day.
-OnCalendar=Mon-Fri 16:30 America/New_York
+# 16:45 ET -- MOVED FROM 16:30, and the move is the point.
+#
+# 16:30 collided with chester-ibkr-sync.timer, which fires on the hour and the
+# half hour through 17:00. That put a database writer and a database reader on
+# the same minute, on purpose, and the +90s/+120s jitter on the two units made
+# the overlap probabilistic rather than avoiding it. WAL makes the collision
+# survivable; not scheduling it is better than surviving it.
+#
+# 16:45 sits between the sync's 16:30 and 17:00 slots and thirty-five minutes
+# after the EOD pass, which is ample for a run that fetches nothing.
+#
+# Mon-Fri handles weekends; NYSE holidays are the wrapper's calendar guard,
+# reading the same table as the EOD run. systemd knows about Saturdays and
+# nothing about Labor Day.
+OnCalendar=Mon-Fri 16:45 America/New_York
 
-# The EOD pass takes a few minutes and this must not start inside it. The
-# ordering dependency covers a shared boot; the delay covers the ordinary case
-# where both are timer-fired and systemd has no reason to sequence them.
-RandomizedDelaySec=120
+# Small spread only. The window to 17:00 is fifteen minutes and the report
+# takes seconds; a large jitter would put it back on top of the sync it was
+# just moved away from.
+RandomizedDelaySec=60
 
 # Persistent=false. A catch-up run hours later would email a report headed with
 # today's date describing a session the reader has already lived through, and

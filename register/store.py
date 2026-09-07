@@ -203,6 +203,28 @@ class Register:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
+        # WAL AND A BUSY TIMEOUT, BEFORE ANY OTHER STATEMENT.
+        #
+        # SQLite's default rollback journal takes an EXCLUSIVE lock on the
+        # whole file for a write, and the default busy_timeout is ZERO -- a
+        # concurrent reader or writer does not wait, it fails immediately with
+        # "database is locked". This database has several timer-driven users
+        # (Portfolio Truth every 30 minutes, the close report at 16:45, the
+        # nightly sweep, the decision CLI by hand) and the four flock calls in
+        # scripts/ each guard their own script against a second copy of itself
+        # -- none of them guards the database.
+        #
+        # WAL lets readers proceed while a writer works, which is the case that
+        # actually collides here: a report reading the store while the sync
+        # writes it. busy_timeout turns the remaining true write-write
+        # collisions into a short wait instead of an error.
+        #
+        # The failure this prevents is named in the audit: "database is locked"
+        # errors THAT LOOK LIKE DATA GAPS. altdata/store.py swallows exactly
+        # this exception, so a lock collision there costs observations with no
+        # trace anywhere.
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        self.conn.execute("PRAGMA busy_timeout = 5000")
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
         # Databases created before 26.2 #7 landed lack these two columns.

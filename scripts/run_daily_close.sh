@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# The 16:30 close debrief, as the VPS timer runs it.
+# The 16:45 close debrief, as the VPS timer runs it.
 #
 #   git pull --ff-only -> calendar guard -> venv close_report -> log -> status
 #
-# TWENTY MINUTES AFTER THE EOD PASS, AND THAT SPACING IS THE DESIGN. The 16:10
+# THIRTY-FIVE MINUTES AFTER THE EOD PASS, AND THAT SPACING IS THE DESIGN. The 16:10
 # run fetches chains, computes the dealer surface, scores the pin log and
 # writes the store. This fetches nothing at all (30.4 -- reports never fetch);
 # it reads what that produced. So a failure here is a report-layer failure and
