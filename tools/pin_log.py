@@ -437,7 +437,7 @@ def main() -> int:
     rows = run(args.date, args.symbols, args.computed_dir, args.log_path,
                args.close_source, args.allow_regrade)
     if not rows:
-        print("No computed snapshots to score. Run tools/gex_compute.py first.")
+        print("No computed snapshots to score. Run tools/exposure_compute.py first.")
         return 1
 
     tol = config.PIN_TOLERANCE_BPS

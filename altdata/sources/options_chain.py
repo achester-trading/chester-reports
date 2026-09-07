@@ -14,7 +14,7 @@ What yfinance does and does not give:
     gives     strike, bid/ask/last, volume, openInterest, impliedVolatility,
               inTheMoney, contractSymbol, per expiry, calls and puts separately
     does NOT  any greeks. Gamma is computed downstream from the chain's own IV
-              (see tools/gex_compute.py). The quality manifest records this as
+              (see tools/exposure_compute.py). The quality manifest records this as
               greeks_present=False rather than leaving it implicit.
 
 Known coverage gap: yfinance has no SPX index options. The universe is built

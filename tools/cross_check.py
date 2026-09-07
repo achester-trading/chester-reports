@@ -53,7 +53,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from altdata import config   # noqa: E402
 from altdata import session  # noqa: E402
-import gex_compute          # noqa: E402
+import exposure_compute     # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ def run(symbols: Optional[list[str]] = None, out_dir: Optional[str] = None) -> l
         log.warning("FlashAlpha credentials unavailable -- cross-check skipped")
         return []
     syms = symbols or DEFAULT_SYMBOLS
-    computed = {s: c for s, c in gex_compute.run(symbols=syms).items()}
+    computed = {s: c for s, c in exposure_compute.run(symbols=syms).items()}
     results = []
     for s in syms:
         ours = computed.get(s)

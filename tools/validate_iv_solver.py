@@ -44,7 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from altdata import config   # noqa: E402
 from altdata import session  # noqa: E402
 import exposure_compute      # noqa: E402
-import gex_compute           # noqa: E402
+import exposure_compute      # noqa: E402
 import iv_solver             # noqa: E402
 
 LINE = "=" * 74
@@ -52,9 +52,9 @@ LINE = "=" * 74
 
 def profile_from(rows: list[dict], symbol: str) -> dict:
     """Run the existing engine over rows whose implied_vol column is already
-    whichever IV is being tested. Nothing in gex_compute changes -- that is the
+    whichever IV is being tested. Nothing in exposure_compute changes -- that is the
     point: only the source of sigma differs."""
-    return gex_compute.compute_symbol(rows, symbol)
+    return exposure_compute.compute_symbol(rows, symbol)
 
 
 def pct_diff(a: Optional[float], b: Optional[float]) -> Optional[float]:
@@ -64,13 +64,13 @@ def pct_diff(a: Optional[float], b: Optional[float]) -> Optional[float]:
 
 
 def validate_symbol(symbol: str, date: Optional[str] = None) -> Optional[dict]:
-    chains = gex_compute.newest_chains(date, [symbol])
+    chains = exposure_compute.newest_chains(date, [symbol])
     path = chains.get(symbol)
     if not path:
         print(f"  {symbol}: no stored chain found")
         return None
 
-    rows = gex_compute.load_chain(path)
+    rows = exposure_compute.load_chain(path)
     spot = next((r["spot"] for r in rows if r.get("spot")), None)
     fetched = next((r.get("fetched_at") for r in rows if r.get("fetched_at")), None)
     if not spot:

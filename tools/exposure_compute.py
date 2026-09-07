@@ -3,7 +3,7 @@ Per-strike dealer exposure -- gamma, delta, vanna and charm -- from a raw chain.
 
 Reads the newest chain CSV per symbol written by altdata.sources.options_chain
 and produces the exposure profile the logger records nightly. Formerly
-gex_compute; tools/gex_compute.py is now a shim that re-exports this module, so
+gex_compute; that shim was deleted on 7 Sep once its last caller was repointed, so
 existing callers keep working unchanged.
 
 FOUR GREEKS, ONE PIECE OF EVIDENCE. Every row this module emits carries
