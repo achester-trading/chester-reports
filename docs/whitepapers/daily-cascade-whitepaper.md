@@ -1212,7 +1212,7 @@ For any conditional, in order: (1) the thesis grade — is the anchor holding? (
 
 *Eight ways this system will try to lose money, ranked roughly by expected cost.*
 
-**1. Regime-transition lag — the correlated failure.** Every mean-reversion tool in the system (dip-buy setups, fade rules, pin logic, premium selling) is downstream of the positive-gamma regime. At the flip, they fail *together* — the system's equivalent of every treaty in the book attaching to the same peril. The defenses are the hard-invalidation discipline (Rule 19.2), the flip-drift monitor (2.7.5), and Rule 21's cluster-C-vs-A divergence. Respect them most on the days they feel least necessary.
+**1. Regime-transition lag — the correlated failure.** Every mean-reversion tool in the system (dip-buy setups, fade rules, pin logic, premium selling) is downstream of the positive-gamma regime. At the flip, they fail *together* — the system's equivalent of every treaty in the book attaching to the same peril. The defenses are the hard-invalidation discipline (Rule 19.2), the flip-drift monitor (2.7.5), and Chapter 21's cluster-C-vs-A divergence. Respect them most on the days they feel least necessary.
 
 **2. Double-counted confluence.** Covered in Chapter 21; listed here because it is the failure that *feels* like rigor while it operates. Eight citations from two clusters is a persuasive way to be under-informed.
 

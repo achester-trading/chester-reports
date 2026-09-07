@@ -296,7 +296,7 @@ The Daily Cascade paper flagged this as §06's most common misreading; here is t
 
 ### 5.4 The transition, and why it is non-linear
 
-The regime does not change smoothly. Dealer gamma is a function of spot (Chapter 6), and as spot declines through the strikes where dealers are long gamma into the strikes where they are short, the aggregate flips sign — often within a few dozen points. Above the flip, a 1% decline is met with buying; below it, the *same* decline is met with selling. The market can go from suppressed to amplified across a single level, which is why the gamma flip is the report's regime boundary and why Rule 2.7.1 gates strategy on distance from it. It is also why regime transitions are the system's correlated failure mode (Daily Cascade Chapter 23, item 1): every mean-reversion tool stops working at the same price.
+The regime does not change smoothly. Dealer gamma is a function of spot (Chapter 6), and as spot declines through the strikes where dealers are long gamma into the strikes where they are short, the aggregate flips sign — often within a few dozen points. Above the flip, a 1% decline is met with buying; below it, the *same* decline is met with selling. The market can go from suppressed to amplified across a single level, which is why the gamma flip is the report's regime boundary and why DC 2.7.1 gates strategy on distance from it. It is also why regime transitions are the system's correlated failure mode (Daily Cascade Chapter 23, item 1): every mean-reversion tool stops working at the same price.
 
 ---
 
@@ -372,7 +372,7 @@ So why does the level hold as often as it does? Three mechanisms that are not ga
 - **The vol dynamics of a bounce.** When spot stabilizes at the wall, implied vol falls, and falling vol shrinks put deltas (vanna, Chapter 8), which forces dealers to buy back hedges. A pause becomes a bounce mechanically.
 - **Reflexivity.** The level is watched, so it is defended.
 
-The trading consequence: **the put wall is a legitimate level and a legitimate dip-buy zone, but it is a different kind of level from the call wall.** A call wall's resistance is present *before* spot arrives. A put wall's support is contingent on holders monetizing and vol behaving. When neither happens — a catalyst-driven decline where hedgers *add* rather than monetize and vol rises rather than falls — the put wall is precisely where the pure gamma mechanics take over and the decline accelerates. That is why the Daily Cascade paper's Rule 2.7.1 gates everything on distance from the *flip*, not the put wall, and why breaks of the put wall are treated as regime information rather than as a missed dip-buy.
+The trading consequence: **the put wall is a legitimate level and a legitimate dip-buy zone, but it is a different kind of level from the call wall.** A call wall's resistance is present *before* spot arrives. A put wall's support is contingent on holders monetizing and vol behaving. When neither happens — a catalyst-driven decline where hedgers *add* rather than monetize and vol rises rather than falls — the put wall is precisely where the pure gamma mechanics take over and the decline accelerates. That is why DC 2.7.1 gates everything on distance from the *flip*, not the put wall, and why breaks of the put wall are treated as regime information rather than as a missed dip-buy.
 
 ### 7.3 Peak GEX — the magnet
 
@@ -388,7 +388,7 @@ What *is* true: max pain is computed from open interest, and open interest conce
 
 Everything in Chapter 5 turns on this level. Its mechanics are simply the running sum of 6.4 crossing zero. Two things about its behavior that the aggregate number hides:
 
-**It moves.** Every new trade shifts it. Heavy put buying pulls it up toward spot (more negative gamma below); heavy call overwriting pushes it down (more positive gamma above). The report tracks the flip's delta between reports (7,408 → 7,403) precisely because the *movement* is a leading indicator: a flip rising toward spot while spot is flat means the stabilizing cushion is thinning from underneath. Rule 2.7.5 in the other paper is the operational version.
+**It moves.** Every new trade shifts it. Heavy put buying pulls it up toward spot (more negative gamma below); heavy call overwriting pushes it down (more positive gamma above). The report tracks the flip's delta between reports (7,408 → 7,403) precisely because the *movement* is a leading indicator: a flip rising toward spot while spot is flat means the stabilizing cushion is thinning from underneath. DC 2.7.5 is the operational version.
 
 **Crossing it is not an event; being below it is a condition.** The market does not crash on crossing the flip. It changes *character* — from suppressed to amplified — and the change is visible in the next several moves, not the crossing itself. Traders who treat the flip as a trapdoor overreact at the level and then underreact to the regime they are now in. The correct response to a flip break is not a trade; it is a **change of playbook** (Chapter 14).
 
@@ -413,7 +413,7 @@ Gamma tells you what dealers will be *forced* to do as spot moves. **Delta Expos
 
 Large positive DEX means dealers are net long delta through their option inventory and have hedged by being short a great deal of index. In customer terms: the market is heavily positioned long calls (dealers short calls, long index hedges) or short puts. Large negative DEX means the reverse — customers are long protection, dealers are long index against it.
 
-DEX is not a flow forecast. It is a **positioning snapshot** and it answers a different question than GEX: not "what happens when spot moves" but "how crowded is the boat." A market with very high positive DEX is one where a great deal of directional bullish optionality has been bought; the hedges against it are already in place, and if the market falls, the customers' calls decay, dealers' hedges are unwound (buying back short index — supportive), but the customers themselves are the fragility. The Daily Cascade paper's Rule 2.7 setups halve size on "crowded positioning"; DEX is where that reading comes from.
+DEX is not a flow forecast. It is a **positioning snapshot** and it answers a different question than GEX: not "what happens when spot moves" but "how crowded is the boat." A market with very high positive DEX is one where a great deal of directional bullish optionality has been bought; the hedges against it are already in place, and if the market falls, the customers' calls decay, dealers' hedges are unwound (buying back short index — supportive), but the customers themselves are the fragility. The DC 2.7 setups halve size on "crowded positioning"; DEX is where that reading comes from.
 
 ### 8.2 Vanna — the flow when vol moves
 
@@ -461,7 +461,7 @@ As of 2026, options expiring the same day account for roughly 50–63% of total 
 
 Return to Chapter 3.2. Gamma explodes as expiry approaches, because the delta of an at-the-money option must travel from ~0.5 to either 0 or 1 across an ever-narrower range as time runs out. In the final hours, a 0DTE ATM option has gamma many times that of a monthly at the same strike. Three consequences:
 
-**Enormous but transient.** The report shows 0DTE at 68% of total GEX on the Friday afternoon — the intraday structure is mostly same-day contracts — and then resets to ~25% Monday morning as the new day's book builds. A 0DTE call wall at 7,500 is real at 2:00 PM and gone at 4:00 PM. **Rule 2.7.7 — never carry a position overnight on the strength of a 0DTE level — exists because the level literally ceases to exist.**
+**Enormous but transient.** The report shows 0DTE at 68% of total GEX on the Friday afternoon — the intraday structure is mostly same-day contracts — and then resets to ~25% Monday morning as the new day's book builds. A 0DTE call wall at 7,500 is real at 2:00 PM and gone at 4:00 PM. **DC 2.7.7 — never carry a position overnight on the strength of a 0DTE level — exists because the level literally ceases to exist.**
 
 **Pins are strongest in the last hour.** With gamma at its maximum, dealer counter-flow around peak GEX is most intense in the final 60–90 minutes, and the index's tendency to close near the largest 0DTE strike is a genuine, measurable regularity in positive-gamma regimes. The Daily Cascade backlog's "log the pin" item is the plan to turn that regularity into a base rate.
 
@@ -499,7 +499,7 @@ The §06 table splits GEX into 0DTE, weekly, monthly, and quarterly for a struct
 
 - **0DTE** — hours. Intraday traders and systematic programs. Chapter 9.
 - **Weekly** (Monday, Wednesday, Friday expiries) — days. Tactical hedgers, event traders. Defines the structure for the current week.
-- **Monthly** (third Friday) — weeks. The largest and most institutional bucket: portfolio hedges, overwriting programs, structured-product hedges. **This is the structural map.** The monthly gamma flip is the regime boundary in Rule 2.7.1 because the monthly book is the one that persists.
+- **Monthly** (third Friday) — weeks. The largest and most institutional bucket: portfolio hedges, overwriting programs, structured-product hedges. **This is the structural map.** The monthly gamma flip is the regime boundary in DC 2.7.1 because the monthly book is the one that persists.
 - **Quarterly** (third Friday of March/June/September/December) — months. Dominated by a handful of enormous systematic positions, the largest of which is the JPMorgan collar.
 
 ### 10.2 Opex week — the monthly gamma cycle
@@ -526,7 +526,7 @@ Run it through the dealer's book. The dealer is on the other side of all three l
 - **Long the ~80% put** (the fund sold it) → dealer long gamma there.
 - **Long the ~105% call** (the fund sold it) → dealer long call gamma → **the dealer sells into any rally approaching that strike.**
 
-That last leg is the famous "JPM collar ceiling." For three months, a very large block of dealer long-call gamma sits a few percent above where the market was at the roll date, generating mechanical selling as the index approaches it. When the market has rallied hard within a quarter, the collar strike can become the dominant resistance in the entire book. The report lists the current strikes (7,600 / 7,250 / 7,100) as structural endpoints and correctly ignores them day to day — Rule 2.7.8 — because they only bind when spot is within about 2% of a leg.
+That last leg is the famous "JPM collar ceiling." For three months, a very large block of dealer long-call gamma sits a few percent above where the market was at the roll date, generating mechanical selling as the index approaches it. When the market has rallied hard within a quarter, the collar strike can become the dominant resistance in the entire book. The report lists the current strikes (7,600 / 7,250 / 7,100) as structural endpoints and correctly ignores them day to day — DC 2.7.8 — because they only bind when spot is within about 2% of a leg.
 
 *(Figure 11 — The JHEQX collar at expiry — see the HTML edition for the chart.)*
 
@@ -576,7 +576,7 @@ Read this table as a *trajectory*, not a snapshot — it is the stateful part of
 
 **Net GEX rose $1.7B overnight.** The dealer book got longer gamma while the market slept. Under the naive convention that means more call overwriting arrived, or protective puts were closed, or both — customers ceded more convexity to dealers. The stabilizing cushion thickened. This is a mild positive for the mean-reversion playbook.
 
-**The flip fell 5 points, to 7,403.** The regime boundary moved *away* from spot. With spot at 7,489.50, the market sits 86.5 points (1.16%) inside the positive regime. Rule 2.7.1's "more than ~1% above the flip" condition is met with room to spare. The direction of the flip's movement (down, away) confirms the GEX read: the structure is strengthening, not eroding. Had the flip *risen* while net GEX rose — possible if new gamma arrived concentrated below spot — the two rows would disagree, and the disagreement would be the signal.
+**The flip fell 5 points, to 7,403.** The regime boundary moved *away* from spot. With spot at 7,489.50, the market sits 86.5 points (1.16%) inside the positive regime. DC 2.7.1's "more than ~1% above the flip" condition is met with room to spare. The direction of the flip's movement (down, away) confirms the GEX read: the structure is strengthening, not eroding. Had the flip *risen* while net GEX rose — possible if new gamma arrived concentrated below spot — the two rows would disagree, and the disagreement would be the signal.
 
 **The call wall held at 7,500.** No migration overnight. Resistance is where it was.
 
@@ -615,7 +615,7 @@ Five observations that the table makes visible and the raw numbers do not:
 
 **Third — nested flips.** There is not one gamma flip; there are four, one per bucket, and they are at very different distances from spot. The 0DTE flip at 7,468 is only 21 points below; the monthly flip at 7,403 is 86 below. **Below 7,468, the 0DTE book turns short gamma even while the monthly book remains long.** That means a sharp intraday decline through 7,468 would see intraday hedging flip to amplifying *within* a structurally stabilizing regime — an intraday air pocket that the monthly structure would then catch at 7,440–7,400. The nested-flip reading is the most advanced thing in the ladder and the most useful: it says where an intraday move can *accelerate* even though the regime is intact. Trade the 0DTE flip as an intraday stop level; trade the monthly flip as the regime invalidation. They are different instruments.
 
-**Fourth — convergence at 7,475.** Peak GEX (0DTE) and max pain (0DTE) coincide, with monthly max pain five points away and weekly max pain ten above. Four rows, one zone. The report's "gravitational center" is a five-row cluster, and Rule 2.7.2's convergence-level trade is built on it.
+**Fourth — convergence at 7,475.** Peak GEX (0DTE) and max pain (0DTE) coincide, with monthly max pain five points away and weekly max pain ten above. Four rows, one zone. The report's "gravitational center" is a five-row cluster, and DC 2.7.2's convergence-level trade is built on it.
 
 **Fifth — the walls at 7,500.** Monthly call wall, weekly call wall (from the bucket table), and monthly peak all sit at 7,500. That is a *three-bucket* convergence of resistance ten points above spot. It is the reason the setup in §23 is a dip-buy *toward the magnet* and not a breakout *through the wall*: the structure above spot is dense and the structure below is a soft cushion.
 
@@ -658,7 +658,7 @@ The report reads the 0DTE straddle: with /ES at 7,489.50 and the 7,490 strike st
 
 **As a sizing denominator.** A position sized to risk a fixed dollar amount per one-sigma day is a position whose risk is comparable across regimes. When the expected move is 52, a 26-point stop is half a sigma; when it is 90, the same 26-point stop is under a third of a sigma and will be hit by noise. Size the stop to the expected move, not to the chart.
 
-**As a target ceiling.** Rule 2.7.4: primary targets inside the expected move unless a catalyst justifies more. The reference Friday's target 1 at 7,500 was 10 points above the entry zone — well inside — and target 2 at 7,540 required the catalyst, which arrived.
+**As a target ceiling.** DC 2.7.4: primary targets inside the expected move unless a catalyst justifies more. The reference Friday's target 1 at 7,500 was 10 points above the entry zone — well inside — and target 2 at 7,540 required the catalyst, which arrived.
 
 **As a probability statement.** The index closes inside the expected move about 68% of days *if the options market is calibrated*. It is, roughly, over long samples — and the deviations are informative: stretches where the index repeatedly closes inside a shrinking expected move are the positive-gamma grind; stretches where it repeatedly breaks a widening one are regime transitions.
 
@@ -682,7 +682,7 @@ Every intraday §06 update reports the change since the prior report in net GEX,
 
 **Net GEX falling:** dealers getting shorter. Customers buying convexity — protection being bought, or calls being bought back. The cushion thinning. Falling net GEX while spot is flat is the quiet warning; falling net GEX while spot is falling is the regime-transition tape.
 
-**Flip rising toward spot:** new gamma arriving concentrated below spot (put buying), pulling the boundary up. Even with net GEX unchanged, this is erosion — the distance to the regime change is shrinking. Rule 2.7.5 makes this a reduce-size trigger because it leads: the flip moves before the sign does.
+**Flip rising toward spot:** new gamma arriving concentrated below spot (put buying), pulling the boundary up. Even with net GEX unchanged, this is erosion — the distance to the regime change is shrinking. DC 2.7.5 makes this a reduce-size trigger because it leads: the flip moves before the sign does.
 
 **Flip falling away from spot:** the structure strengthening from below. The morning read on the reference Friday (7,408 → 7,403) was this.
 
@@ -715,7 +715,7 @@ In order: (1) sign of net GEX — still positive? (2) distance from spot to the 
 
 ## CHAPTER 14 — THE REGIME GATE AS A DAILY PROTOCOL
 
-*Rule 2.7.1 in the Daily Cascade paper says: run the regime gate first, every day, before consulting any other section. This chapter is what "running it" consists of, and what each answer commits you to.*
+*DC 2.7.1 says: run the regime gate first, every day, before consulting any other section. This chapter is what "running it" consists of, and what each answer commits you to.*
 
 ### 14.1 The three questions, in order
 
@@ -727,11 +727,11 @@ In order: (1) sign of net GEX — still positive? (2) distance from spot to the 
 
 Three questions, thirty seconds, and the answer selects one of three playbooks. Everything else in the report refines *which trade* within the playbook; nothing else in the report changes *which playbook*.
 
-*(Figure 14 — The regime gate (Rule 2.7.1) as a decision tree — see the HTML edition for the chart.)*
+*(Figure 14 — The regime gate (DC 2.7.1) as a decision tree — see the HTML edition for the chart.)*
 
 ### 14.2 The positive-gamma playbook
 
-Permitted: dip-buys at gamma support and confluence zones; fades at walls with stalling momentum; premium-selling structures; pin trades into the close. Sizing: full, subject to the cluster-confluence rule (Daily Cascade 21.2) and event halving. Stops: tight, because the regime suppresses moves — a stop beyond the expected move is a stop that will never be tested and therefore risks too much. Targets: inside the expected move; walls as targets, not as things to trade through. Expectations: the range holds; the magnet pulls; the close pins.
+Permitted: dip-buys at gamma support and confluence zones; fades at walls with stalling momentum; premium-selling structures; pin trades into the close. Sizing: full, subject to the cluster-confluence rule (DC 21.2) and event halving. Stops: tight, because the regime suppresses moves — a stop beyond the expected move is a stop that will never be tested and therefore risks too much. Targets: inside the expected move; walls as targets, not as things to trade through. Expectations: the range holds; the magnet pulls; the close pins.
 
 Not permitted: breakout entries (they get sold by the hedging flow); trend-following adds; holding for the "big move" — the regime's whole nature is that the big move is suppressed.
 
@@ -829,7 +829,7 @@ Within ~0.5% of the monthly flip, or with net GEX near zero: neither playbook ap
 
 **What.** In a positive-gamma regime with no remaining catalyst, sell defined-risk premium around peak GEX after 2:00 PM, harvesting the 0DTE decay as the market pins.
 
-**Conditions.** Positive regime; net GEX rising or stable through the afternoon; 0DTE peak and max pain convergent; no scheduled event after entry; VVIX calm; IV−RV rich (Daily Cascade Rule 4.7.3); spot within ~10 points of the magnet. On the reference Friday this setup was *not* available before 2:00 PM (the minutes) and was marginal after (the break to 7,519 moved spot off the magnet); it is a calm-afternoon trade.
+**Conditions.** Positive regime; net GEX rising or stable through the afternoon; 0DTE peak and max pain convergent; no scheduled event after entry; VVIX calm; IV−RV rich (DC 4.7.3); spot within ~10 points of the magnet. On the reference Friday this setup was *not* available before 2:00 PM (the minutes) and was marginal after (the break to 7,519 moved spot off the magnet); it is a calm-afternoon trade.
 
 **Structure.** An iron condor centered on the magnet with short strikes at the 0DTE walls and long wings beyond: with spot at 7,478, peak GEX 7,475, walls 7,460/7,490 — sell the 7,460 put and 7,490 call, buy the 7,445 put and 7,505 call. Net credit collected; maximum loss defined by the wing width less the credit. The trade is long theta and short gamma — a written policy for the last two hours of the day, in the regime where the industry's aggregate book is *also* long gamma and suppressing the very moves that would hurt the position.
 
