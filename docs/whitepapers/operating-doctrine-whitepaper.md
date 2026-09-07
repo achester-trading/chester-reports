@@ -398,7 +398,7 @@ Each report has a defined set of rights over each book. The map is the doctrine'
 
 **The Prediction Market Intelligence Engine** (read-only, Polymarket and Kalshi). Rights: discovery only, in every regime, for Book D. It may put a name or an event on the alert list; it may not generate a packet, and it may not modify the confidence of any other signal until the calibration archive exists. This transcribes the amendment exactly.
 
-**Positioning & Flows** (the paper to be written next) will, when written, own the positioning-extreme row of the trust matrix and supply Book B's variant-perception confirmations and Book C's dealer-positioning inputs beyond what the Dealer's Hand already provides. Until it exists, those rights sit with the T&B overlays and the GEX stack.
+**Positioning & Flows** owns the positioning-extreme row of the trust matrix and supplies Book B's variant-perception confirmations and Book C's dealer-positioning inputs beyond what the Dealer's Hand already provides.
 
 ### 6.3 Conflict rules
 
@@ -831,7 +831,7 @@ Schwager's most consistent finding across four decades is that edges erode. The 
 
 The architecture's champion-and-challenger mechanism, built for report versions, applies to rules. A proposed rule change at a monthly session is a challenger; it runs alongside the champion for a defined period — in paper for rules that change size, in production for rules that only restrict — and it is promoted or withdrawn on the ledger's evidence. A rule that has never been broken and never bound is a candidate for removal; a rule that binds constantly is a candidate for tightening or for a rethink of the book it binds. The rules version is stamped on every packet so that the ledger can be cut by rules regime as well as by market regime.
 
-The Positioning & Flows paper, when written, will introduce new signal families and therefore new rows in the trust matrix. They enter at Low or Medium with a sample-size requirement, and they earn High. Nothing enters at High.
+The Positioning & Flows paper introduces new signal families and therefore new rows in the trust matrix. They enter at Low or Medium with a sample-size requirement, and they earn High. Nothing enters at High.
 
 The regime multipliers are hypotheses of the same kind, and one of them is worth naming. The operator's record says he has sometimes done well in volatile markets, and the doctrine's Rising and Stressed multipliers are set conservatively against the extreme-volatility failures rather than generously toward the volatile-market successes. If, after fifty decisions in each, the register shows that his Rising-regime and Stressed-regime expectancy in Book C is his best, the Phase 2 multipliers for those states can rise — deliberately, at a monthly session, on that evidence. The doctrine's conservatism on volatile days is a starting point, not a verdict.
 
@@ -901,7 +901,7 @@ Passes are logged with: book; alert or draft source; one-line reason; regime sta
 
 ## Appendix C — Crosswalk to the companion library
 
-The three dials are read from: the Macro dial from the *Monthly Macro Working Manual* and the *Rate and Liquidity Machine*; the Volatility dial from *Volatility*; the Gamma dial from *The Dealer's Hand*, Part V. Book A's bands draw on *Portfolio Construction Across Regimes* when written, and on *Equities*, *Metals*, *Digital Assets*, *Currencies* and *Energy* for the sleeves. Book B's pivotal points and confirmation draw on *Technical Indicators*. Book C's setup taxonomy is the *Daily Cascade* paper's Chapter 2 as elaborated in *The Dealer's Hand*. Book D's alert vocabulary draws on *Foundations*, *The Twenty-Five*, and the prediction-market amendment. The trust matrix's positioning row is a placeholder for *Positioning & Flows*. The validation the doctrine assumes is specified in *Building and Validating a Systematic Book*. The behavioral paper deferred to early 2027 is to be written from the register fields in Section 9.2.
+The three dials are read from: the Macro dial from the *Monthly Macro Working Manual* and the *Rate and Liquidity Machine*; the Volatility dial from *Volatility*; the Gamma dial from *The Dealer's Hand*, Part V. Book A's bands draw on *Portfolio Construction Across Regimes* (Draft 1; empirical edition to follow), and on *Equities*, *Metals*, *Digital Assets*, *Currencies* and *Energy* for the sleeves. Book B's pivotal points and confirmation draw on *Technical Indicators*. Book C's setup taxonomy is the *Daily Cascade* paper's Chapter 2 as elaborated in *The Dealer's Hand*. Book D's alert vocabulary draws on *Foundations*, *The Twenty-Five*, and the prediction-market amendment. The trust matrix's positioning row is a placeholder for *Positioning & Flows*. The validation the doctrine assumes is specified in *Building and Validating a Systematic Book*. The behavioral paper deferred to early 2027 is to be written from the register fields in Section 9.2.
 
 The library guide is the canonical source of series numbering. This paper's masthead is to be relabelled on commit.
 

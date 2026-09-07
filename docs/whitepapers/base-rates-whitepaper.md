@@ -41,7 +41,7 @@ The paper is deliberately boring, and that is its function. It is a reference to
 
 10. **Options decay as √T; a third expire worthless, not ninety percent; same-day expiries are half of index option volume.** The verticals-by-default rule follows from decay and from spread cost together — at Book C's size, a wide single-name option can consume a tenth of the risk budget in the round trip.
 
-11. **The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.** Extending to 1907 doubles the sample and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.
+11. **The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.** Extending to 1907 takes the sample from eight bears to thirteen and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.
 
 12. **The tail the operator worries about sits near the 95th percentile of the historical distribution, not beyond it.** Japan's thirty-four years and 1929's twenty-five are developed-market events within living memory. No single hedge covers both resolutions of a debt cycle. That is why the tail budget is convex and renewed rather than held — and why a portfolio hedged for 2008 is not hedged for 1946.
 

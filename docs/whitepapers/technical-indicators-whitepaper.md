@@ -4,7 +4,7 @@
 
 **Version 1.1 · September 1, 2026 · Companion to the Daily Cascade and the execution layer · Worked illustrations added in v1.1**
 
-*This is the shortest paper in the library, deliberately. Technical analysis has generated more written material than any other subject in markets, and most of it fails a simple test stated in Chapter 1. What survives that test fits in a short document. The paper's job is to say precisely what price-derived indicators can contribute to this system, wall off what they cannot, and name the traps — several of which this system's own methodology rules were built to catch in other domains and apply here with full force.*
+*This is among the shortest papers in the library, deliberately. Technical analysis has generated more written material than any other subject in markets, and most of it fails a simple test stated in Chapter 1. What survives that test fits in a short document. The paper's job is to say precisely what price-derived indicators can contribute to this system, wall off what they cannot, and name the traps — several of which this system's own methodology rules were built to catch in other domains and apply here with full force.*
 
 ---
 
@@ -247,4 +247,4 @@ Fourteen rows. Five clusters. That is the entire permitted surface, and the annu
 
 ---
 
-*Version 1.1 — September 2026. Companion XIV. The shortest paper in the library, for the reasons Chapter 1 states. Cross-references: the Dealer's Hand for hedging-derived levels; the Daily Cascade paper for the block structure and candlestick display discipline; the Monthly manual for the macro-momentum pillar this paper deliberately does not touch.*
+*Version 1.1 — September 2026. Companion XIV. Among the shortest papers in the library, for the reasons Chapter 1 states. Cross-references: the Dealer's Hand for hedging-derived levels; the Daily Cascade paper for the block structure and candlestick display discipline; the Monthly manual for the macro-momentum pillar this paper deliberately does not touch.*

@@ -1036,7 +1036,7 @@ Add the auction calendar as a displayed row (supply days flag their own noise); 
 
 # PART V — SECTIONS YOU DIDN'T ASK ABOUT, BUT SHOULD READ
 
-*Five more chapters. Candlestick analysis is here because v12 made it load-bearing across five reports and it deserved better than a footnote; the other four are shorter treatments of sections that carry real weight in the system's conclusions.*
+*Five more chapters. Candlestick analysis is here because the v12 report build made it load-bearing across five reports and it deserved better than a footnote; the other four are shorter treatments of sections that carry real weight in the system's conclusions.*
 
 ---
 
@@ -1051,7 +1051,7 @@ A candlestick is just OHLC drawn so that the relationship between open and close
 - **Hammer** — small body, long lower wick. Sellers pushed, buyers took it back: rejection of lower prices.
 - **Doji** — open ≈ close. Two-sided conviction, net stalemate. The **long-legged doji at resistance** (the FRI weekly candle) adds wide wicks: both sides showed up in size and neither won — a genuine information event at an ATH, because someone sold every rally attempt.
 
-What the reports do that most candlestick usage does not: **multi-timeframe nesting**. The same Friday is simultaneously a bullish near-marubozu (daily), inside a doji week (weekly), inside four bullish weeks (monthly view), inside a six-month advance. The v12 design renders all of these and reads them as a hierarchy — which is the correct use, because a pattern's meaning is almost entirely a function of *where it forms* (at an ATH, at a gamma wall, at a 200-day) and *what frame contains it*.
+What the reports do that most candlestick usage does not: **multi-timeframe nesting**. The same Friday is simultaneously a bullish near-marubozu (daily), inside a doji week (weekly), inside four bullish weeks (monthly view), inside a six-month advance. The v12 build renders all of these and reads them as a hierarchy — which is the correct use, because a pattern's meaning is almost entirely a function of *where it forms* (at an ATH, at a gamma wall, at a 200-day) and *what frame contains it*.
 
 ### 16.2 The honest evidence base
 

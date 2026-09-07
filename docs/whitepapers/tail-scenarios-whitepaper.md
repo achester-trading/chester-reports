@@ -174,7 +174,7 @@ Lands squarely on **Factor IV**, and is the fastest of that factor's transmissio
 
 ### Report routing
 
-**Primary: Daily Cascade (v12), daily.** SOFR–IORB and SRF usage belong in the morning report as a standing liquidity block; both update intraday and neither is currently instrumented there. **Secondary: Top & Bottom, via the Liquidity & Funding Stress overlay**, which is the natural home for the persistence reading — the overlay's question is not whether the spread ticked positive but whether it has stayed positive. **Tertiary: Monthly Macro**, which carries the slow-moving context (reserve levels, TGA path, bill share of issuance) in the liquidity pillar. Settlement fails data has no home in any of the five reports today and goes to the build queue.
+**Primary: Daily Cascade, daily.** SOFR–IORB and SRF usage belong in the morning report as a standing liquidity block; both update intraday and neither is currently instrumented there. **Secondary: Top & Bottom, via the Liquidity & Funding Stress overlay**, which is the natural home for the persistence reading — the overlay's question is not whether the spread ticked positive but whether it has stayed positive. **Tertiary: Monthly Macro**, which carries the slow-moving context (reserve levels, TGA path, bill share of issuance) in the liquidity pillar. Settlement fails data has no home in any of the five reports today and goes to the build queue.
 
 **What a firing changes:** Daily Cascade adds an explicit funding-conditions line and elevates it above the equity narrative; Top & Bottom's Liquidity overlay tightens; Disruptive Themes, at its next refresh, moves Factor IV's timing language from "the fast clock under a slow thesis" to a statement that the clock has started.
 

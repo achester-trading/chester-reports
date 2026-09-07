@@ -720,6 +720,6 @@ This document is the base layer; the report is the delta. On each bimonthly refr
 
 The projection sections here will age on schedule, and are meant to be graded, not defended: the two-to-three-year tables are written so that a 2028 reader can score them line by line — Tetlock's bargain, accepted in advance. The ten-year families should be re-weighted roughly annually, or on any verified capability milestone, regime event, or premise collapse.
 
-One paper remains owed under this series: **White Paper II — the 25 tail scenarios**, to be built from the full table in the Monthly report rather than the five delta rows carried here, with the same treatment: mechanism, precedent, probability band, instruments, and couplings per scenario. The table travels with the Monthly; when it is supplied, the paper follows.
+The companion on the twenty-five tail scenarios — *The Twenty-Five* — was built from the full table in the Monthly report rather than the five delta rows carried here, with the same treatment per scenario: mechanism, precedent, probability band, instruments, and couplings.
 
 *Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype · Direction reliable, precision illustrative — here as there.*
