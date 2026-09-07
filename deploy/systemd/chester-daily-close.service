@@ -13,6 +13,22 @@ After=chester-eod.service
 Type=oneshot
 ExecStart=%h/chester-reports/scripts/run_daily_close.sh
 
+# THE SECRETS THE RUN NEEDS, AND WHY THIS LINE HAS TO EXIST.
+#
+# No unit loaded .env and no wrapper sourced it, so anything read through
+# os.environ WITHOUT a .env fallback saw nothing on the box. That is not a
+# hypothetical: state/emit.py reads CHESTER_STATE_URL and CHESTER_STATE_TOKEN
+# from the environment only, so every state record this unit produces would
+# have logged "not set -- state emission skipped" and the dashboard would have
+# stayed blind to the job that runs every day. altdata/sources/fred.py reads
+# FRED_API_KEY the same way.
+#
+# The leading `-` makes the file OPTIONAL: a box without .env starts the unit
+# and the code degrades the way it already knows how, rather than systemd
+# refusing to run anything. A missing secret should cost a feature, not the run.
+EnvironmentFile=-%h/chester-reports/.env
+
+
 # 0 built and sent - 2 built, archived, NOT sent. Both are successful runs of
 # this unit: the report exists either way and delivery is transport. 1 is NOT
 # here, deliberately -- "no payload" means nothing was computed for the

@@ -9,6 +9,22 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 Type=oneshot
 ExecStart=%h/chester-reports/scripts/check_heartbeat_cron.sh
 
+# THE SECRETS THE RUN NEEDS, AND WHY THIS LINE HAS TO EXIST.
+#
+# No unit loaded .env and no wrapper sourced it, so anything read through
+# os.environ WITHOUT a .env fallback saw nothing on the box. That is not a
+# hypothetical: state/emit.py reads CHESTER_STATE_URL and CHESTER_STATE_TOKEN
+# from the environment only, so every state record this unit produces would
+# have logged "not set -- state emission skipped" and the dashboard would have
+# stayed blind to the job that runs every day. altdata/sources/fred.py reads
+# FRED_API_KEY the same way.
+#
+# The leading `-` makes the file OPTIONAL: a box without .env starts the unit
+# and the code degrades the way it already knows how, rather than systemd
+# refusing to run anything. A missing secret should cost a feature, not the run.
+EnvironmentFile=-%h/chester-reports/.env
+
+
 # SuccessExitStatus is DELIBERATELY ABSENT, which means only 0 counts as
 # success and a stale or missing heartbeat leaves this unit in systemd's failed
 # state until the next healthy check clears it.

@@ -230,10 +230,110 @@ def self_test() -> None:
     print()
 
 
+
+# --- a unit whose code reads a secret must load the secrets file -----------
+#
+# No unit had EnvironmentFile= and no wrapper sourced .env, so anything read
+# through os.environ WITHOUT a .env fallback saw nothing on the box:
+# CHESTER_STATE_TOKEN and FRED_API_KEY both. The dashboard would have stayed
+# blind to the job that runs every day, and the only symptom would have been an
+# INFO line in a log nobody reads.
+#
+# The rule cannot be "every unit", because ibgateway-restart.service runs
+# systemctl and ibgateway.service runs IBC, neither of which reads this repo's
+# environment. So it is derived: follow each unit's ExecStart into the script,
+# find the Python entry points that script invokes, and require the file only
+# where a secret is actually reachable.
+
+# Environment variables that are secrets or endpoints -- i.e. things .env
+# carries. Deliberately not every CHESTER_* name: the path overrides are
+# defaulted in code and a unit that never sets them still works.
+SECRET_NAMES = (
+    "FRED_API_KEY", "ANTHROPIC_API_KEY", "MASSIVE_API_KEY",
+    "FLASHALPHA_API_KEY", "CHESTER_STATE_URL", "CHESTER_STATE_TOKEN",
+    "SMTP_USER", "SMTP_PASSWORD", "SMTP_TO", "SMTP_RCPT",
+)
+
+
+def _repo_python_modules() -> dict[str, str]:
+    """Every repo .py file's text, keyed by dotted module path."""
+    out: dict[str, str] = {}
+    for f in REPO.rglob("*.py"):
+        if ".venv" in f.parts or "probe_output" in f.parts:
+            continue
+        rel = f.relative_to(REPO).with_suffix("")
+        out[".".join(rel.parts)] = f.read_text(encoding="utf-8", errors="replace")
+    return out
+
+
+def _reads_secret(text: str) -> set[str]:
+    return {n for n in SECRET_NAMES if n in text}
+
+
+def check_environment_file() -> None:
+    """Require EnvironmentFile= on any unit that can reach a secret."""
+    print(f"{LINE}\nSecrets: a unit that reads one must load the secrets file\n{LINE}")
+    modules = _repo_python_modules()
+
+    for unit in sorted(UNIT_DIR.glob("*.service")):
+        text = unit.read_text(encoding="utf-8")
+        execs = [ln.split("=", 1)[1].strip()
+                 for ln in text.splitlines()
+                 if ln.startswith("ExecStart") and "=" in ln]
+        # Only units that run something in this checkout are in scope.
+        repo_targets = [e for e in execs if "%h/chester-reports/" in e]
+        if not repo_targets:
+            continue
+
+        # Follow the wrapper into the modules it invokes, then union every
+        # secret name reachable from there. One level of indirection is enough:
+        # every wrapper calls `python -m <module>` or `python <file>` directly.
+        reachable: set[str] = set()
+        for target in repo_targets:
+            rel = target.split("%h/chester-reports/", 1)[1].split()[0]
+            script = REPO / rel
+            if not script.exists():
+                continue
+            body = script.read_text(encoding="utf-8", errors="replace")
+            reachable |= _reads_secret(body)
+            for mod, src in modules.items():
+                invoked = (f"-m {mod}" in body
+                           or f"{mod.replace('.', '/')}.py" in body)
+                if invoked:
+                    reachable |= _reads_secret(src)
+                    # And one level down: a runner imports its library.
+                    for dep, dsrc in modules.items():
+                        if f"import {dep}" in src or f"from {dep}" in src:
+                            reachable |= _reads_secret(dsrc)
+
+        has_env = any(ln.startswith("EnvironmentFile=") for ln in text.splitlines())
+        if not reachable:
+            ok(f"{unit.name}: reaches no secret; EnvironmentFile not required")
+        elif has_env:
+            ok(f"{unit.name}: loads .env, and reaches "
+               f"{len(reachable)} secret name(s)")
+        else:
+            bad(f"{unit.name}: reaches {sorted(reachable)} but has no "
+                f"EnvironmentFile= -- those read as unset on the box, and the "
+                f"only symptom is a log line")
+
+        # The file must be OPTIONAL. Without the leading `-` a box that has not
+        # been given a .env yet fails to start the unit at all, which turns a
+        # missing feature into a dead pipeline.
+        for ln in text.splitlines():
+            if ln.startswith("EnvironmentFile="):
+                if ln.split("=", 1)[1].startswith("-"):
+                    ok(f"{unit.name}: EnvironmentFile is optional (leading '-')")
+                else:
+                    bad(f"{unit.name}: EnvironmentFile is REQUIRED -- a box "
+                        f"without .env would fail to start the unit entirely")
+    print()
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     self_test()
+    check_environment_file()
     units = sorted(list(UNIT_DIR.glob("*.service")) + list(UNIT_DIR.glob("*.timer")))
     print(f"{LINE}\nsystemd units shipped in deploy/systemd/\n{LINE}")
     if not units:

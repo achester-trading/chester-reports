@@ -14,6 +14,22 @@ Type=oneshot
 # not a systemd edit on the box -- Part 25: the VPS runs code, never edits it.
 ExecStart=%h/chester-reports/scripts/run_eod_cron.sh
 
+# THE SECRETS THE RUN NEEDS, AND WHY THIS LINE HAS TO EXIST.
+#
+# No unit loaded .env and no wrapper sourced it, so anything read through
+# os.environ WITHOUT a .env fallback saw nothing on the box. That is not a
+# hypothetical: state/emit.py reads CHESTER_STATE_URL and CHESTER_STATE_TOKEN
+# from the environment only, so every state record this unit produces would
+# have logged "not set -- state emission skipped" and the dashboard would have
+# stayed blind to the job that runs every day. altdata/sources/fred.py reads
+# FRED_API_KEY the same way.
+#
+# The leading `-` makes the file OPTIONAL: a box without .env starts the unit
+# and the code degrades the way it already knows how, rather than systemd
+# refusing to run anything. A missing secret should cost a feature, not the run.
+EnvironmentFile=-%h/chester-reports/.env
+
+
 # A chain fetch across the universe takes a few minutes; this is a ceiling that
 # stops a hung HTTP call holding the lock until tomorrow's run.
 TimeoutStartSec=30min
