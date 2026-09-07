@@ -216,18 +216,21 @@ Fix the `:286` NumPy `DeprecationWarning` in the same pass — `s.index.max() +
 pd.Timedelta(days=40)` on a bare integer, seven warnings per run today and an
 error in a future NumPy.
 
-**The 3 September package's report layer is not in this repo.** Its
-`altdata/report/` carries thirteen modules with no counterpart here by name or
-by content — `narratives.py` and `narratives_extended.py` (166 KB between
-them), `cases_and_positioning.py`, `weekly_scan.py` and
-`weekly_scan_prompt.py`, `export.py`, `generate.py`, `peers.py`, `signals.py`,
-`assets.py`, `sources.py`, `__main__.py`, `__init__.py`. That is a report
-generator, and the Alternative Asset report is presumably built from it, which
-means the pipeline for one of the five reports lives outside version control.
-Deciding where that report is generated from — import the layer, rewrite it
-against the current `altdata/`, or leave it out deliberately — is open.
-Note `sources.py`: dropping it flat into `altdata/` would shadow the
-`altdata/sources/` package.
+**`altdata/report/` is content, not a pipeline.** The Alternative Asset report
+is not produced by any running pipeline in this repo. This package is its
+designed report layer, vendored from the 3 September 2026 snapshot and kept as
+content and reference for folding the report into the Monthly under the system
+redesign. Nothing schedules it, no Makefile target names it, and no other
+module imports it.
+
+It is a subpackage, so its `sources.py` sits at `altdata.report.sources` and
+does not shadow the `altdata/sources/` package. Seven of its thirteen modules
+do not import against the current `altdata/` — they want `altdata.analytics`,
+which does not exist here, and `altdata.config.ASSETS` / `ASSETS_BY_ID` /
+`BENCHMARKS`, which this repo's `config.py` does not define. The six that do
+import are the ones worth having: the narratives, the case and positioning
+material, and the peer and source tables. Do not repair the other seven in
+place — what they should become is a question for the redesign, not a patch.
 
 ## Standing rules
 
