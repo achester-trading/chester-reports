@@ -112,6 +112,10 @@ Each scenario below runs the same sequence.
 
 ---
 
+# PART 1 — THE FAMILIES
+
+---
+
 # FAMILY A — FUNDING, DURATION AND PLUMBING
 
 *Scenarios 1, 2, 9, 11, 19. The family that fails fastest, transmits most mechanically, and has the best instrumentation of any group on the list. Five scenarios that are, on close inspection, three variants of one failure: someone must sell a Treasury security into a market that has lost its capacity to absorb it.*

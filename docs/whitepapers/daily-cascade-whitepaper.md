@@ -469,6 +469,12 @@ Crowding here mostly *helps*: these levels work because they are watched. The fa
 
 ---
 
+# PART II — THE CONFIRMATION LAYER
+
+*Sections §08–§12. Five reads that test the Part I map against what the rest of the market is actually doing: what options are priced for, which sectors are leading, how broad the participation is, where institutional flow is going, and what the prediction markets expect. None of these five sets a thesis on its own; any one of them can break one.*
+
+---
+
 ## CHAPTER 4 — §08 VOL SURFACE & SKEW
 
 ### 4.1 The 101

@@ -170,7 +170,7 @@ The Kelly criterion gives the bet size that maximizes long-run growth: for a bet
 
 The gap is deliberate and this chapter defends it. Kelly assumes four things, and a discretionary book violates all four: that the edge is *known* (it is estimated, with the error bars of Part I); that bets are *independent* (they cluster, Chapter 3); that the bettor has *logarithmic utility* and is indifferent to drawdown (the Doctrine's switches say otherwise); and that bets are *infinitely divisible and repeatable* (they are neither).
 
-*[Figure 5 — computed figure; rendered in the HTML edition]*
+*[Figure 4 — computed figure; rendered in the HTML edition]*
 
 The figure shows the first violation alone. When the edge estimate carries uncertainty comparable to its size — which Part I says it will for years — the growth-optimal fraction collapses toward a fraction of full Kelly, and at the uncertainty levels a two-hundred-decision sample implies, it sits near or below quarter-Kelly. **The Doctrine's sizing is not conservative relative to Kelly; it is approximately Kelly-optimal once the edge's uncertainty is admitted.** The promotion gates that allow tiers to rise as the register accumulates are the mechanism by which sizing tracks the narrowing error bar — never reaching full Kelly, because the error bar never reaches zero.
 
@@ -178,7 +178,7 @@ The figure shows the first violation alone. When the edge estimate carries uncer
 
 The Doctrine's Section 9.3 says edges erode and rules are hypotheses. The measurement is the trailing expectancy series, and the question is how to tell decay from noise.
 
-*[Figure 6 — computed figure; rendered in the HTML edition]*
+*[Figure 5 — computed figure; rendered in the HTML edition]*
 
 The figure is a process whose true edge begins decaying at week forty. The measured thirteen-week expectancy, with its error band, does not distinguish the decay from ordinary variation until roughly week sixty-five — six months after it began. That lag is not a flaw in the measurement; it is what the error bar implies, and a trader who reacts to the first bad quarter will be reacting to noise most of the time and to decay some of the time, with no way to tell which.
 
