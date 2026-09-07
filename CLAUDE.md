@@ -45,9 +45,11 @@ is the only file anyone edits. Nothing lives only in an HTML edition any more.
   paper, written by `tools/build_paper_html.py` with the figures embedded
   inline. `make html` rebuilds all of them. Never edit a file in it, and never
   upload one into it.
-- **`make figures`** redraws the eight Currencies charts from the fx_charts
-  module when it and its dependencies are present, and skips otherwise — see
-  Known cleanup, because today it is neither committed nor importable.
+- **`make figures`** redraws the eight Currencies charts from
+  `altdata/fx_charts.py` and its packaged anchor dataset `altdata/fx_anchors.py`,
+  and skips rather than fails when either is absent. It does **not** run clean
+  today — see Known cleanup — and the committed figures remain canonical until
+  it does.
 
 **The rule this replaced, and why the replacement is the point.** For a week the
 library ran on "the HTML edition is canonical for reading, the Markdown is
@@ -181,13 +183,27 @@ encoding bug `smoke_test.py` just shed — `Path.write_text()` and the closing
 `print` both assume a UTF-8 default, so a local run on Windows will fail on the
 report's check marks. CI is Linux, so this only bites locally.
 
-And `make figures` cannot run yet. `altdata/fx_charts.py` sits untracked in the
-working tree; it imports `altdata.fx_anchors`, which does not exist, and
-matplotlib is not installed on the authoring machine. The target skips rather
-than fails, and the eight committed Currencies figures under
-`docs/figures/currencies/` are the fallback — so nothing depends on it. Making
-it work means committing the module, writing the packaged anchor dataset it
-imports, and adding matplotlib to the environment.
+And `make figures` does not run clean. `altdata/fx_charts.py` and its anchor
+dataset `altdata/fx_anchors.py` are committed now and matplotlib is in
+`requirements.txt`, so the module imports and the offline path draws all eight
+charts. Two things still block it:
+
+**The FRED path raises.** `load_series` does
+`_fetch_fredgraph(fred_id) or _fetch_fred_api(fred_id)`, and `or` on a pandas
+Series is a `ValueError: The truth value of a Series is ambiguous`. Every pair
+except DXY carries a `fred_id`, so an online run dies on the second series.
+`--offline` avoids it entirely; the target passes no such flag.
+
+**The offline output is not the committed figures.** Same underlying series —
+the thirty-year range annotations agree to the decimal — but different
+presentation: matplotlib's default four-year x-ticks instead of the committed
+five-year ones, and only the series min/max marked instead of the curated
+callouts the anchor dataset carries in its unused `marks_long`/`marks_five`
+fields ("8.28 peg", "1997–2005", "now"). The five-year panels also end on
+different values. The committed figures were evidently drawn by a later
+fx_charts than the one in the 3 September snapshot. Until that is reconciled,
+`docs/figures/currencies/` is canonical and this target is not to be run over
+it.
 
 ## Standing rules
 
