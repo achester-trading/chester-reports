@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building and Validating a Systematic Book</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Building and Validating a Systematic Book</h1>
+<h2>Execution, Sizing, Validation, and the Mechanics That Sit Under the Doctrine</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XIX</strong> — after <em>The Operating Doctrine</em> (XVIII), per the library guide. Cross-references in this paper are by name.
+<strong>Version:</strong> 1.0 — Draft, 6 September 2026
+<strong>Status:</strong> As-built with a forward section. Written after IBKR Gate 1 closed (5 September 2026) and the first tracked paper decision entered the register. Reread when Gate 2 (order construction) opens and again when the first hundred closed decisions exist.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-the-shape-of-a-systematic-book">Part I — The Shape of a Systematic Book</a></li><li><a href="#s3-part-ii-the-register-the-unit-of-action-and-the-unit-of-lear">Part II — The Register: The Unit of Action and the Unit of Learning</a></li><li><a href="#s4-part-iii-execution-and-microstructure">Part III — Execution and Microstructure</a></li><li><a href="#s5-part-iv-sizing-cost-and-the-risk-ladder-as-code">Part IV — Sizing, Cost, and the Risk Ladder as Code</a></li><li><a href="#s6-part-v-validation-before-during-and-after">Part V — Validation: Before, During, and After</a></li><li><a href="#s7-part-vi-tax-and-account-mechanics">Part VI — Tax and Account Mechanics</a></li><li><a href="#s8-part-vii-the-compliance-boundary">Part VII — The Compliance Boundary</a></li><li><a href="#s9-part-viii-the-gate-ladder-what-is-built-what-is-next-and-wha">Part VIII — The Gate Ladder: What Is Built, What Is Next, and What Would Change This Paper</a></li><li><a href="#s10-appendix-decision-1-end-to-end">Appendix — Decision #1, end to end</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>The library guide planned this paper "before IBKR Gate 1," as the specification the integration would be built to. The integration was built first, in a single weekend, and this paper is therefore written the other way round: it describes the systematic book as it <em>exists</em> — the register and its packets, the freshness gate, the expression check, the broker connection and what it refuses to do, the commission schedule verified by hand, the outcome loop — and then says what remains before the book can be trusted with an order it did not watch a human place.</p>
+<p>That inversion is a feature. A specification written before contact with the broker would have carried the assumption, stated in an early docstring, that a client-side flag made the connection unable to trade. Contact with the broker showed the flag did no such thing; the real guarantee was the vendor's Read-Only setting plus the absence of order-placing code, and the docstring was corrected before anything was built on it. The paper records what was learned by building, because that is the only kind of validation this book believes in.</p>
+<p>The <em>Operating Doctrine</em> is this paper's governing document. The doctrine says what the operator is to do: four books, three dials, a kill-switch ladder, twenty-nine rules. This paper says what the machinery is, how it enforces the parts of the doctrine that can be enforced mechanically, how it measures the parts that cannot, and how the whole thing is validated before, during, and after each expansion of its authority. Where the doctrine states a number — 0.35% of capital per Book C position, $1,050 on the $300,000 base — this paper says which line of code computes it and which check refuses an order that would exceed it.</p>
+<p>The paper is long because the doctrine's rules are only as good as their enforcement, and enforcement is in the details. It is organized so that Parts I and II (the shape of the book and the register) can be read once; Parts III through V (execution, sizing, validation) are the operating reference; Parts VI and VII (tax, account and compliance mechanics) are read once and consulted when a rule bites; Part VIII is the gate ladder and the honest list of what is not yet built. Worked examples use the book's actual first decision and the actual figures from the build, because a paper about validation should not invent its evidence.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-the-shape-of-a-systematic-book">
+      <summary class="section-head">
+        <span class="section-title">Part I — The Shape of a Systematic Book</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>1.1 What "systematic" means here</h3>
+<p>A systematic book is not an automated one. The distinction is the doctrine's semi-automation contract (its Section 6.6): the machine computes, drafts, sizes, brackets, enforces, logs and measures; the operator allocates, approves, vetoes, and changes rules only at the monthly session. Every order this book has placed or will place for the foreseeable future is placed by a human hand. What makes the book systematic is that the hand cannot move without a Decision Packet, the packet cannot exist without fresh signals inside their declared half-lives, the size is computed rather than felt, the exit is written before the entry, and every outcome — including the outcome of doing nothing — is graded by the same code against the same six questions.</p>
+<p>The architecture's own line (Part 25 of the architecture document, restated in the doctrine) is that <em>Claude writes the rules and does not sit in the execution path</em>. The systematic book takes that literally. The language model drafts packets and narrates reports; it never constructs an order, never holds a credential that could transmit one, and its outputs are gated by numeral audits before they reach the operator. The systematic part of the book is deterministic code with tests. The intelligent part of the book is a research assistant with no hands.</p>
+<h3>1.2 The four books as the register sees them</h3>
+<p>The doctrine's four books — Allocation, Swing, Tactical, Opportunistic — are, in the register, a single <code>book</code> field on every decision and a set of per-book constraints the code applies at write time. The field is not decoration. It selects the risk tier table, the permitted expressions, the loss-stop counters, the freshness thresholds, and the grading horizon. The same SPY position written into Book C carries a 0.35% risk figure, a five-session time stop, and a session-half-life freshness requirement on its dealer signals; written into Book B it carries 0.75%, a six-week window, and a weekly-half-life requirement on its trend signals. The register does not let a position change books after the fact. The doctrine's "behavioral fence" against the swing trade that becomes a day trade is, mechanically, the immutability of that field.</p>
+<h3>1.3 The capital base and what the numbers mean</h3>
+<p>The doctrine's figures are stated against $300,000 of capital at risk. The paper account the system currently observes carries a simulated $1,017,965 of NAV, because that is what IBKR's paper accounts are seeded with. The mismatch is deliberate and must be handled explicitly: <strong>every dollar figure in the sizing calculator derives from a declared <code>CAPITAL_BASE</code> in configuration, not from the account's NAV</strong>, so that paper trading rehearses the live book's sizes rather than a fictional one three times larger. When the live account is connected, the base becomes the live NAV, read from Portfolio Truth, and the doctrine's percentages produce the doctrine's dollars. A book that sized paper positions to $1 million of NAV would learn nothing about running $300,000.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-the-register-the-unit-of-action-and-the-unit-of-lear">
+      <summary class="section-head">
+        <span class="section-title">Part II — The Register: The Unit of Action and the Unit of Learning</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>2.1 What a decision is</h3>
+<p>The register's central object is a <em>decision</em>, not a trade. A decision is a recorded intention with a thesis, an edge type from the doctrine's nine-family taxonomy, a horizon from the closed set (intraday, swing, positional, strategic, structural), a direction, a size, an invalidation, and the signals it leans on. It has a status — <code>draft</code>, <code>active</code>, <code>closed</code>, <code>declined</code> — and an operator action — TAKE, DECLINE, MODIFY. A decision that is declined is still a decision. The doctrine's Rule 10, that doing nothing is a position, is enforced by the fact that a declined decision gets a row, a packet, and — as Part V describes — a graded outcome exactly as a taken one does.</p>
+<p>The first decision in the register was written on Saturday 5 September 2026, against Friday's close, and it is used throughout this paper because it is real:</p>
+<pre><code>instrument      : SPY
+direction       : long
+horizon         : swing
+edge_type       : positioning
+size            : 100 shares
+thesis          : Close pinned at flip 770.6 in negative gamma;
+                  expect mean-revert toward call wall 780 early week
+invalidation    : settled close below put wall 760
+signals_used    : exposure.gamma_flip, exposure.call_wall_otm,
+                  exposure.put_wall_otm
+</code></pre>
+<p>Everything that follows — the freshness check that let it through, the packet that pinned its inputs, the supersession that activated it, the expression warning it received, the commission it will pay, the shadow outcome it will be graded against — happened or will happen to that row.</p>
+<h3>2.2 The packet: what "immutable" means and why it matters</h3>
+<p>Every decision carries a Decision Packet, and the packet is immutable by database trigger — not by convention, not by the CLI being polite, but by an <code>UPDATE</code> or <code>DELETE</code> against the packets table aborting at the SQLite layer. The packet records the run identifier, the git commit of the code that computed the signals, whether that working tree was dirty, the <code>available_at</code> cutoff the as-of join used, a manifest of every input file with its hash and byte count, the versions of the metrics and source registries, and a hash of the canonicalized output with the volatile fields (computation timestamps) named so that a future reader can reproduce the hash rather than guess at it.</p>
+<p>The reason for this rigor is validation, not bureaucracy. The acceptance test for the register was to replay Friday's run from its packet — same commit, same manifest, same output after canonicalization — and to prove the comparison was not vacuous by showing that a single changed input byte breaks the manifest hash. That test passed. What it buys is the ability, six months from now, to ask of any decision: <em>what did the system know, what code was it running, and would it produce the same recommendation today from the same inputs?</em> A decision whose inputs cannot be reproduced cannot be graded honestly, because the grade cannot distinguish a bad thesis from a changed input.</p>
+<p>The first packet exposed a bug in its own construction that illustrates the standard. The manifest builder initially selected "the newest directory containing any chains," which on a Saturday pinned SPX and SPCX chain files into a SPY decision's manifest. The packet was <em>wrong in a way that looked identical to right</em> — a lineage claim for inputs the decision never used. It was fixed to walk back to the instrument's own chain, and the lesson is general: a packet that pins the wrong inputs is worse than one that pins none, because a false lineage cannot be told from a true one by inspection.</p>
+<h3>2.3 Supersession: how a decision changes without being edited</h3>
+<p>The doctrine's Part 7 principle — revision creates a new record, overwriting destroys the grading trail — is implemented as <em>supersession</em>. To activate the first decision (recorded as <code>draft</code>, because the register does not let the CLI create an active decision directly), the <code>set-status</code> command wrote a full new row with <code>status: active</code> and <code>operator_action: TAKE</code>, linked the original to it through <code>superseded_by</code>, and froze the original: a trigger refuses any further update to a superseded row. The successor inherited the original's data manifest by content hash — a status change consults no market data, so re-hashing that evening's chains would have pinned inputs the decision never saw — but took a fresh git commit and a fresh clock, because the operator acted now and against this code. The successor's packet recorded <code>code_dirty = 1</code>, honestly, because the CLI that wrote it was itself uncommitted at that moment.</p>
+<p>Two consequences matter for validation. A no-op supersession is refused rather than recorded, because the doctrine counts revisions per cycle as a process metric and a record that changes nothing would inflate it. And activation <em>re-checks freshness</em>: a draft written in the morning on signals that went stale by evening cannot be activated at night. Without that re-check, <code>set-status</code> would have been a clean route around the DECISION_BLOCKED gate. The check was added when the route was noticed, which is how most of this book's guards were added.</p>
+<h3>2.4 DECISION_BLOCKED: the gate between report and trade</h3>
+<p>The architecture distinguishes <code>REPORT_OK</code> from <code>DECISION_BLOCKED</code>: a report can always publish with its data-quality flags shown, but a recommendation with stale or missing inputs is blocked while the report goes out. In the register this is a freshness check at write time. Every signal in <code>signals_used</code> is looked up in the metrics registry, its latest observation is fetched from the point-in-time store, and its age is compared with the registry's declared <code>half_life</code> for that metric. Session-half-life signals need the most recent completed session; intraday-half-life signals need an observation inside a declared window; macro series need an observation inside their release interval. Stale or missing signals do not prevent the decision from being <em>recorded</em> — the intention is still worth logging — but they hold its status at <code>draft</code> with a <code>blocked_reason</code>, and no supersession to <code>active</code> can proceed until the block clears.</p>
+<p>The first Saturday dry run taught the check its first lesson in semantics. The author of this paper predicted that a Saturday decision on Friday's data would be blocked, on the theory that session-half-life signals need "today's" session. The implementer disagreed, and was right: a session half-life is assessed against the <em>most recent completed trading session</em>, which on a Saturday is Friday. Blocking would have forbidden the process the doctrine's Book B is built on — the Sunday session sets the swing thesis from Friday's close. What <em>did</em> block, correctly, was anything with an intraday half-life (portfolio NAV cannot describe a closed market) and the migrated FRED series (98 days old against a five-day release interval — the store's honest record that its imported history carries pull-time timestamps until the ALFRED backfill is done).</p>
+<p>Two false-block bugs were also caught in that run, and they matter more than the true blocks: the lookup was passing the decision's ticker to every store, so FRED rows (which have no instrument) and portfolio rows (keyed on the account, not the traded symbol) all read as missing. A check that cries wolf is a check people learn to ignore; both were fixed before the first real decision.</p>
+<h3>2.5 The restriction: the one rule with two enforcement layers</h3>
+<p>Rule 25 of the doctrine — no Brookfield-family security, in any book, in any expression, for any reason — is the register's only rule enforced in two places on purpose. The Python insert path raises <code>RestrictedInstrumentError</code>. Behind it, a SQLite trigger on the decisions table refuses any row whose normalized instrument matches the restricted-instruments table, so that a raw insert from a script that never imported the register is refused too. "A schema constraint is a rule" is the architecture's phrase; the trigger is that phrase made literal.</p>
+<p>Normalization does the derivative work rather than the list: <code>O:BN260918C00050000</code>, <code>BN 260918C50</code>, <code>bn.to</code> and <code>BN.PR.A</code> all normalize to <code>BN</code> and all block; <code>BEPC</code> deliberately does not collapse to <code>BEP</code>, because only dotted suffixes and option encodings are stripped, never trailing letters. Twenty-nine roots are listed across four tiers, generic tickers (<code>RA</code>, <code>INF</code>) route to manual review rather than hard-blocking a future unrelated issuer, and the list carries a <code>valid_from</code> on every row against the day an identity layer can resolve the 2022 rename (BAM meant the parent then and means the manager now). The list was built from the corporate structure, not a filing, and the paper says so: it needs quarterly verification against EDGAR, additions flagged, nothing ever auto-removed.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-execution-and-microstructure">
+      <summary class="section-head">
+        <span class="section-title">Part III — Execution and Microstructure</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>3.1 The broker connection and what it refuses to do</h3>
+<p>The book is connected to Interactive Brokers through IB Gateway running headless on the production server, supervised by systemd, restarted daily at 01:00 Eastern by a timer pinned to the New York zone so that it never drifts into IBKR's 23:45–00:45 reset window, and watched by a port-level health check that distinguishes "not listening" from "listening but signed out." The connection is read-only in three separate senses, and it is worth being precise about which is which, because the build revealed that one of them was not what it claimed.</p>
+<p>The first sense is the <strong>absence of order-placing code</strong>: no module in the repository calls the broker's <code>placeOrder</code>, and a test greps for it. The second is the <strong>vendor's Read-Only API setting</strong> in the Gateway, which causes the server to refuse order messages regardless of what any client sends. The third was supposed to be the client library's <code>readonly=True</code> flag. Reading the library showed that the flag does exactly one thing — skip fetching open orders at startup — and installs no check on order placement. A docstring had claimed otherwise. It was corrected, and the paper repeats the correction because it is the cleanest example the build produced of a safety claim that would have been <em>believed</em> until the day it mattered.</p>
+<p>The Read-Only setting has a cost, discovered empirically: IBKR's What-If preview — commission, margin impact, buying-power delta for a contemplated order — is transmitted as an order message with a <code>whatIf</code> flag, and the server refuses it under Read-Only with the words <em>"The API interface is currently in Read-Only mode."</em> The doctrine's Gate 1.5 wanted those economics; the doctrine's Gate 1 wanted the guarantee. They cannot both be had from the vendor at once. The ruling: <strong>Read-Only stays on through the hand-placed phase</strong>, and the economics come from a schedule-derived estimate (Part IV) until Gate 2 lifts Read-Only by design and the code-side guards take over its job. The What-If module exists, tested against fixtures, and waits.</p>
+<h3>3.2 Portfolio Truth: the book observed</h3>
+<p>What the connection <em>does</em> do is observe. Every thirty minutes during the trading day, and once at the close, a sync reads NAV, cash, buying power, excess liquidity, margin requirements and every position from the paper account and writes them into the point-in-time store as observations with their own <code>available_at</code>, <code>source = ibkr_paper</code>, and a run identifier — nine rows on a flat account, thirteen once fills and commissions are added. This is the doctrine's "actual portfolio" made into data, and it is the only source in the system whose word is <em>authoritative</em> rather than <em>inferred</em>: the store's observation-type field records it as <code>observed</code>, <code>revision_policy: never</code>, invalidated only by a position change.</p>
+<p>The first sync produced a small bug that belongs in a validation paper. The <code>run_id</code> was generated at second resolution, and a test asserting that two syncs in the same second get different identifiers failed. It was the second time that weekend a second-resolution identifier had failed the same test (the first was the store's <code>available_at</code> canonicalization), and the paper draws the general rule from it: <strong>identity and time in this codebase are found wrong by tests, never by reading.</strong> Every identifier and every timestamp is now microsecond UTC by construction.</p>
+<h3>3.3 Order placement, brackets, and the operator's three touches</h3>
+<p>Orders are placed by hand, and the doctrine's operating rhythm — a ten-minute 07:00 touch, a five-minute 10:00 touch, a five-minute close — depends on their being placeable in minutes from a prepared list with exits attached. Three mechanics make that possible and are the book's execution standard whether or not the broker ever places an order itself.</p>
+<p><strong>Brackets are server-side.</strong> A bracket is a parent order with an attached stop and an attached profit target, submitted together so that the exits exist on the broker's servers from the moment the entry fills. The operator's machine can be off; the doctrine's Rule 12 (defined risk when I cannot watch) is satisfied for equities by the bracket and for options by the structure itself. IBKR supports bracket orders natively and one-cancels-all groups for the two exits. The book's standard is that no Book B or Book C equity or futures position exists without a working bracket, and that a bracket's stop is never moved away from price (Doctrine Rule 5 and the semi-automation contract's "neither" clause).</p>
+<p><strong>Entries are limits, and the limit says something.</strong> A market order tells the book nothing about the thesis; a limit is a statement about where the thesis is worth entering. The first decision illustrates the discipline and its first lapse: the registered thesis was <em>buy the mean-reversion from the flip toward the call wall</em>, and the order placed was a buy limit at 773.17 — above Friday's 770.24 close, which fills at Tuesday's open on any flat tape and is therefore, economically, a market order. The register's expression check will not catch that (it checks instrument shape, not price), but the shadow outcome will grade it: the decision's reference price is the decision-time price, and the fill's distance from it is the first entry in the execution-quality ledger. Rep one's first lesson is written into rep one.</p>
+<p><strong>Good-til-canceled, staged into a closed market.</strong> The doctrine's Sunday session stages the week's conditional orders; the paper account accepts GTC orders into a closed market and holds them <code>PreSubmitted</code> until the open. This is how a part-time book works at all: decisions are made at scheduled touches and orders rest until the market opens, rather than being placed live at the moment a thesis forms.</p>
+<h3>3.4 The session rule and the one-login constraint</h3>
+<p>A practical constraint surfaced on the first attempt to place an order: IBKR permits <strong>one active session per username</strong>, and the headless Gateway holds it. The browser's trading interface could not log in while Gateway was up; it logged in and was immediately bounced when the watchdog relaunched Gateway. The resolution was procedural and is now the standard: stop the watchdog and restart timers, stop Gateway, place the order in the browser, restart everything. The order rests on IBKR's servers throughout — Gateway is an observer, not the order's custodian — and when Gateway reconnects, Portfolio Truth catches the resting order on its next sync. The monitoring observing an event that happened during its own absence is the point-in-time store's reason for existing, and the first order proved it.</p>
+<p>The constraint will also be the reason a second username is eventually worth having, or the reason Gate 2 arrives: an order path that does not require standing the observer down.</p>
+<h3>3.5 Microstructure the book actually uses</h3>
+<p>The library's <em>Dealer's Hand</em> and <em>Daily Cascade</em> papers carry the microstructure theory; this paper records the pieces the execution layer consumes.</p>
+<p><strong>The closing auction is where the book's most important prices form.</strong> The settled 16:10 capture is timed to it; the pin log grades against it; the doctrine's Book C setups are entered from the 07:00 list and exited by bracket, but their <em>reference</em> — the pin, the wall, the flip — is a closing-auction price. Change Order #3 adds the auction's own flow (NYSE-family imbalance ticks through the Gateway, with a 15:50–16:00 sampler) as the other side of the picture: dealer gamma says how the close <em>reacts</em> to a move; the imbalance says what <em>pushes</em> it. For execution, the practical rule is the doctrine's: no Book C entry after 10:30 without the 10:00 report's confirmation, and no entry into the last ten minutes at all unless the packet is explicitly a closing-auction expression.</p>
+<p><strong>Options spreads are a cost the packet must pay for.</strong> Doctrine Rule 13 says no trade whose expected R is less than three times its round-trip cost in commissions, spread and slippage. For a single-name option with a $0.10 wide market, a one-lot round trip costs $0.20 of spread before commission — which on a $2.00 contract is 10% of the premium, a cost that makes a 1.5R expectation impossible. The expression check's forward work (Gate 1.5) is to read the live spread from the chain and refuse the packet's R arithmetic when the spread makes it unattainable. Until then, the rule is applied by the operator from the chain the report shows.</p>
+<p><strong>The data is fifteen minutes stale at the only time that matters most.</strong> Massive's Starter tier, the book's chain source, is delayed; at the 09:45 intraday refresh — where the day's 0DTE structure is captured — fifteen minutes is the difference between a live quote and a memory. The OPRA real-time entitlement, subscribed on 5 September, exists for that window alone. The settled 16:10 capture does not need it; by then the quotes are, in the paper's own phrase, corpses.</p>
+<h3>3.6 The opportunistic book's execution rules</h3>
+<p>Book D — and specifically the meme lifecycle layer that Change Order #3 admitted on condition — has execution rules stricter than the other books, because it is the only book that ends in the operator's hand in the most reflexive corner of the market:</p>
+<ul>
+<li><strong>Shorts default to defined-risk.</strong> A bare short in a name whose lifecycle state is anything but exhaustion-with-borrow-improving is flagged by the expression check with the unbounded-loss note. Puts and put spreads are the default expression; the flag is the rule that keeps the book alive through the one squeeze it will eventually be on the wrong side of.</li>
+<li><strong>Short invalidation includes borrow conditions, not only price.</strong> A packet's invalidation for a meme short states a cost-to-borrow ceiling and an availability floor read from IBKR's borrow data through the Gateway. A short whose borrow is collapsing is wrong even if the price has not moved, and the packet says so before entry.</li>
+<li><strong>Attention signals have an intraday half-life.</strong> DECISION_BLOCKED refuses a meme entry on yesterday's mentions. The edge, where it exists, decays in hours.</li>
+<li><strong>Fifteen minutes to a packet or a pass, never on a flagged day</strong> (the doctrine's Book D cadence). An opportunity that cannot survive the wait to the next scheduled touch was a forced flow the operator was going to be on the wrong side of.</li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-sizing-cost-and-the-risk-ladder-as-code">
+      <summary class="section-head">
+        <span class="section-title">Part IV — Sizing, Cost, and the Risk Ladder as Code</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>4.1 Where the numbers come from</h3>
+<p>Every size in the book is the output of one calculation: <strong>risk dollars ÷ distance to invalidation</strong>. Risk dollars are the book's tier figure (ordinary, good, exceptional) times the doctrine's regime multiplier (the product of the three dials' multipliers, halved on a volatile-protocol day) applied to the declared capital base. Distance to invalidation is the packet's invalidation price against the entry. The first decision's arithmetic, had it been sized by the calculator rather than by hand as "100 shares": Book B ordinary tier is 0.75% of $300,000, or $2,250; invalidation at 760 against an entry near 770.24 is $10.24 per share; $2,250 ÷ $10.24 = 219 shares. The operator sized at 100 — under the tier, which the doctrine permits and the register records as a size decision to be graded like any other. A hand-sized position above the tier would have been refused at write time, not warned.</p>
+<p>The dial multipliers are the doctrine's regime card, and they are stamped on every packet at write time: Macro from the Monthly composite, Volatility from the volatility framework, Gamma from the exposure engine's regime classification (Positive above the flip, Flip-zone within the declared band, Negative below). The first decision was written in a Negative-gamma regime — SPY's close sat on the flip — which the doctrine's gamma card assigns a 0.75 multiplier and which, on a volatile-protocol day, would have halved again to 0.375. The register recorded the stamp; the sizing calculator that <em>applies</em> it is Track D work and is listed in Part VIII as not yet built. Until then the multiplier is applied by the operator from the stamp the report prints, and the paper is explicit that this is the weaker enforcement the doctrine's adoption sequence anticipated.</p>
+<h3>4.2 Cost: the Fixed schedule, verified by hand</h3>
+<p>Doctrine Rule 13 needs the round-trip cost of every packet, and the cost model needs to be true. The account is on IBKR's <strong>Fixed</strong> pricing for US stocks — USD 0.005 per share, $1.00 minimum per order, 1% of trade value maximum, all-in — confirmed by the operator reading the Client Portal on 5 September, because the website refuses automated fetches (a 403 to the probe) and the API does not expose which pricing structure an account is on. The configuration records the schedule, the verification date, and <code>source: Client Portal, hand-read by operator</code>. A constant with provenance is the same standard applied to the restricted-instruments list and to the SPCX listing date: declared, dated, sourced, revisited.</p>
+<p>Applied to the first decision: 100 shares × $0.005 = $0.50, floored to the $1.00 minimum, so the entry commission should be exactly $1.00 and the round trip $2.00. When the fill's actual commission arrives through Portfolio Truth, it either equals the estimate or it does not, and the execution-quality ledger (Part V) grades the cost model itself from trade one. The paper notes what Fixed pricing means for expression choice: a 100-share equity position costs $2 round trip; a one-lot option spread on the same thesis costs more in commission and, usually, far more in bid-ask spread. Doctrine Rule 13's three-times-cost bar is, for small equity positions, easy; for small option structures it is the binding constraint, and the expression check's cost line exists to say so before the packet is written.</p>
+<h3>4.3 The kill-switch ladder as code, and what is enforced today</h3>
+<p>The doctrine's ladder — daily −2%, weekly −4%, monthly −7%, drawdown −12% and −20%, each with a scheduled re-entry — is the book's most important safety mechanism and the one the execution layer must eventually enforce by refusing orders. Today it is enforced by the register's rule-break count and the operator's discipline, which the doctrine's adoption sequence accepts as the weaker mechanism appropriate to the hand-placed phase. What exists in code is the measurement: Portfolio Truth's NAV series is the ladder's input, and the daily, weekly and monthly deltas and the drawdown from peak are computable from the store. What does not exist is the switch — a state that, once tripped, makes the register refuse an <code>active</code> supersession for the affected books until the next scheduled session. Part VIII lists it as Track D work preceding Book B and C activation, because the doctrine's Gate C requires "a book run to rule daily," and running to rule requires the rule to be checkable in code rather than in memory.</p>
+<p>The heat and net-exposure caps (Doctrine Rule 16: 6% total open risk across B, C, D; net beta-equivalent capped at Book A's band ceiling plus 15 points) are the same shape — computable from the register's open decisions and Portfolio Truth's positions; not yet a refusal. The correlated-positions-count-once rule needs the factor mapping the doctrine describes, which is the <em>Positioning &amp; Flows</em> paper's territory.</p>
+<h3>4.4 Quarter-Kelly as a ceiling the book cannot see yet</h3>
+<p>The doctrine's Rule 15 says quarter-Kelly is the ceiling, not the target, and that it is a ceiling invisible until the register has measured the edge. This paper states the measurement dependency precisely: Kelly needs a hit rate and a payoff ratio per book per regime, with a sample large enough that the estimate's error is smaller than the gap between tiers. The doctrine's minimum samples — thirty decisions before a signal family's trust changes, fifty before a size tier changes, one hundred fifty before Phase 2 — are the sample sizes at which those estimates begin to be worth acting on. The register has one decision. The paper's position is that the doctrine's Phase 1 sizes are correct <em>because</em> the edge is unmeasured, and that the promotion gates are the mechanism by which measurement earns size. Nothing in the code will move a tier; a human does, at a monthly session, on the ledger's evidence, and the change is a commit with a reason.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-v-validation-before-during-and-after">
+      <summary class="section-head">
+        <span class="section-title">Part V — Validation: Before, During, and After</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>5.1 The book's theory of validation</h3>
+<p>The library's <em>Tops and Bottoms</em> paper carries the calibration lessons; the architecture's Change Order carries the completion gates. This paper's contribution is to say what validation means for a <em>book</em> rather than a report, and to record what the build taught about it.</p>
+<p>A book is validated on three clocks. <strong>Before</strong> a component runs in production, it passes a gate: a deterministic test that can fail, run against a fixture that cannot pass vacuously. <strong>During</strong> production, it is watched: freshness stamps, heartbeats, port-level health, data-quality flags that render as GAP rather than as pretended values. <strong>After</strong> every decision, it is graded: a shadow outcome at the decision's horizon, reconciled to real fills where fills exist, decomposed by the six questions. The three clocks are not redundant. The weekend's evidence is that the <em>before</em> gates caught definitional errors (three in the exposure engine, all resolved by comparison against a vendor), the <em>during</em> watches caught silent failures (a systemd directive the daemon ignores without warning; a display that does not exist headless), and the <em>after</em> grades will catch the errors neither can see — a thesis that was wrong.</p>
+<h3>5.2 Gates that can fail, and the vacuous-pass problem</h3>
+<p>The book's gates share a discipline worth stating because it was learned by violation. <strong>A gate must be verified to fail.</strong> The registry gate was tested by seeding an unregistered column, a count drift, and a trigger-eligibility flag without rationale, and each broke the build with a message naming the fix. The systemd validator was tested by seeding an invalid <code>ProtectHome</code> value, a directive in the wrong section, a misspelled <code>Restart</code> value, and an unknown directive — because the daemon's failure mode for all four is to log a line nobody reads and proceed. <strong>A gate must not pass on nothing.</strong> The exposure drift check would have passed in continuous integration because the data directory is not committed and there were no chains to compare; it now falls back to a synthetic chain through the real engine and emits the identical ninety-three fields with and without stored data. A gate that passes because it examined nothing is the outcome a gate must never have.</p>
+<p>The IV solver's gate is the fullest example. It passes five substantive checks on unchanged thresholds — solve rate, median IV agreement, gamma-flip agreement, exact wall agreement, and dollar-gamma agreement against the vendor's profile — and it took three rounds to get there honestly. The first round was passing only because the chain it examined had no 0DTE contracts (a snapshot selected by file modification time had been taken hours after the close). The second round failed on a net-gamma comparison that the diagnosis showed was <em>unstable by construction</em>: net gamma is a small difference of two large offsetting halves, so error divided by net is arbitrary — each stratum of the comparison was tighter than their combination, which no ordinary error budget produces. The fix was to compare against gross gamma at the same 10% tolerance, and to <strong>print the net's absolute uncertainty every run</strong> ("net dealer gamma could be out by $315,983,913; the ratio below does not say otherwise"), because anything downstream that acts on net — distance-to-flip sizing, most obviously — must carry that uncertainty rather than inherit a friendlier ratio. The third round moved the 0DTE check to N/A at a settled capture, on the ruling that same-day contracts at 16:09 are expired or minutes from it and their gamma is not a forward-looking exposure; 0DTE greeks belong to the intraday cadence, where the contracts have life. The gate got <em>stricter</em> each round and green only on the third. That is what earned green looks like.</p>
+<h3>5.3 The failure classes, named</h3>
+<p>Every failure the build produced belongs to one of five classes, and the paper names them because a validation regime that does not know its enemy's face cannot recognize it next time.</p>
+<ol>
+<li><strong>UTC versus session date</strong> (three instances). The box runs in UTC, the market in Eastern time; anything keyed on <code>date.today()</code> files the evening's data under tomorrow. Killed at the root by a single <code>session_date()</code> helper that every date-keying call site now uses.</li>
+<li><strong>File fact versus observation fact</strong> (two instances). "Newest file" answered a filesystem question when the pipeline asked an observation-time question; the newest chain file was a post-close verification snapshot with the day's 0DTE expired off it. Selection now keys on the observation timestamp carried inside the data.</li>
+<li><strong>Silently ignored configuration</strong> (five instances). systemd ignores a directive in the wrong section, an invalid value, or an unknown key, and logs a line. Every shipped directive is now asserted by a validator, with an unknown-directive trap.</li>
+<li><strong>Precision collisions in identity and time</strong> (two instances each). Second-resolution run identifiers collide; mixed-precision timestamps sort lexicographically wrong, so that a microsecond-stamped broker row is invisible to a second-resolution cutoff — not wrong, <em>invisible</em>. Canonical microsecond UTC everywhere, with regression tests.</li>
+<li><strong>Safety claims that were not true</strong> (one instance). The client-library flag that did not prevent trading. Corrected by reading the library, and the general rule is that a docstring's safety claim is a hypothesis until a test or the vendor's own refusal confirms it.</li>
+</ol>
+<p>The common thread is that none of the five was found by reading the code. They were found by tests that asserted something specific, by deployment onto a machine that behaved differently, or by a second source arriving at a seam. The validation regime is built around that fact.</p>
+<h3>5.4 Validation in production: the watches</h3>
+<p>The production server watches itself on five timers. The end-of-day heartbeat carries the run's exit code, the git commit it ran, and its elapsed time; the heartbeat checker derives its allowance from the trading calendar rather than a fixed window, so that the Tuesday after a holiday weekend is not falsely stale and a genuinely missed Wednesday is caught hours after its window. The Gateway watchdog polls the API port and writes a state file whose vocabulary matches the sync script's exit codes, so that "signed out" means the same thing to both. The Portfolio Truth sync writes a last-success file whose age is the size of the hole in the portfolio series. Off-box backup — the server's own snapshots plus a nightly file-level sync to cloud storage — is Track D's first task, because as of this draft the point-in-time store lives on one disk, and the store is now the book's memory.</p>
+<h3>5.5 Grading: shadow outcomes for every decision</h3>
+<p>The doctrine's ledger needs an outcome for every decision, and the book's design decision is that <strong>every decision gets a shadow outcome at its horizon from stored prices — taken, declined and draft alike.</strong> A declined decision is graded as if taken, at the decision-time reference price, held to its horizon or its invalidation, whichever comes first. This is the mechanism behind the doctrine's insistence that doing nothing is a position: the register can report, thirteen weeks from now, the expectancy of the decisions the operator passed on, beside the expectancy of the ones he took, and the difference is the value of his judgment at the veto. Taken decisions additionally reconcile to Portfolio Truth's fills — actual entry, actual exit, actual commission — which separates the <em>forecast</em> grade from the <em>execution</em> grade.</p>
+<p>The six questions of the doctrine (thesis, timing, expression, size, regime change, signal degradation) plus the rule-break field are the packet's post-mortem stamp, entered through <code>close_decision</code> and categorical so that they can be counted. The architecture's Part 26.7 error decomposition supplies the categories; the execution-quality ledger (slippage against decision-time price, implementation shortfall, fill against limit) supplies the <em>expression</em> and <em>execution</em> categories with numbers rather than judgment. The first decision's likely grade is already legible: if it fills at the open on Tuesday and the mean-reversion thesis plays out, the thesis grade is good and the expression grade is poor — a buy above the close for a dip-buy thesis — and the ledger will say so in its first row.</p>
+<p>Hypotheses are graded the same way. Change Order #3 registers seven — four closing-auction strategies, three meme strategies — as dated hypotheses in a table with the same grading path as decisions, so that a strategy can be tested against six months of collected data without a dollar at risk, and its result recorded before anyone is tempted to trade it.</p>
+<h3>5.6 Backtesting: what is possible and what is not</h3>
+<p>The book's backtesting position is unusually constrained, and the paper states the constraints rather than working around them.</p>
+<p><strong>Positioning history mostly does not exist.</strong> Options open interest — the input to every dealer-exposure calculation — is served by every vendor probed as a live snapshot only; the probe that established this tried three routes and found that the snapshot endpoint silently ignores a requested date. Estimate-revision history is a vendor product. Short-interest history exists twice monthly from FINRA. Auction imbalance history does not exist at all outside the exchanges' own feeds. The consequence is that the pin log, the cohort decomposition, and the closing-auction hypotheses are <strong>forward-only</strong>: their base rates accumulate from the day the logger started (4 September 2026 for the pin log) and cannot be reconstructed earlier. The paper's rule, learned from a $3,588-per-year vendor tier that was declined: do not buy history that would shortcut this; log forward and wait.</p>
+<p><strong>The exception is worth naming.</strong> Nasdaq's retail-activity series carries history to 2016 — the one behavioral source the book has found with a decade of record — and its derived signals can be backtested against the 2021 retail peak and the 2022 trough before they are trusted. Price history is plentiful (Massive's bars, FRED's macro series, expired-contract price bars for two years). So a <em>price-based</em> backtest of a signal with a <em>price-based</em> definition is possible; a backtest of anything defined on positioning is not, and a paper that claimed otherwise would be citing evidence it does not have.</p>
+<p><strong>Walk-forward is the only honest test on the data the book does have.</strong> A rule proposed at a monthly session runs as a challenger — in paper for rules that change size, in production for rules that only restrict — for a defined period, and is promoted or withdrawn on the ledger's evidence (the doctrine's Section 9.3 applied to rules; the architecture's champion-and-challenger applied to reports). The point-in-time store's <code>available_at</code> discipline is what makes walk-forward honest: the as-of join returns only what was knowable at the decision time, and a leakage test asserts that a row stamped after the query time is invisible. A backtest that cannot prove it did not see the future is a story, not a test.</p>
+<p><strong>Minimum samples are enforced before anything is acted on.</strong> The doctrine's thirty/fifty/one-hundred-fifty thresholds are the book's, and the register prints every figure with its sample size beside it until the threshold is met. The paper's own contribution is the base-rate honesty of the pin log's first row: 0 of 13 hits on an OpEx Friday close, after a 7-of-13 reading was traced to a numerical floor planting fictional gamma at the money. A base rate that starts at zero, honestly, is worth more than one that starts at 54% by artifact and would have read as an edge for months.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s7-part-vi-tax-and-account-mechanics">
+      <summary class="section-head">
+        <span class="section-title">Part VI — Tax and Account Mechanics</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><em>This part describes mechanics the book must know about to choose expressions and to measure after-cost returns. It is not tax advice; the figures and rules are as generally understood for a U.S. individual account in 2026 and should be confirmed with a tax professional before they drive a decision.</em></p>
+<h3>6.1 Why tax is an expression decision</h3>
+<p>Doctrine Rule 11 says the thesis and the instrument are two decisions. Tax is the third input to the second decision, and for an index thesis it can be decisive. A one-week trade in SPY shares or SPY options produces a short-term capital gain taxed as ordinary income. The same thesis expressed in SPX options — cash-settled, European-style index options — is a Section 1256 contract: gains are taxed 60% long-term and 40% short-term regardless of holding period, marked to market at year-end, and exempt from the wash-sale rule. For an operator in a high bracket running a Book C that turns over weekly, the after-tax difference between the two expressions of an identical thesis is material, and it is a difference the expression check can compute. The same applies to equity-index and Treasury futures (1256) versus the corresponding ETFs (not), and to VIX futures and options (1256) versus VIX-linked ETNs (not).</p>
+<p>The book's rule, to be encoded in the expression table: <strong>for index theses in Books B and C, the 1256 expression is the default unless the packet states a reason it is worse</strong> — liquidity in the specific strike, the cash-settlement risk on a position held into expiration, or a spread cost that Doctrine Rule 13 refuses. The paper does not claim the default is always right; it claims the choice should be made and recorded.</p>
+<h3>6.2 Mechanics the register must model</h3>
+<p><strong>Wash sales.</strong> A loss on a stock or ETF (or an option on one) is disallowed if a substantially identical position is bought within thirty days before or after, across all accounts. For a book that trades SPY in Book C and holds SPY in Book A's beta sleeve, this is not hypothetical: a Book C loss can be disallowed by Book A's ordinary rebalance. The register's forward work is a wash-sale flag on any closed loss where the instrument (or its option) reappears within the window in any book. 1256 contracts are exempt, which is a second argument for the SPX expression of index theses.</p>
+<p><strong>Settlement and cash.</strong> U.S. equities settle T+1; options T+1; the buying-power figure Portfolio Truth reads already reflects this, but a book that sells a position to fund another the same day should know the cash is not settled until the next. In a margin account this is a financing question rather than a good-faith violation, but the paper notes it because the doctrine's Book A rebalance is a set of Monday limit orders that assume the capital is free.</p>
+<p><strong>Pattern day trading.</strong> A margin account that day-trades four or more times in five business days is designated a pattern day trader and must hold $25,000 of equity. At the book's capital base this is not a constraint, but Book C's rules — which permit intraday exits by bracket — mean the designation will be acquired, and the paper records that it carries no cost at this size.</p>
+<p><strong>Margin.</strong> The account is a Reg T margin account (buying power of four times cash on the paper account confirms it). Portfolio margin, available at IBKR above a $110,000 equity threshold, prices defined-risk option spreads far more efficiently and is worth a Phase 2 evaluation once Book C's spread expressions are the majority of its decisions; it is a capital-efficiency gain, not a risk-budget change, and the doctrine's dollar figures do not move with it.</p>
+<p><strong>Assignment.</strong> SPY, QQQ and IWM options are American-style and physically settled; a short call in a spread can be assigned early around an ex-dividend date, converting a defined-risk spread into a short-stock position overnight. SPX options cannot be. This is the second reason — after tax — that the index expression is the default for a book whose operator is not at a screen.</p>
+<h3>6.3 Measuring after-tax return</h3>
+<p>The ledger reports before-tax expectancy by book and by regime, as the doctrine specifies. This paper adds an after-tax line, computed from the expression's tax treatment and the operator's declared marginal rates, for one purpose: the doctrine's benchmark test — active Books B, C and D against Book A alone and against a static 60/40 over four trailing quarters — is only fair after tax, because Book A's long holds and the static allocation's rare rebalances enjoy long-term treatment that Book C's weekly turnover never will. An active book that beats the benchmark before tax and loses to it after has not earned its budget.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s8-part-vii-the-compliance-boundary">
+      <summary class="section-head">
+        <span class="section-title">Part VII — The Compliance Boundary</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>7.1 The restriction, and why it is the register's, not the operator's</h3>
+<p>The Brookfield-family exclusion is described in Part II as a two-layer enforcement. The paper adds the reasoning: the operator's employer sits inside that corporate family, and the restriction is a condition of employment, not a preference. It is therefore enforced where a preference would not be — at the database, by trigger, on every insert, with derivative normalization so that an option on a restricted root is refused as the root is. The tail watch may monitor restricted names freely (a property-preferred series is a named tell in the tail framework); the register's <em>trade path</em> is what is closed. Monitoring is not trading, and the code knows the difference.</p>
+<h3>7.2 What the book must confirm with the employer, once</h3>
+<p>Corporate personal-trading policies typically go beyond a restricted list: pre-clearance for certain trades, minimum holding periods, blackout windows around the employer's own reporting, restrictions on trading names under active coverage, and a prohibition on using employer devices or networks for personal trading. This paper cannot know which apply. It records the requirement: <strong>before any book activates on the live account, the operator confirms the employer's personal-trading policy and any constraint it imposes is encoded in the register as a rule</strong> — a holding-period minimum as a time-stop floor, a pre-clearance requirement as a <code>status: pending_clearance</code> gate, a blackout window as a calendar entry beside the exchange holidays. A constraint that lives in the operator's memory is the kind that fails on the day it matters.</p>
+<h3>7.3 Separation of environments</h3>
+<p>The book runs on the operator's personal laptop and a rented server; it is reachable from a personal phone. It is never installed on, accessed from, or SSH'd into from an employer's machine, and the repository never appears in a browser on one. The ruling was made early and has been kept: an SSH session from a corporate laptop is the trading system on the employer's hardware, whatever the intent, and the separation is worth more than the convenience of a lunchtime check. The phone, on cellular, is the office-hours interface.</p>
+<h3>7.4 Material non-public information</h3>
+<p>The book's sources are public: exchange data through vendors, regulatory filings, public prediction markets, aggregated social data. The compliance boundary the doctrine's Rule 24 implies — no new instrument, venue, book or strategy without a written rationale and a register entry — is also a boundary on <em>sources</em>: a source that is not public, or whose provenance the source registry cannot state, does not enter the system. The claims registry (architecture Part 26.5) exists for figures that arrive in prose — an analyst's holdings count, a listing date — and every such figure is a claim with a public source until verified against that source. The book's epistemics and its compliance are, in this respect, the same discipline.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s9-part-viii-the-gate-ladder-what-is-built-what-is-next-and-wha">
+      <summary class="section-head">
+        <span class="section-title">Part VIII — The Gate Ladder: What Is Built, What Is Next, and What Would Change This Paper</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>8.1 The gates as they stand</h3>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Purpose</th>
+<th>Status (6 Sep 2026)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gate 1</strong> — read-only integration</td>
+<td>Portfolio Truth in the store; Gateway supervised; no code path can transmit an order</td>
+<td><strong>Closed 5 Sep.</strong> Nine account rows syncing every 30 min; Read-Only enforced by vendor + absence of code; first hand-placed order observed by the monitor after its own restart</td>
+</tr>
+<tr>
+<td><strong>Gate 1.5</strong> — expression and execution analytics</td>
+<td>Cost preview, expression check, execution-quality ledger</td>
+<td><strong>Partially closed.</strong> Expression check live (first warning fired on decision #1); cost from verified Fixed schedule; What-If refused under Read-Only, deferred to Gate 2; fills/commissions ingestion and execution ledger in Track D5</td>
+</tr>
+<tr>
+<td><strong>Gate 2</strong> — order construction</td>
+<td>Code builds orders from packets; operator transmits</td>
+<td>Not started. Preconditions: Track D complete; kill-switch enforcement in the register; Read-Only lifted by design; the <code>placeOrder</code> grep becomes an allow-list of one module</td>
+</tr>
+<tr>
+<td><strong>Gate 3</strong> — supervised transmission</td>
+<td>Code transmits within a bracketed, switch-enforced envelope; operator approves per order</td>
+<td>Not started. Preconditions: Gate 2 plus fifty closed decisions per active book with a zero rule-break count</td>
+</tr>
+<tr>
+<td><strong>Gate 4</strong> — unsupervised within envelope</td>
+<td>Code transmits without per-order approval, inside a fixed daily envelope</td>
+<td>Not scheduled. Requires Phase 2 of the doctrine's promotion ladder</td>
+</tr>
+</tbody>
+</table>
+<h3>8.2 What is not yet built, honestly</h3>
+<ul>
+<li><strong>The sizing calculator that applies the dial multipliers</strong> to the tier figure and refuses an over-sized packet. The stamps exist; the arithmetic is the operator's. Track D.</li>
+<li><strong>The kill-switch state</strong> — a tripped switch that makes <code>set-status</code> refuse activation for the affected books until the next scheduled session. The measurement exists (Portfolio Truth's NAV series); the switch does not. Precedes Gate C in the doctrine's adoption sequence.</li>
+<li><strong>Heat and net-exposure as refusals</strong> rather than figures. Needs the correlated-position factor map from <em>Positioning &amp; Flows</em>.</li>
+<li><strong>The wash-sale flag</strong> and the after-tax ledger line (Part VI).</li>
+<li><strong>Shadow outcomes and the hypotheses table</strong> (Track D5) — the one link that closes the learning loop.</li>
+<li><strong>The numeral audit on LLM prose</strong> (Session 4-lite, Track D3) — the anti-fabrication gate that must precede any published Daily narrative. Numbers in the store are gated; prose is not, yet.</li>
+<li><strong>Employer-policy constraints</strong> encoded as register rules (Part VII), after the operator confirms them.</li>
+<li><strong>A second broker username or Gate 2</strong>, whichever arrives first, so that placing an order no longer requires standing the observer down.</li>
+</ul>
+<h3>8.3 What would change this paper</h3>
+<p>The paper is as-built, and as-built changes. Three events would require a revision rather than an addendum. The first is Gate 2: when code constructs orders, Part III's "what the connection refuses to do" becomes "what the envelope permits," and the guarantees move from the vendor's setting to the book's own guards, which will need their own Part V treatment. The second is the first hundred closed decisions: Part IV's Kelly section is written for an unmeasured edge, and a measured one changes the tiers, the promotion arithmetic, and the paper's tone. The third is a failure class this paper does not list — the build weekend produced five, and a validation regime that has stopped finding new ones is more likely to have stopped looking than to have run out.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s10-appendix-decision-1-end-to-end">
+      <summary class="section-head">
+        <span class="section-title">Appendix — Decision #1, end to end</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>For the record, and because the paper's examples should be reproducible:</p>
+<ul>
+<li><strong>Fri 4 Sep, 16:10 ET</strong> — settled chain capture; SPY close 770.24; gamma flip 770.63, put wall 760, call wall 780 (both walls matching the vendor exactly; flip within 0.13%).</li>
+<li><strong>Sat 5 Sep, 20:40 UTC</strong> — <code>decide.py record</code>: SPY long, swing, positioning edge, invalidation "settled close below put wall 760," three exposure signals declared. Restriction check clear. Freshness: all three signals inside their session half-life against the most recent completed session. Packet <code>42806b99…</code> pinned Friday's SPY chain by hash; <code>code_dirty = 0</code>. Status <code>draft</code>.</li>
+<li><strong>Sat 5 Sep, ~21:00 UTC</strong> — <code>set-status</code> supersedes to <code>active</code>/TAKE; freshness re-checked and passed; successor packet inherits the manifest by content, records fresh commit and <code>code_dirty = 1</code> (the CLI itself uncommitted). Expression check: one warning, <em>positioning edge outlives its structure</em> — the walls are made of open interest that expires with the September cycle.</li>
+<li><strong>Sat 5 Sep, 21:14 ET</strong> — order placed by hand in the paper account after standing the Gateway down for the session: Buy 100 SPY, Limit 773.17, GTC, <code>PreSubmitted</code>, order 1009493520, account DUP735780. Gateway restarted; port 4002 listening; watchdog <code>state=ok</code>.</li>
+<li><strong>Expected</strong> — fills at Tuesday's open on any flat tape (limit above Friday's close); commission $1.00 (Fixed minimum); Portfolio Truth catches the position on its first Tuesday sync. <strong>Expected first grades:</strong> thesis pending; expression <em>poor</em> (entry above the level the thesis wanted to buy toward); size <em>under tier</em> (100 vs a computed 219); cost model <em>verified or corrected</em> on the first fill.</li>
+</ul>
+<p>That is one decision. The paper's claim is that it is graded from birth, that its inputs can be replayed, that its rule compliance is counted, and that the next one will be measured against it. Everything else in the book is the machinery that makes that claim true at scale.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/systematic-book-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

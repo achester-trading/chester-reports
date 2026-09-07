@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence and Inference</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Evidence and Inference</h1>
+<h2>How to Read Your Own Ledger</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXIII</strong> — with the positioning and book layer, immediately before <em>Building and Validating a Systematic Book</em> — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> 1.0 — September 2026
+<strong>Status:</strong> Doctrine-adjacent. Governs how every figure the register prints is to be read. Its five computed figures have never been drawn; the placeholders below are where they go.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-a-number-means">Part I — What a Number Means</a></li><li><a href="#s3-part-ii-how-to-fool-yourself">Part II — How to Fool Yourself</a></li><li><a href="#s4-part-iii-what-to-do-about-it">Part III — What to Do About It</a></li><li><a href="#s5-part-iv-application">Part IV — Application</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>Every other paper in this library is written to increase the operator's confidence in something. This one is written to calibrate it. It exists because the system's entire output is a ledger, the Doctrine promises to change its rules on that ledger's evidence, and nothing yet says what the evidence can bear.</p>
+<p>The paper's central claim is uncomfortable and is stated once here so that nothing later softens it: <strong>for a book of this size and cadence, most of the questions the operator wants to ask of his own results cannot be answered by those results — not "not yet," but ever.</strong> A discretionary book making three to five decisions a week produces perhaps two hundred a year. With ordinary per-trade noise, two hundred decisions cannot distinguish a good process from a break-even one. The correct response is not despair. It is to know which questions the data can settle, to lean on mechanism and prior evidence for the rest, and to stop treating a thirteen-week number as a verdict.</p>
+<p>The paper is deliberately short on algebra and long on pictures. Part I is what a number means — the error bars on everything the register prints. Part II is the catalogue of ways a careful person fools himself with a ledger. Part III is what to do instead: how to weigh mechanism against data, how a shadow outcome multiplies the sample, and a chapter-length honesty table on which of the register's cuts will ever be decidable. Part IV applies the whole to sizing and to edge decay.</p>
+<p>Written before the register has results, on purpose. Written afterward, it would be an argument against conclusions already drawn.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-what-a-number-means">
+      <summary class="section-head">
+        <span class="section-title">Part I — What a Number Means</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 1 — The standard error of everything</h2>
+<p>Every figure the register prints — expectancy, hit rate, average winner and loser, Sharpe ratio — is an estimate from a sample, and every estimate has an error bar. The error bar is the paper's only real subject.</p>
+<p>For an average of <em>n</em> independent observations with spread <em>σ</em>, the standard error is <em>σ</em> divided by the square root of <em>n</em>. Trading results have a per-decision spread close to one R — a winner and a loser differ by roughly a full unit of risk — so the standard error of measured expectancy is roughly 1 ÷ √n in R. The ninety-five percent interval is about twice that on either side.</p>
+<p><em>[Figure 1 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]</em></p>
+<p>The figure is the paper compressed. An edge of 0.2R per decision — a good process by any standard — measured over the Doctrine's thresholds:</p>
+<table>
+<thead>
+<tr>
+<th>Decisions</th>
+<th>Standard error</th>
+<th>95% interval on a true 0.2R edge</th>
+<th>What can be said</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>30</td>
+<td>±0.18R</td>
+<td>−0.16R to +0.56R</td>
+<td>Nothing. Could be losing; could be excellent</td>
+</tr>
+<tr>
+<td>50</td>
+<td>±0.14R</td>
+<td>−0.08R to +0.48R</td>
+<td>Nothing</td>
+</tr>
+<tr>
+<td>150</td>
+<td>±0.08R</td>
+<td>+0.04R to +0.36R</td>
+<td>Barely positive, at the edge of the interval</td>
+</tr>
+<tr>
+<td>200 (≈ one year)</td>
+<td>±0.07R</td>
+<td>+0.06R to +0.34R</td>
+<td>Positive, magnitude unknown by a factor of six</td>
+</tr>
+<tr>
+<td>400 (≈ two years)</td>
+<td>±0.05R</td>
+<td>+0.10R to +0.30R</td>
+<td>Positive; magnitude known within a factor of three</td>
+</tr>
+<tr>
+<td>1,000 (≈ five years)</td>
+<td>±0.03R</td>
+<td>+0.14R to +0.26R</td>
+<td>Known</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The Doctrine's thirty-and-fifty thresholds are minima for the crudest question — is the sign positive — and are far too small for any interesting one.</strong> A year of disciplined trading cannot exclude zero. Two years establish the sign and leave the magnitude open by a factor of three. The paper's first instruction follows: every figure the register prints carries its sample size <em>and its interval</em>, and the interval is read before the point.</p>
+<h2>Chapter 2 — The Sharpe ratio's error bar</h2>
+<p>The Sharpe ratio is the number most likely to be quoted and least likely to be quoted with its uncertainty. For an annualized Sharpe <em>S</em> estimated from <em>T</em> years of data, the standard error is approximately √((1 + S²/2) ÷ T) — in the same units as the estimate.</p>
+<p><em>[Figure 2 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]</em></p>
+<p>A Sharpe of 1.0 measured over one year has a standard error of about 1.2: the estimate is smaller than its own error bar, and zero sits comfortably inside the interval. Over five years the error falls to about 0.55 and a Sharpe of 1.0 becomes distinguishable from zero at ordinary confidence. Over ten, the interval is roughly 0.6 to 1.4.</p>
+<p>The reframing this forces is general. <strong>Every performance figure the operator will ever read — a fund's, a strategy's, a newsletter's, his own — carries an error bar most quoters omit, and for anything under five years the error bar is roughly the size of the number.</strong> The Doctrine's promotion gates at 150 decisions across two regimes are, in these terms, permission to believe the sign, not the size.</p>
+<h2>Chapter 3 — Effective sample size</h2>
+<p>The formulas above assume independence, and trades are not independent. Six long semiconductor positions entered in the same week on the same thesis are closer to one observation than to six: they share a factor, they share a regime, and they will share an outcome. The register's mechanism-group tagging exists for the confluence guard, and it does the same work here — decisions sharing a mechanism group and a window count once toward the sample.</p>
+<p>The discount is large. A book that makes 200 decisions a year in clusters of three or four on shared themes has an effective sample closer to 60. The honest interval on a year's expectancy is therefore not the ±0.07R of Chapter 1 but something nearer ±0.13R. <strong>The Doctrine's heat rule — correlated positions count once at their common factor — is a risk rule and a statistics rule at the same time, and the register should compute effective n rather than raw n wherever it prints a figure.</strong></p>
+<h2>Chapter 4 — Regime is a sample size too</h2>
+<p>This is the chapter the operator most needs and will find least intuitive.</p>
+<p>The Doctrine's most important cut is performance by regime, because that is how the trust matrix is revised. But two hundred decisions made inside a single bull market are, on the question "does this work across regimes," a sample of <strong>one</strong> — one regime, observed two hundred times. The number of regime-observations, not the number of decisions, bounds what can be said about regime dependence, and regimes arrive at a rate of a few per decade.</p>
+<p>The consequence is severe and unavoidable: <strong>the cut the Doctrine cares about most is the one the data will be thinnest on, permanently.</strong> In three years the register may hold a thousand decisions and two or three regime states, with perhaps thirty decisions in the least common. No statistical method repairs that. What repairs it is the same thing that repairs every small-sample problem in this paper — mechanism, prior evidence from history, and the discipline of not concluding.</p>
+<p>The practical rule: a regime cut with fewer than thirty decisions in it prints its figures in grey with "insufficient" beside them, and the trust matrix does not move on it. The Doctrine already says this; this chapter is why.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-how-to-fool-yourself">
+      <summary class="section-head">
+        <span class="section-title">Part II — How to Fool Yourself</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 5 — The garden of forking paths</h2>
+<p>Test twenty candidate rules at the conventional threshold and one of them "works" by chance. The operator will not run twenty formal tests. He will do something worse: adjust a threshold, look at the result, adjust again, look again — and stop when it looks good. That is the same twenty tests without the paper trail, and its false-discovery rate is identical.</p>
+<p>The remedy is the one the register already applies to decisions: <strong>pre-declaration.</strong> A hypothesis is written before its test — what is claimed, what would confirm it, what sample size decides it — and is graded against that declaration, never against a threshold found afterward. The Part 29 additions entered the register as dated hypotheses for this reason; the pin log's tolerance was fixed in advance for this reason; and the register's supersession rule, which forbids editing a decision after the fact, is this chapter enforced in a schema.</p>
+<h2>Chapter 6 — Overfitting, and why a declared threshold matters</h2>
+<p>An in-sample result overstates the true effect, and the overstatement grows with the number of configurations tried. A strategy that looks best among a hundred variants is, on average, a good deal worse than it looks — the deflation is a function of how many things were tried, which is why the count of things tried must be recorded.</p>
+<p>The system's own gates are the illustration. When the data-quality gates falsely excluded every symbol on their first run, the cause was traced to an input bug and <strong>no threshold was touched</strong>; the commit history shows each threshold appearing exactly once. That history is what makes the pin log's base rate honest: a base rate measured against a tolerance that was never tuned to make it look better is a base rate a reader can trust. Had the tolerance been widened until the hit rate looked respectable, the resulting number would describe the tuning, not the market.</p>
+<p>The general rule: <strong>the number of things tried is part of the result</strong>, and a result that does not report it should be discounted by a reader's guess at it.</p>
+<h2>Chapter 7 — Survivorship and look-ahead, at the strategy level</h2>
+<p><em>Base Rates</em> treats survivorship at the level of countries — the markets that went to zero and left the record. The same bias operates at the level of strategies and instruments: the rules a trader remembers are the ones that worked, the names in today's index are the ones that survived, and a backtest on the current index membership is a backtest on winners.</p>
+<p>Look-ahead is subtler and the system has already spent real engineering on it. The point-in-time store's three clocks and its as-of join exist so that no report, no draft, and no replay can see a value before it was knowable. Chapter 3 of the <em>Systematic Book</em> paper gives the mechanism; this chapter gives the statistical reason: <strong>a result computed with information the decision could not have had is not a result, it is a fabrication with a correct-looking decimal.</strong> The migrated macro rows, whose availability timestamps are upper bounds, are flagged in the store for exactly this reason and are treated as stale by the freshness check until repaired.</p>
+<h2>Chapter 8 — Outcome bias, and the seven categories</h2>
+<p>A good decision can have a bad outcome and a bad decision a good one, and a trader who grades decisions by outcomes will learn the wrong lessons with great confidence. The register's closing decomposition — forecast, timing, expression, sizing, execution, exit, process — exists to separate the two, and this chapter is its theory.</p>
+<p>The distinction is operational, not philosophical. A decision made by the rules, sized by the tier, with a written invalidation, that lost because the regime changed mid-trade is a <em>process success</em> and a <em>regime-change outcome</em>; it goes to the transition rules, not to the operator's confidence. A decision that broke a rule and won is a <em>process failure</em> with a lucky outcome; it goes to the rule-break count, and the win is not evidence for anything. <strong>The register grades the decision on the seven fields and the ledger grades the process on the count of each; the P&amp;L is a by-product that the Doctrine correctly calls noise at the weekly horizon.</strong></p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-what-to-do-about-it">
+      <summary class="section-head">
+        <span class="section-title">Part III — What to Do About It</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 9 — Bayes for traders, in sentences</h2>
+<p>A belief before evidence, updated by evidence, yields a belief after. The strength of the belief before determines how much the evidence moves it, and thirty observations move a strong prior very little.</p>
+<p><em>[Figure 3 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]</em></p>
+<p>The figure shows three traders watching the same thirty decisions from a process whose true hit rate is 60%. The trader with a weak prior — willing to believe almost anything — is at 58% after thirty and close to the truth by a hundred. The sceptic, whose prior is equivalent to having already seen eighty decisions at 50%, has moved to 53% after thirty and needs several hundred observations to arrive. The third trader started at 60% <em>because the mechanism said so</em> — a named counterparty, a reason for persistence — and the data merely confirmed what he already had reason to believe.</p>
+<p>Three readings. <strong>The data does not speak for itself; it speaks against a prior, and the prior's provenance matters.</strong> A prior built from a mechanism and a documented analogue is legitimately stronger than one built from hope, and the same thirty observations mean more for it. <strong>A sceptical prior is the right default for anything without a mechanism</strong>, and it will take longer to persuade than the operator's patience. <strong>And the strength of a prior should be recorded</strong> — the register's hypothesis entries carry a stated confidence for exactly this reason, so that the update can be honest about what it started from.</p>
+<h2>Chapter 10 — Mechanism as evidence</h2>
+<p>The Doctrine's Rule 6 requires that an edge name its counterparty, explain who is on the other side, and say why it has not been arbitraged away. This chapter is the formal case that those three answers <em>are evidence</em>, in the Bayesian sense, and not merely rhetoric.</p>
+<p>A claim that survives the three questions has independent support: it is consistent with a documented mechanism (dealers must hedge; pensions must rebalance; a borrow that vanishes must be covered), it has a historical analogue (the paper's cases), and it has a reason the counterparty will keep paying. Each of those raises the prior. A claim without them — "this pattern has worked" — starts from the sceptic's prior and needs more data than the book will ever generate.</p>
+<p>The practical consequence inverts the usual ordering. <strong>The operator should decline mechanism-free ideas at the outset rather than testing them forever</strong>, because the test cannot conclude. And he should be willing to act on mechanism-backed ideas at sample sizes that would be reckless for mechanism-free ones, because the prior is doing legitimate work. The trust matrix's rule that nothing enters at High is consistent with this: a mechanism earns Medium; only data earns High; and most rows will never see enough data to get there, which is fine, because Medium with a mechanism is a tradeable state.</p>
+<h2>Chapter 11 — The shadow outcome as a sample multiplier</h2>
+<p>The single largest available increase in the register's evidential power costs no additional trades.</p>
+<p>The shadow-outcome grader computes, for every decision at its declared horizon, what it would have returned from stored prices — taken, declined, and drafted-but-untraded alike. A book that trades two hundred times a year but <em>decides</em> seven hundred times — three declines and a draft for every take — has seven hundred graded decisions, not two hundred. Effective sample size is still discounted for correlation, but the multiplier is real: the interval on expectancy narrows by roughly √3.5, and questions that were undecidable at two hundred become decidable at seven hundred.</p>
+<p>Two further gains. <strong>Declines are graded</strong>, so the operator's veto is audited — the count of profitable declines is the measurement of a bias the Doctrine names. <strong>And drafts grade the reports</strong>, because a report that drafts packets is forecasting whether or not anyone trades them, and the shadow outcomes of its drafts, cut by regime, are its calibration. The pin log already does this for the dealer family; the shadow grader does it for every owning report.</p>
+<p>This chapter is the paper's strongest practical argument. It justifies the grader on statistical grounds alone, independent of the learning-loop argument the <em>Systematic Book</em> paper makes, and it is why that step of Track D should not slip.</p>
+<h2>Chapter 12 — Sequential decisions, and when to stop</h2>
+<p>A rule that is watched "a little longer" every time it looks marginal is a rule that never gets retired, because the stopping decision is being made by the same hope that started it. The remedy is a pre-declared review point: a sample size or a date at which the hypothesis is graded, fixed when the hypothesis is written.</p>
+<p>And when the answer at the review point is "still unknowable" — which, by Chapter 1's arithmetic, it often will be — the response is not to extend the test but to <strong>shrink the position.</strong> A rule whose edge cannot be established in the time available is a rule to run at half size while it continues to accumulate evidence, not one to run at full size while hoping. The Doctrine's champion-and-challenger process is this chapter's mechanism: the challenger runs in paper for size-increasing changes and in production for restricting ones, at a declared sample, and is promoted or withdrawn at a session.</p>
+<h2>Chapter 13 — Reading the register's cuts honestly</h2>
+<p>The table this chapter exists for. Each row is a cut the register will print; each column is a horizon; each cell is the honest sample size and a judgment — <strong>decidable</strong>, <strong>suggestive</strong>, or <strong>never</strong> — for the question "is the expectancy in this cut positive."</p>
+<table>
+<thead>
+<tr>
+<th>Cut</th>
+<th>3 months</th>
+<th>1 year</th>
+<th>3 years</th>
+<th>Verdict at 3 years</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All decisions, all books</td>
+<td>~50</td>
+<td>~200 (≈700 with shadows)</td>
+<td>~600 (≈2,000)</td>
+<td><strong>Decidable</strong> — sign and rough magnitude</td>
+</tr>
+<tr>
+<td>Book B alone</td>
+<td>~15</td>
+<td>~60</td>
+<td>~180</td>
+<td>Suggestive — sign likely</td>
+</tr>
+<tr>
+<td>Book C alone</td>
+<td>~25</td>
+<td>~100</td>
+<td>~300</td>
+<td>Decidable for sign</td>
+</tr>
+<tr>
+<td>Book D alone</td>
+<td>~5</td>
+<td>~25</td>
+<td>~75</td>
+<td>Suggestive at best</td>
+</tr>
+<tr>
+<td>Long vs short</td>
+<td>~25 / ~25</td>
+<td>~100 / ~100</td>
+<td>~300 / ~300</td>
+<td>Decidable — the difference between them, suggestive</td>
+</tr>
+<tr>
+<td>With-trend vs counter-trend</td>
+<td>similar</td>
+<td>similar</td>
+<td>similar</td>
+<td>As above</td>
+</tr>
+<tr>
+<td>By regime — most common state</td>
+<td>~35</td>
+<td>~140</td>
+<td>~400</td>
+<td>Decidable</td>
+</tr>
+<tr>
+<td>By regime — least common state</td>
+<td>~0–5</td>
+<td>~15</td>
+<td>~50</td>
+<td><strong>Never</strong>, on its own; mechanism must carry it</td>
+</tr>
+<tr>
+<td>By signal family, per family</td>
+<td>~5–10</td>
+<td>~20–40</td>
+<td>~60–120</td>
+<td>Suggestive for the largest families; never for the rest</td>
+</tr>
+<tr>
+<td>By expression family</td>
+<td>~10</td>
+<td>~40</td>
+<td>~120</td>
+<td>Suggestive</td>
+</tr>
+<tr>
+<td>Regime × book × direction</td>
+<td>~1–5</td>
+<td>~5–20</td>
+<td>~15–60</td>
+<td><strong>Never</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>Sample sizes assume the Doctrine's Phase 1 cadence and count decisions, not effective n; discount by roughly a third for correlation. Shadow outcomes multiply the top rows by three to four.</em></p>
+<p>The table's message is not that measurement is futile. It is that <strong>the register will decide perhaps five questions in three years and suggest answers to ten more, and the operator should know in advance which they are</strong> — so that the numbers he sees at Christmas are read as the descriptive statistics they are, and so that the questions in the "never" rows are answered the only way they can be, by mechanism and by the history in the rest of the library.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-application">
+      <summary class="section-head">
+        <span class="section-title">Part IV — Application</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 14 — Kelly, and why the Doctrine sizes far below it</h2>
+<p>The Kelly criterion gives the bet size that maximizes long-run growth: for a bet won with probability <em>p</em> at odds <em>b</em>, the fraction is <em>p</em> − (1−<em>p</em>)/<em>b</em>. At a 55% hit rate on even payoffs it is 10% of capital per bet. The Doctrine's standard Book B risk is 0.75%.</p>
+<p>The gap is deliberate and this chapter defends it. Kelly assumes four things, and a discretionary book violates all four: that the edge is <em>known</em> (it is estimated, with the error bars of Part I); that bets are <em>independent</em> (they cluster, Chapter 3); that the bettor has <em>logarithmic utility</em> and is indifferent to drawdown (the Doctrine's switches say otherwise); and that bets are <em>infinitely divisible and repeatable</em> (they are neither).</p>
+<p><em>[Figure 4 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]</em></p>
+<p>The figure shows the first violation alone. When the edge estimate carries uncertainty comparable to its size — which Part I says it will for years — the growth-optimal fraction collapses toward a fraction of full Kelly, and at the uncertainty levels a two-hundred-decision sample implies, it sits near or below quarter-Kelly. <strong>The Doctrine's sizing is not conservative relative to Kelly; it is approximately Kelly-optimal once the edge's uncertainty is admitted.</strong> The promotion gates that allow tiers to rise as the register accumulates are the mechanism by which sizing tracks the narrowing error bar — never reaching full Kelly, because the error bar never reaches zero.</p>
+<h2>Chapter 15 — Edge decay: a fading edge or a bad month</h2>
+<p>The Doctrine's Section 9.3 says edges erode and rules are hypotheses. The measurement is the trailing expectancy series, and the question is how to tell decay from noise.</p>
+<p><em>[Figure 5 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]</em></p>
+<p>The figure is a process whose true edge begins decaying at week forty. The measured thirteen-week expectancy, with its error band, does not distinguish the decay from ordinary variation until roughly week sixty-five — six months after it began. That lag is not a flaw in the measurement; it is what the error bar implies, and a trader who reacts to the first bad quarter will be reacting to noise most of the time and to decay some of the time, with no way to tell which.</p>
+<p>Two responses, and the paper prefers the second. The first is to accept the lag and act at the review point — the Doctrine's monthly session, on the evidence, with the rule change as a challenger. The second is to watch a <em>leading</em> indicator: the response-per-unit-stimulus primitive from <em>Positioning &amp; Flows</em>. A signal whose price response per unit of stimulus is shrinking is a signal whose edge is decaying, and that ratio moves before the expectancy does because it measures the mechanism rather than the outcome. <strong>Edge decay is best detected in the mechanism, not in the P&amp;L</strong>, which is the same conclusion Chapter 10 reached from the other direction.</p>
+<h2>Chapter 16 — What would change this paper</h2>
+<p><em>The first thousand graded decisions</em> — at which point Chapter 13's table can be replaced with the actual intervals, and the paper's claims about decidability can themselves be graded.</p>
+<p><em>A material change in cadence</em> — a book making twenty decisions a week faces different arithmetic, and Chapter 1's table shifts by the square root of the ratio.</p>
+<p><em>A regime change observed inside the register</em> — the first real test of Chapter 4, and the first regime cut with a second state in it.</p>
+<p>Until then the paper's standing instruction is modest: read the interval before the point, count the regimes before the trades, prefer the mechanism to the pattern, grade the decisions you did not take, and let the register be descriptive for longer than feels comfortable. The observer was always good. The auditor of the observer is this paper.</p>
+<hr />
+<h2>Appendix — The card</h2>
+<p><em>Error bars:</em> expectancy SE ≈ 1/√n in R. Sharpe SE ≈ √((1+S²/2)/T). A year cannot exclude zero; two years give the sign; five give the size.</p>
+<p><em>Effective n:</em> correlated decisions count once at their factor. Discount raw n by a third for a clustered book.</p>
+<p><em>Regimes:</em> n regimes, not n trades, bound regime claims. The Doctrine's most important cut is permanently the thinnest.</p>
+<p><em>Priors:</em> mechanism-backed beliefs start stronger and need less data. Mechanism-free ideas should be declined, not tested forever.</p>
+<p><em>Shadows:</em> grading declines and drafts multiplies the sample ~3.5×. The biggest free evidence in the system.</p>
+<p><em>Stopping:</em> pre-declare the review point. If unknowable at the review, shrink the position rather than extend the test.</p>
+<p><em>Sizing:</em> the Doctrine's tiers are approximately Kelly-optimal once edge uncertainty is admitted.</p>
+<p><em>Decay:</em> watch the mechanism (response per unit stimulus), not the P&L; the P&amp;L lags decay by two quarters.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/evidence-inference-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

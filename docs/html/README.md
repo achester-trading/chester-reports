@@ -1,22 +1,22 @@
 # Built HTML editions
 
-The six papers that carry computed figures, plus the library guide, are
-**canonical for reading in HTML** — the figures, the rendered tables and the
-anchor navigation live only there, and the `.md` carries placeholders. The
-canonical list is in `CLAUDE.md` and mirrored in the library guide:
+**This directory is output. Do not edit anything in it, and never upload a
+file into it.** Every `.html` here is generated from the paper's Markdown by
+`tools/build_paper_html.py`:
 
-| | File |
-|---|---|
-| V | `currencies-whitepaper.html` |
-| XIII | `dealers-hand-whitepaper.html` |
-| XIV | `technical-indicators-whitepaper.html` |
-| XXII | `options-expression-whitepaper.html` |
-| XXIII | `evidence-inference-whitepaper.html` |
-| XXIV | `earnings-whitepaper.html` |
+```
+make html          # rebuild all of them
+python tools/build_paper_html.py docs/whitepapers/<slug>-whitepaper.md
+```
 
-One file per paper, named for its `.md`: `<slug>-whitepaper.html`.
+One file per roster paper, named for its source: `<slug>-whitepaper.html`.
+Figures are embedded inline, so an edition is a single self-contained file.
 
-**Regenerate from the `.md`; never edit the HTML and never re-upload it over a
-newer `.md`.** An HTML that disagrees with its `.md` is stale, not a second
-opinion. `make library-check` warns when one of these is missing — a warning,
-not a failure, because the editions are produced by hand today.
+**The `.md` under `docs/whitepapers/` is canonical for everything** — text,
+tables, and figure references alike. Figures are files under `docs/figures/`.
+There is no longer a paper whose content lives only in its HTML; that rule was
+retired when the figures came out of the HTML and into the repository, and
+`CLAUDE.md` carries the durable statement of what replaced it.
+
+`make library-check` warns when an edition here is older than the `.md` it was
+built from — the signal to run `make html` again.

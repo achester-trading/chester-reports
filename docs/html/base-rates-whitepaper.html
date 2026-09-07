@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base Rates</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Base Rates</h1>
+<h2>What Markets Usually Do — and How Far Back "Usually" Goes</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XX</strong> — with the market-timing layer, beside <em>Tops and Bottoms</em> — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> 1.1 — September 2026
+<strong>Status:</strong> Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-the-shape-of-ordinary">Part I — The Shape of Ordinary</a></li><li><a href="#s3-part-ii-the-base-rates-of-a-trading-day">Part II — The Base Rates of a Trading Day</a></li><li><a href="#s4-part-iii-the-long-record-of-downturns">Part III — The Long Record of Downturns</a></li><li><a href="#s5-part-iv-how-bad-can-it-get">Part IV — How Bad Can It Get</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>Every other paper in this library explains a mechanism. This one supplies the denominators. It exists because the Operating Doctrine's central edge concept — variant perception — is arithmetic on a base rate: to hold a view that differs from consensus you must first know what ordinarily happens, and most trading error is a failure of that first step rather than of the second. A trader who does not know that the S&amp;P 500 has closed higher on roughly 54% of days since 1928 will read a three-day losing streak as information. A trader who does not know that a 10% drawdown occurs in most years will treat one as a regime change. A trader who does not know that the median analyst estimate is beaten about three-quarters of the time will read a beat as a surprise.</p>
+<p>The paper is deliberately boring, and that is its function. It is a reference to consult <em>before</em> writing a thesis, in the way one consults a mortality table before pricing a policy — a comparison the operator will find familiar. The Doctrine's Rule 6 requires that an edge name its counterparty and say why it persists; this paper is where the claim "and here is what normally happens instead" gets its number.</p>
+<hr />
+<h2>Executive summary — the twelve things this paper says</h2>
+<p><em>For the reader who will consult the tables later and wants the conclusions now.</em></p>
+<ol>
+<li>
+<p><strong>Ordinary is not average.</strong> The interquartile range of a year runs from about −1% to +25%. A year near the +10% mean is rare. Any thesis that needs a "normal year" is a thesis about an uncommon event.</p>
+</li>
+<li>
+<p><strong>A 10% decline is an annual event, and half of all years see one.</strong> The average intra-year drawdown is 14%, in years that finish positive three times in four. Treating a correction as the start of 2008 is the specific mechanism by which the Book A floor gets breached, and this operator's record says he does it.</p>
+</li>
+<li>
+<p><strong>A bear takes about a year to complete and contains three to five rallies of 5% or more</strong>, any of which will feel like the bottom. Conviction is unreliable in exactly that window, which is why a short campaign ends on the bottom signal and not on judgment.</p>
+</li>
+<li>
+<p><strong>The equity premium arrives in a minority of days, and those days cluster inside drawdowns.</strong> Being out of the market during stress is not neutral; it is where the return is forfeited. This is the arithmetic behind the allocation floor.</p>
+</li>
+<li>
+<p><strong>Daily direction has no memory; trend is a cross-sectional, multi-week phenomenon.</strong> A three-day streak is noise. A name at a twelve-month high with twelve-month relative strength is a documented anomaly. Book B enters on pivotal points, not streaks, for this reason.</p>
+</li>
+<li>
+<p><strong>Volatility clusters and correlations converge in stress.</strong> The Volatility dial is a state, not a level; diversification weakens exactly when it is being relied on; the heat cap across books counts correlated positions once because in the crisis row they <em>are</em> one.</p>
+</li>
+<li>
+<p><strong>The stock–bond hedge is a regime statistic that one long disinflationary period made look permanent.</strong> 2022 falsified it. The duration sleeve is a deflation hedge specifically — Part IV's central practical claim, arriving here from the correlation table.</p>
+</li>
+<li>
+<p><strong>Seasonality is real, small, decaying since publication, and never a thesis.</strong> The one exception worth <em>watching</em> is the midterm-year cycle — 2026 is one — which enters the register as a hypothesis, not a signal.</p>
+</li>
+<li>
+<p><strong>A beat is not a surprise and guidance beats the print.</strong> Three-quarters of companies beat. The tradeable object is the reaction relative to positioning, and the long single option into a print is a negative-expectancy trade on average because the implied move has slightly exceeded the realized move.</p>
+</li>
+<li>
+<p><strong>Options decay as √T; a third expire worthless, not ninety percent; same-day expiries are half of index option volume.</strong> The verticals-by-default rule follows from decay and from spread cost together — at Book C's size, a wide single-name option can consume a tenth of the risk budget in the round trip.</p>
+</li>
+<li>
+<p><strong>The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.</strong> Extending to 1907 takes the sample from eight bears to thirteen and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.</p>
+</li>
+<li>
+<p><strong>The tail the operator worries about sits near the 95th percentile of the historical distribution, not beyond it.</strong> Japan's thirty-four years and 1929's twenty-five are developed-market events within living memory. No single hedge covers both resolutions of a debt cycle. That is why the tail budget is convex and renewed rather than held — and why a portfolio hedged for 2008 is not hedged for 1946.</p>
+</li>
+</ol>
+<hr />
+<p>Three conventions run throughout. <strong>Every figure carries its window</strong>, because a base rate computed since 1928 and one computed since 2009 are different claims about different worlds; where the two disagree materially, both are given. <strong>Every figure carries a source class</strong> — measured from data the system holds, computed from public series, or cited from the literature — because the system's registry distinguishes them and so should the reader. And <strong>no figure is a forecast.</strong> A base rate is what happened in a sample; the future is not obliged to resemble it, and Chapter 9 is the honest account of where these numbers are least trustworthy.</p>
+<p>The paper has three parts. Part I is the return and drawdown distribution — the shape of ordinary. Part II is the base rates of the events a trading day is made of: gaps, streaks, earnings, expiries, options decay, spread costs. Part III is the historical extension the <em>Tops and Bottoms</em> paper does not cover: the downturns before 1970, treated on the same template, because eight bears since 1970 is a sample of eight and the questions this operator asks — how bad can it get, how long, what preceded it — need more.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-the-shape-of-ordinary">
+      <summary class="section-head">
+        <span class="section-title">Part I — The Shape of Ordinary</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 1 — Returns</h2>
+<h3>1.1 The distribution, at four frequencies</h3>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>Positive share</th>
+<th>Median</th>
+<th>Mean</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily</td>
+<td>~54%</td>
+<td>~+0.04%</td>
+<td>~+0.03%</td>
+<td>The mean is below the median because the left tail is fatter; the gap is the whole subject of Chapter 2</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>~56–57%</td>
+<td>~+0.2%</td>
+<td>~+0.15%</td>
+<td></td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td>~62–63%</td>
+<td>~+1.0%</td>
+<td>~+0.7%</td>
+<td></td>
+</tr>
+<tr>
+<td>Calendar year</td>
+<td>~73–75%</td>
+<td>~+12%</td>
+<td>~+10% total return; ~+8% price</td>
+<td>Since 1928; the post-1950 figures are one to two points higher</td>
+</tr>
+<tr>
+<td>Rolling 10-year</td>
+<td>~95% positive nominal</td>
+<td>~+7%/yr</td>
+<td></td>
+<td>Negative decades exist: the 1930s, the 2000s</td>
+</tr>
+<tr>
+<td>Rolling 20-year</td>
+<td>100% positive nominal in the U.S. sample</td>
+<td></td>
+<td></td>
+<td><em>The sample is one country that won the century — see 9.2</em></td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed from public index series, 1928–2026.</em></p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>Read the positive-share column as the cost of sitting out.</em> A 54% daily edge is invisible; a 74% annual edge is the whole game. The operator who is out of the market "waiting for clarity" is declining a three-in-four bet, every year, on the strength of a coin-flip daily read.</li>
+<li><em>The mean is below the median at every frequency.</em> The distribution is left-skewed — a few very bad days pull the average down. This is not a reason to be out; it is the reason the Doctrine has a volatile-day protocol rather than a market-timing rule. The bad days are handled by size, not by absence.</li>
+<li><em>The ten-year and twenty-year rows describe one country.</em> Chapter 16 says why they cannot be generalized. Use them to size patience, not to promise outcomes.</li>
+<li><em>For the short side specifically:</em> the base rate is against you 54% of days, 62% of months, 74% of years. A short thesis must name what makes this the minority case, and the Doctrine's extra-confirmation rule for shorts is that requirement made procedural.</li>
+</ul>
+<p>The two readings that matter most. <strong>The equity risk premium arrives in a minority of the time</strong>: a small number of very good days carry the compounded return, and the frequently cited finding that missing the best ten or twenty days over a multi-decade span destroys most of the return is real, with the essential companion fact that those days cluster inside drawdowns, adjacent to the worst days. This is the arithmetic behind the Doctrine's Book A floor: being out of the market during stress is not a neutral act. <strong>And the annual mean is not a typical year.</strong> Returns cluster in the tails: the S&amp;P's annual return has fallen between +8% and +12% — the neighborhood of its own average — in a small minority of years. "An average year" is a statistical artifact, not an experience.</p>
+<h3>1.2 Volatility</h3>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Typical</th>
+<th>Calm regime</th>
+<th>Stressed</th>
+<th>Crisis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Realized volatility, S&amp;P 500, annualized</td>
+<td>~15–16% long-run</td>
+<td>8–12%</td>
+<td>20–30%</td>
+<td>40%+</td>
+</tr>
+<tr>
+<td>VIX, median</td>
+<td>~17–18</td>
+<td>&lt;15</td>
+<td>20–30</td>
+<td>&gt;35</td>
+</tr>
+<tr>
+<td>Days per year with a ±1% move</td>
+<td>~50–60</td>
+<td>~20</td>
+<td>~90</td>
+<td>120+</td>
+</tr>
+<tr>
+<td>Days per year with a ±2% move</td>
+<td>~10–12</td>
+<td>~2</td>
+<td>~25</td>
+<td>40+</td>
+</tr>
+<tr>
+<td>Largest single-day decline in a typical year</td>
+<td>~−3%</td>
+<td></td>
+<td></td>
+<td>1987: −20.5%; 2020: −12.0%; 2008: −9.0%</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed.</em> Volatility clusters — the autocorrelation of absolute returns is one of the most robust facts in finance — which is why the Doctrine's Volatility dial is a state rather than a level, and why the volatile-day protocol assumes the next day resembles this one more than it resembles the average.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>Fifty ±1% days a year is the ordinary texture of the market.</em> A 1% move is not news, not a signal, and not a reason to touch a position. The volatile-day protocol's triggers are set well above this level for that reason.</li>
+<li><em>The largest single-day decline in an ordinary year is about −3%.</em> Anything larger is regime information — a Rising or Stressed reading — and is the moment to halve size rather than to judge the move.</li>
+<li><em>Volatility clusters, so the first ±2% day is the best predictor of the second.</em> Reduce on the first, not the third. The operator's record of "periodic damage in extreme volatility" is, mechanically, a record of acting on the third.</li>
+<li><em>The Calm column is where Book C's fade-toward-pin setup lives and the Stressed column is where it dies.</em> Same setup, opposite expectancy — the trust matrix's regime rows are this table's columns.</li>
+</ul>
+<h3>1.3 Percentiles, not averages</h3>
+<p>The mean is the least useful summary of any of these distributions, and the paper gives quartiles wherever it can. The convention throughout: <strong>p25 / median / p75</strong>, with the mean beside them when the gap between mean and median is itself informative.</p>
+<table>
+<thead>
+<tr>
+<th>Series</th>
+<th>p25</th>
+<th>Median</th>
+<th>p75</th>
+<th>Mean</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily return</td>
+<td>−0.50%</td>
+<td>+0.05%</td>
+<td>+0.58%</td>
+<td>+0.03%</td>
+<td>Mean below median: the left tail is fatter</td>
+</tr>
+<tr>
+<td>Monthly return</td>
+<td>−1.9%</td>
+<td>+1.1%</td>
+<td>+3.6%</td>
+<td>+0.7%</td>
+<td>A typical month is a small gain</td>
+</tr>
+<tr>
+<td>Annual total return</td>
+<td>~−1%</td>
+<td>~+12%</td>
+<td>~+25%</td>
+<td>~+10%</td>
+<td><strong>The middle two quartiles span −1% to +25%</strong> — this is what "ordinary" means for a year</td>
+</tr>
+<tr>
+<td>Intra-year max drawdown</td>
+<td>−6%</td>
+<td>−10%</td>
+<td>−18%</td>
+<td>−14%</td>
+<td>Half of all years see a decline of 10% or worse</td>
+</tr>
+<tr>
+<td>VIX daily close</td>
+<td>~13.5</td>
+<td>~17.6</td>
+<td>~22.5</td>
+<td>~19.5</td>
+<td>p95 near 33; the distribution is heavily right-skewed</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed from public index series, 1928–2026 for returns, 1990–2026 for VIX; figures rounded and approximate.</em></p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>The p25 annual return is about −1%.</em> One year in four is roughly flat-to-down. A flat year is not a failed year and not evidence that a thesis was wrong; it is the lower quartile of ordinary.</li>
+<li><em>The p75 intra-year drawdown is −18%.</em> One year in four contains a decline that would trip the Doctrine's Drawdown I switch if it were fully held with no regime response. The bands exist so that it is not fully held when the Volatility dial has already said Stressed.</li>
+<li><em>VIX's median is about 17.6 and its p75 about 22.5.</em> A VIX in the low twenties is the upper-ordinary range, not stress. Stress begins near the p95, around 33 — which is where the volatile-day protocol's threshold sits, on purpose.</li>
+<li><em>For sizing:</em> the interquartile range of a year is twenty-six points wide. A position sized so that a −1% year is survivable and a +25% year is participated in is a position sized to the distribution. A position sized to the mean is sized to a fiction.</li>
+</ul>
+<p>The annual row is the one to carry. A year that ends −1% and a year that ends +25% are both inside the interquartile range: <strong>the ordinary experience of a year is nothing like +10%.</strong> Any thesis whose payoff depends on a "normal year" is a thesis about a rare event.</p>
+<h2>Chapter 2 — Drawdowns</h2>
+<h3>2.1 Frequency and duration — the table to memorize</h3>
+<table>
+<thead>
+<tr>
+<th>Drawdown from peak</th>
+<th>Frequency</th>
+<th>Median duration peak-to-trough</th>
+<th>Median time to recover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>−5%</td>
+<td>3–4 times a year</td>
+<td>~2 weeks</td>
+<td>~1 month</td>
+</tr>
+<tr>
+<td>−10% (correction)</td>
+<td>about once a year</td>
+<td>~1–2 months</td>
+<td>~3–4 months</td>
+</tr>
+<tr>
+<td>−15%</td>
+<td>about every 2 years</td>
+<td>~3 months</td>
+<td>~6 months</td>
+</tr>
+<tr>
+<td>−20% (bear)</td>
+<td>about every 4–5 years</td>
+<td>~9–10 months</td>
+<td>~1.5–2 years</td>
+</tr>
+<tr>
+<td>−30%</td>
+<td>about every decade</td>
+<td>~12 months</td>
+<td>~2–4 years</td>
+</tr>
+<tr>
+<td>−50%+</td>
+<td>twice since 1928 excluding the Depression's −86%</td>
+<td>15–25 months</td>
+<td>4–7 years</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed from index series; consistent with the episode set in</em> Tops and Bottoms <em>and Part III below.</em></p>
+<p>The same episodes as a distribution rather than as averages:</p>
+<table>
+<thead>
+<tr>
+<th>Bear-market property</th>
+<th>p25</th>
+<th>Median</th>
+<th>p75</th>
+<th>Extreme in sample</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Depth (peak to trough)</td>
+<td>−22%</td>
+<td>−30%</td>
+<td>−48%</td>
+<td>−86% (1929–32)</td>
+</tr>
+<tr>
+<td>Duration, peak to trough</td>
+<td>~6 months</td>
+<td>~11 months</td>
+<td>~20 months</td>
+<td>34 months (1929–32)</td>
+</tr>
+<tr>
+<td>Time to recover the prior peak</td>
+<td>~5 months</td>
+<td>~2 years</td>
+<td>~4–5 years</td>
+<td>25 years nominal (1929–54); 34 years (Japan, 1989–2024)</td>
+</tr>
+<tr>
+<td>Largest counter-trend rally inside the decline</td>
+<td>+7%</td>
+<td>+10%</td>
+<td>+16%</td>
+<td>+46% (Nov 1929–Apr 1930)</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed across the extended episode set of Part III; small samples — see Chapter 16.</em></p>
+<p><strong>What to take from these two tables.</strong></p>
+<ul>
+<li><em>The drawdown ladder maps directly to the Doctrine's switches.</em> −5% three or four times a year is noise the daily switch should never see; −10% about annually is the correction the weekly and monthly switches are calibrated against; −20% every four or five years is the bear the Drawdown I switch and the regime dials exist for. Each switch is set at a frequency, and the frequencies are these.</li>
+<li><em>Median recovery from a bear is about two years; p75 is four to five.</em> A book that is de-risked at the bottom and waits for "confirmation" will typically miss the first year of a two-year recovery — which, by Chapter 1's clustering finding, is where a disproportionate share of the return lives. The bottom-signal override exists to force re-entry against this instinct.</li>
+<li><em>The p75 bear is −48%.</em> One bear in four is a halving. The allocation bands' floors are set so that the book participates; the bands' ceilings are set so that a halving costs the book its band-weighted share and not the whole.</li>
+<li><em>The counter-trend rally row is the short-seller's table.</em> Median +10%, p75 +16%, extreme +46%. A short campaign will face three to five of these, and each will look like the turn. The rule that a short closes on the bottom signal — not on conviction — is written against this row.</li>
+</ul>
+<p>The operator's stated history includes being under-invested since 2008 and periodically damaged in extreme volatility. Both are addressed by different rows of this table. <strong>A −10% drawdown is an annual event, not a signal</strong> — treating each as the beginning of 2008 is the mechanism by which the Book A floor gets breached. <strong>And a −20% bear takes the better part of a year to complete</strong> — which is why the Doctrine's Top &amp; Bottom override permits adding at the bottom rather than requiring a call at the top, and why a short campaign that has worked for two months is not thereby vindicated.</p>
+<h3>2.2 Intra-year drawdowns versus annual outcomes</h3>
+<p>The single most useful fact in this chapter: the average <em>intra-year</em> maximum drawdown for the S&amp;P 500 is roughly 14%, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.</p>
+<p><strong>What to take from it.</strong></p>
+<ul>
+<li><em>Write the drawdown number on the card.</em> Fourteen percent is the ordinary intra-year experience. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.</li>
+<li><em>The operator's known bias — reading a correction as a regime change — has a numerical antidote:</em> the question at any −10% is not "is this 2008?" but "is this the one year in four where it exceeds −18%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it.</li>
+<li><em>The floor is the instrument here.</em> The bands' floors exist so that a −14% year is held through, not traded around.</li>
+</ul>
+<h3>2.3 The shape of a decline</h3>
+<p>Declines are not smooth. Within bear markets, the largest single-day <em>advances</em> in history cluster — October 1929, October 2008, March 2020 — and 5%+ counter-trend rallies are routine. The base rate for the operator's short book: <strong>during a −20% or worse decline, expect three to five rallies of 5% or more</strong>, any of which will feel like the bottom. The Doctrine's rule that a short campaign ends on the Top &amp; Bottom bottom signal rather than on conviction exists because this base rate makes conviction unreliable in exactly this window.</p>
+<p><strong>What to take from it.</strong></p>
+<ul>
+<li><em>The best days live inside the worst months.</em> The clustering of the largest advances inside bears is why "sell now, buy back when it's calmer" underperforms holding through: the buy-back happens after the days that mattered.</li>
+<li><em>For the short book, size for five rallies, not one.</em> A short sized so that a single +10% counter-trend rally trips its stop is a short that will be stopped out of a correct thesis three to five times per bear. Sizing and stop placement in Book B's short rules are written against this row.</li>
+<li><em>For the long book, the rally is not the signal.</em> A +8% bounce in a −25% decline is the median counter-trend move and carries no information about the bottom. The bottom signal is the composite, not the rally.</li>
+</ul>
+<h2>Chapter 3 — Seasonality</h2>
+<p>Seasonality is the part of this paper most likely to be misused, so the chapter states the research, the decay, and the ruling in that order.</p>
+<h3>3.1 What the research actually found</h3>
+<p><strong>The Halloween effect (November–April versus May–October)</strong> is the most robust of the calendar anomalies. Bouman and Jacobsen's 2002 study found November–April outperformance in the large majority of the thirty-seven markets they examined, and later work extending the U.K. record back roughly three centuries found the pattern present across most of that span. The average gap in modern U.S. data is on the order of several percentage points a year, and — unusually for an anomaly — it has not disappeared since publication, though it has weakened and has failed for multi-year stretches.</p>
+<p><strong>The turn of the month.</strong> Ariel (1987) and Lakonishok and Smidt (1988) documented that the last trading day of a month plus the first three of the next capture a disproportionate share of monthly return — in some samples, more than the entire month's return, with the remaining days net negative. The mechanism is plausible and mechanical: salary and pension contributions, index-fund inflows, and month-end rebalancing all land in that window, which is the Positioning &amp; Flows paper's territory.</p>
+<p><strong>The January effect</strong> — small-cap outperformance in early January, attributed to tax-loss-selling reversal — was strong through the 1970s and has substantially decayed since publication, which is the canonical example of an anomaly being arbitraged once documented.</p>
+<p><strong>September</strong> is the only month with a negative average return in most long U.S. samples, and volatility seasonality peaks in September–October, which is where several of the historical crashes sit. Whether the crash cluster causes the statistic or the statistic is the crash cluster is unresolved; the honest reading is that a five-episode cluster in a century is a small sample making a monthly average look worse than the typical September felt.</p>
+<p><strong>The presidential cycle</strong> is the seasonal effect with the most immediate relevance. In the post-war U.S. record, the third year of the cycle has been the strongest by a wide margin and the second — the midterm year — the weakest, with the largest average intra-year drawdown of the four. The more useful form of the statistic is conditional: <strong>forward returns measured from the midterm-year low have been unusually strong</strong>, on the order of high-teens to twenty-plus percent over the subsequent twelve months across most cycles. <strong>2026 is a midterm year</strong>, which places the current calendar in the weakest quarter of the cycle and, if the pattern holds, ahead of its strongest — a fact the paper records as context rather than as a forecast, and one the prediction-market engine's midterm contracts will price independently.</p>
+<p><strong>Day-of-week, holiday, and expiry effects</strong> are smaller. The Monday effect has largely vanished; pre-holiday sessions retain a mild positive drift; monthly expiry week carries a small positive tilt whose sign is unstable.</p>
+<h3>3.2 The decay problem</h3>
+<p>McLean and Pontiff's work on published anomalies found that returns decay materially after publication — roughly a third out-of-sample, and more than half once in-sample overfitting is accounted for. Every effect in 3.1 has been published for decades. The prior should therefore be that each is smaller now than in the study that found it, and that some are gone.</p>
+<h3>3.3 The ruling</h3>
+<p>Seasonality is <strong>a tiebreaker at the margin of an existing thesis, never a thesis.</strong> It may shade the size tier within its band or the timing of an entry already justified on other grounds. It may not generate a packet, and every seasonal metric enters the registry <code>trigger_eligible: false</code> permanently — not pending evidence, but by construction, because a calendar effect has no counterparty story that survives the Doctrine's Rule 6. The presidential-cycle conditional is the one exception worth watching rather than trading: it is a <em>positioning</em> statement about a crowded consensus in an election year, and it belongs to the register as a hypothesis with a dated entry, graded like any other.</p>
+<h2>Chapter 4 — Trends, streaks, and mean reversion</h2>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Base rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Consecutive up days</td>
+<td>2 in a row ~29%; 3 ~16%; 5 ~5%; the record is 12–14</td>
+</tr>
+<tr>
+<td>Consecutive down days</td>
+<td>Similar, slightly less persistent</td>
+</tr>
+<tr>
+<td>Probability the next day is up given today was up</td>
+<td>~54% — essentially the unconditional rate; <strong>daily direction has almost no memory</strong></td>
+</tr>
+<tr>
+<td>Overnight vs intraday</td>
+<td>Since the 1990s, a large majority of the index's cumulative return has accrued overnight rather than during regular hours</td>
+</tr>
+<tr>
+<td>Gap fill, same day</td>
+<td>Small gaps (&lt;0.5%) fill same-session more often than not; large gaps (&gt;1%) fill same-day well under half the time</td>
+</tr>
+<tr>
+<td>Momentum, 12-month minus 1-month, cross-sectional</td>
+<td>Positive expectancy over most decades; violent crashes after bear-market bottoms</td>
+</tr>
+<tr>
+<td>Mean reversion, 1-month</td>
+<td>Weakly negative autocorrelation in single names; the short-term reversal effect</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed and literature.</em> The reading for Book B: <strong>trend persistence is a cross-sectional and multi-week phenomenon, not a daily one.</strong> A three-day streak is noise; a name at a 12-month high with 12-month relative strength is a documented anomaly. The Doctrine's Book B entry at a pivotal point rather than on a streak follows directly.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>A streak is a coin sequence.</em> Five up days in a row happens about one week in twenty by chance. It is not momentum, not exhaustion, and not a reason to act in either direction.</li>
+<li><em>The overnight row is the Daily Cascade's reason to exist.</em> Most of the index's cumulative return has accrued outside regular hours. The 07:00 report reads a session that has already happened — two foreign sessions plus futures — and the gap it reports is where the day's return usually already sits.</li>
+<li><em>Gap-fill is a size-dependent base rate.</em> Small gaps fill more often than not; large gaps under half the time. A Book C fade of a 1.5% gap is a below-coin-flip bet before positioning is considered; the setup requires the positioning read to move it above.</li>
+<li><em>Momentum's crash after bear bottoms is the trust matrix's "momentum: Off after a bottom signal" row.</em> The strategy that works for most of the cycle is the one that loses most at the turn.</li>
+</ul>
+<h2>Chapter 5 — Correlation and diversification</h2>
+<table>
+<thead>
+<tr>
+<th>Regime</th>
+<th>S&amp;P 500 / 10-year Treasury correlation</th>
+<th>Average pairwise stock correlation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disinflationary calm (1998–2020 typical)</td>
+<td>−0.3 to −0.5</td>
+<td>0.20–0.35</td>
+</tr>
+<tr>
+<td>Inflationary (1970s; 2022)</td>
+<td>+0.2 to +0.6</td>
+<td>0.35–0.50</td>
+</tr>
+<tr>
+<td>Crisis</td>
+<td>Bonds usually rally, but not always (2022, and the March 2020 dash-for-cash days)</td>
+<td>0.60–0.85</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: computed.</em> The base rate that governs Book A's duration sleeve: <strong>the stock–bond hedge is regime-dependent and was negative for one unusually long disinflationary period.</strong> Sizing a duration sleeve as a hedge on the 1998–2020 correlation is sizing on a sample that 2022 falsified. And the crisis row is the reason the Doctrine caps heat across books at a common factor: correlations converge exactly when diversification is being relied upon.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>Ask which row you are in before sizing the hedge.</em> In the disinflationary row, duration hedges equity; in the inflationary row, it amplifies the loss. The Macro dial's Overheat and Tightening states are the inflationary row, and the Doctrine's bands cut duration in exactly those states for this reason.</li>
+<li><em>Pairwise correlation of 0.7–0.9 in crisis means a portfolio of ten names is roughly one position.</em> The heat calculator's "count correlated positions once at their common factor" is this row applied. Six long semiconductors and a long NQ call spread is one trade with three tickers.</li>
+<li><em>The crisis row is also the diversification-across-countries finding of the International Equities paper:</em> correlations converge in joint downside moves and not in joint upside. The insurance is against the single-country tail, not the bad quarter.</li>
+</ul>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-the-base-rates-of-a-trading-day">
+      <summary class="section-head">
+        <span class="section-title">Part II — The Base Rates of a Trading Day</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 6 — Earnings</h2>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Base rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Companies beating consensus EPS</td>
+<td>~70–78% in a typical quarter — the beat is the norm, the <em>guidance</em> is the news</td>
+</tr>
+<tr>
+<td>Companies beating on revenue</td>
+<td>~60–65%</td>
+</tr>
+<tr>
+<td>Earnings-day absolute move, large-cap — p25 / median / p75</td>
+<td>~2% / ~4% / ~7%; single-name tech p75 routinely 10%+</td>
+</tr>
+<tr>
+<td>Options-implied move versus realized, on average</td>
+<td>Implied slightly exceeds realized — selling the event has positive expectancy on average and catastrophic tails</td>
+</tr>
+<tr>
+<td>Post-earnings-announcement drift</td>
+<td>Documented for decades; weaker since the 2000s but not extinguished</td>
+</tr>
+<tr>
+<td>IV crush</td>
+<td>Front-month implied volatility typically falls by a third to a half the morning after</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: literature and computed.</em> Two consequences for the books. <strong>A beat is not a surprise</strong>; the tradeable object is the reaction relative to the positioning-implied expectation, which is the Daily Cascade's event-reaction setup. And <strong>the long-option expression into an earnings print is a losing trade on average</strong> — the IV crush is a base rate, and the Doctrine's expression table should never default to it.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>Seventy-five percent beat, so a beat is the null hypothesis.</em> The information is in the reaction, the guidance, and the off-diagonal quadrants — beat-and-lower, miss-and-raise. The Earnings paper is built on this row.</li>
+<li><em>The implied move slightly exceeds the realized on average.</em> Selling the event has positive expectancy and catastrophic tails; buying it has negative expectancy and a fat right tail. Neither is a strategy. The signal is the implied move against the name's own history.</li>
+<li><em>Front-month IV falls by a third to a half the next morning.</em> A long call bought into the print is fighting that collapse; a post-print entry on the reaction is buying after it. The order of operations is the edge.</li>
+<li><em>Post-earnings drift persists in smaller names.</em> The Book B swing on a surprise, entered after the crush and held on the sixty-day clock, is the expression of this row.</li>
+</ul>
+<h2>Chapter 7 — Options: decay, moneyness, and the cost of being wrong on timing</h2>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Base rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Probability an at-the-money option expires in the money</td>
+<td>~50%, slightly less after costs</td>
+</tr>
+<tr>
+<td>Probability a 30-delta option expires in the money</td>
+<td>~30%, by construction — delta approximates it</td>
+</tr>
+<tr>
+<td>Theta as a share of premium, at the money</td>
+<td>Accelerates as √T: roughly a third of remaining premium decays in the final third of the life</td>
+</tr>
+<tr>
+<td>Share of options expiring worthless</td>
+<td>Roughly a third expire worthless, a third are closed early, a third are exercised — <em>the folk claim that "80–90% expire worthless" is false</em></td>
+</tr>
+<tr>
+<td>Same-day expiry share of index option volume</td>
+<td>Roughly half of S&amp;P index options volume by 2025–26, from near zero in 2016</td>
+</tr>
+<tr>
+<td>Bid-ask cost, index ETF options, at the money</td>
+<td>Cents on liquid strikes; multiples of that on single names and far strikes</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: exchange statistics and computed.</em> The Doctrine's Book C default of vertical spreads follows from row three and row six together: a spread caps the theta bleed and halves the number of spreads crossed.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>Delta is a probability.</em> A 30-delta option finishes in the money about 30% of the time. A trader buying it is making a 30% bet and should size and price it as one — which is why the Options paper's verticals rule pays no more than a third of the width.</li>
+<li><em>The "options expire worthless" folk claim is false, and the reason matters:</em> a third are closed early, which means most option positions are managed, not held to expiry. Management is the skill; expiry is the exception.</li>
+<li><em>Theta's √T acceleration is the reason short-dated options are decay instruments and long-dated ones are volatility instruments.</em> The tenor decision is a decision about which greek you are buying.</li>
+<li><em>Half of index option volume is same-day.</em> The 0DTE book is now the market's largest intraday flow; the Dealer's Hand and the intraday cadence exist because of this row.</li>
+</ul>
+<h2>Chapter 8 — Expiries, auctions, and the clock inside the day</h2>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Base rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monthly expiry week, historical drift</td>
+<td>Mildly positive on average; the effect is small and unstable</td>
+</tr>
+<tr>
+<td>Quarterly triple-witching volume</td>
+<td>Multiples of an ordinary session; the largest expiries of the year</td>
+</tr>
+<tr>
+<td>Closing auction share of daily volume</td>
+<td>~10% on ordinary days; 20%+ on rebalance days; the majority of an affected name's volume on reconstitution day</td>
+</tr>
+<tr>
+<td>Reconstitution day</td>
+<td>Routinely the year's single largest closing auction</td>
+</tr>
+<tr>
+<td>First and last thirty minutes</td>
+<td>Carry a disproportionate share of daily volume and range</td>
+</tr>
+<tr>
+<td>Average daily range as a share of price</td>
+<td>~1.0–1.3% in calm regimes; 2–3% in stressed</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: exchange statistics.</em> These are the numbers the Positioning &amp; Flows paper's calendar assumes and the market-on-close module measures against.</p>
+<p><strong>What to take from this table.</strong></p>
+<ul>
+<li><em>The closing auction is a tenth of the day and the majority of a reconstitution-day name.</em> An imbalance read on a classified day is the calendar's flow, not a holder's decision — the event-classification table exists to prevent this misreading.</li>
+<li><em>The first and last thirty minutes carry disproportionate range.</em> The Doctrine's three-touch rhythm — 07:00, 10:00, the close — is built around this: the operator is absent during the low-information middle of the session by design.</li>
+<li><em>Quarterly witching is the year's largest expiry release.</em> The Dealer's Hand's expiration-release ladder is largest on these four days, and the post-expiry rewrite of the dealer book is the reason the Weekend report uses post-expiry state.</li>
+<li><em>Average daily range doubles in stressed regimes.</em> A stop placed at "1% below entry" in a Calm regime is inside the noise in a Stressed one; stop distance is a function of the regime's range, not a fixed percent.</li>
+</ul>
+<h2>Chapter 9 — Costs, and the arithmetic of turnover</h2>
+<p>The Doctrine sizes in dollars of risk; this chapter supplies the dollars of friction.</p>
+<table>
+<thead>
+<tr>
+<th>Cost</th>
+<th>Typical magnitude</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commission, this account (Fixed schedule)</td>
+<td>$0.005/share, $1.00 minimum, 1% cap</td>
+</tr>
+<tr>
+<td>Bid-ask, large-cap equity</td>
+<td>1–3 basis points</td>
+</tr>
+<tr>
+<td>Bid-ask, index ETF</td>
+<td>Sub-basis-point on the largest</td>
+</tr>
+<tr>
+<td>Bid-ask, liquid index option</td>
+<td>Pennies wide near the money</td>
+</tr>
+<tr>
+<td>Bid-ask, single-name option, out of the money</td>
+<td>5–15% of premium — <em>the dominant cost in Book D</em></td>
+</tr>
+<tr>
+<td>Slippage, market order in size</td>
+<td>Rises with participation rate; the reason the execution framework prefers limits</td>
+</tr>
+<tr>
+<td>Borrow, hard-to-borrow name</td>
+<td>10–100%+ annualized; the meme lifecycle's DO-NOT-SHORT input</td>
+</tr>
+</tbody>
+</table>
+<p>The arithmetic that matters: <strong>at Book C's standard risk of about $1,050 per trade, a round trip in a wide single-name option can consume a tenth of the risk budget before the thesis is tested.</strong> This is why the Doctrine restricts Book C to index instruments and why the expression check flags illiquid expressions.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-the-long-record-of-downturns">
+      <summary class="section-head">
+        <span class="section-title">Part III — The Long Record of Downturns</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 10 — Why the sample must go back further than 1970</h2>
+<p><em>Tops and Bottoms</em> treats every major U.S. turning point since 1970 — eight bears and the near-misses — on one template, with a thirteen-episode calibration harness. That paper is the operative one; it owns the signal-by-signal scoring and the forward-return distributions the Top &amp; Bottom report uses. This chapter does not repeat it. It extends the <em>sample</em>, for three reasons the operator's own history makes concrete.</p>
+<p><strong>Eight is a small number.</strong> A framework calibrated on eight episodes has eight degrees of freedom against the ways a market can fall, and the confidence interval on "how often does a bear reach −40%" from eight observations is uselessly wide.</p>
+<p><strong>The post-1970 sample excludes the two mechanisms the operator most worries about.</strong> There is no deflationary debt-liquidation in it, and no inflationary destruction of a bond portfolio's real value across a decade — the 1970s appear as price declines but the real-return story is the one that mattered. A tail framework whose sample begins in 1970 has never seen 1929–32 or 1946.</p>
+<p><strong>Regimes recur on a longer clock than a career.</strong> The operator has traded through roughly one interest-rate regime. The Rate and Liquidity Machine's eleven regime eras from 1907 exist for the same reason this chapter does.</p>
+<p>The episodes below are given on the same template as <em>Tops and Bottoms</em> — context, mechanism, what signaled, what stayed silent, the shape and the aftermath — compressed, because the operative detail lives in that paper and its calibration harness. Depths and durations are approximate and are given for the S&amp;P composite or its predecessor index unless noted.</p>
+<h2>Chapter 11 — Pre-1970 downturns on the template</h2>
+<h3>11.1 The Panic of 1907 — a liquidity crisis without a lender of last resort</h3>
+<p><em>Depth:</em> roughly −45% peak to trough. <em>Duration:</em> about 15 months. <em>Mechanism:</em> a failed corner in a copper stock triggered runs on the trust companies — the shadow banks of their day, outside the clearinghouse system — and the crisis was ended by a private bailout organized by J. P. Morgan. <em>What signaled:</em> call-money rates spiking to extraordinary levels; trust-company balance-sheet fragility visible to anyone who looked. <em>What stayed silent:</em> the broad economy until the panic was underway. <em>Aftermath:</em> the Federal Reserve Act, 1913. <em>Why it belongs in the sample:</em> it is the cleanest case of a funding crisis in an institution class the regulatory perimeter did not cover — the mechanism that recurred in 2008 and that the tail scenarios track in private credit today.</p>
+<h3>11.2 1929–1932 — the deflationary debt liquidation</h3>
+<p><em>Depth:</em> −86% peak to trough, the deepest in the record. <em>Duration:</em> 34 months of decline; the nominal peak was not recovered for 25 years. <em>Mechanism:</em> a leveraged equity bubble met a banking collapse, a contracting money supply, and policy that tightened into the downturn; margin debt, a fragmented banking system with no deposit insurance, and the gold standard's constraint on response combined. <em>What signaled:</em> extreme margin debt; a two-year parabolic advance; deteriorating breadth into the 1929 peak. <em>What stayed silent:</em> the initial October crash looked survivable — the index recovered nearly half its loss by April 1930 before losing 80% more. <em>Aftermath:</em> deposit insurance, securities regulation, the abandonment of the gold peg. <em>The reading:</em> the −86% is not the useful number; <strong>the bear-market rally of +46% between November 1929 and April 1930 is</strong> — it is the archetype of the counter-trend rally that ends short campaigns and restarts long ones at the wrong time.</p>
+<h3>11.3 1937–1938 — the policy-error recession</h3>
+<p><em>Depth:</em> roughly −50%. <em>Duration:</em> about 12 months. <em>Mechanism:</em> premature tightening — a doubling of reserve requirements and fiscal contraction — into an incomplete recovery. <em>Why it belongs:</em> it is the canonical case of the second downturn inside a longer recovery, and the reason the Monthly's policy pillar watches for tightening into weakness rather than for tightening as such.</p>
+<h3>11.4 1946–1949 and the 1940s real-return bear</h3>
+<p><em>Depth:</em> roughly −30% nominal in 1946–47. <em>Mechanism:</em> the post-war demobilization, the end of price controls, and an inflation spike that ran above 15%. <em>Why it belongs:</em> the <em>real</em> damage in this period fell on bondholders, not equity holders — the era of financial repression in which nominal yields were capped below inflation for years. A duration sleeve held through it lost a third of its purchasing power. This is the episode that a stock–bond correlation estimated on 1998–2020 cannot imagine.</p>
+<h3>11.5 1961–1962 — the "Kennedy Slide"</h3>
+<p><em>Depth:</em> roughly −28%. <em>Duration:</em> about 6 months, with a sharp late-May crash. <em>Mechanism:</em> a speculative advance in growth stocks, a confidence shock, and a fast unwind with no recession. <em>Why it belongs:</em> it is the cleanest pre-1970 example of a bear market without an economic contraction — the pattern that makes "wait for the recession" an unreliable rule.</p>
+<h3>11.6 The pre-1970 aggregate</h3>
+<table>
+<thead>
+<tr>
+<th>Episode</th>
+<th>Depth</th>
+<th>Months down</th>
+<th>Recession?</th>
+<th>Mechanism family</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1907</td>
+<td>~−45%</td>
+<td>~15</td>
+<td>Yes</td>
+<td>Funding/liquidity crisis</td>
+</tr>
+<tr>
+<td>1929–32</td>
+<td>−86%</td>
+<td>34</td>
+<td>Yes, severe</td>
+<td>Debt deflation + policy error</td>
+</tr>
+<tr>
+<td>1937–38</td>
+<td>~−50%</td>
+<td>~12</td>
+<td>Yes</td>
+<td>Policy error</td>
+</tr>
+<tr>
+<td>1946–47</td>
+<td>~−30%</td>
+<td>~12</td>
+<td>No (inflation shock)</td>
+<td>Inflation/repression</td>
+</tr>
+<tr>
+<td>1961–62</td>
+<td>~−28%</td>
+<td>~6</td>
+<td>No</td>
+<td>Valuation unwind</td>
+</tr>
+</tbody>
+</table>
+<p>Adding these five to the eight post-1970 episodes roughly doubles the calibration sample and — more importantly — adds three mechanism families that the post-1970 set contains weakly or not at all: pre-Fed liquidity crisis, debt deflation, and financial repression.</p>
+<h2>Chapter 12 — What the extended sample changes</h2>
+<p><strong>Depth.</strong> Across thirteen-plus episodes, the median bear is about −30% and the interquartile range roughly −25% to −50%. The post-1970 sample alone understates the left tail because it excludes 1929 and 1937.</p>
+<p><strong>Duration.</strong> Median peak-to-trough about 10–12 months; the distribution is right-skewed, with 1929–32 and 2000–02 in the tail. Recoveries to the prior peak run from months (1987, 2020) to decades (1929, and in real terms the 1970s).</p>
+<p><strong>Mechanism families, and their frequency.</strong> Grouping the extended sample: valuation unwinds (1961, 1987, 2000), credit and funding crises (1907, 2008), policy errors (1937, 1973–74's aftermath, 2022), inflation shocks (1946, 1973–74), exogenous shocks (2020), and debt deflation (1929). The most useful cut for the tail watch: <strong>the deepest and longest episodes are the credit and debt-deflation families; the fastest are the exogenous and valuation families.</strong> Depth and speed are inversely related, which is why the 2020 recovery in five months and the 1929 recovery in twenty-five years are not the same kind of event and cannot inform the same rule.</p>
+<p><strong>What signaled, across the extended sample.</strong> The recurring antecedents, in rough order of reliability: credit-spread widening ahead of price; deteriorating breadth into the final advance; leverage at an extreme (margin debt, shadow-bank funding, or their era's equivalent); a policy tightening into an already-slowing economy; and a concentration of returns in a narrow leadership. The recurring <em>silences</em>: the economy at the peak, which is almost always fine; and valuation, which is a condition rather than a trigger and has been extreme for years at a time without consequence.</p>
+<p><strong>What this changes in the Top &amp; Bottom report.</strong> Three concrete amendments, offered to that report's owner rather than asserted here. First, the calibration harness's episode set should be extendable to the pre-1970 cases with an explicit flag, because several of the modern triggers have no pre-1970 analogue and the harness must not score a signal that could not have existed. Second, the composite's top-side language should carry the bear-rally base rate from Chapter 2.3 — three to five 5% rallies inside a −20% decline — because that is the number that governs how a top call is <em>held</em>. Third, the bottom-side signal's forward-return distribution should be reported over the extended sample, where the tail of "bottoms that were not bottoms" (1930) is visible.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-how-bad-can-it-get">
+      <summary class="section-head">
+        <span class="section-title">Part IV — How Bad Can It Get</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 13 — Outside the United States, and before the modern record</h2>
+<p>Every number in Parts I through III describes one market in one country across one century, and that country's century was the best available. This chapter supplies the sample that the U.S. record excludes, because the operator's tail concern — a debt-cycle resolution with a monetary component — has no clean U.S.-only precedent since 1932 and several precedents elsewhere.</p>
+<h3>13.1 The global long-run record</h3>
+<p>The standard long-horizon evidence is the Dimson–Marsh–Staunton dataset, which since the late 1990s has assembled consistent real returns for twenty-one to thirty-five markets from 1900. Two findings from it govern this chapter. <strong>Real equity returns outside the United States have been meaningfully lower</strong> — the world index compounds at roughly 5% real against the U.S. at roughly 6.5% — which means the U.S. figure is the top of the distribution and not the centre of it. And <strong>several markets in the 1900 index did not survive</strong>: Russia in 1917 and China in 1949 went to zero for outside holders, and Austria-Hungary, Germany and Japan each suffered breaks in which the exchange closed, the currency was replaced, or both.</p>
+<p>Survivorship therefore operates at the level of the country, not merely the company. A base rate constructed from the markets that still exist is conditioned on survival, and the honest correction is not a smaller number but a wider distribution with mass at total loss.</p>
+<h3>13.2 The deep drawdowns, on the same template</h3>
+<table>
+<thead>
+<tr>
+<th>Episode</th>
+<th>Real drawdown</th>
+<th>Time to recover in real terms</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Japan, 1989–2009</td>
+<td>−82% nominal; deeper in real terms for property</td>
+<td><strong>34 years to the nominal high (Feb 2024)</strong></td>
+<td>Credit and asset bubble, slow bank recognition, deflation</td>
+</tr>
+<tr>
+<td>United States, 1929–1932</td>
+<td>−86% nominal; roughly −79% real total return</td>
+<td>Nominal price index 25 years; real total return by the mid-1940s</td>
+<td>Debt deflation plus policy error</td>
+</tr>
+<tr>
+<td>United States, 1966–1982</td>
+<td>Nominal roughly flat; real total return down by over 40% at the worst</td>
+<td>About 17 years in real terms</td>
+<td>Inflation; multiple compression</td>
+</tr>
+<tr>
+<td>Germany, 1914–1923</td>
+<td>Equities preserved a fraction of real value; <strong>bonds and cash went to zero</strong></td>
+<td>Currency replaced twice within a generation</td>
+<td>Hyperinflation and monetary reset</td>
+</tr>
+<tr>
+<td>Germany and Japan, 1944–1948</td>
+<td>Roughly −90%+ real; exchanges closed</td>
+<td>Decades</td>
+<td>War, occupation, currency reform</td>
+</tr>
+<tr>
+<td>Greece, 2007–2016</td>
+<td>Roughly −90% real</td>
+<td>Not recovered</td>
+<td>Sovereign crisis inside a currency union</td>
+</tr>
+<tr>
+<td>Argentina, repeatedly since 1970</td>
+<td>Repeated 80–95% real drawdowns</td>
+<td>Repeated resets</td>
+<td>Fiscal dominance, currency destruction</td>
+</tr>
+<tr>
+<td>Russia 1917, China 1949</td>
+<td>−100%</td>
+<td>Never, for outside holders</td>
+<td>Expropriation</td>
+</tr>
+</tbody>
+</table>
+<p><em>Source class: cited from the long-run returns literature and standard market histories; approximate, and given for the shape rather than the decimal.</em></p>
+<h3>13.3 What the extended distribution looks like</h3>
+<p>Putting the U.S. episode set beside the international one changes the shape of the tail rather than the middle:</p>
+<table>
+<thead>
+<tr>
+<th>Percentile of "bad"</th>
+<th>Depth</th>
+<th>Duration to recovery</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Median bad market</td>
+<td>−30%</td>
+<td>~2 years</td>
+<td>1990, 2022</td>
+</tr>
+<tr>
+<td>p75</td>
+<td>−45 to −50%</td>
+<td>4–5 years</td>
+<td>1973–74, 2000–02, 2008–09</td>
+</tr>
+<tr>
+<td>p90</td>
+<td>−55 to −60% real</td>
+<td>10–15 years</td>
+<td>1966–82 in real terms</td>
+</tr>
+<tr>
+<td>p95</td>
+<td>−80%</td>
+<td>20–35 years</td>
+<td>Japan 1989; U.S. 1929</td>
+</tr>
+<tr>
+<td>p99</td>
+<td>−90%+ real, or total loss</td>
+<td>Never, for the original holders</td>
+<td>Germany 1923 for bonds; Russia; China</td>
+</tr>
+</tbody>
+</table>
+<p>The reading the paper wants the operator to take is not "a −80% is coming." It is that <strong>the tail he is worried about is real, has happened to developed markets with functioning institutions within living memory, and sits at roughly the 95th percentile of the historical distribution rather than off the end of it.</strong> That is precisely the kind of risk a budget is for.</p>
+<h2>Chapter 14 — The long-term debt cycle, and what a resolution looks like</h2>
+<h3>14.1 The mechanism, stated without adjectives</h3>
+<p>The framework the operator is drawing on — Dalio's long-term or "big" debt cycle — makes a structural claim rather than a forecast. Debt grows faster than income for an extended period because each debt-financed expansion is easier than the alternative; debt service eventually consumes a rising share of income; the point arrives at which new borrowing is required to service old borrowing; and the imbalance is resolved through some combination of four channels — austerity, default and restructuring, transfers from those who have to those who have not, and debt monetization. The cycle runs on a clock of roughly fifty to seventy-five years, which is why it is invisible in a career and visible in a century.</p>
+<p>The claim that matters for a portfolio is the <em>conditional</em> one. The resolution's form depends on the currency the debt is denominated in and on who holds it. <strong>Debt in a currency the sovereign cannot print resolves deflationary</strong> — default, contraction, falling prices — which is the United States in 1930–33 under the gold constraint, Greece in 2010–15 inside the euro, and emerging markets with dollar debt. <strong>Debt in a currency the sovereign controls resolves inflationary</strong> — monetization, currency depreciation, financial repression — which is Weimar Germany at the extreme and, in its mild and far more common form, the United States between 1946 and 1951.</p>
+<h3>14.2 Financial repression is the common case, and it does not look like a crash</h3>
+<p>The historically frequent resolution for a large sovereign with debt in its own currency is not a crash but a decade of quiet expropriation: nominal yields held below the inflation rate, so that the real value of the debt erodes while nominal asset prices rise. Reinhart and Sbrancia's work named the mechanism and estimated that it retired a substantial share of the post-war debt burden in the advanced economies. The U.S. instance ran from the wartime yield peg through the Treasury–Federal Reserve Accord of 1951, and it produced a decade in which equities did tolerably in nominal terms while long bonds lost a third or more of their purchasing power.</p>
+<p>This is the single most important asymmetry in the chapter for a portfolio like this one. <strong>The resolution the operator most fears is more likely to arrive as a bond bear market and a flat real decade than as an equity crash.</strong> A portfolio hedged for 2008 is not hedged for 1946.</p>
+<h3>14.3 Where the current cycle sits, stated as observables rather than as a call</h3>
+<p>The paper does not forecast. It names the observables the framework says to watch, which are all series the system already holds or can hold, so that the tail watch tracks a mechanism rather than a mood:</p>
+<ul>
+<li>Federal debt to GDP, and its trajectory at full employment rather than in recession.</li>
+<li>The deficit as a share of GDP in an expansion — a structural deficit run at low unemployment is the framework's diagnostic, not a cyclical one.</li>
+<li><strong>Net interest expense as a share of revenue</strong>, and the point at which it exceeds major discretionary categories — the United States crossed the defense-spending threshold in the mid-2020s.</li>
+<li>The share of issuance the central bank and the domestic banking system absorb versus foreign official holders — a falling foreign official share is the framework's early tell.</li>
+<li>The term premium, and whether long yields rise when growth expectations fall — the signature of a market pricing supply rather than growth.</li>
+<li>Real yields versus the inflation rate — the direct measure of whether repression is occurring.</li>
+<li>The gold price against real yields — the historical divergence signal when the market doubts the numéraire, and the Metals paper's central watch.</li>
+<li>Currency debasement measured against a basket of hard assets rather than against other fiat currencies, which can all depreciate together.</li>
+</ul>
+<p>Several of these are already in the Monthly's sovereign and liquidity pillars and in the Rate and Liquidity Machine's regime eras. What this chapter asks of the system is that they be <em>read together as one mechanism</em> rather than as separate pillar rows, and that the tail watch carry a standing "long-cycle resolution" scenario with the two branches — deflationary and inflationary — as distinct states with distinct instrumentation.</p>
+<h3>14.4 The honest counter-case</h3>
+<p>The framework has weaknesses the paper states because the Doctrine requires a steelman. Debt-to-GDP thresholds have no demonstrated critical level: Japan has run at roughly twice the U.S. ratio for two decades without the predicted crisis, with yields near zero and a currency that weakened but did not break. Reinhart and Rogoff's ninety-percent threshold did not survive replication. The cycle's timing is unfalsifiable in practice — a forecast that resolves within fifty years is not a tradeable claim. And the strongest counter-argument is the reserve-currency exception: demand for the world's reserve asset is not a normal demand curve, and every historical analogue involves a sovereign that lacked one. <strong>A trader can hold the view that the mechanism is real and the timing unknowable, which is exactly the view the Doctrine's tail-hedge budget is designed to express.</strong></p>
+<h2>Chapter 15 — What protected capital, by resolution type</h2>
+<p>The chapter's practical payload. No single hedge works across the resolutions, and the most common portfolio error is holding the hedge for the wrong one.</p>
+<table>
+<thead>
+<tr>
+<th>Resolution</th>
+<th>What was destroyed</th>
+<th>What protected</th>
+<th>The tell that distinguishes it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Deflationary debt liquidation</strong> (U.S. 1929–32, Japan 1990s, Greece 2010s)</td>
+<td>Equities, credit, real estate, banks</td>
+<td><strong>Long government bonds of the solvent sovereign</strong>, cash, gold once revalued</td>
+<td>Falling inflation with rising real yields; credit spreads leading equities; the currency <em>strengthening</em></td>
+</tr>
+<tr>
+<td><strong>Inflationary deleveraging / repression</strong> (U.S. 1946–51, U.S. 1966–82)</td>
+<td><strong>Bonds and cash in real terms</strong>; long duration worst</td>
+<td>Gold, commodities, real assets, equities partially and unevenly; short duration</td>
+<td>Nominal yields capped below inflation; negative real yields persisting; gold rising against real yields</td>
+</tr>
+<tr>
+<td><strong>Hyperinflation / currency reset</strong> (Weimar 1923, Argentina repeatedly)</td>
+<td>Bonds and cash <em>totally</em>; domestic savings</td>
+<td>Foreign currency, foreign assets, hard assets, equities partially — equity holders retained a fraction of real value where the businesses survived</td>
+<td>Fiscal dominance explicit; monetary financing of deficits; capital controls appearing</td>
+</tr>
+<tr>
+<td><strong>Expropriation / war</strong> (Russia 1917, China 1949, 1940s Europe)</td>
+<td>Everything domestically held</td>
+<td><strong>Assets held outside the jurisdiction</strong> — and only those</td>
+<td>Political discontinuity; the risk no financial hedge addresses</td>
+</tr>
+</tbody>
+</table>
+<p>Three readings follow, and they are already consistent with the Doctrine rather than a revision of it.</p>
+<p><strong>The duration sleeve is a deflation hedge, not a hedge.</strong> Book A's Contraction band raises duration for exactly the first row of the table and is the wrong instrument for the second. The correlation table in Chapter 5 is the same fact stated statistically.</p>
+<p><strong>The gold sleeve does the work in the second and third rows</strong>, and its historical record in the first row is good only after policy revalues it. The Metals paper's stock-versus-flow frame and its signal hierarchy are the operative detail.</p>
+<p><strong>The fourth row is not hedgeable inside the account</strong>, and the paper says so plainly rather than pretending. Jurisdictional diversification is a different kind of decision from a portfolio one and sits outside this library's scope.</p>
+<p>And the Doctrine's ruling stands unchanged and is, if anything, strengthened by this chapter: <strong>a tail thesis is a hedge budget, not a position.</strong> The historical record says the operator's concern is legitimate and its timing is unknowable, which is precisely the combination that a small, ring-fenced, repeatedly-renewed convex budget expresses correctly and that a standing short expresses catastrophically.</p>
+<h2>Chapter 16 — Where these numbers are least trustworthy</h2>
+<p><strong>Survivorship, at the level of the country.</strong> The U.S. equity record is the record of the twentieth century's most successful market. Long-run studies of many markets find substantially lower real returns and several total losses — Russia 1917, China 1949, and the interruptions in Germany and Japan. "Stocks always come back over twenty years" is a claim about one country's history.</p>
+<p><strong>Regime dependence.</strong> Every correlation in Chapter 4 is a regime statistic. The stock–bond hedge, the seasonal effects, and the momentum premium each have decade-long failures inside the sample.</p>
+<p><strong>Measurement changes.</strong> Index composition, the arrival of ETFs, decimalization, the growth of same-day options, and the shift of return into the overnight session all mean that a base rate computed since 1928 describes several different markets in sequence. Where the paper gives one figure for a long window, the reader should assume the recent decade differs.</p>
+<p><strong>Small samples in the tails.</strong> Every statement about −40% bears rests on a handful of observations. The honest form of "about every decade" is "four times in a century, irregularly."</p>
+<p><strong>And the base rate is not the forecast.</strong> The Doctrine's edge concept requires knowing the ordinary in order to depart from it; nothing in this paper licenses trading the base rate itself. Its rights in the registry are exactly those of a reference: it may inform a thesis, size an expectation, and set the bar for a variant view. It may not generate a signal, and no metric in this paper is <code>trigger_eligible</code>.</p>
+<hr />
+<h2>Appendix A — The one-page card</h2>
+<p><em>Ordinary:</em> up 54% of days, 62% of months, 74% of years. Median year +12% total return; a year in the +8–12% band is rare. Realized vol ~15%. Fifty ±1% days a year, ten ±2% days.</p>
+<p><em>Drawdowns:</em> −5% three or four times a year; −10% about annually; −20% every four or five years; −30% about every decade. Average intra-year drawdown 14% — in years that finish positive three times in four.</p>
+<p><em>Inside a bear:</em> three to five counter-trend rallies of 5%+. The 1929–30 rally was +46%.</p>
+<p><em>Streaks:</em> daily direction has no memory. Trend is cross-sectional and multi-week.</p>
+<p><em>Earnings:</em> 70–78% beat; the guidance is the news; implied move slightly exceeds realized; front-month IV falls a third to a half overnight.</p>
+<p><em>Options:</em> a third expire worthless, a third close early, a third are exercised. ATM theta accelerates as √T. Same-day expiries are about half of index option volume.</p>
+<p><em>Costs:</em> single-name out-of-the-money options are 5–15% of premium wide — a tenth of a Book C risk budget in a round trip.</p>
+<p><em>Percentiles to carry:</em> annual return p25 −1% / median +12% / p75 +25%. Intra-year drawdown p25 −6% / median −10% / p75 −18%. Bear depth p25 −22% / median −30% / p75 −48%. Recovery p25 5 months / median 2 years / p75 4–5 years.</p>
+<p><em>Seasonality:</em> Nov–Apr beats May–Oct by several points on average and fails for years at a time; turn of the month carries a disproportionate share; September is the only negative month on average; <strong>2026 is a midterm year — historically the weakest of the cycle and the one whose low precedes the strongest forward twelve months.</strong> Tiebreaker only; never a thesis.</p>
+<p><em>Downturn history, thirteen-plus episodes:</em> median depth ~−30%, median length ~10–12 months; credit and debt-deflation episodes are deepest and longest; the economy is fine at the peak; credit spreads and breadth signal, valuation does not.</p>
+<p><em>The tail, globally:</em> p90 −55 to −60% real over a decade or more; p95 −80% with recovery measured in decades (Japan 1989, U.S. 1929); p99 total loss (Russia, China). Deflationary resolutions destroy equities and reward long bonds; inflationary resolutions destroy bonds and reward real assets; <strong>no single hedge covers both</strong>, which is why the tail budget is convex and renewed rather than held.</p>
+<h2>Appendix B — Recomputation and provenance</h2>
+<p>Each table names its window and source class. Figures computed from data the system holds are recomputed annually by a scheduled job and stored as observations with <code>available_at</code>, so that a base rate cited in a decision packet can be replayed as of the date it was cited. Figures cited from the literature carry their citation in the claims registry and are re-verified when the paper is revised. Any figure that moves by more than a stated tolerance on recomputation is flagged for review, on the principle that a base rate that changes is itself information.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/base-rates-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

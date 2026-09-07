@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Construction Across Regimes</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Portfolio Construction Across Regimes</h1>
+<h2>The Bridge Between Anticipating Disruption and Positioning for It</h2>
+<p><strong>Companion XVII · Companion to: the full five-report stack — Disruptive Themes, Monthly Macro, Top &amp; Bottom, Alternative Asset, Daily Cascade · Draft 1 · ~4,400 words · 31 August 2026</strong></p>
+<p><em>Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.</em></p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-preamble-the-gap-this-paper-fills">Preamble · The gap this paper fills</a></li><li><a href="#s3-part-i-what-a-regime-is-for-a-book">Part I · What a regime is, for a book</a></li><li><a href="#s4-part-ii-sizing">Part II · Sizing</a></li><li><a href="#s5-part-iii-hedges-what-they-cost-and-when-they-fail">Part III · Hedges — what they cost, and when they fail</a></li><li><a href="#s6-part-iv-rebalancing-discipline">Part IV · Rebalancing discipline</a></li><li><a href="#s7-part-v-what-a-regime-change-means-for-a-book-a-walk-through">Part V · What a regime change means for a book — a walk-through</a></li><li><a href="#s8-part-vi-cross-asset-notes">Part VI · Cross-asset notes</a></li><li><a href="#s9-part-vii-the-register-as-the-books-memory">Part VII · The register as the book&#x27;s memory</a></li><li><a href="#s10-part-viii-what-draft-2-adds">Part VIII · What Draft 2 adds</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<blockquote>
+<h3>DRAFT 1 — PREVIEW EDITION</h3>
+<p><strong>What this is.</strong> A short paper that establishes the frame, the vocabulary, and the open questions for cross-asset portfolio construction under regime change. It is deliberately theoretical: it names the disciplines and states the rules, but it cannot yet show what those rules produced in this book, because the instrument that would show it — the trade recommendation register — does not yet have data.</p>
+<p><strong>What this is not.</strong> Not the extended edition. Not a strategy. Not a list of positions.</p>
+<p><strong>Update trigger — when to write Draft 2.</strong> All four conditions, not any one:</p>
+<ol>
+<li><strong>The v17 rebuild has run</strong> — the store layer (D1 + parquet + local mirror), the register, and the Weekend Synthesis are live and passing the validator.</li>
+<li><strong>The dashboards are designed</strong> — the Tier 0 System State Dashboard and the v17 report set are in their settled form, so the sizing tiers this paper leans on are the ones actually in production.</li>
+<li><strong>The register has at least three months of data</strong> — enough recommendations, with entries, invalidations, and outcomes, that the sections marked <em>[empirical in Draft 2]</em> below can be written from the book's own history rather than from principle.</li>
+<li><strong>IBKR Gate 1 is live</strong> — read-only sync gives the register mark-to-market, which turns the hedge-cost and rebalancing sections from estimates into measurements.</li>
+</ol>
+<p>Expected Draft 2 timing on the current schedule: <strong>late Q4 2026 to Q1 2027.</strong> Sections marked <em>[empirical in Draft 2]</em> are the ones that will change most. Everything else should survive largely intact.</p>
+<p><strong>Numbering.</strong> This paper is unnumbered in Draft 1. It takes its Roman numeral when it enters the library guide alongside the Credit paper.</p>
+</blockquote>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-preamble-the-gap-this-paper-fills">
+      <summary class="section-head">
+        <span class="section-title">Preamble · The gap this paper fills</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>The ten companion papers explain how markets work. Read together, they let you anticipate disruption with considerable precision — a Factor III chokepoint divergence, a Concentration &amp; Complacency overlay firing five of five, a Monthly composite drifting toward TOP SIGNAL, a Hartnett Bull &amp; Bear print at 8.0. What they do not do, except in fragments, is tell you what a book should look like while that is happening.</p>
+<p>The fragments are real and they are good. The Metals paper carries a position-construction section (Part V-B) with vol-scaled sizing and the copper instrument problem. The Currencies paper carries hedging and trading FX, written with a specific baht exposure in view. The Top &amp; Bottom Report ships scenario-weighted options portfolios in Appendix D; the Monthly ships illustrative thesis trades in Appendix C. The Daily Cascade sizes intraday setups within a tier.</p>
+<p>None of them does the thing this paper does: treat the book as one object, across every asset the stack covers, and ask what happens to that object when the regime moves.</p>
+<p>That question has four parts, and they are the four parts of this paper: <strong>sizing</strong> (how large, at the position level and the book level), <strong>hedges</strong> (what they cost, and — more important — when they fail), <strong>rebalancing</strong> (the discipline of adjusting a book you would rather leave alone), and <strong>regime transition</strong> (what actually changes for a book when the five-report stack moves from one row of the translation table to the next).</p>
+<p>The paper takes one position throughout that is worth stating up front. <strong>The book's job is not to predict the regime change. Its job is to be sized so that the regime change is survivable and the reports have time to catch it.</strong> Prediction lives upstream in the five reports and the translation table. Construction lives here, and construction's virtue is robustness, not foresight.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-i-what-a-regime-is-for-a-book">
+      <summary class="section-head">
+        <span class="section-title">Part I · What a regime is, for a book</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>The five-report stack uses "regime" in a specific sense: the row of the translation table that the Disruptive Themes frame, the Monthly composite, the Top &amp; Bottom verdict, and the Daily macro-risk read jointly imply. Soft-landing holds; late-cycle contained; late-cycle fragile; crisis or regime break; trough and reset. Those rows exist because the reports need a shared vocabulary.</p>
+<p>For a book, a regime means something narrower and more mechanical. <strong>A regime is a joint distribution</strong> — of returns, of volatility, of correlation, and of liquidity — that persists long enough to be worth positioning for. When the regime changes, all four move at once, and they rarely move in the direction a position-by-position view would expect.</p>
+<p>Four things change when a regime turns, in roughly this order of consequence for a book:</p>
+<p><strong>Correlations go first.</strong> The diversification that a book was built on is a property of the regime that built it. The 2022 episode is the cleanest modern example: equities and long-duration bonds fell together for the first sustained stretch in a generation, and the 60/40 construction that had worked since the early 1980s lost on both legs. The BlackRock Investment Institute note captured in the Monthly's Pillar 10 — Treasuries failing as portfolio hedges during the Iran-war energy shock — is the same mechanism, live, in the current cycle. A book that is "diversified" is diversified under the correlation matrix of the regime it was built in, and the transition is precisely when that matrix is least reliable.</p>
+<p><strong>Volatility changes character, not just level.</strong> The Dealer's Hand paper makes the point for index options: GEX regime is a forecast of volatility <em>character</em>, not direction. At the book level the same is true. A regime transition from positive to negative dealer gamma does not merely raise realized vol; it changes the autocorrelation of returns, the reliability of mean-reversion, and the cost of any position that is short convexity. A short-gamma edge — which is the stated edge in this system — is an edge in one volatility character and a liability in another.</p>
+<p><strong>Liquidity changes, and with it execution cost.</strong> The bid-ask spread on a Friday afternoon in a positive-gamma regime and the bid-ask spread at 9:35 on the morning after a credit event are not the same instrument. Sizing that was appropriate under the first is oversized under the second, not because the thesis changed but because the cost of exiting did. This is the connection to the Systematic Book paper: execution cost is regime-dependent, and any sizing rule that ignores that will be right in calm regimes and wrong when it matters.</p>
+<p><strong>The hedges that work change.</strong> This is Part III's subject and the paper's most important claim. A hedge is a bet on a correlation. When correlations move, the hedge moves with them, and the hedge that paid in the last drawdown is not guaranteed to pay in the next.</p>
+<p>The practical consequence: <strong>a regime label in the translation table is a summary of a joint distribution, and the book should be constructed against the distribution, not the label.</strong> The label tells you which row you are in. The distribution tells you what the row will do to the positions.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-ii-sizing">
+      <summary class="section-head">
+        <span class="section-title">Part II · Sizing</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>The book-level dial</h3>
+<p>The translation table already contains a sizing dial: 100% normal, 50–70% normal, 25–40% normal with no new longs, defensive only and hedged, scaling back in. The Tier 0 dashboard computes which setting the dial is on by walking the conflict-resolution rule. That is the book-level constraint, and everything in this section operates inside it.</p>
+<p>What "normal" means is the first thing to pin down, and it is the one thing the current system leaves undefined. Draft 2 will define it from the register. For Draft 1, the working definition: <strong>normal is the gross exposure at which the book's realized volatility, measured over the last regime, matched its target.</strong> That makes "50% normal" a statement about volatility budget, not about dollars, which is the right unit.</p>
+<h3>Position-level sizing: volatility-scaled by default</h3>
+<p>The Metals paper's Part V-B establishes vol-scaled sizing for a single asset class. The generalization to the book is direct: <strong>each position's notional is set so that its contribution to book volatility is the intended fraction of the book's volatility budget</strong>, using a trailing realized-vol estimate appropriate to the holding horizon.</p>
+<p>Three refinements matter cross-asset:</p>
+<ul>
+<li><strong>The vol estimate should be regime-aware.</strong> A 60-day trailing vol on the day after a regime break is a measurement of the old regime. Using it to size a new position is a known error. The practical fix is a short-window override: when the Top &amp; Bottom overlays or the Daily's vol block flag a regime change, the sizing window shortens, and positions are sized against the new realized vol even though it has less data. Less data, more relevance.</li>
+<li><strong>Correlated stacking is a sizing error, not a diversification benefit.</strong> A long-ES, long-NQ, short-VIX-call, long-gold-as-risk-on book is one position with four tickers. The register's cross-report conflict detection — flagging contradictions, duplicates, and correlated stacking before sizing — is the mechanism that catches this. Until the register is live, the rule is manual: <strong>sum exposures by factor, not by instrument</strong>, and size the factor.</li>
+<li><strong>Kelly is an upper bound, not a target.</strong> The fractional-Kelly discussion belongs in the Systematic Book paper because it needs expectancy data. Here the only point is directional: no position in a book governed by a regime dial should be sized at full Kelly, because full Kelly assumes the edge estimate is right, and the whole architecture of this system is built on the premise that estimates drift with the regime.</li>
+</ul>
+<h3>Hard constraints</h3>
+<p>Two constraints sit outside the sizing logic entirely and cannot be overridden by it.</p>
+<p><strong>The Brookfield restriction.</strong> No recommendation for any security in the Brookfield complex — BN, BAM, BIP, BIPC, BEP, BEPC, BBU, BNT, and the property preferreds — under any regime, at any size. This is enforced at register write-time as a schema constraint, which is the correct enforcement point: a rule that lives in a prompt can be argued with; a rule that lives in a schema cannot. The restriction is personal and professional and requires no compliance review, but it is a construction constraint and belongs in this paper for completeness.</p>
+<p><strong>The Thai baht property exposure.</strong> This is not a restriction but a standing exposure that the book does not choose and cannot easily close. The Currencies paper treats how to hedge it. For construction purposes the point is that <strong>it is a permanent position in the book's factor sum</strong> — an unhedged or partially hedged emerging-market currency exposure that must be counted against the FX factor budget before any discretionary FX position is added.</p>
+<h3><em>[empirical in Draft 2]</em></h3>
+<p>What the register will add here: the realized ratio of book volatility to target by tier, the frequency with which correlated-stacking flags fired, and whether "normal" as defined above held stable across the first two regime transitions or needed redefining.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iii-hedges-what-they-cost-and-when-they-fail">
+      <summary class="section-head">
+        <span class="section-title">Part III · Hedges — what they cost, and when they fail</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>A taxonomy</h3>
+<p>Hedges in this book fall into four types, in ascending order of how directly they address the risk:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Examples</th>
+<th>What it hedges</th>
+<th>Carry</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Structural</strong></td>
+<td>Cash, reduced gross, no new longs</td>
+<td>Everything, imprecisely</td>
+<td>Opportunity cost only</td>
+</tr>
+<tr>
+<td><strong>Proxy</strong></td>
+<td>Long TLT, long gold, long DXY</td>
+<td>A correlation you believe in</td>
+<td>Financing cost plus basis risk</td>
+</tr>
+<tr>
+<td><strong>Direct</strong></td>
+<td>SPX or ES puts, put spreads</td>
+<td>The index the book is long</td>
+<td>Premium, decaying</td>
+</tr>
+<tr>
+<td><strong>Convex</strong></td>
+<td>VIX calls, far-OTM puts, tail ladders</td>
+<td>The regime change itself</td>
+<td>Premium, decaying faster, paying rarely</td>
+</tr>
+</tbody>
+</table>
+<p>The translation table's sizing dial is a structural hedge. It is also the cheapest and most reliable one, which is why it sits at the top of the conflict-resolution rule. Everything else in this section is about the other three, and the paper's core claim about them is this: <strong>each of the three is a bet on a correlation, and the correlation is a property of the regime.</strong></p>
+<h3>The carry problem</h3>
+<p>Every non-structural hedge has a cost of being held, and the cost is highest when the hedge is most needed. Option premium rises with implied volatility; implied volatility rises when the regime is turning; the hedge you buy after the overlays fire is the expensive one. Proxy hedges have financing and basis cost that look small in calm regimes and compound over a holding period measured in quarters.</p>
+<p>The discipline the paper proposes is the one the Top &amp; Bottom Report's Appendix D already practices: <strong>hedge at the tier, not at the event.</strong> The dashboard's sizing tier changes on a regime signal, and the hedge budget is a function of the tier — a fixed percentage of book notional per tier, spent on hedges regardless of whether the event has arrived. This costs money in tiers where nothing happens. That is the price of having the hedge on when something does.</p>
+<p>The Monthly's Appendix C and the Top &amp; Bottom's Appendix D are the two live sources of hedge structures in the system, and the translation table's reconciliation rule governs them: Top &amp; Bottom wins on structure because it is scenario-weighted; Monthly wins on macro framing because it explains why the hedge exists. A book that holds a hedge without being able to state which pillar or trigger produced it is holding a position it cannot invalidate, and a position that cannot be invalidated cannot be sized.</p>
+<h3>When hedges fail</h3>
+<p>This is the section the extended edition will expand most, because the register will supply the book's own failures. Draft 1 states the four mechanisms.</p>
+<p><strong>Correlation-to-one.</strong> In a liquidity event, everything that can be sold is sold, and the hedge is sold with it. March 2020 is the modern archetype: gold and Treasuries fell alongside equities in the first two weeks, because the marginal seller needed dollars, not exposure. A proxy hedge fails first and worst here. A direct hedge holds, because the index put's payoff is contractual. A structural hedge — cash — is the only one that gains.</p>
+<p><strong>Bonds and equities falling together.</strong> The 2022 episode and the current cycle's energy-shock stretch are the same mechanism: when the driver of the drawdown is inflation or a rate shock rather than a growth shock, long duration is not a hedge but a second long. The Rate and Liquidity Machine paper carries the full treatment; here the rule is that <strong>a TLT-style hedge is conditional on the drawdown being a growth event</strong>, and the Monthly's Pillar 4 read is what tells you whether it will be. The Top &amp; Bottom's Appendix D 12-month portfolio carries a TLT call spread for exactly this reason, and carries it as a hedge for the Fed-pivot path specifically, not as a general equity hedge.</p>
+<p><strong>Vol-of-vol.</strong> A rolled put or put-spread program is exposed to the cost of rolling into a higher-vol regime. When the VIX gaps from 17 to 35, the next roll costs roughly twice what the last one did, and a hedge budget sized in the calm regime buys half as much protection. The convex tail-ladder structures in Appendix D address this by buying the protection before the regime moves; the cost is that the ladder decays through every quiet quarter.</p>
+<p><strong>Hedging the wrong regime.</strong> A put spread caps its payoff at the short strike. It is the right hedge for a 5–15% correction and the wrong hedge for a 35% crash, where the short strike is deep in the money and the spread has stopped paying. The Top &amp; Bottom's 3-month portfolio pairs the put spread with a VIX call precisely to cover the vol-spike scenario the spread underprices. The general rule: <strong>know which row of the translation table each hedge is built for, and hold at least one hedge for the row below it.</strong></p>
+<h3><em>[empirical in Draft 2]</em></h3>
+<p>The register plus Gate 1 mark-to-market will supply: realized carry paid per tier over the first two quarters; the realized correlation of each proxy hedge to the book during the first drawdown the book lived through; and whether the hedge-at-the-tier discipline was actually followed or was overridden at the event. That last one is the honest test.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-iv-rebalancing-discipline">
+      <summary class="section-head">
+        <span class="section-title">Part IV · Rebalancing discipline</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>Rebalancing is the part of construction that is easiest to state and hardest to do, because it requires acting against the book's recent experience — adding to what has lost, trimming what has won, and buying the hedge that has been bleeding.</p>
+<p>Three rebalancing triggers are in common use. <strong>Time-based</strong> (monthly, quarterly) is simple and is what most of the industry does. <strong>Threshold-based</strong> (rebalance when any position drifts more than <em>x</em> from target) is more responsive but generates trades in noise. <strong>Regime-triggered</strong> rebalances when the regime read changes.</p>
+<p>For a book run on this stack, <strong>regime-triggered is the natural fit</strong>, because the stack already produces the trigger: the Tier 0 dashboard's sizing tier. When the tier changes, the book rebalances to the new tier's volatility budget and hedge budget. When the tier does not change, the book holds, and threshold bands catch the drift. Time-based rebalancing is retained only as a floor — a quarterly review that fires even if nothing else has, aligned to the quarterly calibration in the Systematic Book paper.</p>
+<p>Two disciplines within that:</p>
+<p><strong>Rebalancing into a losing hedge is the test of whether the hedge budget is real.</strong> If the tier says 25–40% normal and the hedge budget is a fixed fraction of notional, then a put spread that has decayed 40% since purchase must be topped back up to the budget, in the same regime, at the higher implied vol. Every instinct says not to. The discipline says that the hedge budget is a function of the tier and the tier has not changed. The register will record whether this was done.</p>
+<p><strong>Drift bands should be wider in the direction of the tier.</strong> If the tier has moved from 100% to 50–70%, positions that have drifted <em>below</em> target through losses should be tolerated longer than positions that have drifted <em>above</em> target through gains. The asymmetry encodes the tier's direction into the rebalancing tolerance rather than fighting it.</p>
+<p>Friction — commissions, the futures roll, the option roll, tax — is real and is treated in the Systematic Book paper's execution section. Here the point is that rebalancing cost is itself regime-dependent, and a rebalance that costs 5 basis points in a positive-gamma regime can cost 30 in a negative one. Regime-triggered rebalancing has the incidental virtue of front-running that cost increase: the trigger fires on the regime signal, before the execution cost has fully repriced.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s7-part-v-what-a-regime-change-means-for-a-book-a-walk-through">
+      <summary class="section-head">
+        <span class="section-title">Part V · What a regime change means for a book — a walk-through</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>This section walks the translation table's five rows and states what the book looks like in each and what changes at each transition. Draft 2 will replace the illustrative language with the book's actual history.</p>
+<p><strong>Soft-landing holds → late-cycle contained.</strong> The book moves from 100% to 50–70% normal. The transition is usually triggered by the Monthly composite crossing −0.5 or the Top &amp; Bottom moving to WATCH. What changes: gross comes down, the hedge budget turns on (it was zero or near zero in the top row), and the position-level vol estimate window shortens. What does <em>not</em> change: the book's factor mix. This transition is a volume adjustment, not a composition change.</p>
+<p><strong>Late-cycle contained → late-cycle fragile.</strong> The book moves to 25–40% normal, no new longs. This is the transition the current cycle is in as of this writing — the Disruptive Themes composite at −1.2 on the edge of TOP SIGNAL, the Concentration &amp; Complacency overlay at five of five, the Monthly's modal scenario a Hartnett pullback at 40–50%. What changes: composition. Concentrated-name exposure comes out first, because the overlay that fired is a concentration overlay. The hedge budget rises, and it shifts from direct toward convex, because the row below is the one where vol-of-vol punishes rolled direct hedges. New longs are prohibited, which is a harder rule than it sounds — it prohibits adding to a winner, and it prohibits the "this dip is different" trade.</p>
+<p><strong>Late-cycle fragile → crisis or regime break.</strong> Defensive only, hedged. The book's factor exposures collapse toward zero; what remains is the hedges, cash, and the standing exposures the book cannot close (the baht property). This is the row where proxy hedges fail and direct and convex hedges pay. The discipline that matters most here is not adding a new hedge — it is too late and too expensive — but <em>not selling the hedges that are paying</em> in order to buy the dip. The Top &amp; Bottom's BOTTOM SIGNAL arms are the only instruction to begin re-entering, and the row below is where that happens.</p>
+<p><strong>Crisis → trough and reset.</strong> Begin scaling longs back in. The Top &amp; Bottom calibration found the framework stronger at detecting bottoms than tops, which is the empirical basis for trusting this transition more than the ones above it. What changes: the hedge budget comes off — gradually, because the first BOTTOM SIGNAL arm is often early — and the factor mix is rebuilt from the Disruptive Themes scenario distribution, not from the pre-crisis book. The trough is the one row where the book's composition is a fresh decision rather than an adjustment.</p>
+<p><strong>The current cycle, as a worked example.</strong> The book as of 31 August 2026 sits in the late-cycle fragile row. The dashboard's sizing synthesis reads 25–40% normal, no new longs, escalated one tier from the Monthly's OVEREXTENDED baseline by the active Concentration overlay. The hedge budget is on, tilted convex. The HY Spread Acceleration overlay is clear at zero of four — which is the single most important thing the book is watching, because it is the overlay that would move the read to the row below. The Liquidity &amp; Funding Stress overlay at two of five is the second. The book is built for a Hartnett-pullback-magnitude event (5–15%) with a convex leg for the crisis row. That is the construction. Whether it was right is a Draft 2 question.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s8-part-vi-cross-asset-notes">
+      <summary class="section-head">
+        <span class="section-title">Part VI · Cross-asset notes</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>Brief, because the asset papers carry the detail. Each entry states where the asset sits in the book's factor sum and what construction rule this paper adds to the asset paper's own.</p>
+<p><strong>Equities and index (ES, NQ, index options).</strong> The core. The stated edge — short-gamma, high-vol expansion, scaling into 5–10% multi-day moves — lives here, and the Systematic Book paper treats how to size scaling-in. The construction rule this paper adds: <strong>the edge is regime-conditional, and its size should scale with the Daily's GEX character read</strong>, not only with the book-level tier.</p>
+<p><strong>Rates (TLT and the curve).</strong> A conditional hedge, per Part III. The Rate and Liquidity Machine paper is the reference. Construction rule: hold duration as a hedge only when the Monthly's Pillar 4 read says the drawdown driver is growth, not inflation.</p>
+<p><strong>Gold and metals.</strong> The Metals paper's Part V-B is the reference and this paper's sizing section generalizes it. Construction rule: gold's Factor V role — the official-sector bid, the debasement trade — makes it a structural position in this cycle, not a tactical hedge, and it should be sized against the FX and dollar factor budget, not the equity one.</p>
+<p><strong>FX.</strong> The Currencies paper is the reference. Construction rule: the baht exposure is counted first, always, and the discretionary FX budget is what remains.</p>
+<p><strong>Digital assets.</strong> The Digital Assets paper is the reference. Construction rule: crypto's correlation to equities is the least stable of any factor in the book, which argues for the smallest position-level vol budget and the shortest sizing window. The two-source crypto reconciliation the translation table used to carry is gone — Alt Asset writes to the store, one source — but the instability of the correlation itself is unchanged.</p>
+<p><strong>Energy.</strong> A gap. The Energy paper is unwritten and the Hormuz divergence is the single most important current signal in the Disruptive Themes frame. Construction rule, pending that paper: energy exposure in the book is currently <em>indirect</em> — through the inflation read in the Monthly's Pillar 4 and the Factor III score — and the book has no direct energy instrument. That is a construction gap, not just a coverage gap, and it is flagged here so that the Energy paper's instrument set can close it.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s9-part-vii-the-register-as-the-books-memory">
+      <summary class="section-head">
+        <span class="section-title">Part VII · The register as the book&#x27;s memory</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>Everything above is stated from principle. The instrument that will let Draft 2 state it from evidence is the trade recommendation register — the predicates table with P&amp;L attached, recommendations and positions as separate tables joined on <code>rec_id</code>, feeding the expectancy ledger in <code>execution-framework-v2</code>.</p>
+<p>What the register will teach that this draft cannot:</p>
+<ul>
+<li><strong>Realized hedge cost by tier</strong> — what the hedge budget actually spent, quarter by quarter, and what it paid back.</li>
+<li><strong>Realized correlation inside the book</strong> — not the textbook correlation matrix but the one this book lived through, position by position, during its first drawdown.</li>
+<li><strong>Conflict and stacking frequency</strong> — how often the register's cross-report conflict detection fired, and what the book would have looked like if it had not.</li>
+<li><strong>Expectancy by regime row</strong> — the only measurement that can say whether the construction was right, and the one the Systematic Book paper's validation protocol is built around.</li>
+<li><strong>Whether the disciplines were followed.</strong> Rebalancing into losing hedges, no new longs in the fragile row, holding the hedges through the crisis row — the register will record whether these happened or were overridden, and Draft 2 will be honest about it.</li>
+</ul>
+<p>The Monthly's Appendix C stops being a manually written section once the register is live and becomes a query. That is the intended end state for this paper too: a construction discipline that is stated once, in Draft 2, and thereafter measured rather than re-argued.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s10-part-viii-what-draft-2-adds">
+      <summary class="section-head">
+        <span class="section-title">Part VIII · What Draft 2 adds</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>For the record, so the update is scoped in advance:</p>
+<ol>
+<li>A definition of "normal" derived from the register rather than asserted.</li>
+<li>Realized hedge cost and hedge payoff tables by tier, from Gate 1 mark-to-market.</li>
+<li>The book's own correlation matrix through its first regime transition under v17.</li>
+<li>The rebalancing log — every tier change, what was rebalanced, at what cost, and whether the hedge budget was honored.</li>
+<li>The regime walk-through in Part V rewritten from the book's history rather than from the translation table's rows.</li>
+<li>An energy section, once the Energy paper exists and the instrument set is in the store.</li>
+<li>Cross-references to the Credit paper, which will change the hedge taxonomy's treatment of credit-sensitive proxies.</li>
+</ol>
+<hr />
+<p><em>Draft 1 · 31 August 2026 · Companion to the five-report stack · Not investment advice. Illustrative constructions only; no recommendation for any specific instrument, and no instrument in the Brookfield complex under any circumstances.</em></p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/portfolio-construction-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>
