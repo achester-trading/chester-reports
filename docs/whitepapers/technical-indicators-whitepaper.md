@@ -4,7 +4,7 @@
 
 **Version 1.1 · September 1, 2026 · Companion to the Daily Cascade and the execution layer · Worked illustrations added in v1.1**
 
-**Status:** Framework. The HTML edition is canonical — the five figures live only there.
+**Status:** Framework. Its five figures are files under `docs/figures/technical-indicators/`.
 
 *This is among the shortest papers in the library, deliberately. Technical analysis has generated more written material than any other subject in markets, and most of it fails a simple test stated in Chapter 1. What survives that test fits in a short document. The paper's job is to say precisely what price-derived indicators can contribute to this system, wall off what they cannot, and name the traps — several of which this system's own methodology rules were built to catch in other domains and apply here with full force.*
 
@@ -65,9 +65,9 @@ failure to classify — and morning F stays classified as trend despite the ADX
 print, because reclassification requires the cross to *hold* (hysteresis), not
 to occur.
 
-*[Figure 1 renders in the HTML edition.]*
+![Figure 1 — Regime classification: the same chart, three environments (illustrative)](../figures/technical-indicators/fig-01.png)
 
-*[Figure 2 renders in the HTML edition.]*
+![Figure 2 — Compression resolves into expansion; it does not say which way (illustrative)](../figures/technical-indicators/fig-02.png)
 
 **A worked reading, to fix the pattern.** Suppose the morning lines show: 20-day realized vol at the 28th percentile, ATR compressed to the 12th percentile of its two-year range, ADX at 15, and price mid-range between the put wall and call wall from the options stack. The classification writes itself: quiet, coiling, directionless, and pinned between hedging levels — a range regime with compression building. The tactical consequences are mechanical: mean-reversion tactics at the range edges are favored, breakout entries are penalized until the compression resolves, position sizes for any directional attempt are reduced (compression resolves violently, and a stop inside a coil is a stop inside the noise), and the one forward-leaning note is attention — compression at the 12th percentile does not persist, so the Weekend Synthesis should carry "expansion likely within the swing window, direction unknown." Nothing in that paragraph predicted anything. All of it changed behavior. That is the family working as intended.
 
@@ -117,9 +117,9 @@ The first and second rows are the chapter's entire argument in two lines: the
 identical print, opposite permissions, and the regime — not the oscillator —
 carries the meaning.
 
-*[Figure 3 renders in the HTML edition.]*
+![Figure 3 — One oscillator, opposite permissions: the regime carries the meaning (illustrative)](../figures/technical-indicators/fig-03.png)
 
-*[Figure 4 renders in the HTML edition.]*
+![Figure 4 — Divergence: higher high in price, lower high in the oscillator (illustrative)](../figures/technical-indicators/fig-04.png)
 
 **Bands deserve one paragraph** because they make the location logic explicit: Bollinger Bands are a rolling mean and standard deviation, so "price at the lower band" says "two sigmas below the recent mean" — a z-score on a chart. The band-width compression reading belongs to Chapter 2; the band-touch reading is the stretched-in-range logic above; the "band walk" (price riding a band for weeks) is a trend regime announcing itself. Nothing in the bands is new relative to those three readings, which is the point of this chapter: the family is small once the costumes come off.
 
@@ -175,7 +175,7 @@ real confluence). The 50-day at 7,590 is where *other people's* stops are; an
 invalidation for a long entered at the node belongs below 7,571 (the zone edge
 minus buffer), not at 7,590.
 
-*[Figure 5 renders in the HTML edition.]*
+![Figure 5 — Levels are zones, ranked by mechanism; verbs are gradeable (illustrative)](../figures/technical-indicators/fig-05.png)
 
 **The synthesis, and it is the same synthesis as everywhere else in the system:** a level's reliability is proportional to the mechanical force behind it, and confluence across *mechanisms* — a gamma wall, atop a volume node, near a systematic trigger estimate — is the only confluence that counts. Three attention levels stacked together are one crowd, thrice.
 

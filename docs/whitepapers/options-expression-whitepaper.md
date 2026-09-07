@@ -5,7 +5,7 @@
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXII** — with the micro and execution layer, after *Volatility* and *The Dealer's Hand* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.4 — September 2026
-**Status:** Framework and manual. Governs the expression half of every packet. The HTML edition is canonical — the figures live only there.
+**Status:** Framework and manual. Governs the expression half of every packet. Its figures are files under `docs/figures/options-expression/`.
 
 ---
 
@@ -40,7 +40,13 @@ A trader who answers only the first question buys a call. A trader who answers a
 
 Everything in this paper is built from four primitives. Each is drawn at expiry, as profit and loss against the underlying's level, with a strike at 100 and a premium of 4.
 
-*[Figure 1 — payoff diagram; rendered in the HTML edition]*
+![Figure 1 — Long call](../figures/options-expression/fig-01.svg)
+
+![Figure 1 — Long put](../figures/options-expression/fig-02.svg)
+
+![Figure 1 — Short call](../figures/options-expression/fig-03.svg)
+
+![Figure 1 — Short put](../figures/options-expression/fig-04.svg)
 
 Read them as commitments rather than as bets.
 
@@ -88,7 +94,7 @@ An option's premium decomposes into three things you are paying for, and a disci
 
 Suppose the thesis is: *the index rallies toward the call wall at +10% over the next month.* Three instruments express it, and the figure shows why they are not interchangeable.
 
-*[Figure 2 — payoff diagram; rendered in the HTML edition]*
+![Figure 2 — One bullish thesis, three expressions](../figures/options-expression/fig-05.svg)
 
 **Long index.** Linear, uncapped, no decay, no expiry — and the full downside. Correct when the view has no deadline and no magnitude, i.e., when it is an allocation rather than a trade.
 
@@ -100,7 +106,7 @@ That last sentence is the paper's central practical idea. A cap is only a cost i
 
 ## Chapter 6 — Verticals: the workhorse
 
-*[Figure 3 — payoff diagram; rendered in the HTML edition]*
+![Figure 3 — Anatomy of a debit call spread (buy 100, sell 110, pay 2)](../figures/options-expression/fig-06.svg)
 
 Four numbers define every vertical, and a packet that names an instrument should name all four:
 
@@ -123,7 +129,7 @@ Four rules of thumb that follow from the arithmetic:
 
 A **calendar** sells a near-dated option and buys a longer-dated one at the same strike. It profits if the underlying sits near the strike while the near leg decays faster than the far leg — which is the √T shape in Figure 4 expressed as a trade. It is long vega and short gamma: it wants stillness now and volatility later.
 
-*[Figure 4 — payoff diagram; rendered in the HTML edition]*
+![Figure 4 — Time value decays as √T — the last third goes fastest](../figures/options-expression/fig-07.svg)
 
 A **diagonal** does the same across different strikes, adding a directional tilt. Both structures share a hazard worth stating once: **their maximum loss is not the debit** in every scenario, because the two legs respond to a volatility change differently, and a violent move can widen the near leg faster than the far leg gains. The Doctrine's requirement that a structure be exitable in one session at ordinary size is the binding constraint on using them at all.
 
@@ -135,7 +141,13 @@ Calendars belong to one specific and useful case: a *known date* — an earnings
 
 ### 8.1 The four basic volatility shapes
 
-*[Figure set 8a — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8a — Long straddle (buy 100 call + 100 put, pay 9)](../figures/options-expression/fig-08.svg)
+
+![Figure set 8a — Long strangle (buy 105 call + 95 put, pay 5)](../figures/options-expression/fig-09.svg)
+
+![Figure set 8a — Long butterfly (buy 90, sell 2×100, buy 110 — pay 2.5)](../figures/options-expression/fig-10.svg)
+
+![Figure set 8a — Iron condor (sell 92/88 put spread + 108/112 call spread, credit 3)](../figures/options-expression/fig-11.svg)
 
 **Long straddle** — buy the at-the-money call and put, same strike, same expiry. *Bets on:* a large move in either direction, larger than the premium. *Posture:* long gamma, long vega, short theta — the purest long-volatility position. *Cost:* about 0.8 × σ × √T of spot; at 16% vol a one-year straddle is ~13%, a three-month ~6.4%. *Use when:* implied volatility is demonstrably cheap against realized history and a catalyst with an unknown sign is near — a binary event, a policy decision. *Do not use when:* the event is already priced (the Chapter 10 crush) or when you have a directional view, which wastes half the premium.
 
@@ -147,7 +159,9 @@ Calendars belong to one specific and useful case: a *known date* — an earnings
 
 ### 8.2 The iron butterfly, both ways — and the name that causes trouble
 
-*[Figure set 8b — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8b — REVERSE iron butterfly (buy 100 straddle, sell 90/110 wings — pay 6)](../figures/options-expression/fig-12.svg)
+
+![Figure set 8b — Iron butterfly (sell 100 straddle, buy 90/110 wings — credit 6)](../figures/options-expression/fig-13.svg)
 
 The **iron butterfly** — sell the at-the-money straddle, buy an out-of-the-money strangle as wings — is a *credit* structure that bets on stillness, with the same payoff shape as the long butterfly above. It is the higher-credit, tighter-range cousin of the iron condor.
 
@@ -157,19 +171,25 @@ Its mirror, **buy the at-the-money straddle and sell the wings**, is a *debit* s
 
 The four shapes above are the textbook set. The four below are the ones this operator's books call for, and each has a home in a specific book.
 
-*[Figure set 8c — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8c — Collar: long index, buy 92 put, sell 108 call (≈ zero cost)](../figures/options-expression/fig-14.svg)
+
+![Figure set 8c — Put-spread collar: long index, buy 95/85 put spread, sell 110 call](../figures/options-expression/fig-15.svg)
 
 **Collar** — own the index, buy a put below, sell a call above; choose the strikes so the call's premium pays for the put. *Bets on:* holding equity exposure through a period in which you cannot afford to be wrong about timing. *Posture:* long the underlying, with delta reduced and gamma near zero inside the strikes. *Cost:* the cap and the dividends you keep (unlike a buffered fund, the underlying is still yours). *Use when:* **Book A holds beta through a Transition or Stressed regime** — the Doctrine's "convexity-managed form" is literally this. *The trade-off:* a zero-cost collar in a high-skew market has a stingy cap, because puts are dear and calls are cheap; the put-spread collar fixes that.
 
 **Put-spread collar** — the same, with a put *spread* instead of a put: buy the 95 put, sell the 85 put, sell the 110 call. *Bets on:* protection against the ordinary correction (down 5–15%) while accepting the tail below it, in exchange for a higher cap. *Use when:* the *Base Rates* reading says the likely drawdown is a correction, not a crash, and the tail is covered elsewhere — by the tail-hedge budget — rather than in this position. *This is the buffered fund of Chapter 12 built by hand, with control of the dates and no fee.*
 
-*[Figure set 8d — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8d — Put backspread: sell 1×95 put, buy 2×90 puts (≈ zero cost)](../figures/options-expression/fig-16.svg)
+
+![Figure set 8d — Call backspread: sell 1×105 call, buy 2×110 calls (≈ zero cost)](../figures/options-expression/fig-17.svg)
 
 **Put backspread** — sell one put near the money, buy two further out, for roughly zero cost. *Bets on:* a *crash*, cheaply. The payoff is flat or slightly positive if nothing happens, has a valley of loss at the long strike, and becomes **convex** — accelerating profit — below it. *Posture:* long gamma and vega in the tail, roughly neutral near spot. *Use when:* **the Doctrine's tail-hedge budget wants convex crash protection that expires worthless cheaply most months** — this is that instrument, and it is what "a small long-volatility structure" in the budget's description should usually mean. *The trap:* the valley — a modest decline to the long strike at expiry is the worst outcome, so the structure wants either nothing or a lot, and it wants to be entered when skew is *low* (the long puts are cheaper relative to the short one).
 
 **Call backspread** — the mirror: sell one call near the money, buy two further out. *Bets on:* a melt-up, cheaply. *Use when:* the Volatility paper's regime says a squeeze or a right-tail is live and you want convex participation without paying for a call outright. *For Book D's "mispriced optionality" edge, this and the put backspread are the natural expressions.*
 
-*[Figure set 8e — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8e — Risk reversal: buy 105 call, sell 95 put (net credit from skew)](../figures/options-expression/fig-18.svg)
+
+![Figure set 8e — Broken-wing butterfly: buy 100, sell 2×105, buy 115 calls (≈ credit)](../figures/options-expression/fig-19.svg)
 
 **Risk reversal** — buy an out-of-the-money call, sell an out-of-the-money put. *Bets on:* direction, harvesting the skew — because puts are structurally richer than calls in equity indices, the pair is often entered for a *credit*. *Posture:* long delta, long the tail on the call side, **short the tail on the put side with undefined risk below the put strike.** *Use when:* a professional wants cheap directional exposure and is prepared to own the underlying at the put strike. *For this book:* the short put is a naked short, which the Doctrine forbids unless cash-secured at a level you want to own — so the risk reversal is admissible only as a cash-secured structure in Book A's rebalance, never in Book C. It is described here because you will see it constantly and should know what it is.
 
@@ -199,7 +219,13 @@ The iron condor deserves more than the paragraph in 8.1, because it is the defau
 
 ### 8.6 The other four-leg structures
 
-*[Figure set 8f — payoff diagrams; rendered in the HTML edition]*
+![Figure set 8f — Reverse iron condor: buy 92/88 put spread + 108/112 call spread (pay 1.6)](../figures/options-expression/fig-20.svg)
+
+![Figure set 8f — Long call condor (all calls: buy 88, sell 92, sell 108, buy 112)](../figures/options-expression/fig-21.svg)
+
+![Figure set 8f — Double diagonal: sell near 95/105 strangle, buy far 90/110 strangle](../figures/options-expression/fig-22.svg)
+
+![Figure set 8f — 'Poor man's covered call': long deep-ITM LEAP call, short near call](../figures/options-expression/fig-23.svg)
 
 **Reverse iron condor** — buy the put spread and the call spread, paying a debit. *Bets on:* a breakout beyond a range, in either direction. It is the iron condor's mirror and the reverse iron butterfly's wider, cheaper cousin: cheaper because the long strikes are further out, and requiring a larger move for the same reason. *Use when:* a known catalyst, unknown sign, and a range whose edges you can name — an expiry-week range with the walls as the strikes.
 
@@ -273,7 +299,7 @@ Three consequences. **Short-dated options are decay instruments and long-dated o
 
 You can be right about direction and lose money because you paid the wrong price for movement. The clearest case is an earnings print.
 
-*[Figure 5 — payoff diagram; rendered in the HTML edition]*
+![Figure 5 — The volatility crush: what you pay for, and what happens to it](../figures/options-expression/fig-24.svg)
 
 Implied volatility is bid up into a known event and collapses the instant the uncertainty resolves. A trader long a call into the print needs the move to exceed *the move the market already priced*, not merely to be in the right direction. The *Base Rates* paper's number is the operative one: implied moves have on average slightly exceeded realized moves, so buying the event is a negative-expectancy trade on average with a fat right tail.
 
@@ -299,7 +325,7 @@ Implied volatility is bid up into a known event and collapses the instant the un
 
 The packaged version, and the baseline the later chapters improve on.
 
-*[Figure 6 — payoff diagram; rendered in the HTML edition]*
+![Figure 6 — Defined-outcome (buffered) payoff versus the index](../figures/options-expression/fig-25.svg)
 
 A buffered fund holds a portfolio of index options that delivers, over a stated outcome period, a payoff of: full participation up to a cap, no loss within a buffer, and one-for-one losses below the buffer. The construction is a **collar with a spread**: long the index synthetically (long call, short put at the money), long a put spread covering the buffer zone, short a call at the cap to pay for it.
 
@@ -321,7 +347,7 @@ Two structural cautions that the marketing does not lead with. **The protection 
 
 Put enough in an instrument that grows to your whole principal by the horizon, and spend the rest on long-dated call options. If the market falls you get your money back; if it rises you participate at whatever rate the leftover cash could buy.
 
-*[Figure 7 — payoff diagram; rendered in the HTML edition]*
+![Figure 7 — Synthetic principal-protected note: floor at zero, upside at 81%](../figures/options-expression/fig-26.svg)
 
 ### 13.2 The arithmetic, worked
 
@@ -376,7 +402,7 @@ The Doctrine's own record of the operator says he has been under-invested since 
 
 The dual-directional or "absolute return" note pays you the index's gain up to a cap **and** pays you the absolute value of the index's *loss* up to a barrier — so a −7% index is a +7% payoff. Below the barrier, the feature vanishes and you take the loss from the original level.
 
-*[Figure 8 — payoff diagram; rendered in the HTML edition]*
+![Figure 8 — The dual-directional structured note — and its cliff](../figures/options-expression/fig-27.svg)
 
 Look at the cliff at the barrier in Figure 8. At −10% the note pays **+10%**; a fraction below it, the note pays **−10%**. That twenty-point discontinuity is not a quirk of the drawing; it is how barrier notes are built, and it is the reason they are sold. **The issuer funds your "free" absolute return by buying your tail from you at a discontinuous price.** Any reader who finds the shape appealing should look at the cliff for a full minute before reading on.
 
@@ -384,7 +410,7 @@ Look at the cliff at the barrier in Figure 8. At −10% the note pays **+10%**; 
 
 The good news is that the shape is buildable without the cliff, because the cliff is the funding mechanism, not the payoff.
 
-*[Figure 9 — payoff diagram; rendered in the HTML edition]*
+![Figure 9 — Building the same shape from listed options](../figures/options-expression/fig-28.svg)
 
 **Long the at-the-money call and put, short the out-of-the-money call and put — a reverse iron butterfly (Chapter 8.2).** It profits from a move in either direction and caps at the wings you sold. There is no barrier, no discontinuity, no issuer credit risk, and no tail sale: your worst case is the debit you paid.
 
@@ -422,7 +448,7 @@ Both dominate the note in the left tail — a −30% index costs you nothing or 
 
 ### 14.4 Tenor: why three months is hard and five years is easy
 
-*[Figure 10 — payoff diagram; rendered in the HTML edition]*
+![Figure 10 — Why protected structures are long-dated: interest grows with T, option cost with √T](../figures/options-expression/fig-29.svg)
 
 The single most useful piece of arithmetic in this chapter. **The option package costs roughly 0.8 × σ × √T. The interest available to fund it is roughly r × T.** Cost grows with the square root of time; funding grows linearly. So the ratio of funding to cost improves with tenor, without limit.
 
@@ -485,7 +511,7 @@ The structures, with strikes as a percent of spot: **hold the index**; **bills**
 
 ### 15.2 U.S. equity, twelve months — the full matrix
 
-*[Figure — US equity (SPY): six structures against the index over 12 months; rendered in the HTML edition]*
+![Figure — US equity (SPY) — σ 16%, yield 1.3%: six structures against the index](../figures/options-expression/fig-30.svg)
 
 | Structure | −30% | −20% | −10% | −5% | 0 | +5% | +10% | +15% | +20% | +30% | **E[P&L]** | P(loss) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -583,11 +609,11 @@ Four readings, one per asset.
 | Bills + reverse iron butterfly (43% part., ±10%) | +4.3 | +4.3 | +0.0 | +4.3 | +4.3 | +4.3 | **+4.0** | 0% |
 
 
-*[Figure — China (MCHI/FXI): six structures against the index over 12 months; rendered in the HTML edition]*
+![Figure — China (MCHI/FXI) — σ 28%, yield 2.5%: six structures against the index](../figures/options-expression/fig-31.svg)
 
-*[Figure — Real estate (VNQ): six structures against the index over 12 months; rendered in the HTML edition]*
+![Figure — Real estate (VNQ) — σ 20%, yield 3.8%: six structures against the index](../figures/options-expression/fig-32.svg)
 
-*[Figure — Crypto (BTC ETF): six structures against the index over 12 months; rendered in the HTML edition]*
+![Figure — Crypto (BTC ETF) — σ 60%, yield 0.0%: six structures against the index](../figures/options-expression/fig-33.svg)
 
 ### 15.5 Six months instead of twelve
 
@@ -678,17 +704,17 @@ Three rows deserve a sentence each.
 
 *Leveraged ETFs are the most expensive.* Their daily reset compounds path-dependently, and in a flat market they lose the variance tax — roughly (L² − L) × σ² ÷ 2 a year, which is twelve percent at twenty-percent volatility for a 3× fund and more than half the capital at crypto volatility. They exist for a single-day view. Held for a quarter they are a bet on a trend strong enough to overcome the tax, which is a different and worse bet than the one the holder thinks he is making.
 
-*[Figure L4 — rendered in the HTML edition]*
+![Figure L4 — Leveraged ETFs pay a variance tax every day: −12% a year at 20% vol for a 3×, −54% at 60%](../figures/options-expression/fig-34.svg)
 
 ### 16.3 After the fall: the volatility problem
 
 The moment the operator most wants leverage is after a twenty- or thirty-percent decline, and the instinct — "buy a far-dated call and let the recovery pay" — is precisely the instrument the moment prices worst.
 
-*[Figure L1 — rendered in the HTML edition]*
+![Figure L1 — Implied volatility at the trough — the price of the option you want to buy is highest exactly then](../figures/options-expression/fig-35.svg)
 
 Implied volatility is highest at the trough. At the 2008 and 2020 lows it exceeded eighty; at the 2011, 2018 and 2022 lows it sat in the mid-thirties to high forties. A two-year at-the-money call that costs about 11% of spot at sixteen-percent volatility costs about 24% at forty. **The instinct buys volatility at its peak in order to buy direction**, and pays for the volatility twice — once in the premium and again when it collapses during the recovery, which it does within months of every trough on record.
 
-*[Figure L2 — rendered in the HTML edition]*
+![Figure L2 — What volatility does to the price of upside: ATM pays the vol; deep-in-the-money mostly does not](../figures/options-expression/fig-36.svg)
 
 The figure shows the way out. The at-the-money call's price is dominated by volatility; the deep-in-the-money call's price is dominated by intrinsic value and its *extrinsic* — the part volatility affects — is a fraction. At forty-percent volatility a two-year call struck twenty points in the money costs about 27 on a spot of 70, of which 20 is intrinsic and only about 7 is the volatility purchase. Its delta is near 0.85. It is stock with a floor, bought at the trough, at a volatility cost the trough barely touches.
 
@@ -696,7 +722,7 @@ The figure shows the way out. The at-the-money call's price is dominated by vola
 
 The setup: the index has fallen 30% to 70; implied volatility is 40%; the horizon is two years; the Top & Bottom framework has fired a bottom signal, which the Doctrine's Section 6.3 says permits Book A to move to the top of its band immediately, even in a Crisis regime. The operator has $100 to commit per unit and wants the most recovery for it.
 
-*[Figure L3 — rendered in the HTML edition]*
+![Figure L3 — Five ways to add exposure at the trough, $100 each, 2-year horizon, 40% implied volatility](../figures/options-expression/fig-37.svg)
 
 | Instrument at the trough | What $100 buys | At the prior peak (100) two years out | At 120 | If it falls to 50 |
 |---|---|---|---|---|

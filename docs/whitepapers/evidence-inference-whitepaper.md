@@ -5,7 +5,7 @@
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXIII** — with the positioning and book layer, immediately before *Building and Validating a Systematic Book* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.0 — September 2026
-**Status:** Doctrine-adjacent. Governs how every figure the register prints is to be read. The HTML edition is canonical — the figures live only there.
+**Status:** Doctrine-adjacent. Governs how every figure the register prints is to be read. Its five computed figures have never been drawn; the placeholders below are where they go.
 
 ---
 
@@ -29,7 +29,7 @@ Every figure the register prints — expectancy, hit rate, average winner and lo
 
 For an average of *n* independent observations with spread *σ*, the standard error is *σ* divided by the square root of *n*. Trading results have a per-decision spread close to one R — a winner and a loser differ by roughly a full unit of risk — so the standard error of measured expectancy is roughly 1 ÷ √n in R. The ninety-five percent interval is about twice that on either side.
 
-*[Figure 1 — computed figure; rendered in the HTML edition]*
+*[Figure 1 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]*
 
 The figure is the paper compressed. An edge of 0.2R per decision — a good process by any standard — measured over the Doctrine's thresholds:
 
@@ -48,7 +48,7 @@ The figure is the paper compressed. An edge of 0.2R per decision — a good proc
 
 The Sharpe ratio is the number most likely to be quoted and least likely to be quoted with its uncertainty. For an annualized Sharpe *S* estimated from *T* years of data, the standard error is approximately √((1 + S²/2) ÷ T) — in the same units as the estimate.
 
-*[Figure 2 — computed figure; rendered in the HTML edition]*
+*[Figure 2 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]*
 
 A Sharpe of 1.0 measured over one year has a standard error of about 1.2: the estimate is smaller than its own error bar, and zero sits comfortably inside the interval. Over five years the error falls to about 0.55 and a Sharpe of 1.0 becomes distinguishable from zero at ordinary confidence. Over ten, the interval is roughly 0.6 to 1.4.
 
@@ -108,7 +108,7 @@ The distinction is operational, not philosophical. A decision made by the rules,
 
 A belief before evidence, updated by evidence, yields a belief after. The strength of the belief before determines how much the evidence moves it, and thirty observations move a strong prior very little.
 
-*[Figure 3 — computed figure; rendered in the HTML edition]*
+*[Figure 3 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]*
 
 The figure shows three traders watching the same thirty decisions from a process whose true hit rate is 60%. The trader with a weak prior — willing to believe almost anything — is at 58% after thirty and close to the truth by a hundred. The sceptic, whose prior is equivalent to having already seen eighty decisions at 50%, has moved to 53% after thirty and needs several hundred observations to arrive. The third trader started at 60% *because the mechanism said so* — a named counterparty, a reason for persistence — and the data merely confirmed what he already had reason to believe.
 
@@ -170,7 +170,7 @@ The Kelly criterion gives the bet size that maximizes long-run growth: for a bet
 
 The gap is deliberate and this chapter defends it. Kelly assumes four things, and a discretionary book violates all four: that the edge is *known* (it is estimated, with the error bars of Part I); that bets are *independent* (they cluster, Chapter 3); that the bettor has *logarithmic utility* and is indifferent to drawdown (the Doctrine's switches say otherwise); and that bets are *infinitely divisible and repeatable* (they are neither).
 
-*[Figure 4 — computed figure; rendered in the HTML edition]*
+*[Figure 4 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]*
 
 The figure shows the first violation alone. When the edge estimate carries uncertainty comparable to its size — which Part I says it will for years — the growth-optimal fraction collapses toward a fraction of full Kelly, and at the uncertainty levels a two-hundred-decision sample implies, it sits near or below quarter-Kelly. **The Doctrine's sizing is not conservative relative to Kelly; it is approximately Kelly-optimal once the edge's uncertainty is admitted.** The promotion gates that allow tiers to rise as the register accumulates are the mechanism by which sizing tracks the narrowing error bar — never reaching full Kelly, because the error bar never reaches zero.
 
@@ -178,7 +178,7 @@ The figure shows the first violation alone. When the edge estimate carries uncer
 
 The Doctrine's Section 9.3 says edges erode and rules are hypotheses. The measurement is the trailing expectancy series, and the question is how to tell decay from noise.
 
-*[Figure 5 — computed figure; rendered in the HTML edition]*
+*[Figure 5 — computed figure; not yet drawn. The pre-audit HTML edition carried this same placeholder, so there is no artwork to recover.]*
 
 The figure is a process whose true edge begins decaying at week forty. The measured thirteen-week expectancy, with its error band, does not distinguish the decay from ordinary variation until roughly week sixty-five — six months after it began. That lag is not a flaw in the measurement; it is what the error bar implies, and a trader who reacts to the first bad quarter will be reacting to noise most of the time and to decay some of the time, with no way to tell which.
 

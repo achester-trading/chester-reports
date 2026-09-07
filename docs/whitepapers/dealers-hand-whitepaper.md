@@ -4,7 +4,7 @@
 
 **Companion XIII · Version 1.1 · August 30, 2026, extended September 5, 2026**
 
-*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. The illustrated HTML edition is canonical for reading; this Markdown file is canonical for editing.*
+*Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. This Markdown file is canonical; its twenty-one figures are files under `docs/figures/dealers-hand/`.*
 
 ---
 
@@ -73,7 +73,7 @@ A portfolio manager holding $75 million of SPX exposure — 10,000 index-units �
 
 At expiry the put is worth max(7,500 − SPX, 0). At 7,300 it is worth 200; at 7,600, zero. The long-put holder's net result is the payoff minus the 137 paid — breakeven at 7,363.
 
-*(Figure 1 — The long put at expiry — see the HTML edition for the chart.)*
+![Figure 1 — The long put at expiry](../figures/dealers-hand/fig-01.svg)
 
 Two facts about this picture matter more than the picture itself. First, **almost no index option trades to expiry as a bet on the terminal payoff**; the overwhelming majority are hedges, overlays, and structures that are adjusted, rolled, or closed long before. Second, and consequently, **the interesting quantity is never the payoff at expiry but the option's value right now, and how that value changes as the market moves.** That is the subject of the next two chapters, and it is where everything the report measures actually lives.
 
@@ -91,7 +91,7 @@ The 137-point put at a 7,500 strike with the index at 7,500 has **zero intrinsic
 
 Extrinsic value is what decays. It is what the carrier earns. It is the only thing a dealer's book is really made of. Move the index to 7,400 and the same put is worth roughly 100 intrinsic plus ~85 extrinsic; the extrinsic shrank because the option is now less uncertain (it is more likely to finish in the money, and certainty is cheap).
 
-*(Figure 2 — Value before expiry: intrinsic + extrinsic — see the HTML edition for the chart.)*
+![Figure 2 — Value before expiry: intrinsic + extrinsic](../figures/dealers-hand/fig-02.svg)
 
 ### 2.2 The five inputs
 
@@ -133,7 +133,7 @@ Two readings, both used constantly:
 
 Delta is bounded: 0 to 1 for calls, −1 to 0 for puts. Deep in the money it approaches ±1 (the option behaves like the index); deep out of the money it approaches 0 (the option barely reacts).
 
-*(Figure 3 — Delta across spot (30-day options, strike 7,500) — see the HTML edition for the chart.)*
+![Figure 3 — Delta across spot (30-day options, strike 7,500)](../figures/dealers-hand/fig-03.svg)
 
 ### 3.2 Gamma — "how fast is my delta changing?"
 
@@ -147,7 +147,7 @@ Three properties of gamma drive everything downstream:
 - **Gamma is identical for the call and put at the same strike** (put-call parity again). A 7,500 call also has 0.0010 gamma.
 - **Gamma explodes as expiry approaches.** At 30 days, the ATM delta drifts 0.08 for a 1% move. In the final minutes of the session, the delta of an ATM option flips from near 0 to near 1 across a range of a few points — with ten minutes left, the 7,500 call at 7,495 has delta ≈ 0.34 and at 7,505 ≈ 0.66. **Ten points of spot produced a delta change roughly thirty times larger than the same ten points produce in the 30-day option.** That single fact is why half of SPX volume now expires the same day and why 0DTE gets its own chapter.
 
-*(Figure 4 — Gamma concentrates at the strike — and explodes into expiry — see the HTML edition for the chart.)*
+![Figure 4 — Gamma concentrates at the strike — and explodes into expiry](../figures/dealers-hand/fig-04.svg)
 
 The insurance reading: gamma is how fast a layer's expected loss accelerates as the loss develops toward the attachment point. Far from attachment, a marginal deterioration barely changes expected loss. Near attachment, every point of deterioration lands squarely in the layer. Gamma is highest exactly where the carrier's exposure is most sensitive — and that is not a coincidence, it is the same mathematics.
 
@@ -155,7 +155,7 @@ The insurance reading: gamma is how fast a layer's expected loss accelerates as 
 
 Theta is the change in option value per day, holding everything else fixed. The 30-day ATM put loses roughly **2.3 points per day** at inception, and the loss accelerates: extrinsic value decays as the square root of time, so the last week costs the holder more than the first two combined.
 
-*(Figure 5 — Theta: the earned-premium schedule — see the HTML edition for the chart.)*
+![Figure 5 — Theta: the earned-premium schedule](../figures/dealers-hand/fig-05.svg)
 
 Theta is the earned premium. **Gamma and theta are the same thing seen from opposite sides**: a long-gamma position (long options) pays theta for the privilege of owning convexity; a short-gamma position (short options) collects theta for underwriting it. There is no free convexity, and there is no free carry. The dealer's daily P&L is, to a first approximation, gamma P&L (from re-hedging) plus theta (from the clock), and the entire question of whether a dealer is happy today reduces to whether realized movement exceeded what the theta paid for.
 
@@ -264,7 +264,7 @@ This is exactly the underwriting cycle. A book of short gamma is a book of writt
 
 *Chapter 4 showed the mechanic for one dealer and one strike. This chapter describes what the market looks like from inside each regime, because the difference is not a matter of degree.*
 
-*(Figure 6 — The two worlds: the same shocks, two regimes — see the HTML edition for the chart.)*
+![Figure 6 — The two worlds: the same shocks, two regimes](../figures/dealers-hand/fig-06.svg)
 
 ### 5.1 The positive-gamma world
 
@@ -346,7 +346,7 @@ The practical hierarchy of reliability: **the sign of net GEX is the most robust
 
 Plotted by strike, dealer gamma is a landscape: tall positive peaks at the strikes with heavy call OI above spot, deep negative troughs at heavy put strikes below, and the flip where the running sum crosses zero. Four features of that landscape are named in the report, and each has a mechanical meaning that the next chapter spells out — because two of them have cleaner mechanics than the other two, and knowing which is which is worth real money.
 
-*(Figure 7 — The GEX landscape on the reference Friday — see the HTML edition for the chart.)*
+![Figure 7 — The GEX landscape on the reference Friday](../figures/dealers-hand/fig-07.svg)
 
 ---
 
@@ -423,7 +423,7 @@ Now run the dealer's book through a vol crush. The dealer is short OTM puts (the
 
 This is the **vanna rally**, and it is the mechanism behind one of the most reliable patterns in the report's own narrative: the post-event melt-up. When the Fed minutes at 2:00 PM on the report's Friday came in dovish, implied vol collapsed; the put hedges every institution had bought into the event shrank in delta; dealers covered their index shorts; and the market ran to 7,518 — not only because the news was good, but because the *vol* falling generated forced buying regardless of the news's content. A benign outcome to any feared binary produces this bid; the size of it scales with how much protection was bought beforehand.
 
-*(Figure 8 — Vanna: the hedge shrinks when vol falls — see the HTML edition for the chart.)*
+![Figure 8 — Vanna: the hedge shrinks when vol falls](../figures/dealers-hand/fig-08.svg)
 
 The mirror exists: a **vanna selloff** when vol *rises* — put deltas grow, dealers must sell more index to stay hedged, and a modest decline gets an extra push from the vol move itself. This is the amplification channel that makes negative-gamma declines worse than the gamma alone would predict.
 
@@ -467,7 +467,7 @@ Return to Chapter 3.2. Gamma explodes as expiry approaches, because the delta of
 
 **The structure moves within the day.** Morning 0DTE levels have a half-life of hours. A large 0DTE call purchase at 11:00 AM can relocate the intraday call wall; the 0920/1000/1200/1500 delta tables exist to catch this, and the 1500 report's reading of the late-day structure is the highest-value 0DTE read in the cascade, because by 3:00 PM the day's 0DTE positioning is nearly complete and the expiry dynamics are about to dominate.
 
-*(Figure 9 — The 0DTE delta cliff — see the HTML edition for the chart.)*
+![Figure 9 — The 0DTE delta cliff](../figures/dealers-hand/fig-09.svg)
 
 The same fact as a table — the call's delta at two prices ten points apart, as the clock runs down:
 
@@ -514,7 +514,7 @@ Because the monthly bucket is the largest, its expiration produces a recognizabl
 
 Trading consequence: **the same GEX reading means less in the week after opex than in the week before it**, because the structure is thinner and rebuilds fast. The regime gate still applies; the confidence in the levels should be lower.
 
-*(Figure 10 — The monthly gamma cycle — see the HTML edition for the chart.)*
+![Figure 10 — The monthly gamma cycle](../figures/dealers-hand/fig-10.svg)
 
 ### 10.3 The JPMorgan collar — the quarterly bookends
 
@@ -528,7 +528,7 @@ Run it through the dealer's book. The dealer is on the other side of all three l
 
 That last leg is the famous "JPM collar ceiling." For three months, a very large block of dealer long-call gamma sits a few percent above where the market was at the roll date, generating mechanical selling as the index approaches it. When the market has rallied hard within a quarter, the collar strike can become the dominant resistance in the entire book. The report lists the current strikes (7,600 / 7,250 / 7,100) as structural endpoints and correctly ignores them day to day — DC 2.7.8 — because they only bind when spot is within about 2% of a leg.
 
-*(Figure 11 — The JHEQX collar at expiry — see the HTML edition for the chart.)*
+![Figure 11 — The JHEQX collar at expiry](../figures/dealers-hand/fig-11.svg)
 
 Two further points. **The roll itself is an event.** On the last trading day of each quarter the fund closes the old collar and opens the new one; the resulting flow (tens of thousands of contracts crossing, dealers re-hedging) is large enough to move the index intraday and is widely watched. **And this position is the clearest case where the naive sign convention is wrong.** The fund *sold* the call — so the customer is short calls and the dealer is long, which matches the naive assumption. But the fund *bought* the 95% put and *sold* the 80% put — so at the 80% strike the customer is short a put and the dealer is *long*, which is the opposite of the naive assumption. Any vendor that does not hand-adjust for this position mis-signs a large block of gamma. This is the concrete example the Daily Cascade paper gestured at.
 
@@ -605,7 +605,7 @@ Every named level, sorted by price, with spot inline. This is the map.
 | 7,250 | Gamma Flip | QTRLY | JHEQX structure; not actionable |
 | 7,100 | Put Wall | QTRLY | JHEQX long-put leg; not actionable |
 
-*(Figure 12 — The §06 ladder, drawn — see the HTML edition for the chart.)*
+![Figure 12 — The §06 ladder, drawn](../figures/dealers-hand/fig-12.svg)
 
 Five observations that the table makes visible and the raw numbers do not:
 
@@ -652,7 +652,7 @@ The report reads the 0DTE straddle: with /ES at 7,489.50 and the 7,490 strike st
 
 **From implied vol:** 7,489.50 × IV_daily. With the 0DTE ATM implied vol around 11% annualized (0DTE vol typically trades below the 30-day VIX on calm mornings), the daily sigma is 7,489.50 × 0.11 ÷ √252 ≈ 52. The two methods agree, as they must — the straddle *is* the vol, quoted in points.
 
-*(Figure 13 — Expected move versus the 0DTE corridor — see the HTML edition for the chart.)*
+![Figure 13 — Expected move versus the 0DTE corridor](../figures/dealers-hand/fig-13.svg)
 
 ### 12.2 Using it
 
@@ -727,7 +727,7 @@ In order: (1) sign of net GEX — still positive? (2) distance from spot to the 
 
 Three questions, thirty seconds, and the answer selects one of three playbooks. Everything else in the report refines *which trade* within the playbook; nothing else in the report changes *which playbook*.
 
-*(Figure 14 — The regime gate (DC 2.7.1) as a decision tree — see the HTML edition for the chart.)*
+![Figure 14 — The regime gate (DC 2.7.1) as a decision tree](../figures/dealers-hand/fig-14.svg)
 
 ### 14.2 The positive-gamma playbook
 
@@ -769,7 +769,7 @@ Within ~0.5% of the monthly flip, or with net GEX near zero: neither playbook ap
 
 **Rule.** 2.7.2 (convergence-level trade) with 2.7.4 (expected-move targets).
 
-*(Figure 15 — Setup 1 — the magnet dip-buy, drawn — see the HTML edition for the chart.)*
+![Figure 15 — Setup 1 — the magnet dip-buy, drawn](../figures/dealers-hand/fig-15.svg)
 
 ### 15.2 The call-wall fade
 
@@ -918,7 +918,7 @@ Every option you trade is a contract with a dealer, and your position becomes pa
 
 *Parts II and III treated the dealer book mostly as one aggregate. It is not one thing — it is four inventories on four clocks, and the professional read of §06 is the simultaneous one: which book governs right now, which governs tonight, and what it means when they disagree. This Part is that read, plus the session-level behavior of the shortest book, which is where most of the intraday confusion lives. It extends Chapters 9–13; nothing here replaces them.*
 
-*(Figure 16 — Four books, four clocks, one spot price — see the HTML edition for the chart.)*
+![Figure 16 — Four books, four clocks, one spot price](../figures/dealers-hand/fig-16.svg)
 
 ---
 
@@ -938,7 +938,7 @@ Two consequences follow immediately and resolve most day-to-day confusion:
 
 Everything the stack can do reduces to where the short-dated and long-dated flips sit relative to spot. Five configurations cover the space:
 
-*(Figure 17 — The five stack configurations — see the HTML edition for the chart.)*
+![Figure 17 — The five stack configurations](../figures/dealers-hand/fig-17.svg)
 
 | # | Configuration | Who governs intraday | Who governs overnight | Playbook | The tell it's forming |
 |---|---|---|---|---|---|
@@ -954,7 +954,7 @@ Configuration 4 deserves a paragraph because it is the one that fools experience
 
 Take the reference numbers and run a non-event Tuesday. 9:30: configuration 1 — spot 7,489, flips at 7,468 / 7,440 / 7,403, everything aligned, the morning grinds in the corridor. 11:30: a mid-morning flush (a rates headline, nothing structural) presses spot through 7,468. **The stack is now configuration 3.** The 0DTE book — by then ~50% of total gamma — is hedging pro-cyclically, and a 6-point drift becomes a 17-point slide in forty minutes. It reaches the weekly put wall at 7,450 and the weekly flip at 7,440, where the hand-off works: monetization flows and the still-long weekly/monthly gamma absorb it. 1:00–2:30: spot stabilizes at 7,450–56, recrosses 7,468 at 2:45. **Configuration 1 again** — and, this being the gamma ramp of the afternoon, the re-stabilized 0DTE book now pins harder than it did in the morning. Close: 7,478, twelve points off the magnet, an unremarkable print concealing two regime changes in the working layer.
 
-*(Figure 20 — A nested-flip day, worked — see the HTML edition for the chart.)*
+![Figure 20 — A nested-flip day, worked](../figures/dealers-hand/fig-20.svg)
 
 The reading discipline the example teaches: when a move accelerates for no visible reason, **check which flip just got crossed before checking the news.** Half of "mystery" intraday air pockets are configuration 3 arriving on schedule.
 
@@ -962,7 +962,7 @@ The reading discipline the example teaches: when a move accelerates for no visib
 
 The distance from the 0DTE flip to the monthly flip — 65 points on the reference Friday — is the stack's *staging depth*, and it is a better fragility gauge than net GEX. A wide stack means shocks meet three cushions in sequence; a compressed stack means one impulse flips every horizon's hedging to amplification at once. Compression happens quietly: heavy near-dated put buying pulls the 0DTE and weekly flips up toward spot while the monthly barely moves, and the headline GEX number can be *rising* while the staging depth collapses.
 
-*(Figure 21 — Flip-stack width — the fragility gauge — see the HTML edition for the chart.)*
+![Figure 21 — Flip-stack width — the fragility gauge](../figures/dealers-hand/fig-21.svg)
 
 **Rule 18.1 — track the width.** Monthly flip minus 0DTE flip, in points and as % of spot, at every report. Above ~0.7% of spot: normal staging. Under ~0.4%: reduce size one notch regardless of net GEX. Under ~0.2%: transition-zone posture (Ch. 14.4) even if every flip is still below spot. *(Candidate composite for the §06 delta table — logged in the backlog note at 21.4.)*
 
@@ -1003,11 +1003,11 @@ Aggregate DEX blurs two very different readings. **0DTE DEX** is today's crowd: 
 
 The longer books carry memory; the 0DTE book has none. It is re-seeded every morning — strikes listed around the prior close, flows arriving fresh — so its influence on any given day depends on four things that reset nightly: **how lopsided** the day's flow becomes (a balanced book nets to little; Cboe's own studies find flows roughly balanced *on average*, which is precisely why the tail sessions matter); **when** it becomes lopsided (a one-sided morning shapes the whole day; a one-sided 3:00 PM shapes only the close); **what the longer books are doing** (the same 0DTE flow means different things in configurations 1 and 4); and **the calendar** (event days, opex Fridays, the post-opex thin week). Honesty note: sell-side estimates of 0DTE's amplification potential have ranged from negligible to multiple-of-the-move in stress scenarios, and the debate is unresolved because the amplifying tail is rare. The operational position this paper takes is conditional and observable: *usually pin-forming, occasionally an accelerant, and the tell is whether the walls hold or migrate on first test.*
 
-*(Figure 18 — The 0DTE share through the session — see the HTML edition for the chart.)*
+![Figure 18 — The 0DTE share through the session](../figures/dealers-hand/fig-18.svg)
 
 ### 20.2 The six session types
 
-*(Figure 19 — The six session types by 0DTE signature — see the HTML edition for the chart.)*
+![Figure 19 — The six session types by 0DTE signature](../figures/dealers-hand/fig-19.svg)
 
 **1. The pin day.** No catalyst, balanced book, configuration 1. The morning establishes the corridor, midday chop shrinks, and the afternoon gamma ramp pulls price to peak GEX. The most common type in a positive regime, and the habitat of Setups 1, 2, and 5. Signature: walls *hold on first test*; the expected move is never threatened.
 

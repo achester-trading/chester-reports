@@ -5,7 +5,7 @@
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXIV** — with the market-structure layer, after *Equities* and *International Equities* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.0 — September 2026
-**Status:** Framework and manual. Governs the earnings-event setup, the cohort monitor's revision flags, and the valuation vocabulary the single-name books use. The HTML edition is canonical.
+**Status:** Framework and manual. Governs the earnings-event setup, the cohort monitor's revision flags, and the valuation vocabulary the single-name books use. Its nine computed figures are files under `docs/figures/earnings/`.
 
 ---
 
@@ -15,7 +15,7 @@ Books B and D hold single names, the speculative-cohort monitor is built on esti
 
 The paper has six parts. Part I is the machine that sets expectations — who makes the consensus and why it is built to be beaten. Part II is what the options market already knows: the implied move, the event premium, and the positioning going in. Part III is the reaction — the four quadrants, the gap and the drift, and the setup this book is permitted to trade. **Part IV is the denominator and the multiple**: which earnings figure goes under the price, why the same stock carries five price-to-earnings ratios, when book value means anything, and a map of where each sector normally trades and how that map moves through a cycle — added on review because no paper in the library owned the practical vocabulary, and connecting to *Equities*, *Base Rates*, and *Tops and Bottoms* rather than repeating them. Part V is sector grammar, with the insurance sector as the worked example because it is the operator's own. Part VI is expression and wiring.
 
-Figures are computed rather than sketched and live in the HTML edition.
+Figures are computed rather than sketched; they live under `docs/figures/earnings/` and are embedded into the built edition.
 
 ---
 
@@ -35,7 +35,7 @@ Estimate revisions are one of the oldest documented anomalies: names whose estim
 
 **Velocity** — the rate of revision, and its change — is the input the speculative-cohort monitor needs most. The second-derivative flag from Part 29: *revision velocity decelerating while price velocity accelerates* is the signature of a name where excellent results may no longer suffice, because the price has begun to assume an acceleration the estimates are not delivering.
 
-*[Figure 1 — computed figure; rendered in the HTML edition]*
+![Figure 1 — The second-derivative flag: revisions decelerate while price accelerates](../figures/earnings/fig-01.svg)
 
 **The forward-only constraint.** Revision *history* is a vendor product, and the system declined to buy it. It logs its own consensus nightly, so the velocity series begins in September 2026 and the decomposition reads *insufficient history* until a quarter has passed. This paper exists partly so that when the first flags fire in December they are read with the framework rather than without it.
 
@@ -59,7 +59,7 @@ Three red flags, each with its reason. **A widening gap between GAAP and adjuste
 
 Before every print the options market states, in dollars, how large a move it expects. The at-the-money straddle expiring just after the event, as a percentage of the stock price, is the implied move; a refinement adjusts for skew. A name's implied move against its *own history of realized moves* is the actual signal — not the implied move alone.
 
-*[Figure 2 — computed figure; rendered in the HTML edition]*
+![Figure 2 — Implied move (line) versus realized move (bars), sixteen quarters, one name](../figures/earnings/fig-02.svg)
 
 The figure is one name across sixteen quarters. Implied exceeded realized in eleven of them, matched the *Base Rates* finding that implied moves have on average slightly exceeded realized: **the seller of the event has positive expectancy on average and catastrophic tails, and the buyer has negative expectancy with the fat right tail.** Neither is a strategy. The signal is the ratio's departure from the name's own norm — an implied move well below the name's realized history is cheap optionality; well above is expensive.
 
@@ -67,7 +67,7 @@ The figure is one name across sixteen quarters. Implied exceeded realized in ele
 
 The volatility term structure isolates what the event alone is worth.
 
-*[Figure 3 — computed figure; rendered in the HTML edition]*
+![Figure 3 — The event premium: front-expiry IV builds, the next expiry barely moves, then both collapse](../figures/earnings/fig-03.svg)
 
 The front expiry containing the print carries implied volatility that builds for weeks; the next expiry barely moves. The difference is the *event premium* — the cleanest measure of how much drama is priced — and it collapses the morning after, the crush that *Options as Expression* describes from the buyer's side. Two readings for the book. A trader long a single option into the print must beat the priced move, not merely be right; and the morning after, optionality on the *reaction* is suddenly cheap, which is why the highest-expectancy expression is usually entered after the event.
 
@@ -83,7 +83,7 @@ The *Positioning & Flows* mechanism groups, applied to one date. Open-interest b
 
 Cross the print against the guidance and four cells emerge, with base-rate reactions that differ in sign and size.
 
-*[Figure 7 — computed figure; rendered in the HTML edition]*
+![Figure 7 — Average next-day reaction by quadrant (large caps, approximate) — guidance beats the print](../figures/earnings/fig-07.svg)
 
 | Quadrant | Typical reaction | What it says |
 |---|---|---|
@@ -96,7 +96,7 @@ The two off-diagonal cells carry the information. **Guidance beats the print** �
 
 ## Chapter 8 — The gap, the fade, and the drift
 
-*[Figure 8 — computed figure; rendered in the HTML edition]*
+![Figure 8 — The gap, the fade, and the drift — averaged over positive surprises](../figures/earnings/fig-08.svg)
 
 Three phases, on different clocks. **The gap** — the overnight repricing, mostly complete at the open — is where the implied move is realized. **The fade** — the first one to three sessions — reverses a portion of the gap on average as the initial reaction is tested; the base rate for a gap holding through the third session is somewhat better than a coin flip in large caps and worse in small. **The drift** — the following one to three months — is the post-earnings-announcement drift documented since the 1960s: prices continue in the direction of the surprise as the information is slowly absorbed. It has weakened since the 2000s as capital chased it, and it persists, particularly in smaller and less-followed names.
 
@@ -120,7 +120,7 @@ That divergence is a Book C setup with a specific shape: defined-risk, in the di
 
 The same stock, the same day, carries five price-to-earnings ratios, and they can differ by half.
 
-*[Figure 4 — computed figure; rendered in the HTML edition]*
+![Figure 4 — One company, one price, five price-to-earnings ratios](../figures/earnings/fig-04.svg)
 
 | Denominator | What it is | When it misleads |
 |---|---|---|
@@ -156,7 +156,7 @@ The PEG ratio — P/E over expected growth — is a rule of thumb that assumes a
 
 The chapter that connects the dots. Two figures and a table.
 
-*[Figure 5 — computed figure; rendered in the HTML edition]*
+![Figure 5 — Where sectors normally trade (forward P/E, typical 10-year range) and where they sit now](../figures/earnings/fig-05.svg)
 
 **Where sectors normally trade, and why.** The ranges differ by a factor of three or more, and the reasons are structural rather than sentimental:
 
@@ -179,7 +179,7 @@ A bank at 1.2× book and a software company at 12× book are two different measu
 
 **How the map moves through the cycle.** This is where the paper connects *Equities* Part IV (sector rotation), *Tops and Bottoms*, and the *Base Rates* distributions, and it contains the single most valuable line in the chapter:
 
-*[Figure 6 — computed figure; rendered in the HTML edition]*
+![Figure 6 — The inversion: a cyclical looks cheapest on trailing P/E at the earnings peak and dearest at the trough](../figures/earnings/fig-06.svg)
 
 **Cyclical sectors look cheapest on trailing earnings at the top of the cycle and most expensive at the bottom**, because the earnings collapse faster than the price does. An energy or semiconductor name at eight times trailing at the peak is a trap — the E is about to halve; the same name at forty times at the trough is the buy — the E is about to recover. This inversion catches experienced traders repeatedly, and it is the reason Chapter 10's *normalized* denominator exists: for a cyclical, the trailing number is the least informative of the five.
 
@@ -225,7 +225,7 @@ The rules of *Options as Expression*, applied to a date:
 
 Reporting season has a structure: the large banks open it, technology and industrials follow, retail closes it, and the sequence is a bellwether order — the early reporters set the tone for the sector. The *Positioning & Flows* master calendar carries the dates.
 
-*[Figure 9 — computed figure; rendered in the HTML edition]*
+![Figure 9 — The scheduled absence: buyback blackouts remove the market's largest bid for weeks at a time](../figures/earnings/fig-09.svg)
 
 The buyback blackout is the scheduled absence: companies suspend repurchases from roughly two weeks before the print until a day or two after, and in aggregate the market's largest net buyer withdraws for several weeks each quarter. The closing-auction module reads that absence directly; this paper's contribution is that it is *on the calendar in advance*, and a weak tape inside a blackout window is partly explained before it is diagnosed.
 

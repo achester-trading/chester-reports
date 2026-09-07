@@ -131,7 +131,7 @@ Every figure in Tables A–C is a range and a snapshot, drawn from flow-of-funds
 
 **The third layer — what forces each mandate to trade.** The diagram adds it. Owners on the left, mandates in the middle, forcing mechanisms on the right; ribbon width is share of the market.
 
-*[Figure — owner → mandate → forcing-mechanism diagram; rendered in the HTML edition]*
+![Figure — owner → mandate → forcing-mechanism diagram](../figures/positioning-and-flows/fig-01.svg)
 
 Four things the cross-tabulation makes visible that the three lists could not.
 
