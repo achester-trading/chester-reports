@@ -60,7 +60,7 @@ registry.*
 
 | Layer | # | Paper | Short name | Companion to | Size | One-line description |
 |---|---|---|---|---|---|---|
-| Foundational | **XXV** | Price, Time, and Edge | Price, Time, and Edge | Every markets paper — it supplies the vocabulary they cite; read second in the core track | v1.0 · ~24,000 words | The layer the library was missing — **a price is the expectation of the marginal participant, weighted by his capital and his urgency**, markets trade on the difference between reality and expectations, and price is itself a participant; the seven-rung horizon ladder and how the rungs couple, with **the weeks-to-months rung given its own craft — the five forces that move price over weeks, why the middle rung is the emptiest for a discretionary individual, entry and exit as the rung defines them, and the mechanism behind the two conversions that kill a swing book**; the participants at full depth — holders, intermediaries, speculators, issuers and sovereigns by liability, mandate, regulation and calendar, the seven forcing mechanisms, and "who is on the other side" as a method with worked identifications; and the theory of edge — six limits to arbitrage, **the twelve edges with capacity and death conditions**, the capacity arithmetic that says a small book's edges are the capacity-constrained ones and no others, and the six questions with three worked theses, one of which passes |
+| Foundational | **XXV** | Price, Time, and Edge | Price, Time, and Edge | Every markets paper — it supplies the vocabulary they cite; read second in the core track | v1.1 · ~29,500 words | The layer the library was missing — **a price is the expectation of the marginal participant, weighted by his capital and his urgency**, markets trade on the difference between reality and expectations, and price is itself a participant; the seven-rung horizon ladder and how the rungs couple, with **the weeks-to-months rung given its own craft — the five forces that move price over weeks, why the middle rung is the emptiest for a discretionary individual, entry and exit as the rung defines them, and the mechanism behind the two conversions that kill a swing book**; the participants at full depth — holders, intermediaries, speculators, issuers and sovereigns by liability, mandate, regulation and calendar, the seven forcing mechanisms, and "who is on the other side" as a method with worked identifications; and the theory of edge — six limits to arbitrage, **the twelve edges with capacity and death conditions**, the capacity arithmetic that says a small book's edges are the capacity-constrained ones and no others, and the six questions with eight worked theses, two of which pass and six of which fail one question each |
 | Macro & disruptive | **I** | Foundations and Field Guide to the Five-Force Framework | Foundations | Disruptive Themes | v1.0 · ~21,200 words | The intellectual apparatus behind the five factors — lineage, decoder ring, seven-element factor chapters, decade-horizon geopolitics |
 |  | **II** | The Twenty-Five — Tail Scenarios: Mechanism, Mutation, and Instrumentation | The Twenty-Five | Tail watch (all reports) | v1.0 · ~24,550 words | The 25 scenarios by mechanism family, with mutations, routing matrix, and the price-insensitive-buyer thesis |
 |  | **III** | The Monthly Macro Report: A Working Manual | Monthly manual | Monthly Macro | v1.0 · ~29,000 words | Ten-lens treatment per pillar, named failure modes, lead-lag synthesis, conflict-resolution rules |
@@ -241,7 +241,7 @@ uninformed kind. That test is the one thing the library cannot do for itself.
 ---
 
 ## XXV. Price, Time, and Edge
-**Companion to: every markets paper — it supplies the vocabulary they cite rather than restate · v1.0 · ~24,000 words, twenty-six chapters across five parts + two appendices, no figures**
+**Companion to: every markets paper — it supplies the vocabulary they cite rather than restate · v1.1 · ~29,500 words, twenty-six chapters across five parts + two appendices, no figures**
 
 **What it contains.** The library was built from the outside in: excellent
 papers on how dealers hedge, how credit leads equities, how gold's relationship
@@ -271,16 +271,20 @@ kill a swing book. Part III is the participants at full depth: the three
 denominators that make "who owns the market" a meaningless question until it is
 specified, then the holders, the intermediaries, the speculators and the issuers
 and sovereigns, each by liability, mandate and benchmark, regulation, and
-calendar; the seven forcing mechanisms in one table with March 2020, February
+calendar; the seven forcing mechanisms argued one by one, with March 2020, February
 2018 and a short squeeze as worked instances; and "who is on the other side" as
-a four-step method with three worked identifications, one of which fails.
+a four-step method with six worked identifications — one from each group of
+participants, and one that fails.
 Part IV is edge: the six limits to arbitrage; **the twelve edges**, each with its
 mechanism, holder, capacity, competitor and death; the capacity arithmetic,
-which is the paper's central practical claim; the six questions with three
-worked theses — one that passes, one that fails at the counterparty, one that
-fails at competition; several partially independent edges, with the Doctrine's
-nine alpha families mapped onto the twelve; the small book stated as the market
-sees it, with its shadow; and how edges die, with a tripwire for each. Part V
+which is the paper's central practical claim; the six questions with eight
+worked theses — two that pass, and one that fails at each of the six, so that
+every question carries a failure the reader can recognize in his own packet;
+several partially independent edges, opening with the four books taken from the
+Doctrine's Part IV and the nine alpha families mapped onto the twelve; the small book stated as the market
+sees it, with its shadow and with the standing argument for which edge families
+a book of this size can actually reach; and how edges die, with a tripwire for
+each. Part V
 carries the standard closing apparatus — tactical applications across seven
 horizons, wiring, the eighteen environments, an assumptions-and-falsifiers
 appendix, and the dated appendix that holds everything perishable.
