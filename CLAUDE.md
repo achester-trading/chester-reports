@@ -30,41 +30,42 @@ governs where it is going and overrides this file on intent.
 `white-paper-library-guide.md`, plus the white paper library itself in
 `docs/whitepapers/`.
 
-**Seven of those documents exist in two formats** — the library guide and the
-six papers that carry computed figures:
+**The Markdown is canonical for everything.** A paper's `.md` under
+`docs/whitepapers/` holds its text, its tables and its figure references, and it
+is the only file anyone edits. Nothing lives only in an HTML edition any more.
 
-| | File |
-|---|---|
-| V | `docs/whitepapers/currencies-whitepaper.md` |
-| XIII | `docs/whitepapers/dealers-hand-whitepaper.md` |
-| XIV | `docs/whitepapers/technical-indicators-whitepaper.md` |
-| XXII | `docs/whitepapers/options-expression-whitepaper.md` |
-| XXIII | `docs/whitepapers/evidence-inference-whitepaper.md` |
-| XXIV | `docs/whitepapers/earnings-whitepaper.md` |
+- **Figures are files**, under `docs/figures/<slug>/`, named `fig-NN.svg` (or
+  `.png` where the source was a raster). Each directory carries an `index.md`
+  mapping figure number → caption → file. A paper references one with an
+  ordinary Markdown image link, `![Figure N — caption](../figures/<slug>/fig-NN.svg)`.
+  Six papers have figures — Currencies (8), the Dealer's Hand (21), Technical
+  Indicators (5), Options as Expression (37 panels), Positioning & Flows (1),
+  Earnings (9). Every other paper has none.
+- **`docs/html/` is build output.** One `<slug>-whitepaper.html` per roster
+  paper, written by `tools/build_paper_html.py` with the figures embedded
+  inline. `make html` rebuilds all of them. Never edit a file in it, and never
+  upload one into it.
+- **`make figures`** redraws the eight Currencies charts from the fx_charts
+  module when it and its dependencies are present, and skips otherwise — see
+  Known cleanup, because today it is neither committed nor importable.
 
-For all seven, **the HTML is
-canonical for reading** (it carries the rendered tables, the anchor navigation,
-and the computed figures — XXIII's masthead says outright that its figures live
-only there) and **the Markdown is canonical for editing** — edit the `.md` and
-regenerate the HTML from it, never the reverse. An HTML file that disagrees with
-its `.md` is stale, not a second opinion. Every other paper is Markdown only.
-The same rule applies to re-uploading a paper from a local copy: pull first, or
-the upload silently reverts whatever the repo learned since.
+**The rule this replaced, and why the replacement is the point.** For a week the
+library ran on "the HTML edition is canonical for reading, the Markdown is
+canonical for editing", because six papers' figures existed only inside their
+HTML. That rule was written into `docs/white-paper-library-guide.md` on
+6 September and deleted the same afternoon by a full-file re-upload from a stale
+local copy; it was restored in `8bf2f89` and deleted again hours later by
+`a3839ff`, the same way. Three writes, two deletions, one day. The rule was
+unkeepable because it asked a human to remember which of two files won, and it
+was necessary only because the figures were trapped. Taking the figures out of
+the HTML and into `docs/figures/` removed the reason for it, so the rule is
+retired: there is one canonical file per paper and it is the `.md`.
 
-**This paragraph is the durable copy of that rule, and it is here because the
-guide's copy keeps being destroyed.** The rule was written into
-`docs/white-paper-library-guide.md` on 6 September and deleted the same
-afternoon by a full-file re-upload from a stale local copy; it was restored in
-`8bf2f89` and deleted again hours later by `a3839ff`, the same way. Three
-writes, two deletions, one day. A rule that lives only in the file it governs is
-erased by the exact act it exists to prevent, so it now lives in two places: the
-guide's front matter, where a reader of the guide meets it, and here, which no
-upload flow touches. **If the two ever disagree, this file wins, and the guide's
-front matter should be restored from it.** Its absence from the guide is
-evidence of a stale re-upload, not evidence that the rule was retired.
-
-Built HTML editions live in `docs/html/`, one per HTML-canonical paper, named
-`<slug>-whitepaper.html`; `make library-check` warns when one is missing.
+**What survives from it is the upload discipline.** A full-file re-upload from a
+stale local copy silently reverts whatever the repo learned since — that is what
+destroyed the rule twice, and it will destroy prose just as easily. Pull first,
+or edit the `.md` in the repository. `make library-check` fails on a figure link
+that does not resolve and warns when a built edition is older than its `.md`.
 
 **The library guide is canonical for the papers' series numerals.** A paper's
 masthead carries the numeral the guide assigns it; inside a paper, cross-
@@ -160,9 +161,10 @@ One of the fifteen is the library's own: `tools/check_library.py`, also reachabl
 as **`make library-check`**, which is the one to run while editing a paper rather
 than code. It enforces the Library conventions above — cite by name, the masthead
 owns the version, one namespace per rule, consecutive parts and figures — plus
-the guide's roster, every path this file names, and every link under `docs/`. It
-fails on those and warns on a missing built HTML edition, a stale word total, and
-a forward reference to a paper that now exists.
+the guide's roster, every path this file names, every link under `docs/`, and
+every figure link a paper carries. It fails on those and warns on a built
+edition older than its `.md`, a stale word total, and a forward reference to a
+paper that now exists.
 
 ### Known cleanup
 
@@ -178,6 +180,14 @@ Still open: `.github/workflows/.gitignore` duplicates coverage the root
 encoding bug `smoke_test.py` just shed — `Path.write_text()` and the closing
 `print` both assume a UTF-8 default, so a local run on Windows will fail on the
 report's check marks. CI is Linux, so this only bites locally.
+
+And `make figures` cannot run yet. `altdata/fx_charts.py` sits untracked in the
+working tree; it imports `altdata.fx_anchors`, which does not exist, and
+matplotlib is not installed on the authoring machine. The target skips rather
+than fails, and the eight committed Currencies figures under
+`docs/figures/currencies/` are the fallback — so nothing depends on it. Making
+it work means committing the module, writing the packaged anchor dataset it
+imports, and adding matplotlib to the environment.
 
 ## Standing rules
 

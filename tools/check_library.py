@@ -12,9 +12,11 @@ own prose referred to. None of that is hard to see; all of it is easy to stop
 looking for.
 
 Every check here is one of those rules. FAIL means the library is now wrong in
-a way a reader would act on. WARN means something is drifting or absent and a
-human should decide -- the built HTML editions are made by hand, so their
-absence cannot be a build failure.
+a way a reader would act on -- a figure a paper references and the repo does
+not have, a numeral cited where a name belongs. WARN means something is
+drifting and a human should decide: a built edition older than its source is
+one `make html` away from correct, and a fresh clone stamps every file with
+the same checkout time, so staleness cannot be a build failure.
 
 THE REGISTRY BELOW IS THE MAP FROM NUMERAL TO FILE. It is the one thing the
 guide cannot supply (it names titles, not paths) and the filenames cannot
@@ -53,9 +55,6 @@ REGISTRY = {
     "XIX": "systematic-book", "XX": "base-rates", "XXI": "international-equities",
     "XXII": "options-expression", "XXIII": "evidence-inference", "XXIV": "earnings",
 }
-
-# D5: the papers whose figures live only in the HTML edition.
-HTML_CANONICAL = ["V", "XIII", "XIV", "XXII", "XXIII", "XXIV"]
 
 # D4: the two papers that own a dotted rule namespace, and the chapters whose
 # rules belong to the Dealer's Hand rather than to the Daily Cascade.
@@ -317,11 +316,39 @@ def check_9_versions(rows, papers):
             fail(9, f"{num}: masthead says {mv}, guide says {gv} -- the masthead owns it")
 
 
-def check_10_html():
-    for num in HTML_CANONICAL:
-        f = HTML / f"{REGISTRY[num]}-whitepaper.html"
-        if not f.exists():
-            warn(10, f"{num}: no built edition at docs/html/{f.name}")
+def check_10_figures_and_builds():
+    """Figure links resolve; built editions are not older than their source.
+
+    This check used to warn that one of six hand-made HTML editions was
+    missing, back when a paper's figures lived only in its HTML and the HTML
+    was called canonical for reading. The figures are files under
+    docs/figures/ now and docs/html/ is build output, so the two things worth
+    checking are the two that rule made impossible to check: that every figure
+    a paper references is actually there, and that the built edition is not
+    behind the .md it was built from.
+
+    A missing figure is a FAIL -- a paper that references artwork the repo
+    does not have is wrong in a way a reader meets immediately. A stale build
+    is a WARN, because the fix is `make html` and because a fresh clone gives
+    every file the same checkout time.
+    """
+    for f in sorted((ROOT / "docs").rglob("*.md")):
+        text = re.sub(r"`[^`\n]*`", "", f.read_text(encoding="utf-8"))
+        for alt, tgt in re.findall(r"!\[([^\]]*)\]\(([^)]+)\)", text):
+            if tgt.startswith(("http", "data:")):
+                continue
+            if not (f.parent / tgt.split("#")[0]).exists():
+                fail(10, f"{f.relative_to(ROOT)}: figure {tgt} does not exist "
+                         f"({alt[:40]})")
+
+    for built in sorted(HTML.glob("*.html")):
+        src = PAPERS / f"{built.stem}.md"
+        if not src.exists():
+            src = ROOT / "docs" / f"{built.stem}.md"
+        if not src.exists():
+            warn(10, f"docs/html/{built.name}: no .md it could have been built from")
+        elif built.stat().st_mtime < src.stat().st_mtime:
+            warn(10, f"docs/html/{built.name} is older than {src.name} -- run `make html`")
 
 
 def check_11_wordcount(papers):
@@ -382,7 +409,7 @@ def main():
     check_7_claude_paths()
     check_8_links()
     check_9_versions(rows, papers)
-    check_10_html()
+    check_10_figures_and_builds()
     check_11_wordcount(papers)
     check_12_stale(papers)
     check_13_agents()
