@@ -252,21 +252,30 @@ def load_chain(path: Path) -> list[dict]:
     return rows
 
 
-def newest_chains(date: Optional[str] = None,
-                  base_dir: Optional[str] = None) -> dict[str, Path]:
-    root = Path(base_dir or config.CHAIN_DIR)
-    if not root.exists():
-        return {}
-    days = sorted(p for p in root.iterdir() if p.is_dir())
-    if not days:
-        return {}
-    day = (root / date) if date else days[-1]
-    if not day.exists():
-        return {}
-    out: dict[str, Path] = {}
-    for p in sorted(day.glob("*.csv"), key=lambda q: q.stat().st_mtime):
-        out[p.name.split("_")[0]] = p
-    return out
+# newest_chains is exposure_compute's, not a second copy.
+#
+# THIS FILE HELD THE ORIGINAL BUG AFTER THE ORIGINAL WAS FIXED. The version
+# that lived here selected `days[-1]` -- the latest DIRECTORY, not the latest
+# directory with data -- and then ranked within it by `st_mtime`. Both halves
+# were fixed in exposure_compute months ago, after the mtime rule picked a
+# 22:44 ET capture holding zero 0DTE contracts and silently revised every
+# number in a session. The copy here kept both defects, unchanged, waiting for
+# the first caller that used it.
+#
+# It was reachable only through this module's own `run()`, so it never fired --
+# which is exactly why it survived. Importing the one implementation means the
+# gates and the exposure engine cannot disagree about which capture a session's
+# numbers came from, and a future fix lands in one place.
+# The import is LAZY, inside the function, because exposure_compute already
+# imports this module -- a module-level `from exposure_compute import ...`
+# closes the cycle and fails with a partially-initialised module the moment
+# quality_gates is the entry point. Deferring it to call time means whichever
+# module is imported first is fully built before the other asks it for
+# anything.
+def newest_chains(date=None, base_dir=None):
+    """Delegates to exposure_compute. One implementation, one selection rule."""
+    import exposure_compute  # noqa: PLC0415
+    return exposure_compute.newest_chains(date, base_dir)
 
 
 def write_manifest_gates(chain_path: Path, gates: dict) -> Optional[Path]:

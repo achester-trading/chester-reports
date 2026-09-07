@@ -140,10 +140,7 @@ def group_a() -> None:
 
 def group_wal() -> None:
     """Both stores open in WAL with a busy timeout -- P0-3."""
-    print(f"
-{LINE}
-A2. Concurrency pragmas on every connection (P0-3)
-{LINE}")
+    print(f"\n{LINE}\nA2. Concurrency pragmas on every connection (P0-3)\n{LINE}")
     sys.path.insert(0, str(REPO))
     from register.store import Register  # noqa: PLC0415
 
