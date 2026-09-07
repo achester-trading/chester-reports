@@ -3,7 +3,26 @@
 name: Monthly Macro Report
 
 on:
-   workflow_dispatch:
+  # 06:00 UTC on the 1st. This replaces cron-job.org, which fired the same
+  # schedule through the dispatch API using a PAT that needed renewing in April
+  # 2027. GitHub's own scheduler removes the third party, the token and the
+  # calendar item at once.
+  #
+  # PROVE, THEN RETIRE. Do not delete the external job until one run has fired
+  # from here -- the workflow had `workflow_dispatch` and no `schedule` for its
+  # whole life, so this line has never been exercised.
+  #
+  # The 60-day inactivity rule that disables scheduled workflows is not a risk
+  # here: registry-check.yml runs on every push, so the repository is never
+  # idle for 60 days while this one is expected to fire.
+  #
+  # UTC, because GitHub's cron has no timezone. 06:00 UTC is 01:00 or 02:00 ET
+  # depending on DST -- an hour of drift twice a year, which is immaterial for
+  # a monthly report and is the reason this is not worth working around.
+  schedule:
+    - cron: "0 6 1 * *"
+
+  workflow_dispatch:
 
 permissions:
   contents: write   # required to commit the run snapshot back to the repo
