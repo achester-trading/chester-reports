@@ -609,7 +609,7 @@ top.
 ---
 
 ## X. Tops and Bottoms: Every Major U.S. Turning Point Since 1970
-**Companion to: Top & Bottom Report · ~16,000 words (est.), 38 pages · three formats from one source (docx → pdf → offline HTML with anchor TOC)**
+**Companion to: Top & Bottom Report · ~10,550 words (measured), 38 pages · three formats from one source (docx → pdf → offline HTML with anchor TOC)**
 
 **What it contains.** A disciplined historical study of every major U.S. equity
 top and bottom since 1970 — roughly eight true bears plus the near-misses — with
@@ -900,6 +900,49 @@ Part VIII is the data-status table — built, computable, forward-only, GAP.
 
 ---
 
+## XVII. Portfolio Construction Across Regimes
+**Companion to: the full five-report stack — Disruptive Themes, Monthly Macro, Top & Bottom, Alternative Asset, Daily Cascade · Draft 1 · ~4,500 words, eight parts · preview edition**
+
+**What it contains.** The paper that treats the book as one object. The other
+companions explain how markets work, and read together they let the operator
+anticipate disruption with considerable precision; what none of them does,
+except in fragments, is say what a book should look like while that is
+happening. The fragments are real — Metals carries position construction,
+Currencies carries FX hedging written against a specific exposure, Top & Bottom
+ships scenario-weighted options portfolios, the Daily Cascade sizes intraday
+setups within a tier — and none of them asks what happens to the whole object
+when the regime moves. Part I defines a regime for a book rather than for a
+forecast. Part II is sizing at both levels: the book-level dial,
+volatility-scaled position sizing as the default, and the hard constraints that
+override it. Part III is hedges — a taxonomy, the carry problem, and the more
+important question of when hedges fail. Part IV is rebalancing, the discipline
+of adjusting a book one would rather leave alone. Part V walks a regime change
+through a book against the translation table's rows. Parts VI–VIII are the
+cross-asset notes, the register as the book's memory, and a scoped list of what
+Draft 2 adds. Four sections are marked *[empirical in Draft 2]* and left empty
+rather than filled with principle.
+
+**Timeless takeaways:**
+- **The book's job is not to predict the regime change** — it is to be sized so
+  that the change is survivable and the reports have time to catch it.
+  Prediction lives upstream in the five reports; construction's virtue is
+  robustness, not foresight.
+- **A hedge's cost is knowable and its failure mode is not** — the paper spends
+  more space on when hedges fail than on what they cost, because the carry is
+  the part everyone budgets for and the correlation break is the part that
+  decides the drawdown.
+- **A construction discipline should be stated once and thereafter measured** —
+  the sections left empty are the ones that would otherwise be argued from
+  principle forever.
+
+**Draft 2 requires all four conditions**: the v17 store, register and Weekend
+Synthesis live and passing the validator; the dashboards in their settled form;
+three months of register data with entries, invalidations and outcomes; and
+IBKR Gate 1 giving the register mark-to-market. Expected late Q4 2026 to Q1
+2027.
+
+---
+
 ## XVIII. The Operating Doctrine
 **Governs: how every report is consumed and how capital is deployed · v1.0 · ~25,600 words, nine parts + appendix · changes only at the monthly session (Rule 20)**
 
@@ -985,6 +1028,232 @@ not-yet-built list. The appendix walks decision #1 end to end.
 
 ---
 
+## XX. Base Rates: What Markets Usually Do
+**Companion to: every thesis, before it is written; Top & Bottom (the extended episode set); the tail watch · Draft 1.1 · ~9,800 words, sixteen chapters across four parts + two appendices**
+
+**What it contains.** The paper that supplies the denominators. Every other
+paper in the library explains a mechanism; this one exists because the
+Doctrine's central edge concept — variant perception — is arithmetic on a base
+rate, and most trading error is a failure of that first step rather than of the
+second. It opens with an executive summary of twelve findings and puts a "what
+to take from this table" block after every table in Parts I–II, each tied to a
+Doctrine rule or a named bias. Part I is the shape of ordinary: return and
+drawdown distributions, seasonality with its decay evidence and the
+midterm-cycle conditional, streaks and mean reversion, correlation by regime.
+Part II is the base rates of a trading day — earnings, options decay and
+moneyness, expiries and auctions, and the arithmetic of turnover and cost. Part
+III extends the downturn record behind 1970 (1907, 1929–32, 1937–38, 1946–47,
+1961–62), taking the Tops & Bottoms calibration sample from eight bears to
+thirteen and adding the two mechanisms the post-1970 record excludes: debt
+deflation and financial repression. Part IV asks how bad it can get outside the
+U.S. record — Japan's thirty-four years, Weimar, Greece, Argentina, the markets
+that went to zero, the long-term debt cycle's two resolutions and what protected
+capital in each — and closes with a chapter on where its own numbers are least
+trustworthy. Percentiles run throughout in place of means.
+
+**Timeless takeaways:**
+- **A base rate is the first act of a thesis, not a footnote to it** — a trader
+  who does not know the S&P has closed higher on roughly 54% of days reads a
+  three-day losing streak as information.
+- **Report the percentile, not the mean** — annual return p25 −1% / median +12%
+  / p75 +25%; bear depth p25 −22% / median −30% / p75 −48%; recovery p25 five
+  months / median two years / p75 four to five. The mean of a skewed
+  distribution describes no year that ever happened.
+- **The post-1970 sample excludes the two mechanisms the operator most fears** —
+  which is the whole argument for going back to 1907, and why the extension is a
+  change in kind rather than in sample size.
+- **No single hedge covers both resolutions** — deflationary resolutions destroy
+  equities and reward long bonds, inflationary ones do the reverse, which is why
+  the tail budget is convex and renewed rather than held.
+
+**The next edition** follows the annual recomputation: figures computed from
+data the system holds are re-derived by a scheduled job and stored with
+`available_at`, so a base rate cited in a decision packet can be replayed as of
+its citation date, and any figure moving more than a stated tolerance is flagged
+for review.
+
+---
+
+## XXI. International Equities: Europe, Japan, China, and the Rest of the World
+**Companion to: Book A's allocation sleeve; Book B candidates; the Daily Cascade's overnight read; Disruptive Themes (the AI supply chain); the tail watch (Taiwan) · Draft 1.1 · ~9,250 words, seventeen chapters across nine parts + appendix**
+
+**What it contains.** The other third of the world's equity capitalization, and
+the two sessions that trade before the New York open. It exists for three
+reasons in ascending order of importance. The United States is roughly
+sixty-five percent of global equity capitalization, so a U.S.-only book has made
+an active thirty-five-point bet against the global market portfolio whether or
+not it noticed. A meaningful share of the S&P's cumulative return accrues
+outside regular trading hours, and the price the 07:00 report reads has already
+been through a Tokyo session and most of a European one. And three of the
+system's live concerns — the yen carry monitor, the AI supply chain, the Taiwan
+contingency — are non-U.S. mechanisms first and anything else second. Part II
+carries the fifty-five-year record of alternating leadership (five flips,
+roughly decade-long runs, the current U.S. run the longest and widest) and
+decomposes fifteen years of U.S. outperformance into roughly a third currency, a
+third multiple and a third earnings, then asks which parts can repeat. Part III
+makes the hedged-versus-unhedged decision a recorded choice with its own thesis.
+Parts IV and V take Europe, the UK, Japan, China, Taiwan and Korea, India and EM
+one at a time, with a full part on China — three markets, the dilution and
+state-allocation explanation of the lost decade, the technology record sector by
+sector, and four ten-year scenarios. Part VI is instruments and their traps.
+Part VII is correlation's long rise, its regime dependence and downside
+asymmetry, and why daily correlation is a clock artifact. Part VIII is a
+ten-year probabilistic view of relative returns built from decomposed
+components, each scenario carrying its falsification condition.
+
+**Timeless takeaways:**
+- **The allocation is a decision whether or not it is made** — a home-biased
+  book holds an active bet of thirty-five percentage points, and the Doctrine
+  requires an active position to have a thesis, a counterparty and an
+  invalidation.
+- **An unhedged international position is two decisions wearing one ticker** — a
+  view on foreign equities and a view on the dollar; the rate differential is
+  the cost or the carry, and the choice belongs in the packet.
+- **China's risk is not valuation** — it is that state objectives and minority
+  interests diverge with no recourse, which is how an industry can be won
+  without the return ever being earned.
+- **Stale NAV on a country fund is live price discovery, not an error** — and it
+  is what the stop will be triggered by. Diversification buys insurance against
+  the single-country tail, not against the bad quarter; size it as insurance.
+
+---
+
+## XXII. Options as Expression
+**Companion to: Book C's every trade; Book A's convexity sleeve; the expression check · Draft 1.4 · ~15,400 words, nineteen chapters across five parts + two appendices, 27 computed figures · HTML canonical**
+
+**What it contains.** Choosing the instrument after choosing the view. The
+Doctrine's Rule 11 says the thesis and the instrument are two decisions; the
+library had papers on forming the thesis and none on the second decision, which
+is a strange omission given that Book C is composed entirely of defined-risk
+options and futures and that Book A's convexity sleeve is an options structure
+by another name. It is written to be *seen* rather than read, on the model of
+*The Dealer's Hand*: every structure is a shape, and the shape is the argument.
+One distinction runs through the whole paper — *The Dealer's Hand* looks at
+options from the outside, as inventory in a market maker's book whose hedging
+moves the market, and this paper looks at the same contracts from the inside, as
+instruments the operator owns. Part I is the grammar: the four shapes, your
+greeks against the dealer's, and the three prices inside every option. Part II
+is the structures, one figure each — verticals and their four numbers, time
+spreads, and twelve volatility and convexity structures each with a home book,
+including the collar and put-spread collar for Book A, the backspreads for the
+tail budget, the iron condor's arithmetic and its four management rules, and an
+excluded-structures table. Part III is the three costs that decide whether a
+correct view makes money: decay, the volatility crush, and the spread tax. Part
+IV is the engineered payoffs — buffered funds, synthetic principal protection
+from a cash-equivalent fund plus long-dated calls, and dual-directional payoffs
+built as bills-plus-iron-butterfly rather than as barrier notes — then Chapter
+15's scenario matrix, ten structures against the index across ten outcomes on
+four asset classes at twelve and six months, and Chapter 16 on leverage: the
+forms and their financing cost, the volatility problem after a decline, five
+ways to add at the trough priced at 40% vol, and the bottom-signal playbook as a
+sequence. Part V is the expression table and its wiring into the register.
+
+**Timeless takeaways:**
+- **Your greeks are not the dealer's** — the same numbers with opposite signs
+  and entirely different meanings; one describes a flow that moves the market,
+  the other a risk you carry. Confusing them is the commonest error a reader of
+  both papers can make.
+- **The shape is the argument** — once a reader can picture what a structure
+  pays at every price, "which instrument expresses this view" stops being a
+  matter of jargon and becomes the matching of one picture to another.
+- **Option cost grows as √T while funding grows as T** — the tenor arithmetic
+  under every engineered payoff, and the reason the same protection changes
+  character with its horizon.
+- **Structure selection in one line** — know the direction and the target →
+  vertical; know the date, not the direction → funded reverse iron butterfly;
+  know neither but need to be invested → bills plus long-dated calls; know all
+  three and volatility is cheap → the outright option, and only then.
+
+---
+
+## XXIII. Evidence and Inference: How to Read Your Own Ledger
+**Companion to: how every register figure is read; the promotion gates; the trust matrix's sample-size rules · Draft 1 · ~4,050 words, sixteen chapters across four parts + appendix, 5 computed figures · HTML canonical**
+
+**What it contains.** Every other paper in the library is written to increase
+the operator's confidence in something; this one is written to calibrate it. Its
+central claim is stated once, at the front, so that nothing later softens it:
+for a book of this size and cadence, most of the questions the operator wants to
+ask of his own results cannot be answered by those results — not "not yet," but
+ever. Three to five decisions a week is perhaps two hundred a year, and two
+hundred decisions cannot distinguish a good process from a break-even one. Part
+I is what a number means: the standard error of everything the register prints,
+the Sharpe ratio's error bar, effective sample size once decisions cluster on
+shared themes, and regime as a sample size of its own. Part II is the catalogue
+of ways a careful person fools himself with a ledger — forking paths,
+overfitting and why a declared threshold matters, survivorship and look-ahead at
+the strategy level, outcome bias and its seven categories. Part III is what to
+do instead: Bayes in sentences, mechanism as evidence, the shadow outcome as a
+sample multiplier, when to stop a sequential test, and a chapter-length honesty
+table on which of the register's cuts will ever be decidable. Part IV applies
+the whole to Kelly sizing under edge uncertainty and to detecting edge decay.
+Written before the register has results, on purpose: written afterward it would
+be an argument against conclusions already drawn.
+
+**Timeless takeaways:**
+- **A year cannot exclude zero; two years give the sign; five give the size** —
+  expectancy's standard error is about 1/√n in R, which makes the Doctrine's
+  thirty-and-fifty thresholds minima for the crudest question only.
+- **Regime is a sample size too** — n regimes, not n trades, bound a regime
+  claim, which makes the Doctrine's most important cut permanently the thinnest
+  one in the register.
+- **Grading the decisions you did not take multiplies the sample about 3.5×** —
+  the largest piece of free evidence in the system, and what makes "doing
+  nothing is a position" measurable.
+- **Watch the mechanism for decay, not the P&L** — response per unit stimulus
+  turns first; the P&L lags decay by roughly two quarters.
+
+**The next edition** is triggered by a material change in cadence, which shifts
+Chapter 1's table by the square root of the ratio, or by the first regime change
+observed inside the register — the first regime cut with a second state in it,
+and the first real test of Chapter 4.
+
+---
+
+## XXIV. Earnings: The Reaction Is the Object
+**Companion to: the event-reaction setup; the cohort monitor's revision flags; the single-name books' valuation vocabulary · Draft 1 · ~4,250 words, twenty chapters across six parts + appendix, 9 computed figures · HTML canonical**
+
+**What it contains.** Books B and D hold single names, the speculative-cohort
+monitor is built on estimate revisions, the Daily Cascade's event-reaction setup
+is one of Book C's three, and the library had no paper on the single most
+important recurring event in a single name's life. This one closes that gap
+around one claim: **the print is not the event.** Roughly three-quarters of
+companies beat the consensus estimate, so a beat carries almost no information;
+what carries information is the reaction relative to what positioning implied
+should happen, and that quantity is measurable in advance, from the options
+market, before the print. Part I is the machine that sets expectations — who
+makes the consensus and why it is built to be beaten, the revision cycle and its
+second-derivative flag, and how to read a print in ten minutes. Part II is what
+the options market already knows: the implied move against the name's own
+history, the event premium and its collapse the following morning, and
+positioning going in. Part III is the reaction — the four quadrants, in which
+guidance beats the print; the gap, the fade and the drift; and the one setup
+this book is permitted to trade. Part IV, added on review because no paper in
+the library owned the practical vocabulary, is the denominator and the multiple:
+which earnings figure goes under the price, why the same stock carries five
+price-to-earnings ratios, when book value means anything, enterprise-value
+multiples, cash versus earnings, and a sector multiple map with the cycle
+inversion that leaves cyclicals cheapest on trailing earnings at the peak. Part
+V is sector grammar, with insurance as the worked example because it is the
+operator's own. Part VI is expression, the calendar and the blackout, and what
+the system can and cannot automate.
+
+**Timeless takeaways:**
+- **The print is not the event** — three-quarters of companies beat, so the beat
+  is not the information; the tradeable object is the divergence between the
+  reaction and what positioning implied, taken after the crush and
+  defined-risk.
+- **Five P/Es, one stock** — know the denominator. For a cyclical, trailing
+  earnings are the least informative measure: cheap at the peak, dear at the
+  trough.
+- **A multiple is a percentile, not a threshold** — read against the name's own
+  range, the sector's, and the cycle's.
+- **Book value means something where the balance sheet is the business** —
+  banks, insurers, the asset-heavy — and nothing where buybacks have consumed
+  the equity. An insurer's beat from reserve releases is not a beat from
+  underwriting.
+
+---
+
 ## In draft and planned
 
 **XVI Draft 1.2 and XIX Draft 1** (6 September 2026), written the week the
@@ -995,8 +1264,8 @@ declare what would trigger their second editions: sixty sessions of auction
 history and a forced-flow episode watched in real time for XVI; Gate 2 and the
 first hundred closed decisions for XIX.
 
-**XVII. Portfolio Construction Across Regimes — Draft 1 exists** (~4,400
-words, preview edition). The frame, vocabulary, sizing disciplines and open
+**XVII. Portfolio Construction Across Regimes — Draft 1 exists** (~4,500
+words, preview edition; the one-page entry is in sequence above). The frame, vocabulary, sizing disciplines and open
 questions, deliberately theoretical, with an explicit four-condition trigger
 for the empirical Draft 2: the v17 store and register live, the dashboards
 settled, three months of register data, and IBKR Gate 1 providing
