@@ -56,6 +56,7 @@ REGISTRY = {
     "XVII": "portfolio-construction", "XVIII": "operating-doctrine",
     "XIX": "systematic-book", "XX": "base-rates", "XXI": "international-equities",
     "XXII": "options-expression", "XXIII": "evidence-inference", "XXIV": "earnings",
+    "XXV": "price-time-and-edge",
 }
 
 # D4: the two papers that own a dotted rule namespace, and the chapters whose
