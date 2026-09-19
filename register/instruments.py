@@ -54,6 +54,10 @@ ENTITIES_PATH = REPO / "config" / "tracked_entities.yaml"
 # variant; the optional O: prefix is Polygon/Massive's.
 _OPTION = re.compile(r"^(?:O:)?([A-Z][A-Z0-9]{0,5})\s*(\d{6})([CP])(\d{1,8})$")
 
+# `@<venue>.<CCY>` as written by Portfolio Truth's instrument key. The venue may
+# itself contain dots, so the currency is anchored to the end.
+_LISTING_QUALIFIER = re.compile(r"@[A-Z0-9_.-]+\.[A-Z]{3}$")
+
 # Dotted tails that denote a listing or a class of the SAME issuer.
 _DOTTED_SUFFIX = re.compile(r"\.(TO|V|NE|CN|L|AX|SI|HK|PA|DE|MI|MC|AS|BR|"
                             r"UN|PR|RT|WT|WS|A|B|C|U|X)\b.*$", re.I)
@@ -66,6 +70,20 @@ def normalise(instrument: Optional[str]) -> str:
     s = str(instrument).strip().upper()
     if not s:
         return ""
+
+    # LISTING QUALIFIER, STRIPPED FIRST AND UNCONDITIONALLY.
+    #
+    # Portfolio Truth keys a holding `<localSymbol>@<venue>.<currency>` and the
+    # register accepts that form, so `BN@TSE.CAD` has to reach the blocklist as
+    # `BN`. Without this it reached it as `BN@TSE`: the dotted-suffix rule below
+    # eats `.CAD` as a three-letter tail and leaves the `@venue` attached, no
+    # root matches, and a restricted instrument written in the qualified form
+    # walks straight through the compliance check. That is precisely the
+    # "trivially defeated by writing the instrument a different way" failure
+    # this module exists to prevent, so it is handled before anything else --
+    # including before the option branch, since an option's localSymbol can
+    # carry a qualifier too.
+    s = _LISTING_QUALIFIER.sub("", s)
 
     # Option symbol -> underlying root. Done before suffix stripping because an
     # option symbol has no dots and would otherwise survive intact.

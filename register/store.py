@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import uuid
 from pathlib import Path
@@ -74,6 +75,11 @@ HORIZONS = ("intraday", "swing", "positional", "strategic", "structural")
 STATUSES = ("draft", "active", "closed", "declined")
 OPERATOR_ACTIONS = ("TAKE", "DECLINE", "MODIFY")
 THESIS_STATES = ("INTACT", "STRAINED", "INVALIDATED")
+# Part 31.3(c): a hedged and an unhedged instrument on the same market are two
+# different instruments, never interchangeable. Mandatory for any non-USD
+# denominated underlying; `n_a` is for a USD instrument, where the question does
+# not arise.
+CURRENCY_EXPOSURES = ("unhedged", "hedged", "n_a")
 
 
 class RestrictedInstrumentError(Exception):
@@ -82,6 +88,29 @@ class RestrictedInstrumentError(Exception):
     Deliberately not a warning and not a filtered-out row. The architecture:
     "a recommendation tagged to a restricted entity is rejected, not warned."
     """
+
+
+class CurrencyExposureUnstatedError(Exception):
+    """A non-USD listing was named without saying what to do about the currency.
+
+    Separate from RestrictedInstrumentError because it is not a compliance
+    refusal and carries none of that weight: the instrument is permitted, the
+    decision is simply incomplete. Part 31.3(c).
+    """
+
+
+# Portfolio Truth keys a holding `<localSymbol>@<venue>.<currency>`, and the
+# register reads the same form so an instrument can be written once and mean the
+# same thing in both places. A bare ticker has no currency in it and yields
+# None -- unknown, not USD, because assuming USD is what let a peso listing pass
+# for a dollar one.
+_LISTING = re.compile(r"@[A-Za-z0-9_.-]+\.([A-Z]{3})$")
+
+
+def listing_currency(instrument: Optional[str]) -> Optional[str]:
+    """The ISO currency in a qualified instrument key, or None if unqualified."""
+    m = _LISTING.search(str(instrument or "").strip())
+    return m.group(1) if m else None
 
 
 SCHEMA = f"""
@@ -110,7 +139,16 @@ CREATE TABLE IF NOT EXISTS decisions (
     -- abstentions too, but it lands as draft and never as active.
     -- blocked_reason is why; NULL means nothing blocked it.
     signals_used     TEXT,
-    blocked_reason   TEXT
+    blocked_reason   TEXT,
+    -- Part 31.3(c). NULL is permitted because the column was added to a live
+    -- register and every pre-existing row predates the field; on a NEW decision
+    -- record() refuses NULL for any non-USD listing rather than defaulting it.
+    currency_exposure TEXT CHECK (currency_exposure IS NULL
+                                  OR currency_exposure IN {CURRENCY_EXPOSURES!r}),
+    -- What a supersession was FOR. The thesis is carried forward verbatim by
+    -- design, so without this the trail records that a decision changed and
+    -- not one word about why.
+    note             TEXT
 );
 
 CREATE TABLE IF NOT EXISTS decision_packets (
@@ -230,7 +268,11 @@ class Register:
         # Databases created before 26.2 #7 landed lack these two columns.
         # ALTER is the whole migration: both are nullable and NULL means
         # "nothing blocked it", which is the right reading of a pre-existing row.
-        for col in ("signals_used TEXT", "blocked_reason TEXT"):
+        # currency_exposure is Part 31.3(c); note carries what a supersession
+        # was FOR, which the carried-forward thesis cannot say. Both nullable:
+        # NULL means the field predates the column, not that it is n_a.
+        for col in ("signals_used TEXT", "blocked_reason TEXT",
+                    "currency_exposure TEXT", "note TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -278,7 +320,9 @@ class Register:
                run_id: Optional[str] = None,
                decision_id: Optional[str] = None,
                signals_used: Optional[list] = None,
-               blocked_reason: Optional[str] = None) -> str:
+               blocked_reason: Optional[str] = None,
+               currency_exposure: Optional[str] = None,
+               note: Optional[str] = None) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
         The restriction check happens FIRST -- before validation, before any
@@ -297,6 +341,25 @@ class Register:
                 + "). No recommendation may be written for it. "
                   "Diagnostic and strategic coverage is unaffected.")
 
+        # PART 31.3(c). A non-USD listing carries a currency leg the ticker
+        # hides, and the register will not accept one unless the operator has
+        # named the leg on purpose. This is the rule that would have refused the
+        # 17 September 2026 exit: the order was submitted against SPY on MEXI in
+        # pesos rather than SPY on ARCA in dollars, and nothing asked why a
+        # dollar book was suddenly taking peso exposure.
+        ccy = listing_currency(instrument)
+        if currency_exposure is not None and currency_exposure not in CURRENCY_EXPOSURES:
+            raise ValueError(f"currency_exposure must be one of "
+                             f"{CURRENCY_EXPOSURES}")
+        if ccy and ccy != "USD" and currency_exposure is None:
+            raise CurrencyExposureUnstatedError(
+                f"{instrument!r} is denominated in {ccy}, not USD. Part 31.3(c) "
+                f"requires currency_exposure on any non-USD underlying -- a "
+                f"hedged and an unhedged instrument on the same market are two "
+                f"different instruments. Pass hedged or unhedged deliberately; "
+                f"if this listing is not the one you meant, that is the point "
+                f"of this refusal.")
+
         did = decision_id or str(uuid.uuid4())
         now = session.utc_iso()
 
@@ -311,12 +374,13 @@ class Register:
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
             " invalidation, status, operator_action, thesis_state, run_id,"
-            " signals_used, blocked_reason)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " signals_used, blocked_reason, currency_exposure, note)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
-             json.dumps(signals_used or []), blocked_reason))
+             json.dumps(signals_used or []), blocked_reason,
+             currency_exposure, note))
         self.conn.commit()
         return did
 

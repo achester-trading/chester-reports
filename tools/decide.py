@@ -64,7 +64,8 @@ sys.path.insert(0, str(REPO / "tools"))
 from altdata import session                       # noqa: E402
 from register import instruments, manifest        # noqa: E402
 from register.store import (                      # noqa: E402
-    DIRECTIONS, HORIZONS, OPERATOR_ACTIONS, STATUSES, THESIS_STATES,
+    CURRENCY_EXPOSURES, DIRECTIONS, HORIZONS, OPERATOR_ACTIONS, STATUSES,
+    THESIS_STATES,
     Register, RestrictedInstrumentError,
 )
 import exposure_compute as ec                     # noqa: E402
@@ -318,7 +319,8 @@ def cmd_record(args) -> int:
                                thesis=args.thesis, edge_type=args.edge_type,
                                horizon=args.horizon, invalidation=args.invalidation,
                                size=args.size, status=args.status,
-                               operator_action=args.operator_action, run_id=run_id)
+                               operator_action=args.operator_action, run_id=run_id,
+                               currency_exposure=args.currency_exposure)
                 except RestrictedInstrumentError:
                     print(f"  attempt logged to blocked_attempts")
             print(f"{LINE}")
@@ -413,7 +415,8 @@ def cmd_record(args) -> int:
                          size=args.size, status=status,
                          operator_action=args.operator_action, run_id=run_id,
                          signals_used=sorted(args.signals_used),
-                         blocked_reason=blocked_reason)
+                         blocked_reason=blocked_reason,
+                         currency_exposure=args.currency_exposure)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -551,6 +554,12 @@ def cmd_set_status(args) -> int:
               f"{old['operator_action'] or '(none)'}")
         print(f"  to              : status {args.status:<8} action "
               f"{action or '(none)'}")
+        new_state = args.thesis_state or old["thesis_state"]
+        if new_state != old["thesis_state"]:
+            print(f"  thesis state    : {old['thesis_state'] or '(none)'} -> "
+                  f"{new_state}")
+        if args.note:
+            print(f"  note            : {args.note}")
 
         # A frozen row cannot take the pointer, and the trigger would abort the
         # UPDATE anyway. Refusing here names WHICH row to act on instead.
@@ -562,7 +571,16 @@ def cmd_set_status(args) -> int:
             print(LINE)
             return 1
 
-        if args.status == old["status"] and action == old["operator_action"]:
+        # The bar counts thesis_state and the note too. It used to compare only
+        # status and operator_action, which made the most important revision
+        # this command can write unwritable: a thesis that has been INVALIDATED
+        # while the position is still held changes neither of those two, so
+        # marking it was refused as noise. That pair -- status active,
+        # thesis_state INVALIDATED -- is the honest record of a missed exit, and
+        # it is exactly what the register needs to be able to say.
+        if (args.status == old["status"] and action == old["operator_action"]
+                and (args.thesis_state or old["thesis_state"]) == old["thesis_state"]
+                and not args.note):
             print(f"\n  NO CHANGE -- nothing written.")
             print(f"    Part 7 rule 4: revision has a bar. A superseding record "
                   f"that changes\n    nothing is noise in the trail that grades "
@@ -578,7 +596,15 @@ def cmd_set_status(args) -> int:
         # stale must not become active tonight. Without this re-check,
         # `set-status --status active` is precisely the route around
         # DECISION_BLOCKED that the record path closes.
-        if args.status == "active":
+        #
+        # ACTIVATION means a row that was not active becoming active. A row that
+        # is ALREADY active is not re-activated by being annotated, and requiring
+        # fresh signals to annotate one makes the register unable to describe its
+        # own open positions: a held position's entry signals are stale by
+        # definition a week later, so demanding freshness here refuses the very
+        # write that records "this thesis is dead and the position is still on".
+        # The gate belongs on the transition, not on every touch of a live row.
+        if args.status == "active" and old["status"] != "active":
             fresh = freshness.check_signals(signals, old["instrument_norm"])
             print(f"\n  signal freshness, RE-CHECKED NOW ({len(signals)} carried "
                   f"forward)")
@@ -616,9 +642,13 @@ def cmd_set_status(args) -> int:
             thesis=old["thesis"], edge_type=old["edge_type"],
             horizon=old["horizon"], invalidation=old["invalidation"],
             size=old["size"], status=args.status, operator_action=action,
-            thesis_state=old["thesis_state"], run_id=run_id,
-            decision_time=now, signals_used=signals,
-            blocked_reason=blocked_reason)
+            thesis_state=args.thesis_state or old["thesis_state"],
+            run_id=run_id, decision_time=now, signals_used=signals,
+            blocked_reason=blocked_reason,
+            # Carried forward, because the successor describes the same
+            # position: a status change does not re-open the currency question.
+            currency_exposure=old["currency_exposure"],
+            note=args.note)
 
         # The successor gets its own packet, because a decision without one
         # cannot be replayed and `show` would report none. Its INPUTS are the
@@ -705,6 +735,10 @@ def main() -> int:
                         "unchecked decision is the thing 26.2 #7 forbids.")
     r.add_argument("--size", default=None)
     r.add_argument("--status", default="draft", choices=STATUSES)
+    r.add_argument("--currency-exposure", default=None,
+                   choices=CURRENCY_EXPOSURES,
+                   help="Part 31.3(c): required for a non-USD listing "
+                        "(instrument written <sym>@<venue>.<CCY>).")
     r.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS)
     r.add_argument("--run-id", default=None)
     r.add_argument("--available-at-cutoff", default=None)
@@ -757,6 +791,15 @@ def main() -> int:
                         help="change a decision's status by superseding it")
     ss.add_argument("--id", required=True)
     ss.add_argument("--status", required=True, choices=STATUSES)
+    ss.add_argument("--thesis-state", default=None, choices=THESIS_STATES,
+                    help="Carried forward from the superseded row if omitted. "
+                         "A thesis can be INVALIDATED while the position is "
+                         "still held -- that pair is the whole point of the "
+                         "field, and it is not expressible by status alone.")
+    ss.add_argument("--note", default=None,
+                    help="What this supersession is FOR. The thesis is carried "
+                         "forward verbatim, so without a note the trail records "
+                         "that something changed and not why.")
     ss.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS,
                     help="Carried forward from the superseded row if omitted.")
     ss.add_argument("--run-id", default=None)

@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -36,7 +37,8 @@ sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import config, observations, session  # noqa: E402
 from register import instruments, manifest  # noqa: E402
-from register.store import Register, RestrictedInstrumentError  # noqa: E402
+from register.store import (Register, RestrictedInstrumentError,   # noqa: E402
+                            CurrencyExposureUnstatedError, listing_currency)
 import exposure_compute as ec               # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -170,12 +172,37 @@ def group_b(db_path: str) -> None:
             ("BNT", "Brookfield Wealth Solutions -- the operator's own chain"),
             ("OCSL", "Oaktree, tier 4"),
             ("Brookfield Real Assets Income Fund", "matched on entity NAME"),
+            # THE LISTING-QUALIFIER BYPASS. Portfolio Truth keys a holding
+            # `<sym>@<venue>.<currency>` and the register accepts that form, so
+            # the normaliser has to strip it BEFORE the blocklist is consulted.
+            # It did not, briefly: the dotted-suffix rule ate `.CAD` as a
+            # three-letter tail, left `@TSE` attached, and `BN@TSE.CAD`
+            # normalised to `BN@TSE` -- no root matched and a restricted
+            # instrument written the qualified way walked through the compliance
+            # check. This is the one failure mode a compliance restriction may
+            # not have, so it is pinned here rather than left to the unit case.
+            ("BN@TSE.CAD", "the qualified listing form must not bypass the rule"),
+            ("bn@tse.cad", "the qualified form, lower case"),
+            ("BEP.UN@TSE.CAD", "a unit class in the qualified form"),
+            ("BN    260918C00050000@SMART.USD", "an OCC option, qualified"),
     ):
         raises(lambda s=bad_sym: reg.record(instrument=s, **base),
                RestrictedInstrumentError, f"refused {bad_sym!r} -- {why}")
 
+    # Compliance OUTRANKS the currency rule. A restricted instrument in a
+    # non-USD listing must report the restriction, not a missing field: the
+    # operator who supplies currency_exposure and retries must still be refused.
+    raises(lambda: reg.record(instrument="BN@TSE.CAD",
+                              currency_exposure="hedged", **base),
+           RestrictedInstrumentError,
+           "a restricted non-USD listing is refused as RESTRICTED even with "
+           "currency_exposure supplied -- compliance is checked first")
+
+    check(instruments.normalise("BEPC@NYSE.USD") == "BEPC",
+          "BEPC does not collapse to BEP once the qualifier is stripped")
+
     n_blocked = len(reg.blocked_attempts())
-    check(n_blocked == 9, f"every refusal is logged ({n_blocked} attempts recorded)")
+    check(n_blocked == 14, f"every refusal is logged ({n_blocked} attempts recorded)")
 
     # THE BACKSTOP. A raw connection that never imports the register.
     raw = sqlite3.connect(db_path)
@@ -202,6 +229,77 @@ def group_b(db_path: str) -> None:
            sqlite3.IntegrityError,
            "'buy' is not a direction; the vocabulary is closed")
     reg.close()
+
+
+# ---------------------------------------------------------------------------
+def group_g(db_path: str) -> None:
+    """Part 31.3(c): the currency leg the ticker hides."""
+    print(f"\n{LINE}\nG. PART 31.3(c) -- CURRENCY EXPOSURE ON A NON-USD LISTING\n{LINE}")
+    reg = Register(db_path)
+    base = dict(direction="short", thesis="t", edge_type="positioning",
+                horizon="swing", invalidation="none")
+
+    for inst, ccy in (("SPY", None), ("SPY@ARCA.USD", "USD"),
+                      ("SPY@MEXI.MXN", "MXN"), ("7203@TSEJ.JPY", "JPY"),
+                      ("SPY   260918C00780000@SMART.USD", "USD")):
+        check(listing_currency(inst) == ccy,
+              f"listing_currency({inst!r}) == {ccy!r}")
+
+    # THE 17 SEPTEMBER 2026 CASE. The exit was submitted against SPY on MEXI in
+    # pesos instead of SPY on ARCA in dollars, and nothing asked why a dollar
+    # book was taking peso exposure. This refusal is that question.
+    raises(lambda: reg.record(instrument="SPY@MEXI.MXN", **base),
+           CurrencyExposureUnstatedError,
+           "a non-USD listing without currency_exposure is refused")
+    did = reg.record(instrument="SPY@MEXI.MXN", currency_exposure="unhedged",
+                     **base)
+    check(reg.get(did)["currency_exposure"] == "unhedged",
+          "stated deliberately, it records -- and the field is on the row")
+
+    # A USD listing and a bare ticker are unaffected: the rule is about a
+    # currency leg, not about qualifying every instrument.
+    check(reg.get(reg.record(instrument="SPY@ARCA.USD", **base)) is not None,
+          "a USD listing needs no currency_exposure")
+    check(reg.get(reg.record(instrument="QQQ", **base)) is not None,
+          "an unqualified ticker needs none either -- currency unknown, not USD")
+
+    raises(lambda: reg.record(instrument="SPY@MEXI.MXN",
+                              currency_exposure="maybe", **base),
+           ValueError, "the vocabulary is closed (unhedged/hedged/n_a)")
+
+    # ANNOTATING A LIVE ROW IS NOT ACTIVATING IT. The CLI re-checks signal
+    # freshness when a row BECOMES active, which is right, and used to re-check
+    # it on any set-status naming `active` -- including on a row that already
+    # was. That made the register unable to describe its own open positions: a
+    # held position's entry signals are stale a week later by definition, so the
+    # one write that matters after a missed exit (status still active,
+    # thesis_state INVALIDATED) was refused as a stale activation.
+    live = reg.record(instrument="QQQ", status="active",
+                      operator_action="TAKE",
+                      **{**base, "thesis": "held position"})
+    reg.close()
+
+    r = subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
+                        "--db", db_path, "set-status", "--id", live,
+                        "--status", "active", "--thesis-state", "INVALIDATED",
+                        "--note", "thesis dead, position still on", "--dry-run"],
+                       capture_output=True, text=True, cwd=str(REPO))
+    check(r.returncode == 0 and "INVALIDATED" in r.stdout
+          and "RE-CHECKED NOW" not in r.stdout,
+          "an already-active row can be annotated INVALIDATED without a "
+          "freshness re-check -- the gate is on the transition, not on a touch")
+
+    reg = Register(db_path)
+    d2 = reg.record(instrument="QQQ", status="draft",
+                    **{**base, "thesis": "a draft to promote"})
+    reg.close()
+    r = subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
+                        "--db", db_path, "set-status", "--id", d2,
+                        "--status", "active", "--dry-run"],
+                       capture_output=True, text=True, cwd=str(REPO))
+    check("RE-CHECKED NOW" in r.stdout,
+          "a DRAFT becoming active still gets the freshness re-check -- "
+          "narrowing the gate did not remove it")
 
 
 # ---------------------------------------------------------------------------
@@ -507,6 +605,7 @@ def main() -> int:
         db = str(Path(td) / "test.db")
         group_a(db)
         group_b(db)
+        group_g(db)
         group_c(db)
         group_e(db, td)
     group_f()
