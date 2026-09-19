@@ -40,7 +40,8 @@ PY_VALIDATORS := \
 	tools/validate_daily_close.py \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
-	tools/check_library.py
+	tools/check_library.py \
+	tools/validate_gates.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \
