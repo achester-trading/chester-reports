@@ -2,7 +2,7 @@
 
 ### Options, Gamma, and the Mechanics Behind §06 — An Elaboration of Daily Cascade Chapter 2
 
-**Companion XIII · Version 1.1 · August 30, 2026, extended September 5, 2026**
+**Companion XIII · Version 1.1 · August 30, 2026, extended September 5 and September 19, 2026**
 
 *Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. This Markdown file is canonical; its twenty-one figures are files under `docs/figures/dealers-hand/`.*
 
@@ -391,6 +391,12 @@ Everything in Chapter 5 turns on this level. Its mechanics are simply the runnin
 **It moves.** Every new trade shifts it. Heavy put buying pulls it up toward spot (more negative gamma below); heavy call overwriting pushes it down (more positive gamma above). The report tracks the flip's delta between reports (7,408 → 7,403) precisely because the *movement* is a leading indicator: a flip rising toward spot while spot is flat means the stabilizing cushion is thinning from underneath. DC 2.7.5 is the operational version.
 
 **Crossing it is not an event; being below it is a condition.** The market does not crash on crossing the flip. It changes *character* — from suppressed to amplified — and the change is visible in the next several moves, not the crossing itself. Traders who treat the flip as a trapdoor overreact at the level and then underreact to the regime they are now in. The correct response to a flip break is not a trade; it is a **change of playbook** (Chapter 14).
+
+**There are two flips, and which one you want depends on the horizon you are asking about.** Including same-day expiries pulls the flip toward spot; the settled profile, which computes no 0DTE greeks at all, puts it higher. The mechanism is the one Chapter 9 gives for 0DTE gamma being different in kind: same-day contracts carry enormous gamma concentrated in a narrow band around spot, so admitting them loads the running sum near the money and moves the zero crossing to meet it. Strip them out and the crossing is set by the weekly and monthly structure, which sits further away.
+
+Neither reading is the correct one. The **intraday flip governs the session** — it is the boundary the day's hedging actually happens across, and it is the one DC 2.7.5 tracks and the one a Book C setup is gated on. The **settled flip governs the overnight structure**, because the 0DTE contracts that pulled the intraday level in have expired by the time the overnight gap forms, and what remains to hedge against is exactly what the settled profile measured. Reading the settled level as though it governed the session, or the intraday level as though it survived the close, is the same error in two directions.
+
+The size of the gap is worth knowing rather than assuming, and so far it is small and variable: about 2 basis points on the Tuesday and about 0.35% on the Wednesday — a seventeenfold difference between two consecutive sessions, which is the point. It is a function of how much 0DTE gamma the day happened to carry and where, so it has to be read per session rather than carried as a constant. *Observed on two sessions, 15–16 September 2026, last verified September 2026 — a sample far too small to characterise the distribution, and recorded here so the next dozen sessions have something to accumulate against.*
 
 ### 7.6 The levels, summarized by mechanism
 

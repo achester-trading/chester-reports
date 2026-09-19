@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="0728c42aacf5a2933789e992b71c99787df19e27e8b283f113b3ed1c7b2d823e">
+<meta name="source-sha256" content="4f13823ab7e5297c87ab86dea26a2d3efe2e8b7fdf08aedad087d95116027ae9">
 <title>THE DEALER&#x27;S HAND</title>
 <style>
 :root {
@@ -131,7 +131,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>THE DEALER'S HAND</h1>
 <h3>Options, Gamma, and the Mechanics Behind §06 — An Elaboration of Daily Cascade Chapter 2</h3>
-<p><strong>Companion XIII · Version 1.1 · August 30, 2026, extended September 5, 2026</strong></p>
+<p><strong>Companion XIII · Version 1.1 · August 30, 2026, extended September 5 and September 19, 2026</strong></p>
 <p><em>Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name. This Markdown file is canonical; its twenty-one figures are files under <code>docs/figures/dealers-hand/</code>.</em></p>
   </div>
 
@@ -547,6 +547,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>Everything in Chapter 5 turns on this level. Its mechanics are simply the running sum of 6.4 crossing zero. Two things about its behavior that the aggregate number hides:</p>
 <p><strong>It moves.</strong> Every new trade shifts it. Heavy put buying pulls it up toward spot (more negative gamma below); heavy call overwriting pushes it down (more positive gamma above). The report tracks the flip's delta between reports (7,408 → 7,403) precisely because the <em>movement</em> is a leading indicator: a flip rising toward spot while spot is flat means the stabilizing cushion is thinning from underneath. DC 2.7.5 is the operational version.</p>
 <p><strong>Crossing it is not an event; being below it is a condition.</strong> The market does not crash on crossing the flip. It changes <em>character</em> — from suppressed to amplified — and the change is visible in the next several moves, not the crossing itself. Traders who treat the flip as a trapdoor overreact at the level and then underreact to the regime they are now in. The correct response to a flip break is not a trade; it is a <strong>change of playbook</strong> (Chapter 14).</p>
+<p><strong>There are two flips, and which one you want depends on the horizon you are asking about.</strong> Including same-day expiries pulls the flip toward spot; the settled profile, which computes no 0DTE greeks at all, puts it higher. The mechanism is the one Chapter 9 gives for 0DTE gamma being different in kind: same-day contracts carry enormous gamma concentrated in a narrow band around spot, so admitting them loads the running sum near the money and moves the zero crossing to meet it. Strip them out and the crossing is set by the weekly and monthly structure, which sits further away.</p>
+<p>Neither reading is the correct one. The <strong>intraday flip governs the session</strong> — it is the boundary the day's hedging actually happens across, and it is the one DC 2.7.5 tracks and the one a Book C setup is gated on. The <strong>settled flip governs the overnight structure</strong>, because the 0DTE contracts that pulled the intraday level in have expired by the time the overnight gap forms, and what remains to hedge against is exactly what the settled profile measured. Reading the settled level as though it governed the session, or the intraday level as though it survived the close, is the same error in two directions.</p>
+<p>The size of the gap is worth knowing rather than assuming, and so far it is small and variable: about 2 basis points on the Tuesday and about 0.35% on the Wednesday — a seventeenfold difference between two consecutive sessions, which is the point. It is a function of how much 0DTE gamma the day happened to carry and where, so it has to be read per session rather than carried as a constant. <em>Observed on two sessions, 15–16 September 2026, last verified September 2026 — a sample far too small to characterise the distribution, and recorded here so the next dozen sessions have something to accumulate against.</em></p>
 <h3>7.6 The levels, summarized by mechanism</h3>
 <table>
 <thead>
