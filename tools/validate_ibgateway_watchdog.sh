@@ -35,7 +35,12 @@ cat >"$BIN/systemctl" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$SYSTEMCTL_CALLS"
 case "$*" in
-    *is-active*) [[ "${UNIT_ACTIVE:-1}" == "1" ]] && exit 0 || exit 3 ;;
+    *is-active*)
+        # The real systemctl PRINTS the state and exits 0 only for
+        # "active". The watchdog reads the word, because "activating" and
+        # "inactive" are both non-zero here and must not be treated alike.
+        echo "${UNIT_STATE:-active}"
+        [[ "${UNIT_STATE:-active}" == "active" ]] && exit 0 || exit 3 ;;
     *MemoryCurrent*) echo "308281344"; exit 0 ;;
     *restart*)
         # Snapshot the watchdog's state file AT THE MOMENT the restart is
@@ -61,6 +66,7 @@ STUB
 chmod +x "$BIN/systemctl" "$BIN/flock" "$BIN/fake_python"
 
 export SYSTEMCTL_CALLS="$SANDBOX/systemctl.calls"
+export INTENT="$SANDBOX/state/gateway.stopped_by_operator"
 export WD_STATE="$SANDBOX/state/ibgateway_watchdog.state"
 export PATH="$BIN:$PATH"
 
@@ -75,11 +81,14 @@ run() {
     FAILURES_BEFORE_RESTART=3 \
     MAX_RESTARTS_PER_DAY=3 \
     UNIT_ACTIVE="${UNIT_ACTIVE:-1}" \
+    UNIT_STATE="${UNIT_STATE:-active}" \
     RESTART_OK="${RESTART_OK:-1}" \
+    GATEWAY_INTENT_FILE="$INTENT" \
         bash "$WATCHDOG" >/dev/null 2>&1
     RC=$?
     HEALTH="$(cat "$SANDBOX/state/ibgateway_health" 2>/dev/null)"
     restarted() { grep -q "restart ibgateway.service" "$SYSTEMCTL_CALLS"; }
+    started()   { grep -qE "(^| )start ibgateway.service" "$SYSTEMCTL_CALLS"; }
 }
 
 reset_state() { rm -f "$SANDBOX/state/ibgateway_watchdog.state" \
@@ -89,14 +98,88 @@ echo "==========================================================================
 echo "IB Gateway watchdog policy"
 echo "=============================================================================="
 
-# --- a deliberately stopped Gateway is not a fault ------------------------
+# --- INTENT IS A FILE: the branches of a not-active unit -------------------
+#
+# All of these used to be one branch. ANY not-active unit was read as a human
+# decision -- the log line said "stopped deliberately?", question mark and all --
+# so IBKR's nightly closedown, a crash and a failed start were each reported
+# healthy and left down, on the one unit the watchdog exists to keep alive.
+
+# Branch 1: the marker is present. A human said so; do not touch it.
 reset_state
-UNIT_ACTIVE=0 run 3
-[[ $RC -eq 0 ]] && ok "unit inactive -> exit 0 (stopped on purpose is not a fault)" \
-                || bad "unit inactive -> exit $RC, want 0"
-restarted && bad "unit inactive -> must NOT restart a human's decision" \
-           || ok "unit inactive -> no restart issued"
-UNIT_ACTIVE=1
+mkdir -p "$(dirname "$INTENT")"; : >"$INTENT"
+UNIT_STATE=inactive run 3
+[[ $RC -eq 0 ]] && ok "inactive + operator marker -> exit 0 (not a fault)" ||
+    bad "inactive + marker -> exit $RC, want 0"
+if started || restarted; then
+    bad "inactive + marker -> the watchdog overrode the operator"
+else
+    ok "inactive + marker -> nothing started; a human's decision stands"
+fi
+grep -q "state=stopped_by_operator" <<<"$HEALTH" &&
+    ok "health says state=stopped_by_operator, naming WHY it is down" ||
+    bad "health file: $HEALTH"
+rm -f "$INTENT"
+
+# Branch 2: no marker. Nobody claimed it, so bring it back.
+reset_state
+UNIT_STATE=inactive run 3
+started && ok "inactive, NO marker -> started (closedown, crash and OOM all land here)" ||
+    bad "inactive, no marker -> nothing started; the watchdog did nothing"
+[[ $RC -eq 1 ]] && ok "inactive, no marker -> exit 1 (it acted on an unhealthy unit)" ||
+    bad "inactive, no marker -> exit $RC, want 1"
+grep -q "state=down_restarted" <<<"$HEALTH" && ok "health says state=down_restarted" ||
+    bad "health file: $HEALTH"
+grep -q "RESTARTS=1" "$WD_STATE" &&
+    ok "the start is charged to the daily budget, like any other restart" ||
+    bad "the start was not recorded: $(cat "$WD_STATE" 2>/dev/null)"
+
+# A `failed` unit is the same case: nobody chose it.
+reset_state
+UNIT_STATE=failed run 3
+started && ok "failed, no marker -> started too (a failed unit is not intent)" ||
+    bad "failed, no marker -> nothing started"
+
+# Branch 3: MID-TRANSITION IS NOT DOWN. is-active returns non-zero for
+# "activating", and the Gateway needs tens of seconds through a GUI to start
+# (TimeoutStartSec=5min). Acting on that reading would interrupt every start
+# before it finished -- restarting the Gateway because it was busy starting.
+reset_state
+UNIT_STATE=activating run 3
+[[ $RC -eq 0 ]] && ok "activating -> exit 0 (in transition, not down)" ||
+    bad "activating -> exit $RC, want 0"
+started && bad "activating -> must NOT start a unit that is already starting" ||
+    ok "activating -> nothing started; the start is left to finish"
+reset_state
+UNIT_STATE=deactivating run 3
+started && bad "deactivating -> must not fight a stop in progress" ||
+    ok "deactivating -> nothing started"
+
+# The daily budget governs this path too: a unit that will not stay up must not
+# be relaunched all night.
+reset_state
+printf 'FAILS=0\nRESTARTS=3\nRESTART_DAY=%s\n' "$(date +%F)" >"$WD_STATE"
+UNIT_STATE=inactive run 3
+[[ $RC -eq 2 ]] && ok "inactive, no marker, budget spent -> exit 2 (human required)" ||
+    bad "inactive, budget spent -> exit $RC, want 2"
+started && bad "budget spent -> must not start again" ||
+    ok "budget spent -> no start issued"
+
+# --- the unit clears the marker on start -----------------------------------
+UNIT_FILE="$REPO/deploy/systemd/ibgateway.service"
+grep -q 'ExecStartPre=-/bin/rm -f %h/state/gateway.stopped_by_operator' "$UNIT_FILE" &&
+    ok "ibgateway.service clears the intent marker on start, so a forgotten rm cannot disarm the watchdog" ||
+    bad "ibgateway.service does not clear the intent marker on start"
+
+# --- the procedure is documented where the operator will look --------------
+grep -q 'gateway.stopped_by_operator' "$WATCHDOG" &&
+    ok "the watchdog documents the intent marker" ||
+    bad "the watchdog does not mention the intent marker"
+grep -q 'touch  ~/state/gateway.stopped_by_operator' "$WATCHDOG" &&
+    ok "and gives the order-placement procedure: touch, stop, place, remove" ||
+    bad "the touch-stop-place-remove procedure is not documented"
+
+UNIT_STATE=active
 
 # --- healthy --------------------------------------------------------------
 reset_state

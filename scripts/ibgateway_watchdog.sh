@@ -41,12 +41,35 @@
 #   1 unhealthy, restart attempted
 #   2 unhealthy, restart SUPPRESSED -- needs a human
 #
+# STOPPING THE GATEWAY ON PURPOSE -- and the only supported way to place an order.
+#
+# The API this system uses is read-only by construction: every IBKR service in
+# altdata/ connects with readonly=True and tools/validate_ibkr_portfolio.py
+# proves no order-placing call exists in the source. Placing an order therefore
+# means doing it by hand in the Gateway GUI, which means stopping the headless
+# unit first -- and a stopped Gateway is exactly what this watchdog restarts.
+#
+# Intent is declared by a file. The procedure, in order:
+#
+#   1. touch  ~/state/gateway.stopped_by_operator      declare the intent FIRST
+#   2. systemctl --user stop ibgateway                 then stop the unit
+#   3. place the order in the GUI
+#   4. rm  ~/state/gateway.stopped_by_operator         hand it back
+#
+# The marker goes down BEFORE the stop, not after: between the stop and the
+# touch the watchdog would see an unexplained dead unit and restart it out from
+# under the order being placed. Step 4 is how the Gateway comes back -- the
+# watchdog sees a dead unit with no marker and starts it. `systemctl --user
+# start ibgateway` also works, and the unit removes the marker itself on start
+# so a forgotten step 4 cannot leave the Gateway permanently unguarded.
+#
 # Overridable:
 #   CHESTER_REPO / CHESTER_LOG_DIR / CHESTER_STATE_DIR / CHESTER_PYTHON
 #   IBKR_HOST (127.0.0.1)  IBKR_PORT (4002)
 #   WATCHDOG_CLIENT_ID (18)          -- NOT the sync's 17; see below
 #   FAILURES_BEFORE_RESTART (3)
 #   MAX_RESTARTS_PER_DAY (3)
+#   GATEWAY_INTENT_FILE ($HOME/state/gateway.stopped_by_operator)
 
 set -uo pipefail
 
@@ -65,6 +88,14 @@ CLIENT_ID="${WATCHDOG_CLIENT_ID:-18}"
 FAILURES_BEFORE_RESTART="${FAILURES_BEFORE_RESTART:-3}"
 MAX_RESTARTS_PER_DAY="${MAX_RESTARTS_PER_DAY:-3}"
 UNIT="ibgateway.service"
+
+# Deliberately NOT under STATE_DIR. This one file is typed by a human under
+# pressure, mid-procedure, with an order waiting -- so it gets a fixed, short,
+# documented path rather than one that moves with an environment variable the
+# operator would have to resolve first. ibgateway.service names the same literal
+# path to remove it on start, and two places agreeing on a constant is safer
+# here than two places computing the same expression.
+INTENT_FILE="${GATEWAY_INTENT_FILE:-$HOME/state/gateway.stopped_by_operator}"
 
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 LOG="$LOG_DIR/ibgateway_watchdog-$(date +%Y-%m).log"
@@ -109,13 +140,72 @@ report() {   # report <state> <detail> <exitcode>
 }
 
 # --- is the unit even supposed to be up? -----------------------------------
-# A Gateway stopped on purpose is not a fault. Restarting it would override a
-# human decision, which is the one thing a watchdog must never do.
-if ! systemctl --user is-active --quiet "$UNIT"; then
-    log "unit $UNIT is not active -- nothing to watch (stopped deliberately?)"
-    FAILS=0
-    report "unit_inactive" "$UNIT not active; not restarting" 0
-fi
+# INTENT IS A FILE, NOT AN INFERENCE.
+#
+# This branch used to treat ANY not-active unit as a human decision -- the log
+# line literally read "stopped deliberately?", question mark and all, because
+# the code could not tell. That guess is wrong far more often than it is right.
+# IBKR closes the Gateway down on its own schedule every night; a crash, an OOM
+# kill and a failed start all land in the same state. In every one of those the
+# watchdog did nothing and said it was fine, which is the same outcome as not
+# having a watchdog, on the one unit it exists to keep alive.
+#
+# So a deliberate stop now declares itself by touching a file, and everything
+# else is a fault to be fixed. The operator's procedure is in the header.
+ACTIVE_STATE="$(systemctl --user is-active "$UNIT" 2>/dev/null || true)"
+case "$ACTIVE_STATE" in
+    active|reloading)
+        ;;                       # up: fall through to the probe
+
+    activating|deactivating)
+        # MID-TRANSITION IS NOT DOWN, and this distinction is load-bearing.
+        # `is-active` returns non-zero for "activating", so a probe landing
+        # during startup used to read as not-active. The Gateway needs tens of
+        # seconds and IBC drives a GUI to get there (TimeoutStartSec=5min), so
+        # restarting on that reading would interrupt every start before it
+        # finished and loop forever -- restarting a Gateway precisely because it
+        # was busy starting.
+        log "unit $UNIT is $ACTIVE_STATE -- in transition, leaving it alone"
+        report "unit_$ACTIVE_STATE" "$UNIT is $ACTIVE_STATE; waiting" 0
+        ;;
+
+    *)
+        # inactive, failed, or unknown.
+        if [[ -f "$INTENT_FILE" ]]; then
+            log "unit $UNIT is $ACTIVE_STATE and $INTENT_FILE exists -- stopped"
+            log "  by the operator on purpose. Not restarting. Remove the marker"
+            log "  to hand the Gateway back to the watchdog."
+            FAILS=0
+            report "stopped_by_operator" \
+                   "$UNIT stopped deliberately; marker present" 0
+        fi
+
+        # No marker: nobody claimed this. Bring it back, under the same daily
+        # budget as any other restart -- a Gateway that cannot start must not be
+        # relaunched all night.
+        log "unit $UNIT is $ACTIVE_STATE with no operator marker -- not"
+        log "  deliberate. Scheduled closedown, a crash or a failed start all"
+        log "  look like this, and all of them want the Gateway back up."
+        if [[ $RESTARTS -ge $MAX_RESTARTS_PER_DAY ]]; then
+            log "  CRITICAL restart budget exhausted ($RESTARTS/$MAX_RESTARTS_PER_DAY today)."
+            log "  NOT restarting. A unit that will not stay up is not a"
+            log "  restarting problem -- check the journal and IBC's config.ini."
+            report "down_budget_exhausted" \
+                   "restart suppressed: budget exhausted, human required" 2
+        fi
+        RESTARTS=$((RESTARTS + 1))
+        FAILS=0
+        save_state                   # before spending it; see the note below
+        log "  starting $UNIT (restart $RESTARTS of $MAX_RESTARTS_PER_DAY today)"
+        if systemctl --user start "$UNIT"; then
+            log "  start issued"
+            report "down_restarted" \
+                   "was $ACTIVE_STATE; started ($RESTARTS/$MAX_RESTARTS_PER_DAY today)" 1
+        fi
+        log "  ERROR start command failed"
+        report "down_start_failed" "start command FAILED" 2
+        ;;
+esac
 
 PY="${CHESTER_PYTHON:-$REPO/.venv/bin/python}"
 if [[ ! -x "$PY" ]]; then

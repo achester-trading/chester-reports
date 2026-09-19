@@ -40,6 +40,25 @@ Type=simple
 # override that and reintroduce the bug, so it is deliberately absent.
 #
 # Requires the xvfb package: sudo apt install -y xvfb
+# THE OPERATOR-INTENT MARKER IS CLEARED ON START.
+#
+# ~/state/gateway.stopped_by_operator is how a human tells
+# ibgateway-watchdog.service that this unit is down on purpose -- placing an
+# order by hand, which needs the GUI and therefore needs the headless unit
+# stopped. While it exists the watchdog will not restart this service.
+#
+# Starting the unit is the end of that procedure, so the marker goes with it. If
+# it survived a start, the Gateway would be running with its watchdog switched
+# off and nothing would say so: the next crash or scheduled closedown would go
+# unrestarted and the health file would report a deliberate stop. A forgotten
+# `rm` must not be able to disarm the watchdog indefinitely.
+#
+# ExecStartPre, not ExecStartPost: if the start then FAILS, the marker is
+# already gone and the watchdog is free to retry, which is right -- a failed
+# start is not an operator's decision. The leading `-` makes a missing file fine,
+# which is the normal case.
+ExecStartPre=-/bin/rm -f %h/state/gateway.stopped_by_operator
+
 ExecStart=/usr/bin/xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" %h/ibc/gatewaystart.sh -inline
 
 # THE RESTART POLICY IS NOT THE HEALTH CHECK, AND THIS IS THE WHOLE POINT.

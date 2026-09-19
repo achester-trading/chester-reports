@@ -33,9 +33,45 @@ chmod 600 ~/chester-reports/.env        # belt and braces
 ## 3. Directories the wrapper expects
 
 ```bash
-mkdir -p ~/logs ~/backups/chains ~/.chester
+mkdir -p ~/logs ~/backups/chains ~/.chester ~/state
 chmod +x ~/chester-reports/scripts/*.sh
 ```
+
+## 3a. Stopping the Gateway on purpose — and placing an order
+
+The API is read-only by construction: every IBKR service connects with
+`readonly=True`, and `tools/validate_ibkr_portfolio.py` proves no order-placing
+call exists in the source. Placing an order means doing it by hand in the
+Gateway GUI, which means stopping the headless unit — and a stopped Gateway is
+exactly what `ibgateway-watchdog.service` restarts.
+
+**Intent is a file.** The watchdog restarts the Gateway in every not-active case
+*except* one: the operator marker exists. So:
+
+```bash
+touch ~/state/gateway.stopped_by_operator    # 1. declare the intent FIRST
+systemctl --user stop ibgateway              # 2. then stop the unit
+#                                              3. place the order in the GUI
+rm ~/state/gateway.stopped_by_operator       # 4. hand it back
+```
+
+The marker goes down **before** the stop. Between a stop and a later touch the
+watchdog would see an unexplained dead unit and restart it out from under the
+order being placed.
+
+Step 4 is how the Gateway comes back: the watchdog finds a dead unit with no
+marker and starts it, within the same `MAX_RESTARTS_PER_DAY` budget as any other
+restart. `systemctl --user start ibgateway` works too, and the unit removes the
+marker itself on start (`ExecStartPre`), so a forgotten step 4 cannot leave the
+Gateway running with its watchdog disarmed.
+
+What this replaced: the watchdog treated *any* not-active unit as a deliberate
+stop — its log line read `stopped deliberately?`, question mark included, because
+nothing told it. IBKR's nightly closedown, a crash, an OOM kill and a failed
+start all read as intent, so the watchdog reported healthy and left the Gateway
+down. `~/.chester/ibgateway_health` now names which case it is:
+`stopped_by_operator`, `down_restarted`, `down_budget_exhausted`,
+`unit_activating`.
 
 ## 4. Install the timer
 
