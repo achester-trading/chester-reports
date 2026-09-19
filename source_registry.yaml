@@ -210,6 +210,42 @@ sources:
         an unbounded horizon is scoreable at all, and it is arguable rather than
         measured.
 
+  derived_probability:
+    name: Brier scores over the probability ledger
+    tier: derived
+    epistemic_role: own_computation
+    domain: [forecast_calibration]
+    geography: [US]
+    latency: >-
+      A score exists only once its forecast resolves, so the latency is the
+      forecast's own horizon.
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Each row carries emitted_at and resolved_at separately, so the gap between
+      the claim and its scoring is always visible.
+    license: n/a
+    # Empty for the same reason derived_grade's is: a calibration score measures
+    # this system's own forecasting, and feeding it back as a report input would
+    # let the system cite its own marking as evidence.
+    allowed_reports: []
+    implemented_by: altdata/probability_ledger.py
+    status: active
+    caveats:
+      - >-
+        EMPTY AS OF 19 September 2026. Nothing in this system emits a
+        machine-readable probability: the Monthly's section III is a manual
+        placeholder and the 25-scenario tail list carries none by design
+        ("effective n is approximately zero for all 25 ... conditioners, never
+        triggers"). The seeding path is built and reports finding nothing rather
+        than inventing weights.
+      - >-
+        A Brier score conflates CALIBRATION with RESOLUTION -- the willingness to
+        say anything other than the base rate. Above 0.25 is unambiguously worse
+        than always saying 50%; below it the number alone cannot separate a
+        well-calibrated forecaster from a lucky one. The
+        reliability/resolution/uncertainty decomposition that would is owed, and
+        needs an n this ledger will not have for a year.
+
   ibkr_paper:
     name: Interactive Brokers, paper account via local IB Gateway
     tier: A0

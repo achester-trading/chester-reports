@@ -142,6 +142,12 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # FORECAST CALIBRATION. Separate from decision_grade because they measure
+    # different things: a grade asks whether a POSITION worked, a Brier score asks
+    # whether a stated LIKELIHOOD was honest. A system can be well calibrated and
+    # unprofitable, or profitable and badly calibrated, and merging the groups
+    # would let one stand in as evidence for the other.
+    - forecast_calibration
     # DECISION GRADES. Its own group, and it must never share one with a market
     # metric: a grade is a measurement of THIS SYSTEM'S OWN OUTPUT, so letting it
     # confirm a market signal would be the system marking its own homework and
@@ -945,6 +951,57 @@ metrics:
       measurable cost of where the invalidation was placed, and collapsing the two
       would destroy the distinction Part 7 grades on: a thesis exited early that
       would have worked is a different failure from a thesis that was wrong.
+
+
+  # ---------------------------------------------------------------------------
+  # BRIER (Phase 3). Calculated, trigger_eligible false, and permanently so for
+  # the same reason the grades are: a calibration score is how a forecast SOURCE
+  # earns credibility, and letting the score move a decision would close the loop
+  # on itself.
+  brier.score:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      (p - outcome)^2 for one resolved forecast. 0 is certain and right, 0.25 is
+      what always saying 50% gets you, 1 is certain and wrong. revision_policy is
+      `never`: a forecast is immutable by trigger and a resolution is written
+      once, so the score cannot change once it exists.
+  brier.running:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Mean Brier over every resolved forecast from one source. Recomputed as
+      forecasts resolve, and never reported without its n -- the score conflates
+      calibration with resolution, so below the 0.25 coin line the number alone
+      cannot separate a calibrated forecaster from a lucky one.
+  brier.vs_coin:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      brier.running minus 0.25. Positive means the source is worse than always
+      saying fifty per cent, which is the one verdict a Brier score delivers
+      unambiguously at small n.
 
 
 bulk_imports:
