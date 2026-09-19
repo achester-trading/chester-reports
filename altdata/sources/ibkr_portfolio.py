@@ -107,7 +107,35 @@ ACCOUNT_TAGS = {
 POSITION_METRICS = ("portfolio.position_qty",
                     "portfolio.position_avg_cost",
                     "portfolio.position_market_value",
-                    "portfolio.position_unrealized_pnl")
+                    "portfolio.position_unrealized_pnl",
+                    "portfolio.position_currency",
+                    "portfolio.position_con_id")
+
+
+def instrument_key(h: dict) -> Optional[str]:
+    """The store key for one holding: `<localSymbol>@<venue>.<currency>`.
+
+    localSymbol ALONE IS NOT UNIQUE, which is the bug this function exists to
+    close. It disambiguates two options on one underlying -- the case it was
+    chosen for -- and fails on a cross-listing, where the same issue trades on
+    two exchanges in two currencies under one localSymbol. On 17 September 2026
+    the account held SPY on ARCA in USD (conId 756733) and SPY on MEXI in MXN
+    (conId 38709152); both keyed to `SPY`, both produced identical idempotence
+    keys, and `INSERT OR IGNORE` silently discarded the second for 35 syncs.
+    The store reported a Mexican-peso short and had thrown away a live
+    hundred-share long.
+
+    Venue and currency, not conId, carry the key because the key is read by
+    humans in the close report and a conId is opaque. The conId is recorded
+    beside it as `portfolio.position_con_id`, so the authoritative identifier
+    is in the store even though it is not the key.
+    """
+    base = h.get("local_symbol") or h.get("symbol")
+    if not base:
+        return None
+    venue = h.get("primary_exchange") or h.get("exchange") or "?"
+    ccy = h.get("currency") or "?"
+    return f"{base}@{venue}.{ccy}"
 
 
 class IbkrError(Exception):
@@ -128,6 +156,16 @@ class IbkrAuthError(IbkrError):
 
 class IbkrApiError(IbkrError):
     """Any other failure after a successful connect."""
+
+
+class IbkrDataError(IbkrError):
+    """The read succeeded but the book cannot be represented without loss.
+
+    Distinct from IbkrApiError because nothing went wrong on the wire: the
+    Gateway answered correctly and the data it returned is the problem. Raised
+    when two holdings collide on one instrument key, where continuing would
+    write a book with a position missing from it.
+    """
 
 
 def mode_for_port(port: int) -> str:
@@ -260,6 +298,13 @@ def read_state(ib, port: int = DEFAULT_PORT) -> dict:
             "local_symbol": getattr(contract, "localSymbol", None),
             "sec_type": getattr(contract, "secType", None),
             "currency": getattr(contract, "currency", None),
+            # The three fields that make a holding identifiable. A PortfolioItem
+            # carries primaryExchange and a Position carries exchange; take
+            # whichever is present so the key does not depend on which call the
+            # holding came from.
+            "con_id": _num(getattr(contract, "conId", None)),
+            "primary_exchange": getattr(contract, "primaryExchange", None),
+            "exchange": getattr(contract, "exchange", None),
             "position": _num(getattr(p, "position", None)),
             "avg_cost": _num(getattr(p, "averageCost", None)),
             "market_value": _num(getattr(p, "marketValue", None)),
@@ -299,17 +344,38 @@ def to_observations(state: dict, run_id: Optional[str] = None) -> list[dict]:
                          "value": got["value"], "source": src,
                          "run_id": run_id})
 
+    # Two holdings that reduce to one key would be silently deduped by the
+    # store's idempotence index, and the one that survived would be whichever
+    # IBKR happened to serve first. That is not a stale row to be tolerated; it
+    # is a position missing from the record. Detect it here and refuse, because
+    # a Portfolio Truth sync whose whole claim is to be truth must not return a
+    # partial book quietly.
+    seen: dict[str, dict] = {}
     for h in state.get("positions") or []:
-        # Instrument is the contract's local symbol where there is one -- an
-        # option's localSymbol carries expiry and strike, which the bare symbol
-        # does not, and two contracts on one underlying must not collide.
-        inst = h.get("local_symbol") or h.get("symbol")
+        inst = instrument_key(h)
         if not inst:
             continue
+        if inst in seen:
+            raise IbkrDataError(
+                f"two holdings collide on instrument key {inst!r}: "
+                f"conId {seen[inst].get('con_id')} and {h.get('con_id')}. "
+                f"The key is not unique for this book and one position would "
+                f"be dropped by the store's idempotence index. Widen "
+                f"instrument_key() before syncing again.")
+        seen[inst] = h
+
         for key, field in (("portfolio.position_qty", "position"),
                            ("portfolio.position_avg_cost", "avg_cost"),
                            ("portfolio.position_market_value", "market_value"),
-                           ("portfolio.position_unrealized_pnl", "unrealized_pnl")):
+                           ("portfolio.position_unrealized_pnl", "unrealized_pnl"),
+                           # Currency is recorded per holding because avg_cost,
+                           # market_value and unrealized_pnl are in the
+                           # CONTRACT's currency, not the account's. Without
+                           # this row a reader cannot tell 1,313,769 pesos from
+                           # 1,313,769 dollars, and the registry used to
+                           # declare both of them `usd`.
+                           ("portfolio.position_currency", "currency"),
+                           ("portfolio.position_con_id", "con_id")):
             if h.get(field) is None:
                 continue
             rows.append({"registry_key": key, "instrument": inst,

@@ -64,6 +64,10 @@ vocabularies:
     - count
     - days
     - label                  # closed-vocabulary string
+    - contract_ccy           # an amount in the CONTRACT's own currency, which
+                             # is not necessarily the account's. The companion
+                             # portfolio.position_currency row names it. Never
+                             # sum two of these without converting first.
     - boolean
     - date
     - from_member            # bulk blocks only: the member's own declared units
@@ -731,8 +735,11 @@ metrics:
     revision_policy: never
     units: shares
     description: >-
-      Signed position size, keyed on the contract's localSymbol so two options
-      on one underlying cannot collide.
+      Signed position size, keyed `<localSymbol>@<venue>.<currency>`. localSymbol
+      alone was the key until 19 September 2026 and was not unique: it separates
+      two options on one underlying but not a cross-listing, so SPY on ARCA in
+      USD and SPY on MEXI in MXN both keyed to `SPY` and the store silently kept
+      only one of them. The conId is recorded as portfolio.position_con_id.
   portfolio.position_avg_cost:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -742,6 +749,8 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: price
+    description: >-
+      Average cost in the contract's own currency, per portfolio.position_currency.
   portfolio.position_market_value:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -750,7 +759,13 @@ metrics:
     invalidated_by: position_change
     observation_type: observed
     revision_policy: never
-    units: usd
+    units: contract_ccy
+    description: >-
+      Market value in the CONTRACT's currency, not the account's -- declared
+      `usd` until 19 September 2026, which was wrong for any non-USD listing and
+      read a 1,313,769-peso short as a 1.3-million-dollar one. Convert before
+      comparing or summing; portfolio.gross_position_value is IBKR's own
+      base-currency total and is the figure to use for the book as a whole.
   portfolio.position_unrealized_pnl:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -759,7 +774,35 @@ metrics:
     invalidated_by: position_change
     observation_type: observed
     revision_policy: never
-    units: usd
+    units: contract_ccy
+    description: >-
+      Unrealized P&L in the contract's currency, per portfolio.position_currency.
+  portfolio.position_currency:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
+    units: label
+    description: >-
+      ISO currency of the contract, and therefore of this holding's avg_cost,
+      market_value and unrealized_pnl. Recorded per holding so no reader has to
+      infer it from the instrument key.
+  portfolio.position_con_id:
+    source: ibkr_paper
+    mechanism_group: portfolio_truth
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: position_change
+    observation_type: observed
+    revision_policy: never
+    units: count
+    description: >-
+      IBKR's contract id -- the authoritative identifier for the holding. Not
+      the store key, because the key is read by humans in the close report and a
+      conId is opaque; recorded so the unambiguous id is still on the record.
 
 # -----------------------------------------------------------------------------
 bulk_imports:

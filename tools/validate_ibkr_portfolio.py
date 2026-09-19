@@ -20,6 +20,13 @@ What it proves:
      refused unless explicitly allowed.
   D  PARSING AND POINT-IN-TIME SHAPE. Canned broker state produces the right
      observation rows, with source=ibkr_paper and observed_at == available_at.
+  E  REGISTRY COVERAGE. Every key the module writes is declared.
+  F  CROSS-LISTINGS, CURRENCY, AND THE COLLISION GUARD. The 17 September 2026
+     regression: SPY on ARCA in USD and SPY on MEXI in MXN share a localSymbol,
+     so the old key collapsed them and the store kept only one -- it reported a
+     peso short and had discarded a live hundred-share dollar long. Both legs
+     must survive one sync, each must name its own currency, and two holdings
+     the key still cannot separate must raise rather than write a short book.
 
     python tools/validate_ibkr_portfolio.py
 """
@@ -118,15 +125,63 @@ class FakeIB:
             _Obj(account="DU1234567", position=100.0, averageCost=765.4,
                  marketValue=77024.0, unrealizedPNL=484.0,
                  contract=_Obj(symbol="SPY", localSymbol="SPY", secType="STK",
-                               currency="USD")),
+                               currency="USD", conId=756733,
+                               primaryExchange="ARCA")),
             _Obj(account="DU1234567", position=-5.0, averageCost=1230.0,
                  marketValue=-4900.0, unrealizedPNL=1250.0,
                  contract=_Obj(symbol="SPY", localSymbol="SPY   260918C00780000",
-                               secType="OPT", currency="USD")),
+                               secType="OPT", currency="USD", conId=812004411,
+                               primaryExchange="SMART")),
         ]
 
     def disconnect(self):
         self.disconnected = True
+
+
+class FakeIBCrossListed(FakeIB):
+    """The 17 September 2026 book: one issue, two listings, two currencies.
+
+    SPY on ARCA in dollars and SPY on MEXI in pesos share a symbol AND a
+    localSymbol. Under the old key both became `SPY`, produced the same
+    idempotence tuple, and the store's INSERT OR IGNORE kept whichever arrived
+    first -- so the real hundred-share USD long vanished from the record and a
+    peso short stood in its place for 35 syncs. The short leg is here too, so
+    one fixture covers both cases.
+    """
+
+    def portfolio(self):
+        return [
+            # MEXI first, deliberately: it is the order IBKR served on the day,
+            # and it is the leg that used to win.
+            _Obj(account="DU1234567", position=-100.0, averageCost=12317.1497208,
+                 marketValue=-1313769.63, unrealizedPNL=-82054.66,
+                 contract=_Obj(symbol="SPY", localSymbol="SPY", secType="STK",
+                               currency="MXN", conId=38709152,
+                               primaryExchange="MEXI")),
+            _Obj(account="DU1234567", position=100.0, averageCost=769.070003,
+                 marketValue=76297.0, unrealizedPNL=-610.0,
+                 contract=_Obj(symbol="SPY", localSymbol="SPY", secType="STK",
+                               currency="USD", conId=756733,
+                               primaryExchange="ARCA")),
+        ]
+
+
+class FakeIBAmbiguous(FakeIB):
+    """Two holdings the key still cannot separate -- must raise, not drop one."""
+
+    def portfolio(self):
+        return [
+            _Obj(account="DU1234567", position=100.0, averageCost=765.4,
+                 marketValue=77024.0, unrealizedPNL=484.0,
+                 contract=_Obj(symbol="SPY", localSymbol="SPY", secType="STK",
+                               currency="USD", conId=756733,
+                               primaryExchange="ARCA")),
+            _Obj(account="DU1234567", position=-100.0, averageCost=765.4,
+                 marketValue=-77024.0, unrealizedPNL=-484.0,
+                 contract=_Obj(symbol="SPY", localSymbol="SPY", secType="STK",
+                               currency="USD", conId=999999,
+                               primaryExchange="ARCA")),
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -218,11 +273,11 @@ def group_d() -> None:
         check(res["source"] == "ibkr_paper" and res["mode"] == "paper",
               "the run is tagged ibkr_paper from the port")
         check(res["positions"] == 2, "both positions parsed")
-        # 9 account tags + 2 positions x 4 fields = 17
-        check(res["observations"] == 17,
-              f"9 account values + 8 position values = 17 rows "
+        # 9 account tags + 2 positions x 6 fields = 21
+        check(res["observations"] == 21,
+              f"9 account values + 12 position values = 21 rows "
               f"(got {res['observations']})")
-        check(res["written"] == 17, "all rows written to the store")
+        check(res["written"] == 21, "all rows written to the store")
 
         store = observations.ObservationStore(db)
         nav = store.latest_as_of("portfolio.nav", instrument="DU1234567")
@@ -236,10 +291,18 @@ def group_d() -> None:
               "observed_at == available_at -- a broker balance has no release lag")
 
         opt = store.latest_as_of("portfolio.position_qty",
-                                 instrument="SPY   260918C00780000")
+                                 instrument="SPY   260918C00780000@SMART.USD")
         check(opt is not None and opt["value_num"] == -5.0,
               "an option position is keyed on localSymbol, not the bare symbol, "
               "so two contracts on one underlying cannot collide")
+        stk = store.latest_as_of("portfolio.position_qty",
+                                 instrument="SPY@ARCA.USD")
+        check(stk is not None and stk["value_num"] == 100.0,
+              "the stock leg carries its venue and currency in the key")
+        ccy = store.latest_as_of("portfolio.position_currency",
+                                 instrument="SPY@ARCA.USD")
+        check(ccy is not None and ccy["value_text"] == "USD",
+              "currency is recorded per holding, as text")
 
         # LINEAGE. Without run_id a row is unattributable the moment history
         # accumulates: two syncs a minute apart become indistinguishable, and a
@@ -270,7 +333,7 @@ def group_d() -> None:
         store.close()
 
     res = ibkr.sync(port=4002, dry_run=True, ib_factory=lambda: FakeIB())
-    check(res["written"] == 0 and res["observations"] == 17,
+    check(res["written"] == 0 and res["observations"] == 21,
           "--dry-run parses everything and writes nothing")
 
 
@@ -294,6 +357,89 @@ def group_e() -> None:
           "ibkr_paper has an empty allowed_reports -- reconciliation, not a report input")
 
 
+def group_f() -> None:
+    """The 17 September 2026 regression: a cross-listing must not collide."""
+    print(f"\n{LINE}\nF. CROSS-LISTINGS, CURRENCY, AND THE COLLISION GUARD\n{LINE}")
+
+    check(ibkr.instrument_key({"local_symbol": "SPY", "symbol": "SPY",
+                               "primary_exchange": "ARCA", "currency": "USD"})
+          == "SPY@ARCA.USD", "ARCA/USD SPY keys to SPY@ARCA.USD")
+    check(ibkr.instrument_key({"local_symbol": "SPY", "symbol": "SPY",
+                               "primary_exchange": "MEXI", "currency": "MXN"})
+          == "SPY@MEXI.MXN", "MEXI/MXN SPY keys to SPY@MEXI.MXN")
+    check(ibkr.instrument_key({"local_symbol": "SPY", "symbol": "SPY",
+                               "exchange": "MEXI", "currency": "MXN"})
+          == "SPY@MEXI.MXN", "exchange substitutes when primaryExchange is absent")
+    check(ibkr.instrument_key({"symbol": None, "local_symbol": None}) is None,
+          "a holding with no symbol at all yields no key")
+
+    ib = FakeIBCrossListed()
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "x.db")
+        res = ibkr.sync(port=4002, db_path=db, ib_factory=lambda: ib)
+        check(res["positions"] == 2, "both listings parsed")
+        check(res["written"] == 21,
+              f"9 account + 2 listings x 6 fields = 21 rows written, none "
+              f"silently deduped (got {res['written']})")
+
+        store = observations.ObservationStore(db)
+        usd = store.latest_as_of("portfolio.position_qty",
+                                 instrument="SPY@ARCA.USD")
+        mxn = store.latest_as_of("portfolio.position_qty",
+                                 instrument="SPY@MEXI.MXN")
+        check(usd is not None and usd["value_num"] == 100.0,
+              "THE REGRESSION: the USD long survives the sync (was dropped "
+              "entirely under the localSymbol key)")
+        check(mxn is not None and mxn["value_num"] == -100.0,
+              "the short peso leg is recorded too -- both legs, not one")
+
+        cur_usd = store.latest_as_of("portfolio.position_currency",
+                                     instrument="SPY@ARCA.USD")
+        cur_mxn = store.latest_as_of("portfolio.position_currency",
+                                     instrument="SPY@MEXI.MXN")
+        check((cur_usd or {}).get("value_text") == "USD"
+              and (cur_mxn or {}).get("value_text") == "MXN",
+              "each leg names its own currency, so a peso value is never read "
+              "as dollars")
+
+        cid = store.latest_as_of("portfolio.position_con_id",
+                                 instrument="SPY@MEXI.MXN")
+        check(cid is not None and cid["value_num"] == 38709152,
+              "the authoritative conId is on the record beside the key")
+
+        mv = store.latest_as_of("portfolio.position_market_value",
+                                instrument="SPY@MEXI.MXN")
+        check(mv is not None and abs(mv["value_num"] + 1313769.63) < 1e-6,
+              "the peso market value is stored as given, in pesos")
+        store.close()
+
+    # A SHORT leg on its own, to pin the sign end to end.
+    short_only = store_short_check()
+    check(short_only == -100.0, f"a short position round-trips as negative "
+                                f"(got {short_only})")
+
+    # The guard: two holdings the key cannot separate must RAISE, never write a
+    # book with one of them missing.
+    raises(lambda: ibkr.sync(port=4002, dry_run=True,
+                             ib_factory=lambda: FakeIBAmbiguous()),
+           ibkr.IbkrDataError,
+           "two holdings that still collide -> IbkrDataError, not a silent drop")
+    check(issubclass(ibkr.IbkrDataError, ibkr.IbkrError),
+          "IbkrDataError is catchable as IbkrError")
+
+
+def store_short_check() -> float:
+    """Sync the cross-listed book and hand back the MEXI leg's signed qty."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "s.db")
+        ibkr.sync(port=4002, db_path=db, ib_factory=lambda: FakeIBCrossListed())
+        store = observations.ObservationStore(db)
+        row = store.latest_as_of("portfolio.position_qty",
+                                 instrument="SPY@MEXI.MXN")
+        store.close()
+        return (row or {}).get("value_num")
+
+
 def main() -> int:
     print(f"{LINE}\nPortfolio Truth validation (fakes only; live test is on the "
           f"VPS)\n{LINE}")
@@ -302,6 +448,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
