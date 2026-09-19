@@ -177,6 +177,16 @@ CREATE TABLE IF NOT EXISTS grades (
     -- The regime variable available today.
     spy_gamma_sign TEXT,
 
+    -- WHICH CLUSTER OF EVIDENCE the decision rested on, derived from the
+    -- registry's mechanism_group for each signal the decision cited. 26.9's rule
+    -- is that metrics sharing a group are ONE piece of evidence, so the group --
+    -- not the signal count -- is what a cut should slice on: four dealer greeks
+    -- are one bet on dealer positioning, and a cut by signal would call it four.
+    -- A decision citing two groups is recorded as both, joined, rather than
+    -- forced into one.
+    mechanism_group TEXT,
+    signals_used  TEXT,
+
     -- The observations the grade read, so it replays.
     observations_json TEXT NOT NULL,
     price_source   TEXT NOT NULL,
@@ -298,6 +308,62 @@ class PriceSeries:
         if g is None:
             return None
         return "positive" if g > 0 else ("negative" if g < 0 else "flat")
+
+
+_REGISTRY_GROUPS: Optional[dict] = None
+
+
+def signal_groups(signals_used: Any) -> tuple[Optional[str], str]:
+    """(mechanism group(s), the signals as stored) for a decision's citations.
+
+    Read from metrics_registry.yaml, including the bulk blocks, because a signal
+    registered by a bulk member has a group exactly as much as one written out.
+    A signal with no registry entry is reported as unregistered rather than
+    dropped: a decision resting on evidence the registry does not know about is a
+    finding, not a blank.
+    """
+    global _REGISTRY_GROUPS
+    if _REGISTRY_GROUPS is None:
+        _REGISTRY_GROUPS = {}
+        try:
+            import yaml  # noqa: PLC0415
+            with (REPO / "metrics_registry.yaml").open(encoding="utf-8") as fp:
+                reg = yaml.safe_load(fp) or {}
+            for key, m in (reg.get("metrics") or {}).items():
+                _REGISTRY_GROUPS[key] = (m or {}).get("mechanism_group")
+            for name, block in (reg.get("bulk_imports") or {}).items():
+                prefix = (block or {}).get("key_prefix") or ""
+                if not prefix:
+                    continue
+                # A block with one flat mechanism_group resolves to it. A block
+                # that assigns groups PER MEMBER -- fred_macro does, by pillar --
+                # resolves to the BLOCK's name instead. That is honest: the cut
+                # gets a real family ("fred_macro") rather than either a wrong
+                # group or an "unregistered" label for a signal the registry
+                # plainly knows. Resolving the pillar would mean importing
+                # config.FRED_SERIES, which is more machinery than a cut needs.
+                grp = (block or {}).get("mechanism_group") or name
+                _REGISTRY_GROUPS.setdefault(f"__bulk__{prefix}", grp)
+        except Exception:  # noqa: BLE001 -- a missing registry is not fatal here
+            _REGISTRY_GROUPS = {}
+
+    try:
+        keys = sorted(json.loads(signals_used or "[]"))
+    except (TypeError, ValueError):
+        keys = []
+    if not keys:
+        return None, "[]"
+    groups = []
+    for k in keys:
+        g = _REGISTRY_GROUPS.get(k)
+        if g is None:
+            for bulk, grp in _REGISTRY_GROUPS.items():
+                if bulk.startswith("__bulk__") and k.startswith(bulk[8:]) and bulk[8:]:
+                    g = grp
+                    break
+        groups.append(g or f"unregistered:{k}")
+    uniq = sorted(set(groups))
+    return ("+".join(uniq) if uniq else None), json.dumps(keys)
 
 
 def horizon_date(decision_time: str, horizon: str) -> Optional[str]:
@@ -480,6 +546,8 @@ def grade_one(decision: dict, prices: PriceSeries, *,
             r_basis = (f"({ref_price} - {inv_level}) x {units} units "
                        f"= {dollars_at_risk:.2f} at risk")
 
+    mech_group, signals_json = signal_groups(decision.get("signals_used"))
+
     obs = {
         "reference": {"symbol": sym, "date": ref_date, "close": ref_price},
         "horizon": {"symbol": sym, "date": hp_date, "close": hp_price},
@@ -517,6 +585,8 @@ def grade_one(decision: dict, prices: PriceSeries, *,
         "r_multiple_ruled": r_multiple_ruled,
         "r_basis": r_basis,
         "spy_gamma_sign": prices.gamma_sign("SPY", ref_date),
+        "mechanism_group": mech_group,
+        "signals_used": signals_json,
         "observations_json": json.dumps(obs, sort_keys=True),
         "price_source": prices.source,
         "method_version": METHOD_VERSION,
