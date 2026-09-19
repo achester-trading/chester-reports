@@ -68,7 +68,19 @@ sys.path.insert(0, str(REPO))
 from altdata import session          # noqa: E402
 from register import instruments     # noqa: E402
 
-DEFAULT_DB = os.environ.get("CHESTER_DB", "data/chester.db")
+# ANCHORED TO THE REPO, NOT TO THE WORKING DIRECTORY.
+#
+# This was a bare relative path, which is correct exactly when the process was
+# started from the checkout -- as every wrapper does, since each one runs
+# `cd "$REPO"` first. It stops being correct the moment anything runs decide.py
+# from somewhere else: SQLite would CREATE an empty database at
+# ./data/chester.db rather than failing, and the register would silently fork
+# into two files with no error to notice.
+#
+# That risk went up when the register moved to the box and gained a remote
+# caller, so the default now resolves against the repository root. CHESTER_DB
+# still overrides it, and a path passed explicitly still wins over both.
+DEFAULT_DB = os.environ.get("CHESTER_DB") or str(REPO / "data" / "chester.db")
 
 DIRECTIONS = ("long", "short", "flat", "hedge")
 HORIZONS = ("intraday", "swing", "positional", "strategic", "structural")
