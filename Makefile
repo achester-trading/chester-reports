@@ -278,83 +278,19 @@ DEPLOY_TIMERS := \
 	chester-overnight.timer \
 	chester-morning-anchor.timer
 
-# BASH FOR THIS TARGET ONLY. make runs recipes under /bin/sh, which on the VPS is
-# dash, and `set -o pipefail` is not POSIX -- the first real deploy died on
-# "Illegal option -o pipefail" before doing anything, which is the good way for
-# that to fail. Scoped to this target with a target-specific variable rather than
-# set globally: every other recipe here is POSIX and works under dash, and
-# switching the shell for all of them to fix one would be a change nobody asked
-# for in targets nobody was testing.
+# THE DEPLOY DELEGATES TO scripts/deploy.sh, and does not reimplement it.
 #
-# pipefail is worth the bash dependency. Several steps pipe ssh through sed, and
-# without it a failed ssh whose output happens to format cleanly reports success.
-deploy: SHELL := /bin/bash
+# It began as a recipe here and could not run from either machine: `make` is absent
+# on the laptop (a stock Windows box, as this file warns above) and the box is the
+# only place make exists -- but the box cannot resolve `vps`, which is the LAPTOP's
+# ssh alias for the box. Unrunnable in both directions.
+#
+# The script also removes the make-escaping layer that hid a `set -o pipefail`
+# under dash until the first real deploy died on it. One body, one place, readable
+# shell. `make deploy` stays the documented entry point because that is what
+# .claude/settings.json allows; on a box without make, run the script directly.
+#
+# Exit codes are the script's: 0 clean, 3 a changed running unit needs the printed
+# restart, 4 drift still reported after the copy, 1 the pull or copy failed.
 deploy:
-	@set -uo pipefail; \
-	H='$(DEPLOY_HOST)'; \
-	echo "=============================================================================="; \
-	echo "DEPLOY -> $$H   (never stops, disables, restarts or kills a unit)"; \
-	echo "=============================================================================="; \
-	echo "-- 1. pull --ff-only"; \
-	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && git pull --ff-only" || exit 1; \
-	SHA=$$(ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && git rev-parse --short HEAD"); \
-	echo "   box at $$SHA"; \
-	echo; \
-	echo "-- 2. copy units, and note which CHANGED while running"; \
-	NEEDS=$$(ssh -o BatchMode=yes "$$H" '\
-	  cd $(DEPLOY_REPO) && mkdir -p $(DEPLOY_UNIT_DIR) && need=""; \
-	  for f in deploy/systemd/*.service deploy/systemd/*.timer; do \
-	    u=$$(basename "$$f"); d=$(DEPLOY_UNIT_DIR)/$$u; \
-	    if cmp -s "$$f" "$$d" 2>/dev/null; then continue; fi; \
-	    was_active=no; \
-	    if [ -e "$$d" ] && systemctl --user is-active --quiet "$$u" 2>/dev/null; then was_active=yes; fi; \
-	    cp "$$f" "$$d"; \
-	    echo "   copied $$u" >&2; \
-	    if [ "$$was_active" = yes ]; then need="$$need $$u"; fi; \
-	  done; \
-	  printf "%s" "$$need"') || exit 1; \
-	echo "   (nothing copied = every unit already matched the repo)"; \
-	echo; \
-	echo "-- 3. daemon-reload"; \
-	ssh -o BatchMode=yes "$$H" "systemctl --user daemon-reload" && echo "   ok"; \
-	echo; \
-	echo "-- 4. enable --now any declared timer not yet enabled"; \
-	for t in $(DEPLOY_TIMERS); do \
-	  if ssh -o BatchMode=yes "$$H" "systemctl --user is-enabled --quiet $$t 2>/dev/null"; then \
-	    echo "   already enabled  $$t"; \
-	  else \
-	    echo "   enabling         $$t"; \
-	    ssh -o BatchMode=yes "$$H" "systemctl --user enable --now $$t" 2>&1 | sed 's/^/     /'; \
-	  fi; \
-	done; \
-	echo; \
-	echo "-- 5. drift check and heartbeat"; \
-	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && CHESTER_STATE_DIR=$(DEPLOY_STATE_DIR) ./scripts/check_heartbeat_cron.sh" >/dev/null 2>&1; \
-	HB=$$?; \
-	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && grep -E 'verdict=' ~/logs/heartbeat_check-*.log | tail -1" | sed 's/^/   /'; \
-	DRIFT=$$(ssh -o BatchMode=yes "$$H" "sed -n 's/.*drift=\([a-z_]*\).*/\1/p' $(DEPLOY_STATE_DIR)/heartbeat_check_status 2>/dev/null"); \
-	echo "   heartbeat exit=$$HB   drift=$$DRIFT"; \
-	echo; \
-	echo "-- 6. timer roster"; \
-	ssh -o BatchMode=yes "$$H" "systemctl --user list-timers --all --no-pager" | sed 's/^/   /'; \
-	echo; \
-	echo "=============================================================================="; \
-	rc=0; \
-	if [ -n "$$NEEDS" ]; then \
-	  echo "A CHANGED UNIT IS RUNNING. daemon-reload re-read the file; the running"; \
-	  echo "unit is still on the old one. This deploy will not restart it -- run:"; \
-	  echo; \
-	  for u in $$NEEDS; do echo "    ssh $$H 'systemctl --user restart $$u'"; done; \
-	  echo; \
-	  echo "Then re-run 'make deploy' to confirm."; \
-	  rc=3; \
-	fi; \
-	if [ -n "$$DRIFT" ] && [ "$$DRIFT" != clean ] && [ "$$DRIFT" != none_installed ]; then \
-	  echo "DRIFT IS STILL $$DRIFT AFTER THE COPY -- the deploy did not take."; \
-	  echo "Undeclared drop-in, or a unit the copy loop did not cover. See"; \
-	  echo "deploy/systemd/box-config.allow and the heartbeat log."; \
-	  [ $$rc -eq 0 ] && rc=4; \
-	fi; \
-	if [ $$rc -eq 0 ]; then echo "DEPLOY CLEAN."; fi; \
-	echo "=============================================================================="; \
-	exit $$rc
+	@bash scripts/deploy.sh

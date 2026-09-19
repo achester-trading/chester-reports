@@ -40,6 +40,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 MAKEFILE = REPO / "Makefile"
+# The deploy's BODY lives in the script; the Makefile only delegates to it. Both
+# are checked: the script for what it does, the Makefile for the fact that it
+# adds nothing of its own.
+DEPLOY_SH = REPO / "scripts" / "deploy.sh"
 SETTINGS = REPO / ".claude" / "settings.json"
 CLAUDE_MD = REPO / "CLAUDE.md"
 
@@ -147,9 +151,15 @@ def check(c: bool, m: str) -> None:
 
 
 def deploy_recipe() -> str:
+    """The Makefile's deploy recipe -- which should be a delegation, nothing more."""
     m = re.search(r"^deploy:\n((?:\t.*\n|\n)*)", MAKEFILE.read_text(encoding="utf-8"),
                   re.M)
     return m.group(1) if m else ""
+
+
+def deploy_body() -> str:
+    """The script that actually deploys."""
+    return DEPLOY_SH.read_text(encoding="utf-8")
 
 
 def settings() -> dict:
@@ -173,8 +183,17 @@ def matches_any(cmd: str, patterns: list[str]) -> list[str]:
 
 def group_a() -> None:
     print(f"{LINE}\nA. THE DEPLOY EXECUTES NO DESTRUCTIVE VERB\n{LINE}")
-    recipe = deploy_recipe()
-    check(bool(recipe), "the deploy: target was found in the Makefile")
+    check(DEPLOY_SH.is_file(), f"{DEPLOY_SH.relative_to(REPO)} exists")
+    recipe = deploy_body()
+    make_recipe = deploy_recipe()
+    check(bool(make_recipe), "the deploy: target was found in the Makefile")
+    check("scripts/deploy.sh" in make_recipe,
+          "and it DELEGATES to the script rather than reimplementing it -- the "
+          "recipe was unrunnable from either machine, since make is absent on the "
+          "laptop and the box cannot resolve the laptop's ssh alias for itself")
+    check(len([l for l in make_recipe.splitlines() if l.strip()]) == 1,
+          "the recipe is one line, so there is no second copy of the logic to "
+          "drift from the first")
 
     # Line by line, and only lines that RUN something. The remediation message
     # has to contain "restart" -- that is its entire job -- so a whole-recipe
@@ -211,14 +230,18 @@ def group_a() -> None:
 
 def group_b() -> None:
     print(f"\n{LINE}\nB. THE SEQUENCE IS THE DECLARED ONE\n{LINE}")
-    recipe = deploy_recipe()
+    recipe = deploy_body()
+    # Anchored on the ECHOED banners ("-- 1. pull"), not on the numbered list in
+    # the script's header comment. The header says the same six things in the same
+    # order, so matching it would let the order check pass on a header a reordered
+    # body had outgrown -- which is exactly the drift worth catching.
     steps = [
-        ("1. pull", r"1\. pull"),
-        ("2. copy units", r"2\. copy units"),
-        ("3. daemon-reload", r"3\. daemon-reload"),
-        ("4. enable", r"4\. enable"),
-        ("5. drift/heartbeat", r"5\. drift check and heartbeat"),
-        ("6. roster", r"6\. timer roster"),
+        ("1. pull", r"-- 1\. pull"),
+        ("2. copy units", r"-- 2\. copy units"),
+        ("3. daemon-reload", r"-- 3\. daemon-reload"),
+        ("4. enable", r"-- 4\. enable"),
+        ("5. drift/heartbeat", r"-- 5\. drift check and heartbeat"),
+        ("6. roster", r"-- 6\. timer roster"),
     ]
     positions = []
     for label, pat in steps:
@@ -235,9 +258,9 @@ def group_b() -> None:
           "the same verdict the timer writes rather than a second opinion")
 
     mk = MAKEFILE.read_text(encoding="utf-8")
-    m = re.search(r"^DEPLOY_TIMERS\s*:?=\s*((?:.*?\\\n)*.*)$", mk, re.M)
+    m = re.search(r'DEPLOY_TIMERS="([^"]*)"', recipe, re.S)
     check(m is not None, "DEPLOY_TIMERS is a declared list")
-    timers = [t for t in (m.group(1).replace("\\\n", " ").split() if m else [])]
+    timers = (m.group(1).split() if m else [])
     check(bool(timers) and all(t.endswith(".timer") for t in timers),
           f"and holds only .timer units ({len(timers)} of them)")
     check(not re.search(r"enable[^;]*\*\.timer", recipe),
