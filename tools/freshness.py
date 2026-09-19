@@ -59,6 +59,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import config, observations, session   # noqa: E402
+from register import instruments                   # noqa: E402
 
 # An intraday reading goes stale within the session, not at the end of it.
 INTRADAY_MAX_AGE_H = 4.0
@@ -133,20 +134,53 @@ def locate(key: str, instrument: Optional[str] = None) -> dict:
         sd = _newest_pin_session(instrument)
         out.update(where="pin log", session_date=sd, found=bool(sd))
     else:
-        # Try the instrument-scoped row, then the unscoped one. Not every
-        # signal is keyed on the decision's instrument: FRED macro rows carry
-        # instrument=NULL, and a portfolio row is keyed on the ACCOUNT, not on
-        # the symbol being traded. Passing the decision's ticker to both was
-        # the first version of this and it reported every macro series as
-        # missing -- a false block, which is the failure mode that teaches
-        # people to ignore the check.
+        # FOUR WAYS A SIGNAL CAN BE KEYED, AND THE LOOKUP HAS TO KNOW ALL OF THEM.
+        #
+        # This used to try the decision's instrument and then the unscoped row,
+        # which covered the two cases that existed when it was written: a
+        # symbol-keyed metric and a FRED series with instrument=NULL. Two more
+        # exist now and both were reporting "no observation found" on rows sitting
+        # in the store:
+        #
+        #   QUALIFIED POSITION ROWS. Portfolio Truth keys a holding
+        #   `SPY@MEXI.MXN`, not `SPY`, since the localSymbol collision was fixed.
+        #   Callers passed the NORMALISED root, which matches neither the
+        #   qualified key nor NULL -- so a decision about a position that was
+        #   plainly in the store was DECISION_BLOCKED for want of the evidence
+        #   proving it. The instrument as WRITTEN is therefore tried first, which
+        #   is the whole reason the register was taught to speak the same
+        #   instrument language as the store in Part 31.3(c).
+        #
+        #   ACCOUNT-LEVEL PORTFOLIO ROWS. portfolio.nav and its siblings are keyed
+        #   on the ACCOUNT id (DUP735780), which no decision names and which is
+        #   not NULL either. For those the instrument is not a filter at all, so
+        #   the newest row for the key is taken whatever it is keyed on.
+        #
+        # A false block is worse than no check: it is the failure mode that
+        # teaches an operator to reach for --force, and then the gate is gone.
         row = None
+        candidates: list = []
+        if instrument:
+            candidates.append(instrument)
+            root = instruments.normalise(instrument)
+            if root and root != instrument:
+                candidates.append(root)
+        candidates.append(None)                      # macro rows carry NULL
         try:
             with observations.ObservationStore() as db:
-                if instrument:
-                    row = db.latest_as_of(key, instrument=instrument)
-                if row is None:
-                    row = db.latest_as_of(key, instrument=None)
+                for cand in candidates:
+                    row = db.latest_as_of(key, instrument=cand)
+                    if row is not None:
+                        break
+                # Account-level portfolio state: keyed on the account, so the
+                # instrument is not a filter. Position rows are excluded -- those
+                # ARE per-instrument and must not match some other holding.
+                if (row is None and key.startswith("portfolio.")
+                        and not key.startswith("portfolio.position_")):
+                    for inst in db.instruments(key):
+                        row = db.latest_as_of(key, instrument=inst)
+                        if row is not None:
+                            break
         except Exception:  # noqa: BLE001
             row = None
         if row:

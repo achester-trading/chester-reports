@@ -328,7 +328,11 @@ def cmd_record(args) -> int:
         print(f"    clear -- {norm!r} is not restricted")
 
         # ---- DECISION_BLOCKED (26.2 #7) --------------------------------
-        fresh = freshness.check_signals(args.signals_used, norm)
+        # AS WRITTEN, not the normalised root. The store keys a position on
+        # the qualified instrument, so passing `SPY` for a decision about
+        # `SPY@MEXI.MXN` looked up a key nothing holds; locate() falls back to
+        # the root itself when the exact form finds nothing.
+        fresh = freshness.check_signals(args.signals_used, args.instrument)
         print(f"\n  signal freshness ({len(args.signals_used)} declared)")
         for v in fresh["verdicts"]:
             mark = "STALE" if v["stale"] else " ok  "
@@ -636,7 +640,7 @@ def cmd_set_status(args) -> int:
         # write that records "this thesis is dead and the position is still on".
         # The gate belongs on the transition, not on every touch of a live row.
         if args.status == "active" and old["status"] != "active":
-            fresh = freshness.check_signals(signals, old["instrument_norm"])
+            fresh = freshness.check_signals(signals, old["instrument"])
             print(f"\n  signal freshness, RE-CHECKED NOW ({len(signals)} carried "
                   f"forward)")
             for v in fresh["verdicts"]:
