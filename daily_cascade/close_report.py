@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -46,6 +47,49 @@ from state.emit import emit                      # noqa: E402
 log = logging.getLogger("daily_cascade.close")
 
 REPORT_KEY = "daily_cascade"
+
+# THE GRADES WATERMARK -- how "graded since the prior run" knows what the prior
+# run was.
+#
+# Not "graded today". A grade written on a Saturday by a manual run must appear in
+# Monday's report rather than vanishing because the calendar turned over, and a
+# report that ran twice in one session must not show the same grades twice. So the
+# high-water mark of graded_at is recorded after each successful render and read
+# back on the next one.
+#
+# It lives beside the other box state, under CHESTER_STATE_DIR, because it is a
+# fact about this box's reporting history and not about the repository. A missing
+# file means "never reported", which correctly shows everything graded so far.
+def _watermark_path() -> Path:
+    base = os.environ.get("CHESTER_STATE_DIR") or str(Path.home() / ".chester")
+    return Path(base) / "close_grades_watermark"
+
+
+def _read_watermark():
+    try:
+        text = _watermark_path().read_text(encoding="utf-8").strip()
+        return text or None
+    except OSError:
+        return None
+
+
+def _write_watermark(grades: dict) -> None:
+    """Record the newest graded_at this report actually showed.
+
+    Taken from the grades block itself rather than from the clock: the watermark
+    has to be the last thing REPORTED, not the moment of reporting, or a grade
+    written between the read and the write would be skipped forever.
+    """
+    rows = (grades or {}).get("new_since") or []
+    newest = max((r.get("graded_at") or "" for r in rows), default="")
+    if not newest:
+        return
+    try:
+        p = _watermark_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(newest, encoding="utf-8")
+    except OSError as exc:
+        log.warning("could not record the grades watermark: %s", exc)
 
 
 def main() -> int:
@@ -70,7 +114,8 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     run_id = session.new_run_id("daily_close")
-    p = payload_mod.build(sess=args.session, as_of=args.as_of, run_id=run_id)
+    p = payload_mod.build(sess=args.session, as_of=args.as_of, run_id=run_id,
+                          grades_since=_read_watermark())
     sess = p["session"]
 
     print(f"close debrief -- session {sess}")
@@ -79,6 +124,10 @@ def main() -> int:
           f"({len(p['exposure_missing'])} not in the table)")
     print(f"  pins       : {len(p['pins'])} rows, hits {p['pin_hits']}")
     print(f"  portfolio  : {p['portfolio']['state']}")
+    gr = p.get("grades") or {}
+    print(f"  grades     : {gr.get('state')}, {gr.get('total', 0)} graded, "
+          f"{len(gr.get('new_since') or [])} new since "
+          f"{gr.get('since') or 'the beginning'}")
     for w in p["warnings"]:
         print(f"  WARNING    : {w}")
 
@@ -158,6 +207,10 @@ def main() -> int:
         out = delivery.deliver(subject, html, name,
                                text_fallback=render_mod.text_fallback(p),
                                archive_dir=args.archive_dir)
+
+    # AFTER the render, so a report that failed to build does not advance the
+    # watermark and silently swallow the grades it never showed.
+    _write_watermark(p.get("grades") or {})
 
     print(f"\n  archive    : {out['archive_path'] or 'FAILED'}")
     print(f"  delivery   : {out['delivery']} ({out['delivery_detail']})")

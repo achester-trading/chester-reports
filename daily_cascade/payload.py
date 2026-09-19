@@ -484,8 +484,62 @@ def narrative_payload(full: dict, prior: Optional[dict] = None) -> dict:
     return {k: v for k, v in out.items() if v is not None and v != []}
 
 
+def grades_block(since: Optional[str] = None) -> dict:
+    """Trailing counts and expectancy by status, plus anything graded since.
+
+    WHY THIS LIVES IN THE CLOSE REPORT AT ALL. The learning loop's natural home is
+    the Sunday 05:00 anchor, which does not exist yet -- it is Phase 4. Until then
+    a grade that nobody reads is a grade that changes nothing, and the close report
+    is the one slot already delivered every session. So this is a lodger, and it
+    says so: when the Sunday anchor lands, the block moves there and the close
+    report goes back to being about the session.
+
+    `since` is the PRIOR RUN's instant, so "graded since the prior run" means
+    exactly that rather than "graded today". A grade written on Saturday by a
+    manual run must appear in Monday's report, not vanish because the calendar
+    turned over.
+    """
+    block: dict = {"state": "absent", "reason": "", "total": 0,
+                   "by_status": {}, "new_since": [], "since": since,
+                   "method_version": None}
+    try:
+        from altdata import grader  # noqa: PLC0415
+        import cuts                 # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001 -- a report never dies on a block
+        block["reason"] = f"grader unavailable: {type(exc).__name__}: {exc}"
+        return block
+    try:
+        with grader.GradeStore() as store:
+            rows = store.all_grades()
+            fresh = store.since(since)
+        block["method_version"] = grader.METHOD_VERSION
+        block["total"] = len(rows)
+        block["by_status"] = cuts.by(rows, cuts.status_of)
+        block["overall"] = cuts.summarise(rows)
+        block["new_since"] = [
+            {k: g.get(k) for k in
+             ("decision_id", "instrument", "horizon", "status",
+              "operator_action", "return_pct", "r_multiple",
+              "r_multiple_ruled", "invalidation_hit", "horizon_date",
+              "graded_at")}
+            for g in fresh]
+        if rows:
+            block["state"] = "ok"
+        else:
+            # Not an error. The grader is working and nothing has reached its
+            # horizon, which is the expected state of a system days old. Saying
+            # "no grades yet" beats an empty table that reads as a broken block.
+            block["state"] = "empty"
+            block["reason"] = ("no decision has reached its horizon yet -- the "
+                               "grader reports per decision why")
+    except Exception as exc:  # noqa: BLE001
+        block["reason"] = f"grades unreadable: {type(exc).__name__}: {exc}"
+    return block
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
-          run_id: Optional[str] = None) -> dict:
+          run_id: Optional[str] = None,
+          grades_since: Optional[str] = None) -> dict:
     """The whole payload. Reads only; never raises on a missing block."""
     cutoff = as_of or session.utc_iso(timespec="microseconds")
     exposure, missing, loaded = exposure_rows(sess)
@@ -521,5 +575,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "regime": [{"key": k, "state": "not_built", "note": n}
                    for k, n in REGIME_PLACEHOLDERS],
         "portfolio": portfolio_block(cutoff),
+        "grades": grades_block(grades_since),
         "warnings": warnings,
     }

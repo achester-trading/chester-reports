@@ -391,6 +391,91 @@ def narrative_block(narrative) -> str:
             f'failed the audit is a figure nobody can vouch for.</div>')
 
 
+def grades_block(payload: dict) -> str:
+    """The GRADES block: trailing expectancy by status, and what is newly graded.
+
+    n AND THE INTERVAL BEFORE THE MEAN, the same order tools/cuts.py prints them
+    in and for the same reason -- Evidence and Inference Ch. 1. A close report is
+    read fast, which makes it exactly the place a point estimate without its
+    interval would get believed.
+    """
+    g = payload.get("grades") or {}
+    if g.get("state") == "absent":
+        return (f'<div style="{ABSENT}"><strong>Grades &mdash; absent.</strong> '
+                f'{esc(g.get("reason") or "unknown")}</div>')
+    if g.get("state") == "empty":
+        return (f'<div style="{ABSENT}"><strong>No graded decisions yet.</strong> '
+                f'{esc(g.get("reason") or "")}<br>'
+                f'This is the expected state of a register whose decisions are '
+                f'days old, not a broken block: a horizon that has not elapsed '
+                f'gets no grade rather than a partial one.</div>')
+
+    rows = []
+    for status, s in (g.get("by_status") or {}).items():
+        iv = s.get("expectancy_ruled") or {}
+        n = iv.get("n") or 0
+        if iv.get("lo") is None:
+            band = dash(iv.get("note") or "no interval at this n")
+        else:
+            band = f"[{iv['lo']:+.2f}, {iv['hi']:+.2f}]"
+        mean = "" if iv.get("mean") is None else f"{iv['mean']:+.3f}"
+        hit = s.get("invalidation_hit_rate")
+        rows.append(
+            f'<tr><td style="{TDL}">{esc(status)}</td>'
+            f'<td style="{TD}">{n}</td>'
+            f'<td style="{TD}">{band}</td>'
+            f'<td style="{TD}">{mean}</td>'
+            f'<td style="{TD}">{"" if hit is None else f"{hit:.0%}"}</td></tr>')
+
+    table = (f'<table style="{TBL}"><thead><tr>'
+             f'<th style="{THL}">Status</th><th style="{TH}">n</th>'
+             f'<th style="{TH}">95% interval (R)</th>'
+             f'<th style="{TH}">expectancy (R)</th>'
+             f'<th style="{TH}">inval hit</th></tr></thead>'
+             f'<tbody>{_rows(rows)}</tbody></table>')
+
+    fresh = g.get("new_since") or []
+    if fresh:
+        frows = []
+        for r in fresh:
+            ruled = r.get("r_multiple_ruled")
+            thesis = r.get("r_multiple")
+            frows.append(
+                f'<tr><td style="{TDL}"><code>{esc(str(r.get("decision_id"))[:8])}</code></td>'
+                f'<td style="{TDL}">{esc(r.get("instrument"))}</td>'
+                f'<td style="{TDL}">{esc(r.get("horizon"))}</td>'
+                f'<td style="{TD}">{num(r.get("return_pct"))}%</td>'
+                f'<td style="{TD}">{num(thesis)}</td>'
+                f'<td style="{TD}">{num(ruled)}</td>'
+                f'<td style="{TD}">{"yes" if r.get("invalidation_hit") else "no"}</td>'
+                f'</tr>')
+        newly = (f'<p style="{NOTE}"><strong>Graded since the prior run</strong></p>'
+                 f'<table style="{TBL}"><thead><tr>'
+                 f'<th style="{THL}">Decision</th><th style="{THL}">Instrument</th>'
+                 f'<th style="{THL}">Horizon</th><th style="{TH}">Return</th>'
+                 f'<th style="{TH}">thesis R</th><th style="{TH}">ruled R</th>'
+                 f'<th style="{TH}">inval hit</th></tr></thead>'
+                 f'<tbody>{_rows(frows)}</tbody></table>')
+    else:
+        newly = (f'<p style="{NOTE}">Nothing newly graded since the prior run.</p>')
+
+    return table + newly + (
+        f'<p style="{NOTE}">'
+        f'Expectancy is the RULED R &mdash; what an operator who honoured his own '
+        f'invalidation actually earned, which is -1R on any decision whose level '
+        f'was touched before the horizon. The thesis R beside it is what the idea '
+        f'was worth held through the stop; the gap between them is the cost of '
+        f'where the invalidation was placed, not a verdict on the thesis.<br>'
+        f'n and the interval are printed before the mean on purpose (Evidence and '
+        f'Inference Ch. 1): at these sample sizes the interval is the finding and '
+        f'the point estimate is not. Grading method '
+        f'<code>{esc(g.get("method_version"))}</code>; a method change rewrites '
+        f'grades rather than revising them, and only grades sharing a version are '
+        f'comparable.<br>'
+        f'This block is a LODGER. Its home is the Sunday 05:00 anchor, which does '
+        f'not exist yet; when it does, this moves there.</p>')
+
+
 def render(payload: dict, delivery: Optional[dict] = None,
            narrative=None) -> str:
     warn = ""
@@ -426,6 +511,9 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Portfolio truth</h2>
 {portfolio_block(payload)}
+
+<h2 style="{H2}">Grades</h2>
+{grades_block(payload)}
 
 <h2 style="{H2}">Provenance</h2>
 <p style="{NOTE}">
