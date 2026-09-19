@@ -135,15 +135,21 @@ else
     HB_AT="never"
 fi
 
-# How long has the box been unhealthy? The age of last_ok, which is only ever
-# touched on a healthy check. Absent means it has never been healthy here.
-if [[ "$STATE" == "ok" ]]; then
-    UNHEALTHY_SINCE=""
-elif [[ -f "$LAST_OK" ]]; then
-    UNHEALTHY_SINCE="$(date -d "@$(stat -c %Y "$LAST_OK")" --iso-8601=seconds 2>/dev/null || echo unknown)"
-else
-    UNHEALTHY_SINCE="never_healthy"
-fi
+# UNHEALTHY_SINCE IS COMPUTED BELOW, AFTER THE DRIFT VERDICT.
+#
+# It used to be computed here, and on the one verdict that persists it was always
+# wrong. Exit 8 means "the pipeline is healthy AND units have drifted", so at this
+# point in the script $STATE is still `ok` -- the drift check has not run yet --
+# and the first branch set UNHEALTHY_SINCE to empty, which prints as `n/a`.
+#
+# The box then sat at exit 8 for thirteen consecutive days, from 7 to 19 September,
+# and emailed the verdict every one of them. Every email said `unhealthy_since=n/a`.
+# So fourteen identical alerts each looked like a first occurrence, nothing in any
+# of them said the condition was almost two weeks old, and the drift was ignored
+# until it was found by hand. The alert branch worked perfectly; what it could not
+# do was tell day one from day thirteen, which is the whole of why it was ignored.
+#
+# See the block after the drift check.
 
 # ---- the unit drift check --------------------------------------------------
 #
@@ -301,13 +307,56 @@ if [[ "$STATE" == "ok" ]] && [[ "$DRIFT_STATE" == "drifted" ]]; then
     HEADLINE="DRIFT installed units differ from the repo: $DRIFT_NAMES"
 fi
 
+# ---- how long has this been true? -----------------------------------------
+#
+# Computed HERE, after the verdict, because the verdict is what it is about. See
+# the note where this used to live.
+#
+# Two different durations, and the drift one needs its own marker. last_ok is
+# touched on a healthy check, so on a run that is healthy-but-drifted it is NOT
+# touched (the STATE check below sees unit_drift) -- which makes it a correct
+# answer for "how long since the box was fully healthy". It is not an answer for
+# "how long has THIS drift been present", because a drift that appears and is
+# fixed and appears again would inherit the first one's age.
+DRIFT_SINCE_FILE="$STATE_DIR/unit_drift_since"
+
+if [[ "$STATE" == "ok" ]]; then
+    UNHEALTHY_SINCE=""
+elif [[ -f "$LAST_OK" ]]; then
+    UNHEALTHY_SINCE="$(date -d "@$(stat -c %Y "$LAST_OK")" --iso-8601=seconds 2>/dev/null || echo unknown)"
+else
+    UNHEALTHY_SINCE="never_healthy"
+fi
+
+# The drift marker: created the first time drift is seen, removed the moment it
+# is clean. Its mtime is therefore the onset, and a cleared drift cannot leave a
+# stale age behind to be reported as a new one.
+DRIFT_SINCE=""
+DRIFT_DAYS=""
+if [[ "$DRIFT_STATE" == "drifted" ]]; then
+    [[ -f "$DRIFT_SINCE_FILE" ]] || printf '%s\n' "$NOW_ISO" >"$DRIFT_SINCE_FILE"
+    DRIFT_EPOCH=$(stat -c %Y "$DRIFT_SINCE_FILE" 2>/dev/null || echo 0)
+    if [[ "$DRIFT_EPOCH" != "0" ]]; then
+        DRIFT_SINCE="$(date -d "@$DRIFT_EPOCH" --iso-8601=seconds 2>/dev/null || echo unknown)"
+        DRIFT_DAYS=$(( ( $(date +%s) - DRIFT_EPOCH ) / 86400 ))
+    fi
+    # THE AGE GOES IN THE HEADLINE, which is the subject line of the email. A
+    # reader who has seen this alert twelve times needs the number in the first
+    # line, not in a field further down that the twelfth one taught them to skip.
+    if [[ -n "$DRIFT_DAYS" ]] && [[ "$DRIFT_DAYS" -gt 0 ]]; then
+        HEADLINE="$HEADLINE -- UNRESOLVED FOR ${DRIFT_DAYS} DAY(S)"
+    fi
+else
+    rm -f "$DRIFT_SINCE_FILE"
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
@@ -345,6 +394,11 @@ python_json() {
     printf '  "unit_drift": "%s",\n' "$DRIFT_STATE"
     printf '  "unit_drift_count": %s,\n' "$DRIFT_COUNT"
     printf '  "unit_drift_units": "%s",\n' "$DRIFT_NAMES"
+    # How long, not just what. A consumer that wants to escalate on a condition
+    # that has persisted needs the duration as a number, not as prose.
+    printf '  "unit_drift_since": %s,\n' \
+        "$([[ -z "$DRIFT_SINCE" ]] && echo null || printf '"%s"' "$DRIFT_SINCE")"
+    printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }
@@ -374,6 +428,7 @@ checked at        : $NOW_ISO
 heartbeat state   : $STATE (checker exit $RC)
 last clean run    : $HB_AT (${AGE_H}h ago)
 unhealthy since   : ${UNHEALTHY_SINCE:-n/a}
+unit drift        : ${DRIFT_STATE}${DRIFT_SINCE:+ since $DRIFT_SINCE (${DRIFT_DAYS:-0} day(s))}
 
 --- checker output ---
 $OUT"

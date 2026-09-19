@@ -283,6 +283,79 @@ else
     bad "box-config.allow permits more than Environment=: $BAD_KEYS"
 fi
 
+# --- HOW LONG HAS IT BEEN TRUE -------------------------------------------
+#
+# The 08:30 check emailed an exit-8 drift verdict every day from 6 to 19
+# September -- fourteen consecutive deliveries, `delivery=smtp`, no gap. The alert
+# branch worked perfectly. What it could not do was tell day one from day
+# thirteen: `unhealthy_since` was computed BEFORE the drift verdict, so on the one
+# verdict that persists $STATE was still `ok` and the field printed `n/a` every
+# single time. Fourteen identical alerts each looked like a first occurrence, and
+# the drift was found by hand rather than by the alarm that had been firing about
+# it for two weeks.
+#
+# So the duration is now measured, and it goes in the HEADLINE -- the subject line
+# -- because a reader who has seen an alert twelve times needs the number in the
+# first line, not in a field the twelfth one taught them to skip.
+rm -rf "$UNITS"/*.d
+cp "$REPO/deploy/systemd/chester-eod.service" "$UNITS/chester-eod.service"
+printf '\n# hand edit to establish drift\n' >>"$UNITS/chester-eod.service"
+rm -f "$STATE_DIR/unit_drift_since"
+
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ -f "$STATE_DIR/unit_drift_since" ]]; then
+    ok "the first drifted check creates the onset marker"
+else
+    bad "no unit_drift_since marker was created"
+fi
+
+# Backdate it to the real outage's length and check the age is reported.
+touch -d "13 days ago" "$STATE_DIR/unit_drift_since"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if grep -q '"unit_drift_days": 13' "$ALERT"; then
+    ok "a 13-day-old drift reports unit_drift_days: 13"
+else
+    bad "the drift age is wrong: $(grep unit_drift_days "$ALERT")"
+fi
+if grep -q 'UNRESOLVED FOR 13 DAY' "$ALERT"; then
+    ok "and the age is in the HEADLINE, so the subject line distinguishes day 13 from day 1"
+else
+    bad "the headline does not carry the age: $(grep headline "$ALERT")"
+fi
+if grep -q '"unit_drift_since"' "$ALERT"; then
+    ok "with the onset instant, so a consumer can escalate on duration"
+else
+    bad "unit_drift_since is absent from the alert"
+fi
+
+# A FIXED DRIFT MUST NOT LEAVE ITS AGE BEHIND. Otherwise a drift that appears,
+# is fixed, and appears again inherits the first one's age and reports a
+# fortnight-old fault on its first day.
+cp "$REPO/deploy/systemd/chester-eod.service" "$UNITS/chester-eod.service"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ ! -f "$STATE_DIR/unit_drift_since" ]]; then
+    ok "a clean check REMOVES the marker, so a later drift starts its own clock"
+else
+    bad "the onset marker survived a clean check"
+fi
+printf '\n# edit again\n' >>"$UNITS/chester-eod.service"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if grep -q '"unit_drift_days": 0' "$ALERT"; then
+    ok "and a returning drift reports 0 days, not the old fortnight"
+else
+    bad "a returning drift inherited a stale age: $(grep unit_drift_days "$ALERT")"
+fi
+
+# unhealthy_since must no longer read n/a on a drift verdict, which is the whole
+# defect: it is computed after the verdict now, not before it.
+if grep -q 'unhealthy_since=n/a' <(grep 'verdict=unit_drift' $LOG_GLOB | tail -1); then
+    bad "a drift verdict still reports unhealthy_since=n/a"
+else
+    ok "a drift verdict no longer reports unhealthy_since=n/a -- it is computed AFTER the verdict it describes"
+fi
+rm -rf "$UNITS"/*.d
+cp "$REPO/deploy/systemd/chester-eod.service" "$UNITS/chester-eod.service"
+
 # Drift must never mask a dead pipeline. Fixing the drift would otherwise make
 # a stale heartbeat look healthy.
 #

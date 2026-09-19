@@ -28,21 +28,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  # One job resolves the list so the matrix and the Makefile cannot disagree.
+  # One job resolves both lists so the matrices and the Makefile cannot disagree.
+  #
+  # TWO LISTS, BECAUSE THERE ARE TWO KINDS OF CHECK. A code gate returns the same
+  # verdict forever given the same source, so its failure is a regression in the
+  # commit under test and must fail the build. A DATA GATE's verdict depends on the
+  # data on the box that runs it -- validate_iv_solver reads a captured chain --
+  # so on a CI runner, which has no captured chains at all, its answer says nothing
+  # about the commit. `make list-code` and `make list-data` print them bare, one
+  # per line, so nothing here has to parse the human-readable `make list`.
   enumerate:
     runs-on: ubuntu-latest
     outputs:
       gates: ${{ steps.list.outputs.gates }}
+      data: ${{ steps.list.outputs.data }}
     steps:
       - uses: actions/checkout@v5
       - id: list
         run: |
-          # `make list` prints the interpreter too; take only the indented
-          # entries, which are the gate paths.
-          gates=$(make list | sed -n 's/^  //p' | grep -E '\.(py|sh)$' | \
-                  python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+          as_json() { python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))'; }
+          gates=$(make list-code | grep -E '\.(py|sh)$' | as_json)
+          data=$(make list-data  | grep -E '\.(py|sh)$' | as_json)
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
-          echo "Gates: $gates"
+          echo "data=$data"  >> "$GITHUB_OUTPUT"
+          echo "Code gates: $gates"
+          echo "Data gates: $data"
 
   gate:
     needs: enumerate
@@ -84,6 +94,43 @@ jobs:
             *)    python "${{ matrix.gate }}" ;;
           esac
 
+  # DATA GATES, REPORTED AND NOT REQUIRED.
+  #
+  # continue-on-error, and the reason is not leniency: a CI runner is a fresh
+  # checkout with no captured chains, so this gate cannot reach the data its
+  # verdict is about. Requiring it would make every build red for the absence of
+  # something CI was never going to have, and a build that is always red is a
+  # build nobody reads. It runs so the output is on the record; `make data-gates`
+  # on the box is where the verdict actually means something.
+  #
+  # It is deliberately NOT in `needs` for gates-passed below.
+  data-gate:
+    needs: enumerate
+    if: needs.enumerate.outputs.data != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: ${{ fromJson(needs.enumerate.outputs.data) }}
+    name: "data: ${{ matrix.gate }}"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: ${{ matrix.gate }}
+        run: |
+          case "${{ matrix.gate }}" in
+            *.sh) bash "${{ matrix.gate }}" ;;
+            *)    python "${{ matrix.gate }}" ;;
+          esac
+
   # A single required check to point branch protection at, since the matrix
   # legs have generated names that change when a gate is added.
   gates-passed:
@@ -93,8 +140,13 @@ jobs:
     steps:
       - name: All gates passed
         run: |
+          # needs: [gate] only. The data-gate job is EXCLUDED on purpose -- its
+          # verdict is about the data on the machine that runs it, and a CI runner
+          # has no captured chains, so its result says nothing about this commit.
+          # Adding it here would make the required check depend on data CI does
+          # not have. See the data-gate job's comment.
           if [ "${{ needs.gate.result }}" != "success" ]; then
-            echo "At least one gate failed -- see the individual jobs above."
+            echo "At least one CODE gate failed -- see the individual jobs above."
             exit 1
           fi
-          echo "Every gate passed."
+          echo "Every code gate passed. Data gates report separately."

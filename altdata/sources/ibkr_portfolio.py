@@ -271,6 +271,19 @@ def read_state(ib, port: int = DEFAULT_PORT) -> dict:
         raise IbkrApiError(f"reading account state failed: "
                            f"{type(e).__name__}: {e}") from e
 
+    # EXECUTIONS, IN THEIR OWN try. A fill read that fails must not cost the
+    # position read that already succeeded: knowing what is held is the service's
+    # first duty and knowing how it got there is the second. So a failure here is
+    # recorded as a reason and the sync continues, which is the same shape every
+    # other degradation in this file takes.
+    fills, fills_error = [], None
+    try:
+        fills = list(_read_fills(ib))
+    except Exception as e:  # noqa: BLE001
+        fills_error = f"{type(e).__name__}: {e}"
+        log.warning("reading executions failed (positions are unaffected): %s",
+                    fills_error)
+
     # An authenticated Gateway always reports at least one managed account.
     # None means it is running and SIGNED OUT, which looks healthy from the
     # outside and silently returns nothing -- the failure worth naming.
@@ -313,7 +326,87 @@ def read_state(ib, port: int = DEFAULT_PORT) -> dict:
 
     return {"read_at": read_at, "accounts": accounts, "mode": mode_for_port(port),
             "source": source_for_port(port), "account_values": values,
-            "positions": holdings}
+            "positions": holdings, "fills": fills, "fills_error": fills_error}
+
+
+def _read_fills(ib) -> list[dict]:
+    """Today's executions, with their commission reports where they have arrived.
+
+    reqExecutions() is asked for explicitly rather than relying on ib.fills(),
+    which returns only what arrived on THIS connection's event stream -- and this
+    client connects, reads and disconnects in under a second, so the stream is
+    empty every time. The request is the only way a short-lived reader sees the
+    day's fills at all.
+
+    READ-ONLY PERMITS THIS. Reading executions is not placing an order; the
+    client is still constructed with readonly=True and no order-placing call
+    exists anywhere in this module.
+
+    TODAY ONLY. IBKR does not serve execution history through this call, so every
+    fill from before this existed is unrecoverable here -- including the 17
+    September exit. Stated in altdata/executions.py rather than worked around.
+    """
+    ExecutionFilter = None
+    try:
+        from ib_async.objects import ExecutionFilter  # noqa: PLC0415
+    except Exception:  # noqa: BLE001
+        try:
+            from ib_insync.objects import ExecutionFilter  # noqa: PLC0415
+        except Exception:  # noqa: BLE001
+            ExecutionFilter = None
+
+    # A filter object when the library offers one, otherwise no argument: a stub
+    # in the validation gate implements whichever signature it likes, and the
+    # live library accepts the filter. Neither should be able to break the other.
+    if ExecutionFilter is not None:
+        raw = ib.reqExecutions(ExecutionFilter())
+    else:
+        raw = ib.reqExecutions()
+
+    out: list[dict] = []
+    for f in list(raw or []):
+        ex = getattr(f, "execution", None)
+        contract = getattr(f, "contract", None)
+        cr = getattr(f, "commissionReport", None)
+        if ex is None:
+            continue
+        holding = {
+            "symbol": getattr(contract, "symbol", None),
+            "local_symbol": getattr(contract, "localSymbol", None),
+            "currency": getattr(contract, "currency", None),
+            "primary_exchange": getattr(contract, "primaryExchange", None),
+            "exchange": getattr(contract, "exchange", None),
+        }
+        # The SAME key Portfolio Truth writes, so a fill joins the position it
+        # moved with no translation. `SPY` alone would have matched both listings
+        # on 17 September and told nobody anything.
+        out.append({
+            "exec_id": getattr(ex, "execId", None),
+            "account": getattr(ex, "acctNumber", None),
+            "order_id": getattr(ex, "orderId", None),
+            "perm_id": getattr(ex, "permId", None),
+            "con_id": getattr(contract, "conId", None),
+            "symbol": holding["symbol"],
+            "local_symbol": holding["local_symbol"],
+            "sec_type": getattr(contract, "secType", None),
+            "exchange": getattr(ex, "exchange", None) or holding["exchange"],
+            "currency": holding["currency"],
+            "instrument": instrument_key(holding),
+            "side": getattr(ex, "side", None),
+            "qty": _num(getattr(ex, "shares", None)),
+            "price": _num(getattr(ex, "price", None)),
+            "avg_price": _num(getattr(ex, "avgPrice", None)),
+            "cum_qty": _num(getattr(ex, "cumQty", None)),
+            "exec_time": getattr(ex, "time", None),
+            # NULL when the report has not arrived yet. executions.write_many
+            # completes a NULL commission later and never overwrites one.
+            "commission": _num(getattr(cr, "commission", None)) if cr else None,
+            "commission_currency": getattr(cr, "currency", None) if cr else None,
+            "realized_pnl": _num(getattr(cr, "realizedPNL", None)) if cr else None,
+            "order_ref": getattr(ex, "orderRef", None),
+            "last_liquidity": getattr(ex, "lastLiquidity", None),
+        })
+    return out
 
 
 def to_observations(state: dict, run_id: Optional[str] = None) -> list[dict]:
@@ -411,7 +504,21 @@ def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
         with observations.ObservationStore(db_path) as db:
             written = db.write_many(rows)
 
-    return {"run_id": run_id, "read_at": state["read_at"], "mode": state["mode"],
+    # The fills go to their own table, not to the observation store. An execution
+    # is a record with a dozen fields and a broker-assigned unique id -- not a
+    # (key, instrument, instant, value) tuple -- and forcing it into that shape
+    # would lose the commission, the side and the order id, which are the fields
+    # that make it worth having.
+    fills = state.get("fills") or []
+    fill_result = {"inserted": 0, "commission_completed": 0, "already_known": 0}
+    if not dry_run and fills:
+        from .. import executions  # noqa: PLC0415
+        with executions.ExecutionStore(db_path) as ex_db:
+            fill_result = ex_db.write_many(fills, run_id=run_id)
+
+    return {"fills": len(fills), "fills_written": fill_result,
+            "fills_error": state.get("fills_error"),
+            "run_id": run_id, "read_at": state["read_at"], "mode": state["mode"],
             "source": state["source"], "accounts": state["accounts"],
             "positions": len(state["positions"]),
             "observations": len(rows), "written": written, "dry_run": dry_run,
@@ -472,6 +579,15 @@ def main() -> int:
             if got and got["value"] is not None:
                 print(f"  {key:<34} {got['value']:>16,.2f} {units}")
     print(f"  positions  : {res['positions']}")
+    fw = res.get("fills_written") or {}
+    print(f"  fills      : {res.get('fills', 0)} served"
+          + (f", {fw.get('inserted', 0)} new"
+             f", {fw.get('commission_completed', 0)} commission completed"
+             f", {fw.get('already_known', 0)} already known"
+             if not res["dry_run"] else "  (dry run -- nothing written)"))
+    if res.get("fills_error"):
+        print(f"  FILLS ERROR: {res['fills_error']}  "
+              f"(positions above are unaffected)")
     print(f"  observations: {res['observations']}"
           + ("  (dry run -- nothing written)" if res["dry_run"]
              else f", {res['written']} new rows written"))

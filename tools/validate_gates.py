@@ -79,7 +79,7 @@ def makefile_vars() -> dict[str, list[str]]:
     """
     text = MAKEFILE.read_text(encoding="utf-8")
     out: dict[str, list[str]] = {}
-    for name in ("PY_VALIDATORS", "SH_VALIDATORS", "EXTRA"):
+    for name in ("PY_VALIDATORS", "SH_VALIDATORS", "EXTRA", "DATA_GATES"):
         m = re.search(rf"^{name}\s*:?=\s*((?:.*?\\\n)*.*)$", text, re.M)
         if not m:
             out[name] = []
@@ -87,6 +87,21 @@ def makefile_vars() -> dict[str, list[str]]:
         body = m.group(1).replace("\\\n", " ")
         out[name] = [t for t in body.split() if t and not t.startswith("#")]
     return out
+
+
+def declared_kind(rel: str) -> str:
+    """GATE_KIND as the gate's own source declares it, or "code" if it does not.
+
+    Read as TEXT rather than imported. Importing a gate would run its module-level
+    code -- which for several of these means reading a store or a chain -- and a
+    check about lists has no business doing that.
+    """
+    p = REPO / rel
+    if not p.is_file():
+        return "missing"
+    m = re.search(r"^GATE_KIND\s*=\s*[\"'](\w+)[\"']",
+                  p.read_text(encoding="utf-8", errors="replace"), re.M)
+    return m.group(1) if m else "code"
 
 
 def validate_recipe() -> str:
@@ -100,7 +115,8 @@ def validate_recipe() -> str:
 def group_a() -> None:
     print(f"\n{LINE}\nA. THE LIST IS COMPLETE\n{LINE}")
     v = makefile_vars()
-    listed = set(v["PY_VALIDATORS"]) | set(v["SH_VALIDATORS"]) | set(v["EXTRA"])
+    listed = (set(v["PY_VALIDATORS"]) | set(v["SH_VALIDATORS"])
+              | set(v["EXTRA"]) | set(v["DATA_GATES"]))
     check(bool(listed), f"the Makefile names {len(listed)} gates")
 
     on_disk = {
@@ -119,6 +135,36 @@ def group_a() -> None:
     # complete and is itself not in it.
     check("tools/validate_gates.py" in listed,
           "this validator is itself in the list")
+
+    # ---- THE CODE/DATA SPLIT, WHICH IS THE PART THAT COULD BE ABUSED --------
+    #
+    # Data gates report instead of failing the suite, which is right for a check
+    # whose verdict is about the box's chains rather than the commit. It is also
+    # exactly the mechanism somebody would reach for to silence an inconvenient
+    # CODE validator -- move it to DATA_GATES and the suite goes green while the
+    # check keeps failing in a paragraph nobody reads.
+    #
+    # So membership is not the Makefile's word alone. Each data gate must DECLARE
+    # itself with GATE_KIND = "data" in its own source, and these two statements
+    # must agree in both directions.
+    code = set(v["PY_VALIDATORS"]) | set(v["EXTRA"]) | set(v["SH_VALIDATORS"])
+    data = set(v["DATA_GATES"])
+
+    check(not (code & data),
+          f"no gate is in both lists ({sorted(code & data) or 'none'})")
+
+    undeclared = sorted(g for g in data if declared_kind(g) != "data")
+    check(not undeclared,
+          f"every DATA_GATE declares GATE_KIND = \"data\" in its own source "
+          f"({undeclared or 'all declare it'})")
+
+    mislabelled = sorted(g for g in code if declared_kind(g) == "data")
+    check(not mislabelled,
+          f"no gate declaring itself a data gate is being run as a code gate "
+          f"({mislabelled or 'none'})")
+
+    check(bool(data), "there is at least one data gate, so the split is real "
+                      "rather than a dormant abstraction")
 
 
 def group_b() -> None:
@@ -187,6 +233,19 @@ def group_c() -> None:
           "nothing in the recipe decides a gate's result by grepping its "
           "output for PASSED")
 
+    # The data pass must exist, must run every data gate, and must NOT feed the
+    # suite's exit code. `dfail` is its own counter for exactly that reason.
+    check("DATA_GATES" in recipe,
+          "the validate recipe runs the data gates too -- separated, not dropped")
+    check("dfail" in recipe,
+          "with their own counter, so a data finding cannot set the exit code")
+    check(re.search(r"exit\s+\$\$fail", recipe) is not None
+          and "exit $$dfail" not in recipe,
+          "and the target exits on the CODE counter alone")
+    check("VERDICT" in recipe,
+          "a data finding prints as a VERDICT rather than as a FAIL, so the two "
+          "kinds are distinguishable at a glance")
+
     fast = MAKEFILE.read_text(encoding="utf-8")
     m = re.search(r"^validate-fast:\n((?:\t.*\n|\n)*)", fast, re.M)
     check(m is not None and "set -e" in m.group(1),
@@ -201,9 +260,23 @@ def group_d() -> None:
         return
     wf = WORKFLOW.read_text(encoding="utf-8")
 
-    check("make list" in wf,
-          "the workflow generates its matrix from `make list` rather than "
-          "keeping a second copy of the list")
+    check("make list-code" in wf and "make list-data" in wf,
+          "the workflow generates BOTH matrices from make rather than keeping a "
+          "second copy of either list")
+
+    # THE INVARIANT MOST LIKELY TO BE HELPFULLY BROKEN. gates-passed is the
+    # required check; if somebody adds data-gate to its `needs`, every build goes
+    # red for the absence of chains a CI runner was never going to have, and the
+    # first fix anybody reaches for after that is widening the solver's tolerance.
+    m = re.search(r"gates-passed:\s*needs:\s*(\[[^\]]*\]|\S+)", wf, re.S)
+    needs = (m.group(1) if m else "")
+    check("data-gate" not in needs,
+          f"the required check does NOT depend on the data gates ({needs!r}) -- "
+          f"a CI runner has no captured chains, so their verdict says nothing "
+          f"about the commit")
+    check("continue-on-error: true" in wf,
+          "and the data-gate job is continue-on-error, so it reports without "
+          "deciding the build")
     check("fail-fast: false" in wf,
           "fail-fast is off, so one broken gate does not hide the others")
 
