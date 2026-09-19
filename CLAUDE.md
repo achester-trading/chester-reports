@@ -232,6 +232,61 @@ import are the ones worth having: the narratives, the case and positioning
 material, and the peer and source tables. Do not repair the other seven in
 place — what they should become is a question for the redesign, not a patch.
 
+## What runs without asking
+
+`.claude/settings.json` holds a narrow permission allowlist so a deploy can run
+unattended. `tools/validate_deploy.py` enforces both halves of it — that the
+deploy cannot take a running unit down, and that the allow list has not quietly
+grown.
+
+**Deny takes precedence over allow.** That is Claude Code's own rule rather than
+something this repo arranges, and it is why the deny list can be written broadly
+without reasoning about overlaps: `Bash(make deploy*)` is allowed and *anything*
+containing `systemctl --user restart` is denied, so a deploy that grew a restart
+would be refused rather than inherited from the allow.
+
+### Allowed, and why each is safe
+
+| Allowed | Why its worst case is known |
+|---|---|
+| `make validate` | Reads. Every gate is read-only over the repo and the store. |
+| `make html` | Regenerates `docs/html/` from the papers' `.md`. Build output; recoverable by re-running. |
+| `make deploy*` | Its whole body is fixed in the Makefile and audited by `validate_deploy.py`. The narrowness is the feature: a deploy typed twelve different ways cannot be allowlisted at all. |
+| `git add` / `commit` / `push` / `pull` | History is recoverable, and a bad commit is visible and revertable. `push` is included deliberately — a deploy that cannot push is a deploy that stops halfway. |
+| `ssh vps systemctl --user is-active` / `list-timers` | Reads unit state. Neither can change it. |
+| `ssh vps cat` / `tail` | Reads logs and state files on the box. Made safe by the secrets deny below, not by the verb. |
+
+### Denied, and the reason beside each
+
+Every one of these is denied **explicitly**, and the deny wins over any allow that
+would otherwise reach it.
+
+| Denied | The reason |
+|---|---|
+| `systemctl --user stop`, `disable`, `restart`, `kill`, `mask` — in any composition, local or over ssh | **Asymmetric cost.** The worst case of refusing is a printed command; the worst case of acting is the Gateway down mid-session with a position open. An unattended process should never be able to choose the second. `make deploy` therefore prints the exact `restart` command and **exits 3** so a human runs it — the one case where handing the job back is the correct outcome rather than a limitation. |
+| `rm` against `~/state`, `data/`, `chester.db`, `pin_log` | **These are the irreplaceable files.** `~/state` holds the heartbeats whose age *is* the outage clock; `data/` holds the captured chains and the pin log, which are a market at an instant and cannot be re-fetched; `chester.db` holds the register, the grades and the probability ledger. Losing any of them loses evidence, not configuration. |
+| `decide.py record`, `decide.py set-status`, `decide_remote.sh` with either, `migrate_register.py import` | **Register writes stay the operator's.** The register is the record against which the system is graded, and a grader that could also write the decisions it grades is a system marking its own homework. This is the same reason `derived_grade` and `derived_probability` have an empty `allowed_reports`. |
+| `sudo`, in any position — privilege escalation | **Nothing here needs root.** Every unit is a `--user` unit, every path is under `$HOME`, and the one documented `sudo` (`loginctl enable-linger`, `apt install xvfb`) is a one-time install step a human does once. Privilege escalation in an unattended path is a category error before it is a risk: if a deploy appears to need root, the deploy is wrong, not under-permissioned. |
+| `placeOrder`, `place_order`, `bracketOrder`, `submit_order`, `order_router`, `ibkr_orders`, `execution_framework`, `reqGlobalCancel`, `--allow-live` | **Named now so Gate 3 is already blocked when it exists.** There is no order path in this repo today — `validate_ibkr_portfolio.py` proves the source contains none, and the architecture puts live-with-approval at Gate 3 behind months of paper dwell. These patterns are pre-emptive on purpose: the moment an order entry point is written it must arrive already denied, rather than relying on somebody remembering to add a rule in the same session they gain the capability. `--allow-live` is included because it is the flag that selects the live port; an unattended process has no business reading the live account, let alone trading it. |
+| `cat`/`tail` of `.env`, `config.ini`, and any literal key name (`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `FRED_API_KEY`, `CHESTER_STATE_TOKEN`) | **`ssh vps cat *` is allowed, which would otherwise permit reading `.env`.** The standing rule is that a key reaching a transcript is a leaked key that must be rotated, so the deny closes the hole the broad read rule opens. This one was added rather than requested: an allowlist that permits an unattended secret read contradicts the repo's own invariant. |
+
+### What a deploy does not do
+
+`make deploy` is six steps and nothing else: `git pull --ff-only`, copy
+`deploy/systemd/*.service` and `*.timer` into `~/.config/systemd/user/`,
+`daemon-reload`, `enable --now` any timer in the Makefile's `DEPLOY_TIMERS` that
+is not yet enabled, run the drift check and the heartbeat checker, print the timer
+roster.
+
+`DEPLOY_TIMERS` is a declared list and not a glob over the unit directory,
+because `ibgateway.service` and `ibgateway-restart.timer` are deliberately held
+back behind one witnessed clean start (`deploy/systemd/README.md` section 4) and a
+glob would enable them the first time anybody deployed.
+
+Exit codes: `0` clean, `3` a changed unit is running and needs the printed
+restart, `4` drift still reported after the copy so the deploy did not take, `1`
+the pull or copy failed.
+
 ## Standing rules
 
 ### 1. No Brookfield-related securities recommendation is ever generated

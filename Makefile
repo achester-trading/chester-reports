@@ -39,6 +39,7 @@ PY_VALIDATORS := \
 	tools/validate_daily_close.py \
 	tools/validate_morning_anchor.py \
 	tools/validate_numeral_audit.py \
+	tools/validate_deploy.py \
 	tools/validate_grader.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
@@ -80,7 +81,7 @@ SH_VALIDATORS := \
 
 EXTRA := smoke_test.py
 
-.PHONY: validate validate-fast data-gates list list-code list-data library-check html figures
+.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures
 
 # THE BUILT HTML EDITIONS. docs/html/ is output, not source: every file in it
 # is generated from the .md by tools/build_paper_html.py, figures embedded.
@@ -215,3 +216,134 @@ validate-fast:
 	for v in $(PY_VALIDATORS) $(EXTRA); do echo "== $$v"; $(PYTHON) $$v >/dev/null; done; \
 	for v in $(SH_VALIDATORS); do echo "== $$v"; bash $$v >/dev/null; done; \
 	echo "ALL CODE GATES PASSED  (data gates: make data-gates)"
+
+# ---------------------------------------------------------------------------
+# THE DEPLOY. One target, a fixed sequence, and no verb that can take a running
+# unit down.
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS. Deploying was a dozen ad-hoc ssh commands typed differently
+# each time, which is both slow to approve and impossible to allowlist: you cannot
+# grant "the safe deploy" permission to a shape that changes on every run. One
+# target with a fixed body can be granted once, and anything outside it stays
+# behind a prompt. That is the whole design -- the narrowness IS the feature.
+#
+# WHAT IT DOES, in order and nothing else:
+#   1. git pull --ff-only on the box   (--ff-only: never a merge commit on a
+#                                       machine whose rule is that it runs code
+#                                       and never edits it)
+#   2. copy deploy/systemd/*.service and *.timer into ~/.config/systemd/user/
+#   3. systemctl --user daemon-reload
+#   4. enable --now any timer in DEPLOY_TIMERS that is not already enabled
+#   5. the drift check and the heartbeat checker
+#   6. print the timer roster
+#
+# WHAT IT WILL NEVER DO. It contains no stop, no disable, no restart and no kill,
+# and tools/validate_deploy.py reads this recipe to assert that. A deploy that can
+# restart a unit is a deploy that can take the Gateway down mid-session while
+# nobody is watching, and the cost of that is asymmetric: the worst case of
+# refusing is a printed command, and the worst case of acting is a dead pipeline
+# with a position open.
+#
+# SO A CHANGED UNIT THAT IS RUNNING EXITS 3. daemon-reload re-reads unit files but
+# an ACTIVE unit keeps running the old one -- a live timer keeps its computed
+# next-elapse and a long-running service keeps its old ExecStart -- so the deploy
+# is genuinely incomplete and says so with the exact command to finish it. An
+# INACTIVE unit needs nothing: a oneshot picks up the new file on its next
+# activation, which is why most deploys here exit 0.
+#
+# EXIT CODES
+#   0  clean: copied, enabled, nothing needs a restart, drift clean
+#   3  a changed unit is RUNNING and needs a restart you must run yourself
+#   4  drift is still reported AFTER the copy -- the deploy did not take
+#   1  the pull or the copy itself failed
+DEPLOY_HOST ?= vps
+DEPLOY_REPO ?= $$HOME/chester-reports
+DEPLOY_UNIT_DIR ?= $$HOME/.config/systemd/user
+# The box keeps heartbeat and status files here rather than the wrappers'
+# ~/.chester default; declared so the deploy reads the same state the units write.
+DEPLOY_STATE_DIR ?= $$HOME/state
+
+# THE TIMERS THE DEPLOY MAY ENABLE. A declared list, not a glob over the unit
+# directory, and the difference matters: ibgateway.service and its restart timer
+# are deliberately held back behind a witnessed clean start (see
+# deploy/systemd/README.md section 4), and a glob would enable them the first time
+# somebody ran a deploy. Adding a timer here is a deliberate edit.
+DEPLOY_TIMERS := \
+	chester-eod.timer \
+	chester-daily-close.timer \
+	chester-heartbeat.timer \
+	chester-ibkr-sync.timer \
+	chester-backup.timer \
+	chester-overnight.timer \
+	chester-morning-anchor.timer
+
+deploy:
+	@set -uo pipefail; \
+	H='$(DEPLOY_HOST)'; \
+	echo "=============================================================================="; \
+	echo "DEPLOY -> $$H   (never stops, disables, restarts or kills a unit)"; \
+	echo "=============================================================================="; \
+	echo "-- 1. pull --ff-only"; \
+	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && git pull --ff-only" || exit 1; \
+	SHA=$$(ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && git rev-parse --short HEAD"); \
+	echo "   box at $$SHA"; \
+	echo; \
+	echo "-- 2. copy units, and note which CHANGED while running"; \
+	NEEDS=$$(ssh -o BatchMode=yes "$$H" '\
+	  cd $(DEPLOY_REPO) && mkdir -p $(DEPLOY_UNIT_DIR) && need=""; \
+	  for f in deploy/systemd/*.service deploy/systemd/*.timer; do \
+	    u=$$(basename "$$f"); d=$(DEPLOY_UNIT_DIR)/$$u; \
+	    if cmp -s "$$f" "$$d" 2>/dev/null; then continue; fi; \
+	    was_active=no; \
+	    if [ -e "$$d" ] && systemctl --user is-active --quiet "$$u" 2>/dev/null; then was_active=yes; fi; \
+	    cp "$$f" "$$d"; \
+	    echo "   copied $$u" >&2; \
+	    if [ "$$was_active" = yes ]; then need="$$need $$u"; fi; \
+	  done; \
+	  printf "%s" "$$need"') || exit 1; \
+	echo "   (nothing copied = every unit already matched the repo)"; \
+	echo; \
+	echo "-- 3. daemon-reload"; \
+	ssh -o BatchMode=yes "$$H" "systemctl --user daemon-reload" && echo "   ok"; \
+	echo; \
+	echo "-- 4. enable --now any declared timer not yet enabled"; \
+	for t in $(DEPLOY_TIMERS); do \
+	  if ssh -o BatchMode=yes "$$H" "systemctl --user is-enabled --quiet $$t 2>/dev/null"; then \
+	    echo "   already enabled  $$t"; \
+	  else \
+	    echo "   enabling         $$t"; \
+	    ssh -o BatchMode=yes "$$H" "systemctl --user enable --now $$t" 2>&1 | sed 's/^/     /'; \
+	  fi; \
+	done; \
+	echo; \
+	echo "-- 5. drift check and heartbeat"; \
+	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && CHESTER_STATE_DIR=$(DEPLOY_STATE_DIR) ./scripts/check_heartbeat_cron.sh" >/dev/null 2>&1; \
+	HB=$$?; \
+	ssh -o BatchMode=yes "$$H" "cd $(DEPLOY_REPO) && grep -E 'verdict=' ~/logs/heartbeat_check-*.log | tail -1" | sed 's/^/   /'; \
+	DRIFT=$$(ssh -o BatchMode=yes "$$H" "sed -n 's/.*drift=\([a-z_]*\).*/\1/p' $(DEPLOY_STATE_DIR)/heartbeat_check_status 2>/dev/null"); \
+	echo "   heartbeat exit=$$HB   drift=$$DRIFT"; \
+	echo; \
+	echo "-- 6. timer roster"; \
+	ssh -o BatchMode=yes "$$H" "systemctl --user list-timers --all --no-pager" | sed 's/^/   /'; \
+	echo; \
+	echo "=============================================================================="; \
+	rc=0; \
+	if [ -n "$$NEEDS" ]; then \
+	  echo "A CHANGED UNIT IS RUNNING. daemon-reload re-read the file; the running"; \
+	  echo "unit is still on the old one. This deploy will not restart it -- run:"; \
+	  echo; \
+	  for u in $$NEEDS; do echo "    ssh $$H 'systemctl --user restart $$u'"; done; \
+	  echo; \
+	  echo "Then re-run 'make deploy' to confirm."; \
+	  rc=3; \
+	fi; \
+	if [ -n "$$DRIFT" ] && [ "$$DRIFT" != clean ] && [ "$$DRIFT" != none_installed ]; then \
+	  echo "DRIFT IS STILL $$DRIFT AFTER THE COPY -- the deploy did not take."; \
+	  echo "Undeclared drop-in, or a unit the copy loop did not cover. See"; \
+	  echo "deploy/systemd/box-config.allow and the heartbeat log."; \
+	  [ $$rc -eq 0 ] && rc=4; \
+	fi; \
+	if [ $$rc -eq 0 ]; then echo "DEPLOY CLEAN."; fi; \
+	echo "=============================================================================="; \
+	exit $$rc

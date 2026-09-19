@@ -1,0 +1,82 @@
+{
+  "$comment": [
+    "Narrow permission allowlist so deploys run unattended. The rules and the",
+    "reason for every deny are documented in CLAUDE.md under 'What runs without",
+    "asking' -- this file is the enforcement and that section is the argument.",
+    "",
+    "DENY TAKES PRECEDENCE OVER ALLOW. That is Claude Code's own rule, not",
+    "something this file arranges, and it is why the deny list can be written",
+    "broadly without having to reason about overlaps: 'make deploy*' is allowed",
+    "and 'anything containing systemctl --user restart' is denied, so a deploy",
+    "that grew a restart would be refused rather than inherited.",
+    "",
+    "The allow list is a list of SHAPES, not of intentions. Each entry is",
+    "something whose worst case is known: a gate that reads, a git operation on a",
+    "repo whose history is recoverable, a deploy target whose whole body is fixed",
+    "and audited by tools/validate_deploy.py. Anything whose worst case depends on",
+    "its arguments stays behind a prompt."
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(make validate)",
+      "Bash(make html)",
+      "Bash(make deploy*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(ssh vps systemctl --user is-active*)",
+      "Bash(ssh vps systemctl --user list-timers*)",
+      "Bash(ssh vps cat *)",
+      "Bash(ssh vps tail *)"
+    ],
+    "deny": [
+      "Bash(*systemctl --user stop*)",
+      "Bash(*systemctl --user disable*)",
+      "Bash(*systemctl --user restart*)",
+      "Bash(*systemctl --user kill*)",
+      "Bash(*systemctl --user mask*)",
+      "Bash(*systemctl stop*)",
+      "Bash(*systemctl disable*)",
+      "Bash(*systemctl restart*)",
+      "Bash(*systemctl kill*)",
+      "Bash(*systemctl mask*)",
+
+      "Bash(*rm *~/state*)",
+      "Bash(*rm *$HOME/state*)",
+      "Bash(*rm */home/ari/state*)",
+      "Bash(*rm *data/*)",
+      "Bash(*rm -rf data*)",
+      "Bash(*rm *chester.db*)",
+      "Bash(*rm *pin_log*)",
+
+      "Bash(*decide.py record*)",
+      "Bash(*decide.py set-status*)",
+      "Bash(*decide_remote.sh record*)",
+      "Bash(*decide_remote.sh set-status*)",
+      "Bash(*migrate_register.py import*)",
+      "Bash(*retire_local_register.py*--apply*)",
+
+      "Bash(sudo*)",
+      "Bash(*sudo *)",
+
+      "Bash(*placeOrder*)",
+      "Bash(*place_order*)",
+      "Bash(*bracketOrder*)",
+      "Bash(*submit_order*)",
+      "Bash(*order_router*)",
+      "Bash(*ibkr_orders*)",
+      "Bash(*execution_framework*)",
+      "Bash(*reqGlobalCancel*)",
+      "Bash(*--allow-live*)",
+
+      "Bash(*cat*.env*)",
+      "Bash(*tail*.env*)",
+      "Bash(*config.ini*)",
+      "Bash(*ANTHROPIC_API_KEY*)",
+      "Bash(*SMTP_PASSWORD*)",
+      "Bash(*FRED_API_KEY*)",
+      "Bash(*CHESTER_STATE_TOKEN*)"
+    ]
+  }
+}
