@@ -39,6 +39,7 @@ PY_VALIDATORS := \
 	tools/validate_daily_close.py \
 	tools/validate_morning_anchor.py \
 	tools/validate_numeral_audit.py \
+	tools/validate_grader.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
