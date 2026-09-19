@@ -278,6 +278,17 @@ DEPLOY_TIMERS := \
 	chester-overnight.timer \
 	chester-morning-anchor.timer
 
+# BASH FOR THIS TARGET ONLY. make runs recipes under /bin/sh, which on the VPS is
+# dash, and `set -o pipefail` is not POSIX -- the first real deploy died on
+# "Illegal option -o pipefail" before doing anything, which is the good way for
+# that to fail. Scoped to this target with a target-specific variable rather than
+# set globally: every other recipe here is POSIX and works under dash, and
+# switching the shell for all of them to fix one would be a change nobody asked
+# for in targets nobody was testing.
+#
+# pipefail is worth the bash dependency. Several steps pipe ssh through sed, and
+# without it a failed ssh whose output happens to format cleanly reports success.
+deploy: SHELL := /bin/bash
 deploy:
 	@set -uo pipefail; \
 	H='$(DEPLOY_HOST)'; \
