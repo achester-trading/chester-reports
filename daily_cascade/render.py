@@ -284,23 +284,84 @@ def portfolio_block(payload: dict) -> str:
                    'of this cutoff.</div>')
     else:
         prows = []
+        reasons: list[str] = []
         for r in pos:
+            # DISTANCE TO INVALIDATION IS THE ONE FIGURE HERE THAT IS A
+            # DECISION, so it is the one that gets colour. Negative means the
+            # level is already breached and the position should not still be on
+            # -- which is exactly the state fae90045 sat in for six sessions
+            # while nothing in any report said so.
+            dp, dpct = r.get("distance_points"), r.get("distance_pct")
+            if dp is None:
+                dist = dash(r.get("register_reason") or "no distance available")
+                dist_pct = dash(r.get("register_reason") or "")
+            else:
+                colour = "#b3261e" if dp < 0 else "#0d7a3f"
+                dist = f'<span style="color:{colour}">{dp:+,.2f}</span>'
+                dist_pct = ("" if dpct is None else
+                            f'<span style="color:{colour}">{dpct:+.2f}%</span>')
+
+            did = r.get("decision_id")
+            did_cell = (f'<code title="{esc(r.get("invalidation") or "")}">'
+                        f'{esc(did[:8])}</code>' if did
+                        else dash(r.get("register_reason") or "no decision"))
+            state = r.get("thesis_state")
+            if state == "INVALIDATED":
+                # A thesis marked dead while the position is still held is the
+                # loudest thing this table can say.
+                did_cell += (' <span style="color:#b3261e;font-weight:600">'
+                             'INVALIDATED</span>')
+
+            ccy = r.get("currency")
+            inst = esc(r["instrument"])
+            if ccy and ccy != "USD":
+                inst += (f' <span style="color:#7c3a00" title="values below are '
+                         f'in {esc(ccy)}, not USD">{esc(ccy)}</span>')
+
             prows.append(
                 "<tr>"
-                f'<td style="{TDL}">{esc(r["instrument"])}</td>'
+                f'<td style="{TDL}">{inst}</td>'
                 f'<td style="{TD}">{num(r.get("qty"), 0)}</td>'
+                f'<td style="{TD}">{num(r.get("avg_cost"))}</td>'
+                f'<td style="{TD}">{dash(r.get("fill_reason") or "")}</td>'
+                f'<td style="{TD}">{dash(r.get("fill_reason") or "")}</td>'
                 f'<td style="{TD}">{money(r.get("market_value"))}</td>'
                 f'<td style="{TD}">{money(r.get("unrealized_pnl"))}</td>'
+                f'<td style="{TDL}">{did_cell}</td>'
+                f'<td style="{TD}">{num(r.get("invalidation_level"))}</td>'
+                f'<td style="{TD}">{dist}</td>'
+                f'<td style="{TD}">{dist_pct}</td>'
                 "</tr>")
+            for why in (r.get("fill_reason"), r.get("register_reason")):
+                if why and why not in reasons:
+                    reasons.append(why)
+
         pos_tbl = (f'<table style="{TBL}"><tr>'
                    f'<th style="{THL}">Instrument</th><th style="{TH}">Qty</th>'
+                   f'<th style="{TH}">Avg cost</th>'
+                   f'<th style="{TH}">Fill</th><th style="{TH}">Comm</th>'
                    f'<th style="{TH}">Market value</th>'
-                   f'<th style="{TH}">Unrealised</th></tr>'
+                   f'<th style="{TH}">Unrealised</th>'
+                   f'<th style="{THL}">Decision</th>'
+                   f'<th style="{TH}">Invalidation</th>'
+                   f'<th style="{TH}">Distance</th><th style="{TH}">%</th></tr>'
                    f'{_rows(prows)}</table>')
+        if reasons:
+            items = "".join(f"<li>{esc(w)}</li>" for w in reasons)
+            pos_tbl += (f'<div style="{ABSENT}"><strong>Why cells are '
+                        f'empty</strong><ul style="margin:6px 0 0 0;'
+                        f'padding-left:18px">{items}</ul></div>')
+
     note = (f'<p style="{NOTE}">Read-only, <code>source=ibkr_paper</code>, '
             '<code>mechanism_group=portfolio_truth</code>. Every one of these '
             'is <code>trigger_eligible: false</code> &mdash; they say what is '
-            'held, never what to do about it.</p>')
+            'held, never what to do about it.<br>'
+            'Avg cost, market value and unrealised are in the CONTRACT\'s '
+            'currency, which is not always the account\'s &mdash; a non-USD '
+            'listing is tagged with its currency beside the instrument. '
+            'Distance to invalidation is signed by the direction of danger, so '
+            'a negative means the level is already breached whether the '
+            'position is long or short.</p>')
     return acc_tbl + pos_tbl + note
 
 

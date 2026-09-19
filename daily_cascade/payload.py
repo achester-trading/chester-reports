@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Optional
@@ -53,6 +54,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import config, observations, session  # noqa: E402
+from register import instruments            # noqa: E402
 import pin_log  # noqa: E402
 
 log = logging.getLogger("daily_cascade.payload")
@@ -190,6 +192,138 @@ def pin_rows(sess: str) -> list[dict]:
     return out
 
 
+# A level inside an invalidation sentence. The register stores invalidation as
+# PROSE by design -- "settled close below put wall 760" carries the mechanism,
+# not just the number, and Part 7 wants the mechanism. So the level is parsed out
+# for the distance arithmetic and the sentence is printed as written; when no
+# number can be found the distance is absent and says so, rather than a zero
+# standing in for "could not tell".
+_LEVEL = re.compile(r"(\d[\d,]*(?:\.\d+)?)")
+
+
+def invalidation_level(text: Optional[str]) -> Optional[float]:
+    """The first number in an invalidation sentence, or None."""
+    m = _LEVEL.search(str(text or ""))
+    if not m:
+        return None
+    try:
+        return float(m.group(1).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _attach_register(positions: list[dict]) -> None:
+    """Add the decision id, invalidation and distance to each held position.
+
+    THE EXECUTION RECORD DOES NOT EXIST, and that is why fill price and
+    commission are absent here rather than merely missing. Nothing in this repo
+    reads IBKR executions: the three read-only services are Portfolio Truth
+    (positions and balances), What-If (pre-trade) and Costs (estimates), and
+    reqExecutions/ExecutionFilter appear nowhere. So there is no fill price and no
+    commission to join, for any position, on any box. The fields are carried as
+    None with a stated reason so the gap is visible in the report instead of
+    looking like a position nobody filled.
+
+    THE REGISTER MAY NOT BE HERE EITHER. It lives in the same database file as the
+    observation store but its tables are created by the Register class, so a box
+    that has never recorded a decision has no decisions table at all -- which is
+    the VPS today. The block reports that by name too. Both absences are the kind
+    that a blank cell would hide.
+    """
+    reason = None
+    rows: list[dict] = []
+    try:
+        import sqlite3  # noqa: PLC0415
+        from register import store as reg_store  # noqa: PLC0415
+        conn = sqlite3.connect(reg_store.DEFAULT_DB)
+        conn.row_factory = sqlite3.Row
+        try:
+            have = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='decisions'").fetchone()
+            if not have:
+                reason = ("no decisions table in the store -- the register has "
+                          "never been written on this box, so no decision id or "
+                          "invalidation can be joined to a position")
+            else:
+                # The live head of each chain: active, and not yet superseded.
+                rows = [dict(r) for r in conn.execute(
+                    "SELECT id, instrument, instrument_norm, invalidation, "
+                    "       status, thesis_state, note "
+                    "  FROM decisions "
+                    " WHERE superseded_by IS NULL AND status = 'active'")]
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 -- a report never dies on a block
+        reason = f"register unreadable: {type(exc).__name__}: {exc}"
+
+    for p in positions:
+        p["fill_price"] = None
+        p["commission"] = None
+        p["fill_reason"] = ("no execution record exists -- nothing in this "
+                            "system reads IBKR executions (L2 builds it)")
+        p["decision_id"] = None
+        p["invalidation"] = None
+        p["invalidation_level"] = None
+        p["distance_points"] = None
+        p["distance_pct"] = None
+        p["thesis_state"] = None
+        p["register_reason"] = reason
+
+        if not rows:
+            continue
+        # MATCHING, AND WHY THE LOOSE FALLBACK IS CONDITIONAL.
+        #
+        # An exact instrument match is unambiguous and always wins. Falling back
+        # to the normalised issuer root lets a decision written as `SPY` find a
+        # holding keyed `SPY@ARCA.USD`, which is usually what is meant -- but it
+        # is exactly wrong when the book holds TWO listings of one issuer, because
+        # both normalise to `SPY` and the fallback would attach the same decision
+        # to both. On the 17 September book that produced a peso short carrying a
+        # dollar decision's 760 level and a distance of -1,628%: a number with no
+        # meaning, printed in red, in the column a reader is meant to act on.
+        #
+        # So the fallback applies only when the root is unambiguous in the book.
+        norm = instruments.normalise(p["instrument"])
+        siblings = [q for q in positions
+                    if instruments.normalise(q["instrument"]) == norm]
+        hit = next((r for r in rows if r["instrument"] == p["instrument"]), None)
+        if hit is None and len(siblings) == 1:
+            hit = next((r for r in rows if r["instrument_norm"] == norm), None)
+        if hit is None:
+            if len(siblings) > 1 and any(r["instrument_norm"] == norm
+                                         for r in rows):
+                p["register_reason"] = (
+                    f"the register names {norm} but the book holds "
+                    f"{len(siblings)} listings of it "
+                    f"({', '.join(q['instrument'] for q in siblings)}); which "
+                    f"one the decision refers to cannot be inferred, so no "
+                    f"level is attached rather than the wrong one")
+            else:
+                p["register_reason"] = ("no active decision in the register "
+                                        "names this instrument")
+            continue
+        p["decision_id"] = hit["id"]
+        p["invalidation"] = hit["invalidation"]
+        p["thesis_state"] = hit["thesis_state"]
+        lvl = invalidation_level(hit["invalidation"])
+        p["invalidation_level"] = lvl
+        mark = p.get("mark")
+        if lvl is None:
+            p["register_reason"] = ("the invalidation names no numeric level, "
+                                    "so no distance can be computed")
+        elif mark is None:
+            p["register_reason"] = "no mark, so no distance can be computed"
+        else:
+            # SIGNED BY DIRECTION OF DANGER, not by arithmetic. A long is
+            # invalidated BELOW its level, so the distance is mark - level and a
+            # negative means the level is already breached. For a short the
+            # relationship inverts, and quantity carries the direction.
+            d = (mark - lvl) if (p.get("qty") or 0) >= 0 else (lvl - mark)
+            p["distance_points"] = d
+            p["distance_pct"] = 100.0 * d / lvl if lvl else None
+
+
 def portfolio_block(as_of: Optional[str] = None) -> dict:
     """Portfolio Truth as of the cutoff, or an honest absence.
 
@@ -220,13 +354,29 @@ def portfolio_block(as_of: Optional[str] = None) -> dict:
                                      as_of=as_of, instrument=inst)
                 pnl = db.latest_as_of("portfolio.position_unrealized_pnl",
                                       as_of=as_of, instrument=inst)
+                ccy = db.latest_as_of("portfolio.position_currency",
+                                      as_of=as_of, instrument=inst)
+                spot = (mv or {}).get("value_num")
+                q = qty.get("value_num")
                 block["positions"].append({
                     "instrument": inst,
-                    "qty": qty.get("value_num"),
-                    "market_value": (mv or {}).get("value_num"),
+                    "qty": q,
+                    "market_value": spot,
                     "unrealized_pnl": (pnl or {}).get("value_num"),
+                    # The contract's currency, not the account's. Without it a
+                    # 1,313,769-peso short reads as a 1.3-million-dollar one.
+                    "currency": (ccy or {}).get("value_text"),
+                    "avg_cost": (db.latest_as_of("portfolio.position_avg_cost",
+                                                 as_of=as_of, instrument=inst)
+                                 or {}).get("value_num"),
+                    "mark": (spot / q if spot is not None and q else None),
                     "observed_at": qty.get("observed_at"),
                 })
+
+        # THE REGISTER SIDE. Attached here rather than in the renderer because
+        # the renderer computes nothing -- the distance to invalidation is a
+        # number in the report and must therefore be a number in the payload.
+        _attach_register(block["positions"])
     except Exception as exc:  # noqa: BLE001 -- a report never dies on a block
         block["reason"] = f"store unreadable: {type(exc).__name__}: {exc}"
         return block
