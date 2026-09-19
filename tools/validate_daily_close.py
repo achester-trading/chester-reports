@@ -32,6 +32,7 @@ Runs anywhere: no SMTP, no network, no store required.
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -58,15 +59,43 @@ def bad(m: str) -> None:
     print(f"  FAIL  {m}")
 
 
-# Anything that would let a sentence into this edition.
-FORBIDDEN = ("anthropic", "narrative", "openai", "claude", "llm", "completion")
+def check(c: bool, m: str) -> None:
+    ok(m) if c else bad(m)
+
+
+# Anything that would let a sentence reach the data path.
+FORBIDDEN = ("anthropic", "openai", "claude", "llm", "completion")
+
+# THE MODULES THAT MUST STAY PROSE-FREE, which is not the same as the package.
+#
+# This used to scan every file in daily_cascade/ for a set of substrings, which
+# was right while the package had no narrative at all and became wrong the moment
+# D3 made one publishable: the scan failed on narrative.py for being a narrative
+# module, and on payload.py for containing a function named narrative_payload.
+#
+# The invariant was never "the word must not appear". It is that THE DATA PATH
+# CANNOT REACH A LANGUAGE MODEL -- so the payload and render modules are the ones
+# checked, the check is about imports rather than spelling, and it is verified at
+# runtime as well as in the text. A helper named narrative_payload is fine; an
+# `import narrative` in payload.py is not, because that is the edge along which a
+# generated sentence could reach a figure before anything audited it.
+DATA_PATH = ("payload.py", "render.py", "morning_payload.py",
+             "morning_render.py")
+
+# Modules allowed to reach a model, because gating them is the whole design.
+PROSE_PATH = ("narrative.py",)
 
 
 def group_a() -> None:
-    """No prose, and it is checked in the source rather than promised."""
-    print(f"{LINE}\nA. The data-only ruling (32.5), enforced on the source\n{LINE}")
+    """The data path cannot reach a model. Checked in the source AND at runtime."""
+    print(f"{LINE}\nA. The data-only ruling (32.5), enforced on the data path\n{LINE}")
     pkg = REPO / "daily_cascade"
-    for f in sorted(pkg.glob("*.py")):
+
+    for name in DATA_PATH:
+        f = pkg / name
+        if not f.exists():
+            bad(f"{name} is missing -- the check is pointed at nothing")
+            continue
         text = f.read_text(encoding="utf-8")
         # Strip docstrings and comments first. A check that trips on the
         # sentence explaining why prose is banned is a check somebody deletes.
@@ -74,10 +103,51 @@ def group_a() -> None:
         code = re.sub(r"#.*", "", code)
         hits = [w for w in FORBIDDEN if w in code.lower()]
         if hits:
-            bad(f"{f.name} references {hits} outside comments -- "
-                f"this edition must contain no generated prose")
+            bad(f"{name} references {hits} outside comments -- the data path "
+                f"must not reach a language model")
         else:
-            ok(f"{f.name}: no narrative or LLM path in the code")
+            ok(f"{name}: no LLM client in the code")
+
+        # The narrative module by IMPORT, which is the edge that matters.
+        imports = re.findall(r"^\s*(?:from|import)\s+([\w.]+)", code, re.M)
+        narr = [m for m in imports if m.endswith("narrative")
+                or ".narrative" in m]
+        if narr:
+            bad(f"{name} imports {narr} -- the narrative module must not be "
+                f"reachable from the data path")
+        else:
+            ok(f"{name}: does not import the narrative module")
+
+    # RUNTIME, not just text. An indirect import through a third module would
+    # satisfy every regex above and still put a model one call away from the
+    # payload, so the assertion is made against sys.modules in a clean process.
+    probe = ("import sys; "
+             "import daily_cascade.payload, daily_cascade.render, "
+             "daily_cascade.morning_payload, daily_cascade.morning_render; "
+             "bad=[m for m in sys.modules "
+             "     if m.endswith('narrative') or m in ('anthropic','openai')]; "
+             "print('LEAKED:' + ','.join(sorted(bad)) if bad else 'CLEAN')")
+    r = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                       text=True, cwd=str(REPO))
+    out = (r.stdout or "").strip()
+    check("CLEAN" in out,
+          f"importing the data path pulls in NO narrative or LLM module "
+          f"({out or r.stderr.strip()[:80]})")
+
+    for name in PROSE_PATH:
+        f = pkg / name
+        check(f.exists(), f"{name} exists -- the prose path is present to be gated")
+        if not f.exists():
+            continue
+        src = f.read_text(encoding="utf-8")
+        code = re.sub(r'""".*?"""', "", src, flags=re.S)
+        code = re.sub(r"#.*", "", code)
+        check("numeral_audit" in code,
+              f"{name} imports the numeral audit -- prose it produces is gated "
+              f"by construction, not by the caller remembering to")
+        check("import anthropic" in code and "def _client" in code,
+              f"{name} imports the client LAZILY, so a box without the package "
+              f"runs the rest of the pipeline")
 
 
 def group_b() -> None:

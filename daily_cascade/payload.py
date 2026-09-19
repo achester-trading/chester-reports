@@ -390,6 +390,91 @@ def portfolio_block(as_of: Optional[str] = None) -> dict:
     return block
 
 
+# The figures the narrative may use, and NOTHING else. A narrow payload is a
+# narrow surface for invention -- a number the model was never shown has to be
+# fabricated to be printed, and the audit checks against exactly this set, so what
+# it was shown is matchable and what it was not is not.
+#
+# The reference instrument is SPY because the paragraph's first job is the regime
+# and the regime is read off the index. Per-symbol detail stays in the tables.
+NARRATIVE_SYMBOL = "SPY"
+
+# Part of what the metrics MEAN rather than claims about the market: the hedge
+# flow is denominated per 1% move. Declared so a correct paragraph is not withheld
+# over a unit. See numeral_audit.audit()'s docstring.
+NARRATIVE_UNIT_CONSTANTS = [1.0]
+
+
+def narrative_payload(full: dict, prior: Optional[dict] = None) -> dict:
+    """The structured figures for the close paragraph, per the template's coverage.
+
+    Built from the already-assembled close payload rather than re-reading the
+    store, so the paragraph and the tables below it cannot disagree about a
+    number: there is one source and the prose is downstream of it.
+
+    `prior` is the previous session's payload when it can be built. The deltas the
+    template asks for -- hedge flow versus yesterday, wall movement -- are computed
+    HERE and carried as values, because the renderer computes nothing and the model
+    must not either. A delta the model derived would be a figure with no payload
+    counterpart, and the audit would correctly reject the paragraph for it.
+    """
+    def row_of(payload: Optional[dict]) -> dict:
+        for r in (payload or {}).get("exposure") or []:
+            if r.get("symbol") == NARRATIVE_SYMBOL:
+                return r
+        return {}
+
+    now, was = row_of(full), row_of(prior)
+
+    def delta(key: str):
+        a, b = now.get(key), was.get(key)
+        if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+            return round(a - b, 6)
+        return None
+
+    out: dict = {
+        "session": full.get("session"),
+        "prior_session": (prior or {}).get("session"),
+        "symbol": NARRATIVE_SYMBOL,
+        "spot": now.get("spot"),
+        "prior_spot": was.get("spot") or None,
+        "spot_change": delta("spot"),
+        "gamma_flip": now.get("gamma_flip"),
+        "spot_above_flip": (None if now.get("spot") is None
+                            or now.get("gamma_flip") is None
+                            else now["spot"] > now["gamma_flip"]),
+        "dollar_gamma_per_1pct": now.get("dollar_gamma_per_1pct"),
+        "prior_dollar_gamma_per_1pct": was.get("dollar_gamma_per_1pct") or None,
+        "dollar_gamma_change": delta("dollar_gamma_per_1pct"),
+        "call_wall": now.get("call_wall"),
+        "prior_call_wall": was.get("call_wall") or None,
+        "call_wall_change": delta("call_wall"),
+        "put_wall": now.get("put_wall"),
+        "prior_put_wall": was.get("put_wall") or None,
+        "put_wall_change": delta("put_wall"),
+        "peak_abs_gex_strike": now.get("peak_abs_gex_strike"),
+        "max_pain": now.get("max_pain"),
+        "net_gex": now.get("net_gex"),
+        # The pin tally to date, which is the system's own scorecard.
+        "pin_rows_today": len(full.get("pins") or []),
+        "pin_hits_today": full.get("pin_hits"),
+        # Positions, from the register join the portfolio block already did.
+        "positions": [
+            {k: v for k, v in pos.items()
+             if k in ("instrument", "qty", "currency", "avg_cost", "mark",
+                      "fill_price", "commission", "decision_id",
+                      "invalidation", "invalidation_level",
+                      "distance_points", "distance_pct", "thesis_state",
+                      "unrealized_pnl")}
+            for pos in (full.get("portfolio") or {}).get("positions") or []
+        ],
+        # Absences travel WITH the figures, so the paragraph can say what the
+        # system does not know instead of quietly omitting it.
+        "absences": [w for w in full.get("warnings") or []],
+    }
+    return {k: v for k, v in out.items() if v is not None and v != []}
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None) -> dict:
     """The whole payload. Reads only; never raises on a missing block."""
