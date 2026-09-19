@@ -28,6 +28,31 @@ readings are compared, and the mapping note travels with every record, because
 guessing which of their fields means what is the most likely way to draw a
 false conclusion here.
 
+THEIR PER-STRIKE TABLE IS NOT A REFERENCE FOR ANYTHING. The Basic tier serves no
+per-strike data the logger could use, and what it does show cannot be trusted as a
+yardstick: the observed table carried a strike of 8000 on SPY, an instrument
+trading near 760. That is an index-scale strike on an ETF, so either the table
+mixes SPX-scale contracts into an SPY view or it is simply wrong -- and either way
+nothing here may treat it as the reference. Only the derived LEVELS are compared,
+and even those are compared as an independent opinion rather than as truth.
+
+DEX IS COMPARED AND FLAGGED UNRECONCILED, WHICH IS NOT THE SAME AS BROKEN.
+A divergence is only interpretable once both sides agree on what the number
+MEANS, and for delta exposure neither side's definition is pinned down on any of
+the four axes that change the answer -- sign convention, which contracts are
+included, any moneyness filter, and the OI vintage. DEFINITION_AUDIT below records
+the state of each axis. Until all four close, every DEX row carries
+`definition_unreconciled` so nobody reads a gap as a finding, and the
+reconciliation itself is the work rather than the number.
+
+Our own sign convention is the clearest case: under `dealers-hand-v1` customers
+sell calls and buy puts, so dealers are long calls and short puts -- and BOTH legs
+carry positive delta. Net DEX is therefore positive for every symbol, bucket and
+expiry by construction (269 of 269 rows on the first backfill, with no negative
+possible in principle). Magnitude, dating and day-over-day change are the signal;
+direction is not. Whether the vendor signs the same way is undisclosed, so a
+sign-level agreement between us would prove nothing anyway.
+
 Cost: one API call per symbol per run, against a 250/day Basic quota.
 
 Usage:
@@ -78,7 +103,77 @@ COMPARISONS = [
     ("call_wall_otm",   "overall.call_wall_otm",    "call_wall"),
     ("magnet",          "max_pain",                 "zero_dte_magnet"),
     ("peak_gex_vs_oi",  "overall.peak_abs_gex_strike", "highest_oi_strike"),
+    # DELTA EXPOSURE. Two shapes, because a vendor may publish either and the
+    # two are not interchangeable: shares is the hedge in units of underlying,
+    # notional is that times spot. Comparing one against the other would produce
+    # a divergence of the size of the spot price and read as a catastrophic
+    # disagreement rather than as a units mistake.
+    ("dex_shares",      "overall.dex_shares",       "dex_shares"),
+    ("dex_notional",    "overall.dex_notional",     "dex_notional"),
 ]
+
+# THE DEFINITIONAL AUDIT. Four axes, because each one independently changes the
+# number, and a divergence is uninterpretable until all four are pinned on both
+# sides. `ours` is knowable from our own code; `theirs` is knowable only if the
+# vendor documents it, and Basic documents none of this. A level with any axis
+# unresolved is reported `definition_unreconciled` and its divergence is NOT a
+# finding.
+#
+# Written as data rather than prose so the flag is computed from the same thing a
+# human reads, and closing an axis is a one-line edit that immediately shows up in
+# the output.
+DEFINITION_AUDIT = {
+    "dex_shares": {
+        "sign_convention": {
+            "ours": "dealers-hand-v1: dealers long calls, short puts. BOTH legs "
+                    "carry positive delta, so net DEX is positive by "
+                    "construction -- direction is uninformative, magnitude is "
+                    "the signal.",
+            "theirs": "undisclosed on Basic.",
+            "state": "unresolved",
+        },
+        "contracts_included": {
+            "ours": "settled_0dte_rule = exclude_dte0_from_exposure_aggregates_v1"
+                    " -- a settled profile computes no 0DTE greeks at all, so "
+                    "same-day expiries are out of the aggregate entirely.",
+            "theirs": "undisclosed; unknown whether 0DTE is included.",
+            "state": "unresolved",
+        },
+        "moneyness_filter": {
+            "ours": "none applied to DEX. (Our *_otm wall variants exist for the "
+                    "walls, not for delta.)",
+            "theirs": "undisclosed.",
+            "state": "unresolved",
+        },
+        "oi_vintage": {
+            "ours": "the settled 16:10 yfinance chain snapshot; fetched_at is on "
+                    "every profile.",
+            "theirs": "their own settled-OI feed at their node; as_of and node are "
+                      "logged per record but the feed is not described.",
+            "state": "unresolved",
+        },
+    },
+}
+# dex_notional inherits the audit: it is dex_shares times spot, so every axis
+# that governs one governs the other, and duplicating the table would let the two
+# drift into disagreeing about their own definition.
+DEFINITION_AUDIT["dex_notional"] = DEFINITION_AUDIT["dex_shares"]
+
+PER_STRIKE_CAVEAT = (
+    "FlashAlpha Basic's per-strike table is NOT the reference: the observed "
+    "table carried a strike of 8000 on SPY, an instrument trading near 760. "
+    "Only derived levels are compared here, and only as an independent opinion.")
+
+
+def definition_state(level: str) -> tuple[bool, list[str]]:
+    """(unreconciled, the axes still open) for one compared level."""
+    audit = DEFINITION_AUDIT.get(level)
+    if not audit:
+        # No audit entry means no axis was ever in question for this level --
+        # a strike price is a strike price. Absence is not an open question.
+        return False, []
+    open_axes = [k for k, v in audit.items() if v.get("state") != "resolved"]
+    return bool(open_axes), open_axes
 
 MAPPING_NOTE = ("Field mapping is empirical, not vendor-documented. Their "
                 "call_wall/put_wall and max_positive_gamma/max_negative_gamma "
@@ -145,6 +240,7 @@ def compare(symbol: str, ours: dict, theirs: dict) -> dict:
             diff = round(o - t, 4)
             ref = our_spot or o
             pct = round((o - t) / ref * 100.0, 4) if ref else None
+        unreconciled, open_axes = definition_state(name)
         rows.append({
             "level": name, "ours": o, "theirs": t,
             "diff_strike_points": diff, "diff_pct_of_spot": pct,
@@ -152,6 +248,11 @@ def compare(symbol: str, ours: dict, theirs: dict) -> dict:
             "missing": ("ours" if o is None and t is not None else
                         "theirs" if t is None and o is not None else
                         "both" if o is None and t is None else None),
+            # A divergence on an unreconciled definition is not a finding, and
+            # the flag travels on the ROW so it cannot be separated from the
+            # number it qualifies.
+            "definition_unreconciled": unreconciled,
+            "definition_open_axes": ";".join(open_axes) if open_axes else None,
         })
 
     return {
@@ -170,6 +271,8 @@ def compare(symbol: str, ours: dict, theirs: dict) -> dict:
         "vendor_status": theirs.get("status"),
         "quota_remaining": theirs.get("quota_remaining"),
         "mapping_note": MAPPING_NOTE,
+        "per_strike_caveat": PER_STRIKE_CAVEAT,
+        "definition_audit": DEFINITION_AUDIT,
         "levels": rows,
     }
 
@@ -186,7 +289,12 @@ def write_results(results: list[dict], out_dir: Optional[str] = None) -> tuple[P
     csv_path = Path(out_dir or CROSS_CHECK_DIR) / "divergence_log.csv"
     cols = ["checked_at", "symbol", "level", "ours", "theirs",
             "diff_strike_points", "diff_pct_of_spot", "agree", "missing",
-            "our_spot", "their_spot", "spot_diff", "their_node", "vendor_status"]
+            "our_spot", "their_spot", "spot_diff", "their_node", "vendor_status",
+            # Appended, never inserted: the log is append-only and a reader of
+            # the old rows must not have its columns shift underneath it. Rows
+            # written before this lands carry empty cells, which is the honest
+            # reading -- the flag did not exist then.
+            "definition_unreconciled", "definition_open_axes"]
     exists = csv_path.exists()
     with csv_path.open("a", encoding="utf-8", newline="") as fp:
         w = csv.DictWriter(fp, fieldnames=cols, extrasaction="ignore")
@@ -245,8 +353,27 @@ def main() -> int:
             flag = "" if lv["agree"] is not False else "  <-- diverges"
             if lv["missing"]:
                 flag = f"  <-- missing: {lv['missing']}"
+            # THE FLAG OUTRANKS THE DIVERGENCE NOTE, because it changes what the
+            # divergence MEANS. "diverges" invites investigation of the numbers;
+            # "definition unreconciled" says the numbers are not yet comparable
+            # and the work is the definition, not the gap.
+            if lv.get("definition_unreconciled"):
+                flag = "  <-- DEFINITION UNRECONCILED"
             print(f"  {lv['level']:<18} {f(lv['ours'])} {f(lv['theirs'])} "
                   f"{f(lv['diff_strike_points'])} {f(lv['diff_pct_of_spot'], 8)}{flag}")
+
+        open_now = sorted({a for lv in res["levels"]
+                           for a in (lv.get("definition_open_axes") or "").split(";")
+                           if a})
+        if open_now:
+            print(f"\n  DEFINITION AUDIT -- {len(open_now)} axis/axes still open, "
+                  f"so any DEX gap above is NOT a finding:")
+            for axis, v in DEFINITION_AUDIT["dex_shares"].items():
+                mark = "OK  " if v.get("state") == "resolved" else "OPEN"
+                print(f"    [{mark}] {axis}")
+                print(f"           ours  : {v['ours']}")
+                print(f"           theirs: {v['theirs']}")
+        print(f"\n  {PER_STRIKE_CAVEAT}")
     print(f"\n  written: {CROSS_CHECK_DIR}/")
     return 0
 
