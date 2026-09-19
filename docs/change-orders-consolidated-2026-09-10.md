@@ -65,8 +65,38 @@
 **L3 — D3 numeral audit + the close narrative** *(requires `narrative-template-close.md` in docs/)*
 > Build D3 and the close narrative together. (1) altdata/numeral_audit.py: given prose and a payload, extract every numeral from the prose (integers, decimals, percentages, $ amounts with k/mm/bn suffixes) and match each to a payload value within formatting tolerance; return pass/fail with the unmatched numerals. Validator with seeded failures: an invented number, a transposed digit, a stale prior-day value. (2) The close narrative block: a pinned Sonnet model, version recorded on the artifact, writes ONE paragraph over a structured payload — the SPY row with deltas vs prior session, each open position from the register with fill, invalidation level and distance in points and percent, the pin log tally to date, the FlashAlpha cross-check when a row exists. Coverage order and style per docs/narrative-template-close.md. (3) The audit gates the block: pass → prose ships above the tables; fail → data-only edition with a one-line "narrative withheld: numeral audit failed on N figures" and the failure logged. (4) The CI no-prose check applies to the payload and render modules only, and asserts the narrative module cannot be imported by the payload path. Push.
 
-**L4 — Papers as a buildable artifact** *(enables the parallel track; see §4)*
+**L4 — Papers as a buildable artifact** — **DONE, 19 September 2026, not as written.** *(enabled the parallel track; see §4)*
 > Add docs/whitepapers/figures/<paper>/ from the uploaded zip. Build tools/render_paper.py: Markdown → HTML using the house stylesheet, replacing each figure caption of the form `*[Figure X — …; rendered in the HTML edition]*` or `*[Figure set X — …]*` with the matching SVG from figures/<paper>/ in order of appearance; the mapping is by ordinal within the paper. Add a CI step that regenerates every .html from its .md and fails on a diff, so a stale HTML fails the build. Commit the .html editions. Update CLAUDE.md: HTML is now generated, not uploaded — edit the .md, run the renderer.
+
+> **Closed as already delivered.** Every part of this order exists, in a better
+> form, from the `library-figures` work of 6–7 September (`ce8fa65` lifted the
+> figures out of the stale HTML; `0659ca4` retired the HTML-canonical rule in
+> all three places). What differs from the order as written:
+>
+> - **Figures live at `docs/figures/<slug>/fig-NN.svg`**, not
+>   `docs/whitepapers/figures/<paper>/`, each directory carrying an `index.md`
+>   mapping number → caption → file. 39 figures became committed files and the
+>   papers reference them with ordinary Markdown image links, so the
+>   placeholder captions this order wanted a renderer to substitute are gone
+>   from the `.md` entirely — there is nothing left to substitute.
+> - **The renderer is `tools/build_paper_html.py`** (`make html`), not
+>   `tools/render_paper.py`. It embeds the figures inline and stamps each
+>   edition with the SHA-256 of the `.md` it was built from.
+> - **The stale-HTML gate is a hash, not a diff.** `check_library.py`
+>   check_10 recomputes that stamp, which is strictly better than regenerating
+>   and diffing: git does not record mtimes, so a fresh clone's timestamps are
+>   noise. It *warned* on a stale edition until 19 September and now **fails**,
+>   which is the one respect in which this order was not yet satisfied and the
+>   only code this closure required.
+> - **`CLAUDE.md` already says HTML is generated, not uploaded**, and carries
+>   the upload discipline the retired rule kept failing to teach.
+>
+> The 19 September docs batch was assembled from a local copy predating all of
+> this and would have reverted it: its papers still carry the
+> `*[Figure N — rendered in the HTML edition]*` placeholders and its guide
+> restores the retired rule. Only its five genuinely new files were taken. See
+> §2 — treat this order as the reason that batch is the last one of its kind.
+
 
 **L5 — P2-1 package structure** *(own session, after the above)*
 > tools/__init__.py; import as tools.x; delete the 34 sys.path inserts; altdata stops importing upward from tools; one altdata/secrets.py for the .env parser and redact(); one altdata/selection.py for the newest-file rule. Prove nothing changes with `make validate` before and after.

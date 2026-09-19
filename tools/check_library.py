@@ -390,7 +390,13 @@ def check_10_figures_and_builds():
 
     A missing figure is a FAIL -- a paper that references artwork the repo
     does not have is wrong in a way a reader meets immediately. A stale build
-    is a WARN, because the fix is one `make html`.
+    is ALSO a FAIL, since 19 September 2026. It was a warning on the reasoning
+    that the fix is one `make html`, which is true and turned out to be beside
+    the point: a warning is a thing a green run is allowed to carry, so a stale
+    edition could be -- and was -- committed and pushed while the gate reported
+    success. Change order L4 asked for a CI step that regenerates every edition
+    and fails on a diff; this is that requirement, met by hash instead of by
+    regeneration, and it only actually meets it as a failure.
 
     STALENESS IS A HASH, NOT A TIMESTAMP. This check compared mtimes until it
     was pointed out that git does not record them: every file in a fresh clone
@@ -424,10 +430,10 @@ def check_10_figures_and_builds():
         with built.open(encoding="utf-8") as fh:
             m = stamp.search(fh.read(4096))
         if m is None:
-            warn(10, f"docs/html/{built.name} carries no source-sha256 -- "
+            fail(10, f"docs/html/{built.name} carries no source-sha256 -- "
                      f"run `make html`")
         elif m.group(1) != source_sha256(src):
-            warn(10, f"docs/html/{built.name} was built from a different "
+            fail(10, f"docs/html/{built.name} was built from a different "
                      f"{src.name} -- run `make html`")
 
 
