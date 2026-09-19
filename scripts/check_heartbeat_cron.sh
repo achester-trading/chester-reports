@@ -164,6 +164,21 @@ fi
 #             any comparison of the unit file alone, which is precisely how a
 #             box-local workaround outlives the defect it worked around.
 #
+# A THIRD CATEGORY, ADDED BECAUSE THE SECOND WAS TOO BLUNT. Some configuration is
+# genuinely box-local -- where THIS machine keeps its state directory is not a
+# fact the repo has any opinion about. Reporting that forever left the heartbeat
+# permanently at exit 8, and an alarm that is always on is an alarm nobody reads,
+# so the real case (somebody hand-edited an installed unit, and a pull will never
+# fix it) would arrive into a channel already trained to be ignored.
+#
+#   DECLARED  a drop-in on a unit named in deploy/systemd/box-config.allow, whose
+#             every directive key is one that file permits for that unit. Counted
+#             and logged, never alarmed.
+#
+# Undeclared is still drift, and so is a declared unit's drop-in that sets
+# something the manifest does not list. A switch that merely turned the override
+# check off would be worse than the noise it removed.
+#
 # NOT drift: a unit in deploy/systemd/ with no installed copy. Most of them are
 # deliberately not installed -- the whole enable gate depends on that -- so
 # reporting it would train the reader to ignore this section.
@@ -186,6 +201,44 @@ drift_note() {           # drift_note <kind> <unit>
     log "  DRIFT $1: $2"
 }
 
+BOX_ALLOW="$UNIT_SRC/box-config.allow"
+DECLARED_COUNT=0
+
+# allowed_keys <unit> -> the directive keys the manifest permits, or empty.
+# Empty means the unit is not declared at all, which is a different state from
+# declared-with-no-keys and is why this prints nothing rather than failing.
+allowed_keys() {
+    [[ -f "$BOX_ALLOW" ]] || return 0
+    sed 's/#.*//' "$BOX_ALLOW" | awk -v u="$1" '$1 == u { $1 = ""; print }'
+}
+
+# dropin_verdict <unit> -> declared | undeclared | <the first offending key>
+#
+# Reads every .conf in the drop-in directory and checks each directive key
+# against the manifest. Section headers, comments and blank lines carry no
+# directive and are skipped. A key is the text left of the first '='.
+dropin_verdict() {
+    local unit="$1" keys line key
+    keys="$(allowed_keys "$unit")"
+    [[ -n "${keys// /}" ]] || { printf 'undeclared'; return; }
+    while IFS= read -r line; do
+        line="${line%%#*}"
+        line="$(printf '%s' "$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        [[ -z "$line" ]] && continue
+        case "$line" in
+            '['*']') continue ;;
+        esac
+        key="${line%%=*}"
+        key="$(printf '%s' "$key" | sed 's/[[:space:]]*$//')"
+        [[ "$key" == "$line" ]] && { printf '%s' "$key"; return; }   # no '='
+        case " ${keys} " in
+            *" $key "*) ;;
+            *) printf '%s' "$key"; return ;;
+        esac
+    done < <(cat "$UNIT_DST/$unit.d"/*.conf 2>/dev/null)
+    printf 'declared'
+}
+
 if [[ ! -d "$UNIT_DST" ]]; then
     DRIFT_STATE=no_unit_dir
     log "unit drift: no installed-unit directory at $UNIT_DST"
@@ -204,9 +257,24 @@ else
             drift_note modified "$unit"
         fi
         # A drop-in wins over the unit file, so a matching unit file proves
-        # nothing on its own.
+        # nothing on its own. What the drop-in SETS decides whether it is drift.
         if compgen -G "$UNIT_DST/$unit.d/*.conf" >/dev/null 2>&1; then
-            drift_note override "$unit"
+            VERDICT="$(dropin_verdict "$unit")"
+            case "$VERDICT" in
+                declared)
+                    DECLARED_COUNT=$((DECLARED_COUNT + 1))
+                    log "  box-config: $unit has a DECLARED drop-in (permitted:$(allowed_keys "$unit"))"
+                    ;;
+                undeclared)
+                    drift_note override "$unit"
+                    ;;
+                *)
+                    # Declared unit, undeclared directive. Named, because "an
+                    # override exists" sends a human to read a file while
+                    # "it sets ExecStart" tells them what is wrong.
+                    drift_note "override:$VERDICT" "$unit"
+                    ;;
+            esac
         fi
     done
     if [[ $DRIFT_COUNT -gt 0 ]]; then
@@ -214,7 +282,7 @@ else
     elif [[ $INSTALLED -eq 0 ]]; then
         DRIFT_STATE=none_installed
     fi
-    log "unit drift: $DRIFT_STATE ($INSTALLED installed, $DRIFT_COUNT divergent)"
+    log "unit drift: $DRIFT_STATE ($INSTALLED installed, $DRIFT_COUNT divergent, $DECLARED_COUNT declared box-config)"
 fi
 
 # Drift does NOT overwrite the pipeline verdict. A dead pipeline is more urgent

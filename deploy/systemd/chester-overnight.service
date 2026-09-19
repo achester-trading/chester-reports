@@ -26,7 +26,15 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=no
 # The store is inside the checkout, so the checkout is writable here.
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+# ~/state is listed with a leading '-' so it is permitted-if-present rather
+# than required. This box redirects CHESTER_STATE_DIR there via a box-local
+# drop-in (see box-config.allow); ProtectSystem=strict would otherwise refuse
+# every write to it silently. Declaring it here rather than in the drop-in
+# keeps the box-local surface down to the Environment= lines alone -- the
+# smaller that surface, the less there is for a drift check to have to forgive.
+# The '-' means a box that does not use ~/state is unaffected: without it,
+# systemd fails the unit outright when the path does not exist.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

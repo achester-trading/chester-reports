@@ -211,8 +211,87 @@ else
     bad "an override.conf went undetected: $(grep unit_drift_units "$ALERT")"
 fi
 
+# --- DECLARED BOX-LOCAL CONFIGURATION ------------------------------------
+#
+# The override check above was too blunt to live with. Where THIS machine keeps
+# its state directory is not a fact the repo has an opinion about, so reporting
+# it forever left the heartbeat permanently at exit 8 -- and an alarm that is
+# always on is an alarm nobody reads, which means the genuine case (a
+# hand-edited installed unit, which a pull will never fix) would arrive into a
+# channel already trained to be ignored.
+#
+# deploy/systemd/box-config.allow names which unit may carry a drop-in and which
+# directive keys it may set. Declared is clean; everything else is still drift.
+rm -rf "$UNITS"/*.d
+cp "$REPO/deploy/systemd/chester-eod.service" "$UNITS/chester-eod.service"
+mkdir -p "$UNITS/chester-eod.service.d"
+cat >"$UNITS/chester-eod.service.d/override.conf" <<'DECL'
+# Box-local configuration.
+[Service]
+Environment=CHESTER_STATE_DIR=%h/state
+Environment=CHESTER_LOG_DIR=%h/logs
+DECL
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$(drift_of)" == "clean" ]] && [[ "$RC" == "0" ]]; then
+    ok "a DECLARED drop-in (Environment only, per box-config.allow) is not drift"
+else
+    bad "a declared drop-in reported drift=$(drift_of) exit=$RC"
+fi
+# THE POINT OF DECLARING KEYS RATHER THAN UNITS. A unit on the allow-list must
+# not become a place to hide anything: an ExecStart= in the same drop-in is still
+# drift, and the report NAMES the offending key, because "an override exists"
+# sends a human to read a file while "it sets ExecStart" tells them what is wrong.
+printf 'ExecStart=/bin/false\n' >>"$UNITS/chester-eod.service.d/override.conf"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if [[ "$(drift_of)" == "drifted" ]] && [[ "$RC" == "8" ]]; then
+    ok "an UNDECLARED directive in a declared unit's drop-in is still drift"
+else
+    bad "ExecStart= in a declared drop-in reported drift=$(drift_of) exit=$RC"
+fi
+if grep -q 'override:ExecStart' "$ALERT"; then
+    ok "and the alert names the offending directive, not merely the unit"
+else
+    bad "the alert does not name the key: $(grep unit_drift_units "$ALERT")"
+fi
+
+# A drop-in on a unit the manifest does not mention at all stays drift.
+rm -rf "$UNITS"/*.d
+mkdir -p "$UNITS/chester-eod.timer.d"
+printf '[Timer]\nOnCalendar=*:*\n' >"$UNITS/chester-eod.timer.d/o.conf"
+cp "$REPO/deploy/systemd/chester-eod.timer" "$UNITS/chester-eod.timer" 2>/dev/null || true
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+if grep -q 'chester-eod.timer(override)' "$ALERT"; then
+    ok "a drop-in on an UNDECLARED unit is drift (the manifest is a list, not a switch)"
+else
+    bad "an undeclared unit's drop-in went undetected: $(grep unit_drift_units "$ALERT")"
+fi
+rm -rf "$UNITS"/*.d
+
+# The manifest itself must exist and must not have quietly grown. It is the
+# exception list; a long one is a repo that has stopped describing its own
+# deployment.
+ALLOW="$REPO/deploy/systemd/box-config.allow"
+if [[ -f "$ALLOW" ]]; then
+    ok "deploy/systemd/box-config.allow is committed, so the exceptions are reviewable"
+else
+    bad "box-config.allow is missing -- every drop-in would read as drift again"
+fi
+BAD_KEYS="$(sed 's/#.*//' "$ALLOW" | awk 'NF > 1 { for (i = 2; i <= NF; i++) if ($i != "Environment") print $i }' | sort -u)"
+if [[ -z "$BAD_KEYS" ]]; then
+    ok "Environment= is the ONLY permitted box-local directive"
+else
+    bad "box-config.allow permits more than Environment=: $BAD_KEYS"
+fi
+
 # Drift must never mask a dead pipeline. Fixing the drift would otherwise make
 # a stale heartbeat look healthy.
+#
+# Drift is established HERE rather than inherited from whatever the previous
+# block happened to leave behind. It used to rely on that, and the box-config
+# tests above -- which clean up after themselves, as they should -- silently
+# turned this into an assertion about nothing.
+printf '\n# hand edit, to establish drift for this case\n' \
+    >>"$UNITS/chester-eod.service"
 run 1 CHESTER_SYSTEMD_USER_DIR="$UNITS"
 if [[ "$RC" == "1" ]] && [[ "$(state_of)" == "stale" ]] && [[ "$(drift_of)" == "drifted" ]]; then
     ok "a stale pipeline outranks drift; drift is still recorded alongside it"

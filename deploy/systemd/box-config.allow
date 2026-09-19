@@ -1,0 +1,72 @@
+# Box-local systemd configuration, DECLARED.
+#
+# -----------------------------------------------------------------------------
+# WHAT THIS FILE IS FOR
+# -----------------------------------------------------------------------------
+# Part 25's rule is that the VPS runs code and never edits it, so a repo unit is
+# canonical and an installed copy that differs from it is drift. The drift check
+# in scripts/check_heartbeat_cron.sh enforces that, and it also reports a
+# `<unit>.d/*.conf` drop-in as drift -- because a drop-in wins over the unit file
+# and is invisible to any byte comparison of the unit alone, which is exactly how
+# a box-local workaround outlives the defect it worked around.
+#
+# But some configuration is GENUINELY box-local and always will be. Where this
+# machine keeps its state directory is a property of this machine, not of the
+# system, and there is nothing for the repo to say about it. Reporting that
+# forever as drift has a specific cost: the heartbeat sits permanently at exit 8
+# with `unit_drift`, and an alarm that is always on is an alarm nobody reads. The
+# genuine case -- somebody hand-edited an installed unit and a pull will never
+# fix it -- then arrives into a channel already trained to be ignored.
+#
+# So: a drop-in is forgiven when this file says which unit may have one AND which
+# directives it may set. Anything else in it is still drift. The difference
+# between a declared override and an undeclared one is the whole point; a switch
+# that turned the check off would be worse than the noise.
+#
+# -----------------------------------------------------------------------------
+# WHAT DOES *NOT* BELONG HERE
+# -----------------------------------------------------------------------------
+# Anything the repo could have said itself. If a directive would be correct on
+# every box, it goes in the unit, not here -- this file is the exception list and
+# a long exception list is a repo that has stopped describing its own deployment.
+#
+# Two things were removed from the box's drop-ins on exactly that ground:
+#
+#   EnvironmentFile=-%h/chester-reports/.env
+#       Already in chester-eod.service and chester-heartbeat.service. The
+#       drop-ins were restating a line the repo units carry, so the drop-in copies
+#       are redundant and are deleted rather than declared.
+#
+#   ReadWritePaths=%h/state
+#       Now `-%h/state` in the repo units. The leading '-' makes it
+#       permitted-if-present, so a box that does not use ~/state is unaffected
+#       while this one stops needing a drop-in to be able to write there.
+#
+# That leaves Environment= as the only genuinely box-local directive, which is
+# the right size for this list.
+#
+# -----------------------------------------------------------------------------
+# FORMAT
+# -----------------------------------------------------------------------------
+#   <unit-name>  <permitted directive key> [<key> ...]
+#
+# Keys are matched on the part LEFT OF THE FIRST '=' in each drop-in line.
+# Comments, blank lines and [Section] headers are ignored in a drop-in. A drop-in
+# line whose key is not listed for its unit is drift, and so is a drop-in on a
+# unit absent from this file.
+
+# The EOD pass and the monitor that watches it. This box keeps heartbeat, status
+# and lock files in ~/state rather than the wrappers' ~/.chester default, and the
+# monitor MUST agree with the pipeline about where they are -- a checker pointed
+# at the wrong directory reports CRITICAL/no_heartbeat forever while everything
+# runs perfectly, which is the false alarm this whole mechanism exists to avoid.
+chester-eod.service           Environment
+chester-heartbeat.service     Environment
+
+# The 07:00 morning chain, for the same reason and with a sharper edge: the
+# morning heartbeat is READ by chester-heartbeat.service (exit 5 when a 07:00 was
+# owed and none arrived). If the writer used ~/.chester while the reader used
+# ~/state, the check would fire every single morning and the first thing it ever
+# reported would be a lie about a report that had in fact been delivered.
+chester-overnight.service     Environment
+chester-morning-anchor.service Environment
