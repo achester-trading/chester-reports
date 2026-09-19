@@ -165,6 +165,51 @@ sources:
         symbols, 60-70% rejected on wide spreads. This is why the settled
         profile excludes DTE=0 by rule rather than by workaround.
 
+  derived_grade:
+    name: Decision grades computed from the register and the stored pin log
+    tier: derived
+    epistemic_role: own_computation
+    domain: [decision_outcomes]
+    geography: [US]
+    latency: >-
+      Graded at the far edge of the decision's declared horizon, so the latency
+      IS the horizon: a swing decision is scoreable three weeks after entry and
+      not before.
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Every grade carries the reference and horizon dates it read and the full
+      close path between them, so it is as-of those observations and replays from
+      them.
+    license: n/a
+    # EMPTY, and emphatically so. A grade measures THIS SYSTEM'S OWN OUTPUT. Feeding
+    # it back into a report as an input would let the system cite its own marking
+    # as independent evidence, which is the precise failure the register was built
+    # to make impossible. Grades are read by tools/cuts.py and printed in the close
+    # report's GRADES block -- both of which are the system reporting ON itself,
+    # not consuming itself.
+    allowed_reports: []
+    implemented_by: altdata/grader.py
+    status: active
+    caveats:
+      - >-
+        Prices are SETTLED CLOSES from data/pin_log.csv, one per session. The
+        maximum adverse excursion is therefore a LOWER BOUND -- a position
+        stopped out intraday and recovered by the close is invisible. The
+        invalidation test is unaffected, because the register words its
+        invalidations as settled closes and the stored data matches the rule
+        exactly.
+      - >-
+        The reference price is the settled close on the entry session, NOT a fill
+        price. No execution record existed when the grader was written, so the
+        grade measures the DECISION from the close it was made against rather
+        than the operator's fill. Once altdata/executions.py has rows, the fill
+        is the better reference and this caveat is the migration note.
+      - >-
+        `structural` decisions are graded at 18 months. The architecture's window
+        is "1 yr+", which has no far edge; 18 months is a declared choice so that
+        an unbounded horizon is scoreable at all, and it is arguable rather than
+        measured.
+
   ibkr_paper:
     name: Interactive Brokers, paper account via local IB Gateway
     tier: A0

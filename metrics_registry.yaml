@@ -142,6 +142,11 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # DECISION GRADES. Its own group, and it must never share one with a market
+    # metric: a grade is a measurement of THIS SYSTEM'S OWN OUTPUT, so letting it
+    # confirm a market signal would be the system marking its own homework and
+    # calling the mark independent evidence.
+    - decision_grade
     # The overnight read. Its own group because it is a CLOCK-WINDOW
     # decomposition of one move, not several independent observations: the
     # Tokyo, Europe and residual legs are three slices of a single number
@@ -814,6 +819,134 @@ metrics:
       conId is opaque; recorded so the unambiguous id is still on the record.
 
 # -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # GRADES (Phase 3). Every one is `calculated` and every one is
+  # trigger_eligible: false -- and that second fact is not a placeholder waiting
+  # to be flipped. A grade is the measurement by which a metric might EARN
+  # trigger eligibility; letting the grade itself move a decision would close
+  # the loop on itself. Nothing in this block should ever become true.
+  #
+  # revision_policy is `recomputed`, which is the honest reading: the grader
+  # stamps every row with a method_version, and a methodology change rewrites the
+  # grade rather than the source restating anything. Two grades of one decision
+  # are comparable only if that version matches.
+  #
+  # information_half_life is `permanent`. A graded outcome is a historical fact
+  # about a decision that has already resolved; it does not decay.
+  grade.return_pct:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Return from the decision-time reference close to the horizon close, in the
+      decision's own direction. Stored prices only, as-of the horizon date.
+  grade.return_points:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      The same return in the instrument's own quote units.
+  grade.mae_close_pct:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Maximum adverse excursion measured ON SETTLED CLOSES between entry and
+      horizon. A LOWER BOUND on the true excursion: a position stopped out
+      intraday and recovered by the close is invisible to a close-only series,
+      which is why the column is named mae_close and not mae.
+  grade.invalidation_hit:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      Whether the declared invalidation level was breached on a SETTLED CLOSE
+      before the horizon. Tested the way the register words it, so here the
+      stored data and the declared rule agree exactly.
+  grade.risk_per_unit:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      Distance from the reference price to the invalidation level -- the loss per
+      unit the decision declared it would accept. NULL when the invalidation
+      names no level, never defaulted.
+  grade.dollars_at_risk:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      risk_per_unit times the declared units. The R denominator; NULL rather than
+      guessed when the size declares no parseable units, because an invented
+      denominator makes every R in every cut meaningless.
+  grade.r_multiple:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The THESIS outcome: return against dollars at risk, held to the horizon
+      regardless of whether the invalidation was touched on the way.
+  grade.r_multiple_ruled:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      What a RULE-FOLLOWING operator got: -1R when the invalidation was touched
+      before the horizon, otherwise r_multiple. THIS is the column expectancy is
+      computed on -- it is the money. The gap between it and r_multiple is the
+      measurable cost of where the invalidation was placed, and collapsing the two
+      would destroy the distinction Part 7 grades on: a thesis exited early that
+      would have worked is a different failure from a thesis that was wrong.
+
+
 bulk_imports:
 
   fred_macro:
