@@ -580,13 +580,44 @@ def cmd_set_status(args) -> int:
         # it is exactly what the register needs to be able to say.
         if (args.status == old["status"] and action == old["operator_action"]
                 and (args.thesis_state or old["thesis_state"]) == old["thesis_state"]
-                and not args.note):
+                and not args.note
+                and (args.instrument or old["instrument"]) == old["instrument"]):
             print(f"\n  NO CHANGE -- nothing written.")
             print(f"    Part 7 rule 4: revision has a bar. A superseding record "
                   f"that changes\n    nothing is noise in the trail that grades "
                   f"revisions per cycle.")
             print(LINE)
             return 0
+
+        # RE-DESIGNATION, NOT SUBSTITUTION.
+        #
+        # A decision written as `SPY` and a holding keyed `SPY@ARCA.USD` are the
+        # same position stated at two precisions, and the close report cannot
+        # join them once the book holds two SPY listings -- which is why this
+        # exists. But an --instrument flag on a supersession is also, if left
+        # open, a way to quietly move a recorded decision onto a different
+        # security and inherit its thesis, its timestamps and its grading.
+        #
+        # So the rule is exactly one thing: the new designation must normalise to
+        # the SAME issuer root. SPY -> SPY@ARCA.USD passes because both are SPY.
+        # SPY -> QQQ does not. The instrument may become more specific; it may
+        # never become something else.
+        instrument = old["instrument"]
+        if args.instrument and args.instrument != instrument:
+            was, now_root = (instruments.normalise(instrument),
+                             instruments.normalise(args.instrument))
+            if was != now_root:
+                print(f"\n  REFUSED -- re-designation changes the issuer")
+                print(f"    {instrument!r} normalises to {was!r}")
+                print(f"    {args.instrument!r} normalises to {now_root!r}")
+                print(f"    A supersession may make an instrument more precise, "
+                      f"never\n    substitute a different one. Record a new "
+                      f"decision instead.")
+                print(LINE)
+                return 1
+            instrument = args.instrument
+            print(f"  instrument      : {old['instrument']} -> {instrument}  "
+                  f"(same root {was})")
 
         signals = json.loads(old["signals_used"] or "[]")
         blocked_reason = old["blocked_reason"]
@@ -638,7 +669,7 @@ def cmd_set_status(args) -> int:
         now = session.utc_iso()
         new_id = reg.supersede(
             args.id,
-            instrument=old["instrument"], direction=old["direction"],
+            instrument=instrument, direction=old["direction"],
             thesis=old["thesis"], edge_type=old["edge_type"],
             horizon=old["horizon"], invalidation=old["invalidation"],
             size=old["size"], status=args.status, operator_action=action,
@@ -671,7 +702,7 @@ def cmd_set_status(args) -> int:
                                    else dm.get("hash", "")),
             "output_hash": manifest.output_hash(
                 {"decision": {"supersedes": args.id,
-                              "instrument": old["instrument"],
+                              "instrument": instrument,
                               "direction": old["direction"],
                               "horizon": old["horizon"],
                               "edge_type": old["edge_type"],
@@ -796,6 +827,11 @@ def main() -> int:
                          "A thesis can be INVALIDATED while the position is "
                          "still held -- that pair is the whole point of the "
                          "field, and it is not expressible by status alone.")
+    ss.add_argument("--instrument", default=None,
+                    help="Re-designate the instrument MORE PRECISELY -- e.g. "
+                         "SPY -> SPY@ARCA.USD. Refused unless it normalises to "
+                         "the same issuer root, so a decision can be made "
+                         "specific but never moved to a different security.")
     ss.add_argument("--note", default=None,
                     help="What this supersession is FOR. The thesis is carried "
                          "forward verbatim, so without a note the trail records "

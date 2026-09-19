@@ -61,7 +61,9 @@ if [[ "$LOCAL_SHA" != "$REMOTE_SHA" ]]; then
     printf '         record %s. Push and pull first if that is not what you want.\n\n' "$REMOTE_SHA" >&2
 fi
 
-printf '-> %s:%s  decide.py%s\n\n' "$HOST" "$REMOTE_REPO" "$REMOTE_ARGS" >&2
+# `--` first: the format string starts with `->`, which printf otherwise reads as
+# an option and rejects.
+printf -- '-> %s:%s  decide.py%s\n\n' "$HOST" "$REMOTE_REPO" "$REMOTE_ARGS" >&2
 
 # The box's venv, from the box's checkout, against the box's store. No --db: the
 # default is anchored to the repository root now, so it resolves to the one

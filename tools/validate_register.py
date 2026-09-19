@@ -301,6 +301,36 @@ def group_g(db_path: str) -> None:
           "a DRAFT becoming active still gets the freshness re-check -- "
           "narrowing the gate did not remove it")
 
+    # RE-DESIGNATION, NOT SUBSTITUTION. A decision written as `SPY` cannot be
+    # joined to a holding keyed `SPY@ARCA.USD` once the book carries two SPY
+    # listings, so a supersession may make the designation more precise. Left
+    # open, the same flag would be a way to move a recorded decision onto a
+    # different security and inherit its thesis, timestamps and grading -- so the
+    # issuer root must not change, and that is the whole rule.
+    reg = Register(db_path)
+    d3 = reg.record(instrument="SPY", status="active", operator_action="TAKE",
+                    **{**base, "direction": "long", "thesis": "to re-designate"})
+    reg.close()
+
+    def set_status_cli(*extra):
+        return subprocess.run(
+            [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db_path,
+             "set-status", "--id", d3, "--status", "active", "--dry-run", *extra],
+            capture_output=True, text=True, cwd=str(REPO))
+
+    r = set_status_cli("--instrument", "SPY@ARCA.USD", "--note", "precision")
+    check("SPY -> SPY@ARCA.USD" in r.stdout and "same root SPY" in r.stdout,
+          "SPY -> SPY@ARCA.USD is permitted: the same issuer, stated precisely")
+
+    r = set_status_cli("--instrument", "QQQ", "--note", "substitution")
+    check("REFUSED" in r.stdout and "changes the issuer" in r.stdout,
+          "SPY -> QQQ is REFUSED -- a supersession may not substitute a "
+          "different security and inherit the thesis and grading of this one")
+
+    r = set_status_cli("--instrument", "BN@TSE.CAD", "--note", "restricted")
+    check("REFUSED" in r.stdout,
+          "and it cannot be used to walk a decision into the Brookfield complex")
+
 
 # ---------------------------------------------------------------------------
 def group_c(db_path: str) -> None:
