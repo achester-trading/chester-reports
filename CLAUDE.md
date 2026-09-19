@@ -150,17 +150,26 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — 15 of them, no network, no box. It keeps
+**`make validate` runs every gate** — twenty code gates and one data gate, no
+network, no box. It keeps
 going past a failure and summarises at the end, because the question after a
 change is "what did I break", not "what did I break first"; `make validate-fast`
 stops at the first failure for a tight edit loop. The list lives in the
 `Makefile` and `.github/workflows/registry-check.yml` reads it from there, so CI
 and a local run cannot hold different lists — which is how four validators
 drifted out of CI while still passing locally. Adding a gate means adding one
-line to the Makefile. (`make` is absent on a stock Windows box; the validators
-all run directly too.)
+line to the Makefile.
 
-One of the fifteen is the library's own: `tools/check_library.py`, also reachable
+`make` is absent on a stock Windows box, so **`scripts/make.sh` is the same
+targets for a machine without make** — `bash scripts/make.sh validate`,
+`validate-fast`, `data-gates`, `html`, `library-check`, `list`. It parses the gate
+list out of the Makefile rather than carrying a copy, so it cannot become the
+third place the list lives; it resolves the venv interpreter the same way the
+Makefile does; and it deliberately wraps neither `figures` (whose `ADOPT=1` mode
+overwrites the committed figures) nor the deploy (which stays one shape, in
+`scripts/deploy.sh`). Every validator also still runs directly.
+
+One of them is the library's own: `tools/check_library.py`, also reachable
 as **`make library-check`**, which is the one to run while editing a paper rather
 than code. It enforces the Library conventions above — cite by name, the masthead
 owns the version, one namespace per rule, consecutive parts and figures — plus
@@ -245,13 +254,23 @@ without reasoning about overlaps: `Bash(make deploy*)` is allowed and *anything*
 containing `systemctl --user restart` is denied, so a deploy that grew a restart
 would be refused rather than inherited from the allow.
 
+**Every `make` entry is paired with the form that runs without `make`.** The
+allowlist was first written as three `make` entries, and `make` is absent on this
+repo's authoring laptop — so those entries matched commands that cannot run there
+and granted nothing: every gate run and every deploy went back to a prompt. The
+mirrors are `bash scripts/make.sh validate`, `bash scripts/make.sh html` and
+`bash scripts/deploy.sh`. They are the same fixed bodies reached by a different
+spelling rather than a wider grant, which is what makes the pairing acceptable:
+each names a script in this repo that `validate_deploy.py` audits, and group G of
+that validator fails if a `make` entry and its mirror ever come apart.
+
 ### Allowed, and why each is safe
 
 | Allowed | Why its worst case is known |
 |---|---|
-| `make validate` | Reads. Every gate is read-only over the repo and the store. |
-| `make html` | Regenerates `docs/html/` from the papers' `.md`. Build output; recoverable by re-running. |
-| `make deploy*` | Its whole body is fixed in the Makefile and audited by `validate_deploy.py`. The narrowness is the feature: a deploy typed twelve different ways cannot be allowlisted at all. |
+| `make validate`, `bash scripts/make.sh validate` | Reads. Every gate is read-only over the repo and the store. |
+| `make html`, `bash scripts/make.sh html` | Regenerates `docs/html/` from the papers' `.md`. Build output; recoverable by re-running. |
+| `make deploy*`, `bash scripts/deploy.sh*` | Its whole body is fixed in `scripts/deploy.sh` and audited by `validate_deploy.py`. The narrowness is the feature: a deploy typed twelve different ways cannot be allowlisted at all. |
 | `git add` / `commit` / `push` / `pull` | History is recoverable, and a bad commit is visible and revertable. `push` is included deliberately — a deploy that cannot push is a deploy that stops halfway. |
 | `ssh vps systemctl --user is-active` / `list-timers` | Reads unit state. Neither can change it. |
 | `ssh vps cat` / `tail` | Reads logs and state files on the box. Made safe by the secrets deny below, not by the verb. |

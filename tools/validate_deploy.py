@@ -14,7 +14,7 @@ which let it run unattended cannot be widened by accident.
   B  THE SEQUENCE IS THE DECLARED ONE. Six steps, in order, and a declared timer
      list rather than a glob over the unit directory.
   C  THE ALLOW LIST IS EXACTLY THE REVIEWED ONE. Not a superset. An entry nobody
-     reviewed is the whole risk of an allowlist, so a twelfth entry fails this
+     reviewed is the whole risk of an allowlist, so a fifteenth entry fails this
      gate until somebody updates the expected list on purpose.
   D  THE DENY PATTERNS ACTUALLY MATCH. Every dangerous command shape is run
      against the real patterns with fnmatch -- the same glob semantics Claude
@@ -26,6 +26,11 @@ which let it run unattended cannot be widened by accident.
      denied.
   F  CLAUDE.md DOCUMENTS EVERY DENY CATEGORY, because a rule whose reason is
      not written down is a rule the next person removes.
+  G  EVERY make ENTRY IS REACHABLE WITHOUT make. `make` is absent on the authoring
+     laptop, so an allow entry that only matches a make command grants nothing
+     there -- the gate run or the deploy falls back to a prompt and the allowlist
+     is decoration. Each make entry is asserted to travel with the spelling that
+     actually runs, and scripts/make.sh is audited the same way the deploy is.
 
     python tools/validate_deploy.py
 """
@@ -44,6 +49,8 @@ MAKEFILE = REPO / "Makefile"
 # are checked: the script for what it does, the Makefile for the fact that it
 # adds nothing of its own.
 DEPLOY_SH = REPO / "scripts" / "deploy.sh"
+# The make targets, for machines without make -- allowlisted, so audited here too.
+MAKE_SH = REPO / "scripts" / "make.sh"
 SETTINGS = REPO / ".claude" / "settings.json"
 CLAUDE_MD = REPO / "CLAUDE.md"
 
@@ -60,6 +67,11 @@ EXPECTED_ALLOW = [
     "Bash(make validate)",
     "Bash(make html)",
     "Bash(make deploy*)",
+    # The same three, spelled the way they run on a machine without make. See
+    # group G: a make entry without its mirror grants nothing on the laptop.
+    "Bash(bash scripts/make.sh validate)",
+    "Bash(bash scripts/make.sh html)",
+    "Bash(bash scripts/deploy.sh*)",
     "Bash(git add*)",
     "Bash(git commit*)",
     "Bash(git push*)",
@@ -123,6 +135,9 @@ MUST_NOT_DENY = [
     "make validate",
     "make html",
     "make deploy",
+    "bash scripts/make.sh validate",
+    "bash scripts/make.sh html",
+    "bash scripts/deploy.sh",
     "git add -A",
     "git commit -q -F -",
     "git push",
@@ -275,6 +290,20 @@ def group_b() -> None:
     check(".PHONY" in mk and re.search(r"^\.PHONY:.*\bdeploy\b", mk, re.M),
           "deploy is in .PHONY")
 
+    # THE MAKEFILE DECLARES NO DEPLOY SETTINGS OF ITS OWN. It used to carry
+    # DEPLOY_HOST, DEPLOY_REPO, DEPLOY_UNIT_DIR, DEPLOY_STATE_DIR and a second copy
+    # of DEPLOY_TIMERS. Once the recipe became a delegation they were all inert --
+    # make does not export its variables to a recipe's child process, so
+    # `make deploy DEPLOY_HOST=other` read like an override and still deployed to
+    # vps -- and the duplicated timer list was a second place to edit and forget.
+    stale = [v for v in ("DEPLOY_HOST", "DEPLOY_REPO", "DEPLOY_UNIT_DIR",
+                         "DEPLOY_STATE_DIR", "DEPLOY_TIMERS")
+             if re.search(rf"^{v}\s*[?:]?=", mk, re.M)]
+    check(not stale,
+          f"and the Makefile declares no deploy setting of its own -- a make "
+          f"variable is not exported to the delegated script, so one here would "
+          f"read like an override and do nothing ({stale or 'none'})")
+
 
 def group_c() -> None:
     print(f"\n{LINE}\nC. THE ALLOW LIST IS EXACTLY THE REVIEWED ONE\n{LINE}")
@@ -283,7 +312,7 @@ def group_c() -> None:
     perms = s.get("permissions") or {}
     allow = list(perms.get("allow") or [])
     check(allow == EXPECTED_ALLOW,
-          f"the allow list is exactly the 11 reviewed entries "
+          f"the allow list is exactly the {len(EXPECTED_ALLOW)} reviewed entries "
           f"(extra: {sorted(set(allow) - set(EXPECTED_ALLOW))}, "
           f"missing: {sorted(set(EXPECTED_ALLOW) - set(allow))})")
     check(bool(perms.get("deny")), "a deny list is present")
@@ -366,9 +395,67 @@ def group_f() -> None:
           "and documents the exit-3 handover")
 
 
+def group_g() -> None:
+    print(f"\n{LINE}\nG. EVERY make ENTRY IS REACHABLE WITHOUT make\n{LINE}")
+    allow = list((settings().get("permissions") or {}).get("allow") or [])
+    pats = bash_patterns(allow)
+
+    # `make` is absent on the authoring laptop, so an allow entry that only ever
+    # matches a make command grants nothing there: the gate run or the deploy goes
+    # back to a prompt, and an allowlist that does not reach the real command is
+    # decoration. Each make entry therefore needs the spelling that runs.
+    mirrors = {
+        "make validate": "bash scripts/make.sh validate",
+        "make html": "bash scripts/make.sh html",
+        "make deploy": "bash scripts/deploy.sh",
+    }
+    for make_form, real_form in mirrors.items():
+        has_make = any(fnmatch.fnmatch(make_form, p) for p in pats)
+        has_real = any(fnmatch.fnmatch(real_form, p) for p in pats)
+        check(has_make == has_real,
+              f"{make_form!r} and {real_form!r} are allowed together -- neither "
+              f"machine is left having to type the other one")
+        check(has_real, f"{real_form!r} is allowed")
+
+    check(MAKE_SH.is_file(), f"{MAKE_SH.relative_to(REPO)} exists")
+    shim = MAKE_SH.read_text(encoding="utf-8")
+
+    # The shim runs gates and rebuilds HTML. It has no business touching a unit or
+    # deleting anything, and it is allowlisted, so this is asserted rather than
+    # assumed.
+    offenders = [
+        v for v in ("systemctl", "rm -rf", "placeOrder", "decide.py", "sudo")
+        if re.search(rf"^\s*[^#\n]*{re.escape(v)}", shim, re.M)
+    ]
+    check(not offenders,
+          f"and executes nothing that touches a unit, a register or a file it "
+          f"cannot rebuild ({offenders or 'clean'})")
+
+    # THE POINT OF THE MAKEFILE IS ONE LIST. A shim carrying its own copy of the
+    # validator names would be the third place the list lives, which is how four
+    # gates drifted out of CI while still passing locally.
+    check("mk_list" in shim and "Makefile" in shim,
+          "the shim READS the gate list out of the Makefile rather than keeping "
+          "its own copy -- one list is the Makefile's entire reason to exist")
+    for name in ("PY_VALIDATORS", "EXTRA", "SH_VALIDATORS", "DATA_GATES"):
+        check(re.search(rf'mk_list {name}\b', shim) is not None,
+              f"and reads {name} from it")
+    check(not re.search(r"^\s*PY_VALIDATORS=[\"']?tools/", shim, re.M),
+          "and hardcodes no validator path of its own")
+    # figures has an ADOPT=1 mode that overwrites the committed Currencies
+    # figures, which CLAUDE.md says not to run yet.
+    check("figures)" not in shim,
+          "and does not wrap 'figures', whose ADOPT=1 mode overwrites the "
+          "committed figures CLAUDE.md holds canonical")
+
+    # The deploy stays one shape. Two ways to spell it is two shapes to allowlist.
+    check("deploy.sh" not in shim.split("# The deploy is NOT here")[-1].split("set -uo")[-1],
+          "and does not also wrap the deploy, which keeps the deploy one shape")
+
+
 def main() -> int:
     print(f"{LINE}\nThe unattended deploy, and the permissions that allow it\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
         try:
             g()
         except FileNotFoundError as exc:

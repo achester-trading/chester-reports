@@ -218,79 +218,39 @@ validate-fast:
 	echo "ALL CODE GATES PASSED  (data gates: make data-gates)"
 
 # ---------------------------------------------------------------------------
-# THE DEPLOY. One target, a fixed sequence, and no verb that can take a running
-# unit down.
+# THE DEPLOY -- ONE LINE, BECAUSE THE BODY IS scripts/deploy.sh.
 # ---------------------------------------------------------------------------
 #
-# WHY THIS EXISTS. Deploying was a dozen ad-hoc ssh commands typed differently
-# each time, which is both slow to approve and impossible to allowlist: you cannot
-# grant "the safe deploy" permission to a shape that changes on every run. One
-# target with a fixed body can be granted once, and anything outside it stays
-# behind a prompt. That is the whole design -- the narrowness IS the feature.
+# WHY THE TARGET EXISTS AT ALL. Deploying was a dozen ad-hoc ssh commands typed
+# differently each time, which is both slow to approve and impossible to
+# allowlist: you cannot grant "the safe deploy" permission to a shape that
+# changes on every run. One fixed body can be granted once, and anything outside
+# it stays behind a prompt. The narrowness IS the feature.
 #
-# WHAT IT DOES, in order and nothing else:
-#   1. git pull --ff-only on the box   (--ff-only: never a merge commit on a
-#                                       machine whose rule is that it runs code
-#                                       and never edits it)
-#   2. copy deploy/systemd/*.service and *.timer into ~/.config/systemd/user/
-#   3. systemctl --user daemon-reload
-#   4. enable --now any timer in DEPLOY_TIMERS that is not already enabled
-#   5. the drift check and the heartbeat checker
-#   6. print the timer roster
+# WHY THE BODY IS NOT HERE. It was, and it could not run from either machine:
+# `make` is absent on the laptop (a stock Windows box, as this file warns above)
+# and the box is the only place make exists -- but the box cannot resolve `vps`,
+# which is the LAPTOP's ssh alias for the box. Unrunnable in both directions.
+# Moving it out also shed the make-escaping layer that hid a `set -o pipefail`
+# under dash until the first real deploy died on it.
 #
-# WHAT IT WILL NEVER DO. It contains no stop, no disable, no restart and no kill,
-# and tools/validate_deploy.py reads this recipe to assert that. A deploy that can
-# restart a unit is a deploy that can take the Gateway down mid-session while
-# nobody is watching, and the cost of that is asymmetric: the worst case of
-# refusing is a printed command, and the worst case of acting is a dead pipeline
-# with a position open.
+# EVERYTHING ELSE ABOUT THE DEPLOY IS DOCUMENTED IN THE SCRIPT and asserted by
+# tools/validate_deploy.py: the six steps and their order, the declared
+# DEPLOY_TIMERS list (which omits the held-back ibgateway units), the fact that no
+# stop, disable, restart or kill is ever executed, and the exit codes -- 0 clean,
+# 3 a changed running unit needs the printed restart, 4 drift still reported after
+# the copy, 1 the pull or copy failed.
 #
-# SO A CHANGED UNIT THAT IS RUNNING EXITS 3. daemon-reload re-reads unit files but
-# an ACTIVE unit keeps running the old one -- a live timer keeps its computed
-# next-elapse and a long-running service keeps its old ExecStart -- so the deploy
-# is genuinely incomplete and says so with the exact command to finish it. An
-# INACTIVE unit needs nothing: a oneshot picks up the new file on its next
-# activation, which is why most deploys here exit 0.
+# NOTHING ABOUT THE DEPLOY IS CONFIGURED HERE. DEPLOY_HOST, DEPLOY_REPO,
+# DEPLOY_UNIT_DIR and DEPLOY_STATE_DIR used to be declared in this file and were
+# quietly inert once the recipe became a delegation: make variables are not
+# exported to a recipe's child process, so `make deploy DEPLOY_HOST=other` read
+# like an override and still deployed to vps. They are ENVIRONMENT variables the
+# script reads, with its own defaults:
 #
-# EXIT CODES
-#   0  clean: copied, enabled, nothing needs a restart, drift clean
-#   3  a changed unit is RUNNING and needs a restart you must run yourself
-#   4  drift is still reported AFTER the copy -- the deploy did not take
-#   1  the pull or the copy itself failed
-DEPLOY_HOST ?= vps
-DEPLOY_REPO ?= $$HOME/chester-reports
-DEPLOY_UNIT_DIR ?= $$HOME/.config/systemd/user
-# The box keeps heartbeat and status files here rather than the wrappers'
-# ~/.chester default; declared so the deploy reads the same state the units write.
-DEPLOY_STATE_DIR ?= $$HOME/state
-
-# THE TIMERS THE DEPLOY MAY ENABLE. A declared list, not a glob over the unit
-# directory, and the difference matters: ibgateway.service and its restart timer
-# are deliberately held back behind a witnessed clean start (see
-# deploy/systemd/README.md section 4), and a glob would enable them the first time
-# somebody ran a deploy. Adding a timer here is a deliberate edit.
-DEPLOY_TIMERS := \
-	chester-eod.timer \
-	chester-daily-close.timer \
-	chester-heartbeat.timer \
-	chester-ibkr-sync.timer \
-	chester-backup.timer \
-	chester-overnight.timer \
-	chester-morning-anchor.timer
-
-# THE DEPLOY DELEGATES TO scripts/deploy.sh, and does not reimplement it.
+#     DEPLOY_HOST=staging bash scripts/deploy.sh
 #
-# It began as a recipe here and could not run from either machine: `make` is absent
-# on the laptop (a stock Windows box, as this file warns above) and the box is the
-# only place make exists -- but the box cannot resolve `vps`, which is the LAPTOP's
-# ssh alias for the box. Unrunnable in both directions.
-#
-# The script also removes the make-escaping layer that hid a `set -o pipefail`
-# under dash until the first real deploy died on it. One body, one place, readable
-# shell. `make deploy` stays the documented entry point because that is what
-# .claude/settings.json allows; on a box without make, run the script directly.
-#
-# Exit codes are the script's: 0 clean, 3 a changed running unit needs the printed
-# restart, 4 drift still reported after the copy, 1 the pull or copy failed.
+# On a machine without make, run the script directly -- or
+# `bash scripts/make.sh` for the gate and html targets above.
 deploy:
 	@bash scripts/deploy.sh

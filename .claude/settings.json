@@ -14,13 +14,23 @@
     "something whose worst case is known: a gate that reads, a git operation on a",
     "repo whose history is recoverable, a deploy target whose whole body is fixed",
     "and audited by tools/validate_deploy.py. Anything whose worst case depends on",
-    "its arguments stays behind a prompt."
+    "its arguments stays behind a prompt.",
+    "",
+    "EVERY make ENTRY IS MIRRORED BY THE FORM THAT RUNS WITHOUT make. `make` is",
+    "absent on this repo's authoring laptop, so the three make entries matched",
+    "commands that cannot run there and the allowlist granted nothing: every gate",
+    "run and every deploy went back to a prompt. The mirrors are exact -- the same",
+    "fixed bodies reached by a different spelling, not a wider grant -- and each",
+    "one names a script in this repo that tools/validate_deploy.py audits."
   ],
   "permissions": {
     "allow": [
       "Bash(make validate)",
       "Bash(make html)",
       "Bash(make deploy*)",
+      "Bash(bash scripts/make.sh validate)",
+      "Bash(bash scripts/make.sh html)",
+      "Bash(bash scripts/deploy.sh*)",
       "Bash(git add*)",
       "Bash(git commit*)",
       "Bash(git push*)",
