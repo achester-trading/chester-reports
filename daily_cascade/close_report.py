@@ -90,9 +90,17 @@ def main() -> int:
                  as_of=_as_date(sess))
         return 1
 
-    html = render_mod.render(p)
     name = f"daily_close_{sess}.html"
     subject = f"[chester] Close debrief {sess}"
+
+    # THE ARCHIVE PATH IS KNOWN BEFORE THE SEND, so the copy that gets emailed
+    # can name where the record is. This used to render once, deliver, then
+    # re-render with the path and archive THAT -- which worked and quietly
+    # produced two different documents: the email carried no path and the
+    # archive carried one the email could not. Rendering once with the path
+    # already in it makes the two copies byte-identical.
+    html = render_mod.render(p, {"archive_path":
+                                 delivery.archive_path(name, args.archive_dir)})
 
     if args.dry_run:
         path = delivery.archive(html, name, args.archive_dir)
@@ -103,12 +111,6 @@ def main() -> int:
         out = delivery.deliver(subject, html, name,
                                text_fallback=render_mod.text_fallback(p),
                                archive_dir=args.archive_dir)
-
-    # Re-render once the delivery outcome is known, so the archived copy states
-    # what happened to it. The emailed copy cannot say this -- it was built
-    # before it was sent -- and the archive is the one that gets read later.
-    if out.get("archive_path"):
-        delivery.archive(render_mod.render(p, out), name, args.archive_dir)
 
     print(f"\n  archive    : {out['archive_path'] or 'FAILED'}")
     print(f"  delivery   : {out['delivery']} ({out['delivery_detail']})")

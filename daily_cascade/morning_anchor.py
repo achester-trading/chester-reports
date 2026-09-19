@@ -104,9 +104,10 @@ def main() -> int:
                  as_of=_as_date(sess))
         return 1
 
-    html = render_mod.render(p)
     name = f"morning_anchor_{sess}.html"
     subject = f"[chester] Morning anchor {sess}"
+    html = render_mod.render(p, {"archive_path":
+                                 delivery.archive_path(name, args.archive_dir)})
 
     if args.dry_run:
         path = delivery.archive(html, name, args.archive_dir)
@@ -117,15 +118,6 @@ def main() -> int:
         out = delivery.deliver(subject, html, name,
                                text_fallback=render_mod.text_fallback(p),
                                archive_dir=args.archive_dir)
-
-    # THE FOOTER NAMES THE ARCHIVE PATH, AND IT IS KNOWN BEFORE THE SEND.
-    # deliver() archives first (rule 1), so the path exists by the time the
-    # socket opens -- which means the EMAILED copy can state where the record
-    # is, not only the archived one. The close report re-renders after delivery
-    # to add this and the mailed copy therefore cannot carry it; this run
-    # renders once, with the path already in hand.
-    if out.get("archive_path"):
-        delivery.archive(render_mod.render(p, out), name, args.archive_dir)
 
     print(f"\n  archive    : {out['archive_path'] or 'FAILED'}")
     print(f"  delivery   : {out['delivery']} ({out['delivery_detail']})")

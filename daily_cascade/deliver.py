@@ -121,6 +121,26 @@ def smtp_config() -> tuple[Optional[dict], list[str]]:
     }, []
 
 
+def archive_path(name: str, archive_dir: Optional[str] = None) -> str:
+    """Where archive() WOULD write, without writing anything.
+
+    Exists so a report can print its own archive path in the footer of the copy
+    that gets EMAILED. The path is a pure function of the directory and the
+    name, so there is nothing to discover by writing first -- and the
+    alternative, which both reports used to do, was to render once, deliver,
+    then re-render with the path and archive that. It worked, and it quietly
+    produced two different documents: the email said nothing about where the
+    record was, and the archive said something the email could not.
+
+    Now one HTML is rendered with the path already in it, archived, and sent, so
+    the emailed and archived copies are byte-identical. If the write then fails,
+    the footer names where the record was MEANT to go and the returned
+    archive_state says archive_failed -- which is a more useful pair than a
+    footer that says nothing.
+    """
+    return str(Path(archive_dir or ARCHIVE_DIR) / name)
+
+
 def archive(html: str, name: str, archive_dir: Optional[str] = None) -> Optional[str]:
     """Write the permanent copy. Returns the path, or None if it could not."""
     try:

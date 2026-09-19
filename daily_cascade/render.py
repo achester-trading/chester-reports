@@ -342,9 +342,10 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
 <p style="{NOTE}">
   Every figure above was read from the store or from a computed profile; this
   report fetched nothing (30.4). No figure here is a recommendation, and
-  nothing in this edition enters the decision register. Delivery:
-  {esc((delivery or {}).get('delivery', 'n/a'))} &middot; archive:
-  <code>{esc((delivery or {}).get('archive_path') or 'n/a')}</code>
+  nothing in this edition enters the decision register.<br>
+  Archived to <code>{esc((delivery or {}).get('archive_path') or 'n/a')}</code>
+  before this message was sent &mdash; the record does not depend on the mail
+  server.
 </p>
 </div>"""
 

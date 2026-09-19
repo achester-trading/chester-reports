@@ -241,6 +241,20 @@ def group_e() -> None:
     check("delivery.archive(" in entry,
           "and archives directly on the dry-run path")
 
+    # ONE RENDER, so the emailed and archived copies are the same document. Both
+    # reports used to render, deliver, then re-render with the path and archive
+    # THAT -- which worked and quietly shipped two different files: the email
+    # carried no archive path and the archive carried one the email could not.
+    for mod in ("morning_anchor.py", "close_report.py"):
+        src = code_of(PKG / mod)
+        n = src.count("render_mod.render(")
+        check(n == 1,
+              f"{mod} renders exactly once ({n}) -- the emailed and archived "
+              f"copies are byte-identical")
+    check("archive_path(" in entry,
+          "the path comes from deliver.archive_path(), which computes it "
+          "without writing, so it is available before the socket opens")
+
 
 def group_f() -> None:
     print(f"\n{LINE}\nF. THE UNITS AND THE WRAPPER\n{LINE}")
