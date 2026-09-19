@@ -365,7 +365,34 @@ def portfolio_block(payload: dict) -> str:
     return acc_tbl + pos_tbl + note
 
 
-def render(payload: dict, delivery: Optional[dict] = None) -> str:
+def narrative_block(narrative) -> str:
+    """The paragraph above the tables, or the one line that replaces it.
+
+    ABOVE the tables because it is the thing a reader reads first and the tables
+    are what they check it against. The withheld note sits in the same place for
+    the same reason: the absence of the paragraph is information, and burying it
+    under the data would make a silently prose-free edition indistinguishable
+    from one where the model was never asked.
+    """
+    if narrative is None:
+        return ""
+    if getattr(narrative, "published", False):
+        return (f'<p style="font-size:13px;line-height:1.55;margin:0 0 16px 0;'
+                f'color:#1a1a1a">{esc(narrative.text)}</p>'
+                f'<p style="{NOTE}">Generated paragraph, '
+                f'<code>{esc(narrative.model)}</code> &middot; '
+                f'{narrative.figures_checked} numeral(s) checked against the '
+                f'payload and all found. Every figure above appears in the '
+                f'tables below. Nothing here is a recommendation.</p>')
+    note = getattr(narrative, "withheld_note", lambda: "narrative withheld")()
+    return (f'<div style="{ABSENT}"><strong>{esc(note)}</strong><br>'
+            f'This is the data-only edition, which is a complete report: the '
+            f'paragraph is withheld rather than corrected, because a figure that '
+            f'failed the audit is a figure nobody can vouch for.</div>')
+
+
+def render(payload: dict, delivery: Optional[dict] = None,
+           narrative=None) -> str:
     warn = ""
     if payload.get("warnings"):
         items = "".join(f"<li>{esc(w)}</li>" for w in payload["warnings"])
@@ -386,6 +413,7 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
   universe {n_g} with Greeks + {n_i} ingestion-only
 </p>
 {warn}
+{narrative_block(narrative)}
 <h2 style="{H2}">Dealer exposure</h2>
 {exposure_table(payload)}
 {missing_block(payload)}

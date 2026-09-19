@@ -314,6 +314,81 @@ def group_d() -> None:
         bad("the wrapper does not consult the calendar")
 
 
+def group_e() -> None:
+    """The audit GATES the paragraph, and the withheld case is not silent."""
+    print(f"\n{LINE}\nE. The numeral audit gates the narrative (D3 -> D4e)\n{LINE}")
+    from daily_cascade import narrative as nr          # noqa: PLC0415
+
+    base = {"session": "2026-09-09", "exposure": [], "exposure_missing": [],
+            "pins": [], "pin_hits": {}, "warnings": [], "universe": {},
+            "portfolio": {"state": "absent", "reason": "x"}}
+    figures = {"session": "2026-09-09", "spot": 762.4500122070312,
+               "call_wall": 775.0}
+
+    class Blk:
+        type = "text"
+        def __init__(self, t): self.text = t
+
+    class Resp:
+        def __init__(self, t): self.content = [Blk(t)]; self.model = "claude-sonnet-5"
+
+    class Fake:
+        def __init__(self, t): self._t = t
+        @property
+        def messages(self): return self
+        def create(self, **kw): return Resp(self._t)
+
+    # PASS -> the paragraph ships, ABOVE the tables.
+    honest = nr.generate(figures, client=Fake(
+        "SPY closed at 762.45 with the call wall at 775."))
+    check(honest.published, f"an honest paragraph passes the audit ({honest.state})")
+    html = render.render(base, {"archive_path": "/x/y.html"}, narrative=honest)
+    check("762.45" in html, "and reaches the page")
+    check(html.index("762.45") < html.index("Dealer exposure"),
+          "ABOVE the tables -- it is read first and the tables are what a "
+          "reader checks it against")
+    check("claude-sonnet-5" in html,
+          "with the model recorded on the artifact, so the writer of any graded "
+          "paragraph is identifiable later")
+
+    # FAIL -> the data-only edition, with the one line the order specifies.
+    liar = nr.generate(figures, client=Fake(
+        "SPY closed at 762.45 and realized vol is 11.3%."))
+    check(not liar.published and liar.state == "audit_failed",
+          f"an invented figure fails the audit ({liar.state})")
+    note = liar.withheld_note()
+    check(note.startswith("narrative withheld: numeral audit failed on 1 figure"),
+          f"the note is the specified one line ({note!r})")
+    check("11.3%" in note, "and names the figure that failed")
+    html = render.render(base, {"archive_path": "/x/y.html"}, narrative=liar)
+    check("narrative withheld" in html,
+          "the withheld note reaches the page rather than the page going quiet")
+    check("11.3%" in html and "762.45" not in html,
+          "the offending figure is named and NO part of the paragraph ships -- "
+          "it is withheld, not corrected, because a figure that failed the "
+          "audit is one nobody can vouch for")
+    check(html.index("narrative withheld") < html.index("Dealer exposure"),
+          "in the same place the paragraph would have been, so a prose-free "
+          "edition is distinguishable from one where nothing was asked")
+
+    # Disabled is a third state and adds nothing at all.
+    html = render.render(base, {"archive_path": "/x/y.html"}, narrative=None)
+    check("narrative withheld" not in html and "Generated paragraph" not in html,
+          "with no narrative attempted the page carries neither prose nor a note")
+
+    # The entry point must actually consult the audit rather than trusting it.
+    src = (REPO / "daily_cascade" / "close_report.py").read_text(encoding="utf-8")
+    code = re.sub(r'""".*?"""', "", src, flags=re.S)
+    code = re.sub(r"#.*", "", code)
+    check("narrative=narr" in code.replace(" ", ""),
+          "close_report passes the narrative result to the renderer")
+    check("published" in code or "narr.state" in code,
+          "and branches on it rather than assuming a paragraph exists")
+    check("log.warning" in code,
+          "a withheld paragraph is LOGGED -- the report carries one line and the "
+          "log is the only place it can be investigated later")
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -321,6 +396,7 @@ def main() -> int:
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

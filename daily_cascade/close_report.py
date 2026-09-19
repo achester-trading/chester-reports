@@ -56,6 +56,10 @@ def main() -> int:
                     help="Build and archive; send nothing")
     ap.add_argument("--no-emit", action="store_true",
                     help="Skip the dashboard state record")
+    ap.add_argument("--no-narrative", action="store_true",
+                    help="Ship the data-only edition; attempt no paragraph")
+    ap.add_argument("--narrative-model", default=None,
+                    help="Override the pinned model (recorded on the artifact)")
     ap.add_argument("--archive-dir", help="Override the archive directory")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
@@ -90,6 +94,48 @@ def main() -> int:
                  as_of=_as_date(sess))
         return 1
 
+    # THE PARAGRAPH, AND THE GATE IT PASSES THROUGH.
+    #
+    # Imported here rather than at module scope so the data path stays clean: the
+    # no-prose gate asserts, in a fresh process, that importing payload or render
+    # pulls in no narrative or LLM module. A top-level import in this file would
+    # not break that assertion, but keeping the edge inside the one function that
+    # publishes makes the boundary legible rather than a fact about import order.
+    narr = None
+    if not args.no_narrative:
+        from daily_cascade import narrative as narrative_mod  # noqa: PLC0415
+
+        # The prior session, for the deltas the template asks for. Built rather
+        # than derived: the model must not compute a change, so the change has to
+        # be a value, and a value it can be audited against has to come from the
+        # same reader that produced today's.
+        prior = None
+        try:
+            prior_sess = session.previous_trading_session(sess).isoformat()
+            prior = payload_mod.build(sess=prior_sess, as_of=args.as_of)
+        except Exception as exc:  # noqa: BLE001 -- a missing yesterday is not fatal
+            log.info("prior session unavailable, deltas omitted: %s", exc)
+
+        np_ = payload_mod.narrative_payload(p, prior)
+        narr = narrative_mod.generate(
+            np_, model=args.narrative_model,
+            unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
+
+        # LOGGED EITHER WAY, and the failure is logged loudly. A withheld
+        # paragraph is a fact about the model's output, and the only place it can
+        # be investigated later is the log -- the report itself carries one line.
+        if narr.published:
+            print(f"  narrative  : published, {narr.figures_checked} figures "
+                  f"audited (model {narr.model})")
+            log.info("narrative published: %s figures audited, model=%s",
+                     narr.figures_checked, narr.model)
+        else:
+            print(f"  narrative  : WITHHELD -- {narr.reason}")
+            log.warning("narrative withheld (state=%s, model=%s): %s",
+                        narr.state, narr.model, narr.reason)
+            if narr.unmatched:
+                log.warning("  unmatched figures: %s", ", ".join(narr.unmatched))
+
     name = f"daily_close_{sess}.html"
     subject = f"[chester] Close debrief {sess}"
 
@@ -99,8 +145,9 @@ def main() -> int:
     # produced two different documents: the email carried no path and the
     # archive carried one the email could not. Rendering once with the path
     # already in it makes the two copies byte-identical.
-    html = render_mod.render(p, {"archive_path":
-                                 delivery.archive_path(name, args.archive_dir)})
+    html = render_mod.render(
+        p, {"archive_path": delivery.archive_path(name, args.archive_dir)},
+        narrative=narr)
 
     if args.dry_run:
         path = delivery.archive(html, name, args.archive_dir)
@@ -124,10 +171,17 @@ def main() -> int:
             status = "degraded"
         if out["delivery"] in ("send_failed",) or out["archive_state"] == "archive_failed":
             status = "degraded"
+        # A withheld paragraph does NOT degrade the report. The data-only
+        # edition is a complete report and was the only edition for a reason; the
+        # narrative state is carried so it can be graded, not so it can alarm.
         emit(REPORT_KEY, status,
              headline=(f"{len(p['exposure'])} symbols, "
                        f"{len(p['pins'])} pin rows, delivery {out['delivery']}"),
              detail={"run_id": run_id,
+                     "narrative": (narr.state if narr else "disabled"),
+                     "narrative_model": (narr.model if narr else None),
+                     "narrative_figures": (narr.figures_checked if narr else 0),
+                     "narrative_unmatched": (narr.unmatched if narr else []),
                      "exposure_symbols": len(p["exposure"]),
                      "pin_rows": len(p["pins"]),
                      "pin_hits": p["pin_hits"],
