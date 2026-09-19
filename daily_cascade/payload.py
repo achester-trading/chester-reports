@@ -291,11 +291,20 @@ def _attach_register(positions: list[dict]) -> None:
         if hit is None and len(siblings) == 1:
             hit = next((r for r in rows if r["instrument_norm"] == norm), None)
         if hit is None:
-            if len(siblings) > 1 and any(r["instrument_norm"] == norm
-                                         for r in rows):
+            # AMBIGUITY MEANS AN UNQUALIFIED DECISION OVER A MULTI-LISTING BOOK,
+            # and nothing weaker. The test was "some active decision shares this
+            # root", which was right while every decision named a bare ticker and
+            # became wrong the moment one was re-designated: with an active
+            # decision on SPY@ARCA.USD and a book holding SPY@ARCA.USD and
+            # SPY@MEXI.MXN, the peso leg was told the register was ambiguous when
+            # in fact the register was precise and simply said nothing about it.
+            # Those are different facts and only one of them asks the operator to
+            # go and disambiguate something.
+            vague = [r for r in rows if r["instrument"] == norm]
+            if len(siblings) > 1 and vague:
                 p["register_reason"] = (
-                    f"the register names {norm} but the book holds "
-                    f"{len(siblings)} listings of it "
+                    f"the register names {norm} without a listing, but the book "
+                    f"holds {len(siblings)} of them "
                     f"({', '.join(q['instrument'] for q in siblings)}); which "
                     f"one the decision refers to cannot be inferred, so no "
                     f"level is attached rather than the wrong one")
