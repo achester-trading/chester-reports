@@ -1,0 +1,32 @@
+[Unit]
+Description=Overnight market fetch (06:45 ET) -- the only fetch in the morning chain
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/fetch_overnight.sh
+
+# Optional, per the same reasoning as every other unit: a box without .env
+# starts and the code degrades the way it already knows how. A missing secret
+# should cost a feature, not the run. This unit needs none of the mail
+# credentials -- it writes to the store and sends nothing -- but it does read
+# CHESTER_STATE_URL/TOKEN if a state row is ever added here.
+EnvironmentFile=-%h/chester-reports/.env
+
+# 1 is NOT success. "Nothing fetched" means every symbol failed or yfinance is
+# absent, and unlike a report with an empty block that is a real failure of this
+# unit's one job. It should show red.
+SuccessExitStatus=0
+
+# Ten HTTP calls with 0.4s pacing plus a git pull. Generous for a slow morning.
+TimeoutStartSec=5min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The store is inside the checkout, so the checkout is writable here.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

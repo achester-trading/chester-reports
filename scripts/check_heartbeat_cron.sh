@@ -114,6 +114,7 @@ case $RC in
     2) STATE=no_heartbeat;     HEADLINE="CRITICAL the EOD pass has NEVER completed cleanly on this box" ;;
     3) STATE=last_run_failed;  HEADLINE="FAILED the last EOD run exited non-zero -- see eod_status" ;;
     4) STATE=store_diverged;   HEADLINE="DIVERGED the CSV and SQLite stores disagree -- a dual-write failed" ;;
+    5) STATE=morning_missed;   HEADLINE="MISSED the 07:00 morning anchor has not run -- each missed morning is a pre-open read that cannot be rebuilt" ;;
     8) STATE=unit_drift;       HEADLINE="DRIFT installed units differ from the repo" ;;
     9) STATE=check_failed;     HEADLINE="BROKEN the heartbeat check itself could not run" ;;
     *) STATE=unknown;          HEADLINE="UNKNOWN checker exited $RC" ;;

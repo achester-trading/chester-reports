@@ -113,7 +113,12 @@ tail -40 ~/logs/run_eod-$(date +%Y-%m).log
 ## Health checking
 
 `scripts/check_heartbeat.sh` exits `0` healthy, `1` stale, `2` no heartbeat
-ever, `3` last run failed, `4` **the CSV and SQLite stores have diverged**.
+ever, `3` last run failed, `4` **the CSV and SQLite stores have diverged**,
+`5` **the 07:00 morning anchor has not run** (section 8a).
+
+`4` and `5` are reported *after* every freshness check, so a stale or failed
+capture pipeline still wins the verdict — that is the more urgent fault, and
+fixing one must not be able to hide the other.
 
 That last one is not about freshness. `altdata/store.py` writes every series to
 both stores; a SQLite failure there is deliberately swallowed so it cannot cost
@@ -363,6 +368,69 @@ could not run. That last one is deliberately outside the
 checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 
+
+## 8a. Install the 07:00 morning anchor (Phase 1)
+
+Two units, because **reports never fetch** (30.4). `chester-overnight` does the
+live read at 06:45 ET and writes the store; `chester-morning-anchor` renders at
+07:00 ET and opens no sockets at all. Split, a dead fetch becomes a block in the
+report that names why it is empty -- which is what the reader needs before the
+open -- instead of a crash, or a report that fails for a transport reason and
+presents it as a market fact.
+
+```bash
+cp ~/chester-reports/deploy/systemd/chester-overnight.{service,timer} ~/.config/systemd/user/
+cp ~/chester-reports/deploy/systemd/chester-morning-anchor.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+
+# Prove each before scheduling either.
+CHESTER_OVERNIGHT_DRY_RUN=1 ~/chester-reports/scripts/fetch_overnight.sh; echo "exit=$?"
+~/chester-reports/scripts/fetch_overnight.sh; echo "exit=$?"     # writes the store
+CHESTER_MORNING_DRY_RUN=1 ~/chester-reports/scripts/run_morning_anchor.sh; echo "exit=$?"
+ls -la ~/chester-reports/reports/morning_anchor_*.html
+
+systemctl --user enable --now chester-overnight.timer
+systemctl --user enable --now chester-morning-anchor.timer
+systemctl --user list-timers 'chester-*'    # 06:45 and 07:00 ET
+```
+
+Out of session hours both wrappers exit 0 and touch nothing, so the dry runs
+above are safe to try on a Sunday -- they will log `SKIP non_session`. Add
+`CHESTER_FORCE_RUN=1` to exercise them anyway.
+
+### What it publishes
+
+Overnight levels for ten instruments against the **prior US settlement** (16:00
+ET of the previous US session, the same interval for every instrument including
+the cash indices whose own last close is hours older); a first-pass split of the
+index-futures move across the Tokyo, Europe and residual windows; the prior
+close's dealer surface and pin verdicts; and portfolio truth. Every block that
+cannot be filled is **absent with its reason**, never blank.
+
+The attribution is Backdrop context only. Per 31.3(a) it may not generate a Book
+C setup, and a clock window is not a cause: a move inside the Tokyo window may be
+a US headline that landed at 21:00 ET.
+
+### This one has a heartbeat, and the close debrief does not
+
+`run_morning_anchor.sh` writes `~/.chester/morning_heartbeat` on a clean run, and
+`check_heartbeat.sh` **exits 5** when a 07:00 has been owed and none arrived. The
+close report writes no heartbeat, on the sound reasoning that its inputs are
+stored and it can be regenerated for any past session with `--session`, so a
+missed one costs an email. That does not transfer here: the morning anchor
+publishes a live overnight read with no second chance, and by 09:30 the levels
+06:45 would have captured are gone. A 07:00 that silently stops running loses a
+pre-open read every day until somebody notices a report stopped arriving, which is
+exactly the monitoring this box is built to not depend on.
+
+A **degraded** report -- one published with an absent or stale overnight block --
+still touches the heartbeat, because the run happened. What it published is the
+report's own business and the state row carries it. The heartbeat answers "did the
+07:00 run", not "was the data any good".
+
+Staleness is also checked inside the report: overnight rows older than 75 minutes
+are printed and **flagged stale** rather than dropped, because dropping them would
+make a dead 06:45 timer look like a market with nothing to say.
 
 ## 8. Install the 16:45 close debrief (D4c)
 

@@ -1,0 +1,26 @@
+[Unit]
+Description=Morning anchor at 07:00 ET on trading days
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 07:00 ET. The operator's binding constraint is time and the pre-open window is
+# the only part of the day where a read changes what gets done; 07:00 is early
+# enough to act on and late enough that Tokyo has closed and Europe is four hours
+# in, which is what makes the session attribution say anything.
+#
+# Fifteen minutes after chester-overnight.timer, which does the fetching. This
+# unit opens no sockets at all.
+OnCalendar=Mon-Fri 07:00 America/New_York
+
+# Small spread, and smaller than the fetch's lead time so the two cannot cross.
+RandomizedDelaySec=45
+
+# Persistent=false, for the same reason as the close debrief: a catch-up run at
+# noon would email a pre-open report headed with today's date to a reader who has
+# been in the session for two hours. The archive is regenerable with --session at
+# any time, so nothing is lost but the email, and a missed send is better than a
+# late one that looks current.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

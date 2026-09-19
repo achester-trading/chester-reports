@@ -218,6 +218,14 @@ check_at() {
     printf 'ok test\n' >"$CHECK_STATE/eod_heartbeat"
     touch -d "$(TZ=America/New_York date -d "$1" '+%Y-%m-%d %H:%M:%S %z')" \
         "$CHECK_STATE/eod_heartbeat"
+    # These cases are about the EOD allowance, so the 07:00 anchor is held
+    # WARM: stamped at the check instant, which is always inside its own
+    # allowance. Without this every case here would report the missed morning
+    # (exit 5) instead of the EOD verdict it exists to test -- a fixture
+    # reporting the wrong true thing is still a broken fixture.
+    printf 'ok test\n' >"$CHECK_STATE/morning_heartbeat"
+    touch -d "$(TZ=America/New_York date -d "$2" '+%Y-%m-%d %H:%M:%S %z')" \
+        "$CHECK_STATE/morning_heartbeat"
     CHK_OUT="$(CHESTER_STATE_DIR="$CHECK_STATE" CHESTER_REPO="$FAKE_REPO" \
         CHESTER_CHECK_DATE="$2" \
         bash "$REPO_ROOT/scripts/check_heartbeat.sh" 2>&1)"
@@ -276,9 +284,94 @@ head_ "4. dual-write divergence is its own verdict"
 # If the checker did not read that record the swallow would be silent again --
 # which is the defect, not the fix. A fresh heartbeat must NOT report OK while
 # the two stores disagree.
+head_ "3b. the 07:00 morning anchor is its own health fact"
+
+# A MISSED 07:00 IS NON-HEALTHY, and not for the reason a missed 16:45 would be.
+# The close report writes no heartbeat at all: its inputs are stored and it can be
+# regenerated for any past session, so a missed one costs an email. The morning
+# anchor publishes the OVERNIGHT read, which is live and has no second chance --
+# by 09:30 the levels 06:45 would have captured are gone and no --session brings
+# them back. So a 07:00 that stops running has to be audible.
+MORN_SB="$SANDBOX/morning_state"
+mkdir -p "$MORN_SB"
+
+# morning_at <morning heartbeat instant, or "none"> <check instant> -> M_RC
+morning_at() {
+    rm -f "$MORN_SB/morning_heartbeat"
+    printf 'rc=0 sha=test at=x\n' >"$MORN_SB/eod_heartbeat"
+    touch -d "$(TZ=America/New_York date -d "$2" '+%Y-%m-%d %H:%M:%S %z')" \
+        "$MORN_SB/eod_heartbeat"
+    if [[ "$1" != "none" ]]; then
+        printf 'state=ok rc=0\n' >"$MORN_SB/morning_heartbeat"
+        touch -d "$(TZ=America/New_York date -d "$1" '+%Y-%m-%d %H:%M:%S %z')" \
+            "$MORN_SB/morning_heartbeat"
+    fi
+    M_OUT="$(CHESTER_STATE_DIR="$MORN_SB" CHESTER_REPO="$FAKE_REPO" \
+        CHESTER_CHECK_DATE="$2" \
+        bash "$REPO_ROOT/scripts/check_heartbeat.sh" 2>&1)"
+    M_RC=$?
+}
+
+morning_at "none" "2026-09-18 10:00"
+[[ $M_RC -eq 5 ]] \
+    && ok "no morning heartbeat, three hours after a 07:00 was due -> exit 5" \
+    || bad "missing morning heartbeat reported exit $M_RC, want 5"
+grep -q "cannot be recovered later" <<<"$M_OUT" \
+    && ok "and it says why a missed morning is not merely a missed email" \
+    || bad "the message does not explain the irrecoverability"
+
+morning_at "2026-09-18 07:02" "2026-09-18 10:00"
+[[ $M_RC -eq 0 ]] \
+    && ok "a 07:02 run, checked at 10:00 the same session -> exit 0" \
+    || bad "a fresh morning heartbeat reported exit $M_RC, want 0"
+
+# THE CASE THE WHOLE CHECK IS FOR: it ran on Friday and has not run since, so
+# Monday morning is missing. Age alone would not catch this until Monday
+# afternoon; the due-session calculation catches it two hours after the slot.
+morning_at "2026-09-18 07:02" "2026-09-21 10:00"
+[[ $M_RC -eq 5 ]] \
+    && ok "ran Friday, checked Monday 10:00 -> exit 5, Monday's slot was missed" \
+    || bad "a missed Monday morning reported exit $M_RC, want 5"
+
+# And it must not alarm on a day no 07:00 was owed, or it alarms every weekend
+# -- which is the failure mode that got the EOD allowance derived from the
+# calendar in the first place.
+morning_at "2026-09-18 07:02" "2026-09-19 10:00"
+[[ $M_RC -eq 0 ]] \
+    && ok "Saturday: no session, no 07:00 owed, no alarm" \
+    || bad "Saturday reported exit $M_RC, want 0"
+
+# A holiday behaves like a Saturday, from the same table the wrappers read.
+morning_at "2026-09-04 07:02" "2026-09-07 10:00"
+[[ $M_RC -eq 0 ]] \
+    && ok "Labor Day: a holiday is not a missed morning" \
+    || bad "Labor Day reported exit $M_RC, want 0"
+
+# THE ORDERING. A stale EOD pass is the graver fault and must win the verdict,
+# so the morning check is reported last. Collapsing the two would let fixing one
+# hide the other.
+rm -f "$MORN_SB/morning_heartbeat"
+printf 'rc=0 sha=test at=x\n' >"$MORN_SB/eod_heartbeat"
+touch -d "$(TZ=America/New_York date -d '2026-08-01 16:15' '+%Y-%m-%d %H:%M:%S %z')" \
+    "$MORN_SB/eod_heartbeat"
+M_OUT="$(CHESTER_STATE_DIR="$MORN_SB" CHESTER_REPO="$FAKE_REPO" \
+    CHESTER_CHECK_DATE="2026-09-18 10:00" \
+    bash "$REPO_ROOT/scripts/check_heartbeat.sh" 2>&1)"
+M_RC=$?
+[[ $M_RC -eq 1 ]] \
+    && ok "a stale EOD pass outranks a missed morning (exit 1, not 5)" \
+    || bad "stale EOD with a missed morning reported exit $M_RC, want 1"
+
+# The caller has to have a name for exit 5, or the alert says "UNKNOWN".
+grep -q '5) STATE=morning_missed' "$REPO_ROOT/scripts/check_heartbeat_cron.sh" \
+    && ok "check_heartbeat_cron.sh maps exit 5 to a named state" \
+    || bad "the caller has no case for exit 5 -- the alert would say UNKNOWN"
+
 DW_SB="$(mktemp -d)"
 mkdir -p "$DW_SB/state"
 printf 'rc=0 sha=test at=%s\n' "$(date --iso-8601=seconds)" >"$DW_SB/state/eod_heartbeat"
+# Warm too: this case is about the store diverging, not about the 07:00 slot.
+printf 'rc=0 sha=test at=%s\n' "$(date --iso-8601=seconds)" >"$DW_SB/state/morning_heartbeat"
 CHESTER_REPO="$REPO_ROOT" CHESTER_STATE_DIR="$DW_SB/state" \
     bash "$REPO_ROOT/scripts/check_heartbeat.sh" >/dev/null 2>&1
 rc_clean=$?

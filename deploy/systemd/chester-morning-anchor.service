@@ -1,0 +1,40 @@
+[Unit]
+Description=Daily Cascade morning anchor (07:00 ET, data only)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# After= the fetch, so a boot that starts both queues this behind the thing that
+# produces its inputs. ORDERING ONLY, never a requirement: this report reads
+# STORED data, so it must still run and publish an absent overnight block when
+# the fetch failed. A report that stays silent because its upstream died hides
+# exactly the failure worth knowing about -- and the absent block naming its own
+# reason is how the reader learns the 06:45 timer is down.
+After=chester-overnight.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_morning_anchor.sh
+
+# The mail credentials and the state-emitter's URL/token. Optional: a box
+# without .env still builds and archives the report, and delivery degrades to
+# not_configured, which the footer and the state row both name.
+EnvironmentFile=-%h/chester-reports/.env
+
+# 0 built and sent - 2 built, archived, NOT sent. Both are successful runs: the
+# report exists either way and delivery is transport. 1 is NOT here -- every
+# block empty means the chain in front of this produced nothing, which is a real
+# failure and should show red.
+SuccessExitStatus=0 2
+
+# Reads the store and walks computed directories for the prior session.
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# reports/ is inside the checkout because the archive lives with the repo per
+# 32.3, so the checkout is writable here.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

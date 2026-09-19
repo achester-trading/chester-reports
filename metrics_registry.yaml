@@ -64,6 +64,9 @@ vocabularies:
     - count
     - days
     - label                  # closed-vocabulary string
+    - percent                # a percentage change, 1.0 == one per cent (NOT
+                             # a fraction; `fraction` is the 0..1 form and
+                             # confusing the two is a 100x error)
     - contract_ccy           # an amount in the CONTRACT's own currency, which
                              # is not necessarily the account's. The companion
                              # portfolio.position_currency row names it. Never
@@ -139,6 +142,12 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # The overnight read. Its own group because it is a CLOCK-WINDOW
+    # decomposition of one move, not several independent observations: the
+    # Tokyo, Europe and residual legs are three slices of a single number
+    # and sum to it, so counting them as three confirmations would be
+    # counting the same fact three times -- exactly what 26.9 forbids.
+    - overnight_context
 
 defaults:
   trigger_eligible: false
@@ -882,6 +891,52 @@ bulk_imports:
 # Not metrics. Provenance, diagnostics and labels -- they describe a metric or
 # the run that produced it. Listed so the drift check can tell a new metric from
 # a new field, and so that adding one is a deliberate act.
+  overnight_levels:
+    description: >-
+      The 06:45 ET overnight fetch's price-quoted rows: each instrument's current
+      level, the prior US settlement it is measured against, the point change
+      between them, and for the two continuously traded futures the per-window
+      attribution of that change. Enumerated in code as
+      altdata.sources.overnight.PRICE_KEYS so the keys the fetcher can write and
+      the keys the registry knows are one list; adding a symbol fails the member
+      count here until this block is updated, which is the intended friction.
+    source: yfinance
+    members_from: altdata.sources.overnight.PRICE_KEYS
+    expected_members: 36
+    mechanism_group: overnight_context
+    native_horizon: intraday
+    units: price
+    # Dead within the session, by construction. These exist to answer "what
+    # happened while I was asleep" at 07:00; by 10:00 the cash session has
+    # overwritten the question and a stale overnight read is not truth.
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    # BACKDROP CONTEXT ONLY. 31.3(a) is explicit that a gap attribution may not
+    # generate a Book C setup, and the attribution here is a first pass over
+    # clock windows -- a window is not a cause. Nothing in this block is
+    # trigger-eligible and nothing in it should become so without a measured
+    # base rate behind it.
+    trigger_eligible: false
+
+  overnight_percent_changes:
+    description: >-
+      The same overnight fetch's percent changes against the prior US
+      settlement, split out because a percent is not a price and one bulk block
+      cannot declare two units. altdata.sources.overnight.PERCENT_KEYS.
+    source: yfinance
+    members_from: altdata.sources.overnight.PERCENT_KEYS
+    expected_members: 10
+    mechanism_group: overnight_context
+    native_horizon: intraday
+    units: percent
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+
 non_metrics:
   provenance:
     - symbol

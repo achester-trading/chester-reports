@@ -35,7 +35,16 @@
 #
 # Exit codes, suitable for a monitor or a cron alert:
 #   0 healthy · 1 stale · 2 no heartbeat at all · 3 last run failed
-#   4 the pipeline is fresh but the CSV and SQLite stores have diverged
+#   4 the stores diverged · 5 the 07:00 morning anchor has not run
+#
+# 4 and 5 are reported AFTER every freshness check, so a stale or failed
+# capture pipeline still wins the verdict: that is the more urgent fault and
+# fixing one must not be able to hide the other.
+#
+# 4 means the pipeline is fresh but the CSV and SQLite stores have diverged.
+# 5 means the 07:00 anchor has not run, which is graver than it sounds: the
+# overnight read it publishes is a live market read with no second chance, so
+# each missed morning is a pre-open picture that cannot be rebuilt later.
 #
 # Overridable:
 #   CHESTER_STATE_DIR   (~/.chester)
@@ -45,6 +54,7 @@
 #   CHESTER_WEEKEND_H   fallback-only weekend allowance in hours (74)
 #   CHESTER_CHECK_DATE  evaluate against this ET instant ("YYYY-MM-DD HH:MM")
 #                       instead of now, for testing
+#   CHESTER_MORNING_GRACE_H  slack past 07:00 before the anchor is owed (2)
 
 set -uo pipefail
 
@@ -166,6 +176,80 @@ if [[ -s "$DUAL_WRITE" ]]; then
     echo "           the CSV store has rows the database does not. Re-run the"
     echo "           affected pull, then clear $DUAL_WRITE"
     exit 4
+fi
+
+# --- THE 07:00 MORNING ANCHOR --------------------------------------------
+#
+# A MISSED 07:00 IS NON-HEALTHY, and this is a different claim from a missed
+# 16:45. The close report writes no heartbeat at all, on the sound reasoning that
+# its inputs are already stored and it can be regenerated for any past session
+# with --session, so a missed report costs an email and nothing else.
+#
+# The morning anchor reads the OVERNIGHT FETCH, which is a live market read with
+# no second chance. By 09:30 the levels 06:45 would have captured are gone and no
+# --session brings them back. A 07:00 that silently stops running therefore loses
+# a session's pre-open read every day until somebody notices a report stopped
+# arriving -- which is precisely the monitoring this system exists to not rely on.
+#
+# Reported LAST, after every EOD concern, for the same reason the dual-write
+# check is: a stale or failed capture pipeline is the more urgent fault and must
+# win the verdict. Fixing one must not be able to hide the other.
+MORNING_HB="$STATE_DIR/morning_heartbeat"
+MORNING_STATUS="$STATE_DIR/morning_anchor_status"
+MORNING_GRACE_H="${CHESTER_MORNING_GRACE_H:-2}"
+
+# Which morning is owed one? Today's, once 07:00 plus the grace has passed on a
+# session day; otherwise the previous session's. A non-session today takes the
+# same branch as a Saturday, which is the behaviour the wrapper's skip depends on.
+MORNING_DUE=""
+if [[ -n "$CAL_PY" ]] && [[ -d "$REPO" ]]; then
+    if [[ $ET_HOUR -ge $(( 7 + MORNING_GRACE_H )) ]] \
+       && (cd "$REPO" && "$CAL_PY" -m altdata.session is-session "$ET_DATE" >/dev/null 2>&1); then
+        MORNING_DUE="$ET_DATE"
+    else
+        MORNING_DUE=$( (cd "$REPO" && "$CAL_PY" -m altdata.session prev-session "$ET_DATE") 2>/dev/null )
+    fi
+    [[ "$MORNING_DUE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || MORNING_DUE=""
+fi
+
+# With no calendar there is no honest way to say whether a 07:00 was owed, and
+# guessing would alarm every weekend. Silence beats a false alarm here; the EOD
+# checks above already carry the fallback behaviour for a missing table.
+if [[ -n "$MORNING_DUE" ]]; then
+    MORNING_DUE_EPOCH=$(TZ=America/New_York date -d "$MORNING_DUE 07:00" +%s)
+    MORNING_ALLOWED_S=$(( NOW_EPOCH - MORNING_DUE_EPOCH + MORNING_GRACE_H * 3600 ))
+
+    echo "  morning anchor : due after $MORNING_DUE 07:00 ET"
+
+    if [[ ! -f "$MORNING_HB" ]]; then
+        # MORNING_DUE resolving at all means a 07:00 has already been owed: it is
+        # either today's, which is only chosen once 07:00 plus the grace has
+        # passed, or a previous session's, which is older still. So there is no
+        # further "is it owed yet" test to make here -- an earlier draft had one
+        # and it was unreachable in both branches.
+        #
+        # This does alarm on a box deployed after its first session's 07:00, and
+        # that is the honest reading rather than a false positive: this box has no
+        # record of a morning anchor completing. One clean run clears it, exactly
+        # as it does for the EOD heartbeat's own exit 2.
+        echo "  CRITICAL no morning heartbeat at $MORNING_HB"
+        echo "           the 07:00 anchor has never completed cleanly on this box."
+        echo "           The overnight read it publishes cannot be recovered later:"
+        echo "           by 09:30 the levels 06:45 would have captured are gone."
+        [[ -f "$MORNING_STATUS" ]] && echo "           last status: $(cat "$MORNING_STATUS" | tr -d '\n')"
+        exit 5
+    else
+        M_EPOCH=$(stat -c %Y "$MORNING_HB" 2>/dev/null || echo 0)
+        M_AGE_S=$(( NOW_EPOCH - M_EPOCH ))
+        echo "  last 07:00 run : $(TZ=America/New_York date -d "@$M_EPOCH" '+%Y-%m-%d %H:%M %Z')"
+        if [[ $M_AGE_S -gt $MORNING_ALLOWED_S ]]; then
+            echo "  STALE the morning anchor has not run since the $MORNING_DUE session was due"
+            echo "        age $(( M_AGE_S / 3600 ))h against an allowance of $(( MORNING_ALLOWED_S / 3600 ))h"
+            echo "        Each missed morning is a pre-open read that cannot be rebuilt."
+            [[ -f "$MORNING_STATUS" ]] && echo "        last status: $(cat "$MORNING_STATUS" | tr -d '\n')"
+            exit 5
+        fi
+    fi
 fi
 
 echo "  OK"

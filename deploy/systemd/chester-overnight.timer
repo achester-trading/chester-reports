@@ -1,0 +1,32 @@
+[Unit]
+Description=Overnight market fetch at 06:45 ET on trading days
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 06:45 ET, fifteen minutes ahead of the 07:00 render. The gap is the whole
+# design: reports never fetch (30.4), so the live read and the render are two
+# units, and fifteen minutes is enough for a slow Yahoo response while leaving
+# the numbers still the morning's. The render flags anything older than 75
+# minutes rather than printing it as current.
+#
+# Clear of every other timer. chester-ibkr-sync runs on the hour and half hour
+# from 09:00; chester-eod is 16:10; the daily Gateway restart is 01:00. 06:45 is
+# empty, and the fetch takes seconds.
+#
+# Mon-Fri handles weekends; NYSE holidays are the wrapper's calendar guard,
+# reading the same table as every other wrapper. systemd knows about Saturdays
+# and nothing about Thanksgiving.
+OnCalendar=Mon-Fri 06:45 America/New_York
+
+# Small spread. The window to 07:00 is fifteen minutes and a large jitter would
+# push the fetch into the render that depends on it.
+RandomizedDelaySec=45
+
+# Persistent=false. A catch-up fetch hours later would write rows stamped with a
+# fetch instant long past the overnight window, and the render would correctly
+# flag them stale -- so the catch-up buys nothing and costs a misleading vintage
+# in the store. An overnight read has one moment.
+Persistent=false
+
+[Install]
+WantedBy=timers.target
