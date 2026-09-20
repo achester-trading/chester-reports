@@ -334,6 +334,11 @@ vocabularies:
     # this family exists to compute -- merging them would let one stand in as
     # evidence for the other.
     - consensus_estimate
+    # CLOSING-AUCTION FLOW. Its own group: an auction imbalance is a statement about
+    # one ten-minute window and about participants who must trade at the official
+    # close, which is a different mechanism from either a daily price or a dealer
+    # greek. It is also the group whose members are DISPLAY-ONLY by ruling.
+    - auction_flow
 
 defaults:
   trigger_eligible: false
@@ -1138,6 +1143,71 @@ metrics:
     trigger_eligible: false
     description: >-
       Mean analyst target price. Logged for the same reason as the consensus itself: its REVISIONS are the signal, not its level.
+  ibkr.auction_indicative_price:
+    source: ibkr_md_nyse_imbalances
+    mechanism_group: auction_flow
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      The indicative closing price published during the 15:50-16:00 auction window. observed_at is the TICK INSTANT, not the session: the shape of this through the window is the whole reason to sample it.
+  ibkr.auction_paired_qty:
+    source: ibkr_md_nyse_imbalances
+    mechanism_group: auction_flow
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Paired quantity -- shares that will cross at the indicative price. The denominator any absorption measure would need, and absorption itself is 6h and gated.
+  ibkr.auction_imbalance_qty:
+    source: ibkr_md_nyse_imbalances
+    mechanism_group: auction_flow
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Unpaired imbalance in shares. DISPLAY-ONLY by ruling: the raw number says how much wants to trade one way, and says nothing about what the price did with it. Nothing reads this to make a decision.
+  ibkr.auction_imbalance_side:
+    source: ibkr_md_nyse_imbalances
+    mechanism_group: auction_flow
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The imbalance's sign as a label: +1 buy, -1 sell, 0 balanced. Stored separately from the quantity so a query can ask 'which way' without arithmetic on a signed field.
+  ibkr.auction_probe:
+    source: ibkr_md_nyse_imbalances
+    mechanism_group: auction_flow
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The stored entitlement probe: whether this account can see the auction feed,
+      recorded EITHER WAY. A dormant sampler with a stored probe result is a
+      decision; a dormant sampler with nothing written down is something somebody
+      forgot. States: entitled, not_entitled, inconclusive_closed (outside the
+      window no tick publishes even with a full entitlement, so silence proves
+      nothing), inconclusive_silent, probe_failed.
   ndl.rtat10_activity:
     source: nasdaq_data_link
     mechanism_group: retail_activity

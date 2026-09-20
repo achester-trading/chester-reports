@@ -1,0 +1,32 @@
+[Unit]
+Description=Closing-auction tick sampler (29.4 logging only -- absorption is 6h)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# THE GATEWAY MUST BE UP, and this is a Wants rather than a Requires. If the Gateway
+# is down the sampler should start, fail to connect, log it and exit -- which puts a
+# named failure in the journal. A Requires would leave the unit inactive with no
+# record, and "the sampler did not run" is exactly the state this logger exists to
+# make visible.
+Wants=ibgateway.service
+After=ibgateway.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_auction_sampler.sh
+
+EnvironmentFile=-%h/chester-reports/.env
+
+# THE WHOLE RUN IS ELEVEN MINUTES AT MOST, and it must not outlive its own window:
+# a sampler still holding market-data lines at 16:15 is competing with the 16:10 EOD
+# pass for the account's line cap. 780 seconds is 15:49 to 16:02 with slack for the
+# connection.
+TimeoutStartSec=780
+
+# READ-ONLY, ASSERTED AT TWO LEVELS. The connection is opened with readonly=True by
+# altdata/sources/ibkr_portfolio.connect(), and this unit adds nothing that could
+# place an order. There is no order path in this repo and the permission rules deny
+# every entry point one would use.
+SuccessExitStatus=0
+
+[Install]
+WantedBy=default.target

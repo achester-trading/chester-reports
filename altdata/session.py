@@ -248,6 +248,116 @@ NYSE_EARLY_CLOSES = {
     "2027-11-26": "Day after Thanksgiving (13:00 ET close)",
 }
 
+# ---------------------------------------------------------------------------
+# CLOSING-AUCTION EVENT CLASSES -- what KIND of close this is
+# ---------------------------------------------------------------------------
+#
+# Beside the holiday table because it is the same kind of fact: a property of a
+# DATE that no market data carries and that changes what the data means.
+#
+# WHY IT MATTERS FOR AN AUCTION SAMPLER. The closing auction on an ordinary Tuesday
+# and the closing auction on an S&P rebalance day are not the same event by an order
+# of magnitude -- index funds must trade at the official close, so rebalance and
+# quarter-end auctions carry multiples of the usual size. Pooling them would make
+# every distribution bimodal and every "unusual imbalance" reading a statement about
+# the calendar rather than about the market. So every sample is STAMPED with its
+# class and any analysis can condition on it. (That analysis is 6h; this is the
+# stamp.)
+#
+# THE CLASSES ARE NOT MUTUALLY EXCLUSIVE and the stamp keeps all of them. A triple
+# witching day is also an OPEX day, also a quarter-end, and usually an index
+# rebalance -- reporting one label would discard the others.
+#
+# WHAT IS DERIVED AND WHAT IS DECLARED. Month-end, quarter-end, OPEX and triple
+# witching are RULES: the last session of a month, the third Friday, the third
+# Friday of a quarter-ending month. Index rebalances and ETF rebalances are
+# ANNOUNCEMENTS -- S&P publishes its effective dates and they do not follow a rule
+# this code can compute -- so they are a declared table, empty until dates are
+# entered, and its emptiness is visible rather than implied.
+AUCTION_EVENT_CLASSES = (
+    "NORMAL",
+    "MONTH_END",
+    "QUARTER_END",
+    "INDEX_REBALANCE",
+    "OPEX",
+    "TRIPLE_WITCHING",
+    "ETF_REBALANCE",
+)
+
+# DECLARED, NOT DERIVED. S&P's quarterly rebalance effective dates are announced,
+# not computable; the same is true of a fund family's own reconstitution. Empty
+# means "no date has been entered", which is a different state from "no rebalance
+# happens" -- and the sampler records the class list it stamped, so a later reader
+# can tell a day nobody classified from a day classified as ordinary.
+INDEX_REBALANCE_DATES: dict[str, str] = {}
+ETF_REBALANCE_DATES: dict[str, str] = {}
+
+
+def _third_friday(year: int, month: int) -> dt.date:
+    """The monthly options expiry: the third Friday, regardless of holidays.
+
+    When that Friday is a holiday the expiry moves to the Thursday, which is why
+    callers ask auction_event_classes() rather than computing this themselves.
+    """
+    d = dt.date(year, month, 1)
+    fridays = 0
+    while True:
+        if d.weekday() == 4:
+            fridays += 1
+            if fridays == 3:
+                return d
+        d += dt.timedelta(days=1)
+
+
+def is_month_end_session(day: DateLike = None) -> bool:
+    """The last TRADING session of a calendar month."""
+    d = _as_date(day)
+    nxt = d + dt.timedelta(days=1)
+    while nxt.month == d.month:
+        if is_trading_session(nxt) if calendar_covers(nxt) else nxt.weekday() < 5:
+            return False
+        nxt += dt.timedelta(days=1)
+    return True
+
+
+def auction_event_classes(day: DateLike = None) -> list[str]:
+    """Every class this session's close belongs to. NORMAL only when no other fits.
+
+    Returned as a list because the classes overlap by nature: a triple witching day
+    is also OPEX, also quarter-end, and usually a rebalance. A single label would
+    throw away the rest.
+    """
+    d = _as_date(day)
+    covered = calendar_covers(d)
+    if (is_trading_session(d) if covered else d.weekday() < 5) is False:
+        return []                      # not a session: there is no closing auction
+
+    out: list[str] = []
+    iso = d.isoformat()
+
+    expiry = _third_friday(d.year, d.month)
+    # An expiry that lands on a holiday moves BACK to the preceding session.
+    if covered and is_market_holiday(expiry):
+        expiry -= dt.timedelta(days=1)
+    is_opex = d == expiry
+    if is_opex:
+        out.append("OPEX")
+        if d.month in (3, 6, 9, 12):
+            out.append("TRIPLE_WITCHING")
+
+    if is_month_end_session(d):
+        out.append("MONTH_END")
+        if d.month in (3, 6, 9, 12):
+            out.append("QUARTER_END")
+
+    if iso in INDEX_REBALANCE_DATES:
+        out.append("INDEX_REBALANCE")
+    if iso in ETF_REBALANCE_DATES:
+        out.append("ETF_REBALANCE")
+
+    return out or ["NORMAL"]
+
+
 DateLike = Union[dt.date, dt.datetime, str, None]
 
 

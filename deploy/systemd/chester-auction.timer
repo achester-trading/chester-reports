@@ -1,0 +1,31 @@
+[Unit]
+Description=Closing-auction tick sampler, 15:49 ET on trading days (29.4 logging)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 15:49 ET, one minute before the auction window opens. The sampler's own window is
+# 15:50-16:00 and it exits when the close passes, so starting a minute early buys
+# the Gateway connection and the eleven market-data subscriptions time to be up
+# before the first tick matters. Starting AT 15:50 would spend the first sample on
+# handshakes.
+#
+# CLEAR OF EVERY OTHER TIMER. chester-eod is 16:10, chester-daily-close is 16:45,
+# chester-ibkr-sync runs on the hour and half hour. 15:49-16:00 is empty, and it has
+# to be: this unit holds eleven live market-data lines and the sync holds more, and
+# the account's line cap is shared.
+OnCalendar=Mon-Fri 15:49 America/New_York
+
+# NO JITTER. Every other timer here takes a randomized delay to spread load; this
+# one cannot. The window it samples is ten minutes long and fixed by the exchange,
+# so a 45-second delay would cost the first sample and a two-minute one would cost
+# a fifth of the event.
+RandomizedDelaySec=0
+
+# Persistent=false, and here the reason is absolute rather than a judgement. A
+# catch-up run at 19:00 would connect, find no auction publishing, and write
+# nothing -- while looking like a successful sample of a closing auction. An
+# auction happens once.
+Persistent=false
+
+[Install]
+WantedBy=timers.target
