@@ -68,6 +68,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Optional
 
+import contradictions as contradictions_mod
 from altdata import derived, observations, session
 
 REPO = Path(__file__).resolve().parent
@@ -519,15 +520,20 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
                 "vol": dial_vol(cfg, cutoff, st),
                 "gamma": dial_gamma(cfg, day),
             },
-            # Piece 3 fills this. Named rather than omitted, for the reason the
-            # regime block itself was named before it was built: an absent
-            # section reads as "nothing to say" and a named one reads as "owed".
-            "contradictions": [],
-            "contradictions_note": "contradiction table v1 -- Phase 2 piece 3",
             "prior_objects_read": len(history),
         }
+        # The table reads the object's OWN dimensions and dials rather than the
+        # store a second time, so a contradiction can never disagree with the
+        # state it is drawn from.
+        obj["contradictions"] = contradictions_mod.evaluate(
+            cfg, dims, obj["dials"], cutoff, day, history, st)
         obj["absent_dimensions"] = sorted(
             n for n, d in dims.items() if d.get("state") is None)
+        obj["open_contradictions"] = sorted(
+            r["id"] for r in obj["contradictions"] if r.get("open"))
+        obj["absent_contradictions"] = sorted(
+            r["id"] for r in obj["contradictions"]
+            if r.get("open_state") == "absent")
         return obj
     finally:
         if own:
@@ -729,15 +735,19 @@ def format_object(obj: dict) -> str:
         L.append(f"                contradicting: {d['contradicting']}")
     rows = obj.get("contradictions") or []
     L.append("")
-    L.append(f"  CONTRADICTIONS ({len(rows)})"
-             + (f" -- {obj.get('contradictions_note')}" if not rows else ""))
+    L.append(f"  CONTRADICTIONS ({len(rows)} declared, "
+             f"{len(obj.get('absent_contradictions') or [])} absent, "
+             f"{len(obj.get('open_contradictions') or [])} open)")
     for r in rows:
-        if r.get("state") == "absent":
-            L.append(f"    {r['id']:26} ABSENT -- {r.get('absent_reason')}")
-        else:
-            L.append(f"    {r['id']:26} {r.get('open_state')}  "
-                     f"z {r.get('magnitude')}  since {r.get('since')}  "
-                     f"{r.get('persistence_days')}d")
+        if r.get("open_state") == "absent":
+            L.append(f"    {r['id']:28} ABSENT -- {r.get('absent_reason')}")
+            continue
+        mag = ("state mismatch" if r.get("magnitude") is None
+               else f"z {r.get('magnitude'):+.2f}")
+        exc = "  EXCEPTION" if r.get("exception") else ""
+        L.append(f"    {r['id']:28} {str(r.get('open_state')):8} {mag:>16}  "
+                 f"since {r.get('since') or '-'}  "
+                 f"{r.get('persistence_days')}d{exc}")
     return "\n".join(L)
 
 

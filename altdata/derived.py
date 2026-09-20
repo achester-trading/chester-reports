@@ -499,6 +499,34 @@ def derived_forms(metric_id: str, as_of: Optional[str] = None,
     return out
 
 
+def series_as_of(metric_id: str, as_of: Optional[str] = None,
+                 window: Optional[int] = None,
+                 store: Optional[observations.ObservationStore] = None,
+                 instrument: Optional[str] = None) -> list[tuple[str, float]]:
+    """The windowed (day, value) series behind derived_forms(), oldest first.
+
+    Exposed because the contradiction table needs two aligned series and not two
+    summaries -- and it must use THE SAME window rule and THE SAME as-of join, or
+    a divergence would be measured over a period neither leg's percentile was.
+    """
+    cutoff = as_of or session.utc_iso(timespec="microseconds")
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        rows = st.as_of(metric_id, as_of=cutoff, instrument=instrument)
+    finally:
+        if own:
+            st.close()
+    e = registry_entry(metric_id)
+    req = int(window or e.get("derived_window_days") or DEFAULT_WINDOW_DAYS)
+    start = _as_date(cutoff) - dt.timedelta(days=req)
+    out = [(str(r["observed_at"])[:10], float(r["value_num"]))
+           for r in rows if r.get("value_num") is not None
+           and _as_date(r["observed_at"]) >= start]
+    out.sort()
+    return out
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     import json

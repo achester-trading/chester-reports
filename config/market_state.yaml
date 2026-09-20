@@ -327,6 +327,32 @@ dials:
 contradictions:
   persistence_sessions: 2
   exception_sessions: 5          # at or past this, the row is an exception
+  window_days: 1826              # the same five years the dimensions use
+
+  # A DIVERGENCE IS A STATEMENT ABOUT TODAY, exactly like a dial. A leg whose
+  # newest observation is older than this goes absent rather than reporting a gap
+  # measured between two stale prints -- which is what the first run of this table
+  # did for 77 straight sessions, reporting an unchanging z off data that had
+  # stopped moving in May.
+  max_staleness_sessions: 10
+
+  # WHEN A GAP COUNTS AS A DIVERGENCE. The magnitude is the z of TODAY'S gap
+  # against that gap's own history, so 2.0 means "the two legs are further apart
+  # than they have been 95% of the time" -- not "the legs are far apart", which
+  # for two legs that normally sit far apart would fire every day.
+  open_threshold_z: 2.0
+
+  # The alert path the order asks for at >= exception_sessions. There is no
+  # Phase 1 exceptions alert in this repo: scripts/check_heartbeat_cron.sh sends
+  # the heartbeat and drift alerts through scripts/send_smtp_alert.py and nothing
+  # sends an exceptions alert. So an exception is REPORT-ONLY and says so on the
+  # row itself, rather than being silently dropped into a path that does not
+  # exist.
+  exception_alert_path: report_only
+  exception_alert_note: >-
+    Report-only. When an exceptions alert exists it belongs beside the drift
+    branch in scripts/check_heartbeat_cron.sh, which already owns
+    send_smtp_alert.py.
 
   pairs:
     - id: price_vs_breadth

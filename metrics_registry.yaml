@@ -947,6 +947,63 @@ metrics:
       One dial's state. macro comes from a declared lookup over dimension states,
       vol from VIX level bands, gamma from the exposure engine's own sign -- read,
       never recomputed.
+  contradiction.magnitude:
+    source: derived_state
+    mechanism_group: market_divergence
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Today's standardised gap between a pair's two legs, expressed as a z of that
+      gap's own history over the window. 2.0 means the legs are further apart than
+      they have been 95% of the time -- a claim about the RELATIONSHIP, not about
+      either level. None on a dial pair, which is a state mismatch and has no
+      distribution to take a z of.
+  contradiction.open:
+    source: derived_state
+    mechanism_group: market_divergence
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      Whether the pair's condition has held persistence_sessions consecutive
+      sessions. Opens and closes on the same rule the dimensions use, so a single
+      day's disagreement is not an event.
+  contradiction.persistence_days:
+    source: derived_state
+    mechanism_group: market_divergence
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: days
+    trigger_eligible: false
+    description: >-
+      Consecutive sessions the current run has held. At or past
+      exception_sessions the row is an exception -- report-only today, because
+      this repo has no exceptions alert path.
+  contradiction.since:
+    source: derived_state
+    mechanism_group: market_divergence
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: date
+    trigger_eligible: false
+    description: >-
+      The first session of the current open run, carried forward from the prior
+      object rather than recomputed, so a row's age survives a recompute.
   grade.return_pct:
     source: derived_grade
     mechanism_group: decision_grade
