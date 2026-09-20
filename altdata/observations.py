@@ -106,6 +106,40 @@ def canonical_instant(ts: Optional[str]) -> Optional[str]:
 # still overrides it, and a path passed explicitly still wins over both.
 DEFAULT_DB = os.environ.get("CHESTER_DB") or str(REPO / "data" / "chester.db")
 
+# ---------------------------------------------------------------------------
+# HOW AN available_at WAS ARRIVED AT
+# ---------------------------------------------------------------------------
+#
+# The three clocks above say WHEN. This says HOW WE KNOW, and the distinction
+# matters because a backfill has to invent an availability it cannot observe.
+#
+#   observed         a real first-publication instant, from the source itself.
+#                    ALFRED vintages would be this. Nothing writes it yet.
+#   ingest_instant    the moment we wrote the row stood in for it. This is what
+#                    every live pull does: it is an UPPER BOUND on availability
+#                    (we certainly knew it by then) and therefore safe for an
+#                    as-of join, which is why it is not a lie -- but it is later
+#                    than the truth, by however long the job waited.
+#   reconstructed     derived from the observation itself plus a DECLARED latency
+#                    -- a session close plus a stated delay. Used only for a
+#                    backfill, and only where it is defensible.
+#
+# THE RULE THAT MAKES `reconstructed` SAFE, and the one that makes it dangerous:
+# it is permitted only for series whose revision_policy is `never` or
+# `split_only`. A daily close is knowable at the close and is never restated
+# except by a split, so reconstructing its availability recovers the truth. A
+# REVISABLE series is the opposite case -- FRED's payrolls figure for August
+# exists in three vintages, and reconstructing "available at the release" for a
+# value that is actually the third revision would hand a backtest a number that
+# did not exist for months. Revisable series get ALFRED or nothing.
+#
+# tools/validate_prices.py enforces that rule against the registry rather than
+# trusting a caller to remember it.
+AVAILABILITY_KINDS = ("observed", "ingest_instant", "reconstructed")
+
+# The revision policies for which a reconstructed availability is permitted.
+RECONSTRUCTABLE_POLICIES = ("never", "split_only")
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS observations (
     id            INTEGER PRIMARY KEY,
@@ -118,6 +152,10 @@ CREATE TABLE IF NOT EXISTS observations (
     value_text    TEXT,
     source        TEXT NOT NULL,
     run_id        TEXT,
+    -- NULL means unstated: every row written before this column existed. Not
+    -- backfilled to a guess, because "we do not know how this availability was
+    -- arrived at" is itself the useful fact about the migrated FRED history.
+    availability_kind TEXT,
     CHECK (value_num IS NOT NULL OR value_text IS NOT NULL)
 );
 
@@ -228,7 +266,23 @@ class ObservationStore:
         self.conn.execute("PRAGMA busy_timeout = 5000")
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        self._migrate()
         self.conn.commit()
+
+    def _migrate(self) -> None:
+        """Additive column migrations, idempotent.
+
+        CREATE TABLE IF NOT EXISTS does nothing to a table that already exists,
+        so a new column never appears on a store created by an older version --
+        and every store in this system was. Checked against PRAGMA table_info
+        rather than catching the duplicate-column error, so the intent is legible
+        in the code rather than in an exception handler.
+        """
+        have = {r[1] for r in self.conn.execute(
+            "PRAGMA table_info(observations)").fetchall()}
+        if "availability_kind" not in have:
+            self.conn.execute(
+                "ALTER TABLE observations ADD COLUMN availability_kind TEXT")
 
     def close(self) -> None:
         self.conn.close()
@@ -242,12 +296,14 @@ class ObservationStore:
     # -- write ------------------------------------------------------------
     def write(self, registry_key: str, instrument: Optional[str],
               observed_at: str, available_at: str, value: Any,
-              source: str, run_id: Optional[str] = None) -> int:
+              source: str, run_id: Optional[str] = None,
+              availability_kind: Optional[str] = None) -> int:
         """One observation. Returns rows inserted (0 if already present)."""
         return self.write_many([{
             "registry_key": registry_key, "instrument": instrument,
             "observed_at": observed_at, "available_at": available_at,
-            "value": value, "source": source, "run_id": run_id}])
+            "value": value, "source": source, "run_id": run_id,
+            "availability_kind": availability_kind}])
 
     def write_many(self, rows: Iterable[dict]) -> int:
         """Batch insert. Duplicate vintages are ignored, not errors.
@@ -264,17 +320,23 @@ class ObservationStore:
             txt = None if num is not None else (None if v is None else str(v))
             if num is None and txt is None:
                 continue          # a value-less row carries nothing; skip it
+            kind = r.get("availability_kind")
+            if kind is not None and kind not in AVAILABILITY_KINDS:
+                raise ValueError(
+                    f"availability_kind {kind!r} is not one of "
+                    f"{AVAILABILITY_KINDS} -- an unrecognised value would make "
+                    f"the column unqueryable, which is worse than no column")
             payload.append((r["registry_key"], r.get("instrument"),
                             r["observed_at"], canonical_instant(r["available_at"]),
                             r.get("ingested_at") or ingested, num, txt,
-                            r["source"], r.get("run_id")))
+                            r["source"], r.get("run_id"), kind))
         if not payload:
             return 0
         cur = self.conn.executemany(
             "INSERT OR IGNORE INTO observations "
             "(registry_key, instrument, observed_at, available_at, ingested_at,"
-            " value_num, value_text, source, run_id) "
-            "VALUES (?,?,?,?,?,?,?,?,?)", payload)
+            " value_num, value_text, source, run_id, availability_kind) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)", payload)
         self.conn.commit()
         return cur.rowcount
 

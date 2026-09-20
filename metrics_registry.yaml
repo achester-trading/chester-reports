@@ -62,6 +62,38 @@
 #                           five years (1826 days), which is §K's percentile_5y.
 #   extreme_percentiles     OPTIONAL [lo, hi] override of the 5/95 extreme flag.
 #
+# -----------------------------------------------------------------------------
+# HOW AN available_at MAY BE ARRIVED AT -- THE RECONSTRUCTION RULE
+# -----------------------------------------------------------------------------
+#
+# Every observation carries `available_at`, and altdata/observations.py now
+# records HOW that instant was arrived at, in `availability_kind`:
+#
+#   observed         a real first-publication instant from the source. ALFRED
+#                    vintages would be this. Nothing writes it yet.
+#   ingest_instant   the write instant stood in for it. Every live pull does
+#                    this; it is an UPPER BOUND on when we knew, so an as-of join
+#                    over it is safe -- just later than the truth.
+#   reconstructed    derived from the observation plus a DECLARED latency, e.g. a
+#                    session close plus 20 minutes. Backfills only.
+#   (null)           unstated: written before the column existed. The migrated
+#                    FRED history is all of this, and leaving it unstated is the
+#                    useful fact -- all 20,372 rows share the migration instant.
+#
+# THE RULE: `reconstructed` IS PERMITTED ONLY WHERE revision_policy IS `never` OR
+# `split_only`.
+#
+# A daily close is knowable at the close and is never restated except by a split,
+# so reconstructing its availability RECOVERS the truth. A revisable series is the
+# opposite case: FRED's August payrolls exist in three vintages, and stamping
+# "known at the release" on what is actually the third revision hands a backtest a
+# number that did not exist for months -- a leak no as-of join can catch, because
+# the join is working correctly on a lie. Revisable series get ALFRED or nothing.
+#
+# tools/backfill_prices.py reads revision_policy and REFUSES any metric that is
+# not reconstructable; tools/validate_prices.py asserts the refusal rather than
+# trusting it.
+#
 # Full convention, with the confidence table: docs/market-state.md.
 #
 # Required on every metric:
@@ -157,6 +189,12 @@ vocabularies:
     - never
     - recomputed
     - revised
+    # A SPLIT IS NOT A REVISION OF JUDGEMENT. It restates a price history exactly
+    # once, mechanically, and by a known factor -- which is what makes a
+    # reconstructed availability defensible for a close and indefensible for a
+    # FRED series that is genuinely re-estimated. See the reconstruction rule in
+    # the schema header.
+    - split_only
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -211,6 +249,14 @@ vocabularies:
     # credit disagree" can never be summed into two pieces of evidence about
     # credit.
     - market_divergence
+    # DAILY CLOSES. One group for the price basket, because 28 ETF closes are 28
+    # views of the same equity tape rather than 28 independent observations --
+    # counting SPY and QQQ as two confirmations of a trend is exactly the
+    # double-counting 26.9 forbids. Dividends and splits are CORPORATE ACTIONS,
+    # not prices, and go in their own group so a dividend can never read as a
+    # confirmation of a price move.
+    - market_close
+    - corporate_action
 
 defaults:
   trigger_eligible: false
@@ -1218,6 +1264,57 @@ bulk_imports:
       "7": macro_global_fx
       "8": macro_sovereign
 
+  market_closes:
+    description: >-
+      Daily closes for the 28-symbol market basket, keyed yfinance.mkt_<sym>.
+      SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
+      adjusted close is deliberately not stored: it restates its own history
+      every time a dividend is paid, which no point-in-time store can support,
+      and it would disagree with the pin log, the exposure engine's spot and
+      every decision's reference price. Dividends and splits are stored beside it
+      as their own series (see market_actions) so total return is computable
+      without un-adjusting anything.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.SYMBOLS
+    # SYMBOLS maps ticker -> store key, and the STORE KEY is the member name.
+    # Declared rather than assumed: iterating the dict yields tickers, so a
+    # resolver left to guess would register yfinance.SPY and never
+    # yfinance.mkt_spy, and every price metric would read as unregistered.
+    members_are: values
+    expected_members: 28
+    key_prefix: yfinance.
+    units: price
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_actions:
+    description: >-
+      Dividend and split events for the same basket, keyed
+      yfinance.mkt_<sym>_dividend and _split. Stored only when NON-ZERO: yfinance
+      emits 0.0 on every ordinary day, and 250 rows a year asserting that nothing
+      happened are both noise and indistinguishable from a real zero. Registered
+      as a block against the same code list so a symbol added to the basket
+      cannot arrive with unregistered event series.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.SYMBOLS
+    members_are: values
+    # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
+    # series, so the block declares the suffixes rather than needing 56 lines.
+    member_suffixes: ['_dividend', '_split']
+    expected_members: 28
+    key_prefix: yfinance.
+    units: price
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: corporate_action
   pin_log_columns:
     description: >-
       The pin log's column set, which IS the file format and is append-only.

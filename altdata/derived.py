@@ -185,7 +185,9 @@ def _load_registry() -> dict:
         members_from = block.get("members_from")
         prefix = block.get("key_prefix") or ""
         member_key = block.get("member_key")
-        if not members_from or not member_key:
+        members_are = block.get("members_are")
+        suffixes = list(block.get("member_suffixes") or [""])
+        if not members_from or not (member_key or members_are):
             continue
         try:
             import importlib  # noqa: PLC0415
@@ -193,13 +195,22 @@ def _load_registry() -> dict:
             members = getattr(importlib.import_module(mod_path), attr)
         except Exception:
             continue
+        # A member list is a sequence of objects with a named attribute (the 59
+        # FRED SeriesSpec entries) OR a mapping whose VALUES are the store keys
+        # (the 28-symbol price basket). The block says which; neither is guessed.
+        if members_are == "values" and isinstance(members, dict):
+            members = list(members.values())
+        elif members_are == "keys" and isinstance(members, dict):
+            members = list(members.keys())
         for mem in members or []:
-            name = getattr(mem, member_key, None)
+            name = (getattr(mem, member_key, None) if member_key
+                    else (mem if isinstance(mem, str) else None))
             if not name:
                 continue
             entry = {k: v for k, v in block.items()
                      if k not in ("members_from", "member_key", "key_prefix",
                                   "expected_members", "description",
+                                  "members_are", "member_suffixes",
                                   "mechanism_group_from_member",
                                   "mechanism_group_map")}
             # `from_member` means "the member owns this field".
@@ -208,7 +219,8 @@ def _load_registry() -> dict:
                     entry[field] = getattr(mem, field, None) or getattr(
                         mem, "freq" if field == "native_horizon" else field, None)
             entry["freq"] = getattr(mem, "freq", None)
-            out.setdefault(prefix + str(name), entry)
+            for suffix in suffixes:
+                out.setdefault(prefix + str(name) + suffix, dict(entry))
     _REGISTRY = out
     return out
 

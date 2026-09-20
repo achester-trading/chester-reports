@@ -99,6 +99,23 @@ esac
 DRY=""
 [[ "${CHESTER_OVERNIGHT_DRY_RUN:-0}" == "1" ]] && DRY="--dry-run"
 
+# ---- the feeds, as the CORRECTION pass -------------------------------------
+#
+# The same pull as 16:10, and it is here for the two things the evening cannot
+# fix: a close revised after 16:10 (a late print, an exchange correction), and a
+# session missed entirely because the box was down. The pull re-reads two years,
+# so a gap heals on the next successful run rather than waiting for somebody to
+# notice it.
+#
+# Re-pulling an unchanged close writes NOTHING -- the observation store's vintage
+# key makes it idempotent -- so the duplication costs a fetch and no rows.
+log "feeds: correction pull start"
+FEED_OUT="$("$PY" -m altdata.feeds pull 2>&1)"
+FEED_RC=$?
+printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
+log "feeds: correction pull done"
+
 log "=== overnight fetch start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m altdata.sources.overnight $DRY >>"$LOG" 2>&1
 RC=$?

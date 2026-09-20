@@ -68,6 +68,7 @@ run() {
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_STATE_CHECK=1 \
+        CHESTER_SKIP_FEED_CHECK=1 \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -500,6 +501,58 @@ if [[ "$(state_object_of)" == "skipped" ]] && [[ "$RC" == "0" ]]; then
     ok "CHESTER_SKIP_STATE_CHECK records skipped on the row rather than present -- a skipped check and a passing one are different states"
 else
     bad "skip switch reported state_object=$(state_object_of) exit=$RC"
+fi
+
+printf '\n%s\nThe feed freshness gate\n%s\n' "$LINE" "$LINE"
+
+# A HEALTHY PIPELINE WITH A STALE FEED IS NOT HEALTHY. The object is computed from
+# whatever is in the store, so a feed that stopped delivering produces an object
+# full of absent dimensions -- and the report still goes out. CHESTER_DB points at
+# an empty store, which is the cleanest way to make every feed absent.
+feeds_of() { sed -n 's/.*feeds=\([a-z_]*\).*/\1/p' "$STATUS"; }
+
+rm -f "$STATUS"
+env CHECKER_RC=0 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(state_of)" == "feed_stale" ]] && [[ "$RC" == "11" ]]; then
+    ok "a healthy pipeline with every feed absent -> feed_stale, exit 11"
+elif [[ "$(feeds_of)" == "no_python" ]]; then
+    ok "no interpreter available here; the feed check declined to guess (no_python)"
+else
+    bad "empty store -> state=$(state_of) exit=$RC feeds=$(feeds_of) (wanted feed_stale/11)"
+fi
+
+# AND IT MUST NOT OUTRANK ANYTHING UPSTREAM. A dead pipeline explains a stale
+# feed; reporting the feed would send the reader to the wrong place.
+rm -f "$STATUS"
+env CHECKER_RC=2 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(state_of)" == "no_heartbeat" ]] && [[ "$RC" == "2" ]]; then
+    ok "a pipeline that never ran still reports no_heartbeat -- the cause, not the symptom"
+else
+    bad "no_heartbeat + stale feeds reported state=$(state_of) exit=$RC"
+fi
+
+rm -f "$STATUS"
+run 0
+if [[ "$(feeds_of)" == "skipped" ]] && [[ "$RC" == "0" ]]; then
+    ok "CHESTER_SKIP_FEED_CHECK records skipped rather than fresh -- a skipped check and a passing one are different states"
+else
+    bad "skip switch reported feeds=$(feeds_of) exit=$RC"
 fi
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"

@@ -55,6 +55,13 @@
 #                       drift is: a stale pipeline EXPLAINS a missing object, and
 #                       reporting the symptom over the cause sends the reader to
 #                       the wrong place.
+#  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
+#                       delivered: prices or FRED series older than the declared
+#                       allowance, or absent entirely. This is the channel a
+#                       MISSING FRED_API_KEY arrives through -- altdata/feeds.py
+#                       logs once and exits 0 rather than failing the wrapper, so
+#                       the gap shows up as the data going stale, which is the
+#                       true statement.
 #   9 check failed   -> the wrapper could not run the checker (env problem).
 #                       Distinct from the four above: this is the monitor
 #                       broken, not the pipeline.
@@ -127,6 +134,7 @@ case $RC in
     5) STATE=morning_missed;   HEADLINE="MISSED the 07:00 morning anchor has not run -- each missed morning is a pre-open read that cannot be rebuilt" ;;
     8) STATE=unit_drift;       HEADLINE="DRIFT installed units differ from the repo" ;;
    10) STATE=no_state_object;  HEADLINE="NO STATE the last completed session has no market-state object" ;;
+   11) STATE=feed_stale;       HEADLINE="FEED STALE a scheduled feed has not delivered" ;;
     9) STATE=check_failed;     HEADLINE="BROKEN the heartbeat check itself could not run" ;;
     *) STATE=unknown;          HEADLINE="UNKNOWN checker exited $RC" ;;
 esac
@@ -369,6 +377,42 @@ if [[ "$STATE" == "ok" ]] && [[ "$STATE_OBJECT" == "missing" ]]; then
     HEADLINE="NO STATE no market-state object for $STATE_SESSION -- the 16:45 close pass did not compute one"
 fi
 
+# ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
+#
+# "Are today's bars present" can only be asked where the store is. A CI runner has
+# neither the box's store nor its network, so in CI this could only ever report on
+# a fixture -- the same argument that split the data gates out of `make validate`.
+#
+# IT IS ALSO THE CHANNEL FOR A MISSING KEY. altdata/feeds.py logs once and exits 0
+# when FRED_API_KEY is absent, rather than failing the wrapper, because a
+# configuration gap should not read as a broken pipeline. The consequence is that
+# the series go stale, and this is what says so.
+FEEDS_STATE=unknown
+FEEDS_LINE=""
+if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
+    FEEDS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    FEEDS_STATE=no_python
+else
+    FEEDS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.feeds check 2>/dev/null)"
+    if [[ $? -eq 0 ]]; then
+        FEEDS_STATE=fresh
+    else
+        FEEDS_STATE=stale
+    fi
+    [[ -n "$FEEDS_LINE" ]] && log "  feeds: $FEEDS_LINE"
+fi
+
+# Ranked below the pipeline verdicts, below drift, and below the state object, on
+# the same argument each of those is ranked on: a stale feed EXPLAINS an absent
+# dimension, and a dead pipeline explains a stale feed. Reporting the furthest
+# downstream symptom sends the reader to the wrong place.
+if [[ "$STATE" == "ok" ]] && [[ "$FEEDS_STATE" == "stale" ]]; then
+    STATE=feed_stale
+    RC=11
+    HEADLINE="FEED STALE $FEEDS_LINE"
+fi
+
 # ---- how long has this been true? -----------------------------------------
 #
 # Computed HERE, after the verdict, because the verdict is what it is about. See
@@ -418,15 +462,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

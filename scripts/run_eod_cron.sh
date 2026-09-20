@@ -132,6 +132,28 @@ case $GUARD_RC in
         ;;
 esac
 
+# ---- the feeds, BEFORE the chains and before the 16:45 object ---------------
+#
+# The market-state object computes at 16:45 from whatever is in the store, so the
+# order here is the whole point: a feed that ran after it would produce an object
+# describing yesterday. Prices and FRED both, through one entry point
+# (altdata/feeds.py) so the list of what runs does not exist twice.
+#
+# ITS FAILURE IS NOT THIS RUN'S FAILURE. The chains are the irreplaceable stage --
+# yfinance serves no history, so a missed night is missed forever -- and a feed
+# problem must not stop them. A stale feed is visible in the heartbeat's freshness
+# check and in the object's own absent-with-a-reason dimensions, which is a better
+# channel than a red pipeline that hides the chain fetch behind it.
+log "feeds: pull start"
+FEED_OUT="$("$VENV_PY" -m altdata.feeds pull 2>&1)"
+FEED_RC=$?
+printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+if [[ $FEED_RC -ne 0 ]]; then
+    log "WARN feeds pull exited $FEED_RC -- continuing; the freshness check reports it"
+else
+    log "feeds: pull done"
+fi
+
 START_EPOCH=$(date +%s)
 "$VENV_PY" run_eod.py --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
 RC=$?
