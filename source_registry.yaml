@@ -196,6 +196,60 @@ sources:
         LOGGING ONLY (6a). Nothing reads these to make a decision; the analysis that
         would is 6h and gated on 150 graded decisions across two regimes.
 
+  finra:
+    name: FINRA equity short data -- Reg SHO daily volume and semi-monthly interest
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [short_flow, short_interest]
+    geography: [US]
+    latency: >-
+      Reg SHO daily files publish the evening of the session. Short interest
+      publishes semi-monthly with roughly a fortnight's lag.
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The file carries its own session date, which becomes observed_at. available_at
+      is the write instant, which is an upper bound on when we knew.
+    license: public FINRA files, no key
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/borrow.py
+    status: active
+    caveats:
+      - >-
+        DAILY SHORT VOLUME IS NOT SHORT INTEREST. The first is a flow that includes
+        market-maker hedging covered within seconds; the second is the position
+        still open at a settlement date. Separate metrics, separate mechanism
+        groups, and the ratio between them is not meaningful.
+      - >-
+        The daily file covers every US symbol; only the tracked universe is stored.
+  apewisdom:
+    name: ApeWisdom social mention counts and ranks
+    tier: D
+    epistemic_role: unofficial_mirror
+    domain: [social_attention]
+    geography: [US]
+    latency: trailing-day counts, refreshed through the day
+    timestamp_reliability: low
+    timestamp_notes: >-
+      The API publishes no as-of timestamp for its counting window, so observed_at is
+      the session on which it was read. A count is attributed to the day we saw it,
+      which is the honest limit rather than a guess at the window.
+    license: public API, no key
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/borrow.py
+    status: active
+    caveats:
+      - >-
+        THE INSTRUMENT CARRIES THE FEED (TICKER@all-stocks, TICKER@wallstreetbets).
+        A count on one venue and a count across all venues measure different
+        populations and must never be summed.
+      - >-
+        A mention count measures who is TALKING, not who is trading -- its own
+        mechanism group for that reason, because pairing it with a flow measure as
+        confirmation would count an opinion as a transaction.
+      - >-
+        Tier D and unofficial: a scraped social aggregate with no published
+        methodology, logged because its CHANGES may be informative and never because
+        its level is authoritative.
   derived_state:
     name: The market-state object -- dimensions, dials and contradictions
     tier: derived

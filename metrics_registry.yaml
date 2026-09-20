@@ -339,6 +339,19 @@ vocabularies:
     # close, which is a different mechanism from either a daily price or a dealer
     # greek. It is also the group whose members are DISPLAY-ONLY by ruling.
     - auction_flow
+    # SHORT FLOW and SHORT STOCK are TWO GROUPS, not one, and the split is the whole
+    # point: daily short volume is a flow that a market maker's intraday hedging
+    # fills with noise, and short interest is the position still open at a
+    # settlement date. Merging them would let one stand in as evidence for the
+    # other, which is the specific error this data invites.
+    - short_flow
+    - short_stock
+    # SOCIAL ATTENTION. Its own group: a mention count measures who is talking, not
+    # who is trading, and pairing it with a flow measure as confirmation would be
+    # counting an opinion as a transaction.
+    - social_attention
+    # BORROW TERMS -- what it costs and whether it is possible to be short.
+    - borrow_terms
 
 defaults:
   trigger_eligible: false
@@ -1208,6 +1221,127 @@ metrics:
       forgot. States: entitled, not_entitled, inconclusive_closed (outside the
       window no tick publishes even with a full entitlement, so silence proves
       nothing), inconclusive_silent, probe_failed.
+  finra.short_volume:
+    source: finra
+    mechanism_group: short_flow
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Shares SOLD SHORT during one session, from FINRA's Reg SHO daily file. THIS IS NOT SHORT INTEREST. It is a FLOW and it includes a market maker shorting to fill a buy order and covering nine seconds later -- a stock can print 45 percent short volume every day for a year with no net short position at all. Short interest is the STOCK of shares still held short and is finra.short_interest. The ratio of one to the other is not a meaningful number.
+  finra.total_volume:
+    source: finra
+    mechanism_group: short_flow
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Total consolidated volume from the same file, stored so the short-volume SHARE can be computed without joining a second source whose volume definition differs.
+  finra.short_exempt_volume:
+    source: finra
+    mechanism_group: short_flow
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Short-exempt volume from the same file. Small, and separate because an exempt short is a different act from a regular one.
+  finra.short_interest:
+    source: finra
+    mechanism_group: short_stock
+    native_horizon: daily
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Shares still held short at a settlement date -- a STOCK, published semi-monthly with roughly a fortnight's lag. NOT finra.short_volume, which is the daily flow: they answer different questions and move differently. Revisable, because FINRA restates.
+  apewisdom.mentions:
+    source: apewisdom
+    mechanism_group: social_attention
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Mention count for one ticker on one venue in the trailing day. The instrument carries the FEED (TICKER@all-stocks, TICKER@wallstreetbets) because a count on one venue and a count across all of them are measurements of different populations and must never be summed.
+  apewisdom.rank:
+    source: apewisdom
+    mechanism_group: social_attention
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      The ticker's rank by mentions on that venue. Rank moves when OTHER tickers move, which is why the raw count is stored beside it.
+  apewisdom.upvotes:
+    source: apewisdom
+    mechanism_group: social_attention
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Upvotes on the counted mentions -- an intensity measure beside the volume one.
+  ibkr.shortable_shares:
+    source: ibkr_paper
+    mechanism_group: borrow_terms
+    native_horizon: daily
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Shares the broker shows as available to short. DORMANT ON THIS ACCOUNT: the probe returns 10358 (fundamentals data is not allowed) and the field is NaN. Registered so the series exists the day the entitlement does.
+  ibkr.borrow_fee_rate:
+    source: ibkr_paper
+    mechanism_group: borrow_terms
+    native_horizon: daily
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Indicative annualised borrow fee. Dormant for the same reason.
+  ibkr.borrow_probe:
+    source: ibkr_paper
+    mechanism_group: borrow_terms
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The stored borrow-entitlement probe, recorded either way. States: entitled,
+      not_entitled, probe_failed, never_probed. This account reads not_entitled.
   ndl.rtat10_activity:
     source: nasdaq_data_link
     mechanism_group: retail_activity
