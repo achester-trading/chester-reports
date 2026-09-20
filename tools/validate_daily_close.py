@@ -80,7 +80,7 @@ FORBIDDEN = ("anthropic", "openai", "claude", "llm", "completion")
 # `import narrative` in payload.py is not, because that is the edge along which a
 # generated sentence could reach a figure before anything audited it.
 DATA_PATH = ("payload.py", "render.py", "morning_payload.py",
-             "morning_render.py")
+             "morning_render.py", "state_block.py")
 
 # Modules allowed to reach a model, because gating them is the whole design.
 PROSE_PATH = ("narrative.py",)
@@ -262,13 +262,25 @@ def group_c() -> None:
              "convention_version": "dealers-hand-v1", "tolerance_bps": 25.0,
              "universe": {"greeks": [], "ingestion_only": []},
              "exposure": [], "exposure_missing": [], "pins": [],
-             "pin_hits": {}, "regime": [{"key": "regime.macro_state",
-                                         "state": "not_built", "note": "D2"}],
+             # regime.macro_state came OFF this list in Phase 2 -- it is the
+             # macro dial now -- so the seeded row is one of the two that remain.
+             "pin_hits": {}, "regime_not_built": [
+                 {"key": "regime.vix_term_structure", "state": "not_built",
+                  "note": "gated on the CFE Enhanced subscription"}],
+             # No market_state: this fixture is the EMPTY payload, and the state
+             # block must say the object is missing rather than raise.
+             "market_state": None, "what_changed": None,
              "portfolio": {"state": "absent", "reason": "no rows"},
              "warnings": ["nothing computed"]}
     html = render.render(empty)
     for needle, why in (
             ("NOT BUILT", "an unbuilt block says so in words"),
+            ("No market-state object", "an absent state object says so, and the "
+                                      "page renders without it"),
+            ("does not recompute it", "and says the report will not recompute "
+                                     "one -- two regimes with no way to say which "
+                                     "a decision was made under is the failure "
+                                     "this wording exists to prevent"),
             ("No exposure profiles", "an empty exposure table says so"),
             ("No pin-log rows", "an empty pin table says so"),
             ("No Portfolio Truth", "an absent portfolio says so, with a reason"),

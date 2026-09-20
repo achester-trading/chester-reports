@@ -100,7 +100,17 @@ def render_executive_summary(store: Store, derived: dict) -> str:
     """Skeleton headwinds/tailwinds with auto-populated data points."""
     parts = [
         "## I. Executive Summary\n",
-        "*[NARRATIVE PLACEHOLDER — regime characterization paragraph]*\n",
+        # THE ONE PLACE A SECOND REGIME COULD BE BORN IN THIS REPO. This
+        # placeholder asks a model to characterise a regime from the Monthly's
+        # pillars, and audit §K's rule is that the market-state object is the only
+        # regime any report may carry. The Monthly does not read the object yet --
+        # Phase 4 consolidates this report and is where the pillars are mapped
+        # onto the dials -- so this is marked rather than silently left: when the
+        # Monthly is next touched, this paragraph reads regime.latest() and cites
+        # its states instead of deriving its own.
+        "*[NARRATIVE PLACEHOLDER — regime characterization paragraph; Phase 4: "
+        "read the market-state object (regime.latest()) rather than deriving a "
+        "regime from the pillars — see docs/market-state.md]*\n",
         "### Headwinds (auto-detected)\n",
     ]
 

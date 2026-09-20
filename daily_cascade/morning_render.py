@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from . import state_block
+
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
@@ -178,6 +180,15 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
   run <code>{esc(payload.get('run_id') or 'n/a')}</code>
 </p>
 {warn}
+<h2 style="{H2}">What changed</h2>
+{state_block.what_changed_block(payload)}
+
+<h2 style="{H2}">Market state</h2>
+{state_block.state_table(payload)}
+
+<h2 style="{H2}">Contradictions</h2>
+{state_block.contradiction_table(payload)}
+
 <h2 style="{H2}">Overnight</h2>
 {overnight_table(payload)}
 
@@ -213,6 +224,9 @@ def text_fallback(payload: dict) -> str:
     lines = [f"Morning anchor -- {payload.get('session')}",
              f"generated {payload.get('generated_at')}",
              f"overnight fetched {block.get('fetched_at') or 'n/a'}", ""]
+    # Same module, same position as the HTML edition and as the close report's.
+    lines += state_block.text_lines(payload)
+    lines.append("")
     if block.get("state") == "absent":
         lines.append(f"OVERNIGHT ABSENT: {block.get('reason')}")
     for r in block.get("rows") or []:

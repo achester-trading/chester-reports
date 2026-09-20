@@ -46,6 +46,7 @@ from typing import Optional
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+import regime  # noqa: E402
 from altdata import observations, session          # noqa: E402
 from altdata.sources import overnight as on        # noqa: E402
 from daily_cascade import payload as close_payload  # noqa: E402
@@ -192,7 +193,23 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     hits = {k: sum(1 for p in pins if p.get(k)) for k in
             ("max_pain_hit", "peak_gex_hit", "call_wall_hit", "put_wall_hit")}
 
+    # THE OBJECT FOR THE PRIOR SESSION'S CLOSE. READ, NEVER RECOMPUTED -- the
+    # Phase 2 order is explicit, and the reason is that an anchor computing its own
+    # object could disagree with the close report's, leaving the system holding two
+    # regimes and no way to say which one a decision was made under. The morning of
+    # session S reports on the close of S-1, so the object read is S-1's.
+    state_obj = regime.latest(session_day=prior)
+    changed = None
+    if state_obj is not None:
+        changed = regime.what_changed(state_obj,
+                                     regime.previous_object(state_obj))
+
     warnings: list[str] = []
+    if state_obj is None:
+        warnings.append(
+            f"no market_state object for the prior session {prior} -- the close "
+            f"pass computes it at 16:45 and this anchor does not recompute it, so "
+            f"its absence means last night's close pass did not run")
     if overnight["state"] == "absent":
         warnings.append(f"overnight block absent: {overnight['reason']}")
     elif overnight["state"] == "stale":
@@ -225,5 +242,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "pins": pins,
         "pin_hits": hits,
         "portfolio": portfolio,
+        "market_state": state_obj,
+        "what_changed": changed,
         "warnings": warnings,
     }

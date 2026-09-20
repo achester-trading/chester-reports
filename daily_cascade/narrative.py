@@ -103,13 +103,28 @@ You may write a number as words ("ten and a half billion") only when the same \
 value is also printed in the tables below your paragraph. When in doubt, use the \
 numeral.
 
-Cover, in this order, only what the payload supports: the regime (spot versus the \
-flip, and how long on that side); the hedge flow and its change; the corridor \
+Cover, in this order, only what the payload supports: WHAT CHANGED since the \
+previous session (`what_changed`: dimension state changes, extreme flags set or \
+cleared, dial moves, contradictions opened, closed or persisting -- cite the \
+percentile beside every one, never the label alone); the market state as the \
+object records it (`market_state`: the three dials and the eight dimensions with \
+their states, directions and percentiles, and the dimensions it reports ABSENT, \
+which you must name as absent rather than passing over); any open row in \
+`contradictions`, with its z and how many sessions it has been open; the dealer \
+regime (spot versus the flip, and how long on that side); the hedge flow and its \
+change; the corridor \
 (walls, their movement, where gamma concentrates); what the vol complex says and \
 what it does not; the position (fill, close, distance to invalidation in points \
 and percent, and the rule); and the system's scorecard (the pin tally, the \
 cross-check when present, and what the day put at stake). Omit anything the \
 payload does not contain rather than reaching for it.
+
+DO NOT CHARACTERISE THE REGIME YOURSELF. `market_state` is the system's only \
+regime, computed by regime.py from declared rules in config/market_state.yaml. \
+Read its states; do not infer a state from the levels, do not average the \
+dimensions into an overall view, and do not describe a dimension the object \
+reports absent as though it had a state. A paragraph that derives its own regime \
+is a second regime, and then nothing can say which one a decision was made under.
 """
 
 

@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from . import state_block
+
 # Inline everywhere. See the module docstring.
 WRAP = ("font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,"
         "Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#ffffff;"
@@ -248,7 +250,8 @@ def pin_table(payload: dict) -> str:
 
 
 def regime_block(payload: dict) -> str:
-    rows = payload.get("regime") or []
+    """WHAT IS STILL NOT BUILT. The state object itself renders in state_block."""
+    rows = payload.get("regime_not_built") or []
     items = "".join(
         f'<li><code>{esc(r["key"])}</code> &mdash; '
         f'<strong style="color:#b45309">{esc(r["state"].upper().replace("_", " "))}'
@@ -499,6 +502,15 @@ def render(payload: dict, delivery: Optional[dict] = None,
 </p>
 {warn}
 {narrative_block(narrative)}
+<h2 style="{H2}">What changed</h2>
+{state_block.what_changed_block(payload)}
+
+<h2 style="{H2}">Market state</h2>
+{state_block.state_table(payload)}
+
+<h2 style="{H2}">Contradictions</h2>
+{state_block.contradiction_table(payload)}
+
 <h2 style="{H2}">Dealer exposure</h2>
 {exposure_table(payload)}
 {missing_block(payload)}
@@ -506,7 +518,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 <h2 style="{H2}">Pin verdicts</h2>
 {pin_table(payload)}
 
-<h2 style="{H2}">Regime</h2>
+<h2 style="{H2}">Still not built</h2>
 {regime_block(payload)}
 
 <h2 style="{H2}">Portfolio truth</h2>
@@ -531,6 +543,10 @@ def text_fallback(payload: dict) -> str:
     """Plain text for a client that will not render HTML. Deliberately terse."""
     lines = [f"Close debrief -- {payload.get('session')}",
              f"generated {payload.get('generated_at')}", ""]
+    # The same first block, in the same position, from the same module -- a text
+    # fallback that led with levels would be a second editorial decision.
+    lines += state_block.text_lines(payload)
+    lines.append("")
     for r in payload.get("exposure") or []:
         lines.append(f"{r['symbol']:<6} spot {r.get('spot')}  "
                      f"net_gex {r.get('net_gex')}  flip {r.get('gamma_flip')}")

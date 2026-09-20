@@ -53,6 +53,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
+import regime  # noqa: E402
 from altdata import config, observations, session  # noqa: E402
 from register import instruments            # noqa: E402
 import pin_log  # noqa: E402
@@ -64,14 +65,13 @@ ACCOUNT_KEYS = ("portfolio.nav", "portfolio.cash", "portfolio.buying_power",
                 "portfolio.gross_position_value", "portfolio.maint_margin",
                 "portfolio.excess_liquidity", "portfolio.cushion")
 
-# The regime block, named but NOT BUILT. Listed rather than omitted because an
-# absent section reads as "nothing to say" and a named one reads as "this is
-# owed" -- and D2 is the next step in the track.
+# WHAT IS STILL NOT BUILT, now that the state object is. regime.macro_state came
+# off this list in Phase 2 -- it is the macro dial, computed by regime.py from
+# config/market_state.yaml, with declared bands and no composite, exactly as the
+# entry demanded. The two below remain, and stay listed rather than omitted
+# because an absent section reads as "nothing to say" and a named one reads as
+# "this is owed".
 REGIME_PLACEHOLDERS = [
-    ("regime.macro_state",
-     "D2 — macro regime state from series already in the store "
-     "(net liquidity, HY OAS, curve, realized/implied vol, breadth, dealer "
-     "gamma). Declared thresholds and a state machine, never a 0-100 composite."),
     ("regime.debt_cycle_state",
      "31.2 — long-cycle debt resolution, two mutually exclusive branches "
      "(deflationary liquidation / inflationary repression) read as ONE "
@@ -477,11 +477,51 @@ def narrative_payload(full: dict, prior: Optional[dict] = None) -> dict:
                       "unrealized_pnl")}
             for pos in (full.get("portfolio") or {}).get("positions") or []
         ],
+        # THE STATE OBJECT AND THE TABLE, so the paragraph can reference the
+        # regime rather than re-deriving one from the levels. The numeral audit
+        # covers them automatically: they are payload figures like any other, so a
+        # sentence inventing a percentile fails D3 the same way.
+        "market_state": _narrative_state(full.get("market_state")),
+        "contradictions": [
+            {k: v for k, v in r.items()
+             if k in ("id", "legs", "magnitude", "threshold_z", "since",
+                      "persistence_days", "open", "open_state", "exception")}
+            for r in ((full.get("market_state") or {}).get("contradictions")
+                      or [])
+            if r.get("open_state") != "absent"],
+        "what_changed": full.get("what_changed"),
         # Absences travel WITH the figures, so the paragraph can say what the
         # system does not know instead of quietly omitting it.
         "absences": [w for w in full.get("warnings") or []],
     }
     return {k: v for k, v in out.items() if v is not None and v != []}
+
+
+def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
+    """The object trimmed to what a paragraph may cite.
+
+    The full object carries every member's level, z and staleness -- hundreds of
+    figures, most of them intermediate. A narrative given all of them can cite an
+    intermediate as though it were a headline, so what travels is the published
+    states, their percentiles and their disagreements.
+    """
+    if not obj:
+        return None
+    dims = {}
+    for name, d in (obj.get("dimensions") or {}).items():
+        dims[name] = {k: d.get(k) for k in
+                      ("state", "direction", "percentile", "confidence",
+                       "last_changed", "pending_state", "supporting",
+                       "contradicting", "absent_reason")}
+    return {
+        "session": obj.get("session"),
+        "schema_version": obj.get("schema_version"),
+        "dials": {n: {"state": v.get("state"),
+                      "absent_reason": v.get("absent_reason")}
+                  for n, v in (obj.get("dials") or {}).items()},
+        "dimensions": dims,
+        "absent_dimensions": obj.get("absent_dimensions"),
+    }
 
 
 def grades_block(since: Optional[str] = None) -> dict:
@@ -549,7 +589,22 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     hits = {k: sum(1 for p in pins if p.get(k)) for k in
             ("max_pain_hit", "peak_gex_hit", "call_wall_hit", "put_wall_hit")}
 
+    # THE STATE OBJECT. Read, never computed here: one object per session, and
+    # the close pass is what computes it.
+    state_obj = regime.latest(as_of=cutoff, session_day=resolved)
+    changed = None
+    if state_obj is not None:
+        changed = regime.what_changed(state_obj,
+                                     regime.previous_object(state_obj))
+
     warnings: list[str] = []
+    if state_obj is None:
+        warnings.append(
+            f"no market_state object for session {resolved} knowable at the "
+            f"cutoff -- the close pass computes it before this payload is built, "
+            f"so its absence means that step did not run. This report does NOT "
+            f"recompute it: two regimes with no way to say which one a decision "
+            f"was made under is worse than one missing block")
     if not exposure:
         warnings.append("no exposure profiles found -- the EOD pass has not "
                         "produced a scoreable profile for any symbol")
@@ -572,8 +627,16 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "exposure_missing": missing,
         "pins": pins,
         "pin_hits": hits,
-        "regime": [{"key": k, "state": "not_built", "note": n}
-                   for k, n in REGIME_PLACEHOLDERS],
+        # THE OBJECT, READ AND NOT RECOMPUTED. regime.latest() returns the
+        # stored object for this cutoff; the close pass computes it before
+        # building the payload (see daily_cascade/close_report.py), so a payload
+        # that finds nothing here means the compute step did not run -- which is
+        # a warning, not a silent recompute that could disagree with what the
+        # morning anchor will read.
+        "market_state": state_obj,
+        "what_changed": changed,
+        "regime_not_built": [{"key": k, "state": "not_built", "note": n}
+                             for k, n in REGIME_PLACEHOLDERS],
         "portfolio": portfolio_block(cutoff),
         "grades": grades_block(grades_since),
         "warnings": warnings,

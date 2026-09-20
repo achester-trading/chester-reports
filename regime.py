@@ -277,15 +277,32 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
 # ---------------------------------------------------------------------------
 # Persistence -- rule 1
 # ---------------------------------------------------------------------------
-def prior_objects(as_of: str, before_session: str, limit: int,
+def prior_objects(objects_as_of: str, before_session: str, limit: int,
                   store: observations.ObservationStore) -> list[dict]:
     """The most recent stored objects for sessions before `before_session`.
 
-    As-of correct in BOTH directions: only objects knowable at `as_of`, and only
-    sessions strictly before the one being computed. A backfill that read the
-    object it was about to overwrite would manufacture its own persistence.
+    TWO CLOCKS, AND CONFLATING THEM BROKE THE FIRST BACKFILL. Market data is read
+    at the SESSION's cutoff, so the object contains only what was knowable that
+    evening -- that is the leak rule and it is absolute. But the object's memory of
+    ITSELF is not market data: it is the state machine's own history, and it is
+    read at `objects_as_of`, the instant this object was computed.
+
+    The first backfill got this wrong and the symptom was silent. Each day read its
+    own history at that day's evening cutoff; the predecessor objects had been
+    written minutes earlier in September, so none of them was "knowable" in June
+    and every one of 77 sessions reported "first object; published immediately".
+    Persistence -- the whole reason states do not flap -- never engaged, and the
+    output looked entirely reasonable.
+
+    The rule is therefore: only sessions strictly before this one, and only objects
+    that existed when this object was computed. That is deterministic, which is
+    what makes the exact-replay check in tools/validate_regime.py possible: a
+    replay passes the stored object's own computed_at and sees the same
+    predecessors it saw. A later RECOMPUTE of an earlier session can change what a
+    replay of a later one sees, and that is a real change rather than a flaw -- it
+    means the history was edited.
     """
-    rows = store.as_of(STORE_KEY, as_of=as_of)
+    rows = store.as_of(STORE_KEY, as_of=objects_as_of)
     out = []
     for r in rows:
         if str(r["observed_at"])[:10] >= before_session:
@@ -478,7 +495,8 @@ def dial_gamma(cfg: dict, session_date: str) -> dict:
 # ---------------------------------------------------------------------------
 def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
-            cfg: Optional[dict] = None) -> dict:
+            cfg: Optional[dict] = None,
+            computed_at: Optional[str] = None) -> dict:
     """The market-state object for one session, as-of correct at `as_of`.
 
     `session_day` is the session the object is ABOUT; `as_of` is the cutoff it
@@ -492,6 +510,9 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
     try:
         day = session_day or session.last_trading_session().isoformat()
         cutoff = as_of or session.utc_iso(timespec="microseconds")
+        # Fixed BEFORE the history is read, because it is the clock the history is
+        # read at. A replay passes the stored object's own value here.
+        stamp = computed_at or session.utc_iso()
         defaults = cfg.get("defaults") or {}
 
         dims: dict[str, dict] = {}
@@ -500,7 +521,7 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             d["as_of_session"] = day
             dims[name] = d
 
-        history = prior_objects(cutoff, day, limit=8, store=st)
+        history = prior_objects(stamp, day, limit=8, store=st)
         for name, d in dims.items():
             apply_persistence(d, name, history)
 
@@ -510,7 +531,7 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             "config_version": cfg.get("version"),
             "session": day,
             "as_of": cutoff,
-            "computed_at": session.utc_iso(),
+            "computed_at": stamp,
             "git_sha": git_sha(),
             "config_path": str(CONFIG_PATH.relative_to(REPO)).replace("\\", "/"),
             "derived_convention": derived.CONVENTION_VERSION,
@@ -559,16 +580,29 @@ def latest(as_of: Optional[str] = None,
            session_day: Optional[str] = None) -> Optional[dict]:
     """THE READER EVERY REPORT USES. Reads; never computes.
 
-    The 07:00 anchor calls this and does not recompute: an anchor that computed
-    its own object could disagree with the close report's, and then the system
-    holds two regimes and no way to say which one a decision was made under.
+    The 07:00 anchor calls this and does not recompute: an anchor that computed its
+    own object could disagree with the close report's, and then the system holds
+    two regimes and no way to say which one a decision was made under.
+
+    WHEN `session_day` IS GIVEN, `as_of` IS NOT APPLIED, and the reason is the same
+    two-clock distinction the persistence history turns on. An object ABOUT session
+    S already contains only what was knowable on S -- that is enforced when it is
+    computed. Its available_at records when the system got round to computing it,
+    which for a backfilled or re-rendered session is later. Filtering on it would
+    mean a report re-rendered for a past session could not read the object about
+    that session, which is exactly the case Phase 2 piece 7 asks for.
+
+    Without `session_day`, `as_of` applies normally: "the newest object the system
+    could have had at this instant" is the right question for a live pass.
     """
     own = store is None
     st = store or observations.ObservationStore()
     try:
-        rows = st.as_of(STORE_KEY, as_of=as_of)
         if session_day:
-            rows = [r for r in rows if str(r["observed_at"])[:10] == session_day]
+            rows = [r for r in st.as_of(STORE_KEY)
+                    if str(r["observed_at"])[:10] == session_day]
+        else:
+            rows = st.as_of(STORE_KEY, as_of=as_of)
         if not rows:
             return None
         return json.loads(rows[-1]["value_text"])
@@ -586,6 +620,138 @@ def replay_fields(obj: dict) -> dict:
             return [strip(v) for v in o]
         return o
     return strip(obj)
+
+
+# ---------------------------------------------------------------------------
+# WHAT CHANGED -- the diff two objects make, and the anchors' first data block
+# ---------------------------------------------------------------------------
+def previous_object(obj: dict,
+                    store: Optional[observations.ObservationStore] = None
+                    ) -> Optional[dict]:
+    """The object for the session before this one, as-of correct at its cutoff."""
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        prior = prior_objects(obj.get("computed_at") or session.utc_iso(),
+                              obj.get("session") or "9999-99-99", limit=1,
+                              store=st)
+        return prior[-1] if prior else None
+    finally:
+        if own:
+            st.close()
+
+
+def what_changed(current: dict, previous: Optional[dict]) -> dict:
+    """The diff. DATA ONLY -- no model, no prose, no judgement of importance.
+
+    O.6: deltas and percentiles first, levels behind them. The reason is that a
+    close report read fast is read from the top, and a level is the least
+    informative thing on the page -- it says where a series is, not that it moved,
+    not whether the move is unusual, and not whether anything else disagrees.
+
+    EVERY MAGNITUDE CARRIES ITS PERCENTILE. A state change with no percentile is a
+    label; with one it is a measurement a reader can argue with.
+    """
+    out: dict[str, Any] = {
+        "session": current.get("session"),
+        "compared_with": (previous or {}).get("session"),
+        "dimension_changes": [], "dial_changes": [],
+        "extremes_set": [], "extremes_cleared": [],
+        "absences_opened": [], "absences_cleared": [],
+        "contradictions_opened": [], "contradictions_closed": [],
+        "contradictions_persisting": [], "pending_states": [],
+    }
+    cur_dims = current.get("dimensions") or {}
+    prev_dims = (previous or {}).get("dimensions") or {}
+    if previous is None:
+        out["note"] = ("no previous object -- this is the first for this "
+                       "cutoff, so nothing is reported as changed rather than "
+                       "everything being reported as new")
+
+    for name, d in cur_dims.items():
+        p = prev_dims.get(name) or {}
+        now_state, was_state = d.get("state"), p.get("state")
+        if previous is not None and now_state != was_state:
+            if now_state is None:
+                out["absences_opened"].append({
+                    "dimension": name, "was": was_state,
+                    "reason": d.get("absent_reason")})
+            elif was_state is None and p:
+                out["absences_cleared"].append({
+                    "dimension": name, "now": now_state,
+                    "percentile": d.get("percentile")})
+            else:
+                out["dimension_changes"].append({
+                    "dimension": name, "from": was_state, "to": now_state,
+                    "percentile": d.get("percentile"),
+                    "direction": d.get("direction"),
+                    "confidence": d.get("confidence"),
+                    "since": d.get("last_changed"),
+                    "rule": d.get("persistence")})
+        if d.get("pending_state"):
+            out["pending_states"].append({
+                "dimension": name, "published": now_state,
+                "pending": d.get("pending_state"),
+                "sessions": d.get("pending_sessions"),
+                "required": d.get("persistence_sessions"),
+                "percentile": d.get("percentile")})
+
+        # EXTREME FLAGS, member by member. The flag lives on the member rather
+        # than the dimension, so this is where a single series going to a 5-year
+        # extreme becomes visible even when its dimension's band did not move.
+        was_ex = {m.get("metric"): m.get("extreme")
+                  for m in (p.get("members") or [])}
+        for m in d.get("members") or []:
+            mid, now_ex = m.get("metric"), m.get("extreme")
+            if now_ex and not was_ex.get(mid):
+                out["extremes_set"].append({
+                    "dimension": name, "metric": mid,
+                    "percentile": m.get("percentile_raw"),
+                    "percentile_on_dimension_scale": m.get("percentile"),
+                    "level": m.get("level"), "z_score": m.get("z_score")})
+            elif was_ex.get(mid) and not now_ex and now_ex is not None:
+                out["extremes_cleared"].append({
+                    "dimension": name, "metric": mid,
+                    "percentile": m.get("percentile_raw")})
+
+    cur_dials = current.get("dials") or {}
+    prev_dials = (previous or {}).get("dials") or {}
+    for name, d in cur_dials.items():
+        was = (prev_dials.get(name) or {}).get("state")
+        now = d.get("state")
+        if previous is not None and now != was:
+            out["dial_changes"].append({
+                "dial": name, "from": was, "to": now,
+                "percentile": d.get("percentile"),
+                "level": d.get("level"),
+                "reason": d.get("absent_reason")})
+
+    prev_rows = {r.get("id"): r for r in (previous or {}).get("contradictions")
+                 or []}
+    for r in current.get("contradictions") or []:
+        pid = r.get("id")
+        was_open = bool((prev_rows.get(pid) or {}).get("open"))
+        entry = {"id": pid, "magnitude": r.get("magnitude"),
+                 "threshold_z": r.get("threshold_z"),
+                 "since": r.get("since"),
+                 "persistence_days": r.get("persistence_days"),
+                 "legs": r.get("legs"),
+                 "exception": r.get("exception"),
+                 "alert_path": r.get("alert_path")}
+        if r.get("open") and not was_open:
+            out["contradictions_opened"].append(entry)
+        elif was_open and not r.get("open"):
+            out["contradictions_closed"].append(
+                {**entry, "closed_note": r.get("closed_note")})
+        elif r.get("open"):
+            out["contradictions_persisting"].append(entry)
+
+    out["nothing_changed"] = not any(
+        out[k] for k in ("dimension_changes", "dial_changes", "extremes_set",
+                         "extremes_cleared", "absences_opened",
+                         "absences_cleared", "contradictions_opened",
+                         "contradictions_closed", "contradictions_persisting"))
+    return out
 
 
 # ---------------------------------------------------------------------------

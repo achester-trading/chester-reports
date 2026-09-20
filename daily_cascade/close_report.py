@@ -38,6 +38,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+import regime                                    # noqa: E402
 from altdata import session                      # noqa: E402
 from daily_cascade import deliver as delivery    # noqa: E402
 from daily_cascade import payload as payload_mod  # noqa: E402
@@ -104,6 +105,9 @@ def main() -> int:
                     help="Ship the data-only edition; attempt no paragraph")
     ap.add_argument("--narrative-model", default=None,
                     help="Override the pinned model (recorded on the artifact)")
+    ap.add_argument("--no-state", action="store_true",
+                    help="Skip computing the market-state object (it will then "
+                         "read as absent, which is the honest rendering)")
     ap.add_argument("--archive-dir", help="Override the archive directory")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
@@ -114,6 +118,31 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     run_id = session.new_run_id("daily_close")
+
+    # THE STATE OBJECT IS COMPUTED HERE, BEFORE THE PAYLOAD IS BUILT.
+    #
+    # The close pass is the ONE place it is computed -- §K's rule that every report
+    # reads the object means exactly one writer, and this is it. The 07:00 anchor
+    # reads what this wrote; it does not recompute, because two regimes leave no
+    # way to say which one a decision was made under.
+    #
+    # A FAILURE HERE DOES NOT STOP THE REPORT. The close report's other blocks are
+    # independent of the regime, and an exposure table nobody receives because the
+    # state object raised is a worse outcome than a report with one absent block
+    # that says why. The payload adds its own warning when it finds no object.
+    if not args.no_state:
+        try:
+            obj = regime.compute(as_of=args.as_of, session_day=args.session)
+            n = regime.store_object(obj)
+            print(f"market state -- session {obj['session']}: "
+                  f"{len(obj.get('absent_dimensions') or [])} of "
+                  f"{len(obj.get('dimensions') or {})} dimensions absent, "
+                  f"{len(obj.get('open_contradictions') or [])} contradictions "
+                  f"open, {n} row(s) stored")
+        except Exception as exc:  # noqa: BLE001
+            print(f"market state -- COMPUTE FAILED ({type(exc).__name__}: {exc}); "
+                  f"the report continues and its state block will say it is absent")
+
     p = payload_mod.build(sess=args.session, as_of=args.as_of, run_id=run_id,
                           grades_since=_read_watermark())
     sess = p["session"]
