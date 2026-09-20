@@ -244,7 +244,14 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                               "source": "yfinance", "run_id": run_id,
                               "availability_kind": LIVE_AVAILABILITY_KIND}
                              for d, v in events]
-                n = db.write_many(rows)
+                # A RE-READ IS NOT A REVISION. Without this, two pulls a day
+                # give every close a fresh vintage stamped with the pull instant,
+                # which supersedes the reconstructed one and makes every historical
+                # recompute blind to the last two years. See
+                # observations.drop_unchanged().
+                fresh = obs.drop_unchanged(db, rows)
+                n = db.write_many(fresh)
+                unchanged = len(rows) - len(fresh)
 
                 # The CSV copy, when asked for. Guarded for the reason the dual
                 # write in store.py is guarded, only the other way round: here
@@ -253,18 +260,20 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                 if store is not None:
                     try:
                         store.write_observations(
-                            key, [(d, v) for d, v in closes], source="yfinance")
+                            key, [(d, v) for d, v in closes], source="yfinance",
+                            dual_write=False)
                     except Exception as exc:      # noqa: BLE001
                         log.warning("CSV write failed for %s: %s", key, exc)
 
                 summary["series"][key] = {
-                    "rows": n, "closes": len(closes),
+                    "rows": n, "unchanged": unchanged, "closes": len(closes),
                     "last_date": closes[-1][0], "last_value": closes[-1][1],
                     "dividends": len(parsed["dividends"]),
                     "splits": len(parsed["splits"])}
                 summary["success"] += 1
-                log.info("yfinance %-8s -> %s (%d new rows, last %s = %s)",
-                         symbol, key, n, closes[-1][0], closes[-1][1])
+                log.info("yfinance %-8s -> %s (%d new rows, %d unchanged, "
+                         "last %s = %s)", symbol, key, n, unchanged,
+                         closes[-1][0], closes[-1][1])
             except Exception as e:  # noqa: BLE001 -- per-symbol isolation
                 summary["failed"].append((key, str(e)))
                 log.warning("yfinance %-8s FAILED: %s", symbol, e)

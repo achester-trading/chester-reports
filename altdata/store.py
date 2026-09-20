@@ -62,6 +62,7 @@ class Store:
         key: str,
         observations: Iterable[tuple[str, Optional[float]]],
         source: str,
+        dual_write: bool = True,
     ) -> int:
         """
         Write a batch of (date, value) tuples for one series.
@@ -90,6 +91,15 @@ class Store:
         # fallback if anything in the new store turns out wrong. Guarded so a
         # SQLite failure can never cost us the CSV write that already succeeded
         # -- the new store is the one on trial, not this one.
+        # dual_write=False FOR CALLERS THAT WRITE THE OBSERVATION STORE
+        # THEMSELVES. The price feed does, with a proper availability_kind and
+        # microsecond precision; this path writes the same values again at second
+        # precision with no kind, and because available_at is part of the vintage
+        # key the two land as TWO VINTAGES OF ONE VALUE on every pull. The CSV copy
+        # is still wanted -- it is the human-readable one -- but its blind mirror
+        # is not.
+        if not dual_write:
+            return n
         try:
             from . import observations as _obs
             with _obs.ObservationStore() as db:

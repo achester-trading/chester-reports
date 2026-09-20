@@ -198,6 +198,52 @@ SELECT observed_at, value_num, value_text, source, available_at, run_id,
 """
 
 
+def drop_unchanged(db: "ObservationStore", rows: list[dict]) -> list[dict]:
+    """Rows whose value differs from the latest one already stored for that period.
+
+    A VINTAGE IS A REVISION, NOT A RE-READ, and forgetting that broke a historical
+    recompute in a way nothing local could show.
+
+    The store's idempotence key includes available_at, so re-pulling an unchanged
+    close at a new instant is not a duplicate -- it is a NEW VINTAGE, and the as-of
+    join returns the latest vintage per period. On the box the live 2-year pull ran
+    before the reconstructed 5-year backfill, so every recent close acquired a
+    second vintage stamped "available today". The join then did its job perfectly:
+    asked for Friday's object at Friday's cutoff, it could not see closes that the
+    store said were learned on Sunday, and the trend and breadth dimensions read as
+    514 SESSIONS STALE -- exactly two years, the boundary between the live window
+    and the backfilled one.
+
+    Nothing about the join was wrong. The rows were. A re-read carrying the same
+    number is not new information and must not supersede a better-dated vintage of
+    the same fact.
+
+    Only a CHANGED value is written. A genuine revision -- a corrected close, a
+    restated print -- still creates its vintage, which is the whole point of the
+    three clocks.
+    """
+    if not rows:
+        return []
+    latest: dict[tuple, Any] = {}
+    for r in rows:
+        key = (r["registry_key"], r.get("instrument"))
+        if key in latest:
+            continue
+        latest[key] = {str(x["observed_at"])[:10]: x["value_num"]
+                       for x in db.as_of(r["registry_key"],
+                                         instrument=r.get("instrument"))}
+    out = []
+    for r in rows:
+        have = latest[(r["registry_key"], r.get("instrument"))].get(
+            str(r["observed_at"])[:10])
+        v = r.get("value")
+        if have is not None and isinstance(v, (int, float)) \
+                and not isinstance(v, bool) and abs(float(v) - float(have)) < 1e-12:
+            continue
+        out.append(r)
+    return out
+
+
 def snapshot_sqlite(src: Path, dest: Path) -> dict:
     """Consistent copy of a LIVE SQLite database, via the online backup API.
 
