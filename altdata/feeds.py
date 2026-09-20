@@ -334,6 +334,19 @@ def _main(argv: list[str]) -> int:
                     print(f"  {name:7} SKIPPED -- {d['skipped']}")
                 elif d.get("error"):
                     print(f"  {name:7} ERROR -- {d['error']}")
+                elif name == "loggers":
+                    # THE LOGGER STEP HAS A DIFFERENT SHAPE from a feed's, and
+                    # printing it through the feed template reported "0/5 ok" for a
+                    # step in which four loggers wrote 2,900 rows. A summary that
+                    # understates a success is a summary that gets ignored when it
+                    # reports a failure.
+                    for ln in sorted(d.get("ran") or []):
+                        sub = d.get(ln) or {}
+                        note = (sub.get("skipped") or sub.get("error")
+                                or f"{sub.get('written', 0)} rows")
+                        print(f"  logger  {ln:24} {note}")
+                    print(f"  {name:7} {d.get('total', 0)} ran, "
+                          f"{d.get('written', 0)} rows written")
                 else:
                     print(f"  {name:7} {d.get('success', 0)}/"
                           f"{d.get('total', 0)} ok, "
