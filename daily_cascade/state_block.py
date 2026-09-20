@@ -188,6 +188,45 @@ def what_changed_block(payload: dict) -> str:
     return "".join(parts)
 
 
+def exceptions_block(payload: dict) -> str:
+    """The object's exceptions[], in the anchors, matching the heartbeat's mail.
+
+    THE SAME LIST THE HEARTBEAT EMAILS, and that matters more than it looks: the
+    mail says what CHANGED and deliberately does not repeat a standing condition,
+    so the anchor is where a reader sees everything currently open. If these two
+    could disagree, the reader would have no way to tell a closed exception from an
+    unreported one.
+    """
+    obj = payload.get("market_state") or {}
+    exc = obj.get("exceptions")
+    if exc is None:
+        return (f'<div style="{ABSENT}">This object carries no exceptions field '
+                f'(computed before Phase 2b added it).</div>')
+    if not exc:
+        return (f'<div style="{QUIET}"><strong>No exceptions open.</strong> No '
+                f'contradiction has stayed open to its declared session count and '
+                f'no member sits at a five-year extreme. Stated positively, so a '
+                f'quiet table and a broken one do not look the same.</div>')
+    rows = []
+    for e in exc:
+        rows.append(
+            f'<tr><td style="{TDL}">{esc(e.get("kind"))}</td>'
+            f'<td style="{TDL}">{esc(e.get("what"))}</td>'
+            f'<td style="{TD}">{esc(e.get("value"))}</td>'
+            f'<td style="{TDL}">{esc(e.get("threshold"))}</td>'
+            f'<td style="{TDL}">{esc(e.get("since") or "&mdash;")}</td></tr>')
+    return (f'<table style="{TBL}"><thead><tr>'
+            f'<th style="{THL}">kind</th><th style="{THL}">what</th>'
+            f'<th style="{TH}">value</th><th style="{THL}">threshold</th>'
+            f'<th style="{THL}">since</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table>'
+            f'<p style="{NOTE}">An exception is a finding about the market, not '
+            f'about the pipeline. The heartbeat emails these only when the set '
+            f'CHANGES -- an alert that repeats a standing condition is one the '
+            f'reader learns to delete -- so this block is where the full open set '
+            f'lives.</p>')
+
+
 def state_table(payload: dict) -> str:
     """The object itself: every dimension, its percentile, and its disagreements."""
     obj = payload.get("market_state")
@@ -306,6 +345,18 @@ def text_lines(payload: dict) -> list[str]:
         L.append(f"  {a['dimension']} went absent: {a.get('reason')}")
     for a in wc.get("absences_cleared") or []:
         L.append(f"  {a['dimension']} is back: {a.get('now')}")
+    exc = obj.get("exceptions")
+    L.append("")
+    if exc is None:
+        L.append("EXCEPTIONS: this object predates the field")
+    elif not exc:
+        L.append("EXCEPTIONS: none open")
+    else:
+        L.append(f"EXCEPTIONS ({len(exc)})")
+        for e in exc:
+            L.append(f"  {e.get('kind')}: {e.get('what')} "
+                     f"value={e.get('value')} threshold={e.get('threshold')}"
+                     + (f" since {e.get('since')}" if e.get("since") else ""))
     L.append("")
     L.append(f"STATE ({obj.get('schema_version')}, session {obj.get('session')})")
     for name, d in (obj.get("dials") or {}).items():

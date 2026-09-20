@@ -209,7 +209,7 @@ def apply_persistence(row: dict, prior: list[dict], session_day: str,
 # ---------------------------------------------------------------------------
 def evaluate_pair(spec: dict, dims: dict, dials: dict, as_of: str,
                   session_day: str, window: int, threshold: float,
-                  max_stale: int,
+                  multiple: float,
                   store: observations.ObservationStore) -> dict:
     pid = str(spec.get("id"))
     legs = list(spec.get("legs") or [])
@@ -286,14 +286,19 @@ def evaluate_pair(spec: dict, dims: dict, dials: dict, as_of: str,
     stale_legs = []
     for leg, ser in ((a, sa), (b, sb)):
         n_stale, _ = derived.sessions_between(ser[-1][0], str(as_of)[:10])
-        if n_stale > max_stale:
-            stale_legs.append(f"{leg['metric']} last observed {ser[-1][0]}, "
-                              f"{n_stale} sessions back")
+        own, _why = derived.staleness_allowance(leg["metric"])
+        if own is None:
+            continue                       # half_life permanent: cannot go stale
+        limit = int(round(own * multiple))
+        if n_stale > limit:
+            stale_legs.append(
+                f"{leg['metric']} last observed {ser[-1][0]}, {n_stale} sessions "
+                f"back against its own allowance of {own} x {multiple} = {limit}")
     if stale_legs:
         row["absent_reason"] = (
-            "; ".join(stale_legs) + f" -- against a declared allowance of "
-            f"{max_stale} sessions. A gap measured between stale prints is not a "
-            f"divergence today")
+            "; ".join(stale_legs) + ". A gap measured between stale prints is not "
+            "a divergence today, and each leg is judged on its own cadence rather "
+            "than one session count for a weekly series and a daily one")
         return row
 
     pol_a = int(pols[0]) if len(pols) == 2 else int(a.get("polarity", 1))
@@ -356,16 +361,16 @@ def evaluate(cfg: dict, dims: dict, dials: dict, as_of: str, session_day: str,
     threshold = float(spec.get("open_threshold_z") or 2.0)
     persistence = int(spec.get("persistence_sessions") or 2)
     exception_at = int(spec.get("exception_sessions") or 5)
-    max_stale = int(spec.get("max_staleness_sessions")
-                    or (cfg.get("defaults") or {}).get("max_staleness_sessions")
-                    or 10)
+    multiple = float(spec.get("staleness_multiple")
+                     or (cfg.get("defaults") or {}).get("staleness_multiple")
+                     or 3)
     alert_path = str(spec.get("exception_alert_path") or "report_only")
     alert_note = spec.get("exception_alert_note")
 
     rows = []
     for pair in spec.get("pairs") or []:
         row = evaluate_pair(pair or {}, dims, dials, as_of, session_day,
-                            window, threshold, max_stale, store)
+                            window, threshold, multiple, store)
         if row.get("open_state") != "absent" or row.get("magnitude") is not None \
                 or row.get("states"):
             apply_persistence(row, prior_rows(history, row["id"]), session_day,

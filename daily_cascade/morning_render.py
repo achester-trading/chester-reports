@@ -189,6 +189,9 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
 <h2 style="{H2}">Contradictions</h2>
 {state_block.contradiction_table(payload)}
 
+<h2 style="{H2}">Exceptions</h2>
+{state_block.exceptions_block(payload)}
+
 <h2 style="{H2}">Overnight</h2>
 {overnight_table(payload)}
 

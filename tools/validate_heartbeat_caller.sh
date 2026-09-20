@@ -555,6 +555,86 @@ else
     bad "skip switch reported feeds=$(feeds_of) exit=$RC"
 fi
 
+printf '\n%s\nThe exceptions branch\n%s\n' "$LINE" "$LINE"
+
+# THE POINT OF THIS BRANCH is that it mails on a CHANGE and not on a condition. An
+# alert that repeats every run for a divergence open eight sessions is one the
+# reader learns to delete, and the next alert -- about something new -- goes with
+# it. So: first run with exceptions present mails; an unchanged second run does
+# not; and the exit code never moves, because an exception is a finding about the
+# market and the heartbeat's verdict is about the pipeline.
+exc_of() { sed -n 's/.*exceptions=\([0-9]*\).*/\1/p' "$STATUS" | head -1; }
+exc_delivery_of() { sed -n 's/.*exc_delivery=\([a-z_]*\).*/\1/p' "$STATUS"; }
+
+EXC_SANDBOX="$SANDBOX/exc"
+mkdir -p "$EXC_SANDBOX"
+# A stub `regime` is not possible -- the wrapper calls the real module -- so this
+# drives the branch through its state file instead: seed a PREVIOUS set that cannot
+# match, and the branch must report a change.
+run_exc() {                      # run_exc <checker_rc>
+    env CHECKER_RC="$1" \
+        CHESTER_REPO="$REPO" \
+        CHESTER_LOG_DIR="$SANDBOX/logs" \
+        CHESTER_STATE_DIR="$STATE_DIR" \
+        CHESTER_CHECKER="$SANDBOX/bin/checker" \
+        CHESTER_SKIP_STATE_CHECK=1 \
+        CHESTER_SKIP_FEED_CHECK=1 \
+        bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+    RC=$?
+}
+
+rm -f "$STATUS" "$STATE_DIR/exceptions_open"
+run_exc 0
+FIRST_N="$(exc_of)"
+FIRST_D="$(exc_delivery_of)"
+if [[ -n "$FIRST_N" ]]; then
+    ok "the branch reports an exception count on the row (exceptions=$FIRST_N, delivery=$FIRST_D)"
+else
+    bad "no exceptions field on the status row"
+fi
+
+# Second run, nothing changed: delivery must say so rather than mailing again.
+run_exc 0
+if [[ "$(exc_delivery_of)" == "unchanged" ]] || [[ "$(exc_delivery_of)" == "not_attempted" ]]; then
+    ok "an unchanged set does not mail -- exc_delivery=$(exc_delivery_of)"
+else
+    bad "unchanged set reported exc_delivery=$(exc_delivery_of) (wanted unchanged)"
+fi
+
+# A seeded previous set that cannot match forces a CLOSED delta, and the mail path
+# runs. With no MTA in the sandbox the outcome is a named failure, not silence.
+printf 'contradiction:not_a_real_row\nextreme:not_a_real_metric\n' >"$STATE_DIR/exceptions_open"
+run_exc 0
+case "$(exc_delivery_of)" in
+    unchanged|not_attempted)
+        bad "a changed set did not attempt delivery (exc_delivery=$(exc_delivery_of))" ;;
+    "")
+        bad "no exc_delivery recorded on a changed set" ;;
+    *)
+        ok "a changed set attempts delivery and NAMES the outcome (exc_delivery=$(exc_delivery_of)) -- no_mta and smtp_failed are different facts" ;;
+esac
+
+# And the state file is only updated after the attempt, so a delivery failure
+# cannot silently swallow a change.
+if [[ -f "$STATE_DIR/exceptions_open" ]] && ! grep -q 'not_a_real_row' "$STATE_DIR/exceptions_open"; then
+    ok "the open set is rewritten after the attempt, so the next run compares against what was actually reported"
+else
+    bad "the open set was not updated after the attempt"
+fi
+
+# THE EXIT CODE IS UNTOUCHED, on a healthy pipeline and on a broken one.
+rm -f "$STATE_DIR/exceptions_open"
+run_exc 0
+EXC_RC_OK=$RC
+run_exc 1
+if [[ "$EXC_RC_OK" == "0" ]] && [[ "$RC" == "1" ]]; then
+    ok "the exceptions branch never moves the exit code (0 stayed 0, 1 stayed 1) -- a market divergence is not a broken box"
+else
+    bad "exit code moved: healthy=$EXC_RC_OK stale=$RC"
+fi
+
+rm -f "$STATE_DIR/exceptions_open"
+
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then
     ok "log carries verdict=<state> so a month greps into an uptime figure"

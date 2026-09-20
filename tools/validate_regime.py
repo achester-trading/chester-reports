@@ -26,6 +26,9 @@ everything agreed" into "nobody looked".
      cannot be made to flip.
   F  STALENESS. A dimension whose primary goes stale becomes ABSENT with the
      staleness in the reason, rather than carrying its last state forward.
+  F2 AND IT IS PER CADENCE. A weekly series is not stale for printing weekly: the
+     limit is each metric's OWN registry allowance times a declared multiple, so a
+     weekly dimension and a daily one go absent at different ages.
   G  THE CONTRADICTION ARITHMETIC, on a seeded divergence whose z was computed by
      hand: it does not open on day one, opens on day two, and is an exception at
      five -- report-only, since this repo has no exceptions alert path.
@@ -47,7 +50,7 @@ sys.path.insert(0, str(REPO))
 
 import contradictions as contra          # noqa: E402
 import regime                            # noqa: E402
-from altdata import observations         # noqa: E402
+from altdata import derived, observations   # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -108,7 +111,7 @@ def tiny_config(persistence: int = 2) -> dict:
     return {
         "version": "test-config",
         "defaults": {"persistence_sessions": persistence,
-                     "max_staleness_sessions": 4, "window_days": 1826},
+                     "staleness_multiple": 2, "window_days": 1826},
         "dimensions": {
             "volatility": {
                 "horizon": "1-3m",
@@ -146,7 +149,7 @@ def tiny_config(persistence: int = 2) -> dict:
         "contradictions": {
             "persistence_sessions": 2, "exception_sessions": 5,
             "window_days": 1826, "open_threshold_z": 2.0,
-            "max_staleness_sessions": 4,
+            "staleness_multiple": 2,
             "exception_alert_path": "report_only",
             "exception_alert_note": "report-only",
             "pairs": [{"id": "vix_vs_hy", "legs": ["fred.vix", "fred.hy_oas"],
@@ -339,8 +342,13 @@ def group_c() -> None:
           "exactly one row is reserved, and it names what it requires")
     c = cfg.get("contradictions") or {}
     for f in ("open_threshold_z", "persistence_sessions", "exception_sessions",
-              "max_staleness_sessions"):
+              "staleness_multiple"):
         check(f in c, f"contradictions declare {f} in config, not in code")
+    check("max_staleness_sessions" not in c
+          and "max_staleness_sessions" not in (cfg.get("defaults") or {}),
+          "and the hand-set session count it replaced is GONE rather than left "
+          "beside it -- two staleness rules in one config is one rule nobody can "
+          "predict")
 
     # THE NEGATIVE CHECK: the thresholds are not ALSO in the code.
     import re
@@ -482,8 +490,10 @@ def group_f(store) -> None:
           f"three weeks on, with nothing new written, it is ABSENT rather than "
           f"carrying its last state forward (got {v.get('state')})")
     r = v.get("absent_reason") or ""
-    check("sessions before this cutoff" in r and "allowance" in r,
-          f"and the reason names the staleness and the allowance: {r[:120]}")
+    check("sessions before this cutoff" in r and "own allowance" in r
+          and "not a daily calendar" in r,
+          f"and the reason names the staleness, the metric's OWN allowance and the "
+          f"multiple: {r[:140]}")
     check(stale["dials"]["vol"].get("state") is None,
           "the vol dial goes absent on the same argument -- a vol dial is a "
           "statement about today")
@@ -491,6 +501,72 @@ def group_f(store) -> None:
     check(ts.get("state") is None and "cfe.vx1" in str(ts.get("absent_reason")),
           "the term-structure leg reports the store keys it needs rather than "
           "being approximated from something else")
+
+
+def group_f2(store) -> None:
+    print(f"\n{LINE}\nF2. STALENESS IS PER CADENCE, NOT A DAILY CALENDAR\n{LINE}")
+    # THE CASE GROWTH MADE. fred.claims_4wk is WEEKLY (allowance 8 sessions) and
+    # fred.vix is DAILY (allowance 2). One hand-set session count for both either
+    # forgives the daily series a fortnight's silence or condemns the weekly one for
+    # printing on schedule. Seeded so the two verdicts have to differ.
+    cfg = tiny_config()
+    cfg["dimensions"]["growth"] = {
+        "horizon": "1-3m", "states": ["expanding", "slowing", "contracting"],
+        "bands": [{"state": "expanding", "min_percentile": 66},
+                  {"state": "slowing", "min_percentile": 33},
+                  {"state": "contracting", "min_percentile": 0}],
+        "members": [{"metric": "fred.claims_4wk", "polarity": -1,
+                     "because": "weekly, and the point of this case"}]}
+
+    weekly = [d for d in weekdays_back(END, 300) if d.weekday() == 3][-40:]
+    seed(store, "fred.claims_4wk", weekly,
+         [220000.0 + (i % 7) * 500 for i in range(len(weekly))])
+    daily = weekdays_back(END, 300)
+    seed(store, "fred.vix", daily, [15.0 + (i % 9) * 0.2 for i in range(300)])
+    seed(store, "fred.bb_oas", daily, [2.0] * 300)
+    seed(store, "fred.hy_oas", daily, [3.0 + (i % 5) * 0.01 for i in range(300)])
+
+    claims_alw, claims_why = derived.staleness_allowance("fred.claims_4wk")
+    vix_alw, vix_why = derived.staleness_allowance("fred.vix")
+    mult = cfg["defaults"]["staleness_multiple"]
+    check(claims_alw == 8 and vix_alw == 2,
+          f"a weekly series allows {claims_alw} sessions and a daily one "
+          f"{vix_alw} -- read from the registry, not set in this file "
+          f"({claims_why}; {vix_why})")
+
+    obj = regime.compute(as_of=regime.session_cutoff(END.isoformat()),
+                         session_day=END.isoformat(), store=store, cfg=cfg,
+                         computed_at="2026-09-19T05:00:00+00:00")
+    g = obj["dimensions"]["growth"]
+    v = obj["dimensions"]["volatility"]
+    check(g.get("state") is not None,
+          f"the weekly dimension HAS a state, its newest print being "
+          f"{g['members'][0]['staleness_sessions']} sessions old against a limit of "
+          f"{claims_alw} x {mult} (got {g.get('state')}; "
+          f"{str(g.get('absent_reason'))[:70]})")
+    check(v.get("state") is not None,
+          f"and the daily one has a state too, its print being current "
+          f"({v.get('state')})")
+    check(g.get("staleness_limit_sessions") == claims_alw * mult
+          and v.get("staleness_limit_sessions") == vix_alw * mult,
+          f"and THE TWO LIMITS DIFFER, which is the whole point: growth "
+          f"{g.get('staleness_limit_sessions')} sessions vs volatility "
+          f"{v.get('staleness_limit_sessions')}")
+
+    # Move the cutoff far enough to kill the daily series and not the weekly one.
+    later = (END + dt.timedelta(days=9)).isoformat()
+    obj2 = regime.compute(as_of=regime.session_cutoff(later), session_day=later,
+                          store=store, cfg=cfg,
+                          computed_at="2026-09-19T06:00:00+00:00")
+    g2 = obj2["dimensions"]["growth"]
+    v2 = obj2["dimensions"]["volatility"]
+    check(v2.get("state") is None,
+          f"nine calendar days on the DAILY dimension is absent, past its "
+          f"{vix_alw * mult}-session limit")
+    check(g2.get("state") is not None,
+          f"while the WEEKLY one still has a state, its limit being "
+          f"{claims_alw * mult} (got {g2.get('state')}) -- one hand-set count "
+          f"could not have produced both verdicts")
 
 
 # ---------------------------------------------------------------------------
@@ -566,7 +642,7 @@ def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
-    for g in (group_b, group_d, group_e, group_f, group_g):
+    for g in (group_b, group_d, group_e, group_f, group_f2, group_g):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:

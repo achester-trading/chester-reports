@@ -511,6 +511,9 @@ def render(payload: dict, delivery: Optional[dict] = None,
 <h2 style="{H2}">Contradictions</h2>
 {state_block.contradiction_table(payload)}
 
+<h2 style="{H2}">Exceptions</h2>
+{state_block.exceptions_block(payload)}
+
 <h2 style="{H2}">Dealer exposure</h2>
 {exposure_table(payload)}
 {missing_block(payload)}

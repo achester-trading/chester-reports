@@ -109,6 +109,60 @@ HEARTBEAT="$STATE_DIR/eod_heartbeat"
 
 log() { printf '%s %s\n' "$(date --iso-8601=seconds)" "$*" >>"$LOG"; }
 
+# ---- one delivery ladder, two callers ---------------------------------------
+#
+# SMTP FIRST when it is configured -- not because it is better than a local MTA
+# (it is worse; it holds a password in the process environment) but because an
+# operator who put credentials in .env chose that path deliberately, and a
+# half-configured local MTA that accepts mail and drops it is exactly the silent
+# channel this whole block exists to refuse. Explicit configuration beats whatever
+# happens to be on PATH.
+#
+# A FUNCTION rather than a block, since Phase 2b gave it a second caller: the
+# exceptions branch. Two copies of this ladder would be two places for the one
+# path whose failure mode is silence to drift.
+#
+# Sets DELIVER_RESULT rather than returning it, because the outcome is a name and
+# not a status: "no_mta" and "smtp_failed" are different facts and both are worth
+# recording on the row.
+DELIVER_RESULT=not_attempted
+deliver_mail() {                 # deliver_mail <subject> <body>
+    local subject="$1" body="$2"
+    if [[ -z "$ALERT_EMAIL" ]]; then
+        DELIVER_RESULT=no_address
+        return 0
+    fi
+    if [[ -n "${SMTP_USER:-}" && -n "${SMTP_PASSWORD:-}" ]]; then
+        # Secrets travel in the environment, never in argv: argv is world-readable
+        # through `ps` for the life of the call.
+        SMTP_RCPT="$ALERT_EMAIL" SMTP_SUBJECT="$subject" SMTP_BODY="$body" \
+            python3 "$REPO/scripts/send_smtp_alert.py" 2>>"$LOG"
+        case $? in
+            0) DELIVER_RESULT=smtp ;;
+            1) DELIVER_RESULT=smtp_unconfigured ;;
+            *) DELIVER_RESULT=smtp_failed ;;
+        esac
+    elif command -v mail >/dev/null 2>&1; then
+        if printf '%s\n' "$body" | mail -s "$subject" "$ALERT_EMAIL" 2>>"$LOG"; then
+            DELIVER_RESULT=mail
+        else
+            DELIVER_RESULT=mail_failed
+        fi
+    elif command -v sendmail >/dev/null 2>&1; then
+        if { printf 'To: %s\nSubject: %s\n\n%s\n' \
+                "$ALERT_EMAIL" "$subject" "$body"; } \
+             | sendmail -t 2>>"$LOG"; then
+            DELIVER_RESULT=sendmail
+        else
+            DELIVER_RESULT=sendmail_failed
+        fi
+    else
+        DELIVER_RESULT=no_mta
+    fi
+    return 0
+}
+
+
 NOW_ISO="$(date --iso-8601=seconds)"
 
 # ---- run the checker -------------------------------------------------------
@@ -413,6 +467,82 @@ if [[ "$STATE" == "ok" ]] && [[ "$FEEDS_STATE" == "stale" ]]; then
     HEADLINE="FEED STALE $FEEDS_LINE"
 fi
 
+# ---- the object's exceptions, and the only thing here that pushes -----------
+#
+# §K gives the object an `exceptions[]` field: threshold crossings worth a human's
+# attention. Two kinds reach it -- a contradiction that has stayed open to the
+# declared exception_sessions, and a member at a five-year percentile extreme.
+# regime.py decides which; this reads them.
+#
+# EMAIL ONLY ON A CHANGE, and that is the whole design of this branch. An alert
+# that repeats every run for a divergence that has been open eight sessions is an
+# alert the reader learns to delete, and the next one -- about something new --
+# goes with it. So the open set is kept in a state file and compared: mail goes out
+# when something OPENED or CLOSED, never because something is still true.
+#
+# THE EXIT CODE IS UNTOUCHED. An exception is a finding about the market, not about
+# the pipeline, and the heartbeat's verdict is about the pipeline. Conflating them
+# would make a market divergence look like a broken box.
+EXC_FILE="$STATE_DIR/exceptions_open"
+EXC_STATE=unknown
+EXC_N=0
+EXC_ADDED=0
+EXC_REMOVED=0
+EXC_DELIVERY=not_attempted
+if [[ -n "${CHESTER_SKIP_EXCEPTION_CHECK:-}" ]]; then
+    EXC_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    EXC_STATE=no_python
+else
+    EXC_NOW="$(mktemp)"
+    if (cd "$REPO" && "$STATE_PY" -m regime exceptions 2>/dev/null) | sort >"$EXC_NOW"; then
+        EXC_STATE=read
+    else
+        EXC_STATE=no_object
+    fi
+    if [[ "$EXC_STATE" == "read" ]]; then
+        [[ -f "$EXC_FILE" ]] || : >"$EXC_FILE"
+        EXC_N=$(grep -c . "$EXC_NOW" || true)
+        EXC_ADDED=$(comm -13 "$EXC_FILE" "$EXC_NOW" | grep -c . || true)
+        EXC_REMOVED=$(comm -23 "$EXC_FILE" "$EXC_NOW" | grep -c . || true)
+        log "  exceptions: $EXC_N open (+$EXC_ADDED -$EXC_REMOVED)"
+        while IFS= read -r line; do
+            [[ -n "$line" ]] && log "    $line"
+        done <"$EXC_NOW"
+
+        if [[ "$EXC_ADDED" -gt 0 || "$EXC_REMOVED" -gt 0 ]]; then
+            EXC_SUBJECT="[chester] exceptions: $EXC_N open (+$EXC_ADDED -$EXC_REMOVED)"
+            EXC_BODY="The market-state object's exceptions changed.
+
+session   : ${STATE_SESSION:-unknown}
+checked at: $NOW_ISO
+
+OPENED since the last check:
+$(comm -13 "$EXC_FILE" "$EXC_NOW" | sed 's/^/  + /')
+
+CLOSED since the last check:
+$(comm -23 "$EXC_FILE" "$EXC_NOW" | sed 's/^/  - /')
+
+ALL OPEN NOW ($EXC_N):
+$(sed 's/^/  /' "$EXC_NOW")
+
+An exception is a finding about the market, not about the pipeline: the
+heartbeat's own verdict is $STATE and this mail does not change it. Detail is in
+the 07:00 anchor and the close report, under WHAT CHANGED."
+            deliver_mail "$EXC_SUBJECT" "$EXC_BODY"
+            EXC_DELIVERY="$DELIVER_RESULT"
+            log "  exceptions delivery=$EXC_DELIVERY"
+        else
+            EXC_DELIVERY=unchanged
+        fi
+        # RECORDED ONLY AFTER THE MAIL IS ATTEMPTED. Writing the new set first
+        # would mean a delivery failure silently swallowed the change: the next
+        # run would compare against a set nobody was told about.
+        cp "$EXC_NOW" "$EXC_FILE"
+    fi
+    rm -f "$EXC_NOW"
+fi
+
 # ---- how long has this been true? -----------------------------------------
 #
 # Computed HERE, after the verdict, because the verdict is what it is about. See
@@ -462,15 +592,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -545,33 +675,8 @@ $OUT"
         # that accepts mail and drops it is exactly the silent channel this
         # whole block exists to refuse. Explicit configuration beats whatever
         # happens to be on PATH.
-        if [[ -n "${SMTP_USER:-}" && -n "${SMTP_PASSWORD:-}" ]]; then
-            # Secrets travel in the environment, never in argv: argv is world-
-            # readable through `ps` for the life of the call.
-            SMTP_RCPT="$ALERT_EMAIL" SMTP_SUBJECT="$SUBJECT" SMTP_BODY="$BODY" \
-                python3 "$REPO/scripts/send_smtp_alert.py" 2>>"$LOG"
-            case $? in
-                0) DELIVERY=smtp ;;
-                1) DELIVERY=smtp_unconfigured ;;
-                *) DELIVERY=smtp_failed ;;
-            esac
-        elif command -v mail >/dev/null 2>&1; then
-            if printf '%s\n' "$BODY" | mail -s "$SUBJECT" "$ALERT_EMAIL" 2>>"$LOG"; then
-                DELIVERY=mail
-            else
-                DELIVERY=mail_failed
-            fi
-        elif command -v sendmail >/dev/null 2>&1; then
-            if { printf 'To: %s\nSubject: %s\n\n%s\n' \
-                    "$ALERT_EMAIL" "$SUBJECT" "$BODY"; } \
-                 | sendmail -t 2>>"$LOG"; then
-                DELIVERY=sendmail
-            else
-                DELIVERY=sendmail_failed
-            fi
-        else
-            DELIVERY=no_mta
-        fi
+        deliver_mail "$SUBJECT" "$BODY"
+        DELIVERY="$DELIVER_RESULT"
     fi
     log "delivery=$DELIVERY to=${ALERT_EMAIL:-none}"
 fi

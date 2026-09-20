@@ -32,9 +32,25 @@
 # the old state plus `pending_state` and `pending_since`, which is the honest
 # rendering of "it looks like it is turning and has not turned yet".
 #
-# `max_staleness_sessions` is when a dimension stops having a state at all. Past
-# it the dimension prints ABSENT with the reason -- never a stale state presented
-# as a current one.
+# WHEN A DIMENSION STOPS HAVING A STATE, and why it is not a number of sessions.
+#
+# It used to be `max_staleness_sessions`, one hand-set count per dimension, and that
+# is a DAILY CALENDAR applied to series that are not daily. Ten sessions is generous
+# for a 10-year yield and meaningless for initial claims, which prints weekly: the
+# same number either forgives a daily series that has gone quiet for two weeks or
+# condemns a weekly one that is printing exactly on time. Growth, whose fastest
+# member is weekly, was the dimension that made this obvious.
+#
+# So the rule is a MULTIPLE of each metric's OWN allowance, and the allowance comes
+# from the registry: `information_half_life`, resolved through the series' cadence
+# (daily 2 sessions, weekly 8, monthly 32, quarterly 95 -- see altdata/derived.py).
+# A dimension goes absent when its primary member is staler than
+# allowance x staleness_multiple, so every dimension is judged on its own clock and
+# a weekly series is not called stale for being weekly.
+#
+# 3 is the multiple derived_forms() already uses to separate "stale" from "very
+# stale" in its confidence table, so a dimension goes absent exactly when its
+# primary's confidence would read low for staleness.
 #
 # -----------------------------------------------------------------------------
 # V1 IS EIGHT DIMENSIONS AND THREE OF THEM ARE ABSENT TODAY
@@ -73,12 +89,16 @@
 #         price feed, the volatility dimension given its realized leg, the vol
 #         dial's realized/implied ratio bands, and pairs 1 and 2 pointed at the
 #         series the order names (SPY, HY OAS) rather than at the dimensions.
-version: market-state-v1.1
+#   v1.2  (20 Sep 2026) staleness judged as a MULTIPLE of each metric's own
+#         registry allowance rather than one hand-set session count per
+#         dimension, so growth's weekly primary is not called stale for
+#         printing weekly.
+version: market-state-v1.2
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
   persistence_sessions: 2
-  max_staleness_sessions: 10
+  staleness_multiple: 3
   window_days: 1826            # five years, §K's percentile_5y
 
 # ---------------------------------------------------------------------------
@@ -93,7 +113,6 @@ dimensions:
       - {state: expanding,   min_percentile: 66}
       - {state: slowing,     min_percentile: 33}
       - {state: contracting, min_percentile: 0}
-    max_staleness_sessions: 34       # its primary is weekly
     members:
       - metric: fred.claims_4wk
         polarity: -1
@@ -377,12 +396,16 @@ contradictions:
   exception_sessions: 5          # at or past this, the row is an exception
   window_days: 1826              # the same five years the dimensions use
 
-  # A DIVERGENCE IS A STATEMENT ABOUT TODAY, exactly like a dial. A leg whose
-  # newest observation is older than this goes absent rather than reporting a gap
-  # measured between two stale prints -- which is what the first run of this table
-  # did for 77 straight sessions, reporting an unchanging z off data that had
+  # A DIVERGENCE IS A STATEMENT ABOUT TODAY, exactly like a dial. A leg staler than
+  # its own allowance x this multiple sends the row absent rather than reporting a
+  # gap measured between two stale prints -- which is what the first run of this
+  # table did for 77 straight sessions, reporting an unchanging z off data that had
   # stopped moving in May.
-  max_staleness_sessions: 10
+  #
+  # PER LEG, ON ITS OWN CLOCK, for the same reason the dimensions are: this table
+  # pairs a weekly series (claims) against a daily one (XLY/XLP), and one session
+  # count for both would call the weekly leg stale for printing weekly.
+  staleness_multiple: 3
 
   # WHEN A GAP COUNTS AS A DIVERGENCE. The magnitude is the z of TODAY'S gap
   # against that gap's own history, so 2.0 means "the two legs are further apart

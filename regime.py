@@ -180,8 +180,8 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
                       store: observations.ObservationStore) -> dict:
     window = int(spec.get("window_days") or defaults.get("window_days")
                  or derived.DEFAULT_WINDOW_DAYS)
-    max_stale = int(spec.get("max_staleness_sessions")
-                    or defaults.get("max_staleness_sessions") or 10)
+    multiple = float(spec.get("staleness_multiple")
+                     or defaults.get("staleness_multiple") or 3)
     persistence = int(spec.get("persistence_sessions")
                       or defaults.get("persistence_sessions") or 2)
     bands = spec.get("bands") or []
@@ -192,7 +192,7 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
         "horizon": spec.get("horizon"),
         "states_declared": spec.get("states") or [b.get("state") for b in bands],
         "persistence_sessions": persistence,
-        "max_staleness_sessions": max_stale,
+        "staleness_multiple": multiple,
         "window_days": window,
         "note": spec.get("note"),
         "state": None, "direction": None, "rate_of_change": None,
@@ -218,13 +218,29 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
             + ("" if primary["registered"] else
                f" (and {primary['metric']} has no registry entry)"))
         return out
+    # THE ALLOWANCE IS THE PRIMARY'S OWN, from its registry half_life and cadence,
+    # times the declared multiple. A weekly series is not stale for being weekly.
     stale = primary["staleness_sessions"]
-    if stale is not None and stale > max_stale:
+    own = primary["staleness_allowance_sessions"]
+    limit = None if own is None else int(round(own * multiple))
+    out["staleness_limit_sessions"] = limit
+    if own is None:
+        out["staleness_basis"] = (
+            f"{primary['metric']} has no staleness allowance -- its half_life is "
+            f"permanent, so it cannot go stale")
+    else:
+        out["staleness_basis"] = (
+            f"{primary['metric']} allows {own} sessions, from its registry "
+            f"half_life at its own cadence ({primary.get('staleness_basis')}), "
+            f"x{multiple} = {limit}")
+    if stale is not None and limit is not None and stale > limit:
         out["absent_reason"] = (
             f"the primary member {primary['metric']} was last observed "
-            f"{primary['observed_at']}, {stale} sessions before this cutoff, "
-            f"against a declared allowance of {max_stale}. A state computed "
-            f"from it would be a stale state presented as a current one")
+            f"{primary['observed_at']}, {stale} sessions before this cutoff. Its "
+            f"own allowance is {own} sessions -- from its registry half_life at "
+            f"its own cadence, not a daily calendar -- and {multiple}x that is "
+            f"{limit}. A state computed from it would be a stale state presented "
+            f"as a current one")
         out["stalest_observation"] = primary["observed_at"]
         return out
 
@@ -553,6 +569,7 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
         # state it is drawn from.
         obj["contradictions"] = contradictions_mod.evaluate(
             cfg, dims, obj["dials"], cutoff, day, history, st)
+        obj["exceptions"] = exceptions_of(obj)
         obj["absent_dimensions"] = sorted(
             n for n, d in dims.items() if d.get("state") is None)
         obj["open_contradictions"] = sorted(
@@ -639,6 +656,74 @@ def replay_fields(obj: dict) -> dict:
             return [strip(v) for v in o]
         return o
     return json.loads(json.dumps(strip(obj), sort_keys=True, default=str))
+
+
+# ---------------------------------------------------------------------------
+# exceptions[] -- §K's own field, and the only part of the object that pushes
+# ---------------------------------------------------------------------------
+def exceptions_of(obj: dict) -> list[dict]:
+    """The object's threshold crossings, as §K's {what, threshold, value, since}.
+
+    TWO KINDS, and they are different claims:
+
+      A CONTRADICTION THAT HAS BEEN OPEN LONG ENOUGH. The table already decides
+      this -- `exception: true` at the declared exception_sessions -- and the row
+      carries its own since and magnitude. A divergence that lasted a week is a
+      statement about the market; one that lasted a day is noise, which is why the
+      persistence rule comes first and this reads its output rather than the raw z.
+
+      A MEMBER AT A FIVE-YEAR EXTREME. `extreme` is a percentile crossing, and it
+      is worth surfacing even when its dimension's band did not move: a single
+      series at its 2nd percentile of five years is a fact about that series, and
+      the band it sits in is a fact about three others.
+
+    ORDERED, and stable: contradictions before extremes, each alphabetically. The
+    heartbeat compares this set against the previous run's, so an unstable order
+    would read as a change every time.
+    """
+    out: list[dict] = []
+    for r in obj.get("contradictions") or []:
+        if not r.get("exception"):
+            continue
+        out.append({
+            "id": f"contradiction:{r.get('id')}",
+            "kind": "contradiction",
+            "what": f"{r.get('id')} open {r.get('persistence_days')} sessions",
+            "threshold": r.get("threshold_z"),
+            "value": r.get("magnitude"),
+            "since": r.get("since"),
+            "legs": r.get("legs"),
+            "alert_path": r.get("alert_path")})
+    for name, d in (obj.get("dimensions") or {}).items():
+        multiple = float(d.get("staleness_multiple") or 3)
+        for m in d.get("members") or []:
+            if not m.get("extreme"):
+                continue
+            # A STALE EXTREME IS NOT AN EXCEPTION. The first run of this reported
+            # three of them -- bb_oas, ig_oas and yield_30y at five-year extremes --
+            # computed from prints four months old, inside dimensions that had
+            # REFUSED to state a state for exactly that reason. Surfacing them
+            # anyway would be the "stale state presented as a current one" the
+            # dimension rule exists to prevent, arriving through a side door that
+            # also emails.
+            own = m.get("staleness_allowance_sessions")
+            stale = m.get("staleness_sessions")
+            if own is not None and stale is not None and stale > own * multiple:
+                continue
+            out.append({
+                "id": f"extreme:{m.get('metric')}",
+                "kind": "extreme",
+                "what": f"{m.get('metric')} at a five-year extreme ({name})",
+                "threshold": d.get("extreme_rule") or "percentile <= 5 or >= 95",
+                "value": m.get("percentile_raw"),
+                "since": None,
+                "level": m.get("level")})
+    out.sort(key=lambda e: (0 if e["kind"] == "contradiction" else 1, e["id"]))
+    return out
+
+
+def exception_ids(obj: Optional[dict]) -> list[str]:
+    return [e["id"] for e in exceptions_of(obj or {})]
 
 
 # ---------------------------------------------------------------------------
@@ -952,6 +1037,14 @@ def format_object(obj: dict) -> str:
                  f"pct {d['percentile']}  conf {d['confidence']}{pend}")
         L.append(f"                supporting: {d['supporting'] or '[]'}")
         L.append(f"                contradicting: {d['contradicting']}")
+    exc = obj.get("exceptions") or []
+    if exc:
+        L.append("")
+        L.append(f"  EXCEPTIONS ({len(exc)})")
+        for e in exc:
+            L.append(f"    {e['what']}  value={e.get('value')}  "
+                     f"threshold={e.get('threshold')}"
+                     + (f"  since {e['since']}" if e.get("since") else ""))
     rows = obj.get("contradictions") or []
     L.append("")
     L.append(f"  CONTRADICTIONS ({len(rows)} declared, "
@@ -997,6 +1090,11 @@ def _main(argv: list[str]) -> int:
 
     sub.add_parser("range", help="what the store can support as-of correctly")
 
+    ex = sub.add_parser("exceptions",
+                        help="the latest object's exceptions, one id per line")
+    ex.add_argument("--session", default=None)
+    ex.add_argument("--json", action="store_true")
+
     a = p.parse_args(argv)
 
     if a.cmd == "compute":
@@ -1023,6 +1121,20 @@ def _main(argv: list[str]) -> int:
             return 1
         print(json.dumps(obj, indent=2, sort_keys=True) if a.json
               else format_object(obj))
+        return 0
+
+    if a.cmd == "exceptions":
+        # ONE ID PER LINE, and nothing else on stdout: the heartbeat diffs this
+        # against the previous run's list with comm(1), so a header or a count
+        # would read as an exception that opened.
+        obj = latest(session_day=a.session)
+        if obj is None:
+            return 1
+        if a.json:
+            print(json.dumps(exceptions_of(obj), indent=2, sort_keys=True))
+        else:
+            for e in exceptions_of(obj):
+                print(e["id"])
         return 0
 
     if a.cmd == "range":
