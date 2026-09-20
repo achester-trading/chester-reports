@@ -563,6 +563,24 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
                 "gamma": dial_gamma(cfg, day),
             },
             "prior_objects_read": len(history),
+            # WHICH PREDECESSOR THIS OBJECT'S PERSISTENCE RESTED ON, named rather
+            # than implied. Every published state is a function of the previous
+            # object's state -- that is what persistence means -- so an object that
+            # does not say which one it read cannot be audited: a chain with a gap,
+            # a duplicate or a predecessor computed under different rules all
+            # produce plausible states and no trace of why.
+            #
+            # (session, computed_at) is the identity: observed_at is the session and
+            # available_at is the compute instant, and the store's vintage key makes
+            # the pair unique. config_version travels too, because persistence
+            # across a rules change is a different claim from persistence within
+            # one.
+            "previous_object": (
+                {"session": history[-1].get("session"),
+                 "computed_at": history[-1].get("computed_at"),
+                 "config_version": history[-1].get("config_version"),
+                 "schema_version": history[-1].get("schema_version")}
+                if history else None),
         }
         # The table reads the object's OWN dimensions and dials rather than the
         # store a second time, so a contradiction can never disagree with the
@@ -995,6 +1013,18 @@ def backfill(first: str, last: str, store: Optional[
     written, computed = 0, 0
     try:
         days = session_days(first, last)
+        # IN SESSION ORDER, ASSERTED AND NOT ASSUMED. Each object's persistence
+        # reads the objects already written, so a run that went backwards would
+        # give every session an empty history and publish every raw reading as a
+        # first object -- which is the exact failure the two-clock bug produced,
+        # and it looked entirely reasonable in the output. session_days() builds an
+        # ascending list; this is here so that a future change to it cannot quietly
+        # break persistence instead of failing.
+        if days != sorted(days):
+            raise ValueError(
+                f"backfill received sessions out of order ({days[:3]}...); "
+                f"persistence depends on ascending order and would silently "
+                f"publish every reading as a first object")
         for day in days:
             obj = compute(as_of=session_cutoff(day), session_day=day,
                           store=st, cfg=cfg)
@@ -1003,6 +1033,7 @@ def backfill(first: str, last: str, store: Optional[
             if verbose and computed % 100 == 0:
                 print(f"   {computed}/{len(days)} sessions ({day})")
         return {"sessions": len(days), "computed": computed, "written": written,
+                "ordered": days == sorted(days),
                 "first": days[0] if days else None,
                 "last": days[-1] if days else None}
     finally:

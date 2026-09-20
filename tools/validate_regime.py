@@ -32,6 +32,11 @@ everything agreed" into "nobody looked".
   G  THE CONTRADICTION ARITHMETIC, on a seeded divergence whose z was computed by
      hand: it does not open on day one, opens on day two, and is an exception at
      five -- report-only, since this repo has no exceptions alert path.
+  H  PERSISTENCE CHAINS. A backfill of N sessions produces exactly ONE first object
+     per dimension, in ascending order, and every later object NAMES the
+     predecessor its persistence rested on. This is the case that would have caught
+     the two-clock bug, where all 77 sessions published a first object and the
+     output looked entirely reasonable.
 
     python tools/validate_regime.py
 """
@@ -628,6 +633,79 @@ def group_g(store) -> None:
               f"has no exceptions alert path (got {row.get('alert_path')!r})")
 
 
+def group_h(store) -> None:
+    print(f"\n{LINE}\nH. PERSISTENCE CHAINS: EXACTLY ONE FIRST OBJECT\n{LINE}")
+    # THE BUG THIS CASE EXISTS FOR. The first backfill gave every one of 77 sessions
+    # an empty history -- each read its predecessors at that session's own market
+    # cutoff, and they had been written minutes earlier in real time -- so all 77
+    # published their raw reading as a "first object" and persistence never engaged.
+    # The output was entirely plausible. A run of N sessions must produce exactly
+    # ONE first object per dimension, and this asserts it over a real backfill.
+    cfg = tiny_config()
+    days = weekdays_back(END, 300)
+    seed(store, "fred.vix", days, [15.0 + (i % 11) * 0.3 for i in range(300)])
+    seed(store, "fred.bb_oas", days, [2.0 + (i % 4) * 0.02 for i in range(300)])
+    seed(store, "fred.hy_oas", days, [3.0 + (i % 9) * 0.02 for i in range(300)])
+
+    first_day, last_day = days[-12].isoformat(), days[-1].isoformat()
+    import regime as rg
+    saved = rg._CONFIG                       # noqa: SLF001
+    rg._CONFIG = cfg                         # noqa: SLF001
+    try:
+        r = rg.backfill(first_day, last_day, store=store, verbose=False)
+    finally:
+        rg._CONFIG = saved                   # noqa: SLF001
+
+    check(r["computed"] >= 10,
+          f"the backfill ran over {r['computed']} sessions (N > 1, which is the "
+          f"precondition for this case meaning anything)")
+    check(r.get("ordered") is True,
+          "and it reports that it ran in ascending session order")
+
+    objs = [json.loads(x["value_text"]) for x in store.as_of(rg.STORE_KEY)]
+    objs = [o for o in objs if first_day <= o["session"] <= last_day]
+    objs.sort(key=lambda o: o["session"])
+    check(len(objs) == r["computed"],
+          f"and stored one object per session ({len(objs)} of {r['computed']})")
+
+    firsts: dict[str, list[str]] = {}
+    for o in objs:
+        for name, d in (o.get("dimensions") or {}).items():
+            if str(d.get("persistence") or "").startswith("first object"):
+                firsts.setdefault(name, []).append(o["session"])
+
+    offenders = {k: v for k, v in firsts.items() if len(v) > 1}
+    check(not offenders,
+          f"NO DIMENSION reports a first object twice "
+          f"({ {k: len(v) for k, v in firsts.items()} })"
+          + (f" -- offenders: {offenders}" if offenders else ""))
+    check(bool(firsts),
+          f"and at least one dimension DID report one, so this is not vacuously "
+          f"true ({sorted(firsts)})")
+    for name, sessions in firsts.items():
+        check(sessions[0] == objs[0]["session"],
+              f"{name}'s first object is the first session of the run "
+              f"({sessions[0]} == {objs[0]['session']})")
+
+    # The chain itself: every object after the first names its predecessor, and the
+    # predecessor it names is the session before it.
+    check(objs[0].get("previous_object") is None,
+          "the run's first object names no predecessor")
+    broken = []
+    for prev, cur in zip(objs, objs[1:]):
+        po = cur.get("previous_object") or {}
+        if po.get("session") != prev["session"]:
+            broken.append((cur["session"], po.get("session"), prev["session"]))
+    check(not broken,
+          f"and every later object names the session immediately before it as the "
+          f"predecessor its persistence rested on"
+          + (f" -- broken: {broken[:3]}" if broken else f" ({len(objs) - 1} links)"))
+    check(all((o.get("previous_object") or {}).get("config_version")
+              == cfg["version"] for o in objs[1:]),
+          "each link records the predecessor's config_version, so persistence "
+          "across a rules change is distinguishable from persistence within one")
+
+
 def _hand_gap_z(a: list[float], b: list[float]) -> float:
     """The documented definition, written out independently."""
     ma, sa = statistics.fmean(a), statistics.stdev(a)
@@ -642,7 +720,8 @@ def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
-    for g in (group_b, group_d, group_e, group_f, group_f2, group_g):
+    for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
+              group_h):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:
