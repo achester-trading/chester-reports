@@ -7,9 +7,12 @@ non-deterministic compute makes a stored object unreplayable, an undeclared rule
 puts a threshold back in code, and an empty `contradicting` turns "we looked and
 everything agreed" into "nobody looked".
 
-  A  EXACT REPLAY. A stored object, recomputed from the store at its own cutoff and
-     its own compute instant, must equal the stored version field for field --
-     every number it asserts about the market. Provenance (computed_at,
+  A  EXACT REPLAY, SCOPED BY BOTH VERSIONS. A stored object, recomputed at its own
+     cutoff and its own compute instant, must equal the stored version field for
+     field -- but only objects computed under the current config_version AND
+     method_version are compared, because a deliberate change to the rules or to the
+     code is not a regression. The source hash is checked FIRST: it is what stops a
+     method_version from quietly ceasing to be true. Provenance (computed_at,
      available_at, git_sha) is excluded because it necessarily differs, and
      excluding it is what makes the check meaningful rather than impossible.
   B  NO FUTURE LEAK. An observation knowable only after the cutoff must not change
@@ -181,6 +184,22 @@ def group_a() -> None:
     store = observations.ObservationStore()
     try:
         current = (regime.load_config() or {}).get("version")
+        current_method = regime.METHOD_VERSION
+
+        # THE SOURCE HASH IS CHECKED FIRST, because it is the thing that makes the
+        # version mean anything. A version constant nobody is forced to change is a
+        # version constant that stops being true: someone edits the band logic, does
+        # not bump, and every stored object silently claims a method it was not
+        # computed under -- and the replay gate PASSES, because it is comparing the
+        # new code against objects it just relabelled.
+        matches, declared, actual = regime.method_pinned()
+        check(matches,
+              f"regime.py and contradictions.py hash to the pinned "
+              f"METHOD_SOURCE_SHA ({declared}); actual {actual}. If the change "
+              f"alters what the object SAYS: bump METHOD_VERSION, run "
+              f"`python -m regime method --update`, re-backfill. If it does not: "
+              f"run the update alone")
+
         all_rows = list(store.as_of(regime.STORE_KEY))
         # ONLY OBJECTS COMPUTED UNDER THE CURRENT RULES CAN BE REPLAYED.
         #
@@ -190,20 +209,36 @@ def group_a() -> None:
         # something else, and failing on that would mean the gate cannot tell "the
         # rules changed" from "the arithmetic broke". Those are the two things it
         # exists to distinguish, so superseded objects are REPORTED and skipped.
-        rows = [r for r in all_rows
-                if (json.loads(r["value_text"]).get("config_version") == current)]
+        # BOTH VERSIONS, and they answer different questions: config_version says
+        # the RULES were edited, method_version says the CODE was. An object computed
+        # under either an older rule set or an older method legitimately recomputes
+        # to something else, and failing on that would mean the gate cannot tell a
+        # deliberate change from a regression -- which are the two things it exists
+        # to distinguish.
+        rows = []
+        for r in all_rows:
+            o = json.loads(r["value_text"])
+            if (o.get("config_version") == current
+                    and o.get("method_version") == current_method):
+                rows.append(r)
         superseded = len(all_rows) - len(rows)
         check(bool(all_rows), f"the store holds market_state objects "
                               f"({len(all_rows)})")
         if superseded:
             print(f"        {superseded} object(s) were computed under an earlier "
-                  f"config version and are not replayed against {current}; "
-                  f"re-run `regime backfill` to bring them forward")
+                  f"config or method version and are not replayed against "
+                  f"{current}/{current_method}; re-run `regime backfill` to bring "
+                  f"them forward")
         check(bool(rows),
               f"and {len(rows)} of them were computed under the current config "
-              f"{current!r}, so there is something to replay. A store where EVERY "
-              f"object is superseded is a store whose history no longer matches "
-              f"its own rules")
+              f"{current!r} AND method {current_method!r}, so there is something to "
+              f"replay. A store where EVERY object is superseded is a store whose "
+              f"history no longer matches its own rules")
+        check(all(json.loads(r["value_text"]).get("method_version")
+                  for r in all_rows),
+              "and every stored object records a method_version at all -- an object "
+              "that does not cannot be told from one computed under any other "
+              "method")
         if not rows:
             return
         # The newest and the oldest: the oldest has no history, the newest has
@@ -333,6 +368,20 @@ def group_c() -> None:
     check((dials.get("gamma") or {}).get("source") == "exposure_engine",
           "the gamma dial READS the exposure engine rather than recomputing "
           "dealer gamma")
+
+    # The method version is declared, pinned, and named where a human will look.
+    check(bool(regime.METHOD_VERSION) and regime.METHOD_SOURCE_SHA != "PENDING",
+          f"a method_version is declared and its source hash pinned "
+          f"({regime.METHOD_VERSION}, {regime.METHOD_SOURCE_SHA})")
+    check("regime.py" in regime.METHOD_SOURCE_FILES
+          and "contradictions.py" in regime.METHOD_SOURCE_FILES,
+          f"and the hash covers both modules that decide the object's content "
+          f"({list(regime.METHOD_SOURCE_FILES)})")
+    ledger = (REPO / "docs" / "chester-reports-audit-3.md").read_text(
+        encoding="utf-8")
+    check(regime.METHOD_VERSION in ledger,
+          f"and {regime.METHOD_VERSION} is named in the status ledger -- a bump "
+          f"nobody recorded is a bump nobody can date")
 
     pairs = (cfg.get("contradictions") or {}).get("pairs") or []
     check(len(pairs) == 7,

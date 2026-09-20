@@ -77,6 +77,39 @@ CONFIG_PATH = REPO / "config" / "market_state.yaml"
 SCHEMA_VERSION = "market-state-v1"
 STORE_KEY = "market_state"
 
+# ---------------------------------------------------------------------------
+# METHOD VERSION -- what the CODE does, as distinct from what the config says
+# ---------------------------------------------------------------------------
+#
+# config_version already separates "a threshold changed on purpose" from "the
+# arithmetic broke". This separates the third case, which was costing a full
+# re-backfill on every commit that touched the object's content: THE CODE CHANGED ON
+# PURPOSE. Six re-backfills in one day, each four minutes, because the replay gate
+# could not tell a deliberate change of method from a regression.
+#
+# So a stored object records the method that produced it, and the replay gate compares
+# only objects computed under the current one. Bumping is DELIBERATE: it is named in
+# the commit message and in the status ledger, and it is the signal that the history
+# needs bringing forward.
+#
+# THE HASH IS WHAT MAKES THE BUMP HONEST. A version constant nobody is forced to
+# change is a version constant that stops being true -- someone edits the band logic,
+# does not bump, and every stored object silently claims a method it was not computed
+# under. So the modules that decide the object's content are hashed, the hash is
+# pinned here, and validate_regime.py FAILS when the two disagree. The message it
+# prints is the whole mechanism: bump the version, update the hash, re-backfill.
+METHOD_VERSION = "market-state-method-1"
+
+# The modules whose content decides what the object says. regime.py builds it and
+# contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
+# it has its own gate with 36 seeded checks, and folding it in would make every
+# delta-semantics fix look like a method change to the object.
+METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
+
+# Updated in the same commit as the version above. Recompute with:
+#   python -m regime method --update
+METHOD_SOURCE_SHA = "a361105e85fe5afa"
+
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
 # stored object and a recomputation of it, and asserting on them would make the
@@ -104,6 +137,33 @@ def load_config(path: Optional[Path] = None) -> dict:
     if path is None:
         _CONFIG = cfg
     return cfg
+
+
+def method_source_sha(files: Optional[tuple[str, ...]] = None) -> str:
+    """A content hash of the modules that decide the object's content.
+
+    THE PIN LINE IS EXCLUDED FROM THE HASH, which it has to be: hashing a file that
+    contains its own hash cannot converge. Everything else counts, comments and
+    docstrings included -- a comment that changes the reason for a rule is a change
+    worth a reader noticing, and excluding comments would let a rewritten
+    justification pass as no change at all.
+    """
+    import hashlib
+    import re as _re
+    h = hashlib.sha256()
+    for name in sorted(files or METHOD_SOURCE_FILES):
+        text = (REPO / name).read_text(encoding="utf-8")
+        text = _re.sub(r'(?m)^METHOD_SOURCE_SHA = ".*"$',
+                       'METHOD_SOURCE_SHA = "<excluded>"', text)
+        h.update(name.encode())
+        h.update(text.replace("\r\n", "\n").encode())
+    return h.hexdigest()[:16]
+
+
+def method_pinned() -> tuple[bool, str, str]:
+    """(matches, declared, actual). What validate_regime.py asserts."""
+    actual = method_source_sha()
+    return METHOD_SOURCE_SHA == actual, METHOD_SOURCE_SHA, actual
 
 
 def git_sha() -> str:
@@ -549,6 +609,7 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
         obj = {
             "object": "market_state",
             "schema_version": SCHEMA_VERSION,
+            "method_version": METHOD_VERSION,
             "config_version": cfg.get("version"),
             "session": day,
             "as_of": cutoff,
@@ -1107,6 +1168,10 @@ def _main(argv: list[str]) -> int:
     c.add_argument("--no-store", action="store_true")
     c.add_argument("--json", action="store_true")
 
+    m = sub.add_parser("method", help="the method version and its source hash")
+    m.add_argument("--update", action="store_true",
+                   help="rewrite METHOD_SOURCE_SHA to match the current source")
+
     s = sub.add_parser("show", help="print the stored object for a session")
     s.add_argument("--as-of", default=None)
     s.add_argument("--session", default=None)
@@ -1153,6 +1218,30 @@ def _main(argv: list[str]) -> int:
         print(json.dumps(obj, indent=2, sort_keys=True) if a.json
               else format_object(obj))
         return 0
+
+    if a.cmd == "method":
+        matches, declared, actual = method_pinned()
+        print(f"method_version   {METHOD_VERSION}")
+        print(f"source files     {list(METHOD_SOURCE_FILES)}")
+        print(f"declared hash    {declared}")
+        print(f"actual hash      {actual}")
+        print(f"match            {matches}")
+        if a.update:
+            path = REPO / "regime.py"
+            text = path.read_text(encoding="utf-8")
+            import re as _re
+            new = _re.sub(r'(?m)^METHOD_SOURCE_SHA = ".*"$',
+                          f'METHOD_SOURCE_SHA = "{actual}"', text, count=1)
+            path.write_text(new, encoding="utf-8", newline="")
+            print(f"\nupdated METHOD_SOURCE_SHA to {actual}. BUMP "
+                  f"METHOD_VERSION in the same commit if the change alters what "
+                  f"the object says, and re-backfill.")
+        elif not matches:
+            print("\nThe source has changed since the hash was pinned. If that "
+                  "change alters what the object SAYS: bump METHOD_VERSION, run "
+                  "`regime method --update`, re-backfill. If it does not (a "
+                  "comment, a rename): run `regime method --update` alone.")
+        return 0 if matches or a.update else 1
 
     if a.cmd == "exceptions":
         # ONE ID PER LINE, and nothing else on stdout: the heartbeat diffs this
