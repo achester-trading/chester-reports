@@ -24,8 +24,17 @@ and the magnitude is today's gap expressed as a z of that gap's own history.
 So 2.0 means "these two are further apart than they have been 95% of the time",
 which is a claim about the relationship rather than about either level.
 
-The two legs are aligned on COMMON DATES first. A weekly series against a daily
-one would otherwise produce a gap series that mostly measures which day it is.
+THE TWO LEGS ARE ALIGNED FIRST, and how depends on their cadence. When they share
+most of their dates the shared dates are used. When they do not -- a weekly series
+against a daily one -- the slower leg is read AS-OF each of the faster leg's dates:
+the value that was latest known then. FRED dates the 4-week claims average to the
+week-ending Saturday, which is never a session, so exact intersection gave the
+growth_vs_cyclicals row ZERO common dates and it reported itself absent for want of
+history it had plenty of.
+
+A forward-filled leg is autocorrelated, so the gap's standard deviation is smaller
+and the z correspondingly larger. The row carries `align_basis` so a reader can
+discount it; refusing the comparison instead would lose a pair the design asks for.
 
 -----------------------------------------------------------------------------
 OPEN, CLOSED, AND WHY A ROW DOES NOT OPEN ON ITS FIRST DAY
@@ -116,16 +125,68 @@ def standardise(values: list[float]) -> Optional[list[float]]:
     return [(v - mean) / sd for v in values]
 
 
+def align(a: list[tuple[str, float]], b: list[tuple[str, float]]
+          ) -> tuple[list[str], dict[str, float], dict[str, float], str]:
+    """One date axis for two series of different cadence, by AS-OF forward fill.
+
+    EXACT-DATE INTERSECTION IS NOT ENOUGH, and the growth_vs_cyclicals row proved it
+    with real data: FRED dates the 4-week claims average to the week-ending
+    SATURDAY, which is never a trading session, so intersecting it with a daily
+    series produced ZERO common dates and the row reported itself absent for want of
+    history it had plenty of.
+
+    So the axis is the FASTER series' dates, and the slower series is read as-of each
+    of them: the value that was the latest known on that date. That is not
+    interpolation and it invents nothing -- the last claims print IS the current
+    knowledge of claims on a Tuesday, which is the same rule the observation store's
+    own as-of join applies.
+
+    WHAT IT COSTS, stated because it is real: a forward-filled series is
+    autocorrelated, so the gap's standard deviation is smaller than it would be if
+    both legs moved daily, and a z computed against it is correspondingly larger. The
+    alternative -- refusing to compare a weekly series with a daily one at all --
+    loses a row the order explicitly asks for. The basis is reported on the row so a
+    reader can discount it.
+    """
+    da, db = dict(a), dict(b)
+    if not da or not db:
+        return [], da, db, "empty"
+    # THE TEST IS CADENCE MISMATCH, NOT OVERLAP. An overlap test gets this wrong in
+    # a way that looks right: a weekly series whose dates happen to be a subset of a
+    # daily one's overlaps perfectly, and using only those 230 dates throws away the
+    # 1,000 days on which the gap also existed. Comparing the COUNTS asks the real
+    # question -- do these two move at the same rate?
+    exact = sorted(set(da) & set(db))
+    ratio = max(len(da), len(db)) / max(1, min(len(da), len(db)))
+    if ratio <= 1.5 and len(exact) >= 0.8 * min(len(da), len(db)):
+        return exact, da, db, "exact"
+
+    fast, slow = (da, db) if len(da) >= len(db) else (db, da)
+    slow_days = sorted(slow)
+    axis, filled = [], {}
+    i = 0
+    for day in sorted(fast):
+        while i + 1 < len(slow_days) and slow_days[i + 1] <= day:
+            i += 1
+        if slow_days[i] > day:
+            continue                       # nothing known yet on the slow leg
+        axis.append(day)
+        filled[day] = slow[slow_days[i]]
+    if fast is da:
+        return axis, da, filled, "forward_filled"
+    return axis, filled, db, "forward_filled"
+
+
 def gap_z(a: list[tuple[str, float]], b: list[tuple[str, float]],
           pol_a: int, pol_b: int) -> dict:
     """Today's standardised gap, as a z of the gap's own history."""
-    da, db = dict(a), dict(b)
-    common = sorted(set(da) & set(db))
+    common, da, db, basis = align(a, b)
     if len(common) < 30:
-        return {"magnitude": None, "n": len(common),
+        return {"magnitude": None, "n": len(common), "align_basis": basis,
                 "absent_reason": (
-                    f"only {len(common)} dates are common to both legs; a gap's "
-                    f"own distribution needs at least 30 to mean anything")}
+                    f"only {len(common)} usable dates across both legs (alignment: "
+                    f"{basis}); a gap's own distribution needs at least 30 to mean "
+                    f"anything")}
     za = standardise([da[d] for d in common])
     zb = standardise([db[d] for d in common])
     if za is None or zb is None:
@@ -143,6 +204,7 @@ def gap_z(a: list[tuple[str, float]], b: list[tuple[str, float]],
             "gap_mean": round(mean, 4),
             "gap_sd": round(sd, 4),
             "n": len(common),
+            "align_basis": basis,
             "aligned_first": common[0], "aligned_last": common[-1]}
 
 
