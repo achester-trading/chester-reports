@@ -96,7 +96,14 @@ class Store:
                 db.write_many([
                     {"registry_key": f"{source}.{key}", "instrument": None,
                      "observed_at": d, "available_at": as_of,
-                     "value": v, "source": source}
+                     "value": v, "source": source,
+                     # THE WRITE INSTANT STOOD IN FOR THE AVAILABILITY, and the
+                     # row now says so. It is an upper bound -- we certainly knew
+                     # the value by the time we wrote it -- which is what makes an
+                     # as-of join over it safe rather than merely convenient. The
+                     # migrated history predates this column and is null, which is
+                     # the honest reading of a migration instant.
+                     "availability_kind": "ingest_instant"}
                     for d, v in rows_written if v is not None])
         except Exception as exc:  # noqa: BLE001 -- never break the CSV path
             # THIS USED TO BE `pass`, AND THAT WAS THE WORST LINE IN THE REPO.
