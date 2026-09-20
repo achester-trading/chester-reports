@@ -117,6 +117,16 @@ SYMBOLS: dict[str, str] = {
     "EEM": "mkt_eem",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
+    # THE VOLATILITY INDICES, SAME DAY. FRED's VIXCLS arrives the NEXT morning, so
+    # a 16:45 object computed from it is reading yesterday's volatility -- and the
+    # vol dial is a statement about today by its own definition. yfinance serves
+    # both of these at the close.
+    #
+    # ^VIX9D and ^VVIX are also served and are deliberately NOT here: the order
+    # asked for these two, and a basket that grows on its own is a basket nobody
+    # reviewed.
+    "^VIX": "mkt_vix",
+    "^VIX3M": "mkt_vix3m",
 }
 
 # The eleven sectors, in the order the breadth reading uses them. Named here
@@ -128,6 +138,55 @@ SECTOR_KEYS: tuple[str, ...] = (
 
 DIVIDEND_SUFFIX = "_dividend"
 SPLIT_SUFFIX = "_split"
+
+# INSTRUMENTS THAT TRADE WHEN THE US EQUITY MARKET DOES NOT. Declared, because the
+# alternative is a filter that either drops two thirds of a crypto series or admits
+# a holiday bar for an index that does not calculate on a holiday.
+#
+# Bitcoin trades every day of the year, so 528 of its 1,827 bars fall on a
+# non-session date and every one of them is real. Nothing else in this basket does:
+# an ETF and a volatility index exist only while the exchange is open.
+CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD"})
+
+
+def is_session_date(day: str) -> bool:
+    """Whether a US equity session occurred on this date.
+
+    THE CALENDAR ONLY COVERS 2026-2027, so outside those years this falls back to
+    weekdays and cannot see a holiday. That is a real limit and it is why the filter
+    below is described as removing what the calendar CAN see rather than as
+    guaranteeing a clean series.
+    """
+    from .. import session as sess
+    import datetime as _dt
+    d = _dt.date.fromisoformat(str(day)[:10])
+    if sess.calendar_covers(d):
+        return sess.is_trading_session(d)
+    return d.weekday() < 5
+
+
+def drop_non_session_bars(symbol: str, rows: list[tuple[str, float]]
+                          ) -> tuple[list[tuple[str, float]], list[str]]:
+    """Bars on dates when the instrument's market was shut. Returns (kept, dropped).
+
+    yfinance served VIX closes on 2026-05-25 and 2026-09-07 -- Memorial Day and
+    Labor Day. The index is calculated from SPX option quotes and does not exist on
+    a day the options market is shut, so those bars are artefacts: a carried-forward
+    value or a vendor fill. Stored, they would each become a "session" in every
+    percentile, every delta lookback and every staleness count that reads the
+    series.
+
+    A continuous instrument is exempt by declaration, not by guesswork.
+    """
+    if symbol in CONTINUOUS_SYMBOLS:
+        return rows, []
+    kept, dropped = [], []
+    for day, value in rows:
+        if is_session_date(day):
+            kept.append((day, value))
+        else:
+            dropped.append(day)
+    return kept, dropped
 
 
 def _f(v: Any) -> Optional[float]:
@@ -227,7 +286,10 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
         for symbol, key in basket.items():
             try:
                 parsed = _fetch_symbol(symbol, period=period)
-                closes = parsed["closes"]
+                closes, dropped = drop_non_session_bars(symbol, parsed["closes"])
+                if dropped:
+                    log.warning("yfinance %-8s dropped %d bar(s) on non-session "
+                                "dates: %s", symbol, len(dropped), dropped[-3:])
                 if not closes:
                     raise RuntimeError(f"no closes parsed for {symbol}")
                 now = sess.utc_iso(timespec="microseconds")

@@ -93,7 +93,11 @@
 #         registry allowance rather than one hand-set session count per
 #         dimension, so growth's weekly primary is not called stale for
 #         printing weekly.
-version: market-state-v1.2
+#   v1.3  (20 Sep 2026) the volatility dimension and the vol dial read
+#         yfinance.mkt_vix (same-day) as their primary, with FRED's VIXCLS kept as
+#         a member because it is the revisable, official series and disagreement
+#         between the two is worth seeing.
+version: market-state-v1.3
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -299,9 +303,18 @@ dimensions:
       - {state: normal, min_percentile: 33}
       - {state: subdued, min_percentile: 0}
     members:
+      - metric: yfinance.mkt_vix
+        polarity: +1
+        because: >-
+          Implied volatility of the index, SAME DAY. The primary because FRED's
+          VIXCLS is published the next morning, so an object computed at 16:45 from
+          FRED is stating yesterday's volatility as today's.
       - metric: fred.vix
         polarity: +1
-        because: Implied volatility of the index, daily, from FRED.
+        because: >-
+          The same index from FRED, kept as a member rather than dropped: it is the
+          official revisable series, and the two disagreeing is worth seeing rather
+          than hiding behind whichever arrived first.
       - metric: calc.vol_spy_realized_20d
         polarity: +1
         because: >-
@@ -340,7 +353,11 @@ dials:
   vol:
     # VIX LEVEL BANDS -- absolute levels, not percentiles, because the whole
     # point of a vol dial is that 30 means something on its own.
-    primary: fred.vix
+    #
+    # THE SAME-DAY INDEX, for the reason the dial's own absence message gave: "a vol
+    # dial is a statement about today". Reading a series published tomorrow morning
+    # contradicted that on every run.
+    primary: yfinance.mkt_vix
     level_bands:
       - {state: crisis, min_level: 30}
       - {state: elevated, min_level: 20}

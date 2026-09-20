@@ -94,6 +94,47 @@
 # not reconstructable; tools/validate_prices.py asserts the refusal rather than
 # trusting it.
 #
+# -----------------------------------------------------------------------------
+# A RE-READ OF AN IDENTICAL VALUE IS NOT A REVISION
+# -----------------------------------------------------------------------------
+#
+# The store's idempotence key is (registry_key, instrument, observed_at,
+# available_at, source), so re-reading a series at a new instant does NOT collide:
+# it creates a NEW VINTAGE, and the as-of join returns the latest vintage per
+# period. A writer that re-reads unchanged data therefore SUPERSEDES its own
+# better-dated rows.
+#
+# THIS IS NOT THEORETICAL. Phase 2b ran a live 2-year price pull before a
+# reconstructed 5-year backfill. Every close in the live window acquired a second
+# vintage stamped "available today" carrying the identical number, and the as-of
+# join then did precisely its job: asked for Friday's object at Friday's cutoff, it
+# could not see closes the store said were learned on Sunday. Two dimensions read
+# 514 sessions stale -- exactly the boundary between the two windows -- and went
+# absent with a staleness reason that was true on its own terms. Nothing about the
+# join was wrong; the rows were.
+#
+# THE RULE: a writer must not create a vintage for a value equal to the latest one
+# already stored for that period. Only a CHANGED value is a revision, which is what
+# the three clocks exist to record. altdata/observations.drop_unchanged() implements
+# it and tools/validate_prices.py proves that a second identical pull writes zero
+# rows.
+#
+# -----------------------------------------------------------------------------
+# AND NO BAR MAY CARRY A NON-SESSION OBSERVED DATE
+# -----------------------------------------------------------------------------
+#
+# yfinance served VIX closes on Memorial Day and Labor Day 2026. The index is
+# computed from SPX option quotes and does not exist on a day the options market is
+# shut, so those bars are artefacts -- and stored, each would have counted as a
+# session in every percentile, delta lookback and staleness count that reads the
+# series.
+#
+# Instruments that genuinely trade when the US equity market does not are DECLARED
+# (yfinance_source.CONTINUOUS_SYMBOLS -- Bitcoin, whose 528 non-session bars out of
+# 1,827 are all real). Everything else is filtered against the session calendar,
+# which sees holidays only in the years it covers (2026-2027) and falls back to
+# weekdays outside them.
+#
 # Full convention, with the confidence table: docs/market-state.md.
 #
 # Required on every metric:
@@ -1429,7 +1470,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 28
+    expected_members: 30
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -1453,7 +1494,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 28
+    expected_members: 30
     key_prefix: yfinance.
     units: price
     native_horizon: daily

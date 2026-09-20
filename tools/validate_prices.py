@@ -26,6 +26,13 @@ people stop reading.
      plus the declared latency, which is a different UTC hour in summer and
      winter -- a fixed offset would put half the year's availabilities an hour
      before the close they describe.
+  G  A RE-READ OF AN IDENTICAL VALUE IS NOT A REVISION. A second pull of unchanged
+     data writes ZERO rows; a changed value still writes its vintage; and a reader
+     at an earlier cutoff still sees the original. This is the rule whose absence
+     made two dimensions read 514 sessions stale on a store that was complete.
+  H  NO BAR ON A NON-SESSION DATE. yfinance served VIX closes on Memorial Day and
+     Labor Day; the index does not exist when the options market is shut. Continuous
+     instruments are exempt by DECLARATION -- Bitcoin, and nothing else.
 
     python tools/validate_prices.py
 """
@@ -159,7 +166,11 @@ def group_c() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 28, f"28 symbols declared (got {len(syms)})")
+    check(len(syms) == 30, f"30 symbols declared (got {len(syms)})")
+    check("^VIX" in syms and "^VIX3M" in syms,
+          "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
+          "next morning, so a 16:45 object computed from it reads yesterday's "
+          "volatility")
     check("RSP" in syms,
           "RSP is in the basket -- its absence was one of the two reasons "
           "breadth could not be computed at all")
@@ -263,9 +274,110 @@ def group_f() -> None:
           f"reconstructed row in the store means the same thing")
 
 
+def group_g() -> None:
+    print(f"\n{LINE}\nG. A RE-READ OF AN IDENTICAL VALUE IS NOT A REVISION\n{LINE}")
+    import tempfile
+    from altdata import session as sess
+    with tempfile.TemporaryDirectory() as td:
+        db = observations.ObservationStore(str(Path(td) / "v.db"))
+        try:
+            rows = [{"registry_key": "yfinance.mkt_spy", "instrument": None,
+                     "observed_at": "2026-09-18",
+                     "available_at": "2026-09-18T20:20:00+00:00",
+                     "value": 761.69, "source": "yfinance",
+                     "availability_kind": "reconstructed"}]
+            first = db.write_many(observations.drop_unchanged(db, rows))
+            check(first == 1, f"the first write lands ({first} row)")
+
+            # THE SAME VALUE, A LATER INSTANT: what a second pull of the day does.
+            again = [{**rows[0], "available_at": "2026-09-20T15:00:00+00:00",
+                      "availability_kind": "ingest_instant"}]
+            second = db.write_many(observations.drop_unchanged(db, again))
+            check(second == 0,
+                  f"a SECOND PULL OF AN UNCHANGED VALUE WRITES ZERO ROWS "
+                  f"(got {second}) -- without this it would create a vintage that "
+                  f"supersedes the better-dated one and hide the close from every "
+                  f"earlier as-of cutoff")
+            check(len(db.vintages("yfinance.mkt_spy", "2026-09-18")) == 1,
+                  "so the period still has exactly one vintage")
+
+            # A CHANGED value is a revision and must still land.
+            revised = [{**again[0], "value": 762.15}]
+            third = db.write_many(observations.drop_unchanged(db, revised))
+            check(third == 1,
+                  f"but a CHANGED value does land ({third}) -- a corrected close is "
+                  f"exactly what a vintage is for")
+            vs = db.vintages("yfinance.mkt_spy", "2026-09-18")
+            check(len(vs) == 2 and vs[-1]["value_num"] == 762.15,
+                  f"and the newer vintage wins for a later reader "
+                  f"({[v['value_num'] for v in vs]})")
+
+            # THE PROOF THAT MATTERS: the earlier cutoff still sees the original.
+            early = db.as_of("yfinance.mkt_spy", as_of="2026-09-19T00:00:00+00:00")
+            check(early and early[-1]["value_num"] == 761.69,
+                  f"while a reader as of the 19th still sees 761.69, not the "
+                  f"revision published on the 20th ({early[-1]['value_num']})")
+        finally:
+            db.close()
+
+    src = (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")
+    check("A RE-READ OF AN IDENTICAL VALUE IS NOT A REVISION" in src,
+          "and the rule is written into the registry doc, not only into the code")
+
+
+def group_h() -> None:
+    print(f"\n{LINE}\nH. NO BAR ON A NON-SESSION DATE\n{LINE}")
+    # 2026-09-07 is Labor Day and 2026-09-12/13 are a weekend. yfinance served a VIX
+    # close on the holiday; the index does not exist on a day the options market is
+    # shut, and stored it would have counted as a session in every percentile and
+    # every staleness count that reads the series.
+    rows = [("2026-09-04", 10.0), ("2026-09-07", 11.0), ("2026-09-08", 12.0),
+            ("2026-09-12", 13.0), ("2026-09-13", 14.0)]
+    kept, dropped = yf_src.drop_non_session_bars("^VIX", rows)
+    check([d for d, _ in kept] == ["2026-09-04", "2026-09-08"],
+          f"a holiday and a weekend are dropped from an exchange-traded series "
+          f"(kept {[d for d, _ in kept]})")
+    check(dropped == ["2026-09-07", "2026-09-12", "2026-09-13"],
+          f"and the dropped dates are reported rather than silently discarded "
+          f"({dropped})")
+
+    kept_c, dropped_c = yf_src.drop_non_session_bars("BTC-USD", rows)
+    check(len(kept_c) == len(rows) and not dropped_c,
+          "a DECLARED continuous instrument keeps every bar -- Bitcoin trades all "
+          "week, and 528 of its 1,827 bars are on non-session dates and real")
+    check("BTC-USD" in yf_src.CONTINUOUS_SYMBOLS
+          and len(yf_src.CONTINUOUS_SYMBOLS) == 1,
+          f"the exemption is a declared set of one, not a guess about tickers "
+          f"({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
+
+    # And the live store obeys it, which is the assertion the order asked for.
+    db = observations.ObservationStore()
+    try:
+        offenders = {}
+        for sym, key in yf_src.SYMBOLS.items():
+            if sym in yf_src.CONTINUOUS_SYMBOLS:
+                continue
+            bad_days = [str(r["observed_at"])[:10]
+                        for r in db.as_of(f"yfinance.{key}")
+                        if not yf_src.is_session_date(str(r["observed_at"])[:10])]
+            if bad_days:
+                offenders[key] = bad_days[-3:]
+        check(not offenders,
+              f"NO PRICE SERIES IN THE STORE carries a non-session observed date "
+              f"({offenders or 'clean'})")
+    finally:
+        db.close()
+
+    check(yf_src.is_session_date("2026-09-07") is False,
+          "Labor Day 2026 is not a session")
+    check(yf_src.is_session_date("2026-09-18") is True,
+          "and Friday 18 September is")
+
+
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f,
+              group_g, group_h):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

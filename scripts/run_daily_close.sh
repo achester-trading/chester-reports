@@ -111,6 +111,25 @@ esac
 DRY=""
 [[ "${CHESTER_CLOSE_DRY_RUN:-0}" == "1" ]] && DRY="--dry-run"
 
+# ---- the prices, FIRST, because 16:10 is too early for VIX ------------------
+#
+# The 16:10 step in chester-eod reads a VIX that has not settled: the index is
+# calculated from SPX option quotes and its settlement value is struck at 16:15. So
+# the 16:10 read is provisional and the 16:45 one is final, and the object computed
+# at 16:45 should be built on the final number.
+#
+# THE DUPLICATE IS FREE. observations.drop_unchanged() means a re-read carrying the
+# same value writes nothing, so a symbol that did not move between 16:10 and 16:45
+# costs a fetch and no rows -- and one that DID move gets a genuine second vintage,
+# which is exactly what a settlement print is.
+#
+# Prices only: FRED publishes nothing between 16:10 and 16:45.
+log "feeds: price pull (16:45 -- VIX settles 16:15, so the 16:10 read is not final)"
+FEED_OUT="$("$PY" -m altdata.feeds pull --only prices 2>&1)"
+FEED_RC=$?
+printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $FEED_RC -ne 0 ]] && log "WARN price pull exited $FEED_RC -- continuing; the close report's state block reports what it finds"
+
 log "=== close report start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m daily_cascade.close_report $DRY >>"$LOG" 2>&1
 RC=$?

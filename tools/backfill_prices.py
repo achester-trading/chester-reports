@@ -114,8 +114,13 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
                 out["failed"].append((key, str(exc)))
                 print(f"  FAILED  {symbol}: {exc}")
                 continue
+            closes, dropped = yf_src.drop_non_session_bars(
+                symbol, parsed["closes"])
+            if dropped:
+                print(f"  {symbol:<8} dropped {len(dropped)} non-session bar(s): "
+                      f"{dropped[-3:]}")
             rows = []
-            for suffix, series in (("", parsed["closes"]),
+            for suffix, series in (("", closes),
                                    (yf_src.DIVIDEND_SUFFIX, parsed["dividends"]),
                                    (yf_src.SPLIT_SUFFIX, parsed["splits"])):
                 rows += [{"registry_key": f"{metric}{suffix}", "instrument": None,
@@ -127,13 +132,14 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
             n = 0 if dry_run else db.write_many(rows)
             out["written"] += n
             out["series"][key] = {
-                "closes": len(parsed["closes"]),
+                "closes": len(closes),
+                "dropped_non_session": len(dropped),
                 "dividends": len(parsed["dividends"]),
                 "splits": len(parsed["splits"]),
                 "rows_written": n,
-                "first": parsed["closes"][0][0] if parsed["closes"] else None,
-                "last": parsed["closes"][-1][0] if parsed["closes"] else None}
-            print(f"  {symbol:<8} {len(parsed['closes']):>5} closes  "
+                "first": closes[0][0] if closes else None,
+                "last": closes[-1][0] if closes else None}
+            print(f"  {symbol:<8} {len(closes):>5} closes  "
                   f"{len(parsed['dividends']):>3} div  "
                   f"{len(parsed['splits']):>2} split  -> {n} rows"
                   + ("  (dry run)" if dry_run else ""))
