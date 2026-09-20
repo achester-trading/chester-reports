@@ -51,11 +51,34 @@ from .sources import yfinance_source as yf_src
 
 log = logging.getLogger(__name__)
 
-# HOW STALE A FEED MAY BE before the heartbeat calls it stale, in sessions. Two
-# is one session's grace: the check runs in the morning, so the last completed
-# session's bars must be present, and a single missed pull is reported rather
-# than tolerated.
-MAX_STALE_SESSIONS = 2
+# HOW STALE A FEED MAY BE -- A MULTIPLE OF EACH SERIES' OWN ALLOWANCE, never a
+# flat session count.
+#
+# This was `MAX_STALE_SESSIONS = 2`, and it made exactly the mistake that
+# `max_staleness_sessions` made in the state object: a daily calendar applied to
+# series that are not daily. The first successful FRED pull on the box proved it --
+# 59 of 59 series fetched, every daily series current to the previous session, and
+# the check reported 44 of 59 STALE, because a quarterly GDP print is 117 sessions
+# old when it is perfectly on time and a monthly PCE print is 55.
+#
+# A heartbeat that says feed_stale on a healthy feed is worse than no check: it is
+# an alarm that is always on. So each series is judged against its registry
+# allowance -- information_half_life at its own cadence -- times the multiple.
+#
+# THE MULTIPLE IS READ FROM config/market_state.yaml rather than declared twice.
+# "Is this series current enough to say something about today" is one question, and
+# two numbers would be two answers to it.
+STALENESS_MULTIPLE_FALLBACK = 3
+
+
+def staleness_multiple() -> float:
+    """The declared multiple, from the state object's config."""
+    try:
+        import regime
+        return float((regime.load_config().get("defaults") or {}).get(
+            "staleness_multiple") or STALENESS_MULTIPLE_FALLBACK)
+    except Exception:                                         # noqa: BLE001
+        return float(STALENESS_MULTIPLE_FALLBACK)
 
 FEEDS = ("prices", "fred")
 
@@ -148,10 +171,13 @@ def freshness(as_of: Optional[str] = None,
     own = store is None
     db = store or observations.ObservationStore()
     try:
+        from . import derived
         last = session.last_trading_session().isoformat()
+        multiple = staleness_multiple()
         out: dict[str, Any] = {"session": last, "as_of": as_of, "feeds": {}}
         for name, keys in (("prices", price_keys()), ("fred", fred_keys())):
             absent, stale, fresh = [], [], []
+            detail = {}
             for k in keys:
                 rows = db.as_of(k, as_of=as_of)
                 if not rows:
@@ -159,15 +185,25 @@ def freshness(as_of: Optional[str] = None,
                     continue
                 newest = str(rows[-1]["observed_at"])[:10]
                 n, _ = _sessions_between(newest, last)
-                (fresh if n <= MAX_STALE_SESSIONS else stale).append(k)
+                own, _why = derived.staleness_allowance(k)
+                # half_life permanent cannot go stale -- a graded outcome does not
+                # decay -- so such a series is fresh by definition rather than by
+                # a number nobody can choose.
+                limit = None if own is None else int(round(own * multiple))
+                if limit is not None and n > limit:
+                    stale.append(k)
+                    detail[k] = f"{n} sessions, limit {limit}"
+                else:
+                    fresh.append(k)
             out["feeds"][name] = {
                 "expected": len(keys), "fresh": len(fresh),
                 "stale": len(stale), "absent": len(absent),
                 "stale_keys": sorted(stale)[:8],
+                "stale_detail": {k: detail[k] for k in sorted(detail)[:8]},
                 "absent_keys": sorted(absent)[:8],
                 "ok": not stale and not absent}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())
-        out["max_stale_sessions"] = MAX_STALE_SESSIONS
+        out["staleness_multiple"] = multiple
         return out
     finally:
         if own:
