@@ -190,19 +190,18 @@ def _dig(d: dict, dotted: str):
 
 
 def _creds() -> tuple[Optional[str], Optional[str]]:
-    env: dict[str, str] = {}
-    p = Path(__file__).resolve().parent.parent / ".env"
-    if p.exists():
-        for line in p.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                env[k.strip()] = v.strip().strip('"').strip("'")
-    key = os.environ.get("FLASHALPHA_API_KEY") or env.get("FLASHALPHA_API_KEY")
-    base = os.environ.get("FLASHALPHA_BASE_URL") or env.get("FLASHALPHA_BASE_URL")
-    if not key or key == "PLACEHOLDER" or not base or base == "PLACEHOLDER":
+    """(key, base) through the one loader. A placeholder counts as unconfigured.
+
+    This was a FIFTH copy of the .env parser -- the gate found it after I had
+    already "found them all" by grepping for the obvious shapes, which is the
+    argument for the gate rather than for the grep.
+    """
+    from altdata import secrets
+    if not secrets.present("FLASHALPHA_API_KEY") or not secrets.present(
+            "FLASHALPHA_BASE_URL"):
         return None, None
-    return key, base.rstrip("/")
+    return secrets.get("FLASHALPHA_API_KEY"), secrets.get(
+        "FLASHALPHA_BASE_URL").rstrip("/")
 
 
 def fetch_levels(symbol: str, key: str, base: str) -> dict:

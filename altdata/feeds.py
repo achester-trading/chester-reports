@@ -44,10 +44,9 @@ show up as the data going stale, not as a crash.
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Optional
 
-from . import observations, session
+from . import observations, secrets, session
 from .sources import yfinance_source as yf_src
 
 log = logging.getLogger(__name__)
@@ -92,15 +91,18 @@ def pull_prices(run_id: Optional[str] = None) -> dict:
 
 def pull_fred(run_id: Optional[str] = None) -> dict:
     """The FRED set into the store, or a stated skip when the key is absent."""
-    if not os.environ.get("FRED_API_KEY"):
+    if not secrets.present("FRED_API_KEY"):
         # ONCE, at WARNING, AND EXIT 0. See the module docstring: a wrapper that
         # fails here turns a configuration gap into a red pipeline. The freshness
         # check is what surfaces it, and it surfaces it as the data going stale --
         # which is the true statement.
-        log.warning("fred: FRED_API_KEY is not set -- skipping the pull. The "
-                    "series will go stale and the heartbeat's freshness check "
-                    "will say so; this is not a pipeline failure.")
-        return {"skipped": "no FRED_API_KEY", "total": 0, "success": 0,
+        # present() rather than get(): the verdict is logged, so the value must
+        # never be in a string that reaches a log at all.
+        log.warning("fred: %s is not configured (checked the environment AND "
+                    ".env) -- skipping the pull. The series will go stale and the "
+                    "heartbeat's freshness check will say so; this is not a "
+                    "pipeline failure.", "FRED_API_KEY")
+        return {"skipped": "key not configured", "total": 0, "success": 0,
                 "failed": []}
     from .sources import fred as fred_src
     from .store import Store

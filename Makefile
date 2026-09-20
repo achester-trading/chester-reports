@@ -42,6 +42,7 @@ PY_VALIDATORS := \
 	tools/validate_deploy.py \
 	tools/validate_derived.py \
 	tools/validate_prices.py \
+	tools/validate_secrets.py \
 	tools/validate_regime.py \
 	tools/validate_grader.py \
 	tools/validate_executions.py \

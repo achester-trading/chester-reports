@@ -80,23 +80,20 @@ ARCHIVE_DIR = os.environ.get("CHESTER_REPORTS_DIR", "reports")
 
 
 def _dotenv() -> dict[str, str]:
-    """.env as a dict. Same ten lines as altdata.sources.massive_chain.
+    """`.env` through the one loader in altdata/secrets.py.
 
-    Duplicated rather than imported for the reason stated there: altdata is the
-    library and this is a report package, so importing a private helper across
-    that line would point the dependency the wrong way for the sake of ten
-    lines.
+    This used to be its own copy, and the comment justifying the duplication argued
+    that importing a private helper from `altdata` would point the dependency the
+    wrong way for the sake of ten lines. The argument was reasonable and the
+    conclusion was wrong: four copies of those ten lines had already drifted in how
+    they strip quotes and whether they handle `export`, and one of them silently
+    turned a configured key into a missing one. altdata/secrets is a PUBLIC module
+    written for exactly this, so the dependency points at a library interface rather
+    than at a private helper.
     """
-    env: dict[str, str] = {}
-    path = REPO / ".env"
-    if not path.exists():
-        return env
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            env[k.strip()] = v.strip().strip('"').strip("'")
-    return env
+    from altdata import secrets
+    secrets.load()
+    return {k: v for k, v in os.environ.items()}
 
 
 def smtp_config() -> tuple[Optional[dict], list[str]]:

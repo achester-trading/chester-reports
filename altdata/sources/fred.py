@@ -20,6 +20,7 @@ from typing import Optional
 from ._base import http_get_json, FetchError
 from .. import config
 from .. import session
+from .. import secrets
 from ..store import Store
 
 log = logging.getLogger(__name__)
@@ -29,7 +30,11 @@ PACING_SECONDS = 0.4  # pause between requests; well under FRED limit
 
 
 def _get_key() -> str:
-    key = os.environ.get("FRED_API_KEY")
+    # THROUGH THE ONE LOADER, which reads .env in-process when the variable is
+    # not already in the environment. os.environ alone is why a by-hand run of this
+    # module reported no key on a box whose systemd units had one: EnvironmentFile
+    # populates the environment for a unit and for nothing else.
+    key = secrets.get("FRED_API_KEY")
     if not key:
         raise FetchError(
             "FRED_API_KEY environment variable is not set. "

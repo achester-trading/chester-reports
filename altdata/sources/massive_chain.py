@@ -85,6 +85,7 @@ from pathlib import Path
 from typing import Optional
 
 from .. import config
+from .. import secrets
 from .. import session
 from .options_chain import CHAIN_COLUMNS, _expiry_quality
 
@@ -110,37 +111,22 @@ MASSIVE_CHAIN_COLUMNS = CHAIN_COLUMNS + [
     "greeks_status", "spot_source", "underlying_verified_from", "vendor",
 ]
 
-_SECRETS: list[str] = []
+# THE REDACTOR AND THE .env READER BOTH MOVED. altdata/secrets.py is the one copy
+# of each; this module had its own eleven-line parser and its own three-line
+# redactor, as did three other files, and they had already drifted apart in how
+# they strip quotes and whether they tolerate `export`.
+_SECRETS = secrets._secrets          # noqa: SLF001 -- the same list, not a copy
 
 
 def _redact(text: str) -> str:
-    for s in _SECRETS:
-        if s:
-            text = text.replace(s, "***REDACTED***")
-    return text
+    return secrets.redact(text)
 
 
 def credentials() -> tuple[Optional[str], str]:
-    """Key and base URL from the environment, falling back to .env.
-
-    Deliberately NOT imported from tools/probe_massive.py: altdata is the
-    library and tools/ are scripts that consume it, so the dependency would
-    point the wrong way. The duplication is ten lines and keeps the layering
-    honest.
-    """
-    env: dict[str, str] = {}
-    dotenv = Path(__file__).resolve().parents[2] / ".env"
-    if dotenv.exists():
-        for line in dotenv.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                env[k.strip()] = v.strip().strip('"').strip("'")
-    key = os.environ.get("MASSIVE_API_KEY") or env.get("MASSIVE_API_KEY")
-    base = (os.environ.get("MASSIVE_BASE_URL") or env.get("MASSIVE_BASE_URL")
-            or DEFAULT_BASE).rstrip("/")
+    """(api_key, base_url). The environment wins over .env, as everywhere."""
+    key = secrets.get("MASSIVE_API_KEY")
+    base = (secrets.get("MASSIVE_BASE_URL") or DEFAULT_BASE).rstrip("/")
     if key and key != "PLACEHOLDER":
-        _SECRETS.append(key)
         return key, base
     return None, base
 

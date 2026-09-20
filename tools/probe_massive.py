@@ -57,7 +57,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = REPO_ROOT / ".env"
 OUT_DIR = Path(__file__).resolve().parent / "probe_output"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from altdata import session  # noqa: E402
+from altdata import secrets, session  # noqa: E402
 
 DEFAULT_BASE = "https://api.massive.com"
 PACING_SECONDS = 13.0            # Basic is 5/min; stay under it
@@ -69,25 +69,18 @@ SNAPSHOT_PATH = "/v3/snapshot/options/{underlying}"
 SPX_ROOTS = ["I:SPX", "SPX", "SPXW"]
 CONTROL = "SPY"
 
-_SECRETS: list[str] = []
+_SECRETS = secrets._secrets          # noqa: SLF001 -- the same list
 
 
 def redact(text: str) -> str:
-    for s in _SECRETS:
-        if s:
-            text = text.replace(s, "***REDACTED***")
-    return text
+    """One redactor, in altdata/secrets.py. This name stays for its callers."""
+    return secrets.redact(text)
 
 
-def load_env() -> dict[str, str]:
-    out: dict[str, str] = {}
-    if ENV_PATH.exists():
-        for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                out[k.strip()] = v.strip().strip('"').strip("'")
-    return out
+def load_env(path=None) -> dict[str, str]:
+    """`.env` through altdata/secrets.py, which is now the only reader of it."""
+    secrets.load(path)
+    return dict(os.environ)
 
 
 def credentials() -> tuple[Optional[str], str, list[str]]:

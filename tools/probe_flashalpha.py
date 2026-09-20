@@ -59,7 +59,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = REPO_ROOT / ".env"
 OUT_DIR = Path(__file__).resolve().parent / "probe_output"
 sys.path.insert(0, str(REPO_ROOT))
-from altdata import session  # noqa: E402
+from altdata import secrets, session  # noqa: E402
 
 TEST_SYMBOLS = ["SPY", "SPX"]
 OI_RECHECK_SECONDS = 60
@@ -205,18 +205,10 @@ def flatten_all(obj: Any, prefix: str = "", out: Optional[dict] = None,
 # Environment and redaction
 # ===========================================================================
 
-def load_env(path: Path = ENV_PATH) -> dict[str, str]:
-    """Minimal .env reader -- not worth a dependency for four lines of parse."""
-    out: dict[str, str] = {}
-    if not path.exists():
-        return out
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        out[k.strip()] = v.strip().strip('"').strip("'")
-    return out
+def load_env(path=None) -> dict[str, str]:
+    """`.env` through altdata/secrets.py, which is now the only reader of it."""
+    secrets.load(path)
+    return dict(os.environ)
 
 
 def resolve_credentials() -> tuple[Optional[str], Optional[str], list[str]]:
