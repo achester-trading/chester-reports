@@ -498,7 +498,8 @@ def render(payload: dict, delivery: Optional[dict] = None,
   Generated {esc(payload.get('generated_at'))} &middot;
   as-of cutoff {esc(payload.get('as_of'))} &middot;
   run <code>{esc(payload.get('run_id') or 'n/a')}</code> &middot;
-  universe {n_g} with Greeks + {n_i} ingestion-only
+  universe {n_g} with Greeks + {n_i} ingestion-only<br>
+  {state_block.session_events_line(payload)}
 </p>
 {warn}
 {narrative_block(narrative)}

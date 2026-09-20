@@ -78,6 +78,37 @@ def _li(items: list[str]) -> str:
             + "".join(f"<li>{i}</li>" for i in items) + "</ul>")
 
 
+def session_events_line(payload: dict) -> str:
+    """The session's event classes, for the report HEADER.
+
+    In the header rather than in a block of its own because it qualifies EVERY number
+    below it. An expiry close and an ordinary Tuesday's close are not the same
+    measurement of the same thing, and a reader who learns that three screens down has
+    already read the dealer surface as if it were routine.
+
+    Friday 18 September 2026 was OPEX and TRIPLE_WITCHING, and nothing in this report
+    said so until now.
+    """
+    obj = payload.get("market_state") or {}
+    events = obj.get("session_events")
+    if events is None:
+        return ("session events: <em>not recorded on this object</em> (computed "
+                "before the field existed)")
+    if not events:
+        return "session events: none &mdash; an ordinary close"
+    strong = [e for e in events if e in ("OPEX", "TRIPLE_WITCHING",
+                                        "INDEX_REBALANCE", "ETF_REBALANCE")]
+    body = ", ".join(f"<strong>{esc(e)}</strong>" if e in strong else esc(e)
+                     for e in events)
+    tail = ""
+    gamma = (obj.get("dials") or {}).get("gamma") or {}
+    if gamma.get("provisional"):
+        tail = (" &mdash; the gamma dial is <strong>PROVISIONAL</strong> on this "
+                "session: its profile is computed over open interest much of which "
+                "settles at this expiry")
+    return f"session events: {body}{tail}"
+
+
 def what_changed_block(payload: dict) -> str:
     """The diff, as the first data block. Levels move behind it."""
     obj = payload.get("market_state")

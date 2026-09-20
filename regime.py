@@ -98,7 +98,7 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-1"
+METHOD_VERSION = "market-state-method-2"
 
 # The modules whose content decides what the object says. regime.py builds it and
 # contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
@@ -108,7 +108,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "a361105e85fe5afa"
+METHOD_SOURCE_SHA = "4471b53571a05d33"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -542,13 +542,45 @@ def dial_vol(cfg: dict, as_of: str,
     return out
 
 
-def dial_gamma(cfg: dict, session_date: str) -> dict:
-    """READ from the exposure engine, never recomputed."""
+# The session classes on which a pre-expiry gamma reading describes a book that is
+# about to stop existing. Named here rather than inline because the dial's confidence
+# turns on it and a reader should be able to find the list.
+PROVISIONAL_ON = ("OPEX", "TRIPLE_WITCHING")
+
+
+def dial_gamma(cfg: dict, session_date: str,
+               events: Optional[list[str]] = None) -> dict:
+    """READ from the exposure engine, never recomputed.
+
+    ON AN EXPIRY SESSION THE READING IS PROVISIONAL, and this is the one place the
+    object's confidence is set by the CALENDAR rather than by staleness or sample
+    size. A dealer gamma profile measured from a chain on expiry day is computed over
+    open interest much of which settles that morning: the number is a correct
+    description of a book that is about to stop existing. It says little about the
+    gamma dealers will be carrying on Monday, which is what a 1-3m dial is for.
+
+    So the state is still published -- it is a true reading and suppressing it would
+    lose information -- but confidence is LOW and `provisional` is set until the next
+    settled capture. Friday 18 September 2026 was triple witching, and every gamma
+    reading in the Phase 2 work was taken on it with nothing saying so.
+    """
     spec = (cfg.get("dials") or {}).get("gamma") or {}
     sym = str(spec.get("symbol") or "SPY")
+    evs = list(events or [])
+    provisional = [e for e in evs if e in PROVISIONAL_ON]
     out: dict[str, Any] = {"dial": "gamma", "symbol": sym,
                            "source": spec.get("source"), "state": None,
+                           "session_events": evs,
+                           "confidence": "med",
+                           "provisional": bool(provisional),
                            "note": spec.get("note")}
+    if provisional:
+        out["confidence"] = "low"
+        out["provisional_reason"] = (
+            f"this session is {', '.join(provisional)}: the profile is computed over "
+            f"open interest much of which settles at this expiry, so it describes a "
+            f"book that is about to stop existing. PROVISIONAL until the next "
+            f"settled capture.")
     try:
         from altdata import grader
         # PriceSeries reads the PIN LOG -- the system's own record of what it saw
@@ -602,6 +634,13 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             d["as_of_session"] = day
             dims[name] = d
 
+        # THE SESSION'S OWN EVENT CLASSES, from the table beside the holiday list.
+        # A property of the DATE that no market data carries and that changes what
+        # the data means: an index-rebalance close and an ordinary Tuesday's differ
+        # by an order of magnitude in size, and an expiry close describes a book
+        # that is about to settle.
+        events = session.auction_event_classes(day)
+
         history = prior_objects(stamp, day, limit=8, store=st)
         for name, d in dims.items():
             apply_persistence(d, name, history)
@@ -617,11 +656,12 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             "git_sha": git_sha(),
             "config_path": str(CONFIG_PATH.relative_to(REPO)).replace("\\", "/"),
             "derived_convention": derived.CONVENTION_VERSION,
+            "session_events": events,
             "dimensions": dims,
             "dials": {
                 "macro": dial_macro(cfg, dims),
                 "vol": dial_vol(cfg, cutoff, st),
-                "gamma": dial_gamma(cfg, day),
+                "gamma": dial_gamma(cfg, day, events=events),
             },
             "prior_objects_read": len(history),
             # WHICH PREDECESSOR THIS OBJECT'S PERSISTENCE RESTED ON, named rather
@@ -1108,14 +1148,19 @@ def backfill(first: str, last: str, store: Optional[
 # ---------------------------------------------------------------------------
 def format_object(obj: dict) -> str:
     L = []
+    evs = obj.get("session_events") or []
     L.append(f"MARKET STATE  session {obj['session']}   as-of {obj['as_of']}")
+    L.append(f"  session events: {', '.join(evs) if evs else '(none)'}")
     L.append(f"  schema {obj['schema_version']}  config {obj['config_version']}"
              f"  sha {obj.get('git_sha')}")
     L.append("")
     L.append("  DIALS")
     for name, d in (obj.get("dials") or {}).items():
         state = d.get("state") or f"ABSENT -- {d.get('absent_reason')}"
-        L.append(f"    {name:8} {state}")
+        flag = ""
+        if d.get("provisional"):
+            flag = f"  PROVISIONAL (conf {d.get('confidence')})"
+        L.append(f"    {name:8} {state}{flag}")
     L.append("")
     L.append("  DIMENSIONS")
     for name, d in (obj.get("dimensions") or {}).items():
