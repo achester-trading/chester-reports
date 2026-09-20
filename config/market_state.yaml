@@ -97,7 +97,10 @@
 #         yfinance.mkt_vix (same-day) as their primary, with FRED's VIXCLS kept as
 #         a member because it is the revisable, official series and disagreement
 #         between the two is worth seeing.
-version: market-state-v1.3
+#   v1.4  (20 Sep 2026) price_vs_breadth's price leg is SPY's distance from its
+#         252-session high rather than SPY's level percentile -- see the pair's own
+#         note for why the level was the wrong leg.
+version: market-state-v1.4
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -444,18 +447,23 @@ contradictions:
 
   pairs:
     - id: price_vs_breadth
-      legs: [yfinance.mkt_spy, calc.breadth_sector_above_50d]
+      legs: [calc.spy_vs_252d_high, calc.breadth_sector_above_50d]
       kind: metric_pair
       polarities: [+1, +1]
       expect: same
       because: >-
         An index making new highs while participation narrows is the classic
         distribution signature. (1) in the order.
-        THE PRICE LEG IS THE PRICE, not the trend dimension, and the difference is
-        the whole row: trend's primary is SPY's distance from its 200-day average,
-        and a market at a five-year high can sit an ordinary 6% above that average
-        -- which reads as middling and hides exactly the divergence this row is
-        for. SPY's own level percentile is what "making new highs" means.
+        THE PRICE LEG IS DISTANCE FROM THE ONE-YEAR HIGH, and it took two wrong
+        answers to get there. First the leg was the TREND DIMENSION, whose primary
+        is SPY's distance from its 200-day average -- and a market at a five-year
+        high can sit an ordinary 6% above that average, which reads as middling and
+        hid the row. Then it was SPY's LEVEL PERCENTILE, which is better and still
+        wrong: in any uptrend the level sits near the top of its own five-year
+        distribution almost every day, so the leg is nearly constant and the
+        divergence barely moves with it. Distance from the running high is ~0 at a
+        new high and falls away at once, which is the thing the sentence above
+        actually describes.
 
     - id: equities_vs_credit
       legs: [yfinance.mkt_spy, fred.hy_oas]

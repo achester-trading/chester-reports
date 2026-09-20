@@ -1057,6 +1057,25 @@ metrics:
       reading -- a participation measure that needs no constituent data and
       carries no proxy caveat, because the two funds hold the same universe
       weighted two ways.
+  calc.spy_vs_252d_high:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      SPY's close against its own 252-session high, in percent: 0 at a new high and
+      negative below it. The price leg of the price_vs_breadth contradiction row,
+      replacing SPY's LEVEL percentile -- which in any uptrend sits near the top of
+      its five-year distribution almost every day, making the leg nearly constant
+      and the divergence it measures nearly invisible. Distance from the running
+      high is ~0 at a new high and falls away at once, which is what "making new
+      highs while participation narrows" means.
   calc.cyclical_over_defensive:
     source: derived_state
     mechanism_group: equity_tape

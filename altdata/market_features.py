@@ -75,6 +75,10 @@ MA_SHORT = 50
 MA_LONG = 200
 SLOPE_WINDOW = 20
 VOL_WINDOW = 20
+# ONE TRADING YEAR, for the distance-from-high reading. 252 rather than 200 because
+# this one is about "has the index made a new high recently", and a year is the span
+# a reader means by that.
+HIGH_WINDOW = 252
 
 TRADING_DAYS_YEAR = 252
 
@@ -93,6 +97,9 @@ FEATURES = {
     "calc.trend_spy_ma20_slope":
         f"percent change in SPY's {SLOPE_WINDOW}-day average over "
         f"{SLOPE_WINDOW} sessions",
+    "calc.spy_vs_252d_high":
+        f"SPY's close against its own {HIGH_WINDOW}-session high, in percent "
+        f"(0 at the high, negative below)",
     "calc.cyclical_over_defensive":
         "XLY/XLP -- discretionary over staples, what the tape pays for growth",
     "calc.vol_spy_realized_20d":
@@ -185,6 +192,23 @@ def compute_rows(db: observations.ObservationStore,
                 emit("calc.trend_spy_ma20_slope", day,
                      100.0 * (ma_now / ma_then - 1.0),
                      [(spy[d][1], spy[d][2]) for d in now_hist + then_hist])
+
+        # --- DISTANCE FROM THE ONE-YEAR HIGH.
+        #
+        # This exists because SPY's LEVEL percentile is the wrong price leg for the
+        # price-vs-breadth row: in any uptrend the level sits near the top of its
+        # own five-year distribution almost every day, so the leg is close to
+        # constant and the divergence it is supposed to measure barely moves. The
+        # distance from the running high is not: it is ~0 at a new high and falls
+        # away immediately, which is the thing "making new highs while
+        # participation narrows" is actually about.
+        if i + 1 >= HIGH_WINDOW:
+            hist = spy_days[i + 1 - HIGH_WINDOW:i + 1]
+            high = max(spy[d][0] for d in hist)
+            if high:
+                emit("calc.spy_vs_252d_high", day,
+                     100.0 * (spy[day][0] / high - 1.0),
+                     [(spy[d][1], spy[d][2]) for d in hist])
 
         # --- realized volatility, annualised
         if i + 1 >= VOL_WINDOW + 1:
