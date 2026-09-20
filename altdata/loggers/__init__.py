@@ -114,6 +114,40 @@ def enough_history(key: str, minimum: int, store=None,
             db.close()
 
 
+def enough_days(key: str, minimum: int, store=None) -> tuple[bool, int]:
+    """(has enough, how many) counting DISTINCT OBSERVED DATES, across instruments.
+
+    THE MEASURE THAT MATTERS FOR A PER-TICKER LOGGER, and the first version of this
+    got it wrong in a way that looked right: it counted rows for one arbitrary
+    instrument, and for RTAT10 -- where the visible set turns over and 536 tickers
+    have appeared across a decade -- the alphabetically first ticker had ONE day. A
+    logger with ten years of history reported insufficient_history:1/60.
+
+    The question a derived metric is asking is "how many days of this series do I
+    have", not "how many rows does one member have".
+    """
+    from .. import observations
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        n = db.conn.execute(
+            "SELECT COUNT(DISTINCT observed_at) FROM observations "
+            " WHERE registry_key = ?", (key,)).fetchone()[0]
+        return n >= minimum, int(n)
+    finally:
+        if own:
+            db.close()
+
+
+def guarded_days(key: str, minimum: int, compute: Callable[[], object],
+                 store=None) -> object:
+    """`compute()` if the logger has enough DAYS, else the marker with its count."""
+    ok, n = enough_days(key, minimum, store=store)
+    if not ok:
+        return f"{INSUFFICIENT}:{n}/{minimum}"
+    return compute()
+
+
 def guarded(key: str, minimum: int, compute: Callable[[], object],
             store=None, instrument: Optional[str] = None) -> object:
     """`compute()` if the history is there, else the INSUFFICIENT marker.

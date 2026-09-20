@@ -61,7 +61,7 @@ import urllib.request
 from typing import Any, Optional
 
 from .. import observations, secrets, session
-from . import INSUFFICIENT, LoggerSpec, guarded, register
+from . import INSUFFICIENT, LoggerSpec, guarded_days, register
 
 log = logging.getLogger(__name__)
 
@@ -282,10 +282,12 @@ def derived(as_of: Optional[str] = None,
                            "measure boundary turnover"),
             }
 
-        # One gate for the whole block: these three metrics share a history.
-        first = (db.instruments(ACTIVITY_KEY) or [None])[0]
-        return guarded(ACTIVITY_KEY, MIN_HISTORY, compute, store=db,
-                       instrument=first)
+        # ONE GATE FOR THE WHOLE BLOCK -- these three metrics share a history --
+        # and it counts DAYS, not rows for one ticker. The visible set turns over:
+        # 536 tickers have appeared in the top ten across a decade, so the
+        # alphabetically first one has a single day and gating on it reported
+        # insufficient_history:1/60 on ten years of data.
+        return guarded_days(ACTIVITY_KEY, MIN_HISTORY, compute, store=db)
     finally:
         if own:
             db.close()
