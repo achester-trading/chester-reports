@@ -178,6 +178,23 @@ every figure link a paper carries. It fails on those and warns on a built
 edition older than its `.md`, a stale word total, and a forward reference to a
 paper that now exists.
 
+**Reports read the market-state object; no report recomputes regime.** `regime.py`
+computes one object per session day from the declared rules in
+`config/market_state.yaml` — eight dimensions, three dials and a seven-row
+contradiction table — and the 16:45 close pass is its only writer. Every report
+reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
+because an anchor computing its own object could disagree with the close report's,
+and then the system holds two regimes with no way to say which one a decision was
+taken under. Both anchors open on a **WHAT CHANGED** block rendered by
+`daily_cascade/state_block.py`, with every magnitude stamped with its percentile
+and the levels moved behind it. `altdata/derived.py` is the one place a delta, a
+percentile or a z-score is computed — the delta's meaning comes from the
+registry's `units` (bps for rates and spreads, percent for prices, raw for
+counts), never from one formula. Do not add a second regime anywhere: if a report
+needs one, point it at the object. Three of the eight dimensions are absent today
+for want of data, and each says so with its reason rather than substituting a
+proxy. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
+
 ### Known cleanup
 
 Resolved: the root-level `compute.py` (a misplaced copy of

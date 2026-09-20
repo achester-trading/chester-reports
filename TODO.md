@@ -2,6 +2,34 @@
 
 - Decide narrative thinking/effort config after first Opus 5 monthly render.
 
+## Phase 2 (state) is done -- what it left open, 19 Sep 2026
+
+The market-state object is built and both anchors read it (see
+`docs/market-state.md`). Two data gaps are what stop it saying much today, and
+both are cheap next to what they block:
+
+- [ ] **Schedule a price fetch.** `altdata/sources/yfinance_source.py` declares 27
+      symbols including SPY and all eleven sector ETFs, and NOTHING RUNS IT -- no
+      timer, no unit, no CI job. That one gap accounts for the absent `trend` and
+      `breadth` dimensions, the missing realized-volatility leg of the vol dial,
+      and five of the six contradiction pairs.
+- [ ] **Schedule a FRED pull.** The series land only when the Monthly runs, so the
+      store stops at 2026-05-28 and every working dimension reports absent-stale
+      for any recent session.
+- [ ] **Ingest ALFRED vintages (O.16).** All 20,372 migrated FRED observations
+      share one `available_at` -- the CSV-to-SQLite migration instant -- so an
+      as-of-correct backfill cannot reach behind 30 May 2026. `regime range`
+      prints the window the store can support.
+- [ ] **An exceptions alert path.** A contradiction open five sessions is an
+      exception and is REPORT-ONLY, because nothing in the repo sends an
+      exceptions alert. The branch belongs beside the drift branch in
+      `scripts/check_heartbeat_cron.sh`, which already owns `send_smtp_alert.py`.
+- [ ] **Point the Monthly's regime paragraph at the object.** Its narrative
+      placeholder still asks a model to characterise a regime from the pillars,
+      which is the one place a second regime could be born. Marked in
+      `monthly_macro/writer/render_md.py`; the fix belongs to Phase 4, which maps
+      the pillars onto the dials.
+
 ## Probe verdict, 4 Sep 2026
 
 FlashAlpha key verified live on the `basic` plan (`/v1/account`), not from the
