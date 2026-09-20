@@ -329,6 +329,11 @@ vocabularies:
     # measurements of different participants, and a decision citing both is citing
     # two genuinely independent observations rather than one tape twice.
     - retail_activity
+    # CONSENSUS ESTIMATES. Its own group: a forward EPS is what analysts believe and
+    # a price is what the market paid, so the two disagreeing IS the decomposition
+    # this family exists to compute -- merging them would let one stand in as
+    # evidence for the other.
+    - consensus_estimate
 
 defaults:
   trigger_eligible: false
@@ -1061,6 +1066,78 @@ metrics:
       reading -- a participation measure that needs no constituent data and
       carries no proxy caveat, because the two funds hold the same universe
       weighted two ways.
+  yf.forward_eps:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Consensus forward EPS for one name, read nightly. REVISED by construction -- a consensus is restated whenever an analyst moves, which is the whole point of logging it daily. NOT SERVED FOR ETFs: no analyst covers a wrapper, so the sector funds and SPY/QQQ/IWM carry no forward estimate and an index-level forward multiple needs a holdings-weighted build this does not do.
+  yf.forward_pe:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Consensus forward P/E for one name. Same ETF limitation as yf.forward_eps.
+  yf.trailing_eps:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Trailing twelve-month EPS. Revised when a company restates.
+  yf.trailing_pe:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Trailing P/E. The ONE multiple the ETFs do carry, which is why they are logged at all rather than skipped.
+  yf.analyst_count:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Number of analyst opinions behind the consensus. A forward estimate from three analysts and one from fifty-nine are not the same number, and nothing else in the row says which it is.
+  yf.target_mean_price:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Mean analyst target price. Logged for the same reason as the consensus itself: its REVISIONS are the signal, not its level.
   ndl.rtat10_activity:
     source: nasdaq_data_link
     mechanism_group: retail_activity
