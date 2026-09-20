@@ -25,6 +25,45 @@
 #                  not a metric" are different states. Without this list the
 #                  drift check cannot tell a new metric from a new comment.
 #
+# -----------------------------------------------------------------------------
+# DELTA SEMANTICS -- WHICH FIELD altdata/derived.py READS, AND WHY IT IS `units`
+# -----------------------------------------------------------------------------
+#
+# derived_forms() (O.14, one function for every report's deltas, percentiles and
+# z-scores) needs to know what a CHANGE in a metric means. Three answers exist
+# and only one is right per metric:
+#
+#   units '%' / 'percent' / 'bps'          -> the delta is in BASIS POINTS
+#   units '$' / 'price' / 'idx' / 'usd'    -> the delta is in PERCENT of level
+#   units 'K' / 'B' / 'M' / 'count' / ...  -> the delta is RAW
+#
+# A 10y yield going 4.45 -> 4.52 is +7bp; SPY going 640 -> 646 is +0.94%;
+# claims going 221K -> 229K is +8000. One formula for all three is wrong twice
+# and plausible three times.
+#
+# THE FIELD IS `units`. The Phase 2 change order named `observation_type`, but in
+# this registry that field's vocabulary is observed|calculated|inferred: it
+# records how a number came to exist, not what a change in it means. `units` is
+# the field that carries the semantics, and for the 59 FRED series it resolves
+# through the fred_macro bulk block to altdata.config's own units field.
+#
+# A metric whose units are not in the table is treated as RAW and says so in
+# `delta_unit_reason`. An unregistered metric_id likewise. A silent default here
+# is the rule failing without a trace, which is why it is never silent.
+#
+# The other two fields derived_forms() reads:
+#
+#   information_half_life   with `freq`, sets the staleness allowance that
+#                           CONFIDENCE derives from. `until_next_release` has no
+#                           fixed length -- it resolves to the series' own
+#                           cadence (daily 2 sessions, weekly 8, monthly 32,
+#                           quarterly 95) rather than guessing one.
+#   derived_window_days     OPTIONAL per-metric own-history window. Absent means
+#                           five years (1826 days), which is §K's percentile_5y.
+#   extreme_percentiles     OPTIONAL [lo, hi] override of the 5/95 extreme flag.
+#
+# Full convention, with the confidence table: docs/market-state.md.
+#
 # Required on every metric:
 #
 #   source            an id from source_registry.yaml
