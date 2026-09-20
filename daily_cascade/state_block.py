@@ -63,6 +63,16 @@ def zf(v) -> str:
         return "&mdash;"
 
 
+def dashed(v) -> str:
+    """An escaped value, or the em-dash ENTITY -- which must not go through esc().
+
+    esc() escapes the ampersand, so "&mdash;" handed to it renders as the literal
+    six characters. It did, in the first archived report: the exceptions table's
+    `since` column read "&mdash;" rather than a dash.
+    """
+    return esc(v) if v not in (None, "") else "&mdash;"
+
+
 def _li(items: list[str]) -> str:
     return ("<ul style='margin:6px 0 0 0;padding-left:18px'>"
             + "".join(f"<li>{i}</li>" for i in items) + "</ul>")
@@ -214,7 +224,7 @@ def exceptions_block(payload: dict) -> str:
             f'<td style="{TDL}">{esc(e.get("what"))}</td>'
             f'<td style="{TD}">{esc(e.get("value"))}</td>'
             f'<td style="{TDL}">{esc(e.get("threshold"))}</td>'
-            f'<td style="{TDL}">{esc(e.get("since") or "&mdash;")}</td></tr>')
+            f'<td style="{TDL}">{dashed(e.get("since"))}</td></tr>')
     return (f'<table style="{TBL}"><thead><tr>'
             f'<th style="{THL}">kind</th><th style="{THL}">what</th>'
             f'<th style="{TH}">value</th><th style="{THL}">threshold</th>'
@@ -298,7 +308,7 @@ def contradiction_table(payload: dict) -> str:
             + ("  <strong>EXCEPTION</strong>" if r.get("exception") else "")
             + f'</td><td style="{TD}">{mag}</td>'
             f'<td style="{TD}">{esc(r.get("persistence_days"))}</td>'
-            f'<td style="{TDL}">{esc(r.get("since") or "&mdash;")}</td></tr>')
+            f'<td style="{TDL}">{dashed(r.get("since"))}</td></tr>')
     return (f'<table style="{TBL}"><thead><tr>'
             f'<th style="{THL}">pair</th><th style="{THL}">state</th>'
             f'<th style="{TH}">z</th><th style="{TH}">days</th>'
