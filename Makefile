@@ -41,6 +41,7 @@ PY_VALIDATORS := \
 	tools/validate_numeral_audit.py \
 	tools/validate_deploy.py \
 	tools/validate_derived.py \
+	tools/validate_regime.py \
 	tools/validate_grader.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \

@@ -67,6 +67,7 @@ run() {
         CHESTER_LOG_DIR="$SANDBOX/logs" \
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
+        CHESTER_SKIP_STATE_CHECK=1 \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -445,6 +446,60 @@ if grep -qv '"delivery": "not_attempted"' "$ALERT"; then
     ok "ALWAYS=1 forces a delivery attempt on a healthy check, to prove the channel"
 else
     bad "ALWAYS=1 did not force an attempt"
+fi
+
+printf '%s\nThe market-state object check\n%s\n' "$LINE" "$LINE"
+
+# THE POINT OF THIS CHECK is that a healthy pipeline with no state object is not
+# healthy: the close pass is the object's only writer, so a missing object means
+# the 16:45 pass ran and did not reach that step. The report still went out, with
+# a block saying the object was missing.
+#
+# CHESTER_DB points the observation store at an empty database, which is the
+# cleanest way to produce "no object" without touching the real one.
+state_object_of() { sed -n 's/.*state_object=\([a-z_]*\).*/\1/p' "$STATUS"; }
+
+rm -f "$STATUS"
+env CHECKER_RC=0 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_DB="$SANDBOX/empty.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(state_of)" == "no_state_object" ]] && [[ "$RC" == "10" ]]; then
+    ok "a healthy pipeline with NO market-state object -> no_state_object, exit 10"
+elif [[ "$(state_object_of)" == "no_python" ]]; then
+    ok "no interpreter available here; the state check declined to guess (no_python)"
+else
+    bad "empty store -> state=$(state_of) exit=$RC state_object=$(state_object_of) (wanted no_state_object/10)"
+fi
+
+# AND IT MUST NOT OUTRANK A PIPELINE VERDICT. A stale pipeline explains a missing
+# object; reporting the symptom over the cause sends the reader to the wrong place.
+rm -f "$STATUS"
+env CHECKER_RC=1 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_DB="$SANDBOX/empty.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(state_of)" == "stale" ]] && [[ "$RC" == "1" ]]; then
+    ok "a stale pipeline with no object still reports stale -- the cause, not the symptom"
+else
+    bad "stale + no object reported state=$(state_of) exit=$RC (wanted stale/1)"
+fi
+
+# And the skip switch must not be able to turn a real verdict healthy.
+rm -f "$STATUS"
+run 0
+if [[ "$(state_object_of)" == "skipped" ]] && [[ "$RC" == "0" ]]; then
+    ok "CHESTER_SKIP_STATE_CHECK records skipped on the row rather than present -- a skipped check and a passing one are different states"
+else
+    bad "skip switch reported state_object=$(state_object_of) exit=$RC"
 fi
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"

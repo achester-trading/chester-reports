@@ -45,6 +45,16 @@
 #                       does not ship -- which is how the box ran a stale
 #                       ibgateway.service for a week while the gate stayed
 #                       green. A pipeline verdict always wins over this one.
+#  10 no state object -> the pipeline is healthy AND the most recently completed
+#                       session has no market-state object. The close pass is the
+#                       only writer of it (audit §K: one object, every report
+#                       reads it), so a missing object means the 16:45 pass did
+#                       not reach that step -- and the 07:00 anchor, which reads
+#                       and never recomputes, opens on an absent state block.
+#                       Ranked below the pipeline verdicts for the same reason
+#                       drift is: a stale pipeline EXPLAINS a missing object, and
+#                       reporting the symptom over the cause sends the reader to
+#                       the wrong place.
 #   9 check failed   -> the wrapper could not run the checker (env problem).
 #                       Distinct from the four above: this is the monitor
 #                       broken, not the pipeline.
@@ -116,6 +126,7 @@ case $RC in
     4) STATE=store_diverged;   HEADLINE="DIVERGED the CSV and SQLite stores disagree -- a dual-write failed" ;;
     5) STATE=morning_missed;   HEADLINE="MISSED the 07:00 morning anchor has not run -- each missed morning is a pre-open read that cannot be rebuilt" ;;
     8) STATE=unit_drift;       HEADLINE="DRIFT installed units differ from the repo" ;;
+   10) STATE=no_state_object;  HEADLINE="NO STATE the last completed session has no market-state object" ;;
     9) STATE=check_failed;     HEADLINE="BROKEN the heartbeat check itself could not run" ;;
     *) STATE=unknown;          HEADLINE="UNKNOWN checker exited $RC" ;;
 esac
@@ -307,6 +318,57 @@ if [[ "$STATE" == "ok" ]] && [[ "$DRIFT_STATE" == "drifted" ]]; then
     HEADLINE="DRIFT installed units differ from the repo: $DRIFT_NAMES"
 fi
 
+# ---- the market-state object ----------------------------------------------
+#
+# ON A SESSION DAY, THE LAST COMPLETED SESSION MUST HAVE AN OBJECT. The close pass
+# computes it and nothing else does (audit §K: one object, one writer, every report
+# reads it), so its absence is the only way to notice that the 16:45 pass ran but
+# did not reach that step. The report would still have been delivered, opening on a
+# state block that says the object is missing -- and a block that says nothing
+# happened is a block nobody reads twice.
+#
+# WHY `regime show` AND NOT A FRESH COMPUTE. A monitor that computed the object in
+# order to check whether it exists would create the thing it is testing for, and
+# would report healthy forever. `show` reads, and exits 1 when there is nothing to
+# read.
+#
+# A NON-SESSION DAY IS NOT A FAILURE: last_trading_session() returns the previous
+# session on a Saturday, so the check asks about a day that did have a close pass.
+STATE_OBJECT=unknown
+STATE_SESSION=""
+if [[ -x "$REPO/.venv/bin/python" ]]; then
+    STATE_PY="$REPO/.venv/bin/python"
+else
+    STATE_PY="$(command -v python3 || command -v python || true)"
+fi
+if [[ -n "${CHESTER_SKIP_STATE_CHECK:-}" ]]; then
+    STATE_OBJECT=skipped
+elif [[ -z "$STATE_PY" ]]; then
+    STATE_OBJECT=no_python
+    log "  market state: no interpreter found; not checked"
+else
+    STATE_SESSION="$(cd "$REPO" && "$STATE_PY" -c 'from altdata import session; print(session.last_trading_session().isoformat())' 2>/dev/null || true)"
+    if [[ -z "$STATE_SESSION" ]]; then
+        STATE_OBJECT=no_session
+        log "  market state: could not resolve the last trading session"
+    elif (cd "$REPO" && "$STATE_PY" -m regime show --session "$STATE_SESSION" >/dev/null 2>&1); then
+        STATE_OBJECT=present
+        log "  market state: object present for $STATE_SESSION"
+    else
+        STATE_OBJECT=missing
+        log "  market state: NO OBJECT for $STATE_SESSION -- the close pass is its"
+        log "               only writer, so that step did not run"
+    fi
+fi
+
+# Ranked below the pipeline verdicts AND below drift, on the argument each of
+# those is ranked on: a stale pipeline explains a missing object.
+if [[ "$STATE" == "ok" ]] && [[ "$STATE_OBJECT" == "missing" ]]; then
+    STATE=no_state_object
+    RC=10
+    HEADLINE="NO STATE no market-state object for $STATE_SESSION -- the 16:45 close pass did not compute one"
+fi
+
 # ---- how long has this been true? -----------------------------------------
 #
 # Computed HERE, after the verdict, because the verdict is what it is about. See
@@ -356,15 +418,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
