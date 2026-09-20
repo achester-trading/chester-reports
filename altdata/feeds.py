@@ -80,7 +80,7 @@ def staleness_multiple() -> float:
     except Exception:                                         # noqa: BLE001
         return float(STALENESS_MULTIPLE_FALLBACK)
 
-FEEDS = ("prices", "fred")
+FEEDS = ("prices", "fred", "loggers")
 
 
 def price_keys() -> list[str]:
@@ -91,6 +91,28 @@ def price_keys() -> list[str]:
 def fred_keys() -> list[str]:
     from . import config
     return [f"fred.{s.key}" for s in config.FRED_SERIES]
+
+
+def logger_rosters() -> list[tuple[str, list[str]]]:
+    """(name, keys) for every 6a logger that asked to be watched.
+
+    THE WHOLE REASON THE ROSTER EXISTS: a dead logger looks exactly like a quiet
+    one. A logger that stops writing has to reach the heartbeat, and the only way
+    that happens is if something knows the keys it should be writing.
+
+    A logger may declare `in_freshness=False` -- one awaiting an entitlement
+    decision is dormant BY DESIGN and must not make the heartbeat red for it.
+    """
+    from .loggers import load_all
+    out = []
+    for name, spec in sorted(load_all().items()):
+        if not spec.in_freshness:
+            continue
+        try:
+            out.append((name, spec.keys()))
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("logger %s could not list its keys: %s", name, exc)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -137,10 +159,42 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     return summary
 
 
-def pull(only: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+def pull_loggers(run_id: Optional[str] = None) -> dict:
+    """Every 6a logger, each isolated from the others.
+
+    ONE LOGGER NEVER TAKES ANOTHER DOWN. They share a step because they share a
+    cadence, not because they share a fate: a vendor outage in one must not cost
+    the night's rows in four others, and every day not logged is history that
+    cannot be bought back.
+    """
+    from .loggers import load_all
+    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0}
+    for name, spec in sorted(load_all().items()):
+        if spec.requires_key and not secrets.present(spec.requires_key):
+            out[name] = {"skipped": f"{spec.requires_key} not configured"}
+            out["ran"].append(name)
+            log.warning("%s: %s is not configured -- built but dormant; the "
+                        "freshness roster reports it as the series going stale",
+                        name, spec.requires_key)
+            continue
+        try:
+            r = spec.run(run_id=run_id)
+            out[name] = r
+            out["written"] += int(r.get("written") or 0)
+        except Exception as exc:                              # noqa: BLE001
+            log.exception("%s raised", name)
+            out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+        out["ran"].append(name)
+        out["total"] += 1
+    return out
+
+
+def pull(only: Optional[str] = None, run_id: Optional[str] = None,
+         skip: tuple[str, ...] = ()) -> dict:
     out: dict[str, Any] = {"ran": [], "skipped": []}
-    for name, fn in (("prices", pull_prices), ("fred", pull_fred)):
-        if only and only != name:
+    for name, fn in (("prices", pull_prices), ("fred", pull_fred),
+                     ("loggers", pull_loggers)):
+        if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue
         try:
@@ -175,14 +229,37 @@ def freshness(as_of: Optional[str] = None,
         last = session.last_trading_session().isoformat()
         multiple = staleness_multiple()
         out: dict[str, Any] = {"session": last, "as_of": as_of, "feeds": {}}
-        for name, keys in (("prices", price_keys()), ("fred", fred_keys())):
+        rosters = [("prices", price_keys()), ("fred", fred_keys())]
+        rosters += logger_rosters()
+        for name, keys in rosters:
             absent, stale, fresh = [], [], []
             detail = {}
+            if not keys:
+                out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
+                                      "absent": 0, "stale_keys": [],
+                                      "stale_detail": {}, "absent_keys": [],
+                                      "ok": True,
+                                      "note": "declares no keys yet"}
+                continue
             for k in keys:
                 rows = db.as_of(k, as_of=as_of)
                 if not rows:
-                    absent.append(k)
-                    continue
+                    # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
+                    # and most macro rows carry NULL, so a per-ticker logger looks
+                    # empty on the default join. Ask which instruments exist and
+                    # take the freshest of them: the question here is "did this
+                    # logger write last night", not "did it write for SPY".
+                    insts = db.instruments(k)
+                    newest_any = None
+                    for inst in insts:
+                        r2 = db.as_of(k, as_of=as_of, instrument=inst)
+                        if r2:
+                            d = str(r2[-1]["observed_at"])[:10]
+                            newest_any = max(newest_any or d, d)
+                    if newest_any is None:
+                        absent.append(k)
+                        continue
+                    rows = [{"observed_at": newest_any}]
                 newest = str(rows[-1]["observed_at"])[:10]
                 n, _ = _sessions_between(newest, last)
                 own, _why = derived.staleness_allowance(k)
@@ -232,6 +309,8 @@ def _main(argv: list[str]) -> int:
 
     pl = sub.add_parser("pull", help="run the feeds")
     pl.add_argument("--only", choices=FEEDS, default=None)
+    pl.add_argument("--skip", default="",
+                    help="comma-separated feeds to skip, e.g. loggers")
     pl.add_argument("--run-id", default=None)
     pl.add_argument("--json", action="store_true")
 
@@ -244,7 +323,8 @@ def _main(argv: list[str]) -> int:
                         format="%(levelname)s %(name)s: %(message)s")
 
     if a.cmd == "pull":
-        r = pull(only=a.only, run_id=a.run_id)
+        r = pull(only=a.only, run_id=a.run_id,
+                 skip=tuple(x.strip() for x in a.skip.split(",") if x.strip()))
         if a.json:
             print(json.dumps(r, indent=2, sort_keys=True, default=str))
         else:

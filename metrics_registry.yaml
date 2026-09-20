@@ -325,6 +325,10 @@ vocabularies:
     # group makes the confluence count conservative, which is the right direction
     # for a metric family with no graded history.
     - equity_tape
+    # RETAIL ACTIVITY. Its own group: a retail-flow share and a dealer greek are
+    # measurements of different participants, and a decision citing both is citing
+    # two genuinely independent observations rather than one tape twice.
+    - retail_activity
 
 defaults:
   trigger_eligible: false
@@ -1057,6 +1061,82 @@ metrics:
       reading -- a participation measure that needs no constituent data and
       carries no proxy caveat, because the two funds hold the same universe
       weighted two ways.
+  ndl.rtat10_activity:
+    source: nasdaq_data_link
+    mechanism_group: retail_activity
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    sample: top10_censored
+    trigger_eligible: false
+    description: >-
+      Daily retail activity share for a ticker in Nasdaq's RTAT10 -- the TEN names
+      with the most retail activity. A ticker's absence means "not in the top ten",
+      NOT "no retail activity", and the two are only the same if you forget which
+      table you are reading. Instrument-keyed.
+  ndl.rtat10_sentiment:
+    source: nasdaq_data_link
+    mechanism_group: retail_activity
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    sample: top10_censored
+    trigger_eligible: false
+    description: >-
+      Nasdaq's RTAT sentiment score for the same ten names. A vendor construct with
+      no published formula in the API response, logged as given.
+  ndl.rtat10_concentration:
+    source: nasdaq_data_link
+    mechanism_group: retail_activity
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    sample: top10_censored
+    trigger_eligible: false
+    description: >-
+      Herfindahl of activity share across the VISIBLE TEN, plus the top name's
+      share of them. An UPPER BOUND on the retail concentration of the whole
+      market: the invisible tail is flatter than anything this table can show.
+      Reads insufficient_history until 60 sessions exist.
+  ndl.rtat10_persistence:
+    source: nasdaq_data_link
+    mechanism_group: retail_activity
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: days
+    sample: top10_censored
+    trigger_eligible: false
+    description: >-
+      Consecutive days a ticker has been IN THE TOP TEN. A ticker that slips to
+      eleventh reads as a broken run that did not break -- the censoring is the
+      whole caveat. Reads insufficient_history until 60 sessions exist.
+  ndl.rtat10_new_entrants:
+    source: nasdaq_data_link
+    mechanism_group: retail_activity
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    sample: top10_censored
+    trigger_eligible: false
+    description: >-
+      Arrivals into the visible ten since the prior session. A measure of TURNOVER
+      AT THE BOUNDARY rather than of new retail interest: a name entering at tenth
+      displaced one that was tenth. Reads insufficient_history until 60 sessions.
   calc.spy_vs_252d_high:
     source: derived_state
     mechanism_group: equity_tape

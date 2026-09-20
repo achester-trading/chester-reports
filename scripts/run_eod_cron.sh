@@ -145,7 +145,12 @@ esac
 # check and in the object's own absent-with-a-reason dimensions, which is a better
 # channel than a red pipeline that hides the chain fetch behind it.
 log "feeds: pull start"
-FEED_OUT="$("$VENV_PY" -m altdata.feeds pull 2>&1)"
+# LOGGERS ARE SKIPPED HERE AND RUN IN THE OVERNIGHT PASS. They are nightly by
+# design (29.3's RTAT publishes for the prior session; the consensus log is an
+# end-of-day read) and this step exists to put prices and FRED in front of the
+# 16:45 object. Running them twice would be harmless -- drop_unchanged sees to that
+# -- and would still spend a vendor's rate limit twice for nothing.
+FEED_OUT="$("$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
 FEED_RC=$?
 printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 if [[ $FEED_RC -ne 0 ]]; then
