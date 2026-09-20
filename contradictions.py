@@ -247,10 +247,13 @@ def evaluate_pair(spec: dict, dims: dict, dials: dict, as_of: str,
                     f"{leg['name']} has no state: "
                     f"{leg.get('absent_reason') or 'absent'}")
                 return row
-        pair = (str(a.get("state")), str(b.get("state")))
+        # A LIST, not a tuple: the object is stored as JSON, and a tuple comes back
+        # as a list. replay_fields() normalises both sides now, but emitting a type
+        # the store cannot preserve was gratuitous either way.
+        pair = [str(a.get("state")), str(b.get("state"))]
         mismatch = {("negative", "up"), ("positive", "down")}
         row["states"] = pair
-        row["condition_met"] = pair in mismatch
+        row["condition_met"] = tuple(pair) in mismatch
         row["magnitude"] = None
         row["magnitude_note"] = (
             "a dial pair is a STATE MISMATCH, not a z: dealer gamma is a sign "

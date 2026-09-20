@@ -302,16 +302,21 @@ def prior_objects(objects_as_of: str, before_session: str, limit: int,
     replay of a later one sees, and that is a real change rather than a flaw -- it
     means the history was edited.
     """
-    rows = store.as_of(STORE_KEY, as_of=objects_as_of)
+    rows = [r for r in store.as_of(STORE_KEY, as_of=objects_as_of)
+            if str(r["observed_at"])[:10] < before_session]
+    # SLICE BEFORE PARSING. Each object is tens of kilobytes of JSON and the
+    # backfill calls this once per session, so parsing the whole history to keep
+    # the last eight made the run quadratic in its own output -- 77 sessions was
+    # imperceptible and a five-year backfill was not.
+    if limit:
+        rows = rows[-limit:]
     out = []
     for r in rows:
-        if str(r["observed_at"])[:10] >= before_session:
-            continue
         try:
             out.append(json.loads(r["value_text"]))
         except Exception:
             continue
-    return out[-limit:] if limit else out
+    return out
 
 
 def apply_persistence(dim: dict, name: str, history: list[dict]) -> dict:
@@ -612,14 +617,28 @@ def latest(as_of: Optional[str] = None,
 
 
 def replay_fields(obj: dict) -> dict:
-    """The object minus provenance, for an exact-replay comparison."""
+    """The object minus provenance, normalised, for an exact-replay comparison.
+
+    THE JSON ROUND TRIP IS PART OF THE COMPARISON, not a formality. One side of a
+    replay comes out of the store, so it has been through json.dumps and back; the
+    other is fresh in memory. Any type JSON does not preserve differs between them
+    for no reason at all -- a tuple becomes a list, and the gate reports a failure
+    that means nothing. That happened on the first real run, on
+    `gamma_vs_trend.states`: stored ['negative', 'flat'] against replayed
+    ('negative', 'flat').
+
+    Normalising both sides through JSON makes the comparison what it should be: the
+    stored form IS JSON, so equality in JSON terms is the only equality that
+    matters. A real difference -- a changed number, a changed state -- survives the
+    round trip untouched.
+    """
     def strip(o):
         if isinstance(o, dict):
             return {k: strip(v) for k, v in o.items() if k not in REPLAY_EXCLUDE}
-        if isinstance(o, list):
+        if isinstance(o, (list, tuple)):
             return [strip(v) for v in o]
         return o
-    return strip(obj)
+    return json.loads(json.dumps(strip(obj), sort_keys=True, default=str))
 
 
 # ---------------------------------------------------------------------------
@@ -810,15 +829,23 @@ def supportable_range(store: Optional[observations.ObservationStore] = None,
             if members:
                 primaries.append((name, str(members[0].get("metric"))))
         earliest: Optional[str] = None
+        earliest_metric: Optional[str] = None
+        earliest_kind: Optional[str] = None
         detail = {}
         for name, metric in primaries:
             rows = st.as_of(metric)
             first_avail = min((str(r["available_at"]) for r in rows), default=None)
+            kinds = sorted({(r["availability_kind"]
+                             if "availability_kind" in r.keys() else None)
+                            or "unstated" for r in rows})
             detail[name] = {"primary": metric,
                             "earliest_available_at": first_avail,
+                            "availability_kinds": kinds,
                             "observations": len(rows)}
             if first_avail and (earliest is None or first_avail < earliest):
                 earliest = first_avail
+                earliest_metric = metric
+                earliest_kind = ", ".join(kinds)
         last = session.last_trading_session().isoformat()
         if earliest is None:
             return {"first": None, "last": last, "per_dimension": detail,
@@ -828,14 +855,40 @@ def supportable_range(store: Optional[observations.ObservationStore] = None,
             if session_days(day.isoformat(), day.isoformat()):
                 break
             day += dt.timedelta(days=1)
+        # WHICH PRIMARY SET THE BOUND, AND HOW ITS AVAILABILITY WAS ARRIVED AT.
+        # This message used to tell one story -- the FRED migration instant -- and
+        # it went wrong the moment prices arrived with a RECONSTRUCTED availability
+        # reaching back five years: the bound moved to 2021 and the text still
+        # blamed a 2026 migration. A range that explains itself has to read the
+        # store rather than recite a known cause.
+        # WHICH PRIMARIES ARE REVISABLE, asked of the registry rather than of the
+        # spelling of their ids. A prefix test would also have put a metric id in
+        # this file, which validate_regime.py forbids for a good reason: a series
+        # named in code is a series that stops being a config decision.
+        revisable = [d for d in detail.values()
+                     if derived.registry_entry(d["primary"]).get(
+                         "revision_policy") == "revised"
+                     and d["earliest_available_at"]]
+        fred_bound = min((str(d["earliest_available_at"])[:10]
+                          for d in revisable), default=None)
         return {"first": day.isoformat(), "last": last, "per_dimension": detail,
                 "earliest_available_at": earliest,
+                "earliest_primary": earliest_metric,
+                "earliest_availability_kind": earliest_kind,
+                "fred_bound": fred_bound,
                 "reason": (
-                    f"every migrated FRED observation shares available_at "
-                    f"{earliest[:10]} -- the CSV-to-SQLite migration instant, not "
-                    f"a real first-publication date -- so nothing was knowable "
-                    f"before it and an object for an earlier session would be "
-                    f"eight absent dimensions")}
+                    f"the earliest availability across the dimensions' primary "
+                    f"members is {earliest[:10]}, from {earliest_metric} "
+                    f"(availability: {earliest_kind}). Objects before that date "
+                    f"would find nothing knowable at all."
+                    + (f" NOTE: the {len(revisable)} revisable primaries only "
+                       f"become knowable at {fred_bound} -- their migrated history "
+                       f"shares one available_at, the CSV-to-SQLite migration "
+                       f"instant, rather than a real first-publication date -- so "
+                       f"every session before {fred_bound} has those dimensions "
+                       f"absent and only the reconstructable ones present. ALFRED "
+                       f"ingestion (O.16) is what widens it."
+                       if fred_bound and fred_bound > day.isoformat() else ""))}
     finally:
         if own:
             st.close()

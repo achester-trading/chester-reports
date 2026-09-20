@@ -185,6 +185,24 @@ vocabularies:
   #   calculated -> recomputed  a methodology change REWRITES it, which is not
   #                             the same thing as the source restating
   #   FRED       -> revised     the source itself restates
+  # WHAT POPULATION A METRIC ACTUALLY MEASURED. Absent means the metric measures
+  # the thing its name says. A value here is a standing caveat that travels with
+  # the number: `sector_etf_proxy` means eleven cap-weighted sector funds stood in
+  # for the market, which is NOT market-wide breadth and must never be described
+  # as it. Declared as a vocabulary so a new proxy has to be named on purpose.
+  sample:
+    - sector_etf_proxy
+    - index_proxy
+  # AN OVERRIDE, NOT A SECOND RULE. `units` decides a metric's delta semantics;
+  # this exists for the one thing `units: percent` cannot separate -- a SPREAD in
+  # percent moves in basis points (HY OAS 2.70 -> 2.72 is +2bp) and a SHARE in
+  # percent moves in POINTS (breadth 36% -> 45% is +9pp, not +900bp). Declared per
+  # metric so the exception is visible in the diff.
+  delta_unit:
+    - bps
+    - percent
+    - raw
+    - pp
   revision_policy:
     - never
     - recomputed
@@ -257,6 +275,15 @@ vocabularies:
     # confirmation of a price move.
     - market_close
     - corporate_action
+    # EVERYTHING DERIVED FROM THE EQUITY TAPE IS ONE CLUSTER. Trend, breadth and
+    # realized volatility are three views of the SAME 28 closes: the index's
+    # distance from its average, the dispersion beneath it, and the size of its
+    # daily moves. They answer different questions and they are not independent
+    # observations, so a decision citing all three is citing one tape three times
+    # -- which is exactly the double-counting 26.9 forbids. Keeping them in one
+    # group makes the confluence count conservative, which is the right direction
+    # for a metric family with no graded history.
+    - equity_tape
 
 defaults:
   trigger_eligible: false
@@ -937,6 +964,127 @@ metrics:
   #
   # information_half_life is `permanent`. A graded outcome is a historical fact
   # about a decision that has already resolved; it does not decay.
+  calc.breadth_sector_above_50d:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    sample: sector_etf_proxy
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Share of the ELEVEN SPDR SECTOR ETFs trading above their own 50-day average.
+      NOT MARKET-WIDE BREADTH, and `sample: sector_etf_proxy` is the reason it can
+      never be described as such: real breadth counts ~500 constituents, while
+      eleven cap-weighted sector funds are eleven portfolios -- in a market led by
+      four megacaps XLK can sit above its average while most of its own holdings
+      sit below theirs. The proxy moves with breadth and UNDERSTATES narrowness,
+      which is the direction that matters, so it is worth having and worth
+      labelling. A partial sample emits nothing: eight of eleven reporting would
+      make the denominator the finding.
+  calc.breadth_sector_above_200d:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    sample: sector_etf_proxy
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The same share against the 200-day average -- the slower participation read.
+      Same proxy caveat, same reason.
+  calc.breadth_rsp_over_spy:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      RSP/SPY: equal weight over cap weight. The honest half of the breadth
+      reading -- a participation measure that needs no constituent data and
+      carries no proxy caveat, because the two funds hold the same universe
+      weighted two ways.
+  calc.cyclical_over_defensive:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      XLY/XLP -- consumer discretionary over consumer staples. What the equity
+      market is paying for growth, read as a ratio of two funds on the same tape
+      so a general re-rating cancels out. The second leg of the growth_vs_cyclicals
+      contradiction row: the growth DIMENSION says what the macro data shows, this
+      says what the tape is willing to pay for it.
+  calc.trend_spy_vs_50d:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SPY's close against its own 50-day average, in percent. Split-adjusted,
+      dividend-unadjusted closes -- the same series the pin log and the exposure
+      engine speak in.
+  calc.trend_spy_vs_200d:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: SPY's close against its own 200-day average, in percent.
+  calc.trend_spy_ma20_slope:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Percent change in SPY's 20-day average over 20 sessions -- direction rather
+      than position, so a market above its average but rolling over is
+      distinguishable from one above its average and rising.
+  calc.vol_spy_realized_20d:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Annualised realized volatility of SPY's 20-session log returns, in percent.
+      The leg the vol dial was missing: VIX alone is an implied number with nothing
+      to be rich or cheap against.
   regime.dimension_state:
     source: derived_state
     mechanism_group: market_state

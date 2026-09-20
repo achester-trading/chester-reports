@@ -115,6 +115,21 @@ DELTA_UNITS: dict[str, str] = {
     "fraction": "raw",
 }
 
+# PERCENTAGE POINTS, for the one case `units` cannot separate on its own.
+#
+# `percent` covers two different things in this repo. A SPREAD quoted in percent
+# moves in basis points, and that is the convention every rates desk uses: HY OAS
+# 2.70 -> 2.72 is +2bp. A SHARE quoted in percent does not: breadth going from 36%
+# of sectors to 45% is +9 POINTS, and reporting it as +900bp in a block a human
+# reads fast is technically correct and actively misleading.
+#
+# So a metric may declare `delta_unit: pp` in the registry. It is an OVERRIDE and
+# not a second rule: `units` still decides by default, the override must be
+# written down per metric, and tools/validate_derived.py asserts that any value
+# here is one of the declared units rather than a typo that silently falls back.
+DELTA_UNIT_OVERRIDE = "delta_unit"
+DELTA_UNITS_ALL = ("bps", "percent", "raw", "pp")
+
 # ---------------------------------------------------------------------------
 # STALENESS ALLOWANCE BY information_half_life, in SESSIONS.
 #
@@ -232,6 +247,12 @@ def registry_entry(metric_id: str) -> dict:
 def delta_unit_for(metric_id: str) -> tuple[str, str]:
     """(delta_unit, why). Rule 2."""
     e = registry_entry(metric_id)
+    override = e.get(DELTA_UNIT_OVERRIDE)
+    if override:
+        if override not in DELTA_UNITS_ALL:
+            return "raw", (f"delta_unit {override!r} is not one of "
+                           f"{DELTA_UNITS_ALL}; treated as raw")
+        return override, f"registry delta_unit {override!r}"
     units = e.get("units")
     if units is None:
         return "raw", (f"no registry entry for {metric_id!r}; treated as raw -- "
@@ -342,6 +363,8 @@ def _delta(level: float, past: float, unit: str) -> Optional[float]:
         if past == 0:
             return None
         return round(100.0 * (level - past) / abs(past), 4)
+    # `pp` and `raw` are both a plain difference; they differ only in what the
+    # number is called, which is what a reader needs and the arithmetic does not.
     return round(level - past, 6)
 
 

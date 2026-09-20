@@ -172,9 +172,30 @@ def group_a() -> None:
     print(f"{LINE}\nA. EXACT REPLAY\n{LINE}")
     store = observations.ObservationStore()
     try:
-        rows = [r for r in store.as_of(regime.STORE_KEY)]
-        check(bool(rows), f"the store holds market_state objects to replay "
-                          f"({len(rows)})")
+        current = (regime.load_config() or {}).get("version")
+        all_rows = list(store.as_of(regime.STORE_KEY))
+        # ONLY OBJECTS COMPUTED UNDER THE CURRENT RULES CAN BE REPLAYED.
+        #
+        # A stored object records its config_version. When the config changes on
+        # purpose -- a dimension given new members, a contradiction pair pointed at
+        # a different series -- every older object legitimately recomputes to
+        # something else, and failing on that would mean the gate cannot tell "the
+        # rules changed" from "the arithmetic broke". Those are the two things it
+        # exists to distinguish, so superseded objects are REPORTED and skipped.
+        rows = [r for r in all_rows
+                if (json.loads(r["value_text"]).get("config_version") == current)]
+        superseded = len(all_rows) - len(rows)
+        check(bool(all_rows), f"the store holds market_state objects "
+                              f"({len(all_rows)})")
+        if superseded:
+            print(f"        {superseded} object(s) were computed under an earlier "
+                  f"config version and are not replayed against {current}; "
+                  f"re-run `regime backfill` to bring them forward")
+        check(bool(rows),
+              f"and {len(rows)} of them were computed under the current config "
+              f"{current!r}, so there is something to replay. A store where EVERY "
+              f"object is superseded is a store whose history no longer matches "
+              f"its own rules")
         if not rows:
             return
         # The newest and the oldest: the oldest has no history, the newest has

@@ -182,7 +182,8 @@ CREATE INDEX IF NOT EXISTS obs_available
 # available_at that is still <= the cutoff. Correlated rather than a window
 # function so it runs on any SQLite build the VPS happens to ship.
 AS_OF_SQL = """
-SELECT observed_at, value_num, value_text, source, available_at, run_id
+SELECT observed_at, value_num, value_text, source, available_at, run_id,
+       availability_kind
   FROM observations o
  WHERE registry_key = :key
    AND instrument IS :instrument

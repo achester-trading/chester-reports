@@ -44,21 +44,36 @@
 # for them". For five that is true. For growth, trend and breadth it is not, and
 # the reason is worth stating in the file rather than discovering per-run:
 #
-#   trend and breadth need EQUITY PRICES, and the store has none.
-#   altdata/sources/yfinance_source.py declares 27 symbols including SPY and all
-#   eleven sector ETFs, and nothing schedules it -- no timer, no unit, no CI job.
-#   data_store/ holds 59 FRED series and not one price. So both dimensions are
-#   declared here with the metrics they WILL use, and both print absent with that
-#   reason until something fetches them.
+# Phase 2b closed the price gap: yfinance_source.py now runs twice a session
+# (16:10 and 06:45) with a five-year history backfilled, so `trend`, `breadth` and
+# the volatility dimension's realized leg all compute from stored closes. What
+# remains, and why:
 #
-#   growth has no daily series either. Its members are weekly and monthly, and
-#   its primary is initial claims because that is the fastest growth signal the
-#   store actually carries. It is declared honestly rather than promoted.
+#   BREADTH IS A SECTOR PROXY, NOT MARKET-WIDE BREADTH. It is the share of the
+#   eleven SPDR sector funds above their own averages, plus RSP/SPY. The registry
+#   flags the two share metrics `sample: sector_etf_proxy` and the dimension says
+#   so in its note, because eleven cap-weighted funds are eleven portfolios: in a
+#   market led by four megacaps XLK can sit above its average while most of its own
+#   holdings sit below theirs. The proxy UNDERSTATES narrowness, which is the
+#   direction that matters, so it is worth having and worth labelling.
 #
-# A dimension declared here with metrics the store does not have is not a bug in
-# this file. It is the gap, written down where the run can report it.
+#   growth still has no daily series. Its members are weekly and monthly, and its
+#   primary is initial claims because that is the fastest growth signal the store
+#   actually carries. Its freshness is judged against its OWN metrics' half-lives
+#   rather than a daily calendar -- see piece 4.
 
-version: market-state-v1
+# BUMPED WHENEVER A RULE CHANGES, and that is what makes the exact-replay check
+# meaningful. A stored object records the config_version it was computed under; the
+# gate replays only objects whose version matches the current file, and reports the
+# rest as superseded rather than failing on them. Without the bump, editing a
+# threshold and breaking the arithmetic look identical.
+#
+#   v1    (19 Sep 2026) eight dimensions, three dials, seven contradiction rows.
+#   v1.1  (20 Sep 2026) Phase 2b: breadth and trend given real members from the
+#         price feed, the volatility dimension given its realized leg, the vol
+#         dial's realized/implied ratio bands, and pairs 1 and 2 pointed at the
+#         series the order names (SPY, HY OAS) rather than at the dimensions.
+version: market-state-v1.1
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -205,16 +220,25 @@ dimensions:
       - {state: flat, min_percentile: 33}
       - {state: down, min_percentile: 0}
     members:
-      - metric: mkt_spy
+      - metric: calc.trend_spy_vs_200d
         polarity: +1
         because: >-
-          The index's own level against its five-year distribution. A moving
-          average would be the better rule and needs the same missing series, so
-          v1 states the percentile rule and v2 replaces it.
+          SPY against its own 200-day average -- the classic trend definition, and
+          the primary because it is the slowest of the three and therefore the one
+          a 1-3m horizon should turn on.
+      - metric: calc.trend_spy_vs_50d
+        polarity: +1
+        because: The faster position read, which turns first at a top.
+      - metric: calc.trend_spy_ma20_slope
+        polarity: +1
+        because: >-
+          DIRECTION, not position. A market above its average and rolling over and
+          one above its average and rising are the same distance from it and not
+          the same trend; nothing else in this dimension can tell them apart.
     note: >-
-      ABSENT UNTIL PRICES ARE STORED. mkt_spy is declared in
-      altdata/sources/yfinance_source.py and nothing writes it: no timer, no
-      unit, no CI job. The dimension will compute the day it exists.
+      Computed from the stored split-adjusted closes -- the same series the pin log
+      and the exposure engine speak in, which is why a contradiction row comparing
+      dealer gamma to the trend is comparing one SPY and not two.
 
   breadth:
     horizon: 1-3m
@@ -224,18 +248,29 @@ dimensions:
       - {state: mixed, min_percentile: 33}
       - {state: narrow, min_percentile: 0}
     members:
-      - metric: mkt_rsp_over_spy
+      - metric: calc.breadth_sector_above_50d
         polarity: +1
         because: >-
-          Equal weight over cap weight is the cleanest breadth read available
-          from daily closes alone -- when the average stock outpaces the index,
-          participation is broad.
+          More of the eleven sector funds above their own 50-day average is
+          broader participation. A SECTOR PROXY -- see the dimension note.
+      - metric: calc.breadth_sector_above_200d
+        polarity: +1
+        because: The same share on the slower average, so a short squeeze in a
+          narrow tape does not read as participation.
+      - metric: calc.breadth_rsp_over_spy
+        polarity: +1
+        because: >-
+          Equal weight over cap weight, and the honest half of this dimension: the
+          two funds hold the same universe weighted two ways, so the ratio is a
+          participation measure that needs no constituent data and carries no
+          proxy caveat.
     note: >-
-      ABSENT UNTIL PRICES ARE STORED, and RSP is not even among the 27 declared
-      symbols -- the eleven sector ETFs are, so a share-of-sectors-above-their-
-      own-50dma rule is the realistic v1 once prices land. Declared as the
-      intended shape, computing nothing today rather than faking participation
-      from a macro series.
+      A SECTOR-ETF PROXY, NOT MARKET-WIDE BREADTH. The two share metrics carry
+      `sample: sector_etf_proxy` in the registry, and nothing may describe this
+      dimension as market-wide breadth: real breadth counts ~500 constituents,
+      while eleven cap-weighted funds are eleven portfolios. The proxy moves with
+      breadth and understates narrowness -- the direction that matters -- so it is
+      worth having as long as it is labelled. RSP/SPY is the leg with no caveat.
 
   volatility:
     horizon: 1-3m
@@ -248,11 +283,15 @@ dimensions:
       - metric: fred.vix
         polarity: +1
         because: Implied volatility of the index, daily, from FRED.
+      - metric: calc.vol_spy_realized_20d
+        polarity: +1
+        because: >-
+          Realized volatility of SPY's own 20-session returns. The leg this
+          dimension was missing: implied alone has nothing to be rich or cheap
+          against, and the two disagreeing IS the fourth contradiction row.
     note: >-
-      THE REALIZED LEG IS MISSING. Realized volatility needs SPY closes, which
-      the store does not have, so v1 is implied-only and the vol dial says so.
-      The realized/implied ratio is the more informative number and it is one
-      fetched series away.
+      Implied and realized together. The vol dial reads their RATIO separately --
+      a level and a premium are different statements.
 
 # ---------------------------------------------------------------------------
 # THE THREE DIALS
@@ -289,11 +328,20 @@ dials:
       - {state: normal, min_level: 14}
       - {state: subdued, min_level: 0}
     realized_implied:
-      metric: mkt_spy
+      metric: calc.vol_spy_realized_20d
       window_sessions: 20
+      # BANDS ON THE RATIO realized/implied, not on either level. Below 1 means
+      # implied is rich to realized -- a risk premium being paid; above 1 means
+      # implied is cheap to what the tape is actually doing, which is the
+      # complacency case and the one worth a row.
+      ratio_bands:
+        - {state: implied_cheap, min_ratio: 1.0}
+        - {state: fair, min_ratio: 0.75}
+        - {state: implied_rich, min_ratio: 0.0}
       note: >-
-        Realized/implied needs SPY closes. Absent until prices are stored; the
-        dial reports the gap rather than pretending VIX alone is the whole read.
+        realized/implied as a ratio, from the stored SPY closes against VIX. The
+        more informative number of the two, and the reason the volatility
+        dimension carries both legs.
     term_structure:
       requires_store_keys: [cfe.vx1, cfe.vx2, cfe.vx3]
       note: >-
@@ -356,20 +404,29 @@ contradictions:
 
   pairs:
     - id: price_vs_breadth
-      legs: [trend, breadth]
-      kind: dimension_pair
+      legs: [yfinance.mkt_spy, calc.breadth_sector_above_50d]
+      kind: metric_pair
+      polarities: [+1, +1]
       expect: same
       because: >-
         An index making new highs while participation narrows is the classic
         distribution signature. (1) in the order.
+        THE PRICE LEG IS THE PRICE, not the trend dimension, and the difference is
+        the whole row: trend's primary is SPY's distance from its 200-day average,
+        and a market at a five-year high can sit an ordinary 6% above that average
+        -- which reads as middling and hides exactly the divergence this row is
+        for. SPY's own level percentile is what "making new highs" means.
 
     - id: equities_vs_credit
-      legs: [trend, credit]
-      kind: dimension_pair
+      legs: [yfinance.mkt_spy, fred.hy_oas]
+      kind: metric_pair
+      polarities: [+1, -1]
       expect: same
       because: >-
-        SPY against HY OAS. Credit usually leads equities at turns, so equities
-        strong while credit widens is the divergence worth a row. (2).
+        SPY against HY OAS, which is what the order names. Credit usually leads
+        equities at turns, so equities strong while credit widens is the divergence
+        worth a row. The HY polarity is -1: a WIDE spread is stress, so on a
+        shared risk-on scale it points the other way from a rising index.
 
     - id: long_bond_vs_hy
       legs: [fred.yield_30y, fred.hy_oas]
@@ -382,7 +439,7 @@ contradictions:
         calm says the two markets disagree about what the term premium means.
 
     - id: implied_vs_realized_vol
-      legs: [fred.vix, mkt_spy_realized_20d]
+      legs: [fred.vix, calc.vol_spy_realized_20d]
       kind: metric_pair
       polarities: [+1, +1]
       expect: same
@@ -394,7 +451,7 @@ contradictions:
         absent rather than assuming.
 
     - id: growth_vs_cyclicals
-      legs: [growth, mkt_xly_over_xlp]
+      legs: [growth, calc.cyclical_over_defensive]
       kind: mixed_pair
       polarities: [+1, +1]
       expect: same
