@@ -250,6 +250,32 @@ sources:
         Tier D and unofficial: a scraped social aggregate with no published
         methodology, logged because its CHANGES may be informative and never because
         its level is authoritative.
+  blockchair:
+    name: Blockchair Zcash chain statistics
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [on_chain]
+    geography: [global]
+    latency: chain tip, refreshed continuously
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The endpoint reports a chain tip rather than a dated series, so observed_at is
+      the session on which it was read.
+    license: public API within its free rate limit, no key
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/shielded.py
+    status: gated
+    gate: the stored probe zec.shielded_probe
+    caveats:
+      - >-
+        IT DOES NOT PUBLISH A SHIELDED/UNSHIELDED SPLIT, which is the one number this
+        source was wanted for. 34 fields, and the ones whose names contain "shield"
+        are mempool counters. zec.shielded_tx_share is registered and EMPTY, and the
+        probe records all four candidates' answers so the gap is not re-investigated
+        next quarter.
+      - >-
+        Tier C mirror: a third-party indexer of someone else's chain, useful for
+        aggregates and not authoritative for any of them.
   derived_state:
     name: The market-state object -- dimensions, dials and contradictions
     tier: derived

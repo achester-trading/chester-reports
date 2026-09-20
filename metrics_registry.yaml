@@ -352,6 +352,10 @@ vocabularies:
     - social_attention
     # BORROW TERMS -- what it costs and whether it is possible to be short.
     - borrow_terms
+    # PRIVACY CHAIN. Its own group: a shielded-pool share is an on-chain behaviour
+    # measure and a ZEC price is a market one, and this family exists to watch
+    # whether the two diverge -- which they cannot do inside one cluster.
+    - privacy_chain
 
 defaults:
   trigger_eligible: false
@@ -1342,6 +1346,93 @@ metrics:
     description: >-
       The stored borrow-entitlement probe, recorded either way. States: entitled,
       not_entitled, probe_failed, never_probed. This account reads not_entitled.
+  zec.price_usd:
+    source: yfinance
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      ZEC close in USD. Daily, including weekends: a chain does not keep exchange hours, which is why it is not in the equity price basket and not subject to its session filter.
+  zec.realized_vol_20d:
+    source: yfinance
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Annualised realized volatility of ZEC's 20-day log returns, on a 365-DAY year rather than 252 -- annualising a seven-day-a-week series on a trading-day count would overstate it by about 20 percent.
+  zec.beta_to_btc_60d:
+    source: yfinance
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      ZEC's beta to BTC over 60 overlapping days, from log returns. Computed on the days both series traded; BTC comes from the price basket, so the two are the same vintage.
+  zec.btc_ratio:
+    source: yfinance
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      ZEC divided by BTC. A RELATIVE PRICE and explicitly NOT a share of crypto market capitalisation -- see zec.crypto_cap_share for why the two are not interchangeable.
+  zec.shielded_tx_share:
+    source: blockchair
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      Share of ZEC transactions using the shielded pool. NO REACHABLE SOURCE TODAY and the metric is registered empty on purpose: blockchair answers with 34 fields and no shielded/unshielded split (its 'shield' matches are mempool counters), zcashblockexplorer does not resolve, zcha.in returns 520 and messari 404. zec.shielded_probe holds all four answers so the gap is not re-investigated.
+  zec.crypto_cap_share:
+    source: blockchair
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      ZEC's share of total crypto market capitalisation. REGISTERED EMPTY: no source here publishes a TOTAL capitalisation. zec.btc_ratio is computable and is a different number -- a relative price, not a share of a market -- so it is logged under its own name rather than substituted under this one. A proxy under the wrong label is worse than a gap.
+  zec.shielded_probe:
+    source: blockchair
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      Every candidate explorer's answer, recorded nightly. Run every night rather
+      than once because an explorer GAINING the shielded field is the event this
+      logger waits for, and nobody will re-check by hand. States: available,
+      no_shielded_field.
   ndl.rtat10_activity:
     source: nasdaq_data_link
     mechanism_group: retail_activity
