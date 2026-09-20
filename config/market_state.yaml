@@ -1,0 +1,394 @@
+# market_state.yaml -- the market-state object's declared rules.
+#
+# Audit #3 §K is the schema; this file is the RULES, and it is a config file
+# rather than a table in regime.py for one reason: a threshold in code is a
+# threshold that gets tuned in a commit nobody reads as a change of belief.
+# regime.py reads this and carries no dimension, no metric and no threshold of
+# its own.
+#
+# -----------------------------------------------------------------------------
+# HOW A DIMENSION GETS ITS STATE -- BANDS ON ONE PRIMARY, NOT A COMPOSITE
+# -----------------------------------------------------------------------------
+#
+# Each dimension declares an ordered list of members. The FIRST is the primary
+# and it alone sets the state, through declared percentile bands. The others are
+# EVIDENCE: each is scored the same way, and a member landing in the state's own
+# band is `supporting`, a member landing in a different band is `contradicting`.
+#
+# This is deliberately NOT a 0-100 composite. daily_cascade/payload.py has said
+# so since the regime block was first named: "Declared thresholds and a state
+# machine, never a 0-100 composite." A composite averages disagreement away --
+# it turns "credit is calm and equities are not" into a middling number, which is
+# precisely the information worth keeping. Here the disagreement survives as a
+# list of metric ids a reader can look up.
+#
+# `polarity` maps a member onto the dimension's own scale: +1 means a higher
+# reading pushes toward the FIRST-listed state, -1 means it pushes away. Getting
+# a polarity wrong inverts a dimension, so each one carries a `because` note.
+#
+# `persistence_sessions` keeps states from flapping: a raw reading that
+# disagrees with the published state must hold for this many consecutive session
+# computations before the published state moves. Until then the object carries
+# the old state plus `pending_state` and `pending_since`, which is the honest
+# rendering of "it looks like it is turning and has not turned yet".
+#
+# `max_staleness_sessions` is when a dimension stops having a state at all. Past
+# it the dimension prints ABSENT with the reason -- never a stale state presented
+# as a current one.
+#
+# -----------------------------------------------------------------------------
+# V1 IS EIGHT DIMENSIONS AND THREE OF THEM ARE ABSENT TODAY
+# -----------------------------------------------------------------------------
+#
+# The Phase 2 order chose these eight "because the store already has daily series
+# for them". For five that is true. For growth, trend and breadth it is not, and
+# the reason is worth stating in the file rather than discovering per-run:
+#
+#   trend and breadth need EQUITY PRICES, and the store has none.
+#   altdata/sources/yfinance_source.py declares 27 symbols including SPY and all
+#   eleven sector ETFs, and nothing schedules it -- no timer, no unit, no CI job.
+#   data_store/ holds 59 FRED series and not one price. So both dimensions are
+#   declared here with the metrics they WILL use, and both print absent with that
+#   reason until something fetches them.
+#
+#   growth has no daily series either. Its members are weekly and monthly, and
+#   its primary is initial claims because that is the fastest growth signal the
+#   store actually carries. It is declared honestly rather than promoted.
+#
+# A dimension declared here with metrics the store does not have is not a bug in
+# this file. It is the gap, written down where the run can report it.
+
+version: market-state-v1
+schema_source: docs/chester-reports-audit-3.md §K
+
+defaults:
+  persistence_sessions: 2
+  max_staleness_sessions: 10
+  window_days: 1826            # five years, §K's percentile_5y
+
+# ---------------------------------------------------------------------------
+# THE EIGHT DIMENSIONS
+# ---------------------------------------------------------------------------
+dimensions:
+
+  growth:
+    horizon: 1-3m
+    states: [expanding, slowing, contracting]
+    bands:
+      - {state: expanding,   min_percentile: 66}
+      - {state: slowing,     min_percentile: 33}
+      - {state: contracting, min_percentile: 0}
+    max_staleness_sessions: 34       # its primary is weekly
+    members:
+      - metric: fred.claims_4wk
+        polarity: -1
+        because: >-
+          More people filing for unemployment is less growth, so a HIGH claims
+          percentile pushes toward contracting, not expanding.
+      - metric: fred.housing_permits
+        polarity: +1
+        because: Permits are forward-looking construction demand.
+      - metric: fred.job_openings
+        polarity: +1
+        because: Vacancies are labour demand.
+      - metric: fred.avg_wkly_hours
+        polarity: +1
+        because: >-
+          Hours are cut before heads are, so they turn before payrolls do.
+    note: >-
+      NO DAILY SERIES. The store's growth material is weekly (claims) and
+      monthly (permits, openings, hours). The dimension is real but its cadence
+      is not daily, and its staleness allowance says so.
+
+  inflation:
+    horizon: 1-3m
+    states: [rising, stable, falling]
+    bands:
+      - {state: rising, min_percentile: 66}
+      - {state: stable, min_percentile: 33}
+      - {state: falling, min_percentile: 0}
+    members:
+      - metric: fred.breakeven_10y
+        polarity: +1
+        because: >-
+          The 10y breakeven is the market's own inflation expectation and it is
+          daily, which is why it leads rather than the CPI prints.
+      - metric: fred.breakeven_5y5y
+        polarity: +1
+        because: The forward breakeven, the anchored-expectations read.
+      - metric: fred.sticky_core
+        polarity: +1
+        because: Sticky-price core is the slow, persistent component.
+      - metric: fred.wti
+        polarity: +1
+        because: Crude passes into headline inflation within a quarter.
+
+  rates:
+    horizon: 1-3m
+    states: [high, mid, low]
+    bands:
+      - {state: high, min_percentile: 66}
+      - {state: mid, min_percentile: 33}
+      - {state: low, min_percentile: 0}
+    members:
+      - metric: fred.yield_10y
+        polarity: +1
+        because: The 10y is the discount rate everything else is priced off.
+      - metric: fred.yield_2y
+        polarity: +1
+        because: The 2y is the policy path.
+      - metric: fred.yield_30y
+        polarity: +1
+        because: The 30y is the term-premium and fiscal read.
+      - metric: fred.mortgage_30y
+        polarity: +1
+        because: Where the rate complex reaches the household.
+
+  liquidity:
+    horizon: 1-3m
+    states: [ample, neutral, tight]
+    bands:
+      - {state: ample, min_percentile: 66}
+      - {state: neutral, min_percentile: 33}
+      - {state: tight, min_percentile: 0}
+    members:
+      - metric: fred.rrp
+        polarity: -1
+        because: >-
+          Cash parked at the reverse repo facility is cash NOT in the system, so
+          a high RRP percentile is tight liquidity. This polarity is the one
+          most likely to be set backwards.
+      - metric: fred.bank_reserves
+        polarity: +1
+        because: Reserves are the banking system's own liquidity.
+      - metric: fred.fed_balance
+        polarity: +1
+        because: >-
+          The balance sheet is the stock of central-bank money. NOTE the units
+          trap CLAUDE.md names -- WALCL is in MILLIONS while RRP and TGA are in
+          billions. derived_forms() never mixes two series in one number, so the
+          trap cannot bite here; it bites anything that subtracts them.
+      - metric: fred.nfci
+        polarity: -1
+        because: >-
+          The Chicago Fed's index is scaled so that POSITIVE is tighter than
+          average. A high percentile is tight.
+
+  credit:
+    horizon: 1-3m
+    states: [easy, neutral, stressed]
+    bands:
+      - {state: easy, min_percentile: 66}
+      - {state: neutral, min_percentile: 33}
+      - {state: stressed, min_percentile: 0}
+    members:
+      - metric: fred.hy_oas
+        polarity: -1
+        because: >-
+          A WIDE high-yield spread is stress, so a high spread percentile is the
+          stressed end of the scale, not the easy end.
+      - metric: fred.bb_oas
+        polarity: -1
+        because: The crossover tier, where the cycle shows first.
+      - metric: fred.ccc_oas
+        polarity: -1
+        because: The distressed tier, the tail of the credit distribution.
+      - metric: fred.ig_oas
+        polarity: -1
+        because: Investment grade, the broad corporate funding cost.
+
+  trend:
+    horizon: 1-3m
+    states: [up, flat, down]
+    bands:
+      - {state: up, min_percentile: 66}
+      - {state: flat, min_percentile: 33}
+      - {state: down, min_percentile: 0}
+    members:
+      - metric: mkt_spy
+        polarity: +1
+        because: >-
+          The index's own level against its five-year distribution. A moving
+          average would be the better rule and needs the same missing series, so
+          v1 states the percentile rule and v2 replaces it.
+    note: >-
+      ABSENT UNTIL PRICES ARE STORED. mkt_spy is declared in
+      altdata/sources/yfinance_source.py and nothing writes it: no timer, no
+      unit, no CI job. The dimension will compute the day it exists.
+
+  breadth:
+    horizon: 1-3m
+    states: [broad, mixed, narrow]
+    bands:
+      - {state: broad, min_percentile: 66}
+      - {state: mixed, min_percentile: 33}
+      - {state: narrow, min_percentile: 0}
+    members:
+      - metric: mkt_rsp_over_spy
+        polarity: +1
+        because: >-
+          Equal weight over cap weight is the cleanest breadth read available
+          from daily closes alone -- when the average stock outpaces the index,
+          participation is broad.
+    note: >-
+      ABSENT UNTIL PRICES ARE STORED, and RSP is not even among the 27 declared
+      symbols -- the eleven sector ETFs are, so a share-of-sectors-above-their-
+      own-50dma rule is the realistic v1 once prices land. Declared as the
+      intended shape, computing nothing today rather than faking participation
+      from a macro series.
+
+  volatility:
+    horizon: 1-3m
+    states: [elevated, normal, subdued]
+    bands:
+      - {state: elevated, min_percentile: 66}
+      - {state: normal, min_percentile: 33}
+      - {state: subdued, min_percentile: 0}
+    members:
+      - metric: fred.vix
+        polarity: +1
+        because: Implied volatility of the index, daily, from FRED.
+    note: >-
+      THE REALIZED LEG IS MISSING. Realized volatility needs SPY closes, which
+      the store does not have, so v1 is implied-only and the vol dial says so.
+      The realized/implied ratio is the more informative number and it is one
+      fetched series away.
+
+# ---------------------------------------------------------------------------
+# THE THREE DIALS
+# ---------------------------------------------------------------------------
+dials:
+
+  macro:
+    # A DECLARED TABLE, NOT A MODEL. Phase 4 maps the eleven pillars onto the
+    # dials properly; until then this is an explicit lookup over three dimension
+    # states, and its crudeness is visible rather than buried in a weighting.
+    from_dimensions: [growth, inflation, rates]
+    rules:
+      - {when: {growth: expanding, inflation: rising}, state: overheating}
+      - {when: {growth: expanding, inflation: falling}, state: goldilocks}
+      - {when: {growth: expanding}, state: expansion}
+      - {when: {growth: contracting, inflation: rising}, state: stagflation}
+      - {when: {growth: contracting, inflation: falling}, state: deflationary_bust}
+      - {when: {growth: contracting}, state: contraction}
+      - {when: {growth: slowing, inflation: rising}, state: late_cycle}
+      - {when: {growth: slowing, inflation: falling}, state: disinflationary_slowdown}
+      - {when: {}, state: mixed}          # the catch-all, and it says so
+    note: >-
+      `rates` is declared as an input and is NOT used by the rules yet. That is
+      deliberate and visible: the table needed a third axis to be worth having,
+      and inventing one now would be the composite this design refuses.
+
+  vol:
+    # VIX LEVEL BANDS -- absolute levels, not percentiles, because the whole
+    # point of a vol dial is that 30 means something on its own.
+    primary: fred.vix
+    level_bands:
+      - {state: crisis, min_level: 30}
+      - {state: elevated, min_level: 20}
+      - {state: normal, min_level: 14}
+      - {state: subdued, min_level: 0}
+    realized_implied:
+      metric: mkt_spy
+      window_sessions: 20
+      note: >-
+        Realized/implied needs SPY closes. Absent until prices are stored; the
+        dial reports the gap rather than pretending VIX alone is the whole read.
+    term_structure:
+      requires_store_keys: [cfe.vx1, cfe.vx2, cfe.vx3]
+      note: >-
+        30.8's VX1/VX2/VX3 state machine, gated on the CFE Enhanced
+        subscription. The keys are not in the store, so the dial prints absent
+        with that reason -- it is NOT computed from anything else.
+
+  gamma:
+    # READ, NEVER RECOMPUTED. The exposure engine owns dealer gamma; a second
+    # implementation here would be a second answer, and the Phase 2 order says
+    # read it. altdata/grader.py already has the reader this uses.
+    source: exposure_engine
+    symbol: SPY
+    states: [positive, negative, flat]
+    note: >-
+      The sign of dollar gamma per 1% from the session's own exposure profile.
+      No threshold, no smoothing, no recomputation.
+
+# ---------------------------------------------------------------------------
+# CONTRADICTION TABLE v1 -- six computed pairs and one reserved
+# ---------------------------------------------------------------------------
+#
+# Each pair names two legs that normally move together and measures the DIVERGENCE
+# between their own-history percentiles as a z of that divergence over the same
+# window. A row opens after persistence_sessions and closes the same way, so a
+# single day's disagreement is not an event.
+#
+# `expect` says what agreement looks like: `same` means the two effective
+# percentiles should be close, `opposite` means they should be far apart, and a
+# row fires when the relationship inverts.
+contradictions:
+  persistence_sessions: 2
+  exception_sessions: 5          # at or past this, the row is an exception
+
+  pairs:
+    - id: price_vs_breadth
+      legs: [trend, breadth]
+      kind: dimension_pair
+      expect: same
+      because: >-
+        An index making new highs while participation narrows is the classic
+        distribution signature. (1) in the order.
+
+    - id: equities_vs_credit
+      legs: [trend, credit]
+      kind: dimension_pair
+      expect: same
+      because: >-
+        SPY against HY OAS. Credit usually leads equities at turns, so equities
+        strong while credit widens is the divergence worth a row. (2).
+
+    - id: long_bond_vs_hy
+      legs: [fred.yield_30y, fred.hy_oas]
+      kind: metric_pair
+      polarities: [+1, -1]
+      expect: same
+      because: >-
+        THE STANDING WATCH LINE. (3) in the order, and the one pair named as
+        already being watched: a long bond selling off while high yield stays
+        calm says the two markets disagree about what the term premium means.
+
+    - id: implied_vs_realized_vol
+      legs: [fred.vix, mkt_spy_realized_20d]
+      kind: metric_pair
+      polarities: [+1, +1]
+      expect: same
+      also_reads: probability_ledger.tail_weight
+      because: >-
+        (4). Implied rich to realized is a risk premium; implied cheap to
+        realized is complacency. The probability ledger's tail weight is read
+        where one is live, and the ledger is empty today, so that leg reports
+        absent rather than assuming.
+
+    - id: growth_vs_cyclicals
+      legs: [growth, mkt_xly_over_xlp]
+      kind: mixed_pair
+      polarities: [+1, +1]
+      expect: same
+      because: >-
+        (5). The growth dimension against what the equity market is paying for
+        growth -- consumer discretionary over staples. Needs sector prices.
+
+    - id: gamma_vs_trend
+      legs: [dial.gamma, trend]
+      kind: dial_pair
+      expect: same
+      because: >-
+        (6). Negative dealer gamma with an uptrend is a market where the flow
+        amplifies moves against the prevailing direction.
+
+    - id: prediction_markets_vs_assets
+      legs: [pm.implied, trend]
+      kind: reserved
+      requires: part_27_v1
+      because: >-
+        THE RESERVED SEVENTH ROW. Prints absent until Part 27 v1 exists -- the
+        audit admits prediction markets in 6d, after Phase 3. Reserved here so
+        the table's shape is fixed now and the row cannot be forgotten.

@@ -165,6 +165,44 @@ sources:
         symbols, 60-70% rejected on wide spreads. This is why the settled
         profile excludes DTE=0 by rule rather than by workaround.
 
+  derived_state:
+    name: The market-state object -- dimensions, dials and contradictions
+    tier: derived
+    epistemic_role: own_computation
+    domain: [market_regime]
+    geography: [US]
+    latency: >-
+      Computed by the close pass for the session just ended, so it is available
+      the evening of the session it describes and never before it.
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      The object carries the as-of cutoff it was computed under and is stored with
+      observed_at = the session and available_at = the compute instant. A
+      recompute is a revision of that session's object, not a second object.
+    license: n/a
+    allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
+    implemented_by: regime.py
+    status: active
+    caveats:
+      - >-
+        allowed_reports is deliberately NOT empty, and this is the one place a
+        derived source of ours is readable by reports. Audit #3 §K's rule is that
+        every report reads this object and ONLY this object for its regime
+        content -- the opposite of derived_grade and derived_probability, whose
+        empty lists stop the system citing its own marking as evidence. A regime
+        is an input; a grade of our own forecasting is not.
+      - >-
+        THREE OF THE EIGHT v1 DIMENSIONS ARE ABSENT AS OF 19 September 2026.
+        trend and breadth need equity prices, which nothing in this repo
+        schedules -- yfinance_source.py declares 27 symbols and no timer runs it.
+        growth has no daily series and runs on weekly claims. The object reports
+        each absence with its reason rather than substituting a proxy.
+      - >-
+        THE FRED HISTORY HAS NO REAL available_at. All 20,372 migrated
+        observations share 2026-05-30, the CSV-to-SQLite migration instant, so an
+        as-of-correct backfill cannot reach behind that date. ALFRED ingestion
+        (O.16) is what would fix it.
+
   derived_grade:
     name: Decision grades computed from the register and the stored pin log
     tier: derived

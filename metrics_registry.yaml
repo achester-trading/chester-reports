@@ -198,6 +198,19 @@ vocabularies:
     # and sum to it, so counting them as three confirmations would be
     # counting the same fact three times -- exactly what 26.9 forbids.
     - overnight_context
+    # THE MARKET-STATE OBJECT. Its own group: a dimension state is a declared
+    # reading of one mechanism, and eight of them are eight clusters -- but the
+    # OBJECT's own fields (a published state, its percentile, its direction, a
+    # dial) are one cluster, because they are four views of the same computation.
+    # Counting a dimension's state and its percentile as two confirmations would
+    # be counting one reading twice.
+    - market_state
+    # A DIVERGENCE IS NOT A STATE. The contradiction table measures two markets
+    # disagreeing, which is a different mechanism from either market's own level
+    # -- and a separate group so that "credit is stressed" and "equities and
+    # credit disagree" can never be summed into two pieces of evidence about
+    # credit.
+    - market_divergence
 
 defaults:
   trigger_eligible: false
@@ -878,6 +891,62 @@ metrics:
   #
   # information_half_life is `permanent`. A graded outcome is a historical fact
   # about a decision that has already resolved; it does not decay.
+  regime.dimension_state:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      One dimension's published state, from declared percentile bands on its
+      primary member and subject to persistence_sessions. An absent dimension
+      carries no state and a written reason instead.
+  regime.dimension_percentile:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      The primary member's own-history percentile ON THE DIMENSION'S SCALE, after
+      the declared polarity is applied -- so a wide HY spread reads as stressed
+      credit rather than as a high number.
+  regime.dimension_direction:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sign of the primary member's rate of change times its polarity: +, -,
+      or 0. Zero means NOT MEASURED as often as it means flat, and the object
+      records which.
+  regime.dial_state:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      One dial's state. macro comes from a declared lookup over dimension states,
+      vol from VIX level bands, gamma from the exposure engine's own sign -- read,
+      never recomputed.
   grade.return_pct:
     source: derived_grade
     mechanism_group: decision_grade
