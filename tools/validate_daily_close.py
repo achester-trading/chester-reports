@@ -297,6 +297,101 @@ def group_f() -> None:
           "and regime.session_move() is the one producer of the figure")
 
 
+def group_g() -> None:
+    """Print precision: the model never sees a figure the report would not print."""
+    print(f"\n{LINE}\nG. PRINT PRECISION AT THE MODEL BOUNDARY\n{LINE}")
+    from daily_cascade import narrative as nv, payload as pl, precision as pr
+    print(f"  {pr.describe()}")
+
+    # --- the declared table, case by case ------------------------------------
+    for key, raw, want in (("percentile", 45.2951, 45.3),
+                           ("spot", 770.658508, 770.66),
+                           ("distance_pct", 1.756612, 1.76),
+                           ("magnitude", -0.320149, -0.32),
+                           ("dollar_gamma_per_1pct", 4590394967.0, 4590000000.0),
+                           ("net_gex", 593512345.0, 593510000.0),
+                           ("long_run_n", 24796, 24796)):
+        got = pr.round_value(key, raw)
+        check(got == want, f"{key}: {raw!r} -> {got!r} (want {want!r})")
+    check(pr.round_value("dollar_gamma_per_1pct", 412.5) == 412.5,
+          "a dollar figure below a thousand keeps two ordinary decimals -- there "
+          "is no scale to round it at")
+    check(pr.apply(True) is True and pr.apply(3) == 3,
+          "booleans and integers pass through: spot_above_flip is a fact, not a "
+          "figure, and a count of sessions is exact")
+
+    # --- A PAYLOAD FIGURE ABOVE ITS PRECISION FAILS THE BUILD ----------------
+    raw = {"market_state": {"dimensions": {"trend": {"percentile": 55.8601}}},
+           "positions": [{"avg_cost": 769.070007, "distance_pct": 1.756612}]}
+    v = pr.violations(raw)
+    check(len(v) == 3,
+          f"three over-precise figures are found and NAMED by path "
+          f"({[x['path'] for x in v]})")
+    check(all(x.get("expected") is not None and x.get("dp") for x in v),
+          "each violation carries what it should have been and the rule it broke, "
+          "so a failure names the field rather than the count")
+    check(pr.violations(pr.apply(raw)) == [],
+          "and applying the transform removes every one")
+    check(pr.violations(pr.apply(pr.apply(raw))) == [],
+          "twice changes nothing -- idempotent, which is what lets it be applied "
+          "at the assembly AND at the boundary without one undoing the other")
+
+    # --- the real payload conforms -------------------------------------------
+    try:
+        full = pl.build()
+        narr = pl.narrative_payload(full)
+    except Exception as exc:                                   # noqa: BLE001
+        SKIPPED.append(f"narrative payload not buildable here: {exc}")
+        print(f"  SKIP  payload not buildable: {exc}")
+        narr = None
+    if narr:
+        v = pr.violations(narr)
+        from altdata import numeral_audit as _na
+        n_figs = len(_na.payload_numbers(narr))
+        check(not v,
+              f"the narrative payload built from this store conforms across "
+              f"{n_figs} numeric leaves"
+              if not v else
+              f"the narrative payload carries {len(v)} over-precise figure(s): "
+              f"{[x['path'] for x in v][:6]}")
+
+    # --- AND THE BOUNDARY ENFORCES IT, whatever it is handed ------------------
+    # A stub client that records the prompt it was given. The point is not that
+    # generate() works -- other groups cover that -- but that a caller handing it a
+    # full-precision payload cannot get a full-precision prompt.
+    seen: dict = {}
+
+    class _Stub:
+        class messages:
+            @staticmethod
+            def create(**kw):
+                seen.update(kw)
+
+                class _B:
+                    type = "text"
+                    text = "Trend sits at the 55.9 percentile."
+
+                class _R:
+                    content = [_B()]
+                    model = "stub"
+                    stop_reason = "end_turn"
+                    usage = None
+                return _R()
+
+    res = nv.generate({"market_state": {"dimensions":
+                                        {"trend": {"percentile": 55.8601}}}},
+                      client=_Stub())
+    prompt = str((seen.get("messages") or [{}])[0].get("content", ""))
+    check("55.8601" not in prompt,
+          "a full-precision figure handed to generate() does NOT reach the prompt")
+    check("55.9" in prompt,
+          "and the rounded one does -- the rule is enforced at the boundary it is "
+          "about, not by every caller remembering")
+    check(res.state == "published",
+          f"and the paragraph citing 55.9 passes the audit against the rounded "
+          f"payload ({res.state}: {res.reason[:48]})")
+
+
 def group_c() -> None:
     """Absence renders as a dash, never as an empty cell."""
     print(f"\n{LINE}\nC. Absence is visible (32.5)\n{LINE}")
@@ -481,6 +576,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

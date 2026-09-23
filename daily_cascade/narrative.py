@@ -53,6 +53,8 @@ sys.path.insert(0, str(REPO))
 
 from altdata import numeral_audit  # noqa: E402
 
+from . import precision  # noqa: E402
+
 log = logging.getLogger("daily_cascade.narrative")
 
 # PINNED, and pinned deliberately rather than tracking a floating alias. The
@@ -258,6 +260,17 @@ def generate(payload: dict, *, model: Optional[str] = None,
     """
     model = model or DEFAULT_MODEL
     res = NarrativeResult(model=model)
+
+    # THE MODEL NEVER SEES A FIGURE THE REPORT WOULD NOT PRINT. Applied here, at
+    # the boundary the rule is about, rather than trusting every caller to have
+    # done it: the transform is idempotent, so a payload that already conforms
+    # passes through unchanged and one that does not cannot reach the prompt.
+    #
+    # The audit then compares the prose against THE SAME rounded payload, which is
+    # the other half of the rule -- a percentile the model could not see is a
+    # percentile it cannot print, and the reader never finds the paragraph and the
+    # table beside it disagreeing in the fourth decimal.
+    payload = precision.apply(payload)
 
     if client is None:
         client, why = _client()

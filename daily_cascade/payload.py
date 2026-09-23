@@ -42,6 +42,8 @@ rendered table, and only one of them is a problem.
 
 from __future__ import annotations
 
+from . import precision
+
 import csv
 import logging
 import re
@@ -494,7 +496,13 @@ def narrative_payload(full: dict, prior: Optional[dict] = None) -> dict:
         # system does not know instead of quietly omitting it.
         "absences": [w for w in full.get("warnings") or []],
     }
-    return {k: v for k, v in out.items() if v is not None and v != []}
+    # PRINT PRECISION, HERE AND AT THE MODEL BOUNDARY BOTH. The rule is that the
+    # model never sees a figure the report would not print, and a rule enforced in
+    # one place is a rule that ends the first time a second caller appears -- so
+    # narrative.generate() applies it again to whatever it is handed. The transform
+    # is idempotent, which is what makes the belt and the braces free.
+    out = {k: v for k, v in out.items() if v is not None and v != []}
+    return precision.apply(out)
 
 
 def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
