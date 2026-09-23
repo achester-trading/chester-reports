@@ -130,6 +130,18 @@ FEED_RC=$?
 printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN price pull exited $FEED_RC -- continuing; the close report's state block reports what it finds"
 
+# THE DERIVED FEATURES, BETWEEN THE FINAL PRICE AND THE OBJECT BUILT ON IT. The
+# calc.* series are derived from the pull above and the close report computes the
+# market-state object immediately after this; recomputing here is what makes that
+# object's breadth, trend and term structure describe the 16:45 close rather than
+# the last time anyone ran the module. The EOD pass does the same after its own
+# pull -- the 16:10 view is read too.
+log "features: derived recompute (16:45 -- the object is built on these)"
+FEAT_OUT="$("$PY" -m altdata.market_features compute 2>&1)"
+FEAT_RC=$?
+printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $FEAT_RC -ne 0 ]] && log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
+
 log "=== close report start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m daily_cascade.close_report $DRY >>"$LOG" 2>&1
 RC=$?

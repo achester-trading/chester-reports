@@ -159,6 +159,29 @@ else
     log "feeds: pull done"
 fi
 
+# THE DERIVED FEATURES, RECOMPUTED FROM THE PULL THAT JUST LANDED.
+#
+# breadth, trend, realized vol and the VIX3M/VIX term-structure ratio are calc.*
+# series DERIVED from the prices above, and nothing else in the system computes
+# them: regime.compute() reads calc.* and never writes it. So a pass that pulled
+# prices and did not recompute them leaves the 16:45 object reading whenever the
+# features were last run by hand, and within a few sessions the dimensions' own
+# staleness rule turns them absent -- for want of a step, not for want of data.
+# That is exactly what happened: the features existed on one machine and not on
+# the box, and the vol dial's term-structure leg read absent there while reading
+# contango here, from the same store.
+#
+# Its failure is not this run's failure, for the same reason the pull's is not.
+log "features: derived recompute"
+FEAT_OUT="$("$VENV_PY" -m altdata.market_features compute 2>&1)"
+FEAT_RC=$?
+printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
+if [[ $FEAT_RC -ne 0 ]]; then
+    log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
+else
+    log "features: derived recompute done"
+fi
+
 START_EPOCH=$(date +%s)
 "$VENV_PY" run_eod.py --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
 RC=$?
