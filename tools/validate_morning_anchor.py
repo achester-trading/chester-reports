@@ -256,6 +256,110 @@ def group_e() -> None:
           "without writing, so it is available before the socket opens")
 
 
+def group_g() -> None:
+    """31.3(a): the attribution names its window, and rights travel with it."""
+    print(f"\n{LINE}\nG. THE GAP ATTRIBUTION (31.3a)\n{LINE}")
+    from altdata.sources import overnight as on
+    from daily_cascade import morning_render as mr
+    from altdata import derived
+
+    # --- the record's shape, from rows rather than from the network ----------
+    def rows_for(es_legs: dict, cash: dict) -> list[dict]:
+        out = []
+        for field, value in es_legs.items():
+            out.append({"registry_key": on.registry_key("es", field),
+                        "value": value})
+        for slug, pct in cash.items():
+            out.append({"registry_key": on.registry_key(slug, "chg_pct"),
+                        "value": pct})
+        return out
+
+    rec = on.gap_record(
+        rows_for({"attrib_tokyo": 40.0, "attrib_europe": 5.0,
+                  "attrib_other": -2.0, "chg": 43.0, "chg_pct": 0.55},
+                 {"n225": 1.2, "sx5e": 0.3, "ftse": 0.25}),
+        "2026-09-22T16:00:00-04:00", "2026-09-23T10:45:00+00:00")
+    check(rec["dominant"] == "tokyo",
+          f"a window four times the next largest is named ({rec['dominant']}) -- "
+          f"{rec['dominance_reason'][:60]}...")
+    check(rec["windows"]["tokyo"]["cash"]["n225"]["chg_pct"] == 1.2,
+          "and the CASH session that was trading in that window rides beside the "
+          "futures leg: how much moved, and what moved")
+    check(set(rec["windows"]["europe"]["cash"]) == {"sx5e", "ftse"},
+          "Europe carries both indices rather than averaging them -- which one a "
+          "reader means is a judgement, not a fact about clocks")
+    check("31.3(a)" in rec["rights"] and "Book C" in rec["rights"],
+          f"the rights string travels ON the record ({rec['rights'][:52]}...), so "
+          f"a consumer that skipped the prose still has it")
+    check("not causes" in rec["caveat"],
+          "as does the caveat that a clock window is not a cause")
+
+    flat = on.gap_record(
+        rows_for({"attrib_tokyo": 4.0, "attrib_europe": 4.0,
+                  "attrib_other": 3.0, "chg": 11.0, "chg_pct": 0.14}, {}),
+        "2026-09-22T16:00:00-04:00", "2026-09-23T10:45:00+00:00")
+    check(flat["dominant"] is None and "no window dominated" in
+          flat["dominance_reason"],
+          "4, 4 and 3 points has NO dominant window and says so -- without a "
+          "declared margin the word means nothing, and naming the 4 would tell a "
+          "reader the night had a location it did not have")
+    check(str(on.DOMINANCE_RATIO) in flat["dominance_reason"],
+          f"and the margin it was judged against is named ({on.DOMINANCE_RATIO}x)")
+
+    one = on.gap_record(rows_for({"attrib_tokyo": 9.0}, {}),
+                        "2026-09-22T16:00:00-04:00",
+                        "2026-09-23T10:45:00+00:00")
+    check(one["dominant"] is None and "comparison" in one["dominance_reason"],
+          "one measured leg cannot dominate: dominance is a comparison and there "
+          "is nothing to compare")
+
+    # --- a closed market is not a flat one ----------------------------------
+    closed = on.gap_record(
+        rows_for({"attrib_tokyo": 40.0, "attrib_europe": 5.0}, {}),
+        "2026-09-22T16:00:00-04:00", "2026-09-23T10:45:00+00:00")
+    n225 = closed["windows"]["tokyo"]["cash"]["n225"]
+    check(n225["chg_pct"] is None and "holiday" in str(n225.get("absent_reason")),
+          "a cash index that served no bar reports absent WITH the reason -- on "
+          "23 Sep 2026 Tokyo was shut for the Autumn Equinox and the change "
+          "columns would otherwise have printed 0.00, which is a claim about a "
+          "session that never opened")
+    src = (REPO / "altdata" / "sources" / "overnight.py").read_text(
+        encoding="utf-8")
+    check("same_bar" in src and "DID NOT MOVE ZERO" in src.upper(),
+          "and the fetcher refuses to write a change when both ends resolve to one "
+          "bar, which is the enforcing line rather than the comment above it")
+
+    # --- the anchor READS the record, and does not derive it -----------------
+    pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(
+        encoding="utf-8")
+    check("GAP_RECORD_KEY" in pay,
+          "the payload reads the stored record by key")
+    check("DOMINANCE_RATIO" not in pay and "DOMINANCE_RATIO" not in
+          (REPO / "daily_cascade" / "morning_render.py").read_text(
+              encoding="utf-8"),
+          "and neither the payload nor the render carries the dominance rule -- a "
+          "second producer of one label is how a page and a store come to disagree "
+          "about last night")
+    line = mr.dominant_line({"overnight": {"gap_attribution": flat}})
+    check("No window dominated" in line,
+          "the anchor PRINTS that no window dominated rather than falling silent, "
+          "because silence lets the reader supply a location")
+    absent = mr.dominant_line({"overnight": {"gap_attribution":
+                                             {"absent_reason": "nothing written"}}})
+    check("absent" in absent.lower(),
+          "and an absent record renders as absent with its reason")
+
+    for key in ("overnight.gap_attribution", "overnight.gap_attribution_dominant"):
+        e = derived.registry_entry(key)
+        check(e.get("mechanism_group") == "overnight_context"
+              and e.get("trigger_eligible") is False
+              and e.get("information_half_life") == "session",
+              f"{key} is registered in overnight_context, half_life session, and "
+              f"is NOT trigger_eligible")
+        check("Book C" in str(e.get("description")) or key.endswith("dominant"),
+              f"and {key}'s registry entry carries its rights")
+
+
 def group_f() -> None:
     print(f"\n{LINE}\nF. THE UNITS AND THE WRAPPER\n{LINE}")
     fetch_t = (UNITS / "chester-overnight.timer").read_text(encoding="utf-8")
@@ -316,6 +420,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

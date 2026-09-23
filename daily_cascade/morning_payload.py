@@ -37,6 +37,8 @@ worse than one that shows none.
 
 from __future__ import annotations
 
+import json
+
 import datetime as dt
 import logging
 import sys
@@ -101,6 +103,7 @@ def overnight_block(as_of: Optional[str] = None,
     past morning and will show what was knowable then.
     """
     block: dict = {"state": "absent", "rows": [], "attribution": [],
+                   "gap_attribution": None,
                    "reason": None, "fetched_at": None, "stale": []}
     try:
         store = observations.ObservationStore(db_path)
@@ -152,6 +155,27 @@ def overnight_block(as_of: Optional[str] = None,
                     legs[name] = row.get("value_num")
             if any_leg:
                 block["attribution"].append(legs)
+
+        # THE GAP-ATTRIBUTION RECORD, READ AND NOT DERIVED. 31.3(a)'s line names
+        # the window that dominated, and that name is computed once by the 06:45
+        # pass that wrote the legs. Deriving it here would make the anchor a second
+        # producer of the same fact -- the thing the whole "read the object, never
+        # recompute" rule exists to prevent -- and two producers of one label is
+        # exactly how a report and a store come to disagree about last night.
+        rec = store.latest_as_of(on.GAP_RECORD_KEY, as_of=as_of)
+        if rec and rec.get("value_text"):
+            try:
+                block["gap_attribution"] = json.loads(rec["value_text"])
+            except Exception as exc:                           # noqa: BLE001
+                block["gap_attribution"] = {
+                    "absent_reason": f"unparseable record: "
+                                     f"{type(exc).__name__}: {exc}"}
+        else:
+            block["gap_attribution"] = {
+                "absent_reason": ("the 06:45 pass wrote no attribution record for "
+                                  "this cutoff -- it computes the record, and this "
+                                  "anchor reads it rather than deriving a second "
+                                  "one")}
 
         block["fetched_at"] = newest_available
         if block["rows"]:

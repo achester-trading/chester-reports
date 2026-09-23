@@ -88,9 +88,82 @@ def overnight_table(payload: dict) -> str:
 </p>"""
 
 
+def _cash_rows(cash_by_window: dict, rec: dict) -> str:
+    """What was OPEN in each window, beside how much the futures moved in it.
+
+    31.3(a) asks for the Tokyo session's own move and Europe's move at the time of
+    writing, not only for the futures split. The futures leg says HOW MUCH moved in
+    a window; the cash index says WHAT moved, and the pair is the whole content of
+    an attribution: ES down seven points across the Tokyo window with the Nikkei
+    down a percent is a different night from the same seven points with Tokyo shut.
+
+    A CLOSED MARKET PRINTS AS CLOSED. The change fields are omitted upstream when a
+    market served no new bar -- a Tokyo holiday and a vendor hole look the same from
+    here and neither is a flat session -- so an absent value renders as the reason
+    rather than as a dash that could be read as zero.
+    """
+    if not cash_by_window:
+        return ""
+    cells = []
+    for name in ("tokyo", "europe"):
+        entries = cash_by_window.get(name) or {}
+        if not entries:
+            continue
+        parts = []
+        for slug, pct in sorted(entries.items()):
+            if pct is None:
+                parts.append(f'{esc(slug.upper())} <em>no new bar</em>')
+            else:
+                parts.append(f'{esc(slug.upper())} {pct:+.2f}%')
+        cells.append(f'<strong>{esc(name)}</strong>: ' + ", ".join(parts))
+    if not cells:
+        return ""
+    return (f'<p style="{NOTE}"><strong>What was trading in each window.</strong> '
+            + " &nbsp;&middot;&nbsp; ".join(cells)
+            + ' &mdash; the cash session\'s own close-to-close move, against the '
+              'futures points above. An absent reading is a market that served no '
+              'new bar: a holiday and a vendor hole look the same here, and '
+              'neither is a flat session.</p>')
+
+
+def dominant_line(payload: dict) -> str:
+    """Which window dominated, or that none did. 31.3(a)'s named window.
+
+    READ FROM THE RECORD, never derived here: the 06:45 pass computes it beside the
+    legs it wrote. A renderer that worked it out itself would be a second producer
+    of the same label, and then the page and the store could disagree about last
+    night with no way to say which was consulted.
+
+    "NO WINDOW DOMINATED" IS PRINTED AS A RESULT, not omitted. It is the commoner
+    answer, and a block that falls silent on it would let the reader supply a
+    location for a night that had none.
+    """
+    rec = (payload.get("overnight") or {}).get("gap_attribution") or {}
+    if rec.get("absent_reason"):
+        return (f'<div style="{ABSENT}"><strong>Dominant window &mdash; '
+                f'absent.</strong> {esc(rec["absent_reason"])}</div>')
+    dom = rec.get("dominant")
+    total = rec.get("total_points")
+    pct = rec.get("total_pct")
+    head = (f'<strong>{esc(dom).upper()} dominated</strong>' if dom
+            else '<strong>No window dominated</strong>')
+    body = (f'{head} &mdash; {esc(rec.get("dominance_reason"))}.'
+            f'<br>ES total {signed(total)} points'
+            + (f' ({pct:+.2f}%)' if isinstance(pct, (int, float)) else '')
+            + f' since the {esc(str(rec.get("settle_at"))[:16])} settle.')
+    note = (rec.get("windows") or {}).get("other", {}).get("note")
+    if note:
+        body += f'<br>{esc(note)}'
+    return f'<div style="{WARN if dom else ABSENT}">{body}</div>'
+
+
 def attribution_block(payload: dict) -> str:
     block = payload.get("overnight") or {}
     legs = block.get("attribution") or []
+    rec = block.get("gap_attribution") or {}
+    cash_by_window = {
+        name: {k: v.get("chg_pct") for k, v in (w.get("cash") or {}).items()}
+        for name, w in (rec.get("windows") or {}).items()}
     if not legs:
         return (f'<div style="{ABSENT}"><strong>Attribution &mdash; absent.</strong> '
                 f'5-minute bars were unavailable for the index futures, so the '
@@ -112,6 +185,7 @@ def attribution_block(payload: dict) -> str:
   <th style="{TH}">Outside both</th>
 </tr></thead>
 <tbody>{_rows(rows)}</tbody></table>
+{_cash_rows(cash_by_window, rec)}
 <p style="{NOTE}">
   <strong>A first pass, and a window is not a cause.</strong> These are clock
   windows in ET, not causal attributions: a move inside the Tokyo window may be
@@ -196,6 +270,7 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
 {overnight_table(payload)}
 
 <h2 style="{H2}">Where it happened</h2>
+{dominant_line(payload)}
 {attribution_block(payload)}
 
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>

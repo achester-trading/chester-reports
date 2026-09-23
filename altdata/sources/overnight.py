@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import logging
 import sys
 import time
@@ -227,6 +228,151 @@ def attribution(df, settle_at: dt.datetime,
     return out
 
 
+# WHICH CASH INDEX WAS TRADING IN EACH WINDOW. The futures leg says how much
+# moved; the cash index says WHAT moved, and 31.3(a) asks for both. The pairing is
+# declared here rather than inferred from a timezone, because "^FTSE is the
+# European window" is a judgement about which market a reader means and not a fact
+# about clocks -- SX5E leads and FTSE is the one most operators watch, so both are
+# carried and neither is averaged into the other.
+WINDOW_CASH = {
+    "tokyo": ("n225",),
+    "europe": ("sx5e", "ftse"),
+    "other": (),
+}
+
+GAP_RECORD_KEY = "overnight.gap_attribution"
+GAP_DOMINANT_KEY = "overnight.gap_attribution_dominant"
+
+# The instrument whose legs decide which window dominated. ES and not NQ: the
+# Doctrine's Book A reads the broad index, and picking per run whichever futures
+# moved more would make "the window that dominated" a statement about the choice.
+DOMINANT_FROM = "es"
+
+# HOW MUCH BIGGER ONE WINDOW MUST BE TO BE CALLED DOMINANT. Twice the next largest
+# leg, in absolute points. Without a margin the word means nothing: three windows
+# of 4, 4 and 3 points has no dominant window, and naming the 4 would tell a reader
+# the night had a location when it did not.
+DOMINANCE_RATIO = 2.0
+
+
+def hour_is_after_last_window(utc_hour: int, last_end_et: int) -> bool:
+    """Is a UTC hour past the last window's ET end? ET is UTC-4 or UTC-5.
+
+    The four-hour offset is used rather than resolved through the zone: the answer
+    only has to be right about whether a whole session has been folded in, and an
+    hour either way cannot change that.
+    """
+    return ((utc_hour - 4) % 24) > last_end_et
+
+
+def gap_record(rows: list[dict], settle_at: str, fetched_at: str) -> dict:
+    """The 07:00 anchor's gap attribution, assembled from the rows just fetched.
+
+    31.3(a). The futures move split by window, the cash session that was open in
+    each window beside it, and THE WINDOW THAT DOMINATED named -- or explicitly not
+    named, which is the more common answer and the one a single gap number hides.
+
+    COMPUTED HERE, WHERE THE LEGS ARE WRITTEN, and stored as an observation for the
+    anchor to read. The alternative -- the anchor deriving it from the legs at
+    render time -- would put a second producer of the same fact in a report, and
+    the 07:00 anchor's whole discipline is that it reads what the passes computed
+    and recomputes nothing.
+
+    RIGHTS TRAVEL WITH THE RECORD. Backdrop context only: per 31.3(a) an
+    attribution line may not generate a Book C setup, and the string is on the
+    object rather than only in a rendering, so a consumer that skipped the prose
+    still has it.
+    """
+    by_key = {}
+    for r in rows:
+        by_key[r["registry_key"]] = r.get("value")
+
+    def val(slug: str, field: str):
+        return by_key.get(registry_key(slug, field))
+
+    windows: dict[str, dict] = {}
+    for name, start_h, end_h in WINDOWS:
+        leg = val(DOMINANT_FROM, f"attrib_{name}")
+        entry: dict = {
+            "window_et": f"{start_h:02d}:00-{end_h:02d}:00",
+            "futures_points": leg,
+            "futures_instrument": DOMINANT_FROM,
+            "cash": {},
+        }
+        if leg is None:
+            entry["absent_reason"] = (
+                f"no {DOMINANT_FROM} bars covered this window -- no row rather "
+                f"than a zero, because no data and no move are different claims")
+        for slug in WINDOW_CASH.get(name, ()):
+            entry["cash"][slug] = {"chg_pct": val(slug, "chg_pct"),
+                                   "last": val(slug, "last")}
+            if val(slug, "chg_pct") is None:
+                entry["cash"][slug]["absent_reason"] = (
+                    f"{slug} served no bar -- a closed market (a Tokyo holiday) "
+                    f"and a vendor hole look the same here and neither is a zero")
+        windows[name] = entry
+    other = val(DOMINANT_FROM, "attrib_other")
+    last_end = max(e for _, _, e in WINDOWS)
+    entry_other = {"window_et": "the remainder -- the 18:00 reopen, the gaps "
+                                "between windows, and since the last closed",
+                   "futures_points": other,
+                   "futures_instrument": DOMINANT_FROM, "cash": {}}
+    # RUN AT 06:45 THIS IS MINUTES; RUN LATER IT IS THE US SESSION. `other` is
+    # whatever the named windows did not cover, so a run after the last window's
+    # end silently folds the time since into it -- and at 13:00 that is the whole
+    # cash session, which would read as "the overnight move happened outside both
+    # windows". The record says so rather than leaving the reader to check the
+    # clock against the windows.
+    try:
+        hour = int(str(fetched_at)[11:13])
+    except (TypeError, ValueError):
+        hour = None
+    if hour is not None and hour_is_after_last_window(hour, last_end):
+        entry_other["note"] = (
+            f"this record was built at {str(fetched_at)[11:16]}Z, after the last "
+            f"window ends at {last_end:02d}:00 ET, so `other` also contains "
+            f"everything since -- including the US session if there has been one. "
+            f"At the 06:45 anchor it is minutes.")
+    windows["other"] = entry_other
+
+    legs = {k: abs(v["futures_points"]) for k, v in windows.items()
+            if v.get("futures_points") is not None}
+    dominant, why = None, None
+    if len(legs) < 2:
+        why = (f"only {len(legs)} window has a measured leg; dominance is a "
+               f"comparison and there is nothing to compare")
+    else:
+        ranked = sorted(legs.items(), key=lambda kv: -kv[1])
+        top, second = ranked[0], ranked[1]
+        if second[1] <= 0:
+            dominant, why = top[0], (f"{top[0]} moved {top[1]:.2f} points and no "
+                                     f"other window moved at all")
+        elif top[1] >= DOMINANCE_RATIO * second[1]:
+            dominant = top[0]
+            why = (f"{top[0]} moved {top[1]:.2f} points against {second[0]}'s "
+                   f"{second[1]:.2f} -- at least {DOMINANCE_RATIO}x the next "
+                   f"largest")
+        else:
+            why = (f"no window dominated: {top[0]} {top[1]:.2f} against "
+                   f"{second[0]} {second[1]:.2f}, inside the declared "
+                   f"{DOMINANCE_RATIO}x margin. The night had no location, which "
+                   f"is a finding and not a gap in the data")
+    return {
+        "settle_at": settle_at,
+        "fetched_at": fetched_at,
+        "windows": windows,
+        "total_points": val(DOMINANT_FROM, "chg"),
+        "total_pct": val(DOMINANT_FROM, "chg_pct"),
+        "dominant": dominant,
+        "dominance_reason": why,
+        "dominance_ratio_required": DOMINANCE_RATIO,
+        "rights": "Backdrop context only -- per 31.3(a) an attribution line may "
+                  "not generate a Book C setup.",
+        "caveat": "clock windows in ET, not causes. A move inside the Tokyo "
+                  "window may be a US headline that landed at 21:00 ET.",
+    }
+
+
 def fetch(symbols: Optional[dict[str, str]] = None,
           now_et: Optional[dt.datetime] = None) -> dict:
     """Read every symbol. Returns rows ready for the store, plus a summary."""
@@ -243,6 +389,10 @@ def fetch(symbols: Optional[dict[str, str]] = None,
     rows: list[dict] = []
     got: list[str] = []
     missing: list[str] = []
+    # Symbols whose newest bar IS their prior-settle bar: a shut market or a vendor
+    # hole. Reported separately from `missing`, because a level was served and only
+    # the change could not be measured.
+    stale: list[str] = []
 
     if yf is None:
         log.error("yfinance is not installed; nothing fetched")
@@ -267,7 +417,26 @@ def fetch(symbols: Optional[dict[str, str]] = None,
                          "value": value, "source": SOURCE})
 
         row("last", last[1], last[0])
-        if prior is not None:
+        # A MARKET THAT DID NOT TRADE DID NOT MOVE ZERO.
+        #
+        # Found by running this on 23 September 2026, the Autumn Equinox, with the
+        # Tokyo exchange shut: ^N225's newest bar and its prior-settle bar were the
+        # SAME BAR -- 18 September's close -- so chg came out at exactly 0.00 and
+        # the 07:00 anchor would have reported "Tokyo flat" for a session that never
+        # opened. Flat is a fact about a market that traded. This module's own
+        # docstring says no bars and no move are different facts, and the
+        # attribution function already honours it; the change columns did not.
+        #
+        # So when both ends resolve to one bar, `last` is still written -- the level
+        # is real and is the last print -- and the change fields are omitted with
+        # the reason recorded rather than filled with a zero.
+        same_bar = prior is not None and last[0] == prior[0]
+        if same_bar:
+            stale.append(symbol)
+            log.info("overnight: %s served no new bar since the prior settle "
+                     "(closed market or a vendor hole); change fields omitted "
+                     "rather than written as zero", symbol)
+        if prior is not None and not same_bar:
             row("prior_settle", prior[1], settle_at)
             row("chg", last[1] - prior[1], last[0])
             if prior[1]:
@@ -282,8 +451,23 @@ def fetch(symbols: Optional[dict[str, str]] = None,
 
         time.sleep(PACING_SECONDS)
 
+    # THE ATTRIBUTION RECORD, written as one observation for the 07:00 anchor to
+    # READ. Two rows: the record itself and the dominant window as its own label,
+    # so "which window dominated last night" is a queryable series rather than a
+    # field inside a JSON blob that only a renderer opens.
+    rec = gap_record(rows, settle_at.isoformat(), fetched_at)
+    observed = now_et.isoformat()
+    rows.append({"registry_key": GAP_RECORD_KEY, "instrument": None,
+                 "observed_at": observed, "available_at": fetched_at,
+                 "value": json.dumps(rec, sort_keys=True), "source": SOURCE})
+    rows.append({"registry_key": GAP_DOMINANT_KEY, "instrument": None,
+                 "observed_at": observed, "available_at": fetched_at,
+                 "value": rec.get("dominant") or "none", "source": SOURCE})
+
     return {"rows": rows, "fetched_at": fetched_at, "got": got,
-            "missing": missing, "settle_at": settle_at.isoformat()}
+            "missing": missing, "no_new_bar": stale,
+            "settle_at": settle_at.isoformat(),
+            "gap_attribution": rec}
 
 
 def pull(db_path: Optional[str] = None, dry_run: bool = False,

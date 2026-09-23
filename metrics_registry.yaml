@@ -1970,6 +1970,45 @@ metrics:
       reaches a human rather than being absorbed into the next year's numbers. A
       method_version change is reported here too and explicitly NOT as drift --
       fields are never compared across methods.
+  overnight.gap_attribution:
+    source: yfinance
+    mechanism_group: overnight_context
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      31.3(a)'s attribution line as one record: the ES move split across the Tokyo
+      and European clock windows and the remainder, the CASH index that was trading
+      in each window beside it, the total since the prior settle, and the window
+      that dominated -- or that none did, which is the commoner answer. Written by
+      the 06:45 overnight pass, which owns the legs; the 07:00 anchor READS it and
+      derives nothing, because two producers of one label is how a page and a store
+      come to disagree about last night. RIGHTS: Backdrop context only. Per 31.3(a)
+      an attribution line MAY NOT generate a Book C setup, and the string travels on
+      the record rather than only in a rendering so a consumer that skipped the
+      prose still has it.
+  overnight.gap_attribution_dominant:
+    source: yfinance
+    mechanism_group: overnight_context
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      Which window dominated last night -- tokyo, europe, other, or `none` -- as its
+      own series, so the question "how often does the move happen while Tokyo is
+      open" is answerable by a query rather than by opening a year of JSON records.
+      A window is named only when its absolute move is at least the declared
+      multiple (2x) of the next largest; without that margin the word means nothing,
+      since three windows of 4, 4 and 3 points have no dominant window and naming
+      the 4 would tell a reader the night had a location it did not have.
   regime.dimension_state:
     source: derived_state
     mechanism_group: market_state
