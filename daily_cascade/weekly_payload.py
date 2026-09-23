@@ -387,6 +387,16 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
                     str(d.get("decision_time"))[:10])).days
             except (TypeError, ValueError):
                 age = None
+            # A DECISION RECORDED AFTER THE WEEK ENDED HAS NO AGE IN IT.
+            #
+            # The first test edition printed `age -1 d` for a decision taken the
+            # Monday after the Friday it was reported against, which is honest
+            # arithmetic and nonsense to a reader -- and worse, a negative number in
+            # a payload is a figure a paragraph can cite. It reports the fact
+            # instead: the position did not exist during the week under review.
+            opened_after = age is not None and age < 0
+            if opened_after:
+                age = None
             item = {
                 "id": d.get("id"), "instrument": d.get("instrument"),
                 "direction": d.get("direction"), "status": status,
@@ -401,6 +411,11 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
                 "distance_points": dist_pts,
                 "distance_pct": dist_pct,
                 "age_days": age,
+                "opened_after_week": opened_after or None,
+                "age_absent_reason": (
+                    f"recorded {str(d.get('decision_time'))[:10]}, after the week "
+                    f"ending {ending} -- it did not exist during the week under "
+                    f"review" if opened_after else None),
                 "blocked_reason": d.get("blocked_reason"),
             }
             if dist_pts is None:
