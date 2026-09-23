@@ -9,7 +9,16 @@
 3. **The corridor** — put wall, call wall, their movement since the prior session, and where gamma and put delta concentrate.
 4. **What the vol complex says** — VIX level and change, term structure, implied versus realized — and what it does *not* say.
 5. **The position** — for each open decision: fill, current close, distance to invalidation in points and percent, and the single decision that matters (the rule, not a feeling).
-6. **The system's scorecard** — the pin tally to date at the declared tolerance; the cross-check status when present; any live test the day's data creates.
+6. **The exceptions** — the open set by count, and the two most extreme named. These are the object's own findings about the *market*: five-year extremes on a member, and contradictions held past their declared session count. The table below the paragraph carries the full set; the paragraph says how many are open and which two are furthest from the middle of their distribution.
+7. **The system's scorecard** — the pin tally to date at the declared tolerance; the cross-check status when present; any live test the day's data creates.
+
+### The paragraph does not restate a table
+
+The eight dimensions, the six contradiction rows and the pin tally are printed in full below the paragraph. Reciting them adds nothing a reader could not read there, and it crowds out the only thing prose can do, which is say what the configuration **means**.
+
+Name a dimension when it **changed**, when it sits at an **extreme**, or when it **disagrees** with another. Otherwise say what the set of them amounts to. *A sentence listing every percentile in order is a failed paragraph even when every figure in it is correct* — and the published samples were failing this way before it was written down: one spent eighty words on "breadth is narrow at the 27.4 percentile, credit is easy at 92.4, growth expanding at 93.5, inflation stable at 64.1, liquidity ample at 96.4, rates high at the 100th percentile, trend flat at 55.9, volatility subdued at 14.9" and had no room left to say that nothing in that configuration had moved in a week.
+
+The reference paragraph above is the register. It names four figures and spends the rest of its length on what they imply.
 
 ## Reference paragraph (9 September 2026)
 

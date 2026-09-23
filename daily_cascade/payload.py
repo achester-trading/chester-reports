@@ -521,6 +521,52 @@ def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
                       ("state", "direction", "percentile", "confidence",
                        "last_changed", "pending_state", "supporting",
                        "contradicting", "absent_reason")}
+    # THE EXCEPTIONS, which the paragraph is now required to cover and could not
+    # see. exceptions[] is the object's list of five-year extremes and
+    # contradictions held past their session count -- the findings about the MARKET
+    # that the object itself flags -- and a close paragraph that recited eight
+    # dimension percentiles while omitting them covered the table and missed the
+    # news.
+    #
+    # THE WHOLE SET BY COUNT AND THE TWO MOST EXTREME BY NAME. Eight exceptions
+    # cannot each get a clause in one paragraph, and a paragraph that tried would be
+    # the row-by-row recital the template now bars. The count says how much is
+    # flagged; the two extremes say what to look at; the table below the paragraph
+    # carries the rest.
+    exc = list(obj.get("exceptions") or [])
+
+    # THE TWO KINDS ARE RANKED SEPARATELY, because `value` means two things.
+    #
+    # On an `extreme` it is a percentile of five years; on a `contradiction` it is a
+    # gap z-score. Sorting the two together would be ranking a percentile against a
+    # z -- a composite across unlike units, which is what the object's own design
+    # refuses to build anywhere else. So the paragraph gets the most extreme of
+    # EACH kind, and where only one kind is open it gets that kind's top two.
+    #
+    # An extreme is ranked by distance from the middle of its distribution, so a
+    # 1st percentile and a 99th rank equally -- which they are. A contradiction is
+    # ranked by how far past its own threshold it sits, which is the only scale on
+    # which two different pairs' z-scores are comparable.
+    def _extreme_rank(e: dict) -> float:
+        v = e.get("value")
+        return abs(float(v) - 50.0) if isinstance(v, (int, float)) else -1.0
+
+    def _contradiction_rank(e: dict) -> float:
+        v, t = e.get("value"), e.get("threshold")
+        if not isinstance(v, (int, float)):
+            return -1.0
+        if isinstance(t, (int, float)) and t:
+            return abs(float(v)) / abs(float(t))
+        return abs(float(v))
+
+    extremes = sorted((e for e in exc if e.get("kind") == "extreme"),
+                      key=_extreme_rank, reverse=True)
+    contras = sorted((e for e in exc if e.get("kind") == "contradiction"),
+                     key=_contradiction_rank, reverse=True)
+    ranked = [x for x in (contras[:1] + extremes[:1]) if x]
+    if len(ranked) < 2:
+        rest = (contras[1:] + extremes[1:]) if contras else extremes[1:]
+        ranked += rest[:2 - len(ranked)]
     return {
         "session": obj.get("session"),
         "schema_version": obj.get("schema_version"),
@@ -529,6 +575,17 @@ def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
                   for n, v in (obj.get("dials") or {}).items()},
         "dimensions": dims,
         "absent_dimensions": obj.get("absent_dimensions"),
+        "exceptions_open": len(exc),
+        "exceptions_by_kind": {
+            "contradiction": len(contras), "extreme": len(extremes)},
+        # The fields the object actually carries on an exception: id, kind, what,
+        # value, threshold, since, and `level` on an extreme. Named explicitly
+        # rather than passed whole, so an exception that gains an internal field
+        # does not silently widen what a paragraph may cite.
+        "exceptions_most_extreme": [
+            {k: e.get(k) for k in ("id", "kind", "what", "value", "threshold",
+                                   "since", "level")}
+            for e in ranked[:2]],
     }
 
 

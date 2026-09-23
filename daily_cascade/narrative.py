@@ -129,6 +129,16 @@ an unsigned magnitude does not match the negative value in the payload and the \
 whole paragraph is discarded over a phrasing. Say "fell" in the sentence if \
 you like; the figure still carries its own sign.
 
+DO NOT RESTATE A TABLE ROW BY ROW. The eight dimensions, the six contradiction \
+rows and the pin tally are all printed in full below your paragraph, and reciting \
+them adds nothing a reader could not read there -- it also crowds out the only \
+thing prose can do, which is say what the configuration MEANS. Name a dimension \
+when it changed, when it sits at an extreme, or when it disagrees with another; \
+otherwise say what the set of them amounts to. A sentence listing every percentile \
+in order is a failed paragraph even when every figure in it is correct. The \
+reference paragraph in the template is the register: it names four figures and \
+spends the rest of its length on what they imply.\
+
 Cover, in this order, only what the payload supports: WHAT CHANGED since the \
 previous session (`what_changed`: dimension state changes, extreme flags set or \
 cleared, dial moves, contradictions opened, closed or persisting -- cite the \

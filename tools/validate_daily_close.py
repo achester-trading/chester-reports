@@ -392,6 +392,71 @@ def group_g() -> None:
           f"payload ({res.state}: {res.reason[:48]})")
 
 
+def group_h() -> None:
+    """The exceptions reach the paragraph, and the table may not be recited."""
+    print(f"\n{LINE}\nH. EXCEPTIONS IN THE COVERAGE, AND NO ROW-BY-ROW RECITAL\n{LINE}")
+    from daily_cascade import narrative as nv, payload as pl
+
+    # A CONSTRUCTED OBJECT with both kinds, so the ranking is exercised rather than
+    # whatever the store happens to hold tonight.
+    obj = {
+        "session": "2026-09-22",
+        "dials": {"vol": {"state": "normal"}},
+        "dimensions": {},
+        "exceptions": [
+            {"id": "contradiction:a", "kind": "contradiction", "what": "a open 6",
+             "value": 2.4, "threshold": 2.0, "since": "2026-09-15"},
+            {"id": "contradiction:b", "kind": "contradiction", "what": "b open 9",
+             "value": 6.0, "threshold": 2.0, "since": "2026-09-10"},
+            {"id": "extreme:x", "kind": "extreme", "what": "x at an extreme",
+             "value": 2.7, "threshold": "percentile <= 5 or >= 95"},
+            {"id": "extreme:y", "kind": "extreme", "what": "y at an extreme",
+             "value": 49.0, "threshold": "percentile <= 5 or >= 95"},
+        ],
+    }
+    ns = pl._narrative_state(obj)                              # noqa: SLF001
+    check(ns.get("exceptions_open") == 4,
+          f"the open set travels as a COUNT ({ns.get('exceptions_open')}) -- eight "
+          f"exceptions cannot each get a clause in one paragraph")
+    check(ns.get("exceptions_by_kind") == {"contradiction": 2, "extreme": 2},
+          f"split by kind ({ns.get('exceptions_by_kind')})")
+    named = [e["id"] for e in ns.get("exceptions_most_extreme") or []]
+    check(named == ["contradiction:b", "extreme:x"],
+          f"and TWO are named, the most extreme of each kind ({named}) -- b at 3x "
+          f"its threshold over a at 1.2x, and x at 47 points from the middle of "
+          f"its distribution over y at 1")
+    # THE REASON THEY ARE RANKED SEPARATELY: `value` means two different things.
+    check(all(isinstance(e.get("value"), (int, float))
+              for e in ns["exceptions_most_extreme"]),
+          "both carry their value, one a gap z-score and one a percentile -- which "
+          "is exactly why they are not sorted against each other: that would be a "
+          "composite across unlike units")
+    one_kind = pl._narrative_state(                            # noqa: SLF001
+        {"dimensions": {}, "exceptions": obj["exceptions"][2:]})
+    check(len(one_kind.get("exceptions_most_extreme") or []) == 2,
+          "where only one kind is open, that kind's top two are named rather than "
+          "one slot going empty")
+    none = pl._narrative_state({"dimensions": {}, "exceptions": []})  # noqa: SLF001
+    check(none.get("exceptions_open") == 0
+          and none.get("exceptions_most_extreme") == [],
+          "and a quiet session carries a zero rather than an absent field")
+
+    # --- the template's bar, in the prompt the model actually reads ------------
+    check("DO NOT RESTATE A TABLE ROW BY ROW" in nv.SYSTEM_PROMPT,
+          "the prompt bars reciting a table row by row")
+    for phrase in ("changed", "extreme", "disagrees"):
+        check(phrase in nv.SYSTEM_PROMPT,
+              f"and says when a dimension MAY be named ({phrase})")
+    tpl = (REPO / "docs" / "narrative-template-close.md").read_text(
+        encoding="utf-8")
+    check("The paragraph does not restate a table" in tpl,
+          "the template carries the same rule, since it is the committed contract")
+    check("exceptions" in tpl.lower() and "two most extreme" in tpl.lower(),
+          "and the coverage list now includes the exceptions")
+    check(tpl.count("\n6. ") == 1 and tpl.count("\n7. ") == 1,
+          "seven coverage items, not six")
+
+
 def group_c() -> None:
     """Absence renders as a dash, never as an empty cell."""
     print(f"\n{LINE}\nC. Absence is visible (32.5)\n{LINE}")
@@ -577,6 +642,7 @@ def main() -> int:
     group_e()
     group_f()
     group_g()
+    group_h()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
