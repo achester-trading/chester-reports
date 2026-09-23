@@ -64,7 +64,8 @@ sys.path.insert(0, str(REPO / "tools"))
 from altdata import session                       # noqa: E402
 from register import instruments, manifest        # noqa: E402
 from register.store import (                      # noqa: E402
-    CURRENCY_EXPOSURES, DIRECTIONS, HORIZONS, OPERATOR_ACTIONS, STATUSES,
+    CURRENCY_EXPOSURES, DIRECTIONS, EXPRESSION_FAMILIES, HORIZONS,
+    LEVERAGE_FORMS, OPERATOR_ACTIONS, STATUSES,
     THESIS_STATES,
     Register, RestrictedInstrumentError,
 )
@@ -122,12 +123,24 @@ def _expression_block(args) -> list[dict]:
     """
     warns = expression_check.check(
         edge_type=args.edge_type, horizon=args.horizon,
-        sec_type=args.sec_type, expiry=args.expiry, structure=args.structure)
+        sec_type=args.sec_type, expiry=args.expiry, structure=args.structure,
+        expression_family=getattr(args, "expression_family", None),
+        leverage_form=getattr(args, "leverage_form", None),
+        notional=getattr(args, "notional", None),
+        allocation=getattr(args, "allocation", None),
+        index_comparison=getattr(args, "index_comparison", None),
+        iv_percentile=getattr(args, "iv_percentile", None))
     print(f"\n  expression check (26.7 -- warning only, nothing is blocked)")
     print(f"    shape           : {args.sec_type}"
           + (f" exp {args.expiry}" if args.expiry else "")
           + (f" {args.structure}" if args.structure else "")
           + f"   for a {args.edge_type} edge on a {args.horizon} horizon")
+    print(f"    expression      : "
+          + (getattr(args, "expression_family", None) or "(unrecorded)")
+          + "   leverage "
+          + (getattr(args, "leverage_form", None) or "(unrecorded)")
+          + (f"   IV pctile {args.iv_percentile:.0f}"
+             if getattr(args, "iv_percentile", None) is not None else ""))
     print(expression_check.format_warnings(warns))
     return warns
 
@@ -321,7 +334,9 @@ def cmd_record(args) -> int:
                                size=args.size, status=args.status,
                                operator_action=args.operator_action, run_id=run_id,
                                currency_exposure=args.currency_exposure,
-                               base_rate_cited=args.base_rate_cited)
+                               base_rate_cited=args.base_rate_cited,
+                               expression_family=args.expression_family,
+                               leverage_form=args.leverage_form)
                 except RestrictedInstrumentError:
                     print(f"  attempt logged to blocked_attempts")
             print(f"{LINE}")
@@ -422,7 +437,9 @@ def cmd_record(args) -> int:
                          signals_used=sorted(args.signals_used),
                          blocked_reason=blocked_reason,
                          currency_exposure=args.currency_exposure,
-                         base_rate_cited=args.base_rate_cited)
+                         base_rate_cited=args.base_rate_cited,
+                         expression_family=args.expression_family,
+                         leverage_form=args.leverage_form)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -692,6 +709,16 @@ def cmd_set_status(args) -> int:
             base_rate_cited=(getattr(args, "base_rate_cited", None)
                              or (old["base_rate_cited"]
                                  if "base_rate_cited" in old.keys() else None)),
+            # Carried forward: the successor describes the same position in the
+            # same shape unless the operator says otherwise, and a supersession
+            # that silently dropped the expression would make 26.7's error
+            # decomposition unanswerable for the row that actually closed.
+            expression_family=(getattr(args, "expression_family", None)
+                               or (old["expression_family"]
+                                   if "expression_family" in old.keys() else None)),
+            leverage_form=(getattr(args, "leverage_form", None)
+                           or (old["leverage_form"]
+                               if "leverage_form" in old.keys() else None)),
             note=args.note)
 
         # The successor gets its own packet, because a decision without one
@@ -783,6 +810,32 @@ def main() -> int:
                    choices=CURRENCY_EXPOSURES,
                    help="Part 31.3(c): required for a non-USD listing "
                         "(instrument written <sym>@<venue>.<CCY>).")
+    # -- the EXPRESSION, from Options as Expression. All four rules that read
+    #    these are WARNINGS until Phase 5 makes the check binding, which is why
+    #    none of them is `required`.
+    r.add_argument("--expression-family", default=None,
+                   choices=EXPRESSION_FAMILIES,
+                   help="Chapter 8's map and Part IV's engineered payoffs, plus "
+                        "`outright`. A closed vocabulary because the field's whole "
+                        "value is that six months of outcomes can be grouped by it.")
+    r.add_argument("--leverage-form", default=None, choices=LEVERAGE_FORMS,
+                   help="Chapter 16.2: WHICH instrument delivers the leverage. The "
+                        "register records risk, not notional; this records the one "
+                        "thing risk cannot say, which is whether a call can arrive.")
+    r.add_argument("--notional", type=float, default=None,
+                   help="Contract or share notional, for the leverage-form rule. "
+                        "Not a size: the register sizes in dollars of loss.")
+    r.add_argument("--allocation", type=float, default=None,
+                   help="The capital allocated to this position, against which the "
+                        "notional is compared.")
+    r.add_argument("--index-comparison", default=None, metavar="TEXT",
+                   help="Chapter 15: what this structure must beat and by how "
+                        "much. 'beats outright below 4,900 and loses above 5,400' "
+                        "is a sentence the outcome can be checked against.")
+    r.add_argument("--iv-percentile", type=float, default=None,
+                   help="The underlying's implied-vol percentile, for Chapter "
+                        "16.3's trough rule -- IV is highest exactly when the "
+                        "instinct wants to buy it.")
     r.add_argument("--base-rate-cited", default=None,
                    metavar="ID",
                    help="Part 31.1: the base rate this thesis departs from, BY "

@@ -82,9 +82,60 @@ def _days_to(expiry: Optional[str], asof: Optional[dt.date] = None) -> Optional[
     return (d - (asof or session.session_date_obj())).days
 
 
+# -----------------------------------------------------------------------------
+# THE OPTIONS-PAPER RULES (Paste D piece 5). ALL WARNINGS, like everything else
+# here, and the order says so explicitly: binding is Phase 5's job.
+# -----------------------------------------------------------------------------
+#
+# WHEN AN IV PERCENTILE IS HIGH ENOUGH TO WARN. Declared, because the rule is
+# Chapter 16.3's and its whole content is a threshold: implied volatility is
+# HIGHEST AT THE TROUGH -- above eighty at the 2008 and 2020 lows, mid-thirties to
+# high forties at 2011, 2018 and 2022 -- and a two-year at-the-money call costing
+# 11% of spot at sixteen-vol costs about 24% at forty. The instinct buys volatility
+# at its peak in order to buy direction, and pays for it twice: once in the premium
+# and again when it collapses during the recovery, which it does within months of
+# every trough on record.
+#
+# 80 rather than 90 or 95: the 2011, 2018 and 2022 lows sat in the mid-thirties to
+# high forties, which is around the 80th percentile of the VIX's own distribution
+# (baserate.vix_distribution puts p95 at ~33 over 1990-2026, so the mid-thirties
+# are already past it on the index and the single-name equivalent is lower). A
+# threshold set at 95 would have stayed quiet through three of the five troughs the
+# rule exists for.
+IV_PERCENTILE_WARN = 80.0
+
+# The structures whose value is dominated by the volatility purchase, so that
+# buying them at a high IV percentile is the error Chapter 16.3 names. A
+# deep-in-the-money LEAP is deliberately NOT here: its price is dominated by
+# intrinsic value and its extrinsic is a fraction, which is exactly why the chapter
+# recommends it as the way to add at a trough.
+VOL_BUYING_FAMILIES = (
+    "long_straddle", "long_strangle", "reverse_iron_butterfly",
+    "reverse_iron_condor", "protective_put", "synthetic_ppn",
+)
+
+# The families that are option structures -- the set the Chapter 15 comparison rule
+# and the mandatory-family rule apply to. `outright` and the cash-equivalent
+# wrappers are not structures whose expression needs defending.
+OPTION_FAMILIES = tuple(f for f in (
+    "long_straddle", "long_strangle", "long_butterfly", "iron_condor",
+    "iron_butterfly", "reverse_iron_butterfly", "collar", "put_spread_collar",
+    "put_backspread", "call_backspread", "risk_reversal",
+    "broken_wing_butterfly", "reverse_iron_condor", "double_diagonal",
+    "diagonal", "vertical_spread", "calendar_spread", "covered_call",
+    "cash_secured_put", "protective_put", "buffered_fund", "synthetic_ppn",
+    "dual_directional") )
+
+
 def check(edge_type: str, horizon: str, sec_type: str = "STK",
           expiry: Optional[str] = None, structure: Optional[str] = None,
-          asof: Optional[dt.date] = None) -> list[dict]:
+          asof: Optional[dt.date] = None,
+          expression_family: Optional[str] = None,
+          leverage_form: Optional[str] = None,
+          notional: Optional[float] = None,
+          allocation: Optional[float] = None,
+          index_comparison: Optional[str] = None,
+          iv_percentile: Optional[float] = None) -> list[dict]:
     """Every expression warning this shape earns. Empty list means none.
 
     `structure` is free text describing a multi-leg shape when there is one
@@ -184,7 +235,98 @@ def check(edge_type: str, horizon: str, sec_type: str = "STK",
              "a horizon matched to the information's diffusion, or an explicit "
              "second thesis for the period after it is priced")
 
+    _options_paper_rules(flag, sec, expression_family, leverage_form,
+                         notional, allocation, index_comparison,
+                         iv_percentile)
+
     return out
+
+
+def _options_paper_rules(flag, sec: str, expression_family: Optional[str],
+                         leverage_form: Optional[str],
+                         notional: Optional[float],
+                         allocation: Optional[float],
+                         index_comparison: Optional[str],
+                         iv_percentile: Optional[float]) -> None:
+    """The four rules from Options as Expression. Warnings, every one.
+
+    Separated into its own function for one reason: these four are about what the
+    decision RECORDED, while the rules above are about whether the shape collects
+    the edge. Mixing them would make the module's own subject unclear, and the
+    second set becomes binding at a different time -- Phase 5 -- from the first.
+    """
+    fam = (expression_family or "").lower() or None
+
+    # 5. AN OPTIONS DECISION WITH NO FAMILY RECORDED. 26.7 forbids downweighting a
+    #    signal for an expression loss, and that rule cannot be applied to a
+    #    decision whose expression was never written down: the loss comes back as a
+    #    bad signal and the system unlearns something true.
+    if sec == "OPT" and not fam:
+        flag("expression_family_unrecorded",
+             "an options decision with no expression_family recorded",
+             "26.7 decomposes error into forecast / timing / EXPRESSION / sizing, "
+             "and forbids downweighting a signal for an expression loss. That rule "
+             "is unapplicable to a decision whose expression was never recorded: "
+             "the loss returns as evidence against the signal, and the system "
+             "unlearns something true.",
+             "name the structure from the register's closed vocabulary -- the "
+             "point of a closed list is that six months of outcomes can be "
+             "grouped by it")
+
+    # 6. LEVERAGE WITH NO FORM RECORDED, when the notional exceeds the allocation.
+    #    16.1: leverage is measured in RISK, never notional -- so the register's
+    #    size is already right and this is not a sizing check. It is a check that
+    #    the INSTRUMENT is named, because the forms differ in the one dimension
+    #    risk cannot express: whether a margin call can arrive.
+    if (notional is not None and allocation is not None and allocation > 0
+            and notional > allocation and not (leverage_form or "").strip()):
+        flag("leverage_form_unrecorded",
+             f"notional {notional:,.0f} exceeds the allocation "
+             f"{allocation:,.0f} with no leverage_form recorded",
+             "Leverage is a multiplier on a decision already made, and the forms "
+             "differ in what risk cannot say: a deep-in-the-money call with a "
+             "defined worst case and a margin loan with a call risk are the same "
+             "size in the register and are not the same decision. Without the form "
+             "there is no way to ask later which kind of leverage cost the book "
+             "money.",
+             "name the form -- futures, LEAPS, call spread, short box, margin -- "
+             "or `none` if the notional is levered by the structure itself")
+
+    # 7. A STRUCTURE THAT DOES NOT STATE WHAT IT MUST BEAT. Chapter 15's rule, and
+    #    Chapter 15.5's finding is the reason it bites: the 50/50 index-and-bills
+    #    mix beats the buffered fund, the principal-protected note and the reverse
+    #    iron butterfly on expected value in all four asset classes at twelve
+    #    months. A structure is chosen over the index, so the comparison is the
+    #    decision -- and an unstated comparison is usually an unmade one.
+    if fam in OPTION_FAMILIES and not (index_comparison or "").strip():
+        flag("index_comparison_unstated",
+             f"a {fam} with no index-outright comparison stated",
+             "Chapter 15 prices every structure against holding the index and "
+             "against a 50/50 index-and-bills mix, and most structures lose to the "
+             "mix on expected value at twelve months. The structure is being chosen "
+             "OVER the index, so the comparison is the decision itself; unstated, "
+             "it is usually unmade.",
+             "state what this structure must beat and by how much -- 'beats "
+             "outright below 4,900 and loses above 5,400' is a sentence the "
+             "outcome can be checked against")
+
+    # 8. BUYING LONG-DATED OPTIONALITY AT A HIGH IV PERCENTILE. Chapter 16.3.
+    if (iv_percentile is not None and iv_percentile >= IV_PERCENTILE_WARN
+            and fam in VOL_BUYING_FAMILIES):
+        flag("long_vol_at_high_iv",
+             f"buying {fam} with implied volatility at the "
+             f"{iv_percentile:.0f}th percentile",
+             "Implied volatility is HIGHEST AT THE TROUGH -- above eighty at the "
+             "2008 and 2020 lows, mid-thirties to high forties at 2011, 2018 and "
+             "2022. A two-year at-the-money call costing 11% of spot at sixteen-vol "
+             "costs about 24% at forty. The instinct buys volatility at its peak in "
+             "order to buy direction and pays for it twice: once in the premium, "
+             "and again when it collapses during the recovery, which it does within "
+             "months of every trough on record.",
+             "a spread or a risk reversal, which sell the expensive leg -- or a "
+             "deep-in-the-money LEAP, whose price is intrinsic value with the "
+             "extrinsic a fraction, which is why the chapter names it as the way "
+             "to add at a trough")
 
 
 def summarise(warnings: list[dict]) -> str:

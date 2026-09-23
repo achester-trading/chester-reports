@@ -525,6 +525,100 @@ def group_e(db_path: str, td: str) -> None:
           "a Saturday is current, not stale")
 
 
+def group_h(db_path: str) -> None:
+    """The expression fields and the four options-paper rules. (Paste D piece 5)"""
+    print(f"\n{LINE}\nH. EXPRESSION FAMILY, LEVERAGE FORM, AND THE FOUR RULES\n{LINE}")
+    import expression_check as ex
+    from register import store as rs
+
+    # --- the vocabularies are closed, and the closure is the point -----------
+    check(len(rs.EXPRESSION_FAMILIES) >= 20 and "outright" in rs.EXPRESSION_FAMILIES,
+          f"{len(rs.EXPRESSION_FAMILIES)} expression families are declared, "
+          f"including `outright` so 'no structure' is a recorded answer rather "
+          f"than a blank")
+    check("ppn_restrike" in rs.LEVERAGE_FORMS and "short_box" in rs.LEVERAGE_FORMS
+          and "none" in rs.LEVERAGE_FORMS,
+          f"{len(rs.LEVERAGE_FORMS)} leverage forms are declared, including the "
+          f"PPN re-strike and the short box")
+
+    reg = rs.Register(db_path)
+    kw = dict(instrument="SPY", direction="long", thesis="t",
+              edge_type="mispricing", horizon="positional", invalidation="x",
+              signals_used=["yfinance.mkt_spy"])
+    did = reg.record(expression_family="risk_reversal", leverage_form="leaps", **kw)
+    row = reg.conn.execute(
+        "SELECT expression_family, leverage_form FROM decisions WHERE id=?",
+        (did,)).fetchone()
+    check(tuple(row) == ("risk_reversal", "leaps"),
+          f"both fields round-trip through the register {tuple(row)}")
+    for field, value in (("expression_family", "condor-ish"),
+                         ("leverage_form", "lots")):
+        try:
+            reg.record(**{field: value}, **kw)
+            bad(f"{field} accepted {value!r} -- free text would create a value no "
+                f"query groups with the one it meant")
+        except ValueError as exc:
+            ok(f"{field} refuses {value!r} ({str(exc)[:48]}...)")
+    check(reg.record(**kw) is not None,
+          "and both are OPTIONAL -- the column was added to a live register and "
+          "every pre-existing row predates it")
+    reg.conn.close()
+
+    # --- the four rules WARN and never block --------------------------------
+    def codes(**kw2):
+        return [w["code"] for w in ex.check(**kw2)]
+
+    base = dict(edge_type="convexity", horizon="swing", sec_type="OPT",
+                expiry="20271217")
+    check("expression_family_unrecorded" in codes(**base),
+          "an options decision with no expression_family warns -- 26.7's error "
+          "decomposition cannot be applied to an expression nobody recorded")
+    check("leverage_form_unrecorded" in codes(
+              edge_type="mispricing", horizon="positional", sec_type="STK",
+              notional=250000, allocation=100000),
+          "notional above the allocation with no leverage_form warns")
+    check("leverage_form_unrecorded" not in codes(
+              edge_type="mispricing", horizon="positional", sec_type="STK",
+              notional=50000, allocation=100000),
+          "and an unlevered position does not")
+    check("index_comparison_unstated" in codes(
+              expression_family="iron_condor", **base),
+          "an option structure with no index-outright comparison warns -- Chapter "
+          "15 prices every structure against the index and a 50/50 mix, and most "
+          "lose to the mix")
+    check("index_comparison_unstated" not in codes(
+              expression_family="iron_condor",
+              index_comparison="beats outright inside 4,900-5,400", **base),
+          "and a stated comparison clears it")
+    check("index_comparison_unstated" not in codes(
+              expression_family="outright", **base),
+          "while `outright` is not asked to defend itself against the index")
+    check("long_vol_at_high_iv" in codes(
+              expression_family="long_straddle", iv_percentile=92.0, **base),
+          f"buying a straddle at the 92nd IV percentile warns "
+          f"(threshold {ex.IV_PERCENTILE_WARN})")
+    check("long_vol_at_high_iv" not in codes(
+              expression_family="long_straddle", iv_percentile=40.0, **base),
+          "and the same structure at the 40th does not")
+    # THE EXCEPTION THAT MAKES THE RULE RIGHT. 16.3 recommends the
+    # deep-in-the-money LEAP as the way to add AT a trough: its price is intrinsic
+    # value and its extrinsic is a fraction, so a high IV percentile barely touches
+    # it. A rule that flagged it would be telling the operator not to do the thing
+    # the chapter tells him to do.
+    check("long_vol_at_high_iv" not in codes(
+              expression_family="diagonal", leverage_form="leaps",
+              iv_percentile=95.0, index_comparison="beats outright above 5,100",
+              **base),
+          "a deep-in-the-money LEAP at the 95th percentile is NOT flagged -- its "
+          "price is intrinsic and 16.3 names it as the way to add at a trough")
+    for w in ex.check(expression_family="long_straddle", iv_percentile=92.0,
+                      **base):
+        check(w.get("severity") == "warning" and w.get("mechanism"),
+              f"{w['code']} is a warning and names its mechanism -- binding is "
+              f"Phase 5's job, and a mechanism can be argued with where a score "
+              f"cannot")
+
+
 def group_f() -> None:
     print(f"\n{LINE}\nF. PROVENANCE AND THE TOLERANCE POLICY\n{LINE}")
     import pin_log as pl
@@ -638,6 +732,7 @@ def main() -> int:
         group_g(db)
         group_c(db)
         group_e(db, td)
+        group_h(db)
     group_f()
     group_d()
 

@@ -93,6 +93,80 @@ THESIS_STATES = ("INTACT", "STRAINED", "INVALIDATED")
 # not arise.
 CURRENCY_EXPOSURES = ("unhedged", "hedged", "n_a")
 
+# -----------------------------------------------------------------------------
+# THE EXPRESSION VOCABULARIES -- Options as Expression, Chapter 8's map and
+# Part IV's engineered payoffs, plus `outright` for the ordinary case.
+#
+# WHY A CLOSED VOCABULARY RATHER THAN FREE TEXT. 26.7 forbids downweighting a
+# signal for an EXPRESSION loss, and that rule only pays if expression is recorded
+# as its own dimension at decision time. Free text records it in a form no query
+# can group: "risk reversal", "risk-reversal" and "RR" are three answers to the
+# question "do our timing edges lose because the timing was wrong or because we
+# keep expressing them in stock". The whole value of the field is that it can be
+# grouped six months later.
+#
+# The `structure` argument on decide.py stays free text and keeps its job -- it
+# describes a shape to the expression check. This field names the FAMILY, and the
+# families are the paper's own: Chapter 8.9's map, in its order, then Part IV.
+# -----------------------------------------------------------------------------
+EXPRESSION_FAMILIES = (
+    # The ordinary case. Not a structure, and named so that "no structure" is a
+    # recorded answer rather than a blank.
+    "outright",
+    # Chapter 8.1-8.6: the volatility shapes, in the paper's own map order.
+    "long_straddle",
+    "long_strangle",
+    "long_butterfly",
+    "iron_condor",
+    "iron_butterfly",
+    "reverse_iron_butterfly",
+    "collar",
+    "put_spread_collar",
+    "put_backspread",
+    "call_backspread",
+    "risk_reversal",
+    "broken_wing_butterfly",
+    "reverse_iron_condor",
+    "double_diagonal",
+    "diagonal",
+    # The two-leg workhorses the map treats as given rather than listing.
+    "vertical_spread",
+    "calendar_spread",
+    "covered_call",
+    "cash_secured_put",
+    "protective_put",
+    # Part IV -- the engineered payoffs. Chapters 12-14.
+    "buffered_fund",
+    "synthetic_ppn",
+    "dual_directional",
+)
+
+# -----------------------------------------------------------------------------
+# HOW THE LEVERAGE IS DELIVERED -- Chapter 16.2's table, plus the PPN re-strike.
+#
+# 16.1: "Leverage is measured in risk, never in notional." The register already
+# records risk, so this field does not size anything -- it records WHICH
+# INSTRUMENT delivered a given dollar of risk, because the forms differ in
+# financing cost, in whether the risk is defined, and in whether a margin call
+# can arrive. A deep-in-the-money call controlling $200k with $20k at risk and a
+# margin loan buying $200k with no stop are the same size in the register and are
+# not remotely the same decision.
+# -----------------------------------------------------------------------------
+LEVERAGE_FORMS = (
+    # The unlevered case, named so that "none" is recorded rather than blank.
+    "none",
+    "margin",                 # the broker's rate; the only form with a call risk
+    "futures",                # ~8-10x on initial margin, financing in the basis
+    "leaps",                  # deep-in-the-money long-dated call: stock with a floor
+    "call_spread",            # highest delta per dollar at a known target
+    "risk_reversal",          # skew-funded direction; NOT defined risk
+    "short_box",              # SPX box sold: financing near the risk-free rate
+    "ppn_restrike",           # re-striking a synthetic PPN's participation leg
+    "leveraged_etf",          # days only; the variance tax is the cost
+    "cash_secured_put",       # 1x on the cash reserved -- paid to wait at a level
+)
+
+
 
 class RestrictedInstrumentError(Exception):
     """Raised when a decision names an instrument the register refuses.
@@ -157,6 +231,20 @@ CREATE TABLE IF NOT EXISTS decisions (
     -- record() refuses NULL for any non-USD listing rather than defaulting it.
     currency_exposure TEXT CHECK (currency_exposure IS NULL
                                   OR currency_exposure IN {CURRENCY_EXPOSURES!r}),
+    -- Options as Expression, Chapter 8 and Part IV. WHICH SHAPE the decision was
+    -- expressed in, from a closed vocabulary so that six months of outcomes can be
+    -- grouped by it. NULL is permitted: the column was added to a live register and
+    -- every pre-existing row predates it. The expression check WARNS when an
+    -- options decision leaves it unset and does not refuse -- Phase 5 is where that
+    -- becomes binding.
+    expression_family TEXT CHECK (expression_family IS NULL
+                                  OR expression_family IN {EXPRESSION_FAMILIES!r}),
+    -- Chapter 16.2. HOW the leverage was delivered, which the risk number cannot
+    -- say: a deep-in-the-money call with $20k at risk and a margin loan with $20k
+    -- at risk are one size and two different decisions -- one has a defined worst
+    -- case and no call risk, the other has neither.
+    leverage_form    TEXT CHECK (leverage_form IS NULL
+                                 OR leverage_form IN {LEVERAGE_FORMS!r}),
     -- 31.1. The base rate this thesis departs from, cited BY ID and never by
     -- retyping the figure: a variant perception is a claim about a distribution,
     -- and a packet that retypes "-10% happens about once a year" cannot be
@@ -293,7 +381,8 @@ class Register:
         # NULL means the field predates the column, not that it is n_a.
         for col in ("signals_used TEXT", "blocked_reason TEXT",
                     "currency_exposure TEXT", "note TEXT",
-                    "base_rate_cited TEXT"):
+                    "base_rate_cited TEXT", "expression_family TEXT",
+                    "leverage_form TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -344,6 +433,8 @@ class Register:
                blocked_reason: Optional[str] = None,
                currency_exposure: Optional[str] = None,
                base_rate_cited: Optional[str] = None,
+               expression_family: Optional[str] = None,
+               leverage_form: Optional[str] = None,
                note: Optional[str] = None) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -384,6 +475,21 @@ class Register:
                 f"('baserate.<table>' or 'baserate.<table>|<field.path>') or a "
                 f"claims-registry id ('claim:<id>'); got "
                 f"{base_rate_cited!r}. A retyped figure cannot be replayed")
+        # THE VOCABULARY IS ENFORCED, THE RULES ARE NOT -- yet. A value outside the
+        # list is refused here, because a typo would silently create a
+        # twenty-fourth family that no query groups with the one it meant. Whether
+        # the field is REQUIRED for a given decision is the expression check's
+        # question, and it warns rather than blocking until Phase 5.
+        if (expression_family is not None
+                and expression_family not in EXPRESSION_FAMILIES):
+            raise ValueError(
+                f"expression_family must be one of {EXPRESSION_FAMILIES}; got "
+                f"{expression_family!r}. Free text here would create a family no "
+                f"query can group with the one it meant")
+        if leverage_form is not None and leverage_form not in LEVERAGE_FORMS:
+            raise ValueError(
+                f"leverage_form must be one of {LEVERAGE_FORMS}; got "
+                f"{leverage_form!r}")
         if currency_exposure is not None and currency_exposure not in CURRENCY_EXPOSURES:
             raise ValueError(f"currency_exposure must be one of "
                              f"{CURRENCY_EXPOSURES}")
@@ -411,13 +517,14 @@ class Register:
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
             " invalidation, status, operator_action, thesis_state, run_id,"
             " signals_used, blocked_reason, currency_exposure,"
-            " base_rate_cited, note)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " base_rate_cited, expression_family, leverage_form, note)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
              json.dumps(signals_used or []), blocked_reason,
-             currency_exposure, base_rate_cited, note))
+             currency_exposure, base_rate_cited, expression_family,
+             leverage_form, note))
         self.conn.commit()
         return did
 
