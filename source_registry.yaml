@@ -276,6 +276,39 @@ sources:
       - >-
         Tier C mirror: a third-party indexer of someone else's chain, useful for
         aggregates and not authoritative for any of them.
+  ibkr_stock_loan:
+    name: IB public stock-loan availability file (usa.txt)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [borrow_terms]
+    geography: [US]
+    latency: refreshed intraday by IB
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The file carries no per-row timestamp, so observed_at is the session and
+      available_at is the read instant. Because it refreshes intraday, a CHANGED value
+      read later in the day is a genuine vintage -- which is what a borrow rate moving
+      during a session is.
+    license: IB's own published anonymous endpoint, no key
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/borrow.py
+    status: gated
+    gate: the stored probe ibkr.stock_loan_file_probe
+    caveats:
+      - >-
+        UNREACHABLE AS OF 23 September 2026. ftp3.interactivebrokers.com resolves to
+        206.106.137.27 and times out on ports 21, 80 and 443 from two networks on two
+        continents; every HTTPS mirror candidate returns 404. Either the endpoint is
+        retired, restricted by source, or down. The parser is written and
+        fixture-tested against IB's documented column layout so the day it answers
+        the work is a probe and not a build.
+      - >-
+        THE PARSER'S COLUMN LAYOUT IS FROM DOCUMENTATION, NOT FROM A LIVE FILE. It is
+        a written expectation proved against a fixture, and the first real file may
+        not match it.
+      - >-
+        IB censors a large availability as '>1000000'. That is stored as MISSING
+        rather than as one million, which it is not.
   derived_state:
     name: The market-state object -- dimensions, dials and contradictions
     tier: derived

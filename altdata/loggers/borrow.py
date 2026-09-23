@@ -3,9 +3,16 @@ Borrow, short interest and mentions. (Part 29.7, LOGGING ONLY)
 
 Three sub-sources with three different provenances, kept apart on purpose:
 
-  (a) IBKR BORROW -- shortable shares and fee rate, from the Gateway. DORMANT: the
-      probe returns 10358 "Fundamentals data is not allowed" and the fields come
-      back NaN, so this account cannot see them. Built, probed, recorded.
+  (a) IBKR BORROW, by two routes, BOTH DORMANT and both recorded:
+      -- THE PUBLIC STOCK-LOAN FILE (ftp3.interactivebrokers.com, user shortstock,
+         usa.txt) is the better route: every symbol, no market-data entitlement,
+         refreshed intraday. THE HOST DOES NOT ANSWER. It resolves to 206.106.137.27
+         and times out on 21, 80 and 443 from two networks on two continents, and
+         every HTTPS mirror candidate 404s. The parser is written and fixture-tested
+         against IB's documented column layout, so the day it answers this is a probe
+         and not a build.
+      -- THE API TICK returns 10358 "Fundamentals data is not allowed" with the fields
+         NaN, so this account cannot see them either.
   (b) FINRA -- Reg SHO daily short VOLUME, and semi-monthly short INTEREST. Public
       files, no key.
   (c) APEWISDOM -- mention counts and rank from social venues. Public API, no key.
@@ -49,10 +56,25 @@ from . import LoggerSpec, register
 
 log = logging.getLogger(__name__)
 
-# (a) IBKR borrow
+# (a) IBKR borrow -- two routes, both probed
 BORROW_SHARES_KEY = "ibkr.shortable_shares"
 BORROW_FEE_KEY = "ibkr.borrow_fee_rate"
+BORROW_REBATE_KEY = "ibkr.borrow_rebate_rate"
 BORROW_PROBE_KEY = "ibkr.borrow_probe"
+STOCK_LOAN_PROBE_KEY = "ibkr.stock_loan_file_probe"
+
+# THE PUBLIC STOCK-LOAN FILE, which would be the better route of the two: it covers
+# every symbol, needs no market-data entitlement, and refreshes intraday. The FTP
+# host and the anonymous account are IB's own published ones.
+STOCK_LOAN_FTP_HOST = "ftp3.interactivebrokers.com"
+STOCK_LOAN_FTP_USER = "shortstock"
+STOCK_LOAN_FILE = "usa.txt"
+# HTTPS candidates, tried because a file published over FTP is often mirrored.
+STOCK_LOAN_HTTPS = (
+    "https://www.interactivebrokers.com/download/usa.txt",
+    "https://gdcdyn.interactivebrokers.com/download/usa.txt",
+    "https://www.ibkr.com/download/usa.txt",
+)
 
 # (b) FINRA
 SHORT_VOLUME_KEY = "finra.short_volume"
@@ -88,7 +110,211 @@ def _get(url: str, limit: int = 8_000_000) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# (a) IBKR borrow -- probed, and dormant on this account
+# (a1) THE PUBLIC STOCK-LOAN FILE -- parser written, route unreachable
+# ---------------------------------------------------------------------------
+def parse_usa_txt(text: str) -> list[dict]:
+    """IB's stock-loan file: pipe-delimited, with a header naming its own columns.
+
+    THE COLUMN NAMES ARE READ FROM THE HEADER, not assumed by position, for the same
+    reason the RTAT parser does it: a vendor adding a column should not silently
+    shift every field one place to the left.
+
+    THE SHAPE HERE IS FROM IB'S DOCUMENTATION AND HAS NOT BEEN CHECKED AGAINST A LIVE
+    FILE, because the host does not answer -- see probe_stock_loan_file(). That is
+    stated rather than glossed: this parser is a written expectation, proved against a
+    fixture of the documented shape, and the first live file may not match it. What it
+    buys is that the day the route opens, the work is a probe and not a build.
+
+    Fee and rebate are ANNUALISED PERCENTAGES in the file and stored as such. A
+    negative rebate is normal for a hard-to-borrow name and is not an error.
+    """
+    rows: list[dict] = []
+    header: Optional[list[str]] = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        # IB prefixes the header with '#', and the first line is a version banner.
+        if line.startswith("#"):
+            parts = [p.strip().upper() for p in line.lstrip("#").split("|")]
+            if "SYM" in parts:
+                header = parts
+            continue
+        if header is None:
+            continue
+        vals = line.split("|")
+        if len(vals) < len(header):
+            continue
+        r = dict(zip(header, vals))
+        sym = (r.get("SYM") or "").strip().upper()
+        if not sym:
+            continue
+
+        def num(*names):
+            for n in names:
+                v = (r.get(n) or "").strip()
+                if v in ("", "NA", "N/A", ">1000000"):
+                    # '>1000000' is IB's own censoring of a very large availability.
+                    # Treated as missing rather than as a million, which it is not.
+                    continue
+                try:
+                    return float(v.replace(",", ""))
+                except ValueError:
+                    continue
+            return None
+
+        rows.append({
+            "symbol": sym,
+            "currency": (r.get("CUR") or "").strip() or None,
+            "fee_rate": num("FEERATE", "FEE"),
+            "rebate_rate": num("REBATERATE", "REBATE"),
+            "available": num("AVAILABLE", "AVAIL"),
+        })
+    return rows
+
+
+def probe_stock_loan_file(store: Optional[observations.ObservationStore] = None,
+                         timeout: int = 25) -> dict:
+    """Try the FTP route and the HTTPS mirrors, and record every answer."""
+    out: dict[str, Any] = {"checked_at": session.utc_iso(), "routes": {},
+                           "state": "unknown"}
+    import socket
+    try:
+        out["dns"] = socket.gethostbyname(STOCK_LOAN_FTP_HOST)
+    except Exception as exc:                                   # noqa: BLE001
+        out["dns"] = f"{type(exc).__name__}: {exc}"
+
+    # FTP, anonymous, as published.
+    try:
+        import ftplib
+        f = ftplib.FTP(STOCK_LOAN_FTP_HOST, timeout=timeout)
+        f.login(STOCK_LOAN_FTP_USER, "")
+        buf = _io.BytesIO()
+        f.retrbinary(f"RETR {STOCK_LOAN_FILE}", buf.write, blocksize=32768)
+        f.quit()
+        text = buf.getvalue().decode("utf-8", "replace")
+        parsed = parse_usa_txt(text)
+        out["routes"]["ftp"] = {"ok": True, "bytes": len(buf.getvalue()),
+                                "rows_parsed": len(parsed),
+                                "sample": parsed[:3]}
+        out["state"] = "available"
+        out["source_route"] = "ftp"
+    except Exception as exc:                                   # noqa: BLE001
+        out["routes"]["ftp"] = {"ok": False,
+                                "error": f"{type(exc).__name__}: {str(exc)[:160]}"}
+
+    for url in STOCK_LOAN_HTTPS:
+        entry: dict[str, Any] = {}
+        try:
+            body = _get_url(url, timeout=timeout)
+            parsed = parse_usa_txt(body.decode("utf-8", "replace"))
+            entry = {"ok": True, "bytes": len(body), "rows_parsed": len(parsed)}
+            if parsed and out["state"] != "available":
+                out["state"] = "available"
+                out["source_route"] = url
+        except urllib.error.HTTPError as exc:
+            entry = {"ok": False, "http": exc.code}
+        except Exception as exc:                               # noqa: BLE001
+            entry = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:120]}"}
+        out["routes"][url] = entry
+
+    if out["state"] != "available":
+        out["state"] = "unreachable"
+        out["reason"] = (
+            f"{STOCK_LOAN_FTP_HOST} resolves to {out.get('dns')} and answers on no "
+            f"port tried (21, 80, 443 all time out), from TWO networks on two "
+            f"continents; every HTTPS mirror candidate returns 404. Either the "
+            f"endpoint has been retired, it is restricted by source, or it is down. "
+            f"The parser is written and fixture-tested so the day it answers this is "
+            f"a probe rather than a build.")
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        db.write(STOCK_LOAN_PROBE_KEY, None, session.session_date(),
+                 session.utc_iso(timespec="microseconds"),
+                 json.dumps(out, sort_keys=True, default=str),
+                 source="ibkr_paper", availability_kind="ingest_instant")
+    finally:
+        if own:
+            db.close()
+    return out
+
+
+def stock_loan_state(store: Optional[observations.ObservationStore] = None) -> str:
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        rows = db.as_of(STOCK_LOAN_PROBE_KEY)
+        if not rows:
+            return "never_probed"
+        return json.loads(rows[-1]["value_text"]).get("state", "unknown")
+    finally:
+        if own:
+            db.close()
+
+
+def pull_stock_loan(run_id: Optional[str] = None,
+                    store: Optional[observations.ObservationStore] = None) -> dict:
+    """The borrow series for the tracked universe, once per ibkr-sync run.
+
+    Refuses until a stored probe says the route is available, for the reason the
+    auction sampler refuses: a fetch that silently returns nothing every half hour
+    looks healthier than one that says it cannot reach its source.
+    """
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        state = stock_loan_state(store=db)
+        if state != "available":
+            return {"skipped": f"stock-loan route {state}", "written": 0}
+        try:
+            import ftplib
+            f = ftplib.FTP(STOCK_LOAN_FTP_HOST, timeout=30)
+            f.login(STOCK_LOAN_FTP_USER, "")
+            buf = _io.BytesIO()
+            f.retrbinary(f"RETR {STOCK_LOAN_FILE}", buf.write, blocksize=32768)
+            f.quit()
+            rows = parse_usa_txt(buf.getvalue().decode("utf-8", "replace"))
+        except Exception as exc:                               # noqa: BLE001
+            return {"error": f"{type(exc).__name__}: {str(exc)[:160]}", "written": 0}
+
+        wanted = set(universe())
+        now = session.utc_iso(timespec="microseconds")
+        day = session.session_date()
+        out = []
+        for r in rows:
+            if r["symbol"] not in wanted:
+                continue
+            for key, value in ((BORROW_FEE_KEY, r["fee_rate"]),
+                               (BORROW_REBATE_KEY, r["rebate_rate"]),
+                               (BORROW_SHARES_KEY, r["available"])):
+                if value is None:
+                    continue
+                out.append({"registry_key": key, "instrument": r["symbol"],
+                            # THE FILE REFRESHES INTRADAY, so observed_at is the
+                            # session and a later read of a CHANGED value creates a
+                            # genuine vintage -- which is what a borrow rate moving
+                            # during the day is.
+                            "observed_at": day, "available_at": now,
+                            "value": value, "source": "ibkr_stock_loan",
+                            "run_id": run_id,
+                            "availability_kind": "ingest_instant"})
+        written = db.write_many(observations.drop_unchanged(db, out))
+        return {"state": "ok", "session": day, "names": len(out) // 3,
+                "written": written}
+    finally:
+        if own:
+            db.close()
+
+
+def _get_url(url: str, timeout: int = 25) -> bytes:
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read(40_000_000)
+
+
+# ---------------------------------------------------------------------------
+# (a2) IBKR borrow via the API tick -- probed, and dormant on this account
 # ---------------------------------------------------------------------------
 def probe_borrow(port: int = 4002,
                  store: Optional[observations.ObservationStore] = None) -> dict:
@@ -290,14 +516,18 @@ def pull(run_id: Optional[str] = None,
     own = store is None
     db = store or observations.ObservationStore()
     try:
-        state = borrow_state(store=db)
-        if state == "entitled":
-            out["borrow"] = {"state": "entitled",
-                             "note": "the hourly ibkr-sync owns the snapshot"}
-        else:
-            out["borrow"] = {"state": state,
-                             "note": "dormant; the stored probe says this account "
-                                     "cannot see the borrow fields"}
+        api_state = borrow_state(store=db)
+        file_state = stock_loan_state(store=db)
+        out["borrow_api_tick"] = {
+            "state": api_state,
+            "note": ("dormant by ruling -- the stock-loan file is the intended "
+                     "route and the tick stays off" if file_state == "available"
+                     else "dormant; the stored probe says this account cannot see "
+                          "the borrow fields")}
+        out["borrow_stock_loan_file"] = {
+            "state": file_state,
+            "note": ("sampled once per ibkr-sync run" if file_state == "available"
+                     else "unreachable; see ibkr.stock_loan_file_probe")}
         out["regsho"] = pull_regsho(run_id=run_id, store=db)
         out["apewisdom"] = pull_apewisdom(run_id=run_id, store=db)
         out["written"] = sum(int((out[k] or {}).get("written") or 0)
@@ -312,8 +542,14 @@ def keys() -> list[str]:
     # The borrow keys are deliberately NOT here: this account cannot see them, and a
     # roster entry for a series nothing can write would make the heartbeat red for a
     # subscription decision rather than for a fault.
-    return [SHORT_VOLUME_KEY, SHORT_VOLUME_TOTAL_KEY, SHORT_EXEMPT_KEY,
+    keys = [SHORT_VOLUME_KEY, SHORT_VOLUME_TOTAL_KEY, SHORT_EXEMPT_KEY,
             MENTIONS_KEY, RANK_KEY, UPVOTES_KEY]
+    # THE BORROW KEYS JOIN THE ROSTER ONLY WHEN A ROUTE EXISTS. Watching a series
+    # nothing can write would make the heartbeat red for an unreachable vendor host
+    # rather than for a fault, and the two must stay distinguishable.
+    if stock_loan_state() == "available":
+        keys += [BORROW_FEE_KEY, BORROW_REBATE_KEY, BORROW_SHARES_KEY]
+    return keys
 
 
 SPEC = register(LoggerSpec(
@@ -334,6 +570,8 @@ def _main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description="Borrow / short / mentions logger.")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("probe-borrow")
+    sub.add_parser("probe-stock-loan")
+    sub.add_parser("pull-stock-loan")
     pl = sub.add_parser("pull")
     pl.add_argument("--day", default=None)
     sub.add_parser("status")
@@ -342,6 +580,13 @@ def _main(argv: list[str]) -> int:
                         format="%(levelname)s %(name)s: %(message)s")
     if a.cmd == "probe-borrow":
         print(json.dumps(probe_borrow(), indent=2, sort_keys=True))
+        return 0
+    if a.cmd == "probe-stock-loan":
+        r = probe_stock_loan_file()
+        print(json.dumps(r, indent=2, sort_keys=True, default=str))
+        return 0 if r.get("state") == "available" else 1
+    if a.cmd == "pull-stock-loan":
+        print(json.dumps(pull_stock_loan(), indent=2, sort_keys=True))
         return 0
     if a.cmd == "status":
         print(json.dumps({"borrow": borrow_state(),

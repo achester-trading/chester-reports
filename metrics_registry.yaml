@@ -1339,6 +1339,35 @@ metrics:
     trigger_eligible: false
     description: >-
       Indicative annualised borrow fee. Dormant for the same reason.
+  ibkr.borrow_rebate_rate:
+    source: ibkr_stock_loan
+    mechanism_group: borrow_terms
+    native_horizon: intraday
+    information_half_life: intraday
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Annualised rebate rate from IB's public stock-loan file. A NEGATIVE rebate is
+      normal for a hard-to-borrow name and is not an error -- it means the short
+      pays rather than receives. Registered empty: the host does not answer.
+  ibkr.stock_loan_file_probe:
+    source: ibkr_stock_loan
+    mechanism_group: borrow_terms
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      Every route to IB's public stock-loan file, tried and recorded: the anonymous
+      FTP account and three HTTPS mirror candidates. States: available, unreachable.
+      Currently unreachable -- ftp3.interactivebrokers.com resolves and answers on no
+      port from two networks, and the mirrors 404.
   ibkr.borrow_probe:
     source: ibkr_paper
     mechanism_group: borrow_terms
