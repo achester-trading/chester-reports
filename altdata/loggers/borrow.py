@@ -13,8 +13,11 @@ Three sub-sources with three different provenances, kept apart on purpose:
          and not a build.
       -- THE API TICK returns 10358 "Fundamentals data is not allowed" with the fields
          NaN, so this account cannot see them either.
-  (b) FINRA -- Reg SHO daily short VOLUME, and semi-monthly short INTEREST. Public
-      files, no key.
+  (b) FINRA -- Reg SHO daily short VOLUME from the public file, and semi-monthly
+      short INTEREST from api.finra.org, which is ANONYMOUS: probed, HTTP 200, no key,
+      and a POST filter on symbolCode means the tracked universe can be asked for
+      directly rather than paged out of the whole market. Short interest runs on its
+      own PUBLICATION CALENDAR, not nightly -- see below.
   (c) APEWISDOM -- mention counts and rank from social venues. Public API, no key.
 
 The discovery funnel stays unbuilt: that is 6h and gated. Nothing here ranks,
@@ -88,6 +91,23 @@ RANK_KEY = "apewisdom.rank"
 UPVOTES_KEY = "apewisdom.upvotes"
 
 REGSHO_URL = "https://cdn.finra.org/equity/regsho/daily/CNMSshvol{yyyymmdd}.txt"
+
+# FINRA's short-interest API. Probed and confirmed ANONYMOUS -- HTTP 200 with no key,
+# and a POST compareFilter on symbolCode works, so the tracked universe can be asked
+# for directly instead of paging the whole market.
+SHORT_INTEREST_URL = ("https://api.finra.org/data/group/otcMarket/name/"
+                      "consolidatedShortInterest")
+SHORT_INTEREST_EXTRA = {
+    "finra.short_interest_prior": "previousShortPositionQuantity",
+    "finra.short_interest_avg_volume": "averageDailyVolumeQuantity",
+    "finra.short_interest_days_to_cover": "daysToCoverQuantity",
+}
+
+# THE PUBLICATION LAG, DECLARED. FINRA settles short interest twice a month and
+# publishes about eight business days later. Declared rather than discovered per run so
+# the calendar arithmetic has one number to be wrong about, and so a change in FINRA's
+# schedule is a one-line edit rather than a hunt.
+SHORT_INTEREST_LAG_BUSINESS_DAYS = 8
 APEWISDOM_URL = "https://apewisdom.io/api/v1.0/filter/{feed}/page/{page}"
 APEWISDOM_FEEDS = ("all-stocks", "wallstreetbets")
 APEWISDOM_PAGES = 2          # ~200 names; the tail is noise and the funnel is 6h
@@ -454,6 +474,205 @@ def pull_regsho(day: Optional[str] = None, run_id: Optional[str] = None,
 
 
 # ---------------------------------------------------------------------------
+# (b2) FINRA SHORT INTEREST -- on its own publication calendar
+# ---------------------------------------------------------------------------
+def _is_business_day(d: dt.date) -> bool:
+    """A weekday the exchange is open, calendar where it covers, weekdays elsewhere."""
+    if session.calendar_covers(d):
+        return session.is_trading_session(d)
+    return d.weekday() < 5
+
+
+def _add_business_days(d: dt.date, n: int) -> dt.date:
+    left, day = n, d
+    while left > 0:
+        day += dt.timedelta(days=1)
+        if _is_business_day(day):
+            left -= 1
+    return day
+
+
+def settlement_dates(year: int, month: int) -> list[dt.date]:
+    """FINRA's two settlement dates in a month: mid-month and month-end.
+
+    The rule is the 15th and the last day of the month, each rolled BACK to the
+    preceding business day when it falls on a weekend or a holiday -- rolled back
+    rather than forward, because a settlement date cannot be after the period it
+    settles.
+    """
+    out = []
+    mid = dt.date(year, month, 15)
+    while not _is_business_day(mid):
+        mid -= dt.timedelta(days=1)
+    out.append(mid)
+
+    nxt = dt.date(year + (month == 12), (month % 12) + 1, 1)
+    last = nxt - dt.timedelta(days=1)
+    while not _is_business_day(last):
+        last -= dt.timedelta(days=1)
+    out.append(last)
+    return out
+
+
+def publication_date(settlement: dt.date) -> dt.date:
+    """When a settlement date's figures become available."""
+    return _add_business_days(settlement, SHORT_INTEREST_LAG_BUSINESS_DAYS)
+
+
+def due_settlements(as_of: Optional[dt.date] = None, months_back: int = 3,
+                    store: Optional[observations.ObservationStore] = None
+                    ) -> list[dt.date]:
+    """Settlement dates whose publication has passed and which we do not yet hold.
+
+    THE SCHEDULE IS A CALENDAR, NOT A CADENCE, which is why this exists rather than a
+    nightly blind fetch. Short interest publishes twice a month; asking every night
+    would be 28 wasted calls a month against a public API, and -- worse -- would make
+    "nothing new today" indistinguishable from "the endpoint broke". Asking only when
+    something is DUE means a failure is a real failure.
+    """
+    today = as_of or dt.date.fromisoformat(session.session_date())
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        held = {str(r["observed_at"])[:10]
+                for inst in db.instruments(SHORT_INTEREST_KEY)
+                for r in db.as_of(SHORT_INTEREST_KEY, instrument=inst)}
+        out = []
+        y, m = today.year, today.month
+        for back in range(months_back):
+            mm = m - back
+            yy = y
+            while mm <= 0:
+                mm += 12
+                yy -= 1
+            for sd in settlement_dates(yy, mm):
+                if sd > today:
+                    continue
+                if publication_date(sd) > today:
+                    continue            # settled but not yet published
+                if sd.isoformat() in held:
+                    continue            # already logged
+                out.append(sd)
+        return sorted(set(out))
+    finally:
+        if own:
+            db.close()
+
+
+def _si_rows(symbol: str, limit: int = 8) -> list[dict]:
+    body = json.dumps({
+        "limit": limit,
+        "compareFilters": [{"fieldName": "symbolCode", "fieldValue": symbol,
+                            "compareType": "EQUAL"}],
+        # Newest first: the default ordering returns 2020 and the calendar asks
+        # about this month.
+        "sortFields": ["-settlementDate"],
+    }).encode()
+    headers = dict(UA)
+    headers["Content-Type"] = "application/json"
+    headers["Accept"] = "application/json"
+    req = urllib.request.Request(SHORT_INTEREST_URL, headers=headers, data=body,
+                                 method="POST")
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def probe_short_interest() -> dict:
+    """Whether the API answers anonymously, and with which fields."""
+    out: dict[str, Any] = {"checked_at": session.utc_iso(), "needs_key": False}
+    try:
+        rows = _si_rows("NVDA", limit=2)
+        out["state"] = "available" if rows else "empty"
+        out["rows"] = len(rows)
+        if rows:
+            out["fields"] = sorted(rows[0])
+            out["newest_settlement"] = rows[0].get("settlementDate")
+    except urllib.error.HTTPError as exc:
+        out["state"] = "http_error"
+        out["http"] = exc.code
+        out["needs_key"] = exc.code in (401, 403)
+        out["reason"] = f"HTTP {exc.code}"
+    except Exception as exc:                                   # noqa: BLE001
+        out["state"] = "error"
+        out["reason"] = f"{type(exc).__name__}: {str(exc)[:140]}"
+    return out
+
+
+def pull_short_interest(run_id: Optional[str] = None,
+                        store: Optional[observations.ObservationStore] = None,
+                        force: bool = False) -> dict:
+    """Short interest for the tracked universe, when the calendar says it is due."""
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        due = due_settlements(store=db)
+        if not due and not force:
+            nxt = None
+            today = dt.date.fromisoformat(session.session_date())
+            for back in (0, -1):
+                for sd in settlement_dates(today.year, today.month - back
+                                           if today.month - back > 0 else 12):
+                    if publication_date(sd) > today:
+                        nxt = publication_date(sd) if nxt is None else min(
+                            nxt, publication_date(sd))
+            return {"state": "not_due", "written": 0,
+                    "next_publication": nxt.isoformat() if nxt else None,
+                    "note": ("short interest publishes twice a month about "
+                             f"{SHORT_INTEREST_LAG_BUSINESS_DAYS} business days after "
+                             "settlement; asking nightly would make 'nothing new' "
+                             "indistinguishable from 'the endpoint broke'")}
+
+        now = session.utc_iso(timespec="microseconds")
+        wanted = due or []
+        rows, names, failed = [], 0, []
+        for sym in universe():
+            try:
+                got = _si_rows(sym, limit=8)
+            except Exception as exc:                           # noqa: BLE001
+                failed.append((sym, f"{type(exc).__name__}: {str(exc)[:90]}"))
+                continue
+            for r in got:
+                sd = str(r.get("settlementDate") or "")[:10]
+                if not sd:
+                    continue
+                if wanted and dt.date.fromisoformat(sd) not in wanted and not force:
+                    continue
+                def num(field):
+                    v = r.get(field)
+                    try:
+                        return float(str(v).replace(",", ""))
+                    except (TypeError, ValueError):
+                        return None
+                pairs = [(SHORT_INTEREST_KEY, num("currentShortPositionQuantity"))]
+                pairs += [(k, num(f)) for k, f in SHORT_INTEREST_EXTRA.items()]
+                wrote_any = False
+                for key, value in pairs:
+                    if value is None:
+                        continue
+                    wrote_any = True
+                    rows.append({
+                        "registry_key": key, "instrument": sym,
+                        # observed_at IS THE SETTLEMENT DATE, not the publication
+                        # date: the figure is about the position open on that date.
+                        # available_at is when we read it, which is necessarily
+                        # later -- this is the series where the two clocks are
+                        # genuinely a fortnight apart.
+                        "observed_at": sd, "available_at": now,
+                        "value": value, "source": "finra", "run_id": run_id,
+                        "availability_kind": "ingest_instant"})
+                if wrote_any:
+                    names += 1
+        written = db.write_many(observations.drop_unchanged(db, rows))
+        for sym, why in failed:
+            log.warning("short interest: %s -- %s", sym, why)
+        return {"state": "ok", "due": [d.isoformat() for d in due],
+                "name_dates": names, "written": written, "failed": failed}
+    finally:
+        if own:
+            db.close()
+
+
+# ---------------------------------------------------------------------------
 # (c) ApeWisdom
 # ---------------------------------------------------------------------------
 def pull_apewisdom(run_id: Optional[str] = None,
@@ -529,9 +748,10 @@ def pull(run_id: Optional[str] = None,
             "note": ("sampled once per ibkr-sync run" if file_state == "available"
                      else "unreachable; see ibkr.stock_loan_file_probe")}
         out["regsho"] = pull_regsho(run_id=run_id, store=db)
+        out["short_interest"] = pull_short_interest(run_id=run_id, store=db)
         out["apewisdom"] = pull_apewisdom(run_id=run_id, store=db)
         out["written"] = sum(int((out[k] or {}).get("written") or 0)
-                             for k in ("regsho", "apewisdom"))
+                             for k in ("regsho", "short_interest", "apewisdom"))
         return out
     finally:
         if own:
@@ -544,6 +764,12 @@ def keys() -> list[str]:
     # subscription decision rather than for a fault.
     keys = [SHORT_VOLUME_KEY, SHORT_VOLUME_TOTAL_KEY, SHORT_EXEMPT_KEY,
             MENTIONS_KEY, RANK_KEY, UPVOTES_KEY]
+    # SHORT INTEREST IS NOT IN THE ROSTER, and the reason is its cadence rather than
+    # its health: it publishes twice a month, so the freshness check -- which asks
+    # whether a series is current against its own allowance -- would flag it as stale
+    # for two weeks of every month while it was working perfectly. Its own calendar is
+    # what watches it, and `not_due` is a state the nightly summary reports.
+    return keys
     # THE BORROW KEYS JOIN THE ROSTER ONLY WHEN A ROUTE EXISTS. Watching a series
     # nothing can write would make the heartbeat red for an unreachable vendor host
     # rather than for a fault, and the two must stay distinguishable.
@@ -572,6 +798,10 @@ def _main(argv: list[str]) -> int:
     sub.add_parser("probe-borrow")
     sub.add_parser("probe-stock-loan")
     sub.add_parser("pull-stock-loan")
+    sub.add_parser("probe-short-interest")
+    si = sub.add_parser("pull-short-interest")
+    si.add_argument("--force", action="store_true")
+    sub.add_parser("calendar")
     pl = sub.add_parser("pull")
     pl.add_argument("--day", default=None)
     sub.add_parser("status")
@@ -587,6 +817,30 @@ def _main(argv: list[str]) -> int:
         return 0 if r.get("state") == "available" else 1
     if a.cmd == "pull-stock-loan":
         print(json.dumps(pull_stock_loan(), indent=2, sort_keys=True))
+        return 0
+    if a.cmd == "probe-short-interest":
+        r = probe_short_interest()
+        print(json.dumps(r, indent=2, sort_keys=True))
+        return 0 if r.get("state") == "available" else 1
+    if a.cmd == "pull-short-interest":
+        print(json.dumps(pull_short_interest(force=a.force), indent=2,
+                         sort_keys=True, default=str))
+        return 0
+    if a.cmd == "calendar":
+        today = dt.date.fromisoformat(session.session_date())
+        rows = []
+        for back in (1, 0):
+            mm = today.month - back or 12
+            yy = today.year - (1 if today.month - back <= 0 else 0)
+            for sd in settlement_dates(yy, mm):
+                rows.append({"settlement": sd.isoformat(),
+                             "published": publication_date(sd).isoformat(),
+                             "published_yet": publication_date(sd) <= today})
+        print(json.dumps({"today": today.isoformat(),
+                          "lag_business_days": SHORT_INTEREST_LAG_BUSINESS_DAYS,
+                          "calendar": rows,
+                          "due_now": [d.isoformat() for d in due_settlements()]},
+                         indent=2, sort_keys=True))
         return 0
     if a.cmd == "status":
         print(json.dumps({"borrow": borrow_state(),

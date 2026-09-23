@@ -1279,6 +1279,42 @@ metrics:
     trigger_eligible: false
     description: >-
       Shares still held short at a settlement date -- a STOCK, published semi-monthly with roughly a fortnight's lag. NOT finra.short_volume, which is the daily flow: they answer different questions and move differently. Revisable, because FINRA restates.
+  finra.short_interest_prior:
+    source: finra
+    mechanism_group: short_stock
+    native_horizon: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: shares
+    trigger_eligible: false
+    description: >-
+      The PRIOR settlement date's short interest, as FINRA reports it alongside the current one. Stored rather than derived by subtraction because FINRA's own pairing accounts for splits and re-listings that a naive lag would get wrong.
+  finra.short_interest_avg_volume:
+    source: finra
+    mechanism_group: short_stock
+    native_horizon: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Average daily volume over the settlement period, as FINRA computes it. The denominator of days-to-cover, stored so that figure can be checked rather than taken.
+  finra.short_interest_days_to_cover:
+    source: finra
+    mechanism_group: short_stock
+    native_horizon: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: days
+    trigger_eligible: false
+    description: >-
+      FINRA's own days-to-cover: short interest divided by average daily volume. A VENDOR CALCULATION, logged as given rather than recomputed -- and note it mixes a STOCK (the position) with a FLOW (volume), so it is a rough measure of crowding and not a forecast of how long a cover would take.
   apewisdom.mentions:
     source: apewisdom
     mechanism_group: social_attention
