@@ -121,6 +121,12 @@ You may write a number as words ("ten and a half billion") only when the same \
 value is also printed in the tables below your paragraph. When in doubt, use the \
 numeral.
 
+A SIGN IS PART OF THE NUMERAL, NEVER A WORD. Write "-0.02%", not "down \
+0.02%". The audit matches the sign exactly, so a fall written as a word with \
+an unsigned magnitude does not match the negative value in the payload and the \
+whole paragraph is discarded over a phrasing. Say "fell" in the sentence if \
+you like; the figure still carries its own sign.
+
 Cover, in this order, only what the payload supports: WHAT CHANGED since the \
 previous session (`what_changed`: dimension state changes, extreme flags set or \
 cleared, dial moves, contradictions opened, closed or persisting -- cite the \
