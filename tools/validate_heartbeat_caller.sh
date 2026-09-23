@@ -76,6 +76,53 @@ run() {
 
 state_of() { sed -n 's/^state=\([a-z_]*\).*/\1/p' "$STATUS"; }
 
+printf '%s\nCHESTER_STATE_DIR is mandatory, and the enforcing lines are read\n%s\n' \
+    "$LINE" "$LINE"
+
+# THE PROPERTY IS VERIFIED BY READING THE ENFORCING CODE, not the comment above it
+# (31.5b). A monitor pointed at the wrong state directory does not fail -- every
+# file is simply missing, which reads as "the pipeline has never run" -- so the
+# absence of a default is a safety property and gets a gate.
+for f in "$WRAPPER" "$REPO/scripts/check_heartbeat.sh"; do
+    n="$(basename "$f")"
+    if grep -q 'CHESTER_STATE_DIR:-\$HOME' "$f"; then
+        bad "$n still carries a CHESTER_STATE_DIR default -- the default is what let a manual run report a healthy pipeline dead"
+    else
+        ok "$n declares no CHESTER_STATE_DIR default"
+    fi
+    if grep -q 'z "${CHESTER_STATE_DIR' "$f"; then
+        ok "$n tests for the unset variable explicitly"
+    else
+        bad "$n does not test CHESTER_STATE_DIR before using it"
+    fi
+done
+
+# And it exits 9 -- the monitor-is-broken code, not a pipeline verdict -- while
+# writing no status file, because the directory to write one to is what is missing.
+BARE="$SANDBOX/bare"
+mkdir -p "$BARE"
+for f in "$WRAPPER" "$REPO/scripts/check_heartbeat.sh"; do
+    n="$(basename "$f")"
+    OUT="$(env -u CHESTER_STATE_DIR CHESTER_REPO="$REPO" CHESTER_LOG_DIR="$BARE" \
+            bash "$f" 2>&1)"
+    rc=$?
+    if [[ $rc -eq 9 ]]; then
+        ok "$n exits 9 with CHESTER_STATE_DIR unset (got $rc)"
+    else
+        bad "$n exits $rc with CHESTER_STATE_DIR unset, expected 9"
+    fi
+    if printf '%s' "$OUT" | grep -qi 'CHESTER_STATE_DIR is unset'; then
+        ok "$n names the unset variable in its message"
+    else
+        bad "$n does not name CHESTER_STATE_DIR in its failure message"
+    fi
+done
+if [[ -z "$(find "$BARE" -type f 2>/dev/null)" ]]; then
+    ok "neither script wrote a file when the state directory was unknown"
+else
+    bad "a file was written with CHESTER_STATE_DIR unset: $(find "$BARE" -type f)"
+fi
+
 printf '%s\ncheck_heartbeat_cron.sh -- verdict mapping\n%s\n' "$LINE" "$LINE"
 
 # --- 1. every exit code gets its own verdict, and is passed through ---------

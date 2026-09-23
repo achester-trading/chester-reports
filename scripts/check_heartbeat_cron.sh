@@ -62,9 +62,10 @@
 #                       logs once and exits 0 rather than failing the wrapper, so
 #                       the gap shows up as the data going stale, which is the
 #                       true statement.
-#   9 check failed   -> the wrapper could not run the checker (env problem).
-#                       Distinct from the four above: this is the monitor
-#                       broken, not the pipeline.
+#   9 check failed   -> the wrapper could not run the checker, or
+#                       CHESTER_STATE_DIR is unset (env problem). Distinct from
+#                       the four above: this is the monitor broken, not the
+#                       pipeline.
 #
 # The unit declares SuccessExitStatus=0 ONLY, so 1/2/3/4/8/9 leave the unit in
 # systemd's failed state on purpose. `systemctl --user list-units --failed` is
@@ -76,7 +77,8 @@
 # Overridable:
 #   CHESTER_REPO         repo checkout            (~/chester-reports)
 #   CHESTER_LOG_DIR      log directory            (~/logs)
-#   CHESTER_STATE_DIR    heartbeat/status dir     (~/.chester)
+#   CHESTER_STATE_DIR    heartbeat/status dir     MANDATORY -- no default; see
+#                        the block above `set -uo pipefail` for why
 #   CHESTER_ALERT_DIR    alert drop for the brief ($CHESTER_STATE_DIR/alerts)
 #   CHESTER_ALERT_EMAIL  address to mail on a non-healthy verdict (unset = none;
 #                        falls back to SMTP_TO from the environment)
@@ -90,9 +92,51 @@
 
 set -uo pipefail
 
+# CHESTER_STATE_DIR IS MANDATORY. It used to default to ~/.chester, and the default
+# is what made this check able to lie.
+#
+# This script reports on state files it does not write. Point it at the wrong
+# directory and nothing errors: every file is simply missing, which reads as "the
+# pipeline has never run". On 23 September 2026 a manual run took the default while
+# the passes write ~/state, and logged "CRITICAL the EOD pass has NEVER completed
+# cleanly on this box" one minute before a run with the variable set reported ok.
+# Nothing was wrong except the path.
+#
+# A DEFAULT IS THE WRONG SHAPE FOR THIS ONE VARIABLE. A default is a promise that
+# the fallback is a reasonable guess, and for a monitor's subject there is no
+# reasonable guess: the correct directory is whichever one the passes were pointed
+# at, which this script cannot know and must not assume. Unset is a configuration
+# error and now says so, in the one channel a misconfigured monitor still has.
+#
+# Exit 9, not a new code: the callers already treat 9 as "the monitor is broken,
+# not the pipeline", which is exactly what an unset variable means. No status file
+# and no alert are written, because the only place to write them is the thing that
+# is missing.
+if [[ -z "${CHESTER_STATE_DIR:-}" ]]; then
+    cat >&2 <<'FATAL_MSG'
+FATAL check_heartbeat_cron.sh: CHESTER_STATE_DIR is unset.
+
+This check reads state files it does not write, so the wrong directory does not
+fail -- it reports a healthy pipeline dead. There is no safe default: the right
+directory is whichever one the EOD and close passes write, and only the caller
+knows that.
+
+  systemd:  Environment=CHESTER_STATE_DIR=%h/state   (a drop-in on the unit)
+  by hand:  CHESTER_STATE_DIR="$HOME/state" ./scripts/check_heartbeat_cron.sh
+
+Exit 9 is "the monitor is broken, not the pipeline". No status file or alert was
+written, because the directory to write them to is the thing that is missing.
+FATAL_MSG
+    exit 9
+fi
+
 REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"
-STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
+STATE_DIR="$CHESTER_STATE_DIR"
+# EXPORTED so the checker this wrapper runs cannot resolve a different directory
+# than the wrapper just reported on. It is inherited from systemd today; a caller
+# that sets it in the shell without exporting would have split the two apart.
+export CHESTER_STATE_DIR
 ALERT_DIR="${CHESTER_ALERT_DIR:-$STATE_DIR/alerts}"
 CHECKER="${CHESTER_CHECKER:-$REPO/scripts/check_heartbeat.sh}"
 # SMTP_TO is the address the .env already carries for this box, so an

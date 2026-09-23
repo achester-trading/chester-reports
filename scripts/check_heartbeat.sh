@@ -58,7 +58,16 @@
 
 set -uo pipefail
 
-STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
+# MANDATORY, for the reason check_heartbeat_cron.sh's own block gives at length:
+# this script reads state files it does not write, and the wrong directory reports
+# a healthy pipeline dead rather than failing. Its wrapper exports the variable, so
+# reaching here without one means the checker was run directly.
+if [[ -z "${CHESTER_STATE_DIR:-}" ]]; then
+    printf '%s
+'         "FATAL check_heartbeat.sh: CHESTER_STATE_DIR is unset, and there is no"         "safe default -- the right directory is whichever one the passes write."         "  CHESTER_STATE_DIR=\"\$HOME/state\" ./scripts/check_heartbeat.sh" >&2
+    exit 9
+fi
+STATE_DIR="$CHESTER_STATE_DIR"
 REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 HEARTBEAT="$STATE_DIR/eod_heartbeat"
 STATUS="$STATE_DIR/eod_status"
