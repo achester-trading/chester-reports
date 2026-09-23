@@ -70,3 +70,36 @@ chester-heartbeat.service     Environment
 # reported would be a lie about a report that had in fact been delivered.
 chester-overnight.service     Environment
 chester-morning-anchor.service Environment
+
+# THE REMAINING FIVE, added 23 September 2026, and the reason is the split they
+# close rather than a preference.
+#
+# Only four of the eight chester units carried the state-directory drop-in, so
+# daily-close, ibkr-sync, backup and the gateway watchdog were writing to the
+# wrappers' ~/.chester default while the EOD pass, the monitor, the overnight pass
+# and the morning anchor wrote ~/state. The monitor reads ~/state, so the two
+# halves of one box were keeping two sets of status and lock files -- and the four
+# that mattered to the monitor happened to be the four that had the drop-in, which
+# is why nothing alarmed. A split that does not alarm is a split that lasts.
+#
+# It also cost a false CRITICAL. A manual heartbeat run without CHESTER_STATE_DIR
+# took the ~/.chester default, found no eod_heartbeat there, and logged "the EOD
+# pass has NEVER completed cleanly on this box" one minute before a run with the
+# variable set reported ok. That is what made the variable mandatory in the two
+# heartbeat scripts (exit 9 when unset); this is the other half of the same fix,
+# and with all nine units pointed at one directory the mandatory variable has one
+# answer on this machine instead of two.
+#
+# Environment ONLY, for each of them. A drop-in on these units that set anything
+# else -- ExecStart, a timer, ReadWritePaths -- is still drift and still alarms,
+# which is the distinction this whole file exists to keep.
+chester-daily-close.service   Environment
+chester-ibkr-sync.service     Environment
+chester-backup.service        Environment
+chester-auction.service       Environment
+
+# The gateway watchdog is not a chester-* unit and is declared for the same one
+# reason: it writes ibgateway_health and its own lock into the state directory, and
+# a watchdog whose state lands somewhere the operator does not look is a watchdog
+# reporting into a drawer.
+ibgateway-watchdog.service    Environment

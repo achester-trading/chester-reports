@@ -226,6 +226,77 @@ def group_b() -> None:
                 os.environ[k] = v
 
 
+def group_f() -> None:
+    """The session move carries BOTH denominators, and the audit can see them."""
+    print(f"\n{LINE}\nF. THE MOVE'S TWO PERCENTILES REACH THE AUDIT\n{LINE}")
+    import regime
+    from altdata import numeral_audit as na
+    from daily_cascade import payload as pl, state_block
+
+    # A CONSTRUCTED OBJECT, not a store read. The figure under test is whether the
+    # payload CARRIES the fields and whether the audit can SEE them, and both are
+    # properties of the plumbing rather than of tonight's market. Reading the store
+    # would make this gate pass or fail on whether the box happened to have run
+    # base_rates yet, which is a different fact.
+    move = {"metric": "yfinance.mkt_spy", "change": -1.4, "delta_unit": "percent",
+            "from_date": "2026-09-21", "to_date": "2026-09-22",
+            "percentile_5y": 7.48, "n_5y": 1254, "z_5y": -2.1,
+            "percentile_long_run": 9.96, "long_run_n": 24796,
+            "long_run_first": "1927-12-30",
+            "long_run_series": "yfinance.mkt_gspc",
+            "long_run_method": "base-rates-method-1"}
+    payload = {"session": "2026-09-22",
+               "what_changed": {"session": "2026-09-22", "session_move": move}}
+
+    vals = na.payload_numbers(payload)
+    for field in ("percentile_5y", "percentile_long_run", "long_run_n"):
+        check(float(move[field]) in vals,
+              f"what_changed.session_move.{field} ({move[field]}) is in the "
+              f"audit's reference set, so a paragraph may cite it")
+    check(na.payload_numbers({"what_changed": {"session_move": {}}}) == [],
+          "and an empty move contributes nothing, so the reference set cannot be "
+          "widened by a field that was not measured")
+
+    # THE RENDER PRINTS BOTH, and the reason it must is that they disagree exactly
+    # where it matters: five years hold fewer very bad days than ninety-nine do, so
+    # a hard session reads lower against five years than against the century. One
+    # denominator invites the reader to supply the other from memory.
+    html = state_block.move_line(payload["what_changed"])
+    check("7.5" in html or "7.48" in html,
+          "the rendered line carries the five-year percentile")
+    check("9.96" in html or "10.0" in html,
+          "and the long-run percentile beside it")
+    check("24796" in html or "24,796" in html,
+          "with the long-run sample size, so the denominator is visible and not "
+          "implied")
+    check("1927-12-30" in html,
+          "and the date the long-run sample starts from")
+
+    absent = state_block.move_line(
+        {"session_move": {"change": None,
+                          "absent_reason": "no observation for the metric"}})
+    check("not measured" in absent.lower() or "absent" in absent.lower(),
+          "a move that could not be measured renders as not measured rather than "
+          "as a zero")
+    partial = state_block.move_line(
+        {"session_move": dict(move, percentile_long_run=None,
+                              long_run_absent_reason="no baserate table stored")})
+    check("no baserate table stored" in partial,
+          "and a missing long-run leg prints its reason -- the five-year number "
+          "still prints, because a box that has not computed the base rates has "
+          "not lost the move")
+
+    # THE NARRATIVE SUBSET MUST CARRY IT TOO, or the audit's reference set is
+    # narrower than the page and a true sentence fails the gate.
+    src = (REPO / "daily_cascade" / "payload.py").read_text(encoding="utf-8")
+    check('"what_changed": full.get("what_changed")' in src,
+          "the narrative payload passes what_changed through whole, so the move's "
+          "percentiles are in the model's own reference set and a paragraph citing "
+          "one does not fail D3")
+    check(callable(getattr(regime, "session_move", None)),
+          "and regime.session_move() is the one producer of the figure")
+
+
 def group_c() -> None:
     """Absence renders as a dash, never as an empty cell."""
     print(f"\n{LINE}\nC. Absence is visible (32.5)\n{LINE}")
@@ -409,6 +480,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

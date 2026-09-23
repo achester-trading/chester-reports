@@ -213,6 +213,14 @@ def main() -> int:
                         narr.state, narr.model, narr.reason)
             if narr.unmatched:
                 log.warning("  unmatched figures: %s", ", ".join(narr.unmatched))
+            # THE REJECTED PARAGRAPH GOES IN THE LOG AND NOWHERE ELSE. A withheld
+            # line saying "3 figures failed" leaves the operator unable to judge
+            # whether the audit was right, which is the only question worth asking
+            # about a withheld paragraph. It is logged rather than rendered because
+            # the report is the product and this is evidence about the report.
+            if narr.rejected_text:
+                log.info("  rejected paragraph (NOT published): %s",
+                         narr.rejected_text)
 
     name = f"daily_close_{sess}.html"
     subject = f"[chester] Close debrief {sess}"

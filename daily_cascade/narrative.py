@@ -156,6 +156,16 @@ class NarrativeResult:
     audit: Optional[numeral_audit.AuditResult] = None
     figures_checked: int = 0
     unmatched: list[str] = field(default_factory=list)
+    # WHAT THE MODEL WROTE WHEN IT WAS NOT PUBLISHED. Never rendered, never
+    # delivered; logged, so a human can see the sentence the audit rejected.
+    #
+    # Without it the withheld line says "3 figures failed" and the evidence is
+    # gone -- and the question an operator actually has is whether the audit was
+    # RIGHT, which cannot be answered from the figure list alone. A rejected
+    # paragraph naming a level the payload holds at a different precision and one
+    # inventing a ratio out of two payload numbers produce identical withheld
+    # lines and need opposite fixes.
+    rejected_text: Optional[str] = None
 
     @property
     def published(self) -> bool:
@@ -314,6 +324,11 @@ def generate(payload: dict, *, model: Optional[str] = None,
                           f"blocks={kinds}, output_tokens={spent})")
         log.warning("narrative withheld: %s", res.reason)
         return res
+    # SET BEFORE EVERY REJECTION BELOW, so no branch can forget it. It is not
+    # `text`: that field is what gets published, and a rejected paragraph must be
+    # impossible to publish by accident.
+    res.rejected_text = text
+
     if len(text) > MAX_CHARS:
         # Not truncated. A paragraph that overran its brief has not followed the
         # brief, and publishing half of one would publish a sentence nobody wrote.

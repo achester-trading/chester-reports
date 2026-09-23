@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="cb4476726e228e14d71471019f0ed4ec1ac12c72049b06e3f9f009959b3f3ae3">
+<meta name="source-sha256" content="c4b2aea59c9a48976b5dbf01d7c36dafbb0ebbcbe1e9c94ca48004e45c783f95">
 <title>Base Rates</title>
 <style>
 :root {
@@ -133,8 +133,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h2>What Markets Usually Do — and How Far Back "Usually" Goes</h2>
 <p><strong>Companion white paper — chester-reports library</strong>
 <strong>Series placement:</strong> Companion <strong>XX</strong> — with the market-timing layer, beside <em>Tops and Bottoms</em> — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-<strong>Version:</strong> 1.1 — September 2026
+<strong>Version:</strong> 1.2 — September 2026
 <strong>Status:</strong> Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.</p>
+<p><strong>Erratum, 23 September 2026 (v1.1 → v1.2).</strong> Chapter 1.3's intra-year drawdown quartiles and Chapter 2.2's ~14% average are the <strong>post-1950 subsample</strong>, not the 1928–2026 sample the source notes claimed. Both source notes are corrected and the full-sample figures are given beside them. The difference is the Depression: 1929–32 and 1937–38 put the full sample about three points deeper at every quartile. Found when <code>tools/base_rates.py</code> computed the tables from the store and the full sample would not reconcile with the printed figures at any tolerance — the post-war sample reconciled to a tenth of a point. Nothing else in the paper changes; the drawdown ladder in 2.1, the return distributions in 1.1 and the VIX quantiles all reconcile on the sample their notes name.</p>
   </div>
 
   <div class="controls">
@@ -369,12 +370,20 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td><strong>The middle two quartiles span −1% to +25%</strong> — this is what "ordinary" means for a year</td>
 </tr>
 <tr>
-<td>Intra-year max drawdown</td>
+<td>Intra-year max drawdown, <strong>1950–2026</strong></td>
 <td>−6%</td>
 <td>−10%</td>
 <td>−18%</td>
 <td>−14%</td>
 <td>Half of all years see a decline of 10% or worse</td>
+</tr>
+<tr>
+<td>Intra-year max drawdown, <strong>1928–2026</strong></td>
+<td>−8%</td>
+<td>−13%</td>
+<td>−20%</td>
+<td>−16%</td>
+<td>Three points deeper at every quartile. The difference is 1929–32 and 1937–38</td>
 </tr>
 <tr>
 <td>VIX daily close</td>
@@ -386,7 +395,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p><em>Source class: computed from public index series, 1928–2026 for returns, 1990–2026 for VIX; figures rounded and approximate.</em></p>
+<p><em>Source class: computed from public index series. Returns 1928–2026; VIX 1990–2026. </em><em>The intra-year drawdown rows are stated for two windows on purpose</em><em> — the widely circulated figures are post-war, and the full sample that includes the Depression is materially deeper. Quote the window with the number or the number means nothing. Drawdowns are measured from the running peak WITHIN the calendar year, on closing prices; an intraday measurement is deeper again by a point or more in a volatile year. Figures rounded; recomputed from the store by <code>tools/base_rates.py</code> and carried as observations under <code>baserate.intra_year_drawdown</code>.</em></p>
 <p><strong>What to take from this table.</strong></p>
 <ul>
 <li><em>The p25 annual return is about −1%.</em> One year in four is roughly flat-to-down. A flat year is not a failed year and not evidence that a thesis was wrong; it is the lower quartile of ordinary.</li>
@@ -498,10 +507,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </ul>
 <p>The operator's stated history includes being under-invested since 2008 and periodically damaged in extreme volatility. Both are addressed by different rows of this table. <strong>A −10% drawdown is an annual event, not a signal</strong> — treating each as the beginning of 2008 is the mechanism by which the Book A floor gets breached. <strong>And a −20% bear takes the better part of a year to complete</strong> — which is why the Doctrine's Top &amp; Bottom override permits adding at the bottom rather than requiring a call at the top, and why a short campaign that has worked for two months is not thereby vindicated.</p>
 <h3>2.2 Intra-year drawdowns versus annual outcomes</h3>
-<p>The single most useful fact in this chapter: the average <em>intra-year</em> maximum drawdown for the S&amp;P 500 is roughly 14%, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.</p>
+<p>The single most useful fact in this chapter: the average <em>intra-year</em> maximum drawdown for the S&amp;P 500 is roughly 14% <strong>since 1950</strong>, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.</p>
+<p><strong>The window is part of the fact.</strong> Over the full 1928–2026 sample the average is about <strong>16%</strong> and the median about <strong>13%</strong>, because the sample then contains 1929–32 and 1937–38. The post-war figure is the right one for an ordinary year in the regime the operator trades; the full-sample figure is the right one for asking how bad an unusual year can be, and Part III is where that question is answered properly. Neither number is wrong and quoting either without its window is.</p>
 <p><strong>What to take from it.</strong></p>
 <ul>
-<li><em>Write the drawdown number on the card.</em> Fourteen percent is the ordinary intra-year experience. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.</li>
+<li><em>Write the drawdown number on the card.</em> Fourteen percent is the ordinary intra-year experience post-war, sixteen across the full sample. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.</li>
 <li><em>The operator's known bias — reading a correction as a regime change — has a numerical antidote:</em> the question at any −10% is not "is this 2008?" but "is this the one year in four where it exceeds −18%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it.</li>
 <li><em>The floor is the instrument here.</em> The bands' floors exist so that a −14% year is held through, not traded around.</li>
 </ul>

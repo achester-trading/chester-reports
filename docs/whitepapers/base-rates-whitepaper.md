@@ -4,8 +4,10 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XX** — with the market-timing layer, beside *Tops and Bottoms* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-**Version:** 1.1 — September 2026
+**Version:** 1.2 — September 2026
 **Status:** Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.
+
+**Erratum, 23 September 2026 (v1.1 → v1.2).** Chapter 1.3's intra-year drawdown quartiles and Chapter 2.2's ~14% average are the **post-1950 subsample**, not the 1928–2026 sample the source notes claimed. Both source notes are corrected and the full-sample figures are given beside them. The difference is the Depression: 1929–32 and 1937–38 put the full sample about three points deeper at every quartile. Found when `tools/base_rates.py` computed the tables from the store and the full sample would not reconcile with the printed figures at any tolerance — the post-war sample reconciled to a tenth of a point. Nothing else in the paper changes; the drawdown ladder in 2.1, the return distributions in 1.1 and the VIX quantiles all reconcile on the sample their notes name.
 
 ---
 
@@ -107,10 +109,11 @@ The mean is the least useful summary of any of these distributions, and the pape
 | Daily return | −0.50% | +0.05% | +0.58% | +0.03% | Mean below median: the left tail is fatter |
 | Monthly return | −1.9% | +1.1% | +3.6% | +0.7% | A typical month is a small gain |
 | Annual total return | ~−1% | ~+12% | ~+25% | ~+10% | **The middle two quartiles span −1% to +25%** — this is what "ordinary" means for a year |
-| Intra-year max drawdown | −6% | −10% | −18% | −14% | Half of all years see a decline of 10% or worse |
+| Intra-year max drawdown, **1950–2026** | −6% | −10% | −18% | −14% | Half of all years see a decline of 10% or worse |
+| Intra-year max drawdown, **1928–2026** | −8% | −13% | −20% | −16% | Three points deeper at every quartile. The difference is 1929–32 and 1937–38 |
 | VIX daily close | ~13.5 | ~17.6 | ~22.5 | ~19.5 | p95 near 33; the distribution is heavily right-skewed |
 
-*Source class: computed from public index series, 1928–2026 for returns, 1990–2026 for VIX; figures rounded and approximate.*
+*Source class: computed from public index series. Returns 1928–2026; VIX 1990–2026. **The intra-year drawdown rows are stated for two windows on purpose** — the widely circulated figures are post-war, and the full sample that includes the Depression is materially deeper. Quote the window with the number or the number means nothing. Drawdowns are measured from the running peak WITHIN the calendar year, on closing prices; an intraday measurement is deeper again by a point or more in a volatile year. Figures rounded; recomputed from the store by `tools/base_rates.py` and carried as observations under `baserate.intra_year_drawdown`.*
 
 **What to take from this table.**
 
@@ -158,11 +161,13 @@ The operator's stated history includes being under-invested since 2008 and perio
 
 ### 2.2 Intra-year drawdowns versus annual outcomes
 
-The single most useful fact in this chapter: the average *intra-year* maximum drawdown for the S&P 500 is roughly 14%, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.
+The single most useful fact in this chapter: the average *intra-year* maximum drawdown for the S&P 500 is roughly 14% **since 1950**, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.
+
+**The window is part of the fact.** Over the full 1928–2026 sample the average is about **16%** and the median about **13%**, because the sample then contains 1929–32 and 1937–38. The post-war figure is the right one for an ordinary year in the regime the operator trades; the full-sample figure is the right one for asking how bad an unusual year can be, and Part III is where that question is answered properly. Neither number is wrong and quoting either without its window is.
 
 **What to take from it.**
 
-- *Write the drawdown number on the card.* Fourteen percent is the ordinary intra-year experience. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.
+- *Write the drawdown number on the card.* Fourteen percent is the ordinary intra-year experience post-war, sixteen across the full sample. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.
 - *The operator's known bias — reading a correction as a regime change — has a numerical antidote:* the question at any −10% is not "is this 2008?" but "is this the one year in four where it exceeds −18%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it.
 - *The floor is the instrument here.* The bands' floors exist so that a −14% year is held through, not traded around.
 
