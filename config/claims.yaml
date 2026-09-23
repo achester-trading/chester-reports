@@ -1,0 +1,751 @@
+# claims.yaml -- every cited figure the system may print and cannot compute.
+# Audit #3 row 6l; architecture 26.5, 31.1 and 31.4.
+#
+# -----------------------------------------------------------------------------
+# WHY A SECOND REGISTRY, BESIDE metrics_registry.yaml
+# -----------------------------------------------------------------------------
+#
+# The metrics registry declares things the system MEASURES: a series, its units,
+# its half-life, its revision policy. Everything in it can be recomputed from the
+# store, and `tools/base_rates.py` exists so that the Base Rates paper's Part I
+# tables are in that category rather than this one.
+#
+# This file is for the other kind of figure -- the ones a report may legitimately
+# print and this system cannot derive from any data it holds or could fetch:
+#
+#   * The pre-1970 downturns. The store's own index history begins in 1927, which
+#     covers 1929 and 1937, and stops short of 1907 entirely; and no amount of
+#     price history yields "the crisis was ended by a private bailout organised by
+#     J. P. Morgan", which is the part of the episode the tail watch actually uses.
+#   * The international drawdowns. Japan 1989, Germany 1923, Greece 2007, Argentina
+#     repeatedly. The system holds no foreign index history and no real-return
+#     series, and the figures are quoted from the long-run returns literature.
+#   * The participant map. Tables A-C of Positioning and Flows are flow-of-funds
+#     statistics, exchange disclosures and academic estimates. They are not
+#     observations and they are not computable; they are CITED.
+#   * The statistical figures from Evidence and Inference. Standard errors are
+#     arithmetic, but the arithmetic is the paper's and the figures below are what
+#     a report would otherwise retype.
+#
+# -----------------------------------------------------------------------------
+# THE RULE, WHICH IS THE WHOLE POINT
+# -----------------------------------------------------------------------------
+#
+# A REPORT CITES A CLAIM BY ID AND NEVER BY RETYPING THE FIGURE.
+#
+# Retyping is how "-45%" becomes "-40%" three reports later with nobody able to
+# say which number was believed when. An id is replayable: it resolves to a value,
+# a source, the date the figure was taken and the date it must next be checked.
+# `register/store.py` enforces the same rule on decision packets -- base_rate_cited
+# accepts `claim:<id>` or `baserate.<table>` and REFUSES free text.
+#
+# -----------------------------------------------------------------------------
+# WHAT AN OVERDUE REVIEW MEANS, AND WHAT IT DOES NOT
+# -----------------------------------------------------------------------------
+#
+# Every claim carries a review_date. Past it, the heartbeat prints a WARNING and
+# the verdict and exit code are untouched: an ownership share from mid-2026 that
+# has not been rechecked in 2027 is a figure to recheck, not a broken pipeline.
+# Making it a failure would train the reader to ignore the light, which is the one
+# outcome that costs more than the stale figure.
+#
+# `status` says what to do about a claim, independently of its review date:
+#   current      -- checked, in force
+#   stale        -- past review and known not to have been rechecked
+#   superseded   -- a newer claim replaces it; `superseded_by` names it
+#   withdrawn    -- believed wrong; kept so a citation of it still resolves
+#
+# A claim is never deleted. A report that cited it must still resolve the id.
+
+version: claims-v1
+schema_source: docs/chester-reports-audit-3.md row 6l; architecture 26.5, 31.1, 31.4
+
+defaults:
+  # A year unless a claim says otherwise. Flow-of-funds shares move slowly; a
+  # 1929 drawdown moves not at all and carries a long interval by hand.
+  review_interval_months: 12
+  status: current
+
+# -----------------------------------------------------------------------------
+# STANDING WARNINGS -- attached to claims by id, so a caveat travels with the
+# figure instead of living in a paragraph nobody reads twice.
+# -----------------------------------------------------------------------------
+warnings:
+  three_denominators:
+    # 31.4 requires this VERBATIM wherever the participant map is cited. It is
+    # reproduced from the paper rather than paraphrased, because the paraphrase is
+    # exactly what produces the error it warns about.
+    text: >-
+      Direct ownership of U.S. equity, global AUM by institution type, and
+      equity-relevant AUM are three different measurements, and
+      forced-flow footprint = equity exposure x turnover x rule-boundness is the
+      fourth and the one the system sizes by.
+    detail: >-
+      Three denominators are routinely confused in positioning commentary and they
+      give answers that differ by an order of magnitude for the same institution.
+      Direct ownership (Table A) is the Federal Reserve's flow-of-funds measure --
+      immediate holder only, one asset class, one country -- on which pension funds
+      hold ~9% and insurers ~2%. Global AUM by institution type is a different
+      universe: pension assets worldwide are roughly $55-60tn, insurance roughly
+      $40tn, regulated open-end funds roughly $70-80tn. Equity-relevant AUM is the
+      intersection. The gap between the first two is accounting rather than
+      economics: flow-of-funds records the immediate holder, so a pension holding
+      U.S. equity through a commingled index fund appears in the fund row, not the
+      pension row -- pensions held close to 30% of U.S. equities in the 1980s when
+      they held stocks directly, and the fall to ~9% is overwhelmingly a change in
+      HOW they hold rather than how much.
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Part I
+  small_sample:
+    text: >-
+      Small samples, given for the shape rather than the decimal. Thirteen bear
+      markets is a sample of thirteen, and a quartile of it is not a distribution.
+    source: docs/whitepapers/base-rates-whitepaper.md, Chapter 16
+  survivorship_country:
+    text: >-
+      Survivorship operates at the level of the COUNTRY, not merely the company. A
+      base rate built from markets that still exist is conditioned on survival, and
+      the honest correction is not a smaller number but a wider distribution with
+      mass at total loss.
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.1
+
+claims:
+
+  # ===========================================================================
+  # PRE-1970 DOWNTURNS -- Base Rates Chapter 11
+  # ===========================================================================
+  br.episode_1907:
+    value: "-45%"
+    unit: peak-to-trough decline, approximate
+    detail:
+      months_down: 15
+      recession: true
+      mechanism_family: funding/liquidity crisis
+      what_signaled: >-
+        call-money rates spiking to extraordinary levels; trust-company
+        balance-sheet fragility visible to anyone who looked
+      what_stayed_silent: the broad economy until the panic was underway
+      why_it_belongs: >-
+        the cleanest case of a funding crisis in an institution class the
+        regulatory perimeter did not cover -- the mechanism that recurred in 2008
+        and that the tail scenarios track in private credit today
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.1 and 11.6
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  br.episode_1929_32:
+    value: "-86%"
+    unit: peak-to-trough decline
+    detail:
+      months_down: 34
+      recession: severe
+      mechanism_family: debt deflation plus policy error
+      years_to_nominal_recovery: 25
+      counter_trend_rally: "+46% November 1929 to April 1930"
+      the_reading: >-
+        the -86% is not the useful number; the +46% bear-market rally is -- it is
+        the archetype of the counter-trend rally that ends short campaigns and
+        restarts long ones at the wrong time
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.2 and 11.6
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    # THE ONE CLAIM THIS SYSTEM CAN CHECK ITSELF. ^GSPC covers 1929, so
+    # baserate.drawdown_by_depth computes the depth (-86.19%) and the largest
+    # counter-trend rally (+46.77%) from the store. The claim is kept because the
+    # mechanism and the dates are not computable, and the computed field is named
+    # so the two can be compared rather than diverging quietly.
+    computable_as: baserate.drawdown_by_depth|bear_properties.depth_by_depth.deepest
+    warnings: [small_sample]
+
+  br.episode_1937_38:
+    value: "-50%"
+    unit: peak-to-trough decline, approximate
+    detail:
+      months_down: 12
+      recession: true
+      mechanism_family: policy error
+      mechanism: >-
+        premature tightening -- a doubling of reserve requirements and fiscal
+        contraction -- into an incomplete recovery
+      why_it_belongs: >-
+        the canonical case of a second downturn inside a longer recovery, and the
+        reason the Monthly's policy pillar watches for tightening into weakness
+        rather than for tightening as such
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.3 and 11.6
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  br.episode_1946_47:
+    value: "-30%"
+    unit: nominal peak-to-trough decline, approximate
+    detail:
+      months_down: 12
+      recession: false
+      mechanism_family: inflation / financial repression
+      the_reading: >-
+        the real damage fell on BONDHOLDERS, not equity holders -- nominal yields
+        were capped below an inflation rate above 15% for years, and a duration
+        sleeve held through it lost a third of its purchasing power. This is the
+        episode a stock-bond correlation estimated on 1998-2020 cannot imagine.
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.4 and 11.6
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  br.episode_1961_62:
+    value: "-28%"
+    unit: peak-to-trough decline, approximate
+    detail:
+      months_down: 6
+      recession: false
+      mechanism_family: valuation unwind
+      why_it_belongs: >-
+        the cleanest pre-1970 example of a bear market WITHOUT an economic
+        contraction -- the pattern that makes "wait for the recession" an
+        unreliable rule
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.5 and 11.6
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  br.pre1970_aggregate:
+    value: "five episodes, three mechanism families the post-1970 set lacks"
+    detail:
+      episodes: [1907, 1929-32, 1937-38, 1946-47, 1961-62]
+      adds: [pre-Fed liquidity crisis, debt deflation, financial repression]
+      effect: >-
+        adding these five to the eight post-1970 episodes roughly doubles the
+        calibration sample; the post-1970 sample alone understates the left tail
+        because it excludes 1929 and 1937
+    source: docs/whitepapers/base-rates-whitepaper.md, 11.6 and Chapter 12
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  # ===========================================================================
+  # INTERNATIONAL AND REAL-TERMS DRAWDOWNS -- Base Rates Chapter 13
+  # ===========================================================================
+  br.intl_japan_1989:
+    value: "-82% nominal"
+    unit: peak-to-trough decline
+    detail:
+      years_to_nominal_high: 34
+      recovered_on: 2024-02
+      mechanism: >-
+        credit and asset bubble, slow bank recognition, deflation; deeper in real
+        terms for property
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  br.intl_us_1966_82:
+    value: "real total return down by over 40% at the worst"
+    detail:
+      nominal: roughly flat
+      years_to_real_recovery: 17
+      mechanism: inflation; multiple compression
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample]
+
+  br.intl_germany_1914_23:
+    value: "bonds and cash went to zero; equities preserved a fraction of real value"
+    detail:
+      mechanism: hyperinflation and monetary reset
+      recovery: currency replaced twice within a generation
+      the_reading: >-
+        the asset that failed was the one held for safety. This is the claim the
+        debt-cycle scenario's inflationary branch is written against.
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  br.intl_germany_japan_1944_48:
+    value: "-90%+ real"
+    detail:
+      mechanism: war, occupation, currency reform; exchanges closed
+      recovery: decades
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  br.intl_greece_2007_16:
+    value: "-90% real"
+    detail:
+      mechanism: sovereign crisis inside a currency union
+      recovery: not recovered
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  br.intl_argentina:
+    value: "repeated 80-95% real drawdowns since 1970"
+    detail:
+      mechanism: fiscal dominance, currency destruction
+      recovery: repeated resets
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  br.intl_expropriation:
+    value: "-100% for outside holders"
+    detail:
+      cases: [Russia 1917, China 1949]
+      mechanism: expropriation
+      recovery: never, for outside holders
+      the_reading: >-
+        several markets in the 1900 index did not survive. The correction to a
+        survivor-only base rate is a wider distribution with mass at total loss,
+        not a smaller mean.
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.1 and 13.2
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [survivorship_country]
+
+  br.dms_world_vs_us_real:
+    value: "world ~5% real against the U.S. ~6.5% real, 1900 onward"
+    detail:
+      dataset: Dimson-Marsh-Staunton, 21-35 markets from 1900
+      the_reading: >-
+        the U.S. figure is the TOP of the distribution and not the centre of it.
+        Every long-run expectation taken from U.S. history is taken from the
+        best case in the sample.
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.1
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2028-09-06
+    warnings: [survivorship_country]
+
+  br.extended_tail_percentiles:
+    value: "p95 of bad markets is -80% over 20-35 years"
+    detail:
+      median: "-30%, ~2 years (1990, 2022)"
+      p75: "-45 to -50%, 4-5 years (1973-74, 2000-02, 2008-09)"
+      p90: "-55 to -60% real, 10-15 years (1966-82 in real terms)"
+      p95: "-80%, 20-35 years (Japan 1989; U.S. 1929)"
+      p99: "-90%+ real or total loss; never, for the original holders"
+      the_reading: >-
+        the tail is real, has happened to developed markets with functioning
+        institutions within living memory, and sits at roughly the 95th percentile
+        of the historical distribution rather than off the end of it
+    source: docs/whitepapers/base-rates-whitepaper.md, 13.3
+    source_class: cited
+    date: 2026-09-06
+    review_date: 2029-09-06
+    warnings: [small_sample, survivorship_country]
+
+  # ===========================================================================
+  # THE PARTICIPANT MAP -- Positioning and Flows, Tables A, B and C (31.4)
+  # Every figure here is `inferred`, a range and a snapshot. The
+  # three_denominators warning attaches to all of them, verbatim.
+  # ===========================================================================
+  pf.own_households:
+    value: "~38%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    detail:
+      convention: >-
+        HEDGE FUNDS ARE INSIDE THIS ROW, not beside it -- the Federal Reserve's
+        accounts treat hedge-fund holdings as household-sector assets, which is why
+        "households own 38% of the market" is true and misleading at once
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_mutual_funds:
+    value: "~20%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_foreign:
+    value: "~18%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    detail:
+      private: "~15-16%"
+      official: "~2%"
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_etf:
+    value: "~9%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_pension:
+    value: "~9%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    detail:
+      the_reading: >-
+        pensions held close to 30% in the 1980s when they held stocks directly;
+        the fall is overwhelmingly a change in HOW they hold, not how much
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_insurance:
+    value: "~2%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.own_other:
+    value: "~4%"
+    unit: share of U.S. equity owned, flow-of-funds basis
+    detail:
+      includes: [broker-dealers, banks, closed-end funds, holding companies]
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table A
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_passive:
+    value: "~33-38%"
+    unit: share of the market under index mandates
+    detail:
+      note: >-
+        once INSTITUTIONAL index mandates are counted, against a headline fund-only
+        figure near half that. "Passive" is not a sector: an index fund's shares are
+        owned by whoever owns the fund, and the attribute cuts across the mutual
+        fund, ETF, pension, foreign and insurer rows.
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_active:
+    value: "~35-40%"
+    unit: share of the market actively managed by professionals
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_self_directed:
+    value: "~30-35%"
+    unit: share of the market self-directed by households
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_hedge_funds:
+    value: "~3-5%"
+    unit: share of the market held by hedge funds
+    detail:
+      note: sits inside the household residual of Table A
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_levered_etf:
+    value: "~0.3% ($100-150B)"
+    unit: share of the market in leveraged and inverse ETFs
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.attr_short_interest:
+    value: "~1.5-2% of index market cap; 20%+ of float in individual names"
+    unit: shares sold short
+    detail:
+      note: a NEGATIVE position layered on the rows above, not one of them
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table B
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_retail:
+    value: "30-37% of one side, 2026 -- a record; ~18% in 2024"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: 40-45% on meme and gap days
+      forced_or_discretionary: discretionary, attention-driven
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-03-31
+    warnings: [three_denominators]
+
+  pf.vol_index_passive:
+    value: "2-5%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: >-
+        50-85% of an AFFECTED NAME's volume on reconstitution or inclusion day,
+        nearly all in the close; 15-25% of market-wide close volume on quarterly
+        rebalance days
+      forced_or_discretionary: FORCED by mandate
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_active_managers:
+    value: "~15%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      note: half their share of a decade ago
+      heightened: 20-25% on period-end sessions and redemption waves
+      forced_or_discretionary: discretionary, mechanical at the edges
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_hedge_funds:
+    value: "~15%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      split: platforms ~5%, single-manager ~2%, quant the rest
+      heightened: 25-35% in degrossing episodes
+      forced_or_discretionary: discretionary until a risk limit binds
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_pension_insurer:
+    value: "2-3%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: >-
+        10-15% of the quarter-end closing auction; forced sellers of DURATION in a
+        liability-driven rate shock, which reaches equities through the discount
+        rate and the collateral chain rather than through the equity tape
+      forced_or_discretionary: FORCED at rebalance
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_foreign_private:
+    value: "5-8%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: 10-15% during currency-hedge rebalancing and stress repatriation
+      forced_or_discretionary: discretionary, FX-mechanical
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_corporate_buybacks:
+    value: "3-4% (~$925B authorised in 1H 2026, a record pace)"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: 5-8% on drawdown days outside blackouts; ZERO inside them
+      forced_or_discretionary: FORCED by schedule within windows
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-03-31
+    warnings: [three_denominators]
+
+  pf.vol_options_dealers:
+    value: "scales with gamma; market makers are ~49% of OPTIONS volume"
+    unit: share of volume
+    detail:
+      owned: ~0 net, large gross hedge books
+      heightened: dominant in the final hour on expiry and pin days
+      forced_or_discretionary: FORCED by delta
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_hft:
+    value: "50-60%"
+    unit: ordinary share of daily volume, one side
+    detail:
+      heightened: >-
+        70-75% by count on the most volatile sessions, while providing LESS
+        liquidity per trade
+      forced_or_discretionary: >-
+        liquidity-providing; their WITHDRAWAL is the event, and 31.4 rules that
+        market-maker withdrawal is not a separate metric -- it is what the
+        absorption measurement already detects
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_ctas:
+    value: "$300-350B AUM, mostly futures"
+    unit: assets; small in cash volume, material in index futures
+    detail:
+      heightened: 10-20% of index-futures volume after a trend-flip level breaks
+      forced_or_discretionary: FORCED by rule
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_vol_control:
+    value: "$400-600B AUM (estimates disagree by half)"
+    unit: assets; near-zero ordinary volume
+    detail:
+      heightened: >-
+        10-20% of index-product volume 1-5 sessions after a realized-vol spike
+      forced_or_discretionary: FORCED by mandate
+      note: >-
+        the width of the AUM range IS the claim. Estimates disagree by half, and a
+        forced-flow estimate built on the midpoint carries that disagreement.
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_levered_etf:
+    value: "1-2% of close volume"
+    unit: ordinary share of closing volume
+    detail:
+      heightened: 5-10% of close volume on a +/-3% index day
+      forced_or_discretionary: FORCED by prospectus
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.vol_short_sellers:
+    value: "embedded in the rows above"
+    unit: share of volume
+    detail:
+      owned: 1.5-2% of index cap
+      heightened: 30-50% of a squeezed name's volume during forced covering
+      forced_or_discretionary: discretionary until the borrow says otherwise
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Table C
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  pf.forcing_multiple:
+    value: "forced-flow footprint = equity exposure x turnover x rule-boundness"
+    detail:
+      the_reading: >-
+        a forty-trillion-dollar insurance industry holding fifteen percent equity
+        with near-zero turnover generates less tradeable forced flow than a
+        five-hundred-billion-dollar volatility-control complex that can reset its
+        book inside a week, because the second is obliged to trade on a rule and
+        the first is not
+      forcing_multiple: >-
+        the ratio between a participant's heightened and ordinary volume columns --
+        how much larger its footprint becomes on the day its rule binds
+    source: docs/whitepapers/positioning-and-flows-whitepaper.md, Part I
+    source_class: inferred
+    date: 2026-06-30
+    review_date: 2027-06-30
+    warnings: [three_denominators]
+
+  # ===========================================================================
+  # STATISTICAL FIGURES -- Evidence and Inference
+  # ===========================================================================
+  ei.expectancy_standard_error:
+    value: "standard error of measured expectancy is roughly 1 / sqrt(n) in R"
+    detail:
+      basis: >-
+        trading results have a per-decision spread close to one R, so sigma/sqrt(n)
+        with sigma ~ 1R
+      intervals_on_a_true_0_2R_edge:
+        n_30: "+/-0.18R -- interval -0.16R to +0.56R; nothing can be said"
+        n_50: "+/-0.14R -- interval -0.08R to +0.48R; nothing can be said"
+        n_150: "+/-0.08R -- interval +0.04R to +0.36R; barely positive"
+        n_200: "+/-0.07R -- one year; positive, magnitude unknown by a factor of six"
+        n_400: "+/-0.05R -- two years; magnitude known within a factor of three"
+        n_1000: "+/-0.03R -- five years; known"
+      the_reading: >-
+        the Doctrine's thirty-and-fifty thresholds are minima for the crudest
+        question -- is the sign positive -- and are far too small for any
+        interesting one. A year of disciplined trading cannot exclude zero.
+    source: docs/whitepapers/evidence-inference-whitepaper.md, Chapter 1
+    source_class: literature
+    date: 2026-09-06
+    review_date: 2029-09-06
+
+  ei.sharpe_standard_error:
+    value: "SE(Sharpe) ~ sqrt((1 + S^2/2) / T) for T years"
+    detail:
+      one_year_at_S_1: "SE ~1.2 -- the estimate is smaller than its own error bar"
+      five_years_at_S_1: "SE ~0.55 -- distinguishable from zero"
+      ten_years_at_S_1: "interval roughly 0.6 to 1.4"
+      the_reading: >-
+        for anything under five years the error bar is roughly the size of the
+        number, and the promotion gates at 150 decisions are permission to believe
+        the SIGN, not the size
+    source: docs/whitepapers/evidence-inference-whitepaper.md, Chapter 2
+    source_class: literature
+    date: 2026-09-06
+    review_date: 2029-09-06
+
+  ei.effective_sample_size:
+    value: "200 clustered decisions a year have an effective n nearer 60"
+    detail:
+      basis: >-
+        decisions sharing a mechanism group and a window count once; a book making
+        200 decisions a year in clusters of three or four on shared themes
+      consequence: >-
+        the honest interval on a year's expectancy is nearer +/-0.13R than the
+        +/-0.07R of the independent case
+      the_reading: >-
+        the heat rule -- correlated positions count once at their common factor --
+        is a risk rule and a statistics rule at the same time
+    source: docs/whitepapers/evidence-inference-whitepaper.md, Chapter 3
+    source_class: literature
+    date: 2026-09-06
+    review_date: 2029-09-06

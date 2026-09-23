@@ -630,21 +630,44 @@ else
     rm -f "$DRIFT_SINCE_FILE"
 fi
 
+# ---- the claims registry's review dates ------------------------------------
+#
+# A WARNING AND NEVER A VERDICT. This is the one check here that deliberately
+# cannot change STATE or RC, and the reason is the difference between a broken
+# pipeline and a figure that needs rechecking: an ownership share taken in
+# mid-2026 and not rechecked in 2027 is still the best number the system has, and
+# nothing the pipeline does can clear the alarm. An alarm that the pipeline cannot
+# clear is one the reader learns to ignore -- and the reader who has learned to
+# ignore this light is the reader who will ignore exit 2 beside it.
+#
+# So it prints, it goes in the status line, and the exit code is untouched.
+CLAIMS_OVERDUE=0
+CLAIMS_LINE=""
+if [[ -n "${STATE_PY:-}" ]]; then
+    CLAIMS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.claims overdue 2>/dev/null \
+                   | tail -1)"
+    CLAIMS_OVERDUE="$(printf '%s' "$CLAIMS_LINE" | sed -n 's/^\([0-9]*\) claim.*/\1/p')"
+    [[ -z "$CLAIMS_OVERDUE" ]] && CLAIMS_OVERDUE=unknown
+    if [[ "$CLAIMS_OVERDUE" != "0" ]] && [[ "$CLAIMS_OVERDUE" != "unknown" ]]; then
+        log "  WARNING claims: $CLAIMS_LINE -- cited figures past their review date; the verdict and exit code are untouched"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
