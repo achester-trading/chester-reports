@@ -630,7 +630,16 @@ def earnings_dates(start: dt.date, end: dt.date) -> dict:
     except Exception as exc:                                    # noqa: BLE001
         out["reason"] = f"unavailable: {type(exc).__name__}: {exc}"
         return out
+    # THE INDEX ETFs HAVE NO EARNINGS, and asking yfinance for their fundamentals
+    # logs an HTTP 404 per name per Sunday. It is the same fact the consensus logger
+    # recorded about forward estimates: no analyst covers a wrapper. Excluded by
+    # DECLARATION rather than by swallowing the error, so a reader can tell "has no
+    # earnings" from "the lookup failed".
+    no_earnings = {"SPY", "QQQ", "IWM", "DIA", "RSP"}
+    out["excluded_no_earnings"] = sorted(no_earnings)
     for sym in config.options_universe():
+        if sym in no_earnings:
+            continue
         try:
             cal = yf.Ticker(sym).calendar or {}
             dates = cal.get("Earnings Date") or []

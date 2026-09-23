@@ -263,7 +263,8 @@ def build_prompt(payload: dict, guide_path=None) -> str:
 def generate(payload: dict, *, model: Optional[str] = None,
              unit_constants: Optional[list] = None,
              client=None, system_prompt: Optional[str] = None,
-             guide_path=None) -> NarrativeResult:
+             guide_path=None, max_chars: Optional[int] = None,
+             one_paragraph: bool = True) -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
@@ -367,14 +368,29 @@ def generate(payload: dict, *, model: Optional[str] = None,
     # impossible to publish by accident.
     res.rejected_text = text
 
-    if len(text) > MAX_CHARS:
+    # THE LENGTH RULES BELONG TO A BRIEF, NOT TO THIS MACHINERY, and the first
+    # weekly run proved it: a 2,961-character reflection was withheld as "too_long
+    # -- the brief is one paragraph" against a brief that explicitly permits long
+    # form and states no word count. The limit was the close report's, applied to a
+    # report that does not have it.
+    #
+    # So both are parameters. For the close they are unchanged: 2,600 characters
+    # and one paragraph. For the weekly the ceiling is a RUNAWAY GUARD rather than
+    # a style rule -- it exists so a model that lost the thread produces a refusal
+    # instead of forty pages -- and blank lines are permitted, because several
+    # paragraphs are correct when the week had several things in it.
+    ceiling = MAX_CHARS if max_chars is None else max_chars
+    if len(text) > ceiling:
         # Not truncated. A paragraph that overran its brief has not followed the
         # brief, and publishing half of one would publish a sentence nobody wrote.
         res.state = "too_long"
-        res.reason = (f"{len(text)} characters against a {MAX_CHARS} limit -- "
-                      f"the brief is one paragraph")
+        res.reason = (f"{len(text)} characters against a {ceiling} limit"
+                      + (" -- the brief is one paragraph" if one_paragraph
+                         else " -- the ceiling is a runaway guard, not a style "
+                              "rule, so this reply lost the thread rather than "
+                              "merely running long"))
         return res
-    if "\n\n" in text.strip():
+    if one_paragraph and "\n\n" in text.strip():
         res.state = "not_one_paragraph"
         res.reason = "the reply contains a blank line; the brief is one paragraph"
         return res

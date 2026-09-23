@@ -49,6 +49,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 TEMPLATE_PATH = REPO / "docs" / "narrative-template-weekly.md"
 
+# THE RUNAWAY GUARD, not a word count. The first weekly reflection came in at 2,961
+# characters and was withheld by the close report's 2,600-character
+# one-paragraph rule -- a rule this report does not have, applied because the limit
+# lived in the machinery rather than in a brief. Ten thousand is room for a week
+# that had several things in it and still a refusal rather than forty pages.
+MAX_CHARS = 10000
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="The Weekly Tactical.")
@@ -86,7 +93,12 @@ def main() -> int:
         narr = narrative_mod.generate(
             np_, model=args.narrative_model,
             system_prompt=weekly_system_prompt(),
-            guide_path=TEMPLATE_PATH)
+            guide_path=TEMPLATE_PATH,
+            # LONG FORM, PER THE OPERATOR'S RULING. The ceiling is a runaway guard
+            # and not a length rule: about four times the close report's, which is
+            # room for the week without room for a model that lost the thread.
+            max_chars=MAX_CHARS,
+            one_paragraph=False)
         if narr.published:
             log.info("narrative published: %d figures audited, model=%s",
                      narr.figures_checked, narr.model)
