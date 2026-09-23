@@ -1442,7 +1442,7 @@ metrics:
     description: >-
       Share of ZEC transactions using the shielded pool. NO REACHABLE SOURCE TODAY and the metric is registered empty on purpose: blockchair answers with 34 fields and no shielded/unshielded split (its 'shield' matches are mempool counters), zcashblockexplorer does not resolve, zcha.in returns 520 and messari 404. zec.shielded_probe holds all four answers so the gap is not re-investigated.
   zec.crypto_cap_share:
-    source: blockchair
+    source: coingecko
     mechanism_group: privacy_chain
     native_horizon: daily
     information_half_life: session
@@ -1452,7 +1452,55 @@ metrics:
     units: fraction
     trigger_eligible: false
     description: >-
-      ZEC's share of total crypto market capitalisation. REGISTERED EMPTY: no source here publishes a TOTAL capitalisation. zec.btc_ratio is computable and is a different number -- a relative price, not a share of a market -- so it is logged under its own name rather than substituted under this one. A proxy under the wrong label is worse than a gap.
+      ZEC's market capitalisation divided by the total, both from CoinGecko. First
+      read 0.938 percent. FORWARD-ONLY: no history of the total is served, so this
+      series starts the day it was first logged and cannot be backfilled.
+      zec.btc_ratio KEEPS ITS OWN NAME and is a different number -- a relative price,
+      not a share of a market -- and now that both exist, having built the second is
+      no reason to conflate it with the first.
+  zec.market_cap_usd:
+    source: coingecko
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ZEC's market capitalisation in USD, from CoinGecko. FORWARD-ONLY: the free tier
+      serves the current value and no history, so this series starts the day it was
+      first logged.
+  crypto.total_market_cap_usd:
+    source: coingecko
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Total crypto market capitalisation in USD, from CoinGecko's /global endpoint --
+      the denominator zec.crypto_cap_share needed. FORWARD-ONLY for the same reason,
+      which is the whole argument for logging it tonight rather than later.
+  zec.cap_probe:
+    source: coingecko
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The stored CoinGecko probe. States: available, partial, http_error, error, plus a
+      `needs_key` flag set when a 401 or 403 says the endpoint has stopped being
+      anonymous -- the condition the ruling asked to be told about rather than worked
+      around.
   zec.shielded_probe:
     source: blockchair
     mechanism_group: privacy_chain

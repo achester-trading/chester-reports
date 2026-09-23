@@ -35,15 +35,23 @@ silently logging the market series and leaving the gap undocumented -- is how a
 capability gets re-investigated three times.
 
 -----------------------------------------------------------------------------
-SHARE OF CRYPTO CAP IS ALSO ABSENT, AND FOR A DIFFERENT REASON
+SHARE OF CRYPTO CAP NOW HAS A SOURCE, AND IT IS FORWARD-ONLY
 -----------------------------------------------------------------------------
 
-The order asks for ZEC's share of total crypto market cap. That needs a TOTAL, and
-no source in this repo publishes one -- yfinance serves instrument prices, not an
-aggregate capitalisation. A ZEC/BTC ratio is computable and is NOT the same number:
-it is a relative price, not a share of a market. The ratio is logged under its own
-name and the share is left registered and empty rather than being quietly
-substituted, because a proxy under the wrong label is worse than a gap.
+CoinGecko's public API serves both halves, keyless -- /api/v3/global for the total and
+simple/price with include_market_cap for ZEC's -- so the ruling's "stop and tell me if
+it needs a key" branch does not fire. First read: total 2.93 trillion USD, ZEC 27.50
+billion, a share of 0.938 percent.
+
+IT CANNOT BE BACKFILLED. The free tier serves the CURRENT total capitalisation and no
+history of it, so this series starts today and grows forward. That is precisely what
+a forward-only logger is, and it is the argument for starting tonight rather than
+after a data purchase: every night not logged is a night of this series that cannot
+be recovered.
+
+zec.btc_ratio KEEPS ITS OWN NAME, per the ruling. It is a relative price and the cap
+share is a share of a market; now that both exist, having built the second is no
+reason to conflate it with the first.
 """
 
 from __future__ import annotations
@@ -62,6 +70,9 @@ from . import LoggerSpec, guarded_days, register
 log = logging.getLogger(__name__)
 
 PROBE_KEY = "zec.shielded_probe"
+CAP_PROBE_KEY = "zec.cap_probe"
+ZEC_CAP_KEY = "zec.market_cap_usd"
+CRYPTO_CAP_KEY = "crypto.total_market_cap_usd"
 SHIELDED_SHARE_KEY = "zec.shielded_tx_share"
 PRICE_KEY = "zec.price_usd"
 REALIZED_VOL_KEY = "zec.realized_vol_20d"
@@ -78,6 +89,13 @@ EXPLORERS = (
     ("zcha.in", "https://api.zcha.in/v2/mainnet/network"),
     ("messari", "https://data.messari.io/api/v1/assets/zec/metrics"),
 )
+
+# COINGECKO, public and keyless. Probed before use: the ruling said to stop and ask
+# if it needed a key, and it does not -- /global and simple/price both answer 200
+# anonymously.
+COINGECKO_GLOBAL = "https://api.coingecko.com/api/v3/global"
+COINGECKO_ZEC = ("https://api.coingecko.com/api/v3/simple/price"
+                 "?ids=zcash&vs_currencies=usd&include_market_cap=true")
 
 UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
 TIMEOUT = 25
@@ -138,6 +156,64 @@ def probe(store: Optional[observations.ObservationStore] = None) -> dict:
                  session.utc_iso(timespec="microseconds"),
                  json.dumps(out, sort_keys=True), source="blockchair",
                  availability_kind="ingest_instant")
+    finally:
+        if own:
+            db.close()
+    return out
+
+
+def probe_cap(store: Optional[observations.ObservationStore] = None) -> dict:
+    """Total crypto capitalisation and ZEC's, from CoinGecko. Keyless.
+
+    THE ONE THING TO KNOW ABOUT THIS SERIES: it is POINT-IN-TIME and cannot be
+    backfilled. CoinGecko's free tier serves the CURRENT total capitalisation and no
+    history of it, so `crypto.total_market_cap_usd` and the share derived from it
+    start today and grow forward. That is what a forward-only logger is, and it is the
+    reason this was worth starting tonight rather than after a data purchase.
+    """
+    out: dict[str, Any] = {"checked_at": session.utc_iso(), "state": "unknown",
+                           "needs_key": False}
+    try:
+        g = json.loads(_get(COINGECKO_GLOBAL).decode("utf-8", "replace"))
+        total = ((g.get("data") or {}).get("total_market_cap") or {}).get("usd")
+        out["total_market_cap_usd"] = total
+    except urllib.error.HTTPError as exc:
+        out["state"] = "http_error"
+        out["reason"] = f"/global returned HTTP {exc.code}"
+        # 401/403 is what a key requirement looks like, and the ruling says stop.
+        out["needs_key"] = exc.code in (401, 403)
+        total = None
+    except Exception as exc:                                   # noqa: BLE001
+        out["state"] = "error"
+        out["reason"] = f"{type(exc).__name__}: {str(exc)[:120]}"
+        total = None
+
+    zec_cap = None
+    try:
+        z = json.loads(_get(COINGECKO_ZEC).decode("utf-8", "replace"))
+        zec_cap = (z.get("zcash") or {}).get("usd_market_cap")
+        out["zec_market_cap_usd"] = zec_cap
+        out["zec_price_usd"] = (z.get("zcash") or {}).get("usd")
+    except urllib.error.HTTPError as exc:
+        out.setdefault("reason", f"simple/price returned HTTP {exc.code}")
+        out["needs_key"] = out["needs_key"] or exc.code in (401, 403)
+    except Exception as exc:                                   # noqa: BLE001
+        out.setdefault("reason", f"{type(exc).__name__}: {str(exc)[:120]}")
+
+    if total and zec_cap:
+        out["state"] = "available"
+        out["share"] = round(zec_cap / total, 10)
+    elif out["state"] == "unknown":
+        out["state"] = "partial"
+        out["reason"] = out.get("reason", "one of the two endpoints returned no "
+                                          "capitalisation")
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        db.write(CAP_PROBE_KEY, None, session.session_date(),
+                 session.utc_iso(timespec="microseconds"),
+                 json.dumps(out, sort_keys=True, default=str),
+                 source="coingecko", availability_kind="ingest_instant")
     finally:
         if own:
             db.close()
@@ -240,12 +316,32 @@ def pull(run_id: Optional[str] = None,
         out["market"] = {"state": "ok", "closes": len(closes),
                          "btc_overlap": len(common),
                          "last": closes[-1] if closes else None}
-        out["crypto_cap_share"] = {
-            "state": "absent",
-            "reason": ("no source in this repo publishes a TOTAL crypto market "
-                       "capitalisation. zec.btc_ratio is logged instead and is a "
-                       "different number -- a relative price, not a share of a "
-                       "market -- so it is not substituted under the other name")}
+        # THE CAP SHARE, WHICH NOW HAS A SOURCE. CoinGecko is keyless, so the
+        # ruling's "stop and tell me" branch does not fire.
+        cap = probe_cap(store=db)
+        out["crypto_cap_share"] = {"state": cap["state"],
+                                   "share": cap.get("share"),
+                                   "reason": cap.get("reason")}
+        if cap["state"] == "available":
+            day = session.session_date()
+            stamp = session.utc_iso(timespec="microseconds")
+            cap_rows = [
+                {"registry_key": CRYPTO_CAP_KEY, "instrument": None,
+                 "observed_at": day, "available_at": stamp,
+                 "value": float(cap["total_market_cap_usd"]),
+                 "source": "coingecko", "run_id": run_id,
+                 "availability_kind": "ingest_instant"},
+                {"registry_key": ZEC_CAP_KEY, "instrument": None,
+                 "observed_at": day, "available_at": stamp,
+                 "value": float(cap["zec_market_cap_usd"]),
+                 "source": "coingecko", "run_id": run_id,
+                 "availability_kind": "ingest_instant"},
+                {"registry_key": CRYPTO_CAP_SHARE_KEY, "instrument": None,
+                 "observed_at": day, "available_at": stamp,
+                 "value": float(cap["share"]), "source": "calc",
+                 "run_id": run_id, "availability_kind": "ingest_instant"},
+            ]
+            written += db.write_many(observations.drop_unchanged(db, cap_rows))
         out["written"] = written
         return out
     finally:
@@ -255,8 +351,11 @@ def pull(run_id: Optional[str] = None,
 
 def keys() -> list[str]:
     # The shielded share is NOT in the roster: there is no source, so a roster entry
-    # would make the heartbeat red for a capability gap rather than for a fault.
-    return [PRICE_KEY, REALIZED_VOL_KEY, BTC_RATIO_KEY]
+    # would make the heartbeat red for a capability gap rather than for a fault. The
+    # cap series IS watched -- it has a working keyless source, so its absence would
+    # be a fault.
+    return [PRICE_KEY, REALIZED_VOL_KEY, BTC_RATIO_KEY,
+            CRYPTO_CAP_KEY, ZEC_CAP_KEY, CRYPTO_CAP_SHARE_KEY]
 
 
 SPEC = register(LoggerSpec(

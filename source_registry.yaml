@@ -309,6 +309,35 @@ sources:
       - >-
         IB censors a large availability as '>1000000'. That is stored as MISSING
         rather than as one million, which it is not.
+  coingecko:
+    name: CoinGecko public API -- total crypto capitalisation and per-asset caps
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_aggregate]
+    geography: [global]
+    latency: current values, refreshed continuously
+    timestamp_reliability: low
+    timestamp_notes: >-
+      The endpoints serve a CURRENT value with no as-of timestamp and no history, so
+      observed_at is the session on which it was read and available_at is the read
+      instant. The series is forward-only by construction.
+    license: public API within its free rate limit, NO KEY -- probed and confirmed
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/shielded.py
+    status: active
+    caveats:
+      - >-
+        FORWARD-ONLY AND NOT BACKFILLABLE. The free tier serves no history of the
+        total capitalisation, so every night not logged is a night of this series that
+        cannot be recovered at any price. That is the argument for starting it before
+        it is needed.
+      - >-
+        A market capitalisation is an aggregate over venues CoinGecko chooses, with a
+        supply figure it also chooses. Tier C mirror: useful for a ratio's direction,
+        not authoritative for its level.
+      - >-
+        The probe records a `needs_key` flag on a 401 or 403. If the endpoint stops
+        being anonymous the logger must STOP rather than acquire a key unasked.
   derived_state:
     name: The market-state object -- dimensions, dials and contradictions
     tier: derived
