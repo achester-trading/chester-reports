@@ -98,7 +98,7 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-3"
+METHOD_VERSION = "market-state-method-4"
 
 # The modules whose content decides what the object says. regime.py builds it and
 # contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
@@ -108,7 +108,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "f8b06abf262db8b9"
+METHOD_SOURCE_SHA = "ab7ed9a8dd7eed60"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -518,18 +518,70 @@ def dial_vol(cfg: dict, as_of: str,
                 f"sessions before this cutoff -- a vol dial is a statement "
                 f"about today")
 
-    # The two legs that are gated on data the store does not have. Both report
-    # absent with the reason; neither is approximated from something else.
+    # THE REALIZED/IMPLIED LEG, WHICH READS THE ONE REGISTERED REALIZED SERIES.
+    #
+    # It used to be a stub: it checked that the metric had rows and then reported
+    # state None regardless, so the config's ratio bands were declared and never
+    # applied and the dial said "implied-only" on a store that held the series. The
+    # contradiction pair `implied_vs_realized_vol` was reading it the whole time,
+    # which is the shape to avoid -- two consumers of one concept, one of them blind.
+    #
+    # calc.vol_spy_realized_20d is computed in ONE place (altdata/market_features.py)
+    # and registered once; the dial and the pair both read that observation rather
+    # than either recomputing a standard deviation of its own. A dial that computed
+    # its own realized vol could disagree with the contradiction row about whether
+    # implied is rich, and there would be no way to say which number a decision was
+    # taken under.
+    #
+    # The implied side is THIS DIAL'S OWN PRIMARY, not FRED's VIXCLS: the ratio has
+    # to be same-day on both legs, and v1.3 moved the dial to the index feed for
+    # exactly that reason. The metric each side used is reported on the leg so a
+    # reader never has to infer it.
     ri = spec.get("realized_implied") or {}
     ri_metric = str(ri.get("metric") or "")
-    ri_rows = store.as_of(ri_metric, as_of=as_of) if ri_metric else []
-    out["realized_implied"] = {
+    leg_ri: dict[str, Any] = {
         "state": None,
-        "absent_reason": (None if ri_rows else
-                          f"{ri_metric} is not in the store, so realized "
-                          f"volatility cannot be computed -- the dial is "
-                          f"implied-only"),
+        "metric": ri_metric or None,
+        "implied_metric": primary or None,
+        "window_sessions": ri.get("window_sessions"),
         "note": ri.get("note")}
+    if not ri_metric:
+        leg_ri["absent_reason"] = "no realized metric declared"
+    else:
+        dr = derived.derived_forms(ri_metric, as_of, store=store)
+        realized = dr.get("level")
+        leg_ri["realized"] = realized
+        leg_ri["implied"] = level
+        leg_ri["realized_percentile"] = dr.get("percentile")
+        leg_ri["confidence"] = dr.get("confidence")
+        stale = dr.get("staleness_sessions")
+        allow = dr.get("staleness_allowance_sessions")
+        if realized is None:
+            leg_ri["absent_reason"] = (
+                f"no observation for {ri_metric} knowable at {as_of}, so realized "
+                f"volatility cannot be read -- the dial is implied-only")
+        elif level is None:
+            leg_ri["absent_reason"] = (
+                f"realized is {realized:.2f} but {primary} is absent at this "
+                f"cutoff, and a ratio needs both legs")
+        elif level <= 0:
+            leg_ri["absent_reason"] = (
+                f"{primary} reads {level}, which cannot be a denominator")
+        elif stale is not None and allow is not None and stale > 3 * allow:
+            leg_ri["absent_reason"] = (
+                f"{ri_metric} was last observed {dr.get('observed_at')}, {stale} "
+                f"sessions before this cutoff against an allowance of {allow} -- "
+                f"a realized-vol reading is a statement about the last "
+                f"{ri.get('window_sessions')} sessions, not about an old window")
+        else:
+            ratio = realized / level
+            leg_ri["ratio"] = round(ratio, 4)
+            for b in ri.get("ratio_bands") or []:
+                if ratio >= float(b.get("min_ratio", 0)):
+                    leg_ri["state"] = str(b.get("state"))
+                    leg_ri["matched_band"] = b
+                    break
+    out["realized_implied"] = leg_ri
     # THE TERM-STRUCTURE LEG, from a DECLARED PROXY, with the champion it will be
     # measured against named rather than merely intended.
     ts = spec.get("term_structure") or {}

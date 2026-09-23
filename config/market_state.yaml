@@ -104,7 +104,13 @@
 #         calc.vix3m_over_vix, a DECLARED PROXY for the VX futures curve, with its
 #         own bands and its own persistence rule. The CFE keys stay declared as the
 #         champion the proxy will be measured against.
-version: market-state-v1.5
+#   v1.6  (23 Sep 2026) the vol dial's realized/implied leg actually computes --
+#         its bands were declared in v1.1 and never applied -- and the
+#         implied_vs_realized_vol pair's implied leg moves from fred.vix to
+#         yfinance.mkt_vix so the dial and the pair read ONE implied series and
+#         ONE realized series between them. A pair whose implied leg publishes the
+#         next morning was comparing yesterday's implied with today's realized.
+version: market-state-v1.6
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -384,7 +390,13 @@ dials:
       note: >-
         realized/implied as a ratio, from the stored SPY closes against VIX. The
         more informative number of the two, and the reason the volatility
-        dimension carries both legs.
+        dimension carries both legs. ONE SOURCE FOR EACH LEG: the realized number
+        is calc.vol_spy_realized_20d, computed once in altdata/market_features.py,
+        and the implied number is this dial's own primary -- the same two keys the
+        implied_vs_realized_vol contradiction row reads. Neither consumer computes
+        a standard deviation of its own, because two realized numbers for one
+        concept is two answers to "is implied rich" with no way to say which one a
+        decision was taken under.
     term_structure:
       # THE PROXY, WHICH RUNS TODAY. VIX3M/VIX: three-month against one-month implied
       # volatility of the index. NOT the VX futures curve -- that is a set of
@@ -523,7 +535,7 @@ contradictions:
         calm says the two markets disagree about what the term premium means.
 
     - id: implied_vs_realized_vol
-      legs: [fred.vix, calc.vol_spy_realized_20d]
+      legs: [yfinance.mkt_vix, calc.vol_spy_realized_20d]
       kind: metric_pair
       polarities: [+1, +1]
       expect: same
@@ -532,7 +544,12 @@ contradictions:
         (4). Implied rich to realized is a risk premium; implied cheap to
         realized is complacency. The probability ledger's tail weight is read
         where one is live, and the ledger is empty today, so that leg reports
-        absent rather than assuming.
+        absent rather than assuming. THE IMPLIED LEG IS THE INDEX FEED, not FRED's
+        VIXCLS, for the reason v1.3 gave the dial: VIXCLS publishes the next
+        morning, so a pair reading it was comparing yesterday's implied with
+        today's realized and calling the mismatch a divergence. Both legs are now
+        same-day and daily, so they align exactly rather than by forward fill --
+        and the dial's ratio and this row read the same two series.
 
     - id: growth_vs_cyclicals
       legs: [growth, calc.cyclical_over_defensive]

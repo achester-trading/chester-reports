@@ -218,9 +218,9 @@ Primary first; polarity in brackets.
 | rates | high / mid / low | `fred.yield_10y`, `fred.yield_2y`, `fred.yield_30y`, `fred.mortgage_30y` |
 | liquidity | ample / neutral / tight | `fred.rrp` (−1), `fred.bank_reserves`, `fred.fed_balance`, `fred.nfci` (−1) |
 | credit | easy / neutral / stressed | `fred.hy_oas` (−1), `fred.bb_oas` (−1), `fred.ccc_oas` (−1), `fred.ig_oas` (−1) |
-| trend | up / flat / down | `mkt_spy` — **absent** |
-| breadth | broad / mixed / narrow | `mkt_rsp_over_spy` — **absent** |
-| volatility | elevated / normal / subdued | `fred.vix` (realized leg absent) |
+| trend | up / flat / down | `calc.trend_spy_vs_50d`, `calc.trend_spy_vs_200d`, `calc.trend_spy_ma20_slope` |
+| breadth | broad / mixed / narrow | `calc.breadth_sector_above_50d` (+200d), `calc.breadth_rsp_over_spy` — `sample: sector_etf_proxy` |
+| volatility | elevated / normal / subdued | `yfinance.mkt_vix`, with `calc.vol_spy_realized_20d` as the realized leg and `fred.vix` kept as the revisable official member |
 
 ### The dials
 
@@ -230,8 +230,18 @@ Primary first; polarity in brackets.
   Its catch-all applies only when the inputs *exist* and disagree: an object whose
   inputs are absent gets an absent dial, not `mixed`.
 - **vol** — VIX **level** bands (absolute, because the point of a vol dial is that
-  30 means something on its own), plus a realized/implied leg and a VX1/VX2/VX3
-  term-structure leg that both report absent with their missing inputs named.
+  30 means something on its own), plus two legs that now compute:
+  - **realized/implied**, `calc.vol_spy_realized_20d` over the dial's own primary.
+    Below 1 is implied rich to realized — a premium being paid; above 1 is the
+    complacency case. The leg and the `implied_vs_realized_vol` contradiction row
+    read the **same two keys**, and neither computes a standard deviation of its
+    own: two realized numbers for one concept would be two answers to "is implied
+    rich" with no way to say which one a decision was taken under.
+  - **term structure**, `calc.vix3m_over_vix` as a **declared proxy**
+    (`proxy_for: vx_futures_curve`) with its own bands and a two-session
+    persistence rule. The CFE `cfe.vx1/vx2/vx3` keys stay declared as the champion
+    the proxy is measured against, and the leg reports which of them the store
+    holds on every object.
 - **gamma** — the sign of dealer gamma, **read** from the pin log via
   `altdata/grader.py`'s `PriceSeries`. The pin log is the system's own record of
   what it saw at the close, so "read, never recompute" is literal.
@@ -239,6 +249,15 @@ Primary first; polarity in brackets.
 ---
 
 ## 5. Three dimensions are absent, and this is the gap to close
+
+**Dated correction, 23 September 2026.** Phase 2b closed the price half of this
+section: `yfinance_source.py` runs twice a session under `chester-eod.timer` and
+`chester-overnight.timer` with five years backfilled, `altdata/market_features.py`
+derives the `calc.*` series from those closes, and both price passes recompute them
+after their own pull. **trend, breadth and the volatility dimension's realized leg
+all compute today**, and so do five of the six contradiction pairs. What follows
+records the gap as it stood when the object was built; growth's cadence problem is
+the part of it that remains, and the tables above carry the current mapping.
 
 The Phase 2 order chose the eight dimensions "because the store already has daily
 series for them". For five that is true.
@@ -279,7 +298,7 @@ Seven declared rows: six computed and one reserved.
 | `price_vs_breadth` | trend, breadth | no — prices |
 | `equities_vs_credit` | trend, credit | no — prices |
 | `long_bond_vs_hy` | `fred.yield_30y`, `fred.hy_oas` | **yes** |
-| `implied_vs_realized_vol` | `fred.vix`, realized | no — prices |
+| `implied_vs_realized_vol` | `yfinance.mkt_vix`, `calc.vol_spy_realized_20d` | **yes** |
 | `growth_vs_cyclicals` | growth, XLY/XLP | no — prices |
 | `gamma_vs_trend` | gamma dial, trend | no — trend |
 | `prediction_markets_vs_assets` | PM implied, trend | reserved: Part 27 v1 |
