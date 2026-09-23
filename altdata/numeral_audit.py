@@ -66,7 +66,27 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable, Optional
 
 # Magnitude suffixes, longest first so "mm" wins over "m" and "bn" over "b".
-SUFFIXES = (("bn", 1e9), ("mm", 1e6), ("tn", 1e12), ("k", 1e3),
+# A MAGNITUDE IS PART OF THE NUMBER, SPELLED OUT OR NOT, and the word forms were
+# missing. Both halves of that mattered.
+#
+# The permitted form was being rejected. The system prompt tells the model it may
+# write "ten and a half billion" when the same value is printed in the tables, and
+# the close report's own subject -- dollar gamma per 1% -- is a ten-digit number
+# that no readable paragraph prints in full. On Tuesday's payload the model wrote
+# "4.59 billion dollars of index per one percent move", the extractor read the
+# figure as 4.59 against a payload holding 4,592,...,..., and a correct sentence
+# was discarded.
+#
+# AND THE WRONG-BY-A-BILLION SENTENCE WAS PASSING. With the word ignored, "770
+# billion dollars of gamma" extracted as 770 and matched SPY's price of 770.66.
+# That is the failure this audit exists to prevent, and it was invisible in exactly
+# the sentences the report is written to carry: a scale error is the one arithmetic
+# mistake a reader cannot catch from context.
+#
+# Longest first in the alternation below: `billion` has to match before `b`.
+SUFFIXES = (("trillion", 1e12), ("billion", 1e9), ("million", 1e6),
+            ("thousand", 1e3),
+            ("bn", 1e9), ("mm", 1e6), ("tn", 1e12), ("k", 1e3),
             ("b", 1e9), ("m", 1e6))
 
 # A candidate figure:
@@ -79,7 +99,11 @@ _FIGURE = re.compile(
         (?P<sign>-|minus\s)?  # a written minus counts
         \$?\s?
         (?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)
-        (?P<suffix>bn|mm|tn|k|b|m)?
+        # THE SPACE IS OPTIONAL AND THE WORD FORMS COME FIRST. "4.59bn" and
+        # "4.59 billion" are the same claim. The trailing guard below is what makes
+        # the single letters safe: in "to 750 both having moved", `b` matches and
+        # then the guard fails on the 'o', so the figure falls back to no suffix.
+        (?P<suffix>\s?(?:trillion|billion|million|thousand|bn|mm|tn|k|b|m))?
         (?P<pct>\s?%|\s?per\s?cent|\s?percent)?
         # TWO GUARDS, because one cannot do both jobs.
         #   (?!\.?\d)   rejects a figure that is really the head of a longer one
@@ -164,7 +188,7 @@ def extract(text: str) -> list[Figure]:
         except ValueError:                          # pragma: no cover
             continue
         scale = 1.0
-        suffix = (m.group("suffix") or "").lower()
+        suffix = (m.group("suffix") or "").strip().lower()
         if suffix:
             for s, mult in SUFFIXES:
                 if suffix == s:

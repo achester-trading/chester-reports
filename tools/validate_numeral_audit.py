@@ -101,6 +101,33 @@ def group_a() -> None:
           "combined guard silently dropped it, which made a stored fraction "
           "unmatchable")
 
+    # A SPELLED-OUT MAGNITUDE IS PART OF THE NUMBER, in both directions.
+    f = extract("about 4.59 billion dollars of index per one percent move")
+    check(len(f) >= 1 and abs(f[0].value - 4.59e9) < 1e7,
+          f"'4.59 billion' extracts at 1e9 scale (got "
+          f"{f[0].value if f else None}) -- the form the system prompt permits, "
+          f"and the only readable register for a ten-digit dollar figure")
+    f = extract("4.59bn of index")
+    check(len(f) == 1 and abs(f[0].value - 4.59e9) < 1e7,
+          "and the attached form still does")
+    # The hole this closes: with the word ignored, a wrong-by-a-billion sentence
+    # matched a price.
+    r = audit("770 billion dollars of gamma", {"spot": 770.66})
+    check(not r.passed,
+          "'770 billion dollars' does NOT match a spot of 770.66 -- a scale error "
+          "is the one arithmetic mistake a reader cannot catch from context")
+    r = audit("spot 770.66", {"spot": 770.66})
+    check(r.passed, "while the plain figure still matches")
+    # And the single-letter suffixes must not eat the next word.
+    f = extract("the put wall to 750 both having moved higher")
+    check(len(f) == 1 and f[0].value == 750.0,
+          f"'750 both' is 750 and not 750 billion (got "
+          f"{f[0].value if f else None}) -- the trailing guard rejects a letter "
+          f"fused to a word")
+    f = extract("13 pin rows and 8 dimensions")
+    check([x.value for x in f] == [13.0, 8.0],
+          "and ordinary counts are unaffected")
+
     f = extract("1,234,567 shares")
     check(len(f) == 1 and abs(f[0].value - 1234567) < 1e-9,
           "thousands separators survive")
