@@ -147,11 +147,24 @@ def tiny_config(persistence: int = 2) -> dict:
             "macro": {"from_dimensions": ["credit"],
                       "rules": [{"when": {"credit": "easy"}, "state": "calm"},
                                 {"when": {}, "state": "mixed"}]},
+            # THE SEEDED VOL DIAL MIRRORS THE REAL ONE'S SHAPE, including the
+            # term-structure proxy. A fixture that keeps an older shape stops
+            # testing the code that runs -- these four checks failed against a
+            # tiny_config that still declared only the CFE keys.
             "vol": {"primary": "fred.vix",
                     "level_bands": [{"state": "elevated", "min_level": 20},
                                     {"state": "normal", "min_level": 0}],
                     "realized_implied": {"metric": "mkt_spy"},
-                    "term_structure": {"requires_store_keys": ["cfe.vx1"]}},
+                    "term_structure": {
+                        "proxy_metric": "calc.vix3m_over_vix",
+                        "proxy_for": "vx_futures_curve",
+                        "ratio_bands": [{"state": "contango", "min_ratio": 1.05},
+                                        {"state": "flat", "min_ratio": 0.98},
+                                        {"state": "backwardation",
+                                         "min_ratio": 0.0}],
+                        "persistence_sessions": 2,
+                        "champion": {"requires_store_keys": ["cfe.vx1", "cfe.vx2",
+                                                             "cfe.vx3"]}}},
             "gamma": {"source": "exposure_engine", "symbol": "SPY"},
         },
         "contradictions": {
@@ -551,10 +564,34 @@ def group_f(store) -> None:
     check(stale["dials"]["vol"].get("state") is None,
           "the vol dial goes absent on the same argument -- a vol dial is a "
           "statement about today")
+    # THE TERM-STRUCTURE LEG NOW COMPUTES, FROM A DECLARED PROXY. The check this
+    # replaces asserted the opposite -- that the leg stayed absent naming the CFE keys
+    # and was "not approximated from something else" -- which was right for the design
+    # it was written against and was deliberately overruled: VIX3M/VIX runs today,
+    # labelled, while the curve waits on a subscription. What must hold now is
+    # stronger than absence, and it is that the label cannot be lost.
     ts = stale["dials"]["vol"].get("term_structure") or {}
-    check(ts.get("state") is None and "cfe.vx1" in str(ts.get("absent_reason")),
-          "the term-structure leg reports the store keys it needs rather than "
-          "being approximated from something else")
+    check(ts.get("proxy_metric") == "calc.vix3m_over_vix",
+          f"the term-structure leg names the proxy it computes from "
+          f"({ts.get('proxy_metric')})")
+    check(ts.get("proxy_for") == "vx_futures_curve",
+          f"and names what that proxy STANDS IN FOR, so no rendering can present it "
+          f"as the futures curve ({ts.get('proxy_for')})")
+    check("cfe.vx1" in str(ts.get("champion_requires")),
+          f"and the CFE keys are still declared -- as the CHAMPION the proxy will be "
+          f"measured against, not as a reason to report nothing "
+          f"({ts.get('champion_requires')})")
+    check("quarter" in str(ts.get("champion_status")).lower()
+          or "unavailable" in str(ts.get("champion_status")).lower(),
+          f"and the champion's status says whether the comparison can run yet "
+          f"({ts.get('champion_status')})")
+    check(int(ts.get("persistence_sessions") or 0) >= 2,
+          f"the leg has a persistence rule of its own -- this ratio crosses 1.0 "
+          f"intraday on any sharp day ({ts.get('persistence_sessions')} sessions)")
+
+    src = (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8")
+    check("NOT the VX futures curve" in src or "NOT the VX futures" in src,
+          "and the config says in words that it is not the futures curve")
 
 
 def group_f2(store) -> None:

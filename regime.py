@@ -98,7 +98,7 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-2"
+METHOD_VERSION = "market-state-method-3"
 
 # The modules whose content decides what the object says. regime.py builds it and
 # contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
@@ -108,7 +108,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "4471b53571a05d33"
+METHOD_SOURCE_SHA = "f8b06abf262db8b9"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -489,7 +489,8 @@ def dial_macro(cfg: dict, dims: dict) -> dict:
 
 
 def dial_vol(cfg: dict, as_of: str,
-             store: observations.ObservationStore) -> dict:
+             store: observations.ObservationStore,
+             history: Optional[list[dict]] = None) -> dict:
     spec = (cfg.get("dials") or {}).get("vol") or {}
     primary = str(spec.get("primary") or "")
     d = derived.derived_forms(primary, as_of, store=store) if primary else {}
@@ -529,16 +530,79 @@ def dial_vol(cfg: dict, as_of: str,
                           f"volatility cannot be computed -- the dial is "
                           f"implied-only"),
         "note": ri.get("note")}
+    # THE TERM-STRUCTURE LEG, from a DECLARED PROXY, with the champion it will be
+    # measured against named rather than merely intended.
     ts = spec.get("term_structure") or {}
-    need = list(ts.get("requires_store_keys") or [])
+    champ = ts.get("champion") or {}
+    need = list(champ.get("requires_store_keys") or [])
     have = [k for k in need if store.as_of(k, as_of=as_of)]
-    out["term_structure"] = {
+    leg: dict[str, Any] = {
         "state": None,
-        "requires": need,
-        "present": have,
-        "absent_reason": (None if need and len(have) == len(need) else
-                          f"requires {need}; the store has {have or 'none of them'}"),
+        "proxy_metric": ts.get("proxy_metric"),
+        "proxy_for": ts.get("proxy_for"),
+        "champion_requires": need,
+        "champion_present": have,
+        "champion_status": ("available -- run both a quarter before retiring either"
+                            if need and len(have) == len(need) else
+                            f"unavailable; the store has {have or 'none of'} "
+                            f"{need}"),
+        # DECLARED PROPERTIES OF THE LEG, reported whether or not it computed. The
+        # persistence rule is a fact about the design, not a result of the data --
+        # it belonged inside the success branch only by accident, and an absent leg
+        # that cannot say what rule it would have used is less legible than one that
+        # can.
+        "persistence_sessions": int(ts.get("persistence_sessions") or 2),
         "note": ts.get("note")}
+    pm = ts.get("proxy_metric")
+    if pm:
+        d = derived.derived_forms(str(pm), as_of, store=store)
+        leg["ratio"] = d.get("level")
+        leg["percentile"] = d.get("percentile")
+        leg["confidence"] = d.get("confidence")
+        if d.get("level") is None:
+            leg["absent_reason"] = (
+                f"no observation for {pm} knowable at {as_of}")
+        else:
+            stale = d.get("staleness_sessions")
+            allow = d.get("staleness_allowance_sessions")
+            if stale is not None and allow is not None and stale > 3 * allow:
+                leg["absent_reason"] = (
+                    f"{pm} was last observed {d.get('observed_at')}, {stale} "
+                    f"sessions back -- a term-structure state is a statement about "
+                    f"today")
+            else:
+                raw = None
+                for b in ts.get("ratio_bands") or []:
+                    if d["level"] >= float(b.get("min_ratio", 0)):
+                        raw = str(b.get("state"))
+                        break
+                leg["raw_state"] = raw
+                # PERSISTENCE, the same rule the dimensions use: this ratio crosses
+                # 1.0 intraday on any sharp day, and a state that flips on one close
+                # is a state nobody can act on.
+                need_n = int(ts.get("persistence_sessions") or 2)
+                prev = None
+                run = 1
+                for obj in reversed(history or []):
+                    t = ((obj.get("dials") or {}).get("vol") or {}).get(
+                        "term_structure") or {}
+                    if prev is None and t.get("state"):
+                        prev = t.get("state")
+                    if t.get("raw_state") == raw:
+                        run += 1
+                    else:
+                        break
+                leg["run_sessions"] = run
+                if prev is None or raw == prev or run >= need_n:
+                    leg["state"] = raw
+                else:
+                    leg["state"] = prev
+                    leg["pending_state"] = raw
+                    leg["pending_note"] = (
+                        f"{raw} has held {run} of the {need_n} sessions required")
+    else:
+        leg["absent_reason"] = "no proxy_metric declared"
+    out["term_structure"] = leg
     return out
 
 
@@ -660,7 +724,7 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             "dimensions": dims,
             "dials": {
                 "macro": dial_macro(cfg, dims),
-                "vol": dial_vol(cfg, cutoff, st),
+                "vol": dial_vol(cfg, cutoff, st, history=history),
                 "gamma": dial_gamma(cfg, day, events=events),
             },
             "prior_objects_read": len(history),

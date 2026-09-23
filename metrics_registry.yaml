@@ -234,6 +234,12 @@ vocabularies:
   sample:
     - sector_etf_proxy
     - index_proxy
+  # WHAT A METRIC IS STANDING IN FOR, when it is standing in for something. Declared
+  # as a vocabulary so a proxy cannot be introduced without naming its target, and
+  # so a reader can ask "what would I rather have here" and get an answer. A metric
+  # with no proxy_for measures the thing its name says.
+  proxy_for:
+    - vx_futures_curve
   # AN OVERRIDE, NOT A SECOND RULE. `units` decides a metric's delta semantics;
   # this exists for the one thing `units: percent` cannot separate -- a SPREAD in
   # percent moves in basis points (HY OAS 2.70 -> 2.72 is +2bp) and a SHARE in
@@ -1528,6 +1534,30 @@ metrics:
       and the divergence it measures nearly invisible. Distance from the running
       high is ~0 at a new high and falls away at once, which is what "making new
       highs while participation narrows" means.
+  calc.vix3m_over_vix:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    proxy_for: vx_futures_curve
+    trigger_eligible: false
+    description: >-
+      VIX3M divided by VIX: the ratio of three-month to one-month IMPLIED VOLATILITY
+      OF THE INDEX. IT IS NOT THE VX FUTURES CURVE and must never be described as
+      one. The curve is the price of VX futures -- tradeable instruments with their
+      own supply, their own roll and their own basis to spot VIX -- and 30.8's state
+      machine is defined on VX1/VX2/VX3. This ratio moves with that curve most of the
+      time and is a different object: it cannot show a roll, it cannot show a
+      dislocation between the futures and the index, and it is not something anyone
+      can trade.
+      It is here because it is FREE AND SAME-DAY, where the curve needs the CFE
+      Enhanced subscription. `proxy_for: vx_futures_curve` is the standing caveat.
+      When VX1-VX3 arrive, both run a quarter as champion and challenger before
+      either is retired -- see config/market_state.yaml.
   calc.cyclical_over_defensive:
     source: derived_state
     mechanism_group: equity_tape

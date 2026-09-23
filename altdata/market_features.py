@@ -67,6 +67,10 @@ RSP = "yfinance.mkt_rsp"
 # growth_vs_cyclicals contradiction row is the growth DIMENSION against this.
 CYCLICAL = "yfinance.mkt_xly"
 DEFENSIVE = "yfinance.mkt_xlp"
+# The two volatility indices, for the term-structure PROXY. Not the futures curve --
+# see the registry entry for why the distinction is kept in the name.
+VIX = "yfinance.mkt_vix"
+VIX3M = "yfinance.mkt_vix3m"
 
 # The declared windows. Named here because the registry entries and
 # config/market_state.yaml both refer to them by name, and three numbers in three
@@ -100,6 +104,8 @@ FEATURES = {
     "calc.spy_vs_252d_high":
         f"SPY's close against its own {HIGH_WINDOW}-session high, in percent "
         f"(0 at the high, negative below)",
+    "calc.vix3m_over_vix":
+        "VIX3M / VIX -- a PROXY for the VX futures curve's slope, not the curve",
     "calc.cyclical_over_defensive":
         "XLY/XLP -- discretionary over staples, what the tape pays for growth",
     "calc.vol_spy_realized_20d":
@@ -152,6 +158,8 @@ def compute_rows(db: observations.ObservationStore,
     rsp = _load(db, RSP, as_of)
     cyc = _load(db, CYCLICAL, as_of)
     dfn = _load(db, DEFENSIVE, as_of)
+    vix = _load(db, VIX, as_of)
+    vix3m = _load(db, VIX3M, as_of)
     if not spy:
         log.warning("no SPY closes in the store; no features computed")
         return []
@@ -251,6 +259,10 @@ def compute_rows(db: observations.ObservationStore,
         if day in rsp and day in spy and spy[day][0]:
             emit("calc.breadth_rsp_over_spy", day, rsp[day][0] / spy[day][0],
                  [(rsp[day][1], rsp[day][2]), (spy[day][1], spy[day][2])])
+
+        if day in vix and day in vix3m and vix[day][0]:
+            emit("calc.vix3m_over_vix", day, vix3m[day][0] / vix[day][0],
+                 [(vix[day][1], vix[day][2]), (vix3m[day][1], vix3m[day][2])])
 
         if day in cyc and day in dfn and dfn[day][0]:
             emit("calc.cyclical_over_defensive", day, cyc[day][0] / dfn[day][0],
