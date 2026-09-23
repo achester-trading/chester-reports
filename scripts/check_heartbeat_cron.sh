@@ -409,7 +409,7 @@ elif [[ -z "$STATE_PY" ]]; then
     STATE_OBJECT=no_python
     log "  market state: no interpreter found; not checked"
 else
-    STATE_SESSION="$(cd "$REPO" && "$STATE_PY" -c 'from altdata import session; print(session.last_trading_session().isoformat())' 2>/dev/null || true)"
+    STATE_SESSION="$(cd "$REPO" && "$STATE_PY" -c 'from altdata import session; print(session.last_completed_session().isoformat())' 2>/dev/null || true)"
     if [[ -z "$STATE_SESSION" ]]; then
         STATE_OBJECT=no_session
         log "  market state: could not resolve the last trading session"

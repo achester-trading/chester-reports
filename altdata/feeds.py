@@ -226,7 +226,10 @@ def freshness(as_of: Optional[str] = None,
     db = store or observations.ObservationStore()
     try:
         from . import derived
-        last = session.last_trading_session().isoformat()
+        # THE LAST SESSION WHOSE DATA SHOULD EXIST, not the latest on the calendar.
+        # Before today's close, today's bars do not exist and their absence is not
+        # staleness -- it is the afternoon not having happened yet.
+        last = session.last_completed_session().isoformat()
         multiple = staleness_multiple()
         out: dict[str, Any] = {"session": last, "as_of": as_of, "feeds": {}}
         rosters = [("prices", price_keys()), ("fred", fred_keys())]

@@ -478,6 +478,48 @@ def last_trading_session(day: DateLike = None) -> dt.date:
     return d if is_trading_session(d) else previous_trading_session(d)
 
 
+# HOW LONG AFTER THE CLOSE BEFORE A SESSION'S DATA SHOULD EXIST. The EOD pass runs
+# at 16:10 ET and the close report at 16:45, so an hour past the close is comfortably
+# after both and comfortably before anyone would call the data late.
+SESSION_COMPLETE_GRACE_MINUTES = 60
+
+REGULAR_CLOSE_ET = dt.time(16, 0)
+EARLY_CLOSE_ET = dt.time(13, 0)
+
+
+def close_time_et(day: DateLike = None) -> dt.time:
+    """When the exchange shuts on this date. 13:00 on a declared early close."""
+    return EARLY_CLOSE_ET if is_early_close(day) else REGULAR_CLOSE_ET
+
+
+def last_completed_session(now: Union[dt.datetime, str, None] = None) -> dt.date:
+    """The most recent session whose data SHOULD exist by now.
+
+    NOT THE SAME QUESTION AS last_trading_session(), and conflating them produced a
+    false alarm every trading morning. last_trading_session() answers "what is the
+    most recent session on the calendar", and at 06:58 ET on a Wednesday that is
+    Wednesday -- a session that has not opened, let alone closed. The heartbeat asked
+    it whether Wednesday's market-state object existed, and correctly found that it
+    did not, and reported the pipeline broken.
+
+    An alarm that fires every morning is an alarm that gets muted, which would have
+    cost the real signal it exists to carry.
+
+    This answers "which session's data should I be able to see", which is what every
+    freshness check and every data gate actually means: today only once its close plus
+    a declared grace has passed, and the previous session until then.
+    """
+    ts = to_eastern(now)
+    today = ts.date()
+    if (is_trading_session(today) if calendar_covers(today)
+            else today.weekday() < 5):
+        close = dt.datetime.combine(today, close_time_et(today),
+                                    tzinfo=ts.tzinfo)
+        if ts >= close + dt.timedelta(minutes=SESSION_COMPLETE_GRACE_MINUTES):
+            return today
+    return previous_trading_session(today)
+
+
 def _main(argv) -> int:
     """Calendar queries for the shell wrappers, so scripts/*.sh never keeps a
     second copy of the holiday table. A duplicated table is the same defect

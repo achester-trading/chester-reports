@@ -140,10 +140,12 @@ def pull(run_id: Optional[str] = None,
     own = store is None
     db = store or observations.ObservationStore()
     try:
-        # THE OBSERVED DATE IS THE SESSION, not the wall clock: this runs at 06:45
-        # and reports on the close it follows, so dating it "today" would put a
-        # Monday-morning read on Monday when it describes Friday.
-        day = session.last_trading_session().isoformat()
+        # THE OBSERVED DATE IS THE LAST COMPLETED SESSION, not the wall clock and
+        # not the calendar's latest session. This runs at 06:45 and reports on the
+        # close it follows, so dating it "today" would put a Wednesday-morning read
+        # on Wednesday when it describes Tuesday -- and last_trading_session()
+        # returns today the moment today is a session, which is exactly that error.
+        day = session.last_completed_session().isoformat()
         now = session.utc_iso(timespec="microseconds")
         rows, got, failed = [], 0, []
         for sym in (symbols or universe()):

@@ -434,7 +434,10 @@ def pull_regsho(day: Optional[str] = None, run_id: Optional[str] = None,
     stored: a logger that writes the whole tape every night buys history nobody
     declared and makes every query over this table slower for it.
     """
-    target = day or session.last_trading_session().isoformat()
+    # THE LAST COMPLETED SESSION. Reg SHO publishes the evening of the session, so
+    # at 06:45 asking for TODAY's file gets a 404 that reads as an outage rather than
+    # as the afternoon not having happened yet.
+    target = day or session.last_completed_session().isoformat()
     url = REGSHO_URL.format(yyyymmdd=target.replace("-", ""))
     try:
         text = _get(url).decode("utf-8", "replace")
