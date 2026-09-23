@@ -395,6 +395,26 @@ def generate(payload: dict, *, model: Optional[str] = None,
         res.reason = "the reply contains a blank line; the brief is one paragraph"
         return res
 
+    # MARKDOWN IS BANNED BY THE BRIEF AND WAS ENFORCED BY NOTHING.
+    #
+    # The weekly's first published paragraph opened with `**Week ending Friday 18
+    # September.**` and the reader would have seen the asterisks: these reports are
+    # HTML, the renderer escapes what it is given, and it must -- a renderer that
+    # interpreted markdown would be a renderer deciding what the prose meant.
+    #
+    # So the rule the prompt already states is now checked. Withheld rather than
+    # stripped: stripping would publish a sentence the model did not write, and the
+    # difference between "the brief says no markdown" and "we quietly remove it" is
+    # the difference between a rule and a preference.
+    marks = [m for m in ("**", "##", "\n- ", "\n* ", "__") if m in text]
+    if marks:
+        res.state = "markdown_found"
+        res.reason = (f"the reply contains markdown ({', '.join(marks)!r}) and "
+                      f"these reports are HTML -- the renderer escapes what it is "
+                      f"given, so a reader would see the characters")
+        log.warning("narrative withheld: %s", res.reason)
+        return res
+
     # THE GATE. Every numeral in the prose against the payload it was given.
     result = numeral_audit.audit(text, payload, extra_values=unit_constants)
     res.audit = result

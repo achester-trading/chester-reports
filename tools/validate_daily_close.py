@@ -391,6 +391,35 @@ def group_g() -> None:
           f"and the paragraph citing 55.9 passes the audit against the rounded "
           f"payload ({res.state}: {res.reason[:48]})")
 
+    # MARKDOWN IS WITHHELD, NOT STRIPPED. The weekly's first published paragraph
+    # opened with `**Week ending...**` and the reader would have seen the asterisks.
+    class _Md(_Stub):
+        class messages:
+            @staticmethod
+            def create(**kw):
+                class _B:
+                    type = "text"
+                    text = "**Trend** sits at the 55.9 percentile."
+
+                class _R:
+                    content = [_B()]
+                    model = "stub"
+                    stop_reason = "end_turn"
+                    usage = None
+                return _R()
+
+    md = nv.generate({"market_state": {"dimensions":
+                                       {"trend": {"percentile": 55.8601}}}},
+                     client=_Md())
+    check(md.state == "markdown_found",
+          f"a reply containing markdown is withheld ({md.state}) -- these reports "
+          f"are HTML and the renderer escapes what it is given")
+    check("**" in md.reason,
+          "and the reason names what it found")
+    check(md.rejected_text and "**" in md.rejected_text,
+          "with the rejected text kept, so the next diagnosis starts from the "
+          "sentence rather than from the rule")
+
 
 def group_h() -> None:
     """The exceptions reach the paragraph, and the table may not be recited."""
