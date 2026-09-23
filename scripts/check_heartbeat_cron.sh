@@ -630,6 +630,47 @@ else
     rm -f "$DRIFT_SINCE_FILE"
 fi
 
+# ---- the weekly anchor, DORMANT UNTIL ITS TIMER IS ENABLED ------------------
+#
+# The Weekly Tactical writes ~/state/weekly_heartbeat on any run that produced a
+# report. A missed Sunday is invisible for a week at a time otherwise, which is long
+# enough for the learning loop to be broken without anybody noticing -- so it is
+# watched.
+#
+# BUT IT IS NOT WATCHED BEFORE IT IS ENABLED. The unit ships written and not
+# enabled, per the standing rule that this process never enables a unit; a check
+# that alarmed on the absence of a heartbeat from a timer nobody has started would
+# be red from the day the code landed until the day it was turned on, and an alarm
+# that is red for a week before it means anything is an alarm that gets muted. So
+# the gate is `systemctl --user is-enabled`, and while the answer is anything but
+# `enabled` this reports `not_enabled` and changes no verdict.
+#
+# It never changes the exit code either way. A weekly that has not run is a report
+# to re-run by hand -- `scripts/run_weekly.sh` regenerates any past week from the
+# store -- and not a capture that was lost, which is the distinction that decides
+# whether something here is allowed to turn the light red.
+WEEKLY_STATE=not_enabled
+WEEKLY_AGE_H=""
+if systemctl --user is-enabled chester-weekly.timer >/dev/null 2>&1; then
+    WEEKLY_HB="$STATE_DIR/weekly_heartbeat"
+    if [[ -f "$WEEKLY_HB" ]]; then
+        WEEKLY_EPOCH=$(stat -c %Y "$WEEKLY_HB" 2>/dev/null || echo 0)
+        WEEKLY_AGE_H=$(( ( $(date +%s) - WEEKLY_EPOCH ) / 3600 ))
+        # NINE DAYS. A week plus the slack for a Sunday the box was down and the
+        # Persistent=true catch-up that follows it -- so a single late run does not
+        # warn while a skipped week does.
+        if [[ "$WEEKLY_AGE_H" -gt 216 ]]; then
+            WEEKLY_STATE=stale
+            log "  WARNING weekly: heartbeat is ${WEEKLY_AGE_H}h old (over 9 days) -- the Sunday anchor has not produced a report; re-run scripts/run_weekly.sh for the missed week. The verdict and exit code are untouched"
+        else
+            WEEKLY_STATE=fresh
+        fi
+    else
+        WEEKLY_STATE=never_run
+        log "  WARNING weekly: the timer is enabled and no weekly_heartbeat exists -- the Sunday anchor has never produced a report on this box"
+    fi
+fi
+
 # ---- the claims registry's review dates ------------------------------------
 #
 # A WARNING AND NEVER A VERDICT. This is the one check here that deliberately
@@ -659,15 +700,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

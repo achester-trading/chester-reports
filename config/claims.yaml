@@ -694,6 +694,61 @@ claims:
     warnings: [three_denominators]
 
   # ===========================================================================
+  # DATED CALENDAR FACTS -- read by the Weekly Tactical's WEEK AHEAD block
+  #
+  # These are in the claims registry and not in the observation store for the
+  # reason the file's header gives: the system cannot compute them and cannot
+  # currently fetch them either. A meeting date is a published fact about the
+  # future, which is exactly a claim.
+  #
+  # AND THEIR review_date IS THE MECHANISM THAT KEEPS THEM CURRENT. cal.fomc_2026
+  # is reviewed on 1 December 2026, which is when the 2027 calendar has to exist
+  # for the first Sunday of January to read it -- so the heartbeat's overdue
+  # warning fires exactly when the work is due rather than after a report has
+  # printed nothing.
+  # ===========================================================================
+  cal.fomc_2026:
+    value: "2026 FOMC meeting dates: Jan 27-28, Mar 17-18, Apr 28-29, Jun 16-17,
+      Jul 28-29, Sep 15-16, Oct 27-28, Dec 8-9"
+    unit: scheduled two-day meetings; the decision lands on the second day
+    detail:
+      decision_days: [2026-01-28, 2026-03-18, 2026-04-29, 2026-06-17,
+                      2026-07-29, 2026-09-16, 2026-10-28, 2026-12-09]
+      note: >-
+        ENTERED FROM THE BOARD'S ANNOUNCED CALENDAR AND NOT RE-VERIFIED BY THIS
+        SYSTEM, which has no fetcher for federalreserve.gov. Verify a date against
+        the Board's page before a report prints it. The failure mode is quiet: a
+        meeting date wrong by a day makes every "the week before the FOMC" reading
+        wrong by a week, and no downstream check would catch it.
+      projections_meetings: [2026-03-18, 2026-06-17, 2026-09-16, 2026-12-09]
+    source: >-
+      Federal Reserve Board, published FOMC calendar (federalreserve.gov/
+      monetarypolicy/fomccalendars.htm)
+    source_class: cited
+    date: 2026-09-23
+    review_date: 2026-12-01
+  cal.midterm_election_2026:
+    value: "2026-11-03"
+    unit: US federal midterm election day
+    detail:
+      note: >-
+        The first Tuesday after the first Monday in November, which is computable
+        -- and it is a claim rather than an observation because what a report cites
+        it FOR is the presidential-cycle conditional, and 31.6 rules that the
+        conditional enters as a dated register hypothesis rather than as a
+        trigger_eligible metric.
+      why_it_matters_here: >-
+        Base Rates Chapter 3 rules seasonality trigger_eligible false permanently;
+        the midterm conditional is the one calendar effect admitted, and only as a
+        hypothesis with a date.
+    source: >-
+      2 U.S.C. 7 -- the first Tuesday after the first Monday in November of each
+      even-numbered year
+    source_class: cited
+    date: 2026-09-23
+    review_date: 2028-01-01
+
+  # ===========================================================================
   # STATISTICAL FIGURES -- Evidence and Inference
   # ===========================================================================
   ei.expectancy_standard_error:

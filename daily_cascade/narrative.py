@@ -232,25 +232,25 @@ def _client():
         return None, f"client construction failed: {type(exc).__name__}: {exc}"
 
 
-def style_guide() -> str:
+def style_guide(path=None) -> str:
     """The committed template, which is the style contract.
 
     Read from docs/ rather than embedded so the operator edits one file and both
     the model and the human reading the spec see the same thing. Absent, the
     system prompt above still carries the rules that matter.
     """
+    p = path or TEMPLATE_PATH
     try:
-        return TEMPLATE_PATH.read_text(encoding="utf-8")
+        return p.read_text(encoding="utf-8")
     except OSError:
-        log.warning("%s unreadable; relying on the system prompt alone",
-                    TEMPLATE_PATH)
+        log.warning("%s unreadable; relying on the system prompt alone", p)
         return ""
 
 
-def build_prompt(payload: dict) -> str:
+def build_prompt(payload: dict, guide_path=None) -> str:
     """The user turn: the style guide, then the figures, and nothing else."""
     import json  # noqa: PLC0415
-    guide = style_guide()
+    guide = style_guide(guide_path)
     return (
         (f"=== STYLE AND COVERAGE SPECIFICATION ===\n{guide[:6000]}\n\n"
          if guide else "")
@@ -262,11 +262,19 @@ def build_prompt(payload: dict) -> str:
 
 def generate(payload: dict, *, model: Optional[str] = None,
              unit_constants: Optional[list] = None,
-             client=None) -> NarrativeResult:
+             client=None, system_prompt: Optional[str] = None,
+             guide_path=None) -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
-    every branch — including a model that lies — without a network call or a key.
+    every branch -- including a model that lies -- without a network call or a key.
+
+    `system_prompt` and `guide_path` let a SECOND report use this machinery with
+    its own brief. The Weekly Tactical passes both, and everything that makes the
+    machinery worth reusing stays fixed: print precision at the boundary, the
+    numeral audit, the model pin, thinking off, the rejected text kept. What a
+    report may vary is its coverage and its length; what it may not vary is whether
+    a figure it prints exists.
     """
     model = model or DEFAULT_MODEL
     res = NarrativeResult(model=model)
@@ -293,8 +301,9 @@ def generate(payload: dict, *, model: Optional[str] = None,
     kwargs: dict = {
         "model": model,
         "max_tokens": MAX_TOKENS,
-        "system": SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": build_prompt(payload)}],
+        "system": system_prompt or SYSTEM_PROMPT,
+        "messages": [{"role": "user",
+                      "content": build_prompt(payload, guide_path)}],
         # SEE MAX_TOKENS. Disabled deliberately and not by omission: it was
         # ON by default here, and it consumed the entire budget.
         "thinking": {"type": "disabled"},

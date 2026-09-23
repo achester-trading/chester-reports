@@ -1,0 +1,43 @@
+[Unit]
+Description=Weekly Tactical anchor (Sunday 05:00 ET, replaces the Friday Reflection and Sunday Forward Plan)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# NO After= ON ANY WEEKDAY PASS, deliberately. This anchor reads Friday's stored
+# object, the register, the grader and the store; by Sunday morning every one of
+# those has been written and closed for two days. Ordering it behind a unit that
+# last ran on Friday would express a dependency that the clock already guarantees
+# and would do nothing on a boot.
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_weekly.sh
+
+# THE SECRETS THE RUN NEEDS. Two of them, and the run degrades rather than fails
+# without either: the narrative's key (a withheld paragraph, with its reason) and
+# the FRED key (the release calendar reports absent while the series themselves are
+# untouched). The leading `-` keeps the unit startable on a box with no .env.
+EnvironmentFile=-%h/chester-reports/.env
+
+# 0 built and sent, 2 built and archived but NOT sent, 3 dry-run. All three are
+# successful runs of this unit: the report exists in every case and delivery is
+# transport. 1 is NOT here on purpose -- "no payload" means the week could not be
+# resolved at all, which is a real failure and should show red.
+SuccessExitStatus=0 2 3
+
+# Generous. The two network reads in THE WEEK AHEAD are a FRED release calendar
+# and up to thirteen yfinance calendar lookups, each with its own timeout, and the
+# first Sunday also resolves twenty series-to-release mappings.
+TimeoutStartSec=15min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# reports/ lives inside the checkout (32.3), so the checkout is writable here.
+# ~/state rather than ~/.chester: this box keeps its state files there, and the
+# leading `-` makes the path permitted-if-present so a box that does not use it is
+# unaffected.
+ReadWritePaths=%h/logs -%h/state %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

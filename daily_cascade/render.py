@@ -394,7 +394,33 @@ def narrative_block(narrative) -> str:
             f'failed the audit is a figure nobody can vouch for.</div>')
 
 
-def grades_block(payload: dict) -> str:
+def grades_line(payload: dict) -> str:
+    """ONE LINE, and a pointer to Sunday. Phase 4a moved the block.
+
+    payload.grades_block()'s own docstring called itself a lodger: the learning
+    loop's home is the Sunday 05:00 anchor, and until that slot existed the close
+    report was the only one delivered every session, so a grade that nobody read
+    was a grade that changed nothing. The anchor exists now.
+
+    What stays is the one fact a close reader needs -- did anything get graded
+    tonight -- and where to read it. Keeping the whole block in both places would
+    be two documents answering one question, and the first to drift would be the
+    one nobody was reading for it.
+    """
+    b = payload.get("grades") or {}
+    n = len(b.get("new_since") or [])
+    total = b.get("total") or 0
+    if b.get("state") not in ("ok", "empty"):
+        return (f'<p style="{NOTE}"><strong>Grades</strong> &mdash; unavailable: '
+                f'{esc(b.get("reason") or "no reason recorded")}. The Weekly '
+                f'Tactical carries the learning loop.</p>')
+    return (f'<p style="{NOTE}"><strong>Graded this session: {esc(n)}</strong>'
+            f' &middot; {esc(total)} to date &mdash; see Sunday. The Weekly '
+            f'Tactical carries the cuts, the intervals and the Brier ledger; this '
+            f'report is about the session.</p>')
+
+
+def grades_block_full(payload: dict) -> str:
     """The GRADES block: trailing expectancy by status, and what is newly graded.
 
     n AND THE INTERVAL BEFORE THE MEAN, the same order tools/cuts.py prints them
@@ -526,8 +552,8 @@ def render(payload: dict, delivery: Optional[dict] = None,
 <h2 style="{H2}">Portfolio truth</h2>
 {portfolio_block(payload)}
 
-<h2 style="{H2}">Grades</h2>
-{grades_block(payload)}
+<h2 style="{H2}">Grades &mdash; one line; Sunday carries the loop</h2>
+{grades_line(payload)}
 
 <h2 style="{H2}">Provenance</h2>
 <p style="{NOTE}">

@@ -1,0 +1,35 @@
+[Unit]
+Description=Weekly Tactical at 05:00 ET on Sunday
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# SUNDAY 05:00 ET. Audit #3 §I and the Daily Cascade paper's Part 0 both name the
+# slot, and the hour is the point: the week is planned on Sunday, and an anchor that
+# arrived Sunday evening would arrive after the planning it exists to inform.
+#
+# Zone-pinned like every other unit here. The box runs UTC and 05:00 ET is 09:00 or
+# 10:00 UTC depending on the date; a UTC literal would drift an hour twice a year
+# and land at 04:00 local for five months.
+#
+# Sun, not Mon-Fri: the market is shut and that is the reason for the slot. Nothing
+# is fetched that needs a session -- the object, the register and the grades were all
+# written by Friday, and the two forward reads are calendars.
+OnCalendar=Sun 05:00 America/New_York
+
+# Wider than the weekday reports' 60s. Nothing else runs at this hour, the window
+# before anybody reads it is hours rather than minutes, and the run makes a handful
+# of outbound calls that are politer for not starting on the same second every week.
+RandomizedDelaySec=300
+
+# Persistent=TRUE, and this is the one report where it is right.
+#
+# The weekday reports set it false because a catch-up run hours later would email a
+# session's numbers under a stale date to a reader who has already lived through
+# that session. A week is not like that: an anchor that arrives Sunday afternoon
+# because the box was down in the morning is still the anchor for the week ahead,
+# and the week ahead has not started. The alternative is no weekly at all, which is
+# strictly worse than a late one.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
