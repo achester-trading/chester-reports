@@ -71,6 +71,20 @@ class LoggerSpec:
     # Whether freshness should alarm on it yet. A logger awaiting an entitlement
     # decision is dormant by design and must not make the heartbeat red.
     in_freshness: bool = True
+    # KEYS WRITTEN ONLY WHEN SOMETHING IS WRONG, excluded from freshness.
+    #
+    # A probe row records "we asked and were refused". On a route that is working
+    # there is nothing to record, so the key is legitimately empty -- and a
+    # freshness roster that counted it reported a stale feed for a feed that was
+    # fine. That happened the first evening the VX curve ran: seven of eight keys
+    # fresh, the eighth the probe, and the heartbeat exited 11 on a logger that had
+    # just written nine thousand rows.
+    #
+    # Declared per logger rather than inferred from a `_probe` suffix, because a
+    # naming convention is not a contract: a key called `zec.shielded_probe` that
+    # IS written every night (because that route is genuinely dead) must stay in
+    # freshness, and only the logger knows which of its keys is which.
+    probe_keys: tuple[str, ...] = ()
     notes: str = ""
 
 

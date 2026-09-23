@@ -102,6 +102,12 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 
     A logger may declare `in_freshness=False` -- one awaiting an entitlement
     decision is dormant BY DESIGN and must not make the heartbeat red for it.
+
+    AND IT MAY DECLARE `probe_keys`, which are excluded here. A probe row records
+    "we asked and were refused"; on a working route there is nothing to record, so
+    counting the empty key reports a stale feed for a feed that is fine -- which is
+    what the VX curve did on its first evening, taking the heartbeat to exit 11
+    with seven of eight keys fresh and 688 sessions just written.
     """
     from .loggers import load_all
     out = []
@@ -109,7 +115,8 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
         if not spec.in_freshness:
             continue
         try:
-            out.append((name, spec.keys()))
+            probes = set(getattr(spec, "probe_keys", ()) or ())
+            out.append((name, [k for k in spec.keys() if k not in probes]))
         except Exception as exc:                              # noqa: BLE001
             log.warning("logger %s could not list its keys: %s", name, exc)
     return out

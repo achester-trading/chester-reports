@@ -426,6 +426,11 @@ SPEC = register(LoggerSpec(
     keys=keys,
     run=pull,
     requires_key=None,
+    # WRITTEN ONLY ON FAILURE, so it is not a feed to watch. cfe.vx_probe records
+    # which Cboe endpoints refused; while the one that answers keeps answering
+    # there is nothing to write, and counting it made the heartbeat red for a
+    # logger that had just written 688 sessions.
+    probe_keys=(PROBE_KEY,),
     min_history=0,
     notes="Paste D piece 3. The champion for the vol dial's term-structure leg; "
           "calc.vix3m_over_vix runs beside it as challenger for a quarter.",
