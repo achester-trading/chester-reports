@@ -116,6 +116,25 @@ printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
 log "feeds: correction pull done"
 
+# THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
+#
+# They recompute on the first session of a calendar year, on a method change, and
+# whenever a table is missing -- and on every other night this step prints one line
+# saying it did nothing. A distribution over ninety-nine years does not move because
+# a Tuesday happened, so a timer of its own would be a unit to maintain, monitor and
+# deploy for a job that fires once a year. The date check lives in base_rates.py
+# rather than in this shell: "the first session of the year" is a calendar question,
+# and the holiday table is the only thing that knows 1 January is not it.
+#
+# Its failure is not this run's failure. The overnight pass exists to fetch data
+# that cannot be fetched later; a reference table that can be recomputed on demand
+# must not stand in front of that.
+log "base rates: annual check"
+BR_OUT="$("$PY" tools/base_rates.py maybe-recompute 2>&1)"
+BR_RC=$?
+printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $BR_RC -ne 0 ]] && log "WARN base_rates maybe-recompute exited $BR_RC -- continuing"
+
 log "=== overnight fetch start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m altdata.sources.overnight $DRY >>"$LOG" 2>&1
 RC=$?

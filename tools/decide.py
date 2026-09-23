@@ -320,7 +320,8 @@ def cmd_record(args) -> int:
                                horizon=args.horizon, invalidation=args.invalidation,
                                size=args.size, status=args.status,
                                operator_action=args.operator_action, run_id=run_id,
-                               currency_exposure=args.currency_exposure)
+                               currency_exposure=args.currency_exposure,
+                               base_rate_cited=args.base_rate_cited)
                 except RestrictedInstrumentError:
                     print(f"  attempt logged to blocked_attempts")
             print(f"{LINE}")
@@ -420,7 +421,8 @@ def cmd_record(args) -> int:
                          operator_action=args.operator_action, run_id=run_id,
                          signals_used=sorted(args.signals_used),
                          blocked_reason=blocked_reason,
-                         currency_exposure=args.currency_exposure)
+                         currency_exposure=args.currency_exposure,
+                         base_rate_cited=args.base_rate_cited)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -683,6 +685,13 @@ def cmd_set_status(args) -> int:
             # Carried forward, because the successor describes the same
             # position: a status change does not re-open the currency question.
             currency_exposure=old["currency_exposure"],
+            # Carried forward for the same reason: the successor departs from the
+            # same base rate unless the operator says otherwise, and a supersession
+            # that silently dropped the citation would leave the newer row
+            # unreplayable against the distribution the thesis was written against.
+            base_rate_cited=(getattr(args, "base_rate_cited", None)
+                             or (old["base_rate_cited"]
+                                 if "base_rate_cited" in old.keys() else None)),
             note=args.note)
 
         # The successor gets its own packet, because a decision without one
@@ -774,6 +783,13 @@ def main() -> int:
                    choices=CURRENCY_EXPOSURES,
                    help="Part 31.3(c): required for a non-USD listing "
                         "(instrument written <sym>@<venue>.<CCY>).")
+    r.add_argument("--base-rate-cited", default=None,
+                   metavar="ID",
+                   help="Part 31.1: the base rate this thesis departs from, BY "
+                        "ID -- 'baserate.<table>', "
+                        "'baserate.<table>|<field.path>' or 'claim:<id>'. Never "
+                        "a retyped figure: a packet that retypes a number cannot "
+                        "be replayed against the table that said it.")
     r.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS)
     r.add_argument("--run-id", default=None)
     r.add_argument("--available-at-cutoff", default=None)

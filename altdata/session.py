@@ -487,6 +487,26 @@ REGULAR_CLOSE_ET = dt.time(16, 0)
 EARLY_CLOSE_ET = dt.time(13, 0)
 
 
+def first_session_of_year(year: int) -> Optional[dt.date]:
+    """The first trading session of a calendar year.
+
+    The annual trigger for the base-rate tables, and the reason it is here rather
+    than a date comparison in the caller: "the first session of the year" is a
+    calendar question, and the holiday table is the only thing that knows 1 January
+    is not it. Outside the table's coverage this falls back to weekdays, which for
+    a 1 January that lands on a weekday would answer 1 January -- wrong, and
+    harmless in the one direction that matters: the fallback fires the recompute a
+    day early rather than skipping the year.
+    """
+    d = dt.date(year, 1, 1)
+    limit = dt.date(year, 1, 15)
+    while d <= limit:
+        if is_trading_session(d) if calendar_covers(d) else d.weekday() < 5:
+            return d
+        d += dt.timedelta(days=1)
+    return None
+
+
 def close_time_et(day: DateLike = None) -> dt.time:
     """When the exchange shuts on this date. 13:00 on a declared early close."""
     return EARLY_CLOSE_ET if is_early_close(day) else REGULAR_CLOSE_ET

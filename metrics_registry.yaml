@@ -289,6 +289,14 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # BASE RATES. Its own group, and the reason is the sharpest case of 26.9 in
+    # the registry: a base rate is a DENOMINATOR. "The index falls 10% about once a
+    # year" cannot confirm anything about today -- it is the yardstick today is
+    # measured against, and a yardstick that could also act as a witness would let
+    # one fact be counted as two (the move, and the fact that the move is unusual).
+    # Nothing in this group is trigger_eligible and nothing ever will be; 31.6 holds
+    # the Part 26 freeze over all of it.
+    - base_rate
     # FORECAST CALIBRATION. Separate from decision_grade because they measure
     # different things: a grade asks whether a POSITION worked, a Brier score asks
     # whether a stated LIKELIHOOD was honest. A system can be well calibrated and
@@ -1811,6 +1819,24 @@ metrics:
       Annualised realized volatility of SPY's 20-session log returns, in percent.
       The leg the vol dial was missing: VIX alone is an implied number with nothing
       to be rich or cheap against.
+  baserate.review_flag:
+    source: derived_base_rate
+    mechanism_group: base_rate
+    native_horizon: structural
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      Written when a recompute moves a watched base-rate field further than its
+      declared tolerance, naming the field, both values and the tolerance. NOT an
+      error path: a drawdown distribution that has genuinely shifted is the most
+      informative thing tools/base_rates.py can report, and the flag exists so it
+      reaches a human rather than being absorbed into the next year's numbers. A
+      method_version change is reported here too and explicitly NOT as drift --
+      fields are never compared across methods.
   regime.dimension_state:
     source: derived_state
     mechanism_group: market_state
@@ -2189,6 +2215,35 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: corporate_action
+  base_rate_tables:
+    description: >-
+      The Base Rates paper's Part I tables, each stored as ONE observation whose
+      value is the table as JSON. A base rate cited in a decision packet has to be
+      replayable as of the date it was cited, and a paper's table has no
+      available_at -- so the tables become observations and the as-of join answers
+      the question for free. See tools/base_rates.py and architecture 31.1.
+      NATIVE_HORIZON IS `structural`, WHICH IS 31.1's WORD "strategic": the
+      vocabulary is closed and this is its long-horizon member, so the synonym is
+      recorded here rather than by widening the vocabulary to hold two names for
+      one horizon.
+    source: derived_base_rate
+    members_from: tools.base_rates.TABLE_KEYS
+    # A FLAT TUPLE OF FULL KEYS, so there is no prefix to add and no attribute to
+    # read -- but the resolver skips any block that declares neither member_key
+    # nor members_are, which silently left all six tables unregistered while the
+    # registry checker still reported the block. `values` is the right answer for
+    # a sequence: the members ARE the values.
+    members_are: values
+    expected_members: 6
+    key_prefix: ""
+    units: label
+    native_horizon: structural
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group: base_rate
   pin_log_columns:
     description: >-
       The pin log's column set, which IS the file format and is append-only.

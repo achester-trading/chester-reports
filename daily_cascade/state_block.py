@@ -109,6 +109,41 @@ def session_events_line(payload: dict) -> str:
     return f"session events: {body}{tail}"
 
 
+def move_line(wc: dict) -> str:
+    """The session's move with BOTH denominators. 31.1's report consequence.
+
+    TWO PERCENTILES, NEVER ONE. Five years and the long run disagree exactly where
+    it matters: the last five years hold fewer very bad days than ninety-nine do,
+    so a hard session reads lower against five years than against the century. One
+    denominator invites the reader to supply the other from memory, and "the worst
+    day in years" and "a bad day, of a kind that happens" are different claims.
+
+    A number and its two denominators, nothing else. No adjective for the size of
+    the move: the percentiles are the adjective.
+    """
+    m = wc.get("session_move") or {}
+    if m.get("change") is None:
+        return (f'<div style="{ABSENT}"><strong>Session move</strong> &mdash; not '
+                f'measured: {esc(m.get("absent_reason") or "no reason recorded")}'
+                f'</div>')
+    unit = "%" if m.get("delta_unit") == "percent" else f' {m.get("delta_unit")}'
+    lr = (f'{pctf(m.get("percentile_long_run"))} of '
+          f'{esc(m.get("long_run_n"))} sessions since '
+          f'{esc(m.get("long_run_first"))} ({esc(m.get("long_run_series"))})'
+          if m.get("percentile_long_run") is not None else
+          f'&mdash; ({esc(m.get("long_run_absent_reason"))})')
+    beyond = (f' beyond the stored grid, {esc(m.get("long_run_beyond_grid"))}'
+              if m.get("long_run_beyond_grid") else "")
+    return (f'<div style="{QUIET if abs(float(m["change"])) < 1.0 else MOVED}">'
+            f'<strong>{esc(m.get("metric"))} '
+            f'{float(m["change"]):+.2f}{unit}</strong> '
+            f'{esc(m.get("from_date"))} &rarr; {esc(m.get("to_date"))}'
+            f'<br>percentile <strong>{pctf(m.get("percentile_5y"))}</strong> of '
+            f'{esc(m.get("n_5y"))} sessions, five years '
+            f'(z {zf(m.get("z_5y"))})'
+            f'<br>percentile <strong>{lr}</strong>{beyond}</div>')
+
+
 def what_changed_block(payload: dict) -> str:
     """The diff, as the first data block. Levels move behind it."""
     obj = payload.get("market_state")
@@ -125,6 +160,10 @@ def what_changed_block(payload: dict) -> str:
                 f'made, so nothing is claimed about what changed.</div>')
 
     parts: list[str] = []
+
+    # THE MOVE FIRST. O.6 puts magnitudes before levels, and this is the magnitude
+    # every reader looks for before anything the object says.
+    parts.append(move_line(wc))
 
     if wc.get("compared_with") is None:
         parts.append(f'<div style="{ABSENT}">{esc(wc.get("note") or "no previous object")}'

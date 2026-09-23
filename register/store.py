@@ -157,6 +157,14 @@ CREATE TABLE IF NOT EXISTS decisions (
     -- record() refuses NULL for any non-USD listing rather than defaulting it.
     currency_exposure TEXT CHECK (currency_exposure IS NULL
                                   OR currency_exposure IN {CURRENCY_EXPOSURES!r}),
+    -- 31.1. The base rate this thesis departs from, cited BY ID and never by
+    -- retyping the figure: a variant perception is a claim about a distribution,
+    -- and a packet that retypes "-10% happens about once a year" cannot be
+    -- replayed against the table that said so. NULL is permitted -- most
+    -- decisions cite none -- and a value must name a stored observation
+    -- (baserate.*) or a claims-registry id (claim:*), because free text here is
+    -- the retyped figure the field exists to prevent.
+    base_rate_cited  TEXT,
     -- What a supersession was FOR. The thesis is carried forward verbatim by
     -- design, so without this the trail records that a decision changed and
     -- not one word about why.
@@ -284,7 +292,8 @@ class Register:
         # was FOR, which the carried-forward thesis cannot say. Both nullable:
         # NULL means the field predates the column, not that it is n_a.
         for col in ("signals_used TEXT", "blocked_reason TEXT",
-                    "currency_exposure TEXT", "note TEXT"):
+                    "currency_exposure TEXT", "note TEXT",
+                    "base_rate_cited TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -334,6 +343,7 @@ class Register:
                signals_used: Optional[list] = None,
                blocked_reason: Optional[str] = None,
                currency_exposure: Optional[str] = None,
+               base_rate_cited: Optional[str] = None,
                note: Optional[str] = None) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -360,6 +370,20 @@ class Register:
         # pesos rather than SPY on ARCA in dollars, and nothing asked why a
         # dollar book was suddenly taking peso exposure.
         ccy = listing_currency(instrument)
+        # 31.1: A CITATION, NOT A FIGURE. The prefixes are the whole check and they
+        # are enough: `baserate.` names an observation whose table can be read back
+        # as of the decision's own cutoff, and `claim:` names a claims-registry
+        # entry with a source and a review date. Free text would be the retyped
+        # number, which is exactly what citing by id exists to stop -- a packet
+        # saying "-10% about once a year" cannot be replayed, and the same sentence
+        # is true of two different tables.
+        if base_rate_cited is not None and not str(base_rate_cited).startswith(
+                ("baserate.", "claim:")):
+            raise ValueError(
+                f"base_rate_cited must name a stored base-rate observation "
+                f"('baserate.<table>' or 'baserate.<table>|<field.path>') or a "
+                f"claims-registry id ('claim:<id>'); got "
+                f"{base_rate_cited!r}. A retyped figure cannot be replayed")
         if currency_exposure is not None and currency_exposure not in CURRENCY_EXPOSURES:
             raise ValueError(f"currency_exposure must be one of "
                              f"{CURRENCY_EXPOSURES}")
@@ -386,13 +410,14 @@ class Register:
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
             " invalidation, status, operator_action, thesis_state, run_id,"
-            " signals_used, blocked_reason, currency_exposure, note)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " signals_used, blocked_reason, currency_exposure,"
+            " base_rate_cited, note)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
              json.dumps(signals_used or []), blocked_reason,
-             currency_exposure, note))
+             currency_exposure, base_rate_cited, note))
         self.conn.commit()
         return did
 

@@ -406,6 +406,53 @@ sources:
         as-of-correct backfill cannot reach behind that date. ALFRED ingestion
         (O.16) is what would fix it.
 
+  derived_base_rate:
+    name: The Base Rates paper's tables, computed from the store
+    tier: derived
+    epistemic_role: own_computation
+    domain: [market_regime]
+    geography: [US]
+    latency: >-
+      Recomputed on the first session of a calendar year, on a method change, and
+      whenever a table is missing -- not nightly. A distribution over ninety-nine
+      years does not move because a Tuesday happened.
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Each table is stored with observed_at = the last completed session at compute
+      time and available_at = the compute instant, so a packet citing a base rate
+      can be replayed against the table that existed when it was cited rather than
+      against the current one.
+    license: n/a
+    allowed_reports: [daily_cascade, monthly_macro, gamma_weekly,
+                      disruptive_themes, top_bottom, alt_asset]
+    implemented_by: tools/base_rates.py
+    status: active
+    caveats:
+      - >-
+        allowed_reports is deliberately WIDE, which is the opposite of
+        derived_grade's empty list, and the distinction is the point: a base rate
+        is a reference every report may cite, while a grade of our own forecasting
+        is not evidence about a market. Nothing here is trigger_eligible and 31.6
+        holds the Part 26 freeze over all of it -- a base rate says what usually
+        happens and can never say that something is happening now.
+      - >-
+        PRICE RETURN, NOT TOTAL RETURN. The tables are computed from ^GSPC index
+        levels, so the annual row is the paper's ~8% price figure and not its ~10%
+        total return. Stated on every affected row rather than in one place.
+      - >-
+        TWO DEFINITIONS OF A DECLINE ARE STORED PER DEPTH BAND and they differ by a
+        factor of four in frequency: loss from the running maximum with recovery
+        (the portfolio's question) and a threshold swing from a local high (the
+        operator's, and the one the paper's frequency column counts). Citing one
+        where the other was meant turns a three-times-a-year event into a
+        once-every-fourteen-months one.
+      - >-
+        THE GAP STATISTICS ARE NOT SOURCED. A gap is the open against the prior
+        close and the store holds closes only, so the paper's gap-fill and
+        overnight-versus-intraday rows report `not_yet_sourced` with the series
+        they need. The same absence blocks the intraday extremes that would make
+        the drawdown tables comparable to an intraday-based study.
+
   derived_grade:
     name: Decision grades computed from the register and the stored pin log
     tier: derived

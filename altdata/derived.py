@@ -534,6 +534,96 @@ def derived_forms(metric_id: str, as_of: Optional[str] = None,
     return out
 
 
+def delta_percentile(metric_id: str, as_of: Optional[str] = None,
+                     window: Optional[int] = None,
+                     horizon: int = 1,
+                     store: Optional[observations.ObservationStore] = None,
+                     instrument: Optional[str] = None) -> dict:
+    """Where the latest n-observation CHANGE sits among that window's changes.
+
+    NOT the same question as derived_forms()' `percentile`, and the difference is
+    the one a reader of the close report needs. `percentile` places the LEVEL: SPY
+    at the 98th percentile of five years means it is near its high. This places the
+    MOVE: a -1.4% session at the 7th percentile of five years of sessions means the
+    day was unusual. A report that printed only the first would say the market is
+    high on a day it fell hard, and say nothing about the fall.
+
+    It lives here because this module is the one place a delta, a percentile or a
+    z-score is computed, and because it must use THE SAME window rule and THE SAME
+    as-of join as everything else -- a move percentile measured over a different
+    window than the level percentile printed beside it would be two numbers
+    pretending to share a denominator.
+
+    The change is in the metric's own delta unit, from delta_unit_for(): percent of
+    level for a price, basis points for a spread. So the distribution and the
+    latest change are always in the same unit as each other.
+    """
+    rows = series_as_of(metric_id, as_of=as_of, window=window, store=store,
+                        instrument=instrument)
+    unit, unit_reason = delta_unit_for(metric_id)
+    out: dict[str, Any] = {"metric_id": metric_id, "horizon": horizon,
+                           "delta_unit": unit, "delta_unit_reason": unit_reason,
+                           "n": 0, "change": None, "percentile": None}
+    if len(rows) < horizon + 2:
+        out["absent_reason"] = (
+            f"{len(rows)} observation(s) in the window; a {horizon}-observation "
+            f"change needs at least {horizon + 2} to have a distribution to sit in")
+        return out
+    changes: list[float] = []
+    for i in range(horizon, len(rows)):
+        a, b = rows[i - horizon][1], rows[i][1]
+        ch = _delta_in_unit(a, b, unit)
+        if ch is not None:
+            changes.append(ch)
+    if not changes:
+        out["absent_reason"] = "no change could be expressed in the delta unit"
+        return out
+    out.update({
+        "n": len(changes),
+        "change": round(changes[-1], 4),
+        "from_date": rows[-1 - horizon][0],
+        "to_date": rows[-1][0],
+        "percentile": percentile_of(changes, changes[-1]),
+        "z_score": (round(z_of(changes, changes[-1]), 4)
+                    if z_of(changes, changes[-1]) is not None else None),
+        "window_days": window,
+        "distribution": {"p5": round(percentile_at(changes, 5), 4),
+                         "median": round(percentile_at(changes, 50), 4),
+                         "p95": round(percentile_at(changes, 95), 4)},
+    })
+    return out
+
+
+def percentile_at(values: list[float], q: float) -> float:
+    """The q-th percentile by linear interpolation -- the inverse of percentile_of.
+
+    percentile_of() answers "where does x sit"; this answers "what value sits at
+    q". Both are needed and they are not each other's inverse by accident: the
+    empirical definition of one is a counting rule and of the other an
+    interpolation, so a round trip is not exact and neither is wrong.
+    """
+    s = sorted(values)
+    if not s:
+        return float("nan")
+    if len(s) == 1:
+        return float(s[0])
+    pos = (q / 100.0) * (len(s) - 1)
+    lo = int(pos // 1)
+    hi = min(lo + 1, len(s) - 1)
+    return float(s[lo] + (s[hi] - s[lo]) * (pos - lo))
+
+
+def _delta_in_unit(a: float, b: float, unit: str) -> Optional[float]:
+    """b minus a, expressed in the declared delta unit."""
+    if unit == "percent":
+        return None if not a else 100.0 * (b / a - 1.0)
+    if unit == "bps":
+        return (b - a) * 100.0
+    if unit == "pp":
+        return b - a
+    return b - a
+
+
 def series_as_of(metric_id: str, as_of: Optional[str] = None,
                  window: Optional[int] = None,
                  store: Optional[observations.ObservationStore] = None,

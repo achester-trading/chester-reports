@@ -108,7 +108,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "ab7ed9a8dd7eed60"
+METHOD_SOURCE_SHA = "31b346c09074ca4f"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -980,7 +980,71 @@ def previous_object(obj: dict,
             st.close()
 
 
-def what_changed(current: dict, previous: Optional[dict]) -> dict:
+# THE SERIES WHOSE SESSION MOVE THE ANCHORS LEAD WITH. SPY and not ^GSPC: the
+# move a reader acts on is the instrument's, and SPY is what a decision prices
+# against. The LONG-RUN denominator beside it comes from ^GSPC, because a century
+# of base rates cannot be built from a fund that began in 1993 -- so the move is
+# the fund's and the distribution it is placed in is the index's. Those are two
+# different series by necessity and the block says so rather than eliding it.
+MOVE_METRIC = "yfinance.mkt_spy"
+MOVE_BASE_RATE_SERIES = "yfinance.mkt_gspc"
+
+
+def session_move(as_of: Optional[str] = None,
+                 store: Optional[observations.ObservationStore] = None) -> dict:
+    """The session's move with BOTH denominators: five years, and the long run.
+
+    31.1's report consequence. A magnitude with one denominator invites the reader
+    to supply the other from memory, and the two disagree in exactly the cases that
+    matter: a -2% session is the 2nd percentile of the last five years and the 5th
+    of ninety-nine, because the last five years contain fewer bad days than the
+    century does. Printing both is the difference between "the worst day in years"
+    and "a bad day, of a kind that happens".
+    """
+    out: dict[str, Any] = {"metric": MOVE_METRIC}
+    try:
+        d = derived.delta_percentile(MOVE_METRIC, as_of=as_of, store=store)
+    except Exception as exc:                                   # noqa: BLE001
+        return {"metric": MOVE_METRIC,
+                "absent_reason": f"{type(exc).__name__}: {exc}"}
+    out["change"] = d.get("change")
+    out["delta_unit"] = d.get("delta_unit")
+    out["from_date"] = d.get("from_date")
+    out["to_date"] = d.get("to_date")
+    out["percentile_5y"] = d.get("percentile")
+    out["n_5y"] = d.get("n")
+    out["z_5y"] = d.get("z_score")
+    if d.get("absent_reason"):
+        out["absent_reason"] = d["absent_reason"]
+        return out
+    # THE LONG-RUN LEG IS OPTIONAL AND SAYS WHY WHEN IT IS MISSING. The tables are
+    # recomputed once a year by the overnight pass; a box that has never run it has
+    # no long-run denominator, and the block must print the five-year number rather
+    # than nothing.
+    try:
+        from tools import base_rates                           # noqa: PLC0415
+        lr = base_rates.percentile_of_move(
+            float(d["change"]), frequency="daily", store=store)
+    except Exception as exc:                                   # noqa: BLE001
+        lr = None
+        out["long_run_absent_reason"] = f"{type(exc).__name__}: {exc}"
+    if lr:
+        out["percentile_long_run"] = lr.get("percentile")
+        out["long_run_series"] = lr.get("series")
+        out["long_run_n"] = lr.get("n")
+        out["long_run_first"] = lr.get("sample_first")
+        out["long_run_method"] = lr.get("method_version")
+        if lr.get("beyond_grid"):
+            out["long_run_beyond_grid"] = lr["beyond_grid"]
+    elif "long_run_absent_reason" not in out:
+        out["long_run_absent_reason"] = (
+            "no baserate.returns_by_frequency table in the store -- "
+            "tools/base_rates.py has not run here")
+    return out
+
+
+def what_changed(current: dict, previous: Optional[dict],
+                 store: Optional[observations.ObservationStore] = None) -> dict:
     """The diff. DATA ONLY -- no model, no prose, no judgement of importance.
 
     O.6: deltas and percentiles first, levels behind them. The reason is that a
@@ -1000,6 +1064,15 @@ def what_changed(current: dict, previous: Optional[dict]) -> dict:
         "contradictions_opened": [], "contradictions_closed": [],
         "contradictions_persisting": [], "pending_states": [],
     }
+    # THE SESSION MOVE, first, because O.6 puts magnitudes before levels and this
+    # is the magnitude every reader looks for. Its own try: a missing base-rate
+    # table must not cost the report its diff.
+    try:
+        out["session_move"] = session_move(
+            as_of=current.get("as_of"), store=store)
+    except Exception as exc:                                   # noqa: BLE001
+        out["session_move"] = {"absent_reason": f"{type(exc).__name__}: {exc}"}
+
     cur_dims = current.get("dimensions") or {}
     prev_dims = (previous or {}).get("dimensions") or {}
     if previous is None:
