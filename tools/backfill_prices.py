@@ -36,6 +36,22 @@ is not reconstructable. tools/validate_prices.py asserts the refusal.
     python tools/backfill_prices.py --years 5            # all symbols
     python tools/backfill_prices.py --years 5 --dry-run
     python tools/backfill_prices.py --symbols SPY,RSP
+    python tools/backfill_prices.py --period max --symbols ^GSPC,^VIX
+
+-----------------------------------------------------------------------------
+A BAR FROM A SESSION THAT HAS NOT CLOSED IS NOT A CLOSE
+-----------------------------------------------------------------------------
+
+yfinance serves a bar for the session in progress, carrying the last trade rather
+than the close. A live pull may store that -- it stamps the write instant, which
+says no more than "this is what we knew at 16:10". A BACKFILL MAY NOT: it
+reconstructs availability as the close plus a latency, so an intraday value for
+today would enter the store stamped as knowable at 16:20 this evening, a fact
+about the future asserted by a tool run at lunchtime. Worse, it would then be
+superseded by the real close and only the drop_unchanged() check would notice.
+
+So every bar after `session.last_completed_session()` is dropped and counted, and
+the count is printed rather than silently absorbed.
 """
 
 from __future__ import annotations
@@ -92,14 +108,29 @@ def reconstructable(metric_id: str) -> tuple[bool, str]:
                    f"series needs ALFRED vintages or nothing")
 
 
+def drop_incomplete_sessions(rows: list, cutoff: str) -> tuple[list, list]:
+    """Bars dated after the last completed session. Returns (kept, dropped)."""
+    kept, dropped = [], []
+    for day, value in rows:
+        if str(day)[:10] <= cutoff:
+            kept.append((day, value))
+        else:
+            dropped.append(str(day)[:10])
+    return kept, dropped
+
+
 def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
              dry_run: bool = False,
-             store: Optional[observations.ObservationStore] = None) -> dict:
+             store: Optional[observations.ObservationStore] = None,
+             period: Optional[str] = None) -> dict:
     basket = symbols or yf_src.SYMBOLS
     own = store is None
     db = store or observations.ObservationStore()
+    span = period or f"{years}y"
+    cutoff = session.last_completed_session().isoformat()
     out: dict = {"symbols": len(basket), "written": 0, "refused": [],
-                 "failed": [], "series": {}, "dry_run": dry_run}
+                 "failed": [], "series": {}, "dry_run": dry_run,
+                 "period": span, "session_cutoff": cutoff}
     try:
         for symbol, key in basket.items():
             metric = f"yfinance.{key}"
@@ -109,7 +140,7 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
                 print(f"  REFUSED {metric}: {why}")
                 continue
             try:
-                parsed = yf_src._fetch_symbol(symbol, period=f"{years}y")  # noqa: SLF001
+                parsed = yf_src._fetch_symbol(symbol, period=span)  # noqa: SLF001
             except Exception as exc:                          # noqa: BLE001
                 out["failed"].append((key, str(exc)))
                 print(f"  FAILED  {symbol}: {exc}")
@@ -119,6 +150,10 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
             if dropped:
                 print(f"  {symbol:<8} dropped {len(dropped)} non-session bar(s): "
                       f"{dropped[-3:]}")
+            closes, running = drop_incomplete_sessions(closes, cutoff)
+            if running:
+                print(f"  {symbol:<8} dropped {len(running)} bar(s) after the last "
+                      f"completed session {cutoff}: {running}")
             rows = []
             for suffix, series in (("", closes),
                                    (yf_src.DIVIDEND_SUFFIX, parsed["dividends"]),
@@ -134,6 +169,7 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
             out["series"][key] = {
                 "closes": len(closes),
                 "dropped_non_session": len(dropped),
+                "dropped_incomplete_session": len(running),
                 "dividends": len(parsed["dividends"]),
                 "splits": len(parsed["splits"]),
                 "rows_written": n,
@@ -152,6 +188,8 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--years", type=int, default=5)
+    p.add_argument("--period", default=None,
+                   help="a yfinance period string, e.g. max -- overrides --years")
     p.add_argument("--symbols", default=None,
                    help="comma-separated tickers (default: the whole basket)")
     p.add_argument("--dry-run", action="store_true")
@@ -166,10 +204,11 @@ def main(argv: list[str]) -> int:
             print(f"not in the basket: {sorted(missing)}")
             return 2
 
-    print(f"price backfill -- {len(basket)} symbols, {a.years}y, availability "
+    span = a.period or f"{a.years}y"
+    print(f"price backfill -- {len(basket)} symbols, {span}, availability "
           f"RECONSTRUCTED as the close + "
           f"{yf_src.RECONSTRUCTED_LATENCY_MINUTES} minutes")
-    r = backfill(basket, years=a.years, dry_run=a.dry_run)
+    r = backfill(basket, years=a.years, dry_run=a.dry_run, period=a.period)
     print(f"\n{r['written']} rows written across {len(r['series'])} series; "
           f"{len(r['refused'])} refused, {len(r['failed'])} failed")
     for m, why in r["refused"]:

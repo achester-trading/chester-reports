@@ -163,14 +163,49 @@ def group_c() -> None:
           "string")
 
 
+def group_d_backfill() -> None:
+    """The backfill's two refusals: a revisable series, and a running session."""
+    print(f"\n{LINE}\nD2. THE BACKFILL REFUSES WHAT IT CANNOT DATE\n{LINE}")
+    import importlib
+    bf = importlib.import_module("tools.backfill_prices")
+
+    cutoff = "2026-09-22"
+    rows = [("2026-09-21", 1.0), ("2026-09-22", 2.0), ("2026-09-23", 3.0)]
+    kept, dropped = bf.drop_incomplete_sessions(rows, cutoff)
+    check([d for d, _ in kept] == ["2026-09-21", "2026-09-22"],
+          "a bar dated after the last completed session is dropped -- it carries "
+          "the last trade, not the close, and a reconstructed availability would "
+          "stamp it as knowable this evening")
+    check(dropped == ["2026-09-23"],
+          "and the dropped date is returned so the count can be printed rather "
+          "than absorbed")
+    kept2, dropped2 = bf.drop_incomplete_sessions(rows, "2026-09-23")
+    check(len(kept2) == 3 and not dropped2,
+          "and nothing is dropped once the session has closed")
+
+    ok, why = bf.reconstructable("fred.payems")
+    check(not ok, f"a revisable series is still refused ({why[:60]}...)")
+    ok, why = bf.reconstructable("yfinance.mkt_gspc")
+    check(ok, f"and the new index series is reconstructable ({why})")
+
+
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 30, f"30 symbols declared (got {len(syms)})")
+    check(len(syms) == 31, f"31 symbols declared (got {len(syms)})")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "
           "volatility")
+    # THE LONG HISTORY IS THE INDEX, NOT THE FUND, and the gate says so because
+    # substituting SPY is the tempting mistake: a base-rate distribution built on
+    # SPY cannot contain 1929, 1937, 1973 or 1987, which are four of the episodes
+    # it exists to carry.
+    check("^GSPC" in syms,
+          "^GSPC is in the basket -- the base rates need a century, and SPY began "
+          "trading in 1993")
+    check(yf_src.SYMBOLS.get("^GSPC") == "mkt_gspc",
+          "and it keys to yfinance.mkt_gspc")
     check("RSP" in syms,
           "RSP is in the basket -- its absence was one of the two reasons "
           "breadth could not be computed at all")
@@ -376,7 +411,8 @@ def group_h() -> None:
 
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f,
+    for g in (group_a, group_b, group_c, group_d, group_d_backfill,
+              group_e, group_f,
               group_g, group_h):
         try:
             g()

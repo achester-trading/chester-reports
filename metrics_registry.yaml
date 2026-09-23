@@ -2140,7 +2140,7 @@ bulk_imports:
 
   market_closes:
     description: >-
-      Daily closes for the 28-symbol market basket, keyed yfinance.mkt_<sym>.
+      Daily closes for the 29-symbol market basket, keyed yfinance.mkt_<sym>.
       SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
       adjusted close is deliberately not stored: it restates its own history
       every time a dividend is paid, which no point-in-time store can support,
@@ -2155,7 +2155,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 30
+    expected_members: 31
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -2179,7 +2179,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 30
+    expected_members: 31
     key_prefix: yfinance.
     units: price
     native_horizon: daily

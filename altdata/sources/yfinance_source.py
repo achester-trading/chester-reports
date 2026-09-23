@@ -127,6 +127,21 @@ SYMBOLS: dict[str, str] = {
     # reviewed.
     "^VIX": "mkt_vix",
     "^VIX3M": "mkt_vix3m",
+    # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
+    # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
+    #
+    # THE INDEX AND NOT THE FUND, because a base rate is a claim about a century
+    # and SPY began trading in 1993. A drawdown distribution computed from SPY
+    # cannot contain 1929, 1937, 1973 or 1987, which are four of the episodes the
+    # distribution exists to carry. The two are not interchangeable and both are
+    # kept: SPY is what a decision references and prices at, ^GSPC is what the
+    # long-run distribution is measured on.
+    #
+    # NO DIVIDENDS AND NO SPLITS on either -- an index level is not a claim on
+    # cash and has no share count -- so the block's `split_only` revision policy
+    # is a ceiling neither series ever exercises, and their `_dividend`/`_split`
+    # companions stay empty rather than absent for a reason nobody recorded.
+    "^GSPC": "mkt_gspc",
 }
 
 # The eleven sectors, in the order the breadth reading uses them. Named here
