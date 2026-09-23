@@ -338,6 +338,36 @@ sources:
       - >-
         The probe records a `needs_key` flag on a 401 or 403. If the endpoint stops
         being anonymous the logger must STOP rather than acquire a key unasked.
+  zcashexplorer:
+    name: zcashexplorer -- zcashd blockchain-info, including valuePools
+    tier: B
+    epistemic_role: redistributed_primary
+    domain: [on_chain]
+    geography: [global]
+    latency: chain tip
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Reports the chain tip rather than a dated series, so observed_at is the session
+      on which it was read. The block height is logged with the probe so a reader can
+      tell which tip a balance belongs to.
+    license: public endpoint, no key
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/loggers/shielded.py
+    status: active
+    caveats:
+      - >-
+        valuePools IS A STOCK, NOT A FLOW. It gives the shielded share of SUPPLY, not
+        the shielded share of transactions, and zec.shielded_tx_share stays unsourced
+        for that reason. A chain can hold a third of its supply shielded with almost no
+        shielded activity.
+      - >-
+        WHICH POOLS ARE USER-SHIELDED IS A DECLARED LIST (sprout, sapling, orchard).
+        lockbox is the NU6 development-fund reserve and ironwood's semantics are
+        unverified; both are logged and excluded from the share. Including them reads
+        29.4 percent against 5.4.
+      - >-
+        It redistributes zcashd's own RPC output, so it is one hop from primary: a
+        proxy going stale would show as a frozen block height rather than as an error.
   derived_state:
     name: The market-state object -- dimensions, dials and contradictions
     tier: derived

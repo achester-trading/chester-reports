@@ -234,6 +234,11 @@ vocabularies:
   sample:
     - sector_etf_proxy
     - index_proxy
+  # A METRIC THAT IS DECLARED AND HAS NO SOURCE. Not the same as absent-on-this-run:
+  # `not_yet_sourced` says the system knows it wants this number, has looked, and has
+  # nowhere to get it. It exists so a gap can be reviewed rather than rediscovered.
+  status_extra:
+    - not_yet_sourced
   # WHAT A METRIC IS STANDING IN FOR, when it is standing in for something. Declared
   # as a vocabulary so a proxy cannot be introduced without naming its target, and
   # so a reader can ask "what would I rather have here" and get an answer. A metric
@@ -1106,6 +1111,26 @@ metrics:
     trigger_eligible: false
     description: >-
       Consensus forward EPS for one name, read nightly. REVISED by construction -- a consensus is restated whenever an analyst moves, which is the whole point of logging it daily. NOT SERVED FOR ETFs: no analyst covers a wrapper, so the sector funds and SPY/QQQ/IWM carry no forward estimate and an index-level forward multiple needs a holdings-weighted build this does not do.
+  index.forward_pe:
+    source: yfinance
+    mechanism_group: consensus_estimate
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: ratio
+    status_extra: not_yet_sourced
+    trigger_eligible: false
+    description: >-
+      INDEX-LEVEL forward P/E for SPY/QQQ/IWM and the sector ETFs. NOT_YET_SOURCED:
+      yfinance serves forward estimates for individual stocks and returns None for
+      every ETF, because no analyst covers a wrapper. Getting this needs a
+      holdings-weighted build from constituent estimates -- each fund's weights times
+      its members' forward EPS -- or a vendor that sells the aggregate. Registered so
+      the gap is a reviewable item rather than something rediscovered each quarter.
+      THE PER-NAME SERIES STAYS: yf.forward_eps and yf.forward_pe are logged nightly
+      for the 13 tracked stocks and are unaffected by this.
   yf.forward_pe:
     source: yfinance
     mechanism_group: consensus_estimate
@@ -1476,7 +1501,13 @@ metrics:
     units: fraction
     trigger_eligible: false
     description: >-
-      Share of ZEC transactions using the shielded pool. NO REACHABLE SOURCE TODAY and the metric is registered empty on purpose: blockchair answers with 34 fields and no shielded/unshielded split (its 'shield' matches are mempool counters), zcashblockexplorer does not resolve, zcha.in returns 520 and messari 404. zec.shielded_probe holds all four answers so the gap is not re-investigated.
+      Share of ZEC TRANSACTIONS using a shielded pool -- a FLOW. STILL NO SOURCE, and
+      registered empty on purpose. Seven candidates have been probed; the one that
+      answers (zcashexplorer) serves `valuePools`, which is the shielded share of
+      SUPPLY and is logged separately as zec.shielded_value_share. The two are not
+      interchangeable and neither substitutes for the other: a value share is what is
+      held, this is what moved. zec.shielded_probe records every candidate's answer so
+      the gap is not re-investigated.
   zec.crypto_cap_share:
     source: coingecko
     mechanism_group: privacy_chain
@@ -1537,6 +1568,46 @@ metrics:
       `needs_key` flag set when a 401 or 403 says the endpoint has stopped being
       anonymous -- the condition the ruling asked to be told about rather than worked
       around.
+  zec.pool_value:
+    source: zcashexplorer
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ZEC held in one value pool, instrument-keyed by pool name (transparent, sprout,
+      sapling, orchard, lockbox, ironwood). From zcashd's own blockchain-info via
+      zcashexplorer. A STOCK -- the balance sitting in the pool -- not a measure of
+      activity through it.
+  zec.shielded_value_share:
+    source: zcashexplorer
+    mechanism_group: privacy_chain
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      Share of ZEC supply held in the three DOCUMENTED user-shielded pools -- sprout,
+      sapling and orchard. First read 5.414 percent.
+      IT IS NOT zec.shielded_tx_share AND THE TWO ARE NOT INTERCHANGEABLE: this is a
+      STOCK (what is held shielded) and that is a FLOW (how much of today's activity
+      used a shielded pool). A chain can hold a third of its supply shielded with
+      almost no shielded activity, or the reverse -- the same distinction that keeps
+      finra.short_interest and finra.short_volume in separate mechanism groups.
+      WHICH POOLS COUNT IS DECLARED, not inferred from "not transparent". `lockbox` is
+      the NU6 development-fund reserve, which is protocol accounting rather than a
+      user's privacy decision, and `ironwood` holds nearly a quarter of supply with
+      semantics this code has not verified. Both are logged as zec.pool_value and
+      EXCLUDED here: including them would read 29.4 percent instead of 5.4, and a
+      number that large should not move a headline on a guess. A pool the code has
+      never seen is reported and logged at WARNING rather than averaged in.
   zec.shielded_probe:
     source: blockchair
     mechanism_group: privacy_chain
