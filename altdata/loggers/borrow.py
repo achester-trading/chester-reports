@@ -559,15 +559,28 @@ def due_settlements(as_of: Optional[dt.date] = None, months_back: int = 3,
             db.close()
 
 
-def _si_rows(symbol: str, limit: int = 8) -> list[dict]:
-    body = json.dumps({
+def _si_rows(symbol: str, limit: int = 8,
+             start: Optional[str] = None, end: Optional[str] = None) -> list[dict]:
+    """Short interest for one symbol, FILTERED BY SETTLEMENT DATE rather than sorted.
+
+    SORTING IS REJECTED BY THIS API: `sortFields` returns HTTP 400 with "Sorting is
+    allowed only if all partition keys are specified". My first version asked for
+    newest-first because the default ordering returns 2020 rows, and it 400'd on every
+    call -- the probe caught it before a single row was written.
+    
+    Filtering by date is the better shape anyway: the publication calendar already
+    knows exactly which settlement dates are due, so asking for those is one call per
+    symbol with nothing discarded, instead of a sorted page that has to be trimmed.
+    """
+    payload: dict[str, Any] = {
         "limit": limit,
         "compareFilters": [{"fieldName": "symbolCode", "fieldValue": symbol,
                             "compareType": "EQUAL"}],
-        # Newest first: the default ordering returns 2020 and the calendar asks
-        # about this month.
-        "sortFields": ["-settlementDate"],
-    }).encode()
+    }
+    if start and end:
+        payload["dateRangeFilters"] = [{"fieldName": "settlementDate",
+                                        "startDate": start, "endDate": end}]
+    body = json.dumps(payload).encode()
     headers = dict(UA)
     headers["Content-Type"] = "application/json"
     headers["Accept"] = "application/json"
@@ -581,7 +594,12 @@ def probe_short_interest() -> dict:
     """Whether the API answers anonymously, and with which fields."""
     out: dict[str, Any] = {"checked_at": session.utc_iso(), "needs_key": False}
     try:
-        rows = _si_rows("NVDA", limit=2)
+        # A window wide enough to contain a published settlement date, so an empty
+        # result means "no data" rather than "asked about the wrong fortnight".
+        today = dt.date.fromisoformat(session.session_date())
+        rows = _si_rows("NVDA", limit=4,
+                        start=(today - dt.timedelta(days=90)).isoformat(),
+                        end=today.isoformat())
         out["state"] = "available" if rows else "empty"
         out["rows"] = len(rows)
         if rows:
@@ -625,9 +643,12 @@ def pull_short_interest(run_id: Optional[str] = None,
         now = session.utc_iso(timespec="microseconds")
         wanted = due or []
         rows, names, failed = [], 0, []
+        start = min(wanted).isoformat() if wanted else None
+        end = max(wanted).isoformat() if wanted else None
         for sym in universe():
             try:
-                got = _si_rows(sym, limit=8)
+                got = _si_rows(sym, limit=max(8, len(wanted) * 2),
+                               start=start, end=end)
             except Exception as exc:                           # noqa: BLE001
                 failed.append((sym, f"{type(exc).__name__}: {str(exc)[:90]}"))
                 continue
