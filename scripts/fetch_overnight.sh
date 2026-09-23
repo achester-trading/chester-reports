@@ -129,6 +129,17 @@ log "feeds: correction pull done"
 # Its failure is not this run's failure. The overnight pass exists to fetch data
 # that cannot be fetched later; a reference table that can be recomputed on demand
 # must not stand in front of that.
+# THE WEEKLY STRUCTURE COMPARISON. Same shape as the base-rate check below it and
+# the same reasoning: the guard lives in the tool, not in this shell. `--if-stale`
+# writes only the symbols whose newest table is over a week old, which fires once a
+# week without a weekday test -- a weekday test fires twice if the pass runs twice
+# and never if the box was down on the chosen day.
+log "structure compare: weekly check"
+SC_OUT="$("$PY" tools/structure_compare.py weekly --if-stale 2>&1 | tail -20)"
+SC_RC=$?
+printf '%s' "$SC_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SC_RC -ne 0 ]] && log "WARN structure_compare exited $SC_RC -- continuing"
+
 log "base rates: annual check"
 BR_OUT="$("$PY" tools/base_rates.py maybe-recompute 2>&1)"
 BR_RC=$?

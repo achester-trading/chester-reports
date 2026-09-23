@@ -289,6 +289,12 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # STRUCTURE ECONOMICS. A comparison of EXPRESSIONS of one view, not a reading
+    # of the market: "the collar beats holding the index below 4,900" says nothing
+    # about whether the index will fall. Its own group so it can never stand as
+    # confirmation of a market signal -- it is about how to hold a view, never
+    # about whether the view is right.
+    - structure_economics
     # THE VX TERM STRUCTURE. Its own group and not equity_tape, because the curve
     # is a set of tradeable instruments with their own roll and their own basis --
     # the whole reason calc.vix3m_over_vix was only ever a declared PROXY for it.
@@ -2342,6 +2348,29 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: corporate_action
+  structure_comparison:
+    description: >-
+      Chapter 15's scenario matrix per symbol, one observation a week, holding the
+      ten structures, the scenario grid, the expected value, P(below capital) and
+      the ATM implied volatility each tenor was priced on. The SIGMA IS MEASURED
+      from the exposure engine's chain snapshots and SOLVED by tools/iv_solver.py
+      rather than read off the vendor's ITM side; the drift, the risk-free rate and
+      the dividend yield are declared assumptions and every row says which is
+      which. Symbols with no chain in the capture universe are not priced at all --
+      see tools/structure_compare.py.
+    source: derived_state
+    members_from: tools.structure_compare.REGISTRY_KEYS
+    members_are: values
+    expected_members: 3
+    key_prefix: ""
+    units: label
+    native_horizon: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group: structure_economics
   base_rate_tables:
     description: >-
       The Base Rates paper's Part I tables, each stored as ONE observation whose

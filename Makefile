@@ -46,6 +46,7 @@ PY_VALIDATORS := \
 	tools/validate_regime.py \
 	tools/validate_base_rates.py \
 	tools/validate_claims.py \
+	tools/validate_structure_compare.py \
 	tools/validate_grader.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
