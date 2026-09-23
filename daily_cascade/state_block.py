@@ -56,6 +56,19 @@ def pctf(v) -> str:
         return "&mdash;"
 
 
+def lvl(v, dp: int = 2) -> str:
+    """A dial's level at two decimals, or the dash. NEVER an exception.
+
+    The object stores the float the feed gave it. A VIX of 14.180000305175781 on a
+    page is a number nobody wrote, and seventeen significant digits invite a reader
+    to see precision that is not in the instrument.
+    """
+    try:
+        return f"{float(v):,.{dp}f}"
+    except (TypeError, ValueError):
+        return esc(v)
+
+
 def zf(v) -> str:
     try:
         return f"{float(v):+.2f}"
@@ -321,7 +334,12 @@ def state_table(payload: dict) -> str:
         else:
             dial_items.append(f'<code>{esc(name)}</code> &mdash; '
                               f'<strong>{esc(d["state"])}</strong>'
-                              + (f' (level {esc(d.get("level"))})'
+                              # TWO DECIMALS. The object stores the float the
+                              # feed gave it, and a VIX of 14.180000305175781 on a
+                              # page is a number nobody wrote and an invitation to
+                              # read precision that is not there. num() falls back
+                              # to the raw value for anything non-numeric.
+                              + (f' (level {lvl(d.get("level"))})'
                                  if d.get("level") is not None else ""))
 
     rows = []

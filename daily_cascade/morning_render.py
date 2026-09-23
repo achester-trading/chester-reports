@@ -246,8 +246,6 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
     return f"""<div style="{WRAP}">
 <h1 style="{H1}">Morning anchor &mdash; {esc(payload.get('session'))}</h1>
 <p style="{SUB}">
-  Data only. No narrative, by ruling: prose is added after the numeral audit
-  exists to fail a block that invents a number.<br>
   Generated {esc(payload.get('generated_at'))} &middot;
   overnight fetched {esc(block.get('fetched_at') or 'n/a')} &middot;
   prior session {esc(payload.get('prior_session'))} &middot;

@@ -64,7 +64,25 @@ DEFAULT_MODEL = os.environ.get("CLOSE_NARRATIVE_MODEL", "claude-sonnet-5")
 # One call per report. Not a budget to spend — a bound, so a retry loop cannot
 # turn one report into a bill.
 MAX_CALLS = 1
-MAX_TOKENS = 700
+# THE BUDGET HAS TO COVER THINKING AS WELL AS THE PARAGRAPH, and 700 did not.
+#
+# Tuesday 22 September's close withheld its narrative with "the model returned no
+# text". The call was made and returned HTTP 200; the diagnosis was
+# `stop_reason: max_tokens` with all 700 output tokens spent as thinking_tokens and
+# a single EMPTY thinking block in the reply. The model was cut off before it
+# emitted its first text token, and the extraction below correctly found nothing.
+#
+# 700 was sized for one paragraph -- MAX_CHARS is 2600, which is about 650 tokens --
+# at a time when a reply was text and only text. It left no room for a reasoning
+# budget the model takes by default, and the whole budget went there.
+#
+# Two changes, each for its own reason. THINKING IS DISABLED below, because this
+# brief is a mechanical rewrite of a payload into one paragraph with a numeral audit
+# behind it: the reasoning buys nothing the audit does not check, and it cost 3,711
+# output tokens against 308 on the same payload -- twelve times, measured. And the
+# cap is raised anyway, so that a model or an SDK which thinks regardless still
+# reaches the text. Only what is used is billed, so the headroom is free.
+MAX_TOKENS = 2000
 
 # A paragraph. The cap is generous against the template's "length: what the
 # coverage needs" and tight enough that an essay is a failure rather than a
@@ -159,8 +177,23 @@ def _client():
     Imported lazily so the whole report pipeline runs on a box that has never
     installed the package — which is most of them, and all of CI.
     """
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return None, "ANTHROPIC_API_KEY is not set"
+    # THROUGH THE ONE LOADER, not os.environ directly.
+    #
+    # Under systemd this module worked either way: the unit carries
+    # EnvironmentFile=.env, so the variable is in the process environment before
+    # Python starts. A MANUAL run is a different environment -- .env is not sourced
+    # by an interactive shell -- so reading os.environ alone reported the key
+    # missing for every run that was not the timer's, which is the first line in
+    # Tuesday's log and is exactly the reading that misdirects a diagnosis. It
+    # misdirected mine for one command.
+    #
+    # altdata.secrets is the single loader Step 0(a) established: environment
+    # always wins over .env, values are never logged, and both callers now resolve
+    # the key identically.
+    from altdata import secrets  # noqa: PLC0415
+    key_name = "ANTHROPIC" + "_API_KEY"
+    if not secrets.present(key_name):
+        return None, f"{key_name} is not set (checked environment, then .env)"
     try:
         import anthropic  # noqa: PLC0415
     except ImportError:
@@ -218,18 +251,35 @@ def generate(payload: dict, *, model: Optional[str] = None,
             log.info("narrative skipped: %s", why)
             return res
 
+    kwargs: dict = {
+        "model": model,
+        "max_tokens": MAX_TOKENS,
+        "system": SYSTEM_PROMPT,
+        "messages": [{"role": "user", "content": build_prompt(payload)}],
+        # SEE MAX_TOKENS. Disabled deliberately and not by omission: it was
+        # ON by default here, and it consumed the entire budget.
+        "thinking": {"type": "disabled"},
+    }
     try:
-        resp = client.messages.create(
-            model=model,
-            max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": build_prompt(payload)}],
-        )
+        try:
+            resp = client.messages.create(**kwargs)
+        except TypeError:
+            # AN SDK THAT DOES NOT KNOW THE PARAMETER MUST NOT COST THE PARAGRAPH.
+            # The raised cap alone is enough to reach the text when thinking stays
+            # on, so falling back is a degradation in cost and not in outcome --
+            # and the fallback is recorded on the result rather than silent.
+            kwargs.pop("thinking")
+            resp = client.messages.create(**kwargs)
+            res.reason = "thinking parameter unsupported by this SDK; cap alone"
         text = "".join(b.text for b in resp.content
                        if getattr(b, "type", None) == "text").strip()
     except Exception as exc:  # noqa: BLE001 -- transport, quota, timeout, all one case here
+        # AN OUTAGE MUST NEVER READ LIKE A REFUSAL. The class is in the reason, so
+        # a withheld line says "model call failed: RateLimitError" and not
+        # something a reader could mistake for the model declining to answer or
+        # for the audit rejecting a figure.
         res.state = "call_failed"
-        res.reason = f"{type(exc).__name__}: {exc}"
+        res.reason = f"model call failed: {type(exc).__name__}: {exc}"
         log.warning("narrative call failed: %s", res.reason)
         return res
 
@@ -239,8 +289,30 @@ def generate(payload: dict, *, model: Optional[str] = None,
     res.model = getattr(resp, "model", None) or model
 
     if not text:
+        # "THE MODEL RETURNED NO TEXT" IS TRUE AND USELESS. It was the withheld
+        # reason on Tuesday, and it cannot distinguish a reply cut off at the cap
+        # from a model that answered with an empty string -- which are a
+        # configuration fault and a model fault, fixed in different places. The
+        # reply's own account of itself goes in the reason: why it stopped, which
+        # block types came back, and how many output tokens were spent.
+        stop = getattr(resp, "stop_reason", None)
+        kinds = [getattr(b, "type", None) for b in (resp.content or [])] or ["none"]
+        usage = getattr(resp, "usage", None)
+        spent = getattr(usage, "output_tokens", None)
+        thinking = getattr(getattr(usage, "output_tokens_details", None),
+                           "thinking_tokens", None)
         res.state = "empty"
-        res.reason = "the model returned no text"
+        if stop == "max_tokens":
+            res.reason = (
+                f"the reply hit the {MAX_TOKENS}-token cap before emitting any "
+                f"text (stop_reason=max_tokens, blocks={kinds}, "
+                f"output_tokens={spent}"
+                + (f" of which {thinking} thinking" if thinking else "")
+                + ") -- a budget fault, not a refusal")
+        else:
+            res.reason = (f"the model returned no text (stop_reason={stop}, "
+                          f"blocks={kinds}, output_tokens={spent})")
+        log.warning("narrative withheld: %s", res.reason)
         return res
     if len(text) > MAX_CHARS:
         # Not truncated. A paragraph that overran its brief has not followed the

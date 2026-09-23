@@ -217,6 +217,31 @@ def main() -> int:
     name = f"daily_close_{sess}.html"
     subject = f"[chester] Close debrief {sess}"
 
+    # THE PAYLOAD IS ARCHIVED BESIDE THE HTML, and this run is why.
+    #
+    # Diagnosing Tuesday's withheld narrative wanted "the archived payload" and
+    # there was none: only the rendered document. The payload had to be rebuilt
+    # from the store as-of Tuesday's cutoff -- which worked, and is a real
+    # demonstration that the store is as-of correct -- but a reconstruction is not
+    # the artefact. The store has moved since Tuesday (the object was recomputed
+    # under a new config, a century of index history arrived), so a rebuild answers
+    # "what would the payload be now, asked about Tuesday" and not "what did the
+    # model actually see". For a diagnosis those are different questions.
+    #
+    # Written before the send, so a delivery failure cannot cost the record of what
+    # was in the report. Failing to write it must not cost the report either: the
+    # payload is a diagnostic, the report is the product.
+    try:
+        import json as _json  # noqa: PLC0415
+        pay_path = delivery.archive(
+            _json.dumps(p, indent=2, default=str, sort_keys=True),
+            f"daily_close_{sess}_payload.json", args.archive_dir)
+        log.info("archived payload %s", pay_path)
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("payload archive failed (%s: %s) -- the report continues; "
+                    "the payload is a diagnostic and the report is the product",
+                    type(exc).__name__, exc)
+
     # THE ARCHIVE PATH IS KNOWN BEFORE THE SEND, so the copy that gets emailed
     # can name where the record is. This used to render once, deliver, then
     # re-render with the path and archive THAT -- which worked and quietly
