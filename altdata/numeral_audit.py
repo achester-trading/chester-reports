@@ -223,7 +223,29 @@ def payload_numbers(payload: Any, _depth: int = 0) -> list[float]:
     if isinstance(payload, (int, float)):
         return [float(payload)]
     if isinstance(payload, str):
-        return _from_date_string(payload)
+        # A NUMERAL INSIDE A PAYLOAD STRING IS A PAYLOAD FIGURE.
+        #
+        # The weekly's first run found this. The register's invalidation is free
+        # text -- "a settled close below the put wall at 760" -- and both briefs
+        # require the paragraph to STATE THE RULE AS WRITTEN. The model did, and the
+        # audit rejected the 760 inside it, because only dates were being read out
+        # of strings. The same happened to the FOMC claim, whose value is "2026 FOMC
+        # meeting dates: Jan 27-28, Mar 17-18, ...": citing a meeting date by
+        # quoting the claim failed on the claim's own contents.
+        #
+        # THIS WIDENS THE REFERENCE SET, and the widening is exactly bounded by what
+        # the payload contains: a number is admitted only because the payload
+        # carries that text, and the report prints that text. What it does NOT admit
+        # is arithmetic over it -- the same run wrote "21 to 25 September" from a
+        # window of 21 to 27, and 25 was correctly rejected.
+        # Deduplicated: an ISO date yields its parts from _from_date_string and
+        # again from extract(), and a reference set is a membership test -- the
+        # duplicates cost nothing and make the list unreadable in a failure.
+        seen = _from_date_string(payload)
+        for f in extract(payload):
+            if f.value not in seen:
+                seen.append(f.value)
+        return seen
     if isinstance(payload, dict):
         for v in payload.values():
             vals.extend(payload_numbers(v, _depth + 1))

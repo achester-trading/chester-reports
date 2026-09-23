@@ -102,6 +102,24 @@ def group_a() -> None:
           "unmatchable")
 
     # A SPELLED-OUT MAGNITUDE IS PART OF THE NUMBER, in both directions.
+    # A NUMERAL IN A PAYLOAD STRING IS CITABLE; ARITHMETIC OVER IT IS NOT.
+    rule = {"invalidation": "a settled close below the put wall at 760"}
+    r = audit("the rule is a settled close below 760", rule)
+    check(r.passed,
+          "a figure inside a payload STRING is citable -- both briefs require the "
+          "paragraph to state the rule as written, and the register's invalidation "
+          "is free text")
+    r = audit("the rule is a settled close below 755", rule)
+    check(not r.passed,
+          "while a near miss is still rejected: the string admits its own contents "
+          "and nothing else")
+    window = {"window": ["2026-09-21", "2026-09-27"]}
+    r = audit("the week runs 21 to 25 September", window)
+    check(not r.passed,
+          "and arithmetic over a payload string is NOT admitted -- the weekly's "
+          "first run inferred '21 to 25' from a window ending the 27th, and 25 was "
+          "correctly rejected")
+
     f = extract("about 4.59 billion dollars of index per one percent move")
     check(len(f) >= 1 and abs(f[0].value - 4.59e9) < 1e7,
           f"'4.59 billion' extracts at 1e9 scale (got "
