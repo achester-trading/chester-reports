@@ -110,7 +110,12 @@
 #         yfinance.mkt_vix so the dial and the pair read ONE implied series and
 #         ONE realized series between them. A pair whose implied leg publishes the
 #         next morning was comparing yesterday's implied with today's realized.
-version: market-state-v1.6
+#   v1.7  (23 Sep 2026) the term-structure leg runs a DUAL: calc.vx_front_ratio
+#         (VX2/VX1 from Cboe settlements) as champion beside calc.vix3m_over_vix
+#         as challenger, each with its own bands, both states printed, the
+#         challenger still published until 23 Dec 2026. calc.vx1_vix_basis is
+#         reported on the leg because it is the one thing the proxy cannot see.
+version: market-state-v1.7
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -398,43 +403,77 @@ dials:
         concept is two answers to "is implied rich" with no way to say which one a
         decision was taken under.
     term_structure:
-      # THE PROXY, WHICH RUNS TODAY. VIX3M/VIX: three-month against one-month implied
-      # volatility of the index. NOT the VX futures curve -- that is a set of
-      # tradeable instruments with their own roll and their own basis, and 30.8's
-      # state machine is defined on VX1/VX2/VX3. This ratio moves with the curve most
-      # of the time, cannot show a roll or a futures-to-index dislocation, and is not
-      # something anyone can trade. `proxy_for: vx_futures_curve` in the registry is
-      # the standing caveat and no rendering may drop it.
-      proxy_metric: calc.vix3m_over_vix
-      proxy_for: vx_futures_curve
-      # DECLARED THRESHOLDS on the ratio. Contango is the normal state -- longer-dated
-      # implied vol usually exceeds near-dated because uncertainty compounds -- so the
-      # informative reading is the OTHER one: backwardation means the market is paying
-      # more for protection now than for protection in three months.
-      ratio_bands:
-        - {state: contango, min_ratio: 1.05}
-        - {state: flat, min_ratio: 0.98}
-        - {state: backwardation, min_ratio: 0.0}
-      # THE SAME PERSISTENCE RULE THE DIMENSIONS USE, and for the same reason: this
-      # ratio crosses 1.0 intraday on any sharp day, and a term-structure state that
-      # flips on one close is a state nobody can act on. Two consecutive sessions.
-      persistence_sessions: 2
-      # THE CHAMPION THIS PROXY WILL BE MEASURED AGAINST, declared now so the
-      # comparison is a plan rather than an intention.
+      # ------------------------------------------------------------------------
+      # THE DUAL RUN. Cboe's public per-contract settlement files turned out to be
+      # reachable without a key, so the VX curve the proxy was standing in for now
+      # exists in the store -- and the proxy is NOT retired on the day its champion
+      # arrives. Both legs are computed and both states are printed for a quarter;
+      # `published` says which one the dial's own term_structure.state reports, and
+      # it stays the challenger until the champion has a quarter of live sessions
+      # behind it.
+      #
+      # WHY NOT SWITCH AT ONCE. The challenger has been publishing a state that
+      # reports and exceptions have been read against. Switching silently would
+      # change what a printed word means with no way for a reader to see that the
+      # meaning changed -- and the two DO disagree: VIX3M/VIX read 1.2316 on
+      # 18 September while VX2/VX1 read 1.0485, because a three-month implied vol
+      # against a one-month one is a steeper number than a one-month futures spread.
+      # Same direction, different scale, different bands. A quarter of both printed
+      # side by side is how that gets understood before it gets acted on.
+      published: challenger
+      # QUOTED, because an unquoted YAML date parses to a date object and the
+      # object is stored as JSON -- which raised on the first backfill rather than
+      # storing something wrong, but a config value whose type depends on its
+      # spelling is a value to pin.
+      dual_run_from: "2026-09-23"
+      dual_run_until: "2026-12-23"
       champion:
-        requires_store_keys: [cfe.vx1, cfe.vx2, cfe.vx3]
-        rule: >-
-          When VX1-VX3 are in the store, BOTH run for one full quarter --
-          calc.vix3m_over_vix as challenger and the VX curve as champion -- and their
-          states are recorded side by side. Neither is retired before that quarter is
-          complete. The proxy is free and same-day and the curve costs a
-          subscription, so the question the quarter answers is not "which is more
-          correct" but "does the cheap one disagree with the expensive one often
-          enough to matter".
-      note: >-
-        30.8's VX1/VX2/VX3 state machine remains the target. The proxy is what runs
-        until the subscription exists, and it is labelled a proxy everywhere it
-        appears.
+        metric: calc.vx_front_ratio
+        requires_store_keys: [cfe.vx1, cfe.vx2]
+        # BANDS ON VX2/VX1, and they are not the challenger's bands. A one-month
+        # futures spread sits nearer 1.00 than a three-month/one-month implied
+        # ratio does: ordinary contango is 2-6% here against 15-25% there. Reusing
+        # the challenger's 1.05 threshold would have read every ordinary curve as
+        # flat.
+        ratio_bands:
+          - {state: contango, min_ratio: 1.02}
+          - {state: flat, min_ratio: 0.99}
+          - {state: backwardation, min_ratio: 0.0}
+        persistence_sessions: 2
+        note: >-
+          VX2/VX1 from Cboe settlements -- the curve itself, not a proxy for it.
+          Monthly contracts only, slots assigned by expiry order on the session.
+          calc.vx1_vix_basis carries the futures-to-index dislocation beside it,
+          which is the one thing the challenger structurally cannot see.
+      challenger:
+        metric: calc.vix3m_over_vix
+        proxy_for: vx_futures_curve
+        ratio_bands:
+          - {state: contango, min_ratio: 1.05}
+          - {state: flat, min_ratio: 0.98}
+          - {state: backwardation, min_ratio: 0.0}
+        persistence_sessions: 2
+      # WHAT THE CHALLENGER IS, stated once here rather than twice. VIX3M/VIX is
+      # three-month against one-month implied volatility OF THE INDEX. It is
+      # NOT the VX futures curve -- that is a set of tradeable instruments with their own
+      # roll and their own basis -- and it is labelled `proxy_for:
+      # vx_futures_curve` in the registry wherever it appears. Contango is its
+      # normal state, because longer-dated implied vol usually exceeds near-dated
+      # as uncertainty compounds, so the informative reading is the other one:
+      # backwardation means the market is paying more for protection now than for
+      # protection in three months.
+      #
+      # THE PERSISTENCE RULE IS THE DIMENSIONS' RULE, on both legs and for the same
+      # reason: either ratio crosses its own boundary intraday on a sharp day, and a
+      # term-structure state that flips on one close is a state nobody can act on.
+      #
+      # THE QUARTER'S QUESTION IS NOT "WHICH IS MORE CORRECT". The proxy is free,
+      # same-day and already running; the curve is the real instrument. What the
+      # dual run answers is whether the cheap one disagrees with the real one often
+      # enough to matter, and the answer is a count of disagreeing sessions rather
+      # than an opinion. 30.8's VX1/VX2/VX3 state machine remains the target, and
+      # the champion is now built on exactly those three series.
+      basis_metric: calc.vx1_vix_basis
 
   gamma:
     # READ, NEVER RECOMPUTED. The exposure engine owns dealer gamma; a second

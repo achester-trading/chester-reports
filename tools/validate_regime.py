@@ -156,15 +156,26 @@ def tiny_config(persistence: int = 2) -> dict:
                                     {"state": "normal", "min_level": 0}],
                     "realized_implied": {"metric": "mkt_spy"},
                     "term_structure": {
-                        "proxy_metric": "calc.vix3m_over_vix",
-                        "proxy_for": "vx_futures_curve",
-                        "ratio_bands": [{"state": "contango", "min_ratio": 1.05},
-                                        {"state": "flat", "min_ratio": 0.98},
-                                        {"state": "backwardation",
-                                         "min_ratio": 0.0}],
-                        "persistence_sessions": 2,
-                        "champion": {"requires_store_keys": ["cfe.vx1", "cfe.vx2",
-                                                             "cfe.vx3"]}}},
+                        "published": "challenger",
+                        "dual_run_from": "2026-09-23",
+                        "dual_run_until": "2026-12-23",
+                        "basis_metric": "calc.vx1_vix_basis",
+                        "champion": {
+                            "metric": "calc.vx_front_ratio",
+                            "requires_store_keys": ["cfe.vx1", "cfe.vx2"],
+                            "ratio_bands": [
+                                {"state": "contango", "min_ratio": 1.02},
+                                {"state": "flat", "min_ratio": 0.99},
+                                {"state": "backwardation", "min_ratio": 0.0}],
+                            "persistence_sessions": 2},
+                        "challenger": {
+                            "metric": "calc.vix3m_over_vix",
+                            "proxy_for": "vx_futures_curve",
+                            "ratio_bands": [
+                                {"state": "contango", "min_ratio": 1.05},
+                                {"state": "flat", "min_ratio": 0.98},
+                                {"state": "backwardation", "min_ratio": 0.0}],
+                            "persistence_sessions": 2}}},
             "gamma": {"source": "exposure_engine", "symbol": "SPY"},
         },
         "contradictions": {
@@ -570,28 +581,59 @@ def group_f(store) -> None:
     # it was written against and was deliberately overruled: VIX3M/VIX runs today,
     # labelled, while the curve waits on a subscription. What must hold now is
     # stronger than absence, and it is that the label cannot be lost.
+    # THE LEG RUNS TWO NOW, and what must hold is that neither can be mistaken for
+    # the other. Cboe's public settlement files made the curve reachable, so the
+    # champion computes -- and the proxy is NOT retired on the day its champion
+    # arrives, because reports have been read against the proxy's published state
+    # and switching silently would change what a printed word means.
     ts = stale["dials"]["vol"].get("term_structure") or {}
-    check(ts.get("proxy_metric") == "calc.vix3m_over_vix",
-          f"the term-structure leg names the proxy it computes from "
-          f"({ts.get('proxy_metric')})")
-    check(ts.get("proxy_for") == "vx_futures_curve",
-          f"and names what that proxy STANDS IN FOR, so no rendering can present it "
-          f"as the futures curve ({ts.get('proxy_for')})")
-    check("cfe.vx1" in str(ts.get("champion_requires")),
-          f"and the CFE keys are still declared -- as the CHAMPION the proxy will be "
-          f"measured against, not as a reason to report nothing "
-          f"({ts.get('champion_requires')})")
-    check("quarter" in str(ts.get("champion_status")).lower()
-          or "unavailable" in str(ts.get("champion_status")).lower(),
-          f"and the champion's status says whether the comparison can run yet "
-          f"({ts.get('champion_status')})")
-    check(int(ts.get("persistence_sessions") or 0) >= 2,
-          f"the leg has a persistence rule of its own -- this ratio crosses 1.0 "
-          f"intraday on any sharp day ({ts.get('persistence_sessions')} sessions)")
+    champ = ts.get("champion") or {}
+    chal = ts.get("challenger") or {}
+    check(champ.get("metric") == "calc.vx_front_ratio",
+          f"the champion leg computes from the VX curve itself "
+          f"({champ.get('metric')})")
+    check(chal.get("metric") == "calc.vix3m_over_vix",
+          f"the challenger leg computes from the proxy ({chal.get('metric')})")
+    check(chal.get("proxy_for") == "vx_futures_curve",
+          f"and the challenger still names what it STANDS IN FOR, so no rendering "
+          f"can present it as the futures curve ({chal.get('proxy_for')})")
+    check(champ.get("proxy_for") is None,
+          "while the champion names no proxy_for -- it IS the curve, and a "
+          "proxy_for on it would be a caveat about nothing")
+    check(ts.get("published_by") in ("champion", "challenger"),
+          f"the leg says which of the two its published state came from "
+          f"({ts.get('published_by')})")
+    check(ts.get("published_by") == "challenger",
+          "and it is still the challenger -- the champion does not take over on "
+          "the day it arrives; both print for the declared quarter")
+    check(bool(ts.get("dual_run_until")),
+          f"the dual run has a declared end date ({ts.get('dual_run_until')}), "
+          f"so 'for a quarter' is a date and not an intention")
+    check("cfe.vx1" in str(champ.get("requires_store_keys")),
+          f"the champion names the CFE keys it needs "
+          f"({champ.get('requires_store_keys')})")
+    check(ts.get("legs_agree") in (True, False, None),
+          f"and every object records whether the two legs agreed "
+          f"({ts.get('legs_agree')}) -- the quarter's question is a count of "
+          f"disagreeing sessions, not an opinion")
+    for name, leg in (("champion", champ), ("challenger", chal)):
+        check(int(leg.get("persistence_sessions") or 0) >= 2,
+              f"the {name} has a persistence rule of its own "
+              f"({leg.get('persistence_sessions')} sessions)")
+    # AND THEIR BANDS ARE NOT THE SAME BANDS. A one-month futures spread sits
+    # nearer 1.00 than a three-month/one-month implied ratio: reusing the
+    # challenger's 1.05 contango threshold would read every ordinary curve as flat.
+    cb = [b.get("min_ratio") for b in (champ.get("ratio_bands") or [])]
+    hb = [b.get("min_ratio") for b in (chal.get("ratio_bands") or [])]
+    check(cb and hb and cb != hb,
+          f"the two legs carry DIFFERENT band thresholds ({cb} against {hb}) -- "
+          f"the same thresholds on two different scales would make the "
+          f"comparison meaningless")
 
     src = (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8")
-    check("NOT the VX futures curve" in src or "NOT the VX futures" in src,
-          "and the config says in words that it is not the futures curve")
+    check("NOT the VX futures curve" in src or "not the VX futures curve" in src,
+          "and the config says in words that the challenger is not the futures "
+          "curve")
 
 
 def group_f2(store) -> None:

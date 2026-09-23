@@ -98,7 +98,7 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-4"
+METHOD_VERSION = "market-state-method-5"
 
 # The modules whose content decides what the object says. regime.py builds it and
 # contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
@@ -108,7 +108,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "31b346c09074ca4f"
+METHOD_SOURCE_SHA = "cc2a43462b43d6f7"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -488,6 +488,83 @@ def dial_macro(cfg: dict, dims: dict) -> dict:
             "note": spec.get("note")}
 
 
+def _ratio_leg(spec: dict, which: str, as_of: str,
+               store: observations.ObservationStore,
+               history: Optional[list[dict]] = None) -> dict:
+    """One banded ratio leg of the vol dial's term structure, with persistence.
+
+    Shared by the champion and the challenger so that the only difference between
+    them is their data and their declared bands. A second copy of this would be a
+    second persistence rule, and the dual run would then be comparing two methods
+    rather than two measurements.
+    """
+    metric = str(spec.get("metric") or "")
+    need = list(spec.get("requires_store_keys") or [])
+    have = [k for k in need if store.as_of(k, as_of=as_of)]
+    out: dict[str, Any] = {
+        "leg": which,
+        "state": None,
+        "metric": metric or None,
+        "proxy_for": spec.get("proxy_for"),
+        "requires_store_keys": need,
+        "present_store_keys": have,
+        "persistence_sessions": int(spec.get("persistence_sessions") or 2),
+        "ratio_bands": spec.get("ratio_bands") or [],
+        "note": spec.get("note"),
+    }
+    if need and len(have) != len(need):
+        out["absent_reason"] = (f"the store holds {have or 'none'} of {need}")
+        return out
+    if not metric:
+        out["absent_reason"] = "no metric declared for this leg"
+        return out
+    d = derived.derived_forms(metric, as_of, store=store)
+    out["ratio"] = d.get("level")
+    out["percentile"] = d.get("percentile")
+    out["confidence"] = d.get("confidence")
+    out["observed_at"] = d.get("observed_at")
+    if d.get("level") is None:
+        out["absent_reason"] = f"no observation for {metric} knowable at {as_of}"
+        return out
+    stale = d.get("staleness_sessions")
+    allow = d.get("staleness_allowance_sessions")
+    if stale is not None and allow is not None and stale > 3 * allow:
+        out["absent_reason"] = (
+            f"{metric} was last observed {d.get('observed_at')}, {stale} sessions "
+            f"back -- a term-structure state is a statement about today")
+        return out
+    raw = None
+    for b in spec.get("ratio_bands") or []:
+        if d["level"] >= float(b.get("min_ratio", 0)):
+            raw = str(b.get("state"))
+            break
+    out["raw_state"] = raw
+    need_n = int(spec.get("persistence_sessions") or 2)
+    prev, run = None, 1
+    for obj in reversed(history or []):
+        t = ((obj.get("dials") or {}).get("vol") or {}).get("term_structure") or {}
+        # THE SAME LEG'S OWN HISTORY. Reading the published state here would mean
+        # the champion inherited the challenger's persistence, and a leg whose runs
+        # were counted on another leg's readings is not being measured at all. The
+        # flat fallback covers objects computed before the dual run existed.
+        t = (t.get(which) or t) if isinstance(t, dict) else {}
+        if prev is None and t.get("state"):
+            prev = t.get("state")
+        if t.get("raw_state") == raw:
+            run += 1
+        else:
+            break
+    out["run_sessions"] = run
+    if prev is None or raw == prev or run >= need_n:
+        out["state"] = raw
+    else:
+        out["state"] = prev
+        out["pending_state"] = raw
+        out["pending_note"] = (f"{raw} has held {run} of the {need_n} sessions "
+                               f"required")
+    return out
+
+
 def dial_vol(cfg: dict, as_of: str,
              store: observations.ObservationStore,
              history: Optional[list[dict]] = None) -> dict:
@@ -582,78 +659,53 @@ def dial_vol(cfg: dict, as_of: str,
                     leg_ri["matched_band"] = b
                     break
     out["realized_implied"] = leg_ri
-    # THE TERM-STRUCTURE LEG, from a DECLARED PROXY, with the champion it will be
-    # measured against named rather than merely intended.
+    # THE TERM-STRUCTURE LEG, WHICH NOW RUNS TWO. Cboe's public per-contract
+    # settlement files turned out to be reachable, so the VX curve the proxy stood
+    # in for exists in the store -- and the proxy is not retired on the day its
+    # champion arrives. Both legs compute, both states are recorded, and
+    # `published` in the config says which one term_structure.state reports. It
+    # stays the challenger until the quarter is up.
+    #
+    # ONE FUNCTION FOR BOTH LEGS, because two functions would be two persistence
+    # rules and two band readers, and the whole value of a dual run is that the
+    # only difference between the legs is their data.
     ts = spec.get("term_structure") or {}
-    champ = ts.get("champion") or {}
-    need = list(champ.get("requires_store_keys") or [])
-    have = [k for k in need if store.as_of(k, as_of=as_of)]
-    leg: dict[str, Any] = {
-        "state": None,
-        "proxy_metric": ts.get("proxy_metric"),
-        "proxy_for": ts.get("proxy_for"),
-        "champion_requires": need,
-        "champion_present": have,
-        "champion_status": ("available -- run both a quarter before retiring either"
-                            if need and len(have) == len(need) else
-                            f"unavailable; the store has {have or 'none of'} "
-                            f"{need}"),
-        # DECLARED PROPERTIES OF THE LEG, reported whether or not it computed. The
-        # persistence rule is a fact about the design, not a result of the data --
-        # it belonged inside the success branch only by accident, and an absent leg
-        # that cannot say what rule it would have used is less legible than one that
-        # can.
-        "persistence_sessions": int(ts.get("persistence_sessions") or 2),
-        "note": ts.get("note")}
-    pm = ts.get("proxy_metric")
-    if pm:
-        d = derived.derived_forms(str(pm), as_of, store=store)
-        leg["ratio"] = d.get("level")
-        leg["percentile"] = d.get("percentile")
-        leg["confidence"] = d.get("confidence")
-        if d.get("level") is None:
-            leg["absent_reason"] = (
-                f"no observation for {pm} knowable at {as_of}")
-        else:
-            stale = d.get("staleness_sessions")
-            allow = d.get("staleness_allowance_sessions")
-            if stale is not None and allow is not None and stale > 3 * allow:
-                leg["absent_reason"] = (
-                    f"{pm} was last observed {d.get('observed_at')}, {stale} "
-                    f"sessions back -- a term-structure state is a statement about "
-                    f"today")
-            else:
-                raw = None
-                for b in ts.get("ratio_bands") or []:
-                    if d["level"] >= float(b.get("min_ratio", 0)):
-                        raw = str(b.get("state"))
-                        break
-                leg["raw_state"] = raw
-                # PERSISTENCE, the same rule the dimensions use: this ratio crosses
-                # 1.0 intraday on any sharp day, and a state that flips on one close
-                # is a state nobody can act on.
-                need_n = int(ts.get("persistence_sessions") or 2)
-                prev = None
-                run = 1
-                for obj in reversed(history or []):
-                    t = ((obj.get("dials") or {}).get("vol") or {}).get(
-                        "term_structure") or {}
-                    if prev is None and t.get("state"):
-                        prev = t.get("state")
-                    if t.get("raw_state") == raw:
-                        run += 1
-                    else:
-                        break
-                leg["run_sessions"] = run
-                if prev is None or raw == prev or run >= need_n:
-                    leg["state"] = raw
-                else:
-                    leg["state"] = prev
-                    leg["pending_state"] = raw
-                    leg["pending_note"] = (
-                        f"{raw} has held {run} of the {need_n} sessions required")
-    else:
-        leg["absent_reason"] = "no proxy_metric declared"
+    published = str(ts.get("published") or "challenger")
+    legs: dict[str, Any] = {}
+    for which in ("champion", "challenger"):
+        legs[which] = _ratio_leg(ts.get(which) or {}, which, as_of, store,
+                                 history)
+    leg = dict(legs.get(published) or {})
+    leg["published_by"] = published
+    # str(), for the same reason: this object is stored as JSON and a date here
+    # would raise at write time rather than at read time.
+    leg["dual_run_from"] = (str(ts["dual_run_from"])
+                            if ts.get("dual_run_from") else None)
+    leg["dual_run_until"] = (str(ts["dual_run_until"])
+                             if ts.get("dual_run_until") else None)
+    leg["champion"] = legs["champion"]
+    leg["challenger"] = legs["challenger"]
+    # DO THEY AGREE? Recorded per session rather than counted at the end, because
+    # the count the quarter is for is a count of sessions and this is the row that
+    # makes it countable. `None` where either leg is absent: an absence is not a
+    # disagreement.
+    cs, hs = legs["champion"].get("state"), legs["challenger"].get("state")
+    leg["legs_agree"] = (None if cs is None or hs is None else cs == hs)
+    leg["champion_state"] = cs
+    leg["challenger_state"] = hs
+    # THE BASIS, which is the one reading the challenger structurally cannot
+    # produce: VIX3M/VIX is two implied vols of the same index, so both its legs
+    # ARE the index and a futures-to-index dislocation is invisible to it.
+    bm = ts.get("basis_metric")
+    if bm:
+        bd = derived.derived_forms(str(bm), as_of, store=store)
+        leg["basis"] = {"metric": bm, "value": bd.get("level"),
+                        "percentile": bd.get("percentile"),
+                        "observed_at": bd.get("observed_at"),
+                        "units": "volatility points",
+                        "absent_reason": (
+                            None if bd.get("level") is not None else
+                            f"no observation for {bm} knowable at {as_of}")}
     out["term_structure"] = leg
     return out
 

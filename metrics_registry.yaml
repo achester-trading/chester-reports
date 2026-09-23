@@ -289,6 +289,13 @@ vocabularies:
     - macro_valuation_credit
     - macro_global_fx
     - macro_sovereign
+    # THE VX TERM STRUCTURE. Its own group and not equity_tape, because the curve
+    # is a set of tradeable instruments with their own roll and their own basis --
+    # the whole reason calc.vix3m_over_vix was only ever a declared PROXY for it.
+    # Grouping the futures with the index's implied vols would let the proxy and
+    # the thing it proxies for count as two witnesses to one fact, which is
+    # exactly the double-count 26.9 forbids.
+    - vx_term_structure
     # BASE RATES. Its own group, and the reason is the sharpest case of 26.9 in
     # the registry: a base rate is a DENOMINATOR. "The index falls 10% about once a
     # year" cannot confirm anything about today -- it is the yardstick today is
@@ -1726,6 +1733,126 @@ metrics:
       and the divergence it measures nearly invisible. Distance from the running
       high is ~0 at a new high and falls away at once, which is what "making new
       highs while participation narrows" means.
+  cfe.vx_settle:
+    source: cboe
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      One VX monthly contract's daily settlement, in volatility points. The
+      INSTRUMENT is the contract's expiry date, so the series is per contract and
+      the curve is assembled from it rather than stored twice. revision_policy is
+      `never` -- a settlement price is final, which is what makes a reconstructed
+      availability defensible for it.
+  cfe.vx1:
+    source: cboe
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      The front MONTHLY VX settlement for a session, assigned by expiry order on
+      that date rather than by contract. Weekly VX contracts are deliberately
+      excluded: VX1 in 30.8's state machine means the front monthly, and a weekly
+      in the front slot would move the slope every Wednesday for reasons that have
+      nothing to do with the curve.
+  cfe.vx2:
+    source: cboe
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: The second monthly VX settlement, same assignment rule as cfe.vx1.
+  cfe.vx3:
+    source: cboe
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: The third monthly VX settlement, same assignment rule as cfe.vx1.
+  cfe.vx_probe:
+    source: cboe
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      Which Cboe endpoints answered and which refused, stored so a route that
+      stops working is a recorded fact rather than something to re-probe. Three of
+      the four probed return 403: the all-products daily settlement file, the
+      directory listing and the delayed-quote API. Only the per-contract history
+      answers, which is why this module computes expiry dates instead of reading a
+      listing.
+  calc.vx_front_slope:
+    source: derived_state
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: raw
+    trigger_eligible: false
+    description: >-
+      VX2 minus VX1, in VOLATILITY POINTS. units is `ratio` because the vocabulary
+      has no vol-point member and `price` would make its delta a percent of a
+      difference, which is meaningless; delta_unit `raw` is the override that keeps
+      a change in the slope reported in the points it is measured in.
+  calc.vx_front_ratio:
+    source: derived_state
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      VX2 divided by VX1 -- the CHAMPION for the vol dial's term-structure leg. A
+      ratio and not the slope, because the leg is banded on a ratio and the
+      challenger it is measured against (calc.vix3m_over_vix) is one: a champion in
+      points and a challenger as a ratio could not be printed side by side, which
+      is the entire purpose of the dual run.
+  calc.vx1_vix_basis:
+    source: derived_state
+    mechanism_group: vx_term_structure
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: raw
+    trigger_eligible: false
+    description: >-
+      VX1 minus VIX, in volatility points -- THE NUMBER THE PROXY CANNOT SEE.
+      VIX3M/VIX is two implied volatilities of the same index, so it moves with the
+      curve but can never show a futures-to-index dislocation: both its legs ARE
+      the index. This is that dislocation, and it is the standing reason the proxy
+      carries `proxy_for: vx_futures_curve` rather than being treated as the curve.
   calc.vix3m_over_vix:
     source: derived_state
     mechanism_group: equity_tape

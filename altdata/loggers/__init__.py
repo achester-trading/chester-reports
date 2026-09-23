@@ -92,7 +92,8 @@ def load_all() -> dict[str, LoggerSpec]:
     down the freshness check that would have told you about it.
     """
     from importlib import import_module
-    for mod in ("rtat", "consensus", "auction", "borrow", "shielded"):
+    for mod in ("rtat", "consensus", "auction", "borrow", "shielded",
+                "vxcurve"):
         try:
             import_module(f"{__name__}.{mod}")
         except Exception as exc:                              # noqa: BLE001

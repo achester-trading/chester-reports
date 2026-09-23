@@ -406,6 +406,47 @@ sources:
         as-of-correct backfill cannot reach behind that date. ALFRED ingestion
         (O.16) is what would fix it.
 
+  cboe:
+    name: Cboe public per-contract futures settlement files
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [volatility]
+    geography: [US]
+    latency: >-
+      A contract's settlement is published after the 16:15 ET futures close and the
+      file is refreshed the same evening. The stored availability is 16:45 ET on the
+      trade date, declared once in the logger rather than chosen per run.
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The file carries a Trade Date per row, which is the observation date. Because
+      a settlement is never restated, availability is RECONSTRUCTED from the trade
+      date rather than stamped with the write instant -- the same rule
+      tools/backfill_prices.py enforces for closes, and permitted for the same
+      reason.
+    license: >-
+      Public data published by Cboe on cdn.cboe.com without authentication. No key,
+      no account, no terms accepted in code.
+    allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
+    implemented_by: altdata/loggers/vxcurve.py
+    status: active
+    caveats:
+      - >-
+        THERE IS NO DIRECTORY LISTING AND NO ALL-PRODUCTS DAILY FILE. Both return
+        403, as does the delayed-quote API. Only the per-contract history answers,
+        so the expiry date has to be COMPUTED -- thirty days before the third
+        Friday of the following month -- and the URL constructed from it. When
+        Cboe moves a settlement for a holiday the URL 404s and that month is
+        skipped with its reason, which leaves a session one slot short rather than
+        filling a slot wrongly.
+      - >-
+        MONTHLY CONTRACTS ONLY. Cboe also lists weekly VX futures; VX1/VX2/VX3
+        mean the front three monthlies, and the curve rows record which expiry
+        filled each slot so the choice is visible.
+      - >-
+        A SETTLE OF ZERO IS DROPPED. A contract's listing day carries zeros in
+        several columns before it trades, and a zero in the front slot would be a
+        volatility of nothing.
+
   derived_base_rate:
     name: The Base Rates paper's tables, computed from the store
     tier: derived
