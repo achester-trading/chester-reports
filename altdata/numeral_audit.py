@@ -89,6 +89,175 @@ SUFFIXES = (("trillion", 1e12), ("billion", 1e9), ("million", 1e6),
             ("bn", 1e9), ("mm", 1e6), ("tn", 1e12), ("k", 1e3),
             ("b", 1e9), ("m", 1e6))
 
+
+# ---------------------------------------------------------------------------
+# WHAT KIND OF NUMBER A FIGURE IS, AND WHY THE AUDIT HAS TO KNOW
+# ---------------------------------------------------------------------------
+#
+# Existence was the only thing checked, and existence is not enough. The weekly's
+# published paragraph called a flag "thirteen-day-old" because 13 was in the
+# payload -- as the pin-row COUNT. Every figure in that sentence existed; the
+# sentence was still false, and no amount of matching values catches it.
+#
+# So every payload figure carries a TYPE, taken from its field name, and a numeral
+# in the prose whose adjacent unit word contradicts that type is rejected. "13
+# rows" against a count of 13 passes; "13-day-old" against the same count does not.
+#
+# DETERMINISTIC, AND IT WITHHOLDS RATHER THAN REWRITING. A mismatch is reported
+# with the figure, the unit word the prose used and the types the payload actually
+# carries for that value -- it never edits the sentence, for the same reason the
+# markdown check does not strip: a corrected paragraph is a sentence nobody wrote.
+#
+# A FIGURE MAY MATCH SEVERAL PAYLOAD VALUES, and the rule is that ONE compatible
+# match is enough. 13 may be a count in one field and days in another, and a
+# paragraph citing either is citing something true.
+TYPE_COUNT = "count"
+TYPE_DAYS = "days"
+TYPE_PRICE = "price"
+TYPE_PERCENTILE = "percentile"
+TYPE_PERCENT = "percent"
+TYPE_Z = "z"
+TYPE_BP = "bp"
+TYPE_DOLLARS = "dollars"
+TYPE_RATIO = "ratio"
+# The unconstrained type. A field whose name says nothing about its kind imposes
+# nothing: better to check less than to reject a true sentence on a guess.
+TYPE_ANY = "any"
+
+# FIELD NAME -> TYPE, matched in order, first hit wins. Substrings rather than
+# exact names, because a payload's field names are report fields and grow.
+FIELD_TYPES: tuple[tuple[str, str], ...] = (
+    ("percentile", TYPE_PERCENTILE),
+    ("pctile", TYPE_PERCENTILE),
+    ("z_score", TYPE_Z),
+    ("threshold_z", TYPE_Z),
+    ("magnitude", TYPE_Z),
+    ("_bp$", TYPE_BP),
+    ("_bps$", TYPE_BP),
+    ("age_days", TYPE_DAYS),
+    ("_days", TYPE_DAYS),
+    ("^days_", TYPE_DAYS),
+    ("^dte$", TYPE_DAYS),
+    ("_pct$", TYPE_PERCENT),
+    ("_pct_", TYPE_PERCENT),
+    ("_percent", TYPE_PERCENT),
+    ("^pct_", TYPE_PERCENT),
+    # Dollar magnitudes. The same list precision.py rounds at bn/mm/k scale, and
+    # it is imported from here so the two cannot disagree about what a dollar
+    # figure is.
+    ("dollar_gamma", TYPE_DOLLARS),
+    ("net_gex", TYPE_DOLLARS),
+    ("gex_per", TYPE_DOLLARS),
+    ("notional", TYPE_DOLLARS),
+    ("_pnl", TYPE_DOLLARS),
+    ("expected_cost", TYPE_DOLLARS),
+    ("commission", TYPE_DOLLARS),
+    ("ratio", TYPE_RATIO),
+    # Counts before prices: `pin_rows_today` and `n_5y` are counts, and `sessions`
+    # anywhere in a name is a number of sessions.
+    ("rows", TYPE_COUNT),
+    ("count", TYPE_COUNT),
+    ("sessions", TYPE_COUNT),
+    # ANCHORED, because a two-character fragment matches anything. `n_` as a
+    # substring classified `nothing_in_particular` as a count, which the gate
+    # caught: a loose pattern here silently types every field it brushes past.
+    ("^n_", TYPE_COUNT),
+    ("_n$", TYPE_COUNT),
+    ("emitted", TYPE_COUNT),
+    ("resolved", TYPE_COUNT),
+    ("total", TYPE_COUNT),
+    ("figures_checked", TYPE_COUNT),
+    # Prices and levels, in the instrument's own quote.
+    ("spot", TYPE_PRICE),
+    ("price", TYPE_PRICE),
+    ("strike", TYPE_PRICE),
+    ("wall", TYPE_PRICE),
+    ("level", TYPE_PRICE),
+    ("mark", TYPE_PRICE),
+    ("cost", TYPE_PRICE),
+    ("close", TYPE_PRICE),
+    ("flip", TYPE_PRICE),
+    ("max_pain", TYPE_PRICE),
+    ("points", TYPE_PRICE),
+)
+
+# THE UNIT WORD A PARAGRAPH USED -> THE TYPE IT ASSERTS. Only words that genuinely
+# name a unit; an adjective next to a number asserts nothing and is ignored, which
+# is why this table is short rather than a vocabulary of everything a report says.
+UNIT_TYPES: dict[str, str] = {
+    "row": TYPE_COUNT, "rows": TYPE_COUNT,
+    "session": TYPE_COUNT, "sessions": TYPE_COUNT,
+    "decision": TYPE_COUNT, "decisions": TYPE_COUNT,
+    "name": TYPE_COUNT, "names": TYPE_COUNT,
+    "figure": TYPE_COUNT, "figures": TYPE_COUNT,
+    "day": TYPE_DAYS, "days": TYPE_DAYS, "day-old": TYPE_DAYS,
+    "percentile": TYPE_PERCENTILE, "pctile": TYPE_PERCENTILE,
+    "percent": TYPE_PERCENT,
+    "bp": TYPE_BP, "bps": TYPE_BP, "basis": TYPE_BP,
+    "dollar": TYPE_DOLLARS, "dollars": TYPE_DOLLARS,
+    "point": TYPE_PRICE, "points": TYPE_PRICE, "pts": TYPE_PRICE,
+    "ratio": TYPE_RATIO,
+}
+
+# WHAT A UNIT WORD WILL ACCEPT BESIDES ITS OWN TYPE. Two equivalences, each with a
+# reason rather than for convenience:
+#
+#   points  <- z   a z-score is spoken of in "points" often enough that rejecting
+#                  it would be pedantry about a word rather than about a number.
+#   percent <- percentile is NOT here, deliberately: "the 19th percent" and "the
+#                  19th percentile" are different claims and confusing them is the
+#                  error this whole table exists to catch.
+COMPATIBLE: dict[str, tuple[str, ...]] = {
+    TYPE_PRICE: (TYPE_Z,),
+}
+
+
+def type_of_key(key: str) -> str:
+    """The type a field name declares. TYPE_ANY when it declares nothing.
+
+    A pattern may be anchored: `^x` matches a prefix, `x$` a suffix, `^x$` the whole
+    name, and anything else is a substring. The anchors exist because a
+    two-character fragment as a substring types every field it brushes past -- `n_`
+    called `nothing_in_particular` a count until the gate said so.
+    """
+    k = (key or "").lower()
+    for frag, kind in FIELD_TYPES:
+        if frag.startswith("^") and frag.endswith("$"):
+            hit = k == frag[1:-1]
+        elif frag.startswith("^"):
+            hit = k.startswith(frag[1:])
+        elif frag.endswith("$"):
+            hit = k.endswith(frag[:-1])
+        else:
+            hit = frag in k
+        if hit:
+            return kind
+    return TYPE_ANY
+
+
+def types_of(value, key: str = "") -> list[tuple[float, str]]:
+    """Every numeric leaf as (value, type). The typed form of payload_numbers()."""
+    out: list[tuple[float, str]] = []
+    if isinstance(value, bool):
+        return out
+    if isinstance(value, (int, float)):
+        return [(float(value), type_of_key(key))]
+    if isinstance(value, str):
+        # A numeral inside a string is a payload figure (see payload_numbers), and
+        # its type is the string's field -- a level quoted inside an invalidation
+        # rule is still a level.
+        return [(v, type_of_key(key)) for v in payload_numbers(value)]
+    if isinstance(value, dict):
+        for k, v in value.items():
+            out.extend(types_of(v, k))
+        return out
+    if isinstance(value, (list, tuple, set)):
+        for v in value:
+            out.extend(types_of(v, key))
+        return out
+    return out
+
+
 # A candidate figure:
 #   optional currency, digits with , separators, optional decimals,
 #   optional magnitude suffix, optional percent.
@@ -105,6 +274,12 @@ _FIGURE = re.compile(
         # then the guard fails on the 'o', so the figure falls back to no suffix.
         (?P<suffix>\s?(?:trillion|billion|million|thousand|bn|mm|tn|k|b|m))?
         (?P<pct>\s?%|\s?per\s?cent|\s?percent)?
+        # AN ORDINAL SUFFIX IS PART OF THE NUMBER'S PRESENTATION, and without it
+        # nothing was audited: "19.8th" hit the trailing letter guard below, matched
+        # NOTHING, and `audit("at its 19.9th percentile", {"percentile": 19.8})`
+        # returned True. Every percentile either paragraph wrote in ordinal form --
+        # and they write most of them that way -- was unchecked.
+        (?P<ord>st|nd|rd|th)?
         # TWO GUARDS, because one cannot do both jobs.
         #   (?!\.?\d)   rejects a figure that is really the head of a longer one
         #               -- "1.1" out of "1.1.1" is a version, not a claim.
@@ -127,6 +302,11 @@ class Figure:
     high: float
     is_percent: bool
     position: int
+    # The type the prose ASSERTED by the word next to the numeral, or TYPE_ANY when
+    # it asserted nothing. Checked against the type of the payload value it matched.
+    unit_type: str = "any"
+    # Filled by audit() when a value matched but its type contradicted the unit.
+    type_conflict: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -149,10 +329,19 @@ class AuditResult:
         if self.passed:
             return (f"numeral audit passed: {len(self.figures)} figure(s) all "
                     f"found in the payload")
-        bad = ", ".join(f.text for f in self.unmatched[:6])
+        # A TYPE CONFLICT IS NAMED AS ONE. "failed on 13" sends a reader looking
+        # for a missing figure; the figure was there and the sentence called it the
+        # wrong kind of thing, which is a different fix.
+        def label(f) -> str:
+            return f"{f.text} ({f.type_conflict})" if f.type_conflict else f.text
+
+        bad = ", ".join(label(f) for f in self.unmatched[:6])
         more = "" if self.n_unmatched <= 6 else f" (+{self.n_unmatched - 6} more)"
+        kinds = sum(1 for f in self.unmatched if f.type_conflict)
+        tail = (f"; {kinds} of them a unit mismatch rather than a missing figure"
+                if kinds else "")
         return (f"numeral audit failed on {self.n_unmatched} figure(s): "
-                f"{bad}{more}")
+                f"{bad}{more}{tail}")
 
 
 def _decimals(num_text: str) -> int:
@@ -176,6 +365,32 @@ def _interval(value: float, num_text: str, scale: float) -> tuple[float, float]:
         return value, value
     half = float(Decimal(10) ** (-_decimals(num_text)) / 2)
     return (value - half * scale, value + half * scale)
+
+
+def _unit_after(text: str, end: int, is_percent: bool) -> str:
+    """The type asserted by the unit word next to a numeral, or TYPE_ANY.
+
+    Reads the FIRST word after the figure, skipping one space or hyphen, so
+    "13-day-old" and "13 days" both land on a days assertion. A percent sign on the
+    numeral itself asserts percent without needing a word.
+
+    Anything that is not in UNIT_TYPES asserts nothing: "760 put wall" says nothing
+    about 760's type, and a table of every adjective a report might use would be a
+    table nobody could keep correct.
+    """
+    if is_percent:
+        return TYPE_PERCENT
+    tail = text[end:end + 24].lower()
+    m = re.match(r"[\s\-]?([a-z][a-z\-]*)", tail)
+    if not m:
+        return TYPE_ANY
+    word = m.group(1)
+    if word in UNIT_TYPES:
+        return UNIT_TYPES[word]
+    # "day-old" arrives as one hyphenated token; "basis points" needs the first
+    # word only, which UNIT_TYPES already maps.
+    head = word.split("-")[0]
+    return UNIT_TYPES.get(head, TYPE_ANY)
 
 
 def extract(text: str) -> list[Figure]:
@@ -203,7 +418,9 @@ def extract(text: str) -> list[Figure]:
         out.append(Figure(text=m.group(0).strip(), value=value,
                           low=min(low, high), high=max(low, high),
                           is_percent=bool(m.group("pct")),
-                          position=m.start()))
+                          position=m.start(),
+                          unit_type=_unit_after(text or "", m.end(),
+                                                bool(m.group("pct")))))
     return out
 
 
@@ -316,8 +533,14 @@ def audit(text: str, payload: Any, *,
     """
     figures = extract(text)
     values = payload_numbers(payload)
+    typed = types_of(payload)
     if extra_values:
         values.extend(float(v) for v in extra_values)
+        # A DECLARED UNIT CONSTANT IS TYPELESS. The 1 in "per 1% decline" belongs to
+        # the metric's definition rather than to any field, so it imposes nothing
+        # and satisfies any unit word -- the alternative would be rejecting the very
+        # sentence extra_values exists to permit.
+        typed = typed + [(float(v), TYPE_ANY) for v in extra_values]
     pct_values = _derived(values)
 
     matched: list[tuple[Figure, float]] = []
@@ -334,8 +557,22 @@ def audit(text: str, payload: Any, *,
             hit = next((v for v in pool if abs(v - f.value) <= 1e-9), None)
         if hit is None:
             unmatched.append(f)
-        else:
-            matched.append((f, hit))
+            continue
+        # THE TYPE CHECK. A value matched; does the word the prose put next to it
+        # agree with what that value IS? One compatible match is enough -- 13 may be
+        # a count in one field and days in another, and citing either is true.
+        if f.unit_type != TYPE_ANY:
+            kinds = {k for v, k in typed
+                     if f.low <= v < f.high or abs(v - f.value) <= 1e-9}
+            allowed = {f.unit_type, TYPE_ANY} | set(
+                COMPATIBLE.get(f.unit_type, ()))
+            if kinds and not (kinds & allowed):
+                f.type_conflict = (
+                    f"written as {f.unit_type} but the payload carries this value "
+                    f"as {sorted(kinds)}")
+                unmatched.append(f)
+                continue
+        matched.append((f, hit))
 
     return AuditResult(passed=not unmatched, figures=figures,
                        unmatched=unmatched, matched=matched,

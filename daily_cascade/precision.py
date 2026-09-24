@@ -64,6 +64,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from altdata import numeral_audit
+
 PERCENTILE_DP = 1
 PERCENT_DP = 2
 DEFAULT_DP = 2
@@ -98,14 +100,25 @@ EXPLICIT_DP: dict[str, int] = {
 
 
 def kind_of(key: str) -> str:
-    """`percentile` | `percent` | `dollar` | `default`, from the field name."""
+    """`percentile` | `percent` | `dollar` | `default`, from the field name.
+
+    DERIVED FROM THE AUDIT'S TYPE TABLE, not from a second list of names. The audit
+    needs a finer answer than rounding does -- it distinguishes a count from days
+    from a price -- and rounding needs only the three cases that have their own
+    precision. Two tables would drift, and the drift would be invisible: a field
+    the audit called dollars and this called default would round to two decimals and
+    then be checked as a dollar figure.
+    """
     k = (key or "").lower()
     if k in DOLLAR_MAGNITUDE_KEYS:
         return "dollar"
-    if "percentile" in k:
+    t = numeral_audit.type_of_key(k)
+    if t == numeral_audit.TYPE_PERCENTILE:
         return "percentile"
-    if k.endswith("_pct") or k.endswith("_percent") or k == "pct":
+    if t == numeral_audit.TYPE_PERCENT:
         return "percent"
+    if t == numeral_audit.TYPE_DOLLARS:
+        return "dollar"
     return "default"
 
 

@@ -102,6 +102,74 @@ def group_a() -> None:
           "unmatchable")
 
     # A SPELLED-OUT MAGNITUDE IS PART OF THE NUMBER, in both directions.
+    # ---- TYPES: a numeral whose unit word contradicts its figure is rejected ----
+    #
+    # The published weekly called a flag "thirteen-day-old" because 13 was in the
+    # payload -- as the pin-row COUNT. Every figure existed and the sentence was
+    # false, which is the class of error existence-checking cannot reach.
+    from altdata.numeral_audit import types_of, type_of_key           # noqa: PLC0415
+    rows = {"pin_rows_today": 13}
+    r = audit("13 rows were logged", rows)
+    check(r.passed, "'13 rows' against a count of 13 passes")
+    r = audit("a 13-day-old flag", rows)
+    check(not r.passed,
+          "'13-day-old' against the same count FAILS -- the figure exists and the "
+          "sentence calls it the wrong kind of thing")
+    check(any(f.type_conflict for f in r.unmatched),
+          f"and the failure names it a unit mismatch, not a missing figure "
+          f"({r.reason()[:96]}...)")
+    check("13" in r.reason() and "count" in r.reason(),
+          "with the figure and the type the payload actually carries")
+
+    # ONE COMPATIBLE MATCH IS ENOUGH: 13 as days somewhere makes the sentence true.
+    r = audit("a 13-day-old flag", {"pin_rows_today": 13, "age_days": 13})
+    check(r.passed,
+          "the same sentence passes when the payload carries 13 as days too -- one "
+          "compatible match is enough, because citing either field is citing "
+          "something true")
+
+    # A unit word the table does not know asserts nothing.
+    r = audit("the 760 put wall", {"put_wall": 760})
+    check(r.passed, "'760 put wall' passes: 'put' is not a unit word, and a table "
+                    "of every adjective a report might use is a table nobody can "
+                    "keep correct")
+    # A percentile is not a percent.
+    r = audit("at the 19.8th percent", {"percentile": 19.8})
+    check(not r.passed,
+          "'19.8th percent' against a PERCENTILE fails -- the two are different "
+          "claims and confusing them is what this table is for")
+    r = audit("at the 19.8th percentile", {"percentile": 19.8})
+    check(r.passed, "while the percentile itself passes")
+    # An unconstrained field imposes nothing.
+    r = audit("13 days", {"whatever": 13})
+    check(r.passed,
+          "a field whose name says nothing about its kind imposes nothing -- better "
+          "to check less than to reject a true sentence on a guess")
+    for key, want in (("pin_rows_today", "count"), ("age_days", "days"),
+                      ("spot", "price"), ("percentile", "percentile"),
+                      ("distance_pct", "percent"), ("z_score", "z"),
+                      ("net_gex", "dollars"), ("vx_front_ratio", "ratio"),
+                      ("nothing_in_particular", "any")):
+        check(type_of_key(key) == want,
+              f"type_of_key({key!r}) is {want!r}")
+    check(types_of({"a": {"age_days": 4}, "b": [1.0]})[0][1] == "days",
+          "types travel through nesting, and a list inherits its parent's field")
+
+    # ---- ORDINALS: they were not extracted at all, so they were not audited ----
+    f = extract("at its 19.8th percentile")
+    check(len(f) == 1 and abs(f[0].value - 19.8) < 1e-9,
+          f"'19.8th' extracts as 19.8 (got {[x.text for x in f]}) -- an ordinal "
+          f"suffix is part of the number's presentation")
+    check(f and f[0].unit_type == "percentile",
+          "and the unit word after the ordinal is still read")
+    check(not audit("at its 19.9th percentile", {"percentile": 19.8}).passed,
+          "so a WRONG ordinal percentile now fails. Before this it passed: '19.8th' "
+          "hit the trailing-letter guard, matched nothing, and every percentile "
+          "either report wrote in ordinal form went unchecked")
+    for t in ("0DTE gamma", "the 2s10s curve"):
+        check(not extract(t),
+              f"and the guard still rejects a digit fused to a word ({t!r})")
+
     # A NUMERAL IN A PAYLOAD STRING IS CITABLE; ARITHMETIC OVER IT IS NOT.
     rule = {"invalidation": "a settled close below the put wall at 760"}
     r = audit("the rule is a settled close below 760", rule)

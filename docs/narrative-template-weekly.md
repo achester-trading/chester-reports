@@ -23,6 +23,16 @@ What does not vary with length: print precision, the numeral audit, the model pi
 
 Week ending Friday 18 September. One dimension moved in five sessions: volatility from normal to subdued, and nothing else changed state — the two dials that read at all held gamma negative and vol normal, and macro stayed absent because the growth and inflation members knowable at a Friday cutoff stop in May. No exception opened or closed, and none opened and closed inside the week either, so the quiet is real rather than an artefact of looking only at the endpoints. The term-structure legs agreed on all five sessions, both reading contango, which is the least informative agreement available: the champion sat at its 37th percentile and the proxy at its 95th, so they concur on the word and differ on whether the curve is ordinary or unusually steep — five more sessions on the record and the count that will eventually retire one of them is at 5–0 for the quarter. Nothing reached a grading horizon this week, which is the expected state of a register days old and not a result; the running expectancy is therefore still undefined, and the honest reading of an undefined expectancy is that nothing about the sign can be said. One decision is open and one is drafted: the open SPY position is flagged INVALIDATED with its mark 13.35 points above the 760 level its rule names, and what would change the thesis is the rule already written — a settled close below that level — not the distance, which has been positive all week. Next week carries no tracked FRED release and no earnings in the universe; the sessions classify as ordinary with no expiry and no month end. Weekend developments are not sourced: the events ingest is 6c, and until it lands this block is blank by construction rather than because the weekend was quiet.
 
+## Types — a figure's unit word must agree with what the figure is
+
+Every payload figure carries a **type** taken from its field name: `count`, `days`, `price`, `percentile`, `percent`, `z`, `bp`, `dollars`, `ratio`, or `any` when the name says nothing. The audit rejects a numeral whose adjacent unit word contradicts the type of the value it matched.
+
+`13 rows` against a pin-row count of 13 passes. **`13-day-old` against the same count fails** — the figure exists and the sentence calls it the wrong kind of thing, which is the class of error existence-checking cannot reach. One compatible match is enough: if the payload also carries 13 as days, the sentence is true and passes.
+
+Deterministic, and it **withholds rather than rewriting**: the reason names the figure, the unit the prose used and the types the payload carries for that value. A corrected paragraph would be a sentence nobody wrote.
+
+*This was found in a published paragraph.* The weekly called a flag "thirteen-day-old" because 13 was in the payload — as the pin-row count. And fixing it surfaced a second hole: `19.8th` was not extracted **at all**, so `audit("19.9th percentile", {"percentile": 19.8})` returned True and every percentile either report wrote in ordinal form went unchecked. Ordinal suffixes are now part of the numeral.
+
 ## Style rules
 
 - Plain declaratives. No headers inside the prose, no bullets.

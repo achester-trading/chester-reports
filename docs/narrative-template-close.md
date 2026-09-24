@@ -39,6 +39,16 @@ Integers are untouched; a count of 24,796 sessions is exact. The transform is id
 
 **The failure this removes.** The audit already forgives rounding, so a paragraph printing 45.3 against a payload holding 45.2951 passed — which left the model *looking at* 45.2951, and a model handed 45.2951 prints it. Three published samples did. The paragraph then disagreed with the table beside it in the fourth decimal, and a reader cannot tell rounding from two different numbers. `daily_cascade/precision.py` declares the table; `tools/validate_daily_close.py` fails the build on any payload figure carried at more precision than its rule allows.
 
+## Types — a figure's unit word must agree with what the figure is
+
+Every payload figure carries a **type** taken from its field name: `count`, `days`, `price`, `percentile`, `percent`, `z`, `bp`, `dollars`, `ratio`, or `any` when the name says nothing. The audit rejects a numeral whose adjacent unit word contradicts the type of the value it matched.
+
+`13 rows` against a pin-row count of 13 passes. **`13-day-old` against the same count fails** — the figure exists and the sentence calls it the wrong kind of thing, which is the class of error existence-checking cannot reach. One compatible match is enough: if the payload also carries 13 as days, the sentence is true and passes.
+
+Deterministic, and it **withholds rather than rewriting**: the reason names the figure, the unit the prose used and the types the payload carries for that value. A corrected paragraph would be a sentence nobody wrote.
+
+*This was found in a published paragraph.* The weekly called a flag "thirteen-day-old" because 13 was in the payload — as the pin-row count. And fixing it surfaced a second hole: `19.8th` was not extracted **at all**, so `audit("19.9th percentile", {"percentile": 19.8})` returned True and every percentile either report wrote in ordinal form went unchecked. Ordinal suffixes are now part of the numeral.
+
 ## Style rules
 
 - Plain declaratives. No headers inside the paragraph. No bullets.
