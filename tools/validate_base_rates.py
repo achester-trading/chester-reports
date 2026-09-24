@@ -198,6 +198,56 @@ def group_d(tables: dict) -> None:
           "percentile the grid cannot support")
 
 
+# ---------------------------------------------------------------------------
+# E. THE BEAR COUNT IS ONE NUMBER
+# ---------------------------------------------------------------------------
+# The Monthly printed "over 12 bear markets" one line above a caveat reading
+# "Thirteen bear markets is a sample of thirteen", because the count was computed
+# in one place and typed in another. Both are now checked against the table: the
+# caveat that travels with every base-rate claim, and the episode list that the
+# count is supposed to describe.
+def group_e(tables: dict) -> None:
+    print(f"\n{LINE}\nE. THE BEAR COUNT IS ONE NUMBER, EVERYWHERE\n{LINE}")
+    import re
+    bp = (tables["baserate.drawdown_by_depth"].get("bear_properties") or {})
+    n = bp.get("n")
+    eps = bp.get("episodes") or []
+    check(isinstance(n, int) and n > 0, f"the table counts its bears (n={n})")
+    check(len(eps) == n,
+          f"and LISTS every one of them ({len(eps)} rows against n={n}) -- a list "
+          f"sliced to a literal prints a table that disagrees with its own count "
+          f"the first time the count moves")
+
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+             7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
+             12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
+    want = words.get(n, str(n))
+    text = (REPO / "config" / "claims.yaml").read_text(encoding="utf-8").lower()
+    m = re.search(r"([a-z]+) bear\s*\n?\s*markets is a sample of ([a-z]+)", text)
+    check(m is not None,
+          "the small-sample warning states the sample size in words")
+    if m:
+        check(m.group(1) == want and m.group(2) == want,
+              f"and it is the COMPUTED count ({m.group(1)}/{m.group(2)} against "
+              f"n={n} -> {want!r}) -- the warning travels with every base-rate "
+              f"claim, so a stale number in it is a stale number in every report "
+              f"that cites one")
+
+    # The papers' narrated roster is a DIFFERENT sample and may say thirteen --
+    # provided the paper says which is which. A dated erratum is how it says so.
+    paper = (REPO / "docs" / "whitepapers" / "base-rates-whitepaper.md").read_text(
+        encoding="utf-8")
+    check("twelve computed" in paper.lower() or f"{want} computed" in paper.lower(),
+          "and the paper names the computed count beside its narrated one, in an "
+          "erratum rather than in a quiet edit: the narrated thirteen is the "
+          "calibration sample and the computed count is what every figure carried "
+          "under this key is a distribution of")
+    for episode in ("1990", "1937", "1907"):
+        check(episode in paper,
+              f"the erratum names {episode}, which is in one roster and not the "
+              f"other")
+
+
 def main() -> int:
     print(f"{LINE}\nbase_rates.py -- 31.1\n{LINE}")
     db = observations.ObservationStore()
@@ -220,6 +270,7 @@ def main() -> int:
     group_b(tables)
     group_c(tables)
     group_d(tables)
+    group_e(tables)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0

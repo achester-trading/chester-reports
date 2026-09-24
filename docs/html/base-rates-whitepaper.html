@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="c4b2aea59c9a48976b5dbf01d7c36dafbb0ebbcbe1e9c94ca48004e45c783f95">
+<meta name="source-sha256" content="2707b5b7357dbbef6c11013d51bc4be77538471ad9d7d1b140909470ce501173">
 <title>Base Rates</title>
 <style>
 :root {
@@ -133,8 +133,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h2>What Markets Usually Do — and How Far Back "Usually" Goes</h2>
 <p><strong>Companion white paper — chester-reports library</strong>
 <strong>Series placement:</strong> Companion <strong>XX</strong> — with the market-timing layer, beside <em>Tops and Bottoms</em> — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-<strong>Version:</strong> 1.2 — September 2026
+<strong>Version:</strong> 1.3 — September 2026
 <strong>Status:</strong> Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.</p>
+<p><strong>Erratum, 23 September 2026 (v1.2 → v1.3) — twelve computed, thirteen narrated.</strong> <code>baserate.drawdown_by_depth</code> counts <strong>twelve</strong> bear markets where this paper's narrative counts <strong>thirteen</strong>, and the two do not reconcile because they are not the same question. The computed count is episodes of −20% or worse <strong>from the running maximum on closing prices, ^GSPC from 30 December 1927</strong> — one episode per unrecovered decline. Four of the narrated thirteen fall outside it. <strong>1907</strong> predates the series. <strong>1937–38</strong> (−54.5% from its own March 1937 high) and <strong>1946–47</strong> (−28.5%) both sit <em>inside</em> the 1929 episode, whose September 1929 peak was not recovered until 22 September 1954: under a running-maximum definition no new episode can open while the old one is unrecovered, which is the same property that makes 1929–32 one −86% event rather than two hundred small ones. And <strong>1990</strong> is a near-miss on closes — <strong>−19.92%</strong> from 16 July to 11 October 1990, eight hundredths of a point short of the rule — which <em>Tops and Bottoms</em> includes by near-universal convention and because a recession accompanied it. Three run the other way, computed but not narrated: <strong>1956–57</strong> (−21.5%), <strong>1966</strong> (−22.2%) and <strong>1968–70</strong> (−36.1%), all qualifying on the rule and all falling in the gap between the five mechanism-bearing episodes Chapter 11 selects and the post-1970 roster that starts in 1970. Nine are common to both. <strong>The definition governs the figure:</strong> any number carried under <code>baserate.drawdown_by_depth</code> — including the counter-trend-rally row the Monthly prints — is a distribution over the computed twelve, while the narrated thirteen remains the <em>calibration</em> sample <em>Tops and Bottoms</em> scores against. Where this paper says "thirteen", read: thirteen narrated, twelve computed.</p>
 <p><strong>Erratum, 23 September 2026 (v1.1 → v1.2).</strong> Chapter 1.3's intra-year drawdown quartiles and Chapter 2.2's ~14% average are the <strong>post-1950 subsample</strong>, not the 1928–2026 sample the source notes claimed. Both source notes are corrected and the full-sample figures are given beside them. The difference is the Depression: 1929–32 and 1937–38 put the full sample about three points deeper at every quartile. Found when <code>tools/base_rates.py</code> computed the tables from the store and the full sample would not reconcile with the printed figures at any tolerance — the post-war sample reconciled to a tenth of a point. Nothing else in the paper changes; the drawdown ladder in 2.1, the return distributions in 1.1 and the VIX quantiles all reconcile on the sample their notes name.</p>
   </div>
 
@@ -873,7 +874,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p>Adding these five to the eight post-1970 episodes roughly doubles the calibration sample and — more importantly — adds three mechanism families that the post-1970 set contains weakly or not at all: pre-Fed liquidity crisis, debt deflation, and financial repression.</p>
+<p>Adding these five to the eight post-1970 episodes gives the <strong>thirteen-episode narrated roster</strong> — not the twelve the computed table counts from the running maximum, for the reasons the erratum above sets out — and roughly doubles the calibration sample and — more importantly — adds three mechanism families that the post-1970 set contains weakly or not at all: pre-Fed liquidity crisis, debt deflation, and financial repression.</p>
 <h2>Chapter 12 — What the extended sample changes</h2>
 <p><strong>Depth.</strong> Across thirteen-plus episodes, the median bear is about −30% and the interquartile range roughly −25% to −50%. The post-1970 sample alone understates the left tail because it excludes 1929 and 1937.</p>
 <p><strong>Duration.</strong> Median peak-to-trough about 10–12 months; the distribution is right-skewed, with 1929–32 and 2000–02 in the tail. Recoveries to the prior peak run from months (1987, 2020) to decades (1929, and in real terms the 1970s).</p>

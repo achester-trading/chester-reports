@@ -634,7 +634,12 @@ def table_drawdown_by_depth(data: dict) -> dict:
                  if e["sessions_trough_to_recovery"] is not None], nd=2),
             "largest_counter_trend_rally_pct": summarise(
                 [e["largest_rally_pct"] for e in bears]),
-            "episodes": sorted(bears, key=lambda e: e["depth_pct"])[:12],
+            # NO SLICE. This was `[:12]`, which happened to equal the count
+            # today and would silently print twelve rows under `n: 13` the first
+            # time a thirteenth bear qualified -- a table disagreeing with its own
+            # count, in the one figure the Base Rates erratum of 23 September 2026
+            # exists to keep single-valued.
+            "episodes": sorted(bears, key=lambda e: e["depth_pct"]),
         },
     }
     return out

@@ -97,8 +97,13 @@ warnings:
     source: docs/whitepapers/positioning-and-flows-whitepaper.md, Part I
   small_sample:
     text: >-
-      Small samples, given for the shape rather than the decimal. Thirteen bear
-      markets is a sample of thirteen, and a quartile of it is not a distribution.
+      Small samples, given for the shape rather than the decimal. TWELVE bear
+      markets is a sample of twelve, and a quartile of it is not a distribution.
+      Twelve is the COMPUTED count -- at or beyond -20% from the running maximum
+      on closing prices, ^GSPC from 1927. The papers' narrated roster of thirteen
+      is a different sample: it opens at 1907, counts 1937-38 and 1946-47 as their
+      own episodes inside the unrecovered 1929 decline, and includes 1990 at
+      -19.92%. The Base Rates erratum of 23 September 2026 lists both.
     source: docs/whitepapers/base-rates-whitepaper.md, Chapter 16
   survivorship_country:
     text: >-

@@ -4,8 +4,10 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XX** — with the market-timing layer, beside *Tops and Bottoms* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-**Version:** 1.2 — September 2026
+**Version:** 1.3 — September 2026
 **Status:** Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.
+
+**Erratum, 23 September 2026 (v1.2 → v1.3) — twelve computed, thirteen narrated.** `baserate.drawdown_by_depth` counts **twelve** bear markets where this paper's narrative counts **thirteen**, and the two do not reconcile because they are not the same question. The computed count is episodes of −20% or worse **from the running maximum on closing prices, ^GSPC from 30 December 1927** — one episode per unrecovered decline. Four of the narrated thirteen fall outside it. **1907** predates the series. **1937–38** (−54.5% from its own March 1937 high) and **1946–47** (−28.5%) both sit *inside* the 1929 episode, whose September 1929 peak was not recovered until 22 September 1954: under a running-maximum definition no new episode can open while the old one is unrecovered, which is the same property that makes 1929–32 one −86% event rather than two hundred small ones. And **1990** is a near-miss on closes — **−19.92%** from 16 July to 11 October 1990, eight hundredths of a point short of the rule — which *Tops and Bottoms* includes by near-universal convention and because a recession accompanied it. Three run the other way, computed but not narrated: **1956–57** (−21.5%), **1966** (−22.2%) and **1968–70** (−36.1%), all qualifying on the rule and all falling in the gap between the five mechanism-bearing episodes Chapter 11 selects and the post-1970 roster that starts in 1970. Nine are common to both. **The definition governs the figure:** any number carried under `baserate.drawdown_by_depth` — including the counter-trend-rally row the Monthly prints — is a distribution over the computed twelve, while the narrated thirteen remains the *calibration* sample *Tops and Bottoms* scores against. Where this paper says "thirteen", read: thirteen narrated, twelve computed.
 
 **Erratum, 23 September 2026 (v1.1 → v1.2).** Chapter 1.3's intra-year drawdown quartiles and Chapter 2.2's ~14% average are the **post-1950 subsample**, not the 1928–2026 sample the source notes claimed. Both source notes are corrected and the full-sample figures are given beside them. The difference is the Depression: 1929–32 and 1937–38 put the full sample about three points deeper at every quartile. Found when `tools/base_rates.py` computed the tables from the store and the full sample would not reconcile with the printed figures at any tolerance — the post-war sample reconciled to a tenth of a point. Nothing else in the paper changes; the drawdown ladder in 2.1, the return distributions in 1.1 and the VIX quantiles all reconcile on the sample their notes name.
 
@@ -367,7 +369,7 @@ The episodes below are given on the same template as *Tops and Bottoms* — cont
 | 1946–47 | ~−30% | ~12 | No (inflation shock) | Inflation/repression |
 | 1961–62 | ~−28% | ~6 | No | Valuation unwind |
 
-Adding these five to the eight post-1970 episodes roughly doubles the calibration sample and — more importantly — adds three mechanism families that the post-1970 set contains weakly or not at all: pre-Fed liquidity crisis, debt deflation, and financial repression.
+Adding these five to the eight post-1970 episodes gives the **thirteen-episode narrated roster** — not the twelve the computed table counts from the running maximum, for the reasons the erratum above sets out — and roughly doubles the calibration sample and — more importantly — adds three mechanism families that the post-1970 set contains weakly or not at all: pre-Fed liquidity crisis, debt deflation, and financial repression.
 
 ## Chapter 12 — What the extended sample changes
 
