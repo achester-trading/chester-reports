@@ -4,9 +4,20 @@ Validation gate for the Monthly. (Phase 4b; Audit #3 section G, N, O 7/8/10)
 
     python tools/validate_monthly.py
 
-Group A is the phase's first ruling: the pillars are SUBORDINATE to the dials, with
-a stated mapping, and no pillar computes a regime of its own. The rest of the groups
-land with the report's other pieces.
+A. The pillars are SUBORDINATE to the dials, with a stated mapping, and no pillar
+   computes a regime of its own.
+B. Payload completeness: every section present, every absence carrying its reason,
+   and every figure at the precision the report would print it.
+C. Every scenario weight beside its Brier -- in the payload AND in the renderer.
+D. A PAST MONTH REPLAYS AS-OF ITS CUTOFF: nothing observed after the cutoff reaches
+   the payload, and two builds at one cutoff agree.
+E. The no-recompute guard: the Monthly READS the object and computes no regime.
+F. The model boundary: the narrative payload is a projection of the document, the
+   placeholders are gone, and the long form is a parameter rather than a rewrite.
+
+Groups B, D and F BUILD THE PAYLOAD, which is why this gate is slower than its
+neighbours and worth the seconds: a completeness rule asserted against the code that
+writes the payload, rather than against a payload, is a rule about a promise.
 """
 
 from __future__ import annotations
@@ -130,9 +141,306 @@ def group_a() -> None:
           "nothing")
 
 
+# ---------------------------------------------------------------------------
+# B. PAYLOAD COMPLETENESS
+# ---------------------------------------------------------------------------
+# An absent section is not a failure -- three of the eight dimensions have no data
+# and the Top & Bottom harness is not built. An absent section with NO REASON is the
+# failure, because that is the one a reader cannot tell from an oversight.
+def group_b(built: dict) -> None:
+    print(f"\n{LINE}\nB. PAYLOAD COMPLETENESS -- every section, every absence with "
+          f"its reason\n{LINE}")
+    from monthly_macro import payload
+    from daily_cascade import precision
+
+    for k in ("report", "report_date", "as_of", "generated_at", "sections",
+              "pillar_mapping_version", "warnings"):
+        check(k in built, f"the payload carries `{k}`")
+    check(built.get("report") == "monthly",
+          f"it names itself `monthly` (got {built.get('report')!r}) -- the archive "
+          f"and the state key read this")
+    check(tuple(built.get("sections") or ()) == payload.SECTIONS,
+          f"it declares its six sections in order ({built.get('sections')})")
+
+    for name in payload.SECTIONS:
+        block = built.get(name)
+        if not check(isinstance(block, dict), f"section `{name}` is present"):
+            continue
+        state = block.get("state")
+        if name == "alternative_assets":
+            # This one is a family table: the STATE lives per family, because
+            # `metals` having data says nothing about `real_assets`.
+            fams = block.get("families") or {}
+            check(bool(fams), f"`{name}` carries its families ({len(fams)})")
+            for fam, v in fams.items():
+                st = v.get("state")
+                if st == "ok":
+                    ok(f"  {name}.{fam}: ok")
+                else:
+                    check(bool(v.get("reason") or v.get("why")),
+                          f"  {name}.{fam} is `{st}` AND says why "
+                          f"({str(v.get('reason') or v.get('why'))[:48]}...)")
+            continue
+        if state == "ok":
+            ok(f"section `{name}`: ok")
+        else:
+            check(bool(block.get("reason")),
+                  f"section `{name}` is `{state}` AND records the reason "
+                  f"({str(block.get('reason'))[:48]}...)")
+
+    # --- EVERY WARNING IS A SECTION THAT SAID WHY -----------------------------
+    warned = built.get("warnings") or []
+    check(all("--" in w for w in warned),
+          f"each of the {len(warned)} warning(s) carries its section's reason "
+          f"after a dash")
+
+    # --- PRINT PRECISION, AT ASSEMBLY -----------------------------------------
+    v = precision.violations(built)
+    check(not v,
+          f"every figure in the payload is at printing precision "
+          f"({len(v)} violation(s)"
+          + (f", first {v[0]['path']}={v[0]['value']} -> {v[0]['expected']}"
+             if v else "") + ") -- the rule is that the model never sees a figure "
+          f"the report would not print, and a payload rounded only at the model "
+          f"boundary would put one in the document instead")
+
+
+# ---------------------------------------------------------------------------
+# C. EVERY WEIGHT BESIDE ITS BRIER
+# ---------------------------------------------------------------------------
+# The old Monthly printed scenario weights with no score anywhere near them, which
+# is a forecast nobody has marked. The rule is structural: the row carries the
+# score's FIELD even when the score is None, so an unresolved weight reads as
+# unresolved rather than as unscored.
+def group_c(built: dict) -> None:
+    print(f"\n{LINE}\nC. EVERY SCENARIO WEIGHT BESIDE ITS BRIER\n{LINE}")
+    sc = built.get("scenarios") or {}
+    weights = sc.get("weights")
+    check(weights is not None,
+          "the scenarios section carries a `weights` list (possibly empty)")
+    for i, w in enumerate(weights or []):
+        for k in ("claim", "probability", "brier", "outcome", "resolve_by"):
+            check(k in w, f"weight {i} carries `{k}`")
+    if not weights:
+        check(bool(sc.get("reason")),
+              "no weight has been emitted, and the section says why rather than "
+              "printing an empty table: the ledger is seeded from a Monthly's own "
+              "scenario table, so the first score arrives a month after the first "
+              "weight")
+        SKIPPED.append("per-weight Brier rows: the ledger is empty")
+
+    # The RENDERER has to print the column, not merely carry the field.
+    src = (REPO / "monthly_macro" / "writer" / "render_v2.py").read_text(
+        encoding="utf-8")
+    check("| Brier |" in src,
+          "the renderer's scenario table has a Brier COLUMN -- the payload field "
+          "is not the guarantee; a table that drops the column prints the forecast "
+          "and hides the mark")
+    check("brier" in src,
+          "and it reads each row's own score rather than a summary elsewhere")
+
+
+# ---------------------------------------------------------------------------
+# D. A PAST MONTH REPLAYS AS-OF ITS CUTOFF
+# ---------------------------------------------------------------------------
+# This is the property that makes a grade worth anything. If the payload can see
+# past its cutoff, every replayed month is marked against data the month did not
+# have, and the Brier ledger measures hindsight.
+def group_d() -> None:
+    print(f"\n{LINE}\nD. REPLAY: A PAST MONTH AS-OF ITS OWN CUTOFF\n{LINE}")
+    import datetime as dt
+    from monthly_macro import payload
+
+    cutoff_day = dt.date.today().replace(day=1) - dt.timedelta(days=1)
+    cutoff = f"{cutoff_day.isoformat()}T23:59:59Z"
+    print(f"  replaying as-of {cutoff}")
+    try:
+        past = payload.build(as_of=cutoff)
+    except Exception as exc:                                   # noqa: BLE001
+        bad(f"the payload builds at a past cutoff (raised {type(exc).__name__}: "
+            f"{exc})")
+        return
+    ok("the payload builds at a past cutoff without raising")
+    check(past.get("as_of") == cutoff,
+          f"and echoes the cutoff it was given ({past.get('as_of')})")
+
+    # --- NOTHING OBSERVED AFTER THE CUTOFF ------------------------------------
+    day = cutoff[:10]
+    late: list[str] = []
+    for num, v in ((past.get("appendix") or {}).get("pillars") or {}).items():
+        for r in v.get("series") or []:
+            o = r.get("observed_at")
+            if o and str(o)[:10] > day:
+                late.append(f"appendix pillar {num} {r['metric']} @ {o}")
+    for fam, v in (((past.get("alternative_assets") or {})
+                    .get("families")) or {}).items():
+        for m in v.get("metrics") or []:
+            o = m.get("observed_at")
+            if o and str(o)[:10] > day:
+                late.append(f"{fam} {m['metric']} @ {o}")
+    rg = past.get("regime") or {}
+    if rg.get("session") and str(rg["session"])[:10] > day:
+        late.append(f"regime session {rg['session']}")
+    check(not late,
+          f"NO figure in the payload was observed after the cutoff "
+          f"({len(late)} leak(s)"
+          + (f": {late[0]}" if late else "") + ") -- a replay that can see past its "
+          f"cutoff grades the month against data the month did not have")
+    if rg.get("state") != "ok":
+        check(bool(rg.get("reason")),
+              f"the object is `{rg.get('state')}` at this cutoff and the reason is "
+              f"recorded ({str(rg.get('reason'))[:44]}...): the close pass writes "
+              f"the object, so an old cutoff can legitimately predate the first one")
+
+    # --- TWO BUILDS AT ONE CUTOFF AGREE ---------------------------------------
+    again = payload.build(as_of=cutoff)
+    volatile = ("generated_at", "run_id", "report_date")
+    a = {k: v for k, v in past.items() if k not in volatile}
+    b = {k: v for k, v in again.items() if k not in volatile}
+    differing = sorted(k for k in a if a[k] != b.get(k))
+    check(not differing,
+          f"two builds at the same cutoff agree on every section "
+          f"({differing or 'none differ'}) -- a replay that is not reproducible is "
+          f"not evidence")
+
+
+# ---------------------------------------------------------------------------
+# E. THE NO-RECOMPUTE GUARD
+# ---------------------------------------------------------------------------
+# CLAUDE.md's rule, enforced at the one report most likely to break it: the Monthly
+# has eleven pillars' worth of macro series in front of it and used to characterise
+# a regime from them ten times over.
+def group_e() -> None:
+    print(f"\n{LINE}\nE. NO SECOND REGIME -- the Monthly reads the object\n{LINE}")
+    pkg = REPO / "monthly_macro"
+    files = sorted(f for f in pkg.rglob("*.py") if "__pycache__" not in str(f))
+    print(f"  {len(files)} modules under monthly_macro/")
+
+    banned = ("regime.build", "regime.compute", "regime.write", "build_state",
+              "compute_state", "import contradictions", "from contradictions",
+              "classify_dial", "dial_state(")
+    hits: list[str] = []
+    readers: list[str] = []
+    for f in files:
+        body = "\n".join(ln for ln in f.read_text(encoding="utf-8").splitlines()
+                          if not ln.lstrip().startswith("#"))
+        for b in banned:
+            if b in body:
+                hits.append(f"{f.relative_to(REPO)}: {b}")
+        if "regime.latest(" in body:
+            readers.append(str(f.relative_to(REPO)))
+    check(not hits,
+          f"no module builds, writes or classifies a regime "
+          f"({hits or 'none'}) -- the close pass is the only writer, and a second "
+          f"regime is two answers to one question with no way to say which one a "
+          f"decision was taken under")
+    check(readers,
+          f"and the object is READ through regime.latest() ({', '.join(readers)})")
+
+    # The dials' own bands must not be restated here. A copy of a band is the same
+    # defect wearing a number.
+    pay = (REPO / "monthly_macro" / "payload.py").read_text(encoding="utf-8")
+    cfg = (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8")
+    check("threshold" not in pay.replace("threshold_z", ""),
+          f"and no band or threshold is restated in the payload -- "
+          f"config/market_state.yaml is {len(cfg.splitlines())} lines of declared "
+          f"rules, and a second copy of one of them is a rule that will disagree")
+
+
+# ---------------------------------------------------------------------------
+# F. THE MODEL BOUNDARY
+# ---------------------------------------------------------------------------
+def group_f(built: dict) -> None:
+    print(f"\n{LINE}\nF. THE MODEL BOUNDARY -- a projection, not a second "
+          f"payload\n{LINE}")
+    from monthly_macro import narrative, payload
+    from daily_cascade import precision
+
+    np_ = payload.narrative_payload(built)
+    check(not precision.violations(np_),
+          "the narrative payload is at printing precision")
+
+    def leaves(v, out=None):
+        out = set() if out is None else out
+        if v is None or isinstance(v, bool):
+            return out
+        if isinstance(v, (int, float)):
+            out.add(round(float(v), 6))
+        elif isinstance(v, dict):
+            for x in v.values():
+                leaves(x, out)
+        elif isinstance(v, (list, tuple)):
+            for x in v:
+                leaves(x, out)
+        return out
+
+    doc, brief = leaves(built), leaves(np_)
+    extra = sorted(brief - doc)
+    check(not extra,
+          f"every figure the model sees exists in the document "
+          f"({len(brief)} of {len(doc)}; {len(extra)} extra"
+          + (f", first {extra[0]}" if extra else "") + ") -- a brief carrying a "
+          f"figure the report does not print is a citation a reader cannot check")
+    # STRICT narrowing only when the appendix actually carries series. On a CI
+    # runner with no observation store both sets are nearly empty, and a gate that
+    # goes red for want of data is a data gate in a code gate's list -- which is the
+    # split registry-check.yml maintains two matrices to keep.
+    if (built.get("appendix") or {}).get("series_total"):
+        check(len(brief) < len(doc),
+              f"and it is NARROWER than the document ({len(brief)} < {len(doc)}): "
+              f"the appendix alone is 59 series with four figures each, and a "
+              f"paragraph given all of them can cite an intermediate as a headline")
+    else:
+        check(len(brief) <= len(doc),
+              f"and it is no wider than the document ({len(brief)} <= {len(doc)}); "
+              f"the store is empty here, so strict narrowing is not asserted")
+
+    # --- THE PLACEHOLDERS ARE GONE FROM THE REPORT'S PATH ---------------------
+    for name in ("run.py", "payload.py", "writer/render_v2.py"):
+        f = REPO / "monthly_macro" / name
+        body = "\n".join(ln for ln in f.read_text(encoding="utf-8").splitlines()
+                          if not ln.lstrip().startswith("#"))
+        check("NARRATIVE PLACEHOLDER" not in body,
+              f"{name} emits no NARRATIVE PLACEHOLDER marker")
+    run = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
+    check("add_narratives" not in run,
+          "run.py no longer walks the document replacing per-pillar markers -- ten "
+          "calls asking for a regime with no shared state is the defect this report "
+          "was restructured to remove")
+    check("render_v2" in run and "render_report" not in run,
+          "and it renders the six sections rather than the ten pillar pages")
+
+    # --- LONG FORM IS A PARAMETER --------------------------------------------
+    check(narrative.TEMPLATE_PATH.exists(),
+          f"the Monthly's own template exists ({narrative.TEMPLATE_PATH.name})")
+    check(narrative.MAX_CHARS > 10000,
+          f"the ceiling is a runaway guard rather than a word count "
+          f"({narrative.MAX_CHARS} chars)")
+    check("one_paragraph=False" in run,
+          "and run.py asks for the long form explicitly: the close report's "
+          "one-paragraph limit is its own rule, not the system's")
+    tmpl = narrative.TEMPLATE_PATH.read_text(encoding="utf-8")
+    ref = tmpl.split("## Reference paragraph")[-1].split("## Style rules")[0]
+    check("**" not in ref,
+          "the reference paragraph carries NO markdown -- an example that breaks "
+          "the rule it illustrates teaches the example")
+
+
 def main() -> int:
     print(f"{LINE}\nThe Monthly -- Phase 4b\n{LINE}")
     group_a()
+    built = None
+    try:
+        from monthly_macro import payload
+        built = payload.build()
+    except Exception as exc:                                   # noqa: BLE001
+        bad(f"the payload builds at all (raised {type(exc).__name__}: {exc})")
+    if built is not None:
+        group_b(built)
+        group_c(built)
+        group_d()
+        group_e()
+        group_f(built)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:
