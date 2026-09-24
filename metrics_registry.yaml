@@ -1952,6 +1952,277 @@ metrics:
       Annualised realized volatility of SPY's 20-session log returns, in percent.
       The leg the vol dial was missing: VIX alone is an implied number with nothing
       to be rich or cheap against.
+  # -------------------------------------------------------------------------
+  # THE MACRO TRANSFORMS, ported out of monthly_macro/compute.py.
+  #
+  # Each of these WAS a function one report called over the CSV store at render
+  # time: one number, no history, no percentile, and unreadable by the
+  # market-state object that has a macro dial to fill. Registered here they are
+  # series like any other -- and the object's liquidity, rates and growth
+  # dimensions read three of them.
+  #
+  # `delta_unit: pp` on every rate-of-change series, deliberately. `units:
+  # percent` would otherwise make their deltas basis points, and core PCE going
+  # 3.29% -> 3.41% is +12 BASIS POINTS in a rates-desk sentence and +0.12
+  # PERCENTAGE POINTS in a macro one. These are macro series; a reader of the
+  # Monthly means points.
+  # -------------------------------------------------------------------------
+  calc.net_liquidity:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The Fed balance sheet less the reverse repo facility less the Treasury
+      General Account, IN DOLLARS. The liquidity dimension's primary member: it is
+      the stock of central-bank money actually in the system, where WALCL alone
+      counts money parked at the RRP and sitting in the TGA as though it were
+      circulating.
+      WEEKLY, and same-day only. WALCL and WTREGEN print on Wednesdays and RRP is
+      daily, so the series is the intersection -- 211 rows over this store's
+      history -- rather than a daily number carrying two stale legs forward.
+      THE UNITS ARE THE WHOLE DIFFICULTY. WALCL and WTREGEN are in MILLIONS and
+      RRPONTSYD is in BILLIONS; the three are normalised to dollars before
+      subtraction. monthly_macro/compute.py had TGA as billions and returned
+      -823.6 trillion for its entire life. NET_LIQUIDITY_BAND in
+      altdata/market_features.py declares the plausible range and
+      tools/validate_regime.py group I asserts both sides of it.
+  calc.sahm_rule:
+    source: derived_state
+    mechanism_group: macro_labor
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The Sahm recession indicator: the 3-month average of U-3 less the LOWEST
+      3-MONTH AVERAGE of the trailing twelve months, in percentage points. Sahm's
+      own threshold is 0.50.
+      THE DEFINITION MATTERS AND WAS WRONG BEFORE. compute.py took the low of the
+      raw monthly LEVELS rather than of the 3-month averages. The raw low is never
+      above the averaged low, so the old reading was biased toward the trigger --
+      0.333 against 0.20 on April 2026, a third of the way to a recession call
+      that the published definition does not make.
+      SUPPORTING MEMBER OF THE GROWTH DIMENSION, never a primary: it is monthly,
+      it is a labour-market lag, and `trigger_eligible: false` like everything
+      else here.
+  calc.yield_curve_2s10s:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield less the 2-year, in basis points. Both legs on
+      the SAME session: a curve built from two different days is not a curve.
+      A supporting member of the rates dimension. The dimension's primary is the
+      10-year level, because the level is the discount rate everything is priced
+      off; the curve is the shape, and shape and level move independently -- an
+      inversion at 1% and an inversion at 5% are different worlds.
+  calc.real_wages_yoy:
+    source: derived_state
+    mechanism_group: macro_labor
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Average hourly earnings year-over-year less CPI year-over-year, in
+      percentage points. Negative means the average hour buys less than it did a
+      year ago. Computed from calc.yoy_ahe and calc.yoy_cpi rather than from a
+      second year-over-year implementation.
+  calc.r_real_10y_core_pce:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The 10-year yield less core PCE year-over-year: R on the core-PCE basis, in
+      percentage points. MONTHLY, on the inflation print's own date, with the
+      yield taken at or before it. compute.py paired the LATEST yield with the
+      latest inflation rate and stamped the result with the yield's date, which
+      mixed a May yield with an April inflation reading -- 1.16 against 1.04 on
+      the dates that actually go together.
+  calc.r_real_10y_cpi:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The 10-year yield less headline CPI year-over-year: R on the CPI basis. Both
+      bases are carried because they disagree by the core/headline gap, and which
+      one a debt-cycle argument uses changes its sign at the margin.
+  calc.r_minus_g:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      R (core-PCE basis) less G (real GDP year-over-year), in percentage points.
+      POSITIVE is r > g -- debt compounds faster than the economy that services
+      it, which is the debt-cycle arithmetic the Rate and Liquidity Machine turns
+      on. QUARTERLY, because G is; the r leg is taken at or before the quarter's
+      own date rather than interpolated forward.
+      NO BOOLEAN. compute.py also returned `r_greater_than_g`, which is the sign
+      of this number: a flag derived from a figure beside the figure is a second
+      answer waiting to disagree with it.
+  calc.yoy_cpi:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      CPI, all items, year-over-year in percent. The prior observation is the one
+      closest to 365 days back within 45 days, so a month's shape does not move
+      the comparison and a hole in the series cannot silently substitute for it.
+  calc.yoy_core_cpi:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: Core CPI, ex food and energy, year-over-year in percent.
+  calc.yoy_pce:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: The PCE price index, year-over-year in percent.
+  calc.yoy_core_pce:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Core PCE, year-over-year in percent -- the Fed's own target variable, and
+      the inflation leg of calc.r_real_10y_core_pce.
+  calc.yoy_m2:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: M2 money stock, year-over-year in percent.
+  calc.yoy_real_gdp:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Real GDP, year-over-year in percent. This is the G in r-vs-g, and it is
+      computed once: calc.r_minus_g reads this series rather than recomputing it.
+  calc.yoy_housing_starts:
+    source: derived_state
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: Housing starts, year-over-year in percent.
+  calc.yoy_ahe:
+    source: derived_state
+    mechanism_group: macro_labor
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Average hourly earnings, year-over-year in percent. The upstream FRED key is
+      named `ahe_yoy` and is NOT a year-over-year series: CES0500000003 is a level
+      in dollars per hour. The year-over-year is computed here, and the key's name
+      is left alone because prior snapshots and the store reference it.
   baserate.review_flag:
     source: derived_base_rate
     mechanism_group: base_rate

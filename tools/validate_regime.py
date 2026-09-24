@@ -844,12 +844,101 @@ def _hand_gap_z(a: list[float], b: list[float]) -> float:
     return round((gaps[-1] - statistics.fmean(gaps)) / statistics.stdev(gaps), 4)
 
 
+# ---------------------------------------------------------------------------
+# I. THE MACRO TRANSFORMS, AND THE UNITS GUARD
+# ---------------------------------------------------------------------------
+# WHY A PLAUSIBLE BAND AND NOT A UNIT TEST ON THE ARITHMETIC. The arithmetic was
+# never wrong: `bs - rrp - tga` is the right expression. The UNIT of one leg was
+# wrong, and no test of the expression can catch that -- monthly_macro/compute.py
+# had TGA in billions when WTREGEN is millions, returned -823.6 trillion for its
+# whole life, and every reading of the code agreed with itself because CLAUDE.md
+# and config.py carried the same wrong unit.
+#
+# What catches a units error is a statement about the WORLD: the Fed's balance
+# sheet net of two drains is a few trillion dollars, and anything outside
+# 2.5tn-10tn is arithmetic, not a regime. This group asserts the computed series
+# is inside that band AND that the un-normalised subtraction is outside it, so the
+# guard is shown to fire rather than assumed to.
+def group_i(store) -> None:
+    print(f"\n{LINE}\nI. THE MACRO TRANSFORMS: UNITS, CADENCE, POLARITY\n{LINE}")
+    from altdata import market_features as mf
+
+    lo, hi = mf.NET_LIQUIDITY_BAND
+    print(f"  net-liquidity band: ${lo/1e12:.1f}tn to ${hi/1e12:.1f}tn")
+
+    # --- the units guard, on a seeded week with REAL magnitudes --------------
+    # WALCL 6,704,383 (millions), RRPONTSYD 11.677 (billions), WTREGEN 830,296
+    # (millions) -- the actual observations of 27 May 2026.
+    days = weekdays_back(END, 40)
+    seed(store, "fred.fed_balance", days, [6_704_383.0] * len(days))
+    seed(store, "fred.rrp", days, [11.677] * len(days))
+    seed(store, "fred.tga", days, [830_296.0] * len(days))
+    rows = [r for r in mf.macro_rows(store)
+            if r["registry_key"] == "calc.net_liquidity"]
+    check(bool(rows), f"calc.net_liquidity computes ({len(rows)} rows)")
+    if rows:
+        v = rows[-1]["value"]
+        check(lo <= v <= hi,
+              f"and lands INSIDE the plausible band (${v/1e12:.3f}tn) -- every leg "
+              f"normalised to dollars before the subtraction")
+
+    # THE WRONG UNIT, COMPUTED DELIBERATELY. This is what compute.py did.
+    wrong = (6_704_383.0 / 1e6) - (11.677 / 1e3) - (830_296.0 / 1e3)
+    check(not (lo <= wrong * 1e12 <= hi),
+          f"and the OLD normalisation (TGA as billions) is outside it "
+          f"({wrong:.1f} in its own units, {wrong * 1e12:.3g} in dollars) -- the "
+          f"band is what makes a three-order-of-magnitude leg impossible to ship")
+    check(wrong < 0,
+          f"which the published Monthly printed as a liquidity level: {wrong:.1f}. "
+          f"A negative net liquidity is not a tight regime, it is a unit")
+
+    # --- SAME-DAY ONLY: no leg is carried forward ---------------------------
+    # A row on a day one leg does not have would be a number dated to no session.
+    extra = [d for d in weekdays_back(END, 60) if d not in days]
+    seed(store, "fred.rrp", extra, [11.0] * len(extra))
+    rows2 = [r for r in mf.macro_rows(store)
+             if r["registry_key"] == "calc.net_liquidity"]
+    check(len(rows2) == len(rows),
+          f"adding RRP-only days adds NO net-liquidity rows ({len(rows2)} == "
+          f"{len(rows)}) -- the series is the intersection of its three legs, "
+          f"because carrying one forward would date the result to no session")
+
+    # --- AVAILABILITY NEVER PRECEDES THE INPUTS ----------------------------
+    late = [r for r in rows2
+            if r["available_at"][:10] < str(r["observed_at"])[:10]]
+    check(not late,
+          f"no row claims to be knowable before its own session ({len(late)})")
+
+    # --- THE REGISTRY AGREES WITH THE COMPUTATION --------------------------
+    from altdata import derived
+    for key in sorted(mf.MACRO_FEATURES):
+        e = derived.registry_entry(key)
+        check(bool(e), f"{key} is registered")
+        if not e:
+            continue
+        check(e.get("observation_type") == "calculated",
+              f"  {key}: observation_type calculated")
+        check(e.get("trigger_eligible") is False,
+              f"  {key}: NOT trigger_eligible")
+        allow, why = derived.staleness_allowance(key)
+        check(allow is not None and allow > 0,
+              f"  {key}: staleness allowance {allow} sessions ({why})")
+    du, _ = derived.delta_unit_for("calc.yoy_core_pce")
+    check(du == "pp",
+          f"a year-over-year rate moves in PERCENTAGE POINTS, not basis points "
+          f"(got {du!r}) -- core PCE 3.29 to 3.41 is +0.12pp in the sentence a "
+          f"macro reader is reading")
+    du2, _ = derived.delta_unit_for("calc.yield_curve_2s10s")
+    check(du2 == "bps",
+          f"and a curve spread moves in basis points (got {du2!r})")
+
+
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
     for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
-              group_h):
+              group_h, group_i):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:

@@ -359,13 +359,23 @@ regardless of what else it does.
 
 ### 2. Gotchas
 
-**Unit mismatch in net liquidity.** `WALCL` (`fed_balance`) is in **millions**
-while `RRP` and `TGA` are in **billions**. Normalize before subtracting —
-`fed_balance / 1e6` and `rrp / 1e3`, `tga / 1e3` to reach trillions. Subtracting
-raw values silently produces a number off by three orders of magnitude that still
-looks plausible. `monthly_macro/compute.py:fed_net_liquidity` handles this
-correctly today; preserve it, and re-check the unit of every new series against
-`config.py`'s `units` field rather than assuming.
+**Unit mismatch in net liquidity — and the unit this file itself had wrong.**
+`WALCL` (`fed_balance`) **and `WTREGEN` (`tga`) are both in millions**; only
+`RRPONTSYD` (`rrp`) is in billions. This paragraph said TGA was billions, and so
+did `altdata/config.py`'s units field, and so did
+`monthly_macro/compute.py:fed_net_liquidity` — which therefore returned
+**−823.6 trillion** on every run it ever made, and the Monthly printed it as a
+liquidity level. TGA at 830,296 is $830bn read as millions and $830 *trillion*
+read as billions, which is why the sign flipped and nobody noticed: a figure that
+absurd reads as a bug in the report rather than in the number.
+
+The metric now lives at `calc.net_liquidity` in `altdata/market_features.py`, in
+**dollars**, normalised leg by leg — `fed_balance × 1e6`, `rrp × 1e9`,
+`tga × 1e6` — and `tools/validate_regime.py` group I asserts both that the result
+is inside `NET_LIQUIDITY_BAND` and that the un-normalised subtraction falls
+outside it, so the guard is shown to fire rather than assumed to. Re-check the
+unit of every new series against FRED's own page, not against a neighbouring
+line in `config.py`: that is how this one was copied.
 
 **FRED deprecates series silently.** Roughly one to two of the configured series
 per year stop updating or disappear without notice, and the API returns an empty

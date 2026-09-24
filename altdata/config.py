@@ -68,7 +68,12 @@ FRED_SERIES: list[SeriesSpec] = [
     # Pillar 3 — Systemic Liquidity
     SeriesSpec("fed_balance",      "WALCL",      "Fed balance sheet, total assets", "3", "M",    "weekly"),
     SeriesSpec("rrp",              "RRPONTSYD",  "Overnight reverse repo",          "3", "B",    "daily"),
-    SeriesSpec("tga",              "WTREGEN",    "Treasury General Account balance","3", "B",    "weekly"),
+    # MILLIONS, not billions. WTREGEN is published in millions of dollars like
+    # WALCL beside it -- 830,296 is $830bn -- and this line said "B" until the
+    # net-liquidity port caught it. RRP is the odd one out: RRPONTSYD really is
+    # billions (11.677 = $11.7bn), which is how a units field with two neighbours
+    # in millions came to be copied wrong.
+    SeriesSpec("tga",              "WTREGEN",    "Treasury General Account balance","3", "M",    "weekly"),
     SeriesSpec("m2",               "M2SL",       "M2 money stock",                  "3", "B",    "monthly"),
     SeriesSpec("nfci",             "NFCI",       "Chicago Fed NFCI",                "3", "idx",  "weekly"),
     SeriesSpec("nfci_lev",         "NFCILEVERAGE","NFCI leverage subindex",         "3", "idx",  "weekly"),
