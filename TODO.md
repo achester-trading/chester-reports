@@ -24,11 +24,24 @@ both are cheap next to what they block:
       exception and is REPORT-ONLY, because nothing in the repo sends an
       exceptions alert. The branch belongs beside the drift branch in
       `scripts/check_heartbeat_cron.sh`, which already owns `send_smtp_alert.py`.
-- [ ] **Point the Monthly's regime paragraph at the object.** Its narrative
-      placeholder still asks a model to characterise a regime from the pillars,
-      which is the one place a second regime could be born. Marked in
-      `monthly_macro/writer/render_md.py`; the fix belongs to Phase 4, which maps
-      the pillars onto the dials.
+- [x] **Point the Monthly's regime paragraph at the object.** Done in Phase 4b
+      (23 Sep 2026). The ten placeholders that asked a model to characterise a
+      regime from the pillars are DELETED rather than repointed; the regime comes
+      from `regime.latest()`, the pillars are inputs under the dial each one feeds
+      with a declared weight in `config/pillars.yaml`, and `render_md.py` -- which
+      carried the markers -- is deleted with them. `tools/validate_monthly.py`
+      group E fails if any module under `monthly_macro/` builds, writes or
+      classifies a regime.
+- [ ] **Decide what happens to `monthly_macro/compute.py`.** Its five derived
+      metrics -- Sahm, YoY, 2s10s, r-vs-g, net liquidity -- lost their only
+      consumer when `render_md.py` went, so the Monthly no longer prints any of
+      them. They are worth having: net liquidity and 2s10s bear directly on the
+      macro dial, and `fed_net_liquidity` holds the millions/billions
+      normalisation that silently produces a plausible number three orders of
+      magnitude wrong if anybody re-derives it. The work is an adapter: it reads
+      the CSV `Store` and the payload reads the observation store. Either a
+      derived block under the macro dial, or a decision to drop them on the
+      record.
 
 ## Probe verdict, 4 Sep 2026
 

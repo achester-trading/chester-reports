@@ -117,16 +117,33 @@ monthly_macro/            The one built report
   run.py                  Entry point: python -m monthly_macro.run
   compute.py              Derived metrics (Sahm, YoY, 2s10s, r-vs-g, net
                           liquidity). Never raises — missing input returns
-                          {value: None, inputs: {...}, as_of: None}
+                          {value: None, inputs: {...}, as_of: None}.
+                          **UNCONSUMED since Phase 4b**: its only caller was
+                          writer/render_md.py, deleted with the ten pillar pages,
+                          and the new payload reads the observation store while
+                          this reads the CSV Store. Kept, not deleted — these five
+                          are real metrics and fed_net_liquidity carries the unit
+                          normalisation the Gotchas section names. Whether they
+                          return as a derived block under the macro dial or go is
+                          an open decision, not an oversight
   snapshot.py             Writes snapshots/<report_date>.json each run; compares
                           against the newest snapshot strictly BEFORE today so a
                           same-day re-run still compares to last month
-  narrative.py            Phase 5 LLM step: replaces
-                          *[NARRATIVE PLACEHOLDER — ...]* markers via the
-                          Anthropic API. MAX_CALLS cost guard. Degrades in three
-                          layers (no key / call fails / package missing)
+  payload.py              Six sections of change: regime (read from the object),
+                          scenarios with a Brier beside every weight, Top &
+                          Bottom, alternative assets, the register's month, and
+                          the appendix. Absences carry reasons; ends in
+                          precision.apply so no figure is carried at a precision
+                          the report would not print
+  pillars.py              Reads config/pillars.yaml: eleven pillars mapped onto
+                          the three dials with declared weights. Maps and reads;
+                          computes no pillar state
+  narrative.py            The Monthly's brief and template path. One paragraph
+                          over one payload, long form, behind the numeral audit.
+                          The ten per-pillar placeholders are gone
   writer/
-    render_md.py          Deterministic data -> Markdown, organized by pillar
+    render_v2.py          The report: six sections in payload order, each pillar
+                          printed beneath the dial it feeds
     build_html.py         Markdown -> navy-styled <details> accordion HTML
 
 state/emit.py             POSTs one report's state to the Worker. Never raises.

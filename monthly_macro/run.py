@@ -139,8 +139,9 @@ def main():
     # SIX SECTIONS OF CHANGE, READING THE OBJECT. The old path rendered ten pillar
     # pages of levels from the store and asked a model to characterise the regime
     # from them; the regime now comes from regime.latest() and the pillars are
-    # inputs printed beneath the dial each one feeds. render_md.py is kept for its
-    # masthead and appendix helpers and is no longer the report.
+    # inputs printed beneath the dial each one feeds. render_md.py, which carried
+    # the ten placeholders, is deleted rather than kept for parts: a renderer
+    # nothing calls is a second answer waiting for somebody to call it.
     run_id = session.new_run_id("monthly")
     log.info("Building the payload as-of %s", args.as_of or "now")
     p = payload_mod.build(args.as_of, run_id=run_id)

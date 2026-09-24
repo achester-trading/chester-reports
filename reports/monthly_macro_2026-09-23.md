@@ -1,6 +1,6 @@
 # Monthly Regime & Allocation — 2026-09-23
 
-*As-of cutoff 2026-09-24T01:42:01.920475+00:00 · run `monthly-20260924T014201.920442Z` · pillar mapping pillars-v1*
+*As-of cutoff 2026-09-24T02:39:52.702068+00:00 · run `monthly-20260924T023952.702025Z` · pillar mapping pillars-v1*
 
 *Six sections of change. The pillars are inputs to the three dials and appear beneath them; their detail is one delta row each in the appendix. No section computes a regime — every dial and dimension is read from the market-state object.*
 
@@ -118,9 +118,9 @@ From `baserate.drawdown_by_depth` (base-rates-method-1), over 12 bear markets: t
 **Claims cited by id** — never retyped:
 
 - `br.episode_1929_32`: -86% *(docs/whitepapers/base-rates-whitepaper.md, 11.2 and 11.6, as of 2026-09-06)*
-  - ⚠ Small samples, given for the shape rather than the decimal. Thirteen bear markets is a sample of thirteen, and a quartile of it is not a distribution.
+  - ⚠ Small samples, given for the shape rather than the decimal. TWELVE bear markets is a sample of twelve, and a quartile of it is not a distribution. Twelve is the COMPUTED count -- at or beyond -20% from the running maximum on closing prices, ^GSPC from 1927. The papers' narrated roster of thirteen is a different sample: it opens at 1907, counts 1937-38 and 1946-47 as their own episodes inside the unrecovered 1929 decline, and includes 1990 at -19.92%. The Base Rates erratum of 23 September 2026 lists both.
 - `br.extended_tail_percentiles`: p95 of bad markets is -80% over 20-35 years *(docs/whitepapers/base-rates-whitepaper.md, 13.3, as of 2026-09-06)*
-  - ⚠ Small samples, given for the shape rather than the decimal. Thirteen bear markets is a sample of thirteen, and a quartile of it is not a distribution.
+  - ⚠ Small samples, given for the shape rather than the decimal. TWELVE bear markets is a sample of twelve, and a quartile of it is not a distribution. Twelve is the COMPUTED count -- at or beyond -20% from the running maximum on closing prices, ^GSPC from 1927. The papers' narrated roster of thirteen is a different sample: it opens at 1907, counts 1937-38 and 1946-47 as their own episodes inside the unrecovered 1929 decline, and includes 1990 at -19.92%. The Base Rates erratum of 23 September 2026 lists both.
   - ⚠ Survivorship operates at the level of the COUNTRY, not merely the company. A base rate built from markets that still exist is conditioned on survival, and the honest correction is not a smaller number but a wider distribution with mass at total loss.
 
 ---
