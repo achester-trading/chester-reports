@@ -320,13 +320,131 @@ def group_f(store) -> None:
           f"({n} sessions, basis {basis})")
 
 
+# ---------------------------------------------------------------------------
+# G. THE ROW CACHE RETURNS WHAT THE QUERY RETURNS
+# ---------------------------------------------------------------------------
+# derived.row_cache() exists because the as-of join was the whole cost of a
+# backfill: a correlated subquery per row, asked once per metric per session over
+# the same nine thousand rows. It answers the same question from memory.
+#
+# THE ONLY THING THAT MATTERS ABOUT IT is that the answer is identical. A cache
+# that returns a row a cutoff could not see has rewritten history, and every
+# percentile computed from it is a number about a market that had not happened
+# yet. So this compares CACHED against UNCACHED forms -- field by field, over a
+# sample of dates including the awkward ones -- rather than checking that it is
+# fast.
+#
+# THE CASES ARE CHOSEN TO BREAK IT: a revision (two vintages of one period, so
+# the visible value depends on the cutoff), a LATE arrival (available_at days
+# after observed_at), cutoffs walked forwards AND backwards (the cache's fast path
+# is monotonic and going back must rebuild rather than answer from a stale fold),
+# and a cutoff before anything was knowable at all.
+def group_g(store) -> None:
+    print(f"\n{LINE}\nG. THE ROW CACHE == THE AS-OF QUERY\n{LINE}")
+    key = "fred.hy_oas"
+    days = weekdays_back(END, 300)
+    seed(store, key, days, [3.0 + (i % 23) * 0.01 for i in range(300)])
+
+    # A REVISION: one period, two vintages. Before the second vintage's
+    # available_at the first value is the truth; after it, the second.
+    revised_day = days[-40]
+    store.write_many([
+        {"registry_key": key, "instrument": None,
+         "observed_at": revised_day.isoformat(),
+         "available_at": dt.datetime(revised_day.year, revised_day.month,
+                                     revised_day.day, 21, 0,
+                                     tzinfo=dt.timezone.utc).isoformat(),
+         "value": 9.99, "source": "revision-1"},
+        {"registry_key": key, "instrument": None,
+         "observed_at": revised_day.isoformat(),
+         "available_at": (dt.datetime(revised_day.year, revised_day.month,
+                                      revised_day.day, 21, 0,
+                                      tzinfo=dt.timezone.utc)
+                          + dt.timedelta(days=9)).isoformat(),
+         "value": 3.33, "source": "revision-2"}])
+    # A LATE ARRIVAL: observed on a session, knowable a week later.
+    late_day = days[-12]
+    seed(store, key, [late_day], [7.77], available_offset_days=7)
+
+    sample = [f"{d.isoformat()}T21:30:00+00:00" for d in
+              (days[-300], days[-120], revised_day, days[-38], days[-31],
+               days[-12], days[-5], days[-1])]
+    sample.append("1999-01-04T21:30:00+00:00")     # before anything is knowable
+
+    FIELDS = ("level", "observed_at", "available_at", "n", "percentile",
+              "z_score", "extreme", "delta_1d", "delta_5d", "delta_20d",
+              "rate_of_change", "staleness_sessions", "confidence",
+              "first_observed", "window_actual_days", "absent_reason")
+
+    def compare(order: str, cutoffs: list[str]) -> None:
+        plain = {c: derived.derived_forms(key, c, store=store) for c in cutoffs}
+        with derived.row_cache(store):
+            cached = {c: derived.derived_forms(key, c, store=store)
+                      for c in cutoffs}
+            stats = derived.cache_stats()
+        bad_fields = []
+        for c in cutoffs:
+            for f in FIELDS:
+                if plain[c].get(f) != cached[c].get(f):
+                    bad_fields.append(f"{c[:10]}.{f}: "
+                                      f"{plain[c].get(f)!r} != {cached[c].get(f)!r}")
+        check(not bad_fields,
+              f"{order}: {len(cutoffs)} cutoffs x {len(FIELDS)} fields identical"
+              + (f" -- MISMATCH {bad_fields[:3]}" if bad_fields else "")
+              + f" (cache loaded {(stats or {}).get('series_loaded')} series for "
+                f"{(stats or {}).get('queries_served')} queries)")
+
+    compare("forwards", sample)
+    compare("backwards", list(reversed(sample)))
+    compare("repeated", [sample[3], sample[3], sample[1], sample[3]])
+
+    # THE REVISION IS ACTUALLY EXERCISED, asserted rather than assumed: if the
+    # two vintages were invisible to this sample the comparison above would be
+    # comparing nothing interesting.
+    def visible(cut: str):
+        """That one period's visible value, from the query and from the cache."""
+        want = revised_day.isoformat()
+        q = [r["value_num"] for r in store.as_of(key, as_of=cut)
+             if str(r["observed_at"])[:10] == want]
+        with derived.row_cache(store) as c:
+            k = [r["value_num"] for r in c.rows(key, cut)
+                 if str(r["observed_at"])[:10] == want]
+        return q, k
+
+    stamp = lambda d: f"{d.isoformat()}T21:30:00+00:00"          # noqa: E731
+    q1, k1 = visible(stamp(revised_day + dt.timedelta(days=1)))
+    q2, k2 = visible(stamp(revised_day + dt.timedelta(days=20)))
+    check(q1 != q2,
+          f"the sample includes a period whose visible value CHANGES with the "
+          f"cutoff ({q1} -> {q2}) -- without one, a cache that ignored "
+          f"available_at would pass this group trivially")
+    check(q1 == k1 and q2 == k2,
+          f"and the cache reports that period exactly as the query does "
+          f"({k1} then {k2}): the revision is visible to it at the same instant, "
+          f"not one vintage early")
+
+    # AND THE CACHE IS SCOPED. A cache still answering after its block would hide
+    # every row written by the pass that ran next.
+    check(derived.cache_stats() is None,
+          "the cache is closed outside its context manager -- a cache with no end "
+          "is a process answering yesterday's question")
+    with derived.row_cache(store):
+        check(derived.cache_stats() is not None, "and open inside it")
+        with derived.row_cache(store):
+            check(derived.cache_stats() is not None,
+                  "nesting reuses the outer cache rather than shadowing it")
+        check(derived.cache_stats() is not None,
+              "and the inner block's exit does not close the outer one")
+
+
 def main() -> int:
     print(f"{LINE}\nStandard derived forms -- seeded cases\n{LINE}")
     with tempfile.TemporaryDirectory() as td:
         path = str(Path(td) / "derived_test.db")
         store = observations.ObservationStore(path)
         try:
-            for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+            for g in (group_a, group_b, group_c, group_d, group_e, group_f,
+                      group_g):
                 try:
                     g(store)
                 except Exception as exc:          # a raising gate is a failure

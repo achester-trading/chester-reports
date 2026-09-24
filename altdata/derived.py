@@ -65,6 +65,8 @@ Usage:
 
 from __future__ import annotations
 
+import bisect as _bisect
+import contextlib as _contextlib
 import datetime as dt
 import math
 import statistics
@@ -415,6 +417,120 @@ def confidence_of(staleness: Optional[int], allowance: Optional[int],
 # ---------------------------------------------------------------------------
 # The one function
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# THE RUN-SCOPED ROW CACHE
+# ---------------------------------------------------------------------------
+# WHAT IT DOES NOT DO, first, because that is what makes it safe: it does not
+# compute a single derived form. The arithmetic stays in derived_forms() and there
+# is exactly one implementation of it. All this does is answer the AS-OF QUESTION
+# from memory instead of from SQLite -- and that question was the whole cost.
+#
+# The measurement that motivated it: one market-state object took 3.0s, of which
+# 0.77s was fifty as_of() queries and 0.67s was reading the object history. The
+# as_of join is a correlated subquery per row, so a backfill asked it 1,300 times
+# per metric over the same rows -- 9,247 of them for yfinance.mkt_vix.
+#
+# HOW IT STAYS AS-OF CORRECT, which is the only thing that matters here:
+#
+#   * Rows are loaded in AVAILABILITY order and folded in as they become
+#     knowable. A row is visible to a cutoff if and only if its available_at is
+#     at or before it -- the same test the SQL makes, on the same canonicalised
+#     strings.
+#   * Per period it keeps the rows at the GREATEST visible available_at, which is
+#     what the correlated subquery selects. Ties are kept as a list rather than
+#     collapsed, because the store's uniqueness key includes `source` and two
+#     sources may legitimately hold one period at one instant -- as_of() returns
+#     both, so this returns both.
+#   * A cutoff EARLIER than the last one asked rebuilds from scratch. A backfill
+#     walks forward, so the fast path is the normal one and going backwards is
+#     correct rather than fast.
+#
+# `tools/validate_derived.py` group E compares cached against uncached forms over
+# a sample of metrics and dates. That comparison is the contract: a cache that
+# returns anything but what the query returns is a cache that rewrites history.
+class RowCache:
+    """One series' vintages, loaded once, joined as-of in memory."""
+
+    def __init__(self, store: observations.ObservationStore) -> None:
+        self.store = store
+        self._rows: dict[tuple, list[dict]] = {}
+        self._state: dict[tuple, dict] = {}
+        self.loads = 0
+        self.hits = 0
+
+    def rows(self, metric_id: str, cutoff: str,
+             instrument: Optional[str] = None) -> list[dict]:
+        key = (metric_id, instrument)
+        if key not in self._rows:
+            self._rows[key] = self.store.all_vintages(metric_id, instrument)
+            self._state[key] = {"i": 0, "cutoff": "", "by_day": {}, "days": []}
+            self.loads += 1
+        self.hits += 1
+        cut = observations.canonical_instant(cutoff)
+        st = self._state[key]
+        if cut < st["cutoff"]:
+            st.update({"i": 0, "cutoff": "", "by_day": {}, "days": []})
+        rows, by_day, days = self._rows[key], st["by_day"], st["days"]
+        i = st["i"]
+        while i < len(rows) and str(rows[i]["available_at"]) <= cut:
+            r = rows[i]
+            day = str(r["observed_at"])
+            held = by_day.get(day)
+            if held is None:
+                by_day[day] = [r]
+                _bisect.insort(days, day)
+            else:
+                avail = str(r["available_at"])
+                best = str(held[0]["available_at"])
+                if avail > best:
+                    by_day[day] = [r]
+                elif avail == best:
+                    held.append(r)
+            i += 1
+        st["i"], st["cutoff"] = i, cut
+        out: list[dict] = []
+        for day in days:
+            out.extend(by_day[day])
+        return out
+
+
+_CACHE: Optional[RowCache] = None
+
+
+@_contextlib.contextmanager
+def row_cache(store: observations.ObservationStore):
+    """Cache every series this block reads, then drop it.
+
+    A context manager rather than a switch, because a cache with no end is a
+    process that answers yesterday's question: the store is appended to by other
+    passes, and a cached series outliving the run it was loaded for would hide
+    rows written after it. Nested use reuses the outer cache.
+    """
+    global _CACHE
+    if _CACHE is not None:
+        yield _CACHE
+        return
+    _CACHE = RowCache(store)
+    try:
+        yield _CACHE
+    finally:
+        _CACHE = None
+
+
+def cache_stats() -> Optional[dict]:
+    return (None if _CACHE is None else
+            {"series_loaded": _CACHE.loads, "queries_served": _CACHE.hits})
+
+
+def _rows_as_of(metric_id: str, cutoff: str,
+                store: observations.ObservationStore,
+                instrument: Optional[str] = None) -> list[dict]:
+    """The as-of rows, from the cache when a run has one open."""
+    if _CACHE is not None and _CACHE.store is store:
+        return _CACHE.rows(metric_id, cutoff, instrument)
+    return store.as_of(metric_id, as_of=cutoff, instrument=instrument)
+
+
 def derived_forms(metric_id: str, as_of: Optional[str] = None,
                   window: Optional[int] = None,
                   store: Optional[observations.ObservationStore] = None,
@@ -433,7 +549,7 @@ def derived_forms(metric_id: str, as_of: Optional[str] = None,
     st = store or observations.ObservationStore()
     e = registry_entry(metric_id)
     try:
-        rows = st.as_of(metric_id, as_of=cutoff, instrument=instrument)
+        rows = _rows_as_of(metric_id, cutoff, st, instrument)
     finally:
         if own:
             st.close()
@@ -638,7 +754,7 @@ def series_as_of(metric_id: str, as_of: Optional[str] = None,
     own = store is None
     st = store or observations.ObservationStore()
     try:
-        rows = st.as_of(metric_id, as_of=cutoff, instrument=instrument)
+        rows = _rows_as_of(metric_id, cutoff, st, instrument)
     finally:
         if own:
             st.close()
