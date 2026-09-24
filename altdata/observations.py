@@ -412,6 +412,104 @@ class ObservationStore:
         rows = self.as_of(registry_key, as_of, instrument)
         return rows[-1] if rows else None
 
+    def all_vintages(self, registry_key: str,
+                     instrument: Optional[str] = None) -> list[dict]:
+        """Every row for one series, in AVAILABILITY order. No as-of filter.
+
+        For a caller that will do the as-of join itself over many cutoffs --
+        derived.row_cache() -- and for nothing else. The as-of join is a correlated
+        subquery per row, so asking it 1,300 times for the same 9,000-row series is
+        the same work 1,300 times; this is the raw material, once.
+
+        ORDERED BY available_at because that is the order a cutoff walks: a cache
+        advancing through this list can fold each row in as it becomes knowable and
+        never look back.
+        """
+        cur = self.conn.execute(
+            "SELECT observed_at, value_num, value_text, source, available_at,"
+            "       run_id, availability_kind"
+            "  FROM observations WHERE registry_key = ? AND instrument IS ?"
+            " ORDER BY available_at, observed_at", (registry_key, instrument))
+        return [dict(r) for r in cur.fetchall()]
+
+    def all_vintages(self, registry_key: str,
+                     instrument: Optional[str] = None) -> list[dict]:
+        """Every row for one series, in AVAILABILITY order. No as-of filter.
+
+        For a caller that will do the as-of join itself over many cutoffs --
+        derived.row_cache() -- and for nothing else. The as-of join is a correlated
+        subquery per row, so asking it 1,300 times for the same 9,000-row series is
+        the same work 1,300 times; this is the raw material, once.
+
+        ORDERED BY available_at because that is the order a cutoff walks: a cache
+        advancing through this list can fold each row in as it becomes knowable and
+        never look back.
+        """
+        cur = self.conn.execute(
+            "SELECT observed_at, value_num, value_text, source, available_at,"
+            "       run_id, availability_kind"
+            "  FROM observations WHERE registry_key = ? AND instrument IS ?"
+            " ORDER BY available_at, observed_at", (registry_key, instrument))
+        return [dict(r) for r in cur.fetchall()]
+
+    def observed_days(self, registry_key: str,
+                      text_contains: Optional[str] = None) -> list[str]:
+        """Which periods this key has, WITHOUT reading any values.
+
+        For the one question a resumable job asks: what is already done. The
+        market-state object is tens of kilobytes of JSON per row, so asking "which
+        sessions exist" through as_of() means materialising the whole history to
+        look at the dates on it -- which is how a backfill came to hold 290MB of
+        objects it never parsed. Only observed_at crosses back into Python.
+
+        `text_contains` matches inside the LATEST vintage's value_text, which is
+        what makes "already computed under the current method" answerable: an older
+        vintage under an older method must not count as done.
+        """
+        sql = ["SELECT o.observed_at FROM observations o",
+               " WHERE o.registry_key = :key",
+               "   AND o.available_at = (SELECT MAX(available_at) FROM observations",
+               "                          WHERE registry_key = o.registry_key",
+               "                            AND instrument IS o.instrument",
+               "                            AND observed_at = o.observed_at)"]
+        args: dict[str, Any] = {"key": registry_key}
+        if text_contains is not None:
+            sql.append("   AND o.value_text LIKE :pat")
+            args["pat"] = f"%{text_contains}%"
+        sql.append(" GROUP BY o.observed_at ORDER BY o.observed_at")
+        cur = self.conn.execute("\n".join(sql), args)
+        return [str(r[0]) for r in cur.fetchall()]
+
+    def rows_before(self, registry_key: str, before_observed_at: str,
+                    as_of: Optional[str] = None, limit: int = 8,
+                    instrument: Optional[str] = None) -> list[dict]:
+        """The LAST `limit` periods strictly before `before_observed_at`, as-of.
+
+        The same join as as_of(), bounded in SQL rather than in Python. A caller
+        that wants eight objects should not pay for nine thousand: the ORDER BY
+        DESC ... LIMIT makes SQLite stop, and the rows come back ascending because
+        every caller here reads a history forwards.
+        """
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        cur = self.conn.execute(
+            "SELECT observed_at, value_num, value_text, source, available_at,"
+            "       run_id, availability_kind"
+            "  FROM observations o"
+            " WHERE registry_key = :key"
+            "   AND instrument IS :instrument"
+            "   AND observed_at < :before"
+            "   AND available_at <= :as_of"
+            "   AND available_at = ("
+            "        SELECT MAX(available_at) FROM observations"
+            "         WHERE registry_key = o.registry_key"
+            "           AND instrument IS o.instrument"
+            "           AND observed_at = o.observed_at"
+            "           AND available_at <= :as_of)"
+            " ORDER BY observed_at DESC LIMIT :limit",
+            {"key": registry_key, "instrument": instrument, "before":
+             before_observed_at, "as_of": cutoff, "limit": int(limit)})
+        return [dict(r) for r in reversed(cur.fetchall())]
+
     def vintages(self, registry_key: str, observed_at: str,
                  instrument: Optional[str] = None) -> list[dict]:
         """Every vintage of one period, oldest first. The revision trail."""

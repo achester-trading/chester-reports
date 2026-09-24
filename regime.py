@@ -63,6 +63,7 @@ every future reader, and the first is still in the store as a vintage --
 from __future__ import annotations
 
 import datetime as dt
+import time as _time
 import json
 import subprocess
 from pathlib import Path
@@ -120,7 +121,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "52e9ffbd69dc353c"
+METHOD_SOURCE_SHA = "350bd378698f390a"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -390,14 +391,13 @@ def prior_objects(objects_as_of: str, before_session: str, limit: int,
     replay of a later one sees, and that is a real change rather than a flaw -- it
     means the history was edited.
     """
-    rows = [r for r in store.as_of(STORE_KEY, as_of=objects_as_of)
-            if str(r["observed_at"])[:10] < before_session]
-    # SLICE BEFORE PARSING. Each object is tens of kilobytes of JSON and the
-    # backfill calls this once per session, so parsing the whole history to keep
-    # the last eight made the run quadratic in its own output -- 77 sessions was
-    # imperceptible and a five-year backfill was not.
-    if limit:
-        rows = rows[-limit:]
+    # BOUNDED IN SQL, NOT IN PYTHON, and the difference is a session that was
+    # reaped for memory. Slicing after the query still MATERIALISED the whole
+    # history: nine thousand objects at tens of kilobytes of JSON each, fetched to
+    # keep the last eight, once per session. `rows_before` pushes the bound into
+    # SQLite -- 0.001s and eight rows, against 0.7s and 290MB.
+    rows = store.rows_before(STORE_KEY, before_session, as_of=objects_as_of,
+                             limit=limit or 8)
     out = []
     for r in rows:
         try:
@@ -1351,8 +1351,64 @@ def supportable_range(store: Optional[observations.ObservationStore] = None,
             st.close()
 
 
+# THE DEFAULT BACKFILL WINDOW, and why it is not the supportable range.
+#
+# `supportable_range()` answers "what could an object be computed for", and on this
+# store the answer is 1990 -- because yfinance.mkt_vix, the volatility primary, has
+# a RECONSTRUCTED availability reaching back thirty-six years. Nine thousand two
+# hundred sessions at three seconds each is seven and a half hours, and the run that
+# proved it was reaped for memory after ninety minutes.
+#
+# The default is the window a PERCENTILE is computed over: derived.py's
+# DEFAULT_WINDOW_DAYS, five years. Objects older than their own comparison window
+# are not comparable with anything the report prints -- every percentile in them is
+# taken over a window the store cannot fill -- so they are opt-in rather than
+# default. `--from` reaches back, and the range line prints the supportable first
+# so the operator knows what to type.
+DEFAULT_BACKFILL_DAYS = derived.DEFAULT_WINDOW_DAYS
+
+# Chunked by CALENDAR YEAR. Not for correctness -- the loop already streams -- but
+# so a run that is interrupted, reaped or stopped has a reported boundary rather
+# than a guess, and so the operator sees progress against a denominator.
+CHUNK = "year"
+
+
+def default_range(store: Optional[observations.ObservationStore] = None,
+                  cfg: Optional[dict] = None) -> dict:
+    """The range a backfill runs over when nobody names one."""
+    rng = supportable_range(store=store, cfg=cfg)
+    last = rng["last"]
+    if rng["first"] is None:
+        return dict(rng, default_first=None, bounded_by="nothing supportable")
+    floor = (dt.date.fromisoformat(last)
+             - dt.timedelta(days=DEFAULT_BACKFILL_DAYS)).isoformat()
+    if floor <= rng["first"]:
+        return dict(rng, default_first=rng["first"],
+                    bounded_by="the store's own earliest availability")
+    day = dt.date.fromisoformat(floor)
+    for _ in range(14):
+        if session_days(day.isoformat(), day.isoformat()):
+            break
+        day += dt.timedelta(days=1)
+    return dict(rng, default_first=day.isoformat(),
+                bounded_by=(
+                    f"the {DEFAULT_BACKFILL_DAYS}-day percentile window "
+                    f"(derived.DEFAULT_WINDOW_DAYS). The store supports "
+                    f"{rng['first']} -- reach back with --from, deliberately: an "
+                    f"object older than its own comparison window has every "
+                    f"percentile taken over a window the store cannot fill"))
+
+
+def _year_chunks(days: list[str]) -> list[tuple[str, list[str]]]:
+    out: dict[str, list[str]] = {}
+    for d in days:
+        out.setdefault(d[:4], []).append(d)
+    return sorted(out.items())
+
+
 def backfill(first: str, last: str, store: Optional[
-        observations.ObservationStore] = None, verbose: bool = True) -> dict:
+        observations.ObservationStore] = None, verbose: bool = True,
+        resume: bool = True) -> dict:
     """Compute and store one object per session, each as-of its own evening.
 
     WHY IT IS WORTH THE RUN. "What changed" needs a previous object to compare
@@ -1360,13 +1416,34 @@ def backfill(first: str, last: str, store: Optional[
     history publishes its first reading as gospel. The audit also wants dial
     calls graded later (6f), and a dial call can only be graded if it was
     recorded at the time it was made. This is that record, as-of correct.
+
+    IT STREAMS, CHUNKS AND RESUMES, because the first five-year run did none of
+    those and was killed for memory at ninety minutes:
+
+      STREAMS   one object is held at a time. Nothing accumulates but counters,
+                and `prior_objects` reads its eight predecessors through a bounded
+                SQL query rather than materialising the whole history per session.
+      CHUNKS    by calendar year, so an interrupted run has a reported boundary.
+      RESUMES   sessions whose LATEST object is already at this METHOD_VERSION are
+                skipped. That is what makes a re-run after an interruption cost
+                only what is left, and it is why the skip test reads the method
+                rather than merely asking whether an object exists -- an object
+                under an older method is exactly what a method bump exists to
+                replace.
     """
     own = store is None
     st = store or observations.ObservationStore()
     cfg = load_config()
-    written, computed = 0, 0
+    written, computed, skipped = 0, 0, 0
     try:
         days = session_days(first, last)
+        done: set[str] = set()
+        if resume:
+            done = {d[:10] for d in
+                    st.observed_days(STORE_KEY, text_contains=METHOD_VERSION)}
+            if verbose and done:
+                print(f"   resume: {len(done)} session(s) already at "
+                      f"{METHOD_VERSION}")
         # IN SESSION ORDER, ASSERTED AND NOT ASSUMED. Each object's persistence
         # reads the objects already written, so a run that went backwards would
         # give every session an empty history and publish every raw reading as a
@@ -1379,14 +1456,41 @@ def backfill(first: str, last: str, store: Optional[
                 f"backfill received sessions out of order ({days[:3]}...); "
                 f"persistence depends on ascending order and would silently "
                 f"publish every reading as a first object")
-        for day in days:
-            obj = compute(as_of=session_cutoff(day), session_day=day,
-                          store=st, cfg=cfg)
-            computed += 1
-            written += store_object(obj, st)
-            if verbose and computed % 100 == 0:
-                print(f"   {computed}/{len(days)} sessions ({day})")
+        todo = [d for d in days if d not in done]
+        chunks = _year_chunks(todo)
+        if verbose:
+            print(f"   {len(todo)} session(s) to compute in {len(chunks)} "
+                  f"chunk(s) of one year"
+                  + (f", {len(days) - len(todo)} skipped" if done else ""))
+        skipped = len(days) - len(todo)
+        t0 = _time.perf_counter()
+        # ONE CACHE FOR THE RUN, and it closes with it. Every metric's vintages are
+        # loaded once and the as-of join is done in memory; the object history is
+        # NOT cached -- prior_objects reads its eight predecessors through a bounded
+        # query, because caching tens of kilobytes of JSON per session is the memory
+        # this rewrite exists to give back.
+        with derived.row_cache(st):
+            for year, chunk_days in chunks:
+                t1 = _time.perf_counter()
+                for day in chunk_days:
+                    obj = compute(as_of=session_cutoff(day), session_day=day,
+                                  store=st, cfg=cfg)
+                    computed += 1
+                    written += store_object(obj, st)
+                    # ONE OBJECT AT A TIME. `obj` is rebound on the next iteration
+                    # and nothing holds the last one.
+                    del obj
+                if verbose:
+                    el = _time.perf_counter() - t1
+                    print(f"   {year}: {len(chunk_days)} sessions in {el:.1f}s "
+                          f"({el / max(1, len(chunk_days)):.2f}s each) -- "
+                          f"{computed}/{len(todo)} done")
+            stats = derived.cache_stats() or {}
+        total = _time.perf_counter() - t0
         return {"sessions": len(days), "computed": computed, "written": written,
+                "skipped": skipped, "chunks": len(chunks),
+                "seconds": round(total, 1), "cache": stats,
+                "per_object": round(total / computed, 3) if computed else None,
                 "ordered": days == sorted(days),
                 "first": days[0] if days else None,
                 "last": days[-1] if days else None}
@@ -1481,6 +1585,9 @@ def _main(argv: list[str]) -> int:
                         "as-of correctly")
     b.add_argument("--to", dest="last", default=None,
                    help="default: the last trading session")
+    b.add_argument("--no-resume", action="store_true",
+                   help="recompute sessions that already carry an object at the "
+                        "current method version (the default skips them)")
 
     sub.add_parser("range", help="what the store can support as-of correctly")
 
@@ -1566,18 +1673,23 @@ def _main(argv: list[str]) -> int:
         return 0
 
     if a.cmd == "backfill":
-        rng = supportable_range()
-        first = a.first or rng["first"]
+        rng = default_range()
+        first = a.first or rng["default_first"]
         last = a.last or rng["last"]
         if first is None:
             print("nothing to backfill: " + rng["reason"])
             return 1
         if a.first is None:
-            print(f"range {first} .. {last} (as-of supportable)")
-            print(f"  {rng['reason']}")
-        r = backfill(first, last)
-        print(f"backfill: {r['computed']} sessions computed, {r['written']} "
-              f"rows written, {r['first']} .. {r['last']}")
+            print(f"range {first} .. {last}  (the default window)")
+            print(f"  bounded by {rng['bounded_by']}")
+        else:
+            print(f"range {first} .. {last}  (--from given; the default would be "
+                  f"{rng['default_first']})")
+        r = backfill(first, last, resume=not a.no_resume)
+        print(f"backfill: {r['computed']} sessions computed, {r['skipped']} "
+              f"skipped, {r['written']} rows written, {r['first']} .. {r['last']}"
+              + (f", {r['seconds']}s at {r['per_object']}s/object"
+                 if r.get("per_object") else ""))
         return 0
     return 2
 
