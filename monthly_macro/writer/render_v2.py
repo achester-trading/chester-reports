@@ -53,6 +53,40 @@ def _tail(reason: Any) -> str:
     return (rest.strip() if sep and len(head) < 90 else text)
 
 
+def _scaled_usd(v: Any) -> str:
+    """A dollar amount at its own scale: 5872234000000.0 -> `$5.87tn`.
+
+    THE SAME FIGURE, NOT A DIFFERENT ONE. precision.round_scaled has already
+    rounded the payload's value at this scale, so the printed form is exact rather
+    than a rounding the payload does not know about -- and altdata.numeral_audit
+    reads scale words, so a paragraph citing "5.87 trillion" matches the payload's
+    5872234000000.0 and is publishable.
+    """
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return "—"
+    for word, mult in (("tn", 1e12), ("bn", 1e9), ("mm", 1e6), ("k", 1e3)):
+        if abs(x) >= mult:
+            return f"${x / mult:,.2f}{word}"
+    return f"${x:,.2f}"
+
+
+def _macro_level(row: dict) -> str:
+    """The level with its unit word, by what the metric IS."""
+    v = row.get("level")
+    if v is None:
+        return "—"
+    units = row.get("units")
+    if units == "usd":
+        return _scaled_usd(v)
+    if units == "bps":
+        return f"{_v(v, 1)} bp"
+    if units == "percent":
+        return f"{_v(v, 2)}%"
+    return _v(v)
+
+
 def _delta(x: Any, unit: Any) -> str:
     """A change with its unit -- and NO unit when there is no change.
 
@@ -335,6 +369,42 @@ def appendix_section(p: dict) -> str:
     for g in b.get("pillars_without_series") or []:
         out.append(f"*Pillar {g['pillar']} — {g.get('name')} has no series in the "
                    f"store: {g.get('reason')}*\n")
+    macro = b.get("derived_macro") or []
+    if macro:
+        out.append("### Derived macro series\n")
+        out.append(f"*{b.get('derived_macro_note')}*\n")
+        out.append("| Series | Level | Change | Pctile | Read by | Conf | Stale |")
+        out.append("|---|---|---|---|---|---|---|")
+        for m in macro:
+            read = ", ".join(m.get("read_by") or []) or "—"
+            out.append(
+                f"| `{m['metric']}` | {_macro_level(m)} | "
+                f"{_delta(m.get('delta_20d'), m.get('delta_unit'))} | "
+                f"{_v(m.get('percentile'), 1)}"
+                f"{' **!**' if m.get('extreme') else ''} | {read} | "
+                f"{m.get('confidence') or '—'} | "
+                f"{m.get('staleness_sessions') if m.get('staleness_sessions') is not None else '—'} |")
+        unread = [m["metric"] for m in macro if not m.get("read_by")]
+        src = b.get("derived_macro_read_from") or {}
+        if src.get("predates_config"):
+            # THE COLUMN IS EMPTY FOR A REASON THAT IS NOT THE WIRING.
+            out.append(
+                f"\n*`Read by` is read off the stored object, and the object for "
+                f"{src.get('session')} was computed under {src.get('config_version')} "
+                f"while the declared rules are {src.get('declared_config')}. It "
+                f"therefore does not carry the new members yet — the close pass is "
+                f"the object's only writer, and the next one will. The column is "
+                f"empty here because the object predates the wiring, not because "
+                f"the wiring is absent.*\n")
+        elif unread:
+            out.append(
+                f"\n*{len(unread)} of {len(macro)} feed no dimension directly: "
+                f"{', '.join('`' + u + '`' for u in unread)}. Each is either a leg "
+                f"of one that does — core PCE year-over-year is read by r-vs-g — or "
+                f"context the object has no member for. A derived series that feeds "
+                f"nothing is a candidate for deletion, not a finding.*\n")
+        out.append("")
+
     for num, v in sorted((b.get("pillars") or {}).items()):
         out.append(f"### Pillar {num} — {v.get('name')} "
                    f"(dial: {v.get('dial') or 'none'}, weight "

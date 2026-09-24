@@ -1,6 +1,6 @@
 # Monthly Regime & Allocation — 2026-09-23
 
-*As-of cutoff 2026-09-24T02:39:52.702068+00:00 · run `monthly-20260924T023952.702025Z` · pillar mapping pillars-v1*
+*As-of cutoff 2026-09-24T03:51:52.222177+00:00 · run `monthly-20260924T035152.222126Z` · pillar mapping pillars-v1*
 
 *Six sections of change. The pillars are inputs to the three dials and appear beneath them; their detail is one delta row each in the appendix. No section computes a regime — every dial and dimension is read from the market-state object.*
 
@@ -199,6 +199,31 @@ Restricted-instrument attempts this month: **0** · running total 0
 *Pillar 10 — Commentary & Narrative Flow has no series in the store: it is not a measurement. A desk-commentary roster feeds no dial, and giving it one would let prose move a regime.*
 
 *Pillar 11 — Thailand / THB has no series in the store: relocated to docs/thailand-monitor-spec.md*
+
+### Derived macro series
+
+*Sahm, the year-over-year transforms, 2s10s, r-vs-g and net liquidity. These were monthly_macro/compute.py -- one report's private arithmetic over the CSV store, with no history and no percentile behind any of them -- and are now calc.* series the object reads. `read_by` names the dimension each one feeds*
+
+| Series | Level | Change | Pctile | Read by | Conf | Stale |
+|---|---|---|---|---|---|---|
+| `calc.net_liquidity` | $5.87tn | — | 21.3 | — | low | 83 |
+| `calc.r_minus_g` | -1.47% | — | 58.3 | — | low | 183 |
+| `calc.r_real_10y_core_pce` | 1.04% | — | 31.6 | — | low | 121 |
+| `calc.r_real_10y_cpi` | 0.55% | — | 21.6 | — | low | 121 |
+| `calc.real_wages_yoy` | -0.21% | — | 8.1 | — | low | 121 |
+| `calc.sahm_rule` | 0.20% | — | 20.6 | — | low | 121 |
+| `calc.yield_curve_2s10s` | 46.0 bp | — | 73.6 | — | low | 82 |
+| `calc.yoy_ahe` | 3.57% | — | 5.3 | — | low | 121 |
+| `calc.yoy_core_cpi` | 2.74% | — | 16.2 | — | low | 121 |
+| `calc.yoy_core_pce` | 3.29% | — | 76.3 | — | low | 121 |
+| `calc.yoy_cpi` | 3.78% | — | 91.9 | — | low | 121 |
+| `calc.yoy_housing_starts` | 4.64% | — | 81.6 | — | low | 121 |
+| `calc.yoy_m2` | 4.72% | — | 100.0 **!** | — | low | 121 |
+| `calc.yoy_pce` | 3.77% | — | 92.1 | — | low | 121 |
+| `calc.yoy_real_gdp` | 2.57% | — | 50.0 | — | low | 183 |
+
+*`Read by` is read off the stored object, and the object for 2026-09-23 was computed under market-state-v1.7 while the declared rules are market-state-v1.8. It therefore does not carry the new members yet — the close pass is the object's only writer, and the next one will. The column is empty here because the object predates the wiring, not because the wiring is absent.*
+
 
 ### Pillar 1 — Labor Market Vitality (dial: macro, weight 0.25, reads growth)
 

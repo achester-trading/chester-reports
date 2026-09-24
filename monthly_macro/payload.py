@@ -475,6 +475,49 @@ def _month_start(as_of: Optional[str] = None) -> str:
 # ---------------------------------------------------------------------------
 # 6. APPENDIX -- the old pillar pages, condensed
 # ---------------------------------------------------------------------------
+def _read_by(as_of: Optional[str] = None,
+             store: Optional[Any] = None) -> tuple[dict[str, list[str]], dict]:
+    """metric -> ["liquidity (primary)", ...], READ OFF THE OBJECT.
+
+    Not off config/market_state.yaml, and not recomputed. The object already
+    carries each dimension's members in declared order, so the first is the
+    primary -- taking the answer from the object means the appendix cannot claim a
+    wiring the session's own object does not have.
+
+    This is a SECOND READ of the same stored row that regime_block read, which is
+    not a second regime: `regime.latest()` returns one object and two callers
+    reading it is the arrangement CLAUDE.md asks for.
+    """
+    out: dict[str, list[str]] = {}
+    src: dict[str, Any] = {"session": None, "config_version": None,
+                           "method_version": None, "declared_config": None,
+                           "predates_config": None}
+    try:
+        import regime
+        obj = regime.latest(as_of=as_of, store=store)
+        src["declared_config"] = (regime.load_config() or {}).get("version")
+    except Exception as exc:                                   # noqa: BLE001
+        src["absent_reason"] = f"{type(exc).__name__}: {exc}"
+        return out, src
+    src.update({"session": (obj or {}).get("session"),
+                "config_version": (obj or {}).get("config_version"),
+                "method_version": (obj or {}).get("method_version")})
+    # A STORED OBJECT COMPUTED UNDER AN OLDER CONFIG DOES NOT READ THE NEW
+    # MEMBERS, and saying so is the difference between "the wiring is not there"
+    # and "the object predates the wiring and the next close pass fixes it".
+    src["predates_config"] = bool(
+        src["config_version"] and src["declared_config"]
+        and str(src["config_version"]) < str(src["declared_config"]))
+    for name, d in ((obj or {}).get("dimensions") or {}).items():
+        for i, m in enumerate(d.get("members") or []):
+            key = m.get("metric")
+            if not key:
+                continue
+            out.setdefault(key, []).append(
+                f"{name} (primary)" if i == 0 else name)
+    return out, src
+
+
 def appendix_block(as_of: Optional[str] = None,
                    store: Optional[Any] = None) -> dict:
     """One delta row per series, grouped by pillar. THIS IS WHERE THE HALVING IS.
@@ -523,6 +566,48 @@ def appendix_block(as_of: Optional[str] = None,
                 "stale_count": sum(1 for r in rows
                                    if r.get("level") is None),
             }
+        # --- THE DERIVED MACRO SERIES -------------------------------------
+        #
+        # The five transforms that were monthly_macro/compute.py: Sahm, the
+        # year-over-year family, 2s10s, r-vs-g and net liquidity. They print here
+        # rather than under a pillar because they are not one pillar's -- net
+        # liquidity feeds the liquidity dimension, 2s10s the rates one, and core
+        # PCE year-over-year is read by r-vs-g before anything reads it directly.
+        #
+        # `read_by` is the point of the table. A derived series nobody reads is a
+        # number in a report; these say which dimension of the object each one
+        # feeds, and which of them is a primary.
+        from altdata import market_features as mf
+        reads, reads_from = _read_by(as_of, store=db)
+        macro = []
+        for metric in sorted(mf.MACRO_FEATURES):
+            d = derived.derived_forms(metric, as_of, store=db)
+            e = derived.registry_entry(metric)
+            macro.append({
+                "metric": metric,
+                "what": mf.MACRO_FEATURES[metric],
+                "units": e.get("units"),
+                "level": d.get("level"),
+                "observed_at": d.get("observed_at"),
+                "delta_20d": d.get("delta_20d"),
+                "delta_unit": d.get("delta_unit"),
+                "percentile": d.get("percentile"),
+                "extreme": d.get("extreme"),
+                "confidence": d.get("confidence"),
+                "staleness_sessions": d.get("staleness_sessions"),
+                "read_by": reads.get(metric) or [],
+                "absent_reason": (None if d.get("level") is not None else
+                                  f"{metric} has no observation knowable at "
+                                  f"this cutoff"),
+            })
+        out["derived_macro"] = macro
+        out["derived_macro_read_from"] = reads_from
+        out["derived_macro_note"] = (
+            "Sahm, the year-over-year transforms, 2s10s, r-vs-g and net "
+            "liquidity. These were monthly_macro/compute.py -- one report's "
+            "private arithmetic over the CSV store, with no history and no "
+            "percentile behind any of them -- and are now calc.* series the "
+            "object reads. `read_by` names the dimension each one feeds")
         out["series_total"] = sum(v["series_count"]
                                   for v in out["pillars"].values())
         # A PILLAR WITH NO SERIES, NAMED WITH ITS REASON. Three of the eleven have
@@ -652,6 +737,14 @@ def narrative_payload(full: dict) -> dict:
             "rule_breaks": rm.get("rule_breaks"),
             "absent_reason": rm.get("reason"),
         },
+        # THE DERIVED MACRO SERIES TRAVEL, the 59 raw rows do not. These five
+        # are the ones a paragraph about liquidity or the real rate would want to
+        # cite, and there are fifteen of them rather than 236 figures.
+        "derived_macro": [
+            {k: m.get(k) for k in ("metric", "level", "units", "delta_20d",
+                                   "delta_unit", "percentile", "read_by",
+                                   "absent_reason")}
+            for m in (ap.get("derived_macro") or [])],
         "appendix": {"series_total": ap.get("series_total"),
                      "pillars": {n: {"name": v.get("name"), "dial": v.get("dial"),
                                      "series_count": v.get("series_count"),

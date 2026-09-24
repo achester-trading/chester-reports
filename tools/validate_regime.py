@@ -932,6 +932,61 @@ def group_i(store) -> None:
     check(du2 == "bps",
           f"and a curve spread moves in basis points (got {du2!r})")
 
+    # --- THE WIRING, off the declared config -------------------------------
+    #
+    # Read from config/market_state.yaml rather than from a computed object,
+    # because this is a question about the RULES: a store with no macro data would
+    # make every object here absent and the wiring unassertable, and the wiring is
+    # exactly what must not drift.
+    import regime as rg
+    cfg = rg.load_config()
+    dims = cfg.get("dimensions") or {}
+
+    def members(name: str) -> list[str]:
+        return [m.get("metric") for m in (dims.get(name) or {}).get("members") or []]
+
+    liq = members("liquidity")
+    check(liq[:1] == ["calc.net_liquidity"],
+          f"liquidity's PRIMARY is calc.net_liquidity (members {liq}) -- the "
+          f"primary was fred.rrp, one drain standing in for the whole quantity "
+          f"because it was the only daily leg")
+    check("fred.rrp" in liq and "fred.fed_balance" in liq,
+          "and its legs stay as members, so a disagreement between the net figure "
+          "and one of its parts is still visible")
+
+    rates = members("rates")
+    check("calc.yield_curve_2s10s" in rates,
+          f"rates reads calc.yield_curve_2s10s ({rates})")
+    check(rates and rates[0] != "calc.yield_curve_2s10s",
+          f"and NOT as its primary (primary is {rates[0] if rates else None}) -- "
+          f"the level is what everything is discounted at, and an inversion at 1% "
+          f"and an inversion at 5% are different worlds")
+
+    growth = members("growth")
+    check("calc.sahm_rule" in growth, f"growth reads calc.sahm_rule ({growth})")
+    check(growth and growth[0] != "calc.sahm_rule",
+          f"and NOT as its primary (primary is {growth[0] if growth else None}): a "
+          f"number that names a recession is exactly the kind that should not move "
+          f"a state by itself")
+    sahm_pol = next((m.get("polarity") for m in dims["growth"]["members"]
+                     if m.get("metric") == "calc.sahm_rule"), None)
+    check(sahm_pol == -1,
+          f"with polarity -1 (got {sahm_pol}) -- the Sahm value RISES as "
+          f"unemployment rises off its trailing low, so a high percentile is "
+          f"weakening growth. A +1 here would read every recession as an expansion")
+    curve_pol = next((m.get("polarity") for m in dims["rates"]["members"]
+                      if m.get("metric") == "calc.yield_curve_2s10s"), None)
+    check(curve_pol == -1,
+          f"and 2s10s polarity -1 (got {curve_pol}): a flat curve is the policy "
+          f"rate held above the long end, which is what `high` means")
+
+    check(str(cfg.get("version")) >= "market-state-v1.8",
+          f"the config version records the rules change ({cfg.get('version')})")
+    check(rg.METHOD_VERSION == "market-state-method-6",
+          f"and the method version records that the object's meaning moved with "
+          f"it ({rg.METHOD_VERSION}): an object whose liquidity state came from one "
+          f"drain is not comparable with one whose state came from the quantity")
+
 
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")

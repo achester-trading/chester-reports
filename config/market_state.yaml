@@ -115,7 +115,7 @@
 #         as challenger, each with its own bands, both states printed, the
 #         challenger still published until 23 Dec 2026. calc.vx1_vix_basis is
 #         reported on the leg because it is the one thing the proxy cannot see.
-version: market-state-v1.7
+version: market-state-v1.8
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -151,6 +151,20 @@ dimensions:
         polarity: +1
         because: >-
           Hours are cut before heads are, so they turn before payrolls do.
+      # THE RECESSION INDICATOR, AS A MEMBER AND NOT AS A TRIGGER. Sahm's rule
+      # fires at 0.50 and this dimension does not fire at all: it contributes its
+      # percentile like every other member, `trigger_eligible` is false as it is
+      # everywhere in this repo, and the 0.50 threshold appears in the registry
+      # description as a fact about the indicator rather than as a rule here.
+      # A number that names a recession is exactly the kind of number that should
+      # not be able to move a state by itself.
+      - metric: calc.sahm_rule
+        polarity: -1
+        because: >-
+          The Sahm value RISES as unemployment rises off its own trailing low, so
+          a high percentile is weakening growth, not strengthening it. Supporting:
+          it is monthly, it is a labour-market lag, and its own author calls it a
+          real-time recession indicator rather than a leading one.
     note: >-
       NO DAILY SERIES. The store's growth material is weekly (claims) and
       monthly (permits, openings, hours). The dimension is real but its cadence
@@ -199,6 +213,26 @@ dimensions:
       - metric: fred.mortgage_30y
         polarity: +1
         because: Where the rate complex reaches the household.
+      # THE SHAPE, BESIDE THE LEVELS. Supporting, never the primary: the 10-year
+      # level is what everything is discounted at, and an inversion at 1% and an
+      # inversion at 5% are different worlds.
+      #
+      # POLARITY -1, AND THE AMBIGUITY IS DECLARED RATHER THAN HIDDEN. A LOW
+      # 2s10s percentile is a flat or inverted curve, which is what a restrictive
+      # policy rate against a lower long end looks like -- so low curve pushes
+      # toward `high`. The ambiguity: the curve can also be low because the long
+      # end fell on a growth scare, which is not restrictive policy at all. That
+      # is precisely why it is a supporting member whose disagreement with the
+      # level is REPORTED in `contradicting` rather than a member that can move
+      # the state on its own.
+      - metric: calc.yield_curve_2s10s
+        polarity: -1
+        because: >-
+          A flat or inverted curve is the policy rate held above the long end,
+          which is the restrictive case a `high` rates state means. It can also be
+          flat because the long end fell, which is why it supports rather than
+          leads -- when it disagrees with the 10-year level, the disagreement is
+          the finding.
 
   liquidity:
     horizon: 1-3m
@@ -208,12 +242,34 @@ dimensions:
       - {state: neutral, min_percentile: 33}
       - {state: tight, min_percentile: 0}
     members:
+      # THE PRIMARY, AND IT IS A COMPUTED SERIES. Net liquidity is the balance
+      # sheet less the two drains -- the stock of central-bank money actually in
+      # the system -- which is the quantity every member below is a piece of. The
+      # primary was fred.rrp, one drain standing in for the whole because it was
+      # the only daily leg; the dimension now reads the thing itself and keeps the
+      # legs as members so a disagreement between them is visible.
+      #
+      # THE COST OF THE CHANGE, STATED: net liquidity is WEEKLY, where RRP is
+      # daily, so this dimension's cadence is now weekly and its staleness
+      # allowance eight sessions rather than two. That is the honest cadence of
+      # the quantity -- WALCL and WTREGEN print on Wednesdays -- and a daily
+      # primary that was one third of the answer was precision standing in for
+      # accuracy.
+      - metric: calc.net_liquidity
+        polarity: +1
+        because: >-
+          More central-bank money in the system, net of what is parked at the RRP
+          and sitting in the Treasury's account, is ample liquidity. The one place
+          the millions/billions normalisation lives: see
+          altdata/market_features.py and the Gotchas section of CLAUDE.md, which
+          both carried the wrong unit until this series was written.
       - metric: fred.rrp
         polarity: -1
         because: >-
           Cash parked at the reverse repo facility is cash NOT in the system, so
           a high RRP percentile is tight liquidity. This polarity is the one
-          most likely to be set backwards.
+          most likely to be set backwards. Now a LEG of the primary rather than a
+          proxy for it.
       - metric: fred.bank_reserves
         polarity: +1
         because: Reserves are the banking system's own liquidity.

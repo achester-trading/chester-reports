@@ -72,12 +72,20 @@ DEFAULT_DP = 2
 SCALED_DP = 2
 
 # Largest first: a figure of 4.59e9 is a billion figure, not a thousand one.
-SCALES: tuple[tuple[str, float], ...] = (("bn", 1e9), ("mm", 1e6), ("k", 1e3))
+#
+# `tn` was added with calc.net_liquidity, which is the first dollar magnitude in
+# this system measured in trillions. Rounding $5,872,234,000,000 at the BILLION
+# scale keeps 5,872.23bn -- four digits nobody prints and two more than the
+# quantity supports, since its own legs are weekly averages. At the trillion
+# scale it is $5.87tn, which is the figure a reader reads.
+SCALES: tuple[tuple[str, float], ...] = (("tn", 1e12), ("bn", 1e9),
+                                         ("mm", 1e6), ("k", 1e3))
 
 # DOLLAR MAGNITUDES, declared by name. Each is a dollar amount large enough that
 # the report prints it scaled, and the model is expected to write it as "4.59
 # billion" or "$4.59bn" rather than as ten digits.
 DOLLAR_MAGNITUDE_KEYS = frozenset({
+    "net_liquidity",
     "dollar_gamma_per_1pct",
     "prior_dollar_gamma_per_1pct",
     "dollar_gamma_change",

@@ -98,7 +98,19 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-5"
+METHOD_VERSION = "market-state-method-6"
+#
+# method-6 (23 Sep 2026): THE DIMENSIONS READ DERIVED MACRO SERIES. Three of the
+# eight gained members that are computed rather than fetched -- liquidity's PRIMARY
+# is now calc.net_liquidity, rates supports on calc.yield_curve_2s10s, growth on
+# calc.sahm_rule -- and the liquidity dimension's cadence moved from daily to
+# weekly with them, because net liquidity's slowest leg prints on Wednesdays.
+#
+# The code in this module did not change for it; config/market_state.yaml v1.8 did.
+# The version is bumped anyway, and deliberately: an object whose liquidity state
+# came from one drain standing in for the whole quantity is not comparable with one
+# whose state came from the quantity, and the replay gate compares objects under one
+# method. A config_version bump alone would have let the two sit in one comparison.
 
 # The modules whose content decides what the object says. regime.py builds it and
 # contradictions.py fills its table; altdata/derived.py is deliberately NOT here --
@@ -108,7 +120,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "cc2a43462b43d6f7"
+METHOD_SOURCE_SHA = "52e9ffbd69dc353c"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the

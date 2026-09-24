@@ -188,6 +188,30 @@ def group_b(built: dict) -> None:
                   f"section `{name}` is `{state}` AND records the reason "
                   f"({str(block.get('reason'))[:48]}...)")
 
+    # --- THE DERIVED MACRO SERIES ARE IN THE APPENDIX -------------------------
+    from altdata import market_features as mf
+    macro = (built.get("appendix") or {}).get("derived_macro")
+    check(macro is not None, "the appendix carries `derived_macro`")
+    keys = {m.get("metric") for m in macro or []}
+    missing = sorted(set(mf.MACRO_FEATURES) - keys)
+    check(not missing,
+          f"and all {len(mf.MACRO_FEATURES)} of them ({len(keys)} present"
+          + (f", missing {missing}" if missing else "") + ") -- Sahm, the "
+          f"year-over-year family, 2s10s, r-vs-g and net liquidity, which were "
+          f"monthly_macro/compute.py and reached no report after it was deleted")
+    for m in macro or []:
+        for k in ("metric", "level", "units", "percentile", "read_by",
+                  "delta_20d", "delta_unit"):
+            check(k in m, f"  {m.get('metric')} carries `{k}`")
+        if m.get("level") is None:
+            check(bool(m.get("absent_reason")),
+                  f"  {m.get('metric')} has no level AND says why")
+    src = (REPO / "monthly_macro" / "writer" / "render_v2.py").read_text(
+        encoding="utf-8")
+    check("Derived macro series" in src and "Read by" in src,
+          "the renderer prints them with the DIMENSION each one feeds -- a derived "
+          "series whose reader is not named is a number in a report")
+
     # --- EVERY WARNING IS A SECTION THAT SAID WHY -----------------------------
     warned = built.get("warnings") or []
     check(all("--" in w for w in warned),
