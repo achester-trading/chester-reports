@@ -110,6 +110,54 @@ tail -40 ~/logs/run_eod-$(date +%Y-%m).log
 ~/chester-reports/scripts/check_heartbeat.sh; echo "health=$?"
 ```
 
+## 6a. Re-backfilling the market-state object — capped, and outside market hours
+
+A method bump means the stored object history was computed by code that no longer
+exists, and the replay gate compares only objects under the current method. Bring
+it forward with a backfill — **not** as a bare command:
+
+```bash
+systemd-run --user --unit=chester-backfill \
+  -p MemoryMax=1200M -p CPUWeight=20 \
+  --working-directory=/home/ari/chester-reports \
+  /home/ari/chester-reports/.venv/bin/python -m regime backfill
+
+systemctl --user status chester-backfill
+journalctl --user -u chester-backfill -n 20
+```
+
+**Why a transient unit and not a shell.** The first five-year run was killed for
+memory after ninety minutes, and it deserved to be: it was walking 9,250 sessions
+because `supportable_range()` reaches back to 1990, and it materialised the whole
+object history once per session. Both are fixed — the default range is now the
+five-year percentile window (1,258 sessions) and `prior_objects` is bounded in SQL
+— but a long job on the box shares that box with the Gateway, the EOD pass and the
+morning chain. `MemoryMax=` makes the worst case a killed backfill instead of a
+killed Gateway, and `CPUWeight=20` (against the default 100) makes it yield rather
+than compete.
+
+**A killed run costs only what is left.** The backfill skips sessions whose latest
+object already carries the current `METHOD_VERSION`, so hitting the cap is a
+re-run, not a restart. That is the whole reason the cap is safe to set tight.
+
+**Timing, measured on the authoring laptop** (slower than the box): 0.26s per
+object, 870 sessions in 3.9 minutes. The default window is about five minutes.
+Earlier it was 3.0s per object — seven and a half hours for what the unbounded
+range would have attempted.
+
+**Outside market hours**, on purpose. It reads the same SQLite file the EOD pass
+writes, and SQLite's WAL makes that safe rather than fast; a Saturday morning
+costs nothing and contends with nothing.
+
+**What it reports.** Per-year chunk lines with a per-object time, then a summary of
+computed / skipped / written. If the unit was OOM-killed, `systemctl --user status`
+says so and `systemctl --user show chester-backfill -p MemoryPeak` gives the figure
+to raise the cap to.
+
+Earlier sessions than the default window are `--from`, deliberately: an object
+older than its own five-year comparison window has every percentile taken over a
+window the store cannot fill.
+
 ## Health checking
 
 `scripts/check_heartbeat.sh` exits `0` healthy, `1` stale, `2` no heartbeat
