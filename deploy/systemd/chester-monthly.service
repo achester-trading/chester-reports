@@ -1,0 +1,40 @@
+[Unit]
+Description=Monthly Regime & Allocation (1st at 07:30 ET; six sections, reads the object)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# AFTER THE MORNING CHAIN, as ordering only. The 06:45 overnight pass refreshes the
+# feeds and the 07:00 anchor reads the object; this fires at 07:30 so it sees both.
+# Never a requirement: the report reads STORED data and must still run and report
+# absences when an upstream pass did not, because a report that stays silent
+# because its input failed hides exactly the failure worth knowing about.
+After=chester-overnight.service chester-morning-anchor.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_monthly.sh
+
+# THE SECRETS, THROUGH THE LOADER. altdata.secrets reads this file itself, so the
+# narrative's key and FRED's resolve identically for the unit and for a human at a
+# prompt -- which is the fix E1 made after os.environ alone reported a key missing
+# for every run that was not the timer's. The leading `-` keeps the unit startable
+# on a box with no .env: a missing secret costs a feature, not the run.
+EnvironmentFile=-%h/chester-reports/.env
+
+# 0 built. 1 is NOT here: the Monthly's failure mode is an empty store, which should
+# show red.
+SuccessExitStatus=0
+
+# The FRED pull walks 59 series and the narrative is one call. Generous because a
+# first run after a long gap re-reads more history.
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# reports/ and snapshots/ both live inside the checkout (32.3), so the checkout is
+# writable. ~/state is permitted-if-present for the status and heartbeat files.
+ReadWritePaths=%h/logs -%h/state %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

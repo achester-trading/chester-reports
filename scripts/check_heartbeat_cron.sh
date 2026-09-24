@@ -630,46 +630,61 @@ else
     rm -f "$DRIFT_SINCE_FILE"
 fi
 
-# ---- the weekly anchor, DORMANT UNTIL ITS TIMER IS ENABLED ------------------
+# ---- the long-cadence anchors, DORMANT UNTIL THEIR TIMERS ARE ENABLED -------
 #
-# The Weekly Tactical writes ~/state/weekly_heartbeat on any run that produced a
-# report. A missed Sunday is invisible for a week at a time otherwise, which is long
-# enough for the learning loop to be broken without anybody noticing -- so it is
-# watched.
+# The Weekly Tactical and the Monthly each write a heartbeat on a run that produced a
+# report. A missed Sunday is invisible for a week and a missed 1st for a MONTH, which
+# is long enough for the learning loop, the scenario weights and the Brier ledger to
+# go unread without anybody noticing -- so both are watched.
 #
-# BUT IT IS NOT WATCHED BEFORE IT IS ENABLED. The unit ships written and not
-# enabled, per the standing rule that this process never enables a unit; a check
-# that alarmed on the absence of a heartbeat from a timer nobody has started would
-# be red from the day the code landed until the day it was turned on, and an alarm
-# that is red for a week before it means anything is an alarm that gets muted. So
-# the gate is `systemctl --user is-enabled`, and while the answer is anything but
-# `enabled` this reports `not_enabled` and changes no verdict.
+# BUT NEITHER IS WATCHED BEFORE IT IS ENABLED. Both units ship written and not
+# enabled, per the standing rule that this process never enables a unit; a check that
+# alarmed on the absence of a heartbeat from a timer nobody has started would be red
+# from the day the code landed until the day it was turned on, and an alarm that is
+# red for a week before it means anything is an alarm that gets muted. So the gate is
+# `systemctl --user is-enabled`, and while the answer is anything but `enabled` the
+# check reports `not_enabled` and changes no verdict.
 #
-# It never changes the exit code either way. A weekly that has not run is a report
-# to re-run by hand -- `scripts/run_weekly.sh` regenerates any past week from the
-# store -- and not a capture that was lost, which is the distinction that decides
-# whether something here is allowed to turn the light red.
+# ONE LOOP OVER A DECLARED TABLE rather than two copies of the logic: the second
+# anchor would have been the second place a rule about staleness lived.
+#
+# Neither ever changes the exit code. A report that has not run is a report to
+# re-run by hand -- both wrappers regenerate any past period from the store -- and
+# not a capture that was lost, which is the distinction that decides whether
+# something here may turn the light red.
+#
+# The allowances carry one period of slack each: nine days for a weekly (a Sunday the
+# box was down plus the Persistent=true catch-up that follows), and forty days for a
+# monthly.
+ANCHOR_TABLE="chester-weekly.timer:weekly_heartbeat:216:weekly
+chester-monthly.timer:monthly_heartbeat:960:monthly"
+
 WEEKLY_STATE=not_enabled
-WEEKLY_AGE_H=""
-if systemctl --user is-enabled chester-weekly.timer >/dev/null 2>&1; then
-    WEEKLY_HB="$STATE_DIR/weekly_heartbeat"
-    if [[ -f "$WEEKLY_HB" ]]; then
-        WEEKLY_EPOCH=$(stat -c %Y "$WEEKLY_HB" 2>/dev/null || echo 0)
-        WEEKLY_AGE_H=$(( ( $(date +%s) - WEEKLY_EPOCH ) / 3600 ))
-        # NINE DAYS. A week plus the slack for a Sunday the box was down and the
-        # Persistent=true catch-up that follows it -- so a single late run does not
-        # warn while a skipped week does.
-        if [[ "$WEEKLY_AGE_H" -gt 216 ]]; then
-            WEEKLY_STATE=stale
-            log "  WARNING weekly: heartbeat is ${WEEKLY_AGE_H}h old (over 9 days) -- the Sunday anchor has not produced a report; re-run scripts/run_weekly.sh for the missed week. The verdict and exit code are untouched"
+MONTHLY_STATE=not_enabled
+while IFS=: read -r unit hb_file max_h label; do
+    [[ -z "$unit" ]] && continue
+    state=not_enabled
+    if systemctl --user is-enabled "$unit" >/dev/null 2>&1; then
+        hb="$STATE_DIR/$hb_file"
+        if [[ -f "$hb" ]]; then
+            epoch=$(stat -c %Y "$hb" 2>/dev/null || echo 0)
+            age_h=$(( ( $(date +%s) - epoch ) / 3600 ))
+            if [[ "$age_h" -gt "$max_h" ]]; then
+                state=stale
+                log "  WARNING $label: heartbeat is ${age_h}h old (allowance ${max_h}h) -- the anchor has not produced a report; re-run its wrapper for the missed period. The verdict and exit code are untouched"
+            else
+                state=fresh
+            fi
         else
-            WEEKLY_STATE=fresh
+            state=never_run
+            log "  WARNING $label: the timer is enabled and no $hb_file exists -- this anchor has never produced a report on this box"
         fi
-    else
-        WEEKLY_STATE=never_run
-        log "  WARNING weekly: the timer is enabled and no weekly_heartbeat exists -- the Sunday anchor has never produced a report on this box"
     fi
-fi
+    case "$label" in
+        weekly)  WEEKLY_STATE="$state" ;;
+        monthly) MONTHLY_STATE="$state" ;;
+    esac
+done <<< "$ANCHOR_TABLE"
 
 # ---- the claims registry's review dates ------------------------------------
 #
@@ -700,15 +715,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

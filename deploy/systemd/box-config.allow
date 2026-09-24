@@ -98,6 +98,17 @@ chester-ibkr-sync.service     Environment
 chester-backup.service        Environment
 chester-auction.service       Environment
 
+# THE TWO LONG-CADENCE ANCHORS, for a harder reason than the other nine: their
+# wrappers REFUSE to run without the variable. run_weekly.sh and run_monthly.sh
+# exit 1 when CHESTER_STATE_DIR is unset rather than taking a default, because a
+# status file written where nobody reads it is a report that looks missing -- so
+# for these two the drop-in is not a preference about where state lives, it is the
+# difference between a report and exit 1. Declared here so that the drop-in they
+# require is not also drift; both units ship DISABLED and the drop-in goes on with
+# the enable.
+chester-weekly.service        Environment
+chester-monthly.service       Environment
+
 # The gateway watchdog is not a chester-* unit and is declared for the same one
 # reason: it writes ibgateway_health and its own lock into the state directory, and
 # a watchdog whose state lands somewhere the operator does not look is a watchdog

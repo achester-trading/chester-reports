@@ -1,0 +1,31 @@
+[Unit]
+Description=Monthly Regime & Allocation on the 1st at 07:30 ET
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# THE 1st AT 07:30 ET. Zone-pinned like every unit here: the box runs UTC, 07:30 ET
+# is 11:30 or 12:30 UTC depending on the date, and a UTC literal would drift an hour
+# twice a year.
+#
+# 07:30 and not earlier, because of what has to have happened first: the 06:45
+# overnight pass refreshes prices and FRED, and the 07:00 anchor reads the object.
+# Forty-five minutes after the pull and thirty after the anchor is comfortably clear
+# of both on a box where the overnight pass takes minutes.
+#
+# THE 1st, whatever day it lands on. The report reads stored data and computes
+# nothing from a live session, so a Sunday the 1st is as good as a Tuesday -- and
+# waiting for the first business day would mean the report's date and the month it
+# describes could disagree.
+OnCalendar=*-*-01 07:30 America/New_York
+
+# Wider than the daily reports': nothing else runs at this minute, and the run makes
+# outbound calls that are politer for not starting on the same second every month.
+RandomizedDelaySec=600
+
+# Persistent=TRUE, for the weekly's reason and more so. An anchor that arrives on the
+# 2nd because the box was down on the 1st is still the month's anchor; the month has
+# barely started. The alternative is no Monthly at all, which is strictly worse.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

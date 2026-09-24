@@ -3,25 +3,30 @@
 name: Monthly Macro Report
 
 on:
-  # 06:00 UTC on the 1st. This replaces cron-job.org, which fired the same
-  # schedule through the dispatch API using a PAT that needed renewing in April
-  # 2027. GitHub's own scheduler removes the third party, the token and the
-  # calendar item at once.
+  # THE SCHEDULE IS GONE, AND THE BOX IS THE SCHEDULER (Phase 4b piece 4).
   #
-  # PROVE, THEN RETIRE. Do not delete the external job until one run has fired
-  # from here -- the workflow had `workflow_dispatch` and no `schedule` for its
-  # whole life, so this line has never been exercised.
+  # This workflow briefly held `schedule: 0 6 1 * *` as the replacement for
+  # cron-job.org. Both are now retired in favour of chester-monthly.timer, which
+  # fires on the 1st at 07:30 America/New_York -- and the move is not about
+  # tidiness:
   #
-  # The 60-day inactivity rule that disables scheduled workflows is not a risk
-  # here: registry-check.yml runs on every push, so the repository is never
-  # idle for 60 days while this one is expected to fire.
+  #   THE STORE IS ON THE BOX. A runner starts with an empty checkout, so a
+  #   scheduled run here would pull 59 FRED series from scratch and compute a
+  #   report with no market-state object, no register, no grades and no
+  #   probability ledger -- every one of which lives in data/chester.db, which is
+  #   gitignored. The six-section Monthly would print five absences.
   #
-  # UTC, because GitHub's cron has no timezone. 06:00 UTC is 01:00 or 02:00 ET
-  # depending on DST -- an hour of drift twice a year, which is immaterial for
-  # a monthly report and is the reason this is not worth working around.
-  schedule:
-    - cron: "0 6 1 * *"
-
+  #   THE ZONE IS REAL NOW. GitHub's cron has no timezone and 06:00 UTC drifts an
+  #   hour twice a year; the report fires forty-five minutes after the 06:45 ET
+  #   overnight pass and thirty after the 07:00 anchor, and those offsets only hold
+  #   if all three are pinned to the same zone.
+  #
+  # WHAT THIS WORKFLOW IS FOR NOW: a manual fallback. `workflow_dispatch` stays so
+  # a report can be produced from CI when the box is unreachable -- with the
+  # absences that implies, honestly rendered rather than hidden.
+  #
+  # cron-job.org is deleted by the operator on 30 September 2026; see the status
+  # ledger in docs/chester-reports-audit-3.md.
   workflow_dispatch:
 
 permissions:

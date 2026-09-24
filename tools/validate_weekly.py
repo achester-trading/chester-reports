@@ -249,10 +249,15 @@ def group_e() -> None:
           "itself" + (f" -- found {called}" if called else ""))
 
     hb = (REPO / "scripts" / "check_heartbeat_cron.sh").read_text(encoding="utf-8")
-    check("is-enabled chester-weekly.timer" in hb,
-          "the heartbeat's weekly check is gated on the timer being ENABLED -- an "
-          "alarm red for a week before it means anything is an alarm that gets "
-          "muted")
+    # THE CHECK IS A LOOP OVER A DECLARED TABLE now that the Monthly joined it, so
+    # the assertion is on the table and the gate rather than on a literal command:
+    # two copies of a staleness rule would be two places for it to drift.
+    check('is-enabled "$unit"' in hb and "ANCHOR_TABLE" in hb,
+          "the heartbeat gates its anchors on the timer being ENABLED, from one "
+          "declared table -- an alarm red for a week before it means anything is an "
+          "alarm that gets muted")
+    check("chester-weekly.timer:weekly_heartbeat" in hb,
+          "and the weekly is in that table with its heartbeat file")
     check("WEEKLY_STATE=not_enabled" in hb,
           "and reports not_enabled until then")
     check("weekly=$WEEKLY_STATE" in hb,
