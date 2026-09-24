@@ -1,0 +1,217 @@
+# pillars.yaml -- the eleven macro pillars, SUBORDINATE to the three dials.
+#
+# -----------------------------------------------------------------------------
+# WHAT THIS FILE SETTLES
+# -----------------------------------------------------------------------------
+# Audit #3 §G names the defect precisely: "the pillars were designed before the
+# dials; the dials were designed in the Doctrine without revisiting the pillars --
+# 11 inputs, 3 outputs, no stated mapping." The Monthly printed eleven peer scores
+# and the regime lived nowhere, so a reader had eleven readings and no answer.
+#
+# The ruling (§N item 8, §O item 8): pillars are INPUTS, dials are the REGIME.
+# State which pillars feed which dial and at what weight, and stop printing eleven
+# scores. This file is that statement.
+#
+# -----------------------------------------------------------------------------
+# NO PILLAR COMPUTES A REGIME OF ITS OWN
+# -----------------------------------------------------------------------------
+# A pillar has no `state` field here and never will. Where a pillar's metrics are
+# already a dimension of the market-state object, the pillar declares
+# `from_object` and the Monthly READS that dimension -- it does not recompute a
+# reading from the same series under another name. Two readings of one mechanism
+# is how the Monthly and the close report come to disagree about the same week,
+# and `regime.py` is the only writer of a state in this system.
+#
+# Where a pillar has metrics and NO dimension covers them, it declares
+# `from_object: null` with a reason. That is a gap in the object, recorded here,
+# and it is not a licence for the Monthly to fill it.
+#
+# -----------------------------------------------------------------------------
+# WEIGHTS
+# -----------------------------------------------------------------------------
+# `weight` is a pillar's share of the dial it feeds, and the shares of each dial
+# sum to 1.0 -- asserted by tools/validate_monthly.py rather than trusted. A
+# weight is a declaration of how much a reader should let a pillar move their
+# view of that dial; it is NOT an input to any arithmetic, because the dial is
+# computed by regime.py from its own declared rules and has no idea this file
+# exists. Writing them down is what makes the Monthly's layout arguable.
+#
+# THE GAMMA DIAL HAS NO PILLAR INPUTS, and that is a finding rather than an
+# omission. Gamma is dealer positioning read from the option chain; no macro
+# series bears on it, and a pillar mapped to it would be a decoration. Stated
+# here so the absence is visible in the mapping instead of looking like a
+# forgotten row.
+
+version: pillars-v1
+schema_source: docs/chester-reports-audit-3.md section G, N item 8, O item 8
+
+dials:
+  macro:
+    description: >-
+      Growth and inflation together, as the Doctrine's Macro dial. Six pillars
+      feed it and the two that dominate are the two the dial's own rules read.
+    object_dimensions: [growth, inflation, rates, liquidity]
+  vol:
+    description: >-
+      The volatility regime. Two pillars feed it; the dial itself is banded on
+      the VIX level with a realized/implied leg and a term-structure leg.
+    object_dimensions: [volatility, credit]
+  gamma:
+    description: >-
+      Dealer positioning from the option chain. NO PILLAR FEEDS IT -- see the
+      header. The dial is read from the exposure engine's own surface.
+    object_dimensions: []
+
+pillars:
+
+  "1":
+    name: Labor Market Vitality
+    dial: macro
+    weight: 0.25
+    from_object: growth
+    metrics: [fred.claims_4wk, fred.unemployment, fred.payems,
+              fred.avg_wkly_hours, fred.job_openings, fred.quits_rate]
+    note: >-
+      The largest macro weight, because the growth dimension's own primary is
+      initial claims: this pillar and that dimension are largely the same
+      measurement, which is exactly why it reads the dimension rather than
+      recomputing one.
+
+  "2":
+    name: Macroeconomic Momentum
+    dial: macro
+    weight: 0.2
+    from_object: growth
+    metrics: [fred.housing_permits, fred.housing_starts, fred.indpro,
+              fred.retail_sales, fred.durable_goods, fred.yield_curve_2s10s]
+    note: >-
+      Shares the growth dimension with pillar 1 and carries the curve, which the
+      rates dimension also reads. Two pillars on one dimension is not double
+      counting here because neither computes a state -- they are two views a
+      reader brings to the dial.
+
+  "3":
+    name: Systemic Liquidity
+    dial: macro
+    weight: 0.2
+    from_object: liquidity
+    metrics: [fred.nfci, fred.m2, fred.fed_balance, fred.rrp, fred.tga,
+              fred.sofr, fred.reserves]
+    note: >-
+      Net liquidity is the derived series here, and its unit trap is documented
+      in CLAUDE.md: WALCL is in millions while RRP and TGA are in billions.
+
+  "4":
+    name: Inflation Dynamics
+    dial: macro
+    weight: 0.2
+    from_object: inflation
+    metrics: [fred.cpi, fred.core_cpi, fred.pce, fred.core_pce,
+              fred.sticky_core, fred.breakeven_10y, fred.breakeven_5y5y,
+              fred.wti]
+    note: The inflation dimension's own primary is the 10-year breakeven.
+
+  "5":
+    name: Investor Sentiment & Positioning
+    dial: vol
+    weight: 0.4
+    from_object: volatility
+    metrics: [fred.vix, yfinance.mkt_vix, calc.vol_spy_realized_20d]
+    note: >-
+      The pillar's original sources -- BofA Bull & Bear, NAAIM, 13F -- have no
+      fetcher and are not in the store. What it can read is the volatility
+      dimension, which is implied and realized volatility; the positioning half
+      of this pillar's name is not sourced and says so below.
+    not_yet_sourced:
+      - what: survey and positioning sentiment
+        needs: [BofA Bull & Bear, NAAIM exposure index, 13F aggregation]
+        why: >-
+          none has a fetcher, and a sentiment pillar built from the VIX alone is
+          a volatility reading wearing a positioning label
+
+  "6":
+    name: Valuation & Credit Spreads
+    dial: vol
+    weight: 0.6
+    from_object: credit
+    metrics: [fred.hy_oas, fred.ig_oas, fred.bb_oas, fred.ccc_oas]
+    note: >-
+      The larger vol weight, because credit leads equities at turns and the
+      credit dimension is the one this system can actually measure. Valuation --
+      CAPE, forward P/E -- is the unsourced half.
+    not_yet_sourced:
+      - what: valuation multiples
+        needs: [CAPE, index forward P/E]
+        why: >-
+          yfinance serves forward estimates for single names and not for index
+          wrappers (see altdata/loggers/consensus.py), so an index forward P/E
+          needs a holdings-weighted build or a vendor
+
+  "7":
+    name: Global Interconnectivity
+    dial: macro
+    weight: 0.1
+    from_object: rates
+    metrics: [fred.dxy, fred.yield_10y, fred.yield_30y, fred.usdjpy,
+              fred.usdcny, yfinance.mkt_efa, yfinance.mkt_eem]
+    note: >-
+      Reads the rates dimension, which is the transmission channel this pillar
+      actually moves through. The FX half has no dimension, and the object is
+      the place to add one if it earns it -- not this report.
+
+  "8":
+    name: Sovereign Health & Debt Cycle
+    dial: macro
+    weight: 0.05
+    from_object: null
+    from_object_absent_reason: >-
+      no dimension covers debt sustainability. 31.2 rules that the observables
+      belong together as one mechanism state -- `regime.debt_cycle_state`, a D2
+      output with two branches -- and until that exists this pillar has metrics
+      and no dimension. The Monthly prints its series and does NOT infer a state.
+    metrics: [fred.debt_gdp, fred.net_interest_revenue, fred.r_vs_g]
+
+  "9":
+    name: Banking System Health
+    dial: vol
+    weight: 0.0
+    from_object: credit
+    metrics: []
+    note: >-
+      Weight zero, deliberately: the pillar has no metrics in the store at all.
+      Zero is the honest weight for a pillar that cannot yet move a view, and it
+      keeps the row visible instead of deleting a gap.
+    not_yet_sourced:
+      - what: bank and private-credit stress
+        needs: [SLOOS lending standards, private-credit marks,
+                bank deposit and reserve series]
+        why: >-
+          the 2008 and 2023 mechanisms both ran through this pillar and none of
+          it is fetched today
+
+  "10":
+    name: Commentary & Narrative Flow
+    dial: null
+    weight: 0.0
+    from_object: null
+    from_object_absent_reason: >-
+      it is not a measurement. A desk-commentary roster feeds no dial, and giving
+      it one would let prose move a regime.
+    metrics: []
+    note: >-
+      Retained as a pillar number because the report's history uses it, and
+      because deleting a row is how a reader loses track of what was dropped.
+
+  "11":
+    name: Thailand / THB
+    dial: null
+    weight: 0.0
+    from_object: null
+    status: relocated
+    relocated_to: docs/thailand-monitor-spec.md
+    from_object_absent_reason: >-
+      RELOCATED by architecture Session 12.5: personal-finance decision support
+      sitting inside a regime input. It becomes a standalone quarterly report
+      (6m), isolated from the dials and the register. Kept here so the eleventh
+      pillar resolves to where it went rather than to nothing.
+    metrics: []
