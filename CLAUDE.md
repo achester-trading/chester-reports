@@ -112,20 +112,16 @@ altdata/                  Shared ingestion package — used by every report
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
     yfinance_source.py    27 market symbols -> store keys prefixed mkt_
+  market_features.py      calc.* series: breadth, trend, realized vol — and the
+                          macro transforms that were monthly_macro/compute.py
+                          (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
+                          Computed from the OBSERVATION store, one pass after
+                          every price fetch. A row's available_at is the MAXIMUM
+                          across its inputs' — a feature is never knowable before
+                          the data it is made of
 
 monthly_macro/            The one built report
   run.py                  Entry point: python -m monthly_macro.run
-  compute.py              Derived metrics (Sahm, YoY, 2s10s, r-vs-g, net
-                          liquidity). Never raises — missing input returns
-                          {value: None, inputs: {...}, as_of: None}.
-                          **UNCONSUMED since Phase 4b**: its only caller was
-                          writer/render_md.py, deleted with the ten pillar pages,
-                          and the new payload reads the observation store while
-                          this reads the CSV Store. Kept, not deleted — these five
-                          are real metrics and fed_net_liquidity carries the unit
-                          normalisation the Gotchas section names. Whether they
-                          return as a derived block under the macro dial or go is
-                          an open decision, not an oversight
   snapshot.py             Writes snapshots/<report_date>.json each run; compares
                           against the newest snapshot strictly BEFORE today so a
                           same-day re-run still compares to last month
@@ -360,6 +356,8 @@ regardless of what else it does.
 ### 2. Gotchas
 
 **Unit mismatch in net liquidity — and the unit this file itself had wrong.**
+(Resolved 24 September 2026; kept here because the trap is generic and the next
+series to hit it will not be net liquidity.)
 `WALCL` (`fed_balance`) **and `WTREGEN` (`tga`) are both in millions**; only
 `RRPONTSYD` (`rrp`) is in billions. This paragraph said TGA was billions, and so
 did `altdata/config.py`'s units field, and so did
@@ -371,11 +369,17 @@ absurd reads as a bug in the report rather than in the number.
 
 The metric now lives at `calc.net_liquidity` in `altdata/market_features.py`, in
 **dollars**, normalised leg by leg — `fed_balance × 1e6`, `rrp × 1e9`,
-`tga × 1e6` — and `tools/validate_regime.py` group I asserts both that the result
-is inside `NET_LIQUIDITY_BAND` and that the un-normalised subtraction falls
-outside it, so the guard is shown to fire rather than assumed to. Re-check the
-unit of every new series against FRED's own page, not against a neighbouring
-line in `config.py`: that is how this one was copied.
+`tga × 1e6` — and it reads **$5.87tn** as of 27 May 2026.
+`tools/validate_regime.py` group I asserts both that the result is inside
+`NET_LIQUIDITY_BAND` and that the un-normalised subtraction falls outside it, so
+the guard is shown to fire rather than assumed to. `monthly_macro/compute.py` is
+deleted; the liquidity dimension reads this series as its **primary**.
+
+Re-check the unit of every new series against FRED's own page, not against a
+neighbouring line in `config.py`: that is how this one was copied. And note what
+made it survivable — one report's private arithmetic, checkable against nothing.
+A figure in the registry has a percentile, a band and a gate; a figure inside a
+renderer has a reader's credulity.
 
 **FRED deprecates series silently.** Roughly one to two of the configured series
 per year stop updating or disappear without notice, and the API returns an empty

@@ -32,16 +32,17 @@ both are cheap next to what they block:
       carried the markers -- is deleted with them. `tools/validate_monthly.py`
       group E fails if any module under `monthly_macro/` builds, writes or
       classifies a regime.
-- [ ] **Decide what happens to `monthly_macro/compute.py`.** Its five derived
-      metrics -- Sahm, YoY, 2s10s, r-vs-g, net liquidity -- lost their only
-      consumer when `render_md.py` went, so the Monthly no longer prints any of
-      them. They are worth having: net liquidity and 2s10s bear directly on the
-      macro dial, and `fed_net_liquidity` holds the millions/billions
-      normalisation that silently produces a plausible number three orders of
-      magnitude wrong if anybody re-derives it. The work is an adapter: it reads
-      the CSV `Store` and the payload reads the observation store. Either a
-      derived block under the macro dial, or a decision to drop them on the
-      record.
+- [x] **Decide what happens to `monthly_macro/compute.py`.** Done 24 Sep 2026
+      (operator's ruling: these are derived macro series the object owns, not one
+      report's private arithmetic). Fifteen `calc.*` metrics in
+      `altdata/market_features.py`, computed from the observation store with no
+      adapter; liquidity reads `calc.net_liquidity` as its PRIMARY, rates supports
+      on `calc.yield_curve_2s10s`, growth on `calc.sahm_rule`; config v1.8,
+      method-6; the Monthly's appendix prints all fifteen with the dimension each
+      one feeds. compute.py is deleted, after a reconciliation showing nine series
+      reproduce it within 0.01 and the three that do not differ ONLY by a named
+      correction -- the TGA unit, the Sahm definition and the r-vs-g vintage
+      pairing, all three of them defects it had been carrying.
 
 ## Probe verdict, 4 Sep 2026
 
