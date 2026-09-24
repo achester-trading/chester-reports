@@ -1,0 +1,1460 @@
+{
+  "alternative_assets": {
+    "families": {
+      "digital": {
+        "metrics": [
+          {
+            "absent_reason": null,
+            "confidence": "low",
+            "delta_20d": 1.8,
+            "delta_unit": "percent",
+            "level": 80453.03,
+            "metric": "yfinance.mkt_btc_usd",
+            "observed_at": "2026-09-20",
+            "percentile": 75.2
+          },
+          {
+            "absent_reason": "zec.price has no observation knowable at this cutoff",
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "level": null,
+            "metric": "zec.price",
+            "observed_at": null,
+            "percentile": null
+          },
+          {
+            "absent_reason": "zec.shielded_value_share has no observation knowable at this cutoff",
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "level": null,
+            "metric": "zec.shielded_value_share",
+            "observed_at": null,
+            "percentile": null
+          },
+          {
+            "absent_reason": "crypto.cap_share has no observation knowable at this cutoff",
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "level": null,
+            "metric": "crypto.cap_share",
+            "observed_at": null,
+            "percentile": null
+          }
+        ],
+        "note": "bitcoin from the price basket; the ZEC block from the 29.5 shielded-pool logger, including the shielded share of SUPPLY (not of transactions -- see that module)",
+        "state": "ok"
+      },
+      "energy": {
+        "metrics": [
+          {
+            "absent_reason": null,
+            "confidence": "low",
+            "delta_20d": 20.79,
+            "delta_unit": "percent",
+            "level": 153.82,
+            "metric": "yfinance.mkt_uso",
+            "observed_at": "2026-09-18",
+            "percentile": 99.5
+          },
+          {
+            "absent_reason": null,
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "level": 97.63,
+            "metric": "fred.wti",
+            "observed_at": "2026-05-26",
+            "percentile": 89.9
+          }
+        ],
+        "note": "the oil fund and WTI spot",
+        "state": "ok"
+      },
+      "metals": {
+        "metrics": [
+          {
+            "absent_reason": null,
+            "confidence": "low",
+            "delta_20d": -4.78,
+            "delta_unit": "percent",
+            "level": 401.17,
+            "metric": "yfinance.mkt_gld",
+            "observed_at": "2026-09-18",
+            "percentile": 89.9
+          },
+          {
+            "absent_reason": null,
+            "confidence": "low",
+            "delta_20d": -2.7,
+            "delta_unit": "percent",
+            "level": 59.93,
+            "metric": "yfinance.mkt_slv",
+            "observed_at": "2026-09-18",
+            "percentile": 89.4
+          }
+        ],
+        "note": "gold and silver funds; the store holds no spot metal",
+        "state": "ok"
+      },
+      "real_assets": {
+        "metrics": [],
+        "needs": [
+          "a REIT index series",
+          "a farmland or infrastructure proxy"
+        ],
+        "note": null,
+        "state": "not_yet_sourced",
+        "why": "the chain-capture universe holds no REIT and the store no real-asset series, so this family is named and empty rather than quietly missing"
+      }
+    },
+    "note": "A SECTION, NOT A REPORT. The Alternative Asset report is not produced by any pipeline here -- altdata/report/ is vendored content, nothing schedules it -- so this reads the store directly and says which families it cannot reach",
+    "state": "ok"
+  },
+  "appendix": {
+    "note": "The old report's ten pillar pages, condensed to one delta row per series. A level says where a series is; the change says what it did, and the change is in the metric's OWN unit -- basis points for a spread, percent for a price, raw for a count -- taken from the registry rather than from one formula",
+    "pillars": {
+      "1": {
+        "dial": "macro",
+        "name": "Labor Market Vitality",
+        "reads_dimension": "growth",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Avg weekly hours, private",
+            "extreme": false,
+            "level": 34.3,
+            "metric": "fred.avg_wkly_hours",
+            "observed_at": "2026-04-01",
+            "percentile": 57.1,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Initial claims, 4-week avg",
+            "extreme": false,
+            "level": 209000.0,
+            "metric": "fred.claims_4wk",
+            "observed_at": "2026-05-23",
+            "percentile": 15.0,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Employment-population ratio",
+            "extreme": true,
+            "level": 59.1,
+            "metric": "fred.emp_pop_ratio",
+            "observed_at": "2026-04-01",
+            "percentile": 2.1,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Hires level, total (JOLTS)",
+            "extreme": false,
+            "level": 5554.0,
+            "metric": "fred.hires_total",
+            "observed_at": "2026-03-01",
+            "percentile": 54.2,
+            "staleness_sessions": 144
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Job openings, total (JOLTS)",
+            "extreme": false,
+            "level": 6866.0,
+            "metric": "fred.job_openings",
+            "observed_at": "2026-03-01",
+            "percentile": 6.2,
+            "staleness_sessions": 144
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Layoffs & discharges (JOLTS)",
+            "extreme": true,
+            "level": 1867.0,
+            "metric": "fred.layoffs",
+            "observed_at": "2026-03-01",
+            "percentile": 95.8,
+            "staleness_sessions": 144
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Labor force participation rate",
+            "extreme": true,
+            "level": 61.8,
+            "metric": "fred.lfp_rate",
+            "observed_at": "2026-04-01",
+            "percentile": 2.1,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Unemployed 27+ weeks",
+            "extreme": false,
+            "level": 1833.0,
+            "metric": "fred.lt_unemp",
+            "observed_at": "2026-04-01",
+            "percentile": 91.7,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Nonfarm payrolls, total",
+            "extreme": true,
+            "level": 158736.0,
+            "metric": "fred.nfp",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Quits rate (JOLTS)",
+            "extreme": false,
+            "level": 2.0,
+            "metric": "fred.quits_rate",
+            "observed_at": "2026-03-01",
+            "percentile": 33.3,
+            "staleness_sessions": 144
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Unemployment rate (U-3)",
+            "extreme": false,
+            "level": 4.3,
+            "metric": "fred.u3_rate",
+            "observed_at": "2026-04-01",
+            "percentile": 91.7,
+            "staleness_sessions": 121
+          }
+        ],
+        "series_count": 11,
+        "stale_count": 0,
+        "weight": 0.25
+      },
+      "2": {
+        "dial": "macro",
+        "name": "Macroeconomic Momentum",
+        "reads_dimension": "growth",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Avg hourly earnings, private",
+            "extreme": true,
+            "level": 37.41,
+            "metric": "fred.ahe_yoy",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Auto loan delinquency, 30+ days",
+            "extreme": false,
+            "level": 1.49,
+            "metric": "fred.auto_delinq",
+            "observed_at": "2026-01-01",
+            "percentile": 75.0,
+            "staleness_sessions": 183
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Credit card charge-off rate",
+            "extreme": false,
+            "level": 3.84,
+            "metric": "fred.cc_chargeoff",
+            "observed_at": "2026-01-01",
+            "percentile": 43.8,
+            "staleness_sessions": 183
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Credit card delinquency, 30+ days",
+            "extreme": false,
+            "level": 2.92,
+            "metric": "fred.cc_delinq_30",
+            "observed_at": "2026-01-01",
+            "percentile": 37.5,
+            "staleness_sessions": 183
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Existing home sales",
+            "extreme": false,
+            "level": 4020000.0,
+            "metric": "fred.existing_homes",
+            "observed_at": "2026-04-01",
+            "percentile": 38.5,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Building permits, total",
+            "extreme": false,
+            "level": 1423.0,
+            "metric": "fred.housing_permits",
+            "observed_at": "2026-04-01",
+            "percentile": 26.5,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Housing starts, total",
+            "extreme": false,
+            "level": 1465.0,
+            "metric": "fred.housing_starts",
+            "observed_at": "2026-04-01",
+            "percentile": 75.5,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Housing starts, single-family",
+            "extreme": false,
+            "level": 930.0,
+            "metric": "fred.housing_starts_sf",
+            "observed_at": "2026-04-01",
+            "percentile": 38.8,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "30-year mortgage rate",
+            "extreme": false,
+            "level": 6.53,
+            "metric": "fred.mortgage_30y",
+            "observed_at": "2026-05-28",
+            "percentile": 44.2,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Mortgage delinquency rate (1-4 family)",
+            "extreme": false,
+            "level": 1.89,
+            "metric": "fred.mortgage_delinq",
+            "observed_at": "2026-01-01",
+            "percentile": 93.8,
+            "staleness_sessions": 183
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "New home sales, single-family",
+            "extreme": false,
+            "level": 622.0,
+            "metric": "fred.new_homes",
+            "observed_at": "2026-04-01",
+            "percentile": 22.4,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Real GDP",
+            "extreme": true,
+            "level": 24152.66,
+            "metric": "fred.real_gdp",
+            "observed_at": "2026-01-01",
+            "percentile": 100.0,
+            "staleness_sessions": 183
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Household debt, total",
+            "extreme": true,
+            "level": 20934549.0,
+            "metric": "fred.total_hh_debt",
+            "observed_at": "2025-10-01",
+            "percentile": 100.0,
+            "staleness_sessions": 248
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "10-year Treasury yield",
+            "extreme": false,
+            "level": 4.45,
+            "metric": "fred.yield_10y",
+            "observed_at": "2026-05-28",
+            "percentile": 86.4,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "2-year Treasury yield",
+            "extreme": false,
+            "level": 3.99,
+            "metric": "fred.yield_2y",
+            "observed_at": "2026-05-28",
+            "percentile": 45.4,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "30-year Treasury yield",
+            "extreme": true,
+            "level": 4.98,
+            "metric": "fred.yield_30y",
+            "observed_at": "2026-05-28",
+            "percentile": 97.2,
+            "staleness_sessions": 82
+          }
+        ],
+        "series_count": 16,
+        "stale_count": 0,
+        "weight": 0.2
+      },
+      "3": {
+        "dial": "macro",
+        "name": "Systemic Liquidity",
+        "reads_dimension": "liquidity",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Bank reserves at Fed",
+            "extreme": false,
+            "level": 3066560.0,
+            "metric": "fred.bank_reserves",
+            "observed_at": "2026-05-27",
+            "percentile": 21.0,
+            "staleness_sessions": 83
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Fed balance sheet, total assets",
+            "extreme": false,
+            "level": 6704383.0,
+            "metric": "fred.fed_balance",
+            "observed_at": "2026-05-27",
+            "percentile": 22.9,
+            "staleness_sessions": 83
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "M2 money stock",
+            "extreme": true,
+            "level": 22804.5,
+            "metric": "fred.m2",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Chicago Fed NFCI",
+            "extreme": false,
+            "level": -0.51,
+            "metric": "fred.nfci",
+            "observed_at": "2026-05-22",
+            "percentile": 15.4,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "NFCI leverage subindex",
+            "extreme": false,
+            "level": 0.36,
+            "metric": "fred.nfci_lev",
+            "observed_at": "2026-05-22",
+            "percentile": 92.1,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Overnight reverse repo",
+            "extreme": false,
+            "level": 11.68,
+            "metric": "fred.rrp",
+            "observed_at": "2026-05-29",
+            "percentile": 14.4,
+            "staleness_sessions": 81
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Treasury General Account balance",
+            "extreme": false,
+            "level": 830296.0,
+            "metric": "fred.tga",
+            "observed_at": "2026-05-27",
+            "percentile": 81.8,
+            "staleness_sessions": 83
+          }
+        ],
+        "series_count": 7,
+        "stale_count": 0,
+        "weight": 0.2
+      },
+      "4": {
+        "dial": "macro",
+        "name": "Inflation Dynamics",
+        "reads_dimension": "inflation",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "10-year breakeven inflation",
+            "extreme": false,
+            "level": 2.38,
+            "metric": "fred.breakeven_10y",
+            "observed_at": "2026-05-29",
+            "percentile": 77.1,
+            "staleness_sessions": 81
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "5y5y forward inflation expectation",
+            "extreme": false,
+            "level": 2.24,
+            "metric": "fred.breakeven_5y5y",
+            "observed_at": "2026-05-29",
+            "percentile": 36.5,
+            "staleness_sessions": 81
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Brent crude oil",
+            "extreme": false,
+            "level": 102.75,
+            "metric": "fred.brent",
+            "observed_at": "2026-05-26",
+            "percentile": 88.4,
+            "staleness_sessions": 84
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Core CPI (ex food/energy)",
+            "extreme": true,
+            "level": 335.42,
+            "metric": "fred.core_cpi",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Core PCE",
+            "extreme": true,
+            "level": 129.63,
+            "metric": "fred.core_pce",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "CPI, all items",
+            "extreme": true,
+            "level": 332.41,
+            "metric": "fred.cpi",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Flexible CPI, 1-mo ann",
+            "extreme": false,
+            "level": 1.36,
+            "metric": "fred.flex_cpi",
+            "observed_at": "2026-04-01",
+            "percentile": 93.9,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Natural gas, Henry Hub",
+            "extreme": false,
+            "level": 3.1,
+            "metric": "fred.natgas",
+            "observed_at": "2026-05-26",
+            "percentile": 59.5,
+            "staleness_sessions": 84
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "PCE price index",
+            "extreme": true,
+            "level": 130.9,
+            "metric": "fred.pce",
+            "observed_at": "2026-04-01",
+            "percentile": 100.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Sticky Core CPI, 1-mo ann",
+            "extreme": false,
+            "level": 0.39,
+            "metric": "fred.sticky_core",
+            "observed_at": "2026-04-01",
+            "percentile": 67.3,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Sticky CPI, 1-mo annualized",
+            "extreme": false,
+            "level": 0.38,
+            "metric": "fred.sticky_cpi",
+            "observed_at": "2026-04-01",
+            "percentile": 67.3,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "WTI crude oil",
+            "extreme": false,
+            "level": 97.63,
+            "metric": "fred.wti",
+            "observed_at": "2026-05-26",
+            "percentile": 89.9,
+            "staleness_sessions": 84
+          }
+        ],
+        "series_count": 12,
+        "stale_count": 0,
+        "weight": 0.2
+      },
+      "5": {
+        "dial": "vol",
+        "name": "Investor Sentiment & Positioning",
+        "reads_dimension": "volatility",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "U Michigan consumer sentiment",
+            "extreme": true,
+            "level": 49.8,
+            "metric": "fred.uoM_sent",
+            "observed_at": "2026-04-01",
+            "percentile": 2.0,
+            "staleness_sessions": 121
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "VIX",
+            "extreme": false,
+            "level": 15.74,
+            "metric": "fred.vix",
+            "observed_at": "2026-05-28",
+            "percentile": 31.6,
+            "staleness_sessions": 82
+          }
+        ],
+        "series_count": 2,
+        "stale_count": 0,
+        "weight": 0.4
+      },
+      "6": {
+        "dial": "vol",
+        "name": "Valuation & Credit Spreads",
+        "reads_dimension": "credit",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "BB OAS",
+            "extreme": true,
+            "level": 1.61,
+            "metric": "fred.bb_oas",
+            "observed_at": "2026-05-28",
+            "percentile": 3.9,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "CCC & lower OAS",
+            "extreme": false,
+            "level": 9.35,
+            "metric": "fred.ccc_oas",
+            "observed_at": "2026-05-28",
+            "percentile": 72.5,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "HY corporate OAS",
+            "extreme": false,
+            "level": 2.72,
+            "metric": "fred.hy_oas",
+            "observed_at": "2026-05-28",
+            "percentile": 8.8,
+            "staleness_sessions": 82
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "IG corporate OAS",
+            "extreme": true,
+            "level": 0.73,
+            "metric": "fred.ig_oas",
+            "observed_at": "2026-05-28",
+            "percentile": 0.6,
+            "staleness_sessions": 82
+          }
+        ],
+        "series_count": 4,
+        "stale_count": 0,
+        "weight": 0.6
+      },
+      "7": {
+        "dial": "macro",
+        "name": "Global Interconnectivity",
+        "reads_dimension": "rates",
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "Broad Dollar Index (DTWEXBGS, FRB)",
+            "extreme": false,
+            "level": 119.29,
+            "metric": "fred.dxy",
+            "observed_at": "2026-05-22",
+            "percentile": 14.7,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "CNY/USD exchange rate",
+            "extreme": false,
+            "level": 6.79,
+            "metric": "fred.usd_cny",
+            "observed_at": "2026-05-22",
+            "percentile": 10.8,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "USD/EUR exchange rate",
+            "extreme": false,
+            "level": 1.16,
+            "metric": "fred.usd_eur",
+            "observed_at": "2026-05-22",
+            "percentile": 82.6,
+            "staleness_sessions": 85
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "percent",
+            "description": "JPY/USD exchange rate",
+            "extreme": true,
+            "level": 159.2,
+            "metric": "fred.usd_jpy",
+            "observed_at": "2026-05-22",
+            "percentile": 96.7,
+            "staleness_sessions": 85
+          }
+        ],
+        "series_count": 4,
+        "stale_count": 0,
+        "weight": 0.1
+      },
+      "8": {
+        "dial": "macro",
+        "name": "Sovereign Health & Debt Cycle",
+        "reads_dimension": null,
+        "series": [
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Goods & services balance",
+            "extreme": false,
+            "level": -60307.0,
+            "metric": "fred.current_account",
+            "observed_at": "2026-03-01",
+            "percentile": 77.1,
+            "staleness_sessions": 144
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "bps",
+            "description": "Federal debt held by public / GDP",
+            "extreme": true,
+            "level": 122.57,
+            "metric": "fred.fed_debt_pct_gdp",
+            "observed_at": "2025-10-01",
+            "percentile": 100.0,
+            "staleness_sessions": 248
+          },
+          {
+            "confidence": "low",
+            "delta_20d": null,
+            "delta_unit": "raw",
+            "description": "Federal outlays",
+            "extreme": true,
+            "level": 7678.99,
+            "metric": "fred.fed_outlays",
+            "observed_at": "2026-01-01",
+            "percentile": 100.0,
+            "staleness_sessions": 183
+          }
+        ],
+        "series_count": 3,
+        "stale_count": 0,
+        "weight": 0.05
+      }
+    },
+    "pillars_declared": 11,
+    "pillars_without_series": [
+      {
+        "dial": "vol",
+        "name": "Banking System Health",
+        "pillar": "9",
+        "reason": "the 2008 and 2023 mechanisms both ran through this pillar and none of it is fetched today",
+        "weight": 0.0
+      },
+      {
+        "dial": null,
+        "name": "Commentary & Narrative Flow",
+        "pillar": "10",
+        "reason": "it is not a measurement. A desk-commentary roster feeds no dial, and giving it one would let prose move a regime.",
+        "weight": 0.0
+      },
+      {
+        "dial": null,
+        "name": "Thailand / THB",
+        "pillar": "11",
+        "reason": "relocated to docs/thailand-monitor-spec.md",
+        "weight": 0.0
+      }
+    ],
+    "series_total": 59,
+    "state": "ok"
+  },
+  "as_of": "2026-09-24T01:42:01.920475+00:00",
+  "generated_at": "2026-09-24T01:42:01+00:00",
+  "pillar_mapping_version": "pillars-v1",
+  "regime": {
+    "comparison": "the previous Monthly's session",
+    "config_version": "market-state-v1.7",
+    "contradictions": [
+      {
+        "absent_reason": null,
+        "exception": false,
+        "id": "price_vs_breadth",
+        "legs": [
+          "calc.spy_vs_252d_high",
+          "calc.breadth_sector_above_50d"
+        ],
+        "magnitude": 1.63,
+        "open_state": "closed",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": "fred.hy_oas last observed 2026-05-28, 81 sessions back against its own allowance of 2 x 3.0 = 6. A gap measured between stale prints is not a divergence today, and each leg is judged on its own cadence rather than one session count for a weekly series and a daily one",
+        "exception": null,
+        "id": "equities_vs_credit",
+        "legs": [
+          "yfinance.mkt_spy",
+          "fred.hy_oas"
+        ],
+        "magnitude": null,
+        "open_state": "absent",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": "fred.yield_30y last observed 2026-05-28, 81 sessions back against its own allowance of 2 x 3.0 = 6; fred.hy_oas last observed 2026-05-28, 81 sessions back against its own allowance of 2 x 3.0 = 6. A gap measured between stale prints is not a divergence today, and each leg is judged on its own cadence rather than one session count for a weekly series and a daily one",
+        "exception": null,
+        "id": "long_bond_vs_hy",
+        "legs": [
+          "fred.yield_30y",
+          "fred.hy_oas"
+        ],
+        "magnitude": null,
+        "open_state": "absent",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": null,
+        "exception": false,
+        "id": "implied_vs_realized_vol",
+        "legs": [
+          "yfinance.mkt_vix",
+          "calc.vol_spy_realized_20d"
+        ],
+        "magnitude": 0.07,
+        "open_state": "closed",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": "fred.claims_4wk last observed 2026-05-23, 84 sessions back against its own allowance of 8 x 3.0 = 24. A gap measured between stale prints is not a divergence today, and each leg is judged on its own cadence rather than one session count for a weekly series and a daily one",
+        "exception": null,
+        "id": "growth_vs_cyclicals",
+        "legs": [
+          "growth",
+          "calc.cyclical_over_defensive"
+        ],
+        "magnitude": null,
+        "open_state": "absent",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": null,
+        "exception": false,
+        "id": "gamma_vs_trend",
+        "legs": [
+          "dial.gamma",
+          "trend"
+        ],
+        "magnitude": null,
+        "open_state": "closed",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      },
+      {
+        "absent_reason": "RESERVED. Requires part_27_v1, which does not exist. The row is declared now so the table's shape is fixed and the pair cannot be forgotten when it does.",
+        "exception": null,
+        "id": "prediction_markets_vs_assets",
+        "legs": [
+          "pm.implied",
+          "trend"
+        ],
+        "magnitude": null,
+        "open_state": "absent",
+        "persistence_days": 0,
+        "since": null,
+        "threshold_z": 2.0
+      }
+    ],
+    "dials": [
+      {
+        "absent_reason": "the declared rules read ['growth', 'inflation'] and ['growth', 'inflation'] are absent; the catch-all rule is for readings that disagree, not for readings that do not exist",
+        "changed": false,
+        "confidence": null,
+        "dial": "macro",
+        "pillars": [
+          {
+            "absent_reason": null,
+            "name": "Labor Market Vitality",
+            "number": "1",
+            "reads_dimension": "growth",
+            "weight": 0.25
+          },
+          {
+            "absent_reason": null,
+            "name": "Macroeconomic Momentum",
+            "number": "2",
+            "reads_dimension": "growth",
+            "weight": 0.2
+          },
+          {
+            "absent_reason": null,
+            "name": "Systemic Liquidity",
+            "number": "3",
+            "reads_dimension": "liquidity",
+            "weight": 0.2
+          },
+          {
+            "absent_reason": null,
+            "name": "Inflation Dynamics",
+            "number": "4",
+            "reads_dimension": "inflation",
+            "weight": 0.2
+          },
+          {
+            "absent_reason": null,
+            "name": "Global Interconnectivity",
+            "number": "7",
+            "reads_dimension": "rates",
+            "weight": 0.1
+          },
+          {
+            "absent_reason": "no dimension covers debt sustainability. 31.2 rules that the observables belong together as one mechanism state -- `regime.debt_cycle_state`, a D2 output with two branches -- and until that exists this pillar has metrics and no dimension. The Monthly prints its series and does NOT infer a state.",
+            "name": "Sovereign Health & Debt Cycle",
+            "number": "8",
+            "reads_dimension": null,
+            "weight": 0.05
+          }
+        ],
+        "previous_state": null,
+        "provisional": null,
+        "state": null
+      },
+      {
+        "absent_reason": null,
+        "changed": false,
+        "confidence": "med",
+        "dial": "vol",
+        "pillars": [
+          {
+            "absent_reason": null,
+            "name": "Valuation & Credit Spreads",
+            "number": "6",
+            "reads_dimension": "credit",
+            "weight": 0.6
+          },
+          {
+            "absent_reason": null,
+            "name": "Investor Sentiment & Positioning",
+            "number": "5",
+            "reads_dimension": "volatility",
+            "weight": 0.4
+          },
+          {
+            "absent_reason": null,
+            "name": "Banking System Health",
+            "number": "9",
+            "reads_dimension": "credit",
+            "weight": 0.0
+          }
+        ],
+        "previous_state": "normal",
+        "provisional": null,
+        "realized_implied": {
+          "implied": 14.87,
+          "ratio": 0.62,
+          "realized": 9.16,
+          "state": "implied_rich"
+        },
+        "state": "normal",
+        "term_structure": {
+          "basis": 3.07,
+          "challenger": {
+            "metric": "calc.vix3m_over_vix",
+            "percentile": 94.0,
+            "ratio": 1.23,
+            "state": "contango"
+          },
+          "champion": {
+            "metric": "calc.vx_front_ratio",
+            "percentile": 37.3,
+            "ratio": 1.05,
+            "state": "contango"
+          },
+          "dual_run_until": "2026-12-23",
+          "legs_agree": true,
+          "published_by": "challenger",
+          "published_state": "contango"
+        }
+      },
+      {
+        "absent_reason": null,
+        "changed": false,
+        "confidence": "med",
+        "dial": "gamma",
+        "pillars": [],
+        "previous_state": "negative",
+        "provisional": false,
+        "state": "negative"
+      }
+    ],
+    "dimensions": [
+      {
+        "absent_reason": "the primary member fred.claims_4wk was last observed 2026-05-23, 84 sessions before this cutoff. Its own allowance is 8 sessions -- from its registry half_life at its own cadence, not a daily calendar -- and 3.0x that is 24. A state computed from it would be a stale state presented as a current one",
+        "changed": false,
+        "confidence": "low",
+        "dimension": "growth",
+        "direction": null,
+        "extremes": [],
+        "percentile": null,
+        "previous_state": null,
+        "state": null
+      },
+      {
+        "absent_reason": "the primary member fred.breakeven_10y was last observed 2026-05-29, 80 sessions before this cutoff. Its own allowance is 2 sessions -- from its registry half_life at its own cadence, not a daily calendar -- and 3.0x that is 6. A state computed from it would be a stale state presented as a current one",
+        "changed": false,
+        "confidence": "low",
+        "dimension": "inflation",
+        "direction": null,
+        "extremes": [],
+        "percentile": null,
+        "previous_state": null,
+        "state": null
+      },
+      {
+        "absent_reason": "the primary member fred.yield_10y was last observed 2026-05-28, 81 sessions before this cutoff. Its own allowance is 2 sessions -- from its registry half_life at its own cadence, not a daily calendar -- and 3.0x that is 6. A state computed from it would be a stale state presented as a current one",
+        "changed": false,
+        "confidence": "low",
+        "dimension": "rates",
+        "direction": null,
+        "extremes": [
+          "fred.yield_30y"
+        ],
+        "percentile": null,
+        "previous_state": null,
+        "state": null
+      },
+      {
+        "absent_reason": "the primary member fred.rrp was last observed 2026-05-29, 80 sessions before this cutoff. Its own allowance is 2 sessions -- from its registry half_life at its own cadence, not a daily calendar -- and 3.0x that is 6. A state computed from it would be a stale state presented as a current one",
+        "changed": false,
+        "confidence": "low",
+        "dimension": "liquidity",
+        "direction": null,
+        "extremes": [],
+        "percentile": null,
+        "previous_state": null,
+        "state": null
+      },
+      {
+        "absent_reason": "the primary member fred.hy_oas was last observed 2026-05-28, 81 sessions before this cutoff. Its own allowance is 2 sessions -- from its registry half_life at its own cadence, not a daily calendar -- and 3.0x that is 6. A state computed from it would be a stale state presented as a current one",
+        "changed": false,
+        "confidence": "low",
+        "dimension": "credit",
+        "direction": null,
+        "extremes": [
+          "fred.bb_oas",
+          "fred.ig_oas"
+        ],
+        "percentile": null,
+        "previous_state": null,
+        "state": null
+      },
+      {
+        "absent_reason": null,
+        "changed": false,
+        "confidence": "med",
+        "dimension": "volatility",
+        "direction": "-",
+        "extremes": [],
+        "percentile": 20.6,
+        "previous_state": "subdued",
+        "state": "subdued"
+      },
+      {
+        "absent_reason": null,
+        "changed": false,
+        "confidence": "med",
+        "dimension": "trend",
+        "direction": "-",
+        "extremes": [],
+        "percentile": 42.8,
+        "previous_state": "flat",
+        "state": "flat"
+      },
+      {
+        "absent_reason": null,
+        "changed": false,
+        "confidence": "med",
+        "dimension": "breadth",
+        "direction": "-",
+        "extremes": [
+          "calc.breadth_rsp_over_spy"
+        ],
+        "percentile": 23.1,
+        "previous_state": "narrow",
+        "state": "narrow"
+      }
+    ],
+    "dimensions_changed": [],
+    "exceptions_closed": [],
+    "exceptions_open_now": [
+      "extreme:calc.breadth_rsp_over_spy"
+    ],
+    "exceptions_opened": [],
+    "method_version": "market-state-method-5",
+    "previous_monthly": "2026-09-23",
+    "reason": "",
+    "session": "2026-09-23",
+    "state": "ok"
+  },
+  "register_month": {
+    "cuts": {
+      "by_book": {},
+      "by_mechanism_group": {},
+      "by_owning_report": {},
+      "by_regime_spy_gamma": {},
+      "by_status": {},
+      "method_version": "grader-v1",
+      "overall": {
+        "decisions": 0,
+        "expectancy_ruled": {
+          "hi": null,
+          "lo": null,
+          "mean": null,
+          "n": 0,
+          "note": "no graded decisions in this cut",
+          "se": null,
+          "sigma": null
+        },
+        "invalidation_hit_rate": null,
+        "invalidations_hit": 0,
+        "mae_close_pct": {
+          "hi": null,
+          "lo": null,
+          "mean": null,
+          "n": 0,
+          "note": "no graded decisions in this cut",
+          "se": null,
+          "sigma": null
+        },
+        "no_r": 0,
+        "return_pct": {
+          "hi": null,
+          "lo": null,
+          "mean": null,
+          "n": 0,
+          "note": "no graded decisions in this cut",
+          "se": null,
+          "sigma": null
+        },
+        "rule_cost_r": {
+          "hi": null,
+          "lo": null,
+          "mean": null,
+          "n": 0,
+          "note": "no graded decisions in this cut",
+          "se": null,
+          "sigma": null
+        },
+        "thesis_r": {
+          "hi": null,
+          "lo": null,
+          "mean": null,
+          "n": 0,
+          "note": "no graded decisions in this cut",
+          "se": null,
+          "sigma": null
+        },
+        "win_rate_ruled": null
+      },
+      "total": 0
+    },
+    "decisions_closed": [],
+    "decisions_opened": [
+      {
+        "created_at": "2026-09-05",
+        "direction": "long",
+        "expression_family": null,
+        "id": "4f8be6ea-5607-4f20-b6a1-df1d008017e1",
+        "instrument": "SPY",
+        "status": "draft",
+        "thesis_state": null
+      },
+      {
+        "created_at": "2026-09-05",
+        "direction": "long",
+        "expression_family": null,
+        "id": "fae90045-e948-49fe-9b9e-2f66c7493d7f",
+        "instrument": "SPY",
+        "status": "active",
+        "thesis_state": null
+      },
+      {
+        "created_at": "2026-09-19",
+        "direction": "long",
+        "expression_family": null,
+        "id": "532604ec-f755-48a4-9181-1d626cbc33dc",
+        "instrument": "SPY",
+        "status": "active",
+        "thesis_state": "INVALIDATED"
+      },
+      {
+        "created_at": "2026-09-19",
+        "direction": "short",
+        "expression_family": null,
+        "id": "3e60e156-7eb9-4b2b-a5ec-6a0c6ba383c4",
+        "instrument": "SPY@MEXI.MXN",
+        "status": "draft",
+        "thesis_state": null
+      }
+    ],
+    "graded_this_month": 0,
+    "graded_total": 0,
+    "open_now": 2,
+    "reason": "nothing has reached a horizon yet, which is the expected state of a register days old",
+    "rule_breaks": {
+      "not_yet_sourced": [
+        "allocation_floor_breach",
+        "book_b_conversion",
+        "time_stop_passed"
+      ],
+      "not_yet_sourced_why": "each needs something the register does not carry -- a band-weighted stance, a book label and a closing reason, a time stop -- and a zero would read as 'no rule was broken'",
+      "restricted_instrument_attempts_this_month": 0,
+      "restricted_instrument_attempts_total": 0
+    },
+    "state": "empty",
+    "window": [
+      "2026-09-01",
+      "2026-09-24"
+    ]
+  },
+  "report": "monthly",
+  "report_date": "2026-09-23",
+  "run_id": "monthly-20260924T014201.920442Z",
+  "scenarios": {
+    "by_source": {},
+    "due_unresolved": [],
+    "emitted": 0,
+    "family_map": "config/scenario_families.yaml",
+    "family_map_exists": false,
+    "grouping": "scenario",
+    "grouping_note": "grouped by SCENARIO, because config/scenario_families.yaml does not exist. The collapse of the twenty-five scenarios into ~6 mechanism families is 6f in the phase plan and is not done; until the mapping is config, grouping them here would be this report inventing a taxonomy that the tail watch and the Brier ledger would then disagree with",
+    "method_version": "brier-v1",
+    "reason": "no probability has been emitted. The ledger is seeded from a Monthly's own scenario table (probability_ledger.seed_from_monthly), so the first weights arrive when a Monthly with a scenario section is published -- and until one is, a Brier score would be a number about nothing",
+    "resolved": 0,
+    "state": "empty",
+    "weights": []
+  },
+  "sections": [
+    "regime",
+    "scenarios",
+    "top_bottom",
+    "alternative_assets",
+    "register_month",
+    "appendix"
+  ],
+  "top_bottom": {
+    "bear_rally_base_rate": {
+      "absent_reason": null,
+      "field": "bear_properties.largest_counter_trend_rally_pct",
+      "max": 46.77,
+      "median": 13.48,
+      "method_version": "base-rates-method-1",
+      "n_bears": 12,
+      "p25": 9.74,
+      "p75": 18.41,
+      "source_metric": "baserate.drawdown_by_depth",
+      "why_it_is_here": "31.1: the top-side language carries the bear-rally base rate, because that governs how a top call is HELD rather than how it is made. A short campaign inside a -20% decline faces three to five of these and each will look like the turn"
+    },
+    "claims_cited": [
+      {
+        "as_of": "2026-09-06",
+        "id": "br.episode_1929_32",
+        "source": "docs/whitepapers/base-rates-whitepaper.md, 11.2 and 11.6",
+        "value": "-86%",
+        "warnings": [
+          "Small samples, given for the shape rather than the decimal. Thirteen bear markets is a sample of thirteen, and a quartile of it is not a distribution."
+        ]
+      },
+      {
+        "as_of": "2026-09-06",
+        "id": "br.extended_tail_percentiles",
+        "source": "docs/whitepapers/base-rates-whitepaper.md, 13.3",
+        "value": "p95 of bad markets is -80% over 20-35 years",
+        "warnings": [
+          "Small samples, given for the shape rather than the decimal. Thirteen bear markets is a sample of thirteen, and a quartile of it is not a distribution.",
+          "Survivorship operates at the level of the COUNTRY, not merely the company. A base rate built from markets that still exist is conditioned on survival, and the honest correction is not a smaller number but a wider distribution with mass at total loss."
+        ]
+      }
+    ],
+    "composite": null,
+    "reason": "top_bottom.composite is not in the store. The Top & Bottom harness is not built -- it is a report in the registry and an unbuilt pipeline -- and this section reads its state variable rather than computing one, because a composite invented here would have no harness behind it and no way to be calibrated",
+    "state": "absent",
+    "verdict": null
+  },
+  "warnings": [
+    "top_bottom: absent -- top_bottom.composite is not in the store. The Top & Bottom harness is not built -- it is a report in the registry and an unbuilt pipeline -- and this section reads its state variable rather than computing one, because a composite invented here would have no harness behind it and no way to be calibrated"
+  ]
+}

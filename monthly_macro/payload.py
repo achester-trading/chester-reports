@@ -525,6 +525,25 @@ def appendix_block(as_of: Optional[str] = None,
             }
         out["series_total"] = sum(v["series_count"]
                                   for v in out["pillars"].values())
+        # A PILLAR WITH NO SERIES, NAMED WITH ITS REASON. Three of the eleven have
+        # no FRED series at all -- two were never sourced and one was relocated to
+        # its own report -- and an appendix that simply stops after the eighth table
+        # reads as a renderer that lost three sections.
+        declared = pillars.load()["pillars"]
+        out["pillars_declared"] = len(declared)
+        gaps = {str(g["pillar"]): g for g in pillars.unsourced()}
+        out["pillars_without_series"] = [
+            {"pillar": num,
+             "name": p.get("name"),
+             "dial": p.get("dial"),
+             "weight": p.get("weight"),
+             "reason": (p.get("relocated_to") and
+                        f"relocated to {p['relocated_to']}")
+                       or (gaps.get(num) or {}).get("why")
+                       or p.get("from_object_absent_reason")
+                       or "no reason recorded"}
+            for num, p in sorted(declared.items(), key=lambda kv: int(kv[0]))
+            if num not in out["pillars"]]
         out["note"] = (
             "The old report's ten pillar pages, condensed to one delta row per "
             "series. A level says where a series is; the change says what it did, "

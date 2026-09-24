@@ -39,6 +39,32 @@ def _signed(x: Any, dp: int = 2) -> str:
         return "—"
 
 
+def _tail(reason: Any) -> str:
+    """A reason with its first clause dropped when a bold lead already said it.
+
+    The bold lead and the reason's opening sentence are the same sentence twice --
+    "**No probability has been emitted.** no probability has been emitted. The
+    ledger is seeded..." -- which is how a reader learns to skip the reason.
+    """
+    text = str(reason or "").strip()
+    if not text:
+        return "No reason recorded."
+    head, sep, rest = text.partition(". ")
+    return (rest.strip() if sep and len(head) < 90 else text)
+
+
+def _delta(x: Any, unit: Any) -> str:
+    """A change with its unit -- and NO unit when there is no change.
+
+    `— raw` reads as though the change were raw rather than absent, which is the
+    unit word supplying a fact the figure does not have. The registry's unit belongs
+    to a number; without one there is nothing for it to qualify.
+    """
+    if x is None:
+        return "—"
+    return f"{_signed(x)} {unit}".strip() if unit else _signed(x)
+
+
 def _absent(title: str, block: dict) -> str:
     return (f"## {title}\n\n**{block.get('state', 'absent')}.** "
             f"{block.get('reason') or 'No reason recorded.'}\n\n---\n")
@@ -128,13 +154,27 @@ def regime_section(p: dict) -> str:
     out.append("\n### Dimensions\n")
     out.append("| Dimension | State | Previous Monthly | Pctile | Dir | Conf |")
     out.append("|---|---|---|---|---|---|")
+    # AN ABSENT DIMENSION SAYS `absent` IN THE CELL AND GIVES ITS REASON BELOW.
+    # A reason cut to fit a table column ends mid-word -- "was last observed 2" --
+    # and the truncated tail reads as a figure the report is asserting. A cell is
+    # the wrong shape for a sentence; the sentence goes under the table whole.
+    absent_why: list[str] = []
     for d in b.get("dimensions") or []:
-        st = d.get("state") or f"*absent — {str(d.get('absent_reason'))[:50]}*"
+        st = d.get("state") or "*absent*"
+        if not d.get("state"):
+            absent_why.append(f"**{d['dimension']}** — "
+                              f"{d.get('absent_reason') or 'no reason recorded'}")
         mark = " **→**" if d.get("changed") else ""
         out.append(f"| {d['dimension']}{mark} | {st} | "
                    f"{d.get('previous_state') or '—'} | "
                    f"{_v(d.get('percentile'), 1)} | {d.get('direction') or '—'} | "
                    f"{d.get('confidence') or '—'} |")
+    if absent_why:
+        out.append(f"\n*{len(absent_why)} of {len(b.get('dimensions') or [])} "
+                   f"dimensions are absent, each with its reason:*\n")
+        for w in absent_why:
+            out.append(f"- {w}")
+        out.append("")
     changed = b.get("dimensions_changed") or []
     out.append(f"\n*Changed since the previous Monthly: "
                f"{', '.join(changed) if changed else 'none'}.*\n")
@@ -167,7 +207,8 @@ def scenarios_section(p: dict) -> str:
     out.append(f"*Grouped by {b.get('grouping')}. "
                f"{b.get('grouping_note') or ''}*\n")
     if b.get("state") == "empty":
-        out.append(f"**No probability has been emitted.** {b.get('reason')}\n")
+        out.append(f"**No probability has been emitted.** "
+                   f"{_tail(b.get('reason'))}\n")
         return "\n".join(out) + "\n---\n"
     if b.get("state") != "ok":
         return _absent("II. Scenarios", b)
@@ -239,7 +280,7 @@ def alt_section(p: dict) -> str:
                 out.append(f"| `{m['metric']}` | *absent* | — | — | — |")
                 continue
             out.append(f"| `{m['metric']}` | {_v(m.get('level'))} | "
-                       f"{_signed(m.get('delta_20d'))} {m.get('delta_unit') or ''} | "
+                       f"{_delta(m.get('delta_20d'), m.get('delta_unit'))} | "
                        f"{_v(m.get('percentile'), 1)} | {m.get('confidence')} |")
         out.append("")
     return "\n".join(out) + "\n---\n"
@@ -286,7 +327,14 @@ def appendix_section(p: dict) -> str:
     out = ["## Appendix — the pillar pages, as one delta table\n",
            f"*{b.get('note')}*\n",
            f"*{b.get('series_total')} series across "
-           f"{len(b.get('pillars') or {})} pillars.*\n"]
+           f"{len(b.get('pillars') or {})} of "
+           f"{b.get('pillars_declared')} pillars.*\n"]
+    # THE PILLARS WITH NO ROWS ARE NAMED HERE. Printing eight tables and stopping
+    # leaves three pillars looking forgotten rather than empty, and the mapping
+    # already records why each one has nothing to show.
+    for g in b.get("pillars_without_series") or []:
+        out.append(f"*Pillar {g['pillar']} — {g.get('name')} has no series in the "
+                   f"store: {g.get('reason')}*\n")
     for num, v in sorted((b.get("pillars") or {}).items()):
         out.append(f"### Pillar {num} — {v.get('name')} "
                    f"(dial: {v.get('dial') or 'none'}, weight "
@@ -297,7 +345,7 @@ def appendix_section(p: dict) -> str:
         for r in v.get("series") or []:
             out.append(
                 f"| `{r['metric']}` | {_v(r.get('level'))} | "
-                f"{_signed(r.get('delta_20d'))} {r.get('delta_unit') or ''} | "
+                f"{_delta(r.get('delta_20d'), r.get('delta_unit'))} | "
                 f"{_v(r.get('percentile'), 1)}"
                 f"{' **!**' if r.get('extreme') else ''} | "
                 f"{r.get('confidence') or '—'} | "
