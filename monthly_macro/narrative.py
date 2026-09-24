@@ -1,170 +1,70 @@
 """
-Phase 5 — Narrative LLM step.
+The Monthly's paragraph: the brief and the template path. (Phase 4b piece 3)
 
-Takes the data-populated markdown report (containing *[NARRATIVE PLACEHOLDER —
-...]* markers) and replaces each marker with a Claude-generated synthesis
-paragraph grounded in that section's data tables.
+    from monthly_macro.narrative import monthly_system_prompt, TEMPLATE_PATH
 
-Architecture decisions:
+THE MACHINERY IS THE CLOSE REPORT'S, and that is the point: print precision at the
+model boundary, the numeral audit, the model pin, thinking off, the rejected text
+kept, markdown refused. A report may vary its coverage and its length; it may not
+vary whether a figure it prints exists.
 
-1. **Per-placeholder prompts.** Each placeholder gets its own API call with
-   its own section's markdown as context plus the Pillar Snapshot for
-   cross-pillar awareness. Higher quality than one mega-prompt.
+-----------------------------------------------------------------------------
+WHAT THIS REPLACES, AND WHY THE PLACEHOLDER HAD TO GO
+-----------------------------------------------------------------------------
 
-2. **Opus for the monthly.** Model comes from $NARRATIVE_MODEL, defaulting to
-   claude-opus-5 — monthly cadence means the cost delta is trivial and the
-   synthesis quality matters. (The daily pathway, when built, uses Sonnet.)
+This module used to walk the rendered Markdown replacing markers of the form
+`*[NARRATIVE PLACEHOLDER — 4-paragraph synthesis: regime, data story, cross-pillar,
+matrix implication]*`, one API call per pillar, with a MAX_CALLS cost guard.
 
-3. **Graceful degradation, three layers:**
-   - No ANTHROPIC_API_KEY -> step is skipped entirely, report ships with
-     placeholders intact, workflow does not fail.
-   - One API call fails -> that placeholder stays, everything else proceeds.
-   - anthropic package missing -> same as no key.
+Ten of those markers asked a model to CHARACTERISE THE REGIME FROM THE PILLARS --
+once per pillar, with no shared state, each call seeing one pillar's levels. That is
+the defect Audit #3 section G names from the other end: the regime lived nowhere, so
+the report asked prose to supply it ten times over, and the ten answers had no
+obligation to agree with each other or with anything the close report had published.
 
-4. **Cost guard.** Hard cap on calls per run (MAX_CALLS) so a renderer bug
-   that emits 400 placeholders can't produce a surprise bill.
+The regime now comes from the object, the pillars are inputs printed beneath the
+dial each one feeds, and there is ONE paragraph over ONE payload with the audit
+behind it. The placeholder is deleted rather than repointed: a marker that asked for
+a regime is a marker with nowhere left to point.
 """
 
 from __future__ import annotations
-import logging
-import os
-import re
-from typing import Optional
 
-log = logging.getLogger(__name__)
+from pathlib import Path
 
-DEFAULT_MODEL = os.environ.get("NARRATIVE_MODEL", "claude-opus-5")
-MAX_TOKENS_PER_CALL = 1200
-MAX_CALLS = 30  # cost guard; report currently has 18 placeholders (10 synthesis + 8 watch)
+REPO = Path(__file__).resolve().parent.parent
+TEMPLATE_PATH = REPO / "docs" / "narrative-template-monthly.md"
 
-# Matches the exact marker style render_md.py emits, e.g.:
-#   *[NARRATIVE PLACEHOLDER — 4-paragraph synthesis]*
-# Tolerates em-dash or hyphen and any hint text.
-PLACEHOLDER_RE = re.compile(r"^\*\[NARRATIVE PLACEHOLDER\s*[—-]\s*(?P<hint>[^\]]*)\]\*\s*$", re.MULTILINE)
-
-SYSTEM_PROMPT = """You are the narrative engine for a monthly macro report written for a single sophisticated reader with institutional-markets fluency (actuarial and reinsurance background, decade of trading experience). Write in a McKinsey/Goldman institutional research register: synthesis-first, declarative, no hedging boilerplate, no exclamation points, no bullet lists — flowing analytical prose only.
-
-Rules:
-- Ground every claim in the data provided in the section context. Never invent numbers. If a series is missing or stale, say so plainly.
-- Lead with the regime read, then the data story, then cross-pillar connections, then what would change the view.
-- Do not use headers or markdown formatting; return only paragraph text.
-- Do not restate the tables; interpret them.
-- Match the length the placeholder hint requests (e.g. "4-paragraph synthesis" means four paragraphs; "regime characterization paragraph" means one)."""
+# THE RUNAWAY GUARD, not a word count -- the same distinction the weekly draws. A
+# month with a dial change, a scenario table and a register section needs room; a
+# reply past this has lost the thread rather than run long.
+MAX_CHARS = 14000
 
 
-def _get_client():
-    """Return an Anthropic client, or None if the key or package is absent."""
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if not key:
-        log.info("ANTHROPIC_API_KEY not set — narrative step skipped, placeholders remain")
-        return None
-    try:
-        import anthropic  # lazy import
-    except ImportError:
-        log.warning("anthropic package not installed — narrative step skipped")
-        return None
-    return anthropic.Anthropic()
-
-
-def _split_sections(md: str) -> list[tuple[int, int, str]]:
-    """Return (start, end, text) spans for each `## `-headed section."""
-    heads = [m.start() for m in re.finditer(r"^## ", md, re.MULTILINE)]
-    if not heads:
-        return [(0, len(md), md)]
-    spans = []
-    for i, start in enumerate(heads):
-        end = heads[i + 1] if i + 1 < len(heads) else len(md)
-        spans.append((start, end, md[start:end]))
-    return spans
-
-
-def _section_for(pos: int, sections: list[tuple[int, int, str]], full_md: str) -> str:
-    for start, end, text in sections:
-        if start <= pos < end:
-            return text
-    return full_md[:4000]
-
-
-def _snapshot_context(md: str) -> str:
-    """Pull the Pillar Snapshot table (if present) as cross-pillar context.
-
-    The heading may carry a roman-numeral or numeric prefix (e.g.
-    "## II. Pillar Snapshot"), so match on the phrase rather than the
-    start of the heading text. Falls back to an empty string only when
-    no snapshot section exists at all.
-    """
-    m = re.search(
-        r"^##[^\n]*Pillar Snapshot[^\n]*$.*?(?=^## )",
-        md,
-        re.MULTILINE | re.DOTALL,
-    )
-    if m:
-        return m.group(0)
-    log.warning("Pillar Snapshot section not found — narratives will lack "
-                "cross-pillar context and may wrongly report other pillars as empty")
-    return ""
-
-
-def _generate(client, model: str, hint: str, section_md: str, snapshot_md: str) -> str:
-    prompt = (
-        f"Placeholder instruction: {hint or 'synthesis paragraph'}\n\n"
-        f"=== THIS SECTION (write the synthesis for this) ===\n{section_md[:8000]}\n\n"
-        f"=== CROSS-PILLAR SNAPSHOT (context only) ===\n{snapshot_md[:4000]}"
-    )
-    resp = client.messages.create(
-        model=model,
-        max_tokens=MAX_TOKENS_PER_CALL,
-        messages=[{"role": "user", "content": prompt}],
-        system=SYSTEM_PROMPT,
-    )
-    text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
-    if not text:
-        raise RuntimeError("empty narrative response")
-    return text
-
-
-def add_narratives(md: str, model: Optional[str] = None) -> str:
-    """Replace every narrative placeholder in `md` with generated prose.
-
-    Never raises: on any failure the original marker is left in place and an
-    annotation is appended, so the pipeline always produces a report.
-    """
-    client = _get_client()
-    if client is None:
-        return md
-
-    model = model or DEFAULT_MODEL
-    sections = _split_sections(md)
-    snapshot = _snapshot_context(md)
-
-    matches = list(PLACEHOLDER_RE.finditer(md))
-    if not matches:
-        log.info("No narrative placeholders found — nothing to do")
-        return md
-    if len(matches) > MAX_CALLS:
-        log.warning("%d placeholders exceeds MAX_CALLS=%d; generating first %d only",
-                    len(matches), MAX_CALLS, MAX_CALLS)
-        matches = matches[:MAX_CALLS]
-
-    log.info("Narrative step: %d placeholders, model=%s", len(matches), model)
-    replacements: list[tuple[int, int, str]] = []
-    failures = 0
-    for m in matches:
-        hint = (m.group("hint") or "").strip()
-        section_md = _section_for(m.start(), sections, md)
-        try:
-            prose = _generate(client, model, hint, section_md, snapshot)
-            replacements.append((m.start(), m.end(), prose))
-            log.info("  generated: %s (%d chars)", hint[:60] or "(no hint)", len(prose))
-        except Exception as e:  # noqa: BLE001 — per-placeholder isolation
-            failures += 1
-            log.warning("  FAILED for '%s': %s", hint[:60], e)
-
-    # Apply replacements back-to-front so earlier offsets stay valid.
-    for start, end, prose in sorted(replacements, reverse=True):
-        md = md[:start] + prose + md[end:]
-
-    if failures:
-        md += (f"\n\n---\n*Narrative generation: {failures} of {len(matches)} "
-               f"section(s) failed and retain placeholder markers.*\n")
-    return md
+def monthly_system_prompt() -> str:
+    """The Monthly's brief, on top of the shared rules."""
+    from daily_cascade import narrative as base
+    return base.SYSTEM_PROMPT + (
+        "\n\nTHIS IS THE MONTHLY REGIME & ALLOCATION REPORT. Five differences from "
+        "the close report:\n"
+        "\n1. LENGTH IS WHATEVER THE MONTH NEEDS. No word count. Several "
+        "paragraphs are right when the month had several things in it.\n"
+        "\n2. THE HORIZON IS THE MONTH, and the comparison is against THE PREVIOUS "
+        "MONTHLY, which the payload names. Do not write about a session.\n"
+        "\n3. THE REGIME COMES FROM THE OBJECT AND YOU DO NOT CHARACTERISE IT FROM "
+        "THE PILLARS. The dials and dimensions in the payload were computed by the "
+        "close pass; the pillars are INPUTS to them, with declared weights. Say "
+        "what the dials read, what changed since the previous Monthly, and which "
+        "pillars a reader should look at because of it. Never infer a regime of "
+        "your own from the pillar series -- a second regime is the defect this "
+        "report was restructured to remove.\n"
+        "\n4. COVER, in this order: the regime and what changed; the scenario "
+        "weights WITH THEIR BRIER SCORES, and what an unresolved weight permits "
+        "you to say (nothing, about accuracy); the Top & Bottom verdict with the "
+        "bear-rally base rate on any top-side language; the alternative-asset "
+        "families that have data and the ones that do not; the register's month "
+        "with its expectancy INTERVAL READ BEFORE THE POINT. Say what is not "
+        "sourced where the payload says so.\n"
+        "\n5. NO RECOMMENDATION and NO ALLOCATION ADVICE. The report is named for "
+        "allocation and the register's rules decide it: state the bands' inputs, "
+        "never a stance.\n")

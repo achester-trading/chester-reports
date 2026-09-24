@@ -13,6 +13,7 @@ Reads FRED_API_KEY from environment. The store is at $ALTDATA_STORE
 from __future__ import annotations
 import argparse
 import datetime as dt
+import json
 import logging
 import os
 import sys
@@ -21,13 +22,16 @@ from pathlib import Path
 from altdata.store import Store
 from altdata.sources import fred as fred_source
 from altdata.sources import yfinance_source
-from .writer.render_md import render_report
 from .writer.build_html import build_html
-from .narrative import add_narratives
+from .writer import render_v2
+from . import payload as payload_mod
+from .narrative import MAX_CHARS, TEMPLATE_PATH, monthly_system_prompt
 from .snapshot import build_current, load_prior_snapshot, write_snapshot
 from altdata import config as altconfig
 from altdata import session
 from state.emit import emit
+from daily_cascade import deliver as delivery
+from daily_cascade import narrative as narrative_mod
 
 # Windows consoles default to cp1252, which cannot encode the check marks
 # the report prints or the em-dashes the log lines use. Force UTF-8 on
@@ -52,6 +56,12 @@ def main():
                     help="Skip FRED fetch (use existing store)")
     ap.add_argument("--out-dir", default="reports",
                     help="Where to write the report files (default: reports/)")
+    ap.add_argument("--as-of", default=None,
+                    help="Point-in-time cutoff; the payload reads only what was "
+                         "knowable then, which is what makes a past month "
+                         "replayable")
+    ap.add_argument("--narrative-model", default=None,
+                    help="Override the pinned model (recorded on the artifact)")
     ap.add_argument("--skip-narrative", action="store_true",
                     help="Skip the Claude narrative step even if ANTHROPIC_API_KEY is set")
     ap.add_argument("--lookback-days", type=int, default=1500,
@@ -124,43 +134,65 @@ def main():
         log.exception("Snapshot comparison failed; rendering without change lines")
         change_ctx = None
 
-    # ---- Phase 3: render markdown ----
-    log.info("Rendering markdown report for %s", report_date)
-    md = render_report(store, fetch_summary, report_date, change_ctx=change_ctx)
+    # ---- Phase 3: the payload, then the document ------------------------------
+    #
+    # SIX SECTIONS OF CHANGE, READING THE OBJECT. The old path rendered ten pillar
+    # pages of levels from the store and asked a model to characterise the regime
+    # from them; the regime now comes from regime.latest() and the pillars are
+    # inputs printed beneath the dial each one feeds. render_md.py is kept for its
+    # masthead and appendix helpers and is no longer the report.
+    run_id = session.new_run_id("monthly")
+    log.info("Building the payload as-of %s", args.as_of or "now")
+    p = payload_mod.build(args.as_of, run_id=run_id)
+    for w in p.get("warnings") or []:
+        log.warning("payload absence -- %s", w)
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # ---- Phase 5: the paragraph, audited ---------------------------------------
+    narr = None
+    if args.skip_narrative:
+        log.info("Narrative step skipped (--skip-narrative)")
+    else:
+        np_ = payload_mod.narrative_payload(p)
+        narr = narrative_mod.generate(
+            np_, model=args.narrative_model,
+            system_prompt=monthly_system_prompt(),
+            guide_path=TEMPLATE_PATH,
+            # Long form, like the weekly: a month that had several things in it
+            # needs several paragraphs, and the ceiling is a runaway guard.
+            max_chars=MAX_CHARS, one_paragraph=False)
+        if narr.published:
+            log.info("narrative published: %d figures audited, model=%s",
+                     narr.figures_checked, narr.model)
+        else:
+            log.warning("narrative withheld (state=%s, model=%s): %s",
+                        narr.state, narr.model, narr.reason)
+            if narr.unmatched:
+                log.warning("  unmatched figures: %s", ", ".join(narr.unmatched))
+            if narr.rejected_text:
+                log.info("  rejected paragraph (NOT published): %s",
+                         narr.rejected_text)
 
-    md_path = out_dir / f"monthly_macro_{report_date.isoformat()}.md"
-    md_path.write_text(md, encoding="utf-8")
-    log.info("Wrote markdown: %s (%d bytes)", md_path, len(md))
+    md = render_v2.render(p, narrative=narr)
+    html = build_html(md)
+
+    # ---- ARCHIVE THROUGH deliver(), like every other report -------------------
+    # run.py used to write both files with Path.write_text, which is the Windows
+    # encoding bug CLAUDE.md records: the default codec on a local run cannot encode
+    # the report's own check marks. delivery.archive() writes explicit UTF-8 and is
+    # the one archive path in the system.
+    stamp = p.get("report_date")
+    md_path = delivery.archive(md, f"monthly_macro_{stamp}.md", args.out_dir)
+    pay_path = delivery.archive(
+        json.dumps(p, indent=2, default=str, sort_keys=True),
+        f"monthly_macro_{stamp}_payload.json", args.out_dir)
+    html_path = delivery.archive(html, f"monthly_macro_{stamp}.html", args.out_dir)
+    log.info("archived %s, %s and the payload %s", md_path, html_path, pay_path)
 
     # ---- Persist this run's snapshot for next month's comparison ----
     try:
         write_snapshot(store, report_date, altconfig.FRED_SERIES)
     except Exception:
         log.exception("Could not write snapshot; next run will lack a comparison point")
-
-    # ---- Phase 5: Claude narrative ----
-    if args.skip_narrative:
-        log.info("Narrative step skipped (--skip-narrative)")
-    else:
-        md_before = md
-        try:
-            md = add_narratives(md)
-        except Exception:
-            log.exception("Narrative step raised unexpectedly; using data-only report")
-            md = md_before
-        if md != md_before:
-            md_path.write_text(md, encoding="utf-8")
-            log.info("Rewrote markdown with narratives: %s (%d bytes)", md_path, len(md))
-
-    # ---- Phase 3: build HTML ----
-    log.info("Building styled HTML")
-    html = build_html(md)
-    html_path = out_dir / f"monthly_macro_{report_date.isoformat()}.html"
-    html_path.write_text(html, encoding="utf-8")
-    log.info("Wrote HTML: %s (%d bytes)", html_path, len(html))
 
     # ---- Emit state to the dashboard Worker (telemetry; never fatal) ----
     try:
