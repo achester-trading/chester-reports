@@ -18,6 +18,17 @@ StartLimitBurst=6
 Type=oneshot
 ExecStart=%h/chester-reports/scripts/sync_ibkr.sh
 
+# THE SECRETS FILE, ADDED WITH THE HOURLY NEWS TOP-UP (6c-1 piece 4). This unit had
+# no EnvironmentFile because a read-only IBKR sync needs no key -- and then the
+# events ingest arrived in this wrapper, which reaches code that can ask for
+# FRED_API_KEY. tools/validate_systemd_units.py caught it: a reachable secret name
+# with no .env loaded reads as unset on the box, and the only symptom is a log line.
+#
+# The news top-up itself needs nothing. The line is here so that the next thing this
+# wrapper reaches does not fail silently, and the leading `-` keeps the unit
+# startable on a box with no .env at all.
+EnvironmentFile=-%h/chester-reports/.env
+
 # Exit codes are the sync's, passed through by the wrapper:
 #   0 ok · 3 Gateway not running · 4 not responding · 5 signed out · 6 API error
 # None of them is a systemd-level failure worth restarting: the run happened

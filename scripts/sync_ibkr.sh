@@ -101,4 +101,41 @@ if [[ $RC -eq 0 ]]; then
     printf 'state=ok rc=0 sha=%s at=%s
 ' "$SHA" "$(date --iso-8601=seconds)"         >"$STATE_DIR/ibkr_sync_last_success"
 fi
+
+# ---- the hourly RSS top-up, and nothing else --------------------------------
+#
+# THE NEWS SOURCES ONLY, AND AT MOST ONCE AN HOUR. This wrapper runs every thirty
+# minutes, so it is the cheapest place to keep the story feeds current between the
+# two full passes -- nine requests and about 300KB, all of it content-hashed, so a
+# pull that finds nothing new writes nothing.
+#
+# WHY NOT EVERY RUN: thirty-minute polling of a free aggregator is four hundred
+# requests a day to learn what a dozen would, and a rate-limited feed is a feed
+# that stops answering when it matters. The stamp file is the hour: a run inside 55
+# minutes of the last one skips, so a missed sync does not lose the slot.
+#
+# WHY NOT THE OTHER SOURCES: EDGAR and the FRED calendar are dormant, earnings move
+# quarterly, and the session and claims calendars are computed -- none of them
+# changes between 09:00 and 10:00. Only the feeds that publish continuously are
+# worth an hourly look.
+NEWS_STAMP="$STATE_DIR/events_news_last"
+NEWS_MIN_MINUTES=55
+if [[ -f "$NEWS_STAMP" ]]; then
+    NEWS_AGE_MIN=$(( ( $(date +%s) - $(stat -c %Y "$NEWS_STAMP" 2>/dev/null || echo 0) ) / 60 ))
+else
+    NEWS_AGE_MIN=99999
+fi
+if [[ "$NEWS_AGE_MIN" -ge "$NEWS_MIN_MINUTES" ]]; then
+    NEWS_OUT="$("$PY" -m altdata.events_ingest pull --only news 2>&1 | tail -6)"
+    NEWS_EXIT=$?
+    printf '%s' "$NEWS_OUT" | sed 's/^/  /' >>"$LOG"
+    if [[ $NEWS_EXIT -eq 0 ]]; then
+        date --iso-8601=seconds >"$NEWS_STAMP"
+        log "events: hourly news top-up done (previous was ${NEWS_AGE_MIN}m ago)"
+    else
+        log "WARN events news top-up exited $NEWS_EXIT -- continuing; the full pass at 16:10 covers it"
+    fi
+else
+    log "events: news top-up skipped, last was ${NEWS_AGE_MIN}m ago (min ${NEWS_MIN_MINUTES}m)"
+fi
 exit $RC

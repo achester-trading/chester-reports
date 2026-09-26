@@ -182,6 +182,28 @@ else
     log "features: derived recompute done"
 fi
 
+# ---- the events ingest, then the surprises ---------------------------------
+#
+# ORDER MATTERS AND IT IS NOT ALPHABETICAL. The ingest writes the earnings rows
+# that the earnings surprise is read out of, and the FRED pull above writes the
+# actuals the macro surprise is measured against -- so both run after those two and
+# before nothing.
+#
+# NEITHER CAN FAIL THE PASS, on the same argument as the feature recompute: this
+# runs unattended and a traceback here would cost the capture that follows it. Each
+# source reports its own state and two of the six are dormant by configuration.
+log "events: ingest"
+EV_OUT="$("$VENV_PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
+EV_EXIT=$?
+printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; tomorrow's anchor prints its EVENTS block with a reason"
+
+log "surprise: compute"
+SUR_OUT="$("$VENV_PY" -m altdata.surprise compute 2>&1 | tail -8)"
+SUR_EXIT=$?
+printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
+
 START_EPOCH=$(date +%s)
 "$VENV_PY" run_eod.py --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
 RC=$?

@@ -148,6 +148,7 @@ printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 
 log "=== overnight fetch start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m altdata.sources.overnight $DRY >>"$LOG" 2>&1
+
 RC=$?
 
 case $RC in
@@ -159,5 +160,32 @@ log "$MSG"
 
 printf 'state=%s rc=%s sha=%s at=%s\n' \
     "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
+
+# AFTER THE VERDICT IS TAKEN, and this position is load-bearing. `RC=$?` above
+# reads the exit status of the command immediately before it, so an ingest inserted
+# between the fetch and that line would have made the wrapper report the exit code
+# of a `[[ ]]` test instead of the fetch's -- the pass would have said `ok` whatever
+# happened upstream. The ingest runs after the status file is written, and its own
+# failure is a warning rather than the pass's verdict, because the fetch is the
+# capture and this is a record that can be pulled again.
+# ---- the events ingest, then the surprises ---------------------------------
+#
+# THE MORNING HALF. The 07:00 anchor's EVENTS block reads "since the previous
+# close", so the pass that fills it has to run before the anchor and after the
+# overnight fetch -- which is here. The EOD pass runs the same two steps at 16:10;
+# both are idempotent because every row is content-hashed, so the second pull of a
+# day inserts only what arrived between them.
+log "events: ingest"
+EV_OUT="$("$PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
+EV_EXIT=$?
+printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; the anchor prints its EVENTS block with a reason"
+
+log "surprise: compute"
+SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
+SUR_EXIT=$?
+printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
+
 
 exit $RC
