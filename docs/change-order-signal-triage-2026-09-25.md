@@ -5,12 +5,12 @@
 | | |
 |---|---|
 | Status | DRAFT — for sign-off (§13); tranches can be approved separately |
-| Date | 2026-09-25 (evening) |
+| Date | 2026-09-25 (evening); **revision 2, 2026-09-26** — the 19 Sep Digital Asset Mechanism Watch order integrated as Thread D and register entry SR-10 |
 | Proposed by | Ari Chester |
-| Contents | Twenty-seven signal-triage entries (SR-1…SR-9 from Batch 1, 10–19 Sep; SR-12…SR-27 from Batch 2, 24–25 Sep; SR-10 and SR-11 reserved for the Mechanism Watch and consensus-drift orders of 19 Sep, carried in Appendix C), re-reviewed for coordination with each other and with the repository as it stands on 25 Sep 2026, and integrated into one governance section, five threads, one rights ledger, one data-feed table, one sequenced work order |
-| Encoding | Post-Freeze Amendment #4 — Signal Triage (single amendment, both batches). Encodes as the next free architecture Part. Amendment number to be confirmed at sign-off (G-1). |
+| Contents | Twenty-eight signal-triage entries (SR-1…SR-9 from Batch 1, 10–19 Sep; SR-10 the Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan, 19 Sep; SR-12…SR-27 from Batch 2, 24–25 Sep; SR-11 reserved for the consensus-drift order of 19 Sep, carried in Appendix C), re-reviewed for coordination with each other and with the repository as it stands on 25–26 Sep 2026, and integrated into one governance section, six threads, one rights ledger, one data-feed table, one sequenced work order |
+| Encoding | Post-Freeze Amendment #4 — Signal Triage and Mechanism Watch (single amendment). Encodes as the next free architecture Part; the Mechanism Watch adds no Part of its own (its 19 Sep draft's provisional "#5" label is retired). Amendment number to be confirmed at sign-off (G-1). |
 | Precedence | Below Part 26 (Final Architecture Change Order), Part 28 (automation addendum), Part 30 (Track D and its standing rules 30.2–30.4) and the current change-orders edition. Consistent with Amendments #1–#3. **Binds to the repository's one-regime rule** (`docs/market-state.md`: "Nothing else in the system computes a regime") and to 30.4 (reports never fetch). |
-| Supersedes | `post-freeze-amendment-4-signal-triage-batch-1.md` (19 Sep standalone, ≈71 h), Part A of the 19 Sep batch draft (`change-orders-2026-09-19-batch.md`, tranched to ≈34 h), and `change-order-signal-triage-batch-2-2026-09-25.md` (v3, ≈30 h). Parts B and C of the 19 Sep batch (Pearl / Mechanism Watch; consensus drift) are **not** superseded — they stay in the deferred backlog by reference (Appendix C). |
+| Supersedes | `post-freeze-amendment-4-signal-triage-batch-1.md` (19 Sep standalone, ≈71 h), Parts A and B of the 19 Sep batch draft (`change-orders-2026-09-19-batch.md`), `change-order-mechanism-watch-2026-09-19.md` (Draft 1, ≈35 h — integrated here as Thread D), and `change-order-signal-triage-batch-2-2026-09-25.md` (v3, ≈30 h). Part C of the 19 Sep batch (consensus drift) is **not** superseded — it stays in the deferred backlog by reference (Appendix C). |
 | Filing state | **None of the three superseded drafts is in `docs/` on the laptop working copy** (listing taken 25 Sep 21:56 ET), nor is `docs/signal-triage-register.md`, `docs/templates/signal-intake.md` or `docs/prediction-market-spec-v1.1.md`. If any was committed from another machine, pull before filing this (CLAUDE.md upload discipline). Otherwise this order is the first filing of the signal-triage programme and ST-0 creates the register. |
 | Binding on | Claude Code sessions executing §8 after §13 is signed |
 
@@ -33,19 +33,24 @@
 | 9 | **Every new feed is a new store writer.** Track D's D1c (SQLite WAL + busy_timeout + repo-wide write lock, "before any new writer ships") is a hard precondition neither batch named. And 30.4 (reports never fetch) means Batch 2's "by-hand file loaders" (AAII, MSCI, IEA, NIC, CBO) must be `manual_input` store writers with `available_at`, not report-side reads. | D1c listed as the precondition of ST-1/ST-2; a `manual_input` source class with a registry entry per series | §1.10, §8 |
 | 10 | **Backtests vs. the store.** The migrated FRED history carries one `available_at` (30 May 2026) until ALFRED ingestion (O.16), so no as-of-correct replay reaches behind it. Every validation gate in both batches needs decades. | Gates run as offline calibration studies under `tools/calibration/`, pulling full history (and ALFRED vintages) directly, writing dated ledgers; only live flags read the store as-of | §1.10, ST-7/ST-8/ST-9 |
 | 11 | **Daily and Sunday surfaces.** Both batches put flags in the 07:00 anchor, the 12:30 alert and the Sunday anchor. The anchors exist (both open on the WHAT CHANGED block) but D3 (numeral audit) and D4 (block payload builders) are open in Track D, D6 is the Sunday plan. | Daily/Sunday rendering is one session (ST-10) placed after D4/D6; Monthly rendering (built report) goes first | §7, ST-6, ST-10 |
-| 12 | **Hours.** Standalone Batch 1 ≈71 h + Batch 2 ≈30 h = 101 h; as separately tranched ≈34 + 30 = 64 h. Integrated: **≈78 h of sessions + ≈5 h by hand**, of which the core (Tranche 1) is ≈33 h. Higher than 64 because the deferred Batch 1 panels keep their *feeds* (a fetcher is the reusable asset; rendering is what was deferred) and because Daily/T&B wiring is now its own later slot rather than folded in. | Cut by tranche, not by item | §8 |
+| 12 | **Hours.** Standalone Batch 1 ≈71 h + Batch 2 ≈30 h = 101 h; as separately tranched ≈34 + 30 = 64 h. Integrated (Tranches 1–4 + L): **≈78 h of sessions + ≈5 h by hand**, of which the core (Tranche 1) is ≈33 h. Higher than 64 because the deferred Batch 1 panels keep their *feeds* (a fetcher is the reusable asset; rendering is what was deferred) and because Daily/T&B wiring is now its own later slot rather than folded in. Revision 2 adds the Mechanism Watch as Tranche 5: ≈30 h in its 19 Sep draft, ≈25.5 h here plus ≈4.5 h absorbed into ST-10, ST-12 and ST-L, for an order total of **≈108 h + ≈5.5 h by hand**. | Cut by tranche, not by item | §8 |
 
-**What the integration produces.** Five threads (§2), each owned by one paper: **R** rates driver and duration absorption (SR-6, 9, 17, 21, 22, 23, 24); **X** external position and funding currencies (SR-2, 3, 4, 14, 20, 26, 27); **E** equity regime and cycle position (SR-1, 5, 7, 8, 13, 16, 19, 25); **A** Book A rules (SR-12, 15, plus SR-8's gate and SR-9's hedge rule); **C** the oil buffer (SR-18). The programme adds no report, no composite input, no paid feed and no decision rights; everything is REPORT_OK-class.
+**What the integration produces.** Six threads (§2), each owned by one paper: **R** rates driver and duration absorption (SR-6, 9, 17, 21, 22, 23, 24); **X** external position and funding currencies (SR-2, 3, 4, 14, 20, 26, 27); **E** equity regime and cycle position (SR-1, 5, 7, 8, 13, 16, 19, 25); **A** Book A rules (SR-12, 15, plus SR-8's gate and SR-9's hedge rule); **C** the oil buffer (SR-18); **D** the digital asset mechanism watch (SR-10). The programme adds no report, no composite input, no paid feed and no decision rights; everything is REPORT_OK-class.
+
+**Revision 2 — the Mechanism Watch, read against the repo.** The 19 Sep order is adopted in full (rulings MW-1…MW-10, signposts S1–S8, derived metrics D1–D6, both block layouts, the MW-7 exit criteria) with five coordination changes: (a) its emerging-mechanism scan does not get its own query runner — the query set is declared in `config/story_queries.yaml` (committed 25 Sep: "declared here, never composed at render") and run through `altdata/sources/news.py`, with CoinGecko recently-added and the hashrate trackers as the two non-RSS legs; (b) the CoinGecko source switch already exists in `altdata/config.py` (`ENABLED_SOURCES`, off) and is turned on rather than written; (c) the Security Master of Part 26 is, in this repo, the instrument table in `register/instruments.py` — the `crypto.watch` class goes there (G-24); (d) the Sunday block waits for D6 like every other Sunday surface, so the Monthly part renders first; (e) the two new fetchers are new writers and wait for D1c. Its LLM assessment step uses the existing gate plumbing (called only when a gate opens) and its narrative entries post to the existing graded narrative register. The interim Saturday scan (first run 26 Sep 2026) continues until MW-9 retires it.
 
 | Tranche | Scope | Preconditions | Hours |
 |---|---|---|---|
 | 1 — Core: register, feeds, the rates driver, the Monthly blocks | ST-0, ST-1, ST-2, ST-3, ST-4, ST-6 | D1c before ST-1 | ≈33 |
 | 2 — Book behaviour: funding-currency tells, false-bottom audit, rate-thread calibrations | ST-5, ST-9, ST-7 | Tranche 1 | ≈22 |
 | 3 — Backtest before any panel: style, consumer credit, EM, yen/RMB thresholds | ST-8 | ST-1/ST-2 | ≈8 |
-| 4 — Wiring at Track D milestones: Daily/Sunday lines, T&B, validate/redeploy | ST-10, ST-11, ST-12 | D4/D6; T&B full | ≈10 |
-| L — One library session, `library` worktree | ST-L | any time | ≈5 |
-| By hand | Tranche H | any time | ≈5 once + recurring |
-| Deferred backlog | Appendix C | — | (≈70, unscheduled) |
+| 4 — Wiring at Track D milestones: Daily/Sunday lines (incl. the Mechanism Watch block), T&B, validate/redeploy, MW-9 parallel run | ST-10, ST-11, ST-12 | D4/D6; T&B full | ≈14 |
+| 5 — Mechanism Watch: Security Master entry, PRL feeds and D1–D6, Monthly part and validators, emerging scan and LLM gate | ST-13, ST-14, ST-15 | D1c; independent of Tranches 1–3 | ≈25.5 |
+| L — One library session, `library` worktree | ST-L | any time | ≈6.5 |
+| By hand | Tranche H | any time | ≈5.5 once + recurring |
+| Deferred backlog | Appendix C | — | (≈35, unscheduled) |
+
+Total ≈108 h of sessions + ≈5.5 h by hand. Tranche 5 shares nothing with Tranches 1–3 but D1c and the register; it can run beside them or after, chosen at sign-off (§13).
 
 ---
 
@@ -53,7 +58,7 @@
 
 **1.1 Signal Intake Template — six canonical fields.** Home (report(s); book A allocation / B swing / C tactical / D no fixed horizon; paper) · Mechanism (the edge or read; source and evidence; which existing pillar, overlay, dimension or input already covers it) · Data (source, cost, cadence, `available_at`, first-print availability; **where it lives** — source module and registry key) · Signal rights requested (narrow flag / composite input / confidence modifier / base rate only / none) · Validation (episodes, statistic, pass condition; falsifier; review date) · Disposition (adopt / defer / reject, with reason). File: `docs/templates/signal-intake.md`.
 
-**1.2 Signal Triage Register.** `docs/signal-triage-register.md`, numbered, one record per proposal. Seeded by ST-0 with SR-1…SR-27; SR-10 (Mechanism Watch — PRL) and SR-11 (consensus drift) are reserved entries pointing at the 19 Sep batch's Parts B and C in the backlog. The register is also the record of what was rejected and why (§12).
+**1.2 Signal Triage Register.** `docs/signal-triage-register.md`, numbered, one record per proposal. Seeded by ST-0 with SR-1…SR-27; SR-10 is the Mechanism Watch (Thread D) — emerging-mechanism candidates live in the `mechanism_watch` store table and are referenced from SR-10, never duplicated into this register; SR-11 (consensus drift) is a reserved entry pointing at the 19 Sep batch's Part C in the backlog. The register is also the record of what was rejected and why (§12).
 
 **1.3 Third-party rule.** A chart's or post's own conclusion is recorded but never inherits rights. Rights come only from the mechanized version passing its gate.
 
@@ -82,7 +87,7 @@
 
 **1.11 Library conventions.** Papers cited by short name; numerals are accession IDs only; dated content in dated appendices policed by `make library-check`; one library session for this whole order on the `library` worktree, merged by PR.
 
-**1.12 Interim external scans.** Unchanged from the 19 Sep batch §1.6 (weekly Pearl scan; bimonthly consensus-drift scan); neither belongs to this order.
+**1.12 Interim external scans.** Two scheduled Claude tasks run outside the pipeline: the weekly Pearl scan (Saturdays ~08:00 ET, first run 26 Sep 2026; S1–S8 deltas against a carried baseline plus the new-mechanism sweep, ≤700 words) and the bimonthly consensus-drift scan (20th of even months). The Pearl scan belongs to this order and retires under MW-9 (§2.7) once the Sunday Mechanism Watch block has published clean for four consecutive weeks, on Ari's confirmation; until then the pipeline is authoritative for stored data and the external scan for narrative. The consensus-drift scan belongs to Part C in the backlog.
 
 ---
 
@@ -171,6 +176,55 @@ One table, three rules, one block. All three are candidates until their gates pa
 | Rate Repricing Velocity tag | `rates.driver` replaces any local tag | On T&B full (G-7) |
 | Concentration & Complacency | SR-1 style flag only if it adds information beyond top-10 weight; SR-19 house metric if adopted | After gates |
 
+### 2.7 Thread D — Digital asset mechanism watch (owner: Digital Assets; register entry SR-10)
+
+Two additions to ongoing reporting: systematic coverage of Pearl (PRL) — Pearl Research Labs' proof-of-useful-work Layer-1 — through a fixed signpost set, stored series and weekly/monthly reporting; and a standing weekly scan for new coin technologies of the same class with a materiality bar, a register and a human-gated intake path. Pearl sits at the intersection of Factor I (the network is a live experiment in monetizing idle GPU capacity; its difficulty-vs-price behaviour reads how much rented GPU capacity has nothing better to do) and Factor V (a compute-backed native-currency claim). Both are watch-level interests, not scored inputs.
+
+**2.7.1 Definitions.** *Novel-mechanism coin:* consensus or issuance makes a technical claim not already in production — proof-of-useful-work and AI-compute-backed chains; verifiable-compute consensus; new proof-of-work primitives with a paper (memory-hard, VDF-based, ASIC-resistant by construction); compute- or energy-backed monetary designs; fair-launch L1s grounded in peer-reviewed cryptography; post-quantum-native chains (lower weight). Excluded: memecoins; forks and rebrands; GPU-marketplace tokens that merely sell compute (Render/Akash/io.net class) unless they add a mechanism; L2s and rollups without a consensus novelty; restaking and yield derivatives. *Materiality bar (all three):* (i) an identifiable team with checkable credentials, or a paper on arXiv/IACR/a peer-reviewed venue; (ii) a live mainnet, or a credible testnet with public code; (iii) at least one of — an enterprise partner, a tier-1 listing (Coinbase, Binance, Kraken, OKX, Bybit, Upbit), market cap > $50M, notable mining/hashrate interest (hashrate.no, Kryptex, Hashrate Index), or coverage by a serious outlet (CoinDesk, The Block, Blockworks, Tom's Hardware, FT/Bloomberg/WSJ). *Thesis status (PRL):* UNCHANGED / IMPROVED / DETERIORATED, computed by rule with a trace string, overridable by hand; an informational label with no decision rights — not a state of the market-state object.
+
+**2.7.2 Rulings MW-1…MW-10.**
+
+- **MW-1 Coverage.** PRL enters the instrument table (`register/instruments.py`, the Security Master of Part 26 in this repo — G-24) as class `crypto.watch`, not core Alternative Asset coverage, with disambiguation fields `coingecko_id = "pearl-2"`, `name = "Pearl"`, `issuer = "Pearl Research Labs"`, `chain = "pearl (native L1, btcd fork)"`, `explorer = "https://explorer.pearlresearch.ai"`, `mechanism_class = "PoUW / AI-compute"`. The ticker `PRL` is never a key — at least three other projects use it (Perle on Solana; "Pearl" on Polygon; pearl.finance on Tron; "Pearl Research" on Base). A loader test rejects any entry keyed by ticker.
+- **MW-2 Rights.** Discovery, attention and flag rights only. No input to the Monthly composite, the Top & Bottom detector, any overlay, or any Disruptive Themes factor, scenario or theme text; the block may post a graded narrative-register entry tagged Factor I or V. One narrow flag: the idle-GPU flag (D6), which may appear in the Sunday anchor and the Monthly under Factor I with no scoring effect. No Decision Packets; never DECISION_BLOCKED.
+- **MW-3 Placement.** (a) Sunday 05:00 anchor: a Mechanism Watch block ≤12 lines (2.7.6) — at D6. (b) Monthly Macro Report: a Digital Asset Mechanism Watch part inside the digital-assets material; when the Alternative Asset report folds into the Monthly this part is the sole home. (c) Alternative Asset dashboard, Surveillance tab: PRL as a watch instrument until the fold (G-6). (d) Daily Cascade: excluded, enforced by a grep gate; single exception — the 12:30 alert-only slot may carry a tier-1 listing announcement or a chain incident as an information line with no setup rights.
+- **MW-4 Data.** Every series through the point-in-time store with `available_at` (30.4: fetchers are timers, the blocks read the store). CoinGecko is the price source of record (`/coins/pearl-2`, `/tickers`, `/market_chart`; Demo key from the environment, header `x-cg-demo-api-key`; weekly plus one daily close pull stays inside the free tier). Chain height and difficulty from the explorer — confirm a JSON endpoint, fall back to parsing the block page, else estimate height from time since genesis at the 194 s target and mark ESTIMATED (G-26). Emission and supply computed from the formula in Appendix E and stored as derived series. Pool composition (S4) from pool dashboards where published; otherwise NOT AVAILABLE, never a guess (G-27).
+- **MW-5 Emerging scan.** Weekly, ahead of the Sunday anchor, deterministic first and LLM second. The query set is declared in `config/story_queries.yaml` under a `mechanism_watch` group (G-28) and run by `altdata/sources/news.py`; CoinGecko's recently-added list (categories Proof of Work, AI, Layer 1) and the hashrate.no / Kryptex new-coin listings are the two non-RSS legs. A rule-based materiality pre-filter runs first; the LLM assessment step (Appendix F) is called only when at least one candidate passes — the gate stays closed otherwise, per the Audit #3 ruling. Candidates are de-duplicated against the instrument table and the `mechanism_watch` register.
+- **MW-6 Intake path.** A candidate passing the bar is written to the register with status CANDIDATE. Only a human changes status: PROMOTE to WATCH (creates a `crypto.watch` instrument entry and a signpost set) or REJECT (kept, so it is not re-surfaced). Nothing auto-promotes. Status changes go through a one-line CLI, never by editing rendered output.
+- **MW-7 PRL exit and promotion.** PROMOTE to core Digital Assets coverage when all three hold: ≥2 paid-compute partners live; a tier-1 listing; week-one overhang ratio (D2) < 25%. DEMOTE to a quarterly note when two consecutive quarterly reviews show no new partner, no listing progress and market cap < $50M. REMOVE when the chain stops producing blocks for 7 days, or the Together AI endpoint is withdrawn with no replacement partner within a quarter. Changes are recorded in the register and the change-orders edition.
+- **MW-8 Documentation.** Digital Assets receives a dated appendix entry ("Mechanism watch — Pearl and proof-of-useful-work, as of 2026-09") carrying the dated figures; the timeless body gets one mechanism paragraph on proof-of-useful-work as a class only if none exists. `make library-check` must pass.
+- **MW-9 Decommission of the interim scan.** The external Saturday scan retires after the Sunday block has published clean (validators green, no STALE PRL series) for four consecutive weeks, on Ari's confirmation.
+- **MW-10 Publish behaviour.** The Sunday anchor always publishes (Part 28). On any fetch failure the block prints the last good values with their `available_at` and a STALE marker; it never blocks the anchor.
+
+**2.7.3 PRL signposts S1–S8** (baseline as of 2026-09-19; each reported as a delta from the stored prior value).
+
+| ID | Signpost | Measurement | Source | Cadence | Baseline 2026-09-19 |
+|---|---|---|---|---|---|
+| S1 | Paid-compute partners beyond Together AI | Named providers with a live Pearl-instrumented paid endpoint; terms; whether customers can pay in PRL | pearlresearch.ai blog, Together AI blog, announcements, scan | Weekly (narrative, `manual_input`) | 1 (Together AI, Gemma-4-31B-it-pearl, >25% discount funded by emissions) |
+| S2 | PRL demand sink | Marketplace / on-chain compute contracts shipped; any PRL-denominated payment path | Pearl docs and repo, blog | Weekly (narrative) | None; "future direction" in docs |
+| S3 | Exchange access | Venue count on CoinGecko tickers; top-venue volume share; any tier-1 listing | CoinGecko tickers | Weekly (data) | 3 venues (CoinEx, BigONE, SafeTrade); top venue ~91% of volume; no tier-1 |
+| S4 | Mining composition | Explorer difficulty trend (30d); official H100/H200 pool share vs. community consumer-GPU pools where published | Explorer; pool dashboards | Weekly (data) | Difficulty ~21.4M at block 113,770; official pool 20% fee, H100/H200 only; share NOT AVAILABLE |
+| S5 | Holder structure | Week-one overhang ratio (D2); supply gap (D3); disclosure or movement of week-one coinbase outputs | Formula; CoinGecko; explorer | Weekly (data + narrative) | Overhang 38.9%; gap 57.7M PRL, unexplained |
+| S6 | Price vs. emission | Price, market cap, 24h volume; emission-to-volume (D4) | CoinGecko | Weekly (data); daily close stored | ~$1.00–1.15; mcap ~$250–280M; volume $1–6M; emission ~1.04M PRL/day |
+| S7 | Technical and chain integrity | Training workloads, FP8/mixed precision, non-Nvidia support, proof gaming, reorgs, 51% concerns, exploits | Repo, blog, Hashrate Index, security researchers | Weekly (narrative) | Inference only; Nvidia only; W7A7 quantization disclosed; no incidents known |
+| S8 | Team, funding, regulatory | Funding, hiring, securities-status commentary, exchange due-diligence signals | Scan, press | Weekly (narrative) | Nvidia Inception (July 2026); no founder allocation claimed; no funding news known |
+
+**2.7.4 Derived metrics D1–D6** (stored `calc.prl_*` series with `available_at`; K = 650,226; H = current height).
+
+- **D1 code supply** — `supply_code(H) = 2.1e9 · H / (H + K)`.
+- **D2 week-one overhang ratio** — `121.70e6 / supply_code(H)`; 38.9% at baseline, ~19% at ~626M supply (about Sep 2027), ~12% at block 650,226.
+- **D3 supply gap** — `supply_code(H) − coingecko_circulating`; 57.7M at baseline.
+- **D4 emission-to-volume** — `(reward(H) · 86400/194 · price) / volume_24h`; above 0.5 daily issuance is a large share of turnover; above 1.0 the market is not absorbing miner selling at that volume.
+- **D5 venue concentration** — top-venue share of reported volume.
+- **D6 idle-GPU flag** — ON when explorer difficulty is up >25% over 30 days while price is down >20% over the same 30 days: GPUs pointed at Pearl because they have no better use — a Factor I attention item. Initial thresholds; calibrate after 90 days of stored data.
+
+**2.7.5 Thesis status rule** (informational, overridable, trace string required). IMPROVED if in the review period any of: S1 gains a named partner; S2 ships a PRL-denominated path; S3 gains a tier-1 listing; D5 falls below 60% with volume up. DETERIORATED if any of: S7 records an exploit, chain halt or reorg; the Together endpoint is withdrawn; D4 stays above 1.0 for four consecutive weekly reads; a top venue delists. UNCHANGED otherwise.
+
+**2.7.6 Block layouts.** *Sunday 05:00 anchor — Mechanism Watch block (≤12 prose lines, no table):* header with the week; one PRL line (thesis status, price and weekly change, market cap, D4, venues and top share, 30-day difficulty change); "Signposts moved:" listing only those that moved; "Flags:" with the idle-GPU state; "Candidates:" from the scan; "Comparables:" ("—" when empty); a data-as-of line naming any STALE series. *Monthly — Digital Asset Mechanism Watch part:* (1) one paragraph — thesis status with the rule trace and what moved; (2) the S1–S8 table with baseline / prior month / now / change; (3) optional figure from the existing figure tooling — realized vs. designed supply with the overhang-ratio path; (4) candidates found this month with status and any status changes made; (5) narrative-register entries posted this month (`date · class=mechanism-watch · factor=I|V · grade · ≤60 words · source`). Dated figures stay in this part; nothing alters the Monthly composite.
+
+**2.7.7 Emerging-scan specification.** Query set (past 14 days where the engine allows): `"proof of useful work"`; `"AI compute" cryptocurrency mainnet`; `"fair launch" layer 1 GPU mining`; `"verifiable compute" blockchain consensus`; `"new proof-of-work" cryptocurrency`; `"post-quantum" blockchain mainnet launch`; `site:hashrateindex.com`; `site:tomshardware.com mining`; `site:arxiv.org "proof of useful work"`; `site:eprint.iacr.org "proof of work"`; plus the CoinGecko recently-added filter and the hashrate.no / Kryptex listings. Pre-filter: drop anything already in the instrument table or the register (any status); drop exclusion classes by keyword with a manual override list; require at least one materiality-bar (iii) hit detectable by rule (a tier-1 exchange name, a market-cap figure above $50M, a serious-outlet domain, a hashrate-tracker listing). Survivors open the gate for the LLM step (Appendix F), which checks (i) and (ii) and writes the register fields. Register schema (`mechanism_watch` store table; `docs/mechanism-watch-register.md` is a rendered view from `make mechanism-register`): `id · name · canonical_id · mechanism_class · whats_new · team_or_paper · stage (paper / testnet / mainnet) · materiality_evidence · key_risk · grade (the narrative register's scale; CANDIDATE enters at the lowest grade) · status (CANDIDATE / WATCH / REJECTED / PROMOTED) · first_seen · last_reviewed · sources`. Comparables clause: developments at Bittensor, Gensyn, Ritual and Kaspa-style fair launches are reported only when they bear on the PoUW / AI-compute thesis, as one Sunday line; they are not register candidates. Prediction-market cross-link (optional, after PM-1): a Polymarket/Kalshi market naming Pearl or a register candidate appears as an attention item; no rights.
+
+**2.7.8 Falsifiers and review.** Useful if, over 90 days, at least one signpost moved and was reported before it appeared in mainstream crypto press, or at least one register candidate earned a WATCH promotion; if neither, the scan cadence drops to monthly and PRL coverage is reviewed under MW-7. D4/D6 threshold review at the first Monthly with 90 days of stored data (target January 2027). Quarterly PRL review against MW-7 at each quarter-end Monthly from December 2026. The Annual Structural Review decides whether "novel-mechanism coins" remains a watch category or folds into Digital Assets coverage.
+
 ---
 ## §3 Rulings register (SR-1…SR-27)
 
@@ -187,7 +241,7 @@ Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1�
 | 7 | E | Hiking-cycle conditional table (Macrobond) | Adopt table by hand; reject unconditional average | None (base rate) | Tranche H |
 | 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 |
 | 9 | R/A | 5.25% and stock-bond correlation (Simon White, Sep) | Adopt as `rates.driver` correlation member and Book A rule A-1; reject level | Confidence modifier | ST-3 |
-| 10 | — | *Reserved:* Mechanism Watch — PRL (19 Sep batch Part B) | Backlog | — | Appendix C |
+| 10 | D | Digital Asset Mechanism Watch — Pearl (PRL) signposts S1–S8 and the emerging-mechanism scan (19 Sep order, integrated 26 Sep) | Adopt; watch-level rights only (MW-2) | Narrow flag (idle-GPU D6); discovery/attention otherwise | ST-13, ST-14, ST-15; Sunday block at ST-10 |
 | 11 | — | *Reserved:* Consensus drift (19 Sep batch Part C) | Backlog | — | Appendix C |
 | 12 | A | Investor bond allocation (Topdown, 24 Sep) | Adopt Book A line + conditional base rate; reject unconditional contrarian read | Modifier (after gate) | ST-6, ST-7 |
 | 13 | E | Tech vs. defensives valuation (Topdown/LSEG, 24 Sep) | Adopt as SR-1 anchor + base rate; reject rates channel | Modifier after SR-1 gate | ST-8 |
@@ -330,9 +384,21 @@ Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1�
 
 **Validation gate (backlog).** Reproduce the scatter (2-year rolling correlation of weekly changes vs. 10y level). Regress next-6-month correlation on yield level and inflation volatility. If level adds nothing, inflation vol is the lever and 5.25% stays a heuristic.
 
-### SR-10 *Reserved* — Mechanism Watch (PRL) — 19 Sep batch Part B
+### SR-10 Digital Asset Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan (change order of 19 Sep 2026; integrated 26 Sep) — Thread D
 
-Register entry points to the Part B specification and its backlog status (Appendix C). Nothing in this order builds it.
+**Ruling.** Adopt. PRL under systematic coverage as a `crypto.watch` instrument with signposts S1–S8, derived metrics D1–D6 and a rule-based thesis status; a weekly emerging-mechanism scan with a materiality bar, a store-backed register and a human-gated intake path. Full specification in §2.7.
+
+**Home.** Sunday 05:00 anchor (Mechanism Watch block, at D6); Monthly Macro Report (Digital Asset Mechanism Watch part); Alternative Asset dashboard Surveillance tab until the fold; Disruptive Themes narrative register (Factor I or V entries, graded); Digital Assets (dated appendix). Excluded from the Daily Cascade except the 12:30 information line.
+
+**Mechanism.** Factor I: difficulty-vs-price behaviour reads idle GPU capacity seeking yield — the idle-GPU flag. Factor V: a compute-backed native-currency claim. Thesis for the coin itself: paid compute must overtake speculative mining, a PRL demand sink must ship, and the week-one overhang (38.9% of supply minted in the first 5.9 days at difficulty 1) must dilute before a tier-1 listing is plausible; the 57.7M PRL gap between code-derived and reported circulating supply is unexplained; three small venues with one at ~91% of volume; Nvidia-only mining. Evidence: Hashrate Index (2 Jun), Together AI announcement (15 May), Tom's Hardware (31 May), Alea Research, the Pearl repo and explorer, the Komargodski–Weinstein paper (arXiv 2504.09971).
+
+**Data.** CoinGecko (`pearl-2`; price, market cap, 24h volume, circulating, tickers) weekly plus a daily close; explorer height/difficulty weekly with the MW-4 fallbacks; emission and supply from the Appendix E formula; S1, S2, S7, S8 as `manual_input` narrative fields fed by the scan. *Lives in:* `altdata/sources/coingecko.py` (existing switch turned on), `altdata/sources/pearl_explorer.py`; `calc.prl_supply_code`, `calc.prl_overhang`, `calc.prl_supply_gap`, `calc.prl_emission_to_volume`, `calc.prl_venue_conc`, `calc.prl_idle_gpu_flag`, `calc.prl_thesis_status`; `mechanism_watch` store table.
+
+**Rights.** Narrow flag (D6) under Factor I; discovery and attention otherwise; graded narrative-register entries; no scoring, no theme changes, no overlay path (MW-2). Candidates: register status only, human PROMOTE/REJECT (MW-6).
+
+**Validation.** Formula unit tests (block 1 ≈ 3,229.6 PRL; block 113,770 ≈ 2,339.4 PRL; supply at 113,770 ≈ 312.72M); D4/D6 thresholds calibrated after 90 days; the 2.7.8 usefulness test at 90 days; quarterly MW-7 review from December 2026. Falsifiers: the DETERIORATED conditions of 2.7.5; MW-7's demotion and removal rules.
+
+**Disposition.** Adopt as Tranche 5 (ST-13, ST-14, ST-15; Sunday block in ST-10; dated appendix in ST-L; parallel run and decommission in ST-12). ≈25.5 h of sessions plus the shared items. The interim Saturday scan runs until MW-9.
 
 ### SR-11 *Reserved* — Consensus drift — 19 Sep batch Part C
 
@@ -604,6 +670,11 @@ Held = among the 59 FRED series in `altdata/config.py` or the 27 yfinance symbol
 | FINRA margin debt; leveraged-ETF AUM | FINRA; issuer files | monthly; daily | new | ~3-week lag; same day | SR-8 |
 | FINRA short interest; breadth; VIX term structure; sector ETFs | registry | — | **held** (`finra.*`, `calc.breadth_*`, `calc.vix3m_over_vix`, `cfe.vx*`) | — | SR-8, 5, 13 |
 | NIC / cover; HBM share; DRAM direction; CBO deficit path; Livingston; G4 gap | press; MU release; TrendForce; CBO; Phila. Fed; Lustig | quarterly / monthly / annual | `manual_input` | entry date | SR-16, 25, 23, 24 |
+| PRL price, market cap, 24h volume, circulating, tickers (`coingecko.pearl_*`) | CoinGecko `pearl-2`, Demo key from env; `altdata/sources/coingecko.py` (existing switch, off → on) | weekly + daily close | new (switch exists) | fetch time; inside the free tier | SR-10 |
+| PRL height, difficulty, last block time (`pearl.chain_*`) | explorer.pearlresearch.ai, `altdata/sources/pearl_explorer.py` | weekly | new | fetch time; ESTIMATED marker on fallback (G-26) | SR-10 |
+| PRL pool composition | pool dashboards | weekly | `manual_input` / NOT AVAILABLE (G-27) | entry date | SR-10 (S4) |
+| PRL narrative signposts S1, S2, S7, S8 | scan output, `manual_input` | weekly | `manual_input` | entry date | SR-10 |
+| Mechanism-scan candidates | `config/story_queries.yaml` (`mechanism_watch` group) via `news.py`; CoinGecko recently-added; hashrate.no; Kryptex | weekly | new (news pipeline exists) | fetch time | SR-10 (MW-5) |
 
 ---
 
@@ -621,6 +692,7 @@ Held = among the 59 FRED series in `altdata/config.py` or the 27 yfinance symbol
 | Book A block features | `calc.*` via `derived_forms` | `calc.bond_alloc`, `calc.bond_cash_split`, `calc.val_z_gold/_spx/_ust/_cmdty`, `calc.cmdty_gold_ratio` |
 | Oil buffer | `calc.*` | `calc.oil_buffer_state`, `calc.brent_wti`, `calc.oil_prompt_spread`, `calc.producers_spot_ratio` |
 | SR-8 audit outputs | `docs/ledgers/`, then T&B config at ST-11 | confirmation-set scores; `BREADTH_thrust`, `VIX_TS`, `HY_conf`, `RETEST`, `MARGIN_z`, `LEVETF_AUM`, `SI_z` (SI and VIX TS from held keys) |
+| Mechanism Watch (SR-10) | `calc.*` with trace; `mechanism_watch` store table | `calc.prl_supply_code` (D1), `calc.prl_overhang` (D2), `calc.prl_supply_gap` (D3), `calc.prl_emission_to_volume` (D4), `calc.prl_venue_conc` (D5), `calc.prl_idle_gpu_flag` (D6), `calc.prl_thesis_status` (rule of 2.7.5, informational label, not an object state); register rows with status |
 | Report-layer only (no series) | Monthly renderers | block layouts, met/unmet marks, scorecard tables |
 
 ---
@@ -654,6 +726,9 @@ All entries REPORT_OK-class. None can raise DECISION_BLOCKED. Overlay promotion 
 | Memory-cycle line (SR-25) | None (base rate) | Factor I evidence log; Equities | None |
 | Absorber fragility `ABS_FRAGILITY` (SR-26/27) | Modifier (after gate) | Block read; Factor IV | Queue #3 |
 | Book A duration trigger A-3 | Candidate | Sunday (Book A) | Live only after SR-12 and SR-22 gates; champion/challenger |
+| Idle-GPU flag D6 (SR-10) | Narrow flag | Sunday Mechanism Watch block; Monthly, under Factor I | Stays a flag; thresholds reviewed Jan 2027 |
+| PRL thesis status; narrative-register entries (Factor I/V) (SR-10) | Informational label; graded narrative entries | Sunday block; Monthly part | None; theme text stays human-written |
+| Mechanism-watch candidates (SR-10) | Register status CANDIDATE | `mechanism_watch` table; Monthly part | Human PROMOTE / REJECT only (MW-6) |
 
 ---
 
@@ -664,10 +739,14 @@ Each surface is edited once, in the session that owns it. Surfaces that do not y
 | Surface | Additions | Session |
 |---|---|---|
 | Market-state object (`config/market_state.yaml`, `regime.py`, `validate_regime.py`) | `rates.driver` sub-state with members and persistence; candidate contradiction rows `carry_vs_vol`, `fix_vs_offshore` (declared, report-only) | ST-3, ST-5 |
-| Monthly Macro Report (built) | Duration Absorption block (≤18 lines); Cheap-and-Unloved block (≤10 lines); Rate machine summary (`rates.driver`, `DEANCHOR` status, `CRED_STRESS`); Factor I funding panel (SR-16, SR-25 line); Factor III buffer line (SR-18); Factor IV: yen stack status (SR-2), US-vs-RoW lines (SR-14, display only until gate), external-financing composition (SR-26); Factor V reserve scorecard line (SR-20); China panel status lines (SR-3/4 inputs, assembly deferred); consumer/credit tilt line (SR-5, after gate); hiking-cycle note while a cycle is active (SR-7). No composite changes. | ST-6 (+ST-8 panels after gates) |
+| Monthly Macro Report (built) | Duration Absorption block (≤18 lines); Cheap-and-Unloved block (≤10 lines); Rate machine summary (`rates.driver`, `DEANCHOR` status, `CRED_STRESS`); Factor I funding panel (SR-16, SR-25 line); Factor III buffer line (SR-18); Factor IV: yen stack status (SR-2), US-vs-RoW lines (SR-14, display only until gate), external-financing composition (SR-26); Factor V reserve scorecard line (SR-20); China panel status lines (SR-3/4 inputs, assembly deferred); consumer/credit tilt line (SR-5, after gate); hiking-cycle note while a cycle is active (SR-7); **Digital Asset Mechanism Watch part (2.7.6) inside the digital-assets material (SR-10)**. No composite changes. | ST-6 (+ST-8 panels after gates); ST-14 for the Mechanism Watch part |
+| Instrument table (`register/instruments.py`, the Security Master) | `crypto.watch` class; PRL entry with the MW-1 fields; loader test rejecting ticker keys | ST-13 |
+| `config/story_queries.yaml` | `mechanism_watch` query group (2.7.7), committed and dated ahead of the first run | ST-15 |
+| Narrative register | Mechanism-watch entries (`class=mechanism-watch`, factor I or V, graded) | ST-15 |
+| Alternative Asset dashboard, Surveillance tab | PRL as a watch instrument until the fold (MW-3c, G-6) | ST-14 |
 | Daily Cascade 07:00 anchor (exists; block builders at D4) | Auction line on coupon-auction days (SR-22); Fed–market gap line in FOMC and refunding weeks (SR-21/23); yen carry flag (SR-2); "rally inside bear" flag (SR-8, after audit) | ST-10, after D4 |
-| Daily 12:30 alert-only (D4) | Yen unwind tell intraday (SR-2); devaluation tell trip (SR-4). Nothing else. | ST-10 |
-| Sunday 05:00 anchor (D6) | One line: `rates.driver` + `ABS_STRESS` + `CRED_STRESS`; Book A status (A-1/A-2/A-3 conditions met/unmet); Book B tells (SR-1 style, SR-5 RS, once live); devaluation tell status; EM flag status once live | ST-10, after D6 |
+| Daily 12:30 alert-only (D4) | Yen unwind tell intraday (SR-2); devaluation tell trip (SR-4); a PRL tier-1 listing or chain incident as an information line only (MW-3d). Nothing else. Grep gate: no other Daily output contains "PRL" or "Pearl". | ST-10 |
+| Sunday 05:00 anchor (D6) | One line: `rates.driver` + `ABS_STRESS` + `CRED_STRESS`; Book A status (A-1/A-2/A-3 conditions met/unmet); Book B tells (SR-1 style, SR-5 RS, once live); devaluation tell status; EM flag status once live; **Mechanism Watch block ≤12 lines (2.7.6) with STALE handling (MW-10)** | ST-10, after D6 |
 | Top & Bottom (T&B full, later in Track D) | Bottom-side gate (SR-8, A-2); SR-5 bull trigger candidate; overlay intake queue (§2.6); RRV tag read from `rates.driver`; Valuation ERP input. No reweighting. | ST-11 |
 | Disruptive Themes (human-gated) | Factor I evidence log: funding transition (SR-16), memory line (SR-25); Factor V: reserve scorecard as scoreable input (§1.9) | Tranche H |
 | Warsh scenario matrix | §2.1.5 edit list | Tranche H |
@@ -681,7 +760,7 @@ Each surface is edited once, in the session that owns it. Surfaces that do not y
 
 One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the laptop with a VPS redeploy after each push. Hours are rough and tight. Preconditions name Track D steps and TODO items by their own names.
 
-**Dependency order.** ST-0 → [D1c] → ST-1, ST-2 → ST-3 → ST-4 → ST-6 → ST-7 → ST-5 → ST-9 → ST-8 → [D4/D6] → ST-10 → [T&B full] → ST-11 → ST-12. ST-L any time after ST-3. Tranche H any time.
+**Dependency order.** ST-0 → [D1c] → ST-1, ST-2 → ST-3 → ST-4 → ST-6 → ST-7 → ST-5 → ST-9 → ST-8 → [D4/D6] → ST-10 → [T&B full] → ST-11 → ST-12. Tranche 5 in parallel: ST-0 → [D1c] → ST-13 → ST-14 → ST-15 → (Sunday block inside ST-10; parallel run inside ST-12). ST-L any time after ST-3. Tranche H any time.
 
 **Tranche 1 — Core (≈33 h).** Register, feeds, the rates driver, the Monthly blocks. Answers the live question (10y at a 19-year high, 28 Oct FOMC) and gives every later item its inputs.
 
@@ -712,11 +791,19 @@ One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the la
 
 | ID | Item | h | Preconditions |
 |---|---|---|---|
-| ST-10 | Daily/Sunday rendering per §7: 07:00 lines (auction, FOMC-week gap, yen flag, rally-inside-bear); 12:30 hooks (yen unwind, devaluation trip); Sunday line and Book A/B status; numeral audit passes (D3) | 4 | **D4** (block builders), **D6** (Sunday), ST-4, ST-5, ST-9 |
+| ST-10 | Daily/Sunday rendering per §7: 07:00 lines (auction, FOMC-week gap, yen flag, rally-inside-bear); 12:30 hooks (yen unwind, devaluation trip, PRL information line); Sunday line and Book A/B status; **Sunday Mechanism Watch block renderer with STALE handling (MW-10; was Pearl WO-5)**; Daily grep gate for "PRL"/"Pearl"; numeral audit passes (D3) | 7 | **D4** (block builders), **D6** (Sunday), ST-4, ST-5, ST-9, ST-13 |
 | ST-11 | T&B wiring: A-2 gate; SR-5 bull trigger candidate; overlay intake queue with champion/challenger stubs; RRV tag from `rates.driver`; ERP input; no reweighting | 4 | **T&B full**; ST-7, ST-8, ST-9 |
-| ST-12 | `make validate`, `make library-check`, VPS redeploy; register dispositions updated; retire nothing (no interim scans belong to this order) | 2 | all above |
+| ST-12 | `make validate`, `make library-check`, VPS redeploy; register dispositions updated; **start the four-week parallel run of the Sunday block against the interim Saturday scan and decommission it on confirmation (MW-9; was Pearl WO-11)** | 3 | all above |
 
-**Slot L — one library session on the `library` worktree (≈5 h).** ST-L: The Rate and Liquidity Machine (rates driver, Duration Absorption chapter note, auction base rate, de-anchoring definition, Livingston note, hedge substitution); Equities (Growth/Value mechanism and pair, tech/defensives, memory-cycle table, one-factor-market note); Currencies (funding-currency stack, China position, devaluation tell, US-vs-RoW and the dollar cycle, reserve scorecard and regimes, external-financing composition and holder fragility); Metals and Energy (gold window fragility, buffer variable, producers-vs-spot); Credit (capex funding transition and rings); Base Rates ledgers (SR-1, 2, 5, 6, 7, 12, 13, 15, 21, 22, 25) as dated appendices; Debt Cycles brief (hiking into a bubble; Koo case for China; supply regimes; fiscal-dominance cross-reference); Market Structure & Cascades brief (risk-parity/target-vol de-levering; leveraged-ETF rebalancing); Positioning & Flows (fuel metrics); Operating Doctrine (candidate rules from SR-8 and SR-22); operator behavioral paper (dip-buying cohort, rally trap); Portfolio Construction brief (Book A rule table, barbell, Cheap-and-Unloved block); Warsh matrix variables. Dated content in dated appendices; `make library-check` once at the end; merge by PR.
+**Tranche 5 — Mechanism Watch (≈25.5 h).** Independent of Tranches 1–3 except ST-0 and D1c; the same ingestion → store → block shape as PM-1, so it can reuse that scaffolding if PM-1 lands first, and needs nothing from it otherwise.
+
+| ID | Item | h | Preconditions |
+|---|---|---|---|
+| ST-13 | PRL data layer (was Pearl WO-1…WO-4): `crypto.watch` class in `register/instruments.py` and the PRL entry with the MW-1 fields, loader test rejecting ticker keys (G-24); `altdata/sources/coingecko.py` switch on and extended to `pearl-2` price/mcap/volume/circulating/tickers → PIT series, key from env; `pearl_explorer.py` with the MW-4 fallbacks and ESTIMATED marker (G-26); emission calculator from Appendix E; D1–D6 as `calc.prl_*`; thesis-status rule with trace; formula unit tests (block 1 ≈ 3,229.6; block 113,770 ≈ 2,339.4; supply ≈ 312.72M); registry entries | 11.5 | ST-0; **D1c**; G-24, G-25 |
+| ST-14 | Monthly part renderer (2.7.6): thesis paragraph with trace, S1–S8 table, optional supply figure via the existing figure tooling, candidates and status changes, narrative entries; Surveillance-tab watch instrument (G-6); validators (was Pearl WO-9): `coingecko_id == "pearl-2"` and `name == "Pearl"` guard, supply within 2% of formula for the stored height, `available_at` present, STALE-not-empty render test, the Daily grep gate | 7 | ST-13 |
+| ST-15 | Emerging scan (was Pearl WO-7/WO-8, ≈4 h saved by reusing the news pipeline): `mechanism_watch` query group in `config/story_queries.yaml` run by `news.py`; CoinGecko recently-added and hashrate-tracker legs; dedupe against the instrument table and register; rule pre-filter; `mechanism_watch` store table; `make mechanism-register` renderer; CLI `promote` / `reject` / `review`; LLM assessment step behind the existing gate (Appendix F prompt verbatim) writing register fields and a graded narrative-register entry (G-29) | 7 | ST-13; the events/news pipeline (committed 25 Sep, `01b496b`); existing LLM gate plumbing |
+
+**Slot L — one library session on the `library` worktree (≈6.5 h).** ST-L: Digital Assets dated appendix "Mechanism watch — Pearl and proof-of-useful-work, as of 2026-09" and one timeless mechanism paragraph on proof-of-useful-work if none exists (MW-8; was Pearl WO-10); The Rate and Liquidity Machine (rates driver, Duration Absorption chapter note, auction base rate, de-anchoring definition, Livingston note, hedge substitution); Equities (Growth/Value mechanism and pair, tech/defensives, memory-cycle table, one-factor-market note); Currencies (funding-currency stack, China position, devaluation tell, US-vs-RoW and the dollar cycle, reserve scorecard and regimes, external-financing composition and holder fragility); Metals and Energy (gold window fragility, buffer variable, producers-vs-spot); Credit (capex funding transition and rings); Base Rates ledgers (SR-1, 2, 5, 6, 7, 12, 13, 15, 21, 22, 25) as dated appendices; Debt Cycles brief (hiking into a bubble; Koo case for China; supply regimes; fiscal-dominance cross-reference); Market Structure & Cascades brief (risk-parity/target-vol de-levering; leveraged-ETF rebalancing); Positioning & Flows (fuel metrics); Operating Doctrine (candidate rules from SR-8 and SR-22); operator behavioral paper (dip-buying cohort, rally trap); Portfolio Construction brief (Book A rule table, barbell, Cheap-and-Unloved block); Warsh matrix variables. Dated content in dated appendices; `make library-check` once at the end; merge by PR.
 
 **Tranche H — by hand (Ari; ≈5 h once, then recurring).**
 
@@ -728,20 +815,21 @@ One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the la
 | SR-20 scorecard first entry (USD share, constant-FX share, gold share, holder split with SR-27 tags) | 30 min | 30 min at each DT refresh; 5 min/quarter |
 | Livingston 1965–80 base-rate note (SR-24) | 30 min | — |
 | `manual_input` entries: SEP median, FedWatch (until G-4), NIC/cover (SR-16), HBM share and DRAM direction (SR-25), global-visible inventory and IEA days of cover (SR-18), AAII three numbers (SR-12), MSCI end-of-month file (SR-14), CBO path and G4 gap (SR-23), panda-bond volume (SR-4) | 20 min | ≈25 min/month + ≈30 min/quarter |
+| Mechanism Watch by hand (SR-10): weekly review of the Sunday block and any CANDIDATE rows (`promote` / `reject` / `review`); S1/S2/S7/S8 narrative entries where the scan missed them; the MW-9 confirmation after four clean weeks; quarterly MW-7 review | 10 min | ≈10 min/week; ≈20 min/quarter |
 
-**Deferred backlog (Appendix C, ≈70 h, not trigger-based).**
+**Deferred backlog (Appendix C, ≈35 h, not trigger-based).**
 
-**Totals.** Tranche 1 ≈33 · Tranche 2 ≈22 · Tranche 3 ≈8 · Tranche 4 ≈10 · Slot L ≈5 → **≈78 h of sessions**, plus ≈5 h by hand once. Cut lines: Tranche 1 alone answers the live question; Tranches 1–2 change Book behaviour; Tranche 3 decides which panels exist; Tranche 4 cannot run before its Track D milestones regardless.
+**Totals.** Tranche 1 ≈33 · Tranche 2 ≈22 · Tranche 3 ≈8 · Tranche 4 ≈14 · Tranche 5 ≈25.5 · Slot L ≈6.5 → **≈108 h of sessions** (≈109 with rounding), plus ≈5.5 h by hand once. Cut lines: Tranche 1 alone answers the live question; Tranches 1–2 change Book behaviour; Tranche 3 decides which panels exist; Tranche 4 cannot run before its Track D milestones regardless; Tranche 5 is severable and can run beside Tranche 1 or after it.
 
 **Session 1 paste prompt (ST-0; docs only, safe before D1c). Estimated run time 15–25 minutes; session ≈1 h including review.**
 
 ```
 Read CLAUDE.md, docs/market-state.md, and docs/change-order-signal-triage-2026-09-25.md in full before acting. Execute ST-0 from §8 of that order and nothing else:
 1. Create docs/templates/signal-intake.md with the six canonical fields (§1.1) and the four rules §1.3–1.6 as a checklist.
-2. Create docs/signal-triage-register.md seeded with SR-1…SR-27, copying each entry's Ruling / Home / Mechanism / Data / Rights / Validation / Disposition text from §3 of the order verbatim; SR-10 and SR-11 as reserved entries pointing to Appendix C; SR-19 as "DEFERRED — definition required"; SR-25 as "REJECTED as signal — memory-cycle tell adopted". Add a "Built in" column from the §3 master table.
+2. Create docs/signal-triage-register.md seeded with SR-1…SR-27, copying each entry's Ruling / Home / Mechanism / Data / Rights / Validation / Disposition text from §3 of the order verbatim; SR-10 in full (the Mechanism Watch, pointing at §2.7 for the specification and noting that candidates live in the mechanism_watch store table, not in this register); SR-11 as a reserved entry pointing to Appendix C; SR-19 as "DEFERRED — definition required"; SR-25 as "REJECTED as signal — memory-cycle tell adopted". Add a "Built in" column from the §3 master table.
 3. Create docs/ledgers/README.md and tools/calibration/README.md stating the offline-calibration rule from §1.10 (scripts pull full history directly; they never read the observation store as-of; ledgers are dated; only live flags read the store).
 4. Do not touch config/, altdata/, regime.py or any source; do not add registry entries; do not create any writer.
-Run make library-check (bash scripts/make.sh library-check on Windows) and make validate; report both. Commit once: "governance: signal triage register SR-1–27, intake template, calibration rule". Report GAP G-3 status: whether git log shows any earlier commit of post-freeze-amendment-4-signal-triage-batch-1.md, change-orders-2026-09-19-batch.md or a signal-triage register.
+Run make library-check and make validate (on Windows: & "C:\Program Files\Git\bin\bash.exe" scripts/make.sh validate); report both. Commit once: "governance: signal triage register SR-1–27, intake template, calibration rule". Report GAP G-3 status: whether git log shows any earlier commit of post-freeze-amendment-4-signal-triage-batch-1.md, change-orders-2026-09-19-batch.md or a signal-triage register.
 ```
 
 Session 2 (ST-1) is written only after D1c has landed and the FRED pull is scheduled (G-20); its prompt will name both as checks it must perform before creating a writer.
@@ -758,7 +846,9 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 
 **ST-7/ST-8/ST-9.** Each ledger states its data source, sample, statistic and pass/fail against the gate written in §3; a failed gate updates the register disposition to "defer — gate failed" with the statistic; a signal that survives only on revised data is logged and gets no rights.
 
-**ST-10/ST-11.** The numeral audit (D3) passes on every new Daily line; T&B composite weights unchanged; only one overlay candidate is in champion/challenger at a time per §2.6.
+**ST-10/ST-11.** The numeral audit (D3) passes on every new Daily line; T&B composite weights unchanged; only one overlay candidate is in champion/challenger at a time per §2.6; the Sunday Mechanism Watch block renders STALE-not-empty on a simulated fetch failure and never blocks the anchor.
+
+**Tranche 5.** ST-14's validators pass (`coingecko_id == "pearl-2"`, `name == "Pearl"`, supply within 2% of formula, `available_at` present, STALE-not-empty, Daily grep gate); formula unit tests pass; no path from any `calc.prl_*` series or register row to a composite, overlay, trigger, dial or dimension; `calc.prl_thesis_status` is registered as an informational label and `validate_regime.py` confirms it is not read by `regime.py`; the LLM step is not called when the pre-filter passes nothing (test with an empty candidate set); the CoinGecko key is absent from the repo (`validate_secrets.py`).
 
 **Library.** Dated content confined to dated appendices; every paper touched passes `make library-check`.
 
@@ -791,6 +881,12 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | G-21 | Source for "state banks stop selling dollars" (the devaluation tell's third leg) | ST-5 | tell definition |
 | G-22 | PM-1 (Kalshi ingestion) timing in Track D ("Sessions 8–9 with Part 27 v1"); FedWatch by hand until then | ST-4 | `calc.pm_disagree_fed` |
 | G-23 | ALFRED store ingestion (O.16) timing; calibration scripts pull vintages directly meanwhile, and no first-print live flag reads the store before O.16 | ST-8, ST-11 | live first-print flags |
+| G-24 | Whether `register/instruments.py` is the Security Master of Part 26 or an interim table to migrate from; the `crypto.watch` class goes where the instruments live | ST-13 | PRL entry |
+| G-25 | State of the existing `altdata/sources/coingecko.py` behind the `ENABLED_SOURCES` switch (stub or working fetcher); extend rather than rewrite | ST-13 | CoinGecko fetcher |
+| G-26 | Explorer JSON endpoint unknown; fallback mandatory; record the discovered endpoint in the fetcher docstring | ST-13 | first stored height |
+| G-27 | Pool-composition share has no published source; S4 prints NOT AVAILABLE (carry) | ST-13 | — |
+| G-28 | Whether `story_queries.yaml`'s loader accepts a second group (`mechanism_watch`) with its own cadence and cap, or the mechanism queries need a sibling file using the same loader | ST-15 | scan build |
+| G-29 | The narrative register's grade scale and schema (Audit #3 §I) — confirm before CANDIDATE rows and mechanism-watch entries are written at its lowest grade | ST-15 | first register write |
 
 ---
 
@@ -805,7 +901,11 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | Dec 2026 Monthly | ST-7 gate results (SR-12, 15, 21, 22, 23); A-3 status |
 | Jan 2027 Monthly | ST-8 gate results (SR-1/13, 5, 14, 2, 4); thresholds into config; first calibration of SR-2/SR-4 thresholds |
 | T&B full (Track D) | ST-11; overlay queue opens with SR-2 |
-| Annual Structural Review | SR-20 regime classification; SR-7 table refresh; SR-13/SR-15 window tests; Base Rates ledgers; §1.5–1.6 fixture review; SR-19 definition status |
+| Weekly (Sat / Sun) | Interim Saturday Pearl scan until MW-9; Sunday Mechanism Watch block once ST-10 lands; CANDIDATE rows reviewed by hand |
+| Four clean Sunday blocks after ST-10 | MW-9: retire the interim Saturday scan on Ari's confirmation |
+| Dec 2026 quarter-end Monthly | First PRL MW-7 review |
+| Jan 2027 Monthly | D4/D6 threshold review (90 days of stored data); 2.7.8 usefulness test |
+| Annual Structural Review | SR-20 regime classification; SR-7 table refresh; SR-13/SR-15 window tests; Base Rates ledgers; §1.5–1.6 fixture review; SR-19 definition status; whether "novel-mechanism coins" stays a watch category (2.7.8) |
 
 ---
 
@@ -819,7 +919,8 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 - R6 — Unconditional "stocks rise in hiking cycles" base rate.
 - R7 — 5.25% as a causal level for stock-bond correlation.
 - R8 — Any composite or trigger rights for SR-1…9 before the stated gate passes.
-- R9, R10 — Carried from the 19 Sep batch (Parts B and C) unchanged.
+- R9 — PRL as a composite, overlay, trigger or factor input; auto-promotion of any mechanism-watch candidate; `PRL` as a key anywhere; PRL or Pearl content in the Daily Cascade outside the 12:30 information line; a thesis status treated as a market state.
+- R10 — Carried from the 19 Sep batch Part C (consensus drift) unchanged.
 - R11 — "Bonds are a classic contrarian play" from allocation alone, unconditional on regime.
 - R12 — The rates channel as the mechanism for mega-cap tech's premium.
 - R13 — "Decadal turning point" for EM as a standing claim.
@@ -843,23 +944,25 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 
 ## §13 Sign-off
 
-| Field | Tranche 1 | Tranche 2 | Tranche 3 | Tranche 4 | Slot L | Tranche H |
-|---|---|---|---|---|---|---|
-| Decision | ☐ Approved ☐ With changes ☐ Rejected | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ |
-| Amendment number / Part (G-1) | #____ · Part ____ | | | | | |
-| Placement | ☐ ST-0 now; ST-1/2 after D1c | ☐ after Tranche 1 | ☐ after ST-5 | ☐ at D4/D6 and T&B full | ☐ with the next library session | ☐ now |
-| Batch 1 deferrals confirmed (G-19) | ☐ as Appendix C | | | | | |
-| Changes noted | | | | | | |
+| Field | Tranche 1 | Tranche 2 | Tranche 3 | Tranche 4 | Tranche 5 | Slot L | Tranche H |
+|---|---|---|---|---|---|---|---|
+| Decision | ☐ Approved ☐ With changes ☐ Rejected | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ |
+| Amendment number / Part (G-1) | #____ · Part ____ | | | | | | |
+| Placement | ☐ ST-0 now; ST-1/2 after D1c | ☐ after Tranche 1 | ☐ after ST-5 | ☐ at D4/D6 and T&B full | ☐ beside Tranche 1 (after D1c) · ☐ after Tranche 1 · ☐ after PM-1 | ☐ with the next library session | ☐ now |
+| Batch 1 deferrals confirmed (G-19) | ☐ as Appendix C | | | | | | |
+| Changes noted | | | | | | | |
 
 Signed: Ari Chester — date: ____________
 
-On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orders-<date>.md` edition; §8 becomes its work-order addendum; the three superseded drafts, if ever committed, move to `docs/archive/`; Appendix C is carried in that edition's backlog appendix beside the 19 Sep Parts B and C.
+On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orders-<date>.md` edition; §8 becomes its work-order addendum; the four superseded drafts, if ever committed, move to `docs/archive/`; Appendix C is carried in that edition's backlog appendix beside the 19 Sep Part C.
 
 ---
 
 ## Appendix A — ID and numbering map
 
-**Register numbers.** Batch 1 chat labels #1–#9 → SR-1…SR-9. SR-10, SR-11 → reserved (19 Sep Parts B, C). Batch 2 chat labels SR-10…SR-21 (24–25 Sep transcript) → SR-12…SR-23; SR-24…SR-27 filed directly.
+**Register numbers.** Batch 1 chat labels #1–#9 → SR-1…SR-9. SR-10 → the Mechanism Watch (19 Sep Part B, its Appendix B intake entry re-mapped to the six canonical fields in §3). SR-11 → reserved (19 Sep Part C). Batch 2 chat labels SR-10…SR-21 (24–25 Sep transcript) → SR-12…SR-23; SR-24…SR-27 filed directly.
+
+**Mechanism Watch work items.** Pearl order WO-1…WO-4 → ST-13; WO-5 → ST-10; WO-6 and WO-9 → ST-14; WO-7 and WO-8 → ST-15; WO-10 → ST-L; WO-11 → ST-12. Its rulings keep their MW-n names; its gaps GAP-3/GAP-4 (19 Sep batch) → G-26/G-27.
 
 **Work items.** Batch 1 standalone W1…W12 and 19 Sep batch A-W1…A-W12 → ST-0 (W1/A-W1), ST-1 and ST-2 (W2/A-W2 and the feed halves of W4–W9), ST-3 (W3/A-W3 + Batch 2 W-1), ST-5 (tells from W4/A-W4, W5/A-W5), ST-8 (backtests from W6/A-W6, W7/A-W7, W10/A-W10 partial), Tranche H (W8/A-W8), ST-9 (W9/A-W9), ST-L (W11/A-W11), ST-12 (W12/A-W12). Batch 2 W-0…W-12 → ST-0 (W-0), ST-1/ST-2 (feed halves of W-2…W-5, W-8, W-12), ST-4 (W-2…W-6, W-12 features), ST-6 (W-6, W-7 rendering), ST-7 (W-2/W-3/W-7 backtests), ST-8 (W-9, W-10), ST-4 (W-4 incl. MU), ST-L (W-11).
 
@@ -888,6 +991,7 @@ On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orde
 | Commodity producers | MSCI World Commodity Producers NTR 8,113.76, all-time high | Azuria |
 | Burry disclosures | Shorts added: MU, NBIS, SOXX, PLTR; longs: QXO, BBW, SFM, BIRK, MELI; Acer CEO on memory inventories | Monchau via Bull Theory |
 | China (SR-3 facts) | ≈$6 T state-controlled foreign assets; NIIP > $3 T | Setser via post |
+| PRL (SR-10, baseline 19 Sep) | ~$1.00–1.15 after a +70% week; mcap ~$250–280M; FDV ~$2.3B; 3 venues, top ~91% of volume; block 113,770 (15 Sep): 312.72M mined, difficulty ~21.4M; week-one overhang 38.9%; supply gap 57.7M; one paid-compute partner (Together AI); full fact sheet in Appendix E | Hashrate Index, CoinGecko, explorer, Together AI |
 | `rates.driver` (presumed, pre-build) | fed_path with a term-premium component pending the DKW split; A-3 not met; `DEANCHOR` not met; `ABS_FRAGILITY` reads "rising" on the TIC prints, candidate only | this order |
 
 ---
@@ -898,12 +1002,48 @@ On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orde
 
 **Batch 2 deferrals.** SR-19 house metric — rolling 63d R² of SPX daily returns on an equal-weight top-10 AI basket, and the equal-weight index's beta to it; gate on 2000 and 2021 (forward 6m drawdown conditional on R² top decile); Concentration & Complacency candidate (≈2 h, after G-16). SR-20 monthly automation of COFER/ECB constant-FX (≈2 h). SR-15 full four-metric composites per asset (≈4 h). G4 issuance-gap automation from national sources — DMO/BoE, MoF/BoJ, ECB/national issuers (≈6 h).
 
-**19 Sep batch Parts B and C (by reference; register SR-10 and SR-11).** Part B — Digital Asset Mechanism Watch (PRL Security Master entry, S1–S8 signposts, Sunday and Monthly blocks, `mechanism_watch` register, ≈35 h); Part C — consensus drift (sixth I-b input, Foundations evidence log, ESPAI fixture, ≈6.5 h). Their interim scheduled scans continue (§1.12).
+**19 Sep batch Part C (by reference; register SR-11).** Consensus drift — sixth I-b input "consensus drift" (unscored prose line), Foundations evidence log, ESPAI point-in-time fixture, LEAP as a source (≈6.5 h). Its interim bimonthly scan continues (§1.12). Part B (the Mechanism Watch) is no longer backlog — it is Thread D and Tranche 5 of this order.
 
-**Total backlog ≈70 h.**
+**Mechanism Watch deferrals (from Thread D).** Prediction-market cross-link for Pearl or register candidates (after PM-1, ≈1 h); a daily intraday PRL series (re-check the CoinGecko monthly call budget first; ≈1 h); automation of the S1/S2/S7/S8 narrative fields beyond the scan (not planned — they stay `manual_input` by design).
+
+**Total backlog ≈35 h.**
 
 ---
 
 ## Appendix D — Sources
 
-Batch 1 (10–19 Sep 2026): J. Weniger, Growth/Value chart (8 Sep) · chat question on the yen carry stack (10 Sep) · shadow-reserves post citing B. Setser (11 Sep) · X post on the US–China 10y spread (10 Sep) · J. deGraaf / RenMac, consumer credit (8 Sep) · L. Runkevicius, SF Fed decomposition (15 Sep) · Macrobond hiking-cycle chart · R. Lemand, Nasdaq 2000–02 rallies (19 Sep) · S. White, 5.25% and stock-bond correlation (Sep). Batch 2 (24–25 Sep 2026): Topdown Charts, "10 Charts to Watch in 2026 [update]" · Bloomberg, "Hyperscaler Debt Sales Skyrocket" via R. Lemand · Alpine Macro via Chen Zhao · JPMorgan Commodities Research / Bloomberg oil-inventory chart via F. Brimberg and C.-H. Monchau · C.-H. Monchau, beta chart (undated) · IMF COFER Q1 2026 via FintechNews · Bianco Research / Bloomberg WIRP · M. Padley · H. Lustig · O. Costa / Azuria Capital · C.-H. Monchau, Burry disclosures via Bull Theory · US Treasury TIC via J. Riemann · TIC Major Foreign Holders via an unidentified research note (G-18). Context: Gulf News (25 Sep) · Wikipedia 2026–2028 oil market chronology · Blab Business (10 Jun) · Bloomberg (10 Sep) · CNBC (23 Sep). Repository state: `CLAUDE.md`, `TODO.md`, `docs/market-state.md`, `config/market_state.yaml`, `metrics_registry.yaml`, `source_registry.yaml`, `altdata/config.py`, `docs/change-orders-consolidated-2026-09-10.md`, as read from the laptop working copy on 25 Sep 2026 21:56 ET.
+Batch 1 (10–19 Sep 2026): J. Weniger, Growth/Value chart (8 Sep) · chat question on the yen carry stack (10 Sep) · shadow-reserves post citing B. Setser (11 Sep) · X post on the US–China 10y spread (10 Sep) · J. deGraaf / RenMac, consumer credit (8 Sep) · L. Runkevicius, SF Fed decomposition (15 Sep) · Macrobond hiking-cycle chart · R. Lemand, Nasdaq 2000–02 rallies (19 Sep) · S. White, 5.25% and stock-bond correlation (Sep). Batch 2 (24–25 Sep 2026): Topdown Charts, "10 Charts to Watch in 2026 [update]" · Bloomberg, "Hyperscaler Debt Sales Skyrocket" via R. Lemand · Alpine Macro via Chen Zhao · JPMorgan Commodities Research / Bloomberg oil-inventory chart via F. Brimberg and C.-H. Monchau · C.-H. Monchau, beta chart (undated) · IMF COFER Q1 2026 via FintechNews · Bianco Research / Bloomberg WIRP · M. Padley · H. Lustig · O. Costa / Azuria Capital · C.-H. Monchau, Burry disclosures via Bull Theory · US Treasury TIC via J. Riemann · TIC Major Foreign Holders via an unidentified research note (G-18). Context: Gulf News (25 Sep) · Wikipedia 2026–2028 oil market chronology · Blab Business (10 Jun) · Bloomberg (10 Sep) · CNBC (23 Sep). Mechanism Watch (19 Sep 2026): Hashrate Index, "Pearl (PRL): The AI-Compute Cryptocurrency, Explained" (2 Jun 2026) · Phemex Academy, "What Is Pearl (PRL)?" (updated 17 Sep 2026) · Together AI, "Together AI and Pearl Research Labs Team Up to Reduce the Cost of AI Inference" (15 May 2026) · Tom's Hardware, "New AI-compute cryptocurrency Pearl sparks a GPU mining rush but profitability is already sliding" (31 May 2026) · Alea Research, "Pearl — Proof of Useful Work for AI Compute" · CoinGabbar, Pearl joins Nvidia Inception (23 Jul 2026, updated 19 Aug) · CoinGecko, Pearl (`pearl-2`) · Bybit price page, Pearl · Pearl Research Labs, "Proof of Useful Work" · Komargodski & Weinstein, arXiv 2504.09971 · Pearl node code, block subsidy function (`node/blockchain/validate.go`). Repository state: `CLAUDE.md`, `TODO.md`, `docs/market-state.md`, `config/market_state.yaml`, `metrics_registry.yaml`, `source_registry.yaml`, `altdata/config.py`, `docs/change-orders-consolidated-2026-09-10.md`, as read from the laptop working copy on 25 Sep 2026 21:56 ET; `altdata/events_ingest.py`, `altdata/sources/news.py`, `config/story_queries.yaml` as committed in `01b496b`.
+
+---
+
+## Appendix E — PRL baseline fact sheet (as of 2026-09-19; dated content)
+
+**Identity.** Pearl (PRL). Pearl Research Labs; CEO Omri Weinstein (complexity theorist; Princeton PhD; Hebrew University; lists ex-Nvidia, ex-Vast Data). Mechanism paper: Komargodski & Weinstein, "Proofs of Useful Work from Arbitrary Matrix Multiplication," arXiv 2504.09971 (April 2025). Repo `github.com/pearl-research-labs/pearl`; node `pearld` (btcd fork, Go); GPU miner built on vLLM; ships a zero-knowledge proof-of-work circuit and XMSS post-quantum signatures. Genesis 2026-04-27 09:00 UTC; block target 194 s; difficulty adjusts by exponential filter with a one-week half-life. CoinGecko id `pearl-2`. Explorer `explorer.pearlresearch.ai`. Team X: @prlnet; CEO: @WeinsteinOmri.
+
+**Emission.** No halvings. Max supply 2.1e9. Reward at height h: `2.1e9 · K / ((h + K) · (h − 1 + K))`, K = 650,226 (194 s blocks in four years). Cumulative: `supply(H) = 2.1e9 · H / (H + K)`; half the supply at block 650,226. Block 1 ≈ 3,229.6 PRL; block 113,770 ≈ 2,339.4 PRL. At block 113,770 (2026-09-15 23:53 UTC): 312.72M mined (14.9% of cap); ~1.04M PRL/day at target pace; supply ≈ 626M one year on.
+
+**Launch distortion.** Difficulty started at 1; the first 40,000 blocks arrived in 5.9 days (~12.7 s each vs. 194 s target); 121.70M PRL (38.9% of all supply mined to 2026-09-15) was minted by 2026-05-03 06:31 UTC. Roughly 127M PRL exist ahead of the design schedule. Block pace has matched target since early September 2026. No vesting; holders anonymous.
+
+**Supply gap.** Code-derived 312.72M vs. CoinGecko circulating 255.05M (2026-09-16): 57.67M PRL (18.4%) unexplained.
+
+**Market.** Price ~$1.00–1.15 on 2026-09-18/19 after a +70% week (+57% in one day on ~$5–6M volume). July 22 low $0.23; Sep 15 close $0.5597; late-May peak ~$1.65 per Hashrate Index (aggregator ATH figures conflict because CoinGecko's series starts 2026-06-22). Market cap ~$250–280M; FDV ~$2.3B; rank ~#150–160. Venues: CoinEx (most active), BigONE, SafeTrade; one venue ~91% of reported volume; no tier-1 listing.
+
+**Demand side.** Together AI partnership announced 2026-05-15: Gemma-4-31B-it-pearl inference endpoint priced >25% below standard, discount offset by PRL emissions; Together states more Pearl-powered products and a way for customers to obtain a share of emissions are planned. No PRL-denominated marketplace exists; Pearl's docs describe on-chain compute contracts as a future direction. Nvidia Inception acceptance (July 2026). W7A7 quantization technique disclosed (unverified independently).
+
+**Mining.** Nvidia-only. Official Pearl Research pool: 20% fee, H100/H200 only. Community pools support consumer GPUs down to Volta. RTX 5090 estimated revenue fell from ~$33.80 to ~$17.19/day within weeks of the late-May rush. Luxor (Hashrate Index) characterises inbound interest as VCs, private financial firms and miners rather than retail, front-loaded over the first 2–3 months; natural hardware fit is GPUs lacking back-end networking for training clusters.
+
+**Ticker collisions.** Perle (Solana, PRL; AI data-labeling; Upbit/Bithumb listed); "Pearl" (Polygon, PEARL); pearl.finance (Tron, PEARL); "Pearl Research" (Base, PRL; 100B supply — unrelated). Phemex's "PRL" is Perle and is delisted.
+
+---
+
+## Appendix F — LLM assessment prompt (gate step, ST-15)
+
+Use verbatim as the system/task prompt for the candidate-assessment call; substitute the bracketed fields from the pre-filter output.
+
+> You are assessing candidate cryptocurrency projects for Ari Chester's mechanism-watch register. Ari is an experienced trader and P&C reinsurance executive; write densely, bottom line first, no beginner explanations, no disclaimers.
+>
+> A candidate qualifies only if ALL of the following hold: (i) an identifiable team with checkable credentials, or a paper on arXiv, IACR ePrint, or a peer-reviewed venue; (ii) a live mainnet, or a credible testnet with public code; (iii) at least one of: an enterprise partner, a tier-1 listing (Coinbase, Binance, Kraken, OKX, Bybit, Upbit), market cap above $50M, notable mining or hashrate interest, or coverage by a serious outlet. Exclude memecoins, forks and rebrands, GPU-marketplace tokens without a novel mechanism, L2s and rollups without a consensus novelty, and restaking or yield derivatives. Inclusion classes: proof-of-useful-work and AI-compute-backed chains; verifiable-compute consensus; new proof-of-work primitives with a paper; compute- or energy-backed monetary designs; fair-launch L1s grounded in peer-reviewed cryptography; post-quantum-native chains.
+>
+> Candidates: [list of name, links, pre-filter evidence].
+>
+> For each candidate, return JSON with: `qualifies` (true/false), `name`, `canonical_id` (CoinGecko id or chain+contract; null if unknown), `mechanism_class`, `whats_new` (one line: what is new mechanically), `team_or_paper` (link), `stage` (paper/testnet/mainnet), `materiality_evidence` (which of i–iii, with links), `key_risk` (one line), `why_it_could_matter` (one line), `sources` (links used). If a candidate fails, say which criterion failed in `fail_reason`. Do not pad; if nothing qualifies, return an empty list. Verify claims against the linked sources; if a claim cannot be verified, mark it `unverified` rather than asserting it.
