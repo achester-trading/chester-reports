@@ -154,6 +154,10 @@ FREQ_SESSIONS: dict[str, int] = {
     "weekly": 8,
     "monthly": 32,
     "quarterly": 95,
+    # An annual table -- Damodaran's multiples, French's BE/ME -- is current for a
+    # year. Without this it fell back to the monthly allowance and would read stale
+    # eleven months in twelve (signal-triage order ST-2).
+    "annual": 260,
 }
 
 # n against the window. Declared, so "thin" means the same thing everywhere.

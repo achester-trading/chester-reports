@@ -1118,6 +1118,241 @@ sources:
       - >-
         Behind config.ENABLED_SOURCES['cftc'], turned on in ST-2.
 
+  # --- Signal-triage order ST-2, step 2 ----------------------------------------
+  eia:
+    name: US Energy Information Administration -- Weekly Petroleum Status Report history
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [energy]
+    geography: [global]
+    latency: Wednesday 10:30 ET
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is Wednesday 10:30 ET by rule (reconstructed); a holiday week's Thursday release makes it a day early.
+    license: public, no key (history workbooks; the v2 API needs one)
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/eia.py
+    status: live
+    caveats:
+      - >-
+        Behind config.ENABLED_SOURCES['eia'], turned on in ST-2.
+      - >-
+        The NYMEX futures files (RCLC1/RCLC2) end 2024-04-05, so no prompt spread (G-11).
+
+  frb_cie:
+    name: Federal Reserve Board -- Index of Common Inflation Expectations
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [inflation]
+    geography: [global]
+    latency: quarterly, noon ET, third Friday of Jan/Apr/Jul/Oct
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed).
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/fedboard.py
+    status: live
+    caveats:
+      - >-
+        Re-estimated over the full sample at each update.
+
+  umich_sca:
+    name: University of Michigan -- Surveys of Consumers
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [inflation, sentiment]
+    geography: [global]
+    latency: preliminary mid-month, final at month-end
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed); the final supersedes the preliminary as a later vintage.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/umich.py
+    status: live
+
+  nyfed_sce:
+    name: Federal Reserve Bank of New York -- Survey of Consumer Expectations
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [inflation]
+    geography: [global]
+    latency: monthly, second week
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified: available_at is the write instant (ingest_instant).
+    license: public, no key; see the workbook's License sheet
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/nyfed_sce.py
+    status: live
+
+  wgc:
+    name: World Gold Council -- central bank gold statistics
+    tier: C
+    epistemic_role: redistributed_primary
+    domain: [metals, reserves]
+    geography: [global]
+    latency: monthly
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Not ingested: data files require a logged-in account.
+    license: login required
+    allowed_reports: [monthly_macro, daily_cascade]
+    status: not_yet_sourced
+    caveats:
+      - >-
+        wgc.* registered not_yet_sourced. IMF IFS, the WGC's own source, is the candidate primary.
+
+  ken_french:
+    name: Kenneth R. French Data Library (Tuck, Dartmouth)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [equity_returns]
+    geography: [global]
+    latency: monthly, with an annual CRSP restatement
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed); the CRSP edition is logged in reference.file_vintage.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/french.py
+    status: live
+
+  damodaran:
+    name: Aswath Damodaran -- industry datasets (NYU Stern)
+    tier: C
+    epistemic_role: primary_fact
+    domain: [valuation]
+    geography: [global]
+    latency: annual, each January
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed); observed_at is the edition's 'Date updated'.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/damodaran.py
+    status: live
+    caveats:
+      - >-
+        Current edition only; archives are read by calibration scripts.
+
+  shiller:
+    name: Robert J. Shiller -- U.S. stock market data (ie_data.xls)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [valuation]
+    geography: [global]
+    latency: monthly
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed). The file URL changes per edition; found on shillerdata.com each run.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/shiller.py
+    status: live
+
+  worldbank_cmo:
+    name: World Bank -- Commodity Price Data (Pink Sheet)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: monthly, early in the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed). Per-release document id; the link is found on the page each run.
+    license: public, CC BY 4.0
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/worldbank.py
+    status: live
+
+  lbma:
+    name: LBMA -- Gold Price PM (prices.lbma.org.uk)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [metals]
+    geography: [global]
+    latency: after the 15:00 London auction
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed).
+    license: free to view; redistribution licensed -- stored for this system's own use, never republished
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/lbma.py
+    status: live
+
+  finra_margin:
+    name: FINRA -- margin statistics
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [leverage]
+    geography: [global]
+    latency: about three weeks after month-end
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified when sent (observed), else the write instant.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/finra.py
+    status: live
+    caveats:
+      - >-
+        Not the finra short-interest source; a separate release.
+
+  proshares:
+    name: ProShares -- daily fund NAV history files
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [leverage, etf]
+    geography: [global]
+    latency: about 00:20 GMT after each trading day
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified (observed).
+    license: public issuer data, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/proshares.py
+    status: live
+    caveats:
+      - >-
+        Direxion (SPXL/SPXS/TECL) not covered: no NAV or history file exists.
+
+  reference_libraries:
+    name: Edition labels of the reference libraries (French, Damodaran, Shiller, World Bank)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [reference]
+    geography: [global]
+    latency: with each library
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      The label is read from the library file itself and stamped with that file's Last-Modified.
+    license: n/a
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/_publication.py
+    status: live
+    caveats:
+      - >-
+        Written by each reference loader through vintage_row().
+
+  sifma:
+    name: SIFMA -- US corporate bond statistics
+    tier: B
+    epistemic_role: redistributed_primary
+    domain: [credit]
+    geography: [global]
+    latency: monthly
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Not ingested: form-gated file behind a JavaScript bot wall; monthly rows cover a rolling 13 months only and carry no maturity buckets.
+    license: form-gated
+    allowed_reports: [monthly_macro, daily_cascade]
+    status: not_yet_sourced
+    caveats:
+      - >-
+        sifma.corp_issuance_by_maturity registered not_yet_sourced.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:

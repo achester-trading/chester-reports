@@ -423,6 +423,27 @@ vocabularies:
     # person, and a hand-entered figure must never count as independent
     # confirmation of the automated series it may have been read beside.
     - manual_entry
+    # OIL INVENTORY (ST-2). Physical stocks and the curve's prompt shape: the
+    # buffer variable of SR-18, separate from the oil price (macro_inflation).
+    - oil_inventory
+    # INFLATION EXPECTATIONS -- SURVEYS AND THE CIE (ST-2). UMich 5-10y,
+    # the NY Fed SCE and the Board's CIE are one cluster: three readings of
+    # what people expect. Market breakevens stay in macro_inflation, which
+    # is what lets DEANCHOR require both (SR-24).
+    - inflation_expectations
+    # REFERENCE LIBRARIES (ST-2). Ken French, Damodaran, Shiller: long
+    # histories that restate themselves by edition, used as yardsticks and
+    # calibration inputs. One cluster; none is a live market witness.
+    - reference_library
+    # COMMODITY PRICES (ST-2). The World Bank indices and the LBMA gold
+    # benchmark.
+    - commodity_prices
+    # LEVERAGE (ST-2). Margin debt and leveraged-ETF assets: how much of
+    # the book is borrowed or daily-rebalanced (SR-8). One cluster.
+    - leverage_positioning
+    # CORPORATE CREDIT SUPPLY (ST-2). Issuance by the private sector -- the
+    # SR-16 supply that competes with Treasuries for the same buyers.
+    - credit_supply
     # EXTERNAL POSITION (signal-triage order ST-2). Who holds and who buys a
     # country's assets across the border: TIC holdings and flows, SAFE's
     # reserves, BOP and IIP, central-bank gold. One cluster, deliberately --
@@ -4125,6 +4146,505 @@ metrics:
     trigger_eligible: false
     description: >-
       Open interest, all, contracts.
+
+  # -------------------------------------------------------------------------
+  # EIA WPSR (ST-2; altdata/sources/eia.py). BARRELS; observed_at = week-ending
+  # Friday; available_at = Wednesday 10:30 ET (reconstructed).
+  # -------------------------------------------------------------------------
+  eia.crude_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US crude oil ending stocks excluding the SPR, barrels (WCESTUS1).
+  eia.total_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US crude oil and petroleum products ending stocks excluding the SPR, barrels (WTESTUS1).
+  eia.product_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US petroleum product stocks, barrels: total minus crude for the same week.
+  oil.prompt_spread:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE (G-11). Front minus second-month crude future. The only free second-month history (EIA RCLC2) ends 2024-04-05; CME settlements are licensed; Brent has none. Declared, never written.
+
+  # -------------------------------------------------------------------------
+  # INFLATION EXPECTATIONS (ST-2). PERCENT. Surveys dated at the survey month's first
+  # day; the CIE at its quarter-end.
+  # -------------------------------------------------------------------------
+  fedboard.cie:
+    source: frb_cie
+    mechanism_group: inflation_expectations
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Index of Common Inflation Expectations (Board of Governors), instrument spf | mich; re-estimated over the full sample at each quarterly update.
+  umich.expect_5_10y:
+    source: umich_sca
+    mechanism_group: inflation_expectations
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      University of Michigan median expected inflation over the next 5-10 years (Table 32, PX5_MD). The preliminary reading is superseded by the final as a later vintage.
+  nyfed.sce_3y:
+    source: nyfed_sce
+    mechanism_group: inflation_expectations
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NY Fed Survey of Consumer Expectations, median three-year-ahead expected inflation.
+  nyfed.sce_5y:
+    source: nyfed_sce
+    mechanism_group: inflation_expectations
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NY Fed Survey of Consumer Expectations, median five-year-ahead expected inflation (from 2022).
+
+  # -------------------------------------------------------------------------
+  # CENTRAL-BANK GOLD -- World Gold Council. NOT AVAILABLE: the WGC's data files
+  # require a logged-in account (probed 26 Sep 2026: 'DU1: You are not logged in').
+  # -------------------------------------------------------------------------
+  wgc.cb_gold_holdings_t:
+    source: wgc
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. Central-bank gold holdings by country, tonnes (WGC, from IMF IFS). WGC files require a login; declared, never written. IMF IFS is the candidate primary source, pending a ruling.
+  wgc.cb_net_purchases_t:
+    source: wgc
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. Central-bank net gold purchases by country, tonnes, monthly (WGC). Login-gated; declared, never written.
+
+  # -------------------------------------------------------------------------
+  # REFERENCE LIBRARIES (ST-2). Each edition's own vintage is logged under
+  # reference.file_vintage (instrument = the library).
+  # -------------------------------------------------------------------------
+  reference.file_vintage:
+    source: reference_libraries
+    mechanism_group: reference_library
+    native_horizon: structural
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The edition a reference library's rows came from, as the file states it ('CRSP 202608', 'updated 2026-01-05', 'data to 2026-09'), instrument = the library.
+  french.hml:
+    source: ken_french
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Fama-French HML (high minus low book-to-market), monthly, percent.
+  french.ind49_ret_vw:
+    source: ken_french
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      49 industry portfolios, value-weighted monthly return, percent, instrument = the industry.
+  french.ind49_beme:
+    source: ken_french
+    mechanism_group: reference_library
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      49 industry portfolios, Sum of BE / Sum of ME at the June formation, instrument = the industry.
+  damodaran.pe_trailing:
+    source: damodaran
+    mechanism_group: reference_library
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Damodaran US industry average, Trailing PE, instrument = the industry; one edition a year.
+  damodaran.pe_forward:
+    source: damodaran
+    mechanism_group: reference_library
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Damodaran US industry average, Forward PE, instrument = the industry; one edition a year.
+  damodaran.ev_ebitda:
+    source: damodaran
+    mechanism_group: reference_library
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Damodaran US industry average, EV/EBITDA, all firms, instrument = the industry; one edition a year.
+  shiller.sp_price:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      S&P Composite price (monthly average; latest month is the first-of-month close).
+  shiller.sp_dividend:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      S&P Composite dividends, annualised.
+  shiller.sp_earnings:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      S&P Composite earnings, annualised (lags price by months).
+  shiller.cpi:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      CPI as used by Shiller (index level).
+  shiller.gs10:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Long interest rate GS10, percent.
+  shiller.cape:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Cyclically adjusted P/E (P/E10).
+  worldbank.cmo_total:
+    source: worldbank_cmo
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      World Bank commodity price index, Total, nominal US dollars, 2010 = 100, monthly average.
+  worldbank.cmo_energy:
+    source: worldbank_cmo
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      World Bank commodity price index, Energy, nominal US dollars, 2010 = 100, monthly average.
+  worldbank.cmo_nonenergy:
+    source: worldbank_cmo
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      World Bank commodity price index, Non-energy, nominal US dollars, 2010 = 100, monthly average.
+  worldbank.cmo_metals:
+    source: worldbank_cmo
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      World Bank commodity price index, Metals & Minerals, nominal US dollars, 2010 = 100, monthly average.
+  worldbank.cmo_precious:
+    source: worldbank_cmo
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      World Bank commodity price index, Precious metals, nominal US dollars, 2010 = 100, monthly average.
+  lbma.gold_pm_usd:
+    source: lbma
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      LBMA Gold Price PM, USD per troy ounce.
+
+  # -------------------------------------------------------------------------
+  # LEVERAGE (ST-2). DOLLARS.
+  # -------------------------------------------------------------------------
+  finra.margin_debit:
+    source: finra_margin
+    mechanism_group: leverage_positioning
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FINRA margin statistics: Debit balances in customers' securities margin accounts, month-end, dollars.
+  finra.margin_free_credit_cash:
+    source: finra_margin
+    mechanism_group: leverage_positioning
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FINRA margin statistics: Free credit balances in customers' cash accounts, month-end, dollars.
+  finra.margin_free_credit_margin:
+    source: finra_margin
+    mechanism_group: leverage_positioning
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FINRA margin statistics: Free credit balances in customers' securities margin accounts, month-end, dollars.
+  levetf.aum:
+    source: proshares
+    mechanism_group: leverage_positioning
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Assets under management of a ProShares leveraged or inverse ETF, instrument = ticker (TQQQ SQQQ QLD UPRO SPXU SSO SDS).
+  levetf.shares_outstanding:
+    source: proshares
+    mechanism_group: leverage_positioning
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      Shares outstanding, instrument = ticker.
+  levetf.nav:
+    source: proshares
+    mechanism_group: leverage_positioning
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      NAV per share, split-adjusted as the issuer publishes it, instrument = ticker.
+
+  # -------------------------------------------------------------------------
+  # SIFMA corporate issuance -- NOT AVAILABLE (see source_registry sifma).
+  # -------------------------------------------------------------------------
+  sifma.corp_issuance_by_maturity:
+    source: sifma
+    mechanism_group: credit_supply
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. US corporate bond issuance by maturity bucket, monthly. SIFMA's file sits behind an email form and a bot wall, carries only a rolling 13 months monthly, and has no maturity buckets at all. Declared, never written.
 
 bulk_imports:
 

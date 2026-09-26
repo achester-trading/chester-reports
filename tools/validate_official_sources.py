@@ -908,10 +908,151 @@ def group_n() -> None:
           f"{len(ns)} not_yet_sourced keys are registered and no writer claims them")
 
 
+NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "wgc.cb_gold_holdings_t",
+                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity"]
+
+
+def group_o() -> None:
+    from altdata.sources import (damodaran, eia, fedboard, finra, french, lbma,
+                                 nyfed_sce, proshares, shiller, umich, worldbank)
+    print(f"{LINE}\nO. SURVEYS, OIL, REFERENCE LIBRARIES, LEVERAGE -- PARSERS AND "
+          f"CONVENTIONS\n{LINE}")
+    # dating: stocks at month-end, averages and surveys at the month's first day
+    check(pub.month_start(2026, 9) == "2026-09-01" and pub.month_end(2026, 9)
+          == "2026-09-30", "month_start / month_end")
+    u = umich.rows_from_csv("Month,YYYY,PX_MD,PX5_MD\nSeptember,2026,4.6,3.4\n"
+                            "March,1979,8.8,\n", LM_CANON, "observed")
+    check(len(u) == 1 and u[0]["observed_at"] == "2026-09-01",
+          "UMich: dated at the survey month's first day (never in the future); a "
+          "blank PX5_MD is skipped")
+    check(nyfed_sce._yyyymm(202608.0) == "2026-08-01", "SCE: YYYYMM to month start")
+    c = fedboard.rows_from_csv("﻿period,CIE_spf,CIE_mich\n6/30/2026,2.23,3.17\n",
+                               LM_CANON, "observed")
+    check({(r["instrument"], r["observed_at"]) for r in c}
+          == {("spf", "2026-06-30"), ("mich", "2026-06-30")},
+          "CIE: BOM stripped, M/D/YYYY quarter-end, both variants as instruments")
+    # oil
+    check(eia.available_at("2026-09-18") == "2026-09-23T14:30:00.000000+00:00",
+          "EIA: week-ending Friday available the following Wednesday 10:30 ET")
+    tab = [["Back to Contents"], ["Sourcekey"], ["Date"], [46283.0, 426398.0]]
+    s = eia.series_from_table(tab)
+    check(list(s.values()) == [426398000.0], "EIA: thousand barrels stored as barrels")
+    rows = eia.rows_from_series({"eia.crude_stocks": {"2026-09-18": 4.0e8},
+                                 "eia.total_stocks": {"2026-09-18": 1.25e9}})
+    prod = [r for r in rows if r["registry_key"] == "eia.product_stocks"]
+    check(prod and prod[0]["value"] == 8.5e8, "EIA: products = total - crude")
+    check("oil.prompt_spread" not in eia.KEYS, "G-11: the prompt spread is not written")
+    # reference libraries
+    factors = ("This file was created using the 202608 CRSP database.\n"
+               "The 1-month TBill rate data until 202405 are from Ibbotson, then ICE.\n"
+               "\n,Mkt-RF,SMB,HML,RF\n202607,1.0,2.0,-3.54,0.3\n202608,1.0,2.0,-99.99,0.3\n"
+               "\n Annual Factors: January-December \n,Mkt-RF,SMB,HML,RF\n2025,1,2,3,4\n")
+    h = french.rows_from_factors(factors, LM_CANON, "observed")
+    check(len(h) == 1 and h[0]["value"] == -3.54 and h[0]["observed_at"] == "2026-07-31",
+          "French: a preamble line with commas is not a header; -99.99 is missing; "
+          "the annual table is not read as months")
+    check(french.crsp_vintage(factors) == "CRSP 202608", "French: CRSP vintage logged")
+    ind = ("  Average Value Weighted Returns -- Monthly\n,Agric,Chips\n202608,1.5,-2.0\n"
+           "\n  Sum of BE / Sum of ME\n,Agric,Chips\n2026,0.5,0.12\n")
+    ir = french.rows_from_industries(ind, LM_CANON, "observed")
+    be = [r for r in ir if r["registry_key"] == "french.ind49_beme"]
+    check(len(be) == 2 and be[0]["observed_at"] == "2026-06-30",
+          "French: BE/ME dated at the June formation, never a future 31 December")
+    check(shiller._month(2026.1) == "2026-10-01" and shiller._month(2026.09)
+          == "2026-09-01", "Shiller: 2026.1 is OCTOBER, not January")
+    hdr = [[""] * 13 for _ in range(4)]
+    hdr[2][12], hdr[3][12] = "P/E10 or", "CAPE"
+    sh = shiller.rows_from_table(hdr + [["Date"] + [""] * 12,
+                                        [2026.09, 7631.47, "", "", 333.9, 0, 4.75,
+                                         0, 0, 0, 0, 0, 40.58]], LM_CANON, "observed")
+    cape = [r for r in sh if r["registry_key"] == "shiller.cape"]
+    check(cape and cape[0]["value"] == 40.58 and not any(
+        r["registry_key"] == "shiller.sp_earnings" for r in sh),
+          "Shiller: CAPE from column 12; a blank (lagged) earnings cell is skipped")
+    hdr[3][12] = "Something else"
+    hdr[2][12] = ""
+    try:
+        shiller.rows_from_table(hdr + [["Date"]], LM_CANON, "observed")
+        bad("Shiller: a moved CAPE column raised")
+    except ValueError:
+        ok("Shiller: a moved CAPE column raises rather than storing the wrong series")
+    wbt = [["Updated on September 02, 2026"],
+           [None, "Total Index", "Energy", "Non-energy **", "Precious Metals"],
+           [None, None, None, None, None, "Metals  & Minerals"],
+           ["2026M08", 121.8, 118.4, 128.6, 345.2, 146.2]]
+    w, upd = worldbank.rows_from_table(wbt, LM_CANON, "observed")
+    wm = {r["registry_key"]: r["value"] for r in w}
+    check(wm.get("worldbank.cmo_metals") == 146.2 and wm.get("worldbank.cmo_precious")
+          == 345.2 and w[0]["observed_at"] == "2026-08-01" and upd,
+          "World Bank: columns found by label (double space tolerated), month start")
+    dtab = [["Date updated:", 46027.0], ["Industry Name", "Number of firms",
+            "EV/EBITDA", "EV/EBITDA"], ["Chips", 70.0, 20.0, 25.0]]
+    d, ed = damodaran.rows_from_table(dtab, {"damodaran.ev_ebitda": ("EV/EBITDA", -1)},
+                                      LM_CANON, "observed")
+    check(ed == "2026-01-05" and d[0]["value"] == 25.0,
+          "Damodaran: edition date from 'Date updated'; the ALL-FIRMS (last) "
+          "EV/EBITDA block")
+    lb = lbma.rows_from_json([{"d": "2026-09-25", "v": [4261.05, 3200, 3700]},
+                              {"d": "2026-09-26", "v": [None, None, None]}],
+                             LM_CANON, "observed")
+    check(len(lb) == 1 and lb[0]["value"] == 4261.05, "LBMA: USD leg; empty day skipped")
+    fr = finra.rows_from_table(
+        [["Year-Month", "Debit Balances in Customers' Securities Margin Accounts",
+          "Free Credit Balances in Customers' Cash Accounts",
+          "Free Credit Balances in Customers' Securities Margin Accounts"],
+         ["2026-08", 1453832.0, 207641.0, 217499.0]], LM_CANON, "observed")
+    fd = {r["registry_key"]: r for r in fr}
+    check(fd["finra.margin_debit"]["value"] == 1453832.0 * 1e6
+          and fd["finra.margin_debit"]["observed_at"] == "2026-08-31",
+          "FINRA: millions to dollars, month-end (a balance, not an average)")
+    ps = proshares.rows_from_csv(
+        "Date,ProShares Name,Ticker,NAV,Prior NAV,NAV Change (%),NAV Change ($),"
+        "Shares Outstanding (000),Assets Under Management\n"
+        "09/25/2026,ProShares UltraPro QQQ,TQQQ,79.5962,78.6662,1.18,0.93,486100,"
+        "38691712820\n", "TQQQ", LM_CANON, "observed")
+    pd_ = {r["registry_key"]: r["value"] for r in ps}
+    check(pd_["levetf.shares_outstanding"] == 486100000.0
+          and pd_["levetf.aum"] == 38691712820.0,
+          "ProShares: shares in thousands to shares; AUM as published")
+    # the logged vintage is deduplicated like any other row
+    db = temp_store()
+    orig = french.http_get_response
+    try:
+        import io as _io
+        import zipfile as _zip
+
+        def zipped(text):
+            buf = _io.BytesIO()
+            with _zip.ZipFile(buf, "w") as z:
+                z.writestr("x.csv", text)
+            return buf.getvalue()
+        french.http_get_response = lambda url, *a, **k: (
+            zipped(factors if url == french.FACTORS else ind), LM_HEADERS)
+        r1 = french.pull(db=db)
+        v = db.conn.execute("SELECT value_text FROM observations WHERE "
+                            "registry_key=?", (pub.VINTAGE_KEY,)).fetchall()
+        r2 = french.pull(db=db)
+        check(r1["status"] == pub.OK and [x[0] for x in v] == ["CRSP 202608"]
+              and r2["written"] == 0,
+              "reference.file_vintage is written once per edition and not again")
+    finally:
+        french.http_get_response = orig
+        db.close()
+    from altdata import config, derived
+    check(config.ENABLED_SOURCES.get("eia") is True, "the eia switch is ON")
+    check(derived.staleness_allowance("damodaran.pe_forward")[0]
+          == derived.FREQ_SESSIONS["annual"],
+          "an annual table gets the annual staleness allowance, not the monthly")
+    check("external" in feeds.FEEDS and set(feeds.EXTERNAL_WRITERS) >= {
+        "umich", "french", "damodaran", "shiller", "worldbank", "lbma", "finra",
+        "proshares"}, "the external writers run as the `external` feed")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_i, group_j, group_k, group_l, group_m, group_n):
+              group_h, group_i, group_j, group_k, group_l, group_m, group_o,
+              group_n):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

@@ -80,7 +80,7 @@ def staleness_multiple() -> float:
     except Exception:                                         # noqa: BLE001
         return float(STALENESS_MULTIPLE_FALLBACK)
 
-FEEDS = ("prices", "fred", "official", "loggers")
+FEEDS = ("prices", "fred", "official", "external", "loggers")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
@@ -91,27 +91,51 @@ FEEDS = ("prices", "fred", "official", "loggers")
 # Each is a module under altdata/sources/ exposing KEYS and pull(run_id).
 OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # ST-2: the external position and the funding-currency stack
-                    "tic", "safe", "mof", "cfets", "cftc")
+                    "tic", "safe", "mof", "cfets", "cftc",
+                    # ST-2: oil stocks and the expectations surveys
+                    "eia", "fedboard", "nyfed_sce")
+
+# THE EXTERNAL WRITERS (ST-2). The same contract as OFFICIAL_WRITERS -- a module
+# under altdata/sources/ with KEYS and pull(run_id), STALE-not-empty on failure --
+# for publishers that are not official statistical agencies: a university survey,
+# the academic reference libraries, a benchmark administrator, FINRA, an ETF
+# issuer. A separate group so the freshness roster reports them separately: a
+# stale Ken French file is not the same news as a stale TIC release. Same step,
+# same pass, same entry point; no second unit.
+EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
+                    "lbma", "finra", "proshares")
 
 
-def _official_modules() -> list:
+def _writer_modules(names: tuple[str, ...]) -> list:
     from importlib import import_module
     out = []
-    for name in OFFICIAL_WRITERS:
+    for name in names:
         try:
             out.append((name, import_module(f"{__package__}.sources.{name}")))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("official writer %s failed to import: %s", name, exc)
+            log.warning("writer %s failed to import: %s", name, exc)
             out.append((name, None))
     return out
 
 
-def official_keys() -> list[str]:
+def _official_modules() -> list:
+    return _writer_modules(OFFICIAL_WRITERS)
+
+
+def _keys(mods: list) -> list[str]:
     keys: list[str] = []
-    for _name, mod in _official_modules():
+    for _name, mod in mods:
         if mod is not None:
-            keys.extend(getattr(mod, "KEYS", []))
+            keys.extend(k for k in getattr(mod, "KEYS", []) if k not in keys)
     return keys
+
+
+def official_keys() -> list[str]:
+    return _keys(_official_modules())
+
+
+def external_keys() -> list[str]:
+    return _keys(_writer_modules(EXTERNAL_WRITERS))
 
 
 def price_keys() -> list[str]:
@@ -204,8 +228,17 @@ def pull_official(run_id: Optional[str] = None) -> dict:
     sources/_publication.py); one that raises past that is caught here, so a
     broken NY Fed workbook never costs the Board's CSV.
     """
+    return _pull_writers(_official_modules(), run_id)
+
+
+def pull_external(run_id: Optional[str] = None) -> dict:
+    """The external writers, on the same terms as the official ones."""
+    return _pull_writers(_writer_modules(EXTERNAL_WRITERS), run_id)
+
+
+def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
     out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": []}
-    for name, mod in _official_modules():
+    for name, mod in mods:
         out["ran"].append(name)
         out["total"] += 1
         if mod is None:
@@ -260,7 +293,8 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = ()) -> dict:
     out: dict[str, Any] = {"ran": [], "skipped": []}
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
-                     ("official", pull_official), ("loggers", pull_loggers)):
+                     ("official", pull_official), ("external", pull_external),
+                     ("loggers", pull_loggers)):
         if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue
@@ -300,7 +334,8 @@ def freshness(as_of: Optional[str] = None,
         multiple = staleness_multiple()
         out: dict[str, Any] = {"session": last, "as_of": as_of, "feeds": {}}
         rosters = [("prices", price_keys()), ("fred", fred_keys()),
-                   ("official", official_keys())]
+                   ("official", official_keys()),
+                   ("external", external_keys())]
         rosters += logger_rosters()
         for name, keys in rosters:
             absent, stale, fresh = [], [], []
@@ -405,7 +440,7 @@ def _main(argv: list[str]) -> int:
                     print(f"  {name:7} SKIPPED -- {d['skipped']}")
                 elif d.get("error"):
                     print(f"  {name:7} ERROR -- {d['error']}")
-                elif name == "official":
+                elif name in ("official", "external"):
                     for wn in d.get("ran") or []:
                         sub = d.get(wn) or {}
                         note = (f"{sub.get('written', 0)} rows"

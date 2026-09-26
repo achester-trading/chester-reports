@@ -187,7 +187,8 @@ SERIES_BY_KEY = {s.key: s for s in FRED_PULL_SERIES}
 # Source enable/disable switches (v1 = FRED only)
 ENABLED_SOURCES = {
     "fred":      True,
-    "eia":       False,
+    # ON in ST-2: altdata/sources/eia.py reads it and reports STALE when off.
+    "eia":       True,
     # ON in ST-2: altdata/sources/cftc.py reads it and reports STALE when off.
     "cftc":      True,
     "coingecko": False,
