@@ -688,23 +688,45 @@ def earnings_dates(start: dt.date, end: dt.date) -> dict:
 # ---------------------------------------------------------------------------
 # Block 5 -- weekend developments
 # ---------------------------------------------------------------------------
-def weekend_developments() -> dict:
-    """Declared absent, on purpose, so the hole is visible in the document.
+# NINE DAYS AHEAD for the Weekly: the week the report opens plus the weekend after
+# it, so a Sunday reader sees every scheduled item they could act on before the next
+# edition. The anchor asks the same table for two.
+WEEKEND_AHEAD_DAYS = 9
 
-    An anchor that simply omitted the weekend would read identically on a quiet
-    weekend and on a weekend nobody instrumented. This block is the difference.
+
+def weekend_developments(ending: Optional[str] = None,
+                         as_of: Optional[str] = None) -> dict:
+    """What happened since Friday's close, from the events table.
+
+    THIS BLOCK USED TO PRINT `not_yet_sourced` AND SAY WHAT WOULD FILL IT. 6c-1
+    filled it: the same events table the 07:00 anchor reads, with `since` set to
+    Friday's 16:00 ET close instead of last night's.
+
+    ONE IMPLEMENTATION, TWO READERS, which is the point -- the weekly and the anchor
+    overlap every Monday, and a second implementation here would be a second answer
+    about the same weekend.
+
+    `needs_still` keeps what is MISSING rather than everything: there is no free
+    macro consensus, so the surprises here are against a declared naive expectation
+    and the block never calls them consensus surprises.
     """
-    return {
-        "state": "not_yet_sourced",
-        "reason": "not yet sourced -- events ingest (6c)",
-        "needs": ["an events ingest with consensus/actual/surprise (6c, S8)",
-                  "the forward calendar (S9)",
-                  "the 07:00 narrative scan over stored events"],
-        "why_the_block_exists": (
-            "so the absence is visible. Without it a quiet weekend and an "
-            "uninstrumented one are the same document, and the second is the one "
-            "that costs something"),
-    }
+    from . import events_block
+    end = week_ending(ending)
+    block = events_block.build(f"{end}T20:00:00+00:00", as_of=as_of,
+                               ahead_days=WEEKEND_AHEAD_DAYS)
+    block["needs_still"] = [
+        "a macro CONSENSUS. calc.surprise_vs_naive is actual against a declared "
+        "naive expectation, which is a different measurement from actual against "
+        "what analysts published",
+        "SEC filings, dormant until CHESTER_SEC_CONTACT is set",
+        "the FRED release calendar, dormant until FRED_API_KEY is readable",
+    ]
+    block["why_the_block_exists"] = (
+        "so the absence is visible. Without it a quiet weekend and an "
+        "uninstrumented one are the same document, and the second is the one that "
+        "costs something. It now reports content OR an absence with a reason, and a "
+        "reader can tell which")
+    return block
 
 
 # ---------------------------------------------------------------------------
@@ -714,6 +736,13 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, fetch: bool = True) -> dict:
     """Every block. Reads only; never raises on a missing one."""
     end = week_ending(ending)
+    # THE CUTOFF IS FIXED ONCE, BEFORE ANY BLOCK READS. It used to be computed
+    # inline in the payload dict and nothing else used it -- which was harmless
+    # until a block took `as_of` as an argument: the events block then defaulted to
+    # its own `now()`, and two builds of the same week differed in that field. The
+    # replay gate caught it. One cutoff per build is the property that makes a past
+    # edition rebuildable at all.
+    cutoff = as_of or session.utc_iso(timespec="microseconds")
     db = observations.ObservationStore()
     try:
         out: dict[str, Any] = {
@@ -722,7 +751,7 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
             "previous_week_ending": previous_week_ending(end),
             "sessions_in_week": week_sessions(end),
             "generated_at": session.utc_iso(),
-            "as_of": as_of or session.utc_iso(timespec="microseconds"),
+            "as_of": cutoff,
             "run_id": run_id,
             "blocks": list(BLOCKS),
         }
@@ -730,7 +759,8 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
         out["grades"] = grades(end)
         out["register"] = register_week(end, store=db)
         out["week_ahead"] = week_ahead(end, store=db, fetch=fetch)
-        out["weekend_developments"] = weekend_developments()
+        out["weekend_developments"] = weekend_developments(ending=end,
+                                                          as_of=cutoff)
         warnings = []
         for name in BLOCKS:
             b = out.get(name) or {}

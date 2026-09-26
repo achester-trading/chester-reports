@@ -383,12 +383,31 @@ def week_ahead_block(payload: dict) -> str:
     return "".join(parts)
 
 
+def events_block_text_lines(payload: dict) -> list[str]:
+    """The weekend block for the plain-text edition, from the one renderer."""
+    from . import events_block
+    return events_block.text_lines(payload.get("weekend_developments") or {})
+
+
 def weekend_block(payload: dict) -> str:
+    """The events table, or an absence with a reason. Not a placeholder any more.
+
+    THE ABSENT SHAPE IS KEPT, not deleted: when the ingest has not run this block
+    still has to read differently from a quiet weekend, which is the whole argument
+    the not_yet_sourced version was written to make.
+    """
     b = payload.get("weekend_developments") or {}
-    return (f'<div style="{ABSENT}"><strong>Weekend developments &mdash; '
-            f'{esc(b.get("reason"))}.</strong><br>'
-            f'Needs: {esc(", ".join(b.get("needs") or []))}.'
-            f'<p style="{NOTE}">{esc(b.get("why_the_block_exists"))}</p></div>')
+    if b.get("state") != "ok":
+        return (f'<div style="{ABSENT}"><strong>Weekend developments &mdash; '
+                f'{esc(b.get("state") or "absent")}.</strong><br>'
+                f'{esc(b.get("reason"))}'
+                f'<p style="{NOTE}">{esc(b.get("why_the_block_exists"))}</p>'
+                f'</div>')
+    from . import events_block
+    still = b.get("needs_still") or []
+    tail = (f'<p style="{NOTE}">Still missing: '
+            f'{esc("; ".join(still))}.</p>' if still else "")
+    return f'<div style="{WRAP}">{events_block.html(b)}{tail}</div>'
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +487,8 @@ def text_fallback(payload: dict) -> str:
         f"  grades     : {gr.get('state')} -- {gr.get('total_graded')} to date, "
         f"{len(gr.get('graded_this_week') or [])} this week",
         f"  register   : {rg.get('open_count')} open, {rg.get('drafts_count')} draft",
-        f"  weekend    : {(payload.get('weekend_developments') or {}).get('reason')}",
+        f"  weekend    : "
+        + "; ".join(events_block_text_lines(payload)),
         "",
         "The HTML edition carries the tables.",
     ])

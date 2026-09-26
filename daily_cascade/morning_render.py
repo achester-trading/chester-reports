@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from . import state_block
+from . import events_block, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -264,6 +264,9 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
 
+<h2 style="{H2}">Events</h2>
+{events_block.html(payload.get("events") or {})}
+
 <h2 style="{H2}">Overnight</h2>
 {overnight_table(payload)}
 
@@ -302,6 +305,7 @@ def text_fallback(payload: dict) -> str:
              f"overnight fetched {block.get('fetched_at') or 'n/a'}", ""]
     # Same module, same position as the HTML edition and as the close report's.
     lines += state_block.text_lines(payload)
+    lines += events_block.text_lines(payload.get("events") or {})
     lines.append("")
     if block.get("state") == "absent":
         lines.append(f"OVERNIGHT ABSENT: {block.get('reason')}")

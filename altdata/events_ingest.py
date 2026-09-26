@@ -90,7 +90,13 @@ def session_events(first: Optional[str] = None,
     while day <= hi:
         if session.is_trading_session(day):
             n_sessions += 1
-            classes = session.auction_event_classes(day)
+            classes = [c for c in session.auction_event_classes(day)
+                       if c != "NORMAL"]
+            # `NORMAL` IS NOT AN EVENT. auction_event_classes returns ['NORMAL']
+            # for an ordinary session, and storing that wrote a calendar entry for
+            # every trading day -- 65 rows saying nothing happened, which is how a
+            # table of events becomes a table of days. What stays: OPEX, triple
+            # witching, month- and quarter-end, the two rebalances.
             if classes:
                 # 20:00 UTC is the 16:00 ET close: an OPEX day's property is about
                 # that session, and stamping it at midnight would file it under the

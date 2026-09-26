@@ -51,6 +51,7 @@ sys.path.insert(0, str(REPO))
 import regime  # noqa: E402
 from altdata import observations, session          # noqa: E402
 from altdata.sources import overnight as on        # noqa: E402
+from . import events_block                         # noqa: E402
 from daily_cascade import payload as close_payload  # noqa: E402
 
 log = logging.getLogger("daily_cascade.morning_payload")
@@ -76,6 +77,11 @@ LABELS = {
 
 # The windows, in the order they happened overnight, plus the residual last.
 ATTRIB_ORDER = ("tokyo", "europe", "other")
+
+
+# TWO DAYS AHEAD for the anchor: today's calendar and tomorrow's, which is what a
+# 07:00 reader can act on. The Weekly asks the same table for nine.
+EVENTS_AHEAD_DAYS = 2
 
 
 def _age_minutes(available_at: Optional[str], now: Optional[str] = None):
@@ -222,6 +228,17 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     # object could disagree with the close report's, leaving the system holding two
     # regimes and no way to say which one a decision was made under. The morning of
     # session S reports on the close of S-1, so the object read is S-1's.
+    # THE EVENTS BLOCK, READ FROM THE TABLE THE INGEST PASSES FILL.
+    #
+    # `since` is the PRIOR SESSION'S CLOSE -- 20:00 UTC, the 16:00 ET bell -- because
+    # "what happened overnight" means since the market last closed, not since
+    # midnight. An item that happened inside the window but was ingested after this
+    # cutoff is correctly absent: that is what the anchor would have had in front of
+    # it, which is what makes this edition replayable.
+    events = events_block.build(f"{prior}T20:00:00+00:00", as_of=cutoff,
+                                ahead_days=EVENTS_AHEAD_DAYS)
+
+
     state_obj = regime.latest(session_day=prior)
     changed = None
     if state_obj is not None:
@@ -241,6 +258,16 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
             f"overnight rows older than {MAX_FETCH_AGE_MINUTES} minutes "
             f"({', '.join(overnight['stale'])}) -- the 06:45 fetch is late or "
             f"did not run; the levels shown are not this morning's")
+    if events.get("state") != "ok":
+        warnings.append(f"events block {events.get('state')}: "
+                        f"{events.get('reason')}")
+    elif events.get("dormant"):
+        # NOT A WARNING ABOUT THE PASS. A dormant source is configuration, and
+        # saying so here is how the anchor's own reader learns that two of the six
+        # sources are waiting on a variable rather than broken.
+        warnings.append(
+            "events sources dormant by configuration: "
+            + "; ".join(f"{k} ({v})" for k, v in events["dormant"].items()))
     if not overnight["attribution"]:
         warnings.append("no session attribution -- 5-minute bars were "
                         "unavailable for the index futures")
@@ -260,6 +287,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "generated_at": session.utc_iso(),
         "run_id": run_id,
         "overnight": overnight,
+        "events": events,
         "exposure": exposure,
         "exposure_missing": exposure_missing,
         "exposure_session": loaded or prior,

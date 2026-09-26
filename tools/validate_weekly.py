@@ -177,16 +177,30 @@ def group_c(p: dict) -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. REPLAY: A PAST WEEK REBUILDS IDENTICALLY\n{LINE}")
 
-    def strip(d: dict) -> str:
-        # The stamps that MUST differ between two builds. Everything else is read
-        # from the store and must not.
-        out = {k: v for k, v in d.items()
-               if k not in ("generated_at", "as_of", "run_id")}
-        return json.dumps(out, sort_keys=True, default=str)
+    STAMPS = ("generated_at", "as_of", "run_id")
+
+    def strip(d):
+        """Drop the stamps AT EVERY DEPTH, then compare.
+
+        It used to drop them at the top level only, which was enough until a block
+        recorded its own cutoff -- the events block does, because it can be built
+        standalone and a block without its own as_of is a block whose replay nobody
+        can reproduce. A stamp nested one level down is the same provenance as a
+        stamp at the top, and comparing it would make this gate fail on the clock
+        rather than on the content. regime.py's REPLAY_EXCLUDE draws the same line.
+        """
+        if isinstance(d, dict):
+            return {k: strip(v) for k, v in d.items() if k not in STAMPS}
+        if isinstance(d, list):
+            return [strip(v) for v in d]
+        return d
+
+    def dump(d: dict) -> str:
+        return json.dumps(strip(d), sort_keys=True, default=str)
 
     a = wp.build(TEST_WEEK, fetch=False)
     b = wp.build(TEST_WEEK, fetch=False)
-    check(strip(a) == strip(b),
+    check(dump(a) == dump(b),
           f"two builds of the week ending {TEST_WEEK} agree byte for byte "
           f"({len(strip(a))} chars) -- the weekly computes nothing, so a rebuild "
           f"must agree with itself")
