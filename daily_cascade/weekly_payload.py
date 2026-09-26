@@ -476,62 +476,37 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
 # ---------------------------------------------------------------------------
 # Block 4 -- the week ahead
 # ---------------------------------------------------------------------------
-def _fred_get(path: str, params: dict) -> Any:
-    import urllib.parse                                        # noqa: PLC0415
-    import urllib.request                                      # noqa: PLC0415
-    url = f"{FRED_BASE}/{path}?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": "chester-reports"})
-    with urllib.request.urlopen(req, timeout=25) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
-
-
-def release_map(db: observations.ObservationStore, api_key: str,
-                limit: int = RELEASE_MAP_PER_RUN) -> dict:
-    """{series key -> release id and name}, stored and extended a little each run.
-
-    A series' owning release does not change, so the map is written once per series
-    and kept -- `revision_policy: never`. Resolving all 59 on one Sunday would be
-    59 calls for a table that is then permanent; `limit` spreads it over a few
-    weeks, and the block reports how complete it is rather than implying the whole
-    calendar.
-    """
-    from altdata import config                                 # noqa: PLC0415
-    rows = db.as_of(RELEASE_MAP_KEY)
-    known: dict[str, Any] = {}
-    if rows:
-        try:
-            known = json.loads(rows[-1]["value_text"]) or {}
-        except Exception:                                      # noqa: BLE001
-            known = {}
-    want = [s for s in config.FRED_SERIES if s.key not in known]
-    added = 0
-    for spec in want[:limit]:
-        try:
-            got = _fred_get("series/release",
-                            {"series_id": spec.fred_id, "api_key": api_key,
-                             "file_type": "json"})
-            rel = (got.get("releases") or [{}])[0]
-            known[spec.key] = {"release_id": rel.get("id"),
-                               "release_name": rel.get("name"),
-                               "fred_id": spec.fred_id}
-            added += 1
-        except Exception as exc:                               # noqa: BLE001
-            log.info("release map: %s unresolved (%s)", spec.key,
-                     type(exc).__name__)
-    if added:
-        db.write(RELEASE_MAP_KEY, None,
-                 session.last_completed_session().isoformat(),
-                 session.utc_iso(timespec="microseconds"),
-                 json.dumps(known, sort_keys=True), source="fred",
-                 availability_kind="ingest_instant")
-    return {"map": known, "resolved": len(known),
-            "of": len(list(config.FRED_SERIES)), "added_this_run": added}
-
-
 def week_ahead(ending: str, store: Optional[Any] = None,
-               fetch: bool = True) -> dict:
-    """Releases, earnings, session events and the dated claims for next week."""
-    out: dict[str, Any] = {"state": "ok", "week_ending": ending}
+               fetch: bool = False) -> dict:
+    """Releases, earnings, session events and the dated claims for next week.
+
+    IT READS THE EVENTS TABLE. IT USED TO FETCH.
+    -----------------------------------------------------------------------
+    Until 6c-1 this block called FRED's releases endpoint over urllib and
+    yfinance's calendar per symbol, AT RENDER TIME, every Sunday. Both are now
+    ingested on the 06:45 and 16:10 passes into the events table, so the block
+    reads `scheduled` rows in its own window instead -- and the report gained the
+    three properties a fetching render cannot have:
+
+      REPLAYABLE   a past week rebuilds to the same document, because the answer
+                   is a stored row with an availability rather than whatever the
+                   endpoint says today.
+      HONEST ON A   a failed fetch used to read as "no releases", which is the
+      BAD DAY      same sentence a quiet week produces. Now an empty window and an
+                   unfilled table are different states with different reasons.
+      ONE          the release calendar had two implementations -- this block's
+      IMPLEMENTATION  and altdata/sources/fred_releases.py -- and they could
+                   disagree about the same week.
+
+    `fetch` is accepted and IGNORED, because callers pass it (the weekly report's
+    --no-fetch) and its meaning is now always "no". It is kept as a parameter
+    rather than removed so an old invocation does not raise, and reported in the
+    payload so nobody concludes from a `--no-fetch` run that fetching still exists.
+    """
+    from . import events_block                                 # noqa: PLC0415
+    out: dict[str, Any] = {"state": "ok", "week_ending": ending,
+                           "fetched_nothing": True,
+                           "fetch_argument_ignored": bool(fetch)}
     start = (dt.date.fromisoformat(ending[:10]) + dt.timedelta(days=3))
     end = start + dt.timedelta(days=6)
     out["window"] = [start.isoformat(), end.isoformat()]
@@ -565,125 +540,66 @@ def week_ahead(ending: str, store: Optional[Any] = None,
             dated.append({"id": cid, "absent_reason": str(exc)[:120]})
     out["dated_claims"] = dated
 
-    own = store is None
-    db = store or observations.ObservationStore()
+    # --- the scheduled rows in the window, by kind --------------------------
+    from altdata import events as ev_mod                        # noqa: PLC0415
     try:
-        # --- FRED release dates ---------------------------------------------
-        from altdata import secrets                            # noqa: PLC0415
-        key = secrets.get("FRED" + "_API_KEY")
-        if not key:
-            out["releases"] = {"state": "absent", "reason":
-                               "no FRED key in the environment or .env, so the "
-                               "release calendar cannot be fetched. The series "
-                               "themselves are unaffected; only next week's dates "
-                               "are missing"}
-        elif not fetch:
-            out["releases"] = {"state": "skipped",
-                               "reason": "--no-fetch"}
-        else:
-            try:
-                rm = release_map(db, key)
-                got = _fred_get("releases/dates",
-                                {"api_key": key, "file_type": "json",
-                                 "realtime_start": start.isoformat(),
-                                 "realtime_end": end.isoformat(),
-                                 "include_release_dates_with_no_data": "true",
-                                 "limit": 1000})
-                tracked = {v.get("release_id"): k
-                           for k, v in (rm["map"] or {}).items()}
-                rows = []
-                for r in got.get("release_dates") or []:
-                    rid = r.get("release_id")
-                    rows.append({"date": r.get("date"),
-                                 "release_id": rid,
-                                 "release_name": r.get("release_name"),
-                                 "tracked_series": sorted(
-                                     k for k, v in (rm["map"] or {}).items()
-                                     if v.get("release_id") == rid)})
-                out["releases"] = {
-                    "state": "ok",
-                    "count": len(rows),
-                    "tracked_count": sum(1 for r in rows if r["tracked_series"]),
-                    "map_resolved": rm["resolved"], "map_of": rm["of"],
-                    "map_added_this_run": rm["added_this_run"],
-                    "rows": rows,
-                    "note": ("every release FRED publishes in the window, with the "
-                             "tracked series each one carries. A release with no "
-                             "tracked series is listed because the calendar is a "
-                             "fact and what matters is the operator's judgement")
-                    if rows else "FRED returned no release dates in the window",
-                }
-            except Exception as exc:                           # noqa: BLE001
-                out["releases"] = {"state": "error",
-                                   "reason": f"{type(exc).__name__}: "
-                                             f"{str(exc)[:140]}"}
-
-        # --- earnings dates for the universe ---------------------------------
-        if not fetch:
-            out["earnings"] = {"state": "skipped", "reason": "--no-fetch"}
-        else:
-            out["earnings"] = earnings_dates(start, end)
-    finally:
-        if own:
-            db.close()
-    return out
-
-
-def earnings_dates(start: dt.date, end: dt.date) -> dict:
-    """Earnings dates in the window for the chain-capture universe.
-
-    yfinance is the source and it is the weak link: `calendar` carries a date for
-    some names and nothing for others, and it offers no as-of history at all. So
-    this is a FORWARD READ with no memory -- the block says which names answered
-    and which did not, rather than presenting a partial list as the calendar.
-    """
-    out: dict[str, Any] = {"state": "absent", "in_window": [], "no_date": [],
-                           "failed": []}
-    try:
-        from altdata import config                             # noqa: PLC0415
-        import yfinance as yf                                  # noqa: PLC0415
+        with ev_mod.EventStore() as ev:
+            rows = ev.calendar(start.isoformat(), end.isoformat())
+            sources = ev.sources()
     except Exception as exc:                                    # noqa: BLE001
-        out["reason"] = f"unavailable: {type(exc).__name__}: {exc}"
+        out["releases"] = {"state": "error",
+                           "reason": f"events table unreadable: "
+                                     f"{type(exc).__name__}: {exc}"[:160]}
+        out["earnings"] = dict(out["releases"])
         return out
-    # THE INDEX ETFs HAVE NO EARNINGS, and asking yfinance for their fundamentals
-    # logs an HTTP 404 per name per Sunday. It is the same fact the consensus logger
-    # recorded about forward estimates: no analyst covers a wrapper. Excluded by
-    # DECLARATION rather than by swallowing the error, so a reader can tell "has no
-    # earnings" from "the lookup failed".
-    no_earnings = {"SPY", "QQQ", "IWM", "DIA", "RSP"}
-    out["excluded_no_earnings"] = sorted(no_earnings)
-    for sym in config.options_universe():
-        if sym in no_earnings:
-            continue
-        try:
-            cal = yf.Ticker(sym).calendar or {}
-            dates = cal.get("Earnings Date") or []
-            if not isinstance(dates, (list, tuple)):
-                dates = [dates]
-            hits = []
-            for v in dates:
-                try:
-                    d = v if isinstance(v, dt.date) else dt.date.fromisoformat(
-                        str(v)[:10])
-                except (TypeError, ValueError):
-                    continue
-                if start <= d <= end:
-                    hits.append(d.isoformat())
-            if hits:
-                out["in_window"].append({"symbol": sym, "dates": sorted(hits)})
-            elif not dates:
-                out["no_date"].append(sym)
-        except Exception as exc:                                # noqa: BLE001
-            out["failed"].append({"symbol": sym,
-                                  "error": f"{type(exc).__name__}"})
-    out["state"] = "ok"
-    out["note"] = (f"{len(out['in_window'])} name(s) report in the window; "
-                   f"{len(out['no_date'])} carry no date and "
-                   f"{len(out['failed'])} could not be read. yfinance offers no "
-                   f"as-of history for this field, so it is a forward read with "
-                   f"no memory and no vintage")
-    return out
 
+    rel = [r for r in rows if r["source"] == "fred_releases"]
+    earn = [r for r in rows if (r.get("payload") or {}).get("kind") == "earnings"]
+
+    if rel:
+        out["releases"] = {
+            "state": "ok", "count": len(rel),
+            "rows": [{"date": str(r["observed_at"])[:10],
+                      "release_name": (r.get("payload") or {}).get(
+                          "release_name") or r["title"],
+                      "tracked_series": [e.split(".", 1)[-1]
+                                         for e in (r.get("entities") or [])]}
+                     for r in rel],
+            "note": ("read from the events table, ingested at 06:45 and 16:10. "
+                     "Every release the tracked series belong to, with the series "
+                     "each one carries"),
+        }
+    elif "fred_releases" not in sources:
+        out["releases"] = {"state": "not_ingested", "reason": (
+            "the FRED release calendar has never been ingested -- "
+            "FRED_API_KEY is unreadable where the ingest runs. This is not the "
+            "same statement as 'no releases next week', which is why it has its "
+            "own state")}
+    else:
+        out["releases"] = {"state": "empty", "count": 0, "reason": (
+            "the table holds no release dates in this window, and the source HAS "
+            "written before -- so this is a quiet week rather than a gap")}
+
+    if earn:
+        out["earnings"] = {
+            "state": "ok", "count": len(earn),
+            "in_window": [{"symbol": (r.get("payload") or {}).get("symbol"),
+                           "date": str(r["observed_at"])[:10],
+                           "eps_estimate": (r.get("payload") or {}).get(
+                               "eps_estimate")}
+                          for r in earn],
+            "note": ("read from the events table. The estimate is an ANALYST MEAN "
+                     "-- a real consensus -- which is why an earnings surprise and "
+                     "a macro surprise have different names"),
+        }
+    elif "yfinance" not in sources:
+        out["earnings"] = {"state": "not_ingested", "reason": (
+            "no earnings dates have been ingested; the pass has never run here")}
+    else:
+        out["earnings"] = {"state": "empty", "count": 0, "reason": (
+            "no universe name reports in this window, and the source has written "
+            "before")}
+    return out
 
 # ---------------------------------------------------------------------------
 # Block 5 -- weekend developments
