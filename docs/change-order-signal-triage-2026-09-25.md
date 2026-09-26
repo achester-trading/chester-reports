@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Status | DRAFT — for sign-off (§13); tranches can be approved separately |
+| Status | **SIGNED 2026-09-26 (§13)** — all tranches approved; sequence and placements recorded in §13 |
 | Date | 2026-09-25 (evening); **revision 2, 2026-09-26** — the 19 Sep Digital Asset Mechanism Watch order integrated as Thread D and register entry SR-10 |
 | Proposed by | Ari Chester |
 | Contents | Twenty-eight signal-triage entries (SR-1…SR-9 from Batch 1, 10–19 Sep; SR-10 the Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan, 19 Sep; SR-12…SR-27 from Batch 2, 24–25 Sep; SR-11 reserved for the consensus-drift order of 19 Sep, carried in Appendix C), re-reviewed for coordination with each other and with the repository as it stands on 25–26 Sep 2026, and integrated into one governance section, six threads, one rights ledger, one data-feed table, one sequenced work order |
@@ -760,7 +760,7 @@ Each surface is edited once, in the session that owns it. Surfaces that do not y
 
 One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the laptop with a VPS redeploy after each push. Hours are rough and tight. Preconditions name Track D steps and TODO items by their own names.
 
-**Dependency order.** ST-0 → [D1c] → ST-1, ST-2 → ST-3 → ST-4 → ST-6 → ST-7 → ST-5 → ST-9 → ST-8 → [D4/D6] → ST-10 → [T&B full] → ST-11 → ST-12. Tranche 5 in parallel: ST-0 → [D1c] → ST-13 → ST-14 → ST-15 → (Sunday block inside ST-10; parallel run inside ST-12). ST-L any time after ST-3. Tranche H any time.
+**Dependency order.** ST-0 → [D1c] → ST-1, ST-2 → ST-3 → ST-4 → ST-6 → ST-7 → ST-5 → ST-9 → ST-8 → [D4/D6] → ST-10 → [T&B full] → ST-11 → ST-12. Tranche 5: ST-0 → [D1c] → ST-13 → ST-14 → ST-15 → (Sunday block inside ST-10; parallel run inside ST-12). ST-L any time after ST-3. Tranche H any time. **Signed sequence (§13, 26 Sep):** ST-0 now; ST-1/ST-2 after D1c and after Phase 6c completes; Tranche 5 after Tranche 1; ST-L as a separate session after Tranches 1–2; Tranche 4 at its milestones.
 
 **Tranche 1 — Core (≈33 h).** Register, feeds, the rates driver, the Monthly blocks. Answers the live question (10y at a 19-year high, 28 Oct FOMC) and gives every later item its inputs.
 
@@ -946,13 +946,13 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 
 | Field | Tranche 1 | Tranche 2 | Tranche 3 | Tranche 4 | Tranche 5 | Slot L | Tranche H |
 |---|---|---|---|---|---|---|---|
-| Decision | ☐ Approved ☐ With changes ☐ Rejected | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ | ☐ ☐ ☐ |
-| Amendment number / Part (G-1) | #____ · Part ____ | | | | | | |
-| Placement | ☐ ST-0 now; ST-1/2 after D1c | ☐ after Tranche 1 | ☐ after ST-5 | ☐ at D4/D6 and T&B full | ☐ beside Tranche 1 (after D1c) · ☐ after Tranche 1 · ☐ after PM-1 | ☐ with the next library session | ☐ now |
-| Batch 1 deferrals confirmed (G-19) | ☐ as Appendix C | | | | | | |
-| Changes noted | | | | | | | |
+| Decision | ☒ Approved | ☒ Approved | ☒ Approved | ☒ Approved | ☒ Approved | ☒ Approved | ☒ Approved |
+| Amendment number / Part (G-1) | #4 · Part: next free, assigned when consolidated into the change-orders edition | | | | | | |
+| Placement | ☒ ST-0 now; **ST-1/ST-2 after D1c has landed and Phase 6c is complete** (no two sessions editing `altdata/sources/` at once) | ☒ after Tranche 1 | ☒ after ST-5 | ☒ at D4/D6 and T&B full (pre-authorised; nothing runs before its milestone) | ☒ **after Tranche 1**; the interim Saturday scan covers Pearl meanwhile | ☒ **separate session after Tranches 1–2 land**, so the papers describe blocks that exist | ☒ now |
+| Batch 1 deferrals confirmed (G-19) | ☒ as Appendix C | | | | | | |
+| Changes noted | Sequence of sessions: ST-0 → [D1c, 6c complete] → ST-1 → ST-2 → ST-3 → ST-4 → ST-6 → Tranche 2 (ST-7, ST-5, ST-9) → Tranche 5 (ST-13 → ST-14 → ST-15) → Tranche 3 (ST-8) → ST-L → Tranche 4 at its milestones. The false-bottom audit (ST-9) is the item that may slide if hours must be cut. | | | | | | |
 
-Signed: Ari Chester — date: ____________
+Signed: Ari Chester — date: 2026-09-26 (decisions taken in chat, recorded here; approved as revision 2)
 
 On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orders-<date>.md` edition; §8 becomes its work-order addendum; the four superseded drafts, if ever committed, move to `docs/archive/`; Appendix C is carried in that edition's backlog appendix beside the 19 Sep Part C.
 
