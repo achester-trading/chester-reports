@@ -154,6 +154,23 @@ case $RC in
 esac
 log "$MSG"
 
+# ---- the narrative register, AFTER the object (6c-2) ---------------------------
+#
+# The stories' transitions read the object's dimension directions for the session
+# just closed, so this runs after the close report has stored it. The object's
+# narrative_vs_data rows in turn read the stories' states AS-OF its own cutoff --
+# i.e. what the previous evaluation left -- so the object never depends on
+# something computed after it. Seeds config/narratives.yaml first; idempotent per
+# session.
+#
+# ITS FAILURE IS NOT THIS PASS'S FAILURE: the report is built and delivered by
+# now, and a register that did not move tonight moves tomorrow on the same rules.
+log "narratives: evaluate"
+NARR_OUT="$("$PY" -m altdata.narratives evaluate 2>&1 | tail -12)"
+NARR_RC=$?
+printf '%s' "$NARR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $NARR_RC -ne 0 ]] && log "WARN narratives evaluate exited $NARR_RC -- continuing; the register keeps its last state"
+
 printf 'state=%s rc=%s sha=%s at=%s\n' \
     "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
 

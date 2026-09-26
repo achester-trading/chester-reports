@@ -99,7 +99,14 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-6"
+METHOD_VERSION = "market-state-method-7"
+#
+# method-7 (26 Sep 2026): THE CONTRADICTION TABLE READS THE NARRATIVE REGISTER.
+# contradictions.py gained the narrative_pair kind: narrative_vs_data expands to one
+# row per active story in altdata.narratives, a STATE MISMATCH (a consensus story
+# whose linked dimension points the other way) on the same persistence rule as every
+# other row. The object's content now depends on a second table, read as-of its
+# own cutoff, so objects before and after are not one method.
 #
 # method-6 (23 Sep 2026): THE DIMENSIONS READ DERIVED MACRO SERIES. Three of the
 # eight gained members that are computed rather than fetched -- liquidity's PRIMARY
@@ -121,7 +128,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "350bd378698f390a"
+METHOD_SOURCE_SHA = "2fd480b697646897"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the

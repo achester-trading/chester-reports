@@ -408,9 +408,16 @@ def group_c() -> None:
           f"nobody recorded is a bump nobody can date")
 
     pairs = (cfg.get("contradictions") or {}).get("pairs") or []
-    check(len(pairs) == 7,
-          f"seven contradiction rows are declared -- six computed and the "
-          f"reserved prediction-markets pair (got {len(pairs)})")
+    check(len(pairs) == 8,
+          f"eight contradiction pairs are declared -- six computed, the reserved "
+          f"prediction-markets pair, and 6c-2's narrative_vs_data (got "
+          f"{len(pairs)})")
+    narr = [p for p in pairs if p.get("kind") == contra.NARRATIVE_KIND]
+    check(len(narr) == 1 and narr[0].get("id") == "narrative_vs_data"
+          and pairs[-1].get("id") == "narrative_vs_data",
+          "exactly one narrative pair, narrative_vs_data, appended after the "
+          "others -- it expands to one row per story, so the declared table's "
+          "shape stays fixed")
     for p in pairs:
         check(bool(p.get("id")) and bool(p.get("legs")),
               f"{p.get('id')}: declares an id and its legs")
@@ -982,7 +989,11 @@ def group_i(store) -> None:
 
     check(str(cfg.get("version")) >= "market-state-v1.8",
           f"the config version records the rules change ({cfg.get('version')})")
-    check(rg.METHOD_VERSION == "market-state-method-6",
+    # AT LEAST method-6, not exactly: the check is that the liquidity change was
+    # recorded as a method bump, and a later bump (method-7, 6c-2's narrative row)
+    # must not read as that record being undone.
+    method_n = int(str(rg.METHOD_VERSION).rsplit("-", 1)[-1])
+    check(method_n >= 6,
           f"and the method version records that the object's meaning moved with "
           f"it ({rg.METHOD_VERSION}): an object whose liquidity state came from one "
           f"drain is not comparable with one whose state came from the quantity")

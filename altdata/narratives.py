@@ -114,6 +114,36 @@ BEFORE DELETE ON narratives
 BEGIN SELECT RAISE(ABORT, 'a narrative is not deletable; reject it instead'); END;
 """
 
+# ONE ROW PER STORY PER SESSION: the inputs the rules read, the condition each rule
+# met, and the state before and after. It is the record the replay gate recomputes
+# (6c-2.5) -- every input here is a function of stored events and stored objects
+# at `cutoff`, so a row that does not reproduce is a rule that read something it
+# should not have.
+EVAL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS narrative_evaluations (
+    id             INTEGER PRIMARY KEY,
+    narrative_id   TEXT NOT NULL,
+    session        TEXT NOT NULL,
+    cutoff         TEXT NOT NULL,
+    evaluated_at   TEXT NOT NULL,
+    rules_version  TEXT NOT NULL,
+    state_before   TEXT NOT NULL,
+    state_after    TEXT NOT NULL,
+    transition     TEXT,
+    inputs         TEXT NOT NULL,
+    conditions     TEXT NOT NULL,
+    runs           TEXT NOT NULL,
+    run_id         TEXT,
+    UNIQUE (narrative_id, session)
+);
+CREATE INDEX IF NOT EXISTS narrative_eval_asof
+    ON narrative_evaluations (narrative_id, evaluated_at);
+
+CREATE TRIGGER IF NOT EXISTS narrative_evaluations_immutable
+BEFORE UPDATE ON narrative_evaluations
+BEGIN SELECT RAISE(ABORT, 'an evaluation is the record; it is never edited'); END;
+"""
+
 JSON_FIELDS = ("evidence_for", "evidence_against", "linked_dimensions",
                "linked_instruments", "prediction_market_contracts",
                "implied_outcome", "proposal_basis")
@@ -237,6 +267,7 @@ class NarrativeRegister:
         self.conn.execute("PRAGMA busy_timeout = 5000")
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        self.conn.executescript(EVAL_SCHEMA)
         self.conn.commit()
 
     def close(self) -> None:
@@ -428,6 +459,443 @@ def _definition_columns(spec: dict) -> dict:
     }
 
 
+# ===========================================================================
+# 6c-2.2 -- STATE TRANSITIONS ON DECLARED RULES
+# ===========================================================================
+def rules_version(cfg: dict, nid: str) -> str:
+    """A hash of everything that decides this story's transitions.
+
+    The rules block, the state probabilities, and the story's own definition and
+    evidence rules. An evaluation records it, and the replay compares only rows made
+    under the current one -- the regime's method-version argument: a deliberate
+    change of rule is not a regression, and a replay that could not tell them apart
+    would be switched off.
+    """
+    import hashlib  # noqa: PLC0415
+    spec = (cfg.get("narratives") or {}).get(nid)
+    blob = json.dumps({"rules": cfg.get("rules"), "spec": spec},
+                      sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def _sessions_back(day: str, n: int) -> list[str]:
+    """The `n` trading sessions ending at `day`, oldest first."""
+    import datetime as dt  # noqa: PLC0415
+    out = [day]
+    d = dt.date.fromisoformat(day)
+    while len(out) < n:
+        d = session.previous_trading_session(d)
+        out.append(d.isoformat())
+    return list(reversed(out))
+
+
+def _window_count(by_day: dict[str, int], sessions: list[str],
+                  prior_session: str) -> int:
+    """Headlines dated after `prior_session` and on or before the window's last.
+
+    A weekend's headlines belong to the Monday window, because that is the session
+    they were first knowable in; counting by calendar day would drop them.
+    """
+    last = sessions[-1]
+    return sum(n for d, n in by_day.items() if prior_session < d <= last)
+
+
+def attention(ev_conn: sqlite3.Connection, query: Optional[str], day: str,
+              cutoff: str, short: int, long: int) -> dict:
+    """Headline counts for the story's declared query, and their Δ and Δ².
+
+    The windows are the last `short` and `long` sessions; Δ is a window against the
+    one before it, Δ² is that change against the previous change. Every count is
+    of rows knowable at `cutoff`.
+    """
+    out = {"query": query, "short_sessions": short, "long_sessions": long}
+    if not query:
+        out.update({"short": 0, "long": 0, "reason": "no story query declared"})
+        return out
+    span = _sessions_back(day, 3 * long + 1)
+    earliest = span[0]
+    by_day: dict[str, int] = {}
+    for (obs,) in ev_conn.execute(
+            "SELECT observed_at FROM events WHERE type = 'headline' "
+            " AND available_at <= ? AND observed_at >= ? AND observed_at <= ? "
+            " AND json_extract(payload, '$.query') = ?",
+            (cutoff, earliest, cutoff, query)):
+        d = session.session_date(obs)
+        by_day[d] = by_day.get(d, 0) + 1
+
+    def win(n: int, k: int) -> int:
+        """The k-th window of n sessions back (0 = the latest)."""
+        end = len(span) - 1 - k * n
+        sess = span[end - n + 1:end + 1]
+        return _window_count(by_day, sess, span[end - n])
+
+    s0, s1, s2 = win(short, 0), win(short, 1), win(short, 2)
+    l0, l1, l2 = win(long, 0), win(long, 1), win(long, 2)
+    out.update({"short": s0, "long": l0,
+                "delta_short": s0 - s1, "delta2_short": (s0 - s1) - (s1 - s2),
+                "delta_long": l0 - l1, "delta2_long": (l0 - l1) - (l1 - l2)})
+    return out
+
+
+def agreement(obj: Optional[dict], links: dict) -> dict:
+    """The share of linked dimensions pointing the way the story says.
+
+    A dimension that is absent or flat is counted neither way. None when none is
+    counted: undefined, not zero -- zero would read as the data disagreeing.
+    """
+    out: dict[str, Any] = {"object_session": None, "object_computed_at": None,
+                           "agree": [], "disagree": [], "uncounted": {}}
+    if not obj:
+        out["share"] = None
+        out["reason"] = "no market-state object at this cutoff"
+        return out
+    out["object_session"] = obj.get("session")
+    out["object_computed_at"] = obj.get("computed_at")
+    dims = obj.get("dimensions") or {}
+    for d, want in sorted(links.items()):
+        dd = dims.get(d) or {}
+        got = dd.get("direction")
+        if dd.get("state") is None:
+            out["uncounted"][d] = "absent"
+        elif got not in DIRECTIONS:
+            out["uncounted"][d] = f"direction {got!r}"
+        elif got == want:
+            out["agree"].append(d)
+        else:
+            out["disagree"].append(d)
+    n = len(out["agree"]) + len(out["disagree"])
+    out["share"] = None if n == 0 else round(len(out["agree"]) / n, 4)
+    return out
+
+
+def _surprise_sign(store: Any, metric: str, event_day: str,
+                   cutoff: str) -> Optional[int]:
+    """The sign of the naive surprise for `metric`'s latest period on or before the
+    release date, as knowable at `cutoff`. None when there is none."""
+    from . import surprise  # noqa: PLC0415
+    key = surprise.surprise_key(metric.split(".", 1)[1])
+    rows = [r for r in store.as_of(key, as_of=cutoff)
+            if str(r["observed_at"])[:10] <= event_day
+            and r.get("value_num") is not None]
+    if not rows:
+        return None
+    v = float(rows[-1]["value_num"])
+    return 0 if v == 0 else (1 if v > 0 else -1)
+
+
+def evidence(ev_conn: sqlite3.Connection, spec: dict, cutoff: str,
+             window_days: int, store: Any) -> dict:
+    """Event ids FOR and AGAINST, by the story's declared rules only."""
+    import datetime as dt  # noqa: PLC0415
+    rules = spec.get("evidence") or {}
+    since = (dt.date.fromisoformat(cutoff[:10])
+             - dt.timedelta(days=window_days)).isoformat()
+    for_ids: list[int] = []
+    against: list[int] = []
+    unscored: dict[str, str] = {}
+
+    er = rules.get("earnings") or {}
+    if er:
+        want = 1 if str(er.get("sign", "+")) == "+" else -1
+        syms = {str(s).upper() for s in er.get("symbols") or []}
+        for eid, payload in ev_conn.execute(
+                "SELECT id, payload FROM events WHERE type = 'earnings' "
+                " AND available_at <= ? AND observed_at >= ? AND observed_at <= ? "
+                "ORDER BY id", (cutoff, since, cutoff)):
+            p = json.loads(payload or "{}")
+            if str(p.get("symbol") or "").upper() not in syms:
+                continue
+            s = p.get("surprise_pct")
+            if not isinstance(s, (int, float)) or s == 0:
+                unscored[str(eid)] = "no signed consensus surprise"
+                continue
+            (for_ids if (1 if s > 0 else -1) == want else against).append(eid)
+
+    rs = rules.get("release_surprises") or {}
+    for metric, sign in sorted(rs.items()):
+        want = 1 if str(sign) == "+" else -1
+        for eid, obs in ev_conn.execute(
+                "SELECT e.id, e.observed_at FROM events e JOIN event_entities x "
+                " ON x.event_id = e.id WHERE e.type = 'release' AND x.entity = ? "
+                " AND e.available_at <= ? AND e.observed_at >= ? "
+                " AND e.observed_at <= ? ORDER BY e.id",
+                (metric, cutoff, since, cutoff)):
+            sgn = _surprise_sign(store, metric, str(obs)[:10], cutoff)
+            if not sgn:
+                unscored[str(eid)] = f"no signed naive surprise for {metric}"
+                continue
+            (for_ids if sgn == want else against).append(eid)
+    return {"for": sorted(set(for_ids)), "against": sorted(set(against)),
+            "unscored": unscored, "window_days": window_days, "since": since}
+
+
+def conditions(inputs: dict, rules: dict) -> dict:
+    """Which rules' conditions hold on these inputs. Pure: no store, no clock."""
+    att, agr, evd = inputs["attention"], inputs["agreement"], inputs["evidence"]
+    short_n = int((rules.get("attention_sessions") or {}).get("short", 5))
+    long_n = int((rules.get("attention_sessions") or {}).get("long", 20))
+    share = agr.get("share")
+    n_for, n_against = len(evd["for"]), len(evd["against"])
+    a_long, a_short = att.get("long", 0), att.get("short", 0)
+    rate_s = a_short / short_n
+    rate_l = a_long / long_n
+
+    c = rules.get("consensus") or {}
+    consensus = (a_long >= int(c.get("min_attention_long", 0))
+                 and share is not None
+                 and share >= float(c.get("min_agreement", 1.0))
+                 and n_for >= int(c.get("min_evidence_for", 1))
+                 and (not c.get("evidence_for_must_exceed_against", True)
+                      or n_for > n_against))
+    k = rules.get("contested") or {}
+    data_disagrees = share is not None and share <= float(k.get("max_agreement", 0))
+    evidence_disagrees = (n_against >= int(k.get("min_evidence_against", 1))
+                          and n_against >= n_for)
+    contested = (a_long >= int(k.get("min_attention_long", 0))
+                 and (data_disagrees or evidence_disagrees))
+    f = rules.get("fading") or {}
+    fading = (a_long > 0
+              and rate_s < float(f.get("max_short_to_long_rate", 0)) * rate_l
+              and (not f.get("require_short_delta_negative", True)
+                   or att.get("delta_short", 0) < 0))
+    r = rules.get("revive") or {}
+    revive = (a_long >= int(r.get("min_attention_long", 0)) and a_long > 0
+              and rate_s >= float(r.get("min_short_to_long_rate", 1.0)) * rate_l)
+    return {"consensus": bool(consensus), "contested": bool(contested),
+            "fading": bool(fading), "revive": bool(revive)}
+
+
+# From each state, the transitions the rules allow, IN PRIORITY ORDER. Contested
+# before consensus from emerging: a story the data or the evidence is already
+# arguing with does not get to be consensus first. Contested before fading from
+# consensus: a live argument is news, a quietening is not.
+TRANSITIONS = {
+    "emerging": (("contested", "contested"), ("consensus", "consensus")),
+    "consensus": (("contested", "contested"), ("fading", "fading")),
+    "contested": (("consensus", "consensus"), ("fading", "fading")),
+    "fading": (("revive", "emerging"),),
+}
+
+
+def next_state(state: str, conds: dict, runs: dict, persistence: int
+               ) -> tuple[str, Optional[str]]:
+    """(state after, the rule that moved it) -- or (state, None)."""
+    for cond, target in TRANSITIONS.get(state, ()):
+        if conds.get(cond) and runs.get(cond, 0) >= persistence:
+            return target, cond
+    return state, None
+
+
+def _runs(prior: list[dict], conds: dict) -> dict:
+    """Consecutive evaluations, ending now, in which each condition held."""
+    out = {}
+    for name, now in conds.items():
+        n = 1 if now else 0
+        if now:
+            for p in reversed(prior):
+                if (p.get("conditions") or {}).get(name):
+                    n += 1
+                else:
+                    break
+        out[name] = n
+    return out
+
+
+def compute_inputs(nid: str, spec: dict, row: dict, day: str, cutoff: str,
+                   cfg: dict, *, ev_conn: sqlite3.Connection, obj: Optional[dict],
+                   store: Any) -> dict:
+    """Everything the rules read for one story at one cutoff. Replayable."""
+    rules = cfg.get("rules") or {}
+    sess = rules.get("attention_sessions") or {}
+    return {
+        "attention": attention(ev_conn, row.get("story_query"), day, cutoff,
+                               int(sess.get("short", 5)), int(sess.get("long", 20))),
+        "agreement": agreement(obj, row.get("linked_dimensions") or {}),
+        "evidence": evidence(ev_conn, spec, cutoff,
+                             int(rules.get("evidence_window_days", 60)), store),
+    }
+
+
+def _prior_evaluations(conn: sqlite3.Connection, nid: str, before: str
+                       ) -> list[dict]:
+    out = []
+    for r in conn.execute(
+            "SELECT * FROM narrative_evaluations WHERE narrative_id = ? "
+            " AND session < ? ORDER BY session", (nid, before)):
+        d = dict(r)
+        for f in ("inputs", "conditions", "runs"):
+            d[f] = json.loads(d[f])
+        out.append(d)
+    return out
+
+
+def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
+             db_path: Optional[str] = None, run_id: Optional[str] = None,
+             cfg: Optional[dict] = None, obj: Optional[dict] = None) -> dict:
+    """Evaluate every ACTIVE story for one session. Idempotent per session.
+
+    Runs in the close pass after the object is stored, so agreement reads the
+    object for the session being evaluated. A story already evaluated for this
+    session is left as it is: the first evaluation is the record.
+    """
+    import sys  # noqa: PLC0415
+    if str(REPO) not in sys.path:
+        sys.path.insert(0, str(REPO))
+    import regime  # noqa: PLC0415
+    from . import events as ev_mod  # noqa: PLC0415
+
+    cfg = cfg if cfg is not None else load_config()
+    day = session_day or session.last_trading_session().isoformat()
+    cutoff = observations.canonical_instant(
+        as_of or session.utc_iso(timespec="microseconds"))
+    run_id = run_id or session.new_run_id("narratives")
+    rules = cfg.get("rules") or {}
+    persistence = int(rules.get("persistence_sessions", 3))
+    out: dict[str, Any] = {"session": day, "cutoff": cutoff, "run_id": run_id,
+                           "evaluated": [], "skipped": {}, "transitions": []}
+    store = observations.ObservationStore(db_path)
+    try:
+        if obj is None:
+            obj = regime.latest(as_of=cutoff, store=store)
+        with NarrativeRegister(db_path) as reg, ev_mod.EventStore(db_path) as ev:
+            out["seeded"] = reg.seed(cfg)
+            for row in reg.all("active"):
+                nid = row["narrative_id"]
+                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                if reg.conn.execute(
+                        "SELECT 1 FROM narrative_evaluations WHERE narrative_id=? "
+                        " AND session=?", (nid, day)).fetchone():
+                    out["skipped"][nid] = "already evaluated for this session"
+                    continue
+                if row.get("opened") and row["opened"] > day:
+                    out["skipped"][nid] = f"opened {row['opened']}, after {day}"
+                    continue
+                inputs = compute_inputs(nid, spec, row, day, cutoff, cfg,
+                                        ev_conn=ev.conn, obj=obj, store=store)
+                conds = conditions(inputs, rules)
+                prior = _prior_evaluations(reg.conn, nid, day)
+                runs = _runs(prior, conds)
+                before = prior[-1]["state_after"] if prior else row["state"]
+                after, rule = next_state(before, conds, runs, persistence)
+                now = session.utc_iso(timespec="microseconds")
+                reg.conn.execute(
+                    "INSERT INTO narrative_evaluations (narrative_id, session, "
+                    " cutoff, evaluated_at, rules_version, state_before, "
+                    " state_after, transition, inputs, conditions, runs, run_id) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (nid, day, cutoff, now, rules_version(cfg, nid), before, after,
+                     rule, json.dumps(inputs, sort_keys=True, default=str),
+                     json.dumps(conds, sort_keys=True),
+                     json.dumps(runs, sort_keys=True), run_id))
+                reg.conn.execute(
+                    "UPDATE narratives SET state=?, evidence_for=?, "
+                    " evidence_against=?, last_changed=COALESCE(?, last_changed), "
+                    " updated_at=? WHERE narrative_id=?",
+                    (after, json.dumps(inputs["evidence"]["for"]),
+                     json.dumps(inputs["evidence"]["against"]),
+                     day if rule else None, now, nid))
+                reg.conn.commit()
+                out["evaluated"].append(nid)
+                if rule:
+                    tr = {"narrative_id": nid, "session": day, "from": before,
+                          "to": after, "rule": rule,
+                          "alert_path": cfg.get("transition_alert_path",
+                                                "report_only")}
+                    out["transitions"].append(tr)
+                    log.info("narrative %s: %s -> %s (%s)", nid, before, after,
+                             rule)
+    finally:
+        store.close()
+    return out
+
+
+def state_as_of(conn: sqlite3.Connection, nid: str, cutoff: str
+                ) -> Optional[str]:
+    """The story's state as it was knowable at `cutoff`, or None if unknowable.
+
+    From the evaluations, which carry their own instant -- never from the
+    register row, which holds only the latest state. A story with no evaluation
+    yet is in its opening state, emerging.
+    """
+    r = conn.execute(
+        "SELECT state_after FROM narrative_evaluations WHERE narrative_id = ? "
+        " AND evaluated_at <= ? ORDER BY evaluated_at DESC, id DESC LIMIT 1",
+        (nid, observations.canonical_instant(cutoff))).fetchone()
+    return r[0] if r else "emerging"
+
+
+def transitions_since(since: str, as_of: Optional[str] = None,
+                      db_path: Optional[str] = None) -> list[dict]:
+    """Every state change evaluated after `since` and knowable at `as_of`."""
+    cutoff = observations.canonical_instant(as_of or session.utc_iso(
+        timespec="microseconds"))
+    with NarrativeRegister(db_path) as reg:
+        return [dict(r) for r in reg.conn.execute(
+            "SELECT narrative_id, session, state_before, state_after, transition, "
+            "       evaluated_at FROM narrative_evaluations "
+            "WHERE transition IS NOT NULL AND evaluated_at > ? "
+            "  AND evaluated_at <= ? ORDER BY evaluated_at",
+            (observations.canonical_instant(since), cutoff))]
+
+
+def replay(db_path: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
+    """Recompute every stored evaluation from stored events and objects.
+
+    Inputs, conditions, runs and the state after must match EXACTLY. Rows made
+    under a different rules_version are counted and skipped, not compared.
+    """
+    import sys  # noqa: PLC0415
+    if str(REPO) not in sys.path:
+        sys.path.insert(0, str(REPO))
+    import regime  # noqa: PLC0415
+    from . import events as ev_mod  # noqa: PLC0415
+    cfg = cfg if cfg is not None else load_config()
+    rules = cfg.get("rules") or {}
+    persistence = int(rules.get("persistence_sessions", 3))
+    out = {"compared": 0, "matched": 0, "mismatches": [], "other_version": 0}
+    store = observations.ObservationStore(db_path)
+    try:
+        with NarrativeRegister(db_path) as reg, ev_mod.EventStore(db_path) as ev:
+            rows = [dict(r) for r in reg.conn.execute(
+                "SELECT * FROM narrative_evaluations ORDER BY narrative_id, session")]
+            for r in rows:
+                nid = r["narrative_id"]
+                if r["rules_version"] != rules_version(cfg, nid):
+                    out["other_version"] += 1
+                    continue
+                row = reg.get(nid) or {}
+                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                obj = regime.latest(as_of=r["cutoff"], store=store)
+                inputs = compute_inputs(nid, spec, row, r["session"], r["cutoff"],
+                                        cfg, ev_conn=ev.conn, obj=obj, store=store)
+                conds = conditions(inputs, rules)
+                prior = _prior_evaluations(reg.conn, nid, r["session"])
+                runs = _runs(prior, conds)
+                before = prior[-1]["state_after"] if prior else r["state_before"]
+                after, rule = next_state(before, conds, runs, persistence)
+                got = {"inputs": json.loads(json.dumps(inputs, sort_keys=True,
+                                                       default=str)),
+                       "conditions": conds, "runs": runs, "state_before": before,
+                       "state_after": after, "transition": rule}
+                want = {"inputs": json.loads(r["inputs"]),
+                        "conditions": json.loads(r["conditions"]),
+                        "runs": json.loads(r["runs"]),
+                        "state_before": r["state_before"],
+                        "state_after": r["state_after"],
+                        "transition": r["transition"]}
+                out["compared"] += 1
+                if got == want:
+                    out["matched"] += 1
+                else:
+                    diff = sorted(k for k in want if got.get(k) != want[k])
+                    out["mismatches"].append({"narrative_id": nid,
+                                              "session": r["session"],
+                                              "fields": diff})
+    finally:
+        store.close()
+    return out
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -452,11 +920,40 @@ def _main(argv: list[str]) -> int:
     for name in ("confirm", "reject"):
         c = sub.add_parser(name)
         c.add_argument("id")
+    evp = sub.add_parser("evaluate", help="the close pass's step: one session")
+    evp.add_argument("--session", default=None)
+    evp.add_argument("--as-of", default=None)
+    sub.add_parser("replay", help="recompute every stored evaluation")
+    tp = sub.add_parser("transitions")
+    tp.add_argument("--since", default="1970-01-01T00:00:00Z")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if a.cmd == "evaluate":
+        r = evaluate(a.session, a.as_of, db_path=a.db)
+        print(f"session {r['session']} cutoff {r['cutoff']} run {r['run_id']}")
+        print(f"  evaluated   : {', '.join(r['evaluated']) or 'none'}")
+        for nid, why in r["skipped"].items():
+            print(f"  skipped     : {nid} ({why})")
+        for t in r["transitions"]:
+            print(f"  TRANSITION  : {t['narrative_id']} {t['from']} -> {t['to']} "
+                  f"({t['rule']}; alert {t['alert_path']})")
+        return 0
+    if a.cmd == "replay":
+        r = replay(a.db)
+        print(f"replayed {r['compared']}: {r['matched']} exact, "
+              f"{len(r['mismatches'])} mismatched, {r['other_version']} under "
+              f"another rules version")
+        for m in r["mismatches"][:20]:
+            print(f"  MISMATCH {m['narrative_id']} {m['session']}: {m['fields']}")
+        return 1 if r["mismatches"] else 0
+    if a.cmd == "transitions":
+        for t in transitions_since(a.since, db_path=a.db):
+            print(f"{t['session']}  {t['narrative_id']:24} {t['state_before']} -> "
+                  f"{t['state_after']}  ({t['transition']})")
+        return 0
     with NarrativeRegister(a.db) as reg:
         try:
             if a.cmd == "seed":

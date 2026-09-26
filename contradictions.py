@@ -411,6 +411,73 @@ def _tail_weight_absent(what: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# narrative_vs_data -- the story against the data (6c-2)
+# ---------------------------------------------------------------------------
+NARRATIVE_KIND = "narrative_pair"
+
+
+def narrative_rows(spec: dict, dims: dict, as_of: str,
+                   store: observations.ObservationStore) -> list[dict]:
+    """One row per ACTIVE story: consensus, while a linked dimension points away.
+
+    A STATE MISMATCH, like the gamma dial's pair: a story's state is a label the
+    rules wrote down, not a series, so the magnitude is honestly None. The row id
+    carries the story, so each story's persistence runs on its own history.
+
+    THE STORY'S STATE IS READ AS-OF THIS CUTOFF from the evaluations, which carry
+    their own instant; the close pass evaluates the stories AFTER it stores the
+    object, so the state read here is the one the previous evaluation left. That
+    is one session of lag, and it is the price of the object never depending on
+    something computed after it.
+    """
+    base = {"legs": ["narrative_register", "linked_dimensions"],
+            "kind": NARRATIVE_KIND, "expect": spec.get("expect"),
+            "because": spec.get("because"), "magnitude": None, "since": None,
+            "persistence_days": 0, "open": False, "open_state": "absent",
+            "condition_met": False}
+    pid = str(spec.get("id") or "narrative_vs_data")
+    try:
+        from altdata import narratives as nr
+        with nr.NarrativeRegister(str(store.path)) as reg:
+            stories = reg.all("active")
+            states = {s["narrative_id"]: nr.state_as_of(reg.conn,
+                                                        s["narrative_id"], as_of)
+                      for s in stories}
+    except Exception as exc:                                   # noqa: BLE001
+        return [dict(base, id=pid,
+                     absent_reason=f"narrative register unreadable: "
+                                   f"{type(exc).__name__}: {exc}")]
+    if not stories:
+        return [dict(base, id=pid,
+                     absent_reason="the narrative register holds no active story "
+                                   "-- the close pass seeds config/narratives.yaml")]
+    out = []
+    for s in stories:
+        nid = s["narrative_id"]
+        state = states.get(nid)
+        links = s.get("linked_dimensions") or {}
+        directions = {d: (dims.get(d) or {}).get("direction")
+                      if (dims.get(d) or {}).get("state") is not None else None
+                      for d in sorted(links)}
+        against = sorted(d for d, want in links.items()
+                         if directions.get(d) in ("+", "-")
+                         and directions[d] != want)
+        row = dict(base, id=f"{pid}.{nid}",
+                   legs=[f"narrative.{nid}"] + [f"{d} {links[d]}" for d in sorted(links)],
+                   open_state="closed",
+                   states=[state] + [f"{d} {directions[d] or 'absent'}"
+                                     for d in sorted(links)],
+                   narrative_state=state, dimensions_against=against,
+                   condition_met=bool(state == "consensus" and against),
+                   magnitude_note=(
+                       "a STATE MISMATCH, not a z: the story's state is a label "
+                       "the declared rules wrote down, and a z of a label would "
+                       "be a number with no meaning"))
+        out.append(row)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # The table
 # ---------------------------------------------------------------------------
 def evaluate(cfg: dict, dims: dict, dials: dict, as_of: str, session_day: str,
@@ -431,14 +498,20 @@ def evaluate(cfg: dict, dims: dict, dials: dict, as_of: str, session_day: str,
 
     rows = []
     for pair in spec.get("pairs") or []:
-        row = evaluate_pair(pair or {}, dims, dials, as_of, session_day,
-                            window, threshold, multiple, store)
-        if row.get("open_state") != "absent" or row.get("magnitude") is not None \
-                or row.get("states"):
-            apply_persistence(row, prior_rows(history, row["id"]), session_day,
-                              persistence, exception_at)
-        if row.get("exception"):
-            row["alert_path"] = alert_path
-            row["alert_note"] = alert_note
-        rows.append(row)
+        # A narrative pair EXPANDS: one row per active story, each with its own
+        # persistence run -- the same rule as every other row, applied per story.
+        if (pair or {}).get("kind") == NARRATIVE_KIND:
+            expanded = narrative_rows(pair or {}, dims, as_of, store)
+        else:
+            expanded = [evaluate_pair(pair or {}, dims, dials, as_of, session_day,
+                                      window, threshold, multiple, store)]
+        for row in expanded:
+            if row.get("open_state") != "absent" \
+                    or row.get("magnitude") is not None or row.get("states"):
+                apply_persistence(row, prior_rows(history, row["id"]),
+                                  session_day, persistence, exception_at)
+            if row.get("exception"):
+                row["alert_path"] = alert_path
+                row["alert_note"] = alert_note
+            rows.append(row)
     return rows

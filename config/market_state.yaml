@@ -115,7 +115,10 @@
 #         as challenger, each with its own bands, both states printed, the
 #         challenger still published until 23 Dec 2026. calc.vx1_vix_basis is
 #         reported on the leg because it is the one thing the proxy cannot see.
-version: market-state-v1.8
+#   v1.9  (26 Sep 2026) narrative_vs_data appended after the contradiction
+#         pairs: a consensus story in the narrative register whose linked
+#         dimension points the other way. Expands to one row per active story.
+version: market-state-v1.9
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -671,3 +674,15 @@ contradictions:
         THE RESERVED SEVENTH ROW. Prints absent until Part 27 v1 exists -- the
         audit admits prediction markets in 6d, after Phase 3. Reserved here so
         the table's shape is fixed now and the row cannot be forgotten.
+
+    - id: narrative_vs_data
+      legs: [narrative_register, linked_dimensions]
+      kind: narrative_pair
+      because: >-
+        (6c-2) THE MARKET'S STORY AGAINST THE DATA. A story the narrative register
+        holds at CONSENSUS while one of its linked dimensions points the other way
+        -- the edge layer's first computable piece. EXPANDS to one row per active
+        story (narrative_vs_data.<id>), each a STATE MISMATCH with no z, opening on
+        the same persistence rule as every other row. The story's state is read
+        as-of the object's cutoff, i.e. as the previous close pass's evaluation
+        left it; the prediction-market pieces wait for 6d.

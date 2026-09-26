@@ -69,6 +69,65 @@ probability_by_state:
   consensus: 0.70
   fading: 0.30
 
+# -----------------------------------------------------------------------------
+# THE TRANSITION RULES -- declared, deterministic, replayable from stored events
+# -----------------------------------------------------------------------------
+# Three inputs and nothing else, evaluated once per session by the close pass after
+# the object is stored (altdata.narratives evaluate):
+#
+#   ATTENTION    headlines returned for the story's DECLARED query
+#                (config/story_queries.yaml), counted over the last `short` and
+#                `long` sessions, with the change (Δ) and the change in the
+#                change (Δ²) of each window against the window before it. A count
+#                of coverage, not a reading of it: the aggregator's result set has
+#                no published denominator, so attention can MOVE a state only
+#                alongside the other two inputs, never alone.
+#   AGREEMENT    the share of the story's linked dimensions whose `direction` in the
+#                latest market-state object matches the direction the story
+#                declares. A dimension that is absent or flat (direction 0) is not
+#                counted either way; with none counted, agreement is undefined and
+#                every rule that needs it fails.
+#   EVIDENCE     event ids, classified by DECLARED rules per story (`evidence`,
+#                below) -- a release whose naive surprise has the declared sign, a
+#                linked name's earnings surprise -- inside `evidence_window_days`.
+#                Never the model's reading of a headline: headlines are attention.
+#
+# PERSISTENCE is the contradiction table's rule, for the same reason: a condition
+# must hold `persistence_sessions` consecutive evaluations before the state moves,
+# because a single session's coverage spike is noise and a register that moved on
+# it would cry wolf until nobody read it.
+#
+# A PROPOSED story is never evaluated. A story with no evidence FOR can never be
+# consensus: the rule requires `min_evidence_for`, so the count is a gate, not a
+# weight.
+rules:
+  attention_sessions: {short: 5, long: 20}
+  evidence_window_days: 60
+  persistence_sessions: 3
+  consensus:          # emerging or contested -> consensus
+    min_attention_long: 20
+    min_agreement: 0.66
+    min_evidence_for: 1
+    evidence_for_must_exceed_against: true
+  contested:          # emerging or consensus -> contested
+    min_attention_long: 20
+    # EITHER the data disagrees with the story, OR the evidence does.
+    max_agreement: 0.34
+    min_evidence_against: 1
+  fading:             # consensus or contested -> fading
+    # The short window's run-rate below this fraction of the long window's, and
+    # still falling: attention decaying, not merely quiet for a day.
+    max_short_to_long_rate: 0.5
+    require_short_delta_negative: true
+  revive:             # fading -> emerging
+    min_short_to_long_rate: 1.0
+    min_attention_long: 20
+
+# How a transition reaches an alert. There is no exceptions alert path in this
+# repo (config/market_state.yaml says the same of the contradiction table), so a
+# transition is REPORT-ONLY and says so on its record.
+transition_alert_path: report_only
+
 narratives:
 
   ai_capex_durability:
@@ -79,6 +138,11 @@ narratives:
     linked_dimensions: {trend: "+", credit: "+"}
     linked_instruments: [NVDA, MSFT, GOOGL, AMZN, META]
     prediction_market_contracts: []
+    evidence:
+      # An earnings beat by a linked name counts FOR (the spend is being funded
+      # from results), a miss AGAINST. EPS is not capex -- this is the nearest
+      # stored, dated, per-name fact, and it is named as such.
+      earnings: {symbols: [NVDA, MSFT, GOOGL, AMZN, META], sign: "+"}
     implied_outcome:
       claim: >-
         At least three of AMZN, GOOGL, MSFT and META report larger quarterly
@@ -99,6 +163,10 @@ narratives:
     linked_dimensions: {rates: "+", inflation: "+"}
     linked_instruments: [fred.yield_30y, fred.yield_10y, acm.term_premium_10y]
     prediction_market_contracts: []
+    evidence:
+      # Inflation surprising UP is the mechanism the story runs through (a long
+      # end that must price more inflation risk); surprising down cuts against it.
+      release_surprises: {fred.cpi: "+", fred.core_cpi: "+", fred.core_pce: "+"}
     implied_outcome:
       claim: >-
         The ACM 10-year term premium is higher at the horizon than it was when
@@ -117,6 +185,11 @@ narratives:
     linked_dimensions: {volatility: "+", credit: "-"}
     linked_instruments: [fred.usd_jpy, mof.jgb_10y, yfinance.mkt_vix]
     prediction_market_contracts: []
+    # NO EVIDENCE RULE, and so this story cannot reach consensus. Nothing ingested
+    # speaks to it: BoJ decisions and Japanese releases are not in the events
+    # table. Declared empty rather than borrowed from a US series that does not
+    # bear on it; the story still gains attention and can be contested.
+    evidence: {}
     implied_outcome:
       claim: >-
         USD/JPY (yen per dollar, FRED DEXJPUS) is lower at the horizon than when
@@ -135,6 +208,9 @@ narratives:
     linked_dimensions: {trend: "+"}
     linked_instruments: [yfinance.mkt_spy]
     prediction_market_contracts: []
+    # NO EVIDENCE RULE: the election is a dated claim, not an event with a sign,
+    # and no release bears on the seasonal pattern. Cannot reach consensus.
+    evidence: {}
     implied_outcome:
       claim: >-
         SPY closes 31 December 2026 above its close as known when the forecast
