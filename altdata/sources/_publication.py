@@ -164,7 +164,7 @@ def write_rows(source: str, rows: list[dict], keys: Iterable[str],
             if held.get(r["registry_key"]) and str(r["observed_at"])[:10] < cutoff:
                 continue          # backfilled already; outside the write window
             kept.append(dict(r, source=r.get("source") or source, run_id=run_id))
-        fresh = observations.drop_unchanged(store, kept)
+        fresh = observations.drop_unchanged(store, _first_vintage(kept))
         n = store.write_many(fresh)
         newest = newest_observed(store, keys)
     finally:
@@ -178,10 +178,39 @@ def write_rows(source: str, rows: list[dict], keys: Iterable[str],
             "keys_without_rows": empty}
 
 
+def _first_vintage(rows: list[dict]) -> list[dict]:
+    """One row per (key, instrument, period, value) within a batch -- the earliest.
+
+    drop_unchanged() compares a batch against the STORE, not against itself. A
+    writer that reads two files covering the same months (TIC's history file and
+    its current table) would otherwise write the same number twice under two
+    Last-Modified instants: two vintages of one fact, which is exactly the
+    re-read-is-not-a-revision rule broken from the inside. A DIFFERENT value for
+    the same period is kept -- that one is a revision.
+    """
+    best: dict[tuple, dict] = {}
+    order: list[tuple] = []
+    for r in rows:
+        k = (r["registry_key"], r.get("instrument"), str(r["observed_at"])[:10],
+             repr(r.get("value")))
+        have = best.get(k)
+        if have is None:
+            best[k] = r
+            order.append(k)
+        elif str(r["available_at"]) < str(have["available_at"]):
+            best[k] = r
+    return [best[k] for k in order]
+
+
 def run(source: str, keys: list[str], produce: Callable[[], list[dict]],
         run_id: Optional[str] = None,
-        db: Optional[observations.ObservationStore] = None) -> dict:
-    """The whole writer step: produce rows, or return STALE. Never raises."""
+        db: Optional[observations.ObservationStore] = None,
+        window_days: int = WRITE_WINDOW_DAYS) -> dict:
+    """The whole writer step: produce rows, or return STALE. Never raises.
+
+    `window_days` widens the write window for a source whose revisions reach
+    further back than a year -- TIC's benchmark restatements do.
+    """
     run_id = run_id or session.new_run_id(source)
     try:
         rows = produce()
@@ -192,11 +221,75 @@ def run(source: str, keys: list[str], produce: Callable[[], list[dict]],
         return stale(source, keys, "the source parsed to zero rows", db=db,
                      run_id=run_id)
     try:
-        return write_rows(source, rows, keys, run_id, db=db)
+        return write_rows(source, rows, keys, run_id, db=db,
+                          window_days=window_days)
     except Exception as exc:                                  # noqa: BLE001
         log.exception("%s: write failed", source)
         return stale(source, keys, f"write failed: {type(exc).__name__}: {exc}",
                      db=db, run_id=run_id)
+
+
+# ---------------------------------------------------------------------------
+# Finding the current file on a publisher's page
+# ---------------------------------------------------------------------------
+def find_link(page_url: str, pattern: str, headers: Optional[dict] = None) -> str:
+    """The first link on `page_url` whose URL matches `pattern`, made absolute.
+
+    FOR PUBLISHERS WHOSE FILE NAME CHANGES WITH EACH RELEASE. Shiller's workbook
+    carries a version token and a new storage path per edition; the World Bank's
+    Pink Sheet sits under a per-release document id. Hard-coding either URL is a
+    writer that goes STALE on the next release. Raises when nothing matches, so
+    a page redesign reads as STALE with a reason rather than as a quiet miss.
+    """
+    from urllib.parse import urljoin
+    from ._base import http_get_text
+    html = http_get_text(page_url, headers=headers, timeout=60)
+    for href in re.findall(r'(?:href|src)=["\']([^"\']+)["\']', html) + \
+            re.findall(r'https?://[^"\'\s<>]+', html):
+        if re.search(pattern, href):
+            url = urljoin(page_url, href.strip())
+            return "https:" + url if url.startswith("//") else url
+    raise ValueError(f"no link matching {pattern!r} on {page_url}")
+
+
+VINTAGE_KEY = "reference.file_vintage"
+
+
+def vintage_row(library: str, label: str, available_at: str, kind: str,
+                observed_at: Optional[str] = None) -> dict:
+    """The logged vintage of a reference file, as one text observation.
+
+    REFERENCE LIBRARIES RESTATE THEIR WHOLE HISTORY. Ken French recomputes every
+    return against each year's CRSP file; Damodaran replaces his tables every
+    January; Shiller back-fills earnings. A number from one of them is only
+    replayable if we know which EDITION it came from, so each loader writes one
+    row per edition: instrument = the library, value = the file's own statement
+    of its vintage ("CRSP 202608", "updated 2026-01-08"), observed_at = the date
+    that edition carries (else the day of its Last-Modified). Deduplicated by the
+    store like any other row, so an unchanged edition writes nothing.
+    """
+    return {"registry_key": VINTAGE_KEY, "instrument": library,
+            "observed_at": observed_at or str(available_at)[:10],
+            "available_at": available_at, "value": label,
+            "availability_kind": kind}
+
+
+def month_start(year: int, month: int) -> str:
+    """FRED's convention for a monthly AVERAGE or SURVEY: the first of the month.
+
+    Two conventions, one rule for choosing. A STOCK measured at the end of a month
+    (TIC holdings, MSPD, margin balances) is dated at the month-end it describes.
+    An AVERAGE over the month or a SURVEY fielded during it (UMich, the SCE,
+    Shiller's monthly price, the Pink Sheet) is dated at the first of the month,
+    as FRED dates every monthly series -- which also means the current month's
+    preliminary reading is never dated in the future.
+    """
+    return dt.date(year, month, 1).isoformat()
+
+
+def month_end(year: int, month: int) -> str:
+    import calendar
+    return dt.date(year, month, calendar.monthrange(year, month)[1]).isoformat()
 
 
 # ---------------------------------------------------------------------------

@@ -455,12 +455,17 @@ def group_g() -> None:
               "an empty store reports the official feed ABSENT, not fine")
     finally:
         db.close()
+    # EVERY WRITER THE FEED KNOWS, not a list copied here -- ST-2 added fourteen,
+    # and a guard that names only the first five stops guarding at the sixth.
+    writers = list(feeds.OFFICIAL_WRITERS) + list(
+        getattr(feeds, "EXTERNAL_WRITERS", ()))
+    alt = "|".join(re.escape(w) for w in writers + ["_publication"])
     units = [p.name for p in (REPO / "deploy" / "systemd").iterdir()]
     check(not [u for u in units if re.search(
-        r"acm|sffed|dkw|auction_results|fiscal|official", u)],
-          "no systemd unit was added for them -- they ride the existing pull")
-    pat = re.compile(r"sources\s*(import|\.)\s*\(?\s*[^\n]*\b(acm|sffed|dkw|"
-                     r"treasury_auctions|fiscaldata|_publication)\b")
+        rf"(?:{alt}|auction_results|official|external)", u.replace("-", "_"))],
+          f"no systemd unit was added for any of the {len(writers)} writers -- "
+          f"they ride the existing pull")
+    pat = re.compile(r"sources\s*(import|\.)\s*\(?\s*[^\n]*\b(" + alt + r")\b")
     offenders = []
     for root in ("monthly_macro", "daily_cascade"):
         for p in (REPO / root).rglob("*.py"):
@@ -674,10 +679,239 @@ def group_j() -> None:
           "the CLI exits 2 on a refusal")
 
 
+# ===========================================================================
+# ST-2
+# ===========================================================================
+def _writer_modules() -> list:
+    import importlib
+    names = list(feeds.OFFICIAL_WRITERS) + list(getattr(feeds, "EXTERNAL_WRITERS", ()))
+    return [(n, importlib.import_module(f"altdata.sources.{n}")) for n in names]
+
+
+def _tsv(rows: list[list]) -> str:
+    return "\n".join("\t".join(str(c) for c in r) for r in rows) + "\n"
+
+
+def tic_history(japan_aug: float = 1183.9) -> str:
+    """A two-year slice of mfhhis01.txt's layout, with a June series break."""
+    months = ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "Jun", "May"]
+    return _tsv([["MAJOR FOREIGN HOLDERS"], [""] + months, ["Country"] + ["2025"] * 9,
+                 ["Japan"] + [900, 901, 902, 903, japan_aug, 905, 906, 999, 907],
+                 ['"China, Mainland"'] + [1100] * 9,
+                 ["All Other"] + [50] * 9,
+                 ["Grand Total"] + [2000] * 9, ["Of which:"],
+                 ["For. Official"] + [1500] * 9, ["Treasury Bills"] + [100] * 9,
+                 ["T-Bonds & Notes"] + [1400] * 9])
+
+
+def tic_table5() -> str:
+    return _tsv([["Table 5: Major Foreign Holders of Treasury Securities"],
+                 ["Country", "2025-12", "2025-11"], ["Japan", 900, 901],
+                 ["All Other", 70, 71], ["Grand Total", 2000, 2000],
+                 ["Of Which: Foreign Official", 1500, 1500],
+                 ["Of Which: Foreign Official Treasury Bills", 100, 100],
+                 ["Of Which: Foreign Official T-Bonds & Notes", 1400, 1400]])
+
+
+def tic_flows() -> str:
+    head = [["TIC monthly reports"], [""] + [str(n) for n in range(1, 33)]]
+    return _tsv(head + [["2025-Dec"] + [n * 10 for n in range(1, 33)],
+                        ["2025-Nov"] + [n * 2 for n in range(1, 33)]])
+
+
+def group_k() -> None:
+    from altdata.sources import tic
+    print(f"{LINE}\nK. TIC -- HOLDINGS, FLOWS AND THE G-8 VINTAGE RULE\n{LINE}")
+    p = tic.parse_holdings(tic_history())
+    check(p.get((tic.COUNTRY_KEY, "Japan", "2025-06-30")) == 906,
+          "a series-break month keeps the FIRST column (the continuing series), "
+          "not the comparison column")
+    check(p.get((tic.COUNTRY_KEY, "China, Mainland", "2025-12-31")) == 1100,
+          "quoted country names are unquoted")
+    check(p.get((tic.OFFICIAL_BILLS_KEY, None, "2025-12-31")) == 100
+          and p.get((tic.OFFICIAL_BONDS_KEY, None, "2025-12-31")) == 1400,
+          "the official bills / bonds-and-notes lines are read in both layouts")
+    rows = tic.holdings_rows(tic_table5(), LM_CANON, "observed", current_table=True)
+    insts = {r["instrument"] for r in rows if r["registry_key"] == tic.COUNTRY_KEY}
+    check(tic.TABLE5_RESIDUAL in insts and "All Other" not in insts,
+          "Table 5's residual is stored under its own roster name")
+    priv = [r for r in rows if r["registry_key"] == tic.PRIVATE_KEY]
+    check(priv and priv[0]["value"] == 500 * 1e9,
+          "private = Grand Total minus Foreign Official, in dollars")
+    fl = tic.flow_rows(tic_flows(), LM_CANON, "observed")
+    by = {(r["registry_key"], r["observed_at"]): r["value"] for r in fl}
+    check(len(tic.FLOW_LINES) == 32 and by[("tic.flow_total_official", "2025-12-31")]
+          == 320 * 1e6,
+          "all 32 flow lines, line 32 read from column 32, millions to dollars")
+    try:
+        tic.flow_rows(tic_flows().replace("\t32\n", "\t33\n", 1), LM_CANON, "observed")
+        bad("a flows file without its 1..32 column-number row raised")
+    except ValueError:
+        ok("a flows file without its 1..32 column-number row raises")
+
+    lm1 = {"last-modified": "Mon, 18 May 2026 20:00:27 GMT"}
+    lm2 = {"last-modified": "Wed, 16 Sep 2026 20:01:58 GMT"}
+    db = temp_store()
+    orig = tic.http_get_response
+    try:
+        def serve(hist, headers):
+            def fake(url, *a, **k):
+                if url == tic.URL_HISTORY:
+                    return hist.encode(), headers
+                if url == tic.URL_CURRENT:
+                    return tic_table5().encode(), headers
+                return tic_flows().encode(), headers
+            return fake
+        tic.http_get_response = serve(tic_history(1180.4), lm1)
+        tic.pull(db=db)
+        tic.http_get_response = serve(tic_history(1183.9), lm2)
+        tic.pull(db=db)
+        n = db.conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE registry_key=? AND "
+            "instrument='Japan' AND observed_at='2025-08-31'",
+            (tic.COUNTRY_KEY,)).fetchone()[0]
+        check(n == 2, "G-8: a benchmark restatement is a SECOND vintage of the "
+                      "same month, never an overwrite")
+        latest = {r["observed_at"]: r["value_num"] for r in
+                  db.as_of(tic.COUNTRY_KEY, instrument="Japan")}
+        check(latest["2025-08-31"] == 1183.9 * 1e9,
+              "by default the reader gets the LATEST (benchmark-revised) vintage")
+        early = {r["observed_at"]: r["value_num"] for r in
+                 db.as_of(tic.COUNTRY_KEY, as_of="2026-06-01T00:00:00Z",
+                          instrument="Japan")}
+        check(early["2025-08-31"] == 1180.4 * 1e9,
+              "an as-of cutoff before the revision still gets the earlier one")
+        m = db.conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE registry_key=? AND "
+            "instrument='Japan' AND observed_at='2025-12-31'",
+            (tic.COUNTRY_KEY,)).fetchone()[0]
+        check(m == 1, "a month both files state identically is ONE row, not "
+                      "a vintage per file")
+    finally:
+        tic.http_get_response = orig
+        db.close()
+
+
+def group_l() -> None:
+    from altdata.sources import safe
+    print(f"{LINE}\nL. SAFE -- THE FORMAT TRAPS\n{LINE}")
+    table = [["项目\xa0\xa0Item", "2026.01", None, "2026.02", None],
+             [None, "亿美元", "亿SDR", "亿美元", "亿SDR"],
+             ["1.\xa0\xa0外汇储备", "33990.78\xa0", "24597.67\xa0", "34278.07\xa0", "1"],
+             ["4.\xa0\xa0黄金", "3695.82\xa0", "2674.51\xa0", "3875.88\xa0", "1"],
+             [None, "7419万盎司", "7419万盎司", "7422万盎司", "7422万盎司"],
+             ["\xa0\xa0\xa0\xa0合计", "38362.81\xa0", "1", "38826.93\xa0", "1"]]
+    rows = safe.reserve_rows(table, LM_CANON, "observed")
+    by = {(r["registry_key"], r["observed_at"]): r["value"] for r in rows}
+    check(by.get(("safe.fx_reserves", "2026-01-31")) == 3399078000000.0,
+          "text values with a trailing NBSP parse; 100 million USD to dollars; "
+          "the SDR columns are not read")
+    check(by.get(("safe.gold_reserves_oz", "2026-02-28")) == 74220000.0,
+          "gold volume 万盎司 is stored in ounces")
+    cases = {40633.0: "2011-03-31", "31-12-2011": "2011-12-31",
+             "12-31-2013": "2013-12-31", "31/03/2026": "2026-03-31",
+             "2026Q1": "2026-03-31", "1998Q4": "1998-12-31"}
+    got = {k: safe._quarter_end(k) for k in cases}
+    check(got == cases, f"the IIP header's four date spellings all parse {got}")
+
+
+def group_m() -> None:
+    from altdata import config
+    from altdata.sources import cfets, cftc, mof
+    print(f"{LINE}\nM. RATES, THE FIX AND POSITIONING -- AVAILABILITY RULES\n{LINE}")
+    text = ("Interest Rate,,,,\nDate,1Y,2Y,5Y,10Y,30Y\n1986/7/5,5.1,5.2,5.3,5.4,-\n")
+    rows = mof.rows_from_csv(text, LM_CANON, "observed")
+    keys = {r["registry_key"] for r in rows}
+    check("mof.jgb_30y" not in keys and "mof.jgb_10y" in keys
+          and rows[0]["observed_at"] == "1986-07-05",
+          "MoF: YYYY/M/D parses; a '-' tenor (not yet issued) is skipped, not zero")
+    check(cfets.fix_available_at("2026-09-24") == "2026-09-24T01:15:00.000000+00:00",
+          "CFETS fix: available at 09:15 Beijing (01:15 UTC)")
+    curve = {"records": [{"newDateValueCN": "2026-09-24", "yearTermStr": "7.0",
+                          "maturityYieldStr": "1.50"},
+                         {"newDateValueCN": "2026-09-24", "yearTermStr": "10.0",
+                          "maturityYieldStr": "1.6737"}]}
+    g = cfets.cgb_rows(curve, LM_CANON)
+    check(len(g) == 1 and g[0]["value"] == 1.6737,
+          "CFETS curve: the 10.0-year point is the one stored")
+    check(cftc.available_at("2026-09-22") == "2026-09-25T19:30:00.000000+00:00",
+          "CFTC: Tuesday positions available Friday 15:30 ET")
+    r = cftc.rows_from_records([{"cftc_contract_market_code": "097741",
+                                 "report_date_as_yyyy_mm_dd": "2026-09-22T00:00:00.000",
+                                 "noncomm_positions_long_all": "192274",
+                                 "noncomm_positions_short_all": "120292",
+                                 "open_interest_all": "378701"}])
+    net = [x for x in r if x["registry_key"] == "cftc.noncomm_net"][0]
+    check(net["value"] == 71982 and net["instrument"] == "JPY",
+          "CFTC: net = long - short, instrument JPY")
+    check(config.ENABLED_SOURCES.get("cftc") is True, "the cftc switch is ON")
+    db = temp_store()
+    try:
+        config.ENABLED_SOURCES["cftc"] = False
+        s = cftc.pull(db=db)
+        check(s["status"] == pub.STALE and "switch" in (s.get("reason") or ""),
+              "and when it is off the writer is STALE with that reason, not silent")
+    finally:
+        config.ENABLED_SOURCES["cftc"] = True
+        db.close()
+
+
+NOT_SOURCED_ST2 = ["hktma.cnh_hibor_on", "hktma.cnh_hibor_1w",
+                   "hktma.cnh_hibor_1m", "hktma.cnh_hibor_3m"]
+
+
+def group_n() -> None:
+    print(f"{LINE}\nN. EVERY WRITER: REGISTERED, AND STALE-NOT-EMPTY OFFLINE\n{LINE}")
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(
+        encoding="utf-8"))["metrics"]
+    src = yaml.safe_load((REPO / "source_registry.yaml").read_text(
+        encoding="utf-8"))["sources"]
+    mods = _writer_modules()
+    all_keys = set()
+    for name, mod in mods:
+        keys = list(getattr(mod, "KEYS", []))
+        all_keys |= set(keys)
+        missing = [k for k in keys if not all((reg.get(k) or {}).get(f) for f in (
+            "units", "information_half_life", "revision_policy", "mechanism_group"))]
+        s = src.get(getattr(mod, "SOURCE", ""), {})
+        check(keys and not missing and s.get("implemented_by")
+              and (REPO / s["implemented_by"]).is_file(),
+              f"{name}: {len(keys)} keys registered with the four fields; source "
+              f"{getattr(mod, 'SOURCE', '?')} registered {missing}")
+
+    def boom(*a, **k):
+        raise FetchError("simulated outage")
+    saved = {}
+    for name, mod in mods:
+        for attr in ("http_get_response", "http_get_json", "http_get_text"):
+            if hasattr(mod, attr):
+                saved[(mod, attr)] = getattr(mod, attr)
+                setattr(mod, attr, boom)
+    saved_find = pub.find_link
+    pub.find_link = boom
+    db = temp_store()
+    try:
+        for name, mod in mods:
+            before = count(db)
+            r = mod.pull(db=db)
+            check(r["status"] == pub.STALE and r["written"] == 0
+                  and count(db) == before,
+                  f"{name}: an outage is STALE and writes nothing")
+    finally:
+        for (mod, attr), fn in saved.items():
+            setattr(mod, attr, fn)
+        pub.find_link = saved_find
+        db.close()
+    ns = [k for k in NOT_SOURCED_ST2 + list(globals().get("NOT_SOURCED_ST2_STEP2", []))]
+    check(all((reg.get(k) or {}).get("status_extra") == "not_yet_sourced" for k in ns)
+          and not (set(ns) & all_keys),
+          f"{len(ns)} not_yet_sourced keys are registered and no writer claims them")
+
+
 def main() -> int:
-    print(f"{LINE}\nThe published-file writers (ST-1) -- offline\n{LINE}")
+    print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_i, group_j):
+              group_h, group_i, group_j, group_k, group_l, group_m, group_n):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

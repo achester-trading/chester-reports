@@ -89,7 +89,9 @@ FEEDS = ("prices", "fred", "official", "loggers")
 # and FRED -- 16:10 in chester-eod and the 06:45 correction pass -- rather than a
 # unit of its own, because "which feeds run, in what order" lives in one place.
 # Each is a module under altdata/sources/ exposing KEYS and pull(run_id).
-OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata")
+OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
+                    # ST-2: the external position and the funding-currency stack
+                    "tic", "safe", "mof", "cfets", "cftc")
 
 
 def _official_modules() -> list:

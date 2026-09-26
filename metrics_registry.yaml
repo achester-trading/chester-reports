@@ -423,6 +423,19 @@ vocabularies:
     # person, and a hand-entered figure must never count as independent
     # confirmation of the automated series it may have been read beside.
     - manual_entry
+    # EXTERNAL POSITION (signal-triage order ST-2). Who holds and who buys a
+    # country's assets across the border: TIC holdings and flows, SAFE's
+    # reserves, BOP and IIP, central-bank gold. One cluster, deliberately --
+    # a TIC China row and SAFE's reserves describe one external position from
+    # two sides, and must never be counted as two witnesses to it.
+    - external_position
+    # FOREIGN SOVEREIGN RATES (ST-2). JGB and CGB yields and offshore
+    # funding rates: the other leg of a carry or a spread, separate from the
+    # US curve's own group so a spread's two legs are not one reading.
+    - foreign_rates
+    # FUTURES POSITIONING (ST-2). CFTC Commitments of Traders: what
+    # speculators HOLD in a contract, a stock of positions and not a price.
+    - futures_positioning
 
 defaults:
   trigger_eligible: false
@@ -3240,6 +3253,879 @@ metrics:
     description: >-
       Median order-book cover on US IG corporate deals over the stated window, times -- SR-16. The note names the window and the source.
 
+  # -------------------------------------------------------------------------
+  # TIC (signal-triage order ST-2; altdata/sources/tic.py). DOLLARS; observed_at
+  # = month-end. Revisions (the annual benchmark) are new vintages at the
+  # file's later Last-Modified; the as-of join returns the latest (G-8).
+  # -------------------------------------------------------------------------
+  tic.holdings_by_country:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign holdings of US Treasuries by country (Major Foreign Holders), instrument = the country as TIC names it; Table 5's shorter-roster residual is 'All Other (Table 5 roster)'. Custodial attribution: holdings in Belgian or UK custody are not necessarily Belgian or British (SR-27, G-9).
+  tic.holdings_total:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Grand Total of the Major Foreign Holders table.
+  tic.official_holdings:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Of which: foreign official holdings.
+  tic.official_bills:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign official holdings of Treasury bills.
+  tic.official_bonds_notes:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign official holdings of Treasury bonds and notes.
+  tic.private_holdings:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Grand Total minus foreign official, one month of one table -- the private split the table implies but does not print.
+
+  # -------------------------------------------------------------------------
+  # TIC FLOWS -- npr_history.txt lines 1-32 (the 2023 layout; the order's 1-22 are
+  # a subset). DOLLARS, not seasonally adjusted, observed_at = month-end.
+  # -------------------------------------------------------------------------
+  tic.flow_gross_us_sales_domestic:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 1: gross US sales of domestic securities to foreigners.
+  tic.flow_gross_us_purchases_domestic:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 2: gross US purchases of domestic securities from foreigners.
+  tic.flow_net_domestic:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 3: net foreign purchases of US long-term securities.
+  tic.flow_private_net_domestic:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 4: private net, all domestic.
+  tic.flow_private_treasuries:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 5: private net, Treasury bonds and notes.
+  tic.flow_private_agency:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 6: private net, agency bonds.
+  tic.flow_private_corporate:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 7: private net, corporate bonds.
+  tic.flow_private_equity:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 8: private net, equities.
+  tic.flow_official_net_domestic:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 9: official net, all domestic.
+  tic.flow_official_treasuries:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 10: official net, Treasury bonds and notes.
+  tic.flow_official_agency:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 11: official net, agency bonds.
+  tic.flow_official_corporate:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 12: official net, corporate bonds.
+  tic.flow_official_equity:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 13: official net, equities.
+  tic.flow_gross_us_sales_foreign:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 14: gross US sales of foreign securities.
+  tic.flow_gross_us_purchases_foreign:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 15: gross US purchases of foreign securities.
+  tic.flow_net_foreign:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 16: net US sales of foreign securities (negative = US residents buying).
+  tic.flow_net_foreign_bonds:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 17: net, foreign bonds.
+  tic.flow_net_foreign_equity:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 18: net, foreign equities.
+  tic.flow_net_lt_securities:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 19: net long-term securities transactions.
+  tic.flow_other_acquisitions:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 20: other acquisitions of long-term securities, net.
+  tic.flow_net_lt_acquisitions:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 21: net foreign acquisition of long-term securities.
+  tic.flow_bills_other_custody:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 22: change in Treasury bills and other custody items.
+  tic.flow_bills_total:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 23: change in foreign holdings of Treasury bills.
+  tic.flow_bills_private:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 24: Treasury bills, private.
+  tic.flow_bills_official:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 25: Treasury bills, official.
+  tic.flow_other_negotiable_total:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 26: other negotiable securities and custody items, total.
+  tic.flow_other_negotiable_private:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 27: other negotiable, private.
+  tic.flow_other_negotiable_official:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 28: other negotiable, official.
+  tic.flow_banks_own_dollar_liabilities:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 29: change in banks' own net dollar-denominated liabilities.
+  tic.flow_total:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 30: total TIC monthly net foreign inflows.
+  tic.flow_total_private:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 31: total TIC flows, private.
+  tic.flow_total_official:
+    source: treasury_tic
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIC monthly flows table, line 32: total TIC flows, official.
+
+  # -------------------------------------------------------------------------
+  # SAFE (ST-2; altdata/sources/safe.py). DOLLARS (100 million x 1e8).
+  # -------------------------------------------------------------------------
+  safe.fx_reserves:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China foreign-currency reserves, month-end.
+  safe.gold_reserves_usd:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China official gold reserves, valued in dollars, month-end.
+  safe.official_reserves_total:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China official reserve assets, total, month-end.
+  safe.gold_reserves_oz:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      China official gold holdings in TROY OUNCES (the release's 万盎司 x 1e4).
+  safe.bop_current_account:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China BOP current account, net, quarter.
+  safe.bop_capital_financial:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China BOP capital and financial account, net, quarter.
+  safe.bop_financial_ex_reserves:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China BOP financial account excluding reserve assets, net, quarter.
+  safe.bop_reserve_assets:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China BOP reserve assets, quarter (negative = reserves rising).
+  safe.bop_errors_omissions:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China BOP net errors and omissions, quarter.
+  safe.iip_net:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China net international investment position, quarter-end.
+  safe.iip_assets:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China IIP external assets, quarter-end.
+  safe.iip_liabilities:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China IIP external liabilities, quarter-end.
+  safe.iip_reserve_assets:
+    source: safe_china
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      China IIP reserve assets, quarter-end.
+
+  # -------------------------------------------------------------------------
+  # JAPAN / CHINA / HONG KONG rates and the fix (ST-2).
+  # -------------------------------------------------------------------------
+  mof.jgb_2y:
+    source: mof_japan
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      JGB 2y constant-maturity yield, Ministry of Finance, percent.
+  mof.jgb_5y:
+    source: mof_japan
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      JGB 5y constant-maturity yield, Ministry of Finance, percent.
+  mof.jgb_10y:
+    source: mof_japan
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      JGB 10y constant-maturity yield, Ministry of Finance, percent.
+  mof.jgb_30y:
+    source: mof_japan
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      JGB 30y constant-maturity yield, Ministry of Finance, percent.
+  cfets.cny_fix:
+    source: cfets
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      USD/CNY central parity, CNY per USD; available_at 09:15 Beijing on the fix date (reconstructed; never revised).
+  cfets.cgb_10y:
+    source: cfets
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      China government bond 10-year closing yield (CFETS curve CYCC000), percent. FORWARD-ONLY from the first run: the endpoint serves the latest curve only.
+  hktma.cnh_hibor_on:
+    source: hktma
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. CNH HIBOR on: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
+  hktma.cnh_hibor_1w:
+    source: hktma
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. CNH HIBOR 1w: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
+  hktma.cnh_hibor_1m:
+    source: hktma
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. CNH HIBOR 1m: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
+  hktma.cnh_hibor_3m:
+    source: hktma
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. CNH HIBOR 3m: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
+
+  # -------------------------------------------------------------------------
+  # CFTC COT (ST-2; altdata/sources/cftc.py). instrument JPY | USD_INDEX; observed_at =
+  # the report Tuesday; available_at = Friday 15:30 ET (reconstructed).
+  # -------------------------------------------------------------------------
+  cftc.noncomm_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Non-commercial long positions, contracts.
+  cftc.noncomm_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Non-commercial short positions, contracts.
+  cftc.noncomm_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Non-commercial long minus short, contracts -- the report's two columns, one record.
+  cftc.open_interest:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Open interest, all, contracts.
+
 bulk_imports:
 
   fred_macro:
@@ -3294,7 +4180,8 @@ bulk_imports:
       The FRED series the signal-triage order adds (ST-1, 26 Sep 2026): real and
       front-end yields, the Kim-Wright term premium, fed funds, the NBER
       recession flag, SOMA Treasuries, nominal GDP, AA and BBB OAS, G.19 consumer
-      credit, the real broad dollar and three Z.1 household rows. Pulled by the
+      credit, the real broad dollar and three Z.1 household rows; ST-2 added the
+      OECD monthly Japan 10-year and 3-month (percent). Pulled by the
       same path as fred_macro (altdata/sources/fred.py over FRED_PULL_SERIES) and
       written under the same `fred.` prefix, but a SEPARATE list and block,
       because FRED_SERIES is what the Monthly and surprise v1 iterate and ST-1
@@ -3305,7 +4192,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 17
+    expected_members: 19
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release

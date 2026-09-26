@@ -166,6 +166,14 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("hh_equities",      "HNOCEAQ027S","Households & nonprofits: corporate equities, level (Z.1)","HH","M","quarterly"),
     SeriesSpec("hh_debt_securities","HNODSAQ027S","Households & nonprofits: debt securities, level (Z.1)","HH","M","quarterly"),
     SeriesSpec("hh_deposits",      "DABSHNO",    "Households & nonprofits: currency, deposits and MMF shares, level (Z.1)","HH","M","quarterly"),
+
+    # Japan, OECD MEI monthly averages via FRED -- ST-2, SR-2 (the yen leg of the
+    # funding-currency stack; the daily JGB curve is altdata/sources/mof.py).
+    # Both PERCENT, read off their FRED pages 26 Sep 2026. China's 10-year was
+    # also named (IRLTLT01CNM156N) but FRED returns 404 for it and carries no
+    # China long rate at all; it comes from CFETS instead (sources/cfets.py).
+    SeriesSpec("jp_10y",           "IRLTLT01JPM156N","Japan 10-year government bond yield, monthly avg (OECD)","7","%","monthly"),
+    SeriesSpec("jp_3m",            "IR3TIB01JPM156N","Japan 3-month interbank rate, monthly avg (OECD)","7","%","monthly"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.
@@ -180,7 +188,8 @@ SERIES_BY_KEY = {s.key: s for s in FRED_PULL_SERIES}
 ENABLED_SOURCES = {
     "fred":      True,
     "eia":       False,
-    "cftc":      False,
+    # ON in ST-2: altdata/sources/cftc.py reads it and reports STALE when off.
+    "cftc":      True,
     "coingecko": False,
 }
 

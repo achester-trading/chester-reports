@@ -1011,6 +1011,113 @@ sources:
         an automated series describing the same fact.
       - Unregistered keys are refused; a fraction outside 0..1 is refused.
 
+  # --- Signal-triage order ST-2, step 1 ----------------------------------------
+  treasury_tic:
+    name: US Treasury -- Treasury International Capital (TIC) system
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, rates]
+    geography: [global]
+    latency: monthly, about six weeks after month-end
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified per file is stored as available_at (observed). Revised in place; each republication is a vintage.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/tic.py
+    status: live
+    caveats:
+      - >-
+        Custodial attribution: a holding is assigned to the custodian's country, not the owner's (G-9, SR-27).
+      - >-
+        mfh.txt on the same host is frozen at January 2023 and is not read; slt_table5.txt is the live table.
+
+  safe_china:
+    name: China State Administration of Foreign Exchange -- reserves, BOP, IIP
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, fx]
+    geography: [global]
+    latency: reserves about the 7th; BOP and IIP about a quarter after
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified per file. The https site timed out from both test machines; the writer uses plain http, and follows each fixed article page to the file's content-hash URL.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/safe.py
+    status: live
+    caveats:
+      - >-
+        Reserves history in the store starts January 2021: earlier articles carry no .xlsx.
+
+  mof_japan:
+    name: Japan Ministry of Finance -- JGB interest rates
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [global]
+    latency: daily, evening JST
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified per file (observed).
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/mof.py
+    status: live
+
+  cfets:
+    name: China Foreign Exchange Trade System (chinamoney.com.cn) -- central parity and CGB curve
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [fx, rates]
+    geography: [global]
+    latency: the fix at 09:15 Beijing; the curve after the close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The fix is stamped 09:15 Beijing by rule (reconstructed). The curve endpoint ignores dates and serves the latest only, stamped at the write instant.
+    license: public, no key; refuses non-browser agents and page sizes above 20
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/cfets.py
+    status: live
+    caveats:
+      - >-
+        China 10-year has no FRED series (IRLTLT01CNM156N returns 404), so this is its only source; history is forward-only.
+
+  hktma:
+    name: Treasury Markets Association (Hong Kong) -- CNH HIBOR fixings
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [global]
+    latency: 11:15 HKT fixing; the public site shows it a day late
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Not ingested. No data API; the public pages show T-1 fixings for non-commercial viewing only.
+    license: commercial use licensed since June 2024
+    allowed_reports: [monthly_macro, daily_cascade]
+    status: not_yet_sourced
+    caveats:
+      - >-
+        hktma.cnh_hibor_* are registered not_yet_sourced.
+
+  cftc:
+    name: Commodity Futures Trading Commission -- Commitments of Traders (legacy, futures only)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [positioning]
+    geography: [global]
+    latency: Friday 15:30 ET for Tuesday's positions
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is Friday 15:30 ET by rule (reconstructed); a holiday-delayed release makes it early by a day.
+    license: public, no key (Socrata)
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/cftc.py
+    status: live
+    caveats:
+      - >-
+        Behind config.ENABLED_SOURCES['cftc'], turned on in ST-2.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:
