@@ -302,6 +302,14 @@ vocabularies:
     # the thing it proxies for count as two witnesses to one fact, which is
     # exactly the double-count 26.9 forbids.
     - vx_term_structure
+    # NARRATIVE. What is being SAID, which is not a reading of the market and can
+    # never confirm one. Its own group for the strictest version of 26.9's rule:
+    # a headline about widening credit spreads and the spread itself are one fact
+    # reported twice, and letting them share a group would let the commentary
+    # about a move count as a second witness to the move. Nothing here is
+    # trigger_eligible, and a story count is a measure of attention rather than of
+    # the thing attention is on.
+    - narrative
     # BASE RATES. Its own group, and the reason is the sharpest case of 26.9 in
     # the registry: a base rate is a DENOMINATOR. "The index falls 10% about once a
     # year" cannot confirm anything about today -- it is the yardstick today is
@@ -2223,6 +2231,126 @@ metrics:
       named `ahe_yoy` and is NOT a year-over-year series: CES0500000003 is a level
       in dollars per hour. The year-over-year is computed here, and the key's name
       is left alone because prior snapshots and the store reference it.
+  # -------------------------------------------------------------------------
+  # THE EVENTS TABLE (6c-1). Six types, one per kind of thing that happens.
+  #
+  # These are RECORDS, not figures: a row is a headline, a filing, a scheduled
+  # release. The numbers events produce -- a surprise, a count per story query --
+  # are ordinary observations written by the modules that compute them, and are
+  # registered separately. Registering the types here is what makes a report able
+  # to filter on `type` and know the set is closed.
+  #
+  # observation_type OBSERVED for all six: a source reported that this happened.
+  # The one that looks arguable is `scheduled` -- a calendar entry is a statement
+  # about the future -- but the OBSERVATION is that the source published that date,
+  # which is a fact about the source and not a forecast of ours.
+  #
+  # revision_policy NEVER. An event is a snapshot. When a scheduled release comes
+  # true the actual is a NEW row of type `release`, not a revision of the calendar
+  # entry: "the print is due Thursday" and "the print was 3.2%" are two facts and
+  # collapsing them would lose the calendar the moment it was fulfilled.
+  # -------------------------------------------------------------------------
+  events.release:
+    source: fred
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      A macro data release that has landed: the source, the series it belongs to
+      as an entity, and the actual where the feed carries one. The figure itself
+      goes to the observation store under its own key; this row is the record that
+      the release happened when it did.
+  events.earnings:
+    source: yfinance
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      An earnings report for a universe symbol, with the EPS estimate, the
+      reported figure and the surprise where yfinance carries them. This is real
+      consensus -- an analyst mean, not a naive expectation -- which is why the
+      earnings surprise and the macro one are different metrics with different
+      names.
+  events.filing:
+    source: sec_edgar
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      An SEC filing for a universe symbol -- 8-K, 13F and whatever else the feed
+      carries -- with its accession number as the dedupe key. An 8-K is the one
+      filing that arrives because something happened rather than because a quarter
+      ended, which is why it is worth a row in a table a daily report reads.
+  events.headline:
+    source: news_rss
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      A news item matching one of the DECLARED story queries in
+      config/story_queries.yaml. Capped per query per day, stored with its source
+      and url so a claim can be chased to its origin.
+      HALF-LIFE SESSION, unlike every other type here: a headline is a record of
+      what was being said, and what was being said yesterday is context rather
+      than news. The row never decays -- revision_policy is never -- but its
+      usefulness to a decision does, and the half-life is the field that says so.
+  events.session_event:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      A session's own event classes -- OPEX, TRIPLE_WITCHING, MONTH_END,
+      QUARTER_END and the rebalances -- from altdata/session.py, which is the one
+      place the calendar rules live. CALCULATED rather than observed: nobody
+      publishes these, they follow from the date.
+  events.scheduled:
+    source: fred
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      A FORWARD-DATED item: a release date, an earnings date, an FOMC meeting. Its
+      observed_at is the instant it is scheduled for, which is why the forward
+      calendar is this table read ahead of the cutoff rather than a second table.
+      HALF-LIFE until_next_release at a daily cadence: a calendar pulled today is
+      current until tomorrow's pull, because dates move.
   baserate.review_flag:
     source: derived_base_rate
     mechanism_group: base_rate
@@ -2710,6 +2838,40 @@ bulk_imports:
     revision_policy: recomputed
     trigger_eligible: false
     mechanism_group: base_rate
+  event_columns:
+    description: >-
+      The events table's column set, which IS the format. Registered as a block
+      against altdata.events.EVENT_COLUMNS so a new column cannot appear
+      unregistered -- the same arrangement the pin log has, and for the same
+      reason: a table several reports read is a format, and a format that grows
+      silently is one nobody can rely on.
+    source: derived_state
+    members_from: altdata.events.EVENT_COLUMNS
+    expected_members: 12
+    trigger_eligible: false
+    mechanism_group: narrative
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+  event_types:
+    description: >-
+      The closed vocabulary of event types, against altdata.events.EVENT_TYPES.
+      A write outside the set raises rather than inserting, because a report that
+      filters on `type` would otherwise miss those rows without saying so.
+    source: derived_state
+    members_from: altdata.events.EVENT_TYPES
+    expected_members: 6
+    trigger_eligible: false
+    mechanism_group: narrative
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
   pin_log_columns:
     description: >-
       The pin log's column set, which IS the file format and is append-only.

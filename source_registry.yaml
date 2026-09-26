@@ -406,6 +406,85 @@ sources:
         as-of-correct backfill cannot reach behind that date. ALFRED ingestion
         (O.16) is what would fix it.
 
+  sec_edgar:
+    name: SEC EDGAR -- company filing feeds
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [equity_fundamentals]
+    geography: [US]
+    latency: >-
+      Filings appear in the full-text and company feeds within minutes of
+      acceptance. The feed states an acceptance timestamp, which is the moment the
+      filing became public.
+    timestamp_reliability: high
+    timestamp_notes: >-
+      EDGAR states both a filing date and an acceptance datetime, and they differ:
+      a filing accepted after 17:30 ET carries the NEXT business day as its filing
+      date. The acceptance datetime is the one that says when the world could know,
+      so it is what goes into observed_at -- and available_at is still our own
+      ingest instant, because we learn of it when we poll.
+    license: >-
+      Public domain. EDGAR asks for a descriptive User-Agent with a contact
+      address and rate-limits to 10 requests/second; both are honoured in
+      altdata/sources/edgar.py.
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/edgar.py
+    status: active
+    caveats:
+      - >-
+        AN 8-K IS THE ONLY ONE THAT ARRIVES BECAUSE SOMETHING HAPPENED. The rest
+        of the feed is calendar-driven -- 10-Q, 10-K, the 13F deadline -- so a
+        count of filings is a measure of the reporting calendar and not of
+        corporate news. The event rows carry the form type so a reader can tell
+        which they are looking at.
+      - >-
+        A 13F IS 45 DAYS STALE BY CONSTRUCTION. It reports a quarter-end position
+        as of a date up to a quarter and a half before the filing, so its
+        observed_at is the ACCEPTANCE instant and the as-of date it describes is in
+        the payload. Treating the filing date as the position date is the single
+        most common error made with this data.
+
+  news_rss:
+    name: Free news search feeds -- declared story queries only
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [narrative]
+    geography: [global]
+    latency: >-
+      Minutes to hours behind publication, and the lag is neither stated nor
+      stable. Polled on the ingest passes rather than continuously.
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each item carries a publication timestamp from the aggregator, which is the
+      PUBLISHER's claim rather than a measured instant and is occasionally wrong by
+      hours. It is stored in observed_at because it is the best statement of when
+      the item existed, and available_at remains our ingest instant, so no query
+      can read a story before the pass that fetched it.
+    license: >-
+      Headlines, links and short excerpts only. Full article text is not stored
+      and not redistributed; BODY_CHARS caps the excerpt at 600 characters.
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/news.py
+    status: active
+    caveats:
+      - >-
+        AN AGGREGATOR IS A MIRROR, NOT A SOURCE. The epistemic role is
+        unofficial_mirror on purpose: the item is a third party's summary of
+        somebody else's reporting, the url is where to go for the actual claim,
+        and nothing here should be quoted as though this system had read the
+        underlying document.
+      - >-
+        A COUNT IS ATTENTION, NOT TRUTH, AND NOT EVEN VOLUME. The result set is
+        whatever the aggregator chose to return for a query, capped per query per
+        day by our own limit, so "headline count rose" means "more of what this
+        query returns was returned" -- it is a measure with a denominator nobody
+        publishes. It is worth logging and it is not worth acting on, which is why
+        mechanism_group is `narrative` and nothing in it is trigger_eligible.
+      - >-
+        THE QUERIES ARE DECLARED IN CONFIG, never composed at render time. A query
+        chosen to match the day is a search for confirmation, and the record of
+        what was searched for has to be older than the answer.
+
   cboe:
     name: Cboe public per-contract futures settlement files
     tier: A1
