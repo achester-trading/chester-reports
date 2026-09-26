@@ -9,6 +9,12 @@ matplotlib>=3.8,<4.0      # `make figures` -- the Currencies charts (SVG only)
 
 # Phase 2: market data (no API key required)
 yfinance>=0.2.40,<1.0
+# yfinance's HISTORICAL earnings route (Ticker.get_earnings_dates) scrapes, and
+# raises ImportError: Missing optional dependency 'lxml' without this. The forward
+# route (Ticker.calendar -- next date plus the analyst consensus) needs nothing
+# extra, so a box without lxml loses the reported history and keeps the calendar.
+# 6c-1 piece 2 declares it rather than working around it.
+lxml>=5.0,<7.0
 
 # Phase 5: Claude narrative step
 anthropic>=0.40.0,<1.0

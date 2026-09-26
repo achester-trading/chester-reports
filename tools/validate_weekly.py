@@ -264,7 +264,14 @@ def group_e() -> None:
           "with the state on the verdict line")
     # It must not be able to change the verdict.
     seg = hb[hb.find("WEEKLY_STATE=not_enabled"):]
-    seg = seg[:seg.find("# ---- the claims registry")]
+    # UP TO WHICHEVER BLOCK COMES NEXT. This used to cut at the claims registry
+    # marker, which stopped being the next block when the events ingest landed
+    # between them -- and the assertion then read the events block's own exit
+    # handling as the weekly's. A slice that names one successor is a slice that
+    # breaks the next time something is inserted.
+    ends = [i for i in (seg.find("# ---- the events ingest"),
+                        seg.find("# ---- the claims registry")) if i > 0]
+    seg = seg[:min(ends)] if ends else seg
     check("RC=" not in seg and "STATE=feed" not in seg,
           "and it changes no exit code: a weekly that has not run is a report to "
           "re-run by hand, not a capture that was lost")

@@ -1,0 +1,75 @@
+# Story queries for the narrative scan. DECLARED HERE, NEVER COMPOSED AT RENDER.
+#
+# -----------------------------------------------------------------------------
+# WHY A CONFIG FILE AND NOT AN ARGUMENT
+# -----------------------------------------------------------------------------
+# A query chosen to match the day is a search for confirmation. If the report
+# could pick its own searches it would ask about whatever had already moved, find
+# coverage of it, and present the coverage as corroboration -- which is the same
+# fact twice, dressed as two.
+#
+# So the record of WHAT WAS SEARCHED FOR has to be older than the answer. These
+# four are the ones Audit #3 section I names; adding one is an edit to this file,
+# in a commit, dated, ahead of the pass that runs it.
+#
+# -----------------------------------------------------------------------------
+# WHAT A COUNT FROM THESE MEANS, AND WHAT IT DOES NOT
+# -----------------------------------------------------------------------------
+# The result set is whatever a free aggregator chose to return, capped by our own
+# `cap_per_day`. So "AI capex coverage rose" means "more of what this query
+# returns was returned" -- a measure with a denominator nobody publishes. It is
+# worth logging as attention and it is not evidence about the thing attention is
+# on. `mechanism_group: narrative` in the registry is what keeps it from ever
+# counting as confirmation of a price move, and nothing here is trigger_eligible.
+#
+# The `watch_for` field is the point of each query: what would make it matter.
+# It is prose for a human reading the block, not a rule -- a rule would need a
+# threshold, and none of these has an honest one yet.
+
+version: story-queries-v1
+updated: 2026-09-25
+
+# Per query per day. The block prints counts and links the top few; a hundred
+# stories a day about one theme is not a hundred facts, and storing them would
+# make the table a news archive rather than a record of attention.
+cap_per_day: 12
+
+queries:
+
+  ai_capex_durability:
+    query: "AI capex durability hyperscaler capital expenditure"
+    theme: AI capex
+    watch_for: >-
+      A hyperscaler GUIDING capex DOWN, or depreciation schedules lengthening. The
+      thesis that matters is not whether the spend continues but whether it is
+      being funded from cash flow or from debt, and a change in the funding mix is
+      what shows up in coverage before it shows up in a filing.
+    entities: [NVDA, MSFT, GOOGL, AMZN, META]
+
+  fiscal_dominance:
+    query: "fiscal dominance Treasury issuance term premium debt service"
+    theme: Fiscal dominance
+    watch_for: >-
+      Auction tails, a shift in the bill-to-coupon mix, or debt-service crossing a
+      politically legible threshold. This is the story that ends in the long end
+      repricing, and `calc.r_minus_g` is the arithmetic underneath it.
+    entities: [fred.yield_30y, fred.yield_10y, calc.r_minus_g, calc.net_liquidity]
+
+  yen_carry:
+    query: "yen carry trade unwind Bank of Japan policy rate"
+    theme: Yen carry
+    watch_for: >-
+      BoJ policy normalisation, or USDJPY moving fast in either direction. August
+      2024 is the reference: a funding-currency move that reprices every crowded
+      trade at once, with equity volatility as the transmission rather than the
+      cause.
+    entities: [fred.usdjpy, yfinance.mkt_vix]
+
+  midterm_cycle:
+    query: "midterm election market cycle policy uncertainty"
+    theme: Midterm cycle
+    watch_for: >-
+      Policy proposals with a market-mechanical consequence -- tariffs, tax, the
+      debt ceiling calendar. The midterm date itself is a claim, not a headline:
+      see `cal.midterm_election_2026` in the claims registry.
+    entities: []

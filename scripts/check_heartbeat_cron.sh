@@ -686,6 +686,38 @@ while IFS=: read -r unit hb_file max_h label; do
     esac
 done <<< "$ANCHOR_TABLE"
 
+# ---- the events ingest: declared sources, one allowance ---------------------
+#
+# WARNING ONLY, and the reason is the same one the weekly and monthly anchors get:
+# a stopped ingest costs the next anchor its EVENTS block, which renders with a
+# reason instead. That is a degraded report, not a lost capture -- nothing here is
+# a market at an instant that cannot be re-fetched, because every one of these
+# sources can be pulled again.
+#
+# TWO OF THE SIX SOURCES ARE DORMANT BY CONFIGURATION (EDGAR wants a contact
+# address, the FRED calendar wants the key) and `events check` names them as
+# dormant rather than stale. An alarm that fires on a variable nobody has set is an
+# alarm that trains its reader to ignore it.
+EVENTS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
+    EVENTS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    EVENTS_STATE=no_python
+else
+    EVENTS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.events check 2>/dev/null)"
+    EV_EXIT=$?
+    case $EV_EXIT in
+        0) EVENTS_STATE=fresh ;;
+        1) EVENTS_STATE=stale ;;
+        2) EVENTS_STATE=empty ;;
+        *) EVENTS_STATE=error ;;
+    esac
+    [[ -n "$EVENTS_LINE" ]] && log "  $EVENTS_LINE"
+    if [[ "$EVENTS_STATE" != "fresh" ]]; then
+        log "  WARNING events: the ingest is $EVENTS_STATE -- tomorrow's anchor will print its EVENTS block with a reason instead of content. Re-run: python -m altdata.events_ingest pull. The verdict and exit code are untouched"
+    fi
+fi
+
 # ---- the claims registry's review dates ------------------------------------
 #
 # A WARNING AND NEVER A VERDICT. This is the one check here that deliberately
@@ -715,15 +747,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

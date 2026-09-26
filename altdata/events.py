@@ -346,16 +346,80 @@ class EventStore:
                 for r in cur.fetchall()}
 
 
+# THE INGEST'S OWN FRESHNESS, declared per source.
+#
+# ONE ALLOWANCE AND NOT SIX, because the question a monitor can act on is "did the
+# ingest pass run", and every network source is pulled by the same two passes. A
+# per-feed allowance would report six symptoms of one cause -- which is the ranking
+# argument the heartbeat already makes about feeds against pipelines.
+#
+# 36 HOURS: the passes run at 06:45 and 16:10 on trading days, so a Friday evening
+# pull is 60 hours old by Monday morning. The allowance covers a weekend by looking
+# at the LAST INGEST rather than at the newest event, which is the distinction that
+# matters -- a quiet news day is not a stopped pass.
+INGEST_ALLOWANCE_HOURS = 36
+
+# Sources that are declared and deliberately not running. Their silence is
+# configuration, not failure, and a monitor that called it failure would be red
+# until somebody set a variable nobody had asked for.
+DORMANT_REASONS = {
+    "sec_edgar": "CHESTER_SEC_CONTACT unset",
+    "fred_releases": "FRED_API_KEY unset",
+}
+
+
+def check(as_of: Optional[str] = None) -> tuple[int, str]:
+    """(exit code, one line). 0 fresh, 1 stale, 2 empty."""
+    with EventStore() as ev:
+        srcs = ev.sources()
+        counts = ev.counts()
+    if not srcs:
+        return 2, ("events: EMPTY -- no source has ever written. Run "
+                   "`python -m altdata.events_ingest pull`")
+    now = dt.datetime.now(dt.timezone.utc)
+    ages = {}
+    for name, c in srcs.items():
+        try:
+            last = dt.datetime.fromisoformat(
+                str(c["last_ingest"]).replace("Z", "+00:00"))
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=dt.timezone.utc)
+            ages[name] = (now - last).total_seconds() / 3600.0
+        except (TypeError, ValueError):
+            ages[name] = None
+    newest = min((a for a in ages.values() if a is not None), default=None)
+    stale = newest is None or newest > INGEST_ALLOWANCE_HOURS
+    parts = [f"{n}={a:.0f}h" if a is not None else f"{n}=?"
+             for n, a in sorted(ages.items())]
+    line = (f"events: {'STALE' if stale else 'fresh'} "
+            f"last_ingest={newest:.1f}h" if newest is not None else
+            "events: STALE last_ingest=unknown")
+    line += (f" allowance={INGEST_ALLOWANCE_HOURS}h rows="
+             f"{sum(c['n'] for c in srcs.values())} types={len(counts)} | "
+             + " ".join(parts))
+    dormant = [f"{k} ({v})" for k, v in DORMANT_REASONS.items()
+               if k not in srcs]
+    if dormant:
+        line += " | dormant: " + ", ".join(dormant)
+    return (1 if stale else 0), line
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     p = argparse.ArgumentParser(description="The events table.")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("summary")
+    sub.add_parser("check")
     sh = sub.add_parser("show")
     sh.add_argument("--type", default=None)
     sh.add_argument("--since", default=None)
     sh.add_argument("--limit", type=int, default=20)
     a = p.parse_args(argv)
+
+    if a.cmd == "check":
+        rc, line = check()
+        print(line)
+        return rc
 
     with EventStore() as ev:
         if a.cmd == "summary":
