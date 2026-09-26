@@ -2730,6 +2730,211 @@ metrics:
       unambiguously at small n.
 
 
+  # -------------------------------------------------------------------------
+  # TERM-PREMIUM MODELS (signal-triage order ST-1). One mechanism group for all
+  # of them, Kim-Wright's fred.term_premium_kw included: four models of one
+  # curve are one piece of evidence. `inferred` because each is a model
+  # decomposition that can be wrong in a way arithmetic cannot; `recomputed`
+  # because each re-estimates its history. `freq` sets the staleness cadence:
+  # ACM daily, the SF Fed file republished irregularly (weekly allowance), DKW
+  # monthly -- the observations are daily in all three.
+  # -------------------------------------------------------------------------
+  acm.term_premium_2y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 2-year term premium, percent.
+  acm.term_premium_5y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 5-year term premium, percent.
+  acm.term_premium_10y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 10-year term premium, percent. One of the four term-premium models the rates driver (ST-3) reads; their sign disagreement is surfaced, never averaged.
+  acm.risk_neutral_yield_10y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 10-year risk-neutral yield (the expected short-rate path), percent. Fitted yield = risk-neutral yield + term premium.
+  acm.fitted_yield_10y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 10-year fitted zero-coupon yield, percent. The model's yield, not DGS10.
+  sffed.term_premium_5y:
+    source: frbsf_term_premium
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SF Fed model 5-year term premium (fitted), percent; stored from the file's fraction x100.
+  sffed.term_premium_10y:
+    source: frbsf_term_premium
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SF Fed model 10-year term premium (fitted), percent; stored from the file's fraction x100.
+  sffed.expected_rate_10y:
+    source: frbsf_term_premium
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SF Fed model average expected short rate over 10 years (fitted), percent.
+  sffed.fitted_yield_10y:
+    source: frbsf_term_premium
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SF Fed model 10-year fitted yield, percent.
+  dkw.exp_real_short_rate_5y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW expected real short rate, 5-year average, percentage points.
+  dkw.real_term_premium_5y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW real term premium, 5-year, percentage points.
+  dkw.tips_liquidity_premium_5y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW TIPS liquidity premium, 5-year, percentage points.
+  dkw.exp_real_short_rate_10y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW expected real short rate, 10-year average, percentage points. SR-17 reads it against the real term premium to say whether a real-yield selloff is path or premium.
+  dkw.real_term_premium_10y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW real term premium, 10-year, percentage points.
+  dkw.tips_liquidity_premium_10y:
+    source: frb_dkw
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      DKW TIPS liquidity premium, 10-year, percentage points. A rising one makes DFII10 overstate the real-rate move.
+
 bulk_imports:
 
   fred_macro:

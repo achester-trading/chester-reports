@@ -26,3 +26,10 @@ PyYAML>=6.0
 # near-identical API. Named here before any Gate 1 code exists so nothing is
 # ever written against the dead library.
 ib_async>=1.0,<3.0
+
+# Signal-triage order ST-1: the NY Fed publishes the ACM term premium only as a
+# legacy BIFF .xls, which the standard library cannot read. .xlsx files (SF Fed)
+# go through the stdlib reader in altdata/sources/_publication.py instead, so this
+# is the one new dependency. `make deploy` does not pip install: until the box's
+# venv has it, altdata/sources/acm.py reports STALE with the ImportError as reason.
+xlrd>=2.0,<3.0

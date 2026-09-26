@@ -80,7 +80,35 @@ def staleness_multiple() -> float:
     except Exception:                                         # noqa: BLE001
         return float(STALENESS_MULTIPLE_FALLBACK)
 
-FEEDS = ("prices", "fred", "loggers")
+FEEDS = ("prices", "fred", "official", "loggers")
+
+# THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
+# that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
+# model, the Board's DKW decomposition. One feed, run in the same step as prices
+# and FRED -- 16:10 in chester-eod and the 06:45 correction pass -- rather than a
+# unit of its own, because "which feeds run, in what order" lives in one place.
+# Each is a module under altdata/sources/ exposing KEYS and pull(run_id).
+OFFICIAL_WRITERS = ("acm", "sffed", "dkw")
+
+
+def _official_modules() -> list:
+    from importlib import import_module
+    out = []
+    for name in OFFICIAL_WRITERS:
+        try:
+            out.append((name, import_module(f"{__package__}.sources.{name}")))
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("official writer %s failed to import: %s", name, exc)
+            out.append((name, None))
+    return out
+
+
+def official_keys() -> list[str]:
+    keys: list[str] = []
+    for _name, mod in _official_modules():
+        if mod is not None:
+            keys.extend(getattr(mod, "KEYS", []))
+    return keys
 
 
 def price_keys() -> list[str]:
@@ -166,6 +194,35 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     return summary
 
 
+def pull_official(run_id: Optional[str] = None) -> dict:
+    """Every published-file writer, each isolated from the others.
+
+    A writer that fails returns STALE and writes nothing (see
+    sources/_publication.py); one that raises past that is caught here, so a
+    broken NY Fed workbook never costs the Board's CSV.
+    """
+    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": []}
+    for name, mod in _official_modules():
+        out["ran"].append(name)
+        out["total"] += 1
+        if mod is None:
+            out[name] = {"status": "STALE", "reason": "module failed to import",
+                         "written": 0}
+            out["stale"].append(name)
+            continue
+        try:
+            r = mod.pull(run_id=run_id)
+        except Exception as exc:                              # noqa: BLE001
+            log.exception("%s raised", name)
+            r = {"status": "STALE", "reason": f"{type(exc).__name__}: {exc}",
+                 "written": 0}
+        out[name] = r
+        out["written"] += int(r.get("written") or 0)
+        if r.get("status") != "OK":
+            out["stale"].append(name)
+    return out
+
+
 def pull_loggers(run_id: Optional[str] = None) -> dict:
     """Every 6a logger, each isolated from the others.
 
@@ -200,7 +257,7 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = ()) -> dict:
     out: dict[str, Any] = {"ran": [], "skipped": []}
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
-                     ("loggers", pull_loggers)):
+                     ("official", pull_official), ("loggers", pull_loggers)):
         if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue
@@ -239,7 +296,8 @@ def freshness(as_of: Optional[str] = None,
         last = session.last_completed_session().isoformat()
         multiple = staleness_multiple()
         out: dict[str, Any] = {"session": last, "as_of": as_of, "feeds": {}}
-        rosters = [("prices", price_keys()), ("fred", fred_keys())]
+        rosters = [("prices", price_keys()), ("fred", fred_keys()),
+                   ("official", official_keys())]
         rosters += logger_rosters()
         for name, keys in rosters:
             absent, stale, fresh = [], [], []
@@ -344,6 +402,16 @@ def _main(argv: list[str]) -> int:
                     print(f"  {name:7} SKIPPED -- {d['skipped']}")
                 elif d.get("error"):
                     print(f"  {name:7} ERROR -- {d['error']}")
+                elif name == "official":
+                    for wn in d.get("ran") or []:
+                        sub = d.get(wn) or {}
+                        note = (f"{sub.get('written', 0)} rows"
+                                if sub.get("status") == "OK"
+                                else f"STALE -- {sub.get('reason')}")
+                        print(f"  writer  {wn:24} {note}")
+                    print(f"  {name:7} {d.get('total', 0)} ran, "
+                          f"{d.get('written', 0)} rows written, "
+                          f"{len(d.get('stale') or [])} stale")
                 elif name == "loggers":
                     # THE LOGGER STEP HAS A DIFFERENT SHAPE from a feed's, and
                     # printing it through the feed template reported "0/5 ok" for a

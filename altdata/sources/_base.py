@@ -119,6 +119,45 @@ def http_get_bytes(
     raise FetchError(f"Giving up on {url} after {max_retries} retries: {last_err}")
 
 
+def http_get_response(
+    url: str,
+    params: "Optional[dict]" = None,
+    timeout: float = DEFAULT_TIMEOUT,
+    max_retries: int = MAX_RETRIES,
+    headers: "Optional[dict]" = None,
+) -> "tuple[bytes, dict]":
+    """GET the raw body AND the response headers. Same retry policy.
+
+    For a file whose PUBLICATION INSTANT is only in its headers. The Fed Board and
+    the SF Fed republish a data file in place and the only statement of when this
+    vintage appeared is Last-Modified; http_get_bytes throws it away. Headers are
+    returned as a plain dict with lower-cased names.
+    """
+    last_err: "Optional[Exception]" = None
+    backoff = RETRY_BACKOFF
+    hdrs = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+    hdrs.update(headers or {})
+    for attempt in range(max_retries):
+        try:
+            resp = requests.get(url, params=params, timeout=timeout,
+                                headers=hdrs)
+            if 400 <= resp.status_code < 500:
+                raise FetchError(
+                    f"HTTP {resp.status_code} from {url}: {resp.text[:200]}")
+            resp.raise_for_status()
+            return resp.content, {k.lower(): v for k, v in resp.headers.items()}
+        except FetchError:
+            raise
+        except (requests.ConnectionError, requests.Timeout,
+                requests.HTTPError) as e:
+            last_err = e
+            if attempt < max_retries - 1:
+                time.sleep(backoff)
+                backoff *= 2
+            continue
+    raise FetchError(f"Giving up on {url} after {max_retries} retries: {last_err}")
+
+
 def http_get_text(
     url: str,
     params: Optional[dict] = None,

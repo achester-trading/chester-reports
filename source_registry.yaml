@@ -873,6 +873,74 @@ sources:
         the same fact. See precedence below: the split is by ROLE, not by tier,
         because the tiers are equal.
 
+  # --- Signal-triage order ST-1: the term-premium models ---------------------
+  # Four models decompose one Treasury curve (Kim-Wright arrives through fred).
+  # They share mechanism_group rates_decomposition in the metrics registry so
+  # that four readings of one curve can never count as four witnesses.
+  nyfed_acm:
+    name: Federal Reserve Bank of New York -- ACM Treasury term premium
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: daily, usually one to two sessions behind
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Rows carry their own dates. The file sends NO Last-Modified header, so
+      available_at is the write instant (ingest_instant) -- an upper bound on
+      when the vintage appeared. The model is re-estimated; changed history is
+      written as new vintages inside the writer's window.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/acm.py
+    status: live
+    caveats:
+      - >-
+        Published only as a legacy BIFF .xls (the change order says CSV; none
+        exists). Reading it needs xlrd from requirements.txt; a box whose venv
+        lacks it reports this source STALE with that reason.
+      - A model output ("primary_fact" of the model, not of the market).
+
+  frbsf_term_premium:
+    name: Federal Reserve Bank of San Francisco -- Treasury Yield Premiums model
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: per publication (republished in place)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified is served and stored as available_at (observed). Values are
+      fractions in the file and percent in the store.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/sffed.py
+    status: live
+    caveats:
+      - A model output; re-estimated history is a revision, not an error.
+
+  frb_dkw:
+    name: Federal Reserve Board -- DKW TIPS-based decomposition (Kim, Walsh and Wei update)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates, inflation]
+    geography: [US]
+    latency: monthly
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified is served and stored as available_at (observed). The file's
+      own preamble names the model's last re-estimation date.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/dkw.py
+    status: live
+    caveats:
+      - >-
+        Published as CSV (DKW_updates.csv), not the Excel file the change order
+        names. The file calls itself "not an official Federal Reserve statistical
+        release ... subject to delay, revision, or methodological changes without
+        advance notice".
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:
