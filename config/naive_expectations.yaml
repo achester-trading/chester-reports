@@ -1,0 +1,109 @@
+# The NAIVE expectation each tracked series is measured against.
+#
+# -----------------------------------------------------------------------------
+# THIS IS NOT A CONSENSUS AND MUST NEVER BE CALLED ONE
+# -----------------------------------------------------------------------------
+# A consensus surprise is actual minus what ANALYSTS PUBLISHED before the print.
+# This system has no macro consensus: there is no free source for one, and
+# `calc.surprise_vs_consensus` is therefore not_yet_sourced rather than
+# approximated. What is computable is actual minus a rule written down in advance,
+# and the whole value of it depends on the rule being boring, declared, and older
+# than the print it judges.
+#
+# So every metric produced from this file is named `..._vs_naive`, carries
+# `expectation_kind: naive` in its payload, and the registry description says in
+# its first sentence that it is not a consensus surprise. The earnings surprise
+# from yfinance IS a consensus surprise and has a different name for that reason.
+#
+# -----------------------------------------------------------------------------
+# TWO METHODS, AND WHY EACH SERIES GETS THE ONE IT GETS
+# -----------------------------------------------------------------------------
+#   last      The expectation is the previous observation. Honest for a series
+#             that has no drift of its own -- a rate, a spread, a ratio. "The
+#             unemployment rate will be what it was" is a poor forecast and a fair
+#             yardstick.
+#   trend_3m  The expectation is the last value plus the average change over the
+#             previous three observations. Necessary for a LEVEL that trends by
+#             construction: a price index rises most months, so `last` would score
+#             a surprise on every print and measure inflation rather than
+#             surprise.
+#
+# The rule for choosing: does the series drift? An index does; a rate does not.
+# Where it is arguable the choice is written down here with its reason, which is
+# the point of the file -- not to be clever, but to be fixed before the print.
+
+version: naive-expectations-v1
+updated: 2026-09-25
+
+# How many prior observations `trend_3m` averages. Named because the metric's own
+# description quotes it and two numbers in two places is how they stop agreeing.
+trend_observations: 3
+
+# Applied to any tracked series with no entry below. `last` is the conservative
+# default: it makes no claim about drift, and a series that does drift will show a
+# one-sided surprise that is visible in the record rather than hidden in a model.
+default: last
+
+series:
+
+  # --- LEVELS THAT TREND BY CONSTRUCTION -----------------------------------
+  cpi:
+    method: trend_3m
+    because: >-
+      A price index rises in most months. `last` would report a positive surprise
+      almost every print, which measures inflation rather than surprise.
+  core_cpi:
+    method: trend_3m
+    because: As CPI, and smoother, so the trend is a better yardstick still.
+  pce:
+    method: trend_3m
+    because: As CPI.
+  core_pce:
+    method: trend_3m
+    because: >-
+      As CPI. This is the Fed's target variable, so the surprise here is the one
+      most likely to move the front end.
+  m2:
+    method: trend_3m
+    because: A money stock is a level with a trend, not a rate.
+  real_gdp:
+    method: trend_3m
+    because: >-
+      A quarterly level that grows. Note the cadence: three observations is three
+      quarters, so the expectation is slower than it looks.
+  housing_starts:
+    method: trend_3m
+    because: >-
+      Arguable, and declared: starts are noisy enough that the three-quarter trend
+      is barely better than the last value. Chosen because the series has a real
+      cycle and `last` would score the cycle as surprise.
+  fed_balance:
+    method: trend_3m
+    because: >-
+      The balance sheet moves in one direction for years at a time -- QE, then
+      runoff -- so the last value is a bad expectation and the trend catches the
+      programme rather than the news.
+
+  # --- RATES, SPREADS AND RATIOS: NO DRIFT TO CATCH ------------------------
+  u3_rate:
+    method: last
+    because: >-
+      The unemployment rate has no construction-driven drift. Sahm's own rule is
+      built on a change from a trailing low for the same reason.
+  claims_4wk:
+    method: last
+    because: >-
+      A four-week average is already smoothed; a trend on top of it would be a
+      trend of a trend.
+  yield_10y:
+    method: last
+    because: A yield is a price. The last one is the honest expectation.
+  yield_2y:
+    method: last
+    because: As the 10-year.
+  hy_oas:
+    method: last
+    because: A spread. Same reasoning as a yield.
+  nfci:
+    method: last
+    because: An index scaled around zero, with no drift by design.

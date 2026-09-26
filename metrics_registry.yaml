@@ -2250,6 +2250,35 @@ metrics:
   # entry: "the print is due Thursday" and "the print was 3.2%" are two facts and
   # collapsing them would lose the calendar the moment it was fulfilled.
   # -------------------------------------------------------------------------
+  calc.earnings_surprise_pct:
+    source: yfinance
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      THE REAL SURPRISE: reported EPS against the ANALYST MEAN, in percent, from
+      yfinance, keyed by symbol as the instrument. A consensus existed before the
+      print, so this is a surprise in the ordinary sense -- which is exactly why it
+      does not share a name with calc.surprise_vs_naive.
+      ONE UNIT FOR EVERY SYMBOL, which is why this is a single metric where the
+      macro surprises are one per series: a percentage surprise is comparable
+      across names in a way a difference in index points is not.
+      Read out of the events table's `earnings` rows rather than re-fetched, so the
+      figure in the observation and the figure in the event are the same figure.
+    caveats:
+      - >-
+        THE PERCENTAGE IS OF A SMALL DENOMINATOR AND OCCASIONALLY ABSURD. AMZN's
+        July 2026 quarter reads +215% because the estimate was 1.83 against 5.75
+        reported -- a GAAP figure against an adjusted estimate, or a one-off gain.
+        The payload keeps both numbers so a reader can see what produced it, and a
+        percentile over this metric's own history is the only honest way to read it.
   events.release:
     source: fred
     mechanism_group: macro_momentum
@@ -2838,6 +2867,91 @@ bulk_imports:
     revision_policy: recomputed
     trigger_eligible: false
     mechanism_group: base_rate
+  # -------------------------------------------------------------------------
+  # SURPRISE v1 (6c-1 piece 3). Two blocks over the 59 tracked series, so each
+  # metric inherits ITS OWN UNITS -- a surprise is a difference in the series'
+  # units, index points for CPI and percentage points for the unemployment rate,
+  # and one entry could not have declared both.
+  #
+  # `calc.surprise_vs_consensus` DOES NOT EXIST and that is deliberate. There is no
+  # free macro consensus, so the honest state is not_yet_sourced rather than an
+  # approximation wearing the name. Every metric here says `naive` in its key, its
+  # description and its payload.
+  # -------------------------------------------------------------------------
+  naive_expectations:
+    description: >-
+      `calc.naive_expectation.<series>` -- what the declared rule in
+      config/naive_expectations.yaml expected for each observation, computed from
+      that series' PRIOR observations only. Two methods: `last` for a series with
+      no drift of its own, `trend_3m` for a level that trends by construction. A
+      series without enough history for its declared method gets no row rather
+      than a silent fall back, because a surprise computed by an undeclared method
+      is mislabelled and mislabelled is worse than absent.
+    source: derived_state
+    members_from: altdata.config.FRED_SERIES
+    member_key: key
+    key_prefix: "calc.naive_expectation."
+    expected_members: 59
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "2": macro_momentum
+      "3": macro_liquidity
+      "4": macro_inflation
+      "5": macro_sentiment
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "8": macro_sovereign
+      "9": macro_consumer_stress
+      "10": macro_sentiment
+  naive_surprises:
+    description: >-
+      `calc.surprise_vs_naive.<series>` -- THE ACTUAL MINUS A NAIVE EXPECTATION,
+      AND NOT A CONSENSUS SURPRISE. It measures whether a series did what its own
+      recent history implied, which is a different question from whether the
+      market was wrong; this system has no macro consensus and does not pretend
+      to. available_at is inherited from the ACTUAL, because that is the instant
+      the surprise became computable, and a revision produces a second vintage
+      with the same observed_at -- so "what did the surprise look like at the
+      time" survives a restatement.
+      ON mechanism_group: the map below assigns a pillar per member, and
+      altdata/grader.py resolves a PER-MEMBER block to the BLOCK'S NAME instead --
+      `naive_surprises` -- exactly as it does for fred_macro. That is the
+      conservative direction for 26.9: collapsing these into one family means two
+      surprises can never count as two independent witnesses. The map is kept
+      because it states what each metric is about and check_registry validates its
+      values, not because a cut reads it.
+    source: derived_state
+    members_from: altdata.config.FRED_SERIES
+    member_key: key
+    key_prefix: "calc.surprise_vs_naive."
+    expected_members: 59
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "2": macro_momentum
+      "3": macro_liquidity
+      "4": macro_inflation
+      "5": macro_sentiment
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "8": macro_sovereign
+      "9": macro_consumer_stress
+      "10": macro_sentiment
   event_columns:
     description: >-
       The events table's column set, which IS the format. Registered as a block
