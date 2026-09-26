@@ -77,8 +77,9 @@ LIVE_AVAILABILITY_KIND = "ingest_instant"
 # chosen per run so every reconstructed row in the store means the same thing.
 RECONSTRUCTED_LATENCY_MINUTES = 20
 
-# symbol -> store key. 28 symbols: broad indices, 11 SPDR sectors, equal weight,
-# rates/credit, commodities, dollar, international, crypto.
+# symbol -> store key. 40 symbols: broad indices, 11 SPDR sectors, equal weight,
+# rates/credit, commodities, dollar, international, crypto, the volatility indices,
+# ^GSPC, and ST-2's style, EM, producer and offshore-yuan additions.
 SYMBOLS: dict[str, str] = {
     # Broad
     "SPY": "mkt_spy",
@@ -115,6 +116,28 @@ SYMBOLS: dict[str, str] = {
     # International
     "EFA": "mkt_efa",
     "EEM": "mkt_eem",
+    # SIGNAL-TRIAGE ORDER ST-2. Nine additions, each named for the entry that
+    # asked for it; GLD and EEM were already here and are not duplicated.
+    #   Growth vs value (SR-1): the S&P 500 and Russell 1000 style pairs.
+    "IVW": "mkt_ivw",
+    "IVE": "mkt_ive",
+    "IWF": "mkt_iwf",
+    "IWD": "mkt_iwd",
+    #   EM and the rest of the world (SR-14): VWO beside EEM, ACWI ex-US, and EM
+    #   ex-China for the China-split.
+    "VWO": "mkt_vwo",
+    "ACWX": "mkt_acwx",
+    "EMXC": "mkt_emxc",
+    #   Commodity producers (SR-24; G-15 asks whether GUNR is an adequate proxy --
+    #   ST-4's question, not this list's).
+    "GUNR": "mkt_gunr",
+    #   Offshore yuan (SR-4): USD/CNH, CNH per dollar -- the offshore leg of the
+    #   CNH-CNY gap against cfets.cny_fix. An FX rate, not a price of a fund.
+    #   FORWARD-ONLY: Yahoo serves ONE bar for CNH=X whatever the period asked
+    #   (probed 26 Sep 2026: 1 row for "1mo" and for "2y"; USDCNH=X and
+    #   CNHUSD=X the same). So the series is built one close per nightly pull
+    #   from ST-2 on, and the backfill tool cannot reach behind it.
+    "CNH=X": "mkt_usdcnh",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
     # THE VOLATILITY INDICES, SAME DAY. FRED's VIXCLS arrives the NEXT morning, so
@@ -161,7 +184,9 @@ SPLIT_SUFFIX = "_split"
 # Bitcoin trades every day of the year, so 528 of its 1,827 bars fall on a
 # non-session date and every one of them is real. Nothing else in this basket does:
 # an ETF and a volatility index exist only while the exchange is open.
-CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD"})
+# USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
+# offshore quote, not an artefact, so it is declared here rather than filtered.
+CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNH=X"})
 
 
 def is_session_date(day: str) -> bool:

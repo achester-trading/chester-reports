@@ -37,6 +37,11 @@ mistake stays on record. Nothing here updates or deletes.
 
 UNITS ARE CHECKED where the registry declares a bounded one: a `fraction` must lie
 in [0, 1], so "72" for a 72% probability is refused rather than stored as 7,200%.
+
+LABELS ARE CODED (ST-2). A key with `units: label` declares `codes` in the
+registry -- manual.state_bank_dollar_selling {yes: 1, no: 0, unknown: -1} -- and
+the CLI takes the label, stores its code in value_num, and keeps the note in
+value_text as for any other key. A label outside the codes is refused.
 """
 
 from __future__ import annotations
@@ -79,13 +84,24 @@ def validate(key: str, value: str, observed_at: str, note: str,
         raise Refused(f"{key!r} is not a registered manual_input key. Register "
                       f"it in metrics_registry.yaml with `source: {SOURCE}` "
                       f"first; known keys: {', '.join(sorted(keys)) or 'none'}")
-    try:
-        num = float(value)
-    except ValueError:
-        raise Refused(f"value {value!r} is not a number") from None
+    units = keys[key].get("units")
+    if units == "label":
+        # A CLOSED VOCABULARY, CODED. The registry declares the labels and the
+        # number each one is stored as; anything else is refused, so "yes " and
+        # "Yes" are one answer and "maybe" is none.
+        codes = {str(k).lower(): v for k, v in (keys[key].get("codes") or {}).items()}
+        if not codes:
+            raise Refused(f"{key} is a label with no `codes` in the registry")
+        if value.strip().lower() not in codes:
+            raise Refused(f"{key} takes one of {sorted(codes)}; got {value!r}")
+        num = float(codes[value.strip().lower()])
+    else:
+        try:
+            num = float(value)
+        except ValueError:
+            raise Refused(f"value {value!r} is not a number") from None
     if not math.isfinite(num):
         raise Refused(f"value {value!r} is not finite")
-    units = keys[key].get("units")
     if units == "fraction" and not 0.0 <= num <= 1.0:
         raise Refused(f"{key} is a fraction (0..1); {num} is out of range -- "
                       f"enter 72% as 0.72")

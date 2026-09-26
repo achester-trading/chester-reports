@@ -883,7 +883,10 @@ def group_n() -> None:
         raise FetchError("simulated outage")
     saved = {}
     for name, mod in mods:
-        for attr in ("http_get_response", "http_get_json", "http_get_text"):
+        # fetch_frames: fundamentals.py reads yfinance, not the HTTP helpers, and
+        # an outage test that left it live reached the network and wrote rows.
+        for attr in ("http_get_response", "http_get_json", "http_get_text",
+                     "fetch_frames"):
             if hasattr(mod, attr):
                 saved[(mod, attr)] = getattr(mod, attr)
                 setattr(mod, attr, boom)
@@ -1048,11 +1051,102 @@ def group_o() -> None:
         "proshares"}, "the external writers run as the `external` feed")
 
 
+def group_p() -> None:
+    import importlib.util
+    from altdata.sources import fundamentals as fu
+    from altdata.sources import yfinance_source as yf_src
+    print(f"{LINE}\nP. SYMBOLS, FUNDAMENTALS AND THE ST-2 MANUAL KEYS\n{LINE}")
+    added = {"IVW", "IVE", "IWF", "IWD", "VWO", "ACWX", "EMXC", "GUNR", "CNH=X"}
+    check(added <= set(yf_src.SYMBOLS) and {"GLD", "EEM"} <= set(yf_src.SYMBOLS),
+          "the nine ST-2 symbols are on the price pass; GLD and EEM were already")
+    check(yf_src.SYMBOLS["CNH=X"] == "mkt_usdcnh" and "CNH=X"
+          in yf_src.CONTINUOUS_SYMBOLS,
+          "USD/CNH is declared continuous: its US-holiday quotes are real")
+    # fundamentals
+    frames = {"cashflow": {"Operating Cash Flow": {"2026-03-31": 26.0e9},
+                           "Capital Expenditure": {"2026-03-31": -44.2e9}},
+              "balance": {"Total Debt": {"2026-03-31": 209.9e9, "2025-12-31": float("nan")},
+                          "Cash And Cash Equivalents": {"2026-03-31": 101.8e9,
+                                                        "2025-12-31": 86.8e9},
+                          "Inventory": {"2026-03-31": 36.5e9},
+                          "Net Debt": {"2026-03-31": 17.3e9}},
+              "income": {"Cost Of Revenue": {"2026-06-30": float("nan"),
+                                             "2026-03-31": 87.5e9}}}
+    v = fu.values_from_frames("AMZN", frames)
+    nd = v.get((fu.key("AMZN", "net_debt"), "2026-03-31"))
+    check(nd is not None and abs(nd - 108.1e9) < 1e6
+          and (fu.key("AMZN", "net_debt"), "2025-12-31") not in v,
+          "net debt = Total Debt - Cash from one balance sheet (not yfinance's "
+          "sparse Net Debt row); a NaN leg writes nothing")
+    check((fu.key("AMZN", "cogs"), "2026-06-30") not in v
+          and v[(fu.key("AMZN", "capex"), "2026-03-31")] == -44.2e9,
+          "a NaN cell writes nothing; capex keeps its published (negative) sign")
+    check(fu.key("META", "inventory") not in fu.KEYS
+          and fu.key("MU", "inventory") in fu.KEYS,
+          "inventory keys exist only for the filers that report it")
+    now = "2026-05-10T00:00:00.000000+00:00"
+    acc = "2026-05-01T20:05:00.000000+00:00"
+    rows = fu.stamp({(fu.key("AMZN", "cogs"), "2026-03-31"): 87.5e9,
+                     (fu.key("AMZN", "capex"), "2026-03-31"): -44.2e9,
+                     (fu.key("AMZN", "cogs"), "2025-12-31"): 110e9},
+                    {"2026-03-31": acc, "2025-12-31": "2026-02-06T21:00:00Z"},
+                    {(fu.key("AMZN", "capex"), "2026-03-31")}, now)
+    got = {(r["registry_key"], r["observed_at"]): (r["available_at"],
+                                                   r["availability_kind"]) for r in rows}
+    check(got[(fu.key("AMZN", "cogs"), "2026-03-31")] == (acc, "observed"),
+          "a quarter first seen within 14 days of its 10-Q takes the acceptance "
+          "instant")
+    check(got[(fu.key("AMZN", "capex"), "2026-03-31")] == (now, "ingest_instant"),
+          "an already-held quarter (a possible restatement) takes the write instant")
+    check(got[(fu.key("AMZN", "cogs"), "2025-12-31")] == (now, "ingest_instant"),
+          "a quarter filed long before first capture (the backfill) takes the "
+          "write instant -- never a restated value dated at the original filing")
+    # manual keys
+    spec = importlib.util.spec_from_file_location(
+        "manual_input", REPO / "tools" / "manual_input.py")
+    mi = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mi)
+    want = {"manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
+            "manual.msci_em_usd", "manual.msci_em_local", "manual.msci_world_usd",
+            "manual.msci_acwi_exus_usd", "manual.oecd_days_cover",
+            "manual.global_visible_stocks_bbl", "manual.cofer_usd_share",
+            "manual.cofer_usd_share_constant_fx", "manual.gold_share_total_reserves",
+            "manual.mu_hbm_share", "manual.dram_contract_dir",
+            "manual.g4_issuance_gap_gdp", "manual.panda_bond_issuance",
+            "manual.state_bank_dollar_selling"}
+    keys = mi.manual_keys()
+    check(want <= set(keys) and all(keys[k].get("units") and keys[k].get("description")
+                                    for k in want),
+          f"the 17 ST-2 manual keys are registered with units and a description "
+          f"(missing {sorted(want - set(keys))})")
+    check(keys["manual.aaii_stocks_pct"].get("delta_unit") == "pp",
+          "a share in percent moves in points (delta_unit pp), not basis points")
+    fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
+    os.close(fd)
+    os.unlink(path)
+    mi.write("manual.state_bank_dollar_selling", "Yes", "2020-01-02",
+             "fixture -- G-21 by hand", db_path=path)
+    mi.write("manual.dram_contract_dir", "down", "2020-01-31", "fixture", db_path=path)
+    with observations.ObservationStore(path) as db:
+        sb = db.latest_as_of("manual.state_bank_dollar_selling")
+        dr = db.latest_as_of("manual.dram_contract_dir")
+    check(sb["value_num"] == 1.0 and sb["value_text"] == "fixture -- G-21 by hand"
+          and dr["value_num"] == -1.0,
+          "a coded label stores its code (yes=1, down=-1) and keeps the note")
+    for bad_value in ("maybe", "1"):
+        try:
+            mi.write("manual.state_bank_dollar_selling", bad_value, "2020-01-02",
+                     "n", db_path=path)
+            bad(f"refuses the label {bad_value!r}")
+        except mi.Refused:
+            ok(f"refuses the label {bad_value!r} -- only yes / no / unknown")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_n):
+              group_p, group_n):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

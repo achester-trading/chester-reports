@@ -192,7 +192,8 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 31, f"31 symbols declared (got {len(syms)})")
+    check(len(syms) == 40, f"40 symbols declared (got {len(syms)}) -- 31, plus "
+          f"ST-2's nine")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "
@@ -380,10 +381,12 @@ def group_h() -> None:
     check(len(kept_c) == len(rows) and not dropped_c,
           "a DECLARED continuous instrument keeps every bar -- Bitcoin trades all "
           "week, and 528 of its 1,827 bars are on non-session dates and real")
-    check("BTC-USD" in yf_src.CONTINUOUS_SYMBOLS
-          and len(yf_src.CONTINUOUS_SYMBOLS) == 1,
-          f"the exemption is a declared set of one, not a guess about tickers "
-          f"({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
+    # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
+    # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
+    # is an exemption nobody reviewed.
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNH=X"},
+          f"the exemption is a declared set (BTC-USD, CNH=X), not a guess about "
+          f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
     # And the live store obeys it, which is the assertion the order asked for.
     db = observations.ObservationStore()

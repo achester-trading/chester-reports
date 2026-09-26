@@ -423,6 +423,9 @@ vocabularies:
     # person, and a hand-entered figure must never count as independent
     # confirmation of the automated series it may have been read beside.
     - manual_entry
+    # QUARTERLY COMPANY FUNDAMENTALS (ST-2). Six filers' cash flow, capex, debt
+    # and inventory: accounting statements, not market prices.
+    - corporate_fundamentals
     # OIL INVENTORY (ST-2). Physical stocks and the curve's prompt shape: the
     # buffer variable of SR-18, separate from the oil price (macro_inflation).
     - oil_inventory
@@ -4646,6 +4649,614 @@ metrics:
     description: >-
       NOT AVAILABLE. US corporate bond issuance by maturity bucket, monthly. SIFMA's file sits behind an email form and a bot wall, carries only a rolling 13 months monthly, and has no maturity buckets at all. Declared, never written.
 
+  # -------------------------------------------------------------------------
+  # QUARTERLY FUNDAMENTALS (ST-2; altdata/sources/fundamentals.py). DOLLARS,
+  # observed_at = fiscal quarter end. available_at = the 10-Q/10-K acceptance
+  # only for a quarter first captured within 14 days of it; otherwise the write
+  # instant (yfinance serves restated figures).
+  # -------------------------------------------------------------------------
+  yfinance.fund_amzn_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMZN: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_amzn_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMZN: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_amzn_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMZN: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_amzn_inventory:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMZN: inventory, quarter end, dollars (yfinance quarterly statements).
+  yfinance.fund_amzn_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMZN: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_googl_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      GOOGL: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_googl_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      GOOGL: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_googl_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      GOOGL: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_googl_inventory:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      GOOGL: inventory, quarter end, dollars (yfinance quarterly statements).
+  yfinance.fund_googl_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      GOOGL: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_msft_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSFT: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_msft_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSFT: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_msft_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSFT: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_msft_inventory:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSFT: inventory, quarter end, dollars (yfinance quarterly statements).
+  yfinance.fund_msft_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSFT: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_meta_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      META: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_meta_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      META: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_meta_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      META: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_meta_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      META: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_orcl_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ORCL: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_orcl_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ORCL: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_orcl_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ORCL: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_orcl_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ORCL: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_mu_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MU: operating cash flow for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_mu_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MU: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements).
+  yfinance.fund_mu_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MU: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements).
+  yfinance.fund_mu_inventory:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MU: inventory, quarter end, dollars (yfinance quarterly statements).
+  yfinance.fund_mu_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MU: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+
+  # -------------------------------------------------------------------------
+  # OPERATOR-ENTERED, ST-2 (tools/manual_input.py). Labels are CODED: the CLI
+  # takes the label, stores the code, keeps the note in value_text.
+  # -------------------------------------------------------------------------
+  manual.aaii_stocks_pct:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      AAII Asset Allocation Survey: stocks and stock funds, percent of portfolio (SR-12).
+  manual.aaii_bonds_pct:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      AAII Asset Allocation Survey: bonds and bond funds, percent of portfolio (SR-12).
+  manual.aaii_cash_pct:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      AAII Asset Allocation Survey: cash, percent of portfolio (SR-12).
+  manual.msci_em_usd:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      MSCI Emerging Markets index, USD, month-end level from the MSCI end-of-month file (SR-14).
+  manual.msci_em_local:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      MSCI Emerging Markets index, local currency, month-end level (SR-14).
+  manual.msci_world_usd:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      MSCI World index, USD, month-end level (SR-14).
+  manual.msci_acwi_exus_usd:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      MSCI ACWI ex-US index, USD, month-end level (SR-14).
+  manual.oecd_days_cover:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: days
+    trigger_eligible: false
+    description: >-
+      OECD industry stocks in days of forward demand, IEA Oil Market Report headline (SR-18, G-17).
+  manual.global_visible_stocks_bbl:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Global visible oil inventories, BARRELS, as published by the source the note names (SR-18; JPM's figure is not free, G-17).
+  manual.cofer_usd_share:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      IMF COFER: US dollar share of allocated reserves, at market exchange rates (SR-20).
+  manual.cofer_usd_share_constant_fx:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      US dollar share of reserves at CONSTANT exchange rates (ECB or IMF calculation, SR-20).
+  manual.gold_share_total_reserves:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Gold's share of total official reserves at market prices (SR-20 scorecard).
+  manual.mu_hbm_share:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Micron's share of the HBM market, as published by the source the note names (SR-25).
+  manual.dram_contract_dir:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    codes: {"up": 1, "flat": 0, "down": -1}
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      Direction of DRAM contract prices this month, coded up 1 / flat 0 / down -1 (SR-25, TrendForce or equivalent).
+  manual.g4_issuance_gap_gdp:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: structural
+    freq: annual
+    delta_unit: pp
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      G4 net government bond supply to private hands, percent of combined GDP, annual, as published by Lustig (SR-23; cited, by hand).
+  manual.panda_bond_issuance:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: contract_ccy
+    trigger_eligible: false
+    description: >-
+      Panda bond issuance for the month, CNY (the contract currency), as published (SR-4).
+  manual.state_bank_dollar_selling:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: daily
+    # QUOTED: unquoted, YAML reads yes/no as booleans and the CLI then refuses
+    # "yes" -- caught by validate_official_sources group P.
+    codes: {"yes": 1, "no": 0, "unknown": -1}
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
+
 bulk_imports:
 
   fred_macro:
@@ -4737,7 +5348,8 @@ bulk_imports:
 
   market_closes:
     description: >-
-      Daily closes for the 29-symbol market basket, keyed yfinance.mkt_<sym>.
+      Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
+      (ST-2 added IVW IVE IWF IWD VWO ACWX EMXC GUNR and CNH=X as mkt_usdcnh).
       SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
       adjusted close is deliberately not stored: it restates its own history
       every time a dividend is paid, which no point-in-time store can support,
@@ -4752,7 +5364,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 31
+    expected_members: 40
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -4776,7 +5388,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 31
+    expected_members: 40
     key_prefix: yfinance.
     units: price
     native_horizon: daily

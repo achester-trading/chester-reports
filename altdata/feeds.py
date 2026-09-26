@@ -103,7 +103,9 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
 # stale Ken French file is not the same news as a stale TIC release. Same step,
 # same pass, same entry point; no second unit.
 EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
-                    "lbma", "finra", "proshares")
+                    "lbma", "finra", "proshares",
+                    # ST-2 step 3: quarterly fundamentals for the AI-capex six
+                    "fundamentals")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -181,7 +183,7 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 # Pull
 # ---------------------------------------------------------------------------
 def pull_prices(run_id: Optional[str] = None) -> dict:
-    """The 28-symbol basket into the observation store (and the CSV copy)."""
+    """The price basket (yfinance_source.SYMBOLS) into both stores."""
     from .store import Store
     try:
         csv_store: Optional[Store] = Store()

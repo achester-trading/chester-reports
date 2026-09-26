@@ -1353,6 +1353,27 @@ sources:
       - >-
         sifma.corp_issuance_by_maturity registered not_yet_sourced.
 
+  # --- Signal-triage order ST-2, step 3 ----------------------------------------
+  yfinance_fundamentals:
+    name: Yahoo Finance quarterly statements (via yfinance), stamped by SEC filing
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [fundamentals]
+    geography: [US]
+    latency: after each 10-Q/10-K; five to seven quarters deep
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the EDGAR acceptance instant only for a quarter first captured
+      within 14 days of it (and only when CHESTER_SEC_CONTACT is set); otherwise the
+      write instant. yfinance serves the latest, possibly restated, figures.
+    license: none -- unofficial scrape of filed data
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/fundamentals.py
+    status: live
+    caveats:
+      - >-
+        Tier C mirror of A0 filings. Where EDGAR XBRL is ingested later, it wins.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:
