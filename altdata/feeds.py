@@ -84,11 +84,12 @@ FEEDS = ("prices", "fred", "official", "loggers")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
-# model, the Board's DKW decomposition. One feed, run in the same step as prices
+# model, the Board's DKW decomposition, TreasuryDirect's auction results and the
+# Fiscal Data MSPD. One feed, run in the same step as prices
 # and FRED -- 16:10 in chester-eod and the 06:45 correction pass -- rather than a
 # unit of its own, because "which feeds run, in what order" lives in one place.
 # Each is a module under altdata/sources/ exposing KEYS and pull(run_id).
-OFFICIAL_WRITERS = ("acm", "sffed", "dkw")
+OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata")
 
 
 def _official_modules() -> list:

@@ -29,6 +29,21 @@ same on a CI runner as on the laptop.
   G  WIRED, AND NOWHERE ELSE. The writers run as the `official` feed and sit in
      the freshness roster; no systemd unit was added for them; no report module,
      renderer or regime code imports them (30.4: reports never fetch).
+  H  TREASURY AUCTIONS. Shares of competitive accepted sum to one; coupons key
+     on original term and bills on the term sold (a 13-week reopening of a
+     26-week bill is not a 26-week auction); an unheld auction is skipped;
+     available_at is 13:00 ET in both EDT and EST, `reconstructed`, on keys
+     whose revision_policy permits it; the tail is registered not_yet_sourced
+     and never written; the family is distinct from ibkr.auction_*.
+  I  MSPD (G-14). Millions arrive as dollars; net issuance is the change in
+     Total Marketable across CONSECUTIVE month-ends only; inflation-indexed
+     classes sum into _tips; a response with no total is STALE; the decision
+     is recorded under SR-23.
+  J  manual_input. One observation with the note on the same row, the entry
+     instant as available_at and a run_id; unregistered keys, out-of-range
+     fractions, future dates, non-numbers and missing notes are refused; a
+     correction is a new vintage that supersedes, not an edit; the order's six
+     keys exist.
 """
 
 from __future__ import annotations
@@ -55,7 +70,8 @@ import yaml  # noqa: E402
 
 from altdata import feeds, observations, session  # noqa: E402
 from altdata.sources import _publication as pub  # noqa: E402
-from altdata.sources import acm, dkw, sffed  # noqa: E402
+from altdata.sources import acm, dkw, fiscaldata, sffed  # noqa: E402
+from altdata.sources import treasury_auctions  # noqa: E402
 from altdata.sources._base import FetchError  # noqa: E402
 
 PASS = 0
@@ -218,6 +234,7 @@ def patch_xlrd_free_acm(table) -> None:
 
 ORIGINAL = {m: m._produce for m in (acm, sffed, dkw)}
 ORIGINAL_FETCH = {m: m.http_get_response for m in (acm, sffed, dkw)}
+ORIGINAL_JSON = {m: m.http_get_json for m in (treasury_auctions, fiscaldata)}
 
 
 def restore() -> None:
@@ -225,6 +242,8 @@ def restore() -> None:
         m._produce = f
     for m, f in ORIGINAL_FETCH.items():
         m.http_get_response = f
+    for m, f in ORIGINAL_JSON.items():
+        m.http_get_json = f
 
 
 DATES = ["2020-01-02", "2020-01-03", "2020-01-06"]
@@ -455,9 +474,210 @@ def group_g() -> None:
           f"no report, renderer or regime module imports a writer {offenders}")
 
 
+# ---------------------------------------------------------------------------
+def auction(day, typ, term, orig, cusip, btc="2.42", hy="5.0850",
+            pd="5447550000", direct="13163710000", ind="24869544500",
+            comp="43480804500"):
+    return {"auctionDate": f"{day}T00:00:00", "type": typ, "securityType": typ,
+            "securityTerm": term, "originalSecurityTerm": orig, "cusip": cusip,
+            "bidToCoverRatio": btc, "highYield": hy if typ != "Bill" else "",
+            "primaryDealerAccepted": pd, "directBidderAccepted": direct,
+            "indirectBidderAccepted": ind, "competitiveAccepted": comp,
+            "offeringAmount": "44000000000"}
+
+
+def group_h() -> None:
+    print(f"{LINE}\nH. TREASURY AUCTIONS\n{LINE}")
+    recs = [auction("2020-09-24", "Note", "7-Year", "7-Year", "C7"),
+            auction("2020-09-24", "Note", "9-Year 10-Month", "10-Year", "C10"),
+            auction("2020-01-13", "Bill", "26-Week", "26-Week", "B26"),
+            auction("2020-01-13", "Bill", "13-Week", "26-Week", "B13"),
+            dict(auction("2020-09-29", "Note", "5-Year", "5-Year", "UNHELD"),
+                 bidToCoverRatio="")]
+    rows = treasury_auctions.rows_from_records(recs)
+    insts = {r["instrument"] for r in rows}
+    check(insts == {"Note:7-Year", "Note:10-Year", "Bill:26-Week",
+                    "Bill:13-Week"},
+          f"coupons by original term, bills by the term sold {sorted(insts)}")
+    check(not any(r["value"] == "UNHELD" for r in rows),
+          "an auction with no bid-to-cover (not yet held) is skipped")
+    s7 = {r["registry_key"]: r["value"] for r in rows
+          if r["instrument"] == "Note:7-Year"}
+    tot = (s7["auction.dealer_share"] + s7["auction.direct_share"]
+           + s7["auction.indirect_share"])
+    check(abs(tot - 1.0) < 1e-6
+          and abs(s7["auction.dealer_share"] - 0.12528632) < 1e-6,
+          f"shares of competitive accepted sum to 1 (dealer "
+          f"{s7['auction.dealer_share']:.4f}, the 24 Sep 2026 7-year's figures)")
+    check(s7["auction.high_yield"] == 5.085 and not any(
+        r["registry_key"] == "auction.high_yield"
+        and r["instrument"].startswith("Bill") for r in rows),
+          "high_yield on coupons only")
+    edt = treasury_auctions.available_at("2020-09-24")
+    est = treasury_auctions.available_at("2020-01-13")
+    check(edt == "2020-09-24T17:00:00.000000+00:00"
+          and est == "2020-01-13T18:00:00.000000+00:00",
+          f"available_at = 13:00 ET in EDT ({edt}) and EST ({est})")
+    check({r["availability_kind"] for r in rows} == {"reconstructed"},
+          "marked reconstructed")
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(
+        encoding="utf-8"))["metrics"]
+    check(all((reg.get(k) or {}).get("revision_policy")
+              in observations.RECONSTRUCTABLE_POLICIES
+              for k in treasury_auctions.KEYS),
+          "every written auction key has a revision_policy that permits "
+          "reconstruction")
+    tail = reg.get("auction.tail_bp") or {}
+    check(tail.get("status_extra") == "not_yet_sourced"
+          and "auction.tail_bp" not in treasury_auctions.KEYS
+          and not any(r["registry_key"] == "auction.tail_bp" for r in rows),
+          "auction.tail_bp is registered not_yet_sourced and never written")
+    check(all(k.startswith("auction.") for k in treasury_auctions.KEYS),
+          "the family is auction.*, distinct from ibkr.auction_*")
+    db = temp_store()
+    try:
+        treasury_auctions.http_get_json = lambda *a, **k: recs
+        r = treasury_auctions.pull(db=db)
+        n = count(db)
+        check(r["status"] == pub.OK and n == len(rows),
+              f"a pull writes every row ({n})")
+        check(treasury_auctions.pull(db=db)["written"] == 0,
+              "a second identical pull writes zero rows")
+
+        def boom(*a, **k):
+            raise FetchError("simulated TreasuryDirect outage")
+        treasury_auctions.http_get_json = boom
+        r = treasury_auctions.pull(db=db)
+        check(r["status"] == pub.STALE and count(db) == n,
+              "an outage is STALE and leaves every stored auction in place")
+    finally:
+        restore()
+        db.close()
+
+
+def mspd(day, typ, cls, amt):
+    return {"record_date": day, "security_type_desc": typ,
+            "security_class_desc": cls, "debt_held_public_mil_amt": str(amt)}
+
+
+def group_i() -> None:
+    print(f"{LINE}\nI. MSPD (G-14)\n{LINE}")
+    recs = []
+    for day, total in (("2020-01-31", 1000.0), ("2020-02-29", 1100.0),
+                       ("2020-03-31", 1150.0), ("2020-05-31", 1400.0)):
+        recs += [mspd(day, "Marketable", "Bills", 400),
+                 mspd(day, "Marketable", "Notes", 300),
+                 mspd(day, "Marketable", "Bonds", 200),
+                 mspd(day, "Marketable", "Treasury Inflation-Indexed Notes", 30),
+                 mspd(day, "Marketable", "Treasury Inflation-Indexed Bonds", 20),
+                 mspd(day, "Marketable", "Federal Financing Bank", 0),
+                 mspd(day, "Total Marketable", "_", total)]
+    rows = fiscaldata.rows_from_records(recs, LM_CANON)
+    by = {(r["registry_key"], r["observed_at"]): r["value"] for r in rows}
+    check(by[(fiscaldata.TOTAL_KEY, "2020-01-31")] == 1000.0 * 1e6,
+          "millions arrive in the store as dollars")
+    check(by[(fiscaldata.CLASS_KEYS["tips"], "2020-01-31")] == 50.0 * 1e6,
+          "inflation-indexed notes and bonds sum into _tips")
+    check(by.get((fiscaldata.NET_KEY, "2020-02-29")) == 100.0 * 1e6
+          and by.get((fiscaldata.NET_KEY, "2020-03-31")) == 50.0 * 1e6,
+          "net issuance is the change in Total Marketable month on month")
+    check((fiscaldata.NET_KEY, "2020-05-31") not in by
+          and (fiscaldata.NET_KEY, "2020-01-31") not in by,
+          "no net figure across a missing month, and none for the first")
+    try:
+        fiscaldata.rows_from_records(
+            [r for r in recs if r["security_type_desc"] != "Total Marketable"],
+            LM_CANON)
+        bad("a response without Total Marketable raised")
+    except ValueError:
+        ok("a response without Total Marketable raises")
+    db = temp_store()
+    try:
+        fiscaldata.http_get_json = lambda *a, **k: {"data": [], "meta": {}}
+        r = fiscaldata.pull(db=db)
+        check(r["status"] == pub.STALE and count(db) == 0,
+              "an empty response is STALE and writes nothing")
+    finally:
+        restore()
+        db.close()
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(
+        encoding="utf-8"))["metrics"]
+    check(all((reg.get(k) or {}).get("units") == "usd"
+              for k in fiscaldata.KEYS),
+          "every fiscaldata key is registered in usd")
+    text = (REPO / "docs" / "signal-triage-register.md").read_text(
+        encoding="utf-8")
+    sr23 = text.split("### SR-23", 1)[-1].split("### SR-24", 1)[0]
+    check("G-14" in sr23 and "mspd_net_marketable_issuance" in sr23,
+          "the G-14 decision is recorded under SR-23 in the register")
+
+
+def group_j() -> None:
+    print(f"{LINE}\nJ. manual_input\n{LINE}")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "manual_input", REPO / "tools" / "manual_input.py")
+    mi = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mi)
+    required = {"manual.sep_median_next2", "manual.sep_median_12m",
+                "manual.fedwatch_next_meeting_prob", "manual.cbo_deficit_path",
+                "manual.ig_nic_median_bp", "manual.ig_cover_median"}
+    keys = mi.manual_keys()
+    check(required <= set(keys),
+          f"the order's six keys are registered "
+          f"(missing {sorted(required - set(keys))})")
+    fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
+    os.close(fd)
+    os.unlink(path)
+    mi.write("manual.sep_median_12m", "3.625", "2020-09-16",
+             "SEP Sep 2020 -- fixture", db_path=path)
+    with observations.ObservationStore(path) as db:
+        got = db.conn.execute(
+            "SELECT value_num, value_text, run_id, source, available_at "
+            "FROM observations").fetchall()
+        check(len(got) == 1 and got[0][0] == 3.625
+              and got[0][1] == "SEP Sep 2020 -- fixture",
+              "one observation, the number and its note on the same row")
+        check(got[0][2].startswith("manual_input-")
+              and got[0][3] == "manual_input",
+              f"run_id and source stamped ({got[0][2]})")
+        check(bool(re.match(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}\+00:00$",
+                            got[0][4]))
+              and got[0][4][:10] >= session.utc_iso()[:10],
+              "available_at is the ENTRY instant, canonical microsecond UTC, "
+              "not the observed date")
+        mi.write("manual.sep_median_12m", "3.375", "2020-09-16",
+                 "SEP Sep 2020 -- corrected", db_path=path)
+        last = db.latest_as_of("manual.sep_median_12m")
+        check(count(db, "manual.sep_median_12m") == 2
+              and last["value_num"] == 3.375,
+              "a correction is a second vintage that supersedes; the first "
+              "stays on record")
+    tomorrow = (session.session_date_obj() + dt.timedelta(days=1)).isoformat()
+    cases = ((("manual.nope", "1", "2020-01-01", "n"), "an unregistered key"),
+             (("manual.fedwatch_next_meeting_prob", "72", "2020-01-01", "n"),
+              "a fraction entered as a percent"),
+             (("manual.sep_median_12m", "3.5", tomorrow, "n"), "a future date"),
+             (("manual.sep_median_12m", "3.5", "2020-01-01", "  "), "no note"),
+             (("manual.sep_median_12m", "abc", "2020-01-01", "n"),
+              "a non-number"),
+             (("manual.sep_median_12m", "nan", "2020-01-01", "n"), "NaN"))
+    for args, why in cases:
+        try:
+            mi.write(*args, db_path=path)
+            bad(f"refuses {why}")
+        except mi.Refused:
+            ok(f"refuses {why}")
+    with observations.ObservationStore(path) as db:
+        check(count(db) == 2, "and a refusal writes nothing")
+    check(mi.main(["manual.nope", "1", "2020-01-01", "n", "--db", path]) == 2,
+          "the CLI exits 2 on a refusal")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1) -- offline\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
+              group_h, group_i, group_j):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

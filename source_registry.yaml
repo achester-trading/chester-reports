@@ -941,6 +941,76 @@ sources:
         release ... subject to delay, revision, or methodological changes without
         advance notice".
 
+  # --- Signal-triage order ST-1: Treasury supply and operator input -----------
+  treasurydirect:
+    name: TreasuryDirect -- Treasury auction results (securities API)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates, treasury_supply]
+    geography: [US]
+    latency: minutes after the competitive close on auction day
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is 13:00 ET on the auction day by declared rule
+      (reconstructed), per the signal-triage order. Measured: coupon results post
+      a few minutes after 13:00 (updatedTimestamp 13:03:20 on the 24 Sep 2026
+      7-year); bills close at 11:30. Results are never revised.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/treasury_auctions.py
+    status: live
+    caveats:
+      - >-
+        No when-issued yield, so no tail: auction.tail_bp is registered
+        not_yet_sourced and prints NOT AVAILABLE.
+      - Not the ibkr.auction_* family, which is the equity closing auction.
+
+  fiscaldata:
+    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [treasury_supply, sovereign]
+    geography: [US]
+    latency: about the fourth business day of the following month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No publication timestamp per row; available_at is the write instant
+      (ingest_instant), an upper bound. Amounts arrive in millions and are
+      stored in dollars.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/fiscaldata.py
+    status: live
+    caveats:
+      - >-
+        G-14: net marketable issuance is the month-end change in Total Marketable
+        held by the public. It includes SOMA add-ons and TIPS accrual and is not
+        the refunding's privately-held figure; see the module docstring.
+
+  manual_input:
+    name: Operator-entered figures (tools/manual_input.py)
+    tier: E
+    epistemic_role: cross_check
+    domain: [rates, credit, sovereign]
+    geography: [US]
+    latency: whenever the operator enters it
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is the entry instant, not the publication instant (§1.4), so
+      a figure typed in late is late in the as-of join too. Every row carries a
+      note naming its source, and a run_id.
+    license: n/a -- transcribed from the publication the note names
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: tools/manual_input.py
+    status: live
+    caveats:
+      - >-
+        TIER E ON PURPOSE. The figures come from A0 publications (the SEP, CBO),
+        but a human typed them, and the precedence rule is that a lower tier
+        never overwrites a higher one: a hand-entered number must never displace
+        an automated series describing the same fact.
+      - Unregistered keys are refused; a fraction outside 0..1 is refused.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:

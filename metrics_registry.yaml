@@ -411,6 +411,18 @@ vocabularies:
     # bond-allocation blend reads it. Its own group so an allocation share and a
     # survey of what the same households say they feel cannot confirm each other.
     - household_allocation
+    # TREASURY SUPPLY (signal-triage order, ST-1). What the Treasury sells and
+    # how the auction absorbed it -- auction.* and fiscaldata.*. A statement
+    # about the supply side of the curve, distinct from the curve's own level
+    # (macro_momentum) and from the premium models read off it
+    # (rates_decomposition); SR-22 and SR-23 need the two to be separable.
+    - treasury_supply
+    # OPERATOR-ENTERED FIGURES (tools/manual_input.py). A number a human typed
+    # from a published source -- the SEP median dot, a FedWatch probability, the
+    # CBO path, IG new-issue terms. Its own group because the provenance is a
+    # person, and a hand-entered figure must never count as independent
+    # confirmation of the automated series it may have been read beside.
+    - manual_entry
 
 defaults:
   trigger_eligible: false
@@ -2934,6 +2946,299 @@ metrics:
     trigger_eligible: false
     description: >-
       DKW TIPS liquidity premium, 10-year, percentage points. A rising one makes DFII10 overstate the real-rate move.
+
+  # -------------------------------------------------------------------------
+  # TREASURY AUCTIONS (signal-triage order ST-1; altdata/sources/treasury_auctions.py).
+  # `auction.*` is the TREASURY auction. The equity closing auction is
+  # `ibkr.auction_*`, above, and the two families share nothing but a word.
+  # instrument = "<type>:<original term>", observed_at = auction date,
+  # available_at = 13:00 ET that day (reconstructed; results are never revised).
+  # -------------------------------------------------------------------------
+  auction.bid_to_cover:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Bid-to-cover: total tendered over total accepted, as TreasuryDirect publishes it.
+  auction.dealer_share:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      Share of COMPETITIVE ACCEPTED taken by primary dealers. Dealer + direct + indirect sum to 1; SOMA add-ons and non-competitive awards are outside the denominator. A high dealer share is the dealers absorbing what end buyers would not.
+  auction.direct_share:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      Share of COMPETITIVE ACCEPTED taken by direct bidders. Dealer + direct + indirect sum to 1; SOMA add-ons and non-competitive awards are outside the denominator. A high dealer share is the dealers absorbing what end buyers would not.
+  auction.indirect_share:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      Share of COMPETITIVE ACCEPTED taken by indirect bidders (foreign and domestic real money bidding through dealers). Dealer + direct + indirect sum to 1; SOMA add-ons and non-competitive awards are outside the denominator. A high dealer share is the dealers absorbing what end buyers would not.
+  auction.high_yield:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      The auction's stop-out (high) yield, coupons only -- Note, Bond, TIPS. A TIPS high yield is a REAL yield. Stored so the tail can be computed the day a when-issued source exists.
+  auction.offering_amount:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Offering size in dollars.
+  auction.cusip:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The auction's CUSIP as text, so a reopening can be told from a new issue under the same instrument.
+  auction.tail_bp:
+    source: treasurydirect
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: weekly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: bps
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. High yield minus the when-issued yield at the 13:00 deadline, in bp. TreasuryDirect does not publish the when-issued yield and no free source serves it, so this is declared and never written; it prints NOT AVAILABLE until one is found. Nothing approximates it.
+
+  # -------------------------------------------------------------------------
+  # MSPD (signal-triage order ST-1; altdata/sources/fiscaldata.py). Debt held by
+  # the public, month-end, in DOLLARS (the API's millions x 1e6). G-14's mapping
+  # is in that module's docstring and under SR-23 in the triage register.
+  # -------------------------------------------------------------------------
+  fiscaldata.mspd_marketable_total:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Total marketable Treasury debt held by the public, month-end (MSPD Table I, Total Marketable). Includes SOMA holdings: the Fed is public in this table.
+  fiscaldata.mspd_bills:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Bills, marketable, held by the public, month-end.
+  fiscaldata.mspd_notes:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Notes, marketable, held by the public, month-end.
+  fiscaldata.mspd_bonds:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Bonds, marketable, held by the public, month-end.
+  fiscaldata.mspd_tips:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TIPS (accreted principal; older vintages' inflation-indexed notes and bonds summed), marketable, held by the public, month-end.
+  fiscaldata.mspd_frn:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Floating-rate notes, marketable, held by the public, month-end.
+  fiscaldata.mspd_net_marketable_issuance:
+    source: fiscaldata
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      G-14: the month's change in fiscaldata.mspd_marketable_total, consecutive month-ends only. INCLUDES SOMA auction add-ons and TIPS inflation accrual, so it is NOT the refunding's privately-held net marketable borrowing (Apr-Jun 2026: +239.6bn here against +190bn there). SR-23's net supply to private hands is this minus the change in fred.soma_treasuries (ST-4).
+
+  # -------------------------------------------------------------------------
+  # OPERATOR-ENTERED (tools/manual_input.py). Registered here or refused there.
+  # available_at is the ENTRY instant (section 1.4); value_text carries the note.
+  # A correction is a new entry at a later available_at, never an edit.
+  # -------------------------------------------------------------------------
+  manual.sep_median_next2:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SEP median federal funds projection for the CURRENT year-end, midpoint, percent -- the Fed's signalled level over the next two meetings, the comparison for calc.fed_mkt_gap_m1/_m2 (ST-4). Entered on SEP day; the note names the SEP and the dot.
+  manual.sep_median_12m:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SEP median federal funds projection for the year-end NEAREST TWELVE MONTHS AHEAD, midpoint, percent -- the comparison for calc.fed_mkt_gap_12m (ST-4). The note names which year-end dot was used.
+  manual.fedwatch_next_meeting_prob:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      CME FedWatch probability of a HIKE (any size) at the next FOMC meeting, 0..1 -- SR-21's headline object, by hand until G-4 settles a free source. The note names the meeting date and the read time.
+  manual.cbo_deficit_path:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      CBO baseline federal deficit for the NEXT fiscal year, percent of GDP, observed_at = the baseline's publication date -- SR-23's projection input. The note names the report and the fiscal year.
+  manual.ig_nic_median_bp:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Median new-issue concession on US IG corporate deals over the stated window, bp -- SR-16's absorption price (Bloomberg-only, by hand). The note names the window and the source.
+  manual.ig_cover_median:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Median order-book cover on US IG corporate deals over the stated window, times -- SR-16. The note names the window and the source.
 
 bulk_imports:
 
