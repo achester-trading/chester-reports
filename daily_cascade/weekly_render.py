@@ -410,6 +410,44 @@ def weekend_block(payload: dict) -> str:
     return f'<div style="{WRAP}">{events_block.html(b)}{tail}</div>'
 
 
+def narratives_register_block(payload: dict) -> str:
+    """The register's states, and every pending proposal with its one-line gate."""
+    b = payload.get("narratives") or {}
+    if b.get("state") != "ok":
+        return absent_box(b, "Narratives")
+    def links(n: dict) -> str:
+        return ", ".join(f"{k} {v}" for k, v in
+                         sorted((n.get("linked_dimensions") or {}).items()))
+    rows = "".join(
+        f'<tr><td style="{TDL}">{esc(n["name"])}</td>'
+        f'<td style="{TDL}">{esc(n["state"])}</td>'
+        f'<td style="{TDL}">{esc(n["opened"])}</td>'
+        f'<td style="{TDL}">{esc(n["last_changed"] or "-")}</td>'
+        f'<td style="{TD}">{esc(n["evidence_for"])} / '
+        f'{esc(n["evidence_against"])}</td>'
+        f'<td style="{TDL}">{esc(links(n))}</td></tr>'
+        for n in b.get("narratives") or [])
+    table = (f'<table style="{TBL}"><tr><th style="{THL}">Story</th>'
+             f'<th style="{THL}">State</th><th style="{THL}">Opened</th>'
+             f'<th style="{THL}">Last changed</th>'
+             f'<th style="{TH}">Evidence for / against</th>'
+             f'<th style="{THL}">Linked dimensions</th></tr>{rows}</table>')
+    props = b.get("proposals") or []
+    if not props:
+        pend = f'<p style="{NOTE}">No proposals are waiting for confirmation.</p>'
+    else:
+        pend = "".join(
+            f'<div style="{WARN}"><strong>Proposed: {esc(p["name"])}</strong> '
+            f'&mdash; {esc(p["direction"])}<br>'
+            f'Implied outcome: {esc(p["implied_outcome"])}<br>'
+            f'Drawn from events {esc(", ".join(str(x) for x in p["basis_events"]))} '
+            f'by {esc(p["proposed_by"])} at {esc(p["proposed_at"])}.<br>'
+            f'Confirm: <code>{esc(p["confirm"])}</code><br>'
+            f'Reject: <code>{esc(p["reject"])}</code></div>'
+            for p in props)
+    return f'<div style="{WRAP}">{table}{pend}</div>'
+
+
 # ---------------------------------------------------------------------------
 # The document
 # ---------------------------------------------------------------------------
@@ -458,6 +496,9 @@ def render(payload: dict, extra: Optional[dict] = None,
 
 <h2 style="{H2}">Register</h2>
 {register_block(payload)}
+
+<h2 style="{H2}">Narratives</h2>
+{narratives_register_block(payload)}
 
 <h2 style="{H2}">The week ahead</h2>
 {week_ahead_block(payload)}

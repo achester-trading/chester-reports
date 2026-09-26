@@ -66,6 +66,8 @@
       "Bash(*decide_remote.sh set-status*)",
       "Bash(*migrate_register.py import*)",
       "Bash(*retire_local_register.py*--apply*)",
+      "Bash(*altdata.narratives confirm*)",
+      "Bash(*altdata.narratives reject*)",
 
       "Bash(sudo*)",
       "Bash(*sudo *)",

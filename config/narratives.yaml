@@ -1,0 +1,145 @@
+# The narrative register's declared stories. (6c-2; Audit #3 §I and §F item 11;
+# Daily Cascade v2 Part 0.4)
+#
+# -----------------------------------------------------------------------------
+# WHAT A NARRATIVE IS HERE, AND WHAT IT IS NOT
+# -----------------------------------------------------------------------------
+# A story the market is trading, held as a DATED ENTITY with a state, a direction,
+# the evidence for and against it (as event ids from the events table), the
+# market-state dimensions it should move, and an IMPLIED OUTCOME -- a claim about a
+# stored series at a horizon, which is what makes the story gradeable through the
+# probability ledger. It is not a signal: every narrative sits in the `narrative`
+# mechanism group, nothing here is trigger_eligible, and a story can never count as
+# confirmation of the price move it is about.
+#
+# THE STATE MOVES ON DECLARED RULES, NEVER ON THE MODEL'S READING. The model may
+# PROPOSE a new story from the events (status: proposed) and it writes the 07:00
+# paragraph; it never moves a state. Transitions are computed from attention,
+# agreement with the linked dimensions and persistence (`rules`, below), so they
+# replay exactly from stored events and stored objects.
+#
+# ONE HUMAN GATE. A proposal stays `proposed` until the operator confirms it with
+#     python -m altdata.narratives confirm <id>
+# which the Weekly prints beside each pending proposal. Nothing else here needs a
+# human, and nothing else can promote a proposal: a proposed story is never
+# evaluated, so it cannot reach consensus without that line being run.
+#
+# THE FOUR SEEDS are the stories Audit #3 §I names, opened 26 September 2026 as
+# `emerging` with no evidence. Their definitions live HERE and are synced into the
+# register on every seed; their STATE and EVIDENCE live in the register and are
+# never overwritten by a seed.
+
+version: narratives-v1
+updated: 2026-09-26
+
+vocabularies:
+  states: [emerging, consensus, contested, fading]
+  statuses: [active, proposed, rejected]
+  # A linked dimension's expected direction, in the object's own convention:
+  # `+` is the dimension's primary rising on its declared polarity (growth `+` is
+  # claims FALLING; credit `+` is spreads TIGHTENING; volatility `+` is VIX rising).
+  directions: ["+", "-"]
+  # How an implied outcome resolves. Every one compares a stored series at the
+  # horizon with the same series as known at emission -- the only comparison the
+  # store can answer without a judgement.
+  comparisons:
+    up: the value at the horizon is above the value known at emission
+    down: the value at the horizon is below the value known at emission
+    magnitude_up: >-
+      the absolute value at the horizon is above the absolute value known at
+      emission -- for a series published with a sign convention (capex is
+      reported negative, as an outflow)
+    magnitude_down: the absolute value at the horizon is below the one at emission
+
+# -----------------------------------------------------------------------------
+# PROBABILITY -- WHAT A STATE CLAIMS, DECLARED BEFORE ANY OUTCOME
+# -----------------------------------------------------------------------------
+# The register grades its OWN STATE MACHINE: a story the rules call consensus is
+# claiming its implied outcome is likely, and a fading one that it is not. So each
+# state carries the probability it asserts, declared here ahead of every outcome,
+# and a forecast enters the ledger when a story ENTERS a state that carries one.
+#
+# EMERGING AND CONTESTED CARRY NONE, deliberately. Both mean "the system has not
+# taken a view", and recording that as 50% would score exactly 0.25 whatever
+# happened -- a row that says nothing and drags the narratives' running Brier toward
+# the coin, which would hide whether the states that DO claim something are
+# calibrated. A mapping that proves miscalibrated is corrected by editing these
+# numbers in a dated commit, never by revising a recorded forecast.
+probability_by_state:
+  consensus: 0.70
+  fading: 0.30
+
+narratives:
+
+  ai_capex_durability:
+    name: AI capex durability
+    direction: >-
+      The hyperscalers' AI capital spending keeps rising, and the market funds it.
+    story_query: ai_capex_durability
+    linked_dimensions: {trend: "+", credit: "+"}
+    linked_instruments: [NVDA, MSFT, GOOGL, AMZN, META]
+    prediction_market_contracts: []
+    implied_outcome:
+      claim: >-
+        At least three of AMZN, GOOGL, MSFT and META report larger quarterly
+        capital expenditure in their next filed quarter than in the last quarter
+        known when the forecast was emitted.
+      metrics: [yfinance.fund_amzn_capex, yfinance.fund_googl_capex,
+                yfinance.fund_msft_capex, yfinance.fund_meta_capex]
+      comparison: magnitude_up
+      quorum: 3
+      horizon_days: 120
+
+  fiscal_dominance:
+    name: Fiscal dominance
+    direction: >-
+      Deficits and Treasury supply, not the Fed, are setting the long end: the
+      term premium rises.
+    story_query: fiscal_dominance
+    linked_dimensions: {rates: "+", inflation: "+"}
+    linked_instruments: [fred.yield_30y, fred.yield_10y, acm.term_premium_10y]
+    prediction_market_contracts: []
+    implied_outcome:
+      claim: >-
+        The ACM 10-year term premium is higher at the horizon than it was when
+        the forecast was emitted.
+      metrics: [acm.term_premium_10y]
+      comparison: up
+      quorum: 1
+      horizon_days: 90
+
+  yen_carry:
+    name: The yen carry
+    direction: >-
+      Yen-funded carry is being unwound: the yen strengthens and cross-asset
+      volatility rises with it.
+    story_query: yen_carry
+    linked_dimensions: {volatility: "+", credit: "-"}
+    linked_instruments: [fred.usd_jpy, mof.jgb_10y, yfinance.mkt_vix]
+    prediction_market_contracts: []
+    implied_outcome:
+      claim: >-
+        USD/JPY (yen per dollar, FRED DEXJPUS) is lower at the horizon than when
+        the forecast was emitted -- the yen stronger.
+      metrics: [fred.usd_jpy]
+      comparison: down
+      quorum: 1
+      horizon_days: 60
+
+  midterm_cycle:
+    name: The midterm cycle
+    direction: >-
+      The midterm-year pattern: policy uncertainty weighs into the 3 November
+      election (cal.midterm_election_2026) and equities rally after it.
+    story_query: midterm_cycle
+    linked_dimensions: {trend: "+"}
+    linked_instruments: [yfinance.mkt_spy]
+    prediction_market_contracts: []
+    implied_outcome:
+      claim: >-
+        SPY closes 31 December 2026 above its close as known when the forecast
+        was emitted.
+      metrics: [yfinance.mkt_spy]
+      comparison: up
+      quorum: 1
+      horizon_date: "2026-12-31"

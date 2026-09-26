@@ -63,7 +63,7 @@ log = logging.getLogger("daily_cascade.weekly")
 
 # The five blocks, in order. Declared so the validator can assert completeness
 # against one list rather than against a shape it infers from a run.
-BLOCKS = ("week_in_state", "grades", "register", "week_ahead",
+BLOCKS = ("week_in_state", "grades", "register", "narratives", "week_ahead",
           "weekend_developments")
 
 # The instrument whose closes price a distance-to-invalidation. SPY, because that
@@ -333,6 +333,53 @@ def grades(ending: str) -> dict:
 # ---------------------------------------------------------------------------
 # Block 3 -- the register
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Block 3a -- the narrative register (6c-2)
+# ---------------------------------------------------------------------------
+def narratives_week(ending: str) -> dict:
+    """The register's stories and the proposals waiting on the operator.
+
+    THIS IS WHERE THE ONE HUMAN GATE IS PRINTED. A proposed story is never
+    evaluated by the transition rules, so it cannot reach consensus until the
+    operator runs the line printed beside it -- and a proposal nobody sees is a
+    proposal nobody confirms. The command is the register's own constant, so the
+    printed line and the CLI cannot drift apart.
+    """
+    out: dict[str, Any] = {"state": "absent", "reason": "", "week_ending": ending}
+    try:
+        from altdata import narratives as nr                    # noqa: PLC0415
+        with nr.NarrativeRegister() as reg:
+            rows = reg.all()
+    except Exception as exc:                                    # noqa: BLE001
+        out["reason"] = f"narrative register unreadable: {type(exc).__name__}: {exc}"
+        return out
+    if not rows:
+        out["state"] = "empty"
+        out["reason"] = ("the register holds no narratives -- the close pass seeds "
+                         "the four declared in config/narratives.yaml on its first "
+                         "run")
+        return out
+    out["state"] = "ok"
+    out["narratives"] = [
+        {"id": r["narrative_id"], "name": r["name"], "state": r["state"],
+         "direction": r["direction"], "opened": r["opened"],
+         "last_changed": r["last_changed"],
+         "evidence_for": len(r["evidence_for"]),
+         "evidence_against": len(r["evidence_against"]),
+         "linked_dimensions": r["linked_dimensions"]}
+        for r in rows if r["status"] == "active"]
+    out["proposals"] = [
+        {"id": r["narrative_id"], "name": r["name"], "direction": r["direction"],
+         "proposed_at": r["proposed_at"], "proposed_by": r["proposed_by"],
+         "basis_events": r["proposal_basis"],
+         "linked_dimensions": r["linked_dimensions"],
+         "implied_outcome": (r["implied_outcome"] or {}).get("claim"),
+         "confirm": nr.CONFIRM_COMMAND.format(id=r["narrative_id"]),
+         "reject": nr.REJECT_COMMAND.format(id=r["narrative_id"])}
+        for r in rows if r["status"] == "proposed"]
+    return out
+
+
 def _latest_close(db: observations.ObservationStore, instrument: str,
                   as_of: Optional[str] = None) -> Optional[float]:
     sym = (instrument or "").split("@")[0].strip().lower()
@@ -674,6 +721,7 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
         out["week_in_state"] = week_in_state(end, store=db)
         out["grades"] = grades(end)
         out["register"] = register_week(end, store=db)
+        out["narratives"] = narratives_week(end)
         out["week_ahead"] = week_ahead(end, store=db, fetch=fetch)
         out["weekend_developments"] = weekend_developments(ending=end,
                                                           as_of=cutoff)
