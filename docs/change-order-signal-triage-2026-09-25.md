@@ -60,6 +60,21 @@ Total ≈108 h of sessions + ≈5.5 h by hand. Tranche 5 shares nothing with Tra
 
 **1.2 Signal Triage Register.** `docs/signal-triage-register.md`, numbered, one record per proposal. Seeded by ST-0 with SR-1…SR-27; SR-10 is the Mechanism Watch (Thread D) — emerging-mechanism candidates live in the `mechanism_watch` store table and are referenced from SR-10, never duplicated into this register; SR-11 (consensus drift) is a reserved entry pointing at the 19 Sep batch's Part C in the backlog. The register is also the record of what was rejected and why (§12).
 
+*Status vocabulary (ruled 26 Sep, after ST-0).* Every entry carries exactly one status, upper case, in the form `STATUS — qualifier`:
+
+| Status | Meaning |
+|---|---|
+| `ADOPTED — pending build` | Ruled; nothing built yet |
+| `ADOPTED — gate pending` | Built; its calibration study has not yet run or reported |
+| `ADOPTED — rights live` | Gate passed; the flag or modifier carries the rights §6 grants it |
+| `DEFERRED — gate failed` | Built and tested; did not pass; kept as a note, no rights (§9) |
+| `DEFERRED — definition required` | Entered without its construction (§1.6); SR-19 |
+| `MERGED — into ‹item›` | Absorbed into another entry's build; SR-17 into `rates.driver` |
+| `REJECTED — as signal; ‹what was kept›` | The post is rejected; a named tell or note survives; SR-25 |
+| `RESERVED` | Placeholder for an order carried elsewhere; SR-11 |
+
+A session that writes to the register uses these strings and no others; the first session after ST-0 to touch the register normalises the labels ST-0 generated to this table.
+
 **1.3 Third-party rule.** A chart's or post's own conclusion is recorded but never inherits rights. Rights come only from the mechanized version passing its gate.
 
 **1.4 Point-in-time rule.** Every new feed carries `available_at`. Revised macro series are stored as first-print vintages where ALFRED offers them (G.19 consumer credit first); a signal that survives only on revised data is logged and gets no rights. Surveys, reports and papers are keyed on publication date, never fieldwork date. Manual inputs carry the date the operator entered them.
@@ -844,7 +859,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 
 **ST-4/ST-6.** DKW fetch renders STALE-not-empty on a simulated failure; `ABS_STRESS` and `ABS_FRAGILITY` display as candidates and cannot flip any Book state; TIC-derived metrics carry the vintage they were computed on; the Duration Absorption block renders in ≤18 lines and the Cheap-and-Unloved block in ≤10, every line populated or `NOT AVAILABLE` with source; `DEANCHOR` cannot fire on `fred.breakeven_5y5y` alone.
 
-**ST-7/ST-8/ST-9.** Each ledger states its data source, sample, statistic and pass/fail against the gate written in §3; a failed gate updates the register disposition to "defer — gate failed" with the statistic; a signal that survives only on revised data is logged and gets no rights.
+**ST-7/ST-8/ST-9.** Each ledger states its data source, sample, statistic and pass/fail against the gate written in §3; a passed gate sets the register status to `ADOPTED — rights live` and a failed one to `DEFERRED — gate failed`, each with the statistic (§1.2 vocabulary); a signal that survives only on revised data is logged and gets no rights.
 
 **ST-10/ST-11.** The numeral audit (D3) passes on every new Daily line; T&B composite weights unchanged; only one overlay candidate is in champion/challenger at a time per §2.6; the Sunday Mechanism Watch block renders STALE-not-empty on a simulated fetch failure and never blocks the anchor.
 
