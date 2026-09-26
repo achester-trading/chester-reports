@@ -90,7 +90,7 @@ def price_keys() -> list[str]:
 
 def fred_keys() -> list[str]:
     from . import config
-    return [f"fred.{s.key}" for s in config.FRED_SERIES]
+    return [f"fred.{s.key}" for s in config.FRED_PULL_SERIES]
 
 
 def logger_rosters() -> list[tuple[str, list[str]]]:

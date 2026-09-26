@@ -396,6 +396,21 @@ vocabularies:
     # measure and a ZEC price is a market one, and this family exists to watch
     # whether the two diverge -- which they cannot do inside one cluster.
     - privacy_chain
+    # RATES DECOMPOSITIONS (signal-triage order, ST-1). Every term-premium model
+    # -- Kim-Wright (fred.term_premium_kw), ACM (acm.*), the SF Fed model
+    # (sffed.*) and DKW (dkw.*) -- splits the SAME Treasury curve into an
+    # expected-rate path and a premium, so four models agreeing is one curve
+    # read four ways, not four witnesses. One cluster, deliberately: SR-6 asks
+    # for their sign disagreement to be surfaced, never for their agreement to
+    # be counted. Separate from macro_momentum, where the yields themselves
+    # live, because a premium and the yield it is carved out of would otherwise
+    # confirm each other by construction.
+    - rates_decomposition
+    # HOUSEHOLD ALLOCATION (Z.1 B.101). What households HOLD, which is a
+    # positioning stock rather than a sentiment reading or a flow -- SR-12's
+    # bond-allocation blend reads it. Its own group so an allocation share and a
+    # survey of what the same households say they feel cannot confirm each other.
+    - household_allocation
 
 defaults:
   trigger_eligible: false
@@ -2763,6 +2778,45 @@ bulk_imports:
       "6": macro_valuation_credit
       "7": macro_global_fx
       "8": macro_sovereign
+
+  fred_signal_triage:
+    description: >-
+      The FRED series the signal-triage order adds (ST-1, 26 Sep 2026): real and
+      front-end yields, the Kim-Wright term premium, fed funds, the NBER
+      recession flag, SOMA Treasuries, nominal GDP, AA and BBB OAS, G.19 consumer
+      credit, the real broad dollar and three Z.1 household rows. Pulled by the
+      same path as fred_macro (altdata/sources/fred.py over FRED_PULL_SERIES) and
+      written under the same `fred.` prefix, but a SEPARATE list and block,
+      because FRED_SERIES is what the Monthly and surprise v1 iterate and ST-1
+      may add neither a render change nor a calc.* series. Units are the
+      member's own, read off each FRED page on 26 Sep 2026: TREAST, TOTALSL,
+      REVOLSL, NONREVSL and the Z.1 rows are MILLIONS; GDP is billions SAAR.
+    source: fred
+    members_from: altdata.config.FRED_SIGNAL_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 17
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    # G.19, GDP and Z.1 are restated; the daily yields and OAS are not, but the
+    # block takes the stricter policy for all of them -- the rule that matters is
+    # that nothing here may carry a reconstructed availability, and `revised`
+    # is what forbids it. First prints for SR-5 come from ALFRED, not this pull.
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested (O.16)"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+      "2F": macro_consumer_stress
+      "2R": rates_decomposition
+      "3": macro_liquidity
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "HH": household_allocation
 
   market_closes:
     description: >-

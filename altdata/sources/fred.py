@@ -8,7 +8,10 @@ Limits:  Generous (~120 requests per 60s). We pause briefly between calls.
 Format:  Each series returns observations with 'date' and 'value' (string,
          '.' for missing). We coerce '.' to None.
 
-This module pulls every series in altdata.config.FRED_SERIES into the store.
+This module pulls every series in altdata.config.FRED_PULL_SERIES into the store:
+the Monthly's 59 (FRED_SERIES) and the signal-triage additions
+(FRED_SIGNAL_SERIES, ST-1). ONE FRED PATH -- a second fetcher for the new series
+would be a second answer to "which series does FRED feed and when".
 """
 
 from __future__ import annotations
@@ -70,9 +73,14 @@ def _fetch_series(fred_id: str, api_key: str, lookback_days: int) -> list[tuple[
     return [(o["date"], _parse_value(o.get("value"))) for o in obs]
 
 
-def pull(store: Store, lookback_days: int = 1500) -> dict:
+def pull(store: Store, lookback_days: int = 1500,
+         series: Optional[list] = None) -> dict:
     """
-    Pull every series defined in config.FRED_SERIES into the store.
+    Pull every series defined in config.FRED_PULL_SERIES into the store.
+
+    `series` narrows the pull to a subset of SeriesSpec entries -- for a first
+    pull of newly registered series without re-reading the other 59. The
+    scheduled pull never passes it.
 
     Returns a summary dict:
         {
@@ -88,10 +96,11 @@ def pull(store: Store, lookback_days: int = 1500) -> dict:
     failed: list[tuple[str, str]] = []
     series_info: dict[str, dict] = {}
 
-    total = len(config.FRED_SERIES)
+    specs = list(series) if series is not None else list(config.FRED_PULL_SERIES)
+    total = len(specs)
     log.info("Pulling %d FRED series, lookback=%d days", total, lookback_days)
 
-    for i, spec in enumerate(config.FRED_SERIES, start=1):
+    for i, spec in enumerate(specs, start=1):
         log.info("[%d/%d] %s (%s)", i, total, spec.key, spec.fred_id)
         try:
             obs = _fetch_series(spec.fred_id, api_key, lookback_days)

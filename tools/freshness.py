@@ -79,7 +79,7 @@ def _registry() -> dict:
 
 def _fred_freq(key: str) -> Optional[str]:
     leaf = key.split(".", 1)[-1]
-    for spec in config.FRED_SERIES:
+    for spec in config.FRED_PULL_SERIES:
         if spec.key == leaf:
             return spec.freq
     return None
@@ -289,7 +289,7 @@ def check_signals(keys: list, instrument: Optional[str] = None,
             half = m.get("information_half_life")
         elif key.startswith("fred.") and _fred_freq(key):
             # Registered by the bulk block, but only if the series actually
-            # exists in config.FRED_SERIES -- otherwise "fred.anything" would
+            # exists in config.FRED_PULL_SERIES -- otherwise "fred.anything" would
             # pass the registry check and then fail as missing data, which
             # blames the pipeline for a typo.
             half = fred_block.get("information_half_life")

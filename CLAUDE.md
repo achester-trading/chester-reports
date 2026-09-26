@@ -103,8 +103,12 @@ numerals were reassigned once already and every in-text numeral broke.
 ```
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
-                          description, pillar, units, freq) + ENABLED_SOURCES
-                          switches (fred on; eia/cftc/coingecko off)
+                          description, pillar, units, freq) in FRED_SERIES, the
+                          Monthly's set; 17 more in FRED_SIGNAL_SERIES (ST-1),
+                          pulled and freshness-watched but read by no report
+                          yet; FRED_PULL_SERIES is the union the pull walks.
+                          + ENABLED_SOURCES switches (fred on; eia/cftc/
+                          coingecko off)
   store.py                Store — one CSV per series, columns date/value/source/
                           as_of. Reads $ALTDATA_STORE, default ./data_store
   sources/

@@ -116,8 +116,64 @@ FRED_SERIES: list[SeriesSpec] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# FRED series added by the signal-triage order (ST-1, 26 Sep 2026).
+#
+# A SEPARATE LIST, NOT AN APPEND TO FRED_SERIES, and the separation is the point.
+# FRED_SERIES is the Monthly's set: its snapshot, its appendix and surprise v1's
+# calc.naive_expectation / calc.surprise_vs_naive families all iterate it, so one
+# line added there is a Monthly render change and two new calc.* series apiece --
+# which ST-1 may not make (features are ST-3/ST-4). These are pulled by the same
+# FRED path (sources/fred.py, via FRED_PULL_SERIES below), land under the same
+# `fred.` prefix, and reach the freshness roster; nothing else reads them yet.
+#
+# Pillar codes follow FRED_SERIES where a pillar fits. Two are new and resolve
+# through metrics_registry.yaml's fred_signal_triage block: "2R" (a term-premium
+# model's reading, mechanism group rates_decomposition) and "HH" (Z.1 household
+# holdings, household_allocation).
+#
+# UNITS WERE READ OFF EACH SERIES' FRED PAGE on 26 Sep 2026, not copied from a
+# neighbour -- see CLAUDE.md on WTREGEN. Three are traps: the G.19 consumer-credit
+# series are MILLIONS (TOTALSL 5,186,204 = $5.19tn), not the billions most
+# write-ups quote; TREAST is millions like WALCL; GDP is billions SAAR. The Z.1
+# rows are millions, quarterly, end of period.
+# ---------------------------------------------------------------------------
+
+FRED_SIGNAL_SERIES: list[SeriesSpec] = [
+    # Rates -- Thread R (SR-6, 15, 17, 22, 23)
+    SeriesSpec("tips_10y",         "DFII10",     "10-year TIPS real yield",         "2", "%",    "daily"),
+    SeriesSpec("yield_5y",         "DGS5",       "5-year Treasury yield",           "2", "%",    "daily"),
+    SeriesSpec("tbill_3m",         "DTB3",       "3-month T-bill, secondary market (discount basis)","2","%","daily"),
+    SeriesSpec("term_premium_kw",  "THREEFYTP10","10y term premium, Kim-Wright model","2R","%",   "daily"),
+    SeriesSpec("fed_funds",        "FEDFUNDS",   "Effective federal funds rate, monthly avg","3","%", "monthly"),
+    SeriesSpec("usrec",            "USREC",      "NBER recession indicator (1 = recession month)","2","0/1","monthly"),
+    SeriesSpec("soma_treasuries",  "TREAST",     "Fed SOMA Treasury holdings, Wednesday level","3","M","weekly"),
+    SeriesSpec("gdp_nominal",      "GDP",        "Nominal GDP, SAAR",               "2", "B",    "quarterly"),
+
+    # Credit -- SR-16 (AI credit absorption; the AA-BBB differential)
+    SeriesSpec("aa_oas",           "BAMLC0A2CAA","ICE BofA AA corporate OAS",       "6", "%",    "daily"),
+    SeriesSpec("bbb_oas",          "BAMLC0A4CBBB","ICE BofA BBB corporate OAS",     "6", "%",    "daily"),
+
+    # Consumer credit, G.19 -- SR-5. First prints come from ALFRED (O.16), not here.
+    SeriesSpec("consumer_credit_total",       "TOTALSL",  "Consumer credit outstanding, total (G.19)",  "2F","M","monthly"),
+    SeriesSpec("consumer_credit_revolving",   "REVOLSL",  "Consumer credit, revolving (G.19)",          "2F","M","monthly"),
+    SeriesSpec("consumer_credit_nonrevolving","NONREVSL", "Consumer credit, nonrevolving (G.19)",       "2F","M","monthly"),
+
+    # Dollar -- SR-14 / G-12. The nominal broad index is FRED_SERIES' `dxy`.
+    SeriesSpec("real_dollar_broad","RTWEXBGS",   "Real Broad Dollar Index (Jan 2006=100)","7","idx","monthly"),
+
+    # Z.1 household holdings (B.101, households and nonprofits) -- SR-12
+    SeriesSpec("hh_equities",      "HNOCEAQ027S","Households & nonprofits: corporate equities, level (Z.1)","HH","M","quarterly"),
+    SeriesSpec("hh_debt_securities","HNODSAQ027S","Households & nonprofits: debt securities, level (Z.1)","HH","M","quarterly"),
+    SeriesSpec("hh_deposits",      "DABSHNO",    "Households & nonprofits: currency, deposits and MMF shares, level (Z.1)","HH","M","quarterly"),
+]
+
+# Everything the FRED pull fetches and the freshness roster watches.
+FRED_PULL_SERIES: list[SeriesSpec] = FRED_SERIES + FRED_SIGNAL_SERIES
+
+
 # Quick lookup by key
-SERIES_BY_KEY = {s.key: s for s in FRED_SERIES}
+SERIES_BY_KEY = {s.key: s for s in FRED_PULL_SERIES}
 
 
 # Source enable/disable switches (v1 = FRED only)
@@ -131,7 +187,7 @@ ENABLED_SOURCES = {
 
 def all_fred_ids() -> list[str]:
     """Convenience: just the FRED IDs as a flat list."""
-    return [s.fred_id for s in FRED_SERIES]
+    return [s.fred_id for s in FRED_PULL_SERIES]
 
 
 def series_for_pillar(pillar: str) -> list[SeriesSpec]:
