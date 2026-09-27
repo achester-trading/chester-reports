@@ -41,7 +41,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Optional
 
 from altdata import events as ev_mod
-from altdata import session, surprise
+from altdata import session, source_tiers, surprise
 
 # How many of each kind the block prints. A block that printed everything would be
 # a feed reader; these caps are what make it a briefing. The COUNTS are always
@@ -123,17 +123,32 @@ def build(since: str, as_of: Optional[str] = None,
         by_type.setdefault(r["type"], []).append(r)
 
     # --- RELEASES, with the actual against the declared naive ---------------
+    # FED PRESS RELEASES BY KIND (Weekly edition 1, item 5): applications are a
+    # count only; every other kind is listed with its kind.
+    fed_counts: dict[str, int] = {}
+    listed_rel = []
+    for r in by_type.get("release") or []:
+        if source_tiers.is_fed(r["source"]):
+            k = source_tiers.fed_class(r["title"])
+            fed_counts[k] = fed_counts.get(k, 0) + 1
+            if not source_tiers.fed_listed(r["title"]):
+                continue
+        listed_rel.append(r)
+    out["fed_press_counts"] = fed_counts
     releases = []
-    for r in (by_type.get("release") or [])[-MAX_RELEASES:]:
+    for r in listed_rel[-MAX_RELEASES:]:
         releases.append({
             "when": r["observed_at"], "source": r["source"],
+            "fed_kind": (source_tiers.fed_class(r["title"])
+                         if source_tiers.is_fed(r["source"]) else None),
             "title": r["title"], "url": r.get("url"),
             "entities": r.get("entities") or [],
             "surprises": _surprise_for(r.get("entities") or [], cutoff,
                                        store=store),
         })
     out["releases"] = releases
-    out["releases_total"] = len(by_type.get("release") or [])
+    out["releases_total"] = len(listed_rel)
+    out["releases_count_only"] = len(by_type.get("release") or []) - len(listed_rel)
 
     # --- EARNINGS, with the real surprise ----------------------------------
     earnings = []
@@ -174,11 +189,16 @@ def build(since: str, as_of: Optional[str] = None,
         p = r.get("payload") or {}
         q = str(p.get("query") or "unattributed")
         s = stories.setdefault(q, {"query": q, "theme": p.get("theme"),
-                                   "count": 0, "top": []})
+                                   "count": 0, "counted": 0, "top": []})
         s["count"] += 1
+        tier = source_tiers.tier_of(r["title"])
+        if source_tiers.counted(r["title"]):
+            s["counted"] += 1
         if len(s["top"]) < MAX_HEADLINES_PER_QUERY:
             s["top"].append({"when": r["observed_at"], "title": r["title"],
-                             "url": r.get("url"), "source": r["source"]})
+                             "url": r.get("url"), "source": r["source"],
+                             "tier": tier if tier is not None else "unclassified",
+                             "counted": source_tiers.counted(r["title"])})
     out["headlines"] = sorted(stories.values(), key=lambda s: -s["count"])
     out["headlines_total"] = len(by_type.get("headline") or [])
     out["headline_note"] = (
@@ -186,7 +206,9 @@ def build(since: str, as_of: Optional[str] = None,
         "aggregator returned for a query declared in config/story_queries.yaml, "
         "capped per query per day, so the denominator is nobody's published "
         "figure. It cannot corroborate a price move: the story and the move are "
-        "one fact reported twice")
+        "one fact reported twice. Only tier 1 and 2 outlets are counted "
+        "(config/source_tiers.yaml); tier 3 and unclassified items are shown and "
+        "never counted")
 
     # --- SESSION EVENTS since, and the CALENDAR AHEAD ----------------------
     out["session_events"] = [
@@ -304,9 +326,10 @@ def html(block: dict) -> str:
     if not rel:
         out.append(f'<p style="{NOTE}">Nothing in the window.</p>')
     for r in rel:
+        kind = f' ({_esc(r["fed_kind"])})' if r.get("fed_kind") else ""
         out.append(f'<p style="{P}">{_esc(str(r["when"])[:16])} &middot; '
-                   f'{_esc(r["source"])} &mdash; {_link(r["title"], r.get("url"))}'
-                   f'</p>')
+                   f'{_esc(r["source"])}{kind} &mdash; '
+                   f'{_link(r["title"], r.get("url"))}</p>')
         for sp in r.get("surprises") or []:
             out.append(
                 f'<p style="{NOTE}">&nbsp;&nbsp;<code>{_esc(sp["metric"])}</code> '
@@ -315,6 +338,12 @@ def html(block: dict) -> str:
                 f' &rarr; <b>{_fmt(sp["surprise"])} {_esc(sp.get("units") or "")}</b>,'
                 f' {_fmt(sp["surprise_percentile"], 1)} percentile of its own '
                 f'surprise history. Naive, not a consensus.</p>')
+
+    fc = block.get("fed_press_counts") or {}
+    if fc.get("applications"):
+        out.append(f'<p style="{NOTE}">Fed applications approved, count only: '
+                   f'{fc["applications"]}. Not listed: an application decision '
+                   f'is supervision paperwork, not market news.</p>')
 
     earn = block.get("earnings") or []
     out.append(f'<p style="{P}"><b>Earnings '
@@ -354,11 +383,16 @@ def html(block: dict) -> str:
                    f'query.</p>')
     for sq in heads:
         out.append(f'<p style="{P}">{_esc(sq.get("theme") or sq["query"])} '
-                   f'&mdash; {sq["count"]} item(s)</p>')
+                   f'&mdash; {sq["count"]} item(s), '
+                   f'{sq.get("counted", 0)} counted</p>')
         for it in sq.get("top") or []:
+            tag = (f'tier {it["tier"]}' if it.get("tier") != "unclassified"
+                   else "unclassified")
+            tag += "" if it.get("counted") else ", not counted"
             out.append(f'<p style="{NOTE}">&nbsp;&nbsp;'
                        f'{_esc(str(it["when"])[:10])} '
-                       f'{_link(it["title"], it.get("url"))}</p>')
+                       f'{_link(it["title"], it.get("url"))} '
+                       f'<i>[{_esc(tag)}]</i></p>')
     out.append(f'<p style="{NOTE}">{_esc(block.get("headline_note"))}</p>')
 
     out.append(f'<p style="{P}"><b>Ahead, next {block.get("ahead_days")} '
@@ -436,7 +470,9 @@ def render(block: dict) -> str:
     if not rel:
         out.append("*Nothing in the window.*\n")
     for r in rel:
-        out.append(f"- **{str(r['when'])[:16]}** · {r['source']} — {r['title']}"
+        kind = f" ({r['fed_kind']})" if r.get("fed_kind") else ""
+        out.append(f"- **{str(r['when'])[:16]}** · {r['source']}{kind} — "
+                   f"{r['title']}"
                    + (f" ([source]({r['url']}))" if r.get("url") else ""))
         for s in r.get("surprises") or []:
             out.append(
@@ -446,6 +482,10 @@ def render(block: dict) -> str:
                 f"{s.get('units') or ''}**, {_fmt(s['surprise_percentile'], 1)}"
                 f" percentile of its own surprise history. *Naive, not a "
                 f"consensus.*")
+    fc = block.get("fed_press_counts") or {}
+    if fc.get("applications"):
+        out.append(f"\n*Fed applications approved, count only: "
+                   f"{fc['applications']}. Not listed.*")
     out.append("")
 
     earn = block.get("earnings") or []
@@ -479,10 +519,14 @@ def render(block: dict) -> str:
     if not heads:
         out.append("*No items returned for any declared query.*\n")
     for s in heads:
-        out.append(f"- **{s.get('theme') or s['query']}** — {s['count']} item(s)")
+        out.append(f"- **{s.get('theme') or s['query']}** — {s['count']} item(s), "
+                   f"{s.get('counted', 0)} counted")
         for it in s.get("top") or []:
+            tag = (f"tier {it['tier']}" if it.get("tier") != "unclassified"
+                   else "unclassified")
+            tag += "" if it.get("counted") else ", not counted"
             out.append(f"    - {str(it['when'])[:10]} [{it['title']}]"
-                       f"({it.get('url') or ''})")
+                       f"({it.get('url') or ''}) *[{tag}]*")
     out.append(f"\n*{block.get('headline_note')}*\n")
 
     ahead = block.get("ahead") or []

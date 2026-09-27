@@ -598,8 +598,13 @@ def rules_version(cfg: dict, nid: str) -> str:
     would be switched off.
     """
     import hashlib  # noqa: PLC0415
+    from . import source_tiers  # noqa: PLC0415
     spec = (cfg.get("narratives") or {}).get(nid)
-    blob = json.dumps({"rules": cfg.get("rules"), "spec": spec},
+    # THE SOURCE TIERS ARE PART OF THE RULE (Weekly edition 1, item 5): which
+    # headlines count decides attention and evidence, so a reclassified outlet is
+    # a declared rule change and the replay does not compare across it.
+    blob = json.dumps({"rules": cfg.get("rules"), "spec": spec,
+                       "source_tiers": source_tiers.config_hash()},
                       sort_keys=True, default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
@@ -634,6 +639,7 @@ def attention(ev_conn: sqlite3.Connection, query: Optional[str], day: str,
     one before it, Δ² is that change against the previous change. Every count is
     of rows knowable at `cutoff`.
     """
+    from . import source_tiers  # noqa: PLC0415
     out = {"query": query, "short_sessions": short, "long_sessions": long}
     if not query:
         out.update({"short": 0, "long": 0, "reason": "no story query declared"})
@@ -641,13 +647,21 @@ def attention(ev_conn: sqlite3.Connection, query: Optional[str], day: str,
     span = _sessions_back(day, 3 * long + 1)
     earliest = span[0]
     by_day: dict[str, int] = {}
-    for (obs,) in ev_conn.execute(
-            "SELECT observed_at FROM events WHERE type = 'headline' "
+    not_counted = 0
+    # TIERS 1 AND 2 ONLY (Weekly edition 1, item 5). A tier-3 or unclassified
+    # outlet is stored and shown, never counted: three republications of one wire
+    # story are not three units of attention.
+    for obs, title in ev_conn.execute(
+            "SELECT observed_at, title FROM events WHERE type = 'headline' "
             " AND available_at <= ? AND observed_at >= ? AND observed_at <= ? "
             " AND json_extract(payload, '$.query') = ?",
             (cutoff, earliest, cutoff, query)):
+        if not source_tiers.counted(title):
+            not_counted += 1
+            continue
         d = session.session_date(obs)
         by_day[d] = by_day.get(d, 0) + 1
+    out["not_counted_tier3_or_unclassified"] = not_counted
 
     def win(n: int, k: int) -> int:
         """The k-th window of n sessions back (0 = the latest)."""
@@ -753,6 +767,7 @@ def evidence(ev_conn: sqlite3.Connection, spec: dict, cutoff: str,
             (for_ids if sgn == want else against).append(eid)
 
     # 6c-3: headlines under the story's own query, signed by declared patterns.
+    from . import source_tiers  # noqa: PLC0415
     hr = rules.get("headlines") or {}
     if hr:
         query = spec.get("story_query")
@@ -773,6 +788,10 @@ def evidence(ev_conn: sqlite3.Connection, spec: dict, cutoff: str,
             sgn = score_headline(title, hr, phase)
             if sgn is None:
                 continue                   # not this rule's institution
+            if not source_tiers.counted(title):
+                unscored[str(eid)] = ("tier-3 or unclassified outlet -- stored "
+                                      "and shown, never counted")
+                continue
             if sgn == 0:
                 unscored[str(eid)] = "no declared pattern, or both, matched"
                 continue

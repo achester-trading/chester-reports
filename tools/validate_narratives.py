@@ -141,7 +141,7 @@ def put_object(store, day: str, direction: str) -> None:
 
 def put_headlines(day: str, n: int) -> list[int]:
     evs = [ev_mod.Event("headline", f"{day}T14:{i:02d}:00+00:00", "fixture_news",
-                        f"Fixture headline {day} {i}",
+                        f"Fixture headline {day} {i} - Reuters",
                         payload={"query": QUERY, "theme": "fixture"})
            for i in range(n)]
     with ev_mod.EventStore() as ev:
@@ -372,7 +372,7 @@ def group_j() -> None:
     check(ab["gamma_vs_trend"].get("fault") and "reason" not in ab["gamma_vs_trend"],
           "and a faulted row as {absent: true, fault}, never a reason")
     tops = [x for q in (b["events"].get("headlines_by_query") or {}).values()
-            for x in q.get("top") or []]
+            for x in (q.get("top") or []) + (q.get("shown_only") or [])]
     rows = (b["events"].get("releases") or []) + (b["events"].get("earnings")
                                                    or []) + tops
     check(bool(rows) and all(r.get("type") and r.get("source") for r in rows),
@@ -528,6 +528,93 @@ def group_k() -> None:
     para = tmpl.split("## Reference paragraph")[1].split("\n## ")[0]
     check(not nv.state_contradictions(para, ms),
           "the template's reference paragraph names no state against this object")
+
+
+def group_l() -> None:
+    print(f"{LINE}\nL. SOURCE TIERS AND FED PRESS KINDS (Weekly ed. 1, item 5)\n{LINE}")
+    from altdata import source_tiers as st_
+    from daily_cascade import events_block, story_block
+    check(st_.tier_of("x - WSJ") == 1 and st_.tier_of("x - Seeking Alpha") == 3
+          and st_.tier_of("x - The Japan Times") == 2,
+          "wires tier 1, regional/trade tier 2, aggregators tier 3")
+    check(st_.tier_of("x - Brand New Outlet") is None
+          and not st_.counted("x - Brand New Outlet")
+          and not st_.counted("no attribution at all"),
+          "an unclassified outlet is not counted until it is classified")
+
+    day = "2026-08-12"
+    titles = [f"Deficit story {i} - {o}" for i, o in enumerate(
+        ["Reuters", "Bloomberg", "The Japan Times", "finance.biggo.com",
+         "Seeking Alpha", "Brand New Outlet"])]
+    with ev_mod.EventStore() as ev:
+        ev.write_many([ev_mod.Event("headline", f"{day}T1{i}:00:00+00:00", "fx", t,
+                                    payload={"query": "fiscal_dominance"})
+                       for i, t in enumerate(titles)],
+                      available_at=f"{day}T20:00:00+00:00")
+        att = nr.attention(ev.conn, "fiscal_dominance", day,
+                           f"{day}T21:00:00+00:00", 5, 20)
+    check(att["short"] == 3 and att["not_counted_tier3_or_unclassified"] == 3,
+          f"attention counts the three tier-1/2 items and not the other three "
+          f"(counted {att['short']}, not counted "
+          f"{att['not_counted_tier3_or_unclassified']})")
+
+    yc = nr.load_config()["narratives"]["yen_carry"]
+    t3 = "Carry Trade Exodus Fuels Yen Gain Ahead of BOJ Rate Decision - TradingView"
+    with ev_mod.EventStore() as ev:
+        ev.write_many([ev_mod.Event("headline", "2026-08-13T10:00:00+00:00", "fx",
+                                    t3, payload={"query": "yen_carry"})],
+                      available_at="2026-08-13T12:00:00+00:00")
+        eid = ev.conn.execute("SELECT MAX(id) FROM events").fetchone()[0]
+        store = observations.ObservationStore()
+        try:
+            got = nr.evidence(ev.conn, yc, "2026-08-13T21:00:00+00:00", 60, store)
+        finally:
+            store.close()
+    check(eid not in got["for"] and "never counted" in got["unscored"].get(
+              str(eid), ""),
+          "a tier-3 headline the patterns score FOR is not evidence")
+
+    cfg = nr.load_config()
+    before = nr.rules_version(cfg, "yen_carry")
+    saved = st_._CFG
+    try:
+        st_._CFG = dict(st_.load(), counted_tiers=[1])
+        after = nr.rules_version(cfg, "yen_carry")
+    finally:
+        st_._CFG = saved
+    check(before != after,
+          "a change to the tiers changes every story's rules_version")
+
+    fed = [("Federal Reserve Board announces approval of application by Peoples "
+            "Bancorp Inc.", "applications"),
+           ("Federal Reserve issues FOMC statement", "monetary_policy"),
+           ("Speech by Governor Waller on the economic outlook", "speeches"),
+           ("Federal Reserve Board issues enforcement action with former employee "
+            "of Regions Bank", "supervision")]
+    check(all(st_.fed_class(t) == k for t, k in fed),
+          "fed_press titles classify: applications / monetary policy / speeches "
+          "/ supervision")
+    with ev_mod.EventStore() as ev:
+        ev.write_many([ev_mod.Event("release", f"2026-08-20T1{i}:00:00+00:00",
+                                    "fed_press", t) for i, (t, _) in enumerate(fed)],
+                      available_at="2026-08-20T20:00:00+00:00")
+    b = story_block.build("2026-08-19", "2026-08-21T11:00:00+00:00")
+    kinds = [r.get("fed_kind") for r in b["events"]["releases"]]
+    check("applications" not in kinds and len(kinds) == 3
+          and b["events"]["fed_press_counts"].get("applications") == 1,
+          f"the morning payload lists three and counts the application ({kinds})")
+    app_ids = [r[0] for r in ev_mod.EventStore().conn.execute(
+        "SELECT id FROM events WHERE title LIKE 'Federal Reserve Board announces "
+        "approval%' AND observed_at LIKE '2026-08-20%'")]
+    check(not set(app_ids) & set(b["citable_event_ids"]),
+          "and an application is never citable")
+    eb = events_block.build("2026-08-19T20:00:00+00:00",
+                            as_of="2026-08-21T11:00:00+00:00")
+    h = events_block.html(eb)
+    check("count only: 1" in h and "Peoples Bancorp" not in h
+          and "(monetary_policy)" in h,
+          "the events block prints applications as a count and lists the rest "
+          "with their kind")
 
 
 def group_e() -> None:
@@ -692,7 +779,8 @@ def group_h() -> None:
     day = "2026-09-24"
     with ev_mod.EventStore() as ev:
         ev.write_many([ev_mod.Event("headline", f"{day}T0{i}:00:00+00:00", "fx",
-                                    t, payload={"query": "yen_carry"})
+                                    t if " - " in t else f"{t} - Reuters",
+                                    payload={"query": "yen_carry"})
                        for i, t in enumerate([ex["for"], ex["against"],
                                               "Yen carry explained"])],
                       available_at=f"{day}T12:00:00+00:00")
@@ -722,7 +810,8 @@ def group_h() -> None:
                   ("2026-10-21", "Stocks rally into the midterms"),
                   ("2026-11-10", "Stocks rally after the midterm vote"),
                   ("2026-11-11", "Stocks slump after the midterm vote")]
-        ev.write_many([ev_mod.Event("headline", f"{d}T15:00:00+00:00", "fx", t,
+        ev.write_many([ev_mod.Event("headline", f"{d}T15:00:00+00:00", "fx",
+                                    f"{t} - Reuters",
                                     payload={"query": "midterm_cycle"})
                        for d, t in titles],
                       available_at="2026-11-12T00:00:00+00:00")
@@ -859,7 +948,7 @@ def group_i() -> None:
 def main() -> int:
     print(f"{LINE}\nThe narrative register and the 07:00 scan (6c-2)\n{LINE}")
     for g in (groups_abc, group_d, group_e, group_g, group_h, group_i,
-              group_j, group_k):
+              group_j, group_k, group_l):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

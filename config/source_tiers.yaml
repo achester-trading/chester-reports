@@ -1,0 +1,129 @@
+# source_tiers.yaml -- which outlets a story's attention may count, and what
+# kind of thing a Federal Reserve press release is. (Weekly edition 1, item 5)
+#
+# -----------------------------------------------------------------------------
+# WHY A HEADLINE IS NOT A HEADLINE
+# -----------------------------------------------------------------------------
+# A story's ATTENTION is a count of headlines under its declared query, and the
+# register's states move on that count. The feed is a free aggregator, so the
+# count was whatever it returned: on 27 September the yen carry's newest item was
+# from finance.biggo.com and the midterm cycle's from a syndicated listicle. A
+# content farm that republishes a wire story three times is three units of
+# "attention" and zero new information. So outlets are tiered, and ATTENTION AND
+# EVIDENCE COUNT TIERS 1 AND 2 ONLY. Tier 3 is stored and shown -- a reader may
+# want to see what the aggregator surfaced -- and never counted.
+#
+#   tier 1   wires and major outlets: original reporting, an editor, a masthead
+#   tier 2   regional, trade and research: real sources with a narrower beat
+#            (national papers outside the US, sell- and buy-side research,
+#            think tanks and official bodies)
+#   tier 3   aggregators, platforms and content farms: republishing, SEO copy,
+#            marketing, exchange and broker blogs
+#
+# AN OUTLET NOT LISTED IS UNCLASSIFIED AND IS NOT COUNTED. Defaulting unknowns to
+# tier 2 would let a new content farm move a story's state the day it first
+# appears; defaulting them to tier 3 silently would hide that the list is
+# incomplete. So they are counted like tier 3 and LISTED as unclassified in the
+# reports, which is the prompt to add them here.
+#
+# The outlet is the text after the last " - " in the stored title, which is how
+# Google News attributes an item. Matching is case-insensitive and exact against
+# the names and aliases below. The mapping is hashed into each narrative
+# evaluation's rules_version, so a reclassification is a declared rule change and
+# the replay gate does not compare across it.
+version: source-tiers-v1
+updated: 2026-09-27
+
+unclassified_counts_as: 3
+counted_tiers: [1, 2]
+
+tiers:
+  1:
+    - Reuters
+    - reuters.com
+    - Bloomberg
+    - bloomberg.com
+    - Bloomberg.com
+    - Associated Press
+    - AP News
+    - WSJ
+    - The Wall Street Journal
+    - Financial Times
+    - FT.com
+    - CNBC
+    - cnbc.com
+    - The New York Times
+    - The Washington Post
+    - The Economist
+    - Nikkei Asia
+    - Barron's
+    - The Globe and Mail
+    - BBC
+    - The Guardian
+  2:
+    - The Japan Times
+    - 조선일보
+    - The Berkshire Edge
+    - Investor's Business Daily
+    - Fortune
+    - Forbes
+    - FactSet Insight
+    - MSCI
+    - Brookings
+    - Cato Institute
+    - Congressional Budget Office (.gov)
+    - Goldman Sachs
+    - Goldman Sachs Asset Management
+    - J.P. Morgan
+    - Morgan Stanley
+    - UBS
+    - T. Rowe Price
+    - Neuberger Berman
+    - Fidelity Investments
+    - cib.natixis.com
+    - Yardeni QuickTakes
+  3:
+    - TradingView
+    - Seeking Alpha
+    - Yahoo Finance
+    - Yahoo Finance UK
+    - finance.biggo.com
+    - 24/7 Wall St.
+    - webull.com
+    - Markets.com
+    - Crypto News
+    - MacroMicro
+    - debuglies.com
+    - yesigiveafig.com
+    - EBC Financial Group
+    - Binance
+    - Chase Bank
+    - The Dark Side Of The Boom
+
+# -----------------------------------------------------------------------------
+# FEDERAL RESERVE PRESS RELEASES, BY KIND
+# -----------------------------------------------------------------------------
+# fed_press carries everything the Board publishes, and most of it is not market
+# news: on 26 September the only release since the close was an approval of a
+# bank holding company's application, and the morning prose spent a sentence on
+# it. Classified by declared title patterns, FIRST MATCH WINS in this order.
+# APPLICATIONS ARE A COUNT ONLY: never listed, never citable, never evidence.
+# A title that matches nothing is `other` and is listed, so a new kind is seen.
+fed_press_classes:
+  - class: applications
+    patterns: ['(?i)\bapproval of (?:the )?application', '(?i)\bapplications? (?:by|from)\b']
+    listed: false
+  - class: monetary_policy
+    patterns: ['(?i)\bFOMC\b', '(?i)Federal Open Market Committee', '(?i)\bdiscount rate',
+               '(?i)\bmonetary policy', '(?i)\beconomic projections', '(?i)\bBeige Book']
+    listed: true
+  - class: speeches
+    patterns: ['(?i)\bspeech\b', '(?i)\btestimony\b', '(?i)\bremarks\b', '(?i)\bto testify\b']
+    listed: true
+  - class: supervision
+    patterns: ['(?i)\benforcement actions?\b', '(?i)\bsupervis', '(?i)\bregulat',
+               '(?i)\bstress test', '(?i)\bcapital\b', '(?i)\bguidance\b',
+               '(?i)\bexam(?:ination)? cycle', '(?i)^Agencies\b', '(?i)\bproposals?\b',
+               '(?i)\bframework\b']
+    listed: true
+fed_press_sources: [fed_press, fed_monetary]

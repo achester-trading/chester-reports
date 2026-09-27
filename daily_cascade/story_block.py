@@ -39,6 +39,7 @@ from typing import Any, Optional
 from altdata import events as ev_mod
 from altdata import narratives as nr
 from altdata import observations, session
+from altdata import source_tiers
 
 # How many headlines per story the payload carries by id. The COUNT is always the
 # full count; the cap is on what the model is shown to cite.
@@ -57,16 +58,28 @@ def _events(since: str, cutoff: str, db_path: Optional[str]) -> dict:
     with ev_mod.EventStore(db_path) as ev:
         rows = ev.since(since, as_of=cutoff)
     out: dict[str, Any] = {"releases": [], "earnings": [], "filings": [],
-                           "headlines_by_query": {}, "counts": {}}
+                           "headlines_by_query": {}, "counts": {},
+                           "fed_press_counts": {}}
     for r in rows:
         t = r["type"]
         out["counts"][t] = out["counts"].get(t, 0) + 1
         p = r.get("payload") or {}
+        # FED PRESS RELEASES BY KIND (Weekly edition 1, item 5). Applications
+        # are a count only: never listed, so never citable and never prose.
+        if t == "release" and source_tiers.is_fed(r["source"]):
+            kind = source_tiers.fed_class(r["title"])
+            out["fed_press_counts"][kind] = out["fed_press_counts"].get(kind, 0) + 1
+            if not source_tiers.fed_listed(r["title"]):
+                continue
         if t == "release":
             out["releases"].append({"event_id": r["id"], "type": t,
                                     "when": r["observed_at"],
                                     "source": r["source"], "title": r["title"],
-                                    "entities": r.get("entities") or []})
+                                    "entities": r.get("entities") or [],
+                                    **({"fed_kind": source_tiers.fed_class(
+                                        r["title"])}
+                                       if source_tiers.is_fed(r["source"])
+                                       else {})})
         elif t == "earnings":
             out["earnings"].append({"event_id": r["id"], "type": t,
                                     "source": r["source"],
@@ -84,12 +97,25 @@ def _events(since: str, cutoff: str, db_path: Optional[str]) -> dict:
         elif t == "headline":
             q = str(p.get("query") or "unattributed")
             s = out["headlines_by_query"].setdefault(
-                q, {"query": q, "theme": p.get("theme"), "count": 0, "top": []})
+                q, {"query": q, "theme": p.get("theme"), "count": 0,
+                    "counted": 0, "not_counted": 0, "top": [], "shown_only": []})
             s["count"] += 1
-            if len(s["top"]) < MAX_HEADLINES_PER_QUERY:
-                s["top"].append({"event_id": r["id"], "type": t,
-                                 "source": r["source"], "title": r["title"],
-                                 "when": r["observed_at"]})
+            tier = source_tiers.tier_of(r["title"])
+            item = {"event_id": r["id"], "type": t, "source": r["source"],
+                    "title": r["title"], "when": r["observed_at"],
+                    "outlet": source_tiers.outlet_of(r["title"]),
+                    "tier": tier if tier is not None else "unclassified"}
+            # TIERS 1-2 COUNT AND MAY BE CITED; TIER 3 AND UNCLASSIFIED ARE SHOWN
+            # BY OUTLET, NEVER COUNTED AND NEVER CITABLE (item 5).
+            if source_tiers.counted(r["title"]):
+                s["counted"] += 1
+                if len(s["top"]) < MAX_HEADLINES_PER_QUERY:
+                    s["top"].append(item)
+            else:
+                s["not_counted"] += 1
+                s["shown_only"].append({k: item[k] for k in
+                                        ("type", "source", "title", "outlet",
+                                         "tier", "when")})
     out["releases_total"] = len(out["releases"])
     out["releases"] = out["releases"][-MAX_RELEASES:]
     out["earnings_total"] = len(out["earnings"])
