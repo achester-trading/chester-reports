@@ -14,11 +14,18 @@ one structural difference is that this report has a fetch in front of it, and th
 fetch is a SEPARATE UNIT at 06:45 precisely so that this process still cannot
 fail for a transport reason: a dead fetch is a block that says why, not a crash.
 
-WHY IT CONTAINS NO SENTENCES (32.5). Narrative arrives at D4e, gated on D3's
-numeral audit. Until something can FAIL a block for containing a number that is
-not in its payload, the safe version of this report is the one with no prose to
-audit. tools/validate_daily_close.py reads every module in this package and
-fails on any import of an LLM client or the narrative layer.
+WHY IT CONTAINED NO SENTENCES, AND WHAT CHANGED (32.5; 6c-2). Narrative was
+gated on D3's numeral audit: until something could FAIL a block for containing a
+number not in its payload, the safe version of this report was the one with no
+prose. The audit exists, so 6c-2 gives the anchor its first model call -- the
+news and narrative scan (Audit #3 §I, Daily Cascade v2 Part 0.4) -- over the story
+block's payload only, pinned (narrative.MORNING_MODEL), thinking off, at print
+precision, behind the numeral audit, the type audit and a traceability check on
+every cited event id. A withheld draft is logged and the anchor ships its
+data-only edition. The data path still cannot reach a model: the narrative module
+is imported inside _narrative_scan() and nowhere else, and
+tools/validate_daily_close.py checks that in the source and in a clean process.
+`--no-narrative` is the data-only edition on demand.
 
 EXIT CODES. The report is the product; delivery is transport.
     0  report built (and delivered, or deliberately not sent)
@@ -65,6 +72,10 @@ def main() -> int:
                     help="Skip the dashboard state record")
     ap.add_argument("--archive-dir", help="Override the archive directory")
     ap.add_argument("--db", help="Override the observation store")
+    ap.add_argument("--no-narrative", action="store_true",
+                    help="skip the narrative scan: the data-only edition")
+    ap.add_argument("--narrative-model", default=None,
+                    help="override the pinned morning model")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -104,10 +115,13 @@ def main() -> int:
                  as_of=_as_date(sess))
         return 1
 
+    narr, proposals = _narrative_scan(p, args, run_id)
+
     name = f"morning_anchor_{sess}.html"
     subject = f"[chester] Morning anchor {sess}"
     html = render_mod.render(p, {"archive_path":
-                                 delivery.archive_path(name, args.archive_dir)})
+                                 delivery.archive_path(name, args.archive_dir)},
+                             narrative=narr)
 
     if args.dry_run:
         path = delivery.archive(html, name, args.archive_dir)
@@ -146,12 +160,83 @@ def main() -> int:
                      "exposure_symbols": len(p["exposure"]),
                      "pin_rows": len(p["pins"]),
                      "portfolio": p["portfolio"]["state"],
+                     "narrative_state": getattr(narr, "state", "not_attempted"),
+                     "narrative_model": getattr(narr, "model", None),
+                     "narrative_verdicts": (narr.verdicts() if narr is not None
+                                            else None),
+                     "narrative_proposals": proposals,
                      "delivery": out["delivery"],
                      "archive": out["archive_path"],
                      "warnings": p["warnings"]},
              as_of=_as_date(sess))
 
     return 2 if out["delivery"] == "send_failed" else 0
+
+
+def _narrative_scan(p: dict, args, run_id: str):
+    """THE ANCHOR'S FIRST MODEL CALL (6c-2). (result, proposals written).
+
+    Over the story block's payload only, behind the numeral and type audit and a
+    traceability check on every cited event id. Imported HERE and not at the top,
+    exactly as the close report does, so importing the data path pulls in no model:
+    tools/validate_daily_close.py asserts that in a clean process.
+
+    A PROPOSAL the model appends is validated by the register and written as
+    `proposed`; one that fails is logged and dropped, and the prose publishes
+    regardless. Never raises: a missing paragraph is a data-only edition, which is
+    a complete report.
+    """
+    if args.no_narrative:
+        return None, []
+    try:
+        from daily_cascade import narrative as narrative_mod  # noqa: PLC0415
+        from daily_cascade import story_block                 # noqa: PLC0415
+        block = p.get("stories") or {}
+        np_ = story_block.narrative_payload(block, p.get("what_changed"))
+        narr = narrative_mod.generate(
+            np_, model=args.narrative_model or narrative_mod.MORNING_MODEL,
+            system_prompt=narrative_mod.morning_system_prompt(),
+            guide_path=narrative_mod.MORNING_TEMPLATE_PATH,
+            max_chars=narrative_mod.MORNING_MAX_CHARS, one_paragraph=False,
+            split=narrative_mod.split_proposals,
+            citable_ids=block.get("citable_event_ids") or [],
+            cite_word=story_block.CITE_WORD)
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("narrative scan failed to run: %s: %s",
+                    type(exc).__name__, exc)
+        return None, []
+    v = narr.verdicts()
+    print(f"  narrative  : {narr.state} (model {narr.model}) -- numeral "
+          f"{v['numeral']}; type {v['type']}; traceability {v['traceability']}")
+    if not narr.published:
+        log.warning("narrative withheld (state=%s): %s", narr.state, narr.reason)
+        if narr.rejected_text:
+            # LOGGED, NEVER RENDERED: the draft the audit rejected, so a human
+            # can see whether the audit was right.
+            log.info("  withheld draft (NOT published): %s", narr.rejected_text)
+    written = []
+    extra = narr.extra or {}
+    if extra.get("parse_error"):
+        log.warning("proposals block unreadable: %s", extra["parse_error"])
+    for prop in extra.get("proposals") or []:
+        nid = str(prop.get("id") or "")
+        try:
+            from altdata import narratives as nr                # noqa: PLC0415
+            allowed = set((p.get("stories") or {}).get("citable_event_ids") or [])
+            basis = [int(x) for x in prop.get("basis_events") or []]
+            if not set(basis) <= allowed:
+                raise nr.NarrativeError(
+                    f"basis events {sorted(set(basis) - allowed)} are not in this "
+                    f"morning's payload")
+            with nr.NarrativeRegister(args.db) as reg:
+                reg.propose(nid, prop, basis,
+                            proposed_by=f"morning_anchor:{narr.model}:{run_id}")
+            written.append(nid)
+            print(f"  proposal   : {nid} written as proposed -- awaits "
+                  f"`{nr.CONFIRM_COMMAND.format(id=nid)}`")
+        except Exception as exc:                               # noqa: BLE001
+            log.warning("proposal %r refused: %s", nid, exc)
+    return narr, written
 
 
 def _as_date(s: str):

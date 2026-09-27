@@ -164,6 +164,68 @@ is a second regime, and then nothing can say which one a decision was made under
 """
 
 
+# ---------------------------------------------------------------------------
+# THE 07:00 NARRATIVE SCAN (6c-2) -- the anchor's first model call
+# ---------------------------------------------------------------------------
+MORNING_MODEL = os.environ.get("MORNING_NARRATIVE_MODEL", "claude-sonnet-5")
+MORNING_TEMPLATE_PATH = REPO / "docs" / "narrative-template-morning.md"
+# A RUNAWAY GUARD, not a word count -- the Weekly's argument. The block runs as long
+# as the analysis warrants; this is the point at which a reply has lost the thread.
+MORNING_MAX_CHARS = 12000
+PROPOSALS_MARKER = "PROPOSALS:"
+
+
+def morning_system_prompt() -> str:
+    """The morning scan's brief: the close rules, the scan's coverage."""
+    return SYSTEM_PROMPT + (
+        "\n\nTHIS IS THE 07:00 NARRATIVE SCAN, not the close report. It reads the "
+        "stories the market is trading, from STORED events and the narrative "
+        "register. Differences:\n"
+        "\n1. LENGTH IS WHAT THE ANALYSIS NEEDS. No word count; several paragraphs "
+        "are correct when there is several things to say. The first sentences "
+        "answer what changed overnight and whether it matters; the depth follows. "
+        "Ignore the one-paragraph rule above.\n"
+        "\n2. COVER, in this order: which stories gained or lost force overnight "
+        "(`register.transitions_overnight`, and attention); which are consensus "
+        "and which contested (`register.stories[].state` -- NEVER assign a state "
+        "yourself: the declared rules set it); where the market's story and the "
+        "data disagree (every open `narrative_vs_data.*` row in `contradictions`, "
+        "naming the linked dimension that points the other way); what happened "
+        "since the previous close (`events`); and what would change each story "
+        "under the rules (`register.rules` states them).\n"
+        "\n3. EVERY CLAIM TRACES TO AN EVENT ID OR AN OBSERVATION. Cite a stored "
+        "event as `event 257` -- the word event, then the id, exactly as in "
+        "`citable_event_ids`. An id not in that list withholds the whole block.\n"
+        "\n4. A RELEASE'S SURPRISE IS AGAINST A NAIVE EXPECTATION, never a "
+        "consensus; an earnings surprise is against the analyst mean. Say which.\n"
+        "\n5. PROPOSALS, ONLY IF WARRANTED. If the events show a story the register "
+        "does not hold, append after the prose a line reading exactly "
+        f"`{PROPOSALS_MARKER}` and then a JSON array, per the template. Each "
+        "proposal needs id, name, direction, linked_dimensions, implied_outcome "
+        "(claim, metrics, comparison, quorum, horizon_days) and basis_events from "
+        "citable_event_ids. A proposal waits for the operator; it is never "
+        "evaluated before. Emit no block when there is nothing to propose.\n"
+        "\n6. NO RECOMMENDATION. Stories are what the market believes. This block "
+        "never touches a position.\n")
+
+
+def split_proposals(text: str) -> tuple[str, dict]:
+    """(prose, {"proposals": [...]} or {"parse_error": ...}). Never raises."""
+    idx = text.find(PROPOSALS_MARKER)
+    if idx < 0:
+        return text, {"proposals": []}
+    prose, tail = text[:idx].rstrip(), text[idx + len(PROPOSALS_MARKER):].strip()
+    import json as _json  # noqa: PLC0415
+    tail = tail.strip("`").removeprefix("json").strip()
+    try:
+        items = _json.loads(tail)
+    except ValueError as exc:
+        return prose, {"proposals": [], "parse_error": f"not JSON: {exc}"}
+    if not isinstance(items, list):
+        return prose, {"proposals": [], "parse_error": "not a JSON array"}
+    return prose, {"proposals": [x for x in items if isinstance(x, dict)]}
+
+
 @dataclass
 class NarrativeResult:
     """What happened, in enough detail for the footer and the state row."""
@@ -184,13 +246,50 @@ class NarrativeResult:
     # inventing a ratio out of two payload numbers produce identical withheld
     # lines and need opposite fixes.
     rejected_text: Optional[str] = None
+    # WHAT A BRIEF'S `split` HOOK TOOK OUT OF THE REPLY BEFORE THE AUDIT -- the
+    # morning scan's structured PROPOSALS block. Never audited as prose and never
+    # rendered; the caller validates it on its own terms.
+    extra: Any = None
+    # The event ids the prose cited, and any that the payload does not carry.
+    cited_ids: list[int] = field(default_factory=list)
+    untraceable: list[int] = field(default_factory=list)
 
     @property
     def published(self) -> bool:
         return bool(self.text) and self.state == "published"
 
+    def verdicts(self) -> dict:
+        """The two audits, reported apart. (6c-2)
+
+        ONE AUDIT, TWO QUESTIONS. altdata/numeral_audit.audit() answers both in one
+        pass and folds them into one pass/fail: does every numeral exist in the
+        payload (the NUMERAL audit), and does the unit word beside it agree with
+        what that value is (the TYPE audit). A withheld paragraph needs the two
+        apart, because they are fixed in different places -- a missing figure is a
+        payload or a model problem, a type conflict is a sentence calling a true
+        number the wrong kind of thing.
+        """
+        if self.audit is None:
+            return {"numeral": "not_run", "type": "not_run",
+                    "traceability": "not_run"}
+        missing = [f.text for f in self.audit.unmatched if not f.type_conflict]
+        typed = [f"{f.text} ({f.type_conflict})" for f in self.audit.unmatched
+                 if f.type_conflict]
+        return {
+            "numeral": (f"pass ({len(self.audit.figures)} figures)" if not missing
+                        else f"fail ({len(missing)}: {', '.join(missing[:6])})"),
+            "type": ("pass" if not typed
+                     else f"fail ({len(typed)}: {'; '.join(typed[:4])})"),
+            "traceability": ("pass" if not self.untraceable else
+                             f"fail (event ids not in the payload: "
+                             f"{self.untraceable[:8]})"),
+        }
+
     def withheld_note(self) -> str:
         """The one line the data-only edition carries in place of the prose."""
+        if self.state == "untraceable":
+            return (f"narrative withheld: it cites event ids the payload does not "
+                    f"carry ({', '.join(str(i) for i in self.untraceable[:6])})")
         if self.state == "audit_failed":
             n = len(self.unmatched)
             return (f"narrative withheld: numeral audit failed on {n} "
@@ -264,7 +363,9 @@ def generate(payload: dict, *, model: Optional[str] = None,
              unit_constants: Optional[list] = None,
              client=None, system_prompt: Optional[str] = None,
              guide_path=None, max_chars: Optional[int] = None,
-             one_paragraph: bool = True) -> NarrativeResult:
+             one_paragraph: bool = True, split=None,
+             citable_ids: Optional[Any] = None,
+             cite_word: str = "event") -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
@@ -363,6 +464,21 @@ def generate(payload: dict, *, model: Optional[str] = None,
                           f"blocks={kinds}, output_tokens={spent})")
         log.warning("narrative withheld: %s", res.reason)
         return res
+    # A BRIEF MAY CARRY A STRUCTURED TAIL (6c-2: the morning scan's PROPOSALS
+    # block). It is taken off BEFORE any prose rule runs -- length, markdown, the
+    # audit -- because it is not prose: a proposal's horizon_days is not a figure
+    # the paragraph claims, and auditing it as one would withhold every morning
+    # that proposed anything. The caller validates what was split off.
+    if split is not None:
+        try:
+            text, res.extra = split(text)
+        except Exception as exc:                               # noqa: BLE001
+            res.extra = {"split_error": f"{type(exc).__name__}: {exc}"}
+        text = (text or "").strip()
+        if not text:
+            res.state = "empty"
+            res.reason = "the reply held a structured block and no prose"
+            return res
     # SET BEFORE EVERY REJECTION BELOW, so no branch can forget it. It is not
     # `text`: that field is what gets published, and a rejected paragraph must be
     # impossible to publish by accident.
@@ -419,6 +535,25 @@ def generate(payload: dict, *, model: Optional[str] = None,
     result = numeral_audit.audit(text, payload, extra_values=unit_constants)
     res.audit = result
     res.figures_checked = len(result.figures)
+
+    # TRACEABILITY (6c-2). Where a brief lets the prose cite stored events, every
+    # cited id must be one the payload carries. The numeral audit alone would pass
+    # "event 48" whenever 48 appeared anywhere in the payload -- as a count, say --
+    # so the citation is checked against the ID SET, not against the numbers.
+    if citable_ids is not None:
+        import re as _re  # noqa: PLC0415
+        allowed = {int(i) for i in citable_ids}
+        cited = [int(m) for m in _re.findall(
+            rf"\b{_re.escape(cite_word)}s?\s+(\d+)", text, flags=_re.I)]
+        res.cited_ids = sorted(set(cited))
+        res.untraceable = sorted(set(c for c in cited if c not in allowed))
+        if res.untraceable:
+            res.state = "untraceable"
+            res.reason = (f"the prose cites event ids the payload does not carry: "
+                          f"{res.untraceable[:8]}")
+            log.warning("narrative withheld: %s", res.reason)
+            return res
+
     if not result.passed:
         res.state = "audit_failed"
         res.unmatched = [f.text for f in result.unmatched]

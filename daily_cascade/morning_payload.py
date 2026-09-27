@@ -52,6 +52,7 @@ import regime  # noqa: E402
 from altdata import observations, session          # noqa: E402
 from altdata.sources import overnight as on        # noqa: E402
 from . import events_block                         # noqa: E402
+from . import story_block                          # noqa: E402
 from daily_cascade import payload as close_payload  # noqa: E402
 
 log = logging.getLogger("daily_cascade.morning_payload")
@@ -245,6 +246,13 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         changed = regime.what_changed(state_obj,
                                      regime.previous_object(state_obj))
 
+    # THE STORY BLOCK (6c-2): the narrative scan's payload -- events since the
+    # previous close WITH THEIR IDS, the register as the rules left it, and the
+    # object's contradictions. Data only; the prose is written over it later, by
+    # the entry point, behind the audit.
+    stories = story_block.build(prior, cutoff, market_state=state_obj,
+                                what_changed=changed, db_path=db_path)
+
     warnings: list[str] = []
     if state_obj is None:
         warnings.append(
@@ -268,6 +276,9 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         warnings.append(
             "events sources dormant by configuration: "
             + "; ".join(f"{k} ({v})" for k, v in events["dormant"].items()))
+    if stories.get("state") != "ok":
+        warnings.append(f"story block {stories.get('state')}: "
+                        f"{stories.get('reason')}")
     if not overnight["attribution"]:
         warnings.append("no session attribution -- 5-minute bars were "
                         "unavailable for the index futures")
@@ -288,6 +299,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "run_id": run_id,
         "overnight": overnight,
         "events": events,
+        "stories": stories,
         "exposure": exposure,
         "exposure_missing": exposure_missing,
         "exposure_session": loaded or prior,

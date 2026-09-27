@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from . import events_block, state_block
 
@@ -235,7 +235,65 @@ def exposure_block(payload: dict) -> str:
 </p>"""
 
 
-def render(payload: dict, delivery: Optional[dict] = None) -> str:
+def narrative_scan_block(narrative: Optional[Any]) -> str:
+    """The 07:00 scan's prose -- audited, or the one line saying why it is not."""
+    if narrative is None:
+        return ""
+    if getattr(narrative, "published", False):
+        paras = [p.strip() for p in str(narrative.text).split("\n\n") if p.strip()]
+        body = "".join(f'<p style="font-size:14px;line-height:1.7;color:#12304d;'
+                       f'margin:0 0 10px 0">{esc(p)}</p>' for p in paras)
+        v = narrative.verdicts()
+        return (f'<div style="{WRAP}">{body}'
+                f'<p style="{NOTE}">Model {esc(narrative.model)} &middot; numeral '
+                f'audit {esc(v["numeral"])} &middot; type audit {esc(v["type"])} '
+                f'&middot; every cited event traced ({esc(len(narrative.cited_ids))} '
+                f'cited).</p></div>')
+    note = getattr(narrative, "withheld_note", lambda: "narrative withheld")()
+    return (f'<div style="{ABSENT}"><strong>{esc(note)}</strong>'
+            f'<p style="{NOTE}">Withheld rather than corrected: the Stories table '
+            f'below is the record either way.</p></div>')
+
+
+def stories_block(payload: dict) -> str:
+    """The register, as the rules left it -- data only."""
+    b = payload.get("stories") or {}
+    reg = b.get("register") or {}
+    if reg.get("absent_reason"):
+        return f'<div style="{ABSENT}">{esc(reg["absent_reason"])}</div>'
+    rows = []
+    for s in reg.get("stories") or []:
+        e = s.get("evaluation") or {}
+        rows.append(
+            f'<tr><td style="{TDL}">{esc(s["name"])}</td>'
+            f'<td style="{TDL}">{esc(s["state"])}</td>'
+            f'<td style="{TD}">{esc(e.get("attention_short", "-"))} / '
+            f'{esc(e.get("attention_long", "-"))}</td>'
+            f'<td style="{TD}">{signed(e.get("attention_delta_short"), 0) if e else "-"}</td>'
+            f'<td style="{TD}">{num(e.get("agreement_ratio"), 2) if e else "-"}</td>'
+            f'<td style="{TD}">{len(e.get("evidence_for") or [])} / '
+            f'{len(e.get("evidence_against") or [])}</td>'
+            f'<td style="{TDL}">{esc(", ".join(k for k, v in (e.get("conditions_met") or {}).items() if v) or "-")}</td></tr>')
+    table = (f'<table style="{TBL}"><thead><tr><th style="{THL}">story</th>'
+             f'<th style="{THL}">state</th><th style="{TH}">attention 5 / 20</th>'
+             f'<th style="{TH}">Δ5</th><th style="{TH}">agreement</th>'
+             f'<th style="{TH}">evidence for / against</th>'
+             f'<th style="{THL}">conditions met</th></tr></thead>'
+             f'<tbody>{"".join(rows)}</tbody></table>')
+    trans = reg.get("transitions_overnight") or []
+    tline = ("; ".join(f'{t["narrative_id"]} {t["state_before"]} &rarr; '
+                       f'{t["state_after"]} ({t["transition"]})' for t in trans)
+             if trans else "no story changed state since the previous close")
+    pend = reg.get("pending_proposals") or []
+    pline = "".join(f'<br>Proposed, awaiting confirmation: {esc(p["name"])} &mdash; '
+                    f'<code>{esc(p["confirm"])}</code>' for p in pend)
+    return (f'<div style="{WRAP}">{table}<p style="{NOTE}">Transitions: {tline}.'
+            f'{pline}<br>States move on declared rules (config/narratives.yaml), '
+            f'never on the prose above.</p></div>')
+
+
+def render(payload: dict, delivery: Optional[dict] = None,
+           narrative: Optional[Any] = None) -> str:
     warn = ""
     if payload.get("warnings"):
         items = "".join(f"<li>{esc(w)}</li>" for w in payload["warnings"])
@@ -252,6 +310,7 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
   run <code>{esc(payload.get('run_id') or 'n/a')}</code>
 </p>
 {warn}
+{narrative_scan_block(narrative)}
 <h2 style="{H2}">What changed</h2>
 {state_block.what_changed_block(payload)}
 
@@ -263,6 +322,9 @@ def render(payload: dict, delivery: Optional[dict] = None) -> str:
 
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
+
+<h2 style="{H2}">Stories</h2>
+{stories_block(payload)}
 
 <h2 style="{H2}">Events</h2>
 {events_block.html(payload.get("events") or {})}
@@ -306,6 +368,12 @@ def text_fallback(payload: dict) -> str:
     # Same module, same position as the HTML edition and as the close report's.
     lines += state_block.text_lines(payload)
     lines += events_block.text_lines(payload.get("events") or {})
+    reg = (payload.get("stories") or {}).get("register") or {}
+    for s in reg.get("stories") or []:
+        lines.append(f"  story {s['id']:22} {s['state']}")
+    for t in reg.get("transitions_overnight") or []:
+        lines.append(f"  STORY MOVED {t['narrative_id']} {t['state_before']} -> "
+                     f"{t['state_after']} ({t['transition']})")
     lines.append("")
     if block.get("state") == "absent":
         lines.append(f"OVERNIGHT ABSENT: {block.get('reason')}")
