@@ -196,6 +196,19 @@ def morning_system_prompt() -> str:
         "\n3. EVERY CLAIM TRACES TO AN EVENT ID OR AN OBSERVATION. Cite a stored "
         "event as `event 257` -- the word event, then the id, exactly as in "
         "`citable_event_ids`. An id not in that list withholds the whole block.\n"
+        "\n3a. CITED EVENTS ARE QUOTED, NOT DESCRIBED. `citable_events` carries "
+        "each id's STORED `type` and `source`. Name them verbatim beside the "
+        "citation -- `a headline from google_news (event 134)`, `a release from "
+        "fed_press (event 1)` -- and give what it says as its title in double "
+        "quotes, not a paraphrase of what kind of thing it is. A type or source "
+        "word beside a citation that differs from the stored one withholds the "
+        "block.\n"
+        "\n3b. ABSENT IS A FIELD, NOT A GAP. An item carrying `absent: true` IS "
+        "IN THE PAYLOAD and says why it has no reading (`reason`), or that its "
+        "reader failed (`fault`). Say it is absent and give the reason. Never "
+        "write that a row or a field is missing from, or absent from, the object: "
+        "every declared row is present, and such a sentence withholds the "
+        "block.\n"
         "\n4. A RELEASE'S SURPRISE IS AGAINST A NAIVE EXPECTATION, never a "
         "consensus; an earnings surprise is against the analyst mean. Say which.\n"
         "\n5. PROPOSALS, ONLY IF WARRANTED. If the events show a story the register "
@@ -253,6 +266,11 @@ class NarrativeResult:
     # The event ids the prose cited, and any that the payload does not carry.
     cited_ids: list[int] = field(default_factory=list)
     untraceable: list[int] = field(default_factory=list)
+    # 6c-3: citations whose adjacent type/source words contradict the stored
+    # ones, and sentences that call a present row missing from the object.
+    miscited: list[str] = field(default_factory=list)
+    presence: list[str] = field(default_factory=list)
+    citation_checked: bool = False
 
     @property
     def published(self) -> bool:
@@ -283,6 +301,13 @@ class NarrativeResult:
             "traceability": ("pass" if not self.untraceable else
                              f"fail (event ids not in the payload: "
                              f"{self.untraceable[:8]})"),
+            "citation": ("not_run" if not self.citation_checked else
+                         "pass" if not self.miscited else
+                         f"fail ({len(self.miscited)}: "
+                         f"{'; '.join(self.miscited[:4])})"),
+            "presence": ("not_run" if not self.citation_checked else
+                         "pass" if not self.presence else
+                         f"fail ({'; '.join(self.presence[:3])})"),
         }
 
     def withheld_note(self) -> str:
@@ -290,6 +315,12 @@ class NarrativeResult:
         if self.state == "untraceable":
             return (f"narrative withheld: it cites event ids the payload does not "
                     f"carry ({', '.join(str(i) for i in self.untraceable[:6])})")
+        if self.state == "miscited":
+            return (f"narrative withheld: a citation's type or source contradicts "
+                    f"the stored event ({'; '.join(self.miscited[:3])})")
+        if self.state == "presence_misstated":
+            return (f"narrative withheld: it calls a present row missing from the "
+                    f"object ({'; '.join(self.presence[:2])})")
         if self.state == "audit_failed":
             n = len(self.unmatched)
             return (f"narrative withheld: numeral audit failed on {n} "
@@ -359,13 +390,116 @@ def build_prompt(payload: dict, guide_path=None) -> str:
     )
 
 
+# ---------------------------------------------------------------------------
+# 6c-3 -- CITED EVENTS ARE QUOTED; ABSENT IS A FIELD
+# ---------------------------------------------------------------------------
+# The stored event types and the words that name each. A word from one type's
+# list beside a citation of an event of another type is a contradiction.
+EVENT_TYPE_WORDS = {
+    "release": ("release", "releases", "data release"),
+    "earnings": ("earnings report", "earnings"),
+    "filing": ("filing", "8-k", "10-k", "10-q"),
+    "headline": ("headline", "headlines"),
+    "scheduled": ("scheduled", "calendar entry"),
+    "session_event": ("session event", "session_event"),
+}
+# Stored source names, beyond whatever the payload itself carries.
+KNOWN_SOURCES = ("fed_press", "fed_monetary", "bls_cpi", "bls_empsit", "bea_news",
+                 "google_news", "yfinance", "sec_edgar", "claims_registry",
+                 "session_calendar", "fred")
+CITATION_LEFT, CITATION_RIGHT = 60, 30
+_QUOTED = r'"[^"]*"|“[^”]*”'
+PRESENCE_PATTERN = (
+    r"(?i)\b(?:absent|missing)\s+(?:entirely\s+)?(?:from|in)\s+the\s+"
+    r"(?:object|table|payload)\b|\babsent\s+entirely\b|\bnot\s+(?:in|on)\s+the\s+"
+    r"object\b")
+
+
+def citation_contradictions(text: str, citable_events: list,
+                            cite_word: str = "event") -> list[str]:
+    """Citations whose adjacent type or source words differ from the stored ones.
+
+    The window is the clause around the citation: at most CITATION_LEFT
+    characters before and CITATION_RIGHT after, stopped at a sentence end or at
+    a neighbouring citation, with quoted titles removed -- a title may say
+    anything; the words OUTSIDE the quotes are the prose's claim about what
+    the event is. Only a contradiction fails: a citation with no type or
+    source word beside it is untyped, not wrong.
+    """
+    import re as _re  # noqa: PLC0415
+    stored = {int(e["event_id"]): e for e in citable_events or []
+              if e.get("event_id") is not None}
+    sources = {str(e.get("source")) for e in stored.values() if e.get("source")}
+    sources |= set(KNOWN_SOURCES)
+    cites = list(_re.finditer(rf"\b{_re.escape(cite_word)}s?\s+(\d+)", text,
+                              flags=_re.I))
+    masked = _re.sub(_QUOTED, lambda q: " " * len(q.group(0)), text)
+    out = []
+    for i, m in enumerate(cites):
+        ev = stored.get(int(m.group(1)))
+        if not ev:
+            continue
+        lo = max(m.start() - CITATION_LEFT, cites[i - 1].end() if i else 0)
+        hi = min(m.end() + CITATION_RIGHT,
+                 cites[i + 1].start() if i + 1 < len(cites) else len(text))
+        # QUOTED TITLES ARE MASKED FIRST, position for position, so no clause
+        # split below can cut a title open and expose its words.
+        left, right = masked[lo:m.start()], masked[m.end():hi]
+        for stop in (". ", "\n"):
+            if stop in left:
+                left = left[left.rindex(stop) + len(stop):]
+        # The words AFTER a citation belong to it only up to the clause break:
+        # past a comma or an "and", they are the next citation's description.
+        # EXCEPT AN APPOSITIVE -- "event 1, a Fed approval notice" -- which is a
+        # description of this citation and the exact form of the 28 September
+        # draft's mislabel; it runs to its own clause end.
+        appos = _re.match(r"\)?,\s+(?:a|an|the)\s+[^,;:.\n]*", right)
+        brk = _re.search(r"[,;:.\n]|\s(?:and|but|against|while)\s", right)
+        if appos:
+            right = appos.group(0)
+        elif brk:
+            right = right[:brk.start()]
+        for sep in (",", ";", " and ", " against ", " but "):
+            if sep in left:
+                left = left[left.rindex(sep) + len(sep):]
+        window = f"{left} {right}".lower()
+        words_t = {t for t, ws in EVENT_TYPE_WORDS.items()
+                   if any(_re.search(rf"(?<![\w-]){_re.escape(w)}(?![\w-])", window)
+                          for w in ws)}
+        words_s = {s for s in sources
+                   if _re.search(rf"(?<![\w-]){_re.escape(s.lower())}(?![\w-])",
+                                 window)}
+        bad_t = words_t - {ev.get("type")}
+        bad_s = words_s - {ev.get("source")}
+        if bad_t:
+            out.append(f"event {m.group(1)} called {'/'.join(sorted(bad_t))}, "
+                       f"stored {ev.get('type')}")
+        if bad_s:
+            out.append(f"event {m.group(1)} attributed to "
+                       f"{'/'.join(sorted(bad_s))}, stored {ev.get('source')}")
+    return out
+
+
+def presence_misstatements(text: str) -> list[str]:
+    """Sentences that call something missing from the object.
+
+    Every declared row is in the object -- an absent one carries `absent:
+    true` and its reason -- so the claim is never true of anything the payload
+    holds. The 28 September draft said narrative_vs_data was "absent from the
+    object entirely" while the row sat in the payload with its reason.
+    """
+    import re as _re  # noqa: PLC0415
+    return [m.group(0) for m in _re.finditer(PRESENCE_PATTERN, text)]
+
+
 def generate(payload: dict, *, model: Optional[str] = None,
              unit_constants: Optional[list] = None,
              client=None, system_prompt: Optional[str] = None,
              guide_path=None, max_chars: Optional[int] = None,
              one_paragraph: bool = True, split=None,
              citable_ids: Optional[Any] = None,
-             cite_word: str = "event") -> NarrativeResult:
+             cite_word: str = "event",
+             citable_events: Optional[list] = None) -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
@@ -547,10 +681,27 @@ def generate(payload: dict, *, model: Optional[str] = None,
             rf"\b{_re.escape(cite_word)}s?\s+(\d+)", text, flags=_re.I)]
         res.cited_ids = sorted(set(cited))
         res.untraceable = sorted(set(c for c in cited if c not in allowed))
+        # 6c-3: quoted, not described; and absent is a field, not a gap.
+        if citable_events is not None:
+            res.citation_checked = True
+            res.miscited = citation_contradictions(text, citable_events, cite_word)
+            res.presence = presence_misstatements(text)
         if res.untraceable:
             res.state = "untraceable"
             res.reason = (f"the prose cites event ids the payload does not carry: "
                           f"{res.untraceable[:8]}")
+            log.warning("narrative withheld: %s", res.reason)
+            return res
+        if res.miscited:
+            res.state = "miscited"
+            res.reason = (f"a citation's adjacent type or source contradicts the "
+                          f"stored event: {res.miscited[:4]}")
+            log.warning("narrative withheld: %s", res.reason)
+            return res
+        if res.presence:
+            res.state = "presence_misstated"
+            res.reason = (f"the prose calls a present row missing from the "
+                          f"object: {res.presence[:3]}")
             log.warning("narrative withheld: %s", res.reason)
             return res
 

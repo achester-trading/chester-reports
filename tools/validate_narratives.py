@@ -27,6 +27,13 @@ no store as on the box. No network and no key: the model is an injected client.
   F  GRADING. Entering consensus emitted exactly one forecast with a machine
      criterion; resolution reads the stored series at the horizon and writes the
      Brier; the Weekly's GRADES carry a narratives row.
+  H  EVERY SEEDED STORY CAN REACH CONSENSUS (6c-3): each has an evidence rule
+     that can yield a FOR; the yen carry's and the midterm's rules end to end.
+  I  THE MIDTERM HYPOTHESES (6c-3): shrunk prior, entered once and ex ante,
+     never 0 or 1, resolved on the close on or before each date.
+  J  CITED EVENTS ARE QUOTED; ABSENT IS A FIELD (6c-3): the payload carries
+     stored type and source and structured absences; the audit withholds a
+     contradicting citation and a present row called missing.
   G  THE 07:00 PROSE. A PROPOSALS block is split off before the audit; a cited event
      id outside the payload withholds the block; the numeral and type verdicts are
      reported apart; a valid proposal is written as `proposed`.
@@ -339,6 +346,108 @@ def group_d() -> None:
         bad(str(exc))
     finally:
         socket.socket = real                                    # type: ignore
+
+
+def group_j() -> None:
+    print(f"{LINE}\nJ. CITED EVENTS ARE QUOTED; ABSENT IS A FIELD (6c-3)\n{LINE}")
+    from daily_cascade import narrative as nv
+    from daily_cascade import story_block
+
+    # --- the payload -----------------------------------------------------------
+    obj = {"session": "2026-09-25", "contradictions": [
+        {"id": "price_vs_breadth", "open_state": "closed", "open": False},
+        {"id": "narrative_vs_data", "open_state": "absent",
+         "absent_reason": "the narrative register holds no active story"},
+        {"id": "gamma_vs_trend", "open_state": "absent",
+         "fault": "dial.gamma: the exposure engine's reader raised OSError: x"}]}
+    b = story_block.build("2026-09-25", "2026-09-28T11:00:00+00:00",
+                          market_state=obj)
+    ab = {r["id"]: r for r in b["contradictions_absent"]}
+    check(ab["narrative_vs_data"] == {"id": "narrative_vs_data", "absent": True,
+                                      "reason": "the narrative register holds no "
+                                                "active story"},
+          "an absent row travels as {absent: true, reason} -- present, with why")
+    check(ab["gamma_vs_trend"].get("fault") and "reason" not in ab["gamma_vs_trend"],
+          "and a faulted row as {absent: true, fault}, never a reason")
+    tops = [x for q in (b["events"].get("headlines_by_query") or {}).values()
+            for x in q.get("top") or []]
+    rows = (b["events"].get("releases") or []) + (b["events"].get("earnings")
+                                                   or []) + tops
+    check(bool(rows) and all(r.get("type") and r.get("source") for r in rows),
+          f"every event row carries its stored type and source ({len(rows)})")
+    ce = {e["event_id"]: e for e in b.get("citable_events") or []}
+    check(set(ce) == set(b["citable_event_ids"])
+          and all(e.get("type") and e.get("source") for e in ce.values()),
+          f"and every citable id is in citable_events with both "
+          f"({len(ce)} of {len(b['citable_event_ids'])})")
+    np_ = story_block.narrative_payload(b)
+    check("citable_events" in np_, "the model's payload carries citable_events")
+    for s in (b.get("register") or {}).get("stories") or []:
+        e = s.get("evaluation") or {}
+        check("absent_reason" not in s and (not e.get("absent") or e.get("reason")),
+              f"{s['id']}: an unevaluated story is {{absent: true, reason}}")
+        break
+    sp = nv.morning_system_prompt()
+    check("citable_events" in sp and "absent: true" in sp,
+          "the prompt says to quote type and source, and explains absent")
+
+    # --- the audit ----------------------------------------------------------------
+    class Resp:
+        def __init__(self, t):
+            self.content = [types.SimpleNamespace(type="text", text=t)]
+            self.model = "fixture-model"
+            self.stop_reason = "end_turn"
+
+    class Client:
+        def __init__(self, t):
+            self.messages = types.SimpleNamespace(create=lambda **k: Resp(t))
+
+    evs = [{"event_id": 1, "type": "release", "source": "fed_press",
+            "title": "Federal Reserve Board announces approval of application"},
+           {"event_id": 134, "type": "headline", "source": "google_news",
+            "title": "Bank of Japan Tightening Bets Spark Yen Recovery"}]
+    payload = {"citable_event_ids": [1, 134], "citable_events": evs}
+    kw = dict(system_prompt="fixture", max_chars=5000, one_paragraph=False,
+              citable_ids=[1, 134], citable_events=evs)
+
+    good = nv.generate(payload, client=Client(
+        'A release from fed_press, "Federal Reserve Board announces approval of '
+        'application" (event 1), and a headline from google_news, "Bank of Japan '
+        'Tightening Bets Spark Yen Recovery" (event 134).'), **kw)
+    v = good.verdicts()
+    check(good.published and v["citation"] == "pass" and v["presence"] == "pass",
+          f"quoted type and source publish ({good.state}; citation "
+          f"{v['citation']}; presence {v['presence']})")
+    typ = nv.generate(payload, client=Client(
+        "Event 1, a headline about bank approvals, is unrelated."), **kw)
+    check(typ.state == "miscited" and "called headline" in typ.verdicts()["citation"],
+          f"an appositive calling a release a headline withholds "
+          f"({typ.verdicts()['citation'][:60]})")
+    src = nv.generate(payload, client=Client(
+        "The yen story drew a headline from yfinance (event 134)."), **kw)
+    check(src.state == "miscited" and "attributed to yfinance"
+          in src.verdicts()["citation"],
+          "a source word that differs from the stored source withholds")
+    ok_title = nv.generate(payload, client=Client(
+        'A headline from google_news, "Yen recovery and a release of reserves" '
+        '(event 134).'), **kw)
+    check(ok_title.published,
+          "type words INSIDE a quoted title are not the prose's claim")
+    pres = nv.generate(payload, client=Client(
+        "narrative_vs_data is absent from the object entirely (event 1)."), **kw)
+    check(pres.state == "presence_misstated"
+          and pres.verdicts()["presence"].startswith("fail"),
+          "a present row called missing from the object withholds the block")
+    check(nv.generate(payload, client=Client("x (event 1)."), system_prompt="f",
+                      max_chars=5000, one_paragraph=False,
+                      citable_ids=[1]).verdicts()["citation"] == "not_run",
+          "and a brief that passes no citable_events reports the check not_run")
+    tmpl = (REPO / "docs" / "narrative-template-morning.md").read_text(
+        encoding="utf-8")
+    para = tmpl.split("## Reference paragraph")[1].split("\n## ")[0]
+    check("from google_news" in para and not nv.presence_misstatements(para),
+          "the template's reference paragraph quotes its sources and calls "
+          "nothing missing")
 
 
 def group_e() -> None:
@@ -669,7 +778,8 @@ def group_i() -> None:
 
 def main() -> int:
     print(f"{LINE}\nThe narrative register and the 07:00 scan (6c-2)\n{LINE}")
-    for g in (groups_abc, group_d, group_e, group_g, group_h, group_i):
+    for g in (groups_abc, group_d, group_e, group_g, group_h, group_i,
+              group_j):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

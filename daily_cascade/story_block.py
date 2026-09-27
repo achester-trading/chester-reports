@@ -22,6 +22,13 @@ WHAT IT READS, AND ONLY THAT
 
 IT FETCHES NOTHING and it computes no state: a story's state is what the rules
 wrote, read as-of the cutoff; a contradiction is what the object holds.
+
+6c-3: EVERY CITABLE EVENT TRAVELS WITH ITS STORED TYPE AND SOURCE
+(`citable_events`), so the prose can quote them and the audit can hold it to
+them; and EVERY ABSENCE IS A STRUCTURED FIELD -- {"absent": true, "reason": ...}
+-- so a row that is present and reports why it has no reading cannot be written
+up as missing from the object. A reader that raised is {"absent": true,
+"fault": ...}: a fault is not a data reason and never travels as one.
 """
 
 from __future__ import annotations
@@ -56,17 +63,22 @@ def _events(since: str, cutoff: str, db_path: Optional[str]) -> dict:
         out["counts"][t] = out["counts"].get(t, 0) + 1
         p = r.get("payload") or {}
         if t == "release":
-            out["releases"].append({"event_id": r["id"], "when": r["observed_at"],
+            out["releases"].append({"event_id": r["id"], "type": t,
+                                    "when": r["observed_at"],
                                     "source": r["source"], "title": r["title"],
                                     "entities": r.get("entities") or []})
         elif t == "earnings":
-            out["earnings"].append({"event_id": r["id"], "when": r["observed_at"],
+            out["earnings"].append({"event_id": r["id"], "type": t,
+                                    "source": r["source"],
+                                    "when": r["observed_at"],
                                     "symbol": p.get("symbol"),
                                     "surprise_pct": p.get("surprise_pct"),
                                     "reported_eps": p.get("reported_eps"),
                                     "eps_estimate": p.get("eps_estimate")})
         elif t == "filing":
-            out["filings"].append({"event_id": r["id"], "when": r["observed_at"],
+            out["filings"].append({"event_id": r["id"], "type": t,
+                                   "source": r["source"],
+                                   "when": r["observed_at"],
                                    "title": r["title"],
                                    "entities": r.get("entities") or []})
         elif t == "headline":
@@ -75,7 +87,8 @@ def _events(since: str, cutoff: str, db_path: Optional[str]) -> dict:
                 q, {"query": q, "theme": p.get("theme"), "count": 0, "top": []})
             s["count"] += 1
             if len(s["top"]) < MAX_HEADLINES_PER_QUERY:
-                s["top"].append({"event_id": r["id"], "title": r["title"],
+                s["top"].append({"event_id": r["id"], "type": t,
+                                 "source": r["source"], "title": r["title"],
                                  "when": r["observed_at"]})
     out["releases_total"] = len(out["releases"])
     out["releases"] = out["releases"][-MAX_RELEASES:]
@@ -114,10 +127,10 @@ def _register(cutoff: str, since: str, db_path: Optional[str]) -> dict:
                 "story_query": row["story_query"],
             }
             if ev is None:
-                item["evaluation"] = None
-                item["evaluation_absent_reason"] = (
-                    "not yet evaluated -- the close pass evaluates each story after "
-                    "it stores the object")
+                item["evaluation"] = {
+                    "absent": True,
+                    "reason": ("not yet evaluated -- the close pass evaluates each "
+                               "story after it stores the object")}
             else:
                 inputs = json.loads(ev["inputs"])
                 att, agr, evd = (inputs.get("attention") or {},
@@ -164,13 +177,14 @@ def build(prior_session: str, cutoff: Optional[str] = None,
     try:
         out["events"] = _events(since, cut, db_path)
     except Exception as exc:                                   # noqa: BLE001
-        out["events"] = {"absent_reason": f"events table unreadable: "
-                                          f"{type(exc).__name__}: {exc}"}
+        out["events"] = {"absent": True, "fault": f"events reader raised "
+                                                  f"{type(exc).__name__}: {exc}"}
     try:
         out["register"] = _register(cut, since, db_path)
     except Exception as exc:                                   # noqa: BLE001
-        out["register"] = {"absent_reason": f"narrative register unreadable: "
-                                            f"{type(exc).__name__}: {exc}"}
+        out["register"] = {"absent": True,
+                           "fault": f"narrative register reader raised "
+                                    f"{type(exc).__name__}: {exc}"}
     obj = market_state or {}
     out["object_session"] = obj.get("session")
     out["contradictions"] = [
@@ -179,9 +193,15 @@ def build(prior_session: str, cutoff: Optional[str] = None,
                                "dimensions_against", "exception")}
         for r in obj.get("contradictions") or []
         if r.get("open_state") != "absent"]
-    out["contradictions_absent"] = sorted(
-        r["id"] for r in obj.get("contradictions") or []
-        if r.get("open_state") == "absent")
+    # PRESENT, AND SAYING WHY IT HAS NO READING. The 28 September test draft
+    # called narrative_vs_data "absent from the object entirely" off a bare id
+    # list; the row was there, with its reason. Each carries both now.
+    out["contradictions_absent"] = [
+        {"id": r["id"], "absent": True,
+         **({"fault": r["fault"]} if r.get("fault") else
+            {"reason": r.get("absent_reason") or "no reason recorded"})}
+        for r in sorted(obj.get("contradictions") or [], key=lambda x: x["id"])
+        if r.get("open_state") == "absent"]
     out["what_changed"] = what_changed
     ids = set()
     ev = out.get("events") or {}
@@ -194,11 +214,26 @@ def build(prior_session: str, cutoff: Optional[str] = None,
         ids.update(e.get("evidence_for") or [])
         ids.update(e.get("evidence_against") or [])
     out["citable_event_ids"] = sorted(int(i) for i in ids)
-    if (ev.get("absent_reason") and (out.get("register") or {}).get(
-            "absent_reason")):
+    out["citable_events"] = _citable_events(out["citable_event_ids"], cut, db_path)
+    if ev.get("absent") and (out.get("register") or {}).get("absent"):
         out["state"] = "absent"
-        out["reason"] = f"{ev['absent_reason']}; {out['register']['absent_reason']}"
+        out["reason"] = "neither the events nor the register could be read"
     return out
+
+
+def _citable_events(ids: list[int], cutoff: str, db_path: Optional[str]
+                    ) -> list[dict]:
+    """Each citable id with its STORED type, source and title, knowable at the
+    cutoff. What the prose must quote, and what the audit holds it to."""
+    if not ids:
+        return []
+    with ev_mod.EventStore(db_path) as ev:
+        rows = ev.conn.execute(
+            "SELECT id, type, source, title FROM events WHERE available_at <= ? "
+            " AND id IN (%s) ORDER BY id" % ",".join("?" * len(ids)),
+            [cutoff, *ids]).fetchall()
+    return [{"event_id": r[0], "type": r[1], "source": r[2], "title": r[3]}
+            for r in rows]
 
 
 def narrative_payload(block: dict, what_changed: Optional[dict] = None) -> dict:
@@ -215,4 +250,5 @@ def narrative_payload(block: dict, what_changed: Optional[dict] = None) -> dict:
         "what_changed": what_changed if what_changed is not None
         else block.get("what_changed"),
         "citable_event_ids": block.get("citable_event_ids"),
+        "citable_events": block.get("citable_events"),
     }

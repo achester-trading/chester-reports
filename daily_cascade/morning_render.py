@@ -248,7 +248,8 @@ def narrative_scan_block(narrative: Optional[Any]) -> str:
                 f'<p style="{NOTE}">Model {esc(narrative.model)} &middot; numeral '
                 f'audit {esc(v["numeral"])} &middot; type audit {esc(v["type"])} '
                 f'&middot; every cited event traced ({esc(len(narrative.cited_ids))} '
-                f'cited).</p></div>')
+                f'cited) &middot; citations quote the stored type and source '
+                f'&middot; no present row called missing.</p></div>')
     note = getattr(narrative, "withheld_note", lambda: "narrative withheld")()
     return (f'<div style="{ABSENT}"><strong>{esc(note)}</strong>'
             f'<p style="{NOTE}">Withheld rather than corrected: the Stories table '
@@ -259,11 +260,15 @@ def stories_block(payload: dict) -> str:
     """The register, as the rules left it -- data only."""
     b = payload.get("stories") or {}
     reg = b.get("register") or {}
-    if reg.get("absent_reason"):
-        return f'<div style="{ABSENT}">{esc(reg["absent_reason"])}</div>'
+    if reg.get("absent"):
+        why = (f"FAULT (code, not data) -- {reg['fault']}" if reg.get("fault")
+               else reg.get("reason"))
+        return f'<div style="{ABSENT}">{esc(why)}</div>'
     rows = []
     for s in reg.get("stories") or []:
         e = s.get("evaluation") or {}
+        if e.get("absent"):
+            e = {}
         rows.append(
             f'<tr><td style="{TDL}">{esc(s["name"])}</td>'
             f'<td style="{TDL}">{esc(s["state"])}</td>'
