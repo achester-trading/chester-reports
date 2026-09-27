@@ -5440,7 +5440,10 @@ bulk_imports:
     # registry checker still reported the block. `values` is the right answer for
     # a sequence: the members ARE the values.
     members_are: values
-    expected_members: 6
+    # 7 since 6c-3: baserate.midterm_from_election, the presidential-cycle
+    # conditional measured from election day (ex ante) rather than from the
+    # midterm-year low, with its unconditional comparators.
+    expected_members: 7
     key_prefix: ""
     units: label
     native_horizon: structural

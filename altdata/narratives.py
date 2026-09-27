@@ -249,10 +249,133 @@ def validate_definition(nid: str, spec: dict, *, dims: Optional[list] = None,
         errs.append(f"horizon_days {hd!r} must be an integer 1..730")
     elif hdate is not None and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(hdate)):
         errs.append(f"horizon_date {hdate!r} is not YYYY-MM-DD")
+    bd = io.get("baseline_date")
+    if bd is not None:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(bd)):
+            errs.append(f"baseline_date {bd!r} is not YYYY-MM-DD")
+        elif hdate is None or str(bd) >= str(hdate):
+            errs.append("a baseline_date needs a later horizon_date -- a fixed "
+                        "baseline is a dated window, both ends declared")
     if (spec.get("prediction_market_contracts") or []):
         errs.append("prediction_market_contracts must be empty until Part 27 v1 "
                     "exists")
     return errs
+
+
+EVIDENCE_KINDS = ("earnings", "release_surprises", "headlines", "series_moves")
+
+
+def validate_evidence(spec: dict) -> list[str]:
+    """Every reason a CONFIG story's evidence rule is not usable. (6c-3)
+
+    A seeded story must carry one: without evidence FOR, the consensus rule's
+    `min_evidence_for` can never hold, and a story that cannot reach consensus
+    is a story the register can never grade by its state. Each declared kind is
+    checked for shape, and a headline rule is held to its own examples -- a
+    pattern that does not score the title it was written for is a typo, and it
+    would otherwise fail silently as "unscored" forever.
+    """
+    from . import derived  # noqa: PLC0415
+    rules = spec.get("evidence") or {}
+    errs: list[str] = []
+    if not rules:
+        return ["no evidence rule -- a story with no way to gather evidence FOR "
+                "can never reach consensus"]
+    for kind in rules:
+        if kind not in EVIDENCE_KINDS:
+            errs.append(f"evidence kind {kind!r} is not one of {EVIDENCE_KINDS}")
+    for m, r in (rules.get("series_moves") or {}).items():
+        r = r or {}
+        if not derived.registry_entry(m):
+            errs.append(f"series_moves metric {m!r} is not registered")
+        if str(r.get("sign")) not in DIRECTIONS:
+            errs.append(f"series_moves {m!r} sign {r.get('sign')!r} is not "
+                        f"one of {DIRECTIONS}")
+        if not 0 < float(r.get("percentile") or 0) < 50:
+            errs.append(f"series_moves {m!r} percentile must be in (0, 50)")
+    hr = rules.get("headlines") or {}
+    if hr:
+        if not spec.get("story_query"):
+            errs.append("a headline rule needs the story's own story_query")
+        phases = ("before", "after") if hr.get("calendar_claim") else (None,)
+        pats = []
+        for ph in phases:
+            block = (hr.get(ph) or {}) if ph else hr
+            if not (block.get("for") or []):
+                errs.append(f"headlines{'.' + ph if ph else ''} declares no FOR "
+                            f"pattern")
+            pats += list(block.get("for") or []) + list(block.get("against") or [])
+        pats += [hr["require"]] if hr.get("require") else []
+        for p in pats:
+            try:
+                re.compile(p)
+            except re.error as exc:
+                errs.append(f"headline pattern {p!r} does not compile: {exc}")
+        ex = hr.get("examples") or {}
+        if not ex:
+            errs.append("a headline rule declares no examples to be held to")
+        want = {"for": 1, "against": -1, "unscored": 0,
+                "before_for": 1, "after_for": 1,
+                "before_against": -1, "after_against": -1}
+        for label, title in ex.items():
+            ph = label.split("_", 1)[0] if label.startswith(("before_",
+                                                              "after_")) else None
+            if label not in want:
+                errs.append(f"headline example label {label!r} is not one of "
+                            f"{sorted(want)}")
+                continue
+            try:
+                got = score_headline(title, hr, ph)
+            except re.error:
+                continue
+            if (got or 0) != want[label]:
+                errs.append(f"headline example {label} {title!r} scores {got}, "
+                            f"not {want[label]}")
+    return errs
+
+
+def validate_hypotheses(spec: dict) -> list[str]:
+    """Every reason a story's dated hypotheses are not emittable. (6c-3)"""
+    from . import derived  # noqa: PLC0415
+    errs: list[str] = []
+    for hid, h in (spec.get("hypotheses") or {}).items():
+        h = h or {}
+        where = f"hypothesis {hid!r}"
+        if not ID_PATTERN.match(str(hid)):
+            errs.append(f"{where}: id is not a slug")
+        if not str(h.get("claim") or "").strip():
+            errs.append(f"{where}: no claim")
+        if not derived.registry_entry(str(h.get("metric") or "")):
+            errs.append(f"{where}: metric {h.get('metric')!r} is not registered")
+        if h.get("comparison") not in COMPARISONS:
+            errs.append(f"{where}: comparison {h.get('comparison')!r}")
+        bd, hd = str(h.get("baseline_date") or ""), str(h.get("horizon_date") or "")
+        if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", bd)
+                and re.fullmatch(r"\d{4}-\d{2}-\d{2}", hd) and bd < hd):
+            errs.append(f"{where}: needs baseline_date < horizon_date, both "
+                        f"YYYY-MM-DD -- a hypothesis is decidable ex ante or not "
+                        f"at all")
+        pr = h.get("prior") or {}
+        if pr.get("rule") not in PRIOR_RULES:
+            errs.append(f"{where}: prior rule {pr.get('rule')!r} is not one of "
+                        f"{PRIOR_RULES}")
+        if not str(pr.get("table") or "").startswith("baserate."):
+            errs.append(f"{where}: the prior must cite a stored base-rate table")
+        try:
+            if float(pr.get("k")) <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            errs.append(f"{where}: prior k must be a positive number")
+        if not str(h.get("statement_cited") or "").strip():
+            errs.append(f"{where}: cite the paper the statement comes from")
+    return errs
+
+
+def validate_config_story(nid: str, spec: dict, **kw) -> list[str]:
+    """What seed() requires of a story declared in config: the definition, an
+    evidence rule that can produce evidence FOR, and emittable hypotheses."""
+    return (validate_definition(nid, spec, **kw) + validate_evidence(spec)
+            + validate_hypotheses(spec))
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +449,7 @@ class NarrativeRegister:
         out = {"inserted": [], "synced": [], "refused": {}}
         for nid, spec in (cfg.get("narratives") or {}).items():
             spec = spec or {}
-            errs = validate_definition(nid, spec, dims=dims, queries=queries)
+            errs = validate_config_story(nid, spec, dims=dims, queries=queries)
             if errs:
                 out["refused"][nid] = errs
                 log.warning("narrative %s not seeded: %s", nid, "; ".join(errs))
@@ -628,8 +751,106 @@ def evidence(ev_conn: sqlite3.Connection, spec: dict, cutoff: str,
                 unscored[str(eid)] = f"no signed naive surprise for {metric}"
                 continue
             (for_ids if sgn == want else against).append(eid)
+
+    # 6c-3: headlines under the story's own query, signed by declared patterns.
+    hr = rules.get("headlines") or {}
+    if hr:
+        query = spec.get("story_query")
+        pivot = None
+        if hr.get("calendar_claim"):
+            pivot = calendar_date(ev_conn, str(hr["calendar_claim"]), cutoff)
+        for eid, obs, title in ev_conn.execute(
+                "SELECT id, observed_at, title FROM events WHERE type = 'headline' "
+                " AND available_at <= ? AND observed_at >= ? AND observed_at <= ? "
+                " AND json_extract(payload, '$.query') = ? ORDER BY id",
+                (cutoff, since, cutoff, query)):
+            if hr.get("calendar_claim") and pivot is None:
+                unscored[str(eid)] = (f"calendar claim {hr['calendar_claim']} is "
+                                      f"not in the events table at this cutoff")
+                continue
+            phase = (None if pivot is None else
+                     ("before" if str(obs)[:10] < pivot else "after"))
+            sgn = score_headline(title, hr, phase)
+            if sgn is None:
+                continue                   # not this rule's institution
+            if sgn == 0:
+                unscored[str(eid)] = "no declared pattern, or both, matched"
+                continue
+            (for_ids if sgn > 0 else against).append(eid)
+
+    # 6c-3: the story's own prices, by the close report's move percentile.
+    series_for: list[dict] = []
+    series_against: list[dict] = []
+    for metric, r in sorted((rules.get("series_moves") or {}).items()):
+        mv = series_move(metric, r or {}, cutoff, store)
+        if mv.get("sign") == 1:
+            series_for.append(mv["item"])
+        elif mv.get("sign") == -1:
+            series_against.append(mv["item"])
+        else:
+            unscored[f"series:{metric}"] = mv["reason"]
     return {"for": sorted(set(for_ids)), "against": sorted(set(against)),
+            "series_for": series_for, "series_against": series_against,
             "unscored": unscored, "window_days": window_days, "since": since}
+
+
+def calendar_date(ev_conn: sqlite3.Connection, claim_id: str, cutoff: str
+                  ) -> Optional[str]:
+    """The date of a claims-registry calendar event, as knowable at `cutoff`."""
+    r = ev_conn.execute(
+        "SELECT observed_at FROM events WHERE type = 'scheduled' "
+        " AND json_extract(payload, '$.claim_id') = ? AND available_at <= ? "
+        "ORDER BY available_at DESC, id DESC LIMIT 1", (claim_id, cutoff)).fetchone()
+    return str(r[0])[:10] if r else None
+
+
+def score_headline(title: Optional[str], rule: dict,
+                   phase: Optional[str] = None) -> Optional[int]:
+    """+1 FOR, -1 AGAINST, 0 unscored, None when `require` does not match.
+
+    Declared patterns only. Pure, so the validator can hold each rule to the
+    examples it declares.
+    """
+    t = str(title or "")
+    req = rule.get("require")
+    if req and not re.search(req, t):
+        return None
+    pats = rule.get(phase) if phase else rule
+    pats = pats or {}
+    f = any(re.search(p, t) for p in pats.get("for") or [])
+    a = any(re.search(p, t) for p in pats.get("against") or [])
+    return 1 if f and not a else (-1 if a and not f else 0)
+
+
+def series_move(metric: str, rule: dict, cutoff: str, store: Any) -> dict:
+    """{sign, item} for a move at or beyond the declared percentile, else a reason.
+
+    The same delta_percentile the close report prints, so the evidence and the
+    WHAT CHANGED block cannot disagree about whether a move was large.
+    """
+    from . import derived  # noqa: PLC0415
+    horizon = int(rule.get("horizon") or 5)
+    pct = float(rule.get("percentile") or 10)
+    want = 1 if str(rule.get("sign", "+")) == "+" else -1
+    d = derived.delta_percentile(metric, as_of=cutoff, horizon=horizon,
+                                 store=store)
+    if d.get("percentile") is None:
+        return {"sign": 0, "reason": f"{metric}: "
+                f"{d.get('absent_reason') or 'no move percentile'}"}
+    age, _ = derived.sessions_between(str(d["to_date"])[:10], str(cutoff)[:10])
+    if age > int(rule.get("max_age_sessions") or 3):
+        return {"sign": 0, "reason": f"{metric}: last print {d['to_date']}, {age} "
+                f"sessions before the cutoff -- stale, not counted"}
+    p = float(d["percentile"])
+    moved = 1 if p >= 100.0 - pct else (-1 if p <= pct else 0)
+    if moved == 0:
+        return {"sign": 0, "reason": f"{metric}: {horizon}-observation move at "
+                f"percentile {p:.1f}, inside {pct:g}..{100 - pct:g}"}
+    item = {"id": f"{metric}@{d['to_date']}/{horizon}", "metric": metric,
+            "from_date": d.get("from_date"), "to_date": d.get("to_date"),
+            "change": d.get("change"), "delta_unit": d.get("delta_unit"),
+            "percentile": p, "n": d.get("n")}
+    return {"sign": 1 if moved == want else -1, "item": item}
 
 
 def conditions(inputs: dict, rules: dict) -> dict:
@@ -638,7 +859,9 @@ def conditions(inputs: dict, rules: dict) -> dict:
     short_n = int((rules.get("attention_sessions") or {}).get("short", 5))
     long_n = int((rules.get("attention_sessions") or {}).get("long", 20))
     share = agr.get("share")
-    n_for, n_against = len(evd["for"]), len(evd["against"])
+    # Event ids and series moves count alike: each is one declared fact.
+    n_for = len(evd["for"]) + len(evd.get("series_for") or [])
+    n_against = len(evd["against"]) + len(evd.get("series_against") or [])
     a_long, a_short = att.get("long", 0), att.get("short", 0)
     rate_s = a_short / short_n
     rate_l = a_long / long_n
@@ -813,6 +1036,16 @@ def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
                     out["transitions"].append(tr)
                     log.info("narrative %s: %s -> %s (%s)", nid, before, after,
                              rule)
+            # DATED HYPOTHESES, independent of state: each active story's are
+            # entered once, before their window opens (6c-3).
+            out["hypotheses"] = {}
+            for row in reg.all("active"):
+                nid = row["narrative_id"]
+                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                if spec.get("hypotheses") and not (row.get("opened")
+                                                   and row["opened"] > day):
+                    out["hypotheses"][nid] = emit_hypotheses(
+                        nid, spec, day, cutoff, store, db_path, run_id)
     finally:
         store.close()
     # THE SAME PASS RESOLVES WHAT IS DUE. A forecast whose horizon has passed is
@@ -864,17 +1097,22 @@ def emit_forecast(nid: str, row: dict, state: str, day: str, cutoff: str,
         return None
     io = row.get("implied_outcome") or {}
     baseline = {}
-    for m in io.get("metrics") or []:
-        last = store.latest_as_of(m, as_of=cutoff)
-        baseline[m] = (None if not last or last.get("value_num") is None else
-                       {"observed_at": str(last["observed_at"])[:10],
-                        "value": float(last["value_num"])})
+    # A FIXED baseline_date (6c-3) is read at RESOLUTION, as the close on or
+    # before that date -- the outcome is a dated window, not "since emission".
+    if not io.get("baseline_date"):
+        for m in io.get("metrics") or []:
+            last = store.latest_as_of(m, as_of=cutoff)
+            baseline[m] = (None if not last or last.get("value_num") is None else
+                           {"observed_at": str(last["observed_at"])[:10],
+                            "value": float(last["value_num"])})
     criterion = {"kind": CRITERION_KIND, "narrative_id": nid, "state": state,
                  "claim": io.get("claim"), "metrics": io.get("metrics"),
                  "comparison": io.get("comparison"),
                  "quorum": int(io.get("quorum") or 1),
                  "horizon_date": horizon_of(io, day), "baseline": baseline,
                  "grace_days": RESOLUTION_GRACE_DAYS}
+    if io.get("baseline_date"):
+        criterion["baseline_date"] = str(io["baseline_date"])
     with probability_ledger.ProbabilityLedger(db_path) as led:
         return led.record(
             source=LEDGER_SOURCE,
@@ -883,6 +1121,137 @@ def emit_forecast(nid: str, row: dict, state: str, day: str, cutoff: str,
             resolution_criterion=json.dumps(criterion, sort_keys=True),
             scenario_set=f"narrative:{nid}", emitted_at=cutoff,
             emitted_by=run_id)
+
+
+def close_on_or_before(store: Any, metric: str, day: str, as_of: str
+                       ) -> Optional[dict]:
+    """{observed_at, value} of the last print dated on or before `day`,
+    knowable at `as_of`. The rule tools/base_rates.close_on_or_before applies."""
+    rows = [r for r in store.as_of(metric, as_of=as_of)
+            if str(r["observed_at"])[:10] <= str(day)[:10]
+            and r.get("value_num") is not None]
+    if not rows:
+        return None
+    return {"observed_at": str(rows[-1]["observed_at"])[:10],
+            "value": float(rows[-1]["value_num"])}
+
+
+def _complete_through(store: Any, metric: str, day: str, as_of: str) -> bool:
+    """Whether a print dated AFTER `day` is knowable -- so the close on or before
+    it can no longer be superseded by a late row for that date."""
+    return any(str(r["observed_at"])[:10] > str(day)[:10]
+               for r in store.as_of(metric, as_of=as_of))
+
+
+# ---------------------------------------------------------------------------
+# 6c-3 -- DATED HYPOTHESES: the base rate as prior, entered once, ex ante
+# ---------------------------------------------------------------------------
+HYPOTHESIS_KIND = "narrative-dated-hypothesis-v1"
+PRIOR_RULES = ("shrink_to_unconditional",)
+
+
+def _dig(d: Any, path: str) -> Any:
+    for part in str(path).split("."):
+        if not isinstance(d, dict):
+            return None
+        d = d.get(part)
+    return d
+
+
+def hypothesis_prior(prior: dict, table: Optional[dict]) -> dict:
+    """The prior and everything a reader needs to weigh it, or why there is none.
+
+    shrink_to_unconditional: (hits + k * p0) / (n + k), p0 the unconditional
+    rate of the same window. The raw rate, both n, k and the binomial p of the
+    conditional count under p0 travel with it. A result of 0 or 1 is refused
+    -- the ledger refuses it anyway, and a certainty from a finite sample is
+    the claim Evidence and Inference exists to forbid.
+    """
+    if not table:
+        return {"probability": None,
+                "reason": f"{prior.get('table')} is not stored at this cutoff -- "
+                          f"tools/base_rates.py compute has not run with it"}
+    cond = _dig(table, prior.get("conditional")) or {}
+    unc = _dig(table, prior.get("unconditional")) or {}
+    n, hits, p0 = cond.get("n"), cond.get("hits"), unc.get("hit_rate")
+    if not n or hits is None or p0 is None:
+        return {"probability": None,
+                "reason": f"{prior.get('table')} carries no complete "
+                          f"{prior.get('conditional')} / {prior.get('unconditional')}"}
+    k = float(prior.get("k"))
+    p = round((float(hits) + k * float(p0)) / (float(n) + k), 4)
+    out = {"probability": p, "rule": prior.get("rule"), "k": k,
+           "table": prior.get("table"),
+           "table_computed_at": table.get("computed_at"),
+           "table_method": table.get("method_version"),
+           "conditional": {"field": prior.get("conditional"), "n": n,
+                           "hits": hits, "hit_rate": cond.get("hit_rate"),
+                           "binomial_p_vs_unconditional":
+                               cond.get("binomial_p_vs_all_years")},
+           "unconditional": {"field": prior.get("unconditional"),
+                             "n": unc.get("n"), "hit_rate": p0}}
+    if not 0.0 < p < 1.0:
+        return {**out, "probability": None,
+                "reason": f"the rule gives {p}; no ledger row carries 0 or 1"}
+    return out
+
+
+def emit_hypotheses(nid: str, spec: dict, day: str, cutoff: str, store: Any,
+                    db_path: Optional[str], run_id: str) -> dict:
+    """Enter each dated hypothesis once, before its window opens.
+
+    IDEMPOTENT by scenario_set (`hypothesis:<story>:<id>`): a hypothesis is one
+    forecast, and re-emitting it on every close would be the same claim scored
+    many times. EX ANTE OR NOT AT ALL: a hypothesis whose baseline date has
+    arrived is not emitted -- a forecast of a window already open is partly an
+    observation -- and the reason is returned for the close pass to print.
+    """
+    from . import probability_ledger  # noqa: PLC0415
+    out: dict[str, Any] = {"emitted": [], "held": {}}
+    hyps = spec.get("hypotheses") or {}
+    if not hyps:
+        return out
+    with probability_ledger.ProbabilityLedger(db_path) as led:
+        have = {r["scenario_set"] for r in led.conn.execute(
+            "SELECT scenario_set FROM probabilities WHERE source = ?",
+            (LEDGER_SOURCE,))}
+        for hid, h in sorted(hyps.items()):
+            sset = f"hypothesis:{nid}:{hid}"
+            if sset in have:
+                continue
+            if str(cutoff)[:10] >= str(h["baseline_date"]):
+                out["held"][hid] = (f"window opened {h['baseline_date']}; not "
+                                    f"emitted at {str(cutoff)[:10]} -- ex ante "
+                                    f"or not at all")
+                continue
+            table_rows = store.as_of(str((h.get("prior") or {}).get("table")),
+                                     as_of=cutoff)
+            table = json.loads(table_rows[-1]["value_text"]) if table_rows else None
+            pr = hypothesis_prior(h.get("prior") or {}, table)
+            if pr.get("probability") is None:
+                out["held"][hid] = pr["reason"]
+                continue
+            criterion = {"kind": HYPOTHESIS_KIND, "narrative_id": nid,
+                         "hypothesis": hid, "claim": " ".join(
+                             str(h["claim"]).split()),
+                         "metrics": [h["metric"]], "comparison": h["comparison"],
+                         "quorum": 1, "baseline_date": str(h["baseline_date"]),
+                         "horizon_date": str(h["horizon_date"]),
+                         "baseline": {}, "grace_days": RESOLUTION_GRACE_DAYS,
+                         "prior": pr,
+                         "statement_cited": h.get("statement_cited"),
+                         "claims_cited": list(h.get("claims_cited") or [])}
+            pid = led.record(
+                source=LEDGER_SOURCE, claim=f"[{nid}:{hid}] {criterion['claim']}",
+                probability=pr["probability"],
+                horizon_date=criterion["horizon_date"],
+                resolution_criterion=json.dumps(criterion, sort_keys=True),
+                scenario_set=sset, emitted_at=cutoff, emitted_by=run_id)
+            out["emitted"].append({"hypothesis": hid, "probability_id": pid,
+                                   "probability": pr["probability"]})
+            log.info("hypothesis %s:%s entered at %.4f", nid, hid,
+                     pr["probability"])
+    return out
 
 
 def _meets(comparison: str, base: float, now: float) -> bool:
@@ -909,14 +1278,29 @@ def resolve_one(criterion: dict, store: Any, as_of: str) -> dict:
                  ).isoformat()
     met, detail, missing = 0, {}, []
     for m in criterion.get("metrics") or []:
-        base = (criterion.get("baseline") or {}).get(m)
+        if criterion.get("baseline_date"):
+            base = close_on_or_before(store, m, criterion["baseline_date"], as_of)
+        else:
+            base = (criterion.get("baseline") or {}).get(m)
         if not base:
             missing.append(m)
-            detail[m] = "no baseline at emission"
+            detail[m] = ("no close on or before the baseline date"
+                         if criterion.get("baseline_date") else
+                         "no baseline at emission")
             continue
         rows = [r for r in store.as_of(m, as_of=as_of)
                 if base["observed_at"] < str(r["observed_at"])[:10] <= horizon
                 and r.get("value_num") is not None]
+        if criterion.get("baseline_date"):
+            # The dated form reads the close ON OR BEFORE the horizon, the same
+            # rule tools/base_rates.py used to compute the prior; not "the last
+            # print after the baseline", which a late-arriving row could move.
+            rows = rows[-1:]
+            if (rows and today < grace_end
+                    and not _complete_through(store, m, horizon, as_of)):
+                return {"outcome": None, "reason": f"{m} has no print after "
+                        f"{horizon} yet, so the close on it is not final",
+                        "detail": detail}
         if not rows:
             missing.append(m)
             detail[m] = "no observation after the baseline by the horizon"
@@ -1096,6 +1480,12 @@ def _main(argv: list[str]) -> int:
         for t in r["transitions"]:
             print(f"  TRANSITION  : {t['narrative_id']} {t['from']} -> {t['to']} "
                   f"({t['rule']}; alert {t['alert_path']})")
+        for nid, h in (r.get("hypotheses") or {}).items():
+            for e in h["emitted"]:
+                print(f"  HYPOTHESIS  : {nid}:{e['hypothesis']} entered at "
+                      f"{e['probability']:.4f} ({e['probability_id'][:12]})")
+            for hid, why in h["held"].items():
+                print(f"  held        : {nid}:{hid} -- {why}")
         return 0
     if a.cmd == "replay":
         r = replay(a.db)

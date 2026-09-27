@@ -432,9 +432,244 @@ def group_g() -> None:
           "a valid proposal is written as `proposed`, emerging")
 
 
+def _seed_series(store, key: str, days: list[str], values: list[float]) -> None:
+    store.write_many([
+        {"registry_key": key, "instrument": None, "observed_at": d,
+         "available_at": f"{d}T21:00:00+00:00", "value": float(v),
+         "source": "synthetic"} for d, v in zip(days, values)])
+
+
+def _weekdays(end: str, n: int) -> list[str]:
+    import datetime as dt
+    out, d = [], dt.date.fromisoformat(end)
+    while len(out) < n:
+        if d.weekday() < 5:
+            out.append(d.isoformat())
+        d -= dt.timedelta(days=1)
+    return list(reversed(out))
+
+
+def _can_produce_for(kind: str, rule: dict) -> bool:
+    """Whether a declared evidence rule of this kind can ever yield a FOR."""
+    if kind == "earnings":
+        return bool(rule.get("symbols")) and str(rule.get("sign")) in ("+", "-")
+    if kind == "release_surprises":
+        return bool(rule) and all(str(s) in ("+", "-") for s in rule.values())
+    if kind == "series_moves":
+        return bool(rule) and all(str((r or {}).get("sign")) in ("+", "-")
+                                  for r in rule.values())
+    if kind == "headlines":
+        ex = rule.get("examples") or {}
+        return any(nr.score_headline(t, rule, (lab.split("_", 1)[0]
+                                               if "_" in lab else None)) == 1
+                   for lab, t in ex.items() if lab.endswith("for"))
+    return False
+
+
+def group_h() -> None:
+    print(f"{LINE}\nH. EVERY SEEDED STORY CAN, IN PRINCIPLE, REACH CONSENSUS (6c-3)\n"
+          f"{LINE}")
+    real = nr.load_config()
+    rules = real.get("rules") or {}
+    c = rules.get("consensus") or {}
+    for nid, spec in (real.get("narratives") or {}).items():
+        errs = nr.validate_config_story(nid, spec)
+        check(not errs, f"{nid}: the definition, its evidence rule and its "
+                        f"hypotheses validate{': ' + '; '.join(errs) if errs else ''}")
+        ev_rules = spec.get("evidence") or {}
+        producers = [k for k, r in ev_rules.items() if _can_produce_for(k, r or {})]
+        check(bool(producers),
+              f"{nid}: has an evidence rule that can yield evidence FOR "
+              f"({', '.join(producers) or 'none'})")
+        # The consensus rule is satisfiable given one FOR: attention at the
+        # declared minimum, every linked dimension agreeing, one fact for.
+        links = spec.get("linked_dimensions") or {}
+        inputs = {"attention": {"long": int(c.get("min_attention_long", 0)),
+                                "short": int(c.get("min_attention_long", 0)),
+                                "delta_short": 0},
+                  "agreement": {"share": 1.0 if links else None},
+                  "evidence": {"for": [1], "against": []}}
+        check(nr.conditions(inputs, rules)["consensus"],
+              f"{nid}: with {len(links)} linked dimension(s) agreeing, attention "
+              f"at the minimum and one fact FOR, the consensus condition holds")
+    empty = dict(real["narratives"]["yen_carry"], evidence={})
+    check(any("no evidence rule" in e for e in nr.validate_config_story(
+              "yen_carry", empty)),
+          "and a config story with NO evidence rule is refused at seed")
+
+    # --- the yen carry's headline rule, end to end -------------------------
+    yc = real["narratives"]["yen_carry"]
+    ex = yc["evidence"]["headlines"]["examples"]
+    day = "2026-09-24"
+    with ev_mod.EventStore() as ev:
+        ev.write_many([ev_mod.Event("headline", f"{day}T0{i}:00:00+00:00", "fx",
+                                    t, payload={"query": "yen_carry"})
+                       for i, t in enumerate([ex["for"], ex["against"],
+                                              "Yen carry explained"])],
+                      available_at=f"{day}T12:00:00+00:00")
+        ids = [r[0] for r in ev.conn.execute(
+            "SELECT id FROM events WHERE json_extract(payload,'$.query')='yen_carry' "
+            "ORDER BY id")]
+        store = observations.ObservationStore()
+        try:
+            got = nr.evidence(ev.conn, yc, f"{day}T21:00:00+00:00", 60, store)
+        finally:
+            store.close()
+    check(got["for"] == [ids[0]] and got["against"] == [ids[1]]
+          and ids[2] not in got["for"] + got["against"],
+          f"yen carry: a BoJ headline for the unwind counts FOR, one against it "
+          f"AGAINST, and one naming no institution is not this rule's "
+          f"(for {got['for']}, against {got['against']})")
+
+    # --- the midterm's calendar phase ----------------------------------------
+    mc = real["narratives"]["midterm_cycle"]
+    with ev_mod.EventStore() as ev:
+        ev.write_many([ev_mod.Event(
+            "scheduled", "2026-11-03T13:30:00+00:00", "claims_registry",
+            "US federal midterm election day", key="cal.midterm_election_2026",
+            payload={"claim_id": "cal.midterm_election_2026"})],
+            available_at="2026-09-23T12:00:00+00:00")
+        titles = [("2026-10-20", "Stocks slump on midterm uncertainty"),
+                  ("2026-10-21", "Stocks rally into the midterms"),
+                  ("2026-11-10", "Stocks rally after the midterm vote"),
+                  ("2026-11-11", "Stocks slump after the midterm vote")]
+        ev.write_many([ev_mod.Event("headline", f"{d}T15:00:00+00:00", "fx", t,
+                                    payload={"query": "midterm_cycle"})
+                       for d, t in titles],
+                      available_at="2026-11-12T00:00:00+00:00")
+        mids = [r[0] for r in ev.conn.execute(
+            "SELECT id FROM events WHERE json_extract(payload,'$.query')="
+            "'midterm_cycle' ORDER BY observed_at")]
+        store = observations.ObservationStore()
+        try:
+            got = nr.evidence(ev.conn, mc, "2026-11-12T21:00:00+00:00", 60, store)
+            early = nr.evidence(ev.conn, mc, "2026-09-22T21:00:00+00:00", 60, store)
+        finally:
+            store.close()
+    check(got["for"] == [mids[0], mids[2]] and got["against"] == [mids[1], mids[3]],
+          f"midterm: weakness BEFORE election day and a rally AFTER count FOR, "
+          f"their opposites AGAINST -- the calendar signs the same words both "
+          f"ways (for {got['for']}, against {got['against']})")
+    check(not early["for"] and not early["against"],
+          "and before the calendar event is knowable nothing is scored")
+
+    # --- a series move -------------------------------------------------------
+    days = _weekdays("2026-09-25", 300)
+    vals = [150.0 + (0.1 if i % 2 else -0.1) for i in range(len(days) - 5)]
+    vals += [vals[-1] * (1 - 0.01 * k) for k in range(1, 6)]
+    store = observations.ObservationStore()
+    try:
+        _seed_series(store, "fred.usd_jpy", days, vals)
+        rule = yc["evidence"]["series_moves"]["fred.usd_jpy"]
+        mv = nr.series_move("fred.usd_jpy", rule, "2026-09-25T21:00:00+00:00",
+                            store)
+        check(mv.get("sign") == 1 and mv["item"]["percentile"] <= 10,
+              f"yen carry: a five-session fall in USD/JPY at the "
+              f"{mv.get('item', {}).get('percentile')} percentile is FOR the "
+              f"unwind")
+        stale = nr.series_move("fred.usd_jpy", rule, "2026-10-09T21:00:00+00:00",
+                               store)
+        check(stale.get("sign") == 0 and "stale" in stale.get("reason", ""),
+              f"and the same move ten sessions later is unscored as stale "
+              f"({stale.get('reason', '')[:60]})")
+        cmin = int((rules.get("consensus") or {}).get("min_attention_long", 0))
+        conds = nr.conditions(
+            {"attention": {"long": cmin, "short": cmin, "delta_short": 0},
+             "agreement": {"share": 1.0},
+             "evidence": {"for": [], "against": [], "series_for": [mv["item"]],
+                          "series_against": []}}, rules)
+        check(conds["consensus"],
+              "and a series fact alone satisfies min_evidence_for -- the rules "
+              "count it like an event")
+    finally:
+        store.close()
+
+
+def group_i() -> None:
+    print(f"{LINE}\nI. THE MIDTERM HYPOTHESES: EX ANTE, SHRUNK, NEVER CERTAIN (6c-3)\n"
+          f"{LINE}")
+    real = nr.load_config()
+    mc = real["narratives"]["midterm_cycle"]
+    table = {"computed_at": "2026-09-27T00:00:00+00:00",
+             "method_version": "base-rates-method-1",
+             "primary": {"n": 19, "hits": 19, "hit_rate": 1.0,
+                         "binomial_p_vs_all_years": 0.004608},
+             "primary_unconditional": {"all_years": {"n": 73, "hit_rate": 0.7534}},
+             "secondary": {"n": 19, "hits": 17, "hit_rate": 0.8947,
+                           "binomial_p_vs_all_years": 0.04502},
+             "secondary_unconditional": {"all_years": {"n": 73,
+                                                       "hit_rate": 0.6986}}}
+    pp = nr.hypothesis_prior(mc["hypotheses"]["primary"]["prior"], table)
+    ps = nr.hypothesis_prior(mc["hypotheses"]["secondary"]["prior"], table)
+    check(pp["probability"] == 0.915 and ps["probability"] == 0.8271,
+          f"the prior is (hits + k p0) / (n + k) with k=10: 19/19 against 0.7534 "
+          f"gives {pp['probability']}, 17/19 against 0.6986 gives "
+          f"{ps['probability']} -- not the raw 1.0 and 0.8947")
+    check(pp["conditional"]["n"] == 19 and pp["unconditional"]["n"] == 73
+          and pp["k"] == 10 and pp["conditional"]["hit_rate"] == 1.0
+          and pp["conditional"]["binomial_p_vs_unconditional"] == 0.004608,
+          "and it carries the rule, k, the raw rate with its n, the "
+          "unconditional rate with its n, and the binomial p beside it")
+    certain = dict(table, primary_unconditional={"all_years": {"n": 73,
+                                                               "hit_rate": 1.0}})
+    held = nr.hypothesis_prior(mc["hypotheses"]["primary"]["prior"], certain)
+    check(held["probability"] is None and "0 or 1" in held["reason"],
+          f"a rule that yields 1.0 enters nothing ({held['reason'][:50]})")
+
+    store = observations.ObservationStore()
+    try:
+        store.write("baserate.midterm_from_election", None, "2026-09-25",
+                    "2026-09-26T08:00:00+00:00", json.dumps(table),
+                    source="derived_base_rate")
+        out = nr.emit_hypotheses("midterm_cycle", mc, "2026-09-28",
+                                 "2026-09-28T21:00:00+00:00", store, None, "fx")
+        check(sorted(e["hypothesis"] for e in out["emitted"])
+              == ["primary", "secondary"] and not out["held"],
+              f"on 28 September both are entered ({out})")
+        again = nr.emit_hypotheses("midterm_cycle", mc, "2026-09-29",
+                                   "2026-09-29T21:00:00+00:00", store, None, "fx")
+        check(not again["emitted"],
+              "and the next close enters nothing: a hypothesis is one forecast")
+        late = nr.emit_hypotheses("fixture_midterm", mc, "2026-10-02",
+                                  "2026-10-02T21:00:00+00:00", store, None, "fx")
+        check([e["hypothesis"] for e in late["emitted"]] == ["primary"]
+              and "secondary" in late["held"],
+              f"on 2 October the secondary window (from 1 October) is already "
+              f"open and is HELD, not entered: {late['held'].get('secondary', '')[:50]}")
+        with probability_ledger.ProbabilityLedger() as led:
+            rows = {r["scenario_set"]: r for r in led.all_rows()}
+        row = rows["hypothesis:midterm_cycle:primary"]
+        crit = json.loads(row["resolution_criterion"])
+        check(row["probability"] == 0.915 and crit["baseline_date"] == "2026-11-03"
+              and crit["horizon_date"] == "2027-11-03"
+              and crit["claims_cited"] == ["cal.midterm_election_2026"]
+              and "Base Rates" in crit["statement_cited"],
+              "the ledger row: 0.915, election day to election day, the claim "
+              "cited by id and the paper for the statement")
+
+        # Resolution reads the close ON OR BEFORE each date, once final.
+        sec = json.loads(rows["hypothesis:midterm_cycle:secondary"]
+                         ["resolution_criterion"])
+        _seed_series(store, "yfinance.mkt_gspc",
+                     ["2026-09-30", "2026-10-01", "2027-03-31"],
+                     [99.0, 100.0, 110.0])
+        wait = nr.resolve_one(sec, store, "2027-04-01T21:00:00+00:00")
+        check(wait["outcome"] is None and "not final" in wait["reason"],
+              "with no print after 31 March the close on it is not final yet")
+        _seed_series(store, "yfinance.mkt_gspc", ["2027-04-01"], [90.0])
+        res = nr.resolve_one(sec, store, "2027-04-02T21:00:00+00:00")
+        d = res["detail"]["yfinance.mkt_gspc"]
+        check(res["outcome"] == 1 and d["baseline"]["value"] == 100.0
+              and d["at_horizon"]["value"] == 110.0,
+              "then it resolves on 1 October's 100 against 31 March's 110 -- not "
+              "on the later 90, and not on the level at emission")
+    finally:
+        store.close()
+
+
 def main() -> int:
     print(f"{LINE}\nThe narrative register and the 07:00 scan (6c-2)\n{LINE}")
-    for g in (groups_abc, group_d, group_e, group_g):
+    for g in (groups_abc, group_d, group_e, group_g, group_h, group_i):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

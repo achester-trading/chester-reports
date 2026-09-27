@@ -271,8 +271,10 @@ def stories_block(payload: dict) -> str:
             f'{esc(e.get("attention_long", "-"))}</td>'
             f'<td style="{TD}">{signed(e.get("attention_delta_short"), 0) if e else "-"}</td>'
             f'<td style="{TD}">{num(e.get("agreement_ratio"), 2) if e else "-"}</td>'
-            f'<td style="{TD}">{len(e.get("evidence_for") or [])} / '
-            f'{len(e.get("evidence_against") or [])}</td>'
+            f'<td style="{TD}">'
+            f'{len(e.get("evidence_for") or []) + len(e.get("series_for") or [])} / '
+            f'{len(e.get("evidence_against") or []) + len(e.get("series_against") or [])}'
+            f'</td>'
             f'<td style="{TDL}">{esc(", ".join(k for k, v in (e.get("conditions_met") or {}).items() if v) or "-")}</td></tr>')
     table = (f'<table style="{TBL}"><thead><tr><th style="{THL}">story</th>'
              f'<th style="{THL}">state</th><th style="{TH}">attention 5 / 20</th>'

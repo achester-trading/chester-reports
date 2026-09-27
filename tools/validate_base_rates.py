@@ -123,8 +123,9 @@ def group_c(tables: dict) -> None:
         check(e.get("trigger_eligible") is False,
               f"{key} is NOT trigger_eligible -- a base rate is a denominator "
               f"and can never say that something is happening now")
-    check(len(br.TABLE_KEYS) == 6,
-          f"six tables are declared (got {len(br.TABLE_KEYS)})")
+    check(len(br.TABLE_KEYS) == 7,
+          f"seven tables are declared (got {len(br.TABLE_KEYS)}) -- the six of "
+          f"Part I and the midterm conditional (6c-3)")
 
 
 def group_d(tables: dict) -> None:
@@ -248,6 +249,49 @@ def group_e(tables: dict) -> None:
               f"other")
 
 
+def group_f(tables: dict) -> None:
+    """The midterm conditional: ex ante, with its comparators. (6c-3)"""
+    print(f"\n{LINE}\nF. THE MIDTERM CONDITIONAL IS MEASURED EX ANTE\n{LINE}")
+    import datetime as dt
+    t = tables["baserate.midterm_from_election"]
+    check(br.election_day(2026) == dt.date(2026, 11, 3)
+          and br.election_day(2022) == dt.date(2022, 11, 8)
+          and br.election_day(1954) == dt.date(1954, 11, 2),
+          "election day is the first Tuesday after the first Monday in November "
+          "(2026-11-03, 2022-11-08, 1954-11-02)")
+    prim, sec = t.get("primary") or {}, t.get("secondary") or {}
+    cyc = prim.get("cycles") or []
+    check(prim.get("n") == 19 and len(cyc) == 19,
+          f"nineteen post-war midterm cycles, 1950-2022, each listed "
+          f"(n={prim.get('n')}, rows={len(cyc)})")
+    check(all(c["start"] == br.election_day(c["year"]).isoformat() for c in cyc),
+          "every primary window starts ON election day -- a date known in "
+          "advance, never the year's low")
+    check(all(c["start_close_date"] <= c["start"] for c in cyc),
+          "and reads the close on or before it, the resolver's rule")
+    for name, cond, unc in (("primary", prim, t.get("primary_unconditional")),
+                            ("secondary", sec, t.get("secondary_unconditional"))):
+        unc = unc or {}
+        check(all(isinstance((unc.get(k) or {}).get("n"), int)
+                  for k in ("all_years", "non_midterm_years", "all_sessions")),
+              f"{name}: printed beside all years, the non-midterm years and every "
+              f"session, each with its n -- so drift cannot pass for a cycle")
+        p = cond.get("binomial_p_vs_all_years")
+        check(isinstance(p, float) and 0 < p < 1,
+              f"{name}: the binomial p of {cond.get('hits')}/{cond.get('n')} "
+              f"under the all-years rate {unc.get('all_years', {}).get('hit_rate')} "
+              f"is carried ({p})")
+    check((t["primary_unconditional"]["all_sessions"] or {}).get("overlapping")
+          is True, "the all-sessions comparator says its windows overlap")
+    paper = (REPO / "docs" / "whitepapers" / "base-rates-whitepaper.md").read_text(
+        encoding="utf-8")
+    check("baserate.midterm_from_election" in paper
+          and "from the midterm-year low" in paper.lower()
+          and "erratum pending" in paper.lower(),
+          "the paper flags its 'from the midterm-year low' sentence as a pending "
+          "erratum and names the table that replaces it")
+
+
 def main() -> int:
     print(f"{LINE}\nbase_rates.py -- 31.1\n{LINE}")
     db = observations.ObservationStore()
@@ -271,6 +315,7 @@ def main() -> int:
     group_c(tables)
     group_d(tables)
     group_e(tables)
+    group_f(tables)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0

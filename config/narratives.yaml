@@ -29,8 +29,8 @@
 # register on every seed; their STATE and EVIDENCE live in the register and are
 # never overwritten by a seed.
 
-version: narratives-v1
-updated: 2026-09-26
+version: narratives-v2
+updated: 2026-09-27
 
 vocabularies:
   states: [emerging, consensus, contested, fading]
@@ -182,14 +182,44 @@ narratives:
       Yen-funded carry is being unwound: the yen strengthens and cross-asset
       volatility rises with it.
     story_query: yen_carry
-    linked_dimensions: {volatility: "+", credit: "-"}
+    # RATES AND VOLATILITY until 6f adds funding stress, which is the dimension
+    # this story is really about. Rates `-`: an unwind is a flight to quality and
+    # a narrowing rate differential, so US yields FALL with it (August 2024).
+    # Volatility `+`: equity volatility is the transmission. Credit was linked in
+    # 6c-2 and is dropped -- spreads widen late in an unwind, if at all, and a
+    # link that lags the story argues against it on every early session.
+    linked_dimensions: {rates: "-", volatility: "+"}
     linked_instruments: [fred.usd_jpy, mof.jgb_10y, yfinance.mkt_vix]
     prediction_market_contracts: []
-    # NO EVIDENCE RULE, and so this story cannot reach consensus. Nothing ingested
-    # speaks to it: BoJ decisions and Japanese releases are not in the events
-    # table. Declared empty rather than borrowed from a US series that does not
-    # bear on it; the story still gains attention and can be contested.
-    evidence: {}
+    evidence:
+      # THE PRICES THE STORY IS ABOUT, by the same move percentile the close
+      # report prints (altdata.derived.delta_percentile): the latest `horizon`-
+      # observation change against five years of such changes. At or beyond
+      # `percentile` in the story's direction counts FOR, at or beyond it the
+      # other way AGAINST; a move whose last print is more than
+      # `max_age_sessions` sessions before the cutoff is unscored as stale.
+      series_moves:
+        fred.usd_jpy: {sign: "-", horizon: 5, percentile: 10, max_age_sessions: 3}
+        mof.jgb_10y: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+      # BoJ AND MoF HEADLINES FROM THE STORY'S OWN QUERY, signed by declared
+      # title patterns and nothing else -- no model reads them. A title must name
+      # the institution (`require`); then a FOR pattern (tightening, intervention,
+      # the yen gaining) or an AGAINST pattern (the yen weakening, a hold) signs
+      # it. Both or neither: unscored, and recorded as such. Crude on purpose: it
+      # replays exactly, and a headline the patterns miss is visibly unscored.
+      headlines:
+        require: '(?i)\b(boj|bank of japan|ministry of finance|mof|finance ministry)\b'
+        for:
+          - '(?i)\b(tighten\w*|rate hikes?|hikes? rates|raises? rates|intervene\w*|intervention|unwind\w*|exodus)\b'
+          - '(?i)\byen\b.{0,30}\b(gains?|surge\w*|recover\w*|rall\w*|strengthen\w*|jumps?)\b'
+        against:
+          - '(?i)\byen\b.{0,30}\b(weaken\w*|slump\w*|slides?|slid|falls?|fell|drops?|tumbles?)\b'
+          - '(?i)\b(holds? rates|keeps? rates|stands? pat|pauses?|dovish)\b'
+        # Checked by tools/validate_narratives.py: each must score as labelled.
+        examples:
+          for: "Carry Trade Exodus Fuels Yen Gain Ahead of BOJ Rate Decision - Bloomberg.com"
+          against: "Yen slides as Bank of Japan holds rates steady"
+          unscored: "What Is the Yen Carry Trade? How Rate Hikes Affect Global Markets - Markets.com"
     implied_outcome:
       claim: >-
         USD/JPY (yen per dollar, FRED DEXJPUS) is lower at the horizon than when
@@ -206,16 +236,87 @@ narratives:
       election (cal.midterm_election_2026) and equities rally after it.
     story_query: midterm_cycle
     linked_dimensions: {trend: "+"}
-    linked_instruments: [yfinance.mkt_spy]
+    linked_instruments: [yfinance.mkt_gspc]
     prediction_market_contracts: []
-    # NO EVIDENCE RULE: the election is a dated claim, not an event with a sign,
-    # and no release bears on the seasonal pattern. Cannot reach consensus.
-    evidence: {}
+    evidence:
+      # ITS HEADLINE QUERY, SIGNED BY THE CALENDAR. The story makes opposite
+      # claims either side of election day -- weakness into it, strength after --
+      # so one title means different things by date. The phase is read from the
+      # claim's scheduled event in the events table (cal.midterm_election_2026,
+      # ingested from config/claims.yaml) as knowable at the cutoff; a headline
+      # on election day itself counts as `after`.
+      headlines:
+        calendar_claim: cal.midterm_election_2026
+        before:
+          for:
+            - '(?i)\b(uncertaint\w*|jitters?|sell-?off|slump\w*|slides?|tumbles?|volatil\w*|gridlock|shutdown)\b'
+          against:
+            - '(?i)\b(rall\w*|record highs?|surge\w*|soar\w*)\b'
+        after:
+          for:
+            - '(?i)\b(rall\w*|record highs?|surge\w*|soar\w*|relief|gains?)\b'
+          against:
+            - '(?i)\b(sell-?off|slump\w*|tumbles?|plunge\w*|slides?)\b'
+        examples:
+          before_for: "Midterm uncertainty weighs on stocks as election nears"
+          after_for: "Stocks rally as midterm results ease policy fears"
+          unscored: "What the midterm election means for your portfolio"
+    # THE IMPLIED OUTCOME IS THE BASE RATES CONDITIONAL, EX ANTE. Not "from the
+    # midterm-year low": the low is known only on 31 December and any series
+    # rises from its own minimum (tools/base_rates.py, table 7). Election day to
+    # election day, both dates declared now, both closes read at resolution.
     implied_outcome:
       claim: >-
-        SPY closes 31 December 2026 above its close as known when the forecast
-        was emitted.
-      metrics: [yfinance.mkt_spy]
+        The S&P 500 (yfinance.mkt_gspc) closes on 3 November 2027 above its close
+        on 3 November 2026, midterm election day (cal.midterm_election_2026).
+      metrics: [yfinance.mkt_gspc]
       comparison: up
       quorum: 1
-      horizon_date: "2026-12-31"
+      baseline_date: "2026-11-03"
+      horizon_date: "2027-11-03"
+    # DATED HYPOTHESES: entered in the probability ledger ONCE, before their
+    # window opens, with the base rate as prior -- independent of the story's
+    # state, which emits its own forecast only if it reaches consensus, against
+    # the same outcome, so the ledger scores the register against the base rate.
+    #
+    # THE PRIOR IS SHRUNK TOWARD THE UNCONDITIONAL RATE of the same window:
+    # (hits + k * p0) / (n + k). The question a prior answers is how much of the
+    # midterm effect is real and how much is drift plus a small n, so the target
+    # is the market's own unconditional rate, not the 0.5 a uniform prior would
+    # pull toward. The ledger row carries the rule, k, the raw rate with its n,
+    # the unconditional rate with its n, and the binomial p of the midterm count
+    # under the unconditional rate -- the evidence the effect is real, printed
+    # beside its size rather than replacing it. No ledger row may carry 0 or 1.
+    hypotheses:
+      primary:
+        claim: >-
+          The S&P 500 (yfinance.mkt_gspc) closes on 3 November 2027 above its
+          close on 3 November 2026, midterm election day.
+        metric: yfinance.mkt_gspc
+        comparison: up
+        baseline_date: "2026-11-03"
+        horizon_date: "2027-11-03"
+        prior:
+          table: baserate.midterm_from_election
+          conditional: primary
+          unconditional: primary_unconditional.all_years
+          rule: shrink_to_unconditional
+          k: 10
+        statement_cited: Base Rates, Chapter 3.1 (the presidential cycle)
+        claims_cited: [cal.midterm_election_2026]
+      secondary:
+        claim: >-
+          The S&P 500 (yfinance.mkt_gspc) closes on 31 March 2027 above its close
+          on 1 October 2026 -- the cycle's historically strongest stretch.
+        metric: yfinance.mkt_gspc
+        comparison: up
+        baseline_date: "2026-10-01"
+        horizon_date: "2027-03-31"
+        prior:
+          table: baserate.midterm_from_election
+          conditional: secondary
+          unconditional: secondary_unconditional.all_years
+          rule: shrink_to_unconditional
+          k: 10
+        statement_cited: Base Rates, Chapter 3.1 (the presidential cycle)
+        claims_cited: [cal.midterm_election_2026]

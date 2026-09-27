@@ -876,6 +876,174 @@ def table_vix_distribution(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Table 7 -- the midterm-year conditional, measured ex ante (6c-3)
+# ---------------------------------------------------------------------------
+# THE PAPER'S FORM OF THIS STATISTIC CANNOT BE A FORECAST. Base Rates 3.1 gives
+# "forward returns measured from the midterm-year low" -- and the low is known only
+# on 31 December, and any series measured from its own minimum rises: from the low,
+# 18 of 19 post-war cycles cleared +15% in the next twelve months, which is a
+# selection artefact rather than a rate. A hypothesis has to be decidable ex ante
+# (Evidence and Inference), so the anchor here is a DATE KNOWN IN ADVANCE: election
+# day, and a fixed calendar window. The paper is cited for the statement; the
+# numbers are these, and the paper's sentence is flagged for its next revision.
+#
+# THE COMPARATORS ARE THE POINT. A 12-month S&P return is positive in most years
+# whatever the calendar says, so a midterm hit rate printed alone would pass drift
+# off as a cycle. Every window is also measured from the same calendar anchor in
+# EVERY year and in the non-midterm years, and over every session (overlapping,
+# stated), so the reader sees how much of the midterm rate is the market's drift.
+MIDTERM_FIRST, MIDTERM_LAST = 1950, 2022
+MIDTERM_SECONDARY = ((10, 1), (3, 31))    # 1 Oct of the midterm year -> 31 Mar next
+
+
+def election_day(year: int) -> dt.date:
+    """The first Tuesday after the first Monday in November (2 U.S.C. 7)."""
+    d = dt.date(year, 11, 1)
+    first_monday = d + dt.timedelta(days=(0 - d.weekday()) % 7)
+    return first_monday + dt.timedelta(days=1)
+
+
+def close_on_or_before(closes: list[tuple[str, float]], day: dt.date
+                       ) -> Optional[tuple[str, float]]:
+    """The last close dated on or before `day`. The resolver uses the same rule."""
+    import bisect
+    dates = [d for d, _ in closes]
+    i = bisect.bisect_right(dates, day.isoformat())
+    return closes[i - 1] if i else None
+
+
+def _window_rows(closes: list[tuple[str, float]], years: list[int],
+                 start_of: Callable[[int], dt.date],
+                 end_of: Callable[[int], dt.date]) -> list[dict]:
+    last = closes[-1][0] if closes else ""
+    out = []
+    for y in years:
+        s, e = start_of(y), end_of(y)
+        if e.isoformat() > last:
+            continue                      # window not complete in the store
+        a, b = close_on_or_before(closes, s), close_on_or_before(closes, e)
+        if not a or not b or a[1] <= 0:
+            continue
+        out.append({"year": y, "start": s.isoformat(), "end": e.isoformat(),
+                    "start_close_date": a[0], "end_close_date": b[0],
+                    "return_pct": round(100.0 * (b[1] / a[1] - 1.0), 4)})
+    return out
+
+
+def _rate(rows: list[dict]) -> dict:
+    rets = [r["return_pct"] for r in rows]
+    if not rets:
+        return {"n": 0, "absent_reason": "no complete window in the store"}
+    hits = sum(1 for v in rets if v > 0)
+    return {"n": len(rets), "hits": hits, "hit_rate": round(hits / len(rets), 4),
+            "median_pct": round(pctile(rets, 50), 4),
+            "p25_pct": round(pctile(rets, 25), 4),
+            "p75_pct": round(pctile(rets, 75), 4)}
+
+
+def _all_sessions_rate(closes: list[tuple[str, float]], first: str, last: str,
+                       months: int) -> dict:
+    """Every session as a start, `months` later as the end. Overlapping -- n is
+    sessions, not independent windows, and says so."""
+    rows = []
+    for d, p in closes:
+        if not first <= d <= last or p <= 0:
+            continue
+        s = dt.date.fromisoformat(d)
+        y, m = divmod(s.month - 1 + months, 12)
+        try:
+            e = s.replace(year=s.year + y, month=m + 1)
+        except ValueError:                # 31st into a shorter month
+            e = dt.date(s.year + y, m + 2, 1) - dt.timedelta(days=1) \
+                if m + 1 < 12 else dt.date(s.year + y, 12, 31)
+        b = close_on_or_before(closes, e)
+        if b and e.isoformat() <= closes[-1][0]:
+            rows.append({"return_pct": 100.0 * (b[1] / p - 1.0)})
+    out = _rate(rows)
+    out["overlapping"] = True
+    out["note"] = ("every session a start; windows overlap, so n counts sessions "
+                   "and overstates the independent sample by roughly the window "
+                   "length")
+    return out
+
+
+def binomial_tail(hits: int, n: int, p0: float) -> Optional[float]:
+    """P(X >= hits) for X ~ Binomial(n, p0): how surprising the midterm count is
+    if the midterm years were ordinary years. Printed BESIDE a shrunk prior, not
+    instead of it -- it is evidence the effect is real, not the size of it."""
+    if not n or p0 is None:
+        return None
+    return round(sum(math.comb(n, k) * p0 ** k * (1 - p0) ** (n - k)
+                     for k in range(hits, n + 1)), 6)
+
+
+def table_midterm_from_election(data: dict) -> dict:
+    closes = [(d, p) for d, p in data["gspc"]]
+    midterms = list(range(MIDTERM_FIRST, MIDTERM_LAST + 1, 4))
+    every = list(range(MIDTERM_FIRST, MIDTERM_LAST + 1))
+    others = [y for y in every if y not in midterms]
+
+    def e_start(y: int) -> dt.date:
+        return election_day(y)
+
+    def e_end(y: int) -> dt.date:
+        d = election_day(y)
+        return d.replace(year=y + 1)
+
+    (sm, sd), (em, ed) = MIDTERM_SECONDARY
+
+    def w_start(y: int) -> dt.date:
+        return dt.date(y, sm, sd)
+
+    def w_end(y: int) -> dt.date:
+        return dt.date(y + 1, em, ed)
+
+    prim = _window_rows(closes, midterms, e_start, e_end)
+    sec = _window_rows(closes, midterms, w_start, w_end)
+    first, last = f"{MIDTERM_FIRST}-01-01", f"{MIDTERM_LAST}-12-31"
+    p_all = _rate(_window_rows(closes, every, e_start, e_end))
+    s_all = _rate(_window_rows(closes, every, w_start, w_end))
+    pr, sr = _rate(prim), _rate(sec)
+    pr["binomial_p_vs_all_years"] = binomial_tail(
+        pr.get("hits", 0), pr.get("n", 0), p_all.get("hit_rate"))
+    sr["binomial_p_vs_all_years"] = binomial_tail(
+        sr.get("hits", 0), sr.get("n", 0), s_all.get("hit_rate"))
+    return {
+        "series": GSPC,
+        "return_kind": "price",
+        "sample": {"midterm_years": [MIDTERM_FIRST, MIDTERM_LAST],
+                   "rule": "post-war midterm years; a window counts only if it "
+                           "has completed in the store"},
+        "close_rule": "the last close dated on or before the anchor date -- the "
+                      "same rule the ledger's resolver applies",
+        "statement_cited": "Base Rates, Chapter 3.1 (the presidential cycle); the "
+                           "paper's 'from the midterm-year low' form is a "
+                           "hindsight anchor and is not used",
+        "primary": dict(pr, definition=(
+            "S&P 500 close twelve months after midterm election day against the "
+            "close on election day; hit = above"), cycles=prim),
+        "primary_unconditional": {
+            "all_years": dict(p_all, definition="the same anchor in every year"),
+            "non_midterm_years": dict(
+                _rate(_window_rows(closes, others, e_start, e_end)),
+                definition="the same anchor in the other three years of the cycle"),
+            "all_sessions": _all_sessions_rate(closes, first, last, 12),
+        },
+        "secondary": dict(sr, definition=(
+            f"S&P 500 close on {em:02d}-{ed:02d} of the following year against "
+            f"the close on {sm:02d}-{sd:02d} of the midterm year -- the cycle's "
+            f"historically strongest stretch; hit = above"), cycles=sec),
+        "secondary_unconditional": {
+            "all_years": dict(s_all, definition="the same window in every year"),
+            "non_midterm_years": dict(
+                _rate(_window_rows(closes, others, w_start, w_end)),
+                definition="the same window in the other three years"),
+            "all_sessions": _all_sessions_rate(closes, first, last, 6),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # The roster
 # ---------------------------------------------------------------------------
 TABLE_BUILDERS: dict[str, Callable[[dict], dict]] = {
@@ -885,6 +1053,7 @@ TABLE_BUILDERS: dict[str, Callable[[dict], dict]] = {
     "baserate.streaks_and_gaps": table_streaks_and_gaps,
     "baserate.correlation_by_regime": table_correlation_by_regime,
     "baserate.vix_distribution": table_vix_distribution,
+    "baserate.midterm_from_election": table_midterm_from_election,
 }
 TABLE_KEYS: tuple[str, ...] = tuple(sorted(TABLE_BUILDERS))
 

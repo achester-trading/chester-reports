@@ -394,12 +394,29 @@ def narratives_week(ending: str) -> dict:
                          "run")
         return out
     out["state"] = "ok"
+    # SERIES FACTS (6c-3) live in the evaluation's inputs, not in the register's
+    # event-id columns; the count a reader sees is both.
+    series_n: dict[str, tuple[int, int]] = {}
+    try:
+        with nr.NarrativeRegister() as reg:
+            for nid, inp in reg.conn.execute(
+                    "SELECT narrative_id, inputs FROM narrative_evaluations e "
+                    "WHERE session = (SELECT MAX(session) FROM "
+                    "  narrative_evaluations x WHERE x.narrative_id = "
+                    "  e.narrative_id AND x.session <= ?)", (ending,)):
+                evd = json.loads(inp).get("evidence") or {}
+                series_n[nid] = (len(evd.get("series_for") or []),
+                                 len(evd.get("series_against") or []))
+    except Exception:                                           # noqa: BLE001
+        series_n = {}
     out["narratives"] = [
         {"id": r["narrative_id"], "name": r["name"], "state": r["state"],
          "direction": r["direction"], "opened": r["opened"],
          "last_changed": r["last_changed"],
-         "evidence_for": len(r["evidence_for"]),
-         "evidence_against": len(r["evidence_against"]),
+         "evidence_for": len(r["evidence_for"])
+                         + series_n.get(r["narrative_id"], (0, 0))[0],
+         "evidence_against": len(r["evidence_against"])
+                             + series_n.get(r["narrative_id"], (0, 0))[1],
          "linked_dimensions": r["linked_dimensions"]}
         for r in rows if r["status"] == "active"]
     # THE WEEK'S ARC: every state change inside the week, with the evidence the
@@ -424,6 +441,10 @@ def narratives_week(ending: str) -> dict:
                     "evidence_for": (inputs.get("evidence") or {}).get("for"),
                     "evidence_against": (inputs.get("evidence") or {}).get(
                         "against"),
+                    "series_for": [s.get("id") for s in (inputs.get(
+                        "evidence") or {}).get("series_for") or []],
+                    "series_against": [s.get("id") for s in (inputs.get(
+                        "evidence") or {}).get("series_against") or []],
                     "attention_long": (inputs.get("attention") or {}).get("long"),
                     "agreement_ratio": (inputs.get("agreement") or {}).get(
                         "share")})

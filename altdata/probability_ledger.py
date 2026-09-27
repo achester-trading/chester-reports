@@ -186,8 +186,13 @@ class ProbabilityLedger:
                 "without one the outcome is decided after the fact, which is the "
                 "one thing this ledger exists to prevent")
         p = float(probability)
-        if not 0.0 <= p <= 1.0:
-            raise ValueError(f"probability {p} is not in [0, 1]")
+        # OPEN INTERVAL (6c-3). No row carries 0 or 1: a certainty from a finite
+        # sample is the claim Evidence and Inference forbids, and one miss at 1.0
+        # scores the worst Brier there is. The schema CHECK stays closed so rows
+        # written before the rule still read; the write path is where it binds.
+        if not 0.0 < p < 1.0:
+            raise ValueError(f"probability {p} is not in (0, 1) -- no forecast "
+                             f"is a certainty")
         at = emitted_at or session.utc_iso()
         pid = probability_id(source, claim, at)
         self.conn.execute(

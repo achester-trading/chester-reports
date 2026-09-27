@@ -329,6 +329,15 @@ def group_f(d: Path) -> None:
         except ValueError as e:
             ok(f"a forecast with no resolution criterion is refused: {str(e)[:56]}")
 
+        # NO CERTAINTIES (6c-3): 0 and 1 are refused at the write path.
+        for p_ in (0.0, 1.0):
+            try:
+                led.record(source="x", claim=f"certain {p_}", probability=p_,
+                           horizon_date="2026-12-31", resolution_criterion="c")
+                bad(f"a forecast of exactly {p_} was accepted")
+            except ValueError as e:
+                ok(f"a forecast of exactly {p_} is refused: {str(e)[:48]}")
+
         check(len(led.due(as_of="2026-12-31T00:00:00+00:00")) == 2,
               "the two unresolved December forecasts appear in the due queue")
 

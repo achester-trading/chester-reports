@@ -138,6 +138,9 @@ def _register(cutoff: str, since: str, db_path: Optional[str]) -> dict:
                     "dimensions_uncounted": agr.get("uncounted"),
                     "evidence_for": evd.get("for") or [],
                     "evidence_against": evd.get("against") or [],
+                    # 6c-3: price moves by declared rule, beside the event ids.
+                    "series_for": evd.get("series_for") or [],
+                    "series_against": evd.get("series_against") or [],
                     "conditions_met": json.loads(ev["conditions"]),
                     "condition_runs": json.loads(ev["runs"]),
                 }
