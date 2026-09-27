@@ -96,7 +96,7 @@ STAGE="$STATE_DIR/backup_stage"
 mkdir -p "$STAGE"
 SNAP="$STAGE/chester-$(date +%Y-%m-%d).db"
 rm -f "$STAGE"/chester-*.db          # only today's staged copy is kept locally
-if ! "$PY" -m altdata.observations snapshot "$SNAP" >>"$LOG" 2>&1; then
+if ! (cd "$REPO" && "$PY" -m altdata.observations snapshot "$SNAP") >>"$LOG" 2>&1; then
     finish snapshot_failed 2 "database snapshot failed; see $LOG"
 fi
 log "staged $(basename "$SNAP")"

@@ -610,12 +610,15 @@ rclone config                       # create a remote, e.g. `b2` or `drive`
 rclone lsd <remote>:                # prove it authenticates
 
 cp ~/chester-reports/deploy/systemd/chester-backup.{service,timer} ~/.config/systemd/user/
-systemctl --user edit chester-backup.service
-#   [Service]
-#   Environment=CHESTER_RCLONE_REMOTE=b2:chester-backup
+mkdir -p ~/.config/systemd/user/chester-backup.service.d
+# the box-local drop-in, remote.conf -- exactly these two lines:
+cat > ~/.config/systemd/user/chester-backup.service.d/remote.conf <<'EOF'
+[Service]
+Environment=CHESTER_RCLONE_REMOTE=gdrive:chester-backups
+EOF
 systemctl --user daemon-reload
 
-~/chester-reports/scripts/rclone_sync.sh; echo "exit=$?"   # prove it once
+cd ~/chester-reports && scripts/rclone_sync.sh; echo "exit=$?"   # prove it once, from the repo
 systemctl --user enable --now chester-backup.timer
 ```
 

@@ -21,8 +21,14 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=no
 # rclone reads its own config from ~/.config/rclone; the staged snapshot is
-# written under the state dir; the repo's data/ is read-only to this unit.
-ReadWritePaths=%h/logs %h/.chester
+# written under the state dir. -%h/state because the box redirects
+# CHESTER_STATE_DIR there by drop-in (chester-heartbeat.service declares it the
+# same way; the leading - lets the unit start where the directory is absent).
+# %h/chester-reports/data because a mode=ro open of the WAL store must be able
+# to create chester.db-shm and chester.db-wal beside the file -- they do not
+# exist after a clean close -- and a read-only data/ refuses the snapshot. The
+# innermost path wins, so the rest of the repo stays read-only below.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone
 ProtectKernelTunables=true
 ProtectControlGroups=true

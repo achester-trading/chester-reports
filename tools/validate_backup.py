@@ -279,6 +279,25 @@ def group_d() -> None:
         ok("the database goes through the shared snapshot CLI, not `cp`")
     else:
         bad("the sweep copies the database some other way")
+
+    # B-1. THE UNIT STARTS IN $HOME, where `-m altdata...` finds no package: every
+    # 02:30 sweep that reached the snapshot died there with ModuleNotFoundError,
+    # and the only sweeps that ever succeeded were run by hand from the repo.
+    # Every other script wraps its module calls the same way (check_heartbeat.sh).
+    wrapped = re.compile(r'\(cd "\$REPO" && "\$PY" -m altdata\.observations snapshot')
+
+    def snapshot_wrapped(text: str) -> bool:
+        return all(wrapped.search(ln) for ln in text.splitlines()
+                   if "altdata.observations snapshot" in ln
+                   and not ln.strip().startswith("#"))
+    unwrapped = code.replace('(cd "$REPO" && "$PY" -m altdata.observations',
+                             '"$PY" -m altdata.observations')
+    if snapshot_wrapped(code) and not snapshot_wrapped(unwrapped):
+        ok('the snapshot runs as (cd "$REPO" && "$PY" -m altdata.observations '
+           'snapshot ...) -- and the check fails on the unwrapped call')
+    else:
+        bad('the snapshot is not wrapped in (cd "$REPO" && ...): under the unit, '
+            'which starts in $HOME, `-m altdata` does not resolve')
     if re.search(r'CHESTER_RCLONE_REMOTE:-', code) and "no_remote" in code:
         ok("an unconfigured remote exits loudly rather than sweeping nothing")
     else:
