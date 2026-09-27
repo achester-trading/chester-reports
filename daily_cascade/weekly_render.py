@@ -104,17 +104,23 @@ def state_block(payload: dict) -> str:
     # weekly is most likely to miss.
     op, cl = b.get("exceptions_opened") or [], b.get("exceptions_closed") or []
     churn = b.get("exceptions_intraweek_only") or []
+    sides = b.get("exceptions_side") or {}
+
+    def named(ids: list) -> str:
+        # Each extreme with its percentile and its tail: "fred.rrp 4.8 (<=5)".
+        return ", ".join(
+            f'{i}{" " + sides[i]["label"] if i in sides else ""}' for i in ids)
     items = []
     if op:
-        items.append(f'<strong>opened</strong>: <code>{esc(", ".join(op))}</code>')
+        items.append(f'<strong>opened</strong>: <code>{esc(named(op))}</code>')
     if cl:
-        items.append(f'<strong>closed</strong>: <code>{esc(", ".join(cl))}</code>')
+        items.append(f'<strong>closed</strong>: <code>{esc(named(cl))}</code>')
     if churn:
         items.append(f'<strong>opened and closed inside the week</strong>: '
-                     f'<code>{esc(", ".join(churn))}</code>')
+                     f'<code>{esc(named(churn))}</code>')
     open_now = b.get("exceptions_open_now") or []
     items.append(f'open now: {len(open_now)}'
-                 + (f' (<code>{esc(", ".join(open_now))}</code>)'
+                 + (f' (<code>{esc(named(open_now))}</code>)'
                     if open_now else ''))
     parts.append(f'<div style="{WARN if (op or churn) else ABSENT}">'
                  f'<strong>Exceptions</strong><br>' + '<br>'.join(items)

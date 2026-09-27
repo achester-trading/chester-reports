@@ -218,6 +218,18 @@ def week_in_state(ending: str, store: Optional[Any] = None) -> dict:
     out["exceptions_intraweek_only"] = sorted(
         i for i in seen if i not in ids_now and i not in ids_was)
     out["exceptions_sessions_seen"] = {i: len(v) for i, v in sorted(seen.items())}
+    # THE SIDE OF EVERY EXTREME (Weekly edition 1, item 3): its percentile and
+    # which tail, from the last object in the week that carried it -- so an
+    # exception that closed mid-week still says where it was.
+    from altdata import derived                                # noqa: PLC0415
+    side: dict[str, dict] = {}
+    for o in ([was] if was else []) + [
+            regime.latest(session_day=d, store=store) for d in days]:
+        for e in regime.exceptions_of(o or {}):
+            s_ = derived.extreme_side(e)
+            if s_:
+                side[e["id"]] = s_
+    out["exceptions_side"] = side
     out["sessions_in_week"] = days
     out["objects_found"] = sum(
         1 for day in days

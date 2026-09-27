@@ -381,6 +381,39 @@ def group_f() -> None:
           "while a change between two objects of one method is the market's")
 
 
+def group_g() -> None:
+    """Exceptions print their side (Weekly edition 1, item 3)."""
+    print(f"\n{LINE}\nG. AN EXTREME SAYS WHICH TAIL IT IS IN\n{LINE}")
+    from altdata import derived
+    from daily_cascade import state_block
+    rule = "percentile <= 5 or >= 95"
+    lo = {"id": "extreme:fred.rrp", "kind": "extreme", "value": 4.792,
+          "threshold": rule, "what": "fred.rrp at a five-year extreme (liquidity)"}
+    hi = {"id": "extreme:fred.ccc_oas", "kind": "extreme", "value": 99.7706,
+          "threshold": rule, "what": "fred.ccc_oas at a five-year extreme (credit)"}
+    check(derived.extreme_side(lo)["label"] == "4.8 (≤5)"
+          and derived.extreme_side(hi)["label"] == "99.8 (≥95)",
+          "the side is read from the exception's own percentile and rule")
+    check(derived.extreme_side({"kind": "extreme", "value": 1.5,
+                                "threshold": "percentile <= 2 or >= 98"})["label"]
+          == "1.5 (≤2)", "a changed threshold changes the label with it")
+    check(derived.extreme_side({"kind": "contradiction", "value": 2.4}) == {},
+          "a contradiction has no side")
+    pay = {"market_state": {"exceptions": [lo, hi]}}
+    html = state_block.exceptions_block(pay)
+    check("4.8 (≤5)" in html and "99.8 (≥95)" in html,
+          "the close's exceptions table prints both sides")
+    w = {"state": "ok", "week_ending": "2026-09-25",
+         "exceptions_opened": ["extreme:fred.rrp"],
+         "exceptions_open_now": ["extreme:fred.rrp", "extreme:fred.ccc_oas"],
+         "exceptions_side": {"extreme:fred.rrp": derived.extreme_side(lo),
+                             "extreme:fred.ccc_oas": derived.extreme_side(hi)}}
+    wh = wr.state_block({"week_in_state": w})
+    check("extreme:fred.rrp 4.8 (≤5)" in wh
+          and "extreme:fred.ccc_oas 99.8 (≥95)" in wh,
+          "and the Weekly's exception lines do")
+
+
 def main() -> int:
     print(f"{LINE}\nWeekly Tactical -- Phase 4a\n{LINE}")
     p = wp.build(TEST_WEEK, fetch=False)
@@ -393,6 +426,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:

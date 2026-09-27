@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from altdata import derived
+
 
 def _why(d: dict, prefix: str = "") -> str:
     """An absent item's data reason, or its FAULT labelled as one (6c-3).
@@ -322,12 +324,13 @@ def exceptions_block(payload: dict) -> str:
         rows.append(
             f'<tr><td style="{TDL}">{esc(e.get("kind"))}</td>'
             f'<td style="{TDL}">{esc(e.get("what"))}</td>'
-            f'<td style="{TD}">{esc(e.get("value"))}</td>'
+            f'<td style="{TD}">'
+            f'{esc(derived.extreme_side(e).get("label") or e.get("value"))}</td>'
             f'<td style="{TDL}">{esc(e.get("threshold"))}</td>'
             f'<td style="{TDL}">{dashed(e.get("since"))}</td></tr>')
     return (f'<table style="{TBL}"><thead><tr>'
             f'<th style="{THL}">kind</th><th style="{THL}">what</th>'
-            f'<th style="{TH}">value</th><th style="{THL}">threshold</th>'
+            f'<th style="{TH}">value (side)</th><th style="{THL}">threshold</th>'
             f'<th style="{THL}">since</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table>'
             f'<p style="{NOTE}">An exception is a finding about the market, not '
@@ -472,7 +475,8 @@ def text_lines(payload: dict) -> list[str]:
         L.append(f"EXCEPTIONS ({len(exc)})")
         for e in exc:
             L.append(f"  {e.get('kind')}: {e.get('what')} "
-                     f"value={e.get('value')} threshold={e.get('threshold')}"
+                     f"value={derived.extreme_side(e).get('label') or e.get('value')}"
+                     f" threshold={e.get('threshold')}"
                      + (f" since {e.get('since')}" if e.get("since") else ""))
     L.append("")
     L.append(f"STATE ({obj.get('schema_version')}, session {obj.get('session')})")

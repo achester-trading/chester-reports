@@ -69,6 +69,7 @@ import bisect as _bisect
 import contextlib as _contextlib
 import datetime as dt
 import math
+import re
 import statistics
 from pathlib import Path
 from typing import Any, Optional
@@ -712,6 +713,33 @@ def delta_percentile(metric_id: str, as_of: Optional[str] = None,
                          "p95": round(percentile_at(changes, 95), 4)},
     })
     return out
+
+
+def extreme_side(exception: dict) -> dict:
+    """Which tail an `extreme` exception sits in: {percentile, side, label}.
+
+    Weekly edition 1, item 3. "fred.rrp at a five-year extreme" does not say
+    whether the drain is at its lowest or its highest in five years, and those
+    are opposite readings of liquidity. The side comes from the exception's own
+    percentile against its own declared rule ("percentile <= 5 or >= 95"), so a
+    changed threshold changes the label with it. A contradiction exception has
+    no side and returns {}.
+    """
+    if (exception or {}).get("kind") != "extreme":
+        return {}
+    v = exception.get("value")
+    if not isinstance(v, (int, float)):
+        return {}
+    rule = str(exception.get("threshold") or "")
+    lo = re.search(r"<=\s*([\d.]+)", rule)
+    hi = re.search(r">=\s*([\d.]+)", rule)
+    lo_v = float(lo.group(1)) if lo else 5.0
+    hi_v = float(hi.group(1)) if hi else 95.0
+    side = "low" if v <= lo_v else ("high" if v >= hi_v else "inside")
+    mark = {"low": f"\u2264{lo_v:g}", "high": f"\u2265{hi_v:g}",
+            "inside": f"inside {lo_v:g}..{hi_v:g}"}[side]
+    return {"percentile": round(float(v), 1), "side": side,
+            "label": f"{float(v):.1f} ({mark})"}
 
 
 def percentile_at(values: list[float], q: float) -> float:
