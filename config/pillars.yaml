@@ -42,7 +42,7 @@
 # here so the absence is visible in the mapping instead of looking like a
 # forgotten row.
 
-version: pillars-v1
+version: pillars-v2
 schema_source: docs/chester-reports-audit-3.md section G, N item 8, O item 8
 
 dials:
@@ -69,7 +69,7 @@ pillars:
     dial: macro
     weight: 0.25
     from_object: growth
-    metrics: [fred.claims_4wk, fred.unemployment, fred.payems,
+    metrics: [fred.claims_4wk, fred.u3_rate, fred.nfp,
               fred.avg_wkly_hours, fred.job_openings, fred.quits_rate]
     note: >-
       The largest macro weight, because the growth dimension's own primary is
@@ -82,8 +82,19 @@ pillars:
     dial: macro
     weight: 0.2
     from_object: growth
-    metrics: [fred.housing_permits, fred.housing_starts, fred.indpro,
-              fred.retail_sales, fred.durable_goods, fred.yield_curve_2s10s]
+    metrics: [fred.housing_permits, fred.housing_starts,
+              calc.yield_curve_2s10s]
+    # 6c-3: these were listed as metric keys (fred.indpro ...) that resolve to
+    # nothing -- the store has never held them. Named here by FRED id, as a gap,
+    # so the Monthly prints them as unsourced rather than as measured.
+    # tools/validate_config_refs.py fails on any unregistered id in config.
+    not_yet_sourced:
+      - what: activity series
+        needs: [FRED INDPRO (industrial production), FRED RSAFS (retail sales),
+                FRED DGORDER (durable goods orders)]
+        why: >-
+          not in the FRED registry; the momentum half of this pillar reads
+          housing and the curve until they are added
     note: >-
       Shares the growth dimension with pillar 1 and carries the curve, which the
       rates dimension also reads. Two pillars on one dimension is not double
@@ -96,7 +107,17 @@ pillars:
     weight: 0.2
     from_object: liquidity
     metrics: [fred.nfci, fred.m2, fred.fed_balance, fred.rrp, fred.tga,
-              fred.sofr, fred.reserves]
+              fred.bank_reserves]
+    # 6c-3: these were listed as metric keys (fred.indpro ...) that resolve to
+    # nothing -- the store has never held them. Named here by FRED id, as a gap,
+    # so the Monthly prints them as unsourced rather than as measured.
+    # tools/validate_config_refs.py fails on any unregistered id in config.
+    not_yet_sourced:
+      - what: repo funding rate
+        needs: [FRED SOFR (secured overnight financing rate)]
+        why: >-
+          not in the FRED registry; the funding-stress half of liquidity waits
+          on it and on 6f
     note: >-
       Net liquidity is the derived series here, and its unit trap is documented
       in CLAUDE.md: WALCL is in millions while RRP and TGA are in billions.
@@ -152,8 +173,8 @@ pillars:
     dial: macro
     weight: 0.1
     from_object: rates
-    metrics: [fred.dxy, fred.yield_10y, fred.yield_30y, fred.usdjpy,
-              fred.usdcny, yfinance.mkt_efa, yfinance.mkt_eem]
+    metrics: [fred.dxy, fred.yield_10y, fred.yield_30y, fred.usd_jpy,
+              fred.usd_cny, yfinance.mkt_efa, yfinance.mkt_eem]
     note: >-
       Reads the rates dimension, which is the transmission channel this pillar
       actually moves through. The FX half has no dimension, and the object is
@@ -169,7 +190,17 @@ pillars:
       belong together as one mechanism state -- `regime.debt_cycle_state`, a D2
       output with two branches -- and until that exists this pillar has metrics
       and no dimension. The Monthly prints its series and does NOT infer a state.
-    metrics: [fred.debt_gdp, fred.net_interest_revenue, fred.r_vs_g]
+    metrics: [fred.fed_debt_pct_gdp, calc.r_minus_g]
+    # 6c-3: these were listed as metric keys (fred.indpro ...) that resolve to
+    # nothing -- the store has never held them. Named here by FRED id, as a gap,
+    # so the Monthly prints them as unsourced rather than as measured.
+    # tools/validate_config_refs.py fails on any unregistered id in config.
+    not_yet_sourced:
+      - what: federal interest burden
+        needs: [FRED A091RC1Q027SBEA (federal government interest payments)]
+        why: >-
+          not in the FRED registry; debt sustainability is read from debt to GDP
+          and r minus g alone until it is
 
   "9":
     name: Banking System Health

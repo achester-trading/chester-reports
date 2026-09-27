@@ -26,8 +26,8 @@
 # It is prose for a human reading the block, not a rule -- a rule would need a
 # threshold, and none of these has an honest one yet.
 
-version: story-queries-v1
-updated: 2026-09-25
+version: story-queries-v2
+updated: 2026-09-27
 
 # Per query per day. The block prints counts and links the top few; a hundred
 # stories a day about one theme is not a hundred facts, and storing them would
@@ -63,7 +63,7 @@ queries:
       2024 is the reference: a funding-currency move that reprices every crowded
       trade at once, with equity volatility as the transmission rather than the
       cause.
-    entities: [fred.usdjpy, yfinance.mkt_vix]
+    entities: [fred.usd_jpy, yfinance.mkt_vix]
 
   midterm_cycle:
     query: "midterm election market cycle policy uncertainty"
