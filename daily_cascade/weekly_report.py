@@ -72,6 +72,12 @@ def main() -> int:
                          "release dates, earnings) and report them skipped")
     ap.add_argument("--narrative-model", default=None)
     ap.add_argument("--archive-dir", default=None)
+    ap.add_argument("--from-payload", default=None,
+                    help="Re-render an ARCHIVED payload (the _payload.json the "
+                         "run wrote) instead of building one: every block as it "
+                         "was, the paragraph regenerated and audited by the "
+                         "current code. Use with --dry-run and --archive-dir so "
+                         "the original edition is not overwritten")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -79,8 +85,17 @@ def main() -> int:
                         format="%(levelname)s %(name)s: %(message)s")
     run_id = session.new_run_id("weekly")
 
-    p = payload_mod.build(args.week_ending, as_of=args.as_of, run_id=run_id,
-                          fetch=not args.no_fetch)
+    if args.from_payload:
+        # THE RECORD, NOT A REBUILD: the payload is read exactly as archived, so
+        # the only thing that differs from the original edition is what the
+        # current code does with it -- the audit and the renderer.
+        with open(args.from_payload, encoding="utf-8") as fp:
+            p = json.load(fp)
+        log.info("re-rendering archived payload %s (run %s)", args.from_payload,
+                 p.get("run_id"))
+    else:
+        p = payload_mod.build(args.week_ending, as_of=args.as_of, run_id=run_id,
+                              fetch=not args.no_fetch)
     ending = p.get("week_ending")
     if not ending:
         print("no payload -- the week could not be resolved")
