@@ -477,12 +477,23 @@ def group_h(p: dict) -> None:
           "ahead": [{"when": "2026-09-29T13:30", "source": "fred_releases",
                      "title": "Job Openings -- release date", "payload": {}}],
           "headlines": [], "releases": [], "earnings": [], "filings": []}
+    old_shape = dict(wk, ahead_listed_in=None, headlines=[
+        {"query": "yen_carry", "theme": "Yen carry", "count": 1,
+         "top": [{"when": "2026-09-25T23:55", "title": "x - finance.biggo.com",
+                  "url": None, "source": "google_news"}]}])
+    try:
+        oh = events_block.html(old_shape) + events_block.render(old_shape)
+        check("finance.biggo.com" in oh,
+              "a payload archived before tiers existed still renders (the "
+              "--from-payload re-render of 27 Sep raised KeyError: 'tier')")
+    except Exception as exc:                                    # noqa: BLE001
+        bad(f"an old-shape payload raised {type(exc).__name__}: {exc}")
     eh = visible_text(events_block.html(wk))
     check("Listed under The week ahead" in eh and "Job Openings" not in eh,
           "the Weekly's Ahead list points at the week-ahead table instead of "
           "repeating it")
-    check("Job Openings" not in events_block.markdown(wk)
-          if hasattr(events_block, "markdown") else True,
+    md = events_block.render(wk)
+    check("Job Openings" not in md and "Listed under The week ahead" in md,
           "and so does the Markdown edition")
 
     full = visible_text(wr.render(p))

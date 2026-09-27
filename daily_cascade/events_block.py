@@ -312,6 +312,16 @@ def _link(title: Any, url: Any) -> str:
             else t)
 
 
+def _tier_tag(it: dict) -> str:
+    """"tier 1", "tier 3, not counted", "unclassified, not counted" -- or "" for
+    an item archived before tiers existed (Weekly edition 1, item 5), so an old
+    payload still renders rather than raising."""
+    if "tier" not in it:
+        return ""
+    tag = "unclassified" if it["tier"] == "unclassified" else f"tier {it['tier']}"
+    return tag + ("" if it.get("counted") else ", not counted")
+
+
 def html(block: dict) -> str:
     """The anchor's EVENTS block. Data only; every figure came from the store."""
     if block.get("state") != "ok":
@@ -386,13 +396,11 @@ def html(block: dict) -> str:
                    f'&mdash; {sq["count"]} item(s), '
                    f'{sq.get("counted", 0)} counted</p>')
         for it in sq.get("top") or []:
-            tag = (f'tier {it["tier"]}' if it.get("tier") != "unclassified"
-                   else "unclassified")
-            tag += "" if it.get("counted") else ", not counted"
+            tag = _tier_tag(it)
             out.append(f'<p style="{NOTE}">&nbsp;&nbsp;'
                        f'{_esc(str(it["when"])[:10])} '
-                       f'{_link(it["title"], it.get("url"))} '
-                       f'<i>[{_esc(tag)}]</i></p>')
+                       f'{_link(it["title"], it.get("url"))}'
+                       + (f' <i>[{_esc(tag)}]</i>' if tag else "") + '</p>')
     out.append(f'<p style="{NOTE}">{_esc(block.get("headline_note"))}</p>')
 
     out.append(f'<p style="{P}"><b>Ahead, next {block.get("ahead_days")} '
@@ -522,11 +530,9 @@ def render(block: dict) -> str:
         out.append(f"- **{s.get('theme') or s['query']}** — {s['count']} item(s), "
                    f"{s.get('counted', 0)} counted")
         for it in s.get("top") or []:
-            tag = (f"tier {it['tier']}" if it.get("tier") != "unclassified"
-                   else "unclassified")
-            tag += "" if it.get("counted") else ", not counted"
+            tag = _tier_tag(it)
             out.append(f"    - {str(it['when'])[:10]} [{it['title']}]"
-                       f"({it.get('url') or ''}) *[{tag}]*")
+                       f"({it.get('url') or ''})" + (f" *[{tag}]*" if tag else ""))
     out.append(f"\n*{block.get('headline_note')}*\n")
 
     ahead = block.get("ahead") or []
