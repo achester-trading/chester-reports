@@ -257,6 +257,20 @@ class ProbabilityLedger:
             del agg["sum"]
         return out
 
+    def live_as_of(self, as_of: str) -> list[dict]:
+        """Forecasts LIVE at an instant: emitted by it, unresolved at it, not due.
+
+        Point-in-time on all three columns, because the market-state object reads
+        this and the object must replay exactly: a forecast resolved on Thursday
+        was live on Tuesday, and Tuesday's object has to see it that way.
+        """
+        at = str(as_of)
+        return [dict(r) for r in self.conn.execute(
+            "SELECT * FROM probabilities WHERE emitted_at <= ? "
+            "  AND horizon_date >= ? "
+            "  AND (resolved_at IS NULL OR resolved_at > ?) "
+            "ORDER BY emitted_at", (at, at[:10], at))]
+
     def coherence(self) -> list[dict]:
         """Scenario sets whose weights do not sum to 1.
 

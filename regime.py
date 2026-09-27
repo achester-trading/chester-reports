@@ -99,7 +99,18 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-7"
+METHOD_VERSION = "market-state-method-8"
+#
+# method-8 (26 Sep 2026): AN ABSENCE CITES DATA; A FAULT IS A FAULT. Pair 4's
+# probability-ledger read had never run -- it asked for a class the ledger does not
+# define, caught the AttributeError and printed its name as the absent_reason, so
+# every object since Phase 2 carried a code fault dressed as a missing datum. The
+# read now goes through ProbabilityLedger.live_as_of (point-in-time, so replay stays
+# exact) over a DECLARED tail family, and every reader that raises -- this one, the
+# gamma dial's, the session move's, the narrative register's -- records `fault`
+# instead of absent_reason. validate_regime.py fails on any exception class name in
+# a reason string. altdata/probability_ledger.py is not in the hash, like
+# altdata/narratives.py before it: the object reads one query from it.
 #
 # method-7 (26 Sep 2026): THE CONTRADICTION TABLE READS THE NARRATIVE REGISTER.
 # contradictions.py gained the narrative_pair kind: narrative_vs_data expands to one
@@ -128,7 +139,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "2fd480b697646897"
+METHOD_SOURCE_SHA = "b9f4a9b2e7c19661"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -777,8 +788,11 @@ def dial_gamma(cfg: dict, session_date: str,
         book = grader.PriceSeries()
         sign = book.gamma_sign(sym, session_date)
     except Exception as exc:
-        out["absent_reason"] = (f"the exposure engine's reader raised "
-                                f"{type(exc).__name__}: {exc}")
+        # A FAULT, NOT AN ABSENCE (6c-3). The reader raising says nothing about
+        # the market's gamma; it says the code or the pin log is broken, and an
+        # absent_reason may cite data only.
+        out["fault"] = (f"the exposure engine's reader raised "
+                        f"{type(exc).__name__}: {exc}")
         return out
     if sign is None:
         out["absent_reason"] = (
@@ -1077,7 +1091,7 @@ def session_move(as_of: Optional[str] = None,
         d = derived.delta_percentile(MOVE_METRIC, as_of=as_of, store=store)
     except Exception as exc:                                   # noqa: BLE001
         return {"metric": MOVE_METRIC,
-                "absent_reason": f"{type(exc).__name__}: {exc}"}
+                "fault": f"delta_percentile raised {type(exc).__name__}: {exc}"}
     out["change"] = d.get("change")
     out["delta_unit"] = d.get("delta_unit")
     out["from_date"] = d.get("from_date")
@@ -1098,7 +1112,8 @@ def session_move(as_of: Optional[str] = None,
             float(d["change"]), frequency="daily", store=store)
     except Exception as exc:                                   # noqa: BLE001
         lr = None
-        out["long_run_absent_reason"] = f"{type(exc).__name__}: {exc}"
+        out["long_run_fault"] = (f"base_rates.percentile_of_move raised "
+                                 f"{type(exc).__name__}: {exc}")
     if lr:
         out["percentile_long_run"] = lr.get("percentile")
         out["long_run_series"] = lr.get("series")
@@ -1107,7 +1122,7 @@ def session_move(as_of: Optional[str] = None,
         out["long_run_method"] = lr.get("method_version")
         if lr.get("beyond_grid"):
             out["long_run_beyond_grid"] = lr["beyond_grid"]
-    elif "long_run_absent_reason" not in out:
+    elif "long_run_fault" not in out:
         out["long_run_absent_reason"] = (
             "no baserate.returns_by_frequency table in the store -- "
             "tools/base_rates.py has not run here")
@@ -1142,7 +1157,8 @@ def what_changed(current: dict, previous: Optional[dict],
         out["session_move"] = session_move(
             as_of=current.get("as_of"), store=store)
     except Exception as exc:                                   # noqa: BLE001
-        out["session_move"] = {"absent_reason": f"{type(exc).__name__}: {exc}"}
+        out["session_move"] = {"fault": f"session_move raised "
+                                        f"{type(exc).__name__}: {exc}"}
 
     cur_dims = current.get("dimensions") or {}
     prev_dims = (previous or {}).get("dimensions") or {}
@@ -1510,6 +1526,21 @@ def backfill(first: str, last: str, store: Optional[
 # Rendering -- the WHAT CHANGED block lives in daily_cascade; this is the
 # human-readable dump the CLI prints.
 # ---------------------------------------------------------------------------
+def why_absent(d: dict, prefix: str = "") -> str:
+    """The text an absent item prints: its data reason, or its FAULT, labelled.
+
+    6c-3. An absent_reason cites data; a reader that raised records `fault`
+    instead. Every renderer prints through this so a fault reaches the page
+    named as one -- a code problem the reader must not mistake for a gap in the
+    market's record, and must not be able to mistake for one either.
+    """
+    d = d or {}
+    fault = d.get(f"{prefix}fault")
+    if fault:
+        return f"FAULT (code, not data) -- {fault}"
+    return str(d.get(f"{prefix}absent_reason") or "no reason recorded")
+
+
 def format_object(obj: dict) -> str:
     L = []
     evs = obj.get("session_events") or []
@@ -1520,7 +1551,7 @@ def format_object(obj: dict) -> str:
     L.append("")
     L.append("  DIALS")
     for name, d in (obj.get("dials") or {}).items():
-        state = d.get("state") or f"ABSENT -- {d.get('absent_reason')}"
+        state = d.get("state") or f"ABSENT -- {why_absent(d)}"
         flag = ""
         if d.get("provisional"):
             flag = f"  PROVISIONAL (conf {d.get('confidence')})"
@@ -1529,7 +1560,7 @@ def format_object(obj: dict) -> str:
     L.append("  DIMENSIONS")
     for name, d in (obj.get("dimensions") or {}).items():
         if d.get("state") is None:
-            L.append(f"    {name:11} ABSENT -- {d.get('absent_reason')}")
+            L.append(f"    {name:11} ABSENT -- {why_absent(d)}")
             continue
         pend = (f"  (pending {d['pending_state']}, "
                 f"{d.get('pending_sessions')}/{d['persistence_sessions']})"
@@ -1553,7 +1584,7 @@ def format_object(obj: dict) -> str:
              f"{len(obj.get('open_contradictions') or [])} open)")
     for r in rows:
         if r.get("open_state") == "absent":
-            L.append(f"    {r['id']:28} ABSENT -- {r.get('absent_reason')}")
+            L.append(f"    {r['id']:28} ABSENT -- {why_absent(r)}")
             continue
         mag = ("state mismatch" if r.get("magnitude") is None
                else f"z {r.get('magnitude'):+.2f}")

@@ -93,7 +93,7 @@ def resolve_leg(leg: str, dims: dict, dials: dict) -> dict:
         name = leg.split(".", 1)[1]
         d = dials.get(name) or {}
         return {"kind": "dial", "name": leg, "state": d.get("state"),
-                "absent_reason": d.get("absent_reason")}
+                "absent_reason": d.get("absent_reason"), "fault": d.get("fault")}
     if leg in dims:
         d = dims[leg]
         members = d.get("members") or []
@@ -305,9 +305,14 @@ def evaluate_pair(spec: dict, dims: dict, dials: dict, as_of: str,
     if a["kind"] == "dial" or b["kind"] == "dial":
         for leg in (a, b):
             if leg.get("state") is None:
-                row["absent_reason"] = (
-                    f"{leg['name']} has no state: "
-                    f"{leg.get('absent_reason') or 'absent'}")
+                # A leg's fault stays a fault on the row: re-labelling it as an
+                # absence would launder it into the reason string (6c-3).
+                if leg.get("fault"):
+                    row["fault"] = f"{leg['name']}: {leg['fault']}"
+                else:
+                    row["absent_reason"] = (
+                        f"{leg['name']} has no state: "
+                        f"{leg.get('absent_reason') or 'absent'}")
                 return row
         # A LIST, not a tuple: the object is stored as JSON, and a tuple comes back
         # as a list. replay_fields() normalises both sides now, but emitting a type
@@ -385,29 +390,64 @@ def evaluate_pair(spec: dict, dims: dict, dials: dict, as_of: str,
     # The extra leg pair 4 declares. Read, or reported absent -- never assumed.
     extra = spec.get("also_reads")
     if extra:
-        row["also_reads"] = {"what": extra, "value": None,
-                             "absent_reason": _tail_weight_absent(extra)}
+        row["also_reads"] = tail_weight(extra, spec.get("tail_family") or {},
+                                        as_of, store)
     return row
 
 
-def _tail_weight_absent(what: str) -> Optional[str]:
-    """Whether the probability ledger has a live tail weight to read."""
+def tail_weight(what: str, family: dict, as_of: str,
+                store: observations.ObservationStore) -> dict:
+    """The probability ledger's live tail weight at this cutoff, or why not.
+
+    6c-3. THE FIRST VERSION OF THIS READ NEVER RAN. It asked for a class the
+    ledger module does not define, caught the AttributeError, and wrote the
+    exception's name into absent_reason -- so every object since Phase 2 printed
+    a code fault as if it were a missing datum, and the reader could not tell the
+    two apart. That is the rule this now keeps: AN ABSENCE CITES DATA. A reader
+    that raises is a fault and is recorded as one (`fault`), never dressed as an
+    absence; tools/validate_regime.py fails the gate on any exception class name
+    in a reason string.
+
+    READ AS-OF, NOT AS-NOW. The ledger is point-in-time on emission, horizon and
+    resolution, so a replayed object sees the forecasts that were live at its own
+    cutoff and the replay stays exact.
+
+    THE FAMILY IS DECLARED, NOT INFERRED. A forecast belongs to the tail family
+    when its scenario_set starts with the declared prefix. Matching claim text
+    for words like "crash" would classify by vocabulary; a set id is the
+    forecaster saying which family it meant. The weight is the sum over the
+    newest such set -- a set is one forecaster's partition, and adding two
+    sets' weights together would double-count the same tail.
+    """
+    prefix = str(family.get("scenario_set_prefix") or "")
+    out: dict = {"what": what, "value": None, "family": family or None}
+    if not prefix:
+        out["absent_reason"] = (f"{what}: no tail family is declared for this "
+                                f"pair (tail_family.scenario_set_prefix)")
+        return out
     try:
-        from altdata import probability_ledger
-        store = probability_ledger.LedgerStore()
-        try:
-            rows = store.unresolved() if hasattr(store, "unresolved") else []
-        finally:
-            if hasattr(store, "close"):
-                store.close()
-        if rows:
-            return None
-        return (f"{what}: the probability ledger holds no live tail-family "
-                f"probability, so there is nothing to read. It is seeded from "
-                f"the Monthly's scenario weights only.")
-    except Exception as exc:
-        return (f"{what}: the probability ledger could not be read "
-                f"({type(exc).__name__}) -- reported absent rather than assumed")
+        from altdata import probability_ledger as pl
+        with pl.ProbabilityLedger(str(store.path)) as led:
+            live = led.live_as_of(as_of)
+    except Exception as exc:                                   # noqa: BLE001
+        out["fault"] = (f"probability ledger reader raised "
+                        f"{type(exc).__name__}: {exc}")
+        return out
+    tail = [r for r in live if str(r.get("scenario_set") or "").startswith(prefix)]
+    if not tail:
+        out["absent_reason"] = (
+            f"{what}: {len(live)} forecast(s) live in the probability ledger at "
+            f"{as_of}, none in a scenario set prefixed {prefix!r}. Nothing emits "
+            f"a tail-family probability yet -- the tail scenarios are conditioners "
+            f"and carry no weights")
+        return out
+    newest = max(tail, key=lambda r: r["emitted_at"])["scenario_set"]
+    members = [r for r in tail if r["scenario_set"] == newest]
+    out.update({"value": round(sum(float(r["probability"]) for r in members), 4),
+                "scenario_set": newest, "n": len(members),
+                "emitted_at": max(r["emitted_at"] for r in members),
+                "probability_ids": [r["probability_id"] for r in members]})
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -444,9 +484,11 @@ def narrative_rows(spec: dict, dims: dict, as_of: str,
                                                         s["narrative_id"], as_of)
                       for s in stories}
     except Exception as exc:                                   # noqa: BLE001
-        return [dict(base, id=pid,
-                     absent_reason=f"narrative register unreadable: "
-                                   f"{type(exc).__name__}: {exc}")]
+        # A FAULT, NOT AN ABSENCE (6c-3): the register raising is a code or
+        # schema problem, and a reason string naming the exception would read as
+        # a missing datum. The row is absent; the fault says why.
+        return [dict(base, id=pid, fault=f"narrative register reader raised "
+                                         f"{type(exc).__name__}: {exc}")]
     if not stories:
         return [dict(base, id=pid,
                      absent_reason="the narrative register holds no active story "

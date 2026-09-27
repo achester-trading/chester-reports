@@ -25,6 +25,20 @@ from __future__ import annotations
 
 from typing import Optional
 
+
+def _why(d: dict, prefix: str = "") -> str:
+    """An absent item's data reason, or its FAULT labelled as one (6c-3).
+
+    The object records a reader that raised as `fault`, never as an
+    absent_reason; this prints it so a code problem cannot read as a gap in the
+    data. The same rule as regime.why_absent, kept here so a render module does
+    not import the module that computes the object.
+    """
+    d = d or {}
+    if d.get(f"{prefix}fault"):
+        return f"FAULT (code, not data) -- {d[f'{prefix}fault']}"
+    return str(d.get(f"{prefix}absent_reason") or "no reason recorded")
+
 H2 = ("font-size:13px;margin:22px 0 6px 0;color:#0d2b45;font-weight:600;"
       "text-transform:uppercase;letter-spacing:0.04em;")
 NOTE = "font-size:11px;color:#5a6b7a;margin:4px 0 0 0;line-height:1.45;"
@@ -137,14 +151,14 @@ def move_line(wc: dict) -> str:
     m = wc.get("session_move") or {}
     if m.get("change") is None:
         return (f'<div style="{ABSENT}"><strong>Session move</strong> &mdash; not '
-                f'measured: {esc(m.get("absent_reason") or "no reason recorded")}'
+                f'measured: {esc(_why(m))}'
                 f'</div>')
     unit = "%" if m.get("delta_unit") == "percent" else f' {m.get("delta_unit")}'
     lr = (f'{pctf(m.get("percentile_long_run"))} of '
           f'{esc(m.get("long_run_n"))} sessions since '
           f'{esc(m.get("long_run_first"))} ({esc(m.get("long_run_series"))})'
           if m.get("percentile_long_run") is not None else
-          f'&mdash; ({esc(m.get("long_run_absent_reason"))})')
+          f'&mdash; ({esc(_why(m, "long_run_"))})')
     beyond = (f' beyond the stored grid, {esc(m.get("long_run_beyond_grid"))}'
               if m.get("long_run_beyond_grid") else "")
     return (f'<div style="{QUIET if abs(float(m["change"])) < 1.0 else MOVED}">'
@@ -330,7 +344,7 @@ def state_table(payload: dict) -> str:
     for name, d in (obj.get("dials") or {}).items():
         if d.get("state") is None:
             dial_items.append(f'<code>{esc(name)}</code> &mdash; ABSENT: '
-                              f'{esc(d.get("absent_reason"))}')
+                              f'{esc(_why(d))}')
         else:
             dial_items.append(f'<code>{esc(name)}</code> &mdash; '
                               f'<strong>{esc(d["state"])}</strong>'
@@ -348,7 +362,7 @@ def state_table(payload: dict) -> str:
             rows.append(
                 f'<tr><td style="{TDL}">{esc(name)}</td>'
                 f'<td style="{TDL}" colspan="5"><em>absent</em> &mdash; '
-                f'{esc(d.get("absent_reason"))}</td></tr>')
+                f'{esc(_why(d))}</td></tr>')
             continue
         contra = d.get("contradicting")
         contra_s = (esc(contra) if isinstance(contra, str)
@@ -386,7 +400,7 @@ def contradiction_table(payload: dict) -> str:
         if r.get("open_state") == "absent":
             rows.append(f'<tr><td style="{TDL}">{esc(r["id"])}</td>'
                         f'<td style="{TDL}" colspan="4"><em>absent</em> &mdash; '
-                        f'{esc(r.get("absent_reason"))}</td></tr>')
+                        f'{esc(_why(r))}</td></tr>')
             continue
         mag = ("state mismatch" if r.get("magnitude") is None
                else zf(r.get("magnitude")))

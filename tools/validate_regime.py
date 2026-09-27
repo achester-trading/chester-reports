@@ -40,6 +40,12 @@ everything agreed" into "nobody looked".
      predecessor its persistence rested on. This is the case that would have caught
      the two-clock bug, where all 77 sessions published a first object and the
      output looked entirely reasonable.
+  J  AN ABSENCE CITES DATA (6c-3). No reason string in any object may name an
+     exception class: a reader that raised records `fault`, and a fault printed as
+     an absent_reason is a code problem the reader cannot tell from a gap in the
+     market's record. Checked three ways -- statically over the method modules,
+     over every stored object under the current method, and on a seeded ledger
+     where the tail-weight read finds nothing, finds a set, and raises.
 
     python tools/validate_regime.py
 """
@@ -987,7 +993,11 @@ def group_i(store) -> None:
           f"and 2s10s polarity -1 (got {curve_pol}): a flat curve is the policy "
           f"rate held above the long end, which is what `high` means")
 
-    check(str(cfg.get("version")) >= "market-state-v1.8",
+    # NUMERIC, not lexical: "market-state-v1.10" sorts below "v1.8" as a string,
+    # and this check failed on the first two-digit minor.
+    vparts = tuple(int(x) for x in
+                   str(cfg.get("version")).rsplit("-v", 1)[-1].split("."))
+    check(vparts >= (1, 8),
           f"the config version records the rules change ({cfg.get('version')})")
     # AT LEAST method-6, not exactly: the check is that the liquidity change was
     # recorded as a method bump, and a later bump (method-7, 6c-2's narrative row)
@@ -999,12 +1009,187 @@ def group_i(store) -> None:
           f"drain is not comparable with one whose state came from the quantity")
 
 
+# ---------------------------------------------------------------------------
+# J. An absence cites data
+# ---------------------------------------------------------------------------
+import ast        # noqa: E402
+import builtins   # noqa: E402
+import re         # noqa: E402
+
+# Every builtin exception class except the Warning family (a reason may begin
+# "Warning" as an English word, and no reader raises one), plus any CamelCase
+# name ending Error or Exception -- sqlite3.OperationalError, FetchError and the
+# rest are not builtins.
+_BUILTIN_EXC = sorted(
+    n for n, v in vars(builtins).items()
+    if isinstance(v, type) and issubclass(v, BaseException)
+    and not issubclass(v, Warning))
+EXC_NAME = re.compile(r"\b(?:" + "|".join(_BUILTIN_EXC)
+                      + r"|[A-Z][A-Za-z0-9]+(?:Error|Exception))\b")
+
+
+def reason_strings(obj, path: str = "") -> list[tuple[str, str]]:
+    """Every (path, text) under a key naming a reason, anywhere in the object."""
+    out = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            here = f"{path}.{k}" if path else str(k)
+            if "reason" in str(k) and isinstance(v, str):
+                out.append((here, v))
+            else:
+                out.extend(reason_strings(v, here))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            out.extend(reason_strings(v, f"{path}[{i}]"))
+    return out
+
+
+def exception_names_in_reasons(obj) -> list[str]:
+    return [f"{p}: {EXC_NAME.search(t).group(0)}"
+            for p, t in reason_strings(obj) if EXC_NAME.search(t)]
+
+
+def static_reason_faults(src: str) -> list[str]:
+    """Places a reason is built from a caught exception, found in the AST.
+
+    A reason-named key -- a subscript target, a dict key, a keyword -- whose value
+    mentions `__name__` or a name bound by an `except ... as` clause.
+    """
+    tree = ast.parse(src)
+    exc_names = {h.name for h in ast.walk(tree)
+                 if isinstance(h, ast.ExceptHandler) and h.name}
+
+    def tainted(node) -> bool:
+        return any((isinstance(n, ast.Attribute) and n.attr == "__name__")
+                   or (isinstance(n, ast.Name) and n.id in exc_names)
+                   for n in ast.walk(node))
+
+    def is_reason(k) -> bool:
+        return (isinstance(k, ast.Constant) and isinstance(k.value, str)
+                and "reason" in k.value)
+
+    hits = []
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Assign):
+            for t in n.targets:
+                if (isinstance(t, ast.Subscript) and is_reason(t.slice)
+                        and tainted(n.value)):
+                    hits.append(f"line {n.lineno}: [{t.slice.value!r}] = ...")
+        elif isinstance(n, ast.Dict):
+            for k, v in zip(n.keys, n.values):
+                if k is not None and is_reason(k) and tainted(v):
+                    hits.append(f"line {n.lineno}: {{{k.value!r}: ...}}")
+        elif isinstance(n, ast.keyword):
+            if n.arg and "reason" in n.arg and tainted(n.value):
+                hits.append(f"line {n.value.lineno}: {n.arg}=...")
+    return hits
+
+
+def group_j(store) -> None:
+    print(f"\n{LINE}\nJ. AN ABSENCE CITES DATA; A FAULT IS A FAULT\n{LINE}")
+
+    # --- the detector, shown to fire before it is trusted -------------------
+    old = ("probability_ledger.tail_weight: the probability ledger could not be "
+           "read (AttributeError) -- reported absent rather than assumed")
+    check(bool(exception_names_in_reasons({"also_reads": {"absent_reason": old}})),
+          "the detector fires on the string every object carried from Phase 2 "
+          "to method-7 (AttributeError)")
+    for s_ in ("sqlite3.OperationalError: no such table",
+               "KeyError: 'x'", "reader raised FetchError"):
+        check(bool(exception_names_in_reasons({"r": {"absent_reason": s_}})),
+              f"and on {s_!r}")
+    check(not exception_names_in_reasons(
+              {"absent_reason": "no observations for ['fred.vix'] knowable at "
+                                "2026-09-25; Warning: stale"}),
+          "and not on a data reason")
+    check(not exception_names_in_reasons(
+              {"because": "an Exception row is report-only (KeyError aside)"}),
+          "and only reason-named keys are read -- a `because` is prose about "
+          "the rule, not a reason for an absence")
+
+    # --- static: no method module builds a reason from a caught exception ---
+    for name in regime.METHOD_SOURCE_FILES:
+        hits = static_reason_faults((REPO / name).read_text(encoding="utf-8"))
+        check(not hits, f"{name} builds no reason string from a caught "
+                        f"exception{': ' + '; '.join(hits) if hits else ''}")
+    probe = ("try:\n    x()\nexcept Exception as exc:\n"
+             "    out['absent_reason'] = f'{type(exc).__name__}'\n")
+    check(bool(static_reason_faults(probe)),
+          "and the static check fires on the shape it forbids")
+
+    # --- every stored object under the current method ------------------------
+    live = observations.ObservationStore()
+    try:
+        cur = regime.METHOD_VERSION
+        objs = [json.loads(r["value_text"]) for r in live.as_of(regime.STORE_KEY)]
+        objs = [o for o in objs if o.get("method_version") == cur]
+    finally:
+        live.close()
+    hits = [(o.get("session"), h) for o in objs
+            for h in exception_names_in_reasons(o)]
+    check(not hits,
+          f"no stored {cur} object ({len(objs)}) names an exception class in a "
+          f"reason" + (f": {hits[:3]}" if hits else ""))
+
+    # --- seeded: the tail-weight read, three ways ----------------------------
+    from altdata import probability_ledger as pl
+    spec = {"scenario_set_prefix": "tail:"}
+    what = "probability_ledger.tail_weight"
+    at = "2026-09-25T20:05:00+00:00"
+    empty = contra.tail_weight(what, spec, at, store)
+    check(empty.get("value") is None
+          and "0 forecast(s) live" in str(empty.get("absent_reason"))
+          and not empty.get("fault"),
+          f"an empty ledger is ABSENT with a data reason: "
+          f"{str(empty.get('absent_reason'))[:90]}")
+    with pl.ProbabilityLedger(str(store.path)) as led:
+        led.record(source="monthly_macro", scenario_set="monthly_macro:2026-09-01",
+                   claim="Soft landing", probability=0.6,
+                   emitted_at="2026-09-01T00:00:00+00:00",
+                   horizon_date="2026-12-01", resolution_criterion="seeded")
+        for claim, p, when in (("Credit event", 0.10, "2026-09-01"),
+                               ("Equity crash", 0.05, "2026-09-01"),
+                               ("Credit event", 0.12, "2026-09-10"),
+                               ("Equity crash", 0.08, "2026-09-10"),
+                               ("Credit event", 0.50, "2026-09-30")):
+            led.record(source="tail_watch", scenario_set=f"tail:{when}",
+                       claim=claim, probability=p,
+                       emitted_at=f"{when}T00:00:00+00:00",
+                       horizon_date="2026-12-31", resolution_criterion="seeded")
+    got = contra.tail_weight(what, spec, at, store)
+    check(got.get("value") == 0.2 and got.get("scenario_set") == "tail:2026-09-10",
+          f"with tail sets live, the weight is the NEWEST set's sum knowable at "
+          f"the cutoff -- 0.12 + 0.08, not the older set added in and not the "
+          f"set emitted after it (got {got.get('value')} from "
+          f"{got.get('scenario_set')})")
+    early = contra.tail_weight(what, spec, "2026-09-05T20:05:00+00:00", store)
+    check(early.get("value") == 0.15,
+          f"and replayed at 5 September it reads the set live then (got "
+          f"{early.get('value')})")
+
+    orig = pl.ProbabilityLedger.live_as_of
+    try:
+        def boom(self, as_of):
+            raise RuntimeError("seeded fault")
+        pl.ProbabilityLedger.live_as_of = boom
+        f = contra.tail_weight(what, spec, at, store)
+    finally:
+        pl.ProbabilityLedger.live_as_of = orig
+    check(bool(f.get("fault")) and "RuntimeError" in f["fault"]
+          and not f.get("absent_reason"),
+          "a reader that raises records `fault` and NO absent_reason")
+    check(not exception_names_in_reasons({"also_reads": f}),
+          "so the gate passes on it: the fault is visible and named as one")
+    check(regime.why_absent(f).startswith("FAULT (code, not data)"),
+          "and it prints as FAULT, never as an absence")
+
+
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
     for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
-              group_h, group_i):
+              group_h, group_i, group_j):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:

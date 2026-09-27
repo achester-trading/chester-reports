@@ -520,7 +520,7 @@ def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
         dims[name] = {k: d.get(k) for k in
                       ("state", "direction", "percentile", "confidence",
                        "last_changed", "pending_state", "supporting",
-                       "contradicting", "absent_reason")}
+                       "contradicting", "absent_reason", "fault")}
     # THE EXCEPTIONS, which the paragraph is now required to cover and could not
     # see. exceptions[] is the object's list of five-year extremes and
     # contradictions held past their session count -- the findings about the MARKET
@@ -571,7 +571,8 @@ def _narrative_state(obj: Optional[dict]) -> Optional[dict]:
         "session": obj.get("session"),
         "schema_version": obj.get("schema_version"),
         "dials": {n: {"state": v.get("state"),
-                      "absent_reason": v.get("absent_reason")}
+                      "absent_reason": v.get("absent_reason"),
+                      "fault": v.get("fault")}
                   for n, v in (obj.get("dials") or {}).items()},
         "dimensions": dims,
         "absent_dimensions": obj.get("absent_dimensions"),

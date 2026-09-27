@@ -118,7 +118,11 @@
 #   v1.9  (26 Sep 2026) narrative_vs_data appended after the contradiction
 #         pairs: a consensus story in the narrative register whose linked
 #         dimension points the other way. Expands to one row per active story.
-version: market-state-v1.9
+#   v1.10 (26 Sep 2026) implied_vs_realized_vol declares its tail family
+#         (tail_family.scenario_set_prefix). The ledger read it names had never
+#         run -- it asked for a class the ledger does not define and printed the
+#         AttributeError as an absence. It now reads the ledger as-of the cutoff.
+version: market-state-v1.10
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -638,11 +642,17 @@ contradictions:
       polarities: [+1, +1]
       expect: same
       also_reads: probability_ledger.tail_weight
+      # A forecast is in the tail family when its scenario_set starts with this
+      # prefix -- the forecaster naming the family, not a word match on the claim.
+      # Nothing emits one yet; the tail scenarios are conditioners with no weights.
+      tail_family:
+        scenario_set_prefix: "tail:"
       because: >-
         (4). Implied rich to realized is a risk premium; implied cheap to
-        realized is complacency. The probability ledger's tail weight is read
-        where one is live, and the ledger is empty today, so that leg reports
-        absent rather than assuming. THE IMPLIED LEG IS THE INDEX FEED, not FRED's
+        realized is complacency. The probability ledger's tail weight -- the sum
+        of the newest live tail-family set, read as-of the cutoff -- is read
+        where one is live, and none is today, so that leg reports absent with
+        the count of live forecasts rather than assuming. THE IMPLIED LEG IS THE INDEX FEED, not FRED's
         VIXCLS, for the reason v1.3 gave the dial: VIXCLS publishes the next
         morning, so a pair reading it was comparing yesterday's implied with
         today's realized and calling the mismatch a divergence. Both legs are now
