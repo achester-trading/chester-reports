@@ -34,6 +34,8 @@ no store as on the box. No network and no key: the model is an injected client.
   J  CITED EVENTS ARE QUOTED; ABSENT IS A FIELD (6c-3): the payload carries
      stored type and source and structured absences; the audit withholds a
      contradicting citation and a present row called missing.
+  K  A NAMED STATE IS THE STORED ONE (6c-3): a state word beside a dial or
+     dimension name must be the object's; absent means no state word at all.
   G  THE 07:00 PROSE. A PROPOSALS block is split off before the audit; a cited event
      id outside the payload withholds the block; the numeral and type verdicts are
      reported apart; a valid proposal is written as `proposed`.
@@ -450,6 +452,84 @@ def group_j() -> None:
           "nothing missing")
 
 
+def group_k() -> None:
+    print(f"{LINE}\nK. A NAMED STATE IS THE STORED ONE (6c-3)\n{LINE}")
+    from daily_cascade import narrative as nv
+    from daily_cascade import story_block
+
+    obj = {"session": "2026-09-25",
+           "dials": {"gamma": {"state": "positive"},
+                     "vol": {"state": None, "absent_reason": "no VIX print"},
+                     "macro": {"state": "mixed"}},
+           "dimensions": {"trend": {"state": "flat"}, "rates": {"state": "high"},
+                          "volatility": {"state": None,
+                                         "absent_reason": "stale primary"}},
+           "contradictions": []}
+    wc = {"dial_changes": [{"dial": "gamma", "from": "negative", "to": "positive"}]}
+    ms = story_block.market_states(obj, wc)
+    check(ms["gamma"]["state"] == "positive" and ms["gamma"]["previous"] == "negative"
+          and set(ms["gamma"]["vocabulary"]) == {"positive", "negative", "flat"},
+          "market_states carries gamma's stored state, its previous one and its "
+          "declared words")
+    check(ms["trend"]["vocabulary"] == ["up", "flat", "down"]
+          and "normal" in ms["vol"]["vocabulary"]
+          and "goldilocks" in ms["macro"]["vocabulary"],
+          "every dimension's, the vol dial's bands' and the macro rules' words")
+    check(ms["volatility"].get("absent") and ms["volatility"].get("reason"),
+          "an absent state is {absent: true, reason}")
+    b = story_block.build("2026-09-25", "2026-09-28T11:00:00+00:00",
+                          market_state=obj, what_changed=wc)
+    check("market_states" in story_block.narrative_payload(b),
+          "and the model's payload carries it")
+    check("market_states" in nv.morning_system_prompt(),
+          "the prompt says to use the stored words")
+
+    cases = [
+        ("gamma-vs-trend, still carrying its positive/flat state pair", True,
+         "the 28 September sentence, now vouched for: positive/flat IS the pair"),
+        ("gamma-vs-trend carries its negative/flat pair", False,
+         "the same sentence with gamma's word wrong fails"),
+        ("The gamma dial did move, flipping from negative to positive.", True,
+         "a transition matching previous and stored passes"),
+        ("The gamma dial did move, flipping from positive to negative.", False,
+         "and reversed, fails on both ends"),
+        ("a flat trend", True, "a state word before the name"),
+        ("an up trend", False, "a wrong word before the name"),
+        ("volatility is elevated", False,
+         "any state claimed for an ABSENT dimension fails"),
+        ("volatility turning up with the headlines", True,
+         "a word outside the name's vocabulary is not a claim"),
+        ("the vol dial reads normal", False, "the vol dial is absent too"),
+        ('a headline, "Gamma is negative" (event 1)', True,
+         "words inside a quoted title are not the prose's claim"),
+    ]
+    for text, passes, why in cases:
+        got = nv.state_contradictions(text, ms)
+        check((not got) == passes, f"{why} ({got or 'pass'})")
+
+    class Resp:
+        def __init__(self, t):
+            self.content = [types.SimpleNamespace(type="text", text=t)]
+            self.model = "fixture-model"
+            self.stop_reason = "end_turn"
+
+    class Client:
+        def __init__(self, t):
+            self.messages = types.SimpleNamespace(create=lambda **k: Resp(t))
+
+    r = nv.generate({"x": 1}, client=Client("Trend is down."),
+                    system_prompt="f", max_chars=5000, one_paragraph=False,
+                    citable_ids=[], market_states=ms)
+    check(r.state == "state_misstated" and r.verdicts()["state"].startswith("fail"),
+          f"generate withholds on it and reports the state verdict apart "
+          f"({r.verdicts()['state'][:50]})")
+    tmpl = (REPO / "docs" / "narrative-template-morning.md").read_text(
+        encoding="utf-8")
+    para = tmpl.split("## Reference paragraph")[1].split("\n## ")[0]
+    check(not nv.state_contradictions(para, ms),
+          "the template's reference paragraph names no state against this object")
+
+
 def group_e() -> None:
     print(f"{LINE}\nE. narrative_vs_data\n{LINE}")
     import contradictions as contra
@@ -779,7 +859,7 @@ def group_i() -> None:
 def main() -> int:
     print(f"{LINE}\nThe narrative register and the 07:00 scan (6c-2)\n{LINE}")
     for g in (groups_abc, group_d, group_e, group_g, group_h, group_i,
-              group_j):
+              group_j, group_k):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

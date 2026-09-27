@@ -209,6 +209,12 @@ def morning_system_prompt() -> str:
         "write that a row or a field is missing from, or absent from, the object: "
         "every declared row is present, and such a sentence withholds the "
         "block.\n"
+        "\n3c. STATES ARE THE OBJECT'S WORDS. `market_states` carries every dial's "
+        "and dimension's stored state (and `previous` where it changed). When you "
+        "name a state beside a dial or dimension -- `gamma is positive`, `a flat "
+        "trend`, `gamma flipped from negative to positive`, `gamma-vs-trend at "
+        "positive/flat` -- use exactly those words. A state word that is not the "
+        "stored one, or any state for one that is absent, withholds the block.\n"
         "\n4. A RELEASE'S SURPRISE IS AGAINST A NAIVE EXPECTATION, never a "
         "consensus; an earnings surprise is against the analyst mean. Say which.\n"
         "\n5. PROPOSALS, ONLY IF WARRANTED. If the events show a story the register "
@@ -271,6 +277,8 @@ class NarrativeResult:
     miscited: list[str] = field(default_factory=list)
     presence: list[str] = field(default_factory=list)
     citation_checked: bool = False
+    misstated: list[str] = field(default_factory=list)
+    states_checked: bool = False
 
     @property
     def published(self) -> bool:
@@ -308,6 +316,10 @@ class NarrativeResult:
             "presence": ("not_run" if not self.citation_checked else
                          "pass" if not self.presence else
                          f"fail ({'; '.join(self.presence[:3])})"),
+            "state": ("not_run" if not self.states_checked else
+                      "pass" if not self.misstated else
+                      f"fail ({len(self.misstated)}: "
+                      f"{'; '.join(self.misstated[:4])})"),
         }
 
     def withheld_note(self) -> str:
@@ -318,6 +330,10 @@ class NarrativeResult:
         if self.state == "miscited":
             return (f"narrative withheld: a citation's type or source contradicts "
                     f"the stored event ({'; '.join(self.miscited[:3])})")
+        if self.state == "state_misstated":
+            return (f"narrative withheld: a state named beside a dial or "
+                    f"dimension is not the stored one "
+                    f"({'; '.join(self.misstated[:3])})")
         if self.state == "presence_misstated":
             return (f"narrative withheld: it calls a present row missing from the "
                     f"object ({'; '.join(self.presence[:2])})")
@@ -480,6 +496,110 @@ def citation_contradictions(text: str, citable_events: list,
     return out
 
 
+# ---------------------------------------------------------------------------
+# 6c-3 -- STATE WORDS: a state named beside a dial or dimension is the stored one
+# ---------------------------------------------------------------------------
+# The 28 September re-render wrote "gamma-vs-trend ... its positive/flat state
+# pair", and no audit could say whether that was the object's pair. This one can.
+# The same adjacency discipline as types and sources: only a word from THAT
+# name's declared vocabulary counts, and only in four tight forms --
+#   after      the name, past filler words:        "gamma is positive"
+#   before     the name, immediately:              "a flat trend"
+#   transition "gamma flipped from negative to positive" -- `to` is checked
+#              against the stored state, `from` against the stored previous
+#   pair       "gamma-vs-trend ... positive/flat", positionally
+# A state word in any other position is not read as a claim -- "volatility
+# turning up" says nothing about the volatility state, whose words are
+# elevated, normal and subdued.
+STATE_FILLERS = ("dial", "dimension", "dimension's", "dial's", "state", "reading",
+                 "is", "was", "reads", "read", "remains", "remained", "stays",
+                 "stayed", "still", "now", "at", "currently", "sits", "sat", "in",
+                 "of", "the", "its", "on", "as", "being", "held", "holds", "a")
+STATE_VERBS = ("flipped", "flipping", "flips", "moved", "moving", "moves", "turned",
+               "turning", "turns", "went", "changed", "changing", "shifted",
+               "shifting", "swung", "swinging", "fell", "rose")
+STATE_AUX = ("did", "does", "has", "had", "also", "then", "move", "moved",
+             "again", "back", "firmly")
+# Names a dial is written under. The vol dial is only ever "vol dial": bare "vol"
+# is the volatility dimension's word in every other sentence.
+STATE_ALIASES = {"gamma": ("dealer gamma", "gamma dial", "gamma"),
+                 "vol": ("vol dial",), "macro": ("macro dial",)}
+
+
+def _name_re(name: str) -> str:
+    import re as _re  # noqa: PLC0415
+    names = STATE_ALIASES.get(name, (name,))
+    return "(?:" + "|".join(_re.escape(n).replace(r"\ ", r"[\s_-]+")
+                            for n in names) + ")"
+
+
+def state_contradictions(text: str, market_states: dict) -> list[str]:
+    """State words beside a dial or dimension name that are not its stored state."""
+    import re as _re  # noqa: PLC0415
+    if not market_states:
+        return []
+    masked = _re.sub(_QUOTED, lambda q: " " * len(q.group(0)), text).lower()
+    # Filler, auxiliaries and change verbs may sit between a name and its state
+    # word -- "the gamma dial did move, flipping from negative to positive" --
+    # so a transition written with a pause in it is still checked.
+    fill = r"(?:[\s,:]+(?:%s))*" % "|".join(
+        map(_re.escape, STATE_FILLERS + STATE_VERBS + STATE_AUX))
+    verb = ""
+    out: list[str] = []
+    seen: set = set()
+
+    def claim(name: str, word: str, which: str = "state") -> None:
+        ms = market_states.get(name) or {}
+        want = ms.get("previous") if which == "previous" else ms.get("state")
+        if which == "previous" and "previous" not in ms:
+            return                      # no stored previous to hold it to
+        if word != (str(want).lower() if want is not None else None):
+            key = (name, which, word)
+            if key not in seen:
+                seen.add(key)
+                out.append(f"{name} {'was' if which == 'previous' else 'is'} "
+                           f"called {word}, stored "
+                           f"{want if want is not None else 'absent'}")
+
+    vocab = {n: [str(w).lower() for w in (m.get("vocabulary") or [])]
+             for n, m in market_states.items()}
+    names = sorted(vocab, key=len, reverse=True)
+    for name in names:
+        words = vocab[name]
+        if not words:
+            continue
+        W = "(" + "|".join(map(_re.escape, sorted(words, key=len,
+                                                     reverse=True))) + ")"
+        N = r"(?<![\w-])" + _name_re(name) + r"(?![\w])"
+        # transition
+        for m in _re.finditer(N + fill + verb + r"\s+from\s+" + W + r"\s+to\s+" + W
+                              + r"(?![\w-])", masked):
+            claim(name, m.group(1), "previous")
+            claim(name, m.group(2))
+        # after (not when it is the start of a transition, handled above)
+        for m in _re.finditer(N + fill + r"\s+" + W + r"(?![\w/-])", masked):
+            claim(name, m.group(1))
+        # before
+        for m in _re.finditer(r"(?<![\w-])" + W + r"\s+" + _name_re(name)
+                              + r"(?![\w-])", masked):
+            claim(name, m.group(1))
+    # pairs: "<a>-vs-<b> ... w1/w2" within one clause of 90 characters
+    for a in names:
+        for b in names:
+            if a == b:
+                continue
+            P = (r"(?<![\w])" + _name_re(a) + r"[\s_-]+(?:vs\.?|versus)[\s_-]+"
+                 + _name_re(b) + r"(?![\w])")
+            for m in _re.finditer(P, masked):
+                tail = masked[m.end():m.end() + 90].split(". ")[0]
+                pm = _re.search(r"(?<![\w-])([a-z_]+)\s*/\s*([a-z_]+)(?![\w-])",
+                                tail)
+                if pm and pm.group(1) in vocab[a] and pm.group(2) in vocab[b]:
+                    claim(a, pm.group(1))
+                    claim(b, pm.group(2))
+    return out
+
+
 def presence_misstatements(text: str) -> list[str]:
     """Sentences that call something missing from the object.
 
@@ -499,7 +619,8 @@ def generate(payload: dict, *, model: Optional[str] = None,
              one_paragraph: bool = True, split=None,
              citable_ids: Optional[Any] = None,
              cite_word: str = "event",
-             citable_events: Optional[list] = None) -> NarrativeResult:
+             citable_events: Optional[list] = None,
+             market_states: Optional[dict] = None) -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
@@ -686,6 +807,9 @@ def generate(payload: dict, *, model: Optional[str] = None,
             res.citation_checked = True
             res.miscited = citation_contradictions(text, citable_events, cite_word)
             res.presence = presence_misstatements(text)
+        if market_states is not None:
+            res.states_checked = True
+            res.misstated = state_contradictions(text, market_states)
         if res.untraceable:
             res.state = "untraceable"
             res.reason = (f"the prose cites event ids the payload does not carry: "
@@ -696,6 +820,12 @@ def generate(payload: dict, *, model: Optional[str] = None,
             res.state = "miscited"
             res.reason = (f"a citation's adjacent type or source contradicts the "
                           f"stored event: {res.miscited[:4]}")
+            log.warning("narrative withheld: %s", res.reason)
+            return res
+        if res.misstated:
+            res.state = "state_misstated"
+            res.reason = (f"a state named beside a dial or dimension is not the "
+                          f"stored one: {res.misstated[:4]}")
             log.warning("narrative withheld: %s", res.reason)
             return res
         if res.presence:

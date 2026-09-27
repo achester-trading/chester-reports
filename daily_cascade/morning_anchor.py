@@ -201,7 +201,8 @@ def _narrative_scan(p: dict, args, run_id: str):
             split=narrative_mod.split_proposals,
             citable_ids=block.get("citable_event_ids") or [],
             cite_word=story_block.CITE_WORD,
-            citable_events=block.get("citable_events") or [])
+            citable_events=block.get("citable_events") or [],
+            market_states=block.get("market_states") or {})
     except Exception as exc:                                   # noqa: BLE001
         log.warning("narrative scan failed to run: %s: %s",
                     type(exc).__name__, exc)
@@ -209,7 +210,8 @@ def _narrative_scan(p: dict, args, run_id: str):
     v = narr.verdicts()
     print(f"  narrative  : {narr.state} (model {narr.model}) -- numeral "
           f"{v['numeral']}; type {v['type']}; traceability {v['traceability']}; "
-          f"citation {v['citation']}; presence {v['presence']}")
+          f"citation {v['citation']}; presence {v['presence']}; "
+          f"state {v['state']}")
     if not narr.published:
         log.warning("narrative withheld (state=%s): %s", narr.state, narr.reason)
         if narr.rejected_text:

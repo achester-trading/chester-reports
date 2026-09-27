@@ -203,6 +203,7 @@ def build(prior_session: str, cutoff: Optional[str] = None,
         for r in sorted(obj.get("contradictions") or [], key=lambda x: x["id"])
         if r.get("open_state") == "absent"]
     out["what_changed"] = what_changed
+    out["market_states"] = market_states(obj, what_changed)
     ids = set()
     ev = out.get("events") or {}
     for k in ("releases", "earnings", "filings"):
@@ -218,6 +219,63 @@ def build(prior_session: str, cutoff: Optional[str] = None,
     if ev.get("absent") and (out.get("register") or {}).get("absent"):
         out["state"] = "absent"
         out["reason"] = "neither the events nor the register could be read"
+    return out
+
+
+def state_vocabularies() -> dict:
+    """{name: (kind, [every state word the config declares for it])}.
+
+    From the rules, not from what happened to be printed: a dimension's
+    `states`, the gamma dial's `states`, the vol dial's level bands and the macro
+    dial's rule outputs. Read-only over config/market_state.yaml.
+    """
+    import regime  # noqa: PLC0415
+    cfg = regime.load_config() or {}
+    out: dict[str, tuple[str, list[str]]] = {}
+    for n, d in (cfg.get("dimensions") or {}).items():
+        out[n] = ("dimension", [str(s) for s in d.get("states") or []])
+    dials = cfg.get("dials") or {}
+    g = dials.get("gamma") or {}
+    out["gamma"] = ("dial", [str(s) for s in g.get("states") or []])
+    v = dials.get("vol") or {}
+    out["vol"] = ("dial", [str(b.get("state")) for b in v.get("level_bands") or []
+                           if b.get("state")])
+    m = dials.get("macro") or {}
+    out["macro"] = ("dial", sorted({str(r.get("state")) for r in m.get("rules") or []
+                                    if isinstance(r, dict) and r.get("state")}))
+    return out
+
+
+def market_states(obj: dict, what_changed: Optional[dict] = None) -> dict:
+    """Each dial's and dimension's STORED state, the previous one where the
+    object's diff records a change, and the words it may take. (6c-3)
+
+    What the prose must use when it names a state, and what the audit holds it
+    to: a state word beside a dial or dimension name that is not the stored one
+    withholds the block. An absent state is carried as None with its reason --
+    then ANY state word claimed for that name is a contradiction.
+    """
+    if not obj:
+        return {}
+    prev = {}
+    for ch in (what_changed or {}).get("dial_changes") or []:
+        prev[ch.get("dial")] = ch.get("from")
+    for ch in (what_changed or {}).get("dimension_changes") or []:
+        prev[ch.get("dimension")] = ch.get("from")
+    out = {}
+    for name, (kind, vocab) in state_vocabularies().items():
+        src = (obj.get("dials" if kind == "dial" else "dimensions") or {}).get(
+            name) or {}
+        item = {"kind": kind, "state": src.get("state"), "vocabulary": vocab}
+        if name in prev:
+            item["previous"] = prev[name]
+        if src.get("state") is None:
+            item["absent"] = True
+            if src.get("fault"):
+                item["fault"] = src["fault"]
+            else:
+                item["reason"] = src.get("absent_reason") or "no reason recorded"
+        out[name] = item
     return out
 
 
@@ -251,4 +309,5 @@ def narrative_payload(block: dict, what_changed: Optional[dict] = None) -> dict:
         else block.get("what_changed"),
         "citable_event_ids": block.get("citable_event_ids"),
         "citable_events": block.get("citable_events"),
+        "market_states": block.get("market_states"),
     }

@@ -249,7 +249,8 @@ def narrative_scan_block(narrative: Optional[Any]) -> str:
                 f'audit {esc(v["numeral"])} &middot; type audit {esc(v["type"])} '
                 f'&middot; every cited event traced ({esc(len(narrative.cited_ids))} '
                 f'cited) &middot; citations quote the stored type and source '
-                f'&middot; no present row called missing.</p></div>')
+                f'&middot; no present row called missing &middot; every '
+                f'named state is the stored one.</p></div>')
     note = getattr(narrative, "withheld_note", lambda: "narrative withheld")()
     return (f'<div style="{ABSENT}"><strong>{esc(note)}</strong>'
             f'<p style="{NOTE}">Withheld rather than corrected: the Stories table '
