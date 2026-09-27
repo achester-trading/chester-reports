@@ -907,6 +907,18 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
         db.close()
 
 
+def _weekend_figures(b: dict) -> dict:
+    """The weekend block as the paragraph may cite it: state, counts, and an
+    absence only when there is one."""
+    if b.get("state") != "ok":
+        return {"state": b.get("state") or "absent", "absent": True,
+                "reason": b.get("reason") or "no reason recorded"}
+    from . import events_block                                  # noqa: PLC0415
+    out = {"state": "ok", **events_block.narrative_figures(b)}
+    out["needs_still"] = b.get("needs_still")
+    return out
+
+
 def narrative_payload(full: dict) -> dict:
     """The figures the weekly paragraph may cite, at print precision.
 
@@ -932,6 +944,7 @@ def narrative_payload(full: dict) -> dict:
             "exceptions_closed": st.get("exceptions_closed"),
             "exceptions_open_now": st.get("exceptions_open_now"),
             "exceptions_intraweek_only": st.get("exceptions_intraweek_only"),
+            "exceptions_side": st.get("exceptions_side"),
             "contradictions": [r for r in (st.get("contradictions") or [])
                                if r.get("open_state") != "absent"],
             "vol_term_structure": st.get("vol_term_structure"),
@@ -970,16 +983,28 @@ def narrative_payload(full: dict) -> dict:
         "week_ahead": {
             "window": wa.get("window"),
             "session_events": wa.get("session_events"),
-            "releases_tracked_count": (wa.get("releases") or {}).get(
-                "tracked_count"),
+            # WHAT THE TABLE LISTS, never a key nothing sets. The 27 Sep payload
+            # handed the model releases_tracked_count = None off the same missing
+            # key that printed "None of 37" -- and the paragraph said no tracked
+            # releases were present. (Weekly edition 1, items 4 and 7.)
             "releases_state": (wa.get("releases") or {}).get("state"),
+            "releases_listed_count": len((wa.get("releases") or {}).get("rows")
+                                         or []),
+            "releases_listed": [
+                {k: r.get(k) for k in ("date", "release_name", "cadence")}
+                for r in ((wa.get("releases") or {}).get("rows") or [])],
+            "releases_daily_rows_not_listed": (wa.get("releases") or {}).get(
+                "daily_rows"),
             "earnings_in_window": (wa.get("earnings") or {}).get("in_window"),
             "dated_claims": [
                 {k: c.get(k) for k in ("id", "value", "source", "as_of")}
                 for c in (wa.get("dated_claims") or [])],
         },
-        "weekend_developments": (full.get("weekend_developments")
-                                 or {}).get("reason"),
+        # THE BLOCK'S STATE AND FIGURES, not its `reason` -- which is None when
+        # the block is fine, and which the 27 Sep paragraph read as "weekend
+        # developments remain unsourced" above a block that had rows.
+        "weekend_developments": _weekend_figures(
+            full.get("weekend_developments") or {}),
         "absences": full.get("warnings"),
     }
     return precision.apply(out)

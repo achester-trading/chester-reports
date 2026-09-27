@@ -467,6 +467,14 @@ def group_h(p: dict) -> None:
     old = {"state": "ok", "window": ["a", "b"],
            "releases": {"state": "ok", "count": 37, "rows": []},
            "earnings": {"state": "empty"}, "dated_claims": []}
+    old2 = dict(old, releases={"state": "ok", "count": 2, "rows": [
+        {"date": "2026-09-28", "release_name": "H.15 Selected Interest Rates",
+         "tracked_series": ["yield_10y"]}]})
+    t2 = visible_text(wr.week_ahead_block({"week_ahead": old2}))
+    check("archived before release cadence was recorded" in t2
+          and "weekly, monthly or quarterly" not in t2,
+          "an archived table with no cadence says it is unfiltered, and does not "
+          "claim its rows are weekly or slower")
     check(not NONE_IN_TEXT.search(visible_text(wr.week_ahead_block(
               {"week_ahead": old}))),
           "an old-shape releases block (no counts beyond `count`) prints no None "
@@ -496,6 +504,19 @@ def group_h(p: dict) -> None:
     check("Job Openings" not in md and "Listed under The week ahead" in md,
           "and so does the Markdown edition")
 
+    # THE MODEL'S SIDE OF THE SAME BUG: the 27 Sep paragraph said no tracked
+    # releases were present and the weekend was unsourced, off two None fields.
+    fake = {"week_ahead": wa, "weekend_developments": {
+        "state": "ok", "headlines": [{"query": "q", "count": 2}],
+        "releases": [], "releases_total": 1, "needs_still": []}}
+    npl = wp.narrative_payload(fake)
+    check(npl["week_ahead"]["releases_listed_count"] == 2
+          and [r["release_name"][:4] for r in npl["week_ahead"]["releases_listed"]]
+          == ["Job ", "H.4."],
+          "the paragraph's payload carries the listed releases and their count")
+    check(npl["weekend_developments"].get("state") == "ok"
+          and npl["weekend_developments"].get("releases_total") == 1,
+          "and the weekend block's state and counts, not its (None) reason")
     full = visible_text(wr.render(p))
     bad_s = [m.start() for m in NONE_IN_TEXT.finditer(full)]
     check(not bad_s, "no None inside any rendered sentence of the test edition"

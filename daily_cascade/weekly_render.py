@@ -381,10 +381,18 @@ def week_ahead_block(payload: dict) -> str:
         # EVERY NUMBER IN THIS SENTENCE IS ONE THE PAYLOAD CARRIES, so none can
         # print as None -- the 27 September header read "None of 37 ... None of
         # None resolved" off keys nothing set.
-        head = (f'<p style="{NOTE}"><strong>Scheduled releases</strong> &mdash; '
-                f'{len(listed)} release(s) of weekly, monthly or quarterly '
-                f'tracked series in the window, of {int(rel.get("count") or 0)} '
-                f'calendar rows</p>')
+        if any("cadence" in r for r in listed) or "daily_rows" in rel:
+            head = (f'<p style="{NOTE}"><strong>Scheduled releases</strong> '
+                    f'&mdash; {len(listed)} release(s) of weekly, monthly or '
+                    f'quarterly tracked series in the window, of '
+                    f'{int(rel.get("count") or 0)} calendar rows</p>')
+        else:
+            # AN EDITION ARCHIVED BEFORE CADENCE WAS RECORDED: its rows carry no
+            # cadence, so nothing was filtered and the header must not say it was.
+            head = (f'<p style="{NOTE}"><strong>Scheduled releases</strong> '
+                    f'&mdash; {len(listed)} calendar row(s), archived before '
+                    f'release cadence was recorded, so daily-series releases are '
+                    f'not filtered out</p>')
         foot = (f'<p style="{NOTE}">Daily series, not listed: {n_daily} '
                 f'row(s) from {len(daily_names)} release(s) '
                 f'({esc(", ".join(daily_names))}) print every session and are '
