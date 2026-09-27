@@ -55,6 +55,7 @@ PY_VALIDATORS := \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
 	tools/validate_official_sources.py \
+	tools/validate_narratives.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

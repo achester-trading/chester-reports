@@ -199,9 +199,13 @@ def group_c(store) -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE RENDER FETCHES NOTHING\n{LINE}")
     import re
+    # 6c-2: THE NARRATIVE BLOCK IS COVERED -- its payload builder and the register
+    # it reads. The runtime half below builds the whole morning anchor, story
+    # block included, with the socket layer removed.
     FILES = ("daily_cascade/events_block.py", "daily_cascade/morning_render.py",
              "daily_cascade/weekly_render.py", "daily_cascade/morning_payload.py",
-             "daily_cascade/weekly_payload.py")
+             "daily_cascade/weekly_payload.py", "daily_cascade/story_block.py",
+             "altdata/narratives.py")
     # CALLS AND IMPORTS, NOT THE WORD. The first version of this pattern
     # matched the string "yfinance" anywhere, so it failed on
     # `PRICE_METRIC_PREFIX = "yfinance.mkt_"` -- a metric key -- and on a

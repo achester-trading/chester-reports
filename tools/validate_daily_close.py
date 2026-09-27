@@ -80,7 +80,7 @@ FORBIDDEN = ("anthropic", "openai", "claude", "llm", "completion")
 # `import narrative` in payload.py is not, because that is the edge along which a
 # generated sentence could reach a figure before anything audited it.
 DATA_PATH = ("payload.py", "render.py", "morning_payload.py",
-             "morning_render.py", "state_block.py")
+             "morning_render.py", "state_block.py", "story_block.py")
 
 # Modules allowed to reach a model, because gating them is the whole design.
 PROSE_PATH = ("narrative.py",)
@@ -123,7 +123,8 @@ def group_a() -> None:
     # payload, so the assertion is made against sys.modules in a clean process.
     probe = ("import sys; "
              "import daily_cascade.payload, daily_cascade.render, "
-             "daily_cascade.morning_payload, daily_cascade.morning_render; "
+             "daily_cascade.morning_payload, daily_cascade.morning_render, "
+             "daily_cascade.story_block; "
              "bad=[m for m in sys.modules "
              "     if m.endswith('narrative') or m in ('anthropic','openai')]; "
              "print('LEAKED:' + ','.join(sorted(bad)) if bad else 'CLEAN')")
