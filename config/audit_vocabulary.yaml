@@ -1,0 +1,41 @@
+# audit_vocabulary.yaml -- tokens the numeral audit reads as NAMES, not figures.
+# (Weekly edition 1, item 1; altdata/numeral_audit.py)
+#
+# The audit checks every numeral in the prose against the payload, because a
+# number nobody can trace is a number nobody can check. Some numerals are not
+# numbers. "The 30-year yield" names an instrument; "30" there is no more a
+# magnitude than the 2 in 2s10s. The Weekly of 27 September 2026 was withheld on
+# exactly that: "30" out of "30-year", which no payload field holds because it is
+# not a quantity. "10-year" and "2-year" passed the same day only because 10 and 2
+# happened to appear elsewhere in the payload -- a pass by coincidence, which is
+# worse than a fail, because it teaches nothing.
+#
+# WHAT IS DECLARED HERE IS EXEMPT BY NAME, NOT BY SHAPE. A pattern like "N-year"
+# would exempt "a 7-year low", which IS a claim (seven years since), so the list
+# is closed: add a token when a report uses it as a name, never a rule that
+# reaches numerals nobody reviewed. Matching is case-insensitive and whole-token.
+version: audit-vocabulary-v1
+updated: 2026-09-27
+
+name_tokens:
+  # Tenors -- the instrument, not a duration.
+  - 2-year
+  - 5-year
+  - 10-year
+  - 30-year
+  - 3M
+  # Instrument classes.
+  - 0DTE
+  # Moving-average names -- the indicator, not a count of days.
+  - 50-day
+  - 200-day
+
+# DAY-OF-MONTH TOKENS ARE NAMES WHEN THE PAYLOAD CARRIES THE DATE. "The 27th" in
+# a paragraph about a session window names a day; it is not a magnitude. Exempt
+# only in DATE FORM -- an ordinal ("27th") or beside a month name ("27
+# September", "September 27") -- only for 1..31, and only when that day of month
+# appears in one of the payload's own date or datetime fields. An ordinal with a
+# unit word after it ("the 30th percentile") is a figure and is checked as one.
+day_of_month:
+  forms: [ordinal, with_month]
+  source: payload_date_fields

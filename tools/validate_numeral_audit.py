@@ -382,6 +382,42 @@ def group_e() -> None:
         bad(f"a null payload raised {type(e).__name__}")
 
 
+def group_f() -> None:
+    """Names, not figures (Weekly edition 1, item 1)."""
+    print(f"\n{LINE}\nF. TENORS, INSTRUMENTS AND DAYS OF THE MONTH ARE NAMES\n{LINE}")
+    from altdata import numeral_audit as na
+    v = na.vocabulary()
+    declared = {str(t).lower() for t in v.get("name_tokens") or []}
+    want = {"2-year", "5-year", "10-year", "30-year", "3m", "0dte", "50-day",
+            "200-day"}
+    check(want <= declared, f"config/audit_vocabulary.yaml declares the tenor and "
+                            f"instrument tokens ({sorted(declared)})")
+    bare = {"week_ending": "2026-09-25", "yield": 4.81}
+    for t in ("the 30-year yield at 4.81", "the 2-year, 5-year and 10-year",
+              "the 3M bill", "0DTE flow", "the 50-day and 200-day averages"):
+        r = audit(t, bare)
+        check(r.passed, f"{t!r} passes against a payload holding none of its "
+                        f"tenor numerals -- they are names")
+    check(not audit("30 sessions", bare).passed,
+          "while a bare 30 is still a figure and still fails when absent")
+    check(not audit("a 7-year low", bare).passed,
+          "and an undeclared N-year is checked: a 7-year low is a claim")
+    days = {"as_of": "2026-09-27T00:36:02+00:00", "since": "2026-09-25"}
+    check(sorted(na.payload_days(days)) == [25, 27],
+          "a DATETIME contributes its day -- the \\b before 'T' dropped it, and "
+          "the 28 September morning test was withheld on '27th' for that")
+    for t in ("between the 25th and the 27th", "on 27 September",
+              "on September 25"):
+        r = audit(t, days)
+        check(r.passed, f"{t!r}: a day in date form that the payload's dates "
+                        f"carry is a name")
+    for t, why in (("the 28th", "a day the payload's dates do not carry"),
+                   ("the 27th percentile", "an ordinal with a unit word"),
+                   ("up 27%", "a percent")):
+        check(not audit(t, {"since": "2026-09-25", "x": 1.5}).passed,
+              f"{t!r} is still a figure: {why}")
+
+
 def main() -> int:
     print(f"{LINE}\nD3 numeral audit -- the precondition for any generated "
           f"sentence\n{LINE}")
@@ -390,6 +426,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

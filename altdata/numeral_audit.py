@@ -63,7 +63,86 @@ import datetime as dt
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any, Iterable, Optional
+
+# ---------------------------------------------------------------------------
+# NAMES, NOT FIGURES (Weekly edition 1, item 1)
+# ---------------------------------------------------------------------------
+# Declared in config/audit_vocabulary.yaml, which says why each is there. A
+# declared token is masked out of the prose before extraction, so its numeral is
+# never a figure: "the 30-year yield" withheld the 27 September Weekly on "30".
+VOCABULARY_PATH = Path(__file__).resolve().parent.parent / "config" / \
+    "audit_vocabulary.yaml"
+_VOCAB: Optional[dict] = None
+MONTHS = ("january", "february", "march", "april", "may", "june", "july",
+          "august", "september", "october", "november", "december",
+          "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct",
+          "nov", "dec")
+
+
+def vocabulary(path: Optional[Path] = None) -> dict:
+    """The declared name tokens. An unreadable file declares nothing -- the
+    audit then checks every numeral, which fails safe (withholds) rather than
+    open."""
+    global _VOCAB
+    if _VOCAB is not None and path is None:
+        return _VOCAB
+    try:
+        import yaml  # noqa: PLC0415
+        v = yaml.safe_load((path or VOCABULARY_PATH).read_text(
+            encoding="utf-8")) or {}
+    except Exception:                                          # noqa: BLE001
+        v = {}
+    if path is None:
+        _VOCAB = v
+    return v
+
+
+def mask_names(text: str, tokens: Optional[Iterable[str]] = None) -> str:
+    """The prose with every declared name token blanked, position for position."""
+    toks = list(tokens if tokens is not None
+                else vocabulary().get("name_tokens") or [])
+    out = text or ""
+    for t in sorted((str(x) for x in toks), key=len, reverse=True):
+        out = re.sub(r"(?<![\w-])" + re.escape(t) + r"(?![\w-])",
+                     lambda m: " " * len(m.group(0)), out, flags=re.I)
+    return out
+
+
+def payload_days(payload: Any, _depth: int = 0) -> set[int]:
+    """Every day-of-month in the payload's date and datetime fields."""
+    out: set[int] = set()
+    if _depth > 12 or isinstance(payload, bool):
+        return out
+    if isinstance(payload, str):
+        for m in _ISO.finditer(payload):
+            out.add(int(m.group(3)))
+    elif isinstance(payload, dict):
+        for k, v in payload.items():
+            out |= payload_days(k, _depth + 1) | payload_days(v, _depth + 1)
+    elif isinstance(payload, (list, tuple, set)):
+        for v in payload:
+            out |= payload_days(v, _depth + 1)
+    elif isinstance(payload, (dt.date, dt.datetime)):
+        out.add(payload.day)
+    return out
+
+
+def _is_day_name(f: "Figure", text: str, days: set[int]) -> bool:
+    """A day-of-month in DATE FORM whose day the payload's dates carry."""
+    if f.unit_type != "any" or f.is_percent or f.value != int(f.value):
+        return False
+    d = int(f.value)
+    if not 1 <= d <= 31 or d not in days:
+        return False
+    if re.search(r"\d(st|nd|rd|th)$", f.text, flags=re.I):
+        return True
+    after = text[f.position + len(f.text):f.position + len(f.text) + 12].lower()
+    before = text[max(0, f.position - 12):f.position].lower()
+    mon = "|".join(MONTHS)
+    return bool(re.match(rf"\s+(?:of\s+)?(?:{mon})\b", after)
+                or re.search(rf"\b(?:{mon})\.?\s+$", before))
 
 # Magnitude suffixes, longest first so "mm" wins over "m" and "bn" over "b".
 # A MAGNITUDE IS PART OF THE NUMBER, SPELLED OUT OR NOT, and the word forms were
@@ -319,6 +398,9 @@ class AuditResult:
     unmatched: list[Figure] = field(default_factory=list)
     matched: list[tuple[Figure, float]] = field(default_factory=list)
     payload_values: int = 0
+    # Numerals read as NAMES: day-of-month tokens the payload's dates carry.
+    # (Declared name tokens never become figures at all.)
+    names: list[Figure] = field(default_factory=list)
 
     @property
     def n_unmatched(self) -> int:
@@ -476,7 +558,10 @@ def payload_numbers(payload: Any, _depth: int = 0) -> list[float]:
     return vals
 
 
-_ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+# (?!\d), not \b: a datetime "2026-09-27T00:36" has a word character after the
+# day, and \b there silently dropped the date parts of every timestamp -- the
+# morning test of 28 September was withheld on "27th" for exactly that.
+_ISO = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
 
 
 def _from_date_string(s: str) -> list[float]:
@@ -531,7 +616,11 @@ def audit(text: str, payload: Any, *,
     that cannot run is handled by the caller as a failure to publish prose rather
     than as an exception.
     """
-    figures = extract(text)
+    masked = mask_names(text)
+    days = payload_days(payload)
+    figures, names = [], []
+    for f in extract(masked):
+        (names if _is_day_name(f, masked, days) else figures).append(f)
     values = payload_numbers(payload)
     typed = types_of(payload)
     if extra_values:
@@ -576,4 +665,4 @@ def audit(text: str, payload: Any, *,
 
     return AuditResult(passed=not unmatched, figures=figures,
                        unmatched=unmatched, matched=matched,
-                       payload_values=len(values))
+                       payload_values=len(values), names=names)
