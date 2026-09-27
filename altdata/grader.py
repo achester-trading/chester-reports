@@ -663,9 +663,21 @@ def run(db_path: Optional[str] = None, *, now: Optional[str] = None,
             if not dry_run:
                 store.write(res["grade"])
             graded.append(res["grade"])
+    # NARRATIVE FORECASTS (6c-2.4) are probabilities like any other: each story's
+    # implied outcome is in the ledger with a machine-readable criterion, and this
+    # pass resolves whatever is past its horizon from the stored series and writes
+    # the Brier. The close pass calls the same resolver; it is idempotent.
+    narratives_res: dict = {}
+    if not dry_run:
+        try:
+            from . import narratives                           # noqa: PLC0415
+            narratives_res = narratives.resolve_due(now, db_path=db_path)
+        except Exception as exc:                               # noqa: BLE001
+            narratives_res = {"error": f"{type(exc).__name__}: {exc}"}
     return {"considered": len(rows), "graded": graded, "skipped": skipped,
             "price_source": prices.source, "symbols": prices.symbols(),
-            "method_version": METHOD_VERSION, "dry_run": dry_run}
+            "method_version": METHOD_VERSION, "dry_run": dry_run,
+            "narratives": narratives_res}
 
 
 def main() -> int:
@@ -699,6 +711,11 @@ def main() -> int:
               f"ret {g['return_pct'] if g['return_pct'] is None else round(g['return_pct'], 2)}%"
               f"  R {'n/a' if r is None else round(r, 2)}"
               f"  inval_hit {g['invalidation_hit']}")
+    nres = res.get("narratives") or {}
+    if nres:
+        print(f"  narratives   : {len(nres.get('resolved') or [])} forecast(s) "
+              f"resolved, {len(nres.get('waiting') or [])} waiting"
+              + (f" -- {nres['error']}" if nres.get("error") else ""))
     if res["skipped"]:
         print(f"  not graded   : {len(res['skipped'])}")
         for s in res["skipped"]:

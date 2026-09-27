@@ -232,7 +232,8 @@ def brier_block(b: dict) -> str:
     br = b.get("brier") or {}
     if br.get("reason") and not br.get("emitted"):
         return (f'<div style="{ABSENT}"><strong>Brier &mdash; nothing to '
-                f'score.</strong> {esc(br.get("reason"))}</div>')
+                f'score.</strong> {esc(br.get("reason"))}</div>'
+                + narratives_grade_row(b))
     rows = []
     for src, s in sorted((br.get("by_source") or {}).items()):
         rows.append(f'<tr><td style="{TDL}">{esc(src)}</td>'
@@ -247,7 +248,31 @@ def brier_block(b: dict) -> str:
     return (f'<p style="{NOTE}"><strong>Brier</strong> &mdash; '
             f'{esc(br.get("emitted"))} emitted, {esc(br.get("resolved"))} '
             f'resolved. A running Brier above 0.25 is worse than a coin.</p>'
-            + body)
+            + body + narratives_grade_row(b))
+
+
+def narratives_grade_row(b: dict) -> str:
+    """The register graded like any other source of probabilities (6c-2.4)."""
+    n = b.get("narratives") or {}
+    if not n.get("emitted"):
+        return (f'<p style="{NOTE}"><strong>Narratives</strong> &mdash; '
+                f'{esc(n.get("reason") or "nothing emitted")}</p>')
+    rows = "".join(
+        f'<tr><td style="{TDL}">{esc(r["claim"])}</td>'
+        f'<td style="{TD}">{num(r["probability"], 2)}</td>'
+        f'<td style="{TD}">{esc(r["outcome"])}</td>'
+        f'<td style="{TD}">{num(r["brier"], 4)}</td></tr>'
+        for r in n.get("resolved_this_week") or [])
+    table = (f'<table style="{TBL}"><thead><tr><th style="{THL}">resolved this '
+             f'week</th><th style="{TH}">p</th><th style="{TH}">outcome</th>'
+             f'<th style="{TH}">Brier</th></tr></thead><tbody>{rows}</tbody>'
+             f'</table>' if rows else "")
+    return (f'<p style="{NOTE}"><strong>Narratives</strong> &mdash; '
+            f'{esc(n.get("emitted"))} forecast(s) emitted by the register, '
+            f'{esc(n.get("resolved"))} resolved, running Brier '
+            f'{num(n.get("brier"), 4)} against the coin\'s '
+            f'{num(n.get("coin_brier"), 2)}; {len(n.get("open") or [])} open.</p>'
+            + table)
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +457,18 @@ def narratives_register_block(payload: dict) -> str:
              f'<th style="{THL}">Last changed</th>'
              f'<th style="{TH}">Evidence for / against</th>'
              f'<th style="{THL}">Linked dimensions</th></tr>{rows}</table>')
+    arc = b.get("arc") or []
+    if arc:
+        table += (f'<p style="{NOTE}"><strong>The week&#39;s arc</strong> &mdash; '
+                  + "; ".join(
+                      f'{esc(a["narrative_id"])} {esc(a["from"])} &rarr; '
+                      f'{esc(a["to"])} on {esc(a["session"])} ({esc(a["rule"])}; '
+                      f'evidence for {esc(a.get("evidence_for") or [])}, against '
+                      f'{esc(a.get("evidence_against") or [])})' for a in arc)
+                  + '</p>')
+    else:
+        table += (f'<p style="{NOTE}">No story changed state this week '
+                  f'({esc(b.get("evaluations_this_week", 0))} evaluations).</p>')
     props = b.get("proposals") or []
     if not props:
         pend = f'<p style="{NOTE}">No proposals are waiting for confirmation.</p>'

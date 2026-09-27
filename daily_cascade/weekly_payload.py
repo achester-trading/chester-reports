@@ -327,6 +327,40 @@ def grades(ending: str) -> dict:
     except Exception as exc:                                   # noqa: BLE001
         out["brier"] = {"reason": f"ledger unreadable: "
                                  f"{type(exc).__name__}: {exc}"}
+
+    # --- the NARRATIVES row (6c-2.4) -----------------------------------------
+    # The register's own forecasts: every story that entered a claiming state
+    # emitted its implied outcome to the ledger, and this row is how those are
+    # doing -- the register graded like any other source of probabilities.
+    try:
+        from altdata import narratives as nr                    # noqa: PLC0415
+        with probability_ledger.ProbabilityLedger() as pl:
+            rows_n = [r for r in pl.all_rows() if r["source"] == nr.LEDGER_SOURCE]
+        resolved = [r for r in rows_n if r.get("outcome") is not None]
+        out["narratives"] = {
+            "emitted": len(rows_n), "resolved": len(resolved),
+            "brier": (round(sum(r["brier"] for r in resolved) / len(resolved), 4)
+                      if resolved else None),
+            "coin_brier": probability_ledger.COIN_BRIER,
+            "open": [{"claim": r["claim"], "probability": r["probability"],
+                      "horizon_date": r["horizon_date"],
+                      "emitted_at": r["emitted_at"]}
+                     for r in rows_n if r.get("outcome") is None],
+            "resolved_this_week": [
+                {"claim": r["claim"], "probability": r["probability"],
+                 "outcome": r["outcome"], "brier": r["brier"]}
+                for r in resolved
+                if start <= str(r.get("resolved_at") or "")[:10] <= ending],
+        }
+        if not rows_n:
+            out["narratives"]["reason"] = (
+                "no story has entered a state that claims a probability yet -- "
+                "only consensus (0.70) and fading (0.30) emit one, so an "
+                "all-emerging register has nothing to grade, which is the honest "
+                "state rather than an absent block")
+    except Exception as exc:                                   # noqa: BLE001
+        out["narratives"] = {"reason": f"narrative forecasts unreadable: "
+                                       f"{type(exc).__name__}: {exc}"}
     return out
 
 
@@ -368,6 +402,44 @@ def narratives_week(ending: str) -> dict:
          "evidence_against": len(r["evidence_against"]),
          "linked_dimensions": r["linked_dimensions"]}
         for r in rows if r["status"] == "active"]
+    # THE WEEK'S ARC: every state change inside the week, with the evidence the
+    # rules read when it moved -- the event ids the reflection cites.
+    days = week_sessions(ending)
+    start = days[0] if days else ending
+    arc = []
+    try:
+        with nr.NarrativeRegister() as reg:
+            for e in reg.conn.execute(
+                    "SELECT narrative_id, session, state_before, state_after, "
+                    "       transition, inputs FROM narrative_evaluations "
+                    "WHERE session >= ? AND session <= ? "
+                    "ORDER BY session, narrative_id", (start, ending)):
+                inputs = json.loads(e["inputs"])
+                if not e["transition"]:
+                    continue
+                arc.append({
+                    "narrative_id": e["narrative_id"], "session": e["session"],
+                    "from": e["state_before"], "to": e["state_after"],
+                    "rule": e["transition"],
+                    "evidence_for": (inputs.get("evidence") or {}).get("for"),
+                    "evidence_against": (inputs.get("evidence") or {}).get(
+                        "against"),
+                    "attention_long": (inputs.get("attention") or {}).get("long"),
+                    "agreement_ratio": (inputs.get("agreement") or {}).get(
+                        "share")})
+            evaluated = reg.conn.execute(
+                "SELECT COUNT(*) FROM narrative_evaluations WHERE session >= ? "
+                "AND session <= ?", (start, ending)).fetchone()[0]
+    except Exception as exc:                                    # noqa: BLE001
+        out["arc_reason"] = f"evaluations unreadable: {type(exc).__name__}: {exc}"
+        evaluated = 0
+    out["arc"] = arc
+    out["evaluations_this_week"] = evaluated
+    ids = set()
+    for a in arc:
+        ids.update(a.get("evidence_for") or [])
+        ids.update(a.get("evidence_against") or [])
+    out["citable_event_ids"] = sorted(int(i) for i in ids)
     out["proposals"] = [
         {"id": r["narrative_id"], "name": r["name"], "direction": r["direction"],
          "proposed_at": r["proposed_at"], "proposed_by": r["proposed_by"],
@@ -780,7 +852,20 @@ def narrative_payload(full: dict) -> dict:
             "by_status": (gr.get("cuts") or {}).get("by_status"),
             "brier": {k: v for k, v in (gr.get("brier") or {}).items()
                       if k in ("emitted", "resolved", "by_source", "reason")},
+            "narratives": gr.get("narratives"),
             "absent_reason": gr.get("reason"),
+        },
+        "narratives": {
+            "stories": (full.get("narratives") or {}).get("narratives"),
+            "arc": (full.get("narratives") or {}).get("arc"),
+            "evaluations_this_week": (full.get("narratives") or {}).get(
+                "evaluations_this_week"),
+            "pending_proposals": [p.get("name") for p in
+                                  (full.get("narratives") or {}).get("proposals")
+                                  or []],
+            "citable_event_ids": (full.get("narratives") or {}).get(
+                "citable_event_ids"),
+            "absent_reason": (full.get("narratives") or {}).get("reason"),
         },
         "register": {
             "open_count": rg.get("open_count"),

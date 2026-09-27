@@ -134,6 +134,9 @@ CREATE TABLE IF NOT EXISTS narrative_evaluations (
     conditions     TEXT NOT NULL,
     runs           TEXT NOT NULL,
     run_id         TEXT,
+    -- The probability-ledger row emitted when this evaluation moved the story
+    -- INTO a state that carries a probability (6c-2.4). NULL otherwise.
+    forecast_id    TEXT,
     UNIQUE (narrative_id, session)
 );
 CREATE INDEX IF NOT EXISTS narrative_eval_asof
@@ -777,16 +780,22 @@ def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
                 runs = _runs(prior, conds)
                 before = prior[-1]["state_after"] if prior else row["state"]
                 after, rule = next_state(before, conds, runs, persistence)
+                # A STORY ENTERING A STATE THAT CLAIMS SOMETHING IS A FORECAST.
+                # Emitted before the evaluation row so the row can name it.
+                forecast_id = None
+                if rule and after != before:
+                    forecast_id = emit_forecast(nid, row, after, day, cutoff, cfg,
+                                                store, db_path, run_id)
                 now = session.utc_iso(timespec="microseconds")
                 reg.conn.execute(
                     "INSERT INTO narrative_evaluations (narrative_id, session, "
                     " cutoff, evaluated_at, rules_version, state_before, "
-                    " state_after, transition, inputs, conditions, runs, run_id) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    " state_after, transition, inputs, conditions, runs, run_id, "
+                    " forecast_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (nid, day, cutoff, now, rules_version(cfg, nid), before, after,
                      rule, json.dumps(inputs, sort_keys=True, default=str),
                      json.dumps(conds, sort_keys=True),
-                     json.dumps(runs, sort_keys=True), run_id))
+                     json.dumps(runs, sort_keys=True), run_id, forecast_id))
                 reg.conn.execute(
                     "UPDATE narratives SET state=?, evidence_for=?, "
                     " evidence_against=?, last_changed=COALESCE(?, last_changed), "
@@ -798,12 +807,158 @@ def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
                 out["evaluated"].append(nid)
                 if rule:
                     tr = {"narrative_id": nid, "session": day, "from": before,
-                          "to": after, "rule": rule,
+                          "to": after, "rule": rule, "forecast_id": forecast_id,
                           "alert_path": cfg.get("transition_alert_path",
                                                 "report_only")}
                     out["transitions"].append(tr)
                     log.info("narrative %s: %s -> %s (%s)", nid, before, after,
                              rule)
+    finally:
+        store.close()
+    # THE SAME PASS RESOLVES WHAT IS DUE. A forecast whose horizon has passed is
+    # scored here and by the grader (altdata.grader.run); both call one resolver,
+    # which is idempotent, so running twice resolves once.
+    try:
+        out["resolution"] = resolve_due(cutoff, db_path=db_path)
+    except Exception as exc:                                   # noqa: BLE001
+        out["resolution"] = {"error": f"{type(exc).__name__}: {exc}"}
+    return out
+
+
+# ===========================================================================
+# 6c-2.4 -- GRADING: every claiming state enters the probability ledger
+# ===========================================================================
+# The register grades its own state machine. A story that ENTERS a state carrying a
+# probability (config: probability_by_state -- consensus 0.70, fading 0.30) emits
+# one forecast at that instant: its implied outcome, with the horizon measured from
+# the entry, a resolution criterion that is MACHINE-READABLE and declared at
+# emission, and the baseline value of every metric as knowable at that cutoff.
+# Emerging and contested emit nothing (see the config for why).
+#
+# RESOLUTION READS THE STORE, never a judgement: for each metric, the latest
+# observation dated after the baseline's own date and on or before the horizon,
+# compared with the baseline under the declared comparison; the outcome is 1 when
+# at least `quorum` metrics meet it. A metric with no newer observation by the
+# horizon is waited on for RESOLUTION_GRACE_DAYS -- a quarterly filing lands weeks
+# after its quarter -- and then counted as not met, which is stated on the row.
+LEDGER_SOURCE = "narrative_register"
+CRITERION_KIND = "narrative-implied-outcome-v1"
+RESOLUTION_GRACE_DAYS = 45
+
+
+def horizon_of(io: dict, day: str) -> str:
+    import datetime as dt  # noqa: PLC0415
+    if io.get("horizon_date"):
+        return str(io["horizon_date"])
+    return (dt.date.fromisoformat(day)
+            + dt.timedelta(days=int(io.get("horizon_days") or 0))).isoformat()
+
+
+def emit_forecast(nid: str, row: dict, state: str, day: str, cutoff: str,
+                  cfg: dict, store: Any, db_path: Optional[str],
+                  run_id: str) -> Optional[str]:
+    """One ledger row for a story entering a claiming state, or None."""
+    from . import probability_ledger  # noqa: PLC0415
+    p = probability_for(state, cfg)
+    if p is None:
+        return None
+    io = row.get("implied_outcome") or {}
+    baseline = {}
+    for m in io.get("metrics") or []:
+        last = store.latest_as_of(m, as_of=cutoff)
+        baseline[m] = (None if not last or last.get("value_num") is None else
+                       {"observed_at": str(last["observed_at"])[:10],
+                        "value": float(last["value_num"])})
+    criterion = {"kind": CRITERION_KIND, "narrative_id": nid, "state": state,
+                 "claim": io.get("claim"), "metrics": io.get("metrics"),
+                 "comparison": io.get("comparison"),
+                 "quorum": int(io.get("quorum") or 1),
+                 "horizon_date": horizon_of(io, day), "baseline": baseline,
+                 "grace_days": RESOLUTION_GRACE_DAYS}
+    with probability_ledger.ProbabilityLedger(db_path) as led:
+        return led.record(
+            source=LEDGER_SOURCE,
+            claim=f"[{nid}] {io.get('claim')}",
+            probability=p, horizon_date=criterion["horizon_date"],
+            resolution_criterion=json.dumps(criterion, sort_keys=True),
+            scenario_set=f"narrative:{nid}", emitted_at=cutoff,
+            emitted_by=run_id)
+
+
+def _meets(comparison: str, base: float, now: float) -> bool:
+    if comparison == "up":
+        return now > base
+    if comparison == "down":
+        return now < base
+    if comparison == "magnitude_up":
+        return abs(now) > abs(base)
+    if comparison == "magnitude_down":
+        return abs(now) < abs(base)
+    raise ValueError(f"unknown comparison {comparison!r}")
+
+
+def resolve_one(criterion: dict, store: Any, as_of: str) -> dict:
+    """(outcome or None, detail). None means: not resolvable yet."""
+    import datetime as dt  # noqa: PLC0415
+    horizon = criterion["horizon_date"]
+    today = str(as_of)[:10]
+    if today < horizon:
+        return {"outcome": None, "reason": "horizon not reached"}
+    grace_end = (dt.date.fromisoformat(horizon)
+                 + dt.timedelta(days=int(criterion.get("grace_days") or 0))
+                 ).isoformat()
+    met, detail, missing = 0, {}, []
+    for m in criterion.get("metrics") or []:
+        base = (criterion.get("baseline") or {}).get(m)
+        if not base:
+            missing.append(m)
+            detail[m] = "no baseline at emission"
+            continue
+        rows = [r for r in store.as_of(m, as_of=as_of)
+                if base["observed_at"] < str(r["observed_at"])[:10] <= horizon
+                and r.get("value_num") is not None]
+        if not rows:
+            missing.append(m)
+            detail[m] = "no observation after the baseline by the horizon"
+            continue
+        now = float(rows[-1]["value_num"])
+        ok = _meets(criterion["comparison"], base["value"], now)
+        met += int(ok)
+        detail[m] = {"baseline": base, "at_horizon": {
+            "observed_at": str(rows[-1]["observed_at"])[:10], "value": now},
+            "met": ok}
+    if missing and today < grace_end:
+        return {"outcome": None, "reason": f"waiting on {missing} until "
+                                           f"{grace_end}", "detail": detail}
+    quorum = int(criterion.get("quorum") or 1)
+    return {"outcome": int(met >= quorum), "met": met, "quorum": quorum,
+            "missing_counted_unmet": missing, "detail": detail}
+
+
+def resolve_due(as_of: Optional[str] = None, db_path: Optional[str] = None
+                ) -> dict:
+    """Resolve every narrative forecast whose horizon has passed. Idempotent."""
+    from . import probability_ledger  # noqa: PLC0415
+    cutoff = observations.canonical_instant(
+        as_of or session.utc_iso(timespec="microseconds"))
+    out = {"resolved": [], "waiting": []}
+    store = observations.ObservationStore(db_path)
+    try:
+        with probability_ledger.ProbabilityLedger(db_path) as led:
+            for r in led.due(cutoff):
+                if r["source"] != LEDGER_SOURCE:
+                    continue
+                crit = json.loads(r["resolution_criterion"])
+                res = resolve_one(crit, store, cutoff)
+                if res["outcome"] is None:
+                    out["waiting"].append({"probability_id": r["probability_id"],
+                                           "reason": res["reason"]})
+                    continue
+                done = led.resolve(r["probability_id"], res["outcome"],
+                                   note=json.dumps(res, sort_keys=True,
+                                                   default=str)[:2000],
+                                   resolved_at=cutoff)
+                out["resolved"].append(done)
     finally:
         store.close()
     return out
@@ -924,6 +1079,7 @@ def _main(argv: list[str]) -> int:
     evp.add_argument("--session", default=None)
     evp.add_argument("--as-of", default=None)
     sub.add_parser("replay", help="recompute every stored evaluation")
+    sub.add_parser("resolve", help="resolve narrative forecasts past horizon")
     tp = sub.add_parser("transitions")
     tp.add_argument("--since", default="1970-01-01T00:00:00Z")
     a = ap.parse_args(argv)
@@ -949,6 +1105,15 @@ def _main(argv: list[str]) -> int:
         for m in r["mismatches"][:20]:
             print(f"  MISMATCH {m['narrative_id']} {m['session']}: {m['fields']}")
         return 1 if r["mismatches"] else 0
+    if a.cmd == "resolve":
+        r = resolve_due(db_path=a.db)
+        print(f"resolved {len(r['resolved'])}, waiting {len(r['waiting'])}")
+        for x in r["resolved"]:
+            print(f"  {x['probability_id'][:12]} p={x['probability']:.2f} "
+                  f"outcome={x['outcome']} brier={x['brier']:.4f}")
+        for x in r["waiting"]:
+            print(f"  waiting {x['probability_id'][:12]}: {x['reason']}")
+        return 0
     if a.cmd == "transitions":
         for t in transitions_since(a.since, db_path=a.db):
             print(f"{t['session']}  {t['narrative_id']:24} {t['state_before']} -> "

@@ -98,7 +98,11 @@ def main() -> int:
             # and not a length rule: about four times the close report's, which is
             # room for the week without room for a model that lost the thread.
             max_chars=MAX_CHARS,
-            one_paragraph=False)
+            one_paragraph=False,
+            # THE ARC CITES EVIDENCE BY EVENT ID (6c-2.4), and every id it cites
+            # must be one the week's arc actually carries.
+            citable_ids=(np_.get("narratives") or {}).get("citable_event_ids")
+            or [])
         if narr.published:
             log.info("narrative published: %d figures audited, model=%s",
                      narr.figures_checked, narr.model)
@@ -205,7 +209,13 @@ def weekly_system_prompt() -> str:
         "ahead. Say what is not sourced where the payload says so.\n"
         "\n4. NO RECOMMENDATION, exactly as in the close report. The register's "
         "rule decides each position and the paragraph states the rule and the "
-        "distance.\n")
+        "distance.\n"
+        "\n5. THE WEEK'S NARRATIVE ARC (6c-2). From `narratives`: which stories "
+        "changed state this week and on what evidence -- cite each piece as "
+        "`event 257`, only ids in `narratives.citable_event_ids` -- which held, "
+        "and how the register's own forecasts are grading (`grades.narratives`). "
+        "The states are set by declared rules; never assign one. If no story "
+        "moved, say so in one sentence.\n")
 
 
 if __name__ == "__main__":
