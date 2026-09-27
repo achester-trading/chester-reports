@@ -393,15 +393,41 @@ def style_guide(path=None) -> str:
         return ""
 
 
+# RUNAWAY GUARDS, NOT BUDGETS -- and never a silent cut. Until the Weekly of
+# 27 September this function sent guide[:6000] and payload[:12000]: three of the
+# four templates are longer than 6,000 characters, so no model had ever read the
+# end of its own brief, and the Weekly's payload is 18,500, so everything
+# alphabetically after `week_ahead` was cut mid-JSON. The model then wrote,
+# truthfully about what it saw, that the payload "cuts off before further
+# releases" and that weekend developments were unsourced. A prompt that does not
+# fit now WITHHOLDS the paragraph with its size as the reason.
+MAX_GUIDE_CHARS = 30000
+MAX_PAYLOAD_CHARS = 60000
+
+
+class PromptTooLarge(ValueError):
+    """The brief or the payload is past its runaway guard; nothing was cut."""
+
+
 def build_prompt(payload: dict, guide_path=None) -> str:
-    """The user turn: the style guide, then the figures, and nothing else."""
+    """The user turn: the style guide, then the figures, and nothing else.
+
+    Whole or not at all: raises PromptTooLarge rather than truncating.
+    """
     import json  # noqa: PLC0415
     guide = style_guide(guide_path)
+    body = json.dumps(payload, indent=2, default=str, sort_keys=True)
+    if guide and len(guide) > MAX_GUIDE_CHARS:
+        raise PromptTooLarge(f"the style guide is {len(guide)} characters, past "
+                             f"the {MAX_GUIDE_CHARS} guard")
+    if len(body) > MAX_PAYLOAD_CHARS:
+        raise PromptTooLarge(f"the payload is {len(body)} characters, past the "
+                             f"{MAX_PAYLOAD_CHARS} guard")
     return (
-        (f"=== STYLE AND COVERAGE SPECIFICATION ===\n{guide[:6000]}\n\n"
+        (f"=== STYLE AND COVERAGE SPECIFICATION ===\n{guide}\n\n"
          if guide else "")
         + "=== THE PAYLOAD. Every number you write must come from here. ===\n"
-        + json.dumps(payload, indent=2, default=str, sort_keys=True)[:12000]
+        + body
         + "\n\nWrite the paragraph."
     )
 
@@ -655,12 +681,18 @@ def generate(payload: dict, *, model: Optional[str] = None,
             log.info("narrative skipped: %s", why)
             return res
 
+    try:
+        prompt = build_prompt(payload, guide_path)
+    except PromptTooLarge as exc:
+        res.state = "prompt_too_large"
+        res.reason = str(exc)
+        log.warning("narrative withheld: %s", res.reason)
+        return res
     kwargs: dict = {
         "model": model,
         "max_tokens": MAX_TOKENS,
         "system": system_prompt or SYSTEM_PROMPT,
-        "messages": [{"role": "user",
-                      "content": build_prompt(payload, guide_path)}],
+        "messages": [{"role": "user", "content": prompt}],
         # SEE MAX_TOKENS. Disabled deliberately and not by omission: it was
         # ON by default here, and it consumed the entire budget.
         "thinking": {"type": "disabled"},

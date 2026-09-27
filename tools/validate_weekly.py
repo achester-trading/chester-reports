@@ -517,6 +517,32 @@ def group_h(p: dict) -> None:
     check(npl["weekend_developments"].get("state") == "ok"
           and npl["weekend_developments"].get("releases_total") == 1,
           "and the weekend block's state and counts, not its (None) reason")
+    # NOTHING IS CUT FROM THE PROMPT (item 7's root cause): the model received
+    # guide[:6000] and payload[:12000], and the Weekly's payload is ~18,500.
+    from daily_cascade import narrative as nv
+    tmpl = (REPO / "docs" / "narrative-template-weekly.md").read_text(
+        encoding="utf-8")
+    big = dict(wp.narrative_payload(p), zz_last_key="the end of the payload")
+    prompt = nv.build_prompt(big, REPO / "docs" / "narrative-template-weekly.md")
+    check(tmpl.strip()[-120:] in prompt and "the end of the payload" in prompt
+          and '"weekend_developments"' in prompt,
+          f"the prompt carries the whole brief ({len(tmpl)} chars) and the whole "
+          f"payload, last key included")
+    for path in sorted((REPO / "docs").glob("narrative-template-*.md")):
+        g = path.read_text(encoding="utf-8")
+        check(g.strip()[-120:] in nv.build_prompt({"x": 1}, path),
+              f"{path.name} ({len(g)} chars) reaches the model whole")
+    huge = {"rows": ["x" * 100] * (nv.MAX_PAYLOAD_CHARS // 100 + 10)}
+    called = []
+
+    class Boom:
+        messages = type("M", (), {"create": staticmethod(
+            lambda **k: called.append(1))})()
+    r = nv.generate(huge, client=Boom(), system_prompt="f", max_chars=5000,
+                    one_paragraph=False)
+    check(r.state == "prompt_too_large" and not called,
+          f"a payload past the guard is WITHHELD, not cut, and no model is "
+          f"called ({r.reason[:60]})")
     full = visible_text(wr.render(p))
     bad_s = [m.start() for m in NONE_IN_TEXT.finditer(full)]
     check(not bad_s, "no None inside any rendered sentence of the test edition"
