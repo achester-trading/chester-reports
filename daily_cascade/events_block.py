@@ -193,6 +193,10 @@ def build(since: str, as_of: Optional[str] = None,
         {"when": r["observed_at"], "title": r["title"],
          "classes": (r.get("payload") or {}).get("classes") or []}
         for r in (by_type.get("session_event") or [])]
+    # DAILY SERIES ARE NOT EVENTS (Weekly edition 1, item 4): a release date for
+    # a series that prints every session is counted in one line, not listed.
+    daily_ahead = [r for r in ahead if ev_mod.is_daily_release(r)]
+    ahead = [r for r in ahead if not ev_mod.is_daily_release(r)]
     out["ahead"] = [
         {"when": r["observed_at"], "type": r["type"], "title": r["title"],
          "source": r["source"], "entities": (r.get("entities") or [])[:6],
@@ -201,6 +205,10 @@ def build(since: str, as_of: Optional[str] = None,
                               "series", "symbol")}}
         for r in ahead[:MAX_AHEAD]]
     out["ahead_total"] = len(ahead)
+    out["ahead_daily_rows"] = len(daily_ahead)
+    out["ahead_daily_releases"] = sorted(
+        {(r.get("payload") or {}).get("release_name") or r["title"]
+         for r in daily_ahead})
 
     # --- WHAT EACH SOURCE HAS DONE ----------------------------------------
     out["sources"] = {name: {"rows": c["n"], "newest": c["newest"],
@@ -294,7 +302,7 @@ def html(block: dict) -> str:
                f'({block.get("releases_total", 0)})</b></p>')
     rel = block.get("releases") or []
     if not rel:
-        out.append(f'<p style="{NOTE}">None in the window.</p>')
+        out.append(f'<p style="{NOTE}">Nothing in the window.</p>')
     for r in rel:
         out.append(f'<p style="{P}">{_esc(str(r["when"])[:16])} &middot; '
                    f'{_esc(r["source"])} &mdash; {_link(r["title"], r.get("url"))}'
@@ -312,7 +320,7 @@ def html(block: dict) -> str:
     out.append(f'<p style="{P}"><b>Earnings '
                f'({block.get("earnings_total", 0)})</b></p>')
     if not earn:
-        out.append(f'<p style="{NOTE}">None in the window.</p>')
+        out.append(f'<p style="{NOTE}">Nothing in the window.</p>')
     else:
         rows = "".join(
             f'<tr><td style="{TDL}">{_esc(str(e["when"])[:10])}</td>'
@@ -332,7 +340,7 @@ def html(block: dict) -> str:
     if block.get("filings_absent_reason"):
         out.append(f'<p style="{NOTE}">{_esc(block["filings_absent_reason"])}</p>')
     elif not (block.get("filings") or []):
-        out.append(f'<p style="{NOTE}">None in the window.</p>')
+        out.append(f'<p style="{NOTE}">Nothing in the window.</p>')
     for f in block.get("filings") or []:
         out.append(f'<p style="{P}">{_esc(str(f["when"])[:16])} &middot; '
                    f'{_link(f["title"], f.get("url"))} &mdash; '
@@ -356,8 +364,19 @@ def html(block: dict) -> str:
     out.append(f'<p style="{P}"><b>Ahead, next {block.get("ahead_days")} '
                f'day(s) ({block.get("ahead_total", 0)})</b></p>')
     ahead = block.get("ahead") or []
-    if not ahead:
+    if block.get("ahead_listed_in"):
+        # The Weekly lists the calendar in its own table; a second list of the
+        # same rows here was the 27 September edition's duplicate.
+        out.append(f'<p style="{NOTE}">Listed under '
+                   f'{_esc(block["ahead_listed_in"])}.</p>')
+        ahead = []
+    elif not ahead:
         out.append(f'<p style="{NOTE}">Nothing scheduled in the window.</p>')
+    if block.get("ahead_daily_rows") and not block.get("ahead_listed_in"):
+        out.append(f'<p style="{NOTE}">Daily series, not listed: '
+                   f'{block["ahead_daily_rows"]} release row(s) from '
+                   f'{_esc(", ".join(block.get("ahead_daily_releases") or []))}'
+                   f'.</p>')
     for r in ahead:
         extra = {k: v for k, v in (r.get("payload") or {}).items()
                  if k in ("kind", "eps_estimate") and v is not None}
@@ -415,7 +434,7 @@ def render(block: dict) -> str:
     rel = block.get("releases") or []
     out.append(f"### Releases ({block.get('releases_total', 0)})\n")
     if not rel:
-        out.append("*None in the window.*\n")
+        out.append("*Nothing in the window.*\n")
     for r in rel:
         out.append(f"- **{str(r['when'])[:16]}** · {r['source']} — {r['title']}"
                    + (f" ([source]({r['url']}))" if r.get("url") else ""))
@@ -432,7 +451,7 @@ def render(block: dict) -> str:
     earn = block.get("earnings") or []
     out.append(f"### Earnings ({block.get('earnings_total', 0)})\n")
     if not earn:
-        out.append("*None in the window.*\n")
+        out.append("*Nothing in the window.*\n")
     else:
         out.append("| When | Symbol | Reported | Consensus | Surprise |")
         out.append("|---|---|---|---|---|")
@@ -448,7 +467,7 @@ def render(block: dict) -> str:
     if block.get("filings_absent_reason"):
         out.append(f"*{block['filings_absent_reason']}*\n")
     elif not fil:
-        out.append("*None in the window.*\n")
+        out.append("*Nothing in the window.*\n")
     for f in fil:
         out.append(f"- **{str(f['when'])[:16]}** · {f['title']} — "
                    f"{f.get('why_it_arrived') or f.get('form')}"
@@ -469,8 +488,15 @@ def render(block: dict) -> str:
     ahead = block.get("ahead") or []
     out.append(f"### Ahead, next {block.get('ahead_days')} day(s) "
                f"({block.get('ahead_total', 0)})\n")
-    if not ahead:
+    if block.get("ahead_listed_in"):
+        out.append(f"*Listed under {block['ahead_listed_in']}.*\n")
+        ahead = []
+    elif not ahead:
         out.append("*Nothing scheduled in the window.*\n")
+    if block.get("ahead_daily_rows") and not block.get("ahead_listed_in"):
+        out.append(f"*Daily series, not listed: {block['ahead_daily_rows']} "
+                   f"release row(s) from "
+                   f"{', '.join(block.get('ahead_daily_releases') or [])}.*\n")
     for r in ahead:
         extra = r.get("payload") or {}
         bits = ", ".join(f"{k}={v}" for k, v in extra.items()

@@ -359,6 +359,38 @@ class EventStore:
 # matters -- a quiet news day is not a stopped pass.
 INGEST_ALLOWANCE_HOURS = 36
 
+# ---------------------------------------------------------------------------
+# RELEASE CADENCE -- a daily series' release date is not an event
+# ---------------------------------------------------------------------------
+# Weekly edition 1, item 4. The 27 September calendar listed 37 rows, most of them
+# H.15, ICE BofA and Temporary Open Market Operations -- releases that print every
+# session. A calendar that lists every business day is not a calendar. A release
+# takes the SLOWEST cadence among the tracked series it carries, from the
+# registry's `freq`: a release whose series are all daily is footnoted, and one
+# carrying a weekly, monthly or quarterly series (JOLTS, GDP, PCE, claims, the
+# Employment Situation, H.4.1, NFCI) is listed.
+CADENCE_ORDER = ("daily", "weekly", "monthly", "quarterly", "annual")
+
+
+def release_cadence(entities: Iterable[str]) -> Optional[str]:
+    """The slowest registry `freq` among a release's tracked series, or None."""
+    from . import derived  # noqa: PLC0415
+    rank = {c: i for i, c in enumerate(CADENCE_ORDER)}
+    best = None
+    for e in entities or []:
+        key = str(e) if "." in str(e) else f"fred.{e}"
+        f = str((derived.registry_entry(key) or {}).get("freq") or "")
+        if f in rank and (best is None or rank[f] > rank[best]):
+            best = f
+    return best
+
+
+def is_daily_release(row: dict) -> bool:
+    """A FRED release-calendar row whose tracked series all print daily."""
+    return (row.get("source") == "fred_releases"
+            and release_cadence(row.get("entities") or []) == "daily")
+
+
 # Sources that are declared and deliberately not running. Their silence is
 # configuration, not failure, and a monitor that called it failure would be red
 # until somebody set a variable nobody had asked for.

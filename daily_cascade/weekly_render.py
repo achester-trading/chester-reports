@@ -97,7 +97,7 @@ def state_block(payload: dict) -> str:
         + ('. Changed this week: '
            + ", ".join(f'{esc(d["dial"])} {_dash(d.get("from"))}&rarr;'
                        f'{_dash(d.get("to"))}' for d in dials)
-           if dials else '. None moved this week.') + '</p>')
+           if dials else '. No dial moved this week.') + '</p>')
 
     # EXCEPTIONS, with the intra-week set given its own line: an exception that
     # opened Tuesday and closed Thursday is in neither endpoint and is the fact a
@@ -368,25 +368,36 @@ def week_ahead_block(payload: dict) -> str:
 
     rel = b.get("releases") or {}
     if rel.get("state") == "ok":
+        listed = rel.get("rows") or []
         rows = [f'<tr><td style="{TDL}">{esc(r.get("date"))}</td>'
                 f'<td style="{TDL}">{esc(r.get("release_name"))}</td>'
+                f'<td style="{TDL}">{esc(r.get("cadence") or "")}</td>'
                 f'<td style="{TDL}"><code>'
-                f'{esc(", ".join(r.get("tracked_series") or []) or "&mdash;")}'
+                f'{esc(", ".join(r.get("tracked_series") or []))}'
                 f'</code></td></tr>'
-                for r in (rel.get("rows") or [])
-                if r.get("tracked_series")]
+                for r in listed]
+        n_daily = int(rel.get("daily_rows") or 0)
+        daily_names = rel.get("daily_releases") or []
+        # EVERY NUMBER IN THIS SENTENCE IS ONE THE PAYLOAD CARRIES, so none can
+        # print as None -- the 27 September header read "None of 37 ... None of
+        # None resolved" off keys nothing set.
+        head = (f'<p style="{NOTE}"><strong>Scheduled releases</strong> &mdash; '
+                f'{len(listed)} release(s) of weekly, monthly or quarterly '
+                f'tracked series in the window, of {int(rel.get("count") or 0)} '
+                f'calendar rows</p>')
+        foot = (f'<p style="{NOTE}">Daily series, not listed: {n_daily} '
+                f'row(s) from {len(daily_names)} release(s) '
+                f'({esc(", ".join(daily_names))}) print every session and are '
+                f'not events.</p>' if n_daily else "")
         parts.append(
-            f'<p style="{NOTE}"><strong>Scheduled releases</strong> &mdash; '
-            f'{esc(rel.get("tracked_count"))} of {esc(rel.get("count"))} carry a '
-            f'tracked series; the series-to-release map is '
-            f'{esc(rel.get("map_resolved"))} of {esc(rel.get("map_of"))} '
-            f'resolved</p>'
+            head
             + (f'<table style="{TBL}"><thead><tr><th style="{THL}">date</th>'
-               f'<th style="{THL}">release</th>'
+               f'<th style="{THL}">release</th><th style="{THL}">cadence</th>'
                f'<th style="{THL}">tracked series</th></tr></thead>'
                f'<tbody>{_rows(rows)}</tbody></table>' if rows else
-               f'<div style="{ABSENT}">No tracked series is released in this '
-               f'window.</div>'))
+               f'<div style="{ABSENT}">No weekly, monthly or quarterly tracked '
+               f'series is released in this window.</div>')
+            + foot)
     else:
         parts.append(absent_box(rel, "Scheduled releases"))
 

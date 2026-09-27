@@ -414,6 +414,84 @@ def group_g() -> None:
           "and the Weekly's exception lines do")
 
 
+NONE_IN_TEXT = re.compile(r"\bNone\b")
+
+
+def visible_text(html: str) -> str:
+    import html as _h
+    return _h.unescape(re.sub(r"<[^>]+>", " ", html))
+
+
+def group_h(p: dict) -> None:
+    """The calendar lists events, not every business day (Weekly ed. 1, item 4)."""
+    print(f"\n{LINE}\nH. THE CALENDAR, AND NO None IN A SENTENCE\n{LINE}")
+    from altdata import events as ev_mod
+    from daily_cascade import events_block
+    rows = [
+        {"source": "fred_releases", "entities": ["fred.yield_10y", "fred.yield_2y"]},
+        {"source": "fred_releases", "entities": ["fred.job_openings"]},
+        {"source": "fred_releases", "entities": ["fred.fed_balance", "fred.tga"]},
+        {"source": "fred_releases", "entities": ["fred.rrp"]},
+        {"source": "yfinance", "entities": []},
+    ]
+    check([ev_mod.is_daily_release(r) for r in rows]
+          == [True, False, False, True, False],
+          "H.15 and RRP are daily releases; JOLTS and H.4.1 are not; an earnings "
+          "date is not a release")
+    check(ev_mod.release_cadence(["fred.nfci", "fred.nfci_lev"]) == "weekly"
+          and ev_mod.release_cadence(["fred.real_gdp", "fred.fed_outlays"])
+          == "quarterly",
+          "a release takes the slowest cadence it carries (NFCI weekly, GDP "
+          "quarterly)")
+
+    wa = {"state": "ok", "window": ["2026-09-28", "2026-10-04"],
+          "releases": {"state": "ok", "count": 4, "listed_count": 2,
+                       "rows": [{"date": "2026-09-29", "cadence": "monthly",
+                                 "release_name": "Job Openings and Labor "
+                                                 "Turnover Survey",
+                                 "tracked_series": ["job_openings"]},
+                                {"date": "2026-10-01", "cadence": "weekly",
+                                 "release_name": "H.4.1 Factors Affecting "
+                                                 "Reserve Balances",
+                                 "tracked_series": ["fed_balance", "tga"]}],
+                       "daily_rows": 2,
+                       "daily_releases": ["H.15 Selected Interest Rates"]},
+          "earnings": {"state": "empty"}, "dated_claims": []}
+    html = wr.week_ahead_block({"week_ahead": wa})
+    txt = visible_text(html)
+    check("Job Openings" in txt and "H.4.1" in txt
+          and "H.15 Selected Interest Rates" not in txt.split("Daily series")[0],
+          "the table lists JOLTS and H.4.1, and H.15 appears only in the footnote")
+    check("Daily series, not listed: 2 row(s) from 1 release(s)" in txt,
+          "the daily releases are one footnote line with their count")
+    old = {"state": "ok", "window": ["a", "b"],
+           "releases": {"state": "ok", "count": 37, "rows": []},
+           "earnings": {"state": "empty"}, "dated_claims": []}
+    check(not NONE_IN_TEXT.search(visible_text(wr.week_ahead_block(
+              {"week_ahead": old}))),
+          "an old-shape releases block (no counts beyond `count`) prints no None "
+          "-- the 27 Sep header read 'None of 37 ... None of None resolved'")
+
+    wk = {"state": "ok", "since": "2026-09-25T20:00:00+00:00", "ahead_days": 9,
+          "ahead_total": 3, "ahead_listed_in": "The week ahead",
+          "ahead": [{"when": "2026-09-29T13:30", "source": "fred_releases",
+                     "title": "Job Openings -- release date", "payload": {}}],
+          "headlines": [], "releases": [], "earnings": [], "filings": []}
+    eh = visible_text(events_block.html(wk))
+    check("Listed under The week ahead" in eh and "Job Openings" not in eh,
+          "the Weekly's Ahead list points at the week-ahead table instead of "
+          "repeating it")
+    check("Job Openings" not in events_block.markdown(wk)
+          if hasattr(events_block, "markdown") else True,
+          "and so does the Markdown edition")
+
+    full = visible_text(wr.render(p))
+    bad_s = [m.start() for m in NONE_IN_TEXT.finditer(full)]
+    check(not bad_s, "no None inside any rendered sentence of the test edition"
+                     + (f": ...{full[max(0, bad_s[0] - 60):bad_s[0] + 20]}..."
+                        if bad_s else ""))
+
+
 def main() -> int:
     print(f"{LINE}\nWeekly Tactical -- Phase 4a\n{LINE}")
     p = wp.build(TEST_WEEK, fetch=False)
@@ -427,6 +505,7 @@ def main() -> int:
     group_e()
     group_f()
     group_g()
+    group_h(p)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:

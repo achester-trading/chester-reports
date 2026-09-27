@@ -725,17 +725,32 @@ def week_ahead(ending: str, store: Optional[Any] = None,
     earn = [r for r in rows if (r.get("payload") or {}).get("kind") == "earnings"]
 
     if rel:
+        # DAILY SERIES ARE NOT EVENTS (Weekly edition 1, item 4). Listed rows are
+        # the releases carrying a weekly, monthly or quarterly tracked series; the
+        # daily ones are counted and named once, in a footnote.
+        rows_all = [{"date": str(r["observed_at"])[:10],
+                     "release_name": (r.get("payload") or {}).get(
+                         "release_name") or r["title"],
+                     "cadence": ev_mod.release_cadence(r.get("entities") or []),
+                     "tracked_series": [e.split(".", 1)[-1]
+                                        for e in (r.get("entities") or [])]}
+                    for r in rel]
+        listed = [r for r in rows_all
+                  if r["tracked_series"] and r["cadence"] != "daily"]
+        daily = [r for r in rows_all if r["cadence"] == "daily"]
         out["releases"] = {
-            "state": "ok", "count": len(rel),
-            "rows": [{"date": str(r["observed_at"])[:10],
-                      "release_name": (r.get("payload") or {}).get(
-                          "release_name") or r["title"],
-                      "tracked_series": [e.split(".", 1)[-1]
-                                         for e in (r.get("entities") or [])]}
-                     for r in rel],
+            "state": "ok", "count": len(rows_all),
+            "listed_count": len(listed),
+            "untracked_count": sum(1 for r in rows_all
+                                   if not r["tracked_series"]),
+            "rows": listed,
+            "daily_rows": len(daily),
+            "daily_releases": sorted({r["release_name"] for r in daily}),
             "note": ("read from the events table, ingested at 06:45 and 16:10. "
-                     "Every release the tracked series belong to, with the series "
-                     "each one carries"),
+                     "Listed: releases carrying a weekly, monthly or quarterly "
+                     "tracked series, cadence from the registry's freq. Releases "
+                     "of daily series print every session and are footnoted, "
+                     "not listed"),
         }
     elif "fred_releases" not in sources:
         out["releases"] = {"state": "not_ingested", "reason": (
@@ -798,6 +813,10 @@ def weekend_developments(ending: Optional[str] = None,
     end = week_ending(ending)
     block = events_block.build(f"{end}T20:00:00+00:00", as_of=as_of,
                                ahead_days=WEEKEND_AHEAD_DAYS)
+    # THE AHEAD LIST IS THE WEEK-AHEAD TABLE'S JOB IN THIS EDITION (item 4): the
+    # two listed the same fifty rows. The weekend block keeps the count and points
+    # at the table.
+    block["ahead_listed_in"] = "The week ahead"
     block["needs_still"] = [
         "a macro CONSENSUS. calc.surprise_vs_naive is actual against a declared "
         "naive expectation, which is a different measurement from actual against "
