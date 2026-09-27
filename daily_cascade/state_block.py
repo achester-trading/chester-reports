@@ -211,7 +211,10 @@ def what_changed_block(payload: dict) -> str:
             f'<strong>{esc(c.get("to"))}</strong></td>'
             f'<td style="{TD}">{pctf(c.get("percentile"))}</td>'
             f'<td style="{TD}">{esc(c.get("direction"))}</td>'
-            f'<td style="{TDL}">{esc(c.get("confidence"))}</td></tr>')
+            f'<td style="{TDL}">{esc(c.get("confidence"))}'
+            + (f' &middot; {esc(c["method_change"]["label"])}'
+               if c.get("method_change") else "")
+            + '</td></tr>')
     if rows:
         parts.append(
             f'<table style="{TBL}"><thead><tr>'
@@ -436,7 +439,9 @@ def text_lines(payload: dict) -> list[str]:
     for c in wc.get("dimension_changes") or []:
         L.append(f"  {c['dimension']}: {c.get('from')} -> {c.get('to')} "
                  f"(pctile {c.get('percentile')}, dir {c.get('direction')}, "
-                 f"conf {c.get('confidence')})")
+                 f"conf {c.get('confidence')})"
+                 + (f" -- {c['method_change']['label']}"
+                    if c.get("method_change") else ""))
     for p in wc.get("pending_states") or []:
         L.append(f"  {p['dimension']}: pending {p.get('pending')} "
                  f"({p.get('sessions')}/{p.get('required')} sessions)")

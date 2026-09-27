@@ -35,6 +35,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -306,6 +307,80 @@ def group_e() -> None:
           "and the audit still gates it")
 
 
+def _obj(day: str, method: Optional[str], liq: Optional[str]) -> dict:
+    return {"object": "market_state", "session": day, "method_version": method,
+            "config_version": "fixture", "as_of": f"{day}T20:45:00+00:00",
+            "computed_at": f"{day}T20:46:00+00:00",
+            "dimensions": {"liquidity": {"state": liq,
+                                         "last_changed": "2026-09-24"}},
+            "dials": {}, "contradictions": []}
+
+
+def group_f() -> None:
+    """Method-caused changes print as such (Weekly edition 1, item 2)."""
+    print(f"\n{LINE}\nF. A METHOD-CAUSED CHANGE IS NOT DATED AS A MARKET MOVE\n{LINE}")
+    import tempfile
+    import regime
+    from altdata import observations
+    from daily_cascade import state_block
+    with tempfile.TemporaryDirectory() as td:
+        st = observations.ObservationStore(str(Path(td) / "m.db"))
+        try:
+            # As first published: 23 Sep under method-5 (ample), 24 Sep under
+            # method-6 (the primary moved), 25 Sep method-6. Then a backfill
+            # rewrites all three under method-7, where liquidity reads absent
+            # until 24 Sep and tight from then -- the 27 Sep Weekly's row.
+            first = [("2026-09-18", None, "ample"), ("2026-09-23", "market-state-method-5", "ample"),
+                     ("2026-09-24", "market-state-method-6", "ample"),
+                     ("2026-09-25", "market-state-method-6", "tight")]
+            for day, m, s in first:
+                st.write(regime.STORE_KEY, None, day, f"{day}T20:46:00+00:00",
+                         json.dumps(_obj(day, m, s)), source="derived_state")
+            for day, _, _ in first:
+                s = "tight" if day >= "2026-09-24" else None
+                st.write(regime.STORE_KEY, None, day, "2026-09-27T00:34:00+00:00",
+                         json.dumps(_obj(day, "market-state-method-7", s)),
+                         source="derived_state")
+            check(regime.published_method("2026-09-24", st) ==
+                  (True, "market-state-method-6"),
+                  "the FIRST-published object is the record, not the backfill")
+            mc = regime.method_change_at("2026-09-24", st)
+            check(bool(mc) and mc["label"] == "changed (method v5→v6)",
+                  f"a change dated 24 Sep is method-caused: {mc and mc['label']}")
+            check(regime.method_change_at("2026-09-25", st) is None,
+                  "25 Sep, same method as 24 Sep, is not")
+            w = wp.week_in_state("2026-09-25", store=st)
+        finally:
+            st.close()
+    row = next((c for c in w.get("dimension_changes") or []
+                if c["dimension"] == "liquidity"), {})
+    check((row.get("method_change") or {}).get("label")
+          == "changed (method v5→v6)",
+          f"the Weekly's liquidity row carries the label "
+          f"({(row.get('method_change') or {}).get('label')})")
+    html = wr.state_block({"week_in_state": w})
+    check("changed (method v5→v6)" in html and ">2026-09-24<" not in html,
+          "and the rendered row prints the label, never 'since 2026-09-24'")
+
+    cur = _obj("2026-09-25", "market-state-method-8", "tight")
+    prev = _obj("2026-09-24", "market-state-method-7", "ample")
+    wc = regime.what_changed(cur, prev)
+    ch = next((c for c in wc.get("dimension_changes") or []
+               if c["dimension"] == "liquidity"), {})
+    check((ch.get("method_change") or {}).get("label")
+          == "changed (method v7→v8)",
+          "the close's WHAT CHANGED labels a change between objects of two methods")
+    pay = {"market_state": cur, "what_changed": wc}
+    check("changed (method v7→v8)" in state_block.what_changed_block(pay)
+          and any("changed (method v7→v8)" in ln
+                  for ln in state_block.text_lines(pay)),
+          "and prints it, in the HTML and in the text fallback")
+    same = regime.what_changed(_obj("2026-09-25", "market-state-method-8", "tight"),
+                               _obj("2026-09-24", "market-state-method-8", "ample"))
+    check(not any(c.get("method_change") for c in same["dimension_changes"]),
+          "while a change between two objects of one method is the market's")
+
+
 def main() -> int:
     print(f"{LINE}\nWeekly Tactical -- Phase 4a\n{LINE}")
     p = wp.build(TEST_WEEK, fetch=False)
@@ -317,6 +392,7 @@ def main() -> int:
     group_c(p)
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:

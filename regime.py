@@ -139,7 +139,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "b9f4a9b2e7c19661"
+METHOD_SOURCE_SHA = "ee0bb0593afccf35"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -1129,6 +1129,72 @@ def session_move(as_of: Optional[str] = None,
     return out
 
 
+def method_short(v: Optional[str]) -> str:
+    """"market-state-method-6" -> "v6"; an object from before versioning -> "unversioned"."""
+    if not v:
+        return "unversioned"
+    tail = str(v).rsplit("-", 1)[-1]
+    return f"v{tail}" if tail.isdigit() else str(v)
+
+
+def published_method(session_day: str,
+                     store: Optional[observations.ObservationStore] = None
+                     ) -> tuple[bool, Optional[str]]:
+    """(found, method_version) of the object FIRST PUBLISHED for a session.
+
+    Not the newest vintage: a backfill rewrites every session under one method,
+    and the newest vintages then agree about a method that no reader saw at the
+    time. The first vintage is the record a report printed from.
+    """
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        rows = st.vintages(STORE_KEY, session_day)
+        if not rows:
+            return False, None
+        return True, json.loads(rows[0]["value_text"]).get("method_version")
+    finally:
+        if own:
+            st.close()
+
+
+def method_change_at(session_day: Optional[str],
+                     store: Optional[observations.ObservationStore] = None
+                     ) -> Optional[dict]:
+    """{"from", "to", "label"} when the object first published for `session_day`
+    was computed under a different method from the one published for the
+    session before it -- so a state change DATED to that session may be the
+    method's and not the market's. None when the methods agree or either is
+    missing. (Weekly edition 1, item 2.)
+
+    The case that asked for it: liquidity "tight since 2026-09-24". On 24 Sep
+    the published object was method-6 and 23 Sep's method-5 -- the primary moved
+    from fred.rrp to calc.net_liquidity -- and the backfilled history dates the
+    state to the first session its new primary was knowable. Liquidity did not
+    tighten on 24 Sep; its primary changed.
+    """
+    if not session_day:
+        return None
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        before = st.rows_before(STORE_KEY, str(session_day)[:10], limit=1)
+        if not before:
+            return None
+        prev_day = str(before[-1]["observed_at"])[:10]
+        ok_a, a = published_method(prev_day, st)
+        ok_b, b = published_method(str(session_day)[:10], st)
+        if not (ok_a and ok_b) or a == b:
+            return None
+        return {"from": a, "to": b, "session": str(session_day)[:10],
+                "previous_session": prev_day,
+                "label": f"changed (method {method_short(a)}\u2192"
+                         f"{method_short(b)})"}
+    finally:
+        if own:
+            st.close()
+
+
 def what_changed(current: dict, previous: Optional[dict],
                  store: Optional[observations.ObservationStore] = None) -> dict:
     """The diff. DATA ONLY -- no model, no prose, no judgement of importance.
@@ -1180,13 +1246,24 @@ def what_changed(current: dict, previous: Optional[dict],
                     "dimension": name, "now": now_state,
                     "percentile": d.get("percentile")})
             else:
-                out["dimension_changes"].append({
+                ch = {
                     "dimension": name, "from": was_state, "to": now_state,
                     "percentile": d.get("percentile"),
                     "direction": d.get("direction"),
                     "confidence": d.get("confidence"),
                     "since": d.get("last_changed"),
-                    "rule": d.get("persistence")})
+                    "rule": d.get("persistence")}
+                # A METHOD-CAUSED CHANGE IS LABELLED AS ONE, never dated as a
+                # market move: the two objects compared were computed by
+                # different code (Weekly edition 1, item 2).
+                pm, cm = previous.get("method_version"), current.get(
+                    "method_version")
+                if pm != cm:
+                    ch["method_change"] = {
+                        "from": pm, "to": cm,
+                        "label": f"changed (method {method_short(pm)}\u2192"
+                                 f"{method_short(cm)})"}
+                out["dimension_changes"].append(ch)
         if d.get("pending_state"):
             out["pending_states"].append({
                 "dimension": name, "published": now_state,

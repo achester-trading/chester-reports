@@ -68,7 +68,9 @@ def state_block(payload: dict) -> str:
                 f'<td style="{TD}">{num(c.get("percentile"), 1)}</td>'
                 f'<td style="{TDL}">{_dash(c.get("direction"))}</td>'
                 f'<td style="{TDL}">{_dash(c.get("confidence"))}</td>'
-                f'<td style="{TDL}">{_dash(c.get("last_changed"))}</td></tr>'
+                f'<td style="{TDL}">'
+                f'{esc((c.get("method_change") or {}).get("label")) if c.get("method_change") else _dash(c.get("last_changed"))}'
+                f'</td></tr>'
                 for c in changes]
         parts.append(
             f'<table style="{TBL}"><thead><tr><th style="{THL}">dimension</th>'

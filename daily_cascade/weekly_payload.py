@@ -160,6 +160,22 @@ def week_in_state(ending: str, store: Optional[Any] = None) -> dict:
                "confidence": d.get("confidence"),
                "last_changed": d.get("last_changed"),
                "absent_reason": d.get("absent_reason")}
+        # METHOD, NOT MARKET (Weekly edition 1, item 2). Either the two Fridays'
+        # objects were computed by different code, or the session the state is
+        # dated to was the first published under a new method. Then the row says
+        # "changed (method vN->vM)" and carries no date: a date would claim the
+        # market moved that day.
+        if was is not None and a != b:
+            if was.get("method_version") != now.get("method_version"):
+                pm, cm = was.get("method_version"), now.get("method_version")
+                row["method_change"] = {
+                    "from": pm, "to": cm,
+                    "label": f"changed (method {regime.method_short(pm)}\u2192"
+                             f"{regime.method_short(cm)})"}
+            else:
+                mc = regime.method_change_at(d.get("last_changed"), store)
+                if mc:
+                    row["method_change"] = mc
         (changes if (was is not None and a != b) else held).append(row)
     out["dimension_changes"] = changes
     out["dimensions_held"] = [r["dimension"] for r in held]
