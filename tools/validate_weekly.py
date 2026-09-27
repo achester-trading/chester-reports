@@ -492,6 +492,48 @@ def group_h(p: dict) -> None:
                         if bad_s else ""))
 
 
+def group_i(p: dict) -> None:
+    """Still-missing and dormant are this run's results (Weekly ed. 1, item 6)."""
+    print(f"\n{LINE}\nI. STILL MISSING AND DORMANT ARE COMPUTED, NOT LISTED\n{LINE}")
+    both = wp.needs_still({"fred_releases": {}, "sec_edgar": {}})
+    check(len(both) == 1 and "CONSENSUS" in both[0],
+          "with both sources written, only the macro consensus is missing")
+    none_ = wp.needs_still({})
+    check(len(none_) == 3 and any("fred_releases" in n for n in none_),
+          "with neither, all three gaps print, each naming its source")
+
+    # THE 27 SEPTEMBER CONTRADICTION, rebuilt: the calendar rendered rows while
+    # the footer called its source dormant.
+    wa = {"state": "ok", "window": ["2026-09-28", "2026-10-04"],
+          "releases": {"state": "ok", "count": 1, "rows": [
+              {"date": "2026-10-02", "cadence": "monthly",
+               "release_name": "Employment Situation", "tracked_series": ["nfp"]}]},
+          "earnings": {"state": "empty"}, "dated_claims": []}
+    srcs = {"fred_releases": {"rows": 50}, "google_news": {"rows": 48}}
+    wd = {"state": "ok", "since": "2026-09-25T20:00:00+00:00", "ahead_days": 9,
+          "headlines": [], "releases": [], "earnings": [], "filings": [],
+          "sources": srcs, "dormant": {"sec_edgar": "CHESTER_SEC_CONTACT unset"},
+          "needs_still": wp.needs_still(srcs)}
+    txt = visible_text(wr.week_ahead_block({"week_ahead": wa})
+                       + wr.weekend_block({"weekend_developments": wd}))
+    check("Employment Situation" in txt
+          and "release calendar" not in txt.split("Still missing")[-1]
+          and "fred_releases" not in txt.split("Dormant")[-1].split(".")[0],
+          "a calendar that rendered rows is never called dormant or missing")
+    check("SEC filings" in txt.split("Still missing")[-1],
+          "while a source that has not written still is")
+
+    # And on the test edition itself: nothing printed dormant has written.
+    wdp = p.get("weekend_developments") or {}
+    written = set((wdp.get("sources") or {}))
+    called = set((wdp.get("dormant") or {})) | {
+        s for s, _ in wp.NEEDS
+        if any(s in n for n in wdp.get("needs_still") or [])}
+    check(not (called & written),
+          f"on the test edition no source both wrote rows and is called dormant "
+          f"or missing ({sorted(called & written) or 'none'})")
+
+
 def main() -> int:
     print(f"{LINE}\nWeekly Tactical -- Phase 4a\n{LINE}")
     p = wp.build(TEST_WEEK, fetch=False)
@@ -506,6 +548,7 @@ def main() -> int:
     group_f()
     group_g()
     group_h(p)
+    group_i(p)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:

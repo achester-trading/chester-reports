@@ -793,6 +793,37 @@ def week_ahead(ending: str, store: Optional[Any] = None,
 WEEKEND_AHEAD_DAYS = 9
 
 
+# WHAT COULD BE MISSING, and the source whose rows would fill each gap. The LIST
+# IS A DECLARATION; WHAT PRINTS IS COMPUTED (Weekly edition 1, item 6). The
+# 27 September edition printed "the FRED release calendar, dormant until
+# FRED_API_KEY is readable" under a calendar table of 37 rows from that very
+# source, because this used to be a fixed list of three sentences. Now a gap is
+# printed only when this run's sources table shows its source has never written.
+# No source is named `macro_consensus` -- there is no free macro consensus -- so
+# that line prints until one exists, and stops the day one writes.
+NEEDS = (
+    ("macro_consensus",
+     "a macro CONSENSUS. calc.surprise_vs_naive is actual against a declared "
+     "naive expectation, which is a different measurement from actual against "
+     "what analysts published"),
+    ("sec_edgar", "SEC filings: sec_edgar has written no rows"),
+    ("fred_releases", "the FRED release calendar: fred_releases has written no "
+                      "rows"),
+)
+
+
+def needs_still(sources: dict) -> list[str]:
+    """The declared gaps whose filling source has not written, per this run."""
+    from altdata import events as ev_mod                        # noqa: PLC0415
+    out = []
+    for src, text in NEEDS:
+        if src in sources:
+            continue
+        why = ev_mod.DORMANT_REASONS.get(src)
+        out.append(f"{text}{f' ({why})' if why else ''}")
+    return out
+
+
 def weekend_developments(ending: Optional[str] = None,
                          as_of: Optional[str] = None) -> dict:
     """What happened since Friday's close, from the events table.
@@ -817,13 +848,7 @@ def weekend_developments(ending: Optional[str] = None,
     # two listed the same fifty rows. The weekend block keeps the count and points
     # at the table.
     block["ahead_listed_in"] = "The week ahead"
-    block["needs_still"] = [
-        "a macro CONSENSUS. calc.surprise_vs_naive is actual against a declared "
-        "naive expectation, which is a different measurement from actual against "
-        "what analysts published",
-        "SEC filings, dormant until CHESTER_SEC_CONTACT is set",
-        "the FRED release calendar, dormant until FRED_API_KEY is readable",
-    ]
+    block["needs_still"] = needs_still(block.get("sources") or {})
     block["why_the_block_exists"] = (
         "so the absence is visible. Without it a quiet weekend and an "
         "uninstrumented one are the same document, and the second is the one that "
