@@ -276,8 +276,27 @@ def group_d() -> None:
                 "side": side, "qty": qty, "sec_type": sec, "exec_time": when,
                 "price": 10.0}
 
+    # Portfolio Truth's snapshot before the fills: flat in XLE and XLF, and an
+    # XLP long of 100 whose opening fills predate the executions table.
+    snap = "2026-09-25T13:30:00+00:00"
+    st = observations.ObservationStore(DB)
+    try:
+        st.write_many([{"registry_key": "portfolio.nav", "instrument": "DU1",
+                        "observed_at": snap, "available_at": snap,
+                        "value": 300000.0, "source": "ibkr"},
+                       {"registry_key": "portfolio.position_qty",
+                        "instrument": "XLP@ARCA.USD", "observed_at": snap,
+                        "available_at": snap, "value": 100.0, "source": "ibkr"}])
+    finally:
+        st.close()
+    with Register(DB) as reg:
+        reg.record(instrument="XLP", direction="long", thesis="t", edge_type="e",
+                   horizon="swing", invalidation="x", status="active", book="B",
+                   quantity=100, expression_family="outright",
+                   leverage_form="none", decision_time=t0)
     with executions.ExecutionStore(DB) as xs:
         xs.write_many([
+            fill("e0", "XLP@ARCA.USD", "SLD", 100),        # the exit of a held long
             fill("e1", "XLE@ARCA.USD", "BOT", 60),
             fill("e2", "XLE@ARCA.USD", "BOT", 60),           # past quantity 100
             fill("e3", "XLV@ARCA.USD", "BOT", 10),           # no decision
@@ -287,6 +306,10 @@ def group_d() -> None:
     out = reconcile.run("2026-09-25", DB)
     kinds = {b["exec_id"]: b["kind"] for b in out["executions"]["breaks"]}
     check("e1" not in kinds, "a fill inside an accepted decision matches")
+    check("e0" not in kinds,
+          "an exit of a position opened before the executions table is an exit, "
+          "not a side mismatch: the count starts from Portfolio Truth's snapshot "
+          "(the 24 Sep SPY case)")
     check(kinds.get("e2") == "size_exceeded",
           "fills past the recorded quantity -> size_exceeded")
     check(kinds.get("e3") == "unregistered_execution",

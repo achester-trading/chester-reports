@@ -96,7 +96,35 @@ def expression_mismatch(dec: dict, sec_type: Optional[str]) -> Optional[str]:
     return None
 
 
-def reconcile_executions(reg: Any, xs: Any, session_day: str) -> dict:
+def position_before(store: Any, instrument: Optional[str],
+                    when: str) -> Optional[float]:
+    """The signed position Portfolio Truth recorded at its last sync before `when`.
+
+    THE BASELINE FOR SIDE AND SIZE. The executions table begins on the day it was
+    built, so the fills that OPENED a position may predate it: the 24 Sep exit of
+    the SPY long is two SLD rows with no BOT before them. Counted from zero, an
+    exit reads as selling past flat. So the count starts from what the book held
+    at the last sync before the chain's first recorded fill -- 0 when that sync
+    did not list the holding, None when no sync precedes the fill at all (then
+    side and size are not checked, and the result says so).
+    """
+    if store is None or not instrument:
+        return None
+    last = store.conn.execute(
+        "SELECT MAX(observed_at) FROM observations "
+        "WHERE registry_key LIKE 'portfolio.%' AND available_at < ?",
+        (when,)).fetchone()[0]
+    if not last:
+        return None
+    row = store.conn.execute(
+        "SELECT value_num FROM observations WHERE registry_key = "
+        "'portfolio.position_qty' AND instrument = ? AND observed_at = ? "
+        "ORDER BY available_at DESC LIMIT 1", (instrument, last)).fetchone()
+    return float(row[0]) if row and row[0] is not None else 0.0
+
+
+def reconcile_executions(reg: Any, xs: Any, session_day: str,
+                         store: Any = None) -> dict:
     """Every execution against the decisions on its instrument. Returns counts."""
     rows = reg.all()
     chains = _chains(rows)
@@ -104,7 +132,8 @@ def reconcile_executions(reg: Any, xs: Any, session_day: str) -> dict:
     for ch in chains:
         by_root.setdefault(ch[-1]["instrument_norm"], []).append(ch)
     execs = xs.all() if hasattr(xs, "all") else xs
-    out = {"executions": 0, "written": 0, "matched": 0, "breaks": []}
+    out = {"executions": 0, "written": 0, "matched": 0, "breaks": [],
+           "unchecked": []}
     # Net filled quantity per decision chain, to check side and size.
     filled: dict[str, float] = {}
     for e in sorted(execs, key=lambda x: str(x.get("exec_time") or "")):
@@ -156,7 +185,23 @@ def reconcile_executions(reg: Any, xs: Any, session_day: str) -> dict:
         sgn = {"BOT": 1, "SLD": -1}.get(str(e.get("side")).upper(), 0)
         want = {"long": 1, "short": -1}.get(dec.get("direction"), 0)
         key = chain[0]["id"]
-        net = filled.get(key, 0.0) + sgn * float(e.get("qty") or 0) * (want or 1)
+        if key not in filled:
+            base = position_before(store, e.get("instrument"), when)
+            if base is None:
+                filled[key] = None
+            else:
+                filled[key] = base * (want or 1)
+        if filled[key] is None:
+            # No Portfolio Truth snapshot precedes this chain's first fill: the
+            # position it traded from is unknown, so side and size are not
+            # judged. Stated, not guessed.
+            out["unchecked"].append({"exec_id": eid, "reason":
+                                     "no Portfolio Truth snapshot before the "
+                                     "first recorded fill; side and size not "
+                                     "checked"})
+            out["matched"] += 1
+            continue
+        net = filled[key] + sgn * float(e.get("qty") or 0) * (want or 1)
         filled[key] = net
         if want and net < -1e-9:
             brk("side_mismatch",
@@ -268,8 +313,12 @@ def run(session_day: Optional[str] = None, db_path: Optional[str] = None) -> dic
     day = session_day or session.last_trading_session().isoformat()
     out: dict[str, Any] = {"session": day}
     def _fills() -> dict:
-        with executions.ExecutionStore(db_path) as xs:
-            return reconcile_executions(reg, xs, day)
+        st_ = observations.ObservationStore(db_path)
+        try:
+            with executions.ExecutionStore(db_path) as xs:
+                return reconcile_executions(reg, xs, day, st_)
+        finally:
+            st_.close()
 
     with Register(db_path) as reg:
         for name, fn in (
