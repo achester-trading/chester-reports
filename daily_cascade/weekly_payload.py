@@ -883,6 +883,9 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
             "run_id": run_id,
             "blocks": list(BLOCKS),
         }
+        # H-1 item 4: a line declared for exactly this edition, if any.
+        from .method_notes import for_edition                  # noqa: PLC0415
+        out["method_notes"] = for_edition("weekly", end)
         out["week_in_state"] = week_in_state(end, store=db)
         out["grades"] = grades(end)
         out["register"] = register_week(end, store=db)

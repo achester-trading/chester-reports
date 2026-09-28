@@ -67,6 +67,7 @@ run() {
         CHESTER_LOG_DIR="$SANDBOX/logs" \
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
+        CHESTER_SKIP_BACKUP_CHECK=1 \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         "$@" \
@@ -513,6 +514,7 @@ env CHECKER_RC=0 \
     CHESTER_LOG_DIR="$SANDBOX/logs" \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -532,6 +534,7 @@ env CHECKER_RC=1 \
     CHESTER_LOG_DIR="$SANDBOX/logs" \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -558,12 +561,45 @@ printf '\n%s\nThe feed freshness gate\n%s\n' "$LINE" "$LINE"
 # an empty store, which is the cleanest way to make every feed absent.
 feeds_of() { sed -n 's/.*feeds=\([a-z_]*\).*/\1/p' "$STATUS"; }
 
+# H-1 ITEM 2: AN ABSENT KEY IS STALE ONLY ONCE ITS FAMILY'S PULL HAS TRIED IT.
+# With no record of any pull, an empty store is all PENDING and the feeds are
+# fine -- a roster entry nobody has fetched yet is not a feed that failed.
+rm -f "$STATUS" "$STATE_DIR/feeds_attempted.json"
+env CHECKER_RC=0 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(feeds_of)" == "fresh" ]] && [[ "$RC" == "0" ]]; then
+    ok "every feed absent and NO pull on record -> all pending, feeds=fresh, exit 0"
+elif [[ "$(feeds_of)" == "no_python" ]]; then
+    ok "no interpreter available here; the feed check declined to guess (no_python)"
+else
+    bad "empty store, no attempts -> state=$(state_of) exit=$RC feeds=$(feeds_of) (wanted fresh/0)"
+fi
+
+# Now record that the prices pull TRIED its keys: absent becomes stale.
+FEED_PY="$REPO/.venv/bin/python"
+[[ -x "$FEED_PY" ]] || FEED_PY="$REPO/.venv/Scripts/python.exe"
+[[ -x "$FEED_PY" ]] || FEED_PY="$(command -v python3 || command -v python || true)"
+if [[ -n "$FEED_PY" ]]; then
+    (cd "$REPO" && CHESTER_STATE_DIR="$STATE_DIR" "$FEED_PY" -c \
+        "from altdata import feeds; feeds.record_attempted('prices', feeds.price_keys())" \
+        >/dev/null 2>&1)
+fi
+
 rm -f "$STATUS"
 env CHECKER_RC=0 \
     CHESTER_REPO="$REPO" \
     CHESTER_LOG_DIR="$SANDBOX/logs" \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -584,6 +620,7 @@ env CHECKER_RC=2 \
     CHESTER_LOG_DIR="$SANDBOX/logs" \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -624,6 +661,7 @@ run_exc() {                      # run_exc <checker_rc>
         CHESTER_LOG_DIR="$SANDBOX/logs" \
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
+        CHESTER_SKIP_BACKUP_CHECK=1 \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -681,6 +719,113 @@ else
 fi
 
 rm -f "$STATE_DIR/exceptions_open"
+
+printf '\n%s\nThe off-box backup field (H-1, INC-1)\n%s\n' "$LINE" "$LINE"
+
+# FOUR FABRICATED STATES, one per value the field can take. The sweep writes
+# rclone_sync_status (the latest run) and rclone_sync_last_ok (the latest success)
+# into the same state dir; the wrapper must read both and rank the result below
+# the pipeline and above a stale feed.
+backup_of() { sed -n 's/.*backup=\([^ ]*\).*/\1/p' "$STATUS"; }
+B_STATUS="$STATE_DIR/rclone_sync_status"
+B_LAST_OK="$STATE_DIR/rclone_sync_last_ok"
+iso_hours_ago() { date -u -d "@$(( $(date +%s) - $1 * 3600 ))" --iso-8601=seconds; }
+
+run_backup() {                   # run_backup <checker_rc> [extra env...]
+    local rc="$1"; shift
+    env CHECKER_RC="$rc" \
+        CHESTER_REPO="$REPO" \
+        CHESTER_LOG_DIR="$SANDBOX/logs" \
+        CHESTER_STATE_DIR="$STATE_DIR" \
+        CHESTER_CHECKER="$SANDBOX/bin/checker" \
+        CHESTER_SKIP_STATE_CHECK=1 \
+        CHESTER_SKIP_FEED_CHECK=1 \
+        "$@" \
+        bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+    RC=$?
+}
+
+# 1. ok -- the latest sweep succeeded 2h ago.
+printf 'state=ok rc=0 at=%s detail=swept\n' "$(iso_hours_ago 2)" >"$B_STATUS"
+printf 'state=ok at=%s\n' "$(iso_hours_ago 2)" >"$B_LAST_OK"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "ok" ]] && [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]]; then
+    ok "a success 2h ago -> backup=ok, verdict ok, exit 0"
+else
+    bad "ok case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+
+# 2. failed:<state> -- the latest sweep failed, even with yesterday's copy current.
+printf 'state=snapshot_failed rc=2 at=%s detail=x\n' "$(iso_hours_ago 1)" >"$B_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "failed:snapshot_failed" ]] && [[ "$(state_of)" == "backup_failed" ]] \
+        && [[ "$RC" == "12" ]] \
+        && grep -q 'BACKUP failed:snapshot_failed the off-box copy is not current' "$ALERT"; then
+    ok "a failed latest sweep -> backup=failed:snapshot_failed, backup_failed, exit 12, headline in the alert"
+else
+    bad "failed case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+
+# 3. stale:<h>h -- the latest sweep said ok but the last success is 40h old.
+printf 'state=ok rc=0 at=%s detail=swept\n' "$(iso_hours_ago 40)" >"$B_STATUS"
+printf 'state=ok at=%s\n' "$(iso_hours_ago 40)" >"$B_LAST_OK"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "stale:40h" ]] && [[ "$(state_of)" == "backup_failed" ]] && [[ "$RC" == "12" ]]; then
+    ok "a success 40h ago, past the 30h allowance -> backup=stale:40h, exit 12"
+else
+    bad "stale case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+
+# 4. never -- no success on record (INC-1: every sweep since deploy).
+rm -f "$B_STATUS" "$B_LAST_OK" "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "never" ]] && [[ "$(state_of)" == "backup_failed" ]] && [[ "$RC" == "12" ]]; then
+    ok "no last_ok file -> backup=never, exit 12"
+else
+    bad "never case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+
+# The field travels on the log's verdict line and in the alert JSON.
+if grep -q 'verdict=backup_failed rc=12 .* backup=never ' $LOG_GLOB \
+        && grep -q '"backup": "never"' "$ALERT"; then
+    ok "backup= is on the log's verdict line and in the alert JSON"
+else
+    bad "backup= missing from the verdict line or the alert JSON"
+fi
+
+# RANKED BELOW THE PIPELINE: a dead pipeline explains everything downstream.
+rm -f "$STATUS"; run_backup 2
+if [[ "$(state_of)" == "no_heartbeat" ]] && [[ "$RC" == "2" ]] && [[ "$(backup_of)" == "never" ]]; then
+    ok "a pipeline that never ran still reports no_heartbeat, with backup=never on the row"
+else
+    bad "no_heartbeat + no backup -> state=$(state_of) exit=$RC"
+fi
+
+# AND ABOVE A STALE FEED: an empty feeds store with no backup reports the backup.
+rm -f "$STATUS"
+env CHECKER_RC=0 \
+    CHESTER_REPO="$REPO" \
+    CHESTER_LOG_DIR="$SANDBOX/logs" \
+    CHESTER_STATE_DIR="$STATE_DIR" \
+    CHESTER_CHECKER="$SANDBOX/bin/checker" \
+    CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DB="$SANDBOX/empty-feeds-b.db" \
+    bash "$WRAPPER" >"$SANDBOX/out" 2>&1
+RC=$?
+if [[ "$(state_of)" == "backup_failed" ]] && [[ "$RC" == "12" ]]; then
+    ok "no backup AND stale feeds -> backup_failed (exit 12), not feed_stale -- feeds=$(feeds_of)"
+else
+    bad "backup vs feeds -> state=$(state_of) exit=$RC feeds=$(feeds_of)"
+fi
+
+# The skip switch records skipped and cannot turn a missing backup healthy by accident
+# of wording -- `skipped` is its own value, never `ok`.
+rm -f "$STATUS"; run 0
+if [[ "$(backup_of)" == "skipped" ]] && [[ "$RC" == "0" ]]; then
+    ok "CHESTER_SKIP_BACKUP_CHECK records backup=skipped rather than ok"
+else
+    bad "skip switch -> backup=$(backup_of) exit=$RC"
+fi
+rm -f "$B_STATUS" "$B_LAST_OK"
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then

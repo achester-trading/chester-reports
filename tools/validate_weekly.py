@@ -592,6 +592,34 @@ def group_i(p: dict) -> None:
           f"or missing ({sorted(called & written) or 'none'})")
 
 
+def group_j() -> None:
+    """The INC-2 method note prints once each (H-1 item 4)."""
+    print(f"\n{LINE}\nJ. A METHOD NOTE PRINTS IN ITS OWN EDITION ONLY\n{LINE}")
+    from daily_cascade import method_notes as mn
+    from daily_cascade import render as close_render
+    line = ("Editions before 28 Sep were written from a truncated brief — see "
+            "INC-2 in docs/incidents.md.")
+    check(mn.for_edition("daily_close", "2026-09-28") == [line]
+          and mn.for_edition("weekly", "2026-10-02") == [line],
+          "the next close (28 Sep) and the next Weekly (4 Oct, week ending "
+          "2 Oct) carry the line")
+    others = [mn.for_edition("daily_close", d) for d in
+              ("2026-09-25", "2026-09-29", "2026-10-05")] + \
+             [mn.for_edition("weekly", d) for d in ("2026-09-25", "2026-10-09")]
+    check(not any(others), "and no other edition does -- once each")
+    check(sum(1 for r, _, _ in mn.NOTES if r == "daily_close") == 1
+          and sum(1 for r, _, _ in mn.NOTES if r == "weekly") == 1,
+          "one declaration per report")
+    inc = (REPO / "docs" / "incidents.md").read_text(encoding="utf-8")
+    check("**INC-2 2026-09-27**" in inc, "INC-2 exists where the line points")
+    wk = wr.render({"week_ending": "2026-10-02", "method_notes": [line],
+                    "blocks": []})
+    ck = close_render.render({"session": "2026-09-28", "method_notes": [line]})
+    check("INC-2" in wk and "INC-2" in ck
+          and "METHOD NOTE" in wr.text_fallback({"method_notes": [line]}),
+          "both renderers print it, and the Weekly's text edition too")
+
+
 def main() -> int:
     print(f"{LINE}\nWeekly Tactical -- Phase 4a\n{LINE}")
     p = wp.build(TEST_WEEK, fetch=False)
@@ -607,6 +635,7 @@ def main() -> int:
     group_g()
     group_h(p)
     group_i(p)
+    group_j()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed"
           + (f", {len(SKIPPED)} skipped" if SKIPPED else "") + f"\n{LINE}")
     for s in SKIPPED:

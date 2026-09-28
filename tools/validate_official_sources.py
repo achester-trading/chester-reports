@@ -1142,11 +1142,76 @@ def group_p() -> None:
             ok(f"refuses the label {bad_value!r} -- only yes / no / unknown")
 
 
+def group_q() -> None:
+    """Absent is not stale (H-1 item 2)."""
+    print(f"{LINE}\nQ. ABSENT IS PENDING UNTIL ITS FAMILY'S PULL HAS TRIED\n{LINE}")
+    import os
+    import tempfile
+    saved_env = os.environ.get("CHESTER_STATE_DIR")
+    saved_rosters = feeds.logger_rosters
+    td = tempfile.mkdtemp(prefix="feeds_attempted_")
+    db = temp_store()
+    try:
+        os.environ["CHESTER_STATE_DIR"] = td
+        k1, k2, k3 = ("fixture.never_a", "fixture.never_b", "fixture.tried_c")
+        feeds.logger_rosters = lambda: [("fixture_family", [k1, k2, k3])]
+
+        f0 = feeds.freshness(store=db)["feeds"]["fixture_family"]
+        check(f0["pending"] == 3 and f0["stale"] == 0 and f0["ok"],
+              "with no attempted file, every absent key is pending and the "
+              "family is ok")
+
+        feeds.record_attempted("fixture_family", [k3])
+        r = feeds.freshness(store=db)
+        f1 = r["feeds"]["fixture_family"]
+        check(set(f1["pending_keys"]) == {k1, k2}
+              and f1["stale_keys"] == [k3]
+              and f1["stale_detail"].get(k3) == "attempted, nothing written",
+              f"two never-attempted keys are pending and the attempted-but-"
+              f"unwritten one is stale (pending {f1['pending_keys']}, stale "
+              f"{f1['stale_keys']})")
+        check(not f1["ok"] and f1["absent"] == 3,
+              "so the family is not ok, and all three still count as absent")
+        line = feeds.format_freshness(r)
+        check("fixture_family=0/3 stale:1 absent:3 pending:2" in line,
+              f"the feeds line carries pending beside absent ({line[-60:]})")
+
+        # A WRITER THAT WILL NOT IMPORT STILL ATTEMPTED, and its keys are read
+        # from source -- an import failure used to drop them from the roster.
+        import importlib
+        diff = []
+        for w in list(feeds.OFFICIAL_WRITERS) + list(feeds.EXTERNAL_WRITERS):
+            m = importlib.import_module(f"altdata.sources.{w}")
+            if list(feeds.static_keys(w)) != list(m.KEYS):
+                diff.append(w)
+        check(not diff,
+              f"every writer's KEYS read from source match the imported module's "
+              f"-- so an import failure cannot take a writer off the roster"
+              + (f"; differ: {diff}" if diff else ""))
+        saved_mods = feeds._official_modules
+        try:
+            feeds._official_modules = lambda: [("acm", None)]
+            feeds.pull_official()
+        finally:
+            feeds._official_modules = saved_mods
+        att = feeds.read_attempted() or {}
+        check(set(att.get("official") or []) == set(acm.KEYS),
+              "a pull whose writer failed to import records that writer's KEYS as "
+              "attempted")
+    finally:
+        feeds.logger_rosters = saved_rosters
+        if saved_env is None:
+            os.environ.pop("CHESTER_STATE_DIR", None)
+        else:
+            os.environ["CHESTER_STATE_DIR"] = saved_env
+        db.close()
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n):
+              group_p, group_n, group_q):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

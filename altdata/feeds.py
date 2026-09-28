@@ -124,11 +124,52 @@ def _official_modules() -> list:
     return _writer_modules(OFFICIAL_WRITERS)
 
 
+def static_keys(name: str) -> list[str]:
+    """A writer's KEYS read from its source file, for a module that will not
+    import. (H-1 item 2.) An import failure used to take the writer's keys off
+    the roster entirely, so the one failure that stops every row of a writer was
+    the one the freshness check could not see. Only a literal list or tuple of
+    strings is read; anything computed yields [] and says so in the log."""
+    import ast
+    from pathlib import Path as _P
+    src = _P(__file__).resolve().parent / "sources" / f"{name}.py"
+    try:
+        tree = ast.parse(src.read_text(encoding="utf-8"))
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("writer %s: KEYS unreadable from source (%s)", name, exc)
+        return []
+    # MOST WRITERS COMPUTE KEYS from module constants -- `list(COLUMNS)`,
+    # `list(HOLDINGS_KEYS) + FLOW_KEYS` -- so a literal-only read finds nothing.
+    # The module's top-level assignments and function definitions are run in
+    # order, WITHOUT its imports (the import is what failed) and with a small
+    # set of builtins; a statement that needs an imported name is skipped. KEYS
+    # resolves whenever it is built from the module's own constants.
+    import builtins as _b
+    safe = {n: getattr(_b, n) for n in (
+        "list", "tuple", "dict", "set", "sorted", "str", "int", "float", "len",
+        "range", "enumerate", "zip", "min", "max", "any", "all", "reversed")}
+    ns: dict = {"__builtins__": safe, "__name__": f"static.{name}"}
+    for node in tree.body:
+        if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.FunctionDef)):
+            continue
+        try:
+            exec(compile(ast.Module(body=[node], type_ignores=[]),  # noqa: S102
+                         str(src), "exec"), ns)
+        except Exception:                                      # noqa: BLE001
+            continue
+    keys = ns.get("KEYS")
+    if keys is None:
+        log.warning("writer %s: KEYS could not be read without importing the "
+                    "module -- its keys are off the roster until it imports", name)
+        return []
+    return [str(k) for k in keys]
+
+
 def _keys(mods: list) -> list[str]:
     keys: list[str] = []
-    for _name, mod in mods:
-        if mod is not None:
-            keys.extend(k for k in getattr(mod, "KEYS", []) if k not in keys)
+    for name, mod in mods:
+        ks = (getattr(mod, "KEYS", []) if mod is not None else static_keys(name))
+        keys.extend(k for k in ks if k not in keys)
     return keys
 
 
@@ -180,6 +221,64 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 
 
 # ---------------------------------------------------------------------------
+# What each family's last pull ATTEMPTED (H-1 item 2: absent is not stale)
+# ---------------------------------------------------------------------------
+# A key that has never been written is PENDING, not stale, until its family's
+# pull has completed at least once since the key was registered: a series added
+# to the roster this afternoon is not a feed that failed. The pull records the
+# keys it tried in $STATE_DIR/feeds_attempted.json, one list per family; the check
+# reads it. An absent key its family tried is STALE -- the pull ran and nothing
+# was written. With no file, every absent key is pending.
+#
+# A pull that ran and FAILED still attempted: a writer whose module will not
+# import contributes its KEYS (read from source), and a pull skipped for a
+# missing key counts too -- the module's rule is that a missing FRED_API_KEY
+# surfaces as the series going stale, and "pending" would hide it forever.
+ATTEMPTED_FILE = "feeds_attempted.json"
+
+
+def _state_dir():
+    import os
+    from pathlib import Path as _P
+    return _P(os.environ.get("CHESTER_STATE_DIR") or (_P.home() / ".chester"))
+
+
+def read_attempted() -> Optional[dict]:
+    """{family: [keys]} from the last pulls, or None when no pull has recorded."""
+    import json
+    p = _state_dir() / ATTEMPTED_FILE
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("%s unreadable (%s) -- treating every absent key as pending",
+                    p, exc)
+        return None
+    return {k: list((v or {}).get("keys") or []) for k, v in d.items()}
+
+
+def record_attempted(family: str, keys: list[str]) -> None:
+    """Merge one family's attempted keys into the file. Never raises: a pull that
+    wrote its rows must not fail on its bookkeeping."""
+    import json
+    try:
+        d = _state_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        p = d / ATTEMPTED_FILE
+        try:
+            cur = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:                                     # noqa: BLE001
+            cur = {}
+        cur[family] = {"keys": sorted(set(keys)), "at": session.utc_iso()}
+        tmp = p.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
+        tmp.replace(p)
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("could not record %s's attempted keys: %s", family, exc)
+
+
+# ---------------------------------------------------------------------------
 # Pull
 # ---------------------------------------------------------------------------
 def pull_prices(run_id: Optional[str] = None) -> dict:
@@ -191,6 +290,7 @@ def pull_prices(run_id: Optional[str] = None) -> dict:
         log.warning("CSV store unavailable (%s); writing observations only", exc)
         csv_store = None
     summary = yf_src.pull(store=csv_store, run_id=run_id)
+    record_attempted("prices", price_keys())
     log.info("prices: %d/%d symbols, %d failed", summary["success"],
              summary["total"], len(summary["failed"]))
     for key, err in summary["failed"]:
@@ -211,11 +311,14 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
                     ".env) -- skipping the pull. The series will go stale and the "
                     "heartbeat's freshness check will say so; this is not a "
                     "pipeline failure.", "FRED_API_KEY")
+        # ATTEMPTED, so the series read stale rather than pending forever.
+        record_attempted("fred", fred_keys())
         return {"skipped": "key not configured", "total": 0, "success": 0,
                 "failed": []}
     from .sources import fred as fred_src
     from .store import Store
     summary = fred_src.pull(Store())
+    record_attempted("fred", fred_keys())
     log.info("fred: %d/%d series, %d failed", summary.get("success", 0),
              summary.get("total", 0), len(summary.get("failed") or []))
     for key, err in summary.get("failed") or []:
@@ -230,12 +333,18 @@ def pull_official(run_id: Optional[str] = None) -> dict:
     sources/_publication.py); one that raises past that is caught here, so a
     broken NY Fed workbook never costs the Board's CSV.
     """
-    return _pull_writers(_official_modules(), run_id)
+    mods = _official_modules()
+    out = _pull_writers(mods, run_id)
+    record_attempted("official", _keys(mods))
+    return out
 
 
 def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
-    return _pull_writers(_writer_modules(EXTERNAL_WRITERS), run_id)
+    mods = _writer_modules(EXTERNAL_WRITERS)
+    out = _pull_writers(mods, run_id)
+    record_attempted("external", _keys(mods))
+    return out
 
 
 def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
@@ -271,6 +380,13 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
     """
     from .loggers import load_all
     out: dict[str, Any] = {"ran": [], "total": 0, "written": 0}
+
+    def _attempted(name: str, spec) -> None:
+        try:
+            record_attempted(name, list(spec.keys()))
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("logger %s could not list its keys: %s", name, exc)
+
     for name, spec in sorted(load_all().items()):
         if spec.requires_key and not secrets.present(spec.requires_key):
             out[name] = {"skipped": f"{spec.requires_key} not configured"}
@@ -278,6 +394,7 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
             log.warning("%s: %s is not configured -- built but dormant; the "
                         "freshness roster reports it as the series going stale",
                         name, spec.requires_key)
+            _attempted(name, spec)
             continue
         try:
             r = spec.run(run_id=run_id)
@@ -286,6 +403,7 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
         except Exception as exc:                              # noqa: BLE001
             log.exception("%s raised", name)
             out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+        _attempted(name, spec)
         out["ran"].append(name)
         out["total"] += 1
     return out
@@ -339,14 +457,17 @@ def freshness(as_of: Optional[str] = None,
                    ("official", official_keys()),
                    ("external", external_keys())]
         rosters += logger_rosters()
+        attempted = read_attempted()
+        out["attempted_recorded"] = attempted is not None
         for name, keys in rosters:
-            absent, stale, fresh = [], [], []
+            absent, stale, fresh, pending = [], [], [], []
             detail = {}
+            tried = set((attempted or {}).get(name) or [])
             if not keys:
                 out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
-                                      "absent": 0, "stale_keys": [],
+                                      "absent": 0, "pending": 0, "stale_keys": [],
                                       "stale_detail": {}, "absent_keys": [],
-                                      "ok": True,
+                                      "pending_keys": [], "ok": True,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
@@ -366,6 +487,12 @@ def freshness(as_of: Optional[str] = None,
                             newest_any = max(newest_any or d, d)
                     if newest_any is None:
                         absent.append(k)
+                        # ABSENT IS NOT STALE until the family's pull has tried.
+                        if k in tried:
+                            stale.append(k)
+                            detail[k] = "attempted, nothing written"
+                        else:
+                            pending.append(k)
                         continue
                     rows = [{"observed_at": newest_any}]
                 newest = str(rows[-1]["observed_at"])[:10]
@@ -383,10 +510,13 @@ def freshness(as_of: Optional[str] = None,
             out["feeds"][name] = {
                 "expected": len(keys), "fresh": len(fresh),
                 "stale": len(stale), "absent": len(absent),
+                "pending": len(pending),
                 "stale_keys": sorted(stale)[:8],
                 "stale_detail": {k: detail[k] for k in sorted(detail)[:8]},
                 "absent_keys": sorted(absent)[:8],
-                "ok": not stale and not absent}
+                "pending_keys": sorted(pending)[:8],
+                # OK = NO STALE KEYS. A pending key is a key no pull has tried.
+                "ok": not stale}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())
         out["staleness_multiple"] = multiple
         return out
@@ -405,7 +535,8 @@ def format_freshness(r: dict) -> str:
     for name, f in (r.get("feeds") or {}).items():
         bits.append(f"{name}={f['fresh']}/{f['expected']}"
                     + (f" stale:{f['stale']}" if f["stale"] else "")
-                    + (f" absent:{f['absent']}" if f["absent"] else ""))
+                    + (f" absent:{f['absent']}" if f["absent"] else "")
+                    + (f" pending:{f.get('pending', 0)}" if f["absent"] else ""))
     return f"session={r.get('session')} " + " ".join(bits)
 
 

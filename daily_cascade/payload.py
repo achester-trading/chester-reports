@@ -643,6 +643,11 @@ def grades_block(since: Optional[str] = None) -> dict:
     return block
 
 
+def _method_notes(report: str, key: Optional[str]) -> list[str]:
+    from .method_notes import for_edition                    # noqa: PLC0415
+    return for_edition(report, key)
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None,
           grades_since: Optional[str] = None) -> dict:
@@ -706,4 +711,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "portfolio": portfolio_block(cutoff),
         "grades": grades_block(grades_since),
         "warnings": warnings,
+        # H-1 item 4: a line declared for exactly this edition, if any.
+        "method_notes": _method_notes("daily_close", resolved),
     }

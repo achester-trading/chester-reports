@@ -47,7 +47,7 @@ Every payload figure carries a **type** taken from its field name: `count`, `day
 
 Deterministic, and it **withholds rather than rewriting**: the reason names the figure, the unit the prose used and the types the payload carries for that value. A corrected paragraph would be a sentence nobody wrote.
 
-*This was found in a published paragraph.* The weekly called a flag "thirteen-day-old" because 13 was in the payload — as the pin-row count. And fixing it surfaced a second hole: `19.8th` was not extracted **at all**, so `audit("19.9th percentile", {"percentile": 19.8})` returned True and every percentile either report wrote in ordinal form went unchecked. Ordinal suffixes are now part of the numeral.
+*This was found in a published paragraph.* The weekly called a flag "thirteen-day-old" because 13 was in the payload — as the pin-row count. And fixing it surfaced a second hole: `19.8th` was not extracted **at all**, so `audit("19.9th percentile", {"percentile": 19.8})` returned True and every percentile either report wrote in ordinal form went unchecked. Ordinal suffixes are now part of the numeral. **And since H-1 an ordinal on a decimal fails outright:** a percentile in prose is a whole-number ordinal -- the 20th, with the payload keeping 19.8 -- and a suffix that disagrees with its number (21th, 12nd) fails the same way.
 
 ## Style rules
 

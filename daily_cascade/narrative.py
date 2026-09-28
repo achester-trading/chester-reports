@@ -129,6 +129,11 @@ an unsigned magnitude does not match the negative value in the payload and the \
 whole paragraph is discarded over a phrasing. Say "fell" in the sentence if \
 you like; the figure still carries its own sign.
 
+A PERCENTILE IN PROSE IS A WHOLE-NUMBER ORDINAL. The payload keeps 96.1; you \
+write "the 96th percentile", and the audit matches it. Never put an ordinal \
+suffix on a decimal ("96.1th") and never mismatch the suffix ("21st", "22nd", \
+"23rd", "11th", "12th", "13th"): either discards the paragraph.
+
 DO NOT RESTATE A TABLE ROW BY ROW. The eight dimensions, the six contradiction \
 rows and the pin tally are all printed in full below your paragraph, and reciting \
 them adds nothing a reader could not read there -- it also crowds out the only \

@@ -110,6 +110,39 @@ def mask_names(text: str, tokens: Optional[Iterable[str]] = None) -> str:
     return out
 
 
+def ordinal_suffix(n: int) -> str:
+    """The English ordinal suffix: 1st 2nd 3rd 4th ... 11th 12th 13th ... 21st."""
+    if 11 <= n % 100 <= 13:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+def ordinal_error(f: "Figure") -> str:
+    """Why an ordinal figure is written wrongly, or "" when it is right.
+
+    H-1 item 3. A percentile in prose is a WHOLE-NUMBER ordinal -- "the 96th
+    percentile" -- while the payload keeps 96.1, and the interval match already
+    lets "96th" find 96.1. Weekly paragraphs kept writing "96.1th", which is
+    neither English nor a number anyone reads that way; the audit had no rule.
+    """
+    m = re.search(r"(?<=\d)(st|nd|rd|th)$", f.text, flags=re.I)
+    if not m:
+        return ""
+    num = f.text[:m.start()].replace(",", "").lstrip("-$ ")
+    if "." in num:
+        n = int(round(abs(f.value)))
+        return (f"an ordinal on a non-integer -- write {n}{ordinal_suffix(n)} "
+                f"and let the payload keep the decimals")
+    try:
+        n = int(num)
+    except ValueError:
+        return ""
+    want = ordinal_suffix(n)
+    if m.group(1).lower() != want:
+        return f"the suffix disagrees with its number -- {n}{want}"
+    return ""
+
+
 def payload_days(payload: Any, _depth: int = 0) -> set[int]:
     """Every day-of-month in the payload's date and datetime fields."""
     out: set[int] = set()
@@ -386,6 +419,10 @@ class Figure:
     unit_type: str = "any"
     # Filled by audit() when a value matched but its type contradicted the unit.
     type_conflict: str = ""
+    # Filled by audit() when the figure is an ORDINAL written wrongly (H-1 item 3):
+    # a suffix on a non-integer ("96.1th") or one that disagrees with its number
+    # ("21th", "12nd"). A form error, independent of whether the value matched.
+    ordinal_error: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -415,7 +452,8 @@ class AuditResult:
         # for a missing figure; the figure was there and the sentence called it the
         # wrong kind of thing, which is a different fix.
         def label(f) -> str:
-            return f"{f.text} ({f.type_conflict})" if f.type_conflict else f.text
+            why = f.type_conflict or f.ordinal_error
+            return f"{f.text} ({why})" if why else f.text
 
         bad = ", ".join(label(f) for f in self.unmatched[:6])
         more = "" if self.n_unmatched <= 6 else f" (+{self.n_unmatched - 6} more)"
@@ -636,6 +674,11 @@ def audit(text: str, payload: Any, *,
     unmatched: list[Figure] = []
 
     for f in figures:
+        # A WRONGLY WRITTEN ORDINAL FAILS WHATEVER IT MATCHES (H-1 item 3).
+        f.ordinal_error = ordinal_error(f)
+        if f.ordinal_error:
+            unmatched.append(f)
+            continue
         pool = list(values) + (pct_values if f.is_percent else [])
         hit = next((v for v in pool if f.low <= v < f.high), None)
         if hit is None:

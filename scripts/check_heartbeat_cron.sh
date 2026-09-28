@@ -55,6 +55,12 @@
 #                       drift is: a stale pipeline EXPLAINS a missing object, and
 #                       reporting the symptom over the cause sends the reader to
 #                       the wrong place.
+#  12 backup failed   -> the pipeline is healthy, units match, the object exists,
+#                       AND the off-box copy is not current: the latest sweep
+#                       failed (backup=failed:<state>), no sweep has ever
+#                       succeeded (never), or the last success is older than
+#                       30h (stale:<h>h). Ranked ABOVE feed stale: a store with
+#                       no off-box copy is worse than a late feed. INC-1.
 #  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
 #                       delivered: prices or FRED series older than the declared
 #                       allowance, or absent entirely. This is the channel a
@@ -475,6 +481,57 @@ if [[ "$STATE" == "ok" ]] && [[ "$STATE_OBJECT" == "missing" ]]; then
     HEADLINE="NO STATE no market-state object for $STATE_SESSION -- the 16:45 close pass did not compute one"
 fi
 
+# ---- the off-box backup: is there a current copy? (H-1, after INC-1) -------
+#
+# The 02:30 sweep failed every night from deploy until 27 Sep and nothing here
+# could see it: the verdict line had no backup field (docs/incidents.md, INC-1).
+# Read from the files scripts/rclone_sync.sh writes into the same state dir:
+#   rclone_sync_status   state= rc= at= detail=   -- the latest sweep, any outcome
+#   rclone_sync_last_ok  state=ok at=             -- the latest SUCCESSFUL sweep
+# Precedence: a latest sweep that did not succeed is reported as failed:<state>
+# even while yesterday's copy is still current -- last night's failure is the
+# news; then never (no success on record); then stale:<h>h past the allowance;
+# then ok.
+BACKUP_MAX_H="${CHESTER_BACKUP_MAX_HOURS:-30}"
+BACKUP_STATE=unknown
+if [[ -n "${CHESTER_SKIP_BACKUP_CHECK:-}" ]]; then
+    BACKUP_STATE=skipped
+else
+    B_STATUS="$STATE_DIR/rclone_sync_status"
+    B_LAST_OK="$STATE_DIR/rclone_sync_last_ok"
+    b_latest="$( [[ -f "$B_STATUS" ]] && sed -n 's/^state=\([^ ]*\).*/\1/p' "$B_STATUS" | head -1)"
+    b_ok_at="$( [[ -f "$B_LAST_OK" ]] && sed -n 's/.*at=\([^ ]*\).*/\1/p' "$B_LAST_OK" | head -1)"
+    if [[ -n "$b_latest" ]] && [[ "$b_latest" != "ok" ]]; then
+        BACKUP_STATE="failed:$b_latest"
+    elif [[ ! -f "$B_LAST_OK" ]] || [[ -z "$b_ok_at" ]]; then
+        BACKUP_STATE=never
+    else
+        b_ok_s="$(date -d "$b_ok_at" +%s 2>/dev/null || echo "")"
+        if [[ -z "$b_ok_s" ]]; then
+            BACKUP_STATE=never
+        else
+            b_age_h=$(( ( $(date +%s) - b_ok_s ) / 3600 ))
+            if (( b_age_h > BACKUP_MAX_H )); then
+                BACKUP_STATE="stale:${b_age_h}h"
+            else
+                BACKUP_STATE=ok
+            fi
+        fi
+    fi
+    log "  backup: $BACKUP_STATE (latest=${b_latest:-none} last_ok=${b_ok_at:-none} allowance=${BACKUP_MAX_H}h)"
+fi
+
+# RANKED below the pipeline verdicts, drift and the state object -- each of those
+# is upstream of everything -- and ABOVE a stale feed: a store with no off-box
+# copy is worse than a late feed, because a late feed recovers on its own and a
+# lost disk does not.
+if [[ "$STATE" == "ok" ]] && [[ "$BACKUP_STATE" != "ok" ]] \
+        && [[ "$BACKUP_STATE" != "skipped" ]]; then
+    STATE=backup_failed
+    RC=12
+    HEADLINE="BACKUP $BACKUP_STATE the off-box copy is not current"
+fi
+
 # ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
 #
 # "Are today's bars present" can only be asked where the store is. A CI runner has
@@ -747,15 +804,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT backup=$BACKUP_STATE feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s backup=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$BACKUP_STATE" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -790,6 +847,7 @@ python_json() {
     printf '  "unit_drift_since": %s,\n' \
         "$([[ -z "$DRIFT_SINCE" ]] && echo null || printf '"%s"' "$DRIFT_SINCE")"
     printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
+    printf '  "backup": "%s",\n' "$BACKUP_STATE"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }

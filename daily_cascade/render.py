@@ -525,6 +525,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
   universe {n_g} with Greeks + {n_i} ingestion-only<br>
   {state_block.session_events_line(payload)}
 </p>
+{"".join(f'<p style="{NOTE}"><strong>Method note.</strong> {esc(n)}</p>' for n in payload.get("method_notes") or [])}
 {warn}
 {narrative_block(narrative)}
 <h2 style="{H2}">What changed</h2>
@@ -582,4 +583,6 @@ def text_fallback(payload: dict) -> str:
     lines += ["", f"pin hits: {h}", ""]
     for w in payload.get("warnings") or []:
         lines.append(f"WARNING: {w}")
+    for n in payload.get("method_notes") or []:
+        lines.append(f"METHOD NOTE: {n}")
     return "\n".join(lines)

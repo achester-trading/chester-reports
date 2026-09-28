@@ -549,6 +549,7 @@ def render(payload: dict, extra: Optional[dict] = None,
   {esc(len(payload.get('sessions_in_week') or []))} sessions &middot;
   previous week ending {esc(payload.get('previous_week_ending'))}
 </p>
+{"".join(f'<p style="{NOTE}"><strong>Method note.</strong> {esc(n)}</p>' for n in payload.get("method_notes") or [])}
 {warn}
 {narrative_block(narrative)}
 
@@ -586,6 +587,7 @@ def text_fallback(payload: dict) -> str:
     rg = payload.get("register") or {}
     return "\n".join([
         f"Weekly Tactical -- week ending {payload.get('week_ending')}",
+        *[f"  METHOD NOTE: {n}" for n in payload.get("method_notes") or []],
         f"  state      : {st.get('state')} -- "
         f"{len(st.get('dimension_changes') or [])} dimension change(s), "
         f"{len(st.get('exceptions_opened') or [])} exception(s) opened",

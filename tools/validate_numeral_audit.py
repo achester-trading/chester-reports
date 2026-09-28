@@ -134,11 +134,13 @@ def group_a() -> None:
                     "of every adjective a report might use is a table nobody can "
                     "keep correct")
     # A percentile is not a percent.
-    r = audit("at the 19.8th percent", {"percentile": 19.8})
-    check(not r.passed,
-          "'19.8th percent' against a PERCENTILE fails -- the two are different "
-          "claims and confusing them is what this table is for")
-    r = audit("at the 19.8th percentile", {"percentile": 19.8})
+    # Whole-number ordinals since H-1: "19.8th" now fails on its form alone, so
+    # the type rule is exercised with the form a paragraph is allowed to write.
+    r = audit("at the 20th percent", {"percentile": 19.8})
+    check(not r.passed and r.unmatched and r.unmatched[0].type_conflict,
+          "'20th percent' against a PERCENTILE fails ON TYPE -- the two are "
+          "different claims and confusing them is what this table is for")
+    r = audit("at the 20th percentile", {"percentile": 19.8})
     check(r.passed, "while the percentile itself passes")
     # An unconstrained field imposes nothing.
     r = audit("13 days", {"whatever": 13})
@@ -418,6 +420,38 @@ def group_f() -> None:
               f"{t!r} is still a figure: {why}")
 
 
+def group_g() -> None:
+    """Ordinals (H-1 item 3)."""
+    print(f"\n{LINE}\nG. A PERCENTILE IN PROSE IS A WHOLE-NUMBER ORDINAL\n{LINE}")
+    from altdata import numeral_audit as na
+    P = {"percentile": 96.1, "a": 21.0, "b": 12.0, "c": 100.0, "d": 2.0,
+         "e": 11.2, "f": 3.0, "g": 22.0, "h": 13.0}
+    check([na.ordinal_suffix(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101,
+                                          111, 112)]
+          == ["st", "nd", "rd", "th", "th", "th", "th", "st", "nd", "rd", "st",
+              "th", "th"],
+          "the suffix rule: 1st 2nd 3rd 4th, 11th 12th 13th, 21st 22nd 23rd, "
+          "101st, 111th 112th")
+    for t in ("at the 96th percentile", "the 21st", "the 12th", "the 100th",
+              "the 2nd", "the 11th percentile", "the 3rd", "the 22nd", "the 13th"):
+        check(audit(t, P).passed, f"{t!r} passes -- a whole-number ordinal "
+                                  f"matches its payload value")
+    for t, why in (("at the 96.1th percentile", "an ordinal on a non-integer"),
+                   ("the 21th", "the suffix disagrees"),
+                   ("the 12nd", "the suffix disagrees"),
+                   ("the 11st", "the suffix disagrees"),
+                   ("the 2th", "the suffix disagrees"),
+                   ("the 13rd", "the suffix disagrees"),
+                   ("the 22th", "the suffix disagrees")):
+        r = audit(t, P)
+        err = r.unmatched[0].ordinal_error if r.unmatched else ""
+        check(not r.passed and why in err,
+              f"{t!r} fails: {err[:60] or 'passed'}")
+    r = audit("at the 96.1th percentile", P)
+    check("write 96th" in r.reason(),
+          f"the reason names the right form ({r.reason()[:90]})")
+
+
 def main() -> int:
     print(f"{LINE}\nD3 numeral audit -- the precondition for any generated "
           f"sentence\n{LINE}")
@@ -427,6 +461,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
