@@ -505,6 +505,29 @@ def grades_block_full(payload: dict) -> str:
         f'not exist yet; when it does, this moves there.</p>')
 
 
+def enforcement_block(payload: dict) -> str:
+    """PHASE 5a: the session's rule breaks, then the cross-book heat view."""
+    e = payload.get("enforcement") or {}
+    if e.get("state") != "ok":
+        why = e.get("fault") or e.get("reason") or "no enforcement block"
+        return f'<div style="{WARN}"><strong>Enforcement absent.</strong> {esc(why)}</div>'
+    rb = e.get("rule_breaks") or []
+    if rb:
+        items = "".join(f'<li><strong>{esc(b["kind"])}</strong> '
+                        f'{esc(b.get("instrument") or "")} &mdash; '
+                        f'{esc(b["reason"])}</li>' for b in rb)
+        head = (f'<div style="{WARN}"><strong>{len(rb)} rule break(s) this '
+                f'session</strong><ul style="margin:6px 0 0 0;padding-left:18px">'
+                f'{items}</ul></div>')
+    else:
+        head = (f'<p style="{NOTE}">No rule break this session: every fill read '
+                f'matched an accepted decision, and no position rule fired. '
+                f'{esc(e.get("rule_breaks_total"))} on the register to date.</p>')
+    v = e.get("view") or {}
+    return (head + f'<pre style="font-size:11px;line-height:1.4;'
+                   f'white-space:pre-wrap">{esc(v.get("text") or "")}</pre>')
+
+
 def render(payload: dict, delivery: Optional[dict] = None,
            narrative=None) -> str:
     warn = ""
@@ -539,6 +562,9 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
+
+<h2 style="{H2}">Enforcement</h2>
+{enforcement_block(payload)}
 
 <h2 style="{H2}">Dealer exposure</h2>
 {exposure_table(payload)}
@@ -585,4 +611,7 @@ def text_fallback(payload: dict) -> str:
         lines.append(f"WARNING: {w}")
     for n in payload.get("method_notes") or []:
         lines.append(f"METHOD NOTE: {n}")
+    e = payload.get("enforcement") or {}
+    for b in e.get("rule_breaks") or []:
+        lines.append(f"RULE BREAK {b['kind']}: {b['reason']}")
     return "\n".join(lines)

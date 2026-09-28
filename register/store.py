@@ -92,6 +92,25 @@ THESIS_STATES = ("INTACT", "STRAINED", "INVALIDATED")
 # denominated underlying; `n_a` is for a USD instrument, where the question does
 # not arise.
 CURRENCY_EXPOSURES = ("unhedged", "hedged", "n_a")
+# The Doctrine's four books (Phase 5a). A decision that becomes ACTIVE names one:
+# the cross-book heat view sums by it, and two of the Doctrine's rule breaks
+# (Book B conversion, Book A's floor) are about a book.
+BOOKS = ("A", "B", "C", "D")
+# The gate at entry's outcome enumeration -- DTH §XIV, EL-2 §3.2.
+GATE_OUTCOMES = ("approve", "resize", "restructure", "hedge", "delay", "reject")
+# Rule breaks the register records. The first five are the order gate's
+# reconciliation of fills against accepted decisions (Phase 5a item 1-2); the
+# last three are the Doctrine's position rules (item 3).
+RULE_BREAK_KINDS = (
+    "unregistered_execution",        # a fill no decision on the register covers
+    "execution_against_unaccepted",  # a fill against a draft/declined decision
+    "side_mismatch",                 # a fill whose side the decision does not allow
+    "size_exceeded",                 # fills past the decision's quantity
+    "expression_mismatch",           # executed shape != expression_family/leverage_form
+    "allocation_floor_breach",       # Book A's stance below its band's floor
+    "book_b_conversion",             # a Book B position closed inside 2 sessions
+    "time_stop_passed",              # an active position past its time stop
+)
 
 # -----------------------------------------------------------------------------
 # THE EXPRESSION VOCABULARIES -- Options as Expression, Chapter 8's map and
@@ -256,8 +275,49 @@ CREATE TABLE IF NOT EXISTS decisions (
     -- What a supersession was FOR. The thesis is carried forward verbatim by
     -- design, so without this the trail records that a decision changed and
     -- not one word about why.
-    note             TEXT
+    note             TEXT,
+    -- PHASE 5a. The book, a structured size, the time stop, the reason a
+    -- position was closed, and the gate at entry's verdict. All nullable: the
+    -- columns arrive on a live register whose rows predate them. vega_usd is
+    -- dollars per one volatility point for an options expression.
+    book             TEXT CHECK (book IS NULL OR book IN {BOOKS!r}),
+    quantity         REAL,
+    notional_usd     REAL,
+    vega_usd         REAL,
+    time_stop        TEXT,
+    close_reason     TEXT,
+    gate_outcome     TEXT CHECK (gate_outcome IS NULL
+                                 OR gate_outcome IN {GATE_OUTCOMES!r}),
+    gate_detail      TEXT,
+    gate_override    TEXT
 );
+
+-- THE ORDER GATE'S RECORD OF WHAT BROKE (Phase 5a). Written by the
+-- reconciliation of fills against accepted decisions and by the Doctrine's
+-- position rules; read by the close, the Weekly and the grader. Immutable, like a
+-- packet: a rule break that can be edited away is not a record. dedupe_key makes
+-- every writer idempotent -- the hourly sync and the close pass both run it.
+CREATE TABLE IF NOT EXISTS rule_breaks (
+    id           INTEGER PRIMARY KEY,
+    detected_at  TEXT NOT NULL,
+    session      TEXT NOT NULL,
+    kind         TEXT NOT NULL CHECK (kind IN {RULE_BREAK_KINDS!r}),
+    decision_id  TEXT,
+    instrument   TEXT,
+    exec_ids     TEXT,
+    reason       TEXT NOT NULL,
+    detail       TEXT,
+    source       TEXT NOT NULL,
+    dedupe_key   TEXT NOT NULL UNIQUE
+);
+CREATE INDEX IF NOT EXISTS rule_breaks_by_session ON rule_breaks (session);
+CREATE INDEX IF NOT EXISTS rule_breaks_by_decision ON rule_breaks (decision_id);
+CREATE TRIGGER IF NOT EXISTS rule_breaks_immutable_update
+BEFORE UPDATE ON rule_breaks
+BEGIN SELECT RAISE(ABORT, 'rule_breaks is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS rule_breaks_immutable_delete
+BEFORE DELETE ON rule_breaks
+BEGIN SELECT RAISE(ABORT, 'rule_breaks is immutable'); END;
 
 CREATE TABLE IF NOT EXISTS decision_packets (
     packet_id                TEXT PRIMARY KEY,
@@ -382,7 +442,14 @@ class Register:
         for col in ("signals_used TEXT", "blocked_reason TEXT",
                     "currency_exposure TEXT", "note TEXT",
                     "base_rate_cited TEXT", "expression_family TEXT",
-                    "leverage_form TEXT"):
+                    "leverage_form TEXT",
+                    # Phase 5a. ALTER cannot carry a CHECK that references the
+                    # vocabulary on an existing table, so record() enforces
+                    # book and gate_outcome for rows written from now on.
+                    "book TEXT", "quantity REAL", "notional_usd REAL",
+                    "vega_usd REAL", "time_stop TEXT", "close_reason TEXT",
+                    "gate_outcome TEXT", "gate_detail TEXT",
+                    "gate_override TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -435,7 +502,17 @@ class Register:
                base_rate_cited: Optional[str] = None,
                expression_family: Optional[str] = None,
                leverage_form: Optional[str] = None,
-               note: Optional[str] = None) -> str:
+               note: Optional[str] = None,
+               book: Optional[str] = None,
+               quantity: Optional[float] = None,
+               notional_usd: Optional[float] = None,
+               vega_usd: Optional[float] = None,
+               time_stop: Optional[str] = None,
+               close_reason: Optional[str] = None,
+               gate_outcome: Optional[str] = None,
+               gate_detail: Optional[dict] = None,
+               gate_override: Optional[str] = None,
+               becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
         The restriction check happens FIRST -- before validation, before any
@@ -502,6 +579,14 @@ class Register:
                 f"if this listing is not the one you meant, that is the point "
                 f"of this refusal.")
 
+        if book is not None and book not in BOOKS:
+            raise ValueError(f"book must be one of {BOOKS}; got {book!r}")
+        if gate_outcome is not None and gate_outcome not in GATE_OUTCOMES:
+            raise ValueError(f"gate_outcome must be one of {GATE_OUTCOMES}")
+        if time_stop is not None and not re.fullmatch(r"\d{4}-\d{2}-\d{2}",
+                                                      str(time_stop)):
+            raise ValueError(f"time_stop must be YYYY-MM-DD; got {time_stop!r}")
+
         did = decision_id or str(uuid.uuid4())
         now = session.utc_iso()
 
@@ -511,20 +596,50 @@ class Register:
         # being false, and this is the invariant the whole check exists for.
         if blocked_reason and status == "active":
             status = "draft"
+        # PHASE 5a -- THE GATE AT ENTRY, ENFORCED HERE TOO. A decision reaches
+        # DECISION_OK (active) only if the register accepts it: it names a book,
+        # and the gate did not answer delay or reject -- unless the operator
+        # recorded an override, which is the only way past a refusal and is
+        # itself a record.
+        # ON THE TRANSITION, NOT ON A TOUCH. A row that was already active and is
+        # re-recorded to annotate it (a thesis_state, a note) predates Phase 5a
+        # if it has no book, and refusing that write would leave the register
+        # unable to describe its own open position. decide.py set-status passes
+        # becoming_active=False when the predecessor was already active.
+        if status == "active" and book is None and becoming_active:
+            raise ValueError(
+                "an active decision must name its book (A/B/C/D): the cross-book "
+                "heat view and the Doctrine's book rules cannot see it otherwise")
+        # ANY VERDICT BUT approve HOLDS THE DECISION IN DRAFT. A resize the
+        # register activated at the full size would be a limit that limits
+        # nothing; the operator re-records at the size the gate named, or records
+        # an override, and either is on the record.
+        if (status == "active" and gate_outcome not in (None, "approve")
+                and not gate_override):
+            status = "draft"
+            blocked_reason = (blocked_reason or "") + (
+                ("; " if blocked_reason else "")
+                + f"gate at entry: {gate_outcome}")
 
         self.conn.execute(
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
             " invalidation, status, operator_action, thesis_state, run_id,"
             " signals_used, blocked_reason, currency_exposure,"
-            " base_rate_cited, expression_family, leverage_form, note)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " base_rate_cited, expression_family, leverage_form, note,"
+            " book, quantity, notional_usd, vega_usd, time_stop, close_reason,"
+            " gate_outcome, gate_detail, gate_override)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "         ?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
              json.dumps(signals_used or []), blocked_reason,
              currency_exposure, base_rate_cited, expression_family,
-             leverage_form, note))
+             leverage_form, note, book, quantity, notional_usd, vega_usd,
+             time_stop, close_reason, gate_outcome,
+             (json.dumps(gate_detail, sort_keys=True, default=str)
+              if gate_detail is not None else None), gate_override))
         self.conn.commit()
         return did
 
@@ -612,6 +727,45 @@ class Register:
 
     def all(self) -> list[dict]:
         cur = self.conn.execute("SELECT * FROM decisions ORDER BY created_at")
+        return [dict(r) for r in cur.fetchall()]
+
+    # -- rule breaks (Phase 5a) ---------------------------------------------
+    def write_rule_break(self, *, kind: str, session_day: str, reason: str,
+                         dedupe_key: str, source: str,
+                         decision_id: Optional[str] = None,
+                         instrument: Optional[str] = None,
+                         exec_ids: Optional[list] = None,
+                         detail: Optional[dict] = None) -> bool:
+        """Write one rule break; False when that dedupe_key is already recorded."""
+        if kind not in RULE_BREAK_KINDS:
+            raise ValueError(f"kind must be one of {RULE_BREAK_KINDS}")
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO rule_breaks (detected_at, session, kind,"
+            " decision_id, instrument, exec_ids, reason, detail, source,"
+            " dedupe_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (session.utc_iso(), session_day, kind, decision_id, instrument,
+             json.dumps(exec_ids or []), reason,
+             json.dumps(detail or {}, sort_keys=True, default=str), source,
+             dedupe_key))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def rule_breaks(self, since: Optional[str] = None,
+                    decision_id: Optional[str] = None) -> list[dict]:
+        q, args = "SELECT * FROM rule_breaks WHERE 1=1", []
+        if since:
+            q += " AND session >= ?"
+            args.append(since)
+        if decision_id:
+            q += " AND decision_id = ?"
+            args.append(decision_id)
+        return [dict(r) for r in self.conn.execute(q + " ORDER BY id", args)]
+
+    def open_decisions(self) -> list[dict]:
+        """Active, unsuperseded decisions: what the heat view sums."""
+        cur = self.conn.execute(
+            "SELECT * FROM decisions WHERE status = 'active' "
+            "AND superseded_by IS NULL ORDER BY created_at")
         return [dict(r) for r in cur.fetchall()]
 
     def blocked_attempts(self) -> list[dict]:

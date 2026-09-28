@@ -142,6 +142,18 @@ FEAT_RC=$?
 printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEAT_RC -ne 0 ]] && log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
 
+# ---- the order gate, by reconciliation (Phase 5a), BEFORE the report ---------
+#
+# The close prints the session's rule breaks, so they are written first: every
+# fill held to an accepted decision, and the Doctrine's position rules (time stop,
+# Book B conversion, Book A's floor). Idempotent -- the hourly sync runs it too --
+# and never fatal: a reconciliation fault costs its own block, not the report.
+log "reconcile: fills and position rules"
+REC_OUT="$("$PY" -m register.reconcile run ${SESSION_ARG:+--session "$SESSION_ARG"} 2>&1 | tail -12)"
+REC_RC=$?
+printf '%s\n' "$REC_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $REC_RC -ne 0 ]] && log "WARN reconcile exited $REC_RC -- continuing; the close prints what the register holds"
+
 log "=== close report start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m daily_cascade.close_report $DRY >>"$LOG" 2>&1
 RC=$?

@@ -1,0 +1,88 @@
+# risk_limits.yaml -- the limits the order gate at entry reads. (Phase 5a; EL-2)
+#
+# The heat/factor view (register/heat.py) sums every open decision across Books
+# A-D and every options expression, and the gate at entry (tools/decide.py record)
+# compares the sum WITH the candidate against these limits. Its outcome is one of
+# approve / resize / restructure / hedge / delay / reject (DTH §XIV), recorded on
+# the decision's register record.
+#
+# PROVENANCE IS PART OF EACH NUMBER. `source: doctrine` means the Operating
+# Doctrine states it and this file only transcribes it. `proposed: true` means a
+# session proposed it and the operator has NOT ruled on it: the view and the
+# Weekly print such a limit as unratified, and the operator ratifies by setting
+# proposed: false -- in this file, by hand, not by a session.
+version: risk-limits-v1
+updated: 2026-09-28
+
+# The Doctrine's capital: the kill-switch ladder is written in dollars on it
+# ($6,000 = 2% daily). Every percentage limit below is a share of this.
+capital_usd:
+  value: 300000
+  source: doctrine
+  note: Operating Doctrine, the kill-switch ladder (-2% = $6,000)
+
+limits:
+  # THE ONE LIMIT THE DOCTRINE WRITES DOWN: "The sum of Book A's net beta and the
+  # beta-equivalent of Books B, C and D may not exceed the top of Book A's Macro
+  # band plus 15 percentage points." Computed per regime from `bands` below.
+  net_beta_over_band_top_pct:
+    value: 15
+    source: doctrine
+    note: Operating Doctrine, "Net exposure is capped across books"
+  # Proposed, unratified. Gross beta-adjusted notional in any one sector, as a
+  # share of capital.
+  sector_max_pct:
+    value: 25
+    proposed: true
+    source: session proposal, Phase 5a
+  # Proposed, unratified. Net dollars of vega per one volatility point across
+  # every options expression, as a share of capital (0.5% = $1,500 per point).
+  vega_max_pct_per_vol_pt:
+    value: 0.5
+    proposed: true
+    source: session proposal, Phase 5a
+  # Proposed, unratified. Net dollar duration per 100 bp across rate instruments,
+  # as a share of capital (5% = $15,000 per 100 bp).
+  duration_max_pct_per_100bp:
+    value: 5
+    proposed: true
+    source: session proposal, Phase 5a
+
+# Book A's exposure bands by Doctrine regime, net equity beta as % of capital.
+# Transcribed from the Operating Doctrine's band table; Transition is "the lower
+# half of the band the dial is leaving, hedged" and is computed, not listed.
+bands:
+  source: doctrine
+  Expansion:   [60, 80]
+  Overheat:    [40, 60]
+  Tightening:  [20, 40]
+  Contraction: [20, 40]
+
+# THE MACRO DIAL'S STATES MAPPED ONTO THE DOCTRINE'S REGIMES. The dial speaks
+# nine rule outputs and the Doctrine five regimes; this table joins them. Proposed
+# with the operator's instruction of 28 Sep 2026 and unratified until the Doctrine
+# monthly (3-4 Oct) rules on it -- the view prints this version beside the band.
+regime_mapping:
+  version: dial-to-doctrine-v1
+  proposed: true
+  map:
+    expansion: Expansion
+    goldilocks: Expansion
+    late_cycle: Overheat
+    overheating: Overheat
+    stagflation: Tightening
+    disinflationary_slowdown: Contraction
+    contraction: Contraction
+    deflationary_bust: Contraction
+    mixed: Transition
+  # THE DOCTRINE'S CROSSING RULE: a Macro dial state that changed within the
+  # last N sessions maps to Transition -- the lower half of the band it left.
+  transition_sessions: 10
+
+# Rule-break parameters the Doctrine states.
+rule_breaks:
+  # "A Book B position closed inside two sessions of entry for a reason other
+  # than its invalidation level is logged as a rule break."
+  book_b_conversion_sessions:
+    value: 2
+    source: doctrine

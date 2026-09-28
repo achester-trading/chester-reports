@@ -49,7 +49,7 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -643,6 +643,51 @@ def grades_block(since: Optional[str] = None) -> dict:
     return block
 
 
+def enforcement_block(session_day: Optional[str],
+                      as_of: Optional[str] = None) -> dict:
+    """PHASE 5a: what the order gate found, and the cross-book view. Reads only.
+
+    The rule breaks are the register's own rows for this session, written by
+    register.reconcile (the hourly sync and this pass's step before the report);
+    the view sums the open decisions across books against config/risk_limits.yaml.
+    Never silently absorbed: a break is printed here the session it is found.
+    """
+    out: dict[str, Any] = {"state": "ok", "session": session_day}
+    try:
+        from register import heat                           # noqa: PLC0415
+        from register.store import Register                 # noqa: PLC0415
+        with Register() as reg:
+            out["rule_breaks"] = [
+                {k: b.get(k) for k in ("kind", "instrument", "reason",
+                                       "decision_id", "session")}
+                for b in reg.rule_breaks(since=session_day)
+                if b.get("session") == session_day]
+            out["rule_breaks_total"] = len(reg.rule_breaks())
+            decs = reg.open_decisions()
+        st = observations.ObservationStore()
+        try:
+            v = heat.view(decs, st, as_of)
+        finally:
+            st.close()
+        out["view"] = {
+            "net_beta_pct": v["net_beta_pct"],
+            "net_beta_usd": v["net_beta_usd"],
+            "beta_by_book_usd": v["beta_by_book_usd"],
+            "sectors_usd": v["sectors_usd"], "vega_usd": v["vega_usd"],
+            "duration_usd_per_100bp": v["duration_usd_per_100bp"],
+            "breaches": [c["limit"] for c in v["breaches"]],
+            "concentrations": v["concentrations"], "missing": v["missing"],
+            "regime": {k: (v["regime"] or {}).get(k) for k in
+                       ("dial_state", "regime", "band", "cap_pct",
+                        "mapping_version", "mapping_proposed", "reason")},
+            "positions": len(v["positions"]),
+            "text": heat.format_view(v)}
+    except Exception as exc:                                  # noqa: BLE001
+        out = {"state": "absent", "session": session_day,
+               "fault": f"enforcement reader raised {type(exc).__name__}: {exc}"}
+    return out
+
+
 def _method_notes(report: str, key: Optional[str]) -> list[str]:
     from .method_notes import for_edition                    # noqa: PLC0415
     return for_edition(report, key)
@@ -713,4 +758,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "warnings": warnings,
         # H-1 item 4: a line declared for exactly this edition, if any.
         "method_notes": _method_notes("daily_close", resolved),
+        # Phase 5a: the order gate's findings and the cross-book view.
+        "enforcement": enforcement_block(resolved, cutoff),
     }

@@ -102,6 +102,20 @@ if [[ $RC -eq 0 ]]; then
 ' "$SHA" "$(date --iso-8601=seconds)"         >"$STATE_DIR/ibkr_sync_last_success"
 fi
 
+# ---- the order gate, by reconciliation (Phase 5a) ----------------------------
+#
+# Every fill this sync just read is held to the register: an accepted decision in
+# instrument, side, size and expression, or a rule break with its reason. Only
+# after a clean sync -- a failed one read no fills -- and never fatal: the
+# positions are recorded whatever reconciliation finds, and the close pass runs it
+# again (idempotent) before the report.
+if [[ $RC -eq 0 ]]; then
+    REC_OUT="$("$PY" -m register.reconcile run 2>&1 | tail -8)"
+    REC_RC=$?
+    printf '%s\n' "$REC_OUT" | sed 's/^/  /' >>"$LOG"
+    [[ $REC_RC -ne 0 ]] && log "WARN reconcile exited $REC_RC -- continuing; the close pass re-runs it"
+fi
+
 # ---- the hourly RSS top-up, and nothing else --------------------------------
 #
 # THE NEWS SOURCES ONLY, AND AT MOST ONCE AN HOUR. This wrapper runs every thirty

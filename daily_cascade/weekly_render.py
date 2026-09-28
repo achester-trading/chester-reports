@@ -325,8 +325,31 @@ def register_block(payload: dict) -> str:
     # The style is chosen before the f-string: an expression split across two
     # adjacent literals is not one expression, which is what the first version
     # tried and the parser refused.
-    rb_style = (WARN if rb.get("restricted_instrument_attempts_this_week")
-                else ABSENT)
+    week = rb.get("rule_breaks_this_week") or {}
+    listed = rb.get("rule_breaks_listed") or []
+    rb_style = (WARN if (rb.get("restricted_instrument_attempts_this_week")
+                         or listed) else ABSENT)
+    # PHASE 5a: the order gate's reconciliation and the Doctrine's position
+    # rules, by kind, each one listed with its reason.
+    gate_line = (
+        f'<br>order gate and position rules this week: '
+        + (", ".join(f'{esc(k)} {n}' for k, n in week.items() if n)
+           or "none broken")
+        + f' &middot; {esc(rb.get("rule_breaks_total", 0))} on the register to '
+          f'date' if week else "")
+    listed_html = ("".join(f'<br>&nbsp;&nbsp;{esc(x.get("session"))} '
+                           f'<code>{esc(x.get("kind"))}</code> {esc(x.get("reason"))}'
+                           for x in listed) if listed else "")
+    ns_html = (f'<p style="{NOTE}"><strong>Not yet sourced</strong>, and a zero '
+               f'here would read as "no rule was broken", which is a claim this '
+               f'system cannot make: '
+               + "; ".join(f'<code>{esc(k)}</code> needs '
+                           f'{esc(", ".join(v.get("needs") or []))}'
+                           for k, v in sorted(ns.items()))
+               + '</p>') if ns else ""
+    fault = (f'<p style="{NOTE}">FAULT (code, not data) -- '
+             f'{esc(rb["rule_breaks_fault"])}</p>'
+             if rb.get("rule_breaks_fault") else "")
     parts.append(
         f'<div style="{rb_style}"><strong>Rule breaks</strong><br>'
         f'restricted-instrument attempts this week: '
@@ -335,13 +358,9 @@ def register_block(payload: dict) -> str:
         f'{esc(rb.get("restricted_instrument_attempts_total"))}<br>'
         f'decisions blocked on eligibility this week: '
         f'{esc(rb.get("decision_blocked_this_week"))}'
-        f'<p style="{NOTE}">{esc(rb.get("running_total_note"))}</p>'
-        f'<p style="{NOTE}"><strong>Not yet sourced</strong>, and a zero here would '
-        f'read as "no rule was broken", which is a claim this system cannot make: '
-        + "; ".join(f'<code>{esc(k)}</code> needs '
-                    f'{esc(", ".join(v.get("needs") or []))}'
-                    for k, v in sorted(ns.items()))
-        + '</p></div>')
+        + gate_line + listed_html
+        + f'<p style="{NOTE}">{esc(rb.get("running_total_note"))}</p>'
+        + ns_html + fault + '</div>')
     return "".join(parts)
 
 

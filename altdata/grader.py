@@ -386,6 +386,14 @@ class GradeStore:
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.execute("PRAGMA busy_timeout = 5000")
         self.conn.executescript(SCHEMA)
+        # PHASE 5a: the rule breaks the register holds against the graded
+        # decision's chain, as JSON [{kind, session, reason}]. Nullable: grades
+        # written before the column read NULL, which means "not recorded", not
+        # "none broken".
+        try:
+            self.conn.execute("ALTER TABLE grades ADD COLUMN rule_breaks TEXT")
+        except sqlite3.OperationalError:
+            pass
         self.conn.commit()
 
     def close(self) -> None:
@@ -643,6 +651,33 @@ def decisions_to_grade(db_path: Optional[str] = None) -> list[dict]:
     return sorted(out, key=lambda r: r.get("entry_decision_time") or "")
 
 
+def rule_breaks_for(decision_id: str, db_path: Optional[str] = None) -> list[dict]:
+    """The register's rule breaks against every row of this decision's chain.
+
+    PHASE 5a. A grade answers "did the thesis work", and a rule break answers "was
+    it traded as recorded"; Part 7's error decomposition needs both on the same
+    row, so a right thesis traded against the register is not scored as a clean
+    success. The chain, because reconciliation names the row in force when the
+    fill happened and the grader grades the chain's head.
+    """
+    try:
+        from register.store import Register                    # noqa: PLC0415
+    except Exception:                                          # noqa: BLE001
+        return []
+    with Register(db_path) as reg:
+        rows = {r["id"]: r for r in reg.all()}
+        back = {r["superseded_by"]: r["id"] for r in rows.values()
+                if r.get("superseded_by")}
+        ids, cur = set(), decision_id
+        while cur in back:                   # walk to the start of the chain
+            cur = back[cur]
+        while cur:
+            ids.add(cur)
+            cur = (rows.get(cur) or {}).get("superseded_by")
+        return [{"kind": b["kind"], "session": b["session"], "reason": b["reason"]}
+                for b in reg.rule_breaks() if b.get("decision_id") in ids]
+
+
 def run(db_path: Optional[str] = None, *, now: Optional[str] = None,
         pin_log: Optional[str] = None, dry_run: bool = False) -> dict:
     """Grade everything gradeable. Returns what happened, per decision."""
@@ -660,6 +695,11 @@ def run(db_path: Optional[str] = None, *, now: Optional[str] = None,
             if not res["graded"]:
                 skipped.append(res)
                 continue
+            try:
+                res["grade"]["rule_breaks"] = json.dumps(
+                    rule_breaks_for(d["id"], db_path), sort_keys=True)
+            except Exception as exc:                           # noqa: BLE001
+                log.warning("rule breaks unreadable for %s: %s", d["id"], exc)
             if not dry_run:
                 store.write(res["grade"])
             graded.append(res["grade"])

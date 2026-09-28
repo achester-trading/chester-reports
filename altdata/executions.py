@@ -242,6 +242,11 @@ class ExecutionStore:
             "SELECT * FROM executions WHERE instrument = ? "
             "ORDER BY exec_time DESC LIMIT ?", (instrument, limit))]
 
+    def all(self) -> list[dict]:
+        """Every fill, oldest first -- the reconciliation's input (Phase 5a)."""
+        return [dict(r) for r in self.conn.execute(
+            "SELECT * FROM executions ORDER BY exec_time, exec_id")]
+
     def latest(self, limit: int = 20) -> list[dict]:
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM executions ORDER BY exec_time DESC LIMIT ?", (limit,))]

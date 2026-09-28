@@ -64,7 +64,7 @@ sys.path.insert(0, str(REPO / "tools"))
 from altdata import session                       # noqa: E402
 from register import instruments, manifest        # noqa: E402
 from register.store import (                      # noqa: E402
-    CURRENCY_EXPOSURES, DIRECTIONS, EXPRESSION_FAMILIES, HORIZONS,
+    BOOKS, CURRENCY_EXPOSURES, DIRECTIONS, EXPRESSION_FAMILIES, HORIZONS,
     LEVERAGE_FORMS, OPERATOR_ACTIONS, STATUSES,
     THESIS_STATES,
     Register, RestrictedInstrumentError,
@@ -203,7 +203,7 @@ def _estimate_block(args, warns: list[dict]) -> dict:
         print(f"      {str(e).splitlines()[0]}")
 
     est = ibkr_costs.estimate(
-        args.instrument, args.direction, float(args.quantity), price,
+        args.instrument, args.direction, float(args.quantity or 100), price,
         sec_type=args.sec_type, baseline=baseline, action=args.action,
         premium=args.limit_price if args.sec_type == "OPT" else None,
         port=port, price_source=price_src)
@@ -233,7 +233,7 @@ def _preview_block(args, warns: list[dict]) -> Optional[dict]:
           f"[{ibkr_whatif.ibkr.mode_for_port(port)}]")
     try:
         p = ibkr_whatif.run(
-            args.instrument, args.direction, float(args.quantity),
+            args.instrument, args.direction, float(args.quantity or 100),
             host=args.preview_host, port=port,
             client_id=args.preview_client_id, allow_live=args.allow_live,
             order_type=args.order_type, limit_price=args.limit_price,
@@ -289,6 +289,70 @@ def _economics_block(args, warns: list[dict]) -> Optional[dict]:
     est["whatif_attempted"] = True
     est["whatif_error"] = (p or {}).get("error")
     return est
+
+
+def _binding_expression(args) -> list[str]:
+    """PHASE 5a: THE EXPRESSION CHECK, BINDING ON ACTIVATION.
+
+    Until now every expression rule was a warning, and the register said so:
+    "Phase 5 is where that becomes binding." Binding here means the parts that
+    are facts rather than judgement: a decision that becomes active must name
+    its expression_family and leverage_form (so reconciliation can hold the
+    fills to them), and a decision shaped as options must name an options
+    family. The judgement rules -- does this shape suit this edge -- stay
+    warnings; a hard gate on judgement is a gate that gets routed around.
+    """
+    from register.heat import OPTION_FAMILIES  # noqa: PLC0415
+    errs = []
+    fam = getattr(args, "expression_family", None)
+    lev = getattr(args, "leverage_form", None)
+    if fam is None:
+        errs.append("no --expression-family: an active decision names its shape")
+    if lev is None:
+        errs.append("no --leverage-form: an active decision names how any "
+                    "leverage is delivered ('none' is an answer)")
+    if getattr(args, "sec_type", "STK") == "OPT" and fam is not None \
+            and fam not in OPTION_FAMILIES:
+        errs.append(f"--sec-type OPT but --expression-family {fam!r} is not an "
+                    f"options family")
+    return errs
+
+
+def _gate_block(reg, args, candidate: dict) -> dict:
+    """PHASE 5a: THE ORDER GATE AT ENTRY. The cross-book view with this decision
+    added, against config/risk_limits.yaml. Prints; the caller records it."""
+    from altdata import observations  # noqa: PLC0415
+    from register import heat  # noqa: PLC0415
+    st = observations.ObservationStore(args.db)
+    try:
+        g = heat.gate(candidate, reg.open_decisions(), st)
+    finally:
+        st.close()
+    print(f"\n  order gate at entry (Phase 5a -- cross-book heat/factor view)")
+    for ln in heat.format_view(g["view_after"]).splitlines():
+        print(f"    {ln}")
+    print(f"\n    GATE: {g['outcome'].upper()}"
+          + (f"  (fits at {g['resize_factor']:.0%})"
+             if g.get("resize_factor") is not None and g["outcome"] == "resize"
+             else ""))
+    for r in g["reasons"]:
+        print(f"      - {r}")
+    return g
+
+
+def _gate_detail(g: dict) -> dict:
+    v = g["view_after"]
+    return {"outcome": g["outcome"], "reasons": g["reasons"],
+            "resize_factor": g.get("resize_factor"),
+            "net_beta_pct": v.get("net_beta_pct"),
+            "concentrations": v.get("concentrations"),
+            "breaches": [c["limit"] for c in v.get("breaches") or []],
+            "missing": v.get("missing"),
+            "regime": {k: (v.get("regime") or {}).get(k) for k in
+                       ("dial_state", "regime", "band", "cap_pct",
+                        "mapping_version", "mapping_proposed")},
+            "limits_version": v.get("limits_version"),
+            "reference_version": v.get("reference_version")}
 
 
 def cmd_record(args) -> int:
@@ -381,6 +445,39 @@ def cmd_record(args) -> int:
         warns = _expression_block(args)
         expected_cost = _economics_block(args, warns)
 
+        # ---- PHASE 5a: binding expression, then the gate at entry --------
+        gate_out = None
+        # THE REQUEST, NOT THE OUTCOME: an incomplete request for `active` is
+        # refused whether or not its signals are fresh -- a stale one would be
+        # downgraded to draft and the incompleteness would pass unremarked.
+        if status == "active":
+            if not args.book:
+                print(f"\n  REFUSED -- an active decision names its book: "
+                      f"--book {{{','.join(BOOKS)}}}")
+                print(LINE)
+                return 2
+            bind = _binding_expression(args)
+            if bind:
+                print(f"\n  expression check, BINDING on activation")
+                for e in bind:
+                    print(f"    REFUSED -- {e}")
+                print(LINE)
+                return 2
+        gate_out = _gate_block(reg, args, {
+            "id": "candidate", "instrument": args.instrument,
+            "direction": args.direction, "book": args.book,
+            "notional_usd": args.notional, "vega_usd": args.vega,
+            "expression_family": args.expression_family,
+            "leverage_form": args.leverage_form})
+        if gate_out["outcome"] != "approve" and status == "active":
+            if args.override_gate:
+                print(f"\n    OVERRIDDEN by the operator: {args.override_gate}")
+            else:
+                print(f"\n    requested status `active` held at `draft` -- the "
+                      f"gate did not approve. To proceed anyway, the OPERATOR "
+                      f"re-runs this\n    command with --override-gate "
+                      f"\"<reason>\"; the override is recorded on the decision.")
+
         # The packet, built now rather than reconstructed later.
         inputs, inputs_note = _inputs_for(args.instrument)
         pkt = manifest.build_packet(run_id, session.utc_iso(), cutoff, inputs,
@@ -427,7 +524,9 @@ def cmd_record(args) -> int:
             # Exit 3 on a blocked dry run too. A dry run's job is to say what
             # WOULD happen, and exiting 0 would say "fine" about a decision
             # that is not -- which is the one thing a dry run must not do.
-            return 3 if blocked_reason else 0
+            gate_held = (gate_out is not None and gate_out["outcome"] != "approve"
+                         and status == "active" and not args.override_gate)
+            return 3 if (blocked_reason or gate_held) else 0
 
         did = reg.record(instrument=args.instrument, direction=args.direction,
                          thesis=args.thesis, edge_type=args.edge_type,
@@ -439,12 +538,22 @@ def cmd_record(args) -> int:
                          currency_exposure=args.currency_exposure,
                          base_rate_cited=args.base_rate_cited,
                          expression_family=args.expression_family,
-                         leverage_form=args.leverage_form)
+                         leverage_form=args.leverage_form,
+                         book=args.book, quantity=args.position_quantity,
+                         notional_usd=args.notional, vega_usd=args.vega,
+                         time_stop=args.time_stop,
+                         gate_outcome=(gate_out or {}).get("outcome"),
+                         gate_detail=(_gate_detail(gate_out) if gate_out else None),
+                         gate_override=args.override_gate)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
         print(f"    packet id   : {pid}  (immutable)")
-        print(f"    status      : {status}")
+        final = reg.get(did) or {}
+        print(f"    status      : {final.get('status', status)}")
+        print(f"    book        : {args.book or '(none)'}   gate "
+              f"{(gate_out or {}).get('outcome', 'not run')}"
+              + (f"   OVERRIDE: {args.override_gate}" if args.override_gate else ""))
         print(f"    expression  : {expression_check.summarise(warns)}")
         if expected_cost is None:
             print(f"    economics   : no preview run (expected_cost is NULL, "
@@ -460,10 +569,10 @@ def cmd_record(args) -> int:
         else:
             print(f"    economics   : preview attempted and unavailable "
                   f"({expected_cost.get('error')})")
-        if blocked_reason:
-            print(f"    blocked     : {blocked_reason[:120]}")
+        if final.get("blocked_reason"):
+            print(f"    blocked     : {final['blocked_reason'][:120]}")
         print(LINE)
-        return 3 if blocked_reason else 0
+        return 3 if final.get("blocked_reason") else 0
     finally:
         reg.close()
 
@@ -683,6 +792,31 @@ def cmd_set_status(args) -> int:
             print(f"\n  DECISION_OK -- every declared signal is inside its "
                   f"half-life")
 
+        # ---- PHASE 5a: the book, and the gate, on the transition -----------
+        old_d = dict(old)
+        book = args.book or old_d.get("book")
+        becoming_active = args.status == "active" and old["status"] != "active"
+        gate_out = None
+        if becoming_active:
+            if not book:
+                print(f"\n  REFUSED -- an active decision names its book: "
+                      f"--book {{{','.join(BOOKS)}}}")
+                print(LINE)
+                return 2
+            gate_out = _gate_block(reg, args, {**old_d, "id": "candidate",
+                                               "instrument": instrument,
+                                               "book": book})
+            if gate_out["outcome"] != "approve":
+                if args.override_gate:
+                    print(f"\n    OVERRIDDEN by the operator: {args.override_gate}")
+                else:
+                    print(f"\n  REFUSED -- the gate did not approve activation. "
+                          f"The OPERATOR may re-run with\n    --override-gate "
+                          f"\"<reason>\"; the override is recorded on the "
+                          f"decision.")
+                    print(LINE)
+                    return 3
+
         if args.dry_run:
             print(f"\n  DRY RUN -- nothing written, nothing superseded.")
             print(LINE)
@@ -719,7 +853,21 @@ def cmd_set_status(args) -> int:
             leverage_form=(getattr(args, "leverage_form", None)
                            or (old["leverage_form"]
                                if "leverage_form" in old.keys() else None)),
-            note=args.note)
+            note=args.note,
+            # Phase 5a: carried forward, the book overridable, the close reason
+            # and the gate's verdict new on this row.
+            book=book, quantity=old_d.get("quantity"),
+            notional_usd=old_d.get("notional_usd"),
+            vega_usd=old_d.get("vega_usd"), time_stop=old_d.get("time_stop"),
+            close_reason=(args.close_reason if args.status == "closed"
+                          else old_d.get("close_reason")),
+            gate_outcome=((gate_out or {}).get("outcome")
+                          or old_d.get("gate_outcome")),
+            gate_detail=(_gate_detail(gate_out) if gate_out else
+                         (json.loads(old_d["gate_detail"])
+                          if old_d.get("gate_detail") else None)),
+            gate_override=args.override_gate or old_d.get("gate_override"),
+            becoming_active=becoming_active)
 
         # The successor gets its own packet, because a decision without one
         # cannot be replayed and `show` would report none. Its INPUTS are the
@@ -844,6 +992,25 @@ def main() -> int:
                         "a retyped figure: a packet that retypes a number cannot "
                         "be replayed against the table that said it.")
     r.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS)
+    # -- Phase 5a: the book, a structured size, the time stop, vega, override.
+    r.add_argument("--book", default=None, choices=BOOKS,
+                   help="The Doctrine's book. Required for an active decision: "
+                        "the cross-book heat view sums by it.")
+    r.add_argument("--position-quantity", type=float, default=None,
+                   help="The decision's size in shares or contracts. "
+                        "Reconciliation holds the fills to it; unset means size "
+                        "is not checked.")
+    r.add_argument("--vega", type=float, default=None,
+                   help="Options expressions: dollars of vega per one vol point, "
+                        "SIGNED (negative when short volatility). Without it the "
+                        "gate delays an options decision rather than guess.")
+    r.add_argument("--time-stop", default=None, metavar="YYYY-MM-DD",
+                   help="The date past which the position is closed regardless "
+                        "of thesis (Doctrine, Books B and D).")
+    r.add_argument("--override-gate", default=None, metavar="REASON",
+                   help="THE OPERATOR'S OVERRIDE of a gate outcome other than "
+                        "approve. Recorded on the decision. A session prints "
+                        "this command and never runs it.")
     r.add_argument("--run-id", default=None)
     r.add_argument("--available-at-cutoff", default=None)
     r.add_argument("--dry-run", action="store_true",
@@ -855,8 +1022,9 @@ def main() -> int:
     #    simplest expression, so a decision that names no shape is treated as
     #    shares rather than as unknown.
     r.add_argument("--sec-type", default="STK", choices=("STK", "OPT"))
-    r.add_argument("--quantity", type=float, default=100,
-                   help="Shares, or contracts for OPT. Used by --preview.")
+    r.add_argument("--quantity", type=float, default=None,
+                   help="Shares, or contracts for OPT. Used by --preview "
+                        "(default 100 there).")
     r.add_argument("--order-type", default="MKT", choices=("MKT", "LMT"))
     r.add_argument("--limit-price", type=float, default=None)
     r.add_argument("--expiry", default=None, help="OPT only, YYYYMMDD")
@@ -911,6 +1079,15 @@ def main() -> int:
                          "that something changed and not why.")
     ss.add_argument("--operator-action", default=None, choices=OPERATOR_ACTIONS,
                     help="Carried forward from the superseded row if omitted.")
+    ss.add_argument("--book", default=None, choices=BOOKS,
+                    help="Name the book. Carried forward if omitted; required "
+                         "when a row BECOMES active and has none.")
+    ss.add_argument("--close-reason", default=None, metavar="REASON",
+                    help="Why a position was closed -- 'invalidation' for its "
+                         "invalidation level. Book B closes inside two sessions "
+                         "for any other reason are rule breaks.")
+    ss.add_argument("--override-gate", default=None, metavar="REASON",
+                    help="The operator's override of the gate on activation.")
     ss.add_argument("--run-id", default=None)
     ss.add_argument("--dry-run", action="store_true",
                     help="Show what would be superseded, and write nothing.")

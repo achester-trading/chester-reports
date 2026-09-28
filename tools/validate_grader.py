@@ -256,7 +256,7 @@ def group_e(d: Path) -> None:
     b = reg.supersede(a, instrument="SPY", direction="long", thesis="t",
                       edge_type="positioning", horizon="swing",
                       invalidation="settled close below 685", status="active",
-                      operator_action="TAKE",
+                      operator_action="TAKE", book="B",
                       decision_time="2026-09-19T00:00:00+00:00")
     reg.close()
     rows = grader.decisions_to_grade(reg_db)

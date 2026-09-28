@@ -611,33 +611,43 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
                 "the Doctrine's Book D gate trends this to zero, so the running "
                 "total is the figure that matters and the week's count is how it "
                 "moved"),
-            # THE DOCTRINE'S POSITION RULE BREAKS ARE NOT SOURCED, and saying so is
-            # the point of the block. Each needs something the register does not
-            # carry, named rather than left as a silent zero: a zero here would
-            # read as "no rule was broken this week", which is a claim this system
-            # cannot currently make.
-            "not_yet_sourced": {
-                "allocation_floor_breach": {
-                    "needs": ["a band-weighted stance per book",
-                              "the current band from the Macro dial"],
-                    "why": "a stance below the floor of the current band is a rule "
-                           "break, and nothing computes the stance yet"},
-                "book_b_conversion": {
-                    "needs": ["a book label on each decision",
-                              "the reason a position was closed"],
-                    "why": "a Book B position closed inside two sessions for a "
-                           "reason other than its invalidation level is a rule "
-                           "break; the register records neither the book nor the "
-                           "closing reason"},
-                "time_stop_passed": {
-                    "needs": ["a time stop per decision"],
-                    "why": "a Book B position past its time stop is closed "
-                           "regardless of thesis, and no time stop is recorded"},
-            },
+            # THE DOCTRINE'S POSITION RULES AND THE ORDER GATE (Phase 5a). Read
+            # from the register's rule_breaks rows, written by register.reconcile
+            # at every hourly sync and before every close. A rule that still
+            # cannot be read says why rather than printing a zero.
+            **_rule_breaks_week(start, ending),
         }
     finally:
         if own:
             db.close()
+    return out
+
+
+def _rule_breaks_week(start: str, ending: str) -> dict:
+    """The week's rule breaks by kind, and the one position rule not yet readable."""
+    from register.store import RULE_BREAK_KINDS, Register     # noqa: PLC0415
+    out: dict[str, Any] = {}
+    try:
+        with Register() as reg:
+            rows = [b for b in reg.rule_breaks(since=start)
+                    if start <= str(b.get("session")) <= ending]
+            total = reg.rule_breaks()
+            ever_a = any(r.get("book") == "A" for r in reg.all())
+    except Exception as exc:                                  # noqa: BLE001
+        return {"rule_breaks_fault": f"rule_breaks reader raised "
+                                     f"{type(exc).__name__}: {exc}"}
+    out["rule_breaks_this_week"] = {k: sum(1 for b in rows if b["kind"] == k)
+                                    for k in RULE_BREAK_KINDS}
+    out["rule_breaks_listed"] = [
+        {k: b.get(k) for k in ("session", "kind", "instrument", "reason")}
+        for b in rows]
+    out["rule_breaks_total"] = len(total)
+    out["not_yet_sourced"] = ({} if ever_a else {
+        "allocation_floor_breach": {
+            "needs": ["a Book A decision on the register"],
+            "why": "Book A's stance is read from its recorded decisions, and none "
+                   "has been recorded -- a zero would be an assumption, not a "
+                   "reading"}})
     return out
 
 

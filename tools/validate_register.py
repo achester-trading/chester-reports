@@ -275,7 +275,7 @@ def group_g(db_path: str) -> None:
     # one write that matters after a missed exit (status still active,
     # thesis_state INVALIDATED) was refused as a stale activation.
     live = reg.record(instrument="QQQ", status="active",
-                      operator_action="TAKE",
+                      operator_action="TAKE", book="B",
                       **{**base, "thesis": "held position"})
     reg.close()
 
@@ -309,6 +309,7 @@ def group_g(db_path: str) -> None:
     # issuer root must not change, and that is the whole rule.
     reg = Register(db_path)
     d3 = reg.record(instrument="SPY", status="active", operator_action="TAKE",
+                    book="B",
                     **{**base, "direction": "long", "thesis": "to re-designate"})
     reg.close()
 

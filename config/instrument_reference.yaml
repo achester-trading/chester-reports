@@ -1,0 +1,66 @@
+# instrument_reference.yaml -- the declared facts the heat view needs and the
+# store cannot compute. (Phase 5a; EL-2)
+#
+# BETA IS NOT HERE. It is computed by register/heat.py from stored daily returns
+# against SPY, so it moves with the data and replays from the store. What is here
+# is what no price series yields: which SECTOR a position's dollars sit in, and the
+# DURATION of a rate instrument.
+#
+# SECTOR WEIGHTS ARE LOOK-THROUGH SHARES, summing to at most 1; the remainder is
+# `other`. A single name is 1.0 in its sector. A broad index fund carries its
+# approximate sector shares -- APPROXIMATE, dated, and marked `proposed: true`
+# until the operator checks them against the issuer's holdings, because a number
+# typed from memory is a number nobody can check (the claims registry's rule).
+# The view prints unratified weights as such.
+version: instrument-reference-v1
+updated: 2026-09-28
+
+sectors:
+  # Single names.
+  NVDA: {technology: 1.0}
+  # Sector funds are their sector.
+  XLK: {technology: 1.0}
+  XLC: {communication: 1.0}
+  XLY: {consumer_discretionary: 1.0}
+  XLP: {consumer_staples: 1.0}
+  XLF: {financials: 1.0}
+  XLE: {energy: 1.0}
+  XLV: {health_care: 1.0}
+  XLI: {industrials: 1.0}
+  XLU: {utilities: 1.0}
+  XLB: {materials: 1.0}
+  XLRE: {real_estate: 1.0}
+  # Broad indices: approximate look-through, to be verified against holdings.
+  SPY:
+    technology: 0.32
+    communication: 0.09
+    consumer_discretionary: 0.10
+    financials: 0.13
+    health_care: 0.10
+    proposed: true
+    source: approximate S&P 500 sector weights, to verify against SPDR holdings
+    as_of: 2026-09
+  QQQ:
+    technology: 0.60
+    communication: 0.15
+    consumer_discretionary: 0.14
+    proposed: true
+    source: approximate Nasdaq-100 sector weights (ICB technology), to verify against Invesco holdings
+    as_of: 2026-09
+  IWM:
+    financials: 0.17
+    industrials: 0.17
+    health_care: 0.16
+    technology: 0.13
+    proposed: true
+    source: approximate Russell 2000 sector weights, to verify
+    as_of: 2026-09
+
+# Effective duration in years, for rate instruments. Dollar duration per 100 bp
+# is notional x duration / 100. Approximate issuer figures, proposed until checked.
+durations:
+  TLT: {years: 16.5, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
+  IEF: {years: 7.3, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
+  SHY: {years: 1.9, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
+  LQD: {years: 8.3, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
+  HYG: {years: 3.2, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}

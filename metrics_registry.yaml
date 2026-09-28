@@ -5364,7 +5364,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 40
+    expected_members: 41   # 40 + NVDA (Phase 5a, the heat view's single name)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5388,7 +5388,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 40
+    expected_members: 41   # 40 + NVDA (Phase 5a, the heat view's single name)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

@@ -150,6 +150,13 @@ SYMBOLS: dict[str, str] = {
     # reviewed.
     "^VIX": "mkt_vix",
     "^VIX3M": "mkt_vix3m",
+    # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
+    # computes each position's beta against SPY from stored daily returns, and a
+    # name the store does not carry has no beta -- the gate then DELAYS rather than
+    # assuming one. NVDA is the name the enterprise acceptance test (EL-2) needs;
+    # a name added here needs a backfill (tools/backfill_prices.py) before its beta
+    # reads anything.
+    "NVDA": "mkt_nvda",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #
