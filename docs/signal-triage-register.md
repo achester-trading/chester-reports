@@ -61,6 +61,7 @@
 | 26 | X/R | TIC flows, 12m to Jul 2026 (Riemann, 24 Sep) | Adopt composition read; reject "demand collapsed" | Absorber-fragility modifier (after gate) | ST-2, ST-4 | ADOPTED — gate pending |
 | 27 | X/R | TIC Major Foreign Holders, 12m change (research note) | Adopt holder panel with mechanism tags; reject "China dumping" | Absorber-fragility modifier (after gate) | ST-2, ST-4 | ADOPTED — gate pending |
 | 28 | R | Fed Board speaker and event calendar (operator, 28 Sep) | Adopt calendar feed; no rights | None (calendar data, REPORT_OK) | Next events session (≈1–1.5 h) | ADOPTED — pending build |
+| 29 | D | Bitcoin long-term-holder supply (Carney/River, blockhorizon data, 26 Sep) | Adopt by-hand scorecard; reject supply-crunch reading | None (scorecard) | By hand, monthly (≈5 min); ≈0 h build | ADOPTED — scorecard, no rights |
 
 ---
 
@@ -307,9 +308,11 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Home.** Disruptive Themes Factor I evidence log (human-gated); Monthly Duration Absorption block (supply side, §2.1.2); Credit; Equities (rings chapter); Debt Cycles brief (analog set).
 
-**Mechanism.** The transition from self-funded to debt-funded capex is the classic late-stage marker of a capex boom (telecom 1998–2001, shale 2012–15, merchant power 2000–02). The post's real evidence is absorption, not issuance: new-issue concessions 2→12 bp, cover 3.2×→2.5×, 78 of 91 bonds wider than launch — the marginal buyer charging. Two objects the panel keeps apart: the hyperscaler unsecured leg, where solvency is not the question (≈1.8× leverage) and the signal is price (concession, spread, long-end appetite); and rings 2–3 (neocloud HY, GPU-backed ABS, SPV/private-credit and vendor financing), where the signal is default risk and where marginal financing has migrated. The mechanism variable is free and quarterly: aggregate self-funding ratio (operating cash flow ÷ capex) for AMZN, GOOGL, MSFT, META, ORCL, with net debt change — below 1 for two quarters is the regime line. The long-end supply share (42% of 15y+ issuance) is the bridge to SR-23. One daily tell falls out of the quality mix: hyperscalers are AA-class and a fifth of supply, so AA OAS widening relative to BBB (quality unchanged, supply changed) reads as supply pressure. A hike into this (SR-21) is the 1999–2000 sequence; this panel deteriorates first.
+**Mechanism.** The transition from self-funded to debt-funded capex is the classic late-stage marker of a capex boom (telecom 1998–2001, shale 2012–15, merchant power 2000–02). The post's real evidence is absorption, not issuance: new-issue concessions 2→12 bp, cover 3.2×→2.5×, 78 of 91 bonds wider than launch — the marginal buyer charging. Two objects the panel keeps apart: the hyperscaler unsecured leg, where solvency is not the question (≈1.8× leverage) and the signal is price (concession, spread, long-end appetite); and rings 2–3 (neocloud HY, GPU-backed ABS, SPV/private-credit and vendor financing), where the signal is default risk and where marginal financing has migrated. The mechanism variable is free and quarterly: aggregate self-funding ratio (operating cash flow ÷ capex) for AMZN, GOOGL, MSFT, META, ORCL, with net debt change — below 1 for two quarters is the regime line. The long-end supply share (42% of 15y+ issuance) is the bridge to SR-23. One daily tell falls out of the quality mix: hyperscalers are AA-class and a fifth of supply, so AA OAS widening relative to BBB (quality unchanged, supply changed) reads as supply pressure. The direct measure of that supply premium is the ICE BofA 15+ year US Tech & Electronics index spread over the ICE 15+ year AAA–A US Corporate index spread (`calc.tech15_premium`) — same quality, different supply; `calc.aa_bbb_oas_diff` stays as the daily FRED proxy. Seed values (≈Sep 2026, FT chart via Gemes post, 28 Sep): tech ≈1.25%, AAA–A ≈0.85%; at the Sep 2025 issuance turn ≈0.8% and ≈0.75%. A hike into this (SR-21) is the 1999–2000 sequence; this panel deteriorates first.
 
-**Data.** yfinance quarterly cash-flow statements (free); ICE BofA AA and BBB OAS via FRED (new — IG/HY/BB/CCC are held, AA and BBB are not); SIFMA issuance by maturity (monthly); NIC/cover figures are Bloomberg-only — `manual_input` quarterly, three numbers. *Lives in:* `yfinance.fund_*`, `fred.aa_oas`, `fred.bbb_oas`, `sifma.*`; `calc.self_fund_ratio`, `calc.hs_netdebt_12m`, `calc.aa_bbb_oas_diff`, `calc.ai_long_share`.
+**Evidence lines (third-party conclusions recorded, not inherited, §1.3).** Hyperscaler issuance ≈$120bn in 2025 and ≈$230bn 2026 YTD (SocGen via FT). ≈30% of 2026 issuance is non-dollar (EUR, CAD, GBP, CHF, AUD, JPY), so the supply channel now reaches the Bund and other long ends. Meta's expected euro debut. ECB staff questioning euro-market absorption. SoftBank's >$11bn HY deal to fund OpenAI — a ring-3 data point.
+
+**Data.** yfinance quarterly cash-flow statements (free); ICE BofA AA and BBB OAS via FRED (new — IG/HY/BB/CCC are held, AA and BBB are not); SIFMA issuance by maturity (monthly); NIC/cover figures are Bloomberg-only — `manual_input` quarterly, three numbers. ICE BofA 15+ year US Tech & Electronics index spread and ICE 15+ year AAA–A US Corporate index spread (FT/ICE via Bloomberg) — `manual_input`, quarterly, entered beside the new-issue concession and cover figures; `available_at` = operator entry date. *Lives in:* `yfinance.fund_*`, `fred.aa_oas`, `fred.bbb_oas`, `sifma.*`, `manual.ice_tech15_oas`, `manual.ice_aaa_a15_oas`; `calc.tech15_premium` (= tech − AAA–A), `calc.self_fund_ratio`, `calc.hs_netdebt_12m`, `calc.aa_bbb_oas_diff`, `calc.ai_long_share`.
 
 **Rights.** Narrow flag: self-funding ratio < 1 for two quarters, or AA–BBB differential compressing past a gate-set threshold → Factor I refresh input (human-gated). Ring-3 HY spreads as a HY Spread Acceleration overlay candidate only after gate (§2.6).
 
@@ -323,7 +326,7 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Mechanism (kept for the register).** "Real, not inflation" is half the attribution. Real yields rise for three reasons with opposite equity implications: growth (benign, correlation negative), Fed path (hawkish, correlation positive), real term premium (supply/fiscal — SR-23's channel, correlation positive). Breakevens falling while oil rises is anchored expectations — which makes 10y TIPS near 2.75% the SR-12 buy case if the term-premium cell drives, and a wait-for-the-pivot case if it is the Fed-path cell. Gold holding at these real yields is the Factor V scorecard metric (gold-vs-TIPS residual, already in Metals).
 
-**Data.** Fed Board DKW output (monthly Excel). *Lives in:* `dkw.real_expected_path`, `dkw.real_term_premium`, `dkw.tips_liquidity`.
+**Data.** Fed Board DKW output (monthly Excel); the 30-year TIPS real yield (DFII30, FRED, daily, percent) beside the 10-year (DFII10) for the long real end. *Lives in:* `dkw.real_expected_path`, `dkw.real_term_premium`, `dkw.tips_liquidity`, `fred.tips_30y`.
 
 **Rights.** None new. **Validation.** Rides on SR-6's ledger; adds a four-episode calibration table (2013, Q4 2018, 2022, H2 2023) of forward 6m equity outcomes by cell — base rate only.
 
@@ -519,6 +522,22 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Disposition.** Adopt; ≈1–1.5 h in the next events session.
 
+### SR-29 Bitcoin long-term-holder supply (Carney / River chart, blockhorizon data, 26 Sep 2026) — Thread D
+
+**Register status.** ADOPTED — scorecard, no rights · **Built in.** By hand, monthly (≈5 min); ≈0 h build
+
+**Ruling (28 Sep 2026, operator).** Adopt as a monthly by-hand scorecard with no rights; reject the post's supply-crunch reading (R30).
+
+**Home.** Alternative Asset section of the Monthly (as it folds in); Digital Assets paper, which already names holder supply as the key measurable; Book A context only.
+
+**Mechanism.** The post's "record 81% (16.3M BTC) unmoved 6+ months, so a supply crunch is coming" is rejected as a stock-flow fallacy: price is set at the margin, not by the stock. LTH supply builds through bear and accumulation phases and falls as holders distribute into rallies; falling LTH supply during a rally is the late-cycle tell, and a record high is closer to accumulation. ETF custody inflates the count: custodied coins do not move but are sellable on redemption. Read the 3-month change with price context, not the level.
+
+**Data.** Paid sources only (Glassnode, blockhorizon); `manual_input` monthly: LTH supply (BTC and % of supply) and its 3-month change; `available_at` = operator entry date. *Lives in:* `manual.btc_lth_supply`, `manual.btc_lth_share`; `calc.btc_lth_3m_chg`.
+
+**Rights.** None.
+
+**Validation.** None (scorecard).
+
 ---
 
 ## Explicit rejections (do not re-propose)
@@ -554,3 +573,4 @@ Copied from §12 of the order.
 - R27 — "China dumping Treasuries" from the Major Foreign Holders table without the custodial adjustment and the benchmark vintage.
 - **R28 (new, from the integration) — Any second regime, cell or tag computed outside the market-state object**, including the two-state tag of the 19 Sep SR-6 ruling and the four-cell table of the 25 Sep batch as standalone constructs.
 - R29 — Social-media claims of unscheduled Fed announcements, absent the Board calendar or a Board press release.
+- R30 — Record long-term-holder supply read as a forthcoming supply squeeze.

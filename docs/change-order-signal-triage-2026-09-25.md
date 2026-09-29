@@ -49,7 +49,7 @@
 | L — One library session, `library` worktree | ST-L | any time | ≈6.5 |
 | By hand | Tranche H | any time | ≈5.5 once + recurring |
 | Rulings of 28 Sep | SR-19 (C&C intake queue), SR-28 (next events session) | — | ≈3–3.5 |
-| Deferred backlog | Appendix C | — | (≈35, unscheduled) |
+| Deferred backlog | Appendix C | — | (≈33, unscheduled) |
 
 Total ≈108 h of sessions + ≈5.5 h by hand as signed; ≈111–111.5 h of sessions with the 28 Sep rulings (addendum). Tranche 5 shares nothing with Tranches 1–3 but D1c and the register; it can run beside them or after, chosen at sign-off (§13).
 
@@ -67,6 +67,7 @@ Total ≈108 h of sessions + ≈5.5 h by hand as signed; ≈111–111.5 h of ses
 |---|---|
 | `ADOPTED — pending build` | Ruled; nothing built yet |
 | `ADOPTED — gate pending` | Built; its calibration study has not yet run or reported |
+| `ADOPTED — scorecard, no rights` | Ruled as a scorecard; recorded, never a flag or modifier; SR-20, SR-29 |
 | `ADOPTED — rights live` | Gate passed; the flag or modifier carries the rights §6 grants it |
 | `DEFERRED — gate failed` | Built and tested; did not pass; kept as a note, no rights (§9) |
 | `DEFERRED — definition required` | Entered without its construction (§1.6); SR-19 until 28 Sep, since resolved |
@@ -242,7 +243,7 @@ Two additions to ongoing reporting: systematic coverage of Pearl (PRL) — Pearl
 **2.7.8 Falsifiers and review.** Useful if, over 90 days, at least one signpost moved and was reported before it appeared in mainstream crypto press, or at least one register candidate earned a WATCH promotion; if neither, the scan cadence drops to monthly and PRL coverage is reviewed under MW-7. D4/D6 threshold review at the first Monthly with 90 days of stored data (target January 2027). Quarterly PRL review against MW-7 at each quarter-end Monthly from December 2026. The Annual Structural Review decides whether "novel-mechanism coins" remains a watch category or folds into Digital Assets coverage.
 
 ---
-## §3 Rulings register (SR-1…SR-28)
+## §3 Rulings register (SR-1…SR-29)
 
 Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1…SR-9) are as ruled on 19 Sep with integration edits marked *[integ.]*; Batch 2 entries (SR-12…SR-27) are as ruled on 24–25 Sep with pointers updated.
 
@@ -276,6 +277,7 @@ Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1�
 | 26 | X/R | TIC flows, 12m to Jul 2026 (Riemann, 24 Sep) | Adopt composition read; reject "demand collapsed" | Absorber-fragility modifier (after gate) | ST-2, ST-4 |
 | 27 | X/R | TIC Major Foreign Holders, 12m change (research note) | Adopt holder panel with mechanism tags; reject "China dumping" | Absorber-fragility modifier (after gate) | ST-2, ST-4 |
 | 28 | R | Fed Board speaker and event calendar (operator, 28 Sep) | Adopt calendar feed; no rights | None (calendar data, REPORT_OK) | Next events session (≈1–1.5 h) |
+| 29 | D | Bitcoin long-term-holder supply (Carney/River, blockhorizon data, 26 Sep) | Adopt by-hand scorecard; reject supply-crunch reading | None (scorecard) | By hand, monthly (≈5 min); ≈0 h build |
 
 ### SR-1 Growth vs. Value relative performance (Weniger, 8 Sep 2026) — Thread E
 
@@ -482,9 +484,11 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Home.** Disruptive Themes Factor I evidence log (human-gated); Monthly Duration Absorption block (supply side, §2.1.2); Credit; Equities (rings chapter); Debt Cycles brief (analog set).
 
-**Mechanism.** The transition from self-funded to debt-funded capex is the classic late-stage marker of a capex boom (telecom 1998–2001, shale 2012–15, merchant power 2000–02). The post's real evidence is absorption, not issuance: new-issue concessions 2→12 bp, cover 3.2×→2.5×, 78 of 91 bonds wider than launch — the marginal buyer charging. Two objects the panel keeps apart: the hyperscaler unsecured leg, where solvency is not the question (≈1.8× leverage) and the signal is price (concession, spread, long-end appetite); and rings 2–3 (neocloud HY, GPU-backed ABS, SPV/private-credit and vendor financing), where the signal is default risk and where marginal financing has migrated. The mechanism variable is free and quarterly: aggregate self-funding ratio (operating cash flow ÷ capex) for AMZN, GOOGL, MSFT, META, ORCL, with net debt change — below 1 for two quarters is the regime line. The long-end supply share (42% of 15y+ issuance) is the bridge to SR-23. One daily tell falls out of the quality mix: hyperscalers are AA-class and a fifth of supply, so AA OAS widening relative to BBB (quality unchanged, supply changed) reads as supply pressure. A hike into this (SR-21) is the 1999–2000 sequence; this panel deteriorates first.
+**Mechanism.** The transition from self-funded to debt-funded capex is the classic late-stage marker of a capex boom (telecom 1998–2001, shale 2012–15, merchant power 2000–02). The post's real evidence is absorption, not issuance: new-issue concessions 2→12 bp, cover 3.2×→2.5×, 78 of 91 bonds wider than launch — the marginal buyer charging. Two objects the panel keeps apart: the hyperscaler unsecured leg, where solvency is not the question (≈1.8× leverage) and the signal is price (concession, spread, long-end appetite); and rings 2–3 (neocloud HY, GPU-backed ABS, SPV/private-credit and vendor financing), where the signal is default risk and where marginal financing has migrated. The mechanism variable is free and quarterly: aggregate self-funding ratio (operating cash flow ÷ capex) for AMZN, GOOGL, MSFT, META, ORCL, with net debt change — below 1 for two quarters is the regime line. The long-end supply share (42% of 15y+ issuance) is the bridge to SR-23. One daily tell falls out of the quality mix: hyperscalers are AA-class and a fifth of supply, so AA OAS widening relative to BBB (quality unchanged, supply changed) reads as supply pressure. The direct measure of that supply premium is the ICE BofA 15+ year US Tech & Electronics index spread over the ICE 15+ year AAA–A US Corporate index spread (`calc.tech15_premium`) — same quality, different supply; `calc.aa_bbb_oas_diff` stays as the daily FRED proxy. Seed values (≈Sep 2026, FT chart via Gemes post, 28 Sep): tech ≈1.25%, AAA–A ≈0.85%; at the Sep 2025 issuance turn ≈0.8% and ≈0.75%. A hike into this (SR-21) is the 1999–2000 sequence; this panel deteriorates first.
 
-**Data.** yfinance quarterly cash-flow statements (free); ICE BofA AA and BBB OAS via FRED (new — IG/HY/BB/CCC are held, AA and BBB are not); SIFMA issuance by maturity (monthly); NIC/cover figures are Bloomberg-only — `manual_input` quarterly, three numbers. *Lives in:* `yfinance.fund_*`, `fred.aa_oas`, `fred.bbb_oas`, `sifma.*`; `calc.self_fund_ratio`, `calc.hs_netdebt_12m`, `calc.aa_bbb_oas_diff`, `calc.ai_long_share`.
+**Evidence lines (third-party conclusions recorded, not inherited, §1.3).** Hyperscaler issuance ≈$120bn in 2025 and ≈$230bn 2026 YTD (SocGen via FT). ≈30% of 2026 issuance is non-dollar (EUR, CAD, GBP, CHF, AUD, JPY), so the supply channel now reaches the Bund and other long ends. Meta's expected euro debut. ECB staff questioning euro-market absorption. SoftBank's >$11bn HY deal to fund OpenAI — a ring-3 data point.
+
+**Data.** yfinance quarterly cash-flow statements (free); ICE BofA AA and BBB OAS via FRED (new — IG/HY/BB/CCC are held, AA and BBB are not); SIFMA issuance by maturity (monthly); NIC/cover figures are Bloomberg-only — `manual_input` quarterly, three numbers. ICE BofA 15+ year US Tech & Electronics index spread and ICE 15+ year AAA–A US Corporate index spread (FT/ICE via Bloomberg) — `manual_input`, quarterly, entered beside the new-issue concession and cover figures; `available_at` = operator entry date. *Lives in:* `yfinance.fund_*`, `fred.aa_oas`, `fred.bbb_oas`, `sifma.*`, `manual.ice_tech15_oas`, `manual.ice_aaa_a15_oas`; `calc.tech15_premium` (= tech − AAA–A), `calc.self_fund_ratio`, `calc.hs_netdebt_12m`, `calc.aa_bbb_oas_diff`, `calc.ai_long_share`.
 
 **Rights.** Narrow flag: self-funding ratio < 1 for two quarters, or AA–BBB differential compressing past a gate-set threshold → Factor I refresh input (human-gated). Ring-3 HY spreads as a HY Spread Acceleration overlay candidate only after gate (§2.6).
 
@@ -496,7 +500,7 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Mechanism (kept for the register).** "Real, not inflation" is half the attribution. Real yields rise for three reasons with opposite equity implications: growth (benign, correlation negative), Fed path (hawkish, correlation positive), real term premium (supply/fiscal — SR-23's channel, correlation positive). Breakevens falling while oil rises is anchored expectations — which makes 10y TIPS near 2.75% the SR-12 buy case if the term-premium cell drives, and a wait-for-the-pivot case if it is the Fed-path cell. Gold holding at these real yields is the Factor V scorecard metric (gold-vs-TIPS residual, already in Metals).
 
-**Data.** Fed Board DKW output (monthly Excel). *Lives in:* `dkw.real_expected_path`, `dkw.real_term_premium`, `dkw.tips_liquidity`.
+**Data.** Fed Board DKW output (monthly Excel); the 30-year TIPS real yield (DFII30, FRED, daily, percent) beside the 10-year (DFII10) for the long real end. *Lives in:* `dkw.real_expected_path`, `dkw.real_term_premium`, `dkw.tips_liquidity`, `fred.tips_30y`.
 
 **Rights.** None new. **Validation.** Rides on SR-6's ledger; adds a four-episode calibration table (2013, Q4 2018, 2022, H2 2023) of forward 6m equity outcomes by cell — base rate only.
 
@@ -668,6 +672,20 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Disposition.** Adopt; ≈1–1.5 h in the next events session.
 
+### SR-29 Bitcoin long-term-holder supply (Carney / River chart, blockhorizon data, 26 Sep 2026) — Thread D
+
+**Ruling (28 Sep 2026, operator).** Adopt as a monthly by-hand scorecard with no rights; reject the post's supply-crunch reading (R30).
+
+**Home.** Alternative Asset section of the Monthly (as it folds in); Digital Assets paper, which already names holder supply as the key measurable; Book A context only.
+
+**Mechanism.** The post's "record 81% (16.3M BTC) unmoved 6+ months, so a supply crunch is coming" is rejected as a stock-flow fallacy: price is set at the margin, not by the stock. LTH supply builds through bear and accumulation phases and falls as holders distribute into rallies; falling LTH supply during a rally is the late-cycle tell, and a record high is closer to accumulation. ETF custody inflates the count: custodied coins do not move but are sellable on redemption. Read the 3-month change with price context, not the level.
+
+**Data.** Paid sources only (Glassnode, blockhorizon); `manual_input` monthly: LTH supply (BTC and % of supply) and its 3-month change; `available_at` = operator entry date. *Lives in:* `manual.btc_lth_supply`, `manual.btc_lth_share`; `calc.btc_lth_3m_chg`.
+
+**Rights.** None.
+
+**Validation.** None (scorecard).
+
 ---
 ## §4 Consolidated data feeds
 
@@ -677,6 +695,7 @@ Held = among the 59 FRED series in `altdata/config.py` or the 27 yfinance symbol
 |---|---|---|---|---|---|
 | DGS2, DGS10, DGS30, T10YIE, T5YIFR | `fred.*` | daily | **held** | — | R |
 | DFII10 (`fred.tips_10y`) | FRED | daily | new | same day | SR-6, 15, 17, 23 |
+| DFII30 (`fred.tips_30y`) | FRED | daily | new (28 Sep) | same day | SR-17 |
 | DGS5, DTB3 | FRED | daily | new | same day | SR-2 (3m leg), SR-22 |
 | THREEFYTP10 (`fred.term_premium_kw`) | FRED | daily | new | same day | SR-6 |
 | ACM term premium (`acm.*`) | NY Fed CSV, `altdata/sources/acm.py` | daily | new | same day | SR-6, 15, 23 |
@@ -864,7 +883,7 @@ One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the la
 | `manual_input` entries: SEP median, FedWatch (until G-4), NIC/cover (SR-16), HBM share and DRAM direction (SR-25), global-visible inventory and IEA days of cover (SR-18), AAII three numbers (SR-12), MSCI end-of-month file (SR-14), CBO path and G4 gap (SR-23), panda-bond volume (SR-4) | 20 min | ≈25 min/month + ≈30 min/quarter |
 | Mechanism Watch by hand (SR-10): weekly review of the Sunday block and any CANDIDATE rows (`promote` / `reject` / `review`); S1/S2/S7/S8 narrative entries where the scan missed them; the MW-9 confirmation after four clean weeks; quarterly MW-7 review | 10 min | ≈10 min/week; ≈20 min/quarter |
 
-**Deferred backlog (Appendix C, ≈35 h, not trigger-based).**
+**Deferred backlog (Appendix C, ≈33 h, not trigger-based).**
 
 **Totals.** Tranche 1 ≈33 · Tranche 2 ≈22 · Tranche 3 ≈8 · Tranche 4 ≈14 · Tranche 5 ≈25.5 · Slot L ≈6.5 → **≈108 h of sessions** (≈109 with rounding), plus ≈5.5 h by hand once. The 28 Sep rulings add ≈3–3.5 h (SR-19 ≈2, SR-28 ≈1–1.5) → **≈111–111.5 h of sessions**. Cut lines: Tranche 1 alone answers the live question; Tranches 1–2 change Book behaviour; Tranche 3 decides which panels exist; Tranche 4 cannot run before its Track D milestones regardless; Tranche 5 is severable and can run beside Tranche 1 or after it.
 
@@ -993,6 +1012,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 - R27 — "China dumping Treasuries" from the Major Foreign Holders table without the custodial adjustment and the benchmark vintage.
 - **R28 (new, from the integration) — Any second regime, cell or tag computed outside the market-state object**, including the two-state tag of the 19 Sep SR-6 ruling and the four-cell table of the 25 Sep batch as standalone constructs.
 - R29 — Social-media claims of unscheduled Fed announcements, absent the Board calendar or a Board press release.
+- R30 — Record long-term-holder supply read as a forthcoming supply squeeze.
 
 ---
 
@@ -1060,7 +1080,7 @@ On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orde
 
 **Mechanism Watch deferrals (from Thread D).** Prediction-market cross-link for Pearl or register candidates (after PM-1, ≈1 h); a daily intraday PRL series (re-check the CoinGecko monthly call budget first; ≈1 h); automation of the S1/S2/S7/S8 narrative fields beyond the scan (not planned — they stay `manual_input` by design).
 
-**Total backlog ≈35 h.**
+**Total backlog ≈33 h** (≈35 h as signed; the SR-19 ≈2 h moved to its build on 28 Sep).
 
 ---
 
@@ -1111,3 +1131,8 @@ Ruled by the operator, 28 Sep 2026; docs only.
 - **SR-19 adopted; G-16 closed.** The definition was supplied on 27 Sep (Goldman chart via Monchau; @NoLimitGains repost): the share of current S&P 500 constituents with negative OLS beta to SPX, 63 trading days daily (primary) and 52 weeks weekly, in `calc.neg_beta_share_63d` and `calc.neg_beta_share_52w`. Status `ADOPTED — pending build`; narrow flag, conditioner only, `trigger_eligible: false`; the phase read is proposed as a contradiction row of the market-state object, not a tag (R28). ≈2 h into the Concentration & Complacency intake queue; calibration ledger before any panel. The Appendix C house metric (R² on top-10) stays as its companion. SR-19 remains the §1.6 fixture, now as a deferral resolved by a supplied definition. Edited: §1.2, §1.6, §2.3.6, the §2.6 queue table, §3 (row and entry), §10 G-16, §11, Appendix C.
 - **SR-28 added.** Fed Board speaker and event calendar, Thread R, `ADOPTED — pending build`, no rights: `altdata/sources/fedboard_calendar.py` writing scheduled events through `events_ingest`, ≈1–1.5 h in the next events session. Rejection R29 added to §12.
 - **Hours.** +≈3–3.5 h of sessions (SR-19 ≈2, SR-28 ≈1–1.5), outside the signed tranches: ≈108 → **≈111–111.5 h of sessions**, ≈5.5 h by hand unchanged.
+- **Backlog (28 Sep, evening).** Appendix C's total is ≈33 h, down from ≈35 h: the SR-19 house metric's ≈2 h moved to SR-19's build.
+- **SR-16 input added (28 Sep, evening; status unchanged).** ICE 15+ year Tech & Electronics and AAA–A spreads as quarterly `manual_input` (`manual.ice_tech15_oas`, `manual.ice_aaa_a15_oas`), giving `calc.tech15_premium`, the direct supply-premium measure; `calc.aa_bbb_oas_diff` stays as the daily FRED proxy. Evidence lines on issuance size, the non-dollar share and ring-3 funding recorded without rights (§1.3).
+- **SR-29 added (28 Sep, evening).** Bitcoin long-term-holder supply, Thread D, `ADOPTED — scorecard, no rights`: monthly by hand (≈5 min; ≈0 h build) from paid sources as `manual_input` (`manual.btc_lth_supply`, `manual.btc_lth_share`, `calc.btc_lth_3m_chg`). The post's supply-crunch reading is rejected; R30 added to §12.
+- **`fred.tips_30y` added (28 Sep, evening).** DFII30 (30-year TIPS real yield; percent, daily, confirmed on its FRED page 28 Sep) joins `FRED_SIGNAL_SERIES` in `altdata/config.py`; `metrics_registry.yaml`'s `fred_signal_triage` block now expects 20 members. Cited in SR-17's Data field and beside DFII10 in the §4 feeds table.
+- **Status vocabulary.** `ADOPTED — scorecard, no rights` added to the §1.2 table (SR-20, SR-29).

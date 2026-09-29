@@ -5312,7 +5312,8 @@ bulk_imports:
       front-end yields, the Kim-Wright term premium, fed funds, the NBER
       recession flag, SOMA Treasuries, nominal GDP, AA and BBB OAS, G.19 consumer
       credit, the real broad dollar and three Z.1 household rows; ST-2 added the
-      OECD monthly Japan 10-year and 3-month (percent). Pulled by the
+      OECD monthly Japan 10-year and 3-month (percent); the 28 Sep rulings
+      added the 30-year TIPS real yield (DFII30, percent). Pulled by the
       same path as fred_macro (altdata/sources/fred.py over FRED_PULL_SERIES) and
       written under the same `fred.` prefix, but a SEPARATE list and block,
       because FRED_SERIES is what the Monthly and surprise v1 iterate and ST-1
@@ -5323,7 +5324,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 19
+    expected_members: 20
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release

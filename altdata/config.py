@@ -142,6 +142,9 @@ FRED_SERIES: list[SeriesSpec] = [
 FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # Rates -- Thread R (SR-6, 15, 17, 22, 23)
     SeriesSpec("tips_10y",         "DFII10",     "10-year TIPS real yield",         "2", "%",    "daily"),
+    # DFII30 added 28 Sep 2026 (SR-17); unit read off its FRED page that day:
+    # percent, not seasonally adjusted, daily (H.15).
+    SeriesSpec("tips_30y",         "DFII30",     "30-year TIPS real yield",         "2", "%",    "daily"),
     SeriesSpec("yield_5y",         "DGS5",       "5-year Treasury yield",           "2", "%",    "daily"),
     SeriesSpec("tbill_3m",         "DTB3",       "3-month T-bill, secondary market (discount basis)","2","%","daily"),
     SeriesSpec("term_premium_kw",  "THREEFYTP10","10y term premium, Kim-Wright model","2R","%",   "daily"),
