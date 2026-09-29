@@ -48,9 +48,10 @@
 | 5 — Mechanism Watch: Security Master entry, PRL feeds and D1–D6, Monthly part and validators, emerging scan and LLM gate | ST-13, ST-14, ST-15 | D1c; independent of Tranches 1–3 | ≈25.5 |
 | L — One library session, `library` worktree | ST-L | any time | ≈6.5 |
 | By hand | Tranche H | any time | ≈5.5 once + recurring |
+| Rulings of 28 Sep | SR-19 (C&C intake queue), SR-28 (next events session) | — | ≈3–3.5 |
 | Deferred backlog | Appendix C | — | (≈35, unscheduled) |
 
-Total ≈108 h of sessions + ≈5.5 h by hand. Tranche 5 shares nothing with Tranches 1–3 but D1c and the register; it can run beside them or after, chosen at sign-off (§13).
+Total ≈108 h of sessions + ≈5.5 h by hand as signed; ≈111–111.5 h of sessions with the 28 Sep rulings (addendum). Tranche 5 shares nothing with Tranches 1–3 but D1c and the register; it can run beside them or after, chosen at sign-off (§13).
 
 ---
 
@@ -68,7 +69,7 @@ Total ≈108 h of sessions + ≈5.5 h by hand. Tranche 5 shares nothing with Tra
 | `ADOPTED — gate pending` | Built; its calibration study has not yet run or reported |
 | `ADOPTED — rights live` | Gate passed; the flag or modifier carries the rights §6 grants it |
 | `DEFERRED — gate failed` | Built and tested; did not pass; kept as a note, no rights (§9) |
-| `DEFERRED — definition required` | Entered without its construction (§1.6); SR-19 |
+| `DEFERRED — definition required` | Entered without its construction (§1.6); SR-19 until 28 Sep, since resolved |
 | `MERGED — into ‹item›` | Absorbed into another entry's build; SR-17 into `rates.driver` |
 | `REJECTED — as signal; ‹what was kept›` | The post is rejected; a named tell or note survives; SR-25 |
 | `RESERVED` | Placeholder for an order carried elsewhere; SR-11 |
@@ -81,7 +82,7 @@ A session that writes to the register uses these strings and no others; the firs
 
 **1.5 Projection rule.** A third-party chart carrying a projected, estimated or scenario segment is entered with the date its actual data ends, the projection's stated assumption, and the label `PROJECTION (data to <date>; assumes <…>)`. A projection never becomes a print and never inherits the post's language. Fixture: SR-18.
 
-**1.6 Definition rule.** No chart enters the register without its construction (numerator, denominator, window, source). A crop without one is `DEFERRED — definition required`. Fixture: SR-19.
+**1.6 Definition rule.** No chart enters the register without its construction (numerator, denominator, window, source). A crop without one is `DEFERRED — definition required`. Fixture: SR-19 — the example of a deferral later resolved by a supplied definition. Entered 25 Sep as an undated crop and deferred; the definition was supplied 27 Sep (G-16) and the entry adopted 28 Sep. What admitted it was the construction, not the chart.
 
 **1.7 Rights boundary.** Everything in this order is REPORT_OK-class. No item can raise DECISION_BLOCKED, produce a Decision Packet, enter the Monthly composite or the Top & Bottom composite, or change a Disruptive Themes factor, scenario or theme text. Disruptive Themes stays permanently human-gated. Promotion beyond the ceilings in §6 goes through champion/challenger after the stated gate passes, one candidate per overlay at a time (§2.6).
 
@@ -163,7 +164,7 @@ Consumers: the Monthly's Rate machine summary and Duration Absorption block; the
 
 **2.3.5 AI funding and the memory cycle (SR-16, SR-25).** `calc.self_fund_ratio` (five names, 4q), `calc.hs_netdebt_12m`, `calc.aa_bbb_oas_diff`, `calc.ai_long_share`; `calc.mu_inv_days`; by-hand HBM share, DRAM direction, NIC/cover. Factor I evidence-log entries; human-gated.
 
-**2.3.6 One-factor market (SR-19).** Deferred pending definition; the house metric (rolling R² of SPX on an equal-weight top-10 AI basket; equal-weight-490 beta to it) is specified in Appendix C for when it is wanted.
+**2.3.6 One-factor market (SR-19).** Adopted 28 Sep 2026 once the definition was supplied (G-16): the share of current S&P 500 constituents with OLS beta to SPX < 0, on 63 trading days daily (primary) and 52 weeks weekly — `calc.neg_beta_share_63d`, `calc.neg_beta_share_52w`. Narrow flag, conditioner only, `trigger_eligible: false`, into the Concentration & Complacency one-at-a-time intake queue (≈2 h); calibration ledger before any panel. The phase read is not a standalone tag (R28) but a proposed contradiction row of the market-state object (concentration/breadth vs. trend). The house metric of Appendix C (rolling R² of SPX on an equal-weight top-10 AI basket; equal-weight-490 beta to it) stays as its companion.
 
 ### 2.4 Thread A — Book A rule table (owner: Portfolio Construction; Base Rates meanwhile)
 
@@ -189,7 +190,7 @@ One table, three rules, one block. All three are candidates until their gates pa
 | HY Spread Acceleration | SR-16 ring-3 HY spreads | After the SR-16 gate |
 | Bottom side (triggers and gates) | SR-8 gate first (it raises the threshold), then SR-5 bull trigger | Gate before trigger, so a new trigger is tested against the raised threshold |
 | Rate Repricing Velocity tag | `rates.driver` replaces any local tag | On T&B full (G-7) |
-| Concentration & Complacency | SR-1 style flag only if it adds information beyond top-10 weight; SR-19 house metric if adopted | After gates |
+| Concentration & Complacency | SR-1 style flag only if it adds information beyond top-10 weight; SR-19 (adopted 28 Sep; house metric as companion) | After gates |
 
 ### 2.7 Thread D — Digital asset mechanism watch (owner: Digital Assets; register entry SR-10)
 
@@ -241,7 +242,7 @@ Two additions to ongoing reporting: systematic coverage of Pearl (PRL) — Pearl
 **2.7.8 Falsifiers and review.** Useful if, over 90 days, at least one signpost moved and was reported before it appeared in mainstream crypto press, or at least one register candidate earned a WATCH promotion; if neither, the scan cadence drops to monthly and PRL coverage is reviewed under MW-7. D4/D6 threshold review at the first Monthly with 90 days of stored data (target January 2027). Quarterly PRL review against MW-7 at each quarter-end Monthly from December 2026. The Annual Structural Review decides whether "novel-mechanism coins" remains a watch category or folds into Digital Assets coverage.
 
 ---
-## §3 Rulings register (SR-1…SR-27)
+## §3 Rulings register (SR-1…SR-28)
 
 Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1…SR-9) are as ruled on 19 Sep with integration edits marked *[integ.]*; Batch 2 entries (SR-12…SR-27) are as ruled on 24–25 Sep with pointers updated.
 
@@ -265,7 +266,7 @@ Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1�
 | 16 | E | Hyperscaler debt supply / absorption (Bloomberg via Lemand, 24 Sep) | Adopt Factor I funding panel + flag; reject issuance headline | Narrow flag | ST-4/ST-6 |
 | 17 | R | Real-yield-led selloff (Alpine Macro / Zhao, 24 Sep) | Merged into `rates.driver` (DKW arbiter); no new analysis | None new | ST-3 |
 | 18 | C | Oil inventories vs. operational floor (JPM/Bloomberg; 15–25 Sep) | Adopt buffer state; reject chart as a print (projection fixture) | Narrow flag | ST-2, ST-6 |
-| 19 | E | "3-month / 1-year beta" chart (Monchau) | DEFERRED — definition required | None | Appendix C |
+| 19 | E | Share of S&P 500 constituents with negative beta (Goldman/Garrett via Monchau; definition 27 Sep) | Adopt direct measure; phase read proposed as a contradiction row (R28) | Narrow flag (conditioner only) | C&C intake queue, next build session (≈2 h) |
 | 20 | X | IMF COFER Q1 2026 + reserve tracker (25 Sep) | Adopt Factor V scorecard; reject level as signal | None | ST-2; Tranche H |
 | 21 | R | Oct 28 hike probability 70–77% (Bianco, 24 Sep) | Adopt Fed–market gap, credibility flag, Warsh cell, PM case; reject political framing | Narrow flag | ST-4 |
 | 22 | R | 5y auction 5.033%, TLT record low (Padley, 24 Sep) | Adopt auction absorption; reject "meltdown"; Doctrine note | Narrow flag; A-3 input | ST-1, ST-4, ST-7 |
@@ -274,6 +275,7 @@ Master table, by thread. Full entries follow in SR order. Batch 1 entries (SR-1�
 | 25 | E | Burry AI shorts (Monchau via Bull Theory, 24 Sep) | Reject as signal; adopt memory-cycle tell; narrative-register entry | None | ST-4 (+MU) |
 | 26 | X/R | TIC flows, 12m to Jul 2026 (Riemann, 24 Sep) | Adopt composition read; reject "demand collapsed" | Absorber-fragility modifier (after gate) | ST-2, ST-4 |
 | 27 | X/R | TIC Major Foreign Holders, 12m change (research note) | Adopt holder panel with mechanism tags; reject "China dumping" | Absorber-fragility modifier (after gate) | ST-2, ST-4 |
+| 28 | R | Fed Board speaker and event calendar (operator, 28 Sep) | Adopt calendar feed; no rights | None (calendar data, REPORT_OK) | Next events session (≈1–1.5 h) |
 
 ### SR-1 Growth vs. Value relative performance (Weniger, 8 Sep 2026) — Thread E
 
@@ -512,9 +514,23 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: 1990, 2008, 2022. Statistic: forward 6m price change conditional on days-of-cover bottom decile × disruption event vs. none. Falsifier: demand destruction rebuilds stocks faster than the floor (2008 H2).
 
-### SR-19 "3-month / 1-year beta" chart (Monchau, undated crop) — Thread E
+### SR-19 Share of S&P 500 constituents with negative beta to the index (Goldman, B. Garrett, via Monchau; definition supplied 27 Sep 2026) — Thread E
 
-**Ruling.** DEFERRED — definition required (§1.6 fixture). The 0–45% scale and the "3-month daily / 1-year weekly" labels rule out a plain market beta; the spike pattern (1994, 1999–2001, 2018, 2020, 2024–26) is the signature of a one-factor market. Two readings, two homes: index beta/R² to the AI cohort or momentum → Concentration & Complacency overlay; index beta to yields → `rates.driver`'s correlation member, already covered. Timing lesson either way: the 1-year line peaked in 2001, after the top; a 63-day window is dominated by a handful of AI days — fragility state, not timing signal. House version in Appendix C. **Action:** register entry `DEFERRED — definition required`; request the full post text.
+**Ruling (28 Sep 2026, operator).** G-16 resolved: the definition was supplied on 27 Sep 2026, so the §1.6 deferral lifts and the entry is adopted.
+
+**Home.** Concentration & Complacency overlay; Book B; owning paper Equities. Appendix C's R²-on-top-10 metric stays as the companion — it explains why; this is the direct measure. The yields reading of the 25 Sep ruling drops out: this is constituent beta to the index, not index beta to yields.
+
+**Mechanism.** The top 10 are ≈40% of SPX. When leaders rally and the other 490 drift, the math tags them negative beta with no change in their businesses. The share barely left zero 2005–15 and is near half on the 3-month window (Sep 2026), an all-time high. Evidence lines, same measure on other windows: Evercore 121 names (daily correlation, Aug 2026), Bernstein ~70 (36-month monthly beta). Phase matters: 2000–02 was index-down/breadth-up; 2026 is index-up/breadth-down. The flip between them is what a top looks like from inside. Third-party conclusion recorded, no rights inherited (§1.3).
+
+**Data.** Numerator = current constituents with OLS beta to SPX < 0; denominator = constituent count; windows 63 trading days daily (primary) and 52 weeks weekly; yfinance via the Security Master; `available_at` = the EOD pass instant. Current-constituent survivorship bias logged, not corrected. *Lives in:* `calc.neg_beta_share_63d`, `calc.neg_beta_share_52w`.
+
+**Rights.** Narrow flag, conditioner only, `trigger_eligible: false`. The phase read is **not** a standalone tag (R28): it is proposed as one contradiction row of the market-state object (concentration/breadth vs. trend).
+
+**Validation gate.** Episodes: 2000–02, 2020–21. Statistic: forward 6m SPX drawdown conditional on the share in its top decile, split by SPX above/below its 200d. Falsifier: a high share that resolves by breadth catching up (the 1994 and 2018 pattern) rather than leaders breaking. Offline under `tools/calibration/`, dated ledger in `docs/ledgers/`.
+
+**Disposition.** Adopt; ≈2 h build into the Concentration & Complacency one-at-a-time intake queue; calibration ledger before any panel.
+
+**Original ruling (25 Sep).** DEFERRED — definition required (§1.6 fixture). The 0–45% scale and the "3-month daily / 1-year weekly" labels rule out a plain market beta; the spike pattern (1994, 1999–2001, 2018, 2020, 2024–26) is the signature of a one-factor market. Two readings, two homes: index beta/R² to the AI cohort or momentum → Concentration & Complacency overlay; index beta to yields → `rates.driver`'s correlation member, already covered. Timing lesson either way: the 1-year line peaked in 2001, after the top; a 63-day window is dominated by a handful of AI days — fragility state, not timing signal. House version in Appendix C. **Action:** register entry `DEFERRED — definition required`; request the full post text.
 
 ### SR-20 IMF COFER Q1 2026 and the reserve-composition tracker (FintechNews infographic; extension, 25 Sep 2026) — Thread X
 
@@ -635,6 +651,22 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Absorber-fragility modifier with SR-26 (after gate); overlay queue #3 after gate; Factor V holder line (none).
 
 **Validation gate.** Custodial share and official share versus the severity of Treasury liquidity events (Oct 2014 flash rally, Sep 2019 repo, Mar 2020, Apr 2025), severity measured by MOVE and dealer balance-sheet metrics. n = 4; base rate only unless the ordering is monotonic.
+
+### SR-28 Fed Board speaker and event calendar (operator, 28 Sep 2026; prompted by a fabricated 'emergency announcement' post) — Thread R
+
+**Ruling (28 Sep 2026, operator).** Adopt the Board's speaker and event calendar as a scheduled-events feed; calendar data only, no rights.
+
+**Home.** 07:00 anchor and Weekly EVENTS block, calendar-ahead; Book C; owning paper The Rate and Liquidity Machine.
+
+**Mechanism.** The anchor's calendar carries FRED releases, earnings and FOMC statement dates but no Fed speakers. Adding them puts outlook and policy remarks beside the hike-odds read, and makes any "emergency Fed announcement" claim checkable against the official calendar. Real emergency actions are timed for closed markets (15 Mar 2020, 12 Mar 2023).
+
+**Data.** New source `altdata/sources/fedboard_calendar.py` scraping `federalreserve.gov/newsevents/<yyyy>-<month>.htm` (current + next month) at the 06:45 and 16:10 ingest passes; writes `type="scheduled"` events (speaker, role, time ET, title, venue, live vs. pre-recorded) through `events_ingest`. Regional Fed presidents are not on that page: out of scope for v1, noted. No key; `available_at` = the fetch instant.
+
+**Rights.** None — calendar data only, REPORT_OK, no flag.
+
+**Validation.** None needed (factual feed); a `validate_events.py` fixture for the parser.
+
+**Disposition.** Adopt; ≈1–1.5 h in the next events session.
 
 ---
 ## §4 Consolidated data feeds
@@ -834,7 +866,7 @@ One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the la
 
 **Deferred backlog (Appendix C, ≈35 h, not trigger-based).**
 
-**Totals.** Tranche 1 ≈33 · Tranche 2 ≈22 · Tranche 3 ≈8 · Tranche 4 ≈14 · Tranche 5 ≈25.5 · Slot L ≈6.5 → **≈108 h of sessions** (≈109 with rounding), plus ≈5.5 h by hand once. Cut lines: Tranche 1 alone answers the live question; Tranches 1–2 change Book behaviour; Tranche 3 decides which panels exist; Tranche 4 cannot run before its Track D milestones regardless; Tranche 5 is severable and can run beside Tranche 1 or after it.
+**Totals.** Tranche 1 ≈33 · Tranche 2 ≈22 · Tranche 3 ≈8 · Tranche 4 ≈14 · Tranche 5 ≈25.5 · Slot L ≈6.5 → **≈108 h of sessions** (≈109 with rounding), plus ≈5.5 h by hand once. The 28 Sep rulings add ≈3–3.5 h (SR-19 ≈2, SR-28 ≈1–1.5) → **≈111–111.5 h of sessions**. Cut lines: Tranche 1 alone answers the live question; Tranches 1–2 change Book behaviour; Tranche 3 decides which panels exist; Tranche 4 cannot run before its Track D milestones regardless; Tranche 5 is severable and can run beside Tranche 1 or after it.
 
 **Session 1 paste prompt (ST-0; docs only, safe before D1c). Estimated run time 15–25 minutes; session ≈1 h including review.**
 
@@ -888,7 +920,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | G-13 | Whether Factor V already carries a gold-share-of-reserves line | Tranche H | first scorecard entry |
 | G-14 | Fiscal Data MSPD field mapping for "net marketable issuance" (verify against the refunding tables) | ST-1 | `calc.net_supply_*` |
 | G-15 | GUNR adequacy as the commodity-producers proxy (four MSCI points by hand) | ST-4 | ratio note |
-| G-16 | SR-19 chart definition (request full post) | — | SR-19 adoption |
+| G-16 | **Closed 28 Sep 2026:** definition supplied 27 Sep (Goldman chart via Monchau; @NoLimitGains repost). | — | — |
 | G-17 | Global visible inventory figure: JPM's is not free; IEA OMR headline as substitute | ST-2 | Factor III line |
 | G-18 | Source of the "who sold and who bought" figure (research note, Figure 3); the TIC table is public regardless | ST-0 | register citation |
 | G-19 | The Batch 1 tranche scope (≈34 h) is taken from the 19 Sep record, not from a filed document; confirm the deferrals in Appendix C match the ruling | §13 | sign-off |
@@ -926,7 +958,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | Four clean Sunday blocks after ST-10 | MW-9: retire the interim Saturday scan on Ari's confirmation |
 | Dec 2026 quarter-end Monthly | First PRL MW-7 review |
 | Jan 2027 Monthly | D4/D6 threshold review (90 days of stored data); 2.7.8 usefulness test |
-| Annual Structural Review | SR-20 regime classification; SR-7 table refresh; SR-13/SR-15 window tests; Base Rates ledgers; §1.5–1.6 fixture review; SR-19 definition status; whether "novel-mechanism coins" stays a watch category (2.7.8) |
+| Annual Structural Review | SR-20 regime classification; SR-7 table refresh; SR-13/SR-15 window tests; Base Rates ledgers; §1.5–1.6 fixture review; SR-19 calibration ledger status; whether "novel-mechanism coins" stays a watch category (2.7.8) |
 
 ---
 
@@ -960,6 +992,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 - R26 — A single-row TIC flow change read as a collapse in foreign demand for US assets.
 - R27 — "China dumping Treasuries" from the Major Foreign Holders table without the custodial adjustment and the benchmark vintage.
 - **R28 (new, from the integration) — Any second regime, cell or tag computed outside the market-state object**, including the two-state tag of the 19 Sep SR-6 ruling and the four-cell table of the 25 Sep batch as standalone constructs.
+- R29 — Social-media claims of unscheduled Fed announcements, absent the Board calendar or a Board press release.
 
 ---
 
@@ -1021,7 +1054,7 @@ On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orde
 
 **Batch 1 deferrals (per the 19 Sep tranching, G-19).** SR-3 China panel assembly as a Monthly section (inputs fetched in ST-2; ≈3 h); SR-2 overlay-input wiring beyond the flag (queue #1, at T&B full — in ST-11's scope only if the gate passed; else ≈2 h later); SR-1 Monthly style panel and Book B pair rule (ships in ST-8 only if the gate passes; else ≈3 h later); SR-5 RS tell and Monthly panel (same; ≈2 h); SR-9 scatter reproduction and regression (≈4 h); SR-7 table automation (by hand suffices; ≈3 h if ever); SR-8 fuel-metric automation beyond margin debt and leveraged-ETF AUM (≈2 h).
 
-**Batch 2 deferrals.** SR-19 house metric — rolling 63d R² of SPX daily returns on an equal-weight top-10 AI basket, and the equal-weight index's beta to it; gate on 2000 and 2021 (forward 6m drawdown conditional on R² top decile); Concentration & Complacency candidate (≈2 h, after G-16). SR-20 monthly automation of COFER/ECB constant-FX (≈2 h). SR-15 full four-metric composites per asset (≈4 h). G4 issuance-gap automation from national sources — DMO/BoE, MoF/BoJ, ECB/national issuers (≈6 h).
+**Batch 2 deferrals.** SR-19 house metric (R² on top-10) = companion to adopted SR-19 — rolling 63d R² of SPX daily returns on an equal-weight top-10 AI basket, and the equal-weight index's beta to it; gate on 2000 and 2021 (forward 6m drawdown conditional on R² top decile). SR-20 monthly automation of COFER/ECB constant-FX (≈2 h). SR-15 full four-metric composites per asset (≈4 h). G4 issuance-gap automation from national sources — DMO/BoE, MoF/BoJ, ECB/national issuers (≈6 h).
 
 **19 Sep batch Part C (by reference; register SR-11).** Consensus drift — sixth I-b input "consensus drift" (unscored prose line), Foundations evidence log, ESPAI point-in-time fixture, LEAP as a source (≈6.5 h). Its interim bimonthly scan continues (§1.12). Part B (the Mechanism Watch) is no longer backlog — it is Thread D and Tranche 5 of this order.
 
@@ -1068,3 +1101,13 @@ Use verbatim as the system/task prompt for the candidate-assessment call; substi
 > Candidates: [list of name, links, pre-filter evidence].
 >
 > For each candidate, return JSON with: `qualifies` (true/false), `name`, `canonical_id` (CoinGecko id or chain+contract; null if unknown), `mechanism_class`, `whats_new` (one line: what is new mechanically), `team_or_paper` (link), `stage` (paper/testnet/mainnet), `materiality_evidence` (which of i–iii, with links), `key_risk` (one line), `why_it_could_matter` (one line), `sources` (links used). If a candidate fails, say which criterion failed in `fail_reason`. Do not pad; if nothing qualifies, return an empty list. Verify claims against the linked sources; if a claim cannot be verified, mark it `unverified` rather than asserting it.
+
+---
+
+## Rulings addendum — 28 Sep 2026
+
+Ruled by the operator, 28 Sep 2026; docs only.
+
+- **SR-19 adopted; G-16 closed.** The definition was supplied on 27 Sep (Goldman chart via Monchau; @NoLimitGains repost): the share of current S&P 500 constituents with negative OLS beta to SPX, 63 trading days daily (primary) and 52 weeks weekly, in `calc.neg_beta_share_63d` and `calc.neg_beta_share_52w`. Status `ADOPTED — pending build`; narrow flag, conditioner only, `trigger_eligible: false`; the phase read is proposed as a contradiction row of the market-state object, not a tag (R28). ≈2 h into the Concentration & Complacency intake queue; calibration ledger before any panel. The Appendix C house metric (R² on top-10) stays as its companion. SR-19 remains the §1.6 fixture, now as a deferral resolved by a supplied definition. Edited: §1.2, §1.6, §2.3.6, the §2.6 queue table, §3 (row and entry), §10 G-16, §11, Appendix C.
+- **SR-28 added.** Fed Board speaker and event calendar, Thread R, `ADOPTED — pending build`, no rights: `altdata/sources/fedboard_calendar.py` writing scheduled events through `events_ingest`, ≈1–1.5 h in the next events session. Rejection R29 added to §12.
+- **Hours.** +≈3–3.5 h of sessions (SR-19 ≈2, SR-28 ≈1–1.5), outside the signed tranches: ≈108 → **≈111–111.5 h of sessions**, ≈5.5 h by hand unchanged.

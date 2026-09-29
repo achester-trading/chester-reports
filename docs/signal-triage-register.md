@@ -51,7 +51,7 @@
 | 16 | E | Hyperscaler debt supply / absorption (Bloomberg via Lemand, 24 Sep) | Adopt Factor I funding panel + flag; reject issuance headline | Narrow flag | ST-4/ST-6 | ADOPTED — gate pending |
 | 17 | R | Real-yield-led selloff (Alpine Macro / Zhao, 24 Sep) | Merged into `rates.driver` (DKW arbiter); no new analysis | None new | ST-3 | MERGED into `rates.driver` |
 | 18 | C | Oil inventories vs. operational floor (JPM/Bloomberg; 15–25 Sep) | Adopt buffer state; reject chart as a print (projection fixture) | Narrow flag | ST-2, ST-6 | ADOPTED — gate pending |
-| 19 | E | "3-month / 1-year beta" chart (Monchau) | DEFERRED — definition required | None | Appendix C | DEFERRED — definition required |
+| 19 | E | Share of S&P 500 constituents with negative beta (Goldman/Garrett via Monchau; definition 27 Sep) | Adopt direct measure; phase read proposed as a contradiction row (R28) | Narrow flag (conditioner only) | C&C intake queue, next build session (≈2 h) | ADOPTED — pending build |
 | 20 | X | IMF COFER Q1 2026 + reserve tracker (25 Sep) | Adopt Factor V scorecard; reject level as signal | None | ST-2; Tranche H | ADOPTED — scorecard, no rights |
 | 21 | R | Oct 28 hike probability 70–77% (Bianco, 24 Sep) | Adopt Fed–market gap, credibility flag, Warsh cell, PM case; reject political framing | Narrow flag | ST-4 | ADOPTED — gate pending |
 | 22 | R | 5y auction 5.033%, TLT record low (Padley, 24 Sep) | Adopt auction absorption; reject "meltdown"; Doctrine note | Narrow flag; A-3 input | ST-1, ST-4, ST-7 | ADOPTED — gate pending |
@@ -60,6 +60,7 @@
 | 25 | E | Burry AI shorts (Monchau via Bull Theory, 24 Sep) | Reject as signal; adopt memory-cycle tell; narrative-register entry | None | ST-4 (+MU) | REJECTED as signal — memory-cycle tell adopted |
 | 26 | X/R | TIC flows, 12m to Jul 2026 (Riemann, 24 Sep) | Adopt composition read; reject "demand collapsed" | Absorber-fragility modifier (after gate) | ST-2, ST-4 | ADOPTED — gate pending |
 | 27 | X/R | TIC Major Foreign Holders, 12m change (research note) | Adopt holder panel with mechanism tags; reject "China dumping" | Absorber-fragility modifier (after gate) | ST-2, ST-4 | ADOPTED — gate pending |
+| 28 | R | Fed Board speaker and event calendar (operator, 28 Sep) | Adopt calendar feed; no rights | None (calendar data, REPORT_OK) | Next events session (≈1–1.5 h) | ADOPTED — pending build |
 
 ---
 
@@ -342,11 +343,25 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: 1990, 2008, 2022. Statistic: forward 6m price change conditional on days-of-cover bottom decile × disruption event vs. none. Falsifier: demand destruction rebuilds stocks faster than the floor (2008 H2).
 
-### SR-19 "3-month / 1-year beta" chart (Monchau, undated crop) — Thread E
+### SR-19 Share of S&P 500 constituents with negative beta to the index (Goldman, B. Garrett, via Monchau; definition supplied 27 Sep 2026) — Thread E
 
-**Register status.** DEFERRED — definition required · **Built in.** Appendix C
+**Register status.** ADOPTED — pending build · **Built in.** C&C intake queue, next build session (≈2 h)
 
-**Ruling.** DEFERRED — definition required (§1.6 fixture). The 0–45% scale and the "3-month daily / 1-year weekly" labels rule out a plain market beta; the spike pattern (1994, 1999–2001, 2018, 2020, 2024–26) is the signature of a one-factor market. Two readings, two homes: index beta/R² to the AI cohort or momentum → Concentration & Complacency overlay; index beta to yields → `rates.driver`'s correlation member, already covered. Timing lesson either way: the 1-year line peaked in 2001, after the top; a 63-day window is dominated by a handful of AI days — fragility state, not timing signal. House version in Appendix C. **Action:** register entry `DEFERRED — definition required`; request the full post text.
+**Ruling (28 Sep 2026, operator).** G-16 resolved: the definition was supplied on 27 Sep 2026, so the §1.6 deferral lifts and the entry is adopted.
+
+**Home.** Concentration & Complacency overlay; Book B; owning paper Equities. Appendix C's R²-on-top-10 metric stays as the companion — it explains why; this is the direct measure. The yields reading of the 25 Sep ruling drops out: this is constituent beta to the index, not index beta to yields.
+
+**Mechanism.** The top 10 are ≈40% of SPX. When leaders rally and the other 490 drift, the math tags them negative beta with no change in their businesses. The share barely left zero 2005–15 and is near half on the 3-month window (Sep 2026), an all-time high. Evidence lines, same measure on other windows: Evercore 121 names (daily correlation, Aug 2026), Bernstein ~70 (36-month monthly beta). Phase matters: 2000–02 was index-down/breadth-up; 2026 is index-up/breadth-down. The flip between them is what a top looks like from inside. Third-party conclusion recorded, no rights inherited (§1.3).
+
+**Data.** Numerator = current constituents with OLS beta to SPX < 0; denominator = constituent count; windows 63 trading days daily (primary) and 52 weeks weekly; yfinance via the Security Master; `available_at` = the EOD pass instant. Current-constituent survivorship bias logged, not corrected. *Lives in:* `calc.neg_beta_share_63d`, `calc.neg_beta_share_52w`.
+
+**Rights.** Narrow flag, conditioner only, `trigger_eligible: false`. The phase read is **not** a standalone tag (R28): it is proposed as one contradiction row of the market-state object (concentration/breadth vs. trend).
+
+**Validation gate.** Episodes: 2000–02, 2020–21. Statistic: forward 6m SPX drawdown conditional on the share in its top decile, split by SPX above/below its 200d. Falsifier: a high share that resolves by breadth catching up (the 1994 and 2018 pattern) rather than leaders breaking. Offline under `tools/calibration/`, dated ledger in `docs/ledgers/`.
+
+**Disposition.** Adopt; ≈2 h build into the Concentration & Complacency one-at-a-time intake queue; calibration ledger before any panel.
+
+**Original ruling (25 Sep).** DEFERRED — definition required (§1.6 fixture). The 0–45% scale and the "3-month daily / 1-year weekly" labels rule out a plain market beta; the spike pattern (1994, 1999–2001, 2018, 2020, 2024–26) is the signature of a one-factor market. Two readings, two homes: index beta/R² to the AI cohort or momentum → Concentration & Complacency overlay; index beta to yields → `rates.driver`'s correlation member, already covered. Timing lesson either way: the 1-year line peaked in 2001, after the top; a 63-day window is dominated by a handful of AI days — fragility state, not timing signal. House version in Appendix C. **Action:** register entry `DEFERRED — definition required`; request the full post text.
 
 ### SR-20 IMF COFER Q1 2026 and the reserve-composition tracker (FintechNews infographic; extension, 25 Sep 2026) — Thread X
 
@@ -486,6 +501,24 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Custodial share and official share versus the severity of Treasury liquidity events (Oct 2014 flash rally, Sep 2019 repo, Mar 2020, Apr 2025), severity measured by MOVE and dealer balance-sheet metrics. n = 4; base rate only unless the ordering is monotonic.
 
+### SR-28 Fed Board speaker and event calendar (operator, 28 Sep 2026; prompted by a fabricated 'emergency announcement' post) — Thread R
+
+**Register status.** ADOPTED — pending build · **Built in.** Next events session (≈1–1.5 h)
+
+**Ruling (28 Sep 2026, operator).** Adopt the Board's speaker and event calendar as a scheduled-events feed; calendar data only, no rights.
+
+**Home.** 07:00 anchor and Weekly EVENTS block, calendar-ahead; Book C; owning paper The Rate and Liquidity Machine.
+
+**Mechanism.** The anchor's calendar carries FRED releases, earnings and FOMC statement dates but no Fed speakers. Adding them puts outlook and policy remarks beside the hike-odds read, and makes any "emergency Fed announcement" claim checkable against the official calendar. Real emergency actions are timed for closed markets (15 Mar 2020, 12 Mar 2023).
+
+**Data.** New source `altdata/sources/fedboard_calendar.py` scraping `federalreserve.gov/newsevents/<yyyy>-<month>.htm` (current + next month) at the 06:45 and 16:10 ingest passes; writes `type="scheduled"` events (speaker, role, time ET, title, venue, live vs. pre-recorded) through `events_ingest`. Regional Fed presidents are not on that page: out of scope for v1, noted. No key; `available_at` = the fetch instant.
+
+**Rights.** None — calendar data only, REPORT_OK, no flag.
+
+**Validation.** None needed (factual feed); a `validate_events.py` fixture for the parser.
+
+**Disposition.** Adopt; ≈1–1.5 h in the next events session.
+
 ---
 
 ## Explicit rejections (do not re-propose)
@@ -520,3 +553,4 @@ Copied from §12 of the order.
 - R26 — A single-row TIC flow change read as a collapse in foreign demand for US assets.
 - R27 — "China dumping Treasuries" from the Major Foreign Holders table without the custodial adjustment and the benchmark vintage.
 - **R28 (new, from the integration) — Any second regime, cell or tag computed outside the market-state object**, including the two-state tag of the 19 Sep SR-6 ruling and the four-cell table of the 25 Sep batch as standalone constructs.
+- R29 — Social-media claims of unscheduled Fed announcements, absent the Board calendar or a Board press release.
