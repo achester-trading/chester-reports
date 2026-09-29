@@ -248,7 +248,9 @@ validate-fast:
 # Moving it out also shed the make-escaping layer that hid a `set -o pipefail`
 # under dash until the first real deploy died on it.
 #
-# EVERYTHING ELSE ABOUT THE DEPLOY IS DOCUMENTED IN THE SCRIPT and asserted by
+# EVERYTHING ELSE ABOUT THE DEPLOY IS DOCUMENTED IN THE SCRIPT -- and in
+# scripts/deploy_remote.sh, the box half it ships over one ssh connection -- and
+# asserted by
 # tools/validate_deploy.py: the six steps and their order, the declared
 # DEPLOY_TIMERS list (which omits the held-back ibgateway units), the fact that no
 # stop, disable, restart or kill is ever executed, and the exit codes -- 0 clean,

@@ -304,7 +304,7 @@ that validator fails if a `make` entry and its mirror ever come apart.
 |---|---|
 | `make validate`, `bash scripts/make.sh validate` | Reads. Every gate is read-only over the repo and the store. |
 | `make html`, `bash scripts/make.sh html` | Regenerates `docs/html/` from the papers' `.md`. Build output; recoverable by re-running. |
-| `make deploy*`, `bash scripts/deploy.sh*` | Its whole body is fixed in `scripts/deploy.sh` and audited by `validate_deploy.py`. The narrowness is the feature: a deploy typed twelve different ways cannot be allowlisted at all. |
+| `make deploy*`, `bash scripts/deploy.sh*` | Its whole body is fixed in `scripts/deploy.sh` and the box half it ships, `scripts/deploy_remote.sh`, and both are audited by `validate_deploy.py`. The narrowness is the feature: a deploy typed twelve different ways cannot be allowlisted at all. |
 | `git add` / `commit` / `push` / `pull` | History is recoverable, and a bad commit is visible and revertable. `push` is included deliberately — a deploy that cannot push is a deploy that stops halfway. |
 | `ssh vps systemctl --user is-active` / `list-timers` | Reads unit state. Neither can change it. |
 | `ssh vps cat` / `tail` | Reads logs and state files on the box. Made safe by the secrets deny below, not by the verb. |
@@ -327,9 +327,21 @@ would otherwise reach it.
 
 `make deploy` is six steps and nothing else: `git pull --ff-only`, copy
 `deploy/systemd/*.service` and `*.timer` into `~/.config/systemd/user/`,
-`daemon-reload`, `enable --now` any timer in the Makefile's `DEPLOY_TIMERS` that
-is not yet enabled, run the drift check and the heartbeat checker, print the timer
+`daemon-reload`, `enable --now` any timer in `DEPLOY_TIMERS`
+(`scripts/deploy_remote.sh`) that is not yet enabled, run the drift check and the heartbeat checker, print the timer
 roster.
+
+**All six box-side steps run over ONE ssh connection.** `scripts/deploy.sh`
+ships `scripts/deploy_remote.sh` to the box as `ssh -o BatchMode=yes vps 'bash -s'
+< deploy_remote.sh`, streams its sections back, and decides the exit code from
+three marker lines the box half prints last (`@@NEEDS`, `@@DRIFT`, `@@HB`). Until
+28 Sep 2026 the deploy opened a session per step and two per timer, about fifteen
+connections a minute, and that deploy timed out on port 22 after step 3 while the
+box was up. ssh ControlMaster is not available from the Windows laptop, so one
+session is the design rather than a multiplexed many. The restart command is
+still printed on the laptop and never run, and `validate_deploy.py` group H runs
+`deploy.sh` against a fake ssh to hold the exit codes, and `deploy_remote.sh`
+end to end from stdin against a scratch clone.
 
 `DEPLOY_TIMERS` is a declared list and not a glob over the unit directory,
 because `ibgateway.service` and `ibgateway-restart.timer` are deliberately held
@@ -338,7 +350,7 @@ glob would enable them the first time anybody deployed.
 
 Exit codes: `0` clean, `3` a changed unit is running and needs the printed
 restart, `4` drift still reported after the copy so the deploy did not take, `1`
-the pull or copy failed.
+the pull or copy failed, or the connection did.
 
 ## Standing rules
 

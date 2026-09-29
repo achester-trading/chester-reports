@@ -832,3 +832,30 @@ systemctl --user cat ibgateway.service     # confirm no drop-in remains
 
 Per Part 25 the VPS runs code, it never edits it — an override.conf is the box
 editing code, so removing it puts the deployment back inside the rule.
+
+## Deploying over one ssh connection (28 Sep 2026)
+
+`scripts/deploy.sh` used to open a new ssh session for every step and two per
+timer in step 4 — about fifteen connections in under a minute. On 28 Sep 2026 a
+deploy completed steps 1–3 and then every further call failed with
+`Connection timed out` on port 22, although the box was up; the connections
+cleared on their own within a few minutes.
+
+What the box showed afterwards:
+
+- **ufw** is active, and port 22 is `ALLOW IN` — not `LIMIT` — so ufw's
+  rate-limit rule is not the cause.
+- **fail2ban** is active with the Debian default `sshd` jail
+  (`jail.d/defaults-debian.conf`: `banaction = nftables`, systemd backend, no
+  `jail.local`): 5 failures in 10 minutes brings a 10-minute ban.
+- **sshguard** is inactive.
+
+**The exact mechanism is unconfirmed** — fail2ban, or sshd's `MaxStartups`. The
+28 Sep lines of `fail2ban.log` were not read, so a ban of the laptop's address
+is neither confirmed nor excluded.
+
+**The fix does not depend on which.** `scripts/deploy.sh` now ships
+`scripts/deploy_remote.sh` to the box and runs all six box-side steps over ONE
+connection (`ssh -o BatchMode=yes vps 'bash -s' < scripts/deploy_remote.sh`),
+with the same printed sections and the same exit codes. `tools/validate_deploy.py`
+group H holds the one-connection shape.

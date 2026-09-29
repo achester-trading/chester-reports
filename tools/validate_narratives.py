@@ -697,8 +697,12 @@ def group_g() -> None:
           f"and a missing figure fails the numeral audit, not the type audit "
           f"({vm['numeral'][:30]})")
     with ev_mod.EventStore() as ev:
+        # available_at PINNED: left to default it is the real ingest instant,
+        # which passed the later 28 Sep 11:00 cutoffs only while the wall clock
+        # was earlier than that -- the gate began failing on 28 Sep itself.
         ev.write_many([ev_mod.Event("headline", "2026-09-28T09:00:00+00:00", "fx",
-                                    "basis", payload={"query": QUERY})])
+                                    "basis", payload={"query": QUERY})],
+                      available_at="2026-09-28T09:05:00+00:00")
         basis = ev.conn.execute("SELECT MAX(id) FROM events").fetchone()[0]
     spec = dict(r.extra["proposals"][0])
     with nr.NarrativeRegister() as reg:

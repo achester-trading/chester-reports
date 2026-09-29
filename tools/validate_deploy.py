@@ -31,6 +31,13 @@ which let it run unattended cannot be widened by accident.
      there -- the gate run or the deploy falls back to a prompt and the allowlist
      is decoration. Each make entry is asserted to travel with the spelling that
      actually runs, and scripts/make.sh is audited the same way the deploy is.
+  H  ONE ssh CONNECTION. The box-side work runs in scripts/deploy_remote.sh,
+     shipped over a single `ssh ... 'bash -s' < deploy_remote.sh` -- fifteen
+     connections a minute timed out on port 22 on 28 Sep 2026. Asserted
+     statically (one executed ssh, no ControlMaster, the body parsed whole before
+     it runs) and by BEHAVIOUR: deploy.sh run against a fake ssh returns 0, 3, 4
+     and 1 in exactly the old cases and prints the restart command without
+     running it.
 
     python tools/validate_deploy.py
 """
@@ -49,6 +56,9 @@ MAKEFILE = REPO / "Makefile"
 # are checked: the script for what it does, the Makefile for the fact that it
 # adds nothing of its own.
 DEPLOY_SH = REPO / "scripts" / "deploy.sh"
+# ... and the box-side half it ships over one ssh connection. Part of the same
+# fixed body: every rule below that reads "the deploy" reads both files.
+DEPLOY_REMOTE = REPO / "scripts" / "deploy_remote.sh"
 # The make targets, for machines without make -- allowlisted, so audited here too.
 MAKE_SH = REPO / "scripts" / "make.sh"
 SETTINGS = REPO / ".claude" / "settings.json"
@@ -177,8 +187,20 @@ def deploy_recipe() -> str:
 
 
 def deploy_body() -> str:
-    """The script that actually deploys."""
-    return DEPLOY_SH.read_text(encoding="utf-8")
+    """The fixed deploy body: the laptop half, then the box half it ships."""
+    return (DEPLOY_SH.read_text(encoding="utf-8") + "\n"
+            + DEPLOY_REMOTE.read_text(encoding="utf-8"))
+
+
+def _executed_lines(text: str) -> list[str]:
+    """Lines that RUN something: not comments, not inside echo/printf."""
+    out = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        out.append(re.sub(r"""\b(echo|printf)\b[^;]*""", "", line))
+    return out
 
 
 def settings() -> dict:
@@ -457,9 +479,150 @@ def group_g() -> None:
           "and does not also wrap the deploy, which keeps the deploy one shape")
 
 
+def group_h() -> None:
+    print(f"\n{LINE}\nH. ONE ssh CONNECTION, SAME EXIT CODES\n{LINE}")
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+    check(DEPLOY_REMOTE.is_file(), f"{DEPLOY_REMOTE.relative_to(REPO)} exists")
+    local = DEPLOY_SH.read_text(encoding="utf-8")
+    remote = DEPLOY_REMOTE.read_text(encoding="utf-8")
+    ssh_calls = [l for l in _executed_lines(local) if re.search(r"(^|\s)ssh\s", l)]
+    check(len(ssh_calls) == 1,
+          f"deploy.sh executes exactly ONE ssh -- fifteen a minute timed out on "
+          f"port 22 on 28 Sep ({len(ssh_calls)}: {ssh_calls})")
+    check(bool(ssh_calls) and "bash -s" in ssh_calls[0]
+          and re.search(r'<\s*"\$REMOTE"', local) is not None,
+          "and that one call ships deploy_remote.sh over stdin to `bash -s`")
+    check(not [l for l in _executed_lines(remote) if re.search(r"(^|\s)ssh\s", l)],
+          "the box half opens no ssh of its own")
+    check(not [l for l in _executed_lines(local + "\n" + remote)
+               if re.search(r"Control(Master|Path|Persist)", l)],
+          "no ssh ControlMaster -- not available from the Windows laptop")
+    check("BatchMode=yes" in local,
+          "BatchMode: a deploy never waits at a password prompt")
+    check(re.search(r"^deploy_main\s*</dev/null", remote, re.M) is not None
+          and re.search(r"^deploy_main\(\)\s*\{", remote, re.M) is not None,
+          "the box half is ONE function called with </dev/null -- parsed whole "
+          "before it runs, so no command inside can read the rest of the script "
+          "off the ssh pipe as its input")
+    check(len(re.findall(r'^DEPLOY_TIMERS="', local + "\n" + remote, re.M)) == 1
+          and 'DEPLOY_TIMERS="' in remote,
+          "the timer list is declared once, in the half that enables timers")
+    check(all(m in remote for m in ("@@NEEDS", "@@DRIFT", "@@HB"))
+          and "grep -v '^@@'" in local,
+          "the box half reports through three markers the laptop half parses and "
+          "does not print")
+
+    bash = shutil.which("bash")
+    if not bash:
+        ok("no bash here; the behavioural half of H runs where bash exists")
+        return
+    canned = {
+        "clean": ("-- 1. pull --ff-only\n@@NEEDS \n@@DRIFT clean\n@@HB 0\n", 0),
+        "needs": ("-- 1. pull --ff-only\n@@NEEDS  chester-eod.timer\n"
+                  "@@DRIFT clean\n@@HB 0\n", 0),
+        "drift": ("-- 1. pull --ff-only\n@@NEEDS \n@@DRIFT dropin\n@@HB 8\n", 0),
+        "fail":  ("-- 1. pull --ff-only\nfatal: not possible to fast-forward\n", 1),
+        "noconn": ("", 255),
+    }
+    want = {"clean": 0, "needs": 3, "drift": 4, "fail": 1, "noconn": 1}
+    with tempfile.TemporaryDirectory() as td:
+        fake = Path(td) / "ssh"
+        fake.write_text(
+            "#!/usr/bin/env bash\n"
+            "cat >/dev/null\n"                       # consume the shipped script
+            'printf "%b" "$FAKE_OUT"\n'
+            'echo "$@" >> "$FAKE_LOG"\n'
+            'exit "$FAKE_RC"\n', encoding="utf-8", newline="\n")
+        fake.chmod(0o755)
+        for mode, (outp, rc) in canned.items():
+            log = Path(td) / f"{mode}.log"
+            env = {**os.environ, "PATH": f"{td}{os.pathsep}{os.environ.get('PATH', '')}",
+                   "FAKE_OUT": outp, "FAKE_RC": str(rc), "FAKE_LOG": str(log)}
+            r = subprocess.run([bash, str(DEPLOY_SH)], capture_output=True,
+                               text=True, env=env, cwd=str(REPO))
+            calls = (log.read_text().splitlines() if log.exists() else [])
+            check(r.returncode == want[mode] and len(calls) <= 1
+                  and "@@" not in r.stdout,
+                  f"{mode}: exit {r.returncode} (want {want[mode]}), "
+                  f"{len(calls)} ssh call(s), no marker printed")
+            if mode == "needs":
+                check("ssh vps 'systemctl --user restart chester-eod.timer'"
+                      in r.stdout,
+                      "a changed running unit PRINTS its restart command -- and the "
+                      "fake ssh saw one call, so it was not run")
+            if mode == "clean":
+                check("DEPLOY CLEAN." in r.stdout and "-- 1. pull" in r.stdout,
+                      "a clean run streams the box's sections and ends DEPLOY CLEAN")
+
+    # THE BOX HALF, END TO END, READ FROM STDIN as ssh delivers it: a scratch
+    # clone, a fake systemctl that logs every call, a fake heartbeat. It must
+    # pull, copy, report the changed ACTIVE unit, enable only the timer not yet
+    # enabled, and never send systemctl a destructive verb.
+    git = shutil.which("git")
+    if not git:
+        ok("no git here; the end-to-end half of H runs where git exists")
+        return
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        org = t / "origin"
+        (org / "deploy" / "systemd").mkdir(parents=True)
+        (org / "scripts").mkdir()
+        (org / "deploy" / "systemd" / "a.service").write_text(
+            "[Unit]\n", encoding="utf-8", newline="\n")
+        (org / "deploy" / "systemd" / "chester-eod.timer").write_text(
+            "[Timer]\n", encoding="utf-8", newline="\n")
+        hb = org / "scripts" / "check_heartbeat_cron.sh"
+        hb.write_text(
+            "#!/usr/bin/env bash\n"
+            'echo "state=ok drift=clean" > "$CHESTER_STATE_DIR/heartbeat_check_status"\n'
+            "exit 0\n", encoding="utf-8", newline="\n")
+        hb.chmod(0o755)
+        g = {"cwd": str(org), "capture_output": True, "text": True}
+        subprocess.run([git, "init", "-q"], **g)
+        subprocess.run([git, "add", "-A"], **g)
+        subprocess.run([git, "-c", "user.email=t@t", "-c", "user.name=t",
+                        "-c", "core.autocrlf=false", "commit", "-qm", "init"], **g)
+        subprocess.run([git, "clone", "-q", str(org), str(t / "box")],
+                       capture_output=True, text=True)
+        for d in ("bin", "units", "state", "home"):
+            (t / d).mkdir()
+        (t / "units" / "a.service").write_text("[Unit]\nold\n", encoding="utf-8")
+        sysctl = t / "bin" / "systemctl"
+        sysctl.write_text(
+            "#!/usr/bin/env bash\n"
+            'echo "$*" >> "$SYSLOG"\n'
+            'case "$*" in *is-active*) exit 0;; *is-enabled*chester-eod*) exit 1;;'
+            " *is-enabled*) exit 0;; esac\nexit 0\n", encoding="utf-8", newline="\n")
+        sysctl.chmod(0o755)
+        slog = t / "sys.log"
+        env = {**os.environ, "HOME": str(t / "home"), "SYSLOG": str(slog),
+               "PATH": f"{t / 'bin'}{os.pathsep}{os.environ.get('PATH', '')}"}
+        with open(DEPLOY_REMOTE, "rb") as script:
+            r = subprocess.run([bash, "-s", "--", str(t / "box"), str(t / "units"),
+                                str(t / "state")], stdin=script,
+                               capture_output=True, env=env)
+        out = r.stdout.decode("utf-8", "replace")
+        calls = slog.read_text().splitlines() if slog.exists() else []
+        check(r.returncode == 0 and "-- 6. timer roster" in out
+              and "@@NEEDS  a.service" in out and "@@DRIFT clean" in out,
+              f"read from stdin, the box half runs all six steps and reports the "
+              f"changed ACTIVE unit (exit {r.returncode})")
+        check(calls.count("--user enable --now chester-eod.timer") == 1
+              and sum("enable --now" in c for c in calls) == 1,
+              "it enables only the declared timer that was not enabled")
+        check(not [c for c in calls if re.search(
+                  r"\b(stop|disable|restart|kill|mask)\b", c)],
+              f"and systemctl never receives a destructive verb "
+              f"({len(calls)} calls, all read/reload/enable)")
+
+
 def main() -> int:
     print(f"{LINE}\nThe unattended deploy, and the permissions that allow it\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
+              group_h):
         try:
             g()
         except FileNotFoundError as exc:

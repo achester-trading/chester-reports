@@ -14,7 +14,16 @@
 # the `$$` thicket and hid a `set -o pipefail` under dash until the first real run
 # died on it.
 #
-# WHAT IT DOES, in order and nothing else:
+# ONE ssh CONNECTION. The box-side work -- steps 1-6 -- is scripts/deploy_remote.sh,
+# shipped to the box over a single `ssh vps 'bash -s' < deploy_remote.sh`. Until
+# 28 Sep 2026 this script opened a new ssh session per step and two per timer in
+# step 4, about fifteen connections in under a minute; that deploy completed steps
+# 1-3 and then every call timed out on port 22 while the box was up. One session
+# is under any per-source threshold, and ssh ControlMaster -- the usual cure --
+# is not available from the Windows laptop. The two files are ONE fixed deploy
+# body and tools/validate_deploy.py audits both.
+#
+# WHAT IT DOES, in order and nothing else (all on the box, in that one session):
 #   1. git pull --ff-only on the box   (--ff-only: never a merge commit on a
 #                                       machine whose rule is that it runs code
 #                                       and never edits it)
@@ -23,13 +32,14 @@
 #   4. enable --now any timer in DEPLOY_TIMERS not already enabled
 #   5. the drift check and the heartbeat checker
 #   6. print the timer roster
+# and then, here on the laptop, the verdict below.
 #
-# WHAT IT WILL NEVER DO. It contains no stop, no disable, no restart and no kill,
-# and tools/validate_deploy.py reads this file to assert that line by line. A
-# deploy that can restart a unit is a deploy that can take the Gateway down
-# mid-session while nobody is watching, and the cost is asymmetric: the worst case
-# of refusing is a printed command, the worst case of acting is a dead pipeline
-# with a position open.
+# WHAT IT WILL NEVER DO. Neither file contains a stop, disable, restart or kill,
+# and tools/validate_deploy.py reads both to assert that line by line. A deploy
+# that can restart a unit is a deploy that can take the Gateway down mid-session
+# while nobody is watching, and the cost is asymmetric: the worst case of refusing
+# is a printed command, the worst case of acting is a dead pipeline with a
+# position open.
 #
 # SO A CHANGED UNIT THAT IS RUNNING EXITS 3. daemon-reload re-reads unit files but
 # an ACTIVE unit keeps running the old one -- a live timer keeps its computed
@@ -42,7 +52,7 @@
 #   0  clean: copied, enabled, nothing needs a restart, drift clean
 #   3  a changed unit is RUNNING and needs a restart you must run yourself
 #   4  drift still reported AFTER the copy -- the deploy did not take
-#   1  the pull or the copy itself failed
+#   1  the pull or the copy itself failed, or the connection did
 #
 # Overridable:
 #   DEPLOY_HOST        ssh destination           (vps)
@@ -53,83 +63,46 @@
 set -uo pipefail
 
 HOST="${DEPLOY_HOST:-vps}"
+# Passed to the remote script as arguments. Left unexpanded here ('$HOME...') so
+# they resolve on the BOX, where $HOME is the box's home, not the laptop's.
 REPO_REMOTE="${DEPLOY_REPO:-\$HOME/chester-reports}"
 UNIT_DIR="${DEPLOY_UNIT_DIR:-\$HOME/.config/systemd/user}"
 STATE_DIR="${DEPLOY_STATE_DIR:-\$HOME/state}"
 
-# THE TIMERS THIS MAY ENABLE. A declared list, not a glob over the unit
-# directory, and the difference matters: ibgateway.service and
-# ibgateway-restart.timer are deliberately held back behind a witnessed clean
-# start (deploy/systemd/README.md section 4), and a glob would enable them the
-# first time anybody ran a deploy. Adding a timer here is a deliberate edit.
-DEPLOY_TIMERS="
-chester-eod.timer
-chester-daily-close.timer
-chester-heartbeat.timer
-chester-ibkr-sync.timer
-chester-backup.timer
-chester-overnight.timer
-chester-morning-anchor.timer
-"
-
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REMOTE="$HERE/deploy_remote.sh"
 BAR="=============================================================================="
-sh_() { ssh -o BatchMode=yes "$HOST" "$@"; }
+
+if [ ! -r "$REMOTE" ]; then
+    echo "deploy_remote.sh is missing beside this script -- nothing was run" >&2
+    exit 1
+fi
 
 echo "$BAR"
 echo "DEPLOY -> $HOST   (never stops, disables, restarts or kills a unit)"
 echo "$BAR"
 
-echo "-- 1. pull --ff-only"
-sh_ "cd $REPO_REMOTE && git pull --ff-only" || exit 1
-SHA="$(sh_ "cd $REPO_REMOTE && git rev-parse --short HEAD")" || exit 1
-echo "   box at $SHA"
-echo
+# ONE ssh CONNECTION FOR STEPS 1-6. The remote script prints each section as it
+# runs; its three @@ marker lines are captured for the verdict below and not
+# printed. BatchMode: a deploy must never sit at a password prompt.
+OUT="$(mktemp)"
+trap 'rm -f "$OUT"' EXIT
+ssh -o BatchMode=yes "$HOST" "bash -s -- \"$REPO_REMOTE\" \"$UNIT_DIR\" \"$STATE_DIR\"" \
+    < "$REMOTE" | tee "$OUT" | grep -v '^@@'
+REMOTE_RC=${PIPESTATUS[0]}
 
-echo "-- 2. copy units, and note which CHANGED while running"
-# The whole loop runs on the box in one shell: it has to compare, read
-# is-active BEFORE overwriting, and copy, and splitting that across ssh calls
-# would race its own copy.
-NEEDS="$(sh_ "cd $REPO_REMOTE && mkdir -p $UNIT_DIR && need=''
-for f in deploy/systemd/*.service deploy/systemd/*.timer; do
-  u=\$(basename \"\$f\"); d=$UNIT_DIR/\$u
-  cmp -s \"\$f\" \"\$d\" 2>/dev/null && continue
-  was_active=no
-  if [ -e \"\$d\" ] && systemctl --user is-active --quiet \"\$u\" 2>/dev/null; then was_active=yes; fi
-  cp \"\$f\" \"\$d\"
-  echo \"   copied \$u\" >&2
-  [ \"\$was_active\" = yes ] && need=\"\$need \$u\"
-done
-printf '%s' \"\$need\"")" || exit 1
-echo "   (nothing copied = every unit already matched the repo)"
-echo
+# The pull or the copy failed on the box (exit 1), or ssh itself did not connect
+# (255). Either way steps 2-6 are not known to have run.
+if [ "$REMOTE_RC" -ne 0 ]; then
+    echo "$BAR"
+    echo "DEPLOY FAILED on the box or on the connection (exit $REMOTE_RC) --"
+    echo "the pull or the unit copy did not complete. Nothing was restarted."
+    echo "$BAR"
+    exit 1
+fi
 
-echo "-- 3. daemon-reload"
-sh_ "systemctl --user daemon-reload" && echo "   ok"
-echo
-
-echo "-- 4. enable --now any declared timer not yet enabled"
-for t in $DEPLOY_TIMERS; do
-    if sh_ "systemctl --user is-enabled --quiet $t 2>/dev/null"; then
-        echo "   already enabled  $t"
-    else
-        echo "   enabling         $t"
-        sh_ "systemctl --user enable --now $t" 2>&1 | sed 's/^/     /'
-    fi
-done
-echo
-
-echo "-- 5. drift check and heartbeat"
-sh_ "cd $REPO_REMOTE && CHESTER_STATE_DIR=$STATE_DIR ./scripts/check_heartbeat_cron.sh" \
-    >/dev/null 2>&1
-HB=$?
-sh_ "grep -hE 'verdict=' \$HOME/logs/heartbeat_check-*.log | tail -1" | sed 's/^/   /'
-DRIFT="$(sh_ "sed -n 's/.*drift=\([a-z_]*\).*/\1/p' $STATE_DIR/heartbeat_check_status 2>/dev/null")"
-echo "   heartbeat exit=$HB   drift=${DRIFT:-unknown}"
-echo
-
-echo "-- 6. timer roster"
-sh_ "systemctl --user list-timers --all --no-pager" | sed 's/^/   /'
-echo
+NEEDS="$(sed -n 's/^@@NEEDS //p' "$OUT" | tail -1)"
+DRIFT="$(sed -n 's/^@@DRIFT //p' "$OUT" | tail -1)"
 
 echo "$BAR"
 rc=0
