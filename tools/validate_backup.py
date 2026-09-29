@@ -323,6 +323,206 @@ def group_d() -> None:
         bad("a missed backup window is never made up")
 
 
+def group_e() -> None:
+    """29 Sep 2026: what goes off-box, db/ retention, and stalls that fail fast."""
+    print(f"\n{LINE}\nE. The 29 Sep fix -- excludes, verified snapshot, retention, "
+          f"stall limits\n{LINE}")
+    s = (REPO / "scripts/rclone_sync.sh").read_text(encoding="utf-8")
+    code = "\n".join(ln for ln in s.splitlines() if not ln.strip().startswith("#"))
+
+    # -- what goes off-box ---------------------------------------------------
+    def data_excludes_db(text: str) -> bool:
+        return bool(re.search(r'copy_tree "\$REPO/data".*--exclude "/chester\.db\*"', text))
+
+    def state_excludes_stage(text: str) -> bool:
+        return bool(re.search(r'copy_tree "\$STATE_DIR".*--exclude "/backup_stage/\*\*"', text))
+    if data_excludes_db(code) and not data_excludes_db(
+            code.replace(' --exclude "/chester.db*"', "")):
+        ok("data/ excludes chester.db* -- the live file never leaves the box raw")
+    else:
+        bad("data/ would upload the live chester.db, a torn copy that looks valid")
+    if state_excludes_stage(code) and not state_excludes_stage(
+            code.replace(' --exclude "/backup_stage/**"', "")):
+        ok("state/ excludes backup_stage/ -- the snapshot uploads once, to db/")
+    else:
+        bad("state/ re-uploads the staged snapshot db/ already carries")
+
+    # -- the snapshot is verified before it is uploaded ----------------------
+    order = [code.find(k) for k in (
+        "altdata.observations snapshot", "altdata.observations integrity",
+        'gzip -c "$SNAP"', 'gzip -dc "$UPLOAD" | cmp -s - "$SNAP"',
+        'copy_tree "$STAGE" "db"')]
+    if -1 not in order and order == sorted(order):
+        ok("snapshot -> integrity_check -> gzip -> byte-for-byte round trip -> upload, "
+           "in that order")
+    else:
+        bad(f"the verify-before-upload sequence is missing or out of order: {order}")
+
+    with tempfile.TemporaryDirectory() as d:
+        src, snap = Path(d) / "src.db", Path(d) / "snap.db"
+        _seed_db(src, 5)
+        observations.snapshot_sqlite(src, snap)
+        if observations.integrity_check(snap) == []:
+            ok("integrity_check passes a clean snapshot")
+        else:
+            bad("integrity_check rejected a clean snapshot")
+        # Corrupt a page past the header: the file still opens by name.
+        raw = bytearray(snap.read_bytes())
+        for i in range(4096, min(len(raw), 8192)):
+            raw[i] = 0xFF
+        bad_db = Path(d) / "bad.db"
+        bad_db.write_bytes(bytes(raw))
+        try:
+            flagged = observations.integrity_check(bad_db) != []
+        except sqlite3.DatabaseError:
+            flagged = True
+        if flagged:
+            ok("integrity_check refuses a snapshot with a corrupted page")
+        else:
+            bad("a corrupted snapshot passed integrity_check")
+        rc = observations._main(["integrity", str(bad_db)])
+        if rc == 2:
+            ok("the `integrity` CLI exits 2 on it, which the sweep maps to rc 2")
+        else:
+            bad(f"the integrity CLI exited {rc} on a corrupted snapshot")
+
+    # -- nothing removed but named db/ snapshots -----------------------------
+    for pat, why in ((r"\brclone\s+(delete|purge|rmdir|rmdirs|cleanup|dedupe)\b",
+                      "no bulk removal verb (delete/purge/rmdir/cleanup/dedupe)"),
+                     (r"--delete-", "no --delete-* flag"),
+                     (r"--drive-use-trash=false|--drive-use-trash\s+false",
+                      "Drive's trash is not bypassed")):
+        if re.search(pat, code):
+            bad(f"the sweep carries a forbidden removal: {pat}")
+        else:
+            ok(why)
+    deletes = [ln for ln in code.splitlines() if re.search(r"\brclone\s+deletefile\b", ln)]
+    if deletes and all('rclone deletefile "$REMOTE/db/$name"' in ln for ln in deletes):
+        ok("the only removal is `rclone deletefile \"$REMOTE/db/$name\"`")
+    else:
+        bad(f"a deletefile reaches outside db/: {deletes}")
+    guard = code.find(r'^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$')
+    if deletes and 0 <= guard < code.find("rclone deletefile"):
+        ok("each name is re-matched against the snapshot pattern in the shell first")
+    else:
+        bad("the shell deletes names it has not itself matched")
+    if "--require" in code and 'if copy_tree "$STAGE" "db"' in code:
+        ok("prune runs only after the db/ upload succeeded, and names tonight's file")
+    else:
+        bad("a failed upload could still prune")
+
+    # -- the retention rule itself -------------------------------------------
+    import importlib.util  # noqa: PLC0415
+    spec = importlib.util.spec_from_file_location(
+        "backup_retention", REPO / "scripts" / "backup_retention.py")
+    br = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(br)
+    from datetime import date, timedelta  # noqa: PLC0415
+
+    today = date(2026, 9, 30)
+    days = [today - timedelta(days=i) for i in range(400)]
+    names = [f"chester-{d.isoformat()}.db.gz" for d in days]
+    names += ["chester-2026-09-28.db", "notes.txt", "chester-latest.db",
+              "chester-2026-10-05.db.gz"]           # raw 28 Sep, strays, future
+    keep, delete = br.plan(names, today)
+    keep_d = {n for n in keep if n.endswith(".db.gz")}
+    daily = {f"chester-{(today - timedelta(days=i)).isoformat()}.db.gz" for i in range(14)}
+    if daily <= keep_d:
+        ok("the last 14 days are all kept")
+    else:
+        bad(f"a daily snapshot inside 14 days would go: {sorted(daily - keep_d)[:3]}")
+    monday = today - timedelta(days=today.weekday())
+    weekly = set()
+    for w in range(8):
+        sunday = monday - timedelta(weeks=w) + timedelta(days=6)
+        weekly.add(f"chester-{min(sunday, today).isoformat()}.db.gz")
+    if weekly <= keep_d:
+        ok("the newest snapshot of each of the last 8 ISO weeks is kept")
+    else:
+        bad(f"a weekly snapshot would go: {sorted(weekly - keep_d)[:3]}")
+    oldest = min(days)
+    months, d0 = set(), date(oldest.year, oldest.month, 1)
+    while d0 <= today:
+        nxt = date(d0.year + (d0.month == 12), d0.month % 12 + 1, 1)
+        last = min(nxt - timedelta(days=1), today)
+        months.add(f"chester-{last.isoformat()}.db.gz")
+        d0 = nxt
+    if months <= keep_d:
+        ok(f"the newest snapshot of every month is kept ({len(months)} months, forever)")
+    else:
+        bad(f"a monthly snapshot would go: {sorted(months - keep_d)[:3]}")
+    if not any(n in delete for n in ("notes.txt", "chester-latest.db")):
+        ok("names outside the pattern are never planned for deletion")
+    else:
+        bad("the plan would delete a file it does not recognise")
+    if "chester-2026-10-05.db.gz" not in delete:
+        ok("a future-dated snapshot is kept -- a wrong clock loses nothing")
+    else:
+        bad("a future-dated snapshot would be deleted")
+    expected_keep = len(daily | weekly | months | {"chester-2026-10-05.db.gz"})
+    if len(keep_d) == expected_keep and len(delete) == len(names) - 2 - len(keep):
+        ok(f"everything else goes: {len(keep)} kept of {len(names) - 2} snapshots")
+    else:
+        bad(f"kept {len(keep_d)} (wanted {expected_keep}), deleting {len(delete)}")
+
+    import contextlib  # noqa: PLC0415
+    import io  # noqa: PLC0415
+    old_stdin = sys.stdin
+    try:
+        sys.stdin = io.StringIO("\n".join(names))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            rc = br.main(["--today", "2026-09-30",
+                          "--require", "chester-2026-10-01.db.gz"])
+    finally:
+        sys.stdin = old_stdin
+    if rc == 3 and out.getvalue() == "":
+        ok("tonight's snapshot missing from the listing -> exit 3, nothing printed")
+    else:
+        bad(f"a missing upload still produced a prune plan (rc={rc})")
+
+    # -- stalls fail fast ----------------------------------------------------
+    m = re.search(r'^RCLONE_LIMITS="([^"]*)"', code, re.M)
+    limits = m.group(1) if m else ""
+    for flag in ("--timeout", "--contimeout", "--low-level-retries", "--retries ",
+                 "--tpslimit", "--stats "):
+        if flag in limits:
+            ok(f"rclone runs with {flag.strip()}")
+        else:
+            bad(f"RCLONE_LIMITS lacks {flag.strip()}")
+    if "CHESTER_RCLONE_LIMITS" not in code:
+        ok("the stall limits are not env-overridable (tuning cannot drop them)")
+    else:
+        bad("the stall limits can be overridden away")
+    copies = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copy\b", ln)]
+    prev = code.splitlines()
+    capped = all(
+        re.search(r'timeout --kill-after=\S+ "\$\{mins\}m"',
+                  prev[prev.index(ln) - 1] + ln) for ln in copies)
+    if copies and capped and "$RCLONE_LIMITS" in copies[0]:
+        ok("every rclone copy runs under its own timeout and the stall limits")
+    else:
+        bad("an rclone copy can run uncapped")
+    caps = [int(x) for x in re.findall(r'^\s*(?:if\s+)?copy_tree "[^"]+"\s+"\w+"\s+(\d+)',
+                                        code, re.M)]
+    u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
+    tm = re.search(r"^TimeoutStartSec=(?:(\d+)h)?(?:(\d+)min)?\s*$", u, re.M)
+    ceiling = (int(tm.group(1) or 0) * 60 + int(tm.group(2) or 0)) if tm else 0
+    if len(caps) == 4 and ceiling > sum(caps) + 5 + 10:
+        ok(f"TimeoutStartSec {ceiling}m sits above the tree caps "
+           f"({'+'.join(map(str, caps))}={sum(caps)}m) plus the prune")
+    else:
+        bad(f"TimeoutStartSec {ceiling}m does not clear the caps {caps}")
+    if re.search(r"^trap '.*finish killed 4.*' TERM", code, re.M):
+        ok("a SIGTERM from systemd writes state=killed rc=4 before exit")
+    else:
+        bad("a killed sweep leaves the previous night's status standing")
+    if 'LOG="$LOG_DIR/rclone_sync-$TODAY.log"' in code:
+        ok("one log file per run")
+    else:
+        bad("the sweep's log is not per run")
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -331,6 +531,7 @@ def main() -> int:
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

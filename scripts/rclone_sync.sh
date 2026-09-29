@@ -9,33 +9,59 @@
 # lived on one VPS. Losing that box would not have lost a night of chains -- it
 # would have lost the record that the system had ever decided anything.
 #
-# Three trees go off-box:
-#   $REPO/data      chains, computed profiles, the pin log, the database
-#   ~/backups       the EOD zips (already a second copy, now a third off-box)
-#   ~/.chester      heartbeat, status files, the alert the brief reads
+# Four trees go off-box:
+#   db/        tonight's snapshot of chester.db, integrity-checked and gzipped
+#   data/      $REPO/data -- chains, computed profiles, the pin log -- WITHOUT
+#              chester.db*: the live file is never uploaded (see below)
+#   backups/   ~/backups, the EOD zips (already a second copy, now a third)
+#   state/     $CHESTER_STATE_DIR -- heartbeat, status files, the brief's alert
+#              -- WITHOUT backup_stage/, which db/ already carries
 #
 # COPY, NEVER SYNC, AND THAT IS THE WHOLE SAFETY ARGUMENT. `rclone sync` makes
 # the remote match the source, which means a local deletion -- a bad restore, a
 # `rm -rf` on the wrong path, a disk that comes back empty -- is faithfully
 # replicated to the backup, and the backup is gone at the exact moment it was
-# needed. `rclone copy` only ever adds. The remote grows; nothing on it is
-# removed by this script, ever. Pruning is a deliberate human act, not a side
-# effect of the thing that is supposed to protect you.
+# needed. `rclone copy` only ever adds. data/, backups/ and state/ only ever
+# grow; nothing in them is removed by this script, ever.
+#
+# THE ONE REMOVAL IS db/ RETENTION, AND IT IS NARROW ON PURPOSE (29 Sep 2026).
+# A dated full snapshot every night grows without bound, so db/ keeps 14 daily,
+# 8 weekly and one per month forever (scripts/backup_retention.py holds the
+# rule). It deletes with `rclone deletefile` on ONE NAMED FILE at a time, each
+# name matching `chester-YYYY-MM-DD.db[.gz]`, only inside db/, and only after
+# tonight's snapshot is confirmed on the remote. Never `delete`, `purge` or
+# `sync`, which act on whatever a filter or a listing happens to match.
 #
 # THE DATABASE IS SNAPSHOTTED, NOT COPIED. A live SQLite file read mid-write
 # produces a file that opens cleanly and is missing rows -- a backup that looks
 # valid and is not, which is worse than none because it is trusted. The
 # snapshot goes through altdata.observations.snapshot_sqlite (the online backup
-# API), the same call the EOD zip uses, so the two cannot drift apart. It is
-# staged under a DATED name so the remote accumulates history rather than one
-# ever-overwritten file: a corruption discovered on Thursday needs Tuesday's
-# copy, and `copy` semantics only help if the names differ.
+# API), the same call the EOD zip uses, so the two cannot drift apart. Until 29
+# Sep the data/ tree ALSO uploaded the live chester.db as a raw file every
+# night, the torn copy this paragraph warns against; it is now excluded. The
+# snapshot is then PRAGMA integrity_check'ed, gzipped, and the gzip is
+# decompressed and compared byte for byte against the snapshot before anything
+# is uploaded: a compressed copy nobody has ever decompressed is not a backup.
+# It is staged under a DATED name so the remote accumulates history: a
+# corruption discovered on Thursday needs Tuesday's copy.
+#
+# A STALL FAILS, IT DOES NOT HANG (29 Sep 2026). On 29 Sep the sweep sat in
+# Google Drive's 403 "Quota exceeded ... Requests per minute" -- the shared
+# rclone client ID's quota -- until systemd killed it at TimeoutStartSec, which
+# left no status line and named no tree. So: rclone gets an idle timeout, a
+# bounded retry budget and a request-rate ceiling; every tree runs under its
+# own coreutils `timeout`, so a stuck tree fails as that tree (rc 3) and the
+# rest still run; and a SIGTERM from systemd writes state=killed before exit.
+# The durable fix for the quota is the operator's own OAuth client ID
+# (deploy/systemd/README.md section 10), which no file in this repo carries.
 #
 # Exit codes:
-#   0 everything copied
+#   0 everything copied (a failed db/ prune is logged and named, not fatal)
 #   1 environment problem (no repo, no venv, no rclone, no remote configured)
-#   2 the database snapshot failed -- nothing was uploaded for it
-#   3 rclone reported a failure on at least one tree
+#   2 the database snapshot, its integrity check or its compression failed --
+#     nothing was uploaded for it
+#   3 rclone reported a failure, or hit its time cap, on at least one tree
+#   4 terminated from outside (TimeoutStartSec, or a stop) mid-sweep
 #
 # Overridable:
 #   CHESTER_REPO        repo checkout        (~/chester-reports)
@@ -43,10 +69,12 @@
 #   CHESTER_STATE_DIR   state dir            (~/.chester)
 #   CHESTER_BACKUP_DIR  EOD zips             (~/backups)
 #   CHESTER_PYTHON      interpreter          ($REPO/.venv/bin/python)
-#   CHESTER_RCLONE_REMOTE   rclone remote and path, e.g. b2:chester-backup
+#   CHESTER_RCLONE_REMOTE   rclone remote and path, e.g. gdrive:chester-backups
 #                           REQUIRED; without it the script exits 1 loudly
 #                           rather than pretending to have run.
-#   CHESTER_RCLONE_FLAGS    extra flags (default: --transfers 4 --checkers 8)
+#   CHESTER_RCLONE_FLAGS    parallelism (default: --transfers 4 --checkers 8).
+#                           The stall limits below are NOT overridable here, so
+#                           tuning parallelism cannot quietly drop them.
 
 set -uo pipefail
 
@@ -57,8 +85,15 @@ BACKUP_DIR="${CHESTER_BACKUP_DIR:-$HOME/backups}"
 REMOTE="${CHESTER_RCLONE_REMOTE:-}"
 RCLONE_FLAGS="${CHESTER_RCLONE_FLAGS:---transfers 4 --checkers 8}"
 
+# Fail fast, retry sanely, stay under Drive's request quota. All in rclone
+# v1.60 (the Debian package on the box). --timeout is the IO idle timeout: a
+# connection that moves no bytes for 2 minutes is dead, not slow.
+RCLONE_LIMITS="--timeout 2m --contimeout 60s --low-level-retries 10 --retries 2 --retries-sleep 30s --tpslimit 8 --stats 1m --stats-one-line"
+
+TODAY="$(date +%Y-%m-%d)"
 mkdir -p "$LOG_DIR" "$STATE_DIR"
-LOG="$LOG_DIR/rclone_sync-$(date +%Y-%m).log"
+# One log per run, so a failed night can be read on its own.
+LOG="$LOG_DIR/rclone_sync-$TODAY.log"
 STATUS="$STATE_DIR/rclone_sync_status"
 LAST_OK="$STATE_DIR/rclone_sync_last_ok"
 LOCK="$STATE_DIR/rclone_sync.lock"
@@ -81,6 +116,11 @@ if ! flock -n 9; then
     exit 0
 fi
 
+# Killed from outside -- systemd's TimeoutStartSec, or a stop -- still leaves a
+# status line the heartbeat reads as failed:killed, instead of the previous
+# night's `ok` standing until it goes stale.
+trap 'finish killed 4 "terminated mid-sweep (TimeoutStartSec or a stop); see $LOG"' TERM INT
+
 command -v rclone >/dev/null 2>&1 || finish no_rclone 1 "rclone is not installed"
 [[ -n "$REMOTE" ]] || finish no_remote 1 \
     "CHESTER_RCLONE_REMOTE is unset -- nothing was copied anywhere"
@@ -91,43 +131,107 @@ PY="${CHESTER_PYTHON:-$REPO/.venv/bin/python}"
 
 log "=== sweep start remote=$REMOTE"
 
-# --- stage a consistent database snapshot -----------------------------------
+# --- stage a consistent, verified, compressed database snapshot -------------
 STAGE="$STATE_DIR/backup_stage"
 mkdir -p "$STAGE"
 SNAP="$STAGE/chester-$(date +%Y-%m-%d).db"
-rm -f "$STAGE"/chester-*.db          # only today's staged copy is kept locally
+UPLOAD="$SNAP.gz"
+rm -f "$STAGE"/chester-*             # only tonight's staged copy is kept locally
 if ! (cd "$REPO" && "$PY" -m altdata.observations snapshot "$SNAP") >>"$LOG" 2>&1; then
     finish snapshot_failed 2 "database snapshot failed; see $LOG"
 fi
-log "staged $(basename "$SNAP")"
+if ! (cd "$REPO" && "$PY" -m altdata.observations integrity "$SNAP") >>"$LOG" 2>&1; then
+    finish snapshot_failed 2 "staged snapshot failed PRAGMA integrity_check; see $LOG"
+fi
+if ! gzip -c "$SNAP" >"$UPLOAD.part" || ! mv "$UPLOAD.part" "$UPLOAD"; then
+    finish snapshot_failed 2 "compressing the snapshot failed; see $LOG"
+fi
+# The round trip, not just the CRC: decompress and compare every byte.
+if ! gzip -dc "$UPLOAD" | cmp -s - "$SNAP"; then
+    finish snapshot_failed 2 "gzip round trip does not reproduce the snapshot"
+fi
+log "staged $(basename "$UPLOAD") ($(stat -c %s "$SNAP") bytes -> $(stat -c %s "$UPLOAD"))"
+rm -f "$SNAP"                        # the verified .gz is what goes off-box
 
 # --- copy, tree by tree -----------------------------------------------------
-# Each tree is reported separately so a partial sweep names which part failed.
+# Each tree is reported separately and runs under its own time cap, so a
+# partial sweep names which part failed and a stalled tree cannot starve the
+# others. The caps sum to 100 minutes, plus up to ~10 for the db/ prune;
+# TimeoutStartSec is 2h30min, so a cap always fires before systemd does.
 RC=0
 FAILED=""
-copy_tree() {    # copy_tree <local> <remote-subpath>
-    local srcdir="$1" sub="$2"
+copy_tree() {    # copy_tree <local> <remote-subpath> <minutes> [rclone filter args...]
+    local srcdir="$1" sub="$2" mins="$3"
+    shift 3
     if [[ ! -d "$srcdir" ]]; then
         log "  skip $sub -- $srcdir does not exist"
         return 0
     fi
+    log "  start $sub (cap ${mins}m)"
     # `copy`, not `sync`. See the header.
-    if rclone copy "$srcdir" "$REMOTE/$sub" $RCLONE_FLAGS \
-            --log-file "$LOG" --log-level INFO; then
+    timeout --kill-after=60s "${mins}m" \
+        rclone copy "$srcdir" "$REMOTE/$sub" $RCLONE_FLAGS $RCLONE_LIMITS "$@" \
+            --log-file "$LOG" --log-level INFO
+    local rc=$?
+    if [[ $rc -eq 0 ]]; then
         log "  ok $sub"
         return 0
     fi
-    log "  FAILED $sub"
-    FAILED="${FAILED:+$FAILED }$sub"
+    if [[ $rc -eq 124 || $rc -eq 137 ]]; then
+        log "  TIMEOUT $sub -- no completion within ${mins}m"
+        FAILED="${FAILED:+$FAILED }$sub(timeout)"
+    else
+        log "  FAILED $sub rc=$rc"
+        FAILED="${FAILED:+$FAILED }$sub"
+    fi
     return 1
 }
 
-copy_tree "$STAGE"      "db"      || RC=3
-copy_tree "$REPO/data"  "data"    || RC=3
-copy_tree "$BACKUP_DIR" "backups" || RC=3
-copy_tree "$STATE_DIR"  "state"   || RC=3
+# --- db/ retention: 14 daily + 8 weekly + monthly, by name, inside db/ only --
+PRUNE="not run"
+prune_db() {
+    local listing doomed name n=0
+    if ! listing="$(timeout 5m rclone lsf "$REMOTE/db" --files-only $RCLONE_LIMITS 2>>"$LOG")"; then
+        PRUNE="failed (listing db/)"
+        return 1
+    fi
+    if ! doomed="$(printf '%s\n' "$listing" \
+            | "$PY" "$REPO/scripts/backup_retention.py" \
+                --today "$TODAY" --require "$(basename "$UPLOAD")" 2>>"$LOG")"; then
+        PRUNE="refused (tonight's snapshot not listed on the remote)"
+        return 1
+    fi
+    for name in $doomed; do
+        # The same pattern backup_retention.py matches, checked again here: the
+        # shell deletes nothing it has not itself recognised as a dated snapshot.
+        if [[ ! "$name" =~ ^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$ ]]; then
+            log "  prune: refusing unexpected name '$name'"
+            continue
+        fi
+        if timeout 2m rclone deletefile "$REMOTE/db/$name" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            log "  prune: deleted db/$name"
+            n=$((n + 1))
+        else
+            PRUNE="failed (deleting db/$name)"
+            return 1
+        fi
+    done
+    PRUNE="ok ($n deleted)"
+    return 0
+}
+
+if copy_tree "$STAGE" "db" 20; then
+    prune_db || log "  prune: $PRUNE"
+else
+    RC=3
+fi
+copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*"     || RC=3
+copy_tree "$BACKUP_DIR" "backups" 30                              || RC=3
+copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
+log "  prune: $PRUNE"
 
 if [[ $RC -eq 0 ]]; then
-    finish ok 0 "all trees copied to $REMOTE"
+    finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi
-finish partial "$RC" "failed: $FAILED"
+finish partial "$RC" "failed: $FAILED; db/ prune: $PRUNE"

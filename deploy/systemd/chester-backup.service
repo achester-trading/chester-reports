@@ -7,14 +7,21 @@ Type=oneshot
 ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 
 # NOT listed as success: 1 (no rclone, no remote, no venv), 2 (the database
-# snapshot failed), 3 (a tree did not copy). Every one of those means the
+# snapshot, its integrity check or its compression failed), 3 (a tree did not
+# copy or hit its time cap), 4 (terminated mid-sweep). Every one of those means the
 # off-box copy did not happen, and a backup that quietly did not happen is the
 # failure this whole unit exists to prevent. Only 0 is success, so
 # `systemctl --user list-units --failed` goes red until a sweep completes.
 
-# Large trees over a slow uplink. Generous, but bounded -- a sweep still
-# running when the next one is due would be a real problem, not a slow night.
-TimeoutStartSec=2h
+# Sized to the job, and ABOVE the script's own caps. Each tree runs under a
+# coreutils `timeout` (db 20m, data 40m, backups 30m, state 10m; the db/ prune
+# 5m to list plus 2m a delete), so a stalled tree fails as itself, rc 3, and is
+# named in the status line. This ceiling only catches what the caps cannot:
+# a hung snapshot or compression. On 29 Sep 2026 a Drive quota stall ran into
+# the old 2h ceiling with no per-tree cap, so systemd killed the sweep and no
+# status line said which tree had stalled; the script now traps the SIGTERM
+# and writes state=killed (rc 4).
+TimeoutStartSec=2h30min
 
 NoNewPrivileges=true
 PrivateTmp=true

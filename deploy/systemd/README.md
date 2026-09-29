@@ -629,10 +629,10 @@ refuses to look like it ran. That is the failure mode a backup must not have.
 
 | Remote path | Source |
 |---|---|
-| `db/` | a dated, consistent snapshot of `chester.db` |
-| `data/` | chains, computed profiles, the pin log |
+| `db/` | a dated, consistent snapshot of `chester.db`, integrity-checked and gzipped: `chester-YYYY-MM-DD.db.gz` |
+| `data/` | chains, computed profiles, the pin log — **not** `chester.db*` (excluded; `db/` is the only database copy) |
 | `backups/` | the EOD zips |
-| `state/` | heartbeat, status files, the brief's alert |
+| `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
 
 **`rclone copy`, never `rclone sync`.** `sync` makes the remote match the
 source, so a local deletion — a bad restore, an `rm -rf` on the wrong path, a
@@ -648,9 +648,110 @@ so the two cannot drift. The staged copy is dated, so the remote accumulates
 history: a corruption found on Thursday needs Tuesday's file, and copy
 semantics only help if the names differ.
 
+**`db/` is the one tree anything is removed from.** A full dated snapshot a
+night grows without bound, so `db/` keeps every snapshot of the last 14 days,
+the newest of each of the last 8 ISO weeks, and the newest of every month
+forever (`scripts/backup_retention.py`). Removal is `rclone deletefile` on one
+named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
+`db/` only, and only once tonight's snapshot is listed on the remote. A failed
+prune is logged and named in the status line; it does not fail the backup.
+Drive moves deleted files to its trash, where they stay 30 days.
+
 Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
-venv) · `2` the snapshot failed · `3` at least one tree did not copy. The unit
-declares no `SuccessExitStatus`, so anything but a completed sweep shows red.
+venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
+least one tree did not copy or hit its time cap · `4` terminated mid-sweep
+(TimeoutStartSec or a stop; the script traps it and writes `state=killed`). The
+unit declares no `SuccessExitStatus`, so anything but a completed sweep shows red.
+
+### The 29 Sep failure, and what changed
+
+The 29 Sep sweep ran from 02:32 ET until systemd killed it at the old 2h
+`TimeoutStartSec`, almost all of it waiting: rclone's log shows Google Drive
+403 `Quota exceeded ... Requests per minute` for project 202264815644, which is
+**rclone's shared default client ID** — every rclone user who never made their
+own shares that quota. The heartbeat then read `backup=stale:35h`, because a
+killed script wrote no status line. Two more faults were found on the way: the
+`data/` tree uploaded the live `chester.db` as a raw file every night, and
+`state/` re-uploaded the staged snapshot that `db/` already carried.
+
+- **Stalls fail, they do not hang.** rclone runs with `--timeout 2m
+  --contimeout 60s --low-level-retries 10 --retries 2 --retries-sleep 30s
+  --tpslimit 8`, and every tree runs under its own `timeout` (db 20m, data 40m,
+  backups 30m, state 10m). `TimeoutStartSec=2h30min` sits above them all.
+- **One log per run** at `~/logs/rclone_sync-YYYY-MM-DD.log`, with a one-line
+  transfer stats entry every minute, so a stall shows as a flat line.
+- **The durable quota fix is your own OAuth client** (next subsection). The
+  limits above make a throttled night fail fast and loudly; the client ID is
+  what stops it being throttled.
+
+### Your own Google Drive client ID for rclone (by hand, once)
+
+Nothing here goes into the repo, a chat or any file but `~/.config/rclone/rclone.conf`
+on the box. The client secret, the `rclone authorize` blob and the token it
+returns are all credentials.
+
+1. **Project.** In the Google Cloud console (console.cloud.google.com) create a
+   project, e.g. `chester-rclone`, signed in as the account that owns the Drive.
+2. **API.** APIs & Services → Library → *Google Drive API* → Enable.
+3. **Consent screen.** Google Auth Platform (or APIs & Services → OAuth consent
+   screen): user type *External*, app name, your address as support and
+   developer contact. Under Data access add the scope
+   `https://www.googleapis.com/auth/drive`. Under Audience add your address as a
+   test user, then **Publish app → In production**. This matters: an app left
+   in *Testing* issues refresh tokens that expire after 7 days, and the sweep
+   would fail again a week from now. A personal app in production needs no
+   verification; you will see an "unverified app" warning once when you
+   authorise, and click through it.
+4. **Client.** Credentials → Create credentials → OAuth client ID →
+   Application type **Desktop app** → Create. Keep the client ID and secret in
+   your password manager.
+5. **Apply it on the box** (headless):
+   ```bash
+   rclone config
+   #  e) Edit existing remote -> gdrive
+   #  client_id>      paste the client ID
+   #  client_secret>  paste the client secret
+   #  scope>          keep "drive" (Enter)
+   #  Edit advanced config?                         n
+   #  Use web browser to automatically authenticate? n   (the box has no browser)
+   #  -> it prints:  rclone authorize "drive" "<blob>"
+   ```
+   Run that exact `rclone authorize` line on the laptop (Windows: `winget
+   install Rclone.Rclone`, then a new terminal). A browser opens; sign in and
+   allow. The laptop prints a token; paste it at the box's `config_token>`
+   prompt. Answer `n` to the shared-drive question, `y` to keep the remote,
+   `q` to quit. The remote name, and so `CHESTER_RCLONE_REMOTE`, is unchanged.
+6. **Prove it:** `rclone lsd gdrive:chester-backups` lists `db`, `data`,
+   `backups`, `state`. After the next sweep, the console's APIs & Services →
+   Google Drive API → Metrics page shows its requests under **your** project —
+   the proof that the shared client is no longer in the path.
+
+### Run it once by hand after a deploy
+
+```bash
+systemctl --user start --no-block chester-backup.service
+systemctl --user is-active chester-backup.service # "activating" while it runs, "inactive" when done
+systemctl --user status chester-backup.service --no-pager | head -5   # when done: "status=0/SUCCESS"
+cat ~/state/rclone_sync_status                    # state=ok rc=0 ... db/ prune: ok (N deleted)
+tail -20 ~/logs/rclone_sync-$(date +%F).log       # "ok db", "ok data", "ok backups", "ok state"
+```
+
+Starting the unit rather than the script runs it as the timer will, under the
+same sandbox and timeout; `--no-block` returns at once, so a dropped ssh session
+cannot matter, and `tail -f` on the day's log shows the one-minute stats lines. `~/state` is where the box's drop-in points
+`CHESTER_STATE_DIR`; on a box without that drop-in it is `~/.chester`. The
+heartbeat's next pass reads `backup=ok`.
+
+### rclone version
+
+The box carries Debian's rclone v1.60.1 (2022). Every flag above exists in it,
+so the fix does not wait on an upgrade. An upgrade is still worth doing on a
+quiet evening — three years of Google Drive backend and Go runtime fixes — but
+as its own change: download the `.deb` for linux-amd64 from rclone.org/downloads,
+check it against the release's `SHA256SUMS`, `sudo apt install ./rclone-*.deb`,
+then `rclone version` and one hand run as above. Prefer the `.deb` to
+`rclone selfupdate` (which overwrites a binary apt owns) and to piping
+`install.sh` into `sudo bash`. Note that apt will no longer track it.
 
 
 ## Timezone note

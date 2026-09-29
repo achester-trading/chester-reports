@@ -281,6 +281,22 @@ def snapshot_sqlite(src: Path, dest: Path) -> dict:
             "bytes": dest.stat().st_size, "observations": rows}
 
 
+def integrity_check(path: Path) -> list[str]:
+    """`PRAGMA integrity_check` on a STAGED copy; returns [] when it is clean.
+
+    For a snapshot at rest, never the live store: `immutable=1` tells SQLite
+    the file cannot change, so the check creates no -wal/-shm beside it and
+    takes no locks. A live database opened that way could be read torn --
+    which is the failure this exists to catch, not to cause.
+    """
+    conn = sqlite3.connect(f"file:{Path(path)}?mode=ro&immutable=1", uri=True)
+    try:
+        rows = [r[0] for r in conn.execute("PRAGMA integrity_check").fetchall()]
+    finally:
+        conn.close()
+    return [] if rows == ["ok"] else rows
+
+
 class ObservationStore:
     """Append-only point-in-time store. Never updates, never deletes."""
 
@@ -620,7 +636,23 @@ def _main(argv) -> int:
         print(f"snapshot ok {info['dest']} "
               f"({info['bytes']:,} bytes, {info['observations']:,} observations)")
         return 0
-    print("usage: python -m altdata.observations snapshot <dest> [src]")
+    if len(argv) == 2 and argv[0] == "integrity":
+        path = Path(argv[1])
+        if not path.exists():
+            print(f"no database at {path}")
+            return 1
+        try:
+            problems = integrity_check(path)
+        except Exception as exc:  # noqa: BLE001 -- the caller is a shell script
+            print(f"integrity check failed: {type(exc).__name__}: {exc}")
+            return 2
+        if problems:
+            print(f"integrity check FAILED on {path}: {problems[:5]}")
+            return 2
+        print(f"integrity ok {path}")
+        return 0
+    print("usage: python -m altdata.observations snapshot <dest> [src]\n"
+          "       python -m altdata.observations integrity <staged copy>")
     return 2
 
 
