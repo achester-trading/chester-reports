@@ -123,3 +123,11 @@
 - This chat remains useful for *drafting* new content, delivered as `.md` to be committed — not as HTML to be uploaded.
 
 **Order of operations for the next session:** upload §2 in one batch → paste L1 → VPS deploy → paste L4 (short, unblocks Track B) → paste L2 → paste L3 → VPS deploy. From L4 onward, Track B runs whenever you have paper time, independent of Track A.
+
+---
+
+## 5. Maintenance items (added after this edition's date)
+
+| # | Item | Status | Where recorded |
+|---|---|---|---|
+| M1 | **The live CSV store moves out of the checkout (30 Sep 2026).** Every VPS pass wrote the CSV store into the tracked `data_store/` (~60 untracked series; one append to a committed series would stop every `git pull --ff-only`). Design A: `ALTDATA_STORE` in the box's `.env` → `~/chester-data/data_store`; `altdata/store.py` also reads it from `.env` for by-hand runs and expands `~`; the seven writing units gain `-%h/chester-data` in `ReadWritePaths`; the backup sweeps `~/chester-data`. The committed 59-series snapshot stays. Due before the first Monthly run, Thu 1 Oct 11:39 UTC | Code in repo; migration by hand after deploy | `deploy/systemd/README.md` §11; `validate_backup.py` group F |

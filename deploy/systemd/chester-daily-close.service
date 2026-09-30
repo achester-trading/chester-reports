@@ -46,7 +46,10 @@ ProtectHome=no
 # reports/ is inside the checkout because the archive lives with the repo per
 # 32.3, so the checkout is writable here -- unlike chester-heartbeat.service,
 # which only reads it.
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+# -%h/chester-data: the live CSV store (ALTDATA_STORE in .env) lives outside the
+# checkout so a pass never dirties the tracked data_store/. The leading - lets
+# the unit start on a box not yet migrated. deploy/systemd/README.md section 11.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

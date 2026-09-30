@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Retention plan for the off-box `db/` snapshots -- names in, names to delete out.
 

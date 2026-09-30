@@ -65,7 +65,10 @@ ProtectHome=no
 # smaller that surface, the less there is for a drift check to have to forgive.
 # The '-' means a box that does not use ~/state is unaffected: without it,
 # systemd fails the unit outright when the path does not exist.
-ReadWritePaths=%h/logs %h/.chester %h/backups %h/chester-reports -%h/state
+# -%h/chester-data: the live CSV store (ALTDATA_STORE in .env) lives outside the
+# checkout so a pass never dirties the tracked data_store/. The leading - lets
+# the unit start on a box not yet migrated. deploy/systemd/README.md section 11.
+ReadWritePaths=%h/logs %h/.chester %h/backups %h/chester-reports -%h/state -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

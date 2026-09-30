@@ -633,6 +633,7 @@ refuses to look like it ran. That is the failure mode a backup must not have.
 | `data/` | chains, computed profiles, the pin log — **not** `chester.db*` (excluded; `db/` is the only database copy) |
 | `backups/` | the EOD zips |
 | `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
+| `chester-data/` | `~/chester-data`, the live CSV store since 30 Sep (section 11); skipped where absent |
 
 **`rclone copy`, never `rclone sync`.** `sync` makes the remote match the
 source, so a local deletion — a bad restore, an `rm -rf` on the wrong path, a
@@ -753,6 +754,90 @@ then `rclone version` and one hand run as above. Prefer the `.deb` to
 `rclone selfupdate` (which overwrites a binary apt owns) and to piping
 `install.sh` into `sudo bash`. Note that apt will no longer track it.
 
+
+## 11. The live CSV store lives outside the checkout (30 Sep 2026)
+
+Every pass runs from `~/chester-reports`, and until 30 Sep the CSV store
+(`altdata/store.py`) defaulted to `./data_store` — the **tracked** directory
+holding the committed snapshot of the 59 FRED series. So the box wrote about
+sixty untracked series into the repo, and one append to a committed series
+would have left a dirty tree that makes every wrapper's `git pull --ff-only`
+refuse (as would a commit that adds a series the box already holds untracked).
+
+**The design is option A: `ALTDATA_STORE` in the box's `.env` points outside the
+checkout**, at `~/chester-data/data_store`. The committed `data_store/` stays in
+the repo as the laptop's and CI's store and is never written on the box again.
+Three things make that one line sufficient:
+
+- **The sandboxes.** Every writing unit runs `ProtectSystem=strict`, so a path not
+  in `ReadWritePaths` is read-only and the write fails — `pull_prices` would
+  even fall back to observations-only and carry on. The seven units that can
+  write the store carry `-%h/chester-data` (the `-` lets them start on a box not
+  yet migrated). `validate_backup.py` group F holds the list.
+- **By-hand runs.** systemd hands `.env` to units through `EnvironmentFile`; an
+  ssh shell gets nothing. `altdata/store.py` therefore reads `ALTDATA_STORE`
+  from the environment first and from `.env` second, and expands `~`, so a
+  by-hand `python -m altdata.feeds pull` writes where the units do.
+- **The backup.** `scripts/rclone_sync.sh` sweeps `~/chester-data` as its own
+  tree, `chester-data/` on the remote (section 10).
+
+Option B — untracking `data_store/` — was rejected: it removes the committed
+snapshot the laptop, CI and `smoke_test.py` read, and it does not stop a pass
+appending to a file git still tracks until the untrack itself lands on the box.
+
+### Migration, by hand, once — AFTER the push and deploy
+
+Deploy first, so the units' sandboxes allow the new path and `store.py` reads
+`.env`. Then one ssh connection, at a quiet time (not 06:45–07:05, not
+16:05–17:00 ET, when the passes write). It copies and never moves or deletes;
+`data/`, `chester.db` and `~/state` are not touched. The body below is also
+committed as `scripts/migrate_store.sh`, so from the Windows laptop it is:
+
+```bash
+bash -c "ssh vps 'bash -s' < scripts/migrate_store.sh"
+```
+
+which is exactly:
+
+```bash
+ssh vps 'bash -s' <<'EOF'
+set -euo pipefail
+cd ~/chester-reports
+echo "== units that write the store (all should be inactive)"
+for u in chester-overnight chester-daily-close chester-eod chester-monthly; do
+  printf '  %-22s %s\n' "$u" "$(systemctl --user is-active "$u.service" || true)"
+done
+echo "== before: $(find data_store -type f | wc -l) files, $(git status --porcelain data_store | wc -l) untracked/changed"
+mkdir -p ~/chester-data
+cp -a -n data_store ~/chester-data/
+diff -rq data_store ~/chester-data/data_store && echo "== copy identical to the source"
+if grep -q '^ALTDATA_STORE=' .env; then
+  echo "== ALTDATA_STORE already in .env; left unchanged:"
+else
+  printf 'ALTDATA_STORE=%s\n' "$HOME/chester-data/data_store" >> .env
+  echo "== appended to .env:"
+fi
+grep '^ALTDATA_STORE=' .env
+touch ~/chester-data/.migrated
+echo "== resolves to: $(.venv/bin/python -c 'from altdata import store; print(store.DEFAULT_STORE_DIR)')"
+EOF
+```
+
+The last line must print `/home/<user>/chester-data/data_store`. If it prints
+`data_store`, the `.env` line is not being read and nothing has moved.
+
+### Proving the next pass wrote to the new place
+
+After the next pass that writes (06:45 overnight, the daily close, or the 16:10
+EOD), one connection:
+
+```bash
+ssh vps 'm=~/chester-data/.migrated; echo "new store, files written since migration:  $(find ~/chester-data/data_store -type f -newer $m | wc -l)"; echo "repo data_store, written since migration: $(find ~/chester-reports/data_store -type f -newer $m | wc -l)"; echo "repo data_store, untracked/changed:     $(git -C ~/chester-reports status --porcelain data_store | wc -l)"'
+```
+
+Healthy is **a positive first count and a zero second count**; the third stays
+at its pre-migration value (the old untracked copies remain until you remove
+them — by hand, once you are satisfied; nothing here deletes them).
 
 ## Timezone note
 

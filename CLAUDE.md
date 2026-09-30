@@ -110,7 +110,13 @@ altdata/                  Shared ingestion package — used by every report
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
   store.py                Store — one CSV per series, columns date/value/source/
-                          as_of. Reads $ALTDATA_STORE, default ./data_store
+                          as_of. $ALTDATA_STORE from the environment, else from
+                          .env, else ./data_store. On the VPS it is set in .env
+                          to ~/chester-data/data_store, OUTSIDE the checkout, so
+                          no pass writes the tracked data_store/ that git pull
+                          --ff-only needs clean; the writing units allow it in
+                          ReadWritePaths and the backup sweeps it
+                          (deploy/systemd/README.md section 11)
   sources/
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
@@ -151,7 +157,8 @@ state/emit.py             POSTs one report's state to the Worker. Never raises.
                           computes staleness at read time so a dead pipeline
                           cannot claim to be healthy.
 
-data_store/               Committed CSV store (59 FRED series)
+data_store/               Committed CSV store (59 FRED series) -- the laptop's
+                          and CI's store; never written on the box
 snapshots/                Committed per-run JSON snapshots
 reports/                  Generated .md / .html output
 smoke_test.py             Full pipeline against a synthetic store, no network

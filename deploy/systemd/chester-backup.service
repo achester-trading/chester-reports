@@ -14,7 +14,8 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # `systemctl --user list-units --failed` goes red until a sweep completes.
 
 # Sized to the job, and ABOVE the script's own caps. Each tree runs under a
-# coreutils `timeout` (db 20m, data 40m, backups 30m, state 10m; the db/ prune
+# coreutils `timeout` (db 20m, data 40m, backups 30m, state 10m, chester-data
+# 15m; the db/ prune
 # 5m to list plus 2m a delete), so a stalled tree fails as itself, rc 3, and is
 # named in the status line. This ceiling only catches what the caps cannot:
 # a hung snapshot or compression. On 29 Sep 2026 a Drive quota stall ran into
@@ -36,7 +37,7 @@ ProtectHome=no
 # exist after a clean close -- and a read-only data/ refuses the snapshot. The
 # innermost path wins, so the rest of the repo stays read-only below.
 ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data
-ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone
+ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

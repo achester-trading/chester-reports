@@ -9,13 +9,15 @@
 # lived on one VPS. Losing that box would not have lost a night of chains -- it
 # would have lost the record that the system had ever decided anything.
 #
-# Four trees go off-box:
+# Five trees go off-box:
 #   db/        tonight's snapshot of chester.db, integrity-checked and gzipped
 #   data/      $REPO/data -- chains, computed profiles, the pin log -- WITHOUT
 #              chester.db*: the live file is never uploaded (see below)
 #   backups/   ~/backups, the EOD zips (already a second copy, now a third)
 #   state/     $CHESTER_STATE_DIR -- heartbeat, status files, the brief's alert
 #              -- WITHOUT backup_stage/, which db/ already carries
+#   chester-data/  ~/chester-data -- the live CSV store (ALTDATA_STORE), moved
+#              out of the tracked data_store/ on 30 Sep 2026; skipped if absent
 #
 # COPY, NEVER SYNC, AND THAT IS THE WHOLE SAFETY ARGUMENT. `rclone sync` makes
 # the remote match the source, which means a local deletion -- a bad restore, a
@@ -68,6 +70,7 @@
 #   CHESTER_LOG_DIR     log directory        (~/logs)
 #   CHESTER_STATE_DIR   state dir            (~/.chester)
 #   CHESTER_BACKUP_DIR  EOD zips             (~/backups)
+#   CHESTER_DATA_DIR    live CSV store root  (~/chester-data)
 #   CHESTER_PYTHON      interpreter          ($REPO/.venv/bin/python)
 #   CHESTER_RCLONE_REMOTE   rclone remote and path, e.g. gdrive:chester-backups
 #                           REQUIRED; without it the script exits 1 loudly
@@ -82,6 +85,7 @@ REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"
 STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
 BACKUP_DIR="${CHESTER_BACKUP_DIR:-$HOME/backups}"
+DATA_DIR="${CHESTER_DATA_DIR:-$HOME/chester-data}"
 REMOTE="${CHESTER_RCLONE_REMOTE:-}"
 RCLONE_FLAGS="${CHESTER_RCLONE_FLAGS:---transfers 4 --checkers 8}"
 
@@ -156,7 +160,7 @@ rm -f "$SNAP"                        # the verified .gz is what goes off-box
 # --- copy, tree by tree -----------------------------------------------------
 # Each tree is reported separately and runs under its own time cap, so a
 # partial sweep names which part failed and a stalled tree cannot starve the
-# others. The caps sum to 100 minutes, plus up to ~10 for the db/ prune;
+# others. The caps sum to 115 minutes, plus up to ~10 for the db/ prune;
 # TimeoutStartSec is 2h30min, so a cap always fires before systemd does.
 RC=0
 FAILED=""
@@ -229,6 +233,7 @@ fi
 copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*"     || RC=3
 copy_tree "$BACKUP_DIR" "backups" 30                              || RC=3
 copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
+copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
 log "  prune: $PRUNE"
 
 if [[ $RC -eq 0 ]]; then

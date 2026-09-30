@@ -503,12 +503,12 @@ def group_e() -> None:
         ok("every rclone copy runs under its own timeout and the stall limits")
     else:
         bad("an rclone copy can run uncapped")
-    caps = [int(x) for x in re.findall(r'^\s*(?:if\s+)?copy_tree "[^"]+"\s+"\w+"\s+(\d+)',
+    caps = [int(x) for x in re.findall(r'^\s*(?:if\s+)?copy_tree "[^"]+"\s+"[\w-]+"\s+(\d+)',
                                         code, re.M)]
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     tm = re.search(r"^TimeoutStartSec=(?:(\d+)h)?(?:(\d+)min)?\s*$", u, re.M)
     ceiling = (int(tm.group(1) or 0) * 60 + int(tm.group(2) or 0)) if tm else 0
-    if len(caps) == 4 and ceiling > sum(caps) + 5 + 10:
+    if len(caps) == 5 and ceiling > sum(caps) + 5 + 10:
         ok(f"TimeoutStartSec {ceiling}m sits above the tree caps "
            f"({'+'.join(map(str, caps))}={sum(caps)}m) plus the prune")
     else:
@@ -517,10 +517,69 @@ def group_e() -> None:
         ok("a SIGTERM from systemd writes state=killed rc=4 before exit")
     else:
         bad("a killed sweep leaves the previous night's status standing")
+    # 30 Sep 2026: the live CSV store moved out of the checkout to ~/chester-data.
+    if re.search(r'^copy_tree "\$DATA_DIR"\s+"chester-data"', code, re.M) \
+            and 'DATA_DIR="${CHESTER_DATA_DIR:-$HOME/chester-data}"' in code:
+        ok("the live CSV store (~/chester-data) is swept as its own tree")
+    else:
+        bad("the live CSV store outside the checkout is not backed up")
     if 'LOG="$LOG_DIR/rclone_sync-$TODAY.log"' in code:
         ok("one log file per run")
     else:
         bad("the sweep's log is not per run")
+
+
+def group_f() -> None:
+    """30 Sep 2026: where the live CSV store resolves, so the sweep's tree is it."""
+    print(f"\n{LINE}\nF. The CSV store's location -- environment, then .env, then ./data_store\n{LINE}")
+    import os  # noqa: PLC0415
+    from altdata import secrets, store  # noqa: PLC0415
+
+    old_env, old_path = os.environ.pop("ALTDATA_STORE", None), secrets.ENV_PATH
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            env = Path(d) / "box.env"   # any name: ENV_PATH is patched to it
+            env.write_text("FRED_API_KEY=PLACEHOLDER\n"
+                           "ALTDATA_STORE=~/chester-data/data_store\n", encoding="utf-8")
+            secrets.ENV_PATH = env
+            want = os.path.expanduser("~/chester-data/data_store")
+            got = store.default_store_dir()
+            if got == want:
+                ok("with no environment variable, .env's ALTDATA_STORE is used and ~ "
+                   "expanded -- a by-hand run from an ssh shell writes where the units do")
+            else:
+                bad(f"ALTDATA_STORE in the env file was not honoured: {got!r}")
+            os.environ["ALTDATA_STORE"] = "data_store"
+            if store.default_store_dir() == "data_store":
+                ok("the environment wins over .env (CI's explicit data_store, smoke_test)")
+            else:
+                bad("a .env line overrode the environment")
+            del os.environ["ALTDATA_STORE"]
+            secrets.ENV_PATH = Path(d) / "absent.env"
+            if store.default_store_dir() == "data_store":
+                ok("no environment and no .env: ./data_store, as before")
+            else:
+                bad("the default moved without configuration")
+    finally:
+        secrets.ENV_PATH = old_path
+        os.environ.pop("ALTDATA_STORE", None)
+        if old_env is not None:
+            os.environ["ALTDATA_STORE"] = old_env
+
+    writers = ["chester-daily-close", "chester-eod", "chester-ibkr-sync",
+               "chester-monthly", "chester-morning-anchor", "chester-overnight",
+               "chester-weekly"]
+    missing = []
+    for u in writers:
+        t = (REPO / "deploy/systemd" / f"{u}.service").read_text(encoding="utf-8")
+        m = re.search(r"^ReadWritePaths=(.*)$", t, re.M)
+        if not m or "-%h/chester-data" not in m.group(1).split():
+            missing.append(u)
+    if not missing:
+        ok(f"all {len(writers)} writing units may write ~/chester-data (-%h/chester-data); "
+           "under ProtectSystem=strict a store outside the list is read-only")
+    else:
+        bad(f"these units cannot write the moved store: {missing}")
 
 
 def main() -> int:
@@ -532,6 +591,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

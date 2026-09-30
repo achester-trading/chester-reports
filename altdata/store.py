@@ -29,8 +29,37 @@ from . import session
 
 log = logging.getLogger("altdata.store")
 
-# Default location: $ALTDATA_STORE, else ./data_store
-DEFAULT_STORE_DIR = os.environ.get("ALTDATA_STORE", "data_store")
+def default_store_dir() -> str:
+    """$ALTDATA_STORE from the environment, else from the repo's `.env`, else
+    ./data_store.
+
+    WHY `.env` TOO (30 Sep 2026). On the box the live store sits OUTSIDE the
+    checkout -- ALTDATA_STORE in `.env` points at ~/chester-data/data_store -- so
+    a pass never writes into the tracked data_store/ that `git pull --ff-only`
+    must find clean. systemd hands every unit that line through EnvironmentFile;
+    an operator's by-hand `python -m altdata.feeds pull` from an ssh shell gets no
+    EnvironmentFile, and reading only the environment would send that one run
+    back into the repo, silently. The environment still wins, so CI's explicit
+    ALTDATA_STORE=data_store and smoke_test's temp store are untouched.
+
+    `~` is expanded: systemd does not expand it in an EnvironmentFile, and a
+    literal `~` directory created under the working directory is exactly the
+    wrong-place write this exists to prevent.
+    """
+    v = os.environ.get("ALTDATA_STORE")
+    if not v:
+        try:
+            from . import secrets  # noqa: PLC0415 -- the one .env parser
+            if secrets.ENV_PATH.is_file():
+                v = secrets.parse(
+                    secrets.ENV_PATH.read_text(encoding="utf-8")).get("ALTDATA_STORE")
+        except Exception:                                     # noqa: BLE001
+            v = None
+    return os.path.expanduser(v) if v else "data_store"
+
+
+# Resolved once, at import, as before.
+DEFAULT_STORE_DIR = default_store_dir()
 
 # WHERE A FAILED DUAL-WRITE IS RECORDED SO SOMETHING ELSE CAN SEE IT.
 #

@@ -34,7 +34,10 @@ ProtectSystem=strict
 ProtectHome=no
 # reports/ and snapshots/ both live inside the checkout (32.3), so the checkout is
 # writable. ~/state is permitted-if-present for the status and heartbeat files.
-ReadWritePaths=%h/logs -%h/state %h/chester-reports
+# -%h/chester-data: the live CSV store (ALTDATA_STORE in .env) lives outside the
+# checkout so a pass never dirties the tracked data_store/. The leading - lets
+# the unit start on a box not yet migrated. deploy/systemd/README.md section 11.
+ReadWritePaths=%h/logs -%h/state %h/chester-reports -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
