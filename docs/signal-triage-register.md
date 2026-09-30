@@ -38,7 +38,7 @@
 | 3 | X | China external position (shadow-reserves post, 11 Sep) | Adopt panel inputs; reject conclusion; panel assembly deferred | Panel only | ST-2 feeds; tail edits by hand | ADOPTED — panel inputs; assembly deferred |
 | 4 | X | US–China 10y spread / RMB funding (X post, 10 Sep) | Adopt as SR-2/3 inputs; devaluation tell in full; reject fade | Narrow flag (tell) | ST-5 | ADOPTED — gate pending |
 | 5 | E | Consumer credit impulse (deGraaf/RenMac, 8 Sep) | Adopt bull side as trigger candidate, RS tell; bear side as tilt | Trigger candidate / modifier | ST-8; wired ST-11 | ADOPTED — gate pending |
-| 6 | R | Yield move attribution (Runkevicius, 15 Sep) | Adopt block as `rates.driver` evidence; reject single-model reading | Confidence modifier | ST-3 | ADOPTED — gate pending |
+| 6 | R | Yield move attribution (Runkevicius, 15 Sep) | Adopt block as `rates.driver` evidence; reject single-model reading | Confidence modifier | ST-3 | DEFERRED — gate failed (0 of 5 SR-6 episodes, 0 of 27 grid points; [ledger 2026-09](ledgers/rates-driver-2026-09.md)) |
 | 7 | E | Hiking-cycle conditional table (Macrobond) | Adopt table by hand; reject unconditional average | None (base rate) | Tranche H | ADOPTED — base rate, by hand |
 | 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 | ADOPTED — audit pending |
 | 9 | R/A | 5.25% and stock-bond correlation (Simon White, Sep) | Adopt as `rates.driver` correlation member and Book A rule A-1; reject level | Confidence modifier | ST-3 | ADOPTED — regression in backlog |
@@ -49,7 +49,7 @@
 | 14 | X | EM absolute and relative (Topdown/LSEG, 24 Sep) | Adopt US-vs-RoW line + trend flag; reject "decadal turn" | Narrow flag (after gate) | ST-8 | ADOPTED — gate pending |
 | 15 | A | Cross-asset valuation z-scores (Topdown/LSEG, 24 Sep) | Adopt light strip + rebalancing modifier; reject "cheap commodities" | Modifier (after gate) | ST-6, ST-7 | ADOPTED — gate pending |
 | 16 | E | Hyperscaler debt supply / absorption (Bloomberg via Lemand, 24 Sep) | Adopt Factor I funding panel + flag; reject issuance headline | Narrow flag | ST-4/ST-6 | ADOPTED — gate pending |
-| 17 | R | Real-yield-led selloff (Alpine Macro / Zhao, 24 Sep) | Merged into `rates.driver` (DKW arbiter); no new analysis | None new | ST-3 | MERGED into `rates.driver` |
+| 17 | R | Real-yield-led selloff (Alpine Macro / Zhao, 24 Sep) | Merged into `rates.driver` (DKW arbiter); no new analysis | None new | ST-3 | MERGED into `rates.driver`; DEFERRED — gate failed (0 of 5 SR-6 episodes, 0 of 27 grid points; [ledger 2026-09](ledgers/rates-driver-2026-09.md)) |
 | 18 | C | Oil inventories vs. operational floor (JPM/Bloomberg; 15–25 Sep) | Adopt buffer state; reject chart as a print (projection fixture) | Narrow flag | ST-2, ST-6 | ADOPTED — gate pending |
 | 19 | E | Share of S&P 500 constituents with negative beta (Goldman/Garrett via Monchau; definition 27 Sep) | Adopt direct measure; phase read proposed as a contradiction row (R28) | Narrow flag (conditioner only) | C&C intake queue, next build session (≈2 h) | ADOPTED — pending build |
 | 20 | X | IMF COFER Q1 2026 + reserve tracker (25 Sep) | Adopt Factor V scorecard; reject level as signal | None | ST-2; Tranche H | ADOPTED — scorecard, no rights |
@@ -147,7 +147,7 @@
 
 ### SR-6 Yield move attribution (Runkevicius, SF Fed decomposition, 10y at 5%, 15 Sep 2026) — Thread R
 
-**Register status.** ADOPTED — gate pending · **Built in.** ST-3
+**Register status.** DEFERRED — gate failed (0 of 5 SR-6 episodes, 0 of 27 grid points; [ledger 2026-09](ledgers/rates-driver-2026-09.md)) · **Built in.** ST-3 · *Set 30 Sep 2026 by the operator's ruling; a passing rerun restores it. At config v1.11 every episode's modal cell was `mixed`: the DKW shares divided by a real move that includes the TIPS liquidity premium, and 2022 / Aug–Oct 2023 did not read as the sets label them. The confidence-modifier right is not live.*
 
 **Ruling.** Adopt an attribution block. Reject the single-model conclusion: term-premium models (SF Fed Christensen–Rudebusch, NY Fed ACM, Board Kim–Wright) disagree on level and can disagree on the sign of a change over months; the "expected short rate" leg is a residual, not a survey; ACM in particular pushes short-run shocks into term premium. *[integ.]* **The block is the evidence set of `rates.driver` (§2.1.1), not a tag of its own.** The two-state regime tag in the 19 Sep ruling (path-driven-real; term-premium/supply) becomes the `fed_path` and `term_premium` cells; `growth` and `mixed` are added; SR-17's DKW real-side split joins as the fourth model and the sign arbiter; SR-9's correlation is a member.
 
@@ -320,7 +320,7 @@ Register entry points to the Part C specification and its backlog status (Append
 
 ### SR-17 Real-yield-led bond selloff, breakevens falling (Alpine Macro via Chen Zhao, 24 Sep 2026) — Thread R
 
-**Register status.** MERGED into `rates.driver` · **Built in.** ST-3
+**Register status.** MERGED into `rates.driver`; DEFERRED — gate failed (0 of 5 SR-6 episodes, 0 of 27 grid points; [ledger 2026-09](ledgers/rates-driver-2026-09.md)) · **Built in.** ST-3 · *Set 30 Sep 2026 with SR-6, whose ledger it rides on; a passing rerun restores it.*
 
 **Ruling.** No new analysis — SR-6's block reading a live print. **Merged into `rates.driver`**: the DKW real-side decomposition (expected real short rate, real term premium, TIPS liquidity premium — Fed Board, monthly, free) is the fourth term-premium model and the sign arbiter when Kim–Wright and ACM disagree; the growth / Fed-path / term-premium distinction is the cell rule of §2.1.1.
 
