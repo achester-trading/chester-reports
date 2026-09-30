@@ -1216,10 +1216,12 @@ def group_k(store) -> None:
     seed(store, "fred.tips_10y", days, [1.80 + 0.8 * u for u in up])
     seed(store, "fred.yield_2y", days, [3.50 + 0.5 * u for u in up])
     seed(store, "fred.term_premium_kw", days, [0.50 + 0.5 * u for u in up])
-    # DKW: the path leg carries 0.75 of the model's real move, the premium 0.25.
+    # DKW: path 0.75 and premium 0.25 of PATH + PREMIUM. The liquidity leg MOVES,
+    # as much as the other two together: a share taken over the whole real move
+    # (the v1.11 definition) would read 0.375 / 0.125 and fail these checks.
     seed(store, "dkw.exp_real_short_rate_10y", days, [1.0 + 0.3 * u for u in up])
     seed(store, "dkw.real_term_premium_10y", days, [0.4 + 0.1 * u for u in up])
-    seed(store, "dkw.tips_liquidity_premium_10y", days, [0.2] * n)
+    seed(store, "dkw.tips_liquidity_premium_10y", days, [0.2 + 0.4 * u for u in up])
     # THE LAST 10-YEAR TIPS PRINT ARRIVES LATE: the share built on it must say so.
     last = days[-1]
     late_at = dt.datetime(last.year, last.month, last.day, 23, 30,
@@ -1277,8 +1279,9 @@ def group_k(store) -> None:
     t = by.get("calc.attr_dkw_tp_share_60d", {}).get(L)
     check(p is not None and abs(p["value"] - 0.75) < 1e-6
           and t is not None and abs(t["value"] - 0.25) < 1e-6,
-          f"DKW's path and premium shares of the model's real move are 0.75 and "
-          f"0.25 (got {p and p['value']}, {t and t['value']})")
+          f"DKW's path and premium shares of PATH + PREMIUM are 0.75 and 0.25, "
+          f"with the liquidity leg moving as much as both -- it is out of the "
+          f"denominator (got {p and p['value']}, {t and t['value']})")
     check(not by.get("calc.attr_acm_tp_share_60d"),
           "ACM, with no rows in the store, writes nothing -- an absent model is "
           "absent, not zero")

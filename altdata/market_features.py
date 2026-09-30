@@ -241,12 +241,12 @@ for _w in ATTR_WINDOWS:
 RATES_FEATURES.update({
     f"calc.attr_dkw_path_share_{MODEL_WINDOW}d":
         f"DKW's expected real short rate's change over {MODEL_WINDOW} DKW "
-        f"observations as a share of the model's real yield change (expected "
-        f"path + real term premium + TIPS liquidity premium). Dated on DKW's own "
-        f"last observation, which runs about a month behind",
+        f"observations as a share of path + real term premium -- the TIPS "
+        f"liquidity premium left out. Dated on DKW's own last observation, "
+        f"which runs about a month behind",
     f"calc.attr_dkw_tp_share_{MODEL_WINDOW}d":
         f"DKW's real term premium's change over {MODEL_WINDOW} DKW observations "
-        f"as a share of the same real yield change",
+        f"as a share of the same path + premium sum",
     f"calc.attr_kw_tp_share_{MODEL_WINDOW}d":
         f"Kim-Wright's 10-year term premium change over {MODEL_WINDOW} "
         f"observations as a share of the 10-year yield's -- a tie-breaker, "
@@ -583,25 +583,28 @@ def rates_rows(db: observations.ObservationStore,
              (acm_tp[day][0] - acm_tp[p][0]) * 100.0 / dfit,
              [av(acm_tp, day), av(acm_tp, p), av(acm_fit, day), av(acm_fit, p)])
 
-    # --- DKW: the real yield's three legs --------------------------------------
+    # --- DKW: path against premium ---------------------------------------------
     #
     # The model's TIPS yield is expected real short rate + real term premium +
-    # TIPS liquidity premium, so the two shares and the liquidity share sum to 1.
-    # Only the two the driver reads are stored; the liquidity leg is the rest.
+    # TIPS liquidity premium. THE SHARES ARE OF PATH + PREMIUM, the liquidity leg
+    # left out (ruling of 30 Sep 2026, after the first calibration ledger): the
+    # driver's question is path against premium, and the liquidity premium is
+    # neither. Divided by the whole real move, it took 30-47% of three
+    # calibration episodes' moves and kept either side from ever reaching
+    # share_min when one clearly dominated the other.
     ers = _load(db, "dkw.exp_real_short_rate_10y", as_of)
     rtp = _load(db, "dkw.real_term_premium_10y", as_of)
-    liq = _load(db, "dkw.tips_liquidity_premium_10y", as_of)
-    ddays = sorted(d for d in ers if d in rtp and d in liq)
+    ddays = sorted(d for d in ers if d in rtp)
     for i, day in enumerate(ddays):
         if i < w:
             continue
         p = ddays[i - w]
         d_ers = ers[day][0] - ers[p][0]
         d_rtp = rtp[day][0] - rtp[p][0]
-        d_sum = d_ers + d_rtp + (liq[day][0] - liq[p][0])
+        d_sum = d_ers + d_rtp
         if abs(d_sum) * 100.0 < ATTR_MIN_MOVE_BP:
             continue
-        parts = [av(s, d) for s in (ers, rtp, liq) for d in (day, p)]
+        parts = [av(s, d) for s in (ers, rtp) for d in (day, p)]
         emit(f"calc.attr_dkw_path_share_{w}d", day, d_ers / d_sum, parts)
         emit(f"calc.attr_dkw_tp_share_{w}d", day, d_rtp / d_sum, parts)
 

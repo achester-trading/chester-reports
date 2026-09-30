@@ -2347,8 +2347,9 @@ metrics:
     trigger_eligible: false
     description: >-
       DKW's expected real short rate (10-year) change over 60 DKW observations as a
-      share of the model's real yield change -- expected path plus real term premium
-      plus TIPS liquidity premium. The rates driver's deciding path share (SR-17:
+      share of path plus real term premium -- the TIPS liquidity premium left out
+      (ruling of 30 Sep 2026: the driver asks path against premium, and the
+      liquidity leg is neither). The rates driver's deciding path share (SR-17:
       DKW is the real-side split and the sign arbiter).
   calc.attr_dkw_tp_share_60d:
     source: derived_state
@@ -2363,7 +2364,7 @@ metrics:
     trigger_eligible: false
     description: >-
       DKW's real term premium (10-year) change over 60 DKW observations as a share
-      of the same real yield change. The rates driver's deciding premium share.
+      of the same path-plus-premium sum. The rates driver's deciding premium share.
   calc.attr_kw_tp_share_60d:
     source: derived_state
     mechanism_group: rates_decomposition
