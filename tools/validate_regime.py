@@ -1361,7 +1361,12 @@ def group_k(store) -> None:
 # ---------------------------------------------------------------------------
 def _drv_inputs(move=40.0, real=1.3, curve=1.2, path=0.8, prem=0.15,
                 kw=10.0, acm=None, sffed=8.0, dkw=6.0, corr=0.3,
-                ties=(None, None)) -> dict:
+                ties=(None, None), move20=None, real20=1.5) -> dict:
+    # H1: fed_path reads breakevens over 20 sessions. By default the 20-session
+    # move follows the 60-session one's sign and breakevens run against it
+    # (20 x (1 - 1.5) = -10bp), so the default is still fed_path.
+    if move20 is None:
+        move20 = 20.0 if move > 0 else -20.0
     def lv(x, metric="seeded"):
         return ({"metric": metric, "level": x, "observed_at": "2026-09-18"}
                 if x is not None else
@@ -1375,6 +1380,8 @@ def _drv_inputs(move=40.0, real=1.3, curve=1.2, path=0.8, prem=0.15,
         "move": lv(move, "calc.attr_d10y_60d"),
         "real_share": lv(real, "calc.attr_real_share_60d"),
         "curve_share": lv(curve, "calc.attr_curve_share_60d"),
+        "move_20d": lv(move20, "calc.attr_d10y_20d"),
+        "real_share_20d": lv(real20, "calc.attr_real_share_20d"),
         "primary": primary,
         "tie_breakers": [
             {"model": m, "premium_share": q,
@@ -1439,11 +1446,11 @@ def group_l(store) -> None:
           f"fed_path in a selloff (got {r['raw_state']}, {r['direction']})")
     check(r["supporting"] == ["calc.corr_spy_tlt_60d"],
           "and a positive stock-bond correlation supports it")
-    r = cell(_drv_inputs(real=0.9, corr=-0.2), spec)
+    r = cell(_drv_inputs(real=0.9, real20=0.9, corr=-0.2), spec)
     check(r["raw_state"] == "growth" and r["supporting"],
           f"breakevens +4bp (flat or with the move): growth, supported by a "
           f"negative correlation (got {r['raw_state']}, {r['supporting']})")
-    r = cell(_drv_inputs(real=0.9, corr=0.3), spec)
+    r = cell(_drv_inputs(real=0.9, real20=0.9, corr=0.3), spec)
     check(r["raw_state"] == "growth"
           and r["contradicting"] == ["calc.corr_spy_tlt_60d"],
           "and the same cell with a positive correlation lists it as "
@@ -1472,8 +1479,8 @@ def group_l(store) -> None:
           f"the mirror -- 10y -40bp, breakevens +12bp against it, 2y leading it "
           f"down: fed_path in a RALLY, the dovish reading (got {r['raw_state']}, "
           f"{r['direction']})")
-    r = cell(_drv_inputs(move=-40.0, real=0.9, corr=-0.2, kw=-10, sffed=-8,
-                         dkw=-6), spec)
+    r = cell(_drv_inputs(move=-40.0, real=0.9, real20=0.9, corr=-0.2, kw=-10,
+                         sffed=-8, dkw=-6), spec)
     check(r["raw_state"] == "growth" and r["direction"] == "rally",
           f"and a growth rally: breakevens falling with the yield (got "
           f"{r['raw_state']}, {r['direction']})")
@@ -1489,11 +1496,37 @@ def group_l(store) -> None:
           and "no decomposition" in (r.get("not_determined_reason") or ""),
           f"no DKW split and no tie-breaker: not determined, each absence cited "
           f"({r.get('not_determined_reason')})")
-    r = cell(_drv_inputs(real=None), spec)
+    r = cell(_drv_inputs(real=None, real20=None), spec)
     check(r["raw_state"] is None
           and "cannot be tested" in (r.get("not_determined_reason") or ""),
-          "path-driven with the breakeven leg absent: not determined -- the "
+          "path-driven with both breakeven legs absent: not determined -- the "
           "shape is untested, which is not the same claim as mixed")
+
+    # --- H1: fed_path's breakevens over 20 sessions (pre-registered) ------------
+    r = cell(_drv_inputs(real=0.9, real20=1.5), spec)
+    check(r["raw_state"] == "fed_path",
+          f"H1: breakevens flat over 60 sessions (+4bp) but against the move over "
+          f"20 (-10bp), front end leading: fed_path (got {r['raw_state']})")
+    r = cell(_drv_inputs(real=1.3, real20=0.9), spec)
+    check(r["raw_state"] == und,
+          f"and the converse -- against over 60, flat over 20 -- is not fed_path, "
+          f"and not growth either (60-session breakevens against): {und}")
+    r = cell(_drv_inputs(real=0.9, real20=0.9, curve=0.8, move20=-20.0), spec)
+    check(r["raw_state"] == "growth",
+          "the 20-session breakevens are signed to the 60-SESSION move: a "
+          "20-session rally inside a 60-session selloff does not flip the test "
+          f"(got {r['raw_state']})")
+    r = cell(_drv_inputs(real=0.9, real20=None, curve=0.8), spec)
+    check(r["raw_state"] == "growth",
+          "a rule with a condition KNOWN FALSE fails even when another of its "
+          "inputs is absent: fed_path (front end not leading) fails, growth "
+          f"decides (got {r['raw_state']}: {r.get('not_determined_reason')})")
+    r = cell(_drv_inputs(real=0.9, real20=None, curve=1.2), spec)
+    check(r["raw_state"] is None
+          and "over 20d unknown" in (r.get("not_determined_reason") or ""),
+          "while with nothing false and the 20-session breakevens absent, "
+          "fed_path is untestable and the cell not determined "
+          f"({r.get('not_determined_reason')})")
 
     # --- the models' signs -------------------------------------------------------
     r = cell(_drv_inputs(kw=-10.0), spec)
@@ -1540,6 +1573,7 @@ def group_l(store) -> None:
     seed(store, "fred.hy_oas", days, [3.0 + 0.01 * i for i in range(80)])
     seed(store, "fred.yield_10y", days, [4.0 + 0.01 * i for i in range(80)])
     for k, v in (("calc.attr_d10y_60d", 40.0), ("calc.attr_real_share_60d", 1.3),
+                 ("calc.attr_d10y_20d", 20.0), ("calc.attr_real_share_20d", 1.5),
                  ("calc.attr_curve_share_60d", 1.2),
                  ("calc.attr_dkw_path_share_60d", 0.8),
                  ("calc.attr_dkw_tp_share_60d", 0.15),
@@ -1566,12 +1600,14 @@ def group_l(store) -> None:
     # share is a LATER VINTAGE of the session's row (21:05, inside the 21:30
     # cutoff): the store keeps both, and the as-of read takes the newer.
     def revise(day: dt.date, value: float) -> None:
+        # Both real shares, so neither window still reads breakevens against.
         store.write_many([{
-            "registry_key": "calc.attr_real_share_60d", "instrument": None,
+            "registry_key": key, "instrument": None,
             "observed_at": day.isoformat(),
             "available_at": dt.datetime(day.year, day.month, day.day, 21, 5,
                                         tzinfo=dt.timezone.utc).isoformat(),
-            "value": value, "source": "synthetic"}])
+            "value": value, "source": "synthetic"}
+            for key in ("calc.attr_real_share_60d", "calc.attr_real_share_20d")])
     flip_day = days[-3]
     revise(flip_day, 0.9)
     o1 = compute_at(store, cfg, flip_day, 10)

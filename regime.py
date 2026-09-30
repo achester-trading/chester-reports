@@ -99,7 +99,17 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-9"
+METHOD_VERSION = "market-state-method-10"
+#
+# method-10 (30 Sep 2026): THE DRIVER AFTER ITS FAILED FIRST LEDGER. Two rulings,
+# pre-registered before any code: (a) DKW's shares are of path + premium, the TIPS
+# liquidity premium out of the denominator (altdata/market_features.py -- not in
+# the hash, which is why the bump is named here); (b) H1, fed_path's breakevens
+# over 20 sessions via a rule's `breakevens_window`, config v1.12. With it, a rule
+# with a condition known false now FAILS instead of reading untestable when
+# another of its inputs is absent -- the only way a rule whose conditions read
+# different windows can be evaluated. Every cut, the 20-session ones included,
+# must be the move's own session.
 #
 # method-9 (30 Sep 2026): THE RATES DRIVER (signal-triage ST-3). The rates
 # dimension carries a `driver` sub-state -- growth / fed_path / term_premium /
@@ -148,7 +158,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "50ab8bc45fbac614"
+METHOD_SOURCE_SHA = "c4833efffc66d835"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -531,6 +541,11 @@ def _why(d: dict) -> str:
     return "no reason recorded"
 
 
+# The condition vocabulary. Any other key in a rule is the state or a modifier of
+# a condition (`breakevens_window`), never a condition of its own.
+CONDITIONS = ("breakevens", "front_end")
+
+
 def _sign(x: Optional[float], deadband: float) -> Optional[int]:
     if x is None:
         return None
@@ -663,12 +678,30 @@ def driver_cell(inputs: dict, spec: dict) -> dict:
     if c is not None:
         trace.append(f"curve share {c:.2f}")
 
-    def holds(cond: str, want: str) -> tuple[Optional[bool], str]:
+    def breakevens_over(window: Optional[str]) -> tuple[Optional[float], dict]:
+        """Breakevens' change signed to the DECISION window's move, over the
+        decision window or over a rule's declared shorter one (H1)."""
+        if not window:
+            return nbe, rs
+        mw = inputs.get(f"move_{window}") or {}
+        rw = inputs.get(f"real_share_{window}") or {}
+        if mw.get("level") is None:
+            return None, mw
+        if rw.get("level") is None:
+            return None, rw
+        v = float(mw["level"]) * (1.0 - float(rw["level"])) * sgn
+        trace.append(f"breakevens over {window} {v:+.1f}bp with the move")
+        return v, rw
+
+    def holds(cond: str, want: str, rule: dict) -> tuple[Optional[bool], str]:
         if cond == "breakevens":
-            if nbe is None:
-                return None, f"breakevens unknown ({_why(rs)})"
-            ok_ = nbe < -be_flat if want == "against" else nbe >= -be_flat
-            return ok_, f"breakevens {want}: {'yes' if ok_ else 'no'}"
+            window = rule.get("breakevens_window")
+            v, src_ = breakevens_over(window)
+            label = f"breakevens{' over ' + str(window) if window else ''}"
+            if v is None:
+                return None, f"{label} unknown ({_why(src_)})"
+            ok_ = v < -be_flat if want == "against" else v >= -be_flat
+            return ok_, f"{label} {want}: {'yes' if ok_ else 'no'}"
         if cond == "front_end":
             if c is None:
                 return None, f"front end unknown ({_why(cs)})"
@@ -678,9 +711,13 @@ def driver_cell(inputs: dict, spec: dict) -> dict:
 
     failed: list[str] = []
     for rule in (spec.get("rules") or {}).get(side) or []:
-        verdicts = [holds(k, str(v)) for k, v in rule.items() if k != "state"]
+        verdicts = [holds(k, str(v), rule) for k, v in rule.items()
+                    if k in CONDITIONS]
         unknown = [why for v, why in verdicts if v is None]
-        if unknown:
+        # A RULE WITH A CONDITION KNOWN FALSE FAILS, whatever else is unknown:
+        # it cannot hold. Only a rule with nothing false and something unknown is
+        # untestable -- and then the shape is untested, which is not `mixed`.
+        if unknown and not any(v is False for v, _ in verdicts):
             return finish(None, f"{rule['state']} cannot be tested -- "
                                 + "; ".join(unknown))
         if all(v for v, _ in verdicts):
@@ -736,11 +773,12 @@ def rates_driver(spec: dict, as_of: str, defaults: dict,
     read = {role: _driver_level(str(k), as_of, multiple, store)
             for role, k in ins.items()}
 
-    # THE TWO CUTS MUST BE THE MOVE'S OWN SESSION. A share is written only when
-    # the move clears the 5bp series floor, so on a quiet day the store's latest
-    # share is an older window's -- a number about a different 60 sessions.
+    # EVERY CUT MUST BE THE MOVE'S OWN SESSION. A share is written only when its
+    # move clears the 5bp series floor, so on a quiet day the store's latest share
+    # is an older window's -- a number about a different set of sessions. The
+    # shorter-window inputs (H1) are held to the same rule.
     mv_day = (read.get("move") or {}).get("observed_at")
-    for role in ("real_share", "curve_share"):
+    for role in [r_ for r_ in read if r_ != "move"]:
         r = read.get(role) or {}
         if r.get("level") is not None and r.get("observed_at") != mv_day:
             r["level"] = None

@@ -125,7 +125,9 @@
 #   v1.11 (30 Sep 2026) the rates dimension's `driver` sub-state (ST-3): four
 #         cells on the 60-session move, DKW as the real-side split and the sign
 #         arbiter, provisional thresholds pending the calibration ledger.
-version: market-state-v1.11
+#   v1.12 (30 Sep 2026) after the failed first ledger: fed_path's breakevens
+#         over 20 sessions (H1, pre-registered); thresholds unchanged.
+version: market-state-v1.12
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -294,6 +296,10 @@ dimensions:
         move: calc.attr_d10y_60d
         real_share: calc.attr_real_share_60d
         curve_share: calc.attr_curve_share_60d
+        # H1's inputs (pre-registered 30 Sep 2026): the 20-session move and real
+        # share, read ONLY by a rule that declares breakevens_window: 20d.
+        move_20d: calc.attr_d10y_20d
+        real_share_20d: calc.attr_real_share_20d
       decomposition:
         primary:
           model: dkw
@@ -314,9 +320,13 @@ dimensions:
       # opposite the yield by more than be_flat_bp) or `with_or_flat`;
       # front_end `leading` (curve share above front_leading) or `anchored`
       # (|curve share| at or below front_anchored).
+      # H1 (pre-registered 30 Sep 2026, docs/ledgers/
+      # rates-driver-2026-09-30-r2-preregistration.md): fed_path tests its
+      # breakevens over 20 sessions, signed to the 60-session move. growth keeps
+      # the decision window. One hypothesis; no other window was tried.
       rules:
         path:
-          - {state: fed_path, breakevens: against, front_end: leading}
+          - {state: fed_path, breakevens: against, breakevens_window: 20d, front_end: leading}
           - {state: growth, breakevens: with_or_flat}
         premium:
           - {state: term_premium, front_end: anchored}
