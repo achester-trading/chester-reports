@@ -8,6 +8,10 @@ SR-6 / SR-9 / SR-17 -- the rates driver's calibration study (signal-triage ST-3)
 The offline rule (tools/calibration/README.md): full history pulled straight from
 each publisher, the observation store never read, one dated ledger per run.
 
+RERUN 2 (30 Sep 2026) is judged against a pre-registration committed before its
+code: docs/ledgers/rates-driver-2026-09-30-r2-preregistration.md. Rerun 1's
+script is in git history (17e5882) with its ledger, rates-driver-2026-09.md.
+
 WHAT IS CALIBRATED IS THE OBJECT'S OWN RULE. `regime.driver_cell` is imported --
 the one thing this directory may take from regime -- and called on every session
 with inputs rebuilt here from the published history. The INPUTS are rebuilt, not
@@ -21,11 +25,10 @@ workbook are parsed by the same functions altdata/sources/ uses, so a shape
 change breaks this script the way it breaks the feed, not differently.
 
 WHAT THE HISTORY CANNOT TELL US, stated in the ledger rather than discovered by a
-reader: the three model term premia are TODAY'S re-estimates of the past, not
-what was knowable then (no vintages are published); DFII10 and T10YIE start in
-January 2003, so 1994 has no real/breakeven cut and can reach a path-side cell
-only never; DKW starts in 1999; TLT in July 2002, so correlation before it uses a
-constant-maturity duration proxy on DGS10.
+reader: the model term premia are TODAY'S re-estimates of the past, not what was
+knowable then (no vintages are published); DFII10 starts in January 2003, so 1994
+has no real/breakeven cut and no path-side cell can be tested there; TLT starts
+July 2002, so correlation before it uses a constant-maturity duration proxy.
 """
 
 from __future__ import annotations
@@ -51,13 +54,15 @@ from altdata.sources._base import http_get_response  # noqa: E402
 from regime import driver_cell                       # noqa: E402  the ONE import
 
 CACHE = Path(tempfile.gettempdir()) / "chester-calibration"
-LEDGER = REPO / "docs" / "ledgers" / "rates-driver-2026-09.md"
+LEDGER = REPO / "docs" / "ledgers" / "rates-driver-2026-09-30-r2.md"
+PREREG = "rates-driver-2026-09-30-r2-preregistration.md"
 CONFIG = REPO / "config" / "market_state.yaml"
 
 # The features' own constants (altdata/market_features.py), restated because this
 # script may not import that module's store-reading half. Checked against it at
 # run time below, so a change there cannot pass silently here.
 WINDOW = 60
+SHORT = 20                  # H1's window: a member of ATTR_WINDOWS
 MIN_MOVE_BP = 5.0
 CORR_WINDOW = 60
 FWD_3M, FWD_6M = 63, 126
@@ -69,11 +74,9 @@ DKW_LIVE_LAG = 21
 PROXY_DURATION = 8.5
 
 # ---------------------------------------------------------------------------
-# THE EPISODES. SR-6's two sets and SR-17's four. Windows run from the start of
-# the yield move to its peak, the sessions the driver is asked to classify.
-# "Q4 2018" is the order's label; the selloff leg it names ran from late August
-# to the 8 Nov peak -- after it the 10-year fell for the rest of the quarter,
-# which is a rally, not the bear flattening the set is about.
+# THE EPISODES -- unchanged from rerun 1, as pre-registered. Windows run from the
+# start of the yield move to its peak. "Q4 2018" is the order's label; the
+# selloff leg it names ran from late August to the 8 Nov peak.
 # ---------------------------------------------------------------------------
 EPISODES = [
     {"id": "1994", "start": "1994-02-04", "end": "1994-11-07",
@@ -118,9 +121,8 @@ def fred(series_id: str, refresh: bool) -> pd.Series:
                f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}",
                refresh)
     df = pd.read_csv(io.BytesIO(raw), na_values=".")
-    s = pd.Series(df.iloc[:, 1].values, index=pd.to_datetime(df.iloc[:, 0]),
-                  name=series_id, dtype=float).dropna()
-    return s
+    return pd.Series(df.iloc[:, 1].values, index=pd.to_datetime(df.iloc[:, 0]),
+                     name=series_id, dtype=float).dropna()
 
 
 def _pivot(rows: list[dict]) -> pd.DataFrame:
@@ -167,49 +169,47 @@ def fetch_prices(refresh: bool) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # The inputs, rebuilt on market_features' definitions
 # ---------------------------------------------------------------------------
-def window_change(num: pd.Series, den: pd.Series, w: int, scale_num: float = 100.0,
-                  scale_den: float = 100.0) -> tuple[pd.Series, pd.Series]:
-    """(Δden in bp, Δnum/Δden) over `w` of the pair's common observations.
+def window_change(num: pd.Series, den: pd.Series, w: int) -> pd.Series:
+    """Δnum/Δden over `w` of the pair's common observations, in bp both.
 
     Common days only, and the window counted in them: the features' rule that
     both series must be on both endpoints, with no carry-forward.
     """
     df = pd.concat([num.rename("n"), den.rename("d")], axis=1).dropna()
-    dd = (df["d"] - df["d"].shift(w)) * scale_den
-    dn = (df["n"] - df["n"].shift(w)) * scale_num
-    share = (dn / dd).where(dd.abs() >= MIN_MOVE_BP)
-    return dd, share
+    dd = (df["d"] - df["d"].shift(w)) * 100.0
+    dn = (df["n"] - df["n"].shift(w)) * 100.0
+    return (dn / dd).where(dd.abs() >= MIN_MOVE_BP)
 
 
 def build_inputs(d: dict) -> pd.DataFrame:
     """One row per 10-year session: every number driver_cell() is handed."""
     y10 = d["DGS10"]
     move = (y10 - y10.shift(WINDOW)) * 100.0
-    _, real = window_change(d["DFII10"], y10, WINDOW)
-    # the features require BOTH endpoints on the 10-year's own days
-    real = real.reindex(move.index)
-    _, curve = window_change(d["DGS2"], y10, WINDOW)
-    curve = curve.reindex(move.index)
-    _, kw_share = window_change(d["THREEFYTP10"], y10, WINDOW)
+    move20 = (y10 - y10.shift(SHORT)) * 100.0
+    real = window_change(d["DFII10"], y10, WINDOW).reindex(move.index)
+    real20 = window_change(d["DFII10"], y10, SHORT).reindex(move.index)
+    curve = window_change(d["DGS2"], y10, WINDOW).reindex(move.index)
+    kw_share = window_change(d["THREEFYTP10"], y10, WINDOW)
     a = d["acm"]
-    _, acm_share = window_change(a["acm.term_premium_10y"],
-                                 a["acm.fitted_yield_10y"], WINDOW)
-    k = d["dkw"][["dkw.exp_real_short_rate_10y", "dkw.real_term_premium_10y",
-                  "dkw.tips_liquidity_premium_10y"]].dropna()
+    acm_share = window_change(a["acm.term_premium_10y"],
+                              a["acm.fitted_yield_10y"], WINDOW)
+    # (a): path and premium as shares of THEIR OWN SUM, liquidity left out --
+    # and, like the feature, on the days path and premium exist. The liquidity
+    # column starts in 1999 while path and premium start in 1983; requiring it
+    # here (as the first draft of this rerun did) silently removed DKW from 1994.
+    k = d["dkw"][["dkw.exp_real_short_rate_10y",
+                  "dkw.real_term_premium_10y"]].dropna()
     dk = k - k.shift(WINDOW)
-    dsum = dk.sum(axis=1)
-    ok = (dsum.abs() * 100.0) >= MIN_MOVE_BP
-    dkw_path = (dk["dkw.exp_real_short_rate_10y"] / dsum).where(ok)
-    dkw_prem = (dk["dkw.real_term_premium_10y"] / dsum).where(ok)
-    # THE SENSITIVITY: path and premium as shares of THEIR OWN sum, the TIPS
-    # liquidity premium left out. Not the object's definition (v1.11 divides by
-    # the model's whole real move); reported because the liquidity leg is what
-    # keeps the declared shares from reaching share_min -- see the ledger.
-    d2 = dk["dkw.exp_real_short_rate_10y"] + dk["dkw.real_term_premium_10y"]
-    ok2 = (d2.abs() * 100.0) >= MIN_MOVE_BP
-    dkw_path_xl = (dk["dkw.exp_real_short_rate_10y"] / d2).where(ok2)
-    dkw_prem_xl = (dk["dkw.real_term_premium_10y"] / d2).where(ok2)
-    dkw_liq = (dk["dkw.tips_liquidity_premium_10y"] / dsum).where(ok)
+    pp = dk["dkw.exp_real_short_rate_10y"] + dk["dkw.real_term_premium_10y"]
+    ok = (pp.abs() * 100.0) >= MIN_MOVE_BP
+    dkw_path = (dk["dkw.exp_real_short_rate_10y"] / pp).where(ok)
+    dkw_prem = (dk["dkw.real_term_premium_10y"] / pp).where(ok)
+    # Diagnosis only: the liquidity leg's share of the whole real move, 1999 on.
+    k3 = d["dkw"][["dkw.exp_real_short_rate_10y", "dkw.real_term_premium_10y",
+                   "dkw.tips_liquidity_premium_10y"]].dropna()
+    whole = (k3 - k3.shift(WINDOW)).sum(axis=1)
+    dkw_liq = ((k3 - k3.shift(WINDOW))["dkw.tips_liquidity_premium_10y"]
+               / whole).where((whole.abs() * 100.0) >= MIN_MOVE_BP)
 
     def model_change(s: pd.Series, h: int) -> pd.Series:
         s = s.dropna()
@@ -226,7 +226,6 @@ def build_inputs(d: dict) -> pd.DataFrame:
     both = px[["SPY", "TLT"]].dropna()
     r = np.log(both).diff()
     corr_live = r["SPY"].rolling(CORR_WINDOW).corr(r["TLT"])
-    # THE PROXY, before TLT: S&P against a constant-maturity 10-year.
     g = px["GSPC"].dropna()
     y = y10.reindex(g.index).ffill()
     bond = (y.shift(1) / 100.0 / 252.0) - PROXY_DURATION * (y - y.shift(1)) / 100.0
@@ -236,16 +235,18 @@ def build_inputs(d: dict) -> pd.DataFrame:
     idx = move.index
 
     def at(s: pd.Series, lag: int = 0) -> pd.Series:
-        """The latest value at or before each session, optionally `lag` back."""
+        """The latest value at or before each session, optionally `lag` back.
+        A series whose history has not started is ABSENT, not carried back."""
         s = s.dropna()
         out = s.reindex(idx.union(s.index)).ffill().reindex(idx)
+        if len(s):
+            out[out.index < s.index.min()] = np.nan
         return out.shift(lag) if lag else out
 
     frame = pd.DataFrame({
-        "move": move, "real": real, "curve": curve,
-        "dkw_path": at(dkw_path), "dkw_prem": at(dkw_prem),
-        "dkw_path_xl": at(dkw_path_xl), "dkw_prem_xl": at(dkw_prem_xl),
-        "dkw_liq": at(dkw_liq),
+        "move": move, "move20": move20, "real": real, "real20": real20,
+        "curve": curve,
+        "dkw_path": at(dkw_path), "dkw_prem": at(dkw_prem), "dkw_liq": at(dkw_liq),
         "dkw_path_live": at(dkw_path, DKW_LIVE_LAG),
         "dkw_prem_live": at(dkw_prem, DKW_LIVE_LAG),
         "kw_share": at(kw_share), "acm_share": at(acm_share),
@@ -254,16 +255,8 @@ def build_inputs(d: dict) -> pd.DataFrame:
         "m_dkw_live": at(models["dkw"], DKW_LIVE_LAG),
         "corr": at(corr), "gspc": at(px["GSPC"]),
     }, index=idx)
-    # A model whose history has not started is ABSENT, not carried back.
-    for col, s in (("dkw_path", dkw_path), ("dkw_prem", dkw_prem),
-                   ("dkw_path_xl", dkw_path_xl), ("dkw_prem_xl", dkw_prem_xl),
-                   ("dkw_liq", dkw_liq),
-                   ("kw_share", kw_share), ("acm_share", acm_share),
-                   ("m_kw", models["kw"]), ("m_acm", models["acm"]),
-                   ("m_sffed", models["sffed"]), ("m_dkw", models["dkw"])):
-        first = s.dropna().index.min()
-        if first is not None and first == first:
-            frame.loc[frame.index < first, col] = np.nan
+    frame["be60"] = frame["move"] * (1.0 - frame["real"]) * np.sign(frame["move"])
+    frame["be20"] = frame["move20"] * (1.0 - frame["real20"]) * np.sign(frame["move"])
     frame["fwd_3m"] = frame["gspc"].shift(-FWD_3M) / frame["gspc"] - 1.0
     frame["fwd_6m"] = frame["gspc"].shift(-FWD_6M) / frame["gspc"] - 1.0
     return frame
@@ -300,8 +293,10 @@ def inputs_for(row: pd.Series, live: bool = False) -> dict:
                        **({} if c is not None else
                           {"absent_reason": f"no {name} reading"})})
     return {"move": lv(row["move"], "move"), "real_share": lv(row["real"], "real"),
-            "curve_share": lv(row["curve"], "curve"), "primary": primary,
-            "tie_breakers": ties, "models": models,
+            "curve_share": lv(row["curve"], "curve"),
+            f"move_{SHORT}d": lv(row["move20"], "move20"),
+            f"real_share_{SHORT}d": lv(row["real20"], "real20"),
+            "primary": primary, "tie_breakers": ties, "models": models,
             "evidence": [lv(row["corr"], "calc.corr_spy_tlt_60d")]}
 
 
@@ -323,22 +318,50 @@ def replay(frame: pd.DataFrame, spec: dict, live: bool = False) -> pd.DataFrame:
                      "direction": c.get("direction"),
                      "decided_by": c.get("decided_by"),
                      "arbitrated": bool(c.get("arbitration")),
-                     "signs": c.get("model_signs") or {}})
+                     "why": (c.get("undecided_reason")
+                             or c.get("not_determined_reason") or c["raw_state"])})
     return pd.DataFrame(rows).set_index("day")
 
 
 # ---------------------------------------------------------------------------
-# Scoring
+# The pass rule, exactly as pre-registered (c)
 # ---------------------------------------------------------------------------
-def score_episode(cells: pd.DataFrame, ep: dict) -> dict:
+def agreement(frame: pd.DataFrame, ep: dict, share_min: float) -> dict:
+    """Per episode: each available decomposition's side from its MEDIAN share."""
+    seg = frame.loc[ep["start"]:ep["end"]]
+    paths = {"dkw": seg["dkw_path"], "kw": 1.0 - seg["kw_share"],
+             "acm": 1.0 - seg["acm_share"]}
+    sides, meds = {}, {}
+    for m, s in paths.items():
+        s = s.dropna()
+        if not len(s):
+            continue
+        p = float(s.median())
+        meds[m] = p
+        sides[m] = ("path" if p >= share_min else
+                    "premium" if (1.0 - p) >= share_min else None)
+    named = set(sides.values())
+    agree = bool(sides) and None not in named and len(named) == 1
+    return {"sides": sides, "median_path": meds, "agree": agree,
+            "side": named.pop() if agree else None}
+
+
+def score_episode(cells: pd.DataFrame, ep: dict, agree: bool) -> dict:
     w = cells.loc[ep["start"]:ep["end"]]
     counts = w["cell"].value_counts()
     det = w[w["cell"] != "not_determined"]
-    modal = det["cell"].value_counts().idxmax() if len(det) else None
+    ok_cells = {ep["expect"]} if agree else {ep["expect"], "mixed"}
+    if len(det):
+        vc = det["cell"].value_counts()
+        top = vc[vc == vc.max()].index.tolist()
+        modal = top[0] if len(top) == 1 else " / ".join(sorted(top))
+        passed = all(t in ok_cells for t in top)
+    else:
+        modal, passed = None, False
     share = (det["cell"] == ep["expect"]).mean() if len(det) else float("nan")
     return {"n": len(w), "determined": len(det), "counts": counts.to_dict(),
-            "modal": modal, "expected_share": share,
-            "pass": modal == ep["expect"]}
+            "modal": modal, "expected_share": share, "pass": passed,
+            "ok_cells": sorted(ok_cells)}
 
 
 def pct(x: float) -> str:
@@ -346,8 +369,16 @@ def pct(x: float) -> str:
 
 
 def spec_with(base: dict, **th) -> dict:
-    s = {**base, "thresholds": {**base["thresholds"], **th}}
-    return s
+    return {**base, "thresholds": {**base["thresholds"], **th}}
+
+
+def score_all(cells, frame, spec) -> dict:
+    sm = float(spec["thresholds"]["share_min"])
+    out = {}
+    for e in EPISODES:
+        ag = agreement(frame, e, sm)
+        out[e["id"]] = {**score_episode(cells, e, ag["agree"]), "agreement": ag}
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -364,18 +395,22 @@ def main(argv: list[str]) -> int:
     if out.exists() and not a.force:
         print(f"{out} exists; ledgers are never edited. Pass --out for a new one.")
         return 2
+    if not (REPO / "docs" / "ledgers" / PREREG).exists():
+        print(f"the pre-registration {PREREG} is missing; refusing to run")
+        return 4
 
-    # The features' constants, checked against the module that defines them.
     feat = (REPO / "altdata" / "market_features.py").read_text(encoding="utf-8")
-    for name, val in (("MODEL_WINDOW", WINDOW), ("ATTR_MIN_MOVE_BP", MIN_MOVE_BP),
-                      ("CORR_WINDOW", CORR_WINDOW)):
-        if f"\n{name} = {val:g}" not in feat and f"\n{name} = {val}" not in feat:
-            print(f"market_features.{name} is no longer {val}; update this script")
+    for needle in (f"\nMODEL_WINDOW = {WINDOW}", f"\nATTR_MIN_MOVE_BP = {MIN_MOVE_BP}",
+                   f"\nCORR_WINDOW = {CORR_WINDOW}", f"ATTR_WINDOWS = (5, {SHORT}, 60)",
+                   "d_sum = d_ers + d_rtp\n"):
+        if needle not in feat:
+            print(f"market_features no longer has {needle.strip()!r}; update this script")
             return 3
 
     cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     spec = cfg["dimensions"]["rates"]["driver"]
     print(f"config {cfg['version']}: thresholds {spec['thresholds']}")
+    print(f"rules {spec['rules']}")
 
     print("fetching ...")
     d = {sid: fred(sid, a.refresh)
@@ -392,66 +427,34 @@ def main(argv: list[str]) -> int:
                           ("SPY", d["prices"]["SPY"].dropna()),
                           ("TLT", d["prices"]["TLT"].dropna()),
                           ("^GSPC", d["prices"]["GSPC"].dropna()))}
-    for k, (s, e, n) in spans.items():
-        print(f"  {k:26} {s} .. {e}  n={n}")
 
-    # 1990 on: the 1994 episode's window reaches back into 1993, and nothing the
-    # study reports needs the 1960s -- only the 10-year and ACM go back that far.
+    # 1990 on: the 1994 episode's window reaches back into 1993.
     frame = build_inputs(d).loc["1990-01-01":]
     base = replay(frame, spec)
     live = replay(frame, spec, live=True)
+    res = score_all(base, frame, spec)
+    res_live = score_all(live, frame, spec)
     print(f"replayed {len(base)} sessions")
 
-    ep_base = {e["id"]: score_episode(base, e) for e in EPISODES}
-    ep_live = {e["id"]: score_episode(live, e) for e in EPISODES}
-
-    # The ex-liquidity sensitivity, at each share_min of the grid.
-    xl = frame.copy()
-    xl["dkw_path"], xl["dkw_prem"] = frame["dkw_path_xl"], frame["dkw_prem_xl"]
-    xl_runs = {sm: {e["id"]: score_episode(
-        replay(xl, spec_with(spec, share_min=sm)), e) for e in EPISODES}
-        for sm in GRID["share_min"]}
-
-    # Why: each episode's inputs at their medians, and its undecided reasons.
-    diag = {}
-    for e in EPISODES:
-        seg = frame.loc[e["start"]:e["end"]]
-        reasons: dict[str, int] = {}
-        for _, row in seg.iterrows():
-            if _v(row["move"]) is None:
-                continue
-            r = driver_cell(inputs_for(row), spec)
-            why = (r.get("undecided_reason") or r.get("not_determined_reason")
-                   or r["raw_state"])
-            why = why.split(" -- ")[0].split(" (")[0]
-            if "move floor" in why:
-                why = f"below the {spec['thresholds']['move_floor_bp']}bp move floor"
-            reasons[why] = reasons.get(why, 0) + 1
-        diag[e["id"]] = {"med": seg[["move", "real", "curve", "dkw_path",
-                                     "dkw_prem", "dkw_liq", "dkw_path_xl",
-                                     "kw_share", "acm_share"]].median(),
-                         "reasons": sorted(reasons.items(), key=lambda kv: -kv[1])}
-
-    # THE GRID. Every point replays the whole history; the question is how many
-    # of the 27 neighbours of the declared thresholds keep each episode's verdict.
     grid_pass = {e["id"]: 0 for e in EPISODES}
-    grid_all = []
-    n_grid = 0
+    n_grid, all_five = 0, 0
     for sm in GRID["share_min"]:
         for mf_ in GRID["move_floor_bp"]:
             for fa in GRID["front_anchored"]:
                 n_grid += 1
-                cells = replay(frame, spec_with(spec, share_min=sm,
-                                                move_floor_bp=mf_,
-                                                front_anchored=fa))
-                res = {e["id"]: score_episode(cells, e) for e in EPISODES}
-                for k, r in res.items():
-                    grid_pass[k] += bool(r["pass"])
-                grid_all.append(((sm, mf_, fa), sum(bool(r["pass"])
-                                                    for r in res.values()), res))
-    print("episodes (base):", {k: (v["modal"], v["pass"]) for k, v in ep_base.items()})
+                sp = spec_with(spec, share_min=sm, move_floor_bp=mf_,
+                               front_anchored=fa)
+                r = score_all(replay(frame, sp), frame, sp)
+                for k, v in r.items():
+                    grid_pass[k] += bool(v["pass"])
+                all_five += all(v["pass"] for v in r.values())
 
-    # --- the full sample -------------------------------------------------------
+    n_agree = sum(r["agreement"]["agree"] for r in res.values())
+    p_agree = sum(r["pass"] for r in res.values() if r["agreement"]["agree"])
+    n_dis = len(EPISODES) - n_agree
+    p_dis = sum(r["pass"] for r in res.values() if not r["agreement"]["agree"])
+    gate = all(r["pass"] for r in res.values())
+
     fs = base.loc[FULL_SAMPLE_FROM:].join(frame[["corr", "fwd_3m", "fwd_6m"]])
     by_cell = fs.groupby("cell").agg(
         sessions=("corr", "size"), corr_mean=("corr", "mean"),
@@ -462,164 +465,139 @@ def main(argv: list[str]) -> int:
     by_cell_dir = fs.groupby(["cell", "direction"]).size().unstack(fill_value=0)
     decided = fs[fs["cell"] != "not_determined"]
     arb_rate = decided["arbitrated"].mean() if len(decided) else float("nan")
-    by_whom = decided["decided_by"].fillna("—").value_counts()
 
-    # --- the four models, Feb-Sep 2026 -----------------------------------------
     sbs = frame.loc[SIDE_BY_SIDE[0]:SIDE_BY_SIDE[1],
                     ["move", "m_kw", "m_acm", "m_sffed", "m_dkw"]]
     month_end = sbs.groupby(sbs.index.to_period("M")).tail(1)
     b26 = base.loc[SIDE_BY_SIDE[0]:SIDE_BY_SIDE[1]]
+    db = spec["thresholds"]["sign_deadband_bp"]
 
     def sgn(x):
         x = _v(x)
-        return "—" if x is None else ("0" if abs(x) < spec["thresholds"]
-                                      ["sign_deadband_bp"] else ("+" if x > 0 else "−"))
+        return "—" if x is None else ("0" if abs(x) < db else ("+" if x > 0 else "−"))
 
-    agree = []
-    for _, r in sbs.iterrows():
-        ss = {sgn(r[c]) for c in ("m_kw", "m_acm", "m_sffed", "m_dkw")} - {"—", "0"}
-        if ss:
-            agree.append(len(ss) == 1)
-
-    # --- write the ledger --------------------------------------------------------
+    # --- the ledger --------------------------------------------------------------
     today = dt.date.today().isoformat()
     L: list[str] = []
     w = L.append
-    w("# Rates driver — calibration ledger (SR-6, SR-9, SR-17)")
+    w("# Rates driver — calibration ledger, rerun 2 (SR-6, SR-9, SR-17)")
     w("")
     w(f"*Run {today} by `tools/calibration/sr06_09_17_driver.py` against config "
-      f"`{cfg['version']}`. Dated; never edited — a rerun writes a new ledger.*")
+      f"`{cfg['version']}`. Judged against the pre-registration "
+      f"[{PREREG}]({PREREG}), committed before this rerun's code. Dated; never "
+      "edited.*")
     w("")
-    w("The rule calibrated is the market-state object's own: `regime.driver_cell` is "
-      "imported and called on every session. Its inputs are rebuilt from the "
-      "publishers' full histories on the definitions of the `calc.attr_*` series in "
-      "`altdata/market_features.py` (a window of 60 of the denominator's own "
-      "observations, same-day endpoints, no share below a 5 bp denominator). The "
-      "observation store is not read.")
+    w(f"## Verdict: the gate {'PASSES' if gate else 'FAILS'}")
     w("")
-    w("## Data source and vintage")
+    w(f"- **{sum(r['pass'] for r in res.values())} of {len(EPISODES)}** episodes "
+      "pass under the pre-registered rule (c); the gate needs all five.")
+    w(f"- Models **agree** on the driver in {n_agree} episode(s): **{p_agree} "
+      f"pass** (the modal cell must be the expected one).")
+    w(f"- Models **disagree** in {n_dis} episode(s): **{p_dis} pass** (the "
+      "expected cell or `mixed` counts).")
+    w(f"- Robustness only, not the verdict: {all_five} of {n_grid} grid points "
+      "pass all five.")
     w("")
-    w("| Series | Source | From | To | n |")
-    w("|---|---|---|---|---|")
-    src = {"DGS10": "FRED", "DGS2": "FRED", "DFII10": "FRED",
-           "THREEFYTP10 (Kim-Wright)": "FRED (Board, re-estimated)",
-           "DKW": "Federal Reserve Board CSV (re-estimated monthly)",
-           "ACM": "NY Fed workbook, daily sheet (re-estimated)",
-           "SF Fed": "FRBSF workbook, fitted term premium (weekly)",
-           "SPY": "yfinance, adjusted", "TLT": "yfinance, adjusted",
-           "^GSPC": "yfinance"}
-    for k, (s, e, n) in spans.items():
-        w(f"| {k} | {src[k]} | {s} | {e} | {n:,} |")
+    w("## What changed since rerun 1 — as pre-registered, and one disclosure")
     w("")
-    w(f"Vintage: downloaded {today}. **The three model term premia (Kim-Wright, ACM, "
-      "DKW) and SF Fed are today's re-estimates of the past, not what was "
-      "knowable at the time** — no publisher keeps vintages of them. The ledger "
-      "therefore measures whether the rule classifies the episodes as the models "
-      "now describe them, which is a weaker claim than live performance. DKW's "
-      "publication lag is modelled as a variant (read 21 sessions late); ACM's is "
-      "not.")
+    w("- **(a)** DKW's shares are of path + premium; the TIPS liquidity premium is "
+      "out of the denominator.")
+    w(f"- **(b) H1**: `fed_path` tests breakevens over {SHORT} sessions, signed to "
+      "the 60-session move. `growth` keeps the 60-session breakevens. Thresholds "
+      "are v1.11's, unchanged.")
+    w("- **(c)** The pass rule below.")
+    w("- **Disclosed, beyond H1's letter** (commit 12f4fdd): a rule with a "
+      "condition *known false* now fails even when another of its inputs is "
+      "absent. Before H1 all of a rule's conditions read one window, so this "
+      "could not arise. With every input present, outcomes are unchanged.")
     w("")
-    w("Before TLT (July 2002) the stock-bond correlation uses ^GSPC against a "
-      f"constant-maturity 10-year from DGS10 (carry less {PROXY_DURATION} x the "
-      "yield change). DFII10 starts January 2003, so **1994 has no real/breakeven "
-      "cut**: a path-side cell cannot be tested there, and the episode can only "
-      "come out `term_premium`, `mixed` or not determined.")
+    w("## SR-6's episode sets under rule (c)")
     w("")
-    w("## Thresholds under test")
+    w("Agreement is per episode: each available decomposition's **median** "
+      "60-session path share over the window names a side (`path` ≥ share_min, "
+      "`premium` when 1 − path ≥ share_min, else none). Agree means every "
+      "available decomposition names the same side.")
     w("")
-    w("| Threshold | Declared (v1.11) | Grid |")
-    w("|---|---|---|")
-    for k, v in spec["thresholds"].items():
-        w(f"| `{k}` | {v} | {', '.join(str(x) for x in GRID.get(k, ())) or '—'} |")
-    w("")
-    w("## SR-6's episode sets and SR-17's four episodes")
-    w("")
-    w("Gate (signal-triage order §9, ST-3): *the ledger reproduces SR-6's episode "
-      "sets and SR-17's four episodes*. Scored here as: **the modal cell among the "
-      "episode's determined sessions is the set's expected cell** — `fed_path` for "
-      "bear flattening, `term_premium` for bear steepening.")
-    w("")
-    w("| Episode | Set | Window | Sessions | Determined | Cells (base) | Modal | Expected share | Base | Live DKW lag | Grid (of "
+    w("| Episode | Set | Expected | DKW / KW / ACM median path share | Sides | Agree | Determined / sessions | Cells | Modal | Passing cells | Base | Live DKW lag | Grid (of "
       f"{n_grid}) |")
-    w("|---|---|---|---|---|---|---|---|---|---|---|")
+    w("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for e in EPISODES:
-        b, lv_ = ep_base[e["id"]], ep_live[e["id"]]
-        cells = ", ".join(f"{k} {v}" for k, v in sorted(b["counts"].items(),
+        r, ag = res[e["id"]], res[e["id"]]["agreement"]
+        meds = " / ".join(f"{ag['median_path'][m]:.2f}" if m in ag["median_path"]
+                          else "—" for m in ("dkw", "kw", "acm"))
+        sides = ", ".join(f"{m} {s or 'none'}" for m, s in ag["sides"].items())
+        cells = ", ".join(f"{k} {v}" for k, v in sorted(r["counts"].items(),
                                                           key=lambda kv: -kv[1]))
-        w(f"| {e['id']} | {e['set'].replace('_', ' ')} | {e['start']} → {e['end']} "
-          f"| {b['n']} | {b['determined']} | {cells} | {b['modal'] or '—'} "
-          f"| {pct(b['expected_share'])} | {'PASS' if b['pass'] else 'FAIL'} "
-          f"| {'PASS' if lv_['pass'] else 'FAIL'} ({lv_['modal'] or '—'}) "
-          f"| {grid_pass[e['id']]} |")
+        w(f"| {e['id']} | {e['set'].replace('_', ' ')} | {e['expect']} | {meds} "
+          f"| {sides} | {'yes' if ag['agree'] else 'no'} "
+          f"| {r['determined']} / {r['n']} | {cells} | {r['modal'] or '—'} "
+          f"| {', '.join(r['ok_cells'])} | {'PASS' if r['pass'] else 'FAIL'} "
+          f"| {'PASS' if res_live[e['id']]['pass'] else 'FAIL'} "
+          f"({res_live[e['id']]['modal'] or '—'}) | {grid_pass[e['id']]} |")
     w("")
     for e in EPISODES:
-        w(f"- **{e['id']}** — {e['what']}.")
+        w(f"- **{e['id']}** ({e['start']} → {e['end']}) — {e['what']}.")
     w("")
-    n_pass = sum(bool(v["pass"]) for v in ep_base.values())
-    best = max(grid_all, key=lambda g: g[1])
-    w(f"**Base thresholds: {n_pass} of {len(EPISODES)} episodes pass.** Best grid "
-      f"point: share_min {best[0][0]}, move_floor_bp {best[0][1]}, "
-      f"front_anchored {best[0][2]} — {best[1]} of {len(EPISODES)}. Grid points "
-      f"passing all five: {sum(1 for g in grid_all if g[1] == len(EPISODES))} of "
-      f"{n_grid}.")
+    w("## Inside each episode")
     w("")
-    w("## Why the episodes fail")
+    w("Medians over the window. `be 60` / `be 20` are breakevens' change, in bp, "
+      "signed to the 60-session move (negative = against it; H1 reads `be 20`). "
+      "`dkw liq` is the liquidity leg's share of the whole real move, now outside "
+      "the denominator.")
     w("")
-    w("Each episode's inputs at their in-window medians. `dkw path` / `dkw prem` / "
-      "`dkw liq` are the v1.11 shares of the model's whole real move; `dkw path xl` "
-      "is path / (path + premium), the TIPS liquidity premium left out.")
-    w("")
-    w("| Episode | Δ10y bp | real share | curve share | dkw path | dkw prem | dkw liq | dkw path xl | KW prem | ACM prem |")
-    w("|---|---|---|---|---|---|---|---|---|---|")
+    w("| Episode | Δ10y | be 60 | be 20 | curve share | dkw path | dkw prem | dkw liq | be 20 against, % of sessions |")
+    w("|---|---|---|---|---|---|---|---|---|")
+    th = spec["thresholds"]
     for e in EPISODES:
-        m = diag[e["id"]]["med"]
+        seg = frame.loc[e["start"]:e["end"]]
+        m = seg.median(numeric_only=True)
+        against = (seg["be20"] < -th["be_flat_bp"]).where(seg["be20"].notna())
 
         def g(x, f="{:.2f}"):
             x = _v(x)
             return "—" if x is None else f.format(x)
-        w(f"| {e['id']} | {g(m['move'], '{:+.0f}')} | {g(m['real'])} "
-          f"| {g(m['curve'])} | {g(m['dkw_path'])} | {g(m['dkw_prem'])} "
-          f"| {g(m['dkw_liq'])} | {g(m['dkw_path_xl'])} | {g(m['kw_share'])} "
-          f"| {g(m['acm_share'])} |")
+        w(f"| {e['id']} | {g(m['move'], '{:+.0f}')} | {g(m['be60'], '{:+.0f}')} "
+          f"| {g(m['be20'], '{:+.0f}')} | {g(m['curve'])} | {g(m['dkw_path'])} "
+          f"| {g(m['dkw_prem'])} | {g(m['dkw_liq'])} "
+          f"| {pct(against.dropna().mean()) if against.notna().any() else '—'} |")
     w("")
-    w("What decided each session at the declared thresholds:")
+    w("What decided each session:")
     w("")
     for e in EPISODES:
-        w(f"- **{e['id']}**: " + "; ".join(f"{k} ({v})"
-                                            for k, v in diag[e['id']]['reasons']))
+        seg = base.loc[e["start"]:e["end"]]
+        why = seg["why"].fillna("—").str.split(" -- ").str[0].str.split(" \\(").str[0]
+        why = why.where(~why.str.contains("move floor"),
+                        f"below the {th['move_floor_bp']}bp move floor")
+        vc = why.value_counts()
+        w(f"- **{e['id']}**: " + "; ".join(f"{k} ({v})" for k, v in vc.items()))
     w("")
-    w("### Sensitivity: DKW shares without the liquidity premium")
+    w("## Data source and vintage")
     w("")
-    w("The same rule with DKW's path and premium measured as shares of their own "
-      "sum. **Not the object's definition** — reported because it isolates the "
-      "one definitional choice the diagnosis points at.")
+    w("| Series | From | To | n |")
+    w("|---|---|---|---|")
+    for k, (s, e_, n) in spans.items():
+        w(f"| {k} | {s} | {e_} | {n:,} |")
     w("")
-    w("| share_min | " + " | ".join(e["id"] for e in EPISODES) + " | Passing |")
-    w("|---|" + "---|" * (len(EPISODES) + 1))
-    for sm, res in xl_runs.items():
-        w(f"| {sm} | " + " | ".join(
-            f"{res[e['id']]['modal'] or '—'} ({pct(res[e['id']]['expected_share'])})"
-            for e in EPISODES)
-          + f" | {sum(bool(r['pass']) for r in res.values())} of {len(EPISODES)} |")
+    w(f"Downloaded {today}; the publishers' own files, parsed by the feeds' "
+      "parsers. **Model term premia are today's re-estimates of the past**, not "
+      "what was knowable then. DFII10 starts January 2003, so 1994 cannot test a "
+      "path-side cell. Before TLT (July 2002) the correlation uses ^GSPC against "
+      f"a constant-maturity 10-year (carry less {PROXY_DURATION} × Δyield).")
     w("")
     w("## SR-17: forward equity outcomes by cell inside its four episodes")
     w("")
-    w("Base rate only (SR-17 carries no rights). ^GSPC forward return from each "
-      "session in the cell; overlapping windows, so the sessions are not "
-      "independent draws.")
+    w("Base rate only. ^GSPC forward returns; overlapping windows.")
     w("")
     w("| Episode | Cell | Sessions | Fwd 3m mean | Fwd 6m mean | Fwd 6m > 0 |")
     w("|---|---|---|---|---|---|")
     for e in [x for x in EPISODES if x["sr17"]]:
         seg = base.loc[e["start"]:e["end"]].join(frame[["fwd_3m", "fwd_6m"]])
-        for c, g in seg.groupby("cell"):
-            w(f"| {e['id']} | {c} | {len(g)} | {pct(g['fwd_3m'].mean())} "
-              f"| {pct(g['fwd_6m'].mean())} "
-              f"| {pct((g['fwd_6m'].dropna() > 0).mean())} |")
+        for c, g_ in seg.groupby("cell"):
+            w(f"| {e['id']} | {c} | {len(g_)} | {pct(g_['fwd_3m'].mean())} "
+              f"| {pct(g_['fwd_6m'].mean())} "
+              f"| {pct((g_['fwd_6m'].dropna() > 0).mean())} |")
     w("")
     w(f"## The full sample, {FULL_SAMPLE_FROM} to the last session")
-    w("")
-    w("SR-9's correlation member by cell, and the forward S&P base rate by cell.")
     w("")
     w("| Cell | Sessions | Share | Corr mean | Corr > 0 | Fwd 3m mean | Fwd 6m mean | Fwd 6m median | Fwd 6m > 0 |")
     w("|---|---|---|---|---|---|---|---|---|")
@@ -629,66 +607,42 @@ def main(argv: list[str]) -> int:
           f"| {r['corr_mean']:+.2f} | {pct(r['corr_pos'])} | {pct(r['fwd3_mean'])} "
           f"| {pct(r['fwd6_mean'])} | {pct(r['fwd6_med'])} | {pct(r['fwd6_pos'])} |")
     w("")
-    w("By direction:")
-    w("")
     cols = list(by_cell_dir.columns)
     w("| Cell | " + " | ".join(str(c) for c in cols) + " |")
     w("|---|" + "---|" * len(cols))
     for c, r in by_cell_dir.iterrows():
         w(f"| {c} | " + " | ".join(f"{int(r[x]):,}" for x in cols) + " |")
     w("")
-    w(f"Among determined sessions, the side was decided by: "
-      + ", ".join(f"{k} {v:,}" for k, v in by_whom.items())
-      + f". The models disagreed on sign and DKW arbitrated on {pct(arb_rate)} of "
-        "them.")
+    w(f"The models disagreed on sign and DKW arbitrated on {pct(arb_rate)} of "
+      "determined sessions.")
     w("")
-    w(f"## SR-6: the four models side by side, {SIDE_BY_SIDE[0]} to "
-      f"{SIDE_BY_SIDE[1]}")
+    w(f"## SR-6: the four models side by side, {SIDE_BY_SIDE[0]} to {SIDE_BY_SIDE[1]}")
     w("")
-    w("60-observation term-premium change in bp (SF Fed: 12 weekly prints), at each "
-      "month's last session in the history; the sign outside the 5 bp dead-band. "
-      "DKW's last row is 31 Aug, so its September reading is August's carried "
-      "forward -- which is what the live object would see.")
+    w("60-observation term-premium change in bp (SF Fed: 12 weekly prints) at each "
+      "month's last session; sign outside the 5 bp dead-band. DKW's last row is "
+      "31 Aug, so September carries August forward, as the live object would.")
     w("")
     w("| Month end | Δ10y | Kim-Wright | ACM | SF Fed | DKW (real) | Cell |")
     w("|---|---|---|---|---|---|---|")
     for day, r in month_end.iterrows():
-        cell = b26["cell"].get(day, "—")
-
         def f(x):
             x = _v(x)
             return "—" if x is None else f"{x:+.0f} ({sgn(x)})"
         mv = _v(r["move"])
         w(f"| {day.date()} | {'—' if mv is None else f'{mv:+.0f}'} "
-          f"| {f(r['m_kw'])} | {f(r['m_acm'])} "
-          f"| {f(r['m_sffed'])} | {f(r['m_dkw'])} | {cell} |")
+          f"| {f(r['m_kw'])} | {f(r['m_acm'])} | {f(r['m_sffed'])} "
+          f"| {f(r['m_dkw'])} | {b26['cell'].get(day, '—')} |")
     w("")
-    w(f"Sessions where at least one model has a sign: {len(agree)}; all signed "
-      f"models agree on {pct(sum(agree) / len(agree) if agree else float('nan'))} of "
-      "them. Where they disagree, the object lets DKW arbitrate (§2.1.1, SR-17); "
-      "SR-6's own text named the curve decomposition as the arbiter, and the "
-      "integration ruling replaced it with DKW.")
-    w("")
-    w("## Verdict")
-    w("")
-    L.append("VERDICT_PLACEHOLDER")
-    text = "\n".join(L) + "\n"
-
-    verdict = [f"- Base thresholds (v1.11): **{n_pass} of {len(EPISODES)}** "
-               "episodes reproduce their set's cell."]
-    for e in EPISODES:
-        b = ep_base[e["id"]]
-        verdict.append(
-            f"- {e['id']}: {'PASS' if b['pass'] else 'FAIL'} — modal "
-            f"{b['modal'] or 'none'} ({pct(b['expected_share'])} of determined "
-            f"sessions {e['expect']}); holds at {grid_pass[e['id']]} of {n_grid} "
-            "grid points.")
-    text = text.replace("VERDICT_PLACEHOLDER", "\n".join(verdict))
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(text, encoding="utf-8", newline="\n")
+    out.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {out}")
-    for v in verdict:
-        print(v)
+    print(f"GATE {'PASSES' if gate else 'FAILS'}: "
+          f"{sum(r['pass'] for r in res.values())}/5; agree {p_agree}/{n_agree}, "
+          f"disagree {p_dis}/{n_dis}")
+    for e in EPISODES:
+        r = res[e["id"]]
+        print(f"  {e['id']:13} agree={r['agreement']['agree']!s:5} modal={r['modal']!s:14} "
+              f"{'PASS' if r['pass'] else 'FAIL'}")
     return 0
 
 
