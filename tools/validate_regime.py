@@ -46,6 +46,10 @@ everything agreed" into "nobody looked".
      market's record. Checked three ways -- statically over the method modules,
      over every stored object under the current method, and on a seeded ledger
      where the tail-weight read finds nothing, finds a set, and raises.
+  K  THE RATES-DRIVER MEMBERS (ST-3). Known answers for the two cuts at every
+     window, the move floor, the DKW / Kim-Wright shares, availability taken from
+     the latest input, an absent model writing nothing, the stock-bond
+     correlation, and inflation volatility refusing a window across a gap.
 
     python tools/validate_regime.py
 """
@@ -1184,12 +1188,170 @@ def group_j(store) -> None:
           "and it prints as FAULT, never as an absence")
 
 
+# ---------------------------------------------------------------------------
+# K. THE RATES-DRIVER MEMBERS (signal-triage ST-3)
+#
+# Known answers on seeded straight lines: a 10-year rising 2bp a session with the
+# real yield rising 1.6bp and the 2-year 1bp is a real share of exactly 0.8 and a
+# curve share of exactly 0.5 at every window. A flat stretch first, so the move
+# floor has something to refuse.
+# ---------------------------------------------------------------------------
+def group_k(store) -> None:
+    print(f"\n{LINE}\nK. THE RATES-DRIVER MEMBERS: THE CUTS, THE SHARES, THE "
+          f"CORRELATION\n{LINE}")
+    import math
+    from altdata import market_features as mf
+
+    flat, n = 30, 91
+    days = weekdays_back(END, n)
+    up = [0.0] * flat + [0.02 * (i + 1) for i in range(n - flat)]
+    seed(store, "fred.yield_10y", days, [4.00 + u for u in up])
+    seed(store, "fred.tips_10y", days, [1.80 + 0.8 * u for u in up])
+    seed(store, "fred.yield_2y", days, [3.50 + 0.5 * u for u in up])
+    seed(store, "fred.term_premium_kw", days, [0.50 + 0.5 * u for u in up])
+    # DKW: the path leg carries 0.75 of the model's real move, the premium 0.25.
+    seed(store, "dkw.exp_real_short_rate_10y", days, [1.0 + 0.3 * u for u in up])
+    seed(store, "dkw.real_term_premium_10y", days, [0.4 + 0.1 * u for u in up])
+    seed(store, "dkw.tips_liquidity_premium_10y", days, [0.2] * n)
+    # THE LAST 10-YEAR TIPS PRINT ARRIVES LATE: the share built on it must say so.
+    last = days[-1]
+    late_at = dt.datetime(last.year, last.month, last.day, 23, 30,
+                          tzinfo=dt.timezone.utc).isoformat()
+    store.write_many([{"registry_key": "fred.tips_10y", "instrument": None,
+                       "observed_at": last.isoformat(), "available_at": late_at,
+                       "value": 1.80 + 0.8 * up[-1], "source": "synthetic"}])
+    rows = mf.rates_rows(store)
+    by = {}
+    for r in rows:
+        by.setdefault(r["registry_key"], {})[r["observed_at"]] = r
+    L = last.isoformat()
+
+    for w in mf.ATTR_WINDOWS:
+        d = by.get(f"calc.attr_d10y_{w}d", {}).get(L)
+        check(d is not None and abs(d["value"] - 2.0 * w) < 1e-6,
+              f"calc.attr_d10y_{w}d is the 10-year's {w}-observation move in bp "
+              f"(+{2 * w}; got {d and d['value']})")
+        rs = by.get(f"calc.attr_real_share_{w}d", {}).get(L)
+        check(rs is not None and abs(rs["value"] - 0.8) < 1e-6,
+              f"calc.attr_real_share_{w}d = Δreal/Δ10y = 0.8 "
+              f"(got {rs and rs['value']})")
+        cs = by.get(f"calc.attr_curve_share_{w}d", {}).get(L)
+        check(cs is not None and abs(cs["value"] - 0.5) < 1e-6,
+              f"calc.attr_curve_share_{w}d = Δ2y/Δ10y = 0.5 "
+              f"(got {cs and cs['value']})")
+
+    # THE FLOOR: on the flat stretch the move is written (it is 0) and no share is.
+    quiet = {k for k, r in by.get("calc.attr_d10y_5d", {}).items()
+             if abs(r["value"]) < mf.ATTR_MIN_MOVE_BP}
+    check(bool(quiet), f"the flat stretch writes a 5-observation move below the "
+                       f"{mf.ATTR_MIN_MOVE_BP:g}bp floor ({len(quiet)} days)")
+    leaked = [k for k in quiet
+              if k in by.get("calc.attr_real_share_5d", {})
+              or k in by.get("calc.attr_curve_share_5d", {})]
+    check(not leaked,
+          f"and on none of those days is a share written -- a ratio over a "
+          f"near-zero move is noise with a large number on it ({len(leaked)})")
+
+    def instant(s):
+        return dt.datetime.fromisoformat(s) if s else None
+    rs = by.get("calc.attr_real_share_60d", {}).get(L) or {}
+    check(instant(rs.get("available_at")) == instant(late_at),
+          f"the share's available_at is its LATEST input's -- the late TIPS print, "
+          f"{late_at} (got {rs.get('available_at')})")
+    cs = by.get("calc.attr_curve_share_60d", {}).get(L) or {}
+    check(bool(cs) and instant(cs["available_at"]) < instant(late_at),
+          "while the curve share, which never read it, is not delayed by it")
+
+    kw = by.get("calc.attr_kw_tp_share_60d", {}).get(L)
+    check(kw is not None and abs(kw["value"] - 0.5) < 1e-6,
+          f"calc.attr_kw_tp_share_60d = ΔTP_kw/Δ10y = 0.5 "
+          f"(got {kw and kw['value']})")
+    p = by.get("calc.attr_dkw_path_share_60d", {}).get(L)
+    t = by.get("calc.attr_dkw_tp_share_60d", {}).get(L)
+    check(p is not None and abs(p["value"] - 0.75) < 1e-6
+          and t is not None and abs(t["value"] - 0.25) < 1e-6,
+          f"DKW's path and premium shares of the model's real move are 0.75 and "
+          f"0.25 (got {p and p['value']}, {t and t['value']})")
+    check(not by.get("calc.attr_acm_tp_share_60d"),
+          "ACM, with no rows in the store, writes nothing -- an absent model is "
+          "absent, not zero")
+
+    # --- the stock-bond correlation, on returns built to be exactly opposite ----
+    spy = [100.0]
+    for i in range(1, n):
+        spy.append(spy[-1] * math.exp(0.01 * math.sin(i * 1.7)))
+    tlt = [100.0 * (100.0 / s) for s in spy]
+    seed(store, "yfinance.mkt_spy", days, spy)
+    seed(store, "yfinance.mkt_tlt", days, tlt)
+    rows = mf.rates_rows(store)
+    corr = [r for r in rows if r["registry_key"] == "calc.corr_spy_tlt_60d"]
+    check(len(corr) == n - mf.CORR_WINDOW,
+          f"the correlation starts once {mf.CORR_WINDOW} returns exist "
+          f"({len(corr)} rows from {n} closes)")
+    check(bool(corr) and all(abs(r["value"] + 1.0) < 1e-9 for r in corr),
+          f"and reads -1 on returns that are exactly opposite "
+          f"(last {corr and corr[-1]['value']})")
+    tlt_rows = [r for r in rows if r["registry_key"] == "calc.corr_spy_tlt_60d"
+                and r["observed_at"] == L]
+    check(bool(tlt_rows) and tlt_rows[0]["available_at"][:10] == L,
+          "and is dated and knowable on its window's last session")
+
+    # --- inflation volatility: consecutive months only --------------------------
+    months = []
+    y, m = 2021, 1
+    for _ in range(60):
+        months.append(dt.date(y, m, 1))
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    lv = [300.0]
+    for i in range(1, len(months)):
+        lv.append(lv[-1] * (1.002 if i % 2 else 1.004))
+    seed(store, "fred.core_cpi", months, lv)
+    iv = [r for r in mf.rates_rows(store) if r["registry_key"] == "calc.infl_vol"]
+    moms = [((lv[i] / lv[i - 1]) ** 12 - 1) * 100 for i in range(1, len(lv))]
+    want = statistics.stdev(moms[-mf.INFL_VOL_MONTHS:])
+    check(len(iv) == len(moms) - mf.INFL_VOL_MONTHS + 1
+          and abs(iv[-1]["value"] - want) < 1e-6,
+          f"calc.infl_vol is the {mf.INFL_VOL_MONTHS}-month deviation of "
+          f"annualised month-on-month core CPI ({iv and iv[-1]['value']:.4f} vs "
+          f"{want:.4f}, {len(iv)} rows)")
+    # A MISSING MONTH: every window spanning it is refused. With month 10 gone, the
+    # first window clear of the gap is the 24 changes ending at month 35.
+    gone = months[10]
+    with tempfile.TemporaryDirectory() as td:
+        s2 = observations.ObservationStore(str(Path(td) / "gap.db"))
+        try:
+            keep = [(d, v) for d, v in zip(months, lv) if d != gone]
+            seed(s2, "fred.core_cpi", [d for d, _ in keep], [v for _, v in keep])
+            iv2 = [r for r in mf.rates_rows(s2)
+                   if r["registry_key"] == "calc.infl_vol"]
+        finally:
+            s2.close()
+    first_clear = months[11 + mf.INFL_VOL_MONTHS].isoformat()
+    check(len(iv2) == len(months) - (11 + mf.INFL_VOL_MONTHS)
+          and all(r["observed_at"] >= first_clear for r in iv2),
+          f"and with {gone} missing, no window that spans the gap is written: "
+          f"{len(iv2)} rows, the first on {iv2 and iv2[0]['observed_at']} "
+          f"(first clear window ends {first_clear})")
+
+    # --- the registry agrees with the computation ------------------------------
+    for key in sorted(mf.RATES_FEATURES):
+        e = derived.registry_entry(key)
+        check(bool(e) and e.get("units") and e.get("mechanism_group")
+              and e.get("revision_policy") and e.get("information_half_life")
+              and e.get("trigger_eligible") is False
+              and e.get("observation_type") in ("calculated", "inferred"),
+              f"{key}: registered with units, mechanism_group, revision_policy, "
+              f"half-life; not trigger_eligible")
+
+
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
     for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
-              group_h, group_i, group_j):
+              group_h, group_i, group_j, group_k):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:

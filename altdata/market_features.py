@@ -200,6 +200,71 @@ MACRO_FEATURES = {
 }
 MACRO_FEATURES.update({k: v[1] for k, v in YOY_SERIES.items()})
 
+# ---------------------------------------------------------------------------
+# THE RATES-DRIVER MEMBERS (signal-triage order ST-3, §2.1.1 and §5). What the
+# market-state object's `rates.driver` sub-state reads; regime.py decides the cell
+# from them and nothing here decides anything.
+# ---------------------------------------------------------------------------
+# One week, one month, and the driver's own 60-session window. Counted in each
+# series' OWN observations, which for these daily series is sessions.
+ATTR_WINDOWS = (5, 20, 60)
+# THE SHARE IS A RATIO OF CHANGES, AND A RATIO OVER A NEAR-ZERO MOVE IS NOISE WITH
+# A LARGE NUMBER ON IT. A share is written only when its denominator moved at
+# least this far over the window; below it the share is absent for that day
+# rather than +/-40. The driver's own move floor (config) is higher; this one only
+# keeps the series' distribution finite.
+ATTR_MIN_MOVE_BP = 5.0
+# The window the decomposition models are read over: 60 of their own
+# observations, the driver's window.
+MODEL_WINDOW = 60
+CORR_WINDOW = 60
+INFL_VOL_MONTHS = 24
+
+TLT = "yfinance.mkt_tlt"
+
+RATES_FEATURES: dict[str, str] = {}
+for _w in ATTR_WINDOWS:
+    RATES_FEATURES.update({
+        f"calc.attr_d10y_{_w}d":
+            f"the 10-year yield's change over {_w} of its own observations, in "
+            f"basis points. The move every share below divides",
+        f"calc.attr_real_share_{_w}d":
+            f"the 10-year TIPS real yield's change over {_w} observations as a "
+            f"share of the nominal 10-year's (the real/breakeven cut, SR-6). 1 is "
+            f"all real, 0 all breakeven; above 1 breakevens moved against the "
+            f"yield. Written only when the 10-year moved {ATTR_MIN_MOVE_BP:g}bp",
+        f"calc.attr_curve_share_{_w}d":
+            f"the 2-year yield's change over {_w} observations as a share of the "
+            f"10-year's (the curve cut, SR-6). Above 1 the front end is leading "
+            f"-- bear flattening in a selloff, bull steepening in a rally",
+    })
+RATES_FEATURES.update({
+    f"calc.attr_dkw_path_share_{MODEL_WINDOW}d":
+        f"DKW's expected real short rate's change over {MODEL_WINDOW} DKW "
+        f"observations as a share of the model's real yield change (expected "
+        f"path + real term premium + TIPS liquidity premium). Dated on DKW's own "
+        f"last observation, which runs about a month behind",
+    f"calc.attr_dkw_tp_share_{MODEL_WINDOW}d":
+        f"DKW's real term premium's change over {MODEL_WINDOW} DKW observations "
+        f"as a share of the same real yield change",
+    f"calc.attr_kw_tp_share_{MODEL_WINDOW}d":
+        f"Kim-Wright's 10-year term premium change over {MODEL_WINDOW} "
+        f"observations as a share of the 10-year yield's -- a tie-breaker, "
+        f"nominal, used only when DKW cannot decide",
+    f"calc.attr_acm_tp_share_{MODEL_WINDOW}d":
+        f"ACM's 10-year term premium change over {MODEL_WINDOW} observations as "
+        f"a share of ACM's own fitted 10-year yield change -- the second "
+        f"tie-breaker",
+    f"calc.corr_spy_tlt_{CORR_WINDOW}d":
+        f"Pearson correlation of SPY and TLT daily log returns over "
+        f"{CORR_WINDOW} common sessions -- the stock-bond correlation, SR-9's "
+        f"member, computed once",
+    "calc.infl_vol":
+        f"standard deviation of the last {INFL_VOL_MONTHS} month-on-month core "
+        f"CPI changes, annualised, in percentage points -- SR-9's regime "
+        f"variable",
+})
+
 # THE PLAUSIBLE BAND FOR NET LIQUIDITY, declared rather than asserted in a test.
 # The quantity is the Fed's balance sheet net of two drains: it has run between
 # roughly $3tn and $9tn across this store's history and cannot leave that range
@@ -432,6 +497,158 @@ def macro_rows(db: observations.ObservationStore,
     return rows
 
 
+def rates_rows(db: observations.ObservationStore,
+               as_of: Optional[str] = None,
+               first_day: Optional[str] = None) -> list[dict]:
+    """The rates driver's members: the two cuts, the model shares, the correlation.
+
+    SAME-DAY ONLY, as for 2s10s. A share needs both of its series on both of the
+    window's endpoints; an endpoint carried forward from another day would date
+    the share to neither. The window is counted in the DENOMINATOR's own
+    observations, so a holiday in one series does not stretch the other's window.
+    """
+    rows: list[dict] = []
+
+    def emit(key: str, day: str, value: Optional[float],
+             parts: list[tuple[str, Optional[str]]]) -> None:
+        if value is None or not math.isfinite(value) or not parts:
+            return
+        if first_day and day < first_day:
+            return
+        avail, kind = _availability(parts)
+        rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                     "available_at": avail, "value": round(value, 6),
+                     "source": "calc", "availability_kind": kind})
+
+    def av(series: dict, day: str) -> tuple[str, Optional[str]]:
+        return series[day][1], series[day][2]
+
+    y10 = _load(db, "fred.yield_10y", as_of)
+    y2 = _load(db, "fred.yield_2y", as_of)
+    tips = _load(db, "fred.tips_10y", as_of)
+    kw = _load(db, "fred.term_premium_kw", as_of)
+
+    # --- THE TWO CUTS OF SR-6, at 1w / 1m / the driver's window --------------
+    #
+    # Real: Δ10y = Δreal + Δbreakeven. FRED's T10YIE is DGS10 less DFII10 by
+    # construction, so the real leg alone carries the cut and the breakeven's
+    # change is Δ10y x (1 - share); reading T10YIE as well would add a rounding
+    # difference and nothing else. Curve: Δ10y = Δ2y + Δ(10s-2s), so Δ2y/Δ10y.
+    days = sorted(y10)
+    for i, day in enumerate(days):
+        for w in ATTR_WINDOWS:
+            if i < w:
+                continue
+            p = days[i - w]
+            d10 = (y10[day][0] - y10[p][0]) * 100.0
+            base = [av(y10, day), av(y10, p)]
+            emit(f"calc.attr_d10y_{w}d", day, d10, base)
+            if abs(d10) < ATTR_MIN_MOVE_BP:
+                continue
+            if day in tips and p in tips:
+                emit(f"calc.attr_real_share_{w}d", day,
+                     (tips[day][0] - tips[p][0]) * 100.0 / d10,
+                     base + [av(tips, day), av(tips, p)])
+            if day in y2 and p in y2:
+                emit(f"calc.attr_curve_share_{w}d", day,
+                     (y2[day][0] - y2[p][0]) * 100.0 / d10,
+                     base + [av(y2, day), av(y2, p)])
+
+    # --- KIM-WRIGHT: term premium over the nominal 10-year it decomposes -----
+    w = MODEL_WINDOW
+    kdays = sorted(d for d in kw if d in y10)
+    for i, day in enumerate(kdays):
+        if i < w:
+            continue
+        p = kdays[i - w]
+        d10 = (y10[day][0] - y10[p][0]) * 100.0
+        if abs(d10) < ATTR_MIN_MOVE_BP:
+            continue
+        emit(f"calc.attr_kw_tp_share_{w}d", day,
+             (kw[day][0] - kw[p][0]) * 100.0 / d10,
+             [av(kw, day), av(kw, p), av(y10, day), av(y10, p)])
+
+    # --- ACM: term premium over ACM's own fitted yield -------------------------
+    acm_tp = _load(db, "acm.term_premium_10y", as_of)
+    acm_fit = _load(db, "acm.fitted_yield_10y", as_of)
+    adays = sorted(d for d in acm_tp if d in acm_fit)
+    for i, day in enumerate(adays):
+        if i < w:
+            continue
+        p = adays[i - w]
+        dfit = (acm_fit[day][0] - acm_fit[p][0]) * 100.0
+        if abs(dfit) < ATTR_MIN_MOVE_BP:
+            continue
+        emit(f"calc.attr_acm_tp_share_{w}d", day,
+             (acm_tp[day][0] - acm_tp[p][0]) * 100.0 / dfit,
+             [av(acm_tp, day), av(acm_tp, p), av(acm_fit, day), av(acm_fit, p)])
+
+    # --- DKW: the real yield's three legs --------------------------------------
+    #
+    # The model's TIPS yield is expected real short rate + real term premium +
+    # TIPS liquidity premium, so the two shares and the liquidity share sum to 1.
+    # Only the two the driver reads are stored; the liquidity leg is the rest.
+    ers = _load(db, "dkw.exp_real_short_rate_10y", as_of)
+    rtp = _load(db, "dkw.real_term_premium_10y", as_of)
+    liq = _load(db, "dkw.tips_liquidity_premium_10y", as_of)
+    ddays = sorted(d for d in ers if d in rtp and d in liq)
+    for i, day in enumerate(ddays):
+        if i < w:
+            continue
+        p = ddays[i - w]
+        d_ers = ers[day][0] - ers[p][0]
+        d_rtp = rtp[day][0] - rtp[p][0]
+        d_sum = d_ers + d_rtp + (liq[day][0] - liq[p][0])
+        if abs(d_sum) * 100.0 < ATTR_MIN_MOVE_BP:
+            continue
+        parts = [av(s, d) for s in (ers, rtp, liq) for d in (day, p)]
+        emit(f"calc.attr_dkw_path_share_{w}d", day, d_ers / d_sum, parts)
+        emit(f"calc.attr_dkw_tp_share_{w}d", day, d_rtp / d_sum, parts)
+
+    # --- THE STOCK-BOND CORRELATION, once --------------------------------------
+    spy, tlt = _load(db, SPY, as_of), _load(db, TLT, as_of)
+    common = sorted(d for d in spy if d in tlt)
+    # (k, spy return, tlt return) where k indexes the return's END day in `common`.
+    rets: list[tuple[int, float, float]] = []
+    for k in range(1, len(common)):
+        a, b = common[k - 1], common[k]
+        if min(spy[a][0], spy[b][0], tlt[a][0], tlt[b][0]) > 0:
+            rets.append((k, math.log(spy[b][0] / spy[a][0]),
+                         math.log(tlt[b][0] / tlt[a][0])))
+    for i in range(CORR_WINDOW - 1, len(rets)):
+        win = rets[i + 1 - CORR_WINDOW:i + 1]
+        xs, ys = [r[1] for r in win], [r[2] for r in win]
+        if statistics.pstdev(xs) == 0 or statistics.pstdev(ys) == 0:
+            continue
+        span = common[win[0][0] - 1:win[-1][0] + 1]
+        emit(f"calc.corr_spy_tlt_{CORR_WINDOW}d", span[-1],
+             statistics.correlation(xs, ys),
+             [av(spy, d) for d in span] + [av(tlt, d) for d in span])
+
+    # --- INFLATION VOLATILITY ----------------------------------------------------
+    #
+    # Consecutive monthly prints only: a gap would make one "month-on-month" change
+    # two months long and put a doubled number in the deviation.
+    cc = _load(db, "fred.core_cpi", as_of)
+    cdays = sorted(cc)
+    moms: list[tuple[str, str, float]] = []
+    for a, b in zip(cdays, cdays[1:]):
+        gap = (dt.date.fromisoformat(b) - dt.date.fromisoformat(a)).days
+        if 25 <= gap <= 35 and cc[a][0] > 0:
+            moms.append((a, b, ((cc[b][0] / cc[a][0]) ** 12 - 1.0) * 100.0))
+        else:
+            moms.append((a, b, math.nan))
+    for i in range(INFL_VOL_MONTHS - 1, len(moms)):
+        win = moms[i + 1 - INFL_VOL_MONTHS:i + 1]
+        vals = [m[2] for m in win]
+        if any(math.isnan(v) for v in vals):
+            continue
+        emit("calc.infl_vol", win[-1][1], statistics.stdev(vals),
+             [av(cc, win[0][0])] + [av(cc, m[1]) for m in win])
+
+    return rows
+
+
 def compute_rows(db: observations.ObservationStore,
                  as_of: Optional[str] = None,
                  first_day: Optional[str] = None) -> list[dict]:
@@ -556,6 +773,7 @@ def compute_rows(db: observations.ObservationStore,
     # schedule -- and the pass that already runs after every price fetch is the
     # one whose inputs have just changed.
     rows += macro_rows(db, as_of=as_of, first_day=first_day)
+    rows += rates_rows(db, as_of=as_of, first_day=first_day)
     return rows
 
 
@@ -601,7 +819,7 @@ def _main(argv: list[str]) -> int:
             print(f"  {k:36} {r['by_key'][k]:>6}")
         return 0
 
-    for key in sorted({**FEATURES, **MACRO_FEATURES}):
+    for key in sorted({**FEATURES, **MACRO_FEATURES, **RATES_FEATURES}):
         d = derived.derived_forms(key, a.as_of)
         print(f"  {key:36} level={d['level']}  pct={d['percentile']}  "
               f"n={d['n']}  conf={d['confidence']}")

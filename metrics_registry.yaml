@@ -2180,6 +2180,252 @@ metrics:
       NO BOOLEAN. compute.py also returned `r_greater_than_g`, which is the sign
       of this number: a flag derived from a figure beside the figure is a second
       answer waiting to disagree with it.
+  # -------------------------------------------------------------------------
+  # THE RATES-DRIVER MEMBERS (signal-triage order ST-3, §2.1.1 and §5).
+  #
+  # What config/market_state.yaml's rates.driver reads, computed once in
+  # altdata/market_features.py. The shares are RATIOS OF CHANGES over a window
+  # counted in each denominator's own observations, written only when the
+  # denominator moved ATTR_MIN_MOVE_BP (5bp), so their distributions stay finite.
+  # All of them share rates_decomposition: they are cuts of one yield move, and
+  # two of them agreeing is one observation seen twice, not two confirmations.
+  # The DKW shares carry freq: monthly because the Board republishes monthly --
+  # their rows are daily and dated on DKW's own last observation, about a month
+  # behind the cutoff, and a daily allowance would call every one of them stale.
+  # -------------------------------------------------------------------------
+  calc.attr_d10y_5d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield's change over 5 of its own observations, in basis
+      points. The move the 5-observation shares divide; its sign is the driver's
+      direction (selloff or rally).
+  calc.attr_real_share_5d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The real/breakeven cut of SR-6 over 5 observations: the 10-year TIPS real
+      yield's change (DFII10) as a share of the nominal 10-year's. 1 is all real, 0
+      all breakeven; above 1 breakevens moved against the yield. T10YIE is DGS10
+      less DFII10 by construction, so the breakeven's change is the move times (1 -
+      share).
+  calc.attr_curve_share_5d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The curve cut of SR-6 over 5 observations: the 2-year yield's change as a
+      share of the 10-year's. Above 1 the front end is leading (bear flattening in a
+      selloff, bull steepening in a rally); near 0 the front end is anchored.
+  calc.attr_d10y_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield's change over 20 of its own observations, in basis
+      points. The move the 20-observation shares divide; its sign is the driver's
+      direction (selloff or rally).
+  calc.attr_real_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The real/breakeven cut of SR-6 over 20 observations: the 10-year TIPS real
+      yield's change (DFII10) as a share of the nominal 10-year's. 1 is all real, 0
+      all breakeven; above 1 breakevens moved against the yield. T10YIE is DGS10
+      less DFII10 by construction, so the breakeven's change is the move times (1 -
+      share).
+  calc.attr_curve_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The curve cut of SR-6 over 20 observations: the 2-year yield's change as a
+      share of the 10-year's. Above 1 the front end is leading (bear flattening in a
+      selloff, bull steepening in a rally); near 0 the front end is anchored.
+  calc.attr_d10y_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield's change over 60 of its own observations, in basis
+      points. The move the 60-observation shares divide; its sign is the driver's
+      direction (selloff or rally).
+  calc.attr_real_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The real/breakeven cut of SR-6 over 60 observations: the 10-year TIPS real
+      yield's change (DFII10) as a share of the nominal 10-year's. 1 is all real, 0
+      all breakeven; above 1 breakevens moved against the yield. T10YIE is DGS10
+      less DFII10 by construction, so the breakeven's change is the move times (1 -
+      share).
+  calc.attr_curve_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      The curve cut of SR-6 over 60 observations: the 2-year yield's change as a
+      share of the 10-year's. Above 1 the front end is leading (bear flattening in a
+      selloff, bull steepening in a rally); near 0 the front end is anchored.
+  calc.attr_dkw_path_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      DKW's expected real short rate (10-year) change over 60 DKW observations as a
+      share of the model's real yield change -- expected path plus real term premium
+      plus TIPS liquidity premium. The rates driver's deciding path share (SR-17:
+      DKW is the real-side split and the sign arbiter).
+  calc.attr_dkw_tp_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      DKW's real term premium (10-year) change over 60 DKW observations as a share
+      of the same real yield change. The rates driver's deciding premium share.
+  calc.attr_kw_tp_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Kim-Wright's 10-year term premium (THREEFYTP10) change over 60 observations as
+      a share of the 10-year yield's. A nominal tie-breaker, read only when DKW
+      cannot decide; its expected-rate leg is the rest.
+  calc.attr_acm_tp_share_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      ACM's 10-year term premium change over 60 observations as a share of ACM's own
+      fitted 10-year yield change. The second nominal tie-breaker.
+  calc.corr_spy_tlt_60d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Pearson correlation of SPY and TLT daily log returns over 60 common sessions
+      -- the stock-bond correlation, SR-9's flag, computed once. Evidence for the
+      rates driver: negative supports growth, positive supports fed_path and
+      term_premium. SR-9's ~5.25% level prior is a by-hand note, never computed here
+      (R7).
+  calc.infl_vol:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Standard deviation of the last 24 month-on-month core CPI changes (CPILFESL),
+      annualised, in percentage points. SR-9's regime variable: the lever yield
+      level is a proxy for. Consecutive monthly prints only.
   calc.yoy_cpi:
     source: derived_state
     mechanism_group: macro_inflation
