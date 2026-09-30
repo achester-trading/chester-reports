@@ -9,6 +9,7 @@ counts as a failure" would drift the way the validator list once did.
 
     python -m altdata.feeds pull            # every enabled feed
     python -m altdata.feeds pull --only prices
+    python -m altdata.feeds pull --early    # the 06:45 correction set
     python -m altdata.feeds check           # freshness; exit 1 when stale
 
 -----------------------------------------------------------------------------
@@ -18,12 +19,18 @@ WHEN IT RUNS, AND WHY TWICE
   16:10 ET, in chester-eod, BEFORE the 16:45 object computes. This is the pull
          that matters: the object is only as current as the feed that preceded
          it.
-  06:45 ET, in chester-overnight. The CORRECTION pass. It exists because the
-         16:10 pull can be wrong in two ways that the evening cannot fix: a
-         close revised after 16:10 (a late print, an exchange correction), and a
-         session missed entirely because the box was down. The morning pull
-         re-reads the last two years, so a gap heals itself on the next
-         successful run rather than needing a human to notice it.
+  06:45 ET, in chester-overnight. The CORRECTION pass, `pull --early`: the
+         prices, plus the official writers that publish between the evening
+         pull and 06:45 (EARLY_WRITERS). The prices are there because the
+         16:10 pull can be wrong in two ways the evening cannot fix: a close
+         revised after 16:10 (a late print, an exchange correction), and a
+         session missed entirely because the box was down. The pull re-reads
+         the last two years, so a gap heals itself on the next successful run.
+         Until 30 Sep 2026 this was the WHOLE pull, and once ST-1/ST-2 grew it
+         to 79 FRED series and 22 writers it overran the unit's five minutes
+         every session from 28 Sep: systemd killed the pass before the
+         overnight fetch it exists for ever ran. FRED and the other writers
+         publish in the US day, so the 16:10 pull is the one that sees them.
 
 Two pulls a day of the same window is deliberate duplication, and it is cheap:
 the observation store is append-only with a vintage key, so a re-pull of an
@@ -94,6 +101,14 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     "tic", "safe", "mof", "cfets", "cftc",
                     # ST-2: oil stocks and the expectations surveys
                     "eia", "fedboard", "nyfed_sce")
+
+# THE EARLY WRITERS -- the official writers whose publisher releases between the
+# 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
+# can see the row. MoF's JGB curve is added in the Tokyo evening (early morning
+# ET); CFETS fixes USD/CNY at 09:15 Beijing (21:15 ET the evening before). Every
+# other official writer publishes in the US day. A subset of OFFICIAL_WRITERS,
+# never a writer of its own: same module, same keys, same family.
+EARLY_WRITERS = ("mof", "cfets")
 
 # THE EXTERNAL WRITERS (ST-2). The same contract as OFFICIAL_WRITERS -- a module
 # under altdata/sources/ with KEYS and pull(run_id), STALE-not-empty on failure --
@@ -258,9 +273,14 @@ def read_attempted() -> Optional[dict]:
     return {k: list((v or {}).get("keys") or []) for k, v in d.items()}
 
 
-def record_attempted(family: str, keys: list[str]) -> None:
+def record_attempted(family: str, keys: list[str], merge: bool = False) -> None:
     """Merge one family's attempted keys into the file. Never raises: a pull that
-    wrote its rows must not fail on its bookkeeping."""
+    wrote its rows must not fail on its bookkeeping.
+
+    merge=True ADDS to the family's recorded keys instead of replacing them. A
+    partial pull (the 06:45 early writers) attempted a subset; replacing the list
+    with that subset would turn every other writer's absent key back into
+    `pending` until 16:10 -- hiding a stale feed for most of the day."""
     import json
     try:
         d = _state_dir()
@@ -270,7 +290,8 @@ def record_attempted(family: str, keys: list[str]) -> None:
             cur = json.loads(p.read_text(encoding="utf-8"))
         except Exception:                                     # noqa: BLE001
             cur = {}
-        cur[family] = {"keys": sorted(set(keys)), "at": session.utc_iso()}
+        prior = set(((cur.get(family) or {}).get("keys") or [])) if merge else set()
+        cur[family] = {"keys": sorted(prior | set(keys)), "at": session.utc_iso()}
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
         tmp.replace(p)
@@ -326,16 +347,18 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     return summary
 
 
-def pull_official(run_id: Optional[str] = None) -> dict:
-    """Every published-file writer, each isolated from the others.
+def pull_official(run_id: Optional[str] = None,
+                  names: Optional[tuple[str, ...]] = None) -> dict:
+    """Every published-file writer, each isolated from the others -- or, with
+    `names`, just those (the 06:45 EARLY_WRITERS).
 
     A writer that fails returns STALE and writes nothing (see
     sources/_publication.py); one that raises past that is caught here, so a
     broken NY Fed workbook never costs the Board's CSV.
     """
-    mods = _official_modules()
+    mods = _official_modules() if names is None else _writer_modules(names)
     out = _pull_writers(mods, run_id)
-    record_attempted("official", _keys(mods))
+    record_attempted("official", _keys(mods), merge=names is not None)
     return out
 
 
@@ -410,11 +433,17 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
 
 
 def pull(only: Optional[str] = None, run_id: Optional[str] = None,
-         skip: tuple[str, ...] = ()) -> dict:
+         skip: tuple[str, ...] = (), early: bool = False) -> dict:
+    """Run the feeds. `early` is the 06:45 correction set: the prices and the
+    EARLY_WRITERS, nothing else (see the module docstring)."""
     out: dict[str, Any] = {"ran": [], "skipped": []}
+    if early:
+        only = None
+        skip = ("fred", "external", "loggers")
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
-                     ("official", pull_official), ("external", pull_external),
-                     ("loggers", pull_loggers)):
+                     ("official", (lambda run_id: pull_official(run_id, EARLY_WRITERS))
+                      if early else pull_official),
+                     ("external", pull_external), ("loggers", pull_loggers)):
         if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue
@@ -550,6 +579,8 @@ def _main(argv: list[str]) -> int:
     pl.add_argument("--only", choices=FEEDS, default=None)
     pl.add_argument("--skip", default="",
                     help="comma-separated feeds to skip, e.g. loggers")
+    pl.add_argument("--early", action="store_true",
+                    help="the 06:45 correction set: prices + EARLY_WRITERS")
     pl.add_argument("--run-id", default=None)
     pl.add_argument("--json", action="store_true")
 
@@ -562,7 +593,9 @@ def _main(argv: list[str]) -> int:
                         format="%(levelname)s %(name)s: %(message)s")
 
     if a.cmd == "pull":
-        r = pull(only=a.only, run_id=a.run_id,
+        if a.early and (a.only or a.skip):
+            p.error("--early is a fixed set; it takes neither --only nor --skip")
+        r = pull(only=a.only, run_id=a.run_id, early=a.early,
                  skip=tuple(x.strip() for x in a.skip.split(",") if x.strip()))
         if a.json:
             print(json.dumps(r, indent=2, sort_keys=True, default=str))

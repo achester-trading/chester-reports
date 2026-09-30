@@ -1207,11 +1207,92 @@ def group_q() -> None:
         db.close()
 
 
+def group_r() -> None:
+    """The 06:45 correction set (30 Sep 2026)."""
+    print(f"{LINE}\nR. THE 06:45 PULL IS THE EARLY SET, AFTER THE FETCH\n{LINE}")
+    import os
+    import re
+    import tempfile
+    check(set(feeds.EARLY_WRITERS) <= set(feeds.OFFICIAL_WRITERS)
+          and set(feeds.EARLY_WRITERS) == {"mof", "cfets"},
+          f"EARLY_WRITERS {feeds.EARLY_WRITERS} is a subset of the official writers "
+          f"-- the two that publish between 16:10 and 06:45 ET")
+
+    # pull(early=True) runs the prices and the early writers, nothing else.
+    calls: dict = {}
+    saved = {n: getattr(feeds, n) for n in
+             ("pull_prices", "pull_fred", "pull_official", "pull_external",
+              "pull_loggers")}
+    try:
+        feeds.pull_prices = lambda run_id=None: calls.setdefault("prices", True) and {}
+        feeds.pull_fred = lambda run_id=None: calls.setdefault("fred", True) and {}
+        feeds.pull_external = lambda run_id=None: calls.setdefault("external", True) and {}
+        feeds.pull_loggers = lambda run_id=None: calls.setdefault("loggers", True) and {}
+        feeds.pull_official = (lambda run_id=None, names=None:
+                               calls.setdefault("official", names) and {})
+        r = feeds.pull(early=True)
+    finally:
+        for n, fn in saved.items():
+            setattr(feeds, n, fn)
+    check(r["ran"] == ["prices", "official"]
+          and sorted(r["skipped"]) == ["external", "fred", "loggers"]
+          and calls.get("official") == feeds.EARLY_WRITERS,
+          f"pull(early=True) ran {r['ran']} with official limited to "
+          f"{calls.get('official')}, and skipped {sorted(r['skipped'])} -- the 79 "
+          f"FRED series that overran the unit are the 16:10 pull's")
+
+    # A partial pull MERGES its attempted keys: replacing them would turn every
+    # other official writer's absent key back into `pending` until 16:10.
+    saved_env = os.environ.get("CHESTER_STATE_DIR")
+    saved_wm = feeds._writer_modules
+    td = tempfile.mkdtemp(prefix="feeds_early_")
+    try:
+        os.environ["CHESTER_STATE_DIR"] = td
+        feeds.record_attempted("official", list(acm.KEYS))
+        feeds._writer_modules = lambda names: [(n, None) for n in names]
+        feeds.pull_official(names=feeds.EARLY_WRITERS)
+        tried = set((feeds.read_attempted() or {}).get("official") or [])
+        early_keys = {k for w in feeds.EARLY_WRITERS for k in feeds.static_keys(w)}
+        check(set(acm.KEYS) <= tried and early_keys <= tried,
+              f"after the early pull the official family still records acm's "
+              f"{len(acm.KEYS)} keys beside the early writers' {len(early_keys)} -- "
+              f"merged, not replaced")
+        feeds.record_attempted("official", sorted(early_keys))
+        replaced = set((feeds.read_attempted() or {}).get("official") or [])
+        check(not (set(acm.KEYS) & replaced),
+              "and a plain record_attempted still replaces -- the merge is the "
+              "early pull's, not a changed default")
+    finally:
+        feeds._writer_modules = saved_wm
+        if saved_env is None:
+            os.environ.pop("CHESTER_STATE_DIR", None)
+        else:
+            os.environ["CHESTER_STATE_DIR"] = saved_env
+
+    # The wrapper: the fetch and its status line come first, the pull is --early.
+    sh = (REPO / "scripts" / "fetch_overnight.sh").read_text(encoding="utf-8")
+    code = "\n".join(ln for ln in sh.splitlines() if not ln.lstrip().startswith("#"))
+    i_fetch = code.find('"$PY" -m altdata.sources.overnight')
+    i_status = code.find("printf 'state=%s rc=%s sha=%s at=%s")
+    i_pull = code.find("-m altdata.feeds pull")
+    check(-1 not in (i_fetch, i_status, i_pull) and i_fetch < i_status < i_pull,
+          "fetch_overnight.sh runs the overnight fetch and writes its status BEFORE "
+          "the correction pull -- a slow pull can no longer stand in front of the "
+          "capture")
+    check(bool(re.search(r"-m altdata\.feeds pull --early\b", code))
+          and code.count("-m altdata.feeds pull") == 1,
+          "and its one feeds pull is `pull --early`")
+    unit = (REPO / "deploy" / "systemd" / "chester-overnight.service").read_text(
+        encoding="utf-8")
+    check(re.search(r"^TimeoutStartSec=10min\s*$", unit, re.M) is not None,
+          "chester-overnight.service allows 10min (was 5min)")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q):
+              group_p, group_n, group_q, group_r):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

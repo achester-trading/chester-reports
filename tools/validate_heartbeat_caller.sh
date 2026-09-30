@@ -827,6 +827,93 @@ else
 fi
 rm -f "$B_STATUS" "$B_LAST_OK"
 
+printf '\n%s\nA chester-* unit whose last run failed (30 Sep 2026)\n%s\n' "$LINE" "$LINE"
+
+# chester-overnight timed out on 28, 29 and 30 Sep and the verdict said ok: systemd
+# killed the pass before it wrote its status file, and nothing read systemd's own
+# Result. A FAKE systemctl answers `show` from FAKE_FAILED (unit=result,...) and
+# says not-enabled to everything else, so the weekly/monthly checks stay inert.
+FAKESYS="$SANDBOX/fakesys"
+mkdir -p "$FAKESYS"
+cat >"$FAKESYS/systemctl" <<'STUB'
+#!/usr/bin/env bash
+[[ "$1" == "--user" ]] && shift
+case "$1" in
+    show)
+        [[ -n "${FAKE_NO_BUS:-}" ]] && { echo "Failed to connect to bus" >&2; exit 1; }
+        unit="$2"; res=""
+        IFS=, read -ra pairs <<< "${FAKE_FAILED:-}"
+        for p in "${pairs[@]}"; do [[ "${p%%=*}" == "$unit" ]] && res="${p#*=}"; done
+        if [[ -n "$res" ]]; then printf 'ActiveState=failed\nResult=%s\n' "$res"
+        else printf 'ActiveState=inactive\nResult=success\n'; fi ;;
+    *) exit 1 ;;
+esac
+STUB
+chmod +x "$FAKESYS/systemctl"
+units_of() { sed -n 's/.* units=\([^ ]*\).*/\1/p' "$STATUS"; }
+rm -f "$UNITS"/*.service "$UNITS"/*.timer
+cp "$REPO"/deploy/systemd/*.service "$REPO"/deploy/systemd/*.timer "$UNITS/"
+
+run_units() {                    # run_units <checker_rc> [extra env...]
+    local rc="$1"; shift
+    rm -f "$STATUS"
+    run "$rc" CHESTER_SYSTEMD_USER_DIR="$UNITS" PATH="$FAKESYS:$PATH" "$@"
+}
+
+run_units 0
+if [[ "$(units_of)" == "ok" ]] && [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]]; then
+    ok "every installed chester-* unit's last run succeeded -> units=ok, verdict ok, exit 0"
+else
+    bad "all-success case -> units=$(units_of) state=$(state_of) exit=$RC"
+fi
+
+run_units 0 FAKE_FAILED="chester-overnight.service=timeout"
+if [[ "$(state_of)" == "unit_failed" ]] && [[ "$RC" == "13" ]] \
+        && [[ "$(units_of)" == "failed:chester-overnight:timeout" ]] \
+        && grep -q 'UNIT FAILED .*chester-overnight:timeout' "$ALERT" \
+        && grep -q 'verdict=unit_failed rc=13 .*units=failed:chester-overnight:timeout' $LOG_GLOB; then
+    ok "chester-overnight Result=timeout -> unit_failed, exit 13, the unit and its result named in the status, the alert and the log line -- the 28-30 Sep failure now fires"
+else
+    bad "overnight timeout -> units=$(units_of) state=$(state_of) exit=$RC"
+fi
+
+run_units 0 FAKE_FAILED="chester-eod.service=exit-code,chester-backup.service=timeout"
+if [[ "$(state_of)" == "unit_failed" ]] \
+        && [[ "$(units_of)" == "failed:chester-backup:timeout,chester-eod:exit-code" ]]; then
+    ok "two failed units -> both named, in unit order"
+else
+    bad "two failed units -> units=$(units_of) state=$(state_of)"
+fi
+
+run_units 0 FAKE_FAILED="chester-heartbeat.service=exit-code"
+if [[ "$(state_of)" == "ok" ]] && [[ "$(units_of)" == "ok" ]]; then
+    ok "the heartbeat's own failed Result is ignored -- it exits non-zero on every unhealthy verdict, so reading it would latch the alarm"
+else
+    bad "own-unit case -> units=$(units_of) state=$(state_of)"
+fi
+
+run_units 1 FAKE_FAILED="chester-overnight.service=timeout"
+if [[ "$(state_of)" == "stale" ]] && [[ "$(units_of)" == "failed:chester-overnight:timeout" ]]; then
+    ok "a pipeline verdict still wins (stale), and the failed unit is still recorded in units="
+else
+    bad "pipeline-wins case -> units=$(units_of) state=$(state_of)"
+fi
+
+run_units 0 FAKE_FAILED="chester-overnight.service=timeout" FAKE_NO_BUS=1
+if [[ "$(units_of)" == "unavailable" ]] && [[ "$(state_of)" == "ok" ]]; then
+    ok "no user bus -> units=unavailable and the verdict untouched -- an unanswerable question is not a failure"
+else
+    bad "no-bus case -> units=$(units_of) state=$(state_of)"
+fi
+
+run_units 0 FAKE_FAILED="chester-overnight.service=timeout" CHESTER_SKIP_UNIT_CHECK=1
+if [[ "$(units_of)" == "skipped" ]] && [[ "$(state_of)" == "ok" ]]; then
+    ok "CHESTER_SKIP_UNIT_CHECK records units=skipped rather than ok"
+else
+    bad "skip switch -> units=$(units_of) state=$(state_of)"
+fi
+rm -f "$UNITS"/*.service "$UNITS"/*.timer
+
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then
     ok "log carries verdict=<state> so a month greps into an uptime figure"

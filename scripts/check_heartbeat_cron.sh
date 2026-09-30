@@ -38,6 +38,17 @@
 #                       swallowed dual-write failure: the CSV store has rows the
 #                       database does not. Every run involved exited 0, which is
 #                       exactly why this needs a channel of its own.
+#  13 unit failed    -> the pipeline is healthy AND the last run of an installed
+#                       chester-*.service ended failed (systemctl --user show:
+#                       ActiveState=failed or a Result other than success),
+#                       named with its result, e.g. chester-overnight:timeout.
+#                       chester-overnight timed out on 28, 29 and 30 Sep 2026
+#                       while this wrapper said verdict=ok each morning: its own
+#                       status file was never written, because systemd killed
+#                       the pass before the line that writes it. systemd's Result
+#                       is the one record a killed unit cannot fail to leave.
+#                       Ranked above drift: a unit that failed outright is more
+#                       urgent than a unit file that changed.
 #   8 unit drift     -> the pipeline is healthy AND an installed systemd unit
 #                       differs from its deploy/systemd/ copy, or carries a
 #                       drop-in override. Reported here rather than in CI
@@ -412,6 +423,60 @@ else
         DRIFT_STATE=none_installed
     fi
     log "unit drift: $DRIFT_STATE ($INSTALLED installed, $DRIFT_COUNT divergent, $DECLARED_COUNT declared box-config)"
+fi
+
+# ---- the chester-* units' last run -------------------------------------------
+#
+# SYSTEMD'S RESULT, NOT THE UNIT'S OWN STATUS FILE (30 Sep 2026). A pass writes its
+# status file at the end, so a pass that systemd kills -- TimeoutStartSec, the OOM
+# killer -- writes nothing, and every check above that reads status files sees the
+# previous run's line. chester-overnight timed out at every run on 28, 29 and 30
+# Sep and this verdict said ok each morning. `systemctl --user show -p Result`
+# is written by systemd itself, whatever the unit did.
+#
+# Every installed chester-*.service EXCEPT this one: the heartbeat exits non-zero
+# whenever its verdict is unhealthy, so reading its own Result would latch the
+# alarm on forever. A failed unit stays failed until its next run succeeds, or
+# until `systemctl --user reset-failed <unit>` after a human has read it.
+#
+# Where systemctl is absent or has no user bus (the laptop, CI) the check reports
+# `unavailable` and changes nothing: an unanswerable question is not a failure.
+UNITS_FAILED=""
+UNITS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_UNIT_CHECK:-}" ]]; then
+    UNITS_STATE=skipped
+elif ! command -v systemctl >/dev/null 2>&1 || [[ ! -d "$UNIT_DST" ]] \
+        || [[ ! -d "$UNIT_SRC" ]]; then
+    UNITS_STATE=unavailable
+else
+    UNITS_STATE=ok
+    UNITS_CHECKED=0
+    for src in "$UNIT_SRC"/chester-*.service; do
+        [[ -e "$src" ]] || continue
+        unit="$(basename "$src")"
+        [[ "$unit" == "chester-heartbeat.service" ]] && continue
+        [[ -e "$UNIT_DST/$unit" ]] || continue          # not installed: not ours
+        if ! props="$(systemctl --user show "$unit" -p ActiveState -p Result 2>/dev/null)"; then
+            UNITS_STATE=unavailable
+            UNITS_FAILED=""
+            break
+        fi
+        UNITS_CHECKED=$((UNITS_CHECKED + 1))
+        u_active="$(printf '%s\n' "$props" | sed -n 's/^ActiveState=//p')"
+        u_result="$(printf '%s\n' "$props" | sed -n 's/^Result=//p')"
+        if [[ "$u_active" == "failed" ]] \
+                || { [[ -n "$u_result" ]] && [[ "$u_result" != "success" ]]; }; then
+            UNITS_FAILED="${UNITS_FAILED:+$UNITS_FAILED,}${unit%.service}:${u_result:-$u_active}"
+        fi
+    done
+    [[ -n "$UNITS_FAILED" ]] && UNITS_STATE=failed
+    log "  units: $UNITS_STATE ($UNITS_CHECKED checked${UNITS_FAILED:+; failed: $UNITS_FAILED})"
+fi
+
+if [[ "$STATE" == "ok" ]] && [[ "$UNITS_STATE" == "failed" ]]; then
+    STATE=unit_failed
+    RC=13
+    HEADLINE="UNIT FAILED the last run ended failed: $UNITS_FAILED -- journalctl --user -u <unit>"
 fi
 
 # Drift does NOT overwrite the pipeline verdict. A dead pipeline is more urgent
@@ -804,15 +869,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT backup=$BACKUP_STATE feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s backup=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$BACKUP_STATE" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

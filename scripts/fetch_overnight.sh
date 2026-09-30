@@ -3,6 +3,7 @@
 # The 06:45 ET overnight fetch, as the VPS timer runs it.
 #
 #   git pull --ff-only -> calendar guard -> venv overnight -> log -> status
+#     -> correction pull (early set) -> weekly/annual checks -> events -> surprise
 #
 # WHY IT IS A SEPARATE UNIT FROM THE 07:00 RENDER. Reports never fetch (30.4),
 # and the reason is not tidiness. A render that fetched would fail for transport
@@ -99,18 +100,41 @@ esac
 DRY=""
 [[ "${CHESTER_OVERNIGHT_DRY_RUN:-0}" == "1" ]] && DRY="--dry-run"
 
+log "=== overnight fetch start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
+"$PY" -m altdata.sources.overnight $DRY >>"$LOG" 2>&1
+
+RC=$?
+
+case $RC in
+    0) STATE=ok;      MSG="overnight rows written" ;;
+    1) STATE=nothing; MSG="NOTHING FETCHED -- every symbol failed, or yfinance is absent" ;;
+    *) STATE=error;   MSG="overnight fetch failed rc=$RC" ;;
+esac
+log "$MSG"
+
+printf 'state=%s rc=%s sha=%s at=%s\n' \
+    "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
+
 # ---- the feeds, as the CORRECTION pass -------------------------------------
 #
-# The same pull as 16:10, and it is here for the two things the evening cannot
-# fix: a close revised after 16:10 (a late print, an exchange correction), and a
-# session missed entirely because the box was down. The pull re-reads two years,
-# so a gap heals on the next successful run rather than waiting for somebody to
-# notice it.
+# AFTER THE FETCH, AND ONLY THE EARLY SET (30 Sep 2026). This pull used to run
+# first and in full -- every price, 79 FRED series, 22 writers -- and once ST-1
+# and ST-2 grew it past the unit's five minutes, systemd killed the pass on 28,
+# 29 and 30 Sep before the overnight fetch ever started. The fetch is the capture
+# (yfinance serves no history of an overnight session); the correction pass is
+# not, so the capture goes first and the correction can never stand in front of
+# it again.
 #
-# Re-pulling an unchanged close writes NOTHING -- the observation store's vintage
-# key makes it idempotent -- so the duplication costs a fetch and no rows.
-log "feeds: correction pull start"
-FEED_OUT="$("$PY" -m altdata.feeds pull 2>&1)"
+# `--early` is the prices plus the official writers that publish between 16:10
+# and now (altdata/feeds.py EARLY_WRITERS: MoF, CFETS). The prices are here for
+# the two things the evening cannot fix: a close revised after 16:10 (a late
+# print, an exchange correction), and a session missed because the box was
+# down -- the pull re-reads two years, so a gap heals on the next run. FRED and
+# the other writers publish in the US day; the 16:10 pull is the one that sees
+# them. Re-pulling an unchanged close writes NOTHING (the vintage key), so the
+# duplication costs a fetch and no rows.
+log "feeds: correction pull start (early set)"
+FEED_OUT="$("$PY" -m altdata.feeds pull --early 2>&1)"
 FEED_RC=$?
 printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
@@ -146,28 +170,14 @@ BR_RC=$?
 printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $BR_RC -ne 0 ]] && log "WARN base_rates maybe-recompute exited $BR_RC -- continuing"
 
-log "=== overnight fetch start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
-"$PY" -m altdata.sources.overnight $DRY >>"$LOG" 2>&1
-
-RC=$?
-
-case $RC in
-    0) STATE=ok;      MSG="overnight rows written" ;;
-    1) STATE=nothing; MSG="NOTHING FETCHED -- every symbol failed, or yfinance is absent" ;;
-    *) STATE=error;   MSG="overnight fetch failed rc=$RC" ;;
-esac
-log "$MSG"
-
-printf 'state=%s rc=%s sha=%s at=%s\n' \
-    "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
-
 # AFTER THE VERDICT IS TAKEN, and this position is load-bearing. `RC=$?` above
-# reads the exit status of the command immediately before it, so an ingest inserted
+# reads the exit status of the command immediately before it, so a step inserted
 # between the fetch and that line would have made the wrapper report the exit code
 # of a `[[ ]]` test instead of the fetch's -- the pass would have said `ok` whatever
-# happened upstream. The ingest runs after the status file is written, and its own
+# happened upstream. Everything below runs after the status file is written -- the
+# correction pull, the weekly and annual checks, the ingest -- and each one's
 # failure is a warning rather than the pass's verdict, because the fetch is the
-# capture and this is a record that can be pulled again.
+# capture and these are records that can be pulled again.
 # ---- the events ingest, then the surprises ---------------------------------
 #
 # THE MORNING HALF. The 07:00 anchor's EVENTS block reads "since the previous

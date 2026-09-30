@@ -18,8 +18,15 @@ EnvironmentFile=-%h/chester-reports/.env
 # unit's one job. It should show red.
 SuccessExitStatus=0
 
-# Ten HTTP calls with 0.4s pacing plus a git pull. Generous for a slow morning.
-TimeoutStartSec=5min
+# Sized to the whole pass, not the fetch. The fetch is ten HTTP calls with 0.4s
+# pacing, but the unit also runs the correction pull, the weekly and annual
+# checks, the events ingest and the surprises -- and on 28, 29 and 30 Sep 2026 a
+# full correction pull (79 FRED series, 22 writers) ran first, overran the old
+# 5min, and systemd killed the pass before the fetch started. The fetch now runs
+# first and the pull is the early set only (scripts/fetch_overnight.sh), so this
+# is margin, not the fix: a pass at 06:45 that needs 10min still ends before the
+# 07:00 anchor reads the rows only if the fetch went first, which it now does.
+TimeoutStartSec=10min
 
 NoNewPrivileges=true
 PrivateTmp=true
