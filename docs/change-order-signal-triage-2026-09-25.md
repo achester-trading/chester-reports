@@ -1080,7 +1080,9 @@ On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orde
 
 **Mechanism Watch deferrals (from Thread D).** Prediction-market cross-link for Pearl or register candidates (after PM-1, ≈1 h); a daily intraday PRL series (re-check the CoinGecko monthly call budget first; ≈1 h); automation of the S1/S2/S7/S8 narrative fields beyond the scan (not planned — they stay `manual_input` by design).
 
-**Total backlog ≈33 h** (≈35 h as signed; the SR-19 ≈2 h moved to its build on 28 Sep).
+**ST-3 cell redesign (ruling of 30 Sep 2026, option A).** The four-cell `rates.driver` failed its gate twice (ledgers `rates-driver-2026-09.md`, 0 of 5; `rates-driver-2026-09-30-r2.md`, 2 of 5 under a pre-registered rule) and was withdrawn; ST-3 ships as the descriptive attribution block (`altdata/rates_attribution.py`). A redesigned cell would **label only when two or more decomposition models agree** on the side, and otherwise print no cell. It needs a **fresh pre-registration** before any code: the rule, the episodes and the pass rule written first; what the two ledgers already showed disclosed; one hypothesis. Known constraints: 1994 cannot test a path-side cell (no DFII10 before 2003); the models split on Aug-Oct 2023 and Q4 2018. Numbers: config v1.13 and method-11 at the earliest; v1.11, v1.12, method-9 and method-10 are retired. SR-6 and SR-17 stay `DEFERRED — gate failed` until it passes (≈4-6 h including the calibration).
+
+**Total backlog ≈38 h** (≈35 h as signed; the SR-19 ≈2 h moved to its build on 28 Sep; +≈5 h for the ST-3 cell redesign, 30 Sep).
 
 ---
 

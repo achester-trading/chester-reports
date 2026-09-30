@@ -99,26 +99,7 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-10"
-#
-# method-10 (30 Sep 2026): THE DRIVER AFTER ITS FAILED FIRST LEDGER. Two rulings,
-# pre-registered before any code: (a) DKW's shares are of path + premium, the TIPS
-# liquidity premium out of the denominator (altdata/market_features.py -- not in
-# the hash, which is why the bump is named here); (b) H1, fed_path's breakevens
-# over 20 sessions via a rule's `breakevens_window`, config v1.12. With it, a rule
-# with a condition known false now FAILS instead of reading untestable when
-# another of its inputs is absent -- the only way a rule whose conditions read
-# different windows can be evaluated. Every cut, the 20-session ones included,
-# must be the move's own session.
-#
-# method-9 (30 Sep 2026): THE RATES DRIVER (signal-triage ST-3). The rates
-# dimension carries a `driver` sub-state -- growth / fed_path / term_premium /
-# mixed over the 60-session move, or NOT DETERMINED with the reason -- decided by
-# driver_cell() on declared rules (config v1.11) and published under the same
-# persistence rule as the dimensions, now reached through a node path rather than
-# a dimension name. Nothing the dimensions, dials or contradiction table say
-# changes; the object gains a node, so objects before and after are not one
-# method.
+METHOD_VERSION = "market-state-method-8"
 #
 # method-8 (26 Sep 2026): AN ABSENCE CITES DATA; A FAULT IS A FAULT. Pair 4's
 # probability-ledger read had never run -- it asked for a class the ledger does not
@@ -158,7 +139,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "c4833efffc66d835"
+METHOD_SOURCE_SHA = "ee0bb0593afccf35"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -444,30 +425,14 @@ def prior_objects(objects_as_of: str, before_session: str, limit: int,
     return out
 
 
-def _node(obj: dict, path: tuple[str, ...]) -> dict:
-    """The dict at `path` inside a stored object, or {} where it is missing."""
-    cur: Any = obj
-    for k in path:
-        cur = (cur or {}).get(k) if isinstance(cur, dict) else None
-    return cur if isinstance(cur, dict) else {}
-
-
-def apply_persistence(dim: dict, name: str, history: list[dict],
-                      path: Optional[tuple[str, ...]] = None) -> dict:
-    """Publish a new state only after it has held `persistence_sessions` times.
-
-    `path` locates the same item in each stored predecessor. A dimension is
-    ("dimensions", name); a sub-state names its own node, so the rates driver
-    runs the dimensions' rule on its own history rather than a copy of the rule
-    -- a second copy would be a second persistence rule.
-    """
-    path = path or ("dimensions", name)
+def apply_persistence(dim: dict, name: str, history: list[dict]) -> dict:
+    """Publish a new state only after it has held `persistence_sessions` times."""
     raw = dim.get("raw_state")
     need = int(dim.get("persistence_sessions") or 2)
     prev_published = None
     prev_last_changed = None
     for obj in reversed(history):
-        d = _node(obj, path)
+        d = (obj.get("dimensions") or {}).get(name) or {}
         if d.get("state"):
             prev_published = d["state"]
             prev_last_changed = d.get("last_changed")
@@ -491,7 +456,7 @@ def apply_persistence(dim: dict, name: str, history: list[dict],
     # most recent objects ALSO read raw -- including this one.
     run = 1
     for obj in reversed(history):
-        d = _node(obj, path)
+        d = (obj.get("dimensions") or {}).get(name) or {}
         if d.get("raw_state") == raw:
             run += 1
         else:
@@ -511,353 +476,6 @@ def apply_persistence(dim: dict, name: str, history: list[dict],
             f"{raw} has held {run} of the {need} sessions required; publishing "
             f"{prev_published} until it does")
     return dim
-
-
-# ---------------------------------------------------------------------------
-# The rates driver -- a sub-state of the rates dimension (signal-triage ST-3)
-# ---------------------------------------------------------------------------
-#
-# TWO FUNCTIONS, AND THE SPLIT IS THE POINT. driver_cell() is the rule: plain
-# numbers in, a cell and its trace out, no store, no clock. rates_driver() reads
-# the store as-of the cutoff and hands driver_cell() those numbers. The offline
-# calibration (tools/calibration/sr06_09_17_driver.py) imports driver_cell() and
-# nothing else from this module, so the ledger calibrates the rule the object
-# runs rather than a re-implementation of it -- and it can, because the rule
-# never touches the store the calibration is forbidden to read.
-#
-# The cell names, the inputs, the thresholds and the rules are all config
-# (dimensions.rates.driver). This code knows only the condition vocabulary:
-# a side is `path` or `premium`, breakevens are `against` or `with_or_flat`,
-# the front end is `leading` or `anchored`.
-
-def _why(d: dict) -> str:
-    """An input's absence as a reader sees it: the data reason, or a pointer to
-    the fault. The fault's own text stays in its `fault` field -- a reason string
-    that named an exception would be a fault dressed as a gap (method-8)."""
-    if d.get("absent_reason"):
-        return str(d["absent_reason"])
-    if d.get("fault"):
-        return "a reader fault, recorded in its `fault` field"
-    return "no reason recorded"
-
-
-# The condition vocabulary. Any other key in a rule is the state or a modifier of
-# a condition (`breakevens_window`), never a condition of its own.
-CONDITIONS = ("breakevens", "front_end")
-
-
-def _sign(x: Optional[float], deadband: float) -> Optional[int]:
-    if x is None:
-        return None
-    return 0 if abs(x) < deadband else (1 if x > 0 else -1)
-
-
-def driver_cell(inputs: dict, spec: dict) -> dict:
-    """The rates driver's raw cell from its inputs. Pure: no store, no clock.
-
-    `inputs` carries, each as {"level", "observed_at", "absent_reason"}: `move`
-    (Δ10y in bp), `real_share`, `curve_share`; `primary` {"model", "path_share",
-    "premium_share", "observed_at", "absent_reason"}; `tie_breakers` [{"model",
-    "premium_share", "absent_reason"}]; `models` [{"name", "change_bp",
-    "arbiter", "absent_reason"}]; `evidence` [{"metric", "level",
-    "absent_reason"}]. Absent inputs carry level None and their reason.
-    """
-    th = spec.get("thresholds") or {}
-    share_min = float(th.get("share_min", 0.6))
-    floor = float(th.get("move_floor_bp", 15))
-    be_flat = float(th.get("be_flat_bp", 5))
-    leading = float(th.get("front_leading", 1.0))
-    anchored = float(th.get("front_anchored", 0.5))
-    deadband = float(th.get("sign_deadband_bp", 5))
-    undecided = str(spec.get("undecided_state"))
-    out: dict[str, Any] = {"raw_state": None, "direction": None,
-                           "supporting": [], "contradicting": NONE_FOUND}
-    trace: list[str] = []
-
-    def finish(state: Optional[str], why: Optional[str] = None) -> dict:
-        out["raw_state"] = state
-        if state is None:
-            out["not_determined_reason"] = why
-        elif why:
-            out["undecided_reason"] = why
-        head = (f"{state} ({out['direction']})" if state
-                else "not determined")
-        out["trace"] = "; ".join([head] + trace + ([why] if why else []))
-        return out
-
-    # --- 1. THE MOVE --------------------------------------------------------
-    mv = inputs.get("move") or {}
-    move = mv.get("level")
-    if move is None:
-        return finish(None, f"the move is absent -- {_why(mv)}")
-    sgn = 1 if move > 0 else -1
-    out["direction"] = "selloff" if move > 0 else "rally"
-    out["move_bp"] = move
-    trace.append(f"Δ10y {move:+.1f}bp over the window to {mv.get('observed_at')}")
-    if abs(move) < floor:
-        out["direction"] = None
-        return finish(None, (
-            f"|Δ10y| {abs(move):.1f}bp is below the {floor:g}bp move floor -- "
-            f"there is no move to attribute"))
-
-    # --- 3 (first, because it can veto). THE MODELS' SIGNS ------------------
-    signs: dict[str, Optional[int]] = {}
-    arbiter = None
-    for m in inputs.get("models") or []:
-        s = _sign(m.get("change_bp"), deadband)
-        signs[m["name"]] = s
-        if m.get("arbiter"):
-            arbiter = m["name"]
-    out["model_signs"] = {k: ("absent" if v is None else f"{v:+d}")
-                          for k, v in signs.items()}
-    trace.append("term-premium signs " + ", ".join(
-        f"{k} {out['model_signs'][k]}" for k in signs))
-    present = {v for v in signs.values() if v}
-    sign_veto = None
-    if {1, -1} <= present:
-        a = signs.get(arbiter) if arbiter else None
-        if a:
-            out["arbitration"] = (f"the models disagree on the sign; {arbiter} "
-                                  f"({a:+d}) arbitrates")
-            trace.append(out["arbitration"])
-        else:
-            sign_veto = ("the models disagree on the sign of the term-premium "
-                         f"change and the arbiter {arbiter} has "
-                         f"{'no sign' if a == 0 else 'no reading'} to settle it")
-
-    # --- 2. THE SIDE: path or premium ---------------------------------------
-    pr = inputs.get("primary") or {}
-    side = None
-    if pr.get("path_share") is not None and pr.get("premium_share") is not None:
-        p, q = float(pr["path_share"]), float(pr["premium_share"])
-        side = "path" if p >= share_min else ("premium" if q >= share_min
-                                              else None)
-        out["decided_by"] = pr.get("model")
-        trace.append(f"{pr.get('model')} to {pr.get('observed_at')}: path share "
-                     f"{p:.2f}, premium share {q:.2f} (decides at "
-                     f"{share_min:.2f})")
-        side_why = (None if side else
-                    f"neither share reaches {share_min:.2f}")
-    else:
-        tbs = [t for t in inputs.get("tie_breakers") or []
-               if t.get("premium_share") is not None]
-        gone = "; ".join(
-            f"{t.get('model')}: {_why(t)}"
-            for t in [pr] + [t for t in inputs.get("tie_breakers") or []
-                             if t.get("premium_share") is None])
-        if not tbs:
-            return finish(None, f"no decomposition is knowable -- {gone}")
-        votes = {}
-        for t in tbs:
-            q = float(t["premium_share"])
-            votes[t["model"]] = ("premium" if q >= share_min else
-                                 "path" if (1.0 - q) >= share_min else None)
-        trace.append(f"{pr.get('model')} cannot decide ({_why(pr)}); "
-                     "tie-breakers " + ", ".join(
-                         f"{k} {v or 'neither'}" for k, v in votes.items()))
-        agreed = set(votes.values())
-        side = agreed.pop() if len(agreed) == 1 else None
-        out["decided_by"] = "+".join(votes) if side else None
-        side_why = (None if side else
-                    "the tie-breakers do not agree on a side at "
-                    f"{share_min:.2f}")
-    out["side"] = side
-    if sign_veto:
-        return finish(undecided, sign_veto)
-    if side is None:
-        return finish(undecided, side_why)
-
-    # --- 4. THE SHAPE -------------------------------------------------------
-    rs = inputs.get("real_share") or {}
-    cs = inputs.get("curve_share") or {}
-    nbe = None
-    if rs.get("level") is not None:
-        nbe = move * (1.0 - float(rs["level"])) * sgn   # breakevens, signed to the move
-        trace.append(f"breakevens {nbe:+.1f}bp with the move")
-    c = None if cs.get("level") is None else float(cs["level"])
-    if c is not None:
-        trace.append(f"curve share {c:.2f}")
-
-    def breakevens_over(window: Optional[str]) -> tuple[Optional[float], dict]:
-        """Breakevens' change signed to the DECISION window's move, over the
-        decision window or over a rule's declared shorter one (H1)."""
-        if not window:
-            return nbe, rs
-        mw = inputs.get(f"move_{window}") or {}
-        rw = inputs.get(f"real_share_{window}") or {}
-        if mw.get("level") is None:
-            return None, mw
-        if rw.get("level") is None:
-            return None, rw
-        v = float(mw["level"]) * (1.0 - float(rw["level"])) * sgn
-        trace.append(f"breakevens over {window} {v:+.1f}bp with the move")
-        return v, rw
-
-    def holds(cond: str, want: str, rule: dict) -> tuple[Optional[bool], str]:
-        if cond == "breakevens":
-            window = rule.get("breakevens_window")
-            v, src_ = breakevens_over(window)
-            label = f"breakevens{' over ' + str(window) if window else ''}"
-            if v is None:
-                return None, f"{label} unknown ({_why(src_)})"
-            ok_ = v < -be_flat if want == "against" else v >= -be_flat
-            return ok_, f"{label} {want}: {'yes' if ok_ else 'no'}"
-        if cond == "front_end":
-            if c is None:
-                return None, f"front end unknown ({_why(cs)})"
-            ok_ = c > leading if want == "leading" else abs(c) <= anchored
-            return ok_, f"front end {want}: {'yes' if ok_ else 'no'}"
-        return None, f"undeclared condition {cond!r}"
-
-    failed: list[str] = []
-    for rule in (spec.get("rules") or {}).get(side) or []:
-        verdicts = [holds(k, str(v), rule) for k, v in rule.items()
-                    if k in CONDITIONS]
-        unknown = [why for v, why in verdicts if v is None]
-        # A RULE WITH A CONDITION KNOWN FALSE FAILS, whatever else is unknown:
-        # it cannot hold. Only a rule with nothing false and something unknown is
-        # untestable -- and then the shape is untested, which is not `mixed`.
-        if unknown and not any(v is False for v, _ in verdicts):
-            return finish(None, f"{rule['state']} cannot be tested -- "
-                                + "; ".join(unknown))
-        if all(v for v, _ in verdicts):
-            state = str(rule["state"])
-            sup, con = [], []
-            for e in spec.get("evidence") or []:
-                exp = (e.get("expect") or {}).get(state)
-                got = next((x for x in inputs.get("evidence") or []
-                            if x.get("metric") == e.get("metric")), {})
-                if exp is None or got.get("level") is None:
-                    continue
-                (sup if (got["level"] > 0) == (int(exp) > 0) else con).append(
-                    e["metric"])
-                trace.append(f"{e['metric']} {got['level']:+.2f}")
-            out["supporting"] = sup
-            out["contradicting"] = con or NONE_FOUND
-            return finish(state)
-        failed.append(f"{rule['state']}: " + ", ".join(w for _, w in verdicts))
-    return finish(undecided, f"{side}-driven, but no shape confirms a cell -- "
-                             + "; ".join(failed))
-
-
-def _driver_level(metric: str, as_of: str, multiple: float,
-                  store: observations.ObservationStore) -> dict:
-    """One driver input: its level, or its absence with a reason from data."""
-    out: dict[str, Any] = {"metric": metric, "level": None}
-    try:
-        d = derived.derived_forms(metric, as_of, store=store)
-    except Exception as exc:                                  # noqa: BLE001
-        out["fault"] = f"{type(exc).__name__}: {exc}"
-        return out
-    out["observed_at"] = d.get("observed_at")
-    if d.get("level") is None:
-        out["absent_reason"] = f"no observation for {metric} knowable at {as_of}"
-        return out
-    stale, own = d.get("staleness_sessions"), d.get("staleness_allowance_sessions")
-    if stale is not None and own is not None and stale > own * multiple:
-        out["absent_reason"] = (
-            f"{metric} was last observed {d.get('observed_at')}, {stale} sessions "
-            f"before this cutoff; its own allowance is {own} x{multiple:g}")
-        return out
-    out["level"] = d["level"]
-    return out
-
-
-def rates_driver(spec: dict, as_of: str, defaults: dict,
-                 store: observations.ObservationStore) -> dict:
-    """Read the driver's inputs as-of the cutoff and decide its raw cell."""
-    multiple = float(spec.get("staleness_multiple")
-                     or defaults.get("staleness_multiple") or 3)
-    th = spec.get("thresholds") or {}
-    ins = spec.get("inputs") or {}
-    read = {role: _driver_level(str(k), as_of, multiple, store)
-            for role, k in ins.items()}
-
-    # EVERY CUT MUST BE THE MOVE'S OWN SESSION. A share is written only when its
-    # move clears the 5bp series floor, so on a quiet day the store's latest share
-    # is an older window's -- a number about a different set of sessions. The
-    # shorter-window inputs (H1) are held to the same rule.
-    mv_day = (read.get("move") or {}).get("observed_at")
-    for role in [r_ for r_ in read if r_ != "move"]:
-        r = read.get(role) or {}
-        if r.get("level") is not None and r.get("observed_at") != mv_day:
-            r["level"] = None
-            r["absent_reason"] = (
-                f"{r['metric']} was last written {r.get('observed_at')}, not on "
-                f"the move's session {mv_day}")
-
-    dec = spec.get("decomposition") or {}
-    pspec = dec.get("primary") or {}
-    pp = _driver_level(str(pspec.get("path_share")), as_of, multiple, store)
-    pq = _driver_level(str(pspec.get("premium_share")), as_of, multiple, store)
-    primary = {"model": pspec.get("model"), "path_share": pp.get("level"),
-               "premium_share": pq.get("level"),
-               "observed_at": pp.get("observed_at")}
-    if pp.get("level") is None or pq.get("level") is None \
-            or pp.get("observed_at") != pq.get("observed_at"):
-        primary["path_share"] = primary["premium_share"] = None
-        if pp.get("fault") or pq.get("fault"):
-            primary["fault"] = pp.get("fault") or pq.get("fault")
-        else:
-            primary["absent_reason"] = (
-                pp.get("absent_reason") or pq.get("absent_reason")
-                or f"its two shares are dated {pp.get('observed_at')} and "
-                   f"{pq.get('observed_at')}, not one session")
-    ties = []
-    for t in dec.get("tie_breakers") or []:
-        r = _driver_level(str(t.get("premium_share")), as_of, multiple, store)
-        ties.append({"model": t.get("model"), "premium_share": r.get("level"),
-                     "observed_at": r.get("observed_at"),
-                     "absent_reason": r.get("absent_reason"),
-                     "fault": r.get("fault")})
-
-    models = []
-    for m in spec.get("models") or []:
-        metric = str(m.get("metric"))
-        lv = _driver_level(metric, as_of, multiple, store)
-        row: dict[str, Any] = {"name": m.get("name"), "metric": metric,
-                               "arbiter": bool(m.get("arbiter")),
-                               "horizon": int(m.get("horizon") or 60),
-                               "change_bp": None}
-        if lv.get("level") is None:
-            row["absent_reason"] = lv.get("absent_reason")
-            if lv.get("fault"):
-                row["fault"] = lv["fault"]
-        else:
-            try:
-                dp = derived.delta_percentile(metric, as_of, horizon=row["horizon"],
-                                              store=store)
-            except Exception as exc:                          # noqa: BLE001
-                dp = {}
-                row["fault"] = f"{type(exc).__name__}: {exc}"
-            row["change_bp"] = dp.get("change")
-            row["from"], row["to"] = dp.get("from_date"), dp.get("to_date")
-            row["move_percentile"] = dp.get("percentile")
-            if dp.get("change") is None and not row.get("fault"):
-                row["absent_reason"] = dp.get("absent_reason")
-        models.append(row)
-
-    evidence = [dict(_driver_level(str(e.get("metric")), as_of, multiple, store))
-                for e in spec.get("evidence") or []]
-
-    inputs = {**read, "primary": primary, "tie_breakers": ties,
-              "models": models, "evidence": evidence}
-    out = driver_cell(inputs, spec)
-    out.update({
-        "states_declared": spec.get("states") or [],
-        "window_sessions": spec.get("window_sessions"),
-        "persistence_sessions": int(spec.get("persistence_sessions")
-                                    or defaults.get("persistence_sessions") or 2),
-        "thresholds": th,
-        "inputs": {role: {k: r.get(k) for k in ("metric", "level", "observed_at",
-                                               "absent_reason", "fault")
-                          if r.get(k) is not None}
-                   for role, r in read.items()},
-        "decomposition": {"primary": primary, "tie_breakers": ties},
-        "models": models,
-        "evidence": evidence,
-    })
-    return out
 
 
 # ---------------------------------------------------------------------------
@@ -1224,23 +842,9 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
         # that is about to settle.
         events = session.auction_event_classes(day)
 
-        # THE RATES DRIVER, a sub-state of the rates dimension (ST-3). Computed
-        # beside the dimension, never from it and never into it: the dimension's
-        # state, members and confidence are what they would be without it.
-        drv_spec = ((cfg.get("dimensions") or {}).get("rates") or {}).get("driver")
-        drv = None
-        if drv_spec and "rates" in dims:
-            drv = rates_driver(drv_spec, cutoff, defaults, st)
-            drv["as_of_session"] = day
-            dims["rates"]["driver"] = drv
-
         history = prior_objects(stamp, day, limit=8, store=st)
         for name, d in dims.items():
             apply_persistence(d, name, history)
-        if drv is not None:
-            apply_persistence(drv, "rates.driver", history,
-                              path=("dimensions", "rates", "driver"))
-            drv["since"] = drv.get("last_changed")
 
         obj = {
             "object": "market_state",
@@ -2042,15 +1646,6 @@ def format_object(obj: dict) -> str:
                  f"pct {d['percentile']}  conf {d['confidence']}{pend}")
         L.append(f"                supporting: {d['supporting'] or '[]'}")
         L.append(f"                contradicting: {d['contradicting']}")
-        drv = d.get("driver")
-        if drv:
-            head = (f"{drv['state']} ({drv.get('direction')})" if drv.get("state")
-                    else "NOT DETERMINED")
-            pend = (f"  (pending {drv['pending_state']}, "
-                    f"{drv.get('pending_sessions')}/{drv['persistence_sessions']})"
-                    if drv.get("pending_state") else "")
-            L.append(f"                driver: {head}{pend}")
-            L.append(f"                  {drv.get('trace')}")
     exc = obj.get("exceptions") or []
     if exc:
         L.append("")

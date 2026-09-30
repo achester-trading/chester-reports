@@ -13,13 +13,13 @@ Offline calibration studies — one script per gate in the Signal Triage Registe
   begins 30 May 2026 and stays there until ALFRED ingestion (O.16); every gate
   needs decades. Do not import `ObservationStore`, `regime` or `derived_forms`
   here.
-- **One exception: `regime.driver_cell`** (ruled 30 Sep 2026, ST-3). A script
-  may import that one pure function -- plain numbers in, a cell out, no store and
-  no clock -- so the rates-driver ledger calibrates the rule the market-state
-  object runs rather than a re-implementation of it. Nothing else from `regime`.
-  `tools/validate_regime.py` group L fails if any script here names
-  `ObservationStore`, imports `observations`, calls `derived_forms`, or calls
-  `regime.compute` / `latest` / `rates_driver`.
+- **No exception remains.** Between 30 Sep and its withdrawal the same day, a
+  script could import `regime.driver_cell` so the rates-driver ledger
+  calibrated the rule the object ran. The cell and its script are withdrawn
+  (the script is in git at `118b552`, beside its two ledgers). A redesigned
+  cell starts from a fresh pre-registration and a fresh ruling on what it may
+  import. `tools/validate_regime.py` group L fails if any script here opens the
+  store or touches `regime`.
 - **Ledgers are dated.** Output goes to `docs/ledgers/`, dated in the filename,
   one file per run, never edited afterwards.
 - **Only live flags read the store.** Nothing in this directory is a writer: no

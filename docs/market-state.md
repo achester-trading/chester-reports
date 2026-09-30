@@ -222,35 +222,23 @@ Primary first; polarity in brackets.
 | breadth | broad / mixed / narrow | `calc.breadth_sector_above_50d` (+200d), `calc.breadth_rsp_over_spy` — `sample: sector_etf_proxy` |
 | volatility | elevated / normal / subdued | `yfinance.mkt_vix`, with `calc.vol_spy_realized_20d` as the realized leg and `fred.vix` kept as the revisable official member |
 
-### The rates driver — a sub-state, not a ninth dimension (ST-3, config v1.11, method-9)
+### Rates attribution — descriptive, outside the object (ST-3, re-scoped)
 
-`dimensions.rates.driver` says what is moving rates over the last 60 sessions,
-beside the level bands that say where they are. Four cells — `growth`,
-`fed_path`, `term_premium`, `mixed` — or **not determined** (state `null`, with
-`not_determined_reason`) when the 10-year moved less than the declared floor or
-no decomposition is knowable. Rules, inputs and provisional thresholds are
-config (`dimensions.rates.driver`); the rule is the pure `regime.driver_cell()`.
+The object has **no** rates sub-state. A four-cell `rates.driver` (growth /
+fed_path / term_premium / mixed) was built on 30 Sep 2026 and withdrawn the same
+day after failing its calibration gate twice
+([rerun 1](ledgers/rates-driver-2026-09.md),
+[rerun 2](ledgers/rates-driver-2026-09-30-r2.md)). The object is back at
+config v1.10 and method-8, and the numbers **v1.11, v1.12, method-9 and
+method-10 are retired**: the next changes are v1.13 and method-11.
 
-- **Side.** DKW's real-side split (`calc.attr_dkw_path_share_60d` /
-  `_tp_share_60d`) decides path vs premium at a share of 0.60; with DKW absent or
-  stale, the Kim-Wright and ACM shares decide only if every one present agrees.
-- **Sign.** The four term-premium models' changes (KW, ACM, SF Fed, DKW) each
-  carry a sign outside a 5bp dead-band. Disagreement is surfaced in
-  `model_signs`, never averaged; DKW arbitrates, and when it cannot the cell is
-  `mixed`.
-- **Shape.** Path-driven: `fed_path` if breakevens moved against the yield and
-  the front end led (curve share > 1), `growth` if breakevens were flat or with
-  it. Premium-driven: `term_premium` if the front end stayed anchored.
-- **Symmetric.** Conditions are read against the sign of the move and
-  `direction` (selloff / rally) sits beside the cell; `fed_path` in a rally is
-  the dovish reading.
-- **Evidence** (`calc.corr_spy_tlt_60d`) supports or contradicts a cell and
-  never decides one.
-- Published under the dimensions' persistence rule (2 sessions), with `since`,
-  `pending_state` and a `trace` naming what decided it. None of its inputs is a
-  member of the rates dimension, so the dimension's state, lists and confidence
-  are unchanged by it — `tools/validate_regime.py` group L asserts the object is
-  identical with and without the driver apart from the node itself.
+What remains is `altdata/rates_attribution.py`: each model's split of the yield
+move into path and premium — DKW (real yield), Kim-Wright and ACM (nominal) —
+over 20 and 60 sessions, each dated, with whether the models present lean the
+same way, and every absence with its reason. It is descriptive only. It is not
+read by `regime.py` and reads nothing from it. `tools/validate_regime.py` group L
+asserts that the object is identical before and after every attribution series
+is written.
 
 ### The dials
 
