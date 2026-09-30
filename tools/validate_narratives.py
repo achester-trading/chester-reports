@@ -624,7 +624,18 @@ def group_e() -> None:
     try:
         spec = {"id": "narrative_vs_data", "kind": contra.NARRATIVE_KIND,
                 "because": "fixture"}
-        cut = "2026-09-29T21:00:00+00:00"
+        # THE CUTOFF COMES FROM THE CLOCK THAT STAMPED THE EVALUATIONS. evaluate()
+        # records evaluated_at as the instant it wrote the row -- the wall clock,
+        # by design: a stored state is knowable from when it was recorded, not
+        # from the session it describes -- and narrative_rows() reads the state
+        # as-of the cutoff over that column. A hard-coded cutoff is therefore a
+        # date after which every evaluation lands on the wrong side of it: this
+        # was "2026-09-29T21:00:00+00:00" and failed on every run from then on,
+        # reading the story as its opening `emerging`. The same clock read here,
+        # after groups A-C wrote their evaluations, is later than all of them on
+        # any date; the as-of read itself is proved below, against those rows.
+        from altdata import session  # noqa: PLC0415
+        cut = session.utc_iso(timespec="microseconds")
         rows = contra.narrative_rows(spec, {"credit": {"state": "neutral",
                                                        "direction": "-"}},
                                      cut, store)
@@ -642,6 +653,26 @@ def group_e() -> None:
                        if r["id"] == "narrative_vs_data.fixture_story")
               ["condition_met"],
               "and the same story with the dimension agreeing does not")
+        # Point-in-time, with the instant taken from the stored rows, never a
+        # literal: the last evaluation recorded BEFORE the one that moved the
+        # story to consensus.
+        with nr.NarrativeRegister(str(store.path)) as reg:
+            flip = reg.conn.execute(
+                "SELECT MIN(evaluated_at) FROM narrative_evaluations WHERE "
+                "narrative_id='fixture_story' AND state_after='consensus'"
+            ).fetchone()[0]
+            before = reg.conn.execute(
+                "SELECT MAX(evaluated_at) FROM narrative_evaluations WHERE "
+                "narrative_id='fixture_story' AND evaluated_at < ?", (flip,)
+            ).fetchone()[0]
+        early = contra.narrative_rows(spec, {"credit": {"state": "neutral",
+                                                        "direction": "-"}},
+                                      before, store)
+        erow = next(r for r in early if r["id"] == "narrative_vs_data.fixture_story")
+        check(erow["narrative_state"] == "emerging" and not erow["condition_met"],
+              "read as-of the instant before the consensus evaluation was "
+              "recorded, the same story is still emerging and the condition does "
+              "not hold -- the state is read point-in-time, not off the register row")
         prior = [{"session": "2026-09-28", "condition_met": True, "open": False}]
         opened = contra.apply_persistence(dict(row), prior, "2026-09-29", 2, 5)
         first = contra.apply_persistence(dict(row), [], "2026-09-29", 2, 5)
