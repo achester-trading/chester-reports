@@ -122,7 +122,10 @@
 #         (tail_family.scenario_set_prefix). The ledger read it names had never
 #         run -- it asked for a class the ledger does not define and printed the
 #         AttributeError as an absence. It now reads the ledger as-of the cutoff.
-version: market-state-v1.10
+#   v1.11 (30 Sep 2026) the rates dimension's `driver` sub-state (ST-3): four
+#         cells on the 60-session move, DKW as the real-side split and the sign
+#         arbiter, provisional thresholds pending the calibration ledger.
+version: market-state-v1.11
 schema_source: docs/chester-reports-audit-3.md §K
 
 defaults:
@@ -240,6 +243,93 @@ dimensions:
           flat because the long end fell, which is why it supports rather than
           leads -- when it disagrees with the 10-year level, the disagreement is
           the finding.
+    # -------------------------------------------------------------------------
+    # THE RATES DRIVER -- a sub-state of this dimension, not a ninth dimension
+    # and not a second regime (signal-triage order ST-3, §2.1.1; R28). The level
+    # bands above say WHERE rates are; this says WHAT IS MOVING THEM over the
+    # last 60 sessions, in one of four cells. It reads nothing the dimension
+    # reads and the dimension reads nothing from it: its members are not in the
+    # list above, so the rates state, its supporting/contradicting lists and its
+    # confidence are exactly what they were before the driver existed.
+    #
+    # HOW A CELL IS DECIDED, in order, every step recorded in `trace`:
+    #   1. The move. |Δ10y| over the window below move_floor_bp is NOT
+    #      DETERMINED, with the reason -- no cell, because there is no move to
+    #      attribute and "mixed" would be a claim about one.
+    #   2. The side. DKW's real-side split decides path vs premium: a share at
+    #      or above share_min. With DKW absent or below its own floor, the
+    #      nominal tie-breakers decide only if every one present agrees.
+    #   3. The sign. The four models' term-premium changes each carry a sign
+    #      outside sign_deadband_bp. Disagreement is surfaced, never averaged;
+    #      DKW (the arbiter, SR-17) settles it when it has a sign, and when it
+    #      cannot the cell is the undecided one.
+    #   4. The shape. The side's rules are tried in order; the first whose
+    #      conditions all hold is the cell, otherwise the undecided one.
+    #
+    # SYMMETRIC. Every condition is read against the SIGN OF THE MOVE, and the
+    # object carries `direction` (selloff / rally) beside the cell: `fed_path`
+    # in a rally is the front end leading the yield DOWN with breakevens rising
+    # against it -- the dovish reading -- and a consumer that needs hawkish or
+    # dovish reads the pair.
+    #
+    # THE THRESHOLDS ARE PROVISIONAL until the ST-3 calibration ledger
+    # (docs/ledgers/, tools/calibration/sr06_09_17_driver.py) settles them; a
+    # changed threshold is a config_version bump like any other.
+    driver:
+      window_sessions: 60
+      persistence_sessions: 2
+      states: [growth, fed_path, term_premium, mixed]
+      undecided_state: mixed
+      thresholds:
+        share_min: 0.60
+        move_floor_bp: 15
+        be_flat_bp: 5
+        front_leading: 1.0
+        front_anchored: 0.5
+        sign_deadband_bp: 5
+      # Each role names the calc.* series computed for it in
+      # altdata/market_features.py. The two cuts must be written on the SAME
+      # session as the move: a share from an earlier day is a different window.
+      inputs:
+        move: calc.attr_d10y_60d
+        real_share: calc.attr_real_share_60d
+        curve_share: calc.attr_curve_share_60d
+      decomposition:
+        primary:
+          model: dkw
+          path_share: calc.attr_dkw_path_share_60d
+          premium_share: calc.attr_dkw_tp_share_60d
+        tie_breakers:
+          - {model: kw, premium_share: calc.attr_kw_tp_share_60d}
+          - {model: acm, premium_share: calc.attr_acm_tp_share_60d}
+      # THE FOUR TERM-PREMIUM MODELS, whose SIGN of change is compared. Horizon
+      # in each model's own observations: SF Fed publishes weekly, so twelve of
+      # its prints are the other models' sixty sessions.
+      models:
+        - {name: kw, metric: fred.term_premium_kw, horizon: 60}
+        - {name: acm, metric: acm.term_premium_10y, horizon: 60}
+        - {name: sffed, metric: sffed.term_premium_10y, horizon: 12}
+        - {name: dkw, metric: dkw.real_term_premium_10y, horizon: 60, arbiter: true}
+      # Tried in order within a side. Conditions: breakevens `against` (moved
+      # opposite the yield by more than be_flat_bp) or `with_or_flat`;
+      # front_end `leading` (curve share above front_leading) or `anchored`
+      # (|curve share| at or below front_anchored).
+      rules:
+        path:
+          - {state: fed_path, breakevens: against, front_end: leading}
+          - {state: growth, breakevens: with_or_flat}
+        premium:
+          - {state: term_premium, front_end: anchored}
+      # EVIDENCE supports or contradicts a cell; it never decides one.
+      evidence:
+        - metric: calc.corr_spy_tlt_60d
+          expect: {growth: -1, fed_path: 1, term_premium: 1}
+          because: >-
+            SR-9: when growth drives yields, stocks and bonds hedge each other
+            (negative); when the Fed path or the term premium does, they fall
+            together (positive). SR-9's ~5.25% level prior -- treat a positive
+            reading as persistent above it -- stays a by-hand note, never a
+            computed flag (R7).
 
   liquidity:
     horizon: 1-3m

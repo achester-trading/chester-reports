@@ -215,7 +215,12 @@ and the levels moved behind it. `altdata/derived.py` is the one place a delta, a
 percentile or a z-score is computed — the delta's meaning comes from the
 registry's `units` (bps for rates and spreads, percent for prices, raw for
 counts), never from one formula. Do not add a second regime anywhere: if a report
-needs one, point it at the object. Three of the eight dimensions are absent today
+needs one, point it at the object. The rates dimension carries the object's one
+sub-state, `driver` (ST-3): growth / fed_path / term_premium / mixed over the
+60-session move, or not determined with its reason, decided by the pure
+`regime.driver_cell()` on rules in `config/market_state.yaml` — the only place a
+cell is computed, and the only thing the offline calibration may import from
+`regime`. Three of the eight dimensions are absent today
 for want of data, and each says so with its reason rather than substituting a
 proxy. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
 

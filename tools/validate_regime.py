@@ -50,6 +50,13 @@ everything agreed" into "nobody looked".
      window, the move floor, the DKW / Kim-Wright shares, availability taken from
      the latest input, an absent model writing nothing, the stock-bond
      correlation, and inflation volatility refusing a window across a gap.
+  L  THE RATES DRIVER (ST-3). The declaration (four cells, thresholds, every
+     metric registered, none a rates member), the pure rule on each cell in both
+     directions, not-determined below the floor, the models' sign disagreement
+     arbitrated or not, the tie-breakers, persistence on the object, stale DKW
+     falling back, the object identical with and without the driver, and the
+     one-regime rule statically -- no other module names a cell and no
+     calibration script opens the store.
 
     python tools/validate_regime.py
 """
@@ -1346,12 +1353,329 @@ def group_k(store) -> None:
               f"half-life; not trigger_eligible")
 
 
+# ---------------------------------------------------------------------------
+# L. THE RATES DRIVER (signal-triage ST-3)
+# ---------------------------------------------------------------------------
+def _drv_inputs(move=40.0, real=1.3, curve=1.2, path=0.8, prem=0.15,
+                kw=10.0, acm=None, sffed=8.0, dkw=6.0, corr=0.3,
+                ties=(None, None)) -> dict:
+    def lv(x, metric="seeded"):
+        return ({"metric": metric, "level": x, "observed_at": "2026-09-18"}
+                if x is not None else
+                {"metric": metric, "level": None,
+                 "absent_reason": f"no observation for {metric} (seeded)"})
+    primary = ({"model": "dkw", "path_share": path, "premium_share": prem,
+                "observed_at": "2026-08-31"} if path is not None else
+               {"model": "dkw", "path_share": None, "premium_share": None,
+                "absent_reason": "DKW last observed 2026-04-30 (seeded)"})
+    return {
+        "move": lv(move, "calc.attr_d10y_60d"),
+        "real_share": lv(real, "calc.attr_real_share_60d"),
+        "curve_share": lv(curve, "calc.attr_curve_share_60d"),
+        "primary": primary,
+        "tie_breakers": [
+            {"model": m, "premium_share": q,
+             **({} if q is not None else {"absent_reason": f"{m} absent (seeded)"})}
+            for m, q in zip(("kw", "acm"), ties)],
+        "models": [{"name": n, "change_bp": c, "arbiter": n == "dkw",
+                    **({} if c is not None else {"absent_reason": f"{n} absent"})}
+                   for n, c in (("kw", kw), ("acm", acm), ("sffed", sffed),
+                                ("dkw", dkw))],
+        "evidence": [lv(corr, "calc.corr_spy_tlt_60d")],
+    }
+
+
+def group_l(store) -> None:
+    print(f"\n{LINE}\nL. THE RATES DRIVER: FOUR CELLS, SYMMETRIC, DECLARED\n{LINE}")
+    import inspect
+    import re
+    cfg_real = regime.load_config()
+    spec = cfg_real["dimensions"]["rates"]["driver"]
+    th = spec["thresholds"]
+    und = spec["undecided_state"]
+    cell = regime.driver_cell
+
+    # --- the declaration -------------------------------------------------------
+    rule_states = {r["state"] for side in spec["rules"].values() for r in side}
+    check(set(spec["states"]) == rule_states | {und},
+          f"the four declared cells are the rules' states plus the undecided one "
+          f"({sorted(spec['states'])})")
+    for k in ("share_min", "move_floor_bp", "be_flat_bp", "front_leading",
+              "front_anchored", "sign_deadband_bp"):
+        check(k in th, f"threshold {k} is declared in config ({th.get(k)})")
+    metrics = (list(spec["inputs"].values())
+               + [spec["decomposition"]["primary"]["path_share"],
+                  spec["decomposition"]["primary"]["premium_share"]]
+               + [t["premium_share"] for t in spec["decomposition"]["tie_breakers"]]
+               + [m["metric"] for m in spec["models"]]
+               + [e["metric"] for e in spec["evidence"]])
+    unreg = [m for m in metrics if not derived.registry_entry(m)]
+    check(not unreg, f"every metric the driver names is registered "
+                     f"({len(metrics)} named; unregistered {unreg})")
+    check(sum(bool(m.get("arbiter")) for m in spec["models"]) == 1
+          and len(spec["models"]) == 4,
+          "four term-premium models, exactly one of them the arbiter")
+    rates_members = {m["metric"] for m in cfg_real["dimensions"]["rates"]["members"]}
+    check(not (rates_members & set(metrics)),
+          "and none of them is a member of the rates dimension, so the "
+          "dimension's state, lists and confidence cannot move with the driver")
+    body = re.sub(r'(?s)""".*?"""', "", (REPO / "regime.py").read_text(
+        encoding="utf-8"))
+    body = re.sub(r"#.*", "", body)
+    named = [s for s in spec["states"] if re.search(rf"\b{s}\b", body)]
+    check(not named, f"no driver cell name appears in regime.py's code -- the "
+                     f"vocabulary is config ({named})")
+    src = inspect.getsource(regime.driver_cell)
+    check(not re.search(r"\b(store|derived|observations|session)\.", src),
+          "driver_cell() is pure: it touches no store, no derived form, no clock")
+
+    # --- the four cells, a selloff each ----------------------------------------
+    r = cell(_drv_inputs(), spec)
+    check(r["raw_state"] == "fed_path" and r["direction"] == "selloff",
+          f"path share 0.80, breakevens down 12bp, front end leading (1.20): "
+          f"fed_path in a selloff (got {r['raw_state']}, {r['direction']})")
+    check(r["supporting"] == ["calc.corr_spy_tlt_60d"],
+          "and a positive stock-bond correlation supports it")
+    r = cell(_drv_inputs(real=0.9, corr=-0.2), spec)
+    check(r["raw_state"] == "growth" and r["supporting"],
+          f"breakevens +4bp (flat or with the move): growth, supported by a "
+          f"negative correlation (got {r['raw_state']}, {r['supporting']})")
+    r = cell(_drv_inputs(real=0.9, corr=0.3), spec)
+    check(r["raw_state"] == "growth"
+          and r["contradicting"] == ["calc.corr_spy_tlt_60d"],
+          "and the same cell with a positive correlation lists it as "
+          "contradicting -- evidence never decides the cell")
+    r = cell(_drv_inputs(path=0.2, prem=0.7, curve=0.3), spec)
+    check(r["raw_state"] == "term_premium",
+          f"premium share 0.70 with the front end anchored (0.30): term_premium "
+          f"(got {r['raw_state']})")
+    r = cell(_drv_inputs(path=0.2, prem=0.7, curve=0.9), spec)
+    check(r["raw_state"] == und and "anchored: no" in (r.get("undecided_reason") or ""),
+          f"and with the front end NOT anchored it is {und}, the failed "
+          f"condition named ({r.get('undecided_reason')})")
+    r = cell(_drv_inputs(path=0.5, prem=0.4), spec)
+    check(r["raw_state"] == und and r.get("undecided_reason"),
+          f"neither share at 0.60: {und}, with the reason "
+          f"({r.get('undecided_reason')})")
+    r = cell(_drv_inputs(curve=0.8), spec)
+    check(r["raw_state"] == und and "fed_path" in r["undecided_reason"]
+          and "growth" in r["undecided_reason"],
+          "path-driven with breakevens down but the front end not leading: "
+          "undecided, and the reason names both rules that were tried")
+
+    # --- symmetric -------------------------------------------------------------
+    r = cell(_drv_inputs(move=-40.0, kw=-10, sffed=-8, dkw=-6), spec)
+    check(r["raw_state"] == "fed_path" and r["direction"] == "rally",
+          f"the mirror -- 10y -40bp, breakevens +12bp against it, 2y leading it "
+          f"down: fed_path in a RALLY, the dovish reading (got {r['raw_state']}, "
+          f"{r['direction']})")
+    r = cell(_drv_inputs(move=-40.0, real=0.9, corr=-0.2, kw=-10, sffed=-8,
+                         dkw=-6), spec)
+    check(r["raw_state"] == "growth" and r["direction"] == "rally",
+          f"and a growth rally: breakevens falling with the yield (got "
+          f"{r['raw_state']}, {r['direction']})")
+
+    # --- not determined ----------------------------------------------------------
+    r = cell(_drv_inputs(move=10.0), spec)
+    check(r["raw_state"] is None and r["direction"] is None
+          and "move floor" in (r.get("not_determined_reason") or ""),
+          f"|Δ10y| 10bp under the {th['move_floor_bp']}bp floor: NOT DETERMINED, "
+          f"no cell and no direction ({r.get('not_determined_reason')})")
+    r = cell(_drv_inputs(path=None), spec)
+    check(r["raw_state"] is None
+          and "no decomposition" in (r.get("not_determined_reason") or ""),
+          f"no DKW split and no tie-breaker: not determined, each absence cited "
+          f"({r.get('not_determined_reason')})")
+    r = cell(_drv_inputs(real=None), spec)
+    check(r["raw_state"] is None
+          and "cannot be tested" in (r.get("not_determined_reason") or ""),
+          "path-driven with the breakeven leg absent: not determined -- the "
+          "shape is untested, which is not the same claim as mixed")
+
+    # --- the models' signs -------------------------------------------------------
+    r = cell(_drv_inputs(kw=-10.0), spec)
+    check(r["raw_state"] == "fed_path" and "dkw (+1) arbitrates"
+          in (r.get("arbitration") or "") and r["model_signs"]["kw"] == "-1",
+          f"KW falls while SF Fed and DKW rise: the disagreement is SURFACED and "
+          f"DKW arbitrates ({r.get('arbitration')})")
+    check(r["model_signs"]["acm"] == "absent",
+          "ACM with no reading is `absent` in the signs, not a vote either way")
+    r = cell(_drv_inputs(kw=-10.0, dkw=None), spec)
+    check(r["raw_state"] == und and "arbiter" in (r.get("undecided_reason") or ""),
+          f"and with DKW unable to arbitrate the cell is {und} "
+          f"({r.get('undecided_reason')})")
+    r = cell(_drv_inputs(kw=-10.0, dkw=2.0), spec)
+    check(r["raw_state"] == und,
+          f"a DKW change inside the {th['sign_deadband_bp']}bp dead-band has no "
+          f"sign, so it cannot arbitrate either")
+
+    # --- tie-breakers -----------------------------------------------------------
+    r = cell(_drv_inputs(path=None, ties=(0.7, None), curve=0.3), spec)
+    check(r["raw_state"] == "term_premium" and r.get("decided_by") == "kw",
+          f"DKW absent: Kim-Wright alone (premium share 0.70) decides, ACM's "
+          f"absence noted (got {r['raw_state']}, by {r.get('decided_by')})")
+    r = cell(_drv_inputs(path=None, ties=(0.7, 0.2)), spec)
+    check(r["raw_state"] == und,
+          f"and when KW and ACM disagree on the side, {und}")
+    check(all(cell(_drv_inputs(**kw_), spec).get("trace")
+              for kw_ in ({}, {"move": 1.0}, {"path": None})),
+          "every outcome carries a trace, determined or not")
+
+    # --- integration: the object, on a seeded store ------------------------------
+    cfg = tiny_config(persistence=2)
+    cfg["dimensions"]["rates"] = {
+        "horizon": "1-3m", "states": ["high", "low"],
+        "bands": [{"state": "high", "min_percentile": 50},
+                  {"state": "low", "min_percentile": 0}],
+        "members": [{"metric": "fred.yield_10y", "polarity": 1,
+                     "because": "seeded"}],
+        "driver": spec,
+    }
+    days = weekdays_back(END, 80)
+    seed(store, "fred.vix", days, [15 + (i % 7) for i in range(80)])
+    seed(store, "fred.bb_oas", days, [2.0] * 80)
+    seed(store, "fred.hy_oas", days, [3.0 + 0.01 * i for i in range(80)])
+    seed(store, "fred.yield_10y", days, [4.0 + 0.01 * i for i in range(80)])
+    for k, v in (("calc.attr_d10y_60d", 40.0), ("calc.attr_real_share_60d", 1.3),
+                 ("calc.attr_curve_share_60d", 1.2),
+                 ("calc.attr_dkw_path_share_60d", 0.8),
+                 ("calc.attr_dkw_tp_share_60d", 0.15),
+                 ("calc.corr_spy_tlt_60d", 0.3)):
+        seed(store, k, days, [v] * 80)
+    for k, step in (("fred.term_premium_kw", 0.002), ("sffed.term_premium_10y", 0.002),
+                    ("dkw.real_term_premium_10y", 0.002)):
+        seed(store, k, days, [0.5 + step * i for i in range(80)])
+
+    objs = [compute_at(store, cfg, d, 1 + i) for i, d in enumerate(days[-6:-3])]
+    drv = objs[-1]["dimensions"]["rates"].get("driver") or {}
+    check(drv.get("state") == "fed_path" and drv.get("trace"),
+          f"on the object: dimensions.rates.driver publishes fed_path with its "
+          f"trace (got {drv.get('state')}: {drv.get('trace')})")
+    acm = next((m for m in drv.get("models") or [] if m["name"] == "acm"), {})
+    check(acm.get("change_bp") is None and "no observation for "
+          "acm.term_premium_10y knowable" in (acm.get("absent_reason") or ""),
+          f"ACM, never written (G-33 on the box), is absent with a reason that "
+          f"cites data ({acm.get('absent_reason')})")
+    check(all(o["dimensions"]["rates"]["driver"].get("trace") for o in objs),
+          "and every object carries the trace")
+
+    # A ONE-SESSION FLIP DOES NOT MOVE THE PUBLISHED CELL; TWO DO. The flipped
+    # share is a LATER VINTAGE of the session's row (21:05, inside the 21:30
+    # cutoff): the store keeps both, and the as-of read takes the newer.
+    def revise(day: dt.date, value: float) -> None:
+        store.write_many([{
+            "registry_key": "calc.attr_real_share_60d", "instrument": None,
+            "observed_at": day.isoformat(),
+            "available_at": dt.datetime(day.year, day.month, day.day, 21, 5,
+                                        tzinfo=dt.timezone.utc).isoformat(),
+            "value": value, "source": "synthetic"}])
+    flip_day = days[-3]
+    revise(flip_day, 0.9)
+    o1 = compute_at(store, cfg, flip_day, 10)
+    d1 = o1["dimensions"]["rates"]["driver"]
+    check(d1.get("raw_state") == "growth" and d1.get("state") == "fed_path"
+          and d1.get("pending_state") == "growth",
+          f"one session reading growth: published stays fed_path, growth pending "
+          f"({d1.get('persistence')})")
+    revise(days[-2], 0.9)
+    o2 = compute_at(store, cfg, days[-2], 11)
+    d2 = o2["dimensions"]["rates"]["driver"]
+    check(d2.get("state") == "growth"
+          and d2.get("since") == days[-2].isoformat(),
+          f"the second consecutive session publishes growth, dated "
+          f"({d2.get('persistence')})")
+
+    # THE IDENTITY: the object without the driver is the object with it, less it.
+    import copy
+    bare = copy.deepcopy(cfg)
+    bare["dimensions"]["rates"].pop("driver")
+    stamp = "2026-09-19T12:00:00+00:00"
+    cut = regime.session_cutoff(days[-1].isoformat())
+    with_d = regime.compute(as_of=cut, session_day=days[-1].isoformat(),
+                            store=store, cfg=cfg, computed_at=stamp)
+    without = regime.compute(as_of=cut, session_day=days[-1].isoformat(),
+                             store=store, cfg=bare, computed_at=stamp)
+    a = copy.deepcopy(regime.replay_fields(with_d))
+    b = copy.deepcopy(regime.replay_fields(without))
+    a["dimensions"]["rates"].pop("driver", None)
+    diffs = [k for k in set(a) | set(b) if a.get(k) != b.get(k)]
+    check(not diffs,
+          f"with and without the driver the object is identical in every other "
+          f"field -- dimensions, dials, contradictions, exceptions (differing: "
+          f"{diffs})")
+    check(regime.exception_ids(with_d) == regime.exception_ids(without),
+          "and the exception list the heartbeat reads is the same list")
+    check("driver:" in regime.format_object(with_d),
+          "`regime show` prints the driver line")
+
+    # STALE DKW FALLS BACK TO THE TIE-BREAKERS, and says why.
+    with tempfile.TemporaryDirectory() as td:
+        s2 = observations.ObservationStore(str(Path(td) / "stale.db"))
+        try:
+            long = weekdays_back(END, 140)
+            for k, v in (("calc.attr_d10y_60d", 40.0),
+                         ("calc.attr_real_share_60d", 0.9),
+                         ("calc.attr_curve_share_60d", 0.3),
+                         ("calc.attr_kw_tp_share_60d", 0.2)):
+                seed(s2, k, long, [v] * 140)
+            seed(s2, "calc.attr_dkw_path_share_60d", long[:40], [0.1] * 40)
+            seed(s2, "calc.attr_dkw_tp_share_60d", long[:40], [0.8] * 40)
+            seed(s2, "fred.yield_10y", long, [4.0 + 0.01 * i for i in range(140)])
+            d3 = regime.rates_driver(spec, regime.session_cutoff(END.isoformat()),
+                                     {"staleness_multiple": 2}, s2)
+        finally:
+            s2.close()
+    prim = (d3.get("decomposition") or {}).get("primary") or {}
+    check("last observed" in (prim.get("absent_reason") or "")
+          and d3.get("raw_state") == "growth" and d3.get("decided_by") == "kw",
+          f"DKW last written ~100 sessions back is STALE, with its age in the "
+          f"reason; Kim-Wright's path share (0.80) decides growth "
+          f"(got {d3.get('raw_state')} by {d3.get('decided_by')}; "
+          f"{prim.get('absent_reason')})")
+
+    # --- the one-regime rule, statically -----------------------------------------
+    import subprocess
+    tracked = subprocess.run(["git", "ls-files", "*.py"], cwd=REPO,
+                             capture_output=True, text=True).stdout.split()
+    tracked += [p.relative_to(REPO).as_posix()
+                for p in (REPO / "tools" / "calibration").glob("*.py")]
+    offenders = []
+    for rel in sorted(set(tracked)):
+        # altdata/report/ is vendored CONTENT, not a pipeline: nothing imports it
+        # (CLAUDE.md), and its "fed_path" is a positioning-lens label.
+        if (rel in ("regime.py", "tools/validate_regime.py")
+                or rel.startswith("altdata/report/")):
+            continue
+        p = REPO / rel
+        if not p.exists():
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        # fed_path, not term_premium: the second is also an ordinary series name
+        # (acm.term_premium_10y) and the vendored report content uses it as one.
+        if re.search(r"""['"]fed_path['"]""", t):
+            if rel.startswith("tools/calibration/") and "driver_cell" in t:
+                continue
+            offenders.append(rel)
+    check(not offenders,
+          f"no module outside regime.py names a driver cell -- the one place a "
+          f"cell is computed is driver_cell(); calibration may only import it "
+          f"({offenders})")
+    cal = sorted((REPO / "tools" / "calibration").glob("*.py"))
+    opens = [p.name for p in cal
+             if re.search(r"ObservationStore|from altdata import .*observations|"
+                          r"derived_forms|regime\.(compute|latest|rates_driver)",
+                          p.read_text(encoding="utf-8"))]
+    check(not opens,
+          f"no calibration script opens the store or computes an object "
+          f"({len(cal)} script(s) checked; offenders {opens})")
+
+
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_a()
     group_c()
     for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
-              group_h, group_i, group_j, group_k):
+              group_h, group_i, group_j, group_k, group_l):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:
