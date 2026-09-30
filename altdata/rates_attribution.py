@@ -139,23 +139,30 @@ def build(as_of: Optional[str] = None,
                             f"through {src['as_of']} (its {w}-observation move since "
                             f"has been under 5bp, or an input was missing)")
                 models.append(row)
+            # THE COUNT IS OF MODELS PRESENT, and the absent are named. "2 of 3"
+            # read as one model dissenting when the third had simply not printed.
             present = [r for r in models if r.get("lean")]
+            absent = [r["label"] for r in models if not r.get("lean")]
+            n = len(present)
+            gone = f"; {', '.join(absent)} absent" if absent else ""
             leans = {r["lean"] for r in present}
-            if len(present) < 2:
-                agreement = {"assessable": False, "models_present": len(present),
-                             "text": (f"agreement not assessable: "
-                                      f"{len(present)} model(s) present")}
+            if n < 2:
+                agreement = {"assessable": False, "models_present": n,
+                             "models_absent": absent,
+                             "text": (f"agreement not assessable: {n} model"
+                                      f"{'' if n == 1 else 's'} available{gone}")}
             elif len(leans) == 1 and "even" not in leans:
                 side = leans.pop()
                 agreement = {"assessable": True, "agree": True, "lean": side,
-                             "models_present": len(present),
-                             "text": f"models agree: {side}-led "
-                                     f"({len(present)} of {len(MODELS)})"}
+                             "models_present": n, "models_absent": absent,
+                             "text": (f"models agree: {side}-led "
+                                      f"({n} of {n} available{gone})")}
             else:
                 agreement = {"assessable": True, "agree": False,
-                             "models_present": len(present),
-                             "text": "models disagree: " + ", ".join(
-                                 f"{r['label']} {r['lean']}" for r in present)}
+                             "models_present": n, "models_absent": absent,
+                             "text": ("models disagree: " + ", ".join(
+                                 f"{r['label']} {r['lean']}" for r in present)
+                                 + f" ({n} available{gone})")}
             windows[str(w)] = {"window": w, "move": move, **cuts,
                                "models": models, "agreement": agreement}
         return {"block": "rates_attribution", "as_of": cutoff,

@@ -1454,9 +1454,15 @@ def group_l(store) -> None:
           and w60["agreement"].get("lean") == "path",
           f"60 sessions: DKW 0.70 and KW 0.70 both lean path -> "
           f"'{w60['agreement']['text']}'")
+    # THE COUNT IS OF MODELS PRESENT, the absent named (ruling of 30 Sep):
+    # "2 of 3" read as a dissent where the third had simply not printed.
+    check(w60["agreement"]["text"]
+          == "models agree: path-led (2 of 2 available; ACM absent)",
+          f"and says so counting only the models present, the absent one named: "
+          f"'{w60['agreement']['text']}'")
     check(w20["agreement"].get("agree") is False
-          and "DKW premium" in w20["agreement"]["text"]
-          and "Kim-Wright path" in w20["agreement"]["text"],
+          and w20["agreement"]["text"] == "models disagree: DKW premium, "
+                                          "Kim-Wright path (2 available; ACM absent)",
           f"20 sessions: DKW 0.35 leans premium, KW 0.70 path -> "
           f"'{w20['agreement']['text']}'")
     check(w60["real_share"]["level"] == 1.2 and w60["move"]["level"] == 45.0,
@@ -1491,12 +1497,22 @@ def group_l(store) -> None:
         finally:
             s2.close()
     ag4 = b4["windows"]["60"]["agreement"]
-    check(ag4.get("assessable") is False and "1 model(s)" in ag4["text"],
-          f"with one model present, agreement is not assessable ('{ag4['text']}')")
+    check(ag4.get("assessable") is False and ag4["text"]
+          == "agreement not assessable: 1 model available; DKW, ACM absent",
+          f"with one model present, agreement is not assessable, the absent "
+          f"named ('{ag4['text']}')")
     dkw5 = {r["model"]: r for r in b5["windows"]["60"]["models"]}["dkw"]
     check("was last observed" in (dkw5.get("absent_reason") or ""),
           f"a stale DKW share is absent with its age "
           f"({dkw5.get('absent_reason')})")
+    # With all three present the line carries no absent suffix.
+    for w_ in ra.WINDOWS:
+        seed(store, f"calc.attr_acm_tp_share_{w_}d", later, [0.2] * 4)
+        seed(store, f"calc.attr_dkw_path_share_{w_}d", later, [0.8] * 4)
+        seed(store, f"calc.attr_kw_tp_share_{w_}d", later, [0.3] * 4)
+    ag6 = ra.build(as_of=late, store=store)["windows"]["60"]["agreement"]
+    check(ag6["text"] == "models agree: path-led (3 of 3 available)",
+          f"with every model present: '{ag6['text']}'")
     names = {"state", "raw_state", "cell", "pending_state", "persistence"}
     check(not _keys_named(b, names),
           f"the payload holds no state, cell or persistence field anywhere "
