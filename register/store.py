@@ -98,6 +98,47 @@ CURRENCY_EXPOSURES = ("unhedged", "hedged", "n_a")
 BOOKS = ("A", "B", "C", "D")
 # The gate at entry's outcome enumeration -- DTH §XIV, EL-2 §3.2.
 GATE_OUTCOMES = ("approve", "resize", "restructure", "hedge", "delay", "reject")
+
+# -----------------------------------------------------------------------------
+# EL-1 -- THE PACKET FIELDS (docs/change-order-enterprise-layer-2026-09-27.md §3.1)
+#
+# Six fields, recorded at entry and immutable afterwards like every other column
+# of a decision. The last three -- falsifiers, counter_thesis and the existing
+# invalidation -- are Red Team v0: the register REFUSES DECISION_OK without them,
+# at write time, the way it refuses a Brookfield-related security. All six are
+# nullable because they arrive on a live register; a pre-P5-B row reads
+# "not recorded", never a default it did not have.
+# -----------------------------------------------------------------------------
+# The producer of the draft. A registered paper engine id (§3.6) is added here
+# when one is registered; none is yet.
+ENGINE_IDS = ("daily_cascade", "weekly", "monthly", "operator")
+# Computed at entry from the packet's direction against the sign of the
+# market-state object's trend dimension; recorded, never recomputed.
+HORIZON_ALIGNMENTS = ("aligned", "neutral", "counter")
+REVIEW_CHANGED = ("none", "resized", "restructured", "hedged", "delayed",
+                  "rejected")
+# The gate at entry's verdict folds into review_changed: a review that changed the
+# packet is a review, whether the operator or the gate made it.
+GATE_TO_REVIEW = {"approve": "none", "resize": "resized",
+                  "restructure": "restructured", "hedge": "hedged",
+                  "delay": "delayed", "reject": "rejected"}
+SETUPS_PATH = Path(__file__).resolve().parent.parent / "config" / "setups.yaml"
+
+
+def setup_ids(path: Optional[Path] = None) -> tuple:
+    """The setup families config/setups.yaml declares, `unclassified` included."""
+    import yaml  # noqa: PLC0415
+    with Path(path or SETUPS_PATH).open(encoding="utf-8") as fp:
+        return tuple(((yaml.safe_load(fp) or {}).get("setups") or {}).keys())
+
+
+def review_from_gate(gate_outcome: Optional[str],
+                     explicit: Optional[str] = None) -> str:
+    """review_changed for a new packet: the operator's word if given, else the
+    gate's verdict folded in, else `none`."""
+    if explicit:
+        return explicit
+    return GATE_TO_REVIEW.get(gate_outcome or "approve", "none")
 # Rule breaks the register records. The first five are the order gate's
 # reconciliation of fills against accepted decisions (Phase 5a item 1-2); the
 # last three are the Doctrine's position rules (item 3).
@@ -195,6 +236,14 @@ class RestrictedInstrumentError(Exception):
     """
 
 
+class PacketIncompleteError(ValueError):
+    """DECISION_OK without falsifiers, invalidation or counter_thesis (EL-1).
+
+    A ValueError, so every caller that already refuses an incomplete decision
+    refuses this one; its own class, so the refusal can be named in a report.
+    """
+
+
 class CurrencyExposureUnstatedError(Exception):
     """A non-USD listing was named without saying what to do about the currency.
 
@@ -289,7 +338,15 @@ CREATE TABLE IF NOT EXISTS decisions (
     gate_outcome     TEXT CHECK (gate_outcome IS NULL
                                  OR gate_outcome IN {GATE_OUTCOMES!r}),
     gate_detail      TEXT,
-    gate_override    TEXT
+    gate_override    TEXT,
+    -- EL-1 (§3.1). Recorded at entry, immutable. falsifiers is a JSON list.
+    -- NULL on every pre-P5-B row, which reads "not recorded".
+    setup_id         TEXT,
+    engine_id        TEXT,
+    horizon_alignment TEXT,
+    review_changed   TEXT,
+    falsifiers       TEXT,
+    counter_thesis   TEXT
 );
 
 -- THE ORDER GATE'S RECORD OF WHAT BROKE (Phase 5a). Written by the
@@ -449,7 +506,11 @@ class Register:
                     "book TEXT", "quantity REAL", "notional_usd REAL",
                     "vega_usd REAL", "time_stop TEXT", "close_reason TEXT",
                     "gate_outcome TEXT", "gate_detail TEXT",
-                    "gate_override TEXT"):
+                    "gate_override TEXT",
+                    # EL-1. Vocabulary enforced in record(), as for Phase 5a.
+                    "setup_id TEXT", "engine_id TEXT",
+                    "horizon_alignment TEXT", "review_changed TEXT",
+                    "falsifiers TEXT", "counter_thesis TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -512,6 +573,12 @@ class Register:
                gate_outcome: Optional[str] = None,
                gate_detail: Optional[dict] = None,
                gate_override: Optional[str] = None,
+               setup_id: Optional[str] = None,
+               engine_id: Optional[str] = None,
+               horizon_alignment: Optional[str] = None,
+               review_changed: Optional[str] = None,
+               falsifiers: Optional[list] = None,
+               counter_thesis: Optional[str] = None,
                becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -587,6 +654,25 @@ class Register:
                                                       str(time_stop)):
             raise ValueError(f"time_stop must be YYYY-MM-DD; got {time_stop!r}")
 
+        # EL-1: the vocabularies, enforced on every write.
+        if setup_id is not None and setup_id not in setup_ids():
+            raise ValueError(
+                f"setup_id must be a family in config/setups.yaml (or "
+                f"`unclassified`); got {setup_id!r}")
+        if engine_id is not None and engine_id not in ENGINE_IDS:
+            raise ValueError(f"engine_id must be one of {ENGINE_IDS}; got "
+                             f"{engine_id!r}")
+        if (horizon_alignment is not None
+                and horizon_alignment not in HORIZON_ALIGNMENTS):
+            raise ValueError(f"horizon_alignment must be one of "
+                             f"{HORIZON_ALIGNMENTS}")
+        if review_changed is not None and review_changed not in REVIEW_CHANGED:
+            raise ValueError(f"review_changed must be one of {REVIEW_CHANGED}")
+        if falsifiers is not None:
+            falsifiers = [str(f).strip() for f in falsifiers if str(f).strip()]
+        if counter_thesis is not None:
+            counter_thesis = " ".join(str(counter_thesis).split())
+
         did = decision_id or str(uuid.uuid4())
         now = session.utc_iso()
 
@@ -621,6 +707,26 @@ class Register:
                 ("; " if blocked_reason else "")
                 + f"gate at entry: {gate_outcome}")
 
+        # RED TEAM v0, AT WRITE TIME -- after the downgrades above, because a
+        # blocked or gate-held request lands as draft and is not DECISION_OK.
+        # DECISION_OK (active) is refused without a
+        # falsifier, an invalidation and a counter-thesis -- whoever asks, like
+        # the Brookfield refusal, so no caller can forget it. On the transition,
+        # as for the book: a pre-P5-B row re-recorded while already active is
+        # describing a position that exists, not entering one.
+        if status == "active" and becoming_active:
+            missing = [n for n, v in (("falsifiers", falsifiers),
+                                      ("invalidation", (invalidation or "").strip()),
+                                      ("counter_thesis", counter_thesis))
+                       if not v]
+            if missing:
+                raise PacketIncompleteError(
+                    f"DECISION_OK refused: the packet has no "
+                    f"{', '.join(missing)}. EL-1 (Red Team v0): an active decision "
+                    f"states at entry what would show it wrong (>= 1 falsifier), "
+                    f"where it ends (invalidation), and the other side's case in "
+                    f"one sentence (counter_thesis)")
+
         self.conn.execute(
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
             " instrument_norm, direction, thesis, edge_type, horizon, size,"
@@ -628,9 +734,11 @@ class Register:
             " signals_used, blocked_reason, currency_exposure,"
             " base_rate_cited, expression_family, leverage_form, note,"
             " book, quantity, notional_usd, vega_usd, time_stop, close_reason,"
-            " gate_outcome, gate_detail, gate_override)"
+            " gate_outcome, gate_detail, gate_override,"
+            " setup_id, engine_id, horizon_alignment, review_changed,"
+            " falsifiers, counter_thesis)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -639,7 +747,10 @@ class Register:
              leverage_form, note, book, quantity, notional_usd, vega_usd,
              time_stop, close_reason, gate_outcome,
              (json.dumps(gate_detail, sort_keys=True, default=str)
-              if gate_detail is not None else None), gate_override))
+              if gate_detail is not None else None), gate_override,
+             setup_id, engine_id, horizon_alignment, review_changed,
+             (json.dumps(falsifiers) if falsifiers is not None else None),
+             counter_thesis))
         self.conn.commit()
         return did
 
@@ -714,6 +825,19 @@ class Register:
                     f"({row['blocked_reason']}) and cannot be made active. "
                     f"Clear the block by refreshing its inputs and recording a "
                     f"new decision; a blocked row is not promoted in place.")
+            # EL-1 holds for the in-place writer too: a draft promoted here
+            # without the three fields would be DECISION_OK by the back door.
+            if row and row.get("status") != "active":
+                fals = json.loads(row.get("falsifiers") or "null")
+                missing = [n for n, v in (
+                    ("falsifiers", fals),
+                    ("invalidation", (row.get("invalidation") or "").strip()),
+                    ("counter_thesis", row.get("counter_thesis"))) if not v]
+                if missing:
+                    raise PacketIncompleteError(
+                        f"decision {decision_id} cannot be made active: no "
+                        f"{', '.join(missing)} (EL-1). Record a new decision "
+                        f"with them.")
         self.conn.execute(
             "UPDATE decisions SET status = ?, operator_action = COALESCE(?, operator_action)"
             " WHERE id = ?", (status, operator_action, decision_id))

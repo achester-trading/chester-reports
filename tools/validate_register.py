@@ -276,6 +276,7 @@ def group_g(db_path: str) -> None:
     # thesis_state INVALIDATED) was refused as a stale activation.
     live = reg.record(instrument="QQQ", status="active",
                       operator_action="TAKE", book="B",
+                    falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis",
                       **{**base, "thesis": "held position"})
     reg.close()
 
@@ -310,6 +311,7 @@ def group_g(db_path: str) -> None:
     reg = Register(db_path)
     d3 = reg.record(instrument="SPY", status="active", operator_action="TAKE",
                     book="B",
+                    falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis",
                     **{**base, "direction": "long", "thesis": "to re-designate"})
     reg.close()
 
@@ -785,6 +787,164 @@ def group_i(td: str) -> None:
           "DECISION_BLOCKED")
 
 
+# ---------------------------------------------------------------------------
+# J. EL-1: THE PACKET FIELDS AND RED TEAM v0 (P5-B)
+# ---------------------------------------------------------------------------
+def group_j(td: str) -> None:
+    print(f"\n{LINE}\nJ. EL-1: PACKET FIELDS, AND DECISION_OK REFUSED WITHOUT THEM\n{LINE}")
+    import yaml
+    from register import store as rs
+    from register.store import PacketIncompleteError
+
+    sp = yaml.safe_load((REPO / "config" / "setups.yaml").read_text(
+        encoding="utf-8"))["setups"]
+    check("unclassified" in sp and all(
+              (v or {}).get("book") in ("A", "B", "C", "D")
+              for k, v in sp.items() if k != "unclassified"),
+          f"config/setups.yaml: {len(sp) - 1} setup families, each on a book, "
+          f"plus `unclassified`")
+    check({v["book"] for k, v in sp.items() if k != "unclassified"}
+          == {"A", "B", "C", "D"},
+          "every book the Doctrine names has at least one setup family")
+
+    db = str(Path(td) / "el1.db")
+    base = dict(instrument="SPY", direction="long", thesis="t",
+                edge_type="positioning", horizon="swing", invalidation="below 760",
+                book="B", expression_family="outright", leverage_form="none")
+    fields = dict(falsifiers=["SPY settles below 760"],
+                  counter_thesis="Dealers are short gamma and the tape can gap.")
+    with Register(db) as reg:
+        for drop in ("falsifiers", "counter_thesis"):
+            f = {k: v for k, v in fields.items() if k != drop}
+            raises(lambda f=f: reg.record(status="active", **base, **f),
+                   PacketIncompleteError,
+                   f"DECISION_OK without {drop} is refused at write time")
+        raises(lambda: reg.record(status="active", **{**base, "invalidation": " "},
+                                  **fields),
+               PacketIncompleteError,
+               "DECISION_OK with a blank invalidation is refused")
+        raises(lambda: reg.record(status="active", **base,
+                                  falsifiers=["  "], counter_thesis="x"),
+               PacketIncompleteError,
+               "a falsifier list of blanks is no falsifier")
+        d = reg.record(status="active", setup_id="b_breakout", engine_id="operator",
+                       horizon_alignment="aligned", review_changed="none",
+                       **base, **fields)
+        row = reg.get(d)
+        check(row["status"] == "active" and json.loads(row["falsifiers"])
+              == fields["falsifiers"] and row["setup_id"] == "b_breakout",
+              "with falsifiers, invalidation and counter_thesis it is active, "
+              "every field on the row")
+        g = reg.record(status="active", gate_outcome="resize", **base)
+        check(reg.get(g)["status"] == "draft",
+              "a gate-held request without the fields lands as draft, not "
+              "refused -- a draft is not DECISION_OK")
+        bl = reg.record(status="active", blocked_reason="x: stale", **base)
+        check(reg.get(bl)["status"] == "draft",
+              "and so does a blocked request -- an abstention is still recorded")
+        for kw, val in (("setup_id", "no_such_setup"), ("engine_id", "robot"),
+                        ("review_changed", "tweaked"),
+                        ("horizon_alignment", "sideways")):
+            raises(lambda kw=kw, val=val: reg.record(
+                       status="draft", **base, **{kw: val}), ValueError,
+                   f"{kw}={val!r} is outside its vocabulary and refused")
+        dr = reg.record(status="draft", **base)
+        raises(lambda: reg.set_status(dr, "active"), PacketIncompleteError,
+               "the in-place writer cannot promote a draft without the fields")
+        dr2 = reg.record(status="draft", **base, **fields)
+        reg.set_status(dr2, "active")
+        check(reg.get(dr2)["status"] == "active",
+              "and promotes one that has them")
+        # A pre-P5-B row: active, no fields. Re-recording it while it stays
+        # active describes an open position; it is not an entry.
+        legacy = reg.record(status="active", becoming_active=False, **base)
+        check(reg.get(legacy)["falsifiers"] is None
+              and reg.get(legacy)["setup_id"] is None,
+              "a pre-P5-B row keeps NULL fields -- no default is invented for it")
+    check([rs.review_from_gate(o) for o in rs.GATE_OUTCOMES]
+          == ["none", "resized", "restructured", "hedged", "delayed", "rejected"]
+          and rs.review_from_gate("resize", "none") == "none",
+          "the gate's verdict folds into review_changed; an explicit operator "
+          "value wins")
+
+    # horizon_alignment, from the trend dimension of the object, at entry.
+    import importlib
+    import regime
+    decide = importlib.import_module("decide")
+    saved = regime.latest
+    try:
+        for trend, direction, want in (("up", "long", "aligned"),
+                                       ("up", "short", "counter"),
+                                       ("down", "short", "aligned"),
+                                       ("flat", "long", "neutral"),
+                                       (None, "long", "neutral"),
+                                       ("up", "hedge", "neutral")):
+            regime.latest = (lambda t=trend: {"session": "2026-09-30",
+                                              "dimensions": {"trend": {"state": t}}})
+            got, why = decide.horizon_alignment(direction)
+            check(got == want, f"trend {trend}, {direction} -> {want} ({why})")
+        regime.latest = lambda: None
+        check(decide.horizon_alignment("long")[0] == "neutral",
+              "no stored object -> neutral, with the reason")
+    finally:
+        regime.latest = saved
+
+    # THE CLI.
+    obs_db = str(Path(td) / "fresh_obs.db")        # group I's fresh mkt_spy bar
+    env = {**os.environ, "CHESTER_DB": obs_db}
+    cli_db = str(Path(td) / "el1_cli.db")
+    rec = [sys.executable, str(REPO / "tools" / "decide.py"), "--db", cli_db,
+           "record", "--instrument", "SPY", "--direction", "long", "--thesis", "t",
+           "--edge-type", "positioning", "--horizon", "swing",
+           "--invalidation", "below 760", "--signals-used", "yfinance.mkt_spy",
+           "--status", "active", "--book", "B", "--expression-family", "outright",
+           "--leverage-form", "none", "--dry-run"]
+    r = subprocess.run(rec, capture_output=True, text=True, cwd=str(REPO), env=env)
+    check(r.returncode == 2 and "DECISION_OK needs --falsifier and --counter-thesis"
+          in r.stdout,
+          "decide.py record --status active with neither field is refused, both "
+          "named")
+    r = subprocess.run(rec + ["--falsifier", "SPY settles below 760",
+                              "--counter-thesis", "The tape can gap lower.",
+                              "--setup", "b_breakout"],
+                       capture_output=True, text=True, cwd=str(REPO), env=env)
+    check("REFUSED -- DECISION_OK" not in r.stdout
+          and "setup_id        : b_breakout" in r.stdout
+          and "alignment       :" in r.stdout,
+          "with both it passes the EL-1 check and prints setup, alignment and "
+          "the fields")
+    with Register(cli_db) as reg:
+        old = reg.record(status="draft", **base)
+    sh = subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
+                         "--db", cli_db, "show", old],
+                        capture_output=True, text=True, cwd=str(REPO), env=env)
+    check(sh.stdout.count("not recorded") >= 6,
+          "`show` on a row without the fields reads 'not recorded' for each "
+          "of the six")
+
+    # THE WEEKLY'S COUNTS. One decision and its successor are one entry; a
+    # pre-P5-B row is not recorded, never `none`.
+    from daily_cascade import weekly_payload as wp
+    rows = [
+        {"id": "a", "created_at": "2026-09-29T14:00", "superseded_by": "a2",
+         "setup_id": "unclassified", "review_changed": "resized"},
+        {"id": "a2", "created_at": "2026-09-30T14:00", "superseded_by": None,
+         "setup_id": "unclassified", "review_changed": "resized"},
+        {"id": "b", "created_at": "2026-09-30T15:00", "superseded_by": None,
+         "setup_id": "b_breakout", "review_changed": "none"},
+        {"id": "c", "created_at": "2026-09-30T16:00", "superseded_by": None,
+         "setup_id": None, "review_changed": None},
+        {"id": "d", "created_at": "2026-09-20T16:00", "superseded_by": None,
+         "setup_id": "unclassified", "review_changed": "rejected"}]
+    pf = wp.packet_fields_week(rows, "2026-09-28", "2026-10-02")
+    check(pf["entries_this_week"] == 3 and pf["setup_unclassified"] == 1
+          and pf["setup_not_recorded"] == 1 and pf["review_changed_not_none"] == 1
+          and pf["review_changed_by_kind"] == {"resized": 1},
+          f"the Weekly counts entries once (a successor is not a new entry), "
+          f"`unclassified` 1, review_changed != none 1, pre-P5-B 1 not recorded, "
+          f"last week's row excluded ({pf})")
+
+
 def main() -> int:
     print(f"{LINE}\nRegister and point-in-time validation   {session.describe()}\n{LINE}")
     # ignore_cleanup_errors: on Windows a SQLite file cannot be unlinked while
@@ -799,6 +959,7 @@ def main() -> int:
         group_e(db, td)
         group_h(db)
         group_i(td)
+        group_j(td)
     group_f()
     group_d()
 

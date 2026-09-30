@@ -68,7 +68,8 @@ from register.store import (                      # noqa: E402
     LEVERAGE_FORMS, OPERATOR_ACTIONS, STATUSES,
     THESIS_STATES,
     Register, RestrictedInstrumentError,
-)
+    ENGINE_IDS, REVIEW_CHANGED, setup_ids, review_from_gate,
+    PacketIncompleteError)
 import exposure_compute as ec                     # noqa: E402
 import expression_check                           # noqa: E402
 import pin_log                                    # noqa: E402
@@ -355,6 +356,36 @@ def _gate_detail(g: dict) -> dict:
             "reference_version": v.get("reference_version")}
 
 
+# EL-1 (§3.1): the packet's direction against the sign of the market-state
+# object's TREND dimension, read at entry and recorded once. A supersession
+# carries it forward and never recomputes it -- the alignment a decision was
+# entered under is a fact about that moment.
+TREND_SIGN = {"up": 1, "flat": 0, "down": -1}
+DIRECTION_SIGN = {"long": 1, "short": -1}
+
+
+def horizon_alignment(direction: str) -> tuple:
+    """(alignment, basis). `neutral` when the trend is absent or flat, or the
+    direction has no sign (flat / hedge)."""
+    try:
+        import regime  # noqa: PLC0415
+        obj = regime.latest()
+    except Exception as exc:                                  # noqa: BLE001
+        return "neutral", f"no market-state object readable ({type(exc).__name__})"
+    trend = ((obj or {}).get("dimensions") or {}).get("trend") or {}
+    state, day = trend.get("state"), (obj or {}).get("session")
+    t = TREND_SIGN.get(state)
+    dsign = DIRECTION_SIGN.get(direction)
+    if not obj:
+        return "neutral", "no market-state object stored"
+    if t is None:
+        return "neutral", f"trend absent on the {day} object"
+    if not t or not dsign:
+        return "neutral", f"trend {state} on the {day} object, direction {direction}"
+    return (("aligned" if t == dsign else "counter"),
+            f"direction {direction} against trend {state} on the {day} object")
+
+
 def cmd_record(args) -> int:
     reg = Register(args.db)
     try:
@@ -374,6 +405,15 @@ def cmd_record(args) -> int:
         print(f"  thesis          : {args.thesis}")
         print(f"  invalidation    : {args.invalidation}")
         print(f"  signals_used    : {', '.join(sorted(args.signals_used))}")
+        align, align_basis = horizon_alignment(args.direction)
+        print(f"  setup_id        : {args.setup}")
+        print(f"  engine_id       : {args.engine}")
+        print(f"  alignment       : {align}  ({align_basis})")
+        for f in args.falsifier or []:
+            print(f"  falsifier       : {f}")
+        if not args.falsifier:
+            print(f"  falsifier       : (none)")
+        print(f"  counter_thesis  : {args.counter_thesis or '(none)'}")
 
         # THE RESTRICTION, CHECKED IN DRY RUN TOO.
         print(f"\n  restriction check")
@@ -454,6 +494,17 @@ def cmd_record(args) -> int:
             if not args.book:
                 print(f"\n  REFUSED -- an active decision names its book: "
                       f"--book {{{','.join(BOOKS)}}}")
+                print(LINE)
+                return 2
+            # EL-1, Red Team v0. The register refuses this at write time; saying
+            # so here, before the gate runs, names the missing field in dry run.
+            missing = [n for n, v in (("--falsifier", args.falsifier),
+                                      ("--counter-thesis", args.counter_thesis))
+                       if not v]
+            if missing:
+                print(f"\n  REFUSED -- DECISION_OK needs {' and '.join(missing)} "
+                      f"(EL-1): what would show this wrong, and the other side's "
+                      f"case in one sentence, stated before entry")
                 print(LINE)
                 return 2
             bind = _binding_expression(args)
@@ -544,7 +595,13 @@ def cmd_record(args) -> int:
                          time_stop=args.time_stop,
                          gate_outcome=(gate_out or {}).get("outcome"),
                          gate_detail=(_gate_detail(gate_out) if gate_out else None),
-                         gate_override=args.override_gate)
+                         gate_override=args.override_gate,
+                         setup_id=args.setup, engine_id=args.engine,
+                         horizon_alignment=align,
+                         review_changed=review_from_gate(
+                             (gate_out or {}).get("outcome"), args.review_changed),
+                         falsifiers=list(args.falsifier or []),
+                         counter_thesis=args.counter_thesis)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -638,7 +695,13 @@ def cmd_show(args) -> int:
         if not d:
             print(f"no decision {args.id!r}")
             return 1
+        el1 = ("setup_id", "engine_id", "horizon_alignment", "review_changed",
+               "falsifiers", "counter_thesis")
         for k, v in d.items():
+            if k in el1 and v is None:
+                v = "not recorded"          # a pre-P5-B row, not a default
+            elif k == "falsifiers":
+                v = "; ".join(json.loads(v)) or "not recorded"
             print(f"  {k:<22} {v}")
         p = reg.packet(args.id)
         print("\n  packet:" if p else "\n  no packet attached")
@@ -817,6 +880,20 @@ def cmd_set_status(args) -> int:
                     print(LINE)
                     return 3
 
+        # EL-1: an activation carries the packet fields forward and never adds
+        # them later -- a pre-P5-B draft without them is refused here, as the
+        # register would refuse it, and a new decision is recorded instead.
+        if becoming_active:
+            fals = json.loads(old_d.get("falsifiers") or "null")
+            missing = [n for n, v in (("falsifiers", fals),
+                                      ("counter_thesis", old_d.get("counter_thesis")))
+                       if not v]
+            if missing:
+                print(f"\n  REFUSED -- this draft has no {' or '.join(missing)} "
+                      f"(EL-1), so it cannot become DECISION_OK. Record a new "
+                      f"decision with --falsifier and --counter-thesis.")
+                print(LINE)
+                return 2
         if args.dry_run:
             print(f"\n  DRY RUN -- nothing written, nothing superseded.")
             print(LINE)
@@ -867,6 +944,15 @@ def cmd_set_status(args) -> int:
                          (json.loads(old_d["gate_detail"])
                           if old_d.get("gate_detail") else None)),
             gate_override=args.override_gate or old_d.get("gate_override"),
+            # EL-1: carried forward and NEVER recomputed. A pre-P5-B row has none
+            # of them, and an activation from it is refused by the register --
+            # its successor would be DECISION_OK without falsifiers.
+            setup_id=old_d.get("setup_id"), engine_id=old_d.get("engine_id"),
+            horizon_alignment=old_d.get("horizon_alignment"),
+            review_changed=old_d.get("review_changed"),
+            falsifiers=(json.loads(old_d["falsifiers"])
+                        if old_d.get("falsifiers") else None),
+            counter_thesis=old_d.get("counter_thesis"),
             becoming_active=becoming_active)
 
         # The successor gets its own packet, because a decision without one
@@ -1007,6 +1093,26 @@ def main() -> int:
     r.add_argument("--time-stop", default=None, metavar="YYYY-MM-DD",
                    help="The date past which the position is closed regardless "
                         "of thesis (Doctrine, Books B and D).")
+    # -- EL-1 (§3.1): the packet fields. falsifiers and counter_thesis are
+    #    required for an active decision; the register refuses DECISION_OK
+    #    without them at write time.
+    r.add_argument("--setup", default="unclassified", choices=setup_ids(),
+                   help="The setup family, from config/setups.yaml -- the Edge "
+                        "Ledger's key. `unclassified` is allowed and counted in "
+                        "the Weekly.")
+    r.add_argument("--engine", default="operator", choices=ENGINE_IDS,
+                   help="Who drafted the packet.")
+    r.add_argument("--falsifier", action="append", default=None, metavar="TEXT",
+                   help="Observable evidence that would show the thesis wrong, "
+                        "stated before entry. Repeat for more than one; at least "
+                        "one for an active decision.")
+    r.add_argument("--counter-thesis", default=None, metavar="SENTENCE",
+                   help="The other side's case in one sentence, written from the "
+                        "evidence. Required for an active decision.")
+    r.add_argument("--review-changed", default=None, choices=REVIEW_CHANGED,
+                   help="Set when a review changed the packet before entry. "
+                        "Defaults to the gate's verdict folded in (approve -> "
+                        "none, resize -> resized, ...).")
     r.add_argument("--override-gate", default=None, metavar="REASON",
                    help="THE OPERATOR'S OVERRIDE of a gate outcome other than "
                         "approve. Recorded on the decision. A session prints "

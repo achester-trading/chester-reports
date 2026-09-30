@@ -1,0 +1,82 @@
+# setups.yaml -- the setup families a Decision Packet names (EL-1, §3.1 of
+# docs/change-order-enterprise-layer-2026-09-27.md).
+#
+# ONE ENTRY PER CANONICAL SETUP FAMILY THE OPERATING DOCTRINE NAMES PER BOOK
+# (docs/whitepapers/operating-doctrine-whitepaper.md, Part IV), plus
+# `unclassified`. `setup_id` is the Edge Ledger's key: expectancy is measured per
+# setup, so a family written here is a family whose record can be read back.
+#
+# `unclassified` is ALLOWED and COUNTED -- the Weekly prints how many packets used
+# it. A high count means this list is missing a family the operator actually
+# trades, and the fix is an entry here, not a vaguer label on the packet.
+#
+# Adding a family: a new entry with its book and the Doctrine passage it comes
+# from. Removing one: never -- packets that cite it would stop resolving. Retire
+# it with `retired: true` and a date instead.
+
+setups:
+  # --- Book A -- Allocation (Doctrine 4.1) ------------------------------------
+  a_stance_rebalance:
+    book: A
+    name: Monthly stance rebalance
+    doctrine: "4.1 -- rebalance to the stance within the Macro dial's band at the monthly session"
+  a_tb_override:
+    book: A
+    name: Top & Bottom override
+    doctrine: "4.1 -- the stance moves to the override band when the T&B report fires"
+
+  # --- Book B -- Swing (Doctrine 4.2) -----------------------------------------
+  b_breakout:
+    book: B
+    name: Breakout from a defined base
+    doctrine: "4.2 -- entered at or immediately after a pivotal point: a breakout from a defined base"
+  b_reclaim:
+    book: B
+    name: Reclaim of a lost level with volume
+    doctrine: "4.2 -- a reclaim of a lost level with volume"
+  b_failed_breakdown:
+    book: B
+    name: Failed breakdown
+    doctrine: "4.2 -- a failed breakdown"
+
+  # --- Book C -- Tactical (Doctrine 4.3) --------------------------------------
+  c_pin_fade:
+    book: C
+    name: Fade toward a gamma-implied pin
+    doctrine: "4.3 -- a fade toward a gamma-implied pin in a Positive-gamma regime"
+  c_negative_gamma_continuation:
+    book: C
+    name: Continuation through a level, Negative gamma
+    doctrine: "4.3 -- a continuation through a level in a Negative-gamma regime after confirmation"
+  c_event_reaction:
+    book: C
+    name: Event reaction
+    doctrine: "4.3 -- the session after a scheduled release, in the direction of a reaction that contradicts the positioning-implied expectation"
+
+  # --- Book D -- Opportunistic (Doctrine 4.4) ---------------------------------
+  d_behavioral_alert:
+    book: D
+    name: Behavioral / alternative-data alert
+    doctrine: "4.4 -- behavioral change visible in social velocity, search and positioning data before price"
+  d_forced_flow:
+    book: D
+    name: Forced flow
+    doctrine: "4.4 -- index inclusion, unlock and lock-up mechanics, closing-auction imbalances, expiry pins"
+  d_prediction_market_divergence:
+    book: D
+    name: Prediction-market divergence
+    doctrine: "4.4 -- a prediction market read for divergence from the corresponding financial instrument"
+  d_squeeze_exhaustion:
+    book: D
+    name: Exhausted squeeze, short with a defined wing
+    doctrine: "4.4 -- occasionally a short with a defined wing when a squeeze has exhausted"
+  d_tail_hedge:
+    book: D
+    name: Tail-hedge budget
+    doctrine: "4.4 -- the ring-fenced 0.4%/month tail-hedge budget: far OTM puts, long-vol, gold increment"
+
+  # --- the honest default ------------------------------------------------------
+  unclassified:
+    book: null
+    name: Unclassified
+    doctrine: "EL-1 §3.1 -- allowed, and counted in the Weekly"

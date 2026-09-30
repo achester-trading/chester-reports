@@ -230,12 +230,12 @@ def group_c() -> None:
             bad("an active decision with no book was accepted")
         except ValueError:
             ok("an active decision with no book is refused")
-        d = reg.record(status="active", book="B", gate_outcome="resize", **base)
+        d = reg.record(status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B", gate_outcome="resize", **base)
         r = reg.get(d)
         check(r["status"] == "draft" and "gate at entry: resize" in
               (r["blocked_reason"] or ""),
               "a gate verdict other than approve holds it at draft, with the reason")
-        d2 = reg.record(status="active", book="B", gate_outcome="reject",
+        d2 = reg.record(status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B", gate_outcome="reject",
                         gate_override="operator: hedged elsewhere", **base)
         r2 = reg.get(d2)
         check(r2["status"] == "active" and r2["gate_override"],
@@ -260,14 +260,14 @@ def group_d() -> None:
     with Register(DB) as reg:
         acc = reg.record(instrument="XLE", direction="long", thesis="t",
                          edge_type="e", horizon="swing", invalidation="x",
-                         status="active", book="B", quantity=100,
+                         status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B", quantity=100,
                          expression_family="outright", leverage_form="none",
                          decision_time=t0)
         reg.record(instrument="XLU", direction="long", thesis="t", edge_type="e",
                    horizon="swing", invalidation="x", status="draft",
                    decision_time=t0)
         reg.record(instrument="XLF", direction="long", thesis="t", edge_type="e",
-                   horizon="swing", invalidation="x", status="active", book="C",
+                   horizon="swing", invalidation="x", status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="C",
                    expression_family="vertical_spread", leverage_form="call_spread",
                    decision_time=t0)
 
@@ -291,7 +291,7 @@ def group_d() -> None:
         st.close()
     with Register(DB) as reg:
         reg.record(instrument="XLP", direction="long", thesis="t", edge_type="e",
-                   horizon="swing", invalidation="x", status="active", book="B",
+                   horizon="swing", invalidation="x", status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B",
                    quantity=100, expression_family="outright",
                    leverage_form="none", decision_time=t0)
     with executions.ExecutionStore(DB) as xs:
@@ -349,7 +349,7 @@ def group_e(store) -> None:
               "with no Book A decision the floor is not_yet_sourced, not a zero")
         reg.record(instrument="SPY", direction="long", thesis="t", edge_type="e",
                    horizon="strategic", invalidation="x", status="active",
-                   book="A", notional_usd=60000, expression_family="outright",
+                   falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="A", notional_usd=60000, expression_family="outright",
                    leverage_form="none")
         r = reconcile.allocation_floor(reg, store, "2026-09-25")
         check(r.get("breach") and r["stance_pct"] == 20.0 and r["floor_pct"] == 60,
@@ -357,14 +357,14 @@ def group_e(store) -> None:
               f"breach ({r.get('stance_pct')} vs {r.get('floor_pct')})")
         ts = reg.record(instrument="XLI", direction="long", thesis="t",
                         edge_type="e", horizon="swing", invalidation="x",
-                        status="active", book="B", time_stop="2026-09-20",
+                        status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B", time_stop="2026-09-20",
                         expression_family="outright", leverage_form="none")
         hit = reconcile.time_stops(reg, "2026-09-25")
         check(any(h["decision_id"] == ts for h in hit),
               "an active decision past its time stop -> time_stop_passed")
         entry = reg.record(instrument="XLB", direction="long", thesis="t",
                            edge_type="e", horizon="swing", invalidation="x",
-                           status="active", book="B",
+                           status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B",
                            expression_family="outright", leverage_form="none",
                            decision_time="2026-09-23T14:00:00+00:00")
         reg.supersede(entry, instrument="XLB", direction="long", thesis="t",
@@ -373,7 +373,7 @@ def group_e(store) -> None:
                       decision_time="2026-09-24T14:00:00+00:00")
         e2 = reg.record(instrument="XLRE", direction="long", thesis="t",
                         edge_type="e", horizon="swing", invalidation="x",
-                        status="active", book="B",
+                        status="active", falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis", book="B",
                         expression_family="outright", leverage_form="none",
                         decision_time="2026-09-23T14:00:00+00:00")
         reg.supersede(e2, instrument="XLRE", direction="long", thesis="t",
@@ -392,7 +392,9 @@ def group_f() -> None:
     base = ["record", "--instrument", "SPY", "--direction", "long",
             "--thesis", "t", "--edge-type", "positioning", "--horizon", "swing",
             "--invalidation", "x", "--signals-used", "yfinance.mkt_spy",
-            "--status", "active", "--dry-run"]
+            "--status", "active", "--dry-run",
+            "--falsifier", "fixture falsifier",
+            "--counter-thesis", "fixture counter-thesis"]
 
     # IN-PROCESS, with the signal check answered "fresh": the binding rules sit
     # behind 26.2 #7's freshness gate (a blocked request is recorded as an

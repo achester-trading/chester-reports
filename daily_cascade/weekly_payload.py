@@ -617,10 +617,41 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
             # cannot be read says why rather than printing a zero.
             **_rule_breaks_week(start, ending),
         }
+        out["packet_fields"] = packet_fields_week(rows, start, ending)
     finally:
         if own:
             db.close()
     return out
+
+
+def packet_fields_week(rows: list, start: str, ending: str) -> dict:
+    """EL-1 (§3.1): the week's entries by setup and by review.
+
+    An ENTRY is a decision first recorded this week -- a successor written by a
+    status change is the same decision and is not counted again. `unclassified`
+    is allowed and counted, because a high count says config/setups.yaml is
+    missing a family the operator trades. review_changed != none is Ent. §XXII's
+    "did the review materially alter decisions". A pre-P5-B row has neither
+    field and is counted as not recorded, never as `none`.
+    """
+    ds = [dict(r) for r in rows]
+    successors = {d.get("superseded_by") for d in ds if d.get("superseded_by")}
+    entries = [d for d in ds if d.get("id") not in successors
+               and start <= str(d.get("created_at") or "")[:10] <= ending]
+    recorded = [d for d in entries if d.get("setup_id") is not None]
+    reviewed = [d for d in entries if d.get("review_changed") is not None]
+    return {
+        "entries_this_week": len(entries),
+        "setup_unclassified": sum(1 for d in recorded
+                                  if d.get("setup_id") == "unclassified"),
+        "setup_not_recorded": len(entries) - len(recorded),
+        "review_changed_not_none": sum(1 for d in reviewed
+                                       if d.get("review_changed") != "none"),
+        "review_changed_by_kind": {
+            k: sum(1 for d in reviewed if d.get("review_changed") == k)
+            for k in sorted({d.get("review_changed") for d in reviewed} - {"none"})},
+        "review_not_recorded": len(entries) - len(reviewed),
+    }
 
 
 def _rule_breaks_week(start: str, ending: str) -> dict:
@@ -991,6 +1022,7 @@ def narrative_payload(full: dict) -> dict:
             "drafts_count": rg.get("drafts_count"),
             "open": rg.get("open"),
             "rule_breaks": rg.get("rule_breaks"),
+            "packet_fields": rg.get("packet_fields"),
             "absent_reason": rg.get("reason"),
         },
         "week_ahead": {

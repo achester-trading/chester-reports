@@ -361,6 +361,21 @@ def register_block(payload: dict) -> str:
         + gate_line + listed_html
         + f'<p style="{NOTE}">{esc(rb.get("running_total_note"))}</p>'
         + ns_html + fault + '</div>')
+    # EL-1: the week's entries by setup and by review.
+    pf = b.get("packet_fields")
+    if pf:
+        kinds = ", ".join(f"{esc(k)} {n}" for k, n in
+                          (pf.get("review_changed_by_kind") or {}).items())
+        nr = (f' &middot; {esc(pf["setup_not_recorded"])} not recorded (pre-P5-B)'
+              if pf.get("setup_not_recorded") else "")
+        parts.append(
+            f'<div style="{ABSENT}"><strong>Packets entered this week</strong>: '
+            f'{esc(pf.get("entries_this_week"))}<br>'
+            f'setup <code>unclassified</code>: '
+            f'<strong>{esc(pf.get("setup_unclassified"))}</strong>{nr}<br>'
+            f'changed by review before entry (review_changed &ne; none): '
+            f'<strong>{esc(pf.get("review_changed_not_none"))}</strong>'
+            + (f' ({kinds})' if kinds else "") + '</div>')
     return "".join(parts)
 
 
