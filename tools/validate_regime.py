@@ -1271,20 +1271,22 @@ def group_k(store) -> None:
     check(bool(cs) and instant(cs["available_at"]) < instant(late_at),
           "while the curve share, which never read it, is not delayed by it")
 
-    kw = by.get("calc.attr_kw_tp_share_60d", {}).get(L)
-    check(kw is not None and abs(kw["value"] - 0.5) < 1e-6,
-          f"calc.attr_kw_tp_share_60d = ΔTP_kw/Δ10y = 0.5 "
-          f"(got {kw and kw['value']})")
-    p = by.get("calc.attr_dkw_path_share_60d", {}).get(L)
-    t = by.get("calc.attr_dkw_tp_share_60d", {}).get(L)
-    check(p is not None and abs(p["value"] - 0.75) < 1e-6
-          and t is not None and abs(t["value"] - 0.25) < 1e-6,
-          f"DKW's path and premium shares of PATH + PREMIUM are 0.75 and 0.25, "
-          f"with the liquidity leg moving as much as both -- it is out of the "
-          f"denominator (got {p and p['value']}, {t and t['value']})")
-    check(not by.get("calc.attr_acm_tp_share_60d"),
-          "ACM, with no rows in the store, writes nothing -- an absent model is "
-          "absent, not zero")
+    for w in mf.MODEL_WINDOWS:
+        kw = by.get(f"calc.attr_kw_tp_share_{w}d", {}).get(L)
+        check(kw is not None and abs(kw["value"] - 0.5) < 1e-6,
+              f"calc.attr_kw_tp_share_{w}d = ΔTP_kw/Δ10y = 0.5 "
+              f"(got {kw and kw['value']})")
+        p = by.get(f"calc.attr_dkw_path_share_{w}d", {}).get(L)
+        t = by.get(f"calc.attr_dkw_tp_share_{w}d", {}).get(L)
+        check(p is not None and abs(p["value"] - 0.75) < 1e-6
+              and t is not None and abs(t["value"] - 0.25) < 1e-6,
+              f"DKW over {w}: path and premium shares of PATH + PREMIUM are 0.75 "
+              f"and 0.25, with the liquidity leg moving as much as both -- it is "
+              f"out of the denominator (got {p and p['value']}, "
+              f"{t and t['value']})")
+    check(not any(k.startswith("calc.attr_acm_tp_share_") for k in by),
+          "ACM, with no rows in the store, writes nothing at either window -- an "
+          "absent model is absent, not zero")
 
     # --- the stock-bond correlation, on returns built to be exactly opposite ----
     spy = [100.0]

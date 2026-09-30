@@ -2181,11 +2181,12 @@ metrics:
       of this number: a flag derived from a figure beside the figure is a second
       answer waiting to disagree with it.
   # -------------------------------------------------------------------------
-  # THE RATES-DRIVER MEMBERS (signal-triage order ST-3, §2.1.1 and §5).
+  # THE RATES ATTRIBUTION SERIES (signal-triage order ST-3, re-scoped 30 Sep 2026).
   #
-  # What config/market_state.yaml's rates.driver reads, computed once in
-  # altdata/market_features.py. The shares are RATIOS OF CHANGES over a window
-  # counted in each denominator's own observations, written only when the
+  # DESCRIPTIVE: what altdata/rates_attribution.py prints, computed once in
+  # altdata/market_features.py. No state reads them; the driver cell they were
+  # first built for was withdrawn after failing its gate twice. The shares are
+  # RATIOS OF CHANGES over a window counted in each denominator's own observations, written only when the
   # denominator moved ATTR_MIN_MOVE_BP (5bp), so their distributions stay finite.
   # All of them share rates_decomposition: they are cuts of one yield move, and
   # two of them agreeing is one observation seen twice, not two confirmations.
@@ -2206,7 +2207,7 @@ metrics:
     trigger_eligible: false
     description: >-
       The 10-year Treasury yield's change over 5 of its own observations, in basis
-      points. The move the 5-observation shares divide; its sign is the driver's
+      points. The move the 5-observation shares divide; its sign is the move's
       direction (selloff or rally).
   calc.attr_real_share_5d:
     source: derived_state
@@ -2253,7 +2254,7 @@ metrics:
     trigger_eligible: false
     description: >-
       The 10-year Treasury yield's change over 20 of its own observations, in basis
-      points. The move the 20-observation shares divide; its sign is the driver's
+      points. The move the 20-observation shares divide; its sign is the move's
       direction (selloff or rally).
   calc.attr_real_share_20d:
     source: derived_state
@@ -2300,7 +2301,7 @@ metrics:
     trigger_eligible: false
     description: >-
       The 10-year Treasury yield's change over 60 of its own observations, in basis
-      points. The move the 60-observation shares divide; its sign is the driver's
+      points. The move the 60-observation shares divide; its sign is the move's
       direction (selloff or rally).
   calc.attr_real_share_60d:
     source: derived_state
@@ -2334,6 +2335,66 @@ metrics:
       The curve cut of SR-6 over 60 observations: the 2-year yield's change as a
       share of the 10-year's. Above 1 the front end is leading (bear flattening in a
       selloff, bull steepening in a rally); near 0 the front end is anchored.
+  calc.attr_dkw_path_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      DKW's expected real short rate (10-year) change over 20 DKW observations as a
+      share of path plus real term premium -- the TIPS liquidity premium left out
+      (ruling of 30 Sep 2026). A REAL-yield split, printed by the rates attribution
+      block; decides nothing.
+  calc.attr_dkw_tp_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      DKW's real term premium (10-year) change over 20 DKW observations as a share
+      of the same path-plus-premium sum (1 less the path share).
+  calc.attr_kw_tp_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Kim-Wright's 10-year term premium (THREEFYTP10) change over 20 observations as
+      a share of the 10-year yield's. A NOMINAL split; the expected-rate leg is the
+      rest. Printed by the rates attribution block; decides nothing.
+  calc.attr_acm_tp_share_20d:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      ACM's 10-year term premium change over 20 observations as a share of ACM's own
+      fitted 10-year yield change. A NOMINAL split. Printed by the rates attribution
+      block; decides nothing.
   calc.attr_dkw_path_share_60d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -2348,9 +2409,8 @@ metrics:
     description: >-
       DKW's expected real short rate (10-year) change over 60 DKW observations as a
       share of path plus real term premium -- the TIPS liquidity premium left out
-      (ruling of 30 Sep 2026: the driver asks path against premium, and the
-      liquidity leg is neither). The rates driver's deciding path share (SR-17:
-      DKW is the real-side split and the sign arbiter).
+      (ruling of 30 Sep 2026). A REAL-yield split, printed by the rates attribution
+      block; decides nothing.
   calc.attr_dkw_tp_share_60d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -2364,7 +2424,7 @@ metrics:
     trigger_eligible: false
     description: >-
       DKW's real term premium (10-year) change over 60 DKW observations as a share
-      of the same path-plus-premium sum. The rates driver's deciding premium share.
+      of the same path-plus-premium sum (1 less the path share).
   calc.attr_kw_tp_share_60d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -2378,8 +2438,8 @@ metrics:
     trigger_eligible: false
     description: >-
       Kim-Wright's 10-year term premium (THREEFYTP10) change over 60 observations as
-      a share of the 10-year yield's. A nominal tie-breaker, read only when DKW
-      cannot decide; its expected-rate leg is the rest.
+      a share of the 10-year yield's. A NOMINAL split; the expected-rate leg is the
+      rest. Printed by the rates attribution block; decides nothing.
   calc.attr_acm_tp_share_60d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -2393,7 +2453,8 @@ metrics:
     trigger_eligible: false
     description: >-
       ACM's 10-year term premium change over 60 observations as a share of ACM's own
-      fitted 10-year yield change. The second nominal tie-breaker.
+      fitted 10-year yield change. A NOMINAL split. Printed by the rates attribution
+      block; decides nothing.
   calc.corr_spy_tlt_60d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -2407,10 +2468,9 @@ metrics:
     trigger_eligible: false
     description: >-
       Pearson correlation of SPY and TLT daily log returns over 60 common sessions
-      -- the stock-bond correlation, SR-9's flag, computed once. Evidence for the
-      rates driver: negative supports growth, positive supports fed_path and
-      term_premium. SR-9's ~5.25% level prior is a by-hand note, never computed here
-      (R7).
+      -- SR-9's stock-bond correlation, computed once. Descriptive; its regression
+      against yield level and inflation volatility is SR-9's backlog study. SR-9's
+      ~5.25% level prior is a by-hand note, never computed (R7).
   calc.infl_vol:
     source: derived_state
     mechanism_group: macro_inflation
@@ -3073,7 +3133,7 @@ metrics:
     units: percent
     trigger_eligible: false
     description: >-
-      ACM 10-year term premium, percent. One of the four term-premium models the rates driver (ST-3) reads; their sign disagreement is surfaced, never averaged.
+      ACM 10-year term premium, percent. One of the three decompositions the rates attribution block (ST-3) prints side by side; their disagreement is surfaced, never averaged.
   acm.risk_neutral_yield_10y:
     source: nyfed_acm
     mechanism_group: rates_decomposition

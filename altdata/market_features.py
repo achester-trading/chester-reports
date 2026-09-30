@@ -201,22 +201,23 @@ MACRO_FEATURES = {
 MACRO_FEATURES.update({k: v[1] for k, v in YOY_SERIES.items()})
 
 # ---------------------------------------------------------------------------
-# THE RATES-DRIVER MEMBERS (signal-triage order ST-3, §2.1.1 and §5). What the
-# market-state object's `rates.driver` sub-state reads; regime.py decides the cell
-# from them and nothing here decides anything.
+# THE RATES ATTRIBUTION SERIES (signal-triage order ST-3, re-scoped 30 Sep 2026).
+# DESCRIPTIVE ONLY: what altdata/rates_attribution.py prints. Nothing reads them to
+# decide a state -- the market-state object does not read them at all, and the
+# driver cell they were first built for was withdrawn after failing its
+# calibration gate twice (docs/ledgers/rates-driver-2026-09*.md).
 # ---------------------------------------------------------------------------
-# One week, one month, and the driver's own 60-session window. Counted in each
-# series' OWN observations, which for these daily series is sessions.
+# One week, one month and one quarter. Counted in each series' OWN observations,
+# which for these daily series is sessions.
 ATTR_WINDOWS = (5, 20, 60)
 # THE SHARE IS A RATIO OF CHANGES, AND A RATIO OVER A NEAR-ZERO MOVE IS NOISE WITH
 # A LARGE NUMBER ON IT. A share is written only when its denominator moved at
 # least this far over the window; below it the share is absent for that day
-# rather than +/-40. The driver's own move floor (config) is higher; this one only
-# keeps the series' distribution finite.
+# rather than +/-40; it keeps the series' distribution finite.
 ATTR_MIN_MOVE_BP = 5.0
-# The window the decomposition models are read over: 60 of their own
-# observations, the driver's window.
-MODEL_WINDOW = 60
+# The windows the decomposition models are read over, in their own observations:
+# one month and one quarter, the rates attribution block's two columns.
+MODEL_WINDOWS = (20, 60)
 CORR_WINDOW = 60
 INFL_VOL_MONTHS = 24
 
@@ -238,23 +239,25 @@ for _w in ATTR_WINDOWS:
             f"10-year's (the curve cut, SR-6). Above 1 the front end is leading "
             f"-- bear flattening in a selloff, bull steepening in a rally",
     })
+for _w in MODEL_WINDOWS:
+    RATES_FEATURES.update({
+        f"calc.attr_dkw_path_share_{_w}d":
+            f"DKW's expected real short rate's change over {_w} DKW observations "
+            f"as a share of path + real term premium -- the TIPS liquidity "
+            f"premium left out. A REAL-yield split. Dated on DKW's own last "
+            f"observation, which runs about a month behind",
+        f"calc.attr_dkw_tp_share_{_w}d":
+            f"DKW's real term premium's change over {_w} DKW observations as a "
+            f"share of the same path + premium sum",
+        f"calc.attr_kw_tp_share_{_w}d":
+            f"Kim-Wright's 10-year term premium change over {_w} observations as "
+            f"a share of the 10-year yield's -- a NOMINAL split; the expected-"
+            f"rate leg is the rest",
+        f"calc.attr_acm_tp_share_{_w}d":
+            f"ACM's 10-year term premium change over {_w} observations as a "
+            f"share of ACM's own fitted 10-year yield change -- a NOMINAL split",
+    })
 RATES_FEATURES.update({
-    f"calc.attr_dkw_path_share_{MODEL_WINDOW}d":
-        f"DKW's expected real short rate's change over {MODEL_WINDOW} DKW "
-        f"observations as a share of path + real term premium -- the TIPS "
-        f"liquidity premium left out. Dated on DKW's own last observation, "
-        f"which runs about a month behind",
-    f"calc.attr_dkw_tp_share_{MODEL_WINDOW}d":
-        f"DKW's real term premium's change over {MODEL_WINDOW} DKW observations "
-        f"as a share of the same path + premium sum",
-    f"calc.attr_kw_tp_share_{MODEL_WINDOW}d":
-        f"Kim-Wright's 10-year term premium change over {MODEL_WINDOW} "
-        f"observations as a share of the 10-year yield's -- a tie-breaker, "
-        f"nominal, used only when DKW cannot decide",
-    f"calc.attr_acm_tp_share_{MODEL_WINDOW}d":
-        f"ACM's 10-year term premium change over {MODEL_WINDOW} observations as "
-        f"a share of ACM's own fitted 10-year yield change -- the second "
-        f"tie-breaker",
     f"calc.corr_spy_tlt_{CORR_WINDOW}d":
         f"Pearson correlation of SPY and TLT daily log returns over "
         f"{CORR_WINDOW} common sessions -- the stock-bond correlation, SR-9's "
@@ -500,7 +503,7 @@ def macro_rows(db: observations.ObservationStore,
 def rates_rows(db: observations.ObservationStore,
                as_of: Optional[str] = None,
                first_day: Optional[str] = None) -> list[dict]:
-    """The rates driver's members: the two cuts, the model shares, the correlation.
+    """The rates attribution series: the two cuts, the model shares, SR-9's pair.
 
     SAME-DAY ONLY, as for 2s10s. A share needs both of its series on both of the
     window's endpoints; an endpoint carried forward from another day would date
@@ -528,7 +531,7 @@ def rates_rows(db: observations.ObservationStore,
     tips = _load(db, "fred.tips_10y", as_of)
     kw = _load(db, "fred.term_premium_kw", as_of)
 
-    # --- THE TWO CUTS OF SR-6, at 1w / 1m / the driver's window --------------
+    # --- THE TWO CUTS OF SR-6, at one week / one month / one quarter ---------
     #
     # Real: Δ10y = Δreal + Δbreakeven. FRED's T10YIE is DGS10 less DFII10 by
     # construction, so the real leg alone carries the cut and the breakeven's
@@ -555,58 +558,57 @@ def rates_rows(db: observations.ObservationStore,
                      base + [av(y2, day), av(y2, p)])
 
     # --- KIM-WRIGHT: term premium over the nominal 10-year it decomposes -----
-    w = MODEL_WINDOW
-    kdays = sorted(d for d in kw if d in y10)
-    for i, day in enumerate(kdays):
-        if i < w:
-            continue
-        p = kdays[i - w]
-        d10 = (y10[day][0] - y10[p][0]) * 100.0
-        if abs(d10) < ATTR_MIN_MOVE_BP:
-            continue
-        emit(f"calc.attr_kw_tp_share_{w}d", day,
-             (kw[day][0] - kw[p][0]) * 100.0 / d10,
-             [av(kw, day), av(kw, p), av(y10, day), av(y10, p)])
-
-    # --- ACM: term premium over ACM's own fitted yield -------------------------
     acm_tp = _load(db, "acm.term_premium_10y", as_of)
     acm_fit = _load(db, "acm.fitted_yield_10y", as_of)
-    adays = sorted(d for d in acm_tp if d in acm_fit)
-    for i, day in enumerate(adays):
-        if i < w:
-            continue
-        p = adays[i - w]
-        dfit = (acm_fit[day][0] - acm_fit[p][0]) * 100.0
-        if abs(dfit) < ATTR_MIN_MOVE_BP:
-            continue
-        emit(f"calc.attr_acm_tp_share_{w}d", day,
-             (acm_tp[day][0] - acm_tp[p][0]) * 100.0 / dfit,
-             [av(acm_tp, day), av(acm_tp, p), av(acm_fit, day), av(acm_fit, p)])
-
-    # --- DKW: path against premium ---------------------------------------------
-    #
-    # The model's TIPS yield is expected real short rate + real term premium +
-    # TIPS liquidity premium. THE SHARES ARE OF PATH + PREMIUM, the liquidity leg
-    # left out (ruling of 30 Sep 2026, after the first calibration ledger): the
-    # driver's question is path against premium, and the liquidity premium is
-    # neither. Divided by the whole real move, it took 30-47% of three
-    # calibration episodes' moves and kept either side from ever reaching
-    # share_min when one clearly dominated the other.
     ers = _load(db, "dkw.exp_real_short_rate_10y", as_of)
     rtp = _load(db, "dkw.real_term_premium_10y", as_of)
+    kdays = sorted(d for d in kw if d in y10)
+    adays = sorted(d for d in acm_tp if d in acm_fit)
     ddays = sorted(d for d in ers if d in rtp)
-    for i, day in enumerate(ddays):
-        if i < w:
-            continue
-        p = ddays[i - w]
-        d_ers = ers[day][0] - ers[p][0]
-        d_rtp = rtp[day][0] - rtp[p][0]
-        d_sum = d_ers + d_rtp
-        if abs(d_sum) * 100.0 < ATTR_MIN_MOVE_BP:
-            continue
-        parts = [av(s, d) for s in (ers, rtp) for d in (day, p)]
-        emit(f"calc.attr_dkw_path_share_{w}d", day, d_ers / d_sum, parts)
-        emit(f"calc.attr_dkw_tp_share_{w}d", day, d_rtp / d_sum, parts)
+    for w in MODEL_WINDOWS:
+        for i, day in enumerate(kdays):
+            if i < w:
+                continue
+            p = kdays[i - w]
+            d10 = (y10[day][0] - y10[p][0]) * 100.0
+            if abs(d10) < ATTR_MIN_MOVE_BP:
+                continue
+            emit(f"calc.attr_kw_tp_share_{w}d", day,
+                 (kw[day][0] - kw[p][0]) * 100.0 / d10,
+                 [av(kw, day), av(kw, p), av(y10, day), av(y10, p)])
+
+        # --- ACM: term premium over ACM's own fitted yield ---------------------
+        for i, day in enumerate(adays):
+            if i < w:
+                continue
+            p = adays[i - w]
+            dfit = (acm_fit[day][0] - acm_fit[p][0]) * 100.0
+            if abs(dfit) < ATTR_MIN_MOVE_BP:
+                continue
+            emit(f"calc.attr_acm_tp_share_{w}d", day,
+                 (acm_tp[day][0] - acm_tp[p][0]) * 100.0 / dfit,
+                 [av(acm_tp, day), av(acm_tp, p), av(acm_fit, day),
+                  av(acm_fit, p)])
+
+        # --- DKW: path against premium -----------------------------------------
+        #
+        # The model's TIPS yield is expected real short rate + real term premium
+        # + TIPS liquidity premium. THE SHARES ARE OF PATH + PREMIUM, the
+        # liquidity leg left out (ruling of 30 Sep 2026): the question is path
+        # against premium, and the liquidity premium is neither -- divided by the
+        # whole real move it took 30-47% of three calibration episodes' moves.
+        for i, day in enumerate(ddays):
+            if i < w:
+                continue
+            p = ddays[i - w]
+            d_ers = ers[day][0] - ers[p][0]
+            d_rtp = rtp[day][0] - rtp[p][0]
+            d_sum = d_ers + d_rtp
+            if abs(d_sum) * 100.0 < ATTR_MIN_MOVE_BP:
+                continue
+            parts = [av(s_, d) for s_ in (ers, rtp) for d in (day, p)]
+            emit(f"calc.attr_dkw_path_share_{w}d", day, d_ers / d_sum, parts)
+            emit(f"calc.attr_dkw_tp_share_{w}d", day, d_rtp / d_sum, parts)
 
     # --- THE STOCK-BOND CORRELATION, once --------------------------------------
     spy, tlt = _load(db, SPY, as_of), _load(db, TLT, as_of)
