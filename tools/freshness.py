@@ -251,7 +251,11 @@ def assess(key: str, half_life: str, instrument: Optional[str] = None,
                            f"completed session is {last_session}")
             v["unblock"] = f"run the EOD pass for {last_session}"
     elif half_life == "until_next_release":
-        freq = _fred_freq(key) or "monthly"
+        # The member's own cadence where the registry has one (a bulk member
+        # carries its series' freq), then FRED's SeriesSpec, then monthly.
+        from altdata import derived  # noqa: PLC0415
+        freq = (derived.registry_entry(key).get("freq") or _fred_freq(key)
+                or "monthly")
         bound = FREQ_MAX_AGE_DAYS.get(freq, 45)
         if (info["age_days"] or 0) <= bound:
             v.update(stale=False,
@@ -274,25 +278,34 @@ def assess(key: str, half_life: str, instrument: Optional[str] = None,
     return v
 
 
+def _entry(key: str) -> Optional[dict]:
+    """The registry entry for a signal, BULK MEMBERS INCLUDED.
+
+    Phase 5a's finding 5: this read `metrics:` and special-cased FRED, so every
+    key registered by a bulk block -- the 41-symbol price basket above all,
+    yfinance.mkt_spy -- came back "not in metrics_registry.yaml" and any decision
+    citing a price was DECISION_BLOCKED on a bar sitting in the store. The fix is
+    to resolve the way everything else does: altdata.derived expands each bulk
+    block from its own member list (yfinance_source.SYMBOLS for the prices --
+    the list the feeds roster pulls from -- and FRED_PULL_SERIES for FRED), so
+    a real member resolves and a typo still does not: "fred.anything" has no
+    member behind it and stays unregistered rather than failing as missing
+    data, which would blame the pipeline for a typo.
+    """
+    from altdata import derived  # noqa: PLC0415
+    e = derived.registry_entry(key)
+    return e or None
+
+
 def check_signals(keys: list, instrument: Optional[str] = None,
                   now: Optional[str] = None) -> dict:
     """Assess every declared signal. Returns verdicts and a blocked_reason."""
-    reg = _registry()
-    metrics = reg.get("metrics") or {}
-    fred_block = (reg.get("bulk_imports") or {}).get("fred_macro") or {}
-
     verdicts = []
     unknown = []
     for key in keys:
-        m = metrics.get(key)
-        if m:
+        m = _entry(key)
+        if m and m.get("information_half_life"):
             half = m.get("information_half_life")
-        elif key.startswith("fred.") and _fred_freq(key):
-            # Registered by the bulk block, but only if the series actually
-            # exists in config.FRED_PULL_SERIES -- otherwise "fred.anything" would
-            # pass the registry check and then fail as missing data, which
-            # blames the pipeline for a typo.
-            half = fred_block.get("information_half_life")
         else:
             unknown.append(key)
             verdicts.append({"key": key, "found": False, "stale": True,

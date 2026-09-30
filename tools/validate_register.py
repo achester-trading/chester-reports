@@ -721,6 +721,70 @@ def group_d() -> None:
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# I. BULK-REGISTERED SIGNALS RESOLVE (Phase 5a finding 5, fixed in P5-B)
+# ---------------------------------------------------------------------------
+def group_i(td: str) -> None:
+    print(f"\n{LINE}\nI. SIGNAL FRESHNESS RESOLVES BULK-REGISTERED KEYS\n{LINE}")
+    import datetime as dt
+    import freshness                             # noqa: PLC0415
+    obs_db = str(Path(td) / "fresh_obs.db")
+    last = session.last_trading_session()
+    old = last - dt.timedelta(days=14)
+    with observations.ObservationStore(obs_db) as st:
+        st.write_many([
+            {"registry_key": "yfinance.mkt_spy", "instrument": None,
+             "observed_at": last.isoformat(),
+             "available_at": f"{last.isoformat()}T21:00:00+00:00",
+             "value": 700.0, "source": "synthetic"},
+            {"registry_key": "yfinance.mkt_qqq", "instrument": None,
+             "observed_at": old.isoformat(),
+             "available_at": f"{old.isoformat()}T21:00:00+00:00",
+             "value": 500.0, "source": "synthetic"}])
+    saved = observations.DEFAULT_DB
+    observations.DEFAULT_DB = obs_db
+    try:
+        r = freshness.check_signals(["yfinance.mkt_spy"], "SPY")
+        v = r["verdicts"][0]
+        check(not r["blocked"] and not r["unknown"] and v["half_life"] == "session",
+              f"yfinance.mkt_spy, a BULK-registered price key with a bar from the "
+              f"latest completed session ({last}), resolves and passes "
+              f"({v['reason']})")
+        r = freshness.check_signals(["yfinance.mkt_qqq"], "QQQ")
+        v = r["verdicts"][0]
+        check(r["blocked"] and not r["unknown"] and "latest completed session"
+              in v["reason"],
+              f"yfinance.mkt_qqq with its newest bar outside its allowance "
+              f"({old}) is BLOCKED as stale, not as unregistered ({v['reason']})")
+        r = freshness.check_signals(["fred.anything"], "SPY")
+        check(r["blocked"] and r["unknown"] == ["fred.anything"],
+              "a key no bulk block has a member for is still unregistered -- a "
+              "typo is not blamed on the pipeline")
+        r = freshness.check_signals(["yfinance.mkt_nosuch"], "SPY")
+        check(r["unknown"] == ["yfinance.mkt_nosuch"],
+              "nor does the price prefix alone register a key")
+    finally:
+        observations.DEFAULT_DB = saved
+
+    # AND THROUGH THE CLI, which is where finding 5 bit.
+    reg_db = str(Path(td) / "fresh_reg.db")
+    env = {**os.environ, "CHESTER_DB": obs_db}
+    base = [sys.executable, str(REPO / "tools" / "decide.py"), "--db", reg_db,
+            "record", "--instrument", "SPY", "--direction", "long",
+            "--thesis", "t", "--edge-type", "positioning", "--horizon", "swing",
+            "--invalidation", "below 760", "--dry-run", "--signals-used"]
+    ok_run = subprocess.run(base + ["yfinance.mkt_spy"], capture_output=True,
+                            text=True, cwd=str(REPO), env=env)
+    check(ok_run.returncode == 0 and "DECISION_BLOCKED" not in ok_run.stdout,
+          f"decide.py record citing yfinance.mkt_spy with a current bar is not "
+          f"blocked (rc {ok_run.returncode})")
+    bad_run = subprocess.run(base + ["yfinance.mkt_qqq"], capture_output=True,
+                             text=True, cwd=str(REPO), env=env)
+    check("DECISION_BLOCKED" in bad_run.stdout,
+          "and citing yfinance.mkt_qqq, whose bar is past its allowance, is "
+          "DECISION_BLOCKED")
+
+
 def main() -> int:
     print(f"{LINE}\nRegister and point-in-time validation   {session.describe()}\n{LINE}")
     # ignore_cleanup_errors: on Windows a SQLite file cannot be unlinked while
@@ -734,6 +798,7 @@ def main() -> int:
         group_c(db)
         group_e(db, td)
         group_h(db)
+        group_i(td)
     group_f()
     group_d()
 
