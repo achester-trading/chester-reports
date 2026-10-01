@@ -4,10 +4,10 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XX** — with the market-timing layer, beside *Tops and Bottoms* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-**Version:** 1.3 — September 2026
+**Version:** 1.4 — September 2026
 **Status:** Reference. Consulted before a thesis is written, not after. Figures are recomputed annually and on any methodology change; every number carries its window and its source class.
 
-**Erratum pending, 27 September 2026 — for the next revision; the text below is not yet changed.** Chapter 3.1 states the presidential-cycle conditional as forward returns measured **from the midterm-year low**, and Appendix A repeats it. That anchor is known only in hindsight: the year's low is fixed on 31 December, and any series measured from its own minimum rises, so the statistic cannot be a forecast. On ^GSPC closes it makes 18 of the 19 post-war midterm cycles (1950–2022) clear +15% in the following twelve months — a selection artefact, not a rate. The ex-ante form is computed as `baserate.midterm_from_election`: the close twelve months after midterm election day against the close on election day, printed beside the same anchor in every year and in the non-midterm years, each with its n, and a second window from 1 October of the midterm year to 31 March of the next. On that form the midterm years were up 19 times in 19 against a 0.75 rate in all 73 years from the same anchor. The effect survives the correction; its measured size does not. The narrative register's midterm hypothesis cites this chapter for the statement and the table for every number. The revision should replace the sentence, not add to it.
+**Revision, 30 September 2026 (v1.3 → v1.4).** Three changes. (1) **Chapter 3.1's presidential-cycle conditional is restated ex ante.** The v1.3 text measured forward returns *from the midterm-year low*, which is known only in hindsight. It now leads with the election-day form — 19 of 19 midterm years up over the following twelve months against 55 of 73 in all years (0.753) — and flags the low-anchored form as a hindsight statistic. With it the paper adopts a convention for every conditional rate: printed beside its unconditional rate, with both n's. (2) **Part I is the computed tables.** Each figure is the stored `tools/base_rates.py` table value as of 30 September 2026, cited by its `baserate.` id rather than restated by hand. A figure the tables do not compute is labelled cited or illustrative. Several v1.3 prose figures move to their computed values: the daily up-share is 52.4%, not ~54%; a ±2% move comes in 7 sessions in the median year, not 10–12; and a 20% swing decline comes every 3.7 years, not 4–5. (3) **Section 2.4 settles the bear-market count**: twelve computed from the running maximum, thirteen narrated, and which the paper uses for what. The v1.3 erratum below is kept as the record of how the difference was found.
 
 **Erratum, 23 September 2026 (v1.2 → v1.3) — twelve computed, thirteen narrated.** `baserate.drawdown_by_depth` counts **twelve** bear markets where this paper's narrative counts **thirteen**, and the two do not reconcile because they are not the same question. The computed count is episodes of −20% or worse **from the running maximum on closing prices, ^GSPC from 30 December 1927** — one episode per unrecovered decline. Four of the narrated thirteen fall outside it. **1907** predates the series. **1937–38** (−54.5% from its own March 1937 high) and **1946–47** (−28.5%) both sit *inside* the 1929 episode, whose September 1929 peak was not recovered until 22 September 1954: under a running-maximum definition no new episode can open while the old one is unrecovered, which is the same property that makes 1929–32 one −86% event rather than two hundred small ones. And **1990** is a near-miss on closes — **−19.92%** from 16 July to 11 October 1990, eight hundredths of a point short of the rule — which *Tops and Bottoms* includes by near-universal convention and because a recession accompanied it. Three run the other way, computed but not narrated: **1956–57** (−21.5%), **1966** (−22.2%) and **1968–70** (−36.1%), all qualifying on the rule and all falling in the gap between the five mechanism-bearing episodes Chapter 11 selects and the post-1970 roster that starts in 1970. Nine are common to both. **The definition governs the figure:** any number carried under `baserate.drawdown_by_depth` — including the counter-trend-rally row the Monthly prints — is a distribution over the computed twelve, while the narrated thirteen remains the *calibration* sample *Tops and Bottoms* scores against. Where this paper says "thirteen", read: thirteen narrated, twelve computed.
 
@@ -17,9 +17,9 @@
 
 ### Reader's note
 
-Every other paper in this library explains a mechanism. This one supplies the denominators. It exists because the Operating Doctrine's central edge concept — variant perception — is arithmetic on a base rate: to hold a view that differs from consensus you must first know what ordinarily happens, and most trading error is a failure of that first step rather than of the second. A trader who does not know that the S&P 500 has closed higher on roughly 54% of days since 1928 will read a three-day losing streak as information. A trader who does not know that a 10% drawdown occurs in most years will treat one as a regime change. A trader who does not know that the median analyst estimate is beaten about three-quarters of the time will read a beat as a surprise.
+Every other paper in this library explains a mechanism. This one supplies the denominators. It exists because the Operating Doctrine's central edge concept — variant perception — is arithmetic on a base rate: to hold a view that differs from consensus you must first know what ordinarily happens, and most trading error is a failure of that first step rather than of the second. A trader who does not know that the S&P 500 has closed higher on 52.4% of sessions since 1927 (`baserate.returns_by_frequency|frequencies.daily.positive_share`) will read a three-day losing streak as information. A trader who does not know that a 10% drawdown occurs in most years will treat one as a regime change. A trader who does not know that the median analyst estimate is beaten about three-quarters of the time will read a beat as a surprise.
 
-The paper is deliberately boring, and that is its function. It is a reference to consult *before* writing a thesis, in the way one consults a mortality table before pricing a policy — a comparison the operator will find familiar. The Doctrine's Rule 6 requires that an edge name its counterparty and say why it persists; this paper is where the claim "and here is what normally happens instead" gets its number.
+The paper is deliberately boring, and that is its function. It is a reference to consult *before* writing a thesis, in the way one consults a mortality table before pricing a policy — a comparison the operator will find familiar. Doctrine Rule 6 requires that an edge name its counterparty and say why it persists; this paper is where the claim "and here is what normally happens instead" gets its number.
 
 ---
 
@@ -27,11 +27,11 @@ The paper is deliberately boring, and that is its function. It is a reference to
 
 *For the reader who will consult the tables later and wants the conclusions now.*
 
-1. **Ordinary is not average.** The interquartile range of a year runs from about −1% to +25%. A year near the +10% mean is rare. Any thesis that needs a "normal year" is a thesis about an uncommon event.
+1. **Ordinary is not average.** The post-war interquartile range of a calendar year runs from about 0% to +22% on price, around a median of +12% (Chapter 1.3). A year near the mean is uncommon. Any thesis that needs a "normal year" is a thesis about an uncommon event.
 
-2. **A 10% decline is an annual event, and half of all years see one.** The average intra-year drawdown is 14%, in years that finish positive three times in four. Treating a correction as the start of 2008 is the specific mechanism by which the Book A floor gets breached, and this operator's record says he does it.
+2. **A 10% decline is an annual event, and most years see one.** The average post-war intra-year drawdown is 13.6%, in years that finish positive on price 72.7% of the time; since 1928, 61.6% of years fell 10% or more at some point (Chapter 2.2). Treating a correction as the start of 2008 is the specific mechanism by which the Book A floor gets breached, and this operator's record says he does it.
 
-3. **A bear takes about a year to complete and contains three to five rallies of 5% or more**, any of which will feel like the bottom. Conviction is unreliable in exactly that window, which is why a short campaign ends on the bottom signal and not on judgment.
+3. **A bear takes a year to a year and a half to complete (median 15.7 months, peak to trough) and contains several rallies of 5% or more**, the largest of them a median +13.5%, any of which will feel like the bottom. Conviction is unreliable in exactly that window, which is why a short campaign ends on the bottom signal and not on judgment.
 
 4. **The equity premium arrives in a minority of days, and those days cluster inside drawdowns.** Being out of the market during stress is not neutral; it is where the return is forfeited. This is the arithmetic behind the allocation floor.
 
@@ -41,13 +41,13 @@ The paper is deliberately boring, and that is its function. It is a reference to
 
 7. **The stock–bond hedge is a regime statistic that one long disinflationary period made look permanent.** 2022 falsified it. The duration sleeve is a deflation hedge specifically — Part IV's central practical claim, arriving here from the correlation table.
 
-8. **Seasonality is real, small, decaying since publication, and never a thesis.** The one exception worth *watching* is the midterm-year cycle — 2026 is one — which enters the register as a hypothesis, not a signal.
+8. **Seasonality is real, small, decaying since publication, and never a thesis.** The one exception worth *watching* is the midterm-year cycle — 2026 is one. Measured ex ante from election day, the midterm years were up 19 times in 19 against 55 in 73 for all years, and the effect enters the register as a dated hypothesis, not a signal (Chapter 3.1).
 
 9. **A beat is not a surprise and guidance beats the print.** Three-quarters of companies beat. The tradeable object is the reaction relative to positioning, and the long single option into a print is a negative-expectancy trade on average because the implied move has slightly exceeded the realized move.
 
 10. **Options decay as √T; a third expire worthless, not ninety percent; same-day expiries are half of index option volume.** The verticals-by-default rule follows from decay and from spread cost together — at Book C's size, a wide single-name option can consume a tenth of the risk budget in the round trip.
 
-11. **The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.** Extending to 1907 takes the sample from eight bears to thirteen and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.
+11. **The U.S. record since 1970 is eight bears, and it excludes the two mechanisms the operator most fears.** Extending to 1907 takes the narrated sample from eight bears to thirteen (the computed count from 1928 is twelve; Chapter 2.4 says why) and adds debt deflation, funding crises outside the regulatory perimeter, and financial repression — the resolution in which bonds, not equities, are destroyed.
 
 12. **The tail the operator worries about sits near the 95th percentile of the historical distribution, not beyond it.** Japan's thirty-four years and 1929's twenty-five are developed-market events within living memory. No single hedge covers both resolutions of a debt cycle. That is why the tail budget is convex and renewed rather than held — and why a portfolio hedged for 2008 is not hedged for 1946.
 
@@ -61,129 +61,140 @@ The paper has three parts. Part I is the return and drawdown distribution — th
 
 # Part I — The Shape of Ordinary
 
+**How Part I's numbers are written.** Every figure computed from data the system holds comes from the stored tables of `tools/base_rates.py`. Each is printed at the precision the table holds and cited by its id, `baserate.<table>|<field>` — the same id a decision packet cites in `base_rate_cited` — so it can be replayed as of the date it was read rather than retyped. The figures below are the tables as computed on **30 September 2026** (`base-rates-method-1`; ^GSPC closes from 30 December 1927 to 29 September 2026, VIX from 2 January 1990). They are **price returns**: the store holds dividend-unadjusted closes, so an annual figure here is roughly two points below the total-return figure the literature quotes, and where the paper uses a total-return figure it says so and names it as cited. A figure the tables do not compute is labelled with its source class. Each section gives the prose first and the cheat-sheet table after.
+
+**Every conditional rate is printed beside its unconditional rate, with both n's.** A conditional rate alone cannot say whether the condition did anything, and the reader should never have to look up the denominator.
+
 ## Chapter 1 — Returns
 
 ### 1.1 The distribution, at four frequencies
 
-| Horizon | Positive share | Median | Mean | Notes |
-|---|---|---|---|---|
-| Daily | ~54% | ~+0.04% | ~+0.03% | The mean is below the median because the left tail is fatter; the gap is the whole subject of Chapter 2 |
-| Weekly | ~56–57% | ~+0.2% | ~+0.15% | |
-| Monthly | ~62–63% | ~+1.0% | ~+0.7% | |
-| Calendar year | ~73–75% | ~+12% | ~+10% total return; ~+8% price | Since 1928; the post-1950 figures are one to two points higher |
-| Rolling 10-year | ~95% positive nominal | ~+7%/yr | | Negative decades exist: the 1930s, the 2000s |
-| Rolling 20-year | 100% positive nominal in the U.S. sample | | | *The sample is one country that won the century — see 9.2* |
+The S&P 500 closed higher on **52.4%** of the 24,802 sessions since 1927. It rose in **59.6%** of 1,185 months, and in **74.0%** of the 77 post-war calendar years on price alone, against **67.7%** of all 99 years. A coin-flip edge at the daily frequency becomes a three-in-four edge at the annual one: the positive-share column is the cost of sitting out. The operator who is out of the market "waiting for clarity" is declining a three-in-four bet, every year, on the strength of a near coin-flip daily read.
 
-*Source class: computed from public index series, 1928–2026.*
+The mean sits below the median at every frequency. The daily median is **+0.05%** against a mean of **+0.03%**; the monthly median is **+0.94%** against a mean of **+0.66%**. The annual price-return mean is **+8.1%** against a median of **+11.8%**. The distribution is left-skewed: a few very bad days pull the average down. That is not a reason to be out. It is the reason the Doctrine has a volatile-day protocol rather than a market-timing rule — the bad days are handled by size, not by absence. For the short side the same column is the base rate against the position — 52% of days, 60% of months, three years in four — and a short thesis must name what makes this the minority case. The Doctrine's extra-confirmation rule for shorts is that requirement made procedural.
 
-**What to take from this table.**
+Two readings matter most. **The equity risk premium arrives in a minority of the time.** A small number of very good days carry the compounded return. The often-cited finding that missing the best ten or twenty days over a multi-decade span destroys most of the return is real, with the essential companion fact that those days cluster inside drawdowns, adjacent to the worst days. This is the arithmetic behind the Doctrine's Book A floor: being out of the market during stress is not a neutral act. **And the annual mean is not a typical year.** Returns cluster away from their own average, and a year near it is uncommon. Multi-decade rows — rolling ten-year returns positive in roughly 95% of windows, rolling twenty-year windows positive throughout the U.S. sample — are *cited from the long-run literature, not computed here*, and they describe one country that won the century (Chapter 16): use them to size patience, not to promise outcomes. The total-return annual mean of roughly +10% is likewise cited; the computed figure is the price return.
 
-- *Read the positive-share column as the cost of sitting out.* A 54% daily edge is invisible; a 74% annual edge is the whole game. The operator who is out of the market "waiting for clarity" is declining a three-in-four bet, every year, on the strength of a coin-flip daily read.
-- *The mean is below the median at every frequency.* The distribution is left-skewed — a few very bad days pull the average down. This is not a reason to be out; it is the reason the Doctrine has a volatile-day protocol rather than a market-timing rule. The bad days are handled by size, not by absence.
-- *The ten-year and twenty-year rows describe one country.* Chapter 16 says why they cannot be generalized. Use them to size patience, not to promise outcomes.
-- *For the short side specifically:* the base rate is against you 54% of days, 62% of months, 74% of years. A short thesis must name what makes this the minority case, and the Doctrine's extra-confirmation rule for shorts is that requirement made procedural.
-
-The two readings that matter most. **The equity risk premium arrives in a minority of the time**: a small number of very good days carry the compounded return, and the frequently cited finding that missing the best ten or twenty days over a multi-decade span destroys most of the return is real, with the essential companion fact that those days cluster inside drawdowns, adjacent to the worst days. This is the arithmetic behind the Doctrine's Book A floor: being out of the market during stress is not a neutral act. **And the annual mean is not a typical year.** Returns cluster in the tails: the S&P's annual return has fallen between +8% and +12% — the neighborhood of its own average — in a small minority of years. "An average year" is a statistical artifact, not an experience.
+| Horizon | Positive share | Median | Mean | n | Cited as |
+|---|---|---|---|---|---|
+| Daily | 52.4% | +0.05% | +0.03% | 24,802 sessions | `baserate.returns_by_frequency\|frequencies.daily.positive_share`, `…daily.median`, `…daily.mean` |
+| Monthly | 59.6% | +0.94% | +0.66% | 1,185 months | `…\|frequencies.monthly.positive_share`, `…monthly.median`, `…monthly.mean` |
+| Calendar year, price, 1928– | 67.7% | +11.8% | +8.1% | 99 years | `…\|frequencies.annual.positive_share`, `…annual.median`, `…annual.mean` |
+| Calendar year, price, post-war | 74.0% | +12.3% | +9.6% | 77 years | `…\|frequencies.annual.postwar.positive_share`, `…postwar.median`, `…postwar.mean` |
+| Calendar year, total return | ~73–75% | ~+12% | ~+10% | — | *Cited, not computed: the store holds price returns* |
+| Rolling 10- / 20-year, nominal | ~95% / 100% (U.S.) | ~+7%/yr | — | — | *Cited from the long-run literature; one country* |
 
 ### 1.2 Volatility
 
-| Measure | Typical | Calm regime | Stressed | Crisis |
-|---|---|---|---|---|
-| Realized volatility, S&P 500, annualized | ~15–16% long-run | 8–12% | 20–30% | 40%+ |
-| VIX, median | ~17–18 | <15 | 20–30 | >35 |
-| Days per year with a ±1% move | ~50–60 | ~20 | ~90 | 120+ |
-| Days per year with a ±2% move | ~10–12 | ~2 | ~25 | 40+ |
-| Largest single-day decline in a typical year | ~−3% | | | 1987: −20.5%; 2020: −12.0%; 2008: −9.0% |
+The ordinary texture of the market is a ±1% session roughly once a week. The median calendar year since 1928 had **54** sessions with a close-to-close move of 1% or more and **7** with 2% or more, across 99 years. A 1% move is not news, not a signal and not a reason to touch a position; the volatile-day protocol's triggers sit well above it for that reason. The worst single session in the sample, **−20.47%**, is 19 October 1987. VIX's median close since 1990 is **17.58**.
 
-*Source class: computed.* Volatility clusters — the autocorrelation of absolute returns is one of the most robust facts in finance — which is why the Doctrine's Volatility dial is a state rather than a level, and why the volatile-day protocol assumes the next day resembles this one more than it resembles the average.
+Volatility clusters — the autocorrelation of absolute returns is one of the most robust facts in finance. That is why the Doctrine's Volatility dial is a state rather than a level, and why the volatile-day protocol assumes the next day resembles this one more than it resembles the average. The first ±2% day is the best predictor of the second: reduce on the first, not the third. The operator's record of "periodic damage in extreme volatility" is, mechanically, a record of acting on the third. The calm and stressed columns of the regime view — realized volatility of 8–12% in calm, 20–30% stressed, 40%+ in crisis — are *illustrative regime bands, not computed figures*. The calm column is where Book C's fade-toward-pin setup lives and the stressed column is where it dies: same setup, opposite expectancy, and the trust matrix's regime rows are those columns.
 
-**What to take from this table.**
-
-- *Fifty ±1% days a year is the ordinary texture of the market.* A 1% move is not news, not a signal, and not a reason to touch a position. The volatile-day protocol's triggers are set well above this level for that reason.
-- *The largest single-day decline in an ordinary year is about −3%.* Anything larger is regime information — a Rising or Stressed reading — and is the moment to halve size rather than to judge the move.
-- *Volatility clusters, so the first ±2% day is the best predictor of the second.* Reduce on the first, not the third. The operator's record of "periodic damage in extreme volatility" is, mechanically, a record of acting on the third.
-- *The Calm column is where Book C's fade-toward-pin setup lives and the Stressed column is where it dies.* Same setup, opposite expectancy — the trust matrix's regime rows are this table's columns.
+| Measure | Value | n | Cited as |
+|---|---|---|---|
+| Sessions a year with a ±1% move, median | 54 | 99 years | `baserate.vix_distribution\|move_counts_per_year.abs_1pct.median` |
+| Sessions a year with a ±2% move, median | 7 | 99 years | `baserate.vix_distribution\|move_counts_per_year.abs_2pct.median` |
+| Worst single session, 1928– | −20.47% (19 Oct 1987) | 24,802 sessions | `baserate.returns_by_frequency\|frequencies.daily.min` |
+| VIX median close, 1990– | 17.58 | 9,254 sessions | `baserate.vix_distribution\|level_distribution.median` |
+| Realized volatility by regime | 8–12% calm / 20–30% stressed / 40%+ crisis | — | *Illustrative regime bands, not computed* |
 
 ### 1.3 Percentiles, not averages
 
-The mean is the least useful summary of any of these distributions, and the paper gives quartiles wherever it can. The convention throughout: **p25 / median / p75**, with the mean beside them when the gap between mean and median is itself informative.
+The mean is the least useful summary of any of these distributions, and the paper gives quartiles wherever it can: **p25 / median / p75**, with the mean beside them when the gap between mean and median is itself informative.
 
-| Series | p25 | Median | p75 | Mean | Read |
-|---|---|---|---|---|---|
-| Daily return | −0.50% | +0.05% | +0.58% | +0.03% | Mean below median: the left tail is fatter |
-| Monthly return | −1.9% | +1.1% | +3.6% | +0.7% | A typical month is a small gain |
-| Annual total return | ~−1% | ~+12% | ~+25% | ~+10% | **The middle two quartiles span −1% to +25%** — this is what "ordinary" means for a year |
-| Intra-year max drawdown, **1950–2026** | −6% | −10% | −18% | −14% | Half of all years see a decline of 10% or worse |
-| Intra-year max drawdown, **1928–2026** | −8% | −13% | −20% | −16% | Three points deeper at every quartile. The difference is 1929–32 and 1937–38 |
-| VIX daily close | ~13.5 | ~17.6 | ~22.5 | ~19.5 | p95 near 33; the distribution is heavily right-skewed |
+The annual row is the one to carry. On price, the post-war calendar year runs from **−0.0%** at p25 to **+21.7%** at p75 around a median of **+12.3%**. On the full sample it runs from **−4.9%** to **+22.4%**. One year in four is roughly flat to down, and a flat year is not a failed year or evidence that a thesis was wrong — it is the lower quartile of ordinary. A position sized so that a flat year is survivable and a +22% year is participated in is sized to the distribution; a position sized to the mean is sized to a fiction. Any thesis whose payoff depends on a "normal year" is a thesis about a rare event.
 
-*Source class: computed from public index series. Returns 1928–2026; VIX 1990–2026. **The intra-year drawdown rows are stated for two windows on purpose** — the widely circulated figures are post-war, and the full sample that includes the Depression is materially deeper. Quote the window with the number or the number means nothing. Drawdowns are measured from the running peak WITHIN the calendar year, on closing prices; an intraday measurement is deeper again by a point or more in a volatile year. Figures rounded; recomputed from the store by `tools/base_rates.py` and carried as observations under `baserate.intra_year_drawdown`.*
+The intra-year maximum drawdown is stated for **two windows on purpose**. The widely circulated figures are post-war, and the full sample that contains the Depression is materially deeper. Post-war, the quartiles are **−7.6% / −10.3% / −17.2%** of depth, with a mean of **−13.6%**. Since 1928 they are **−7.7% / −13.1% / −20.3%**, with a mean of **−16.2%**. Quote the window with the number or the number means nothing. The p75 matters most for the book: one year in four contains a decline that would trip the Doctrine's Drawdown I switch if it were fully held with no regime response. The bands exist so that it is not fully held when the Volatility dial has already said Stressed. Drawdowns are measured from the running peak *within* the calendar year on closing prices; an intraday measurement is deeper again by a point or more in a volatile year.
 
-**What to take from this table.**
+VIX's quartiles since 1990 are **13.99 / 17.58 / 22.68**, with **32.92** at p95. A VIX in the low twenties is the upper-ordinary range, not stress. Stress begins near the p95, which is where the volatile-day protocol's threshold sits, on purpose.
 
-- *The p25 annual return is about −1%.* One year in four is roughly flat-to-down. A flat year is not a failed year and not evidence that a thesis was wrong; it is the lower quartile of ordinary.
-- *The p75 intra-year drawdown is −18%.* One year in four contains a decline that would trip the Doctrine's Drawdown I switch if it were fully held with no regime response. The bands exist so that it is not fully held when the Volatility dial has already said Stressed.
-- *VIX's median is about 17.6 and its p75 about 22.5.* A VIX in the low twenties is the upper-ordinary range, not stress. Stress begins near the p95, around 33 — which is where the volatile-day protocol's threshold sits, on purpose.
-- *For sizing:* the interquartile range of a year is twenty-six points wide. A position sized so that a −1% year is survivable and a +25% year is participated in is a position sized to the distribution. A position sized to the mean is sized to a fiction.
-
-The annual row is the one to carry. A year that ends −1% and a year that ends +25% are both inside the interquartile range: **the ordinary experience of a year is nothing like +10%.** Any thesis whose payoff depends on a "normal year" is a thesis about a rare event.
+| Series | p25 | Median | p75 | Mean | n | Cited as |
+|---|---|---|---|---|---|---|
+| Daily return | −0.45% | +0.05% | +0.55% | +0.03% | 24,802 | `baserate.returns_by_frequency\|frequencies.daily.p25`, `.median`, `.p75` |
+| Monthly return | −1.89% | +0.94% | +3.58% | +0.66% | 1,185 | `…\|frequencies.monthly.p25`, `.median`, `.p75` |
+| Annual price return, post-war | −0.0% | +12.3% | +21.7% | +9.6% | 77 | `…\|frequencies.annual.postwar.p25`, `.median`, `.p75` |
+| Annual price return, 1928– | −4.9% | +11.8% | +22.4% | +8.1% | 99 | `…\|frequencies.annual.p25`, `.median`, `.p75` |
+| Intra-year max drawdown, **1950–** | −7.6% | −10.3% | −17.2% | −13.6% | 77 | `baserate.intra_year_drawdown\|postwar.by_depth.p25`, `.median`, `.p75`, `.mean` |
+| Intra-year max drawdown, **1928–** | −7.7% | −13.1% | −20.3% | −16.2% | 99 | `baserate.intra_year_drawdown\|by_depth.p25`, `.median`, `.p75`, `.mean` |
+| VIX daily close, 1990– (p95 32.92) | 13.99 | 17.58 | 22.68 | — | 9,254 | `baserate.vix_distribution\|level_distribution.p25`, `.median`, `.p75`; `…\|percentile_grid.95.0` |
 
 ## Chapter 2 — Drawdowns
 
 ### 2.1 Frequency and duration — the table to memorize
 
-| Drawdown from peak | Frequency | Median duration peak-to-trough | Median time to recover |
-|---|---|---|---|
-| −5% | 3–4 times a year | ~2 weeks | ~1 month |
-| −10% (correction) | about once a year | ~1–2 months | ~3–4 months |
-| −15% | about every 2 years | ~3 months | ~6 months |
-| −20% (bear) | about every 4–5 years | ~9–10 months | ~1.5–2 years |
-| −30% | about every decade | ~12 months | ~2–4 years |
-| −50%+ | twice since 1928 excluding the Depression's −86% | 15–25 months | 4–7 years |
+The drawdown ladder counts declines of a given size from a local high, each turn confirmed by the same size (the *threshold-swing* definition — the operator's question of how often a drop of this size is sat through). Since 1928 the index has fallen 5% about **3.4** times a year and 10% about **1.0** times a year. It has fallen 15% about **0.48** times a year, once every two years. A 20% decline has come every **3.7** years and a 30% decline every **7.6** years.
 
-*Source class: computed from index series; consistent with the episode set in* Tops and Bottoms *and Part III below.*
+The ladder maps directly onto the Doctrine's switches. A −5% decline three or four times a year is noise the daily switch should never see. A −10% decline about once a year is the correction the weekly and monthly switches are calibrated against. A −20% decline every three to four years is the bear the Drawdown I switch and the regime dials exist for. Each switch is set at a frequency, and the frequencies are these.
 
-The same episodes as a distribution rather than as averages:
+| Decline from a local high | Frequency | Median months, peak to trough | Median months to recover | n declines | Cited as |
+|---|---|---|---|---|---|
+| −5% | 3.42 a year | 0.8 | 1.8 | 339 | `baserate.drawdown_by_depth\|bands.-5%.threshold_swings.full_sample.per_year` |
+| −10% (correction) | 1.04 a year | 2.1 | 5.0 | 103 | `…\|bands.-10%.threshold_swings.full_sample.per_year` |
+| −15% | 0.48 a year | 3.3 | 7.9 | 47 | `…\|bands.-15%.threshold_swings.full_sample.per_year` |
+| −20% (bear) | every 3.67 years | 8.0 | 21.5 | 27 | `…\|bands.-20%.threshold_swings.full_sample.years_between` |
+| −30% | every 7.62 years | 16.9 | 33.5 | 13 | `…\|bands.-30%.threshold_swings.full_sample.years_between` |
 
-| Bear-market property | p25 | Median | p75 | Extreme in sample |
-|---|---|---|---|---|
-| Depth (peak to trough) | −22% | −30% | −48% | −86% (1929–32) |
-| Duration, peak to trough | ~6 months | ~11 months | ~20 months | 34 months (1929–32) |
-| Time to recover the prior peak | ~5 months | ~2 years | ~4–5 years | 25 years nominal (1929–54); 34 years (Japan, 1989–2024) |
-| Largest counter-trend rally inside the decline | +7% | +10% | +16% | +46% (Nov 1929–Apr 1930) |
+*The duration columns are the same table's `median_months_peak_to_trough` and `median_months_to_recover_peak` fields for each band.*
 
-*Source class: computed across the extended episode set of Part III; small samples — see Chapter 16.*
+The same bears as a *distribution* use a different definition. A bear here is an episode measured from the **running maximum** — the loss from the high-water mark, opening below it and closing only when it is recovered (the portfolio's question). Section 2.4 explains why that gives twelve episodes and the narrated roster thirteen. Across those twelve, depth runs **−26.7% / −33.7% / −48.4%** at p25 / median / p75, and the deepest is **−86.2%** (1929–32). The median bear takes **15.7** months from peak to trough and **17.4** months to recover the prior peak. The largest counter-trend rally inside each decline has a median of **+13.5%** and a p75 of **+18.4%**; the largest of all is **+46.8%** (November 1929 to April 1930).
 
-**What to take from these two tables.**
+One bear in four is a halving. The allocation bands' floors are set so that the book participates, and the bands' ceilings so that a halving costs the book its band-weighted share and not the whole. A book that is de-risked at the bottom and waits for "confirmation" will typically miss the first part of a recovery whose median is about a year and a half — which, by Chapter 1's clustering finding, is where a disproportionate share of the return lives. The bottom-signal override exists to force re-entry against this instinct. The counter-trend rally row is the short-seller's table. A short campaign will face several of these, and each will look like the turn. The rule that a short closes on the bottom signal, not on conviction, is written against this row.
 
-- *The drawdown ladder maps directly to the Doctrine's switches.* −5% three or four times a year is noise the daily switch should never see; −10% about annually is the correction the weekly and monthly switches are calibrated against; −20% every four or five years is the bear the Drawdown I switch and the regime dials exist for. Each switch is set at a frequency, and the frequencies are these.
-- *Median recovery from a bear is about two years; p75 is four to five.* A book that is de-risked at the bottom and waits for "confirmation" will typically miss the first year of a two-year recovery — which, by Chapter 1's clustering finding, is where a disproportionate share of the return lives. The bottom-signal override exists to force re-entry against this instinct.
-- *The p75 bear is −48%.* One bear in four is a halving. The allocation bands' floors are set so that the book participates; the bands' ceilings are set so that a halving costs the book its band-weighted share and not the whole.
-- *The counter-trend rally row is the short-seller's table.* Median +10%, p75 +16%, extreme +46%. A short campaign will face three to five of these, and each will look like the turn. The rule that a short closes on the bottom signal — not on conviction — is written against this row.
+| Bear property (running maximum, 12 episodes) | p25 | Median | p75 | Extreme | Cited as |
+|---|---|---|---|---|---|
+| Depth, peak to trough | −26.7% | −33.7% | −48.4% | −86.2% (1929–32) | `baserate.drawdown_by_depth\|bear_properties.depth_by_depth.p25`, `.median`, `.p75`, `.deepest` |
+| Months, peak to trough | 7.6 | 15.7 | 20.6 | 32.3 (1929–32) | `…\|bear_properties.months_peak_to_trough.p25`, `.median`, `.p75`, `.max` |
+| Months to recover the prior peak | 10.0 | 17.4 | 50.4 | 265 (1929–54) | `…\|bear_properties.months_trough_to_recovery.p25`, `.median`, `.p75`, `.max` |
+| Largest counter-trend rally inside | +9.7% | +13.5% | +18.4% | +46.8% (Nov 1929–Apr 1930) | `…\|bear_properties.largest_counter_trend_rally_pct.p25`, `.median`, `.p75`, `.max` |
 
-The operator's stated history includes being under-invested since 2008 and periodically damaged in extreme volatility. Both are addressed by different rows of this table. **A −10% drawdown is an annual event, not a signal** — treating each as the beginning of 2008 is the mechanism by which the Book A floor gets breached. **And a −20% bear takes the better part of a year to complete** — which is why the Doctrine's Top & Bottom override permits adding at the bottom rather than requiring a call at the top, and why a short campaign that has worked for two months is not thereby vindicated.
+*Japan's 34 years to recover its 1989 peak is outside this U.S. table; it is cited in Part IV.*
+
+The operator's stated history includes being under-invested since 2008 and periodically damaged in extreme volatility. Different rows of these tables address each. **A −10% decline is an annual event, not a signal** — treating each as the beginning of 2008 is how the Book A floor gets breached. **And a bear takes the better part of a year and a half to complete** — which is why the Doctrine's Top & Bottom override permits adding at the bottom rather than requiring a call at the top, and why a short campaign that has worked for two months is not thereby vindicated.
 
 ### 2.2 Intra-year drawdowns versus annual outcomes
 
-The single most useful fact in this chapter: the average *intra-year* maximum drawdown for the S&P 500 is roughly 14% **since 1950**, and the index still finishes positive in about three years in four. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.
+The single most useful fact in this chapter is that the average intra-year maximum drawdown since 1950 is **−13.6%** (77 years). In those same years the index still finished positive on price **72.7%** of the time. A year with a 12% mid-year decline is an ordinary year. This is the base rate against which every "the market is breaking down" thesis must be written.
 
-**The window is part of the fact.** Over the full 1928–2026 sample the average is about **16%** and the median about **13%**, because the sample then contains 1929–32 and 1937–38. The post-war figure is the right one for an ordinary year in the regime the operator trades; the full-sample figure is the right one for asking how bad an unusual year can be, and Part III is where that question is answered properly. Neither number is wrong and quoting either without its window is.
+**The window is part of the fact.** Over the full sample the average is **−16.2%** and the median **−13.1%** (99 years), because the sample then contains 1929–32 and 1937–38. In **61.6%** of all years since 1928 the index fell 10% or more at some point. The post-war figure is the right one for an ordinary year in the regime the operator trades. The full-sample figure is the right one for asking how bad an unusual year can be, and Part III is where that question is answered properly. Neither number is wrong; quoting either without its window is.
 
-**What to take from it.**
+The operator's known bias — reading a correction as a regime change — has a numerical antidote. At any −10% the question is not "is this 2008?" but "is this the one year in four where the decline exceeds −17%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it. The floor is the instrument here: the bands' floors exist so that a −14% year is held through, not traded around.
 
-- *Write the drawdown number on the card.* Fourteen percent is the ordinary intra-year experience post-war, sixteen across the full sample. A thesis that "the market is breaking down" at −8% is a thesis that this year will be worse than average, and it should say why.
-- *The operator's known bias — reading a correction as a regime change — has a numerical antidote:* the question at any −10% is not "is this 2008?" but "is this the one year in four where it exceeds −18%, and what in the regime dials says so?" If the dials read Calm or Rising, the base rate says buy the dip inside the band, not exit it.
-- *The floor is the instrument here.* The bands' floors exist so that a −14% year is held through, not traded around.
+| Fact | Value | n | Cited as |
+|---|---|---|---|
+| Average intra-year drawdown, 1950– | −13.6% | 77 years | `baserate.intra_year_drawdown\|postwar.by_depth.mean` |
+| Share of those years finishing positive, price | 72.7% | 77 years | `baserate.intra_year_drawdown\|postwar.share_of_years_positive` |
+| Average / median intra-year drawdown, 1928– | −16.2% / −13.1% | 99 years | `…\|by_depth.mean`, `…\|by_depth.median` |
+| Share of years with a 10% decline, 1928– | 61.6% | 99 years | `…\|share_of_years_with_10pct_drawdown` |
 
 ### 2.3 The shape of a decline
 
-Declines are not smooth. Within bear markets, the largest single-day *advances* in history cluster — October 1929, October 2008, March 2020 — and 5%+ counter-trend rallies are routine. The base rate for the operator's short book: **during a −20% or worse decline, expect three to five rallies of 5% or more**, any of which will feel like the bottom. The Doctrine's rule that a short campaign ends on the Top & Bottom bottom signal rather than on conviction exists because this base rate makes conviction unreliable in exactly this window.
+Declines are not smooth. Within bear markets, the largest single-day *advances* in history cluster — October 1929, October 2008, March 2020 — and counter-trend rallies of 5% or more are routine. For the operator's short book this means **expecting several rallies of 5% or more inside any −20% decline**, any of which will feel like the bottom. The count of three to five per bear is a reading of the episode record *cited from Tops and Bottoms*, not a computed figure; the computed size of the largest such rally is in 2.1. The Doctrine's rule that a short campaign ends on the Top & Bottom bottom signal rather than on conviction exists because this base rate makes conviction unreliable in exactly this window.
 
-**What to take from it.**
+The best days live inside the worst months. That is why "sell now, buy back when it's calmer" underperforms holding through: the buy-back happens after the days that mattered. For the short book, size for five rallies, not one. A short sized so that a single +10% counter-trend rally trips its stop will be stopped out of a correct thesis several times per bear, and Book B's short rules are written against this. For the long book, the rally is not the signal. A +13% bounce is the *median* largest rally inside a bear and carries no information about the bottom; the bottom signal is the composite, not the rally.
 
-- *The best days live inside the worst months.* The clustering of the largest advances inside bears is why "sell now, buy back when it's calmer" underperforms holding through: the buy-back happens after the days that mattered.
-- *For the short book, size for five rallies, not one.* A short sized so that a single +10% counter-trend rally trips its stop is a short that will be stopped out of a correct thesis three to five times per bear. Sizing and stop placement in Book B's short rules are written against this row.
-- *For the long book, the rally is not the signal.* A +8% bounce in a −25% decline is the median counter-trend move and carries no information about the bottom. The bottom signal is the composite, not the rally.
+### 2.4 Twelve or thirteen: what counts as a bear market
+
+The paper counts bear markets two ways, and the counts differ because the definitions do.
+
+**The computed count is twelve.** `baserate.drawdown_by_depth|bear_properties.n` counts episodes of −20% or worse **from the running maximum on closing prices**, ^GSPC from 30 December 1927. An episode opens when the index falls below its high-water mark and closes only when that mark is recovered, so no new episode can open while an old one is unrecovered. The same property makes 1929–32 one −86% event rather than a string of smaller ones.
+
+**The narrated roster is thirteen.** It is the five pre-1970 episodes Chapter 11 tells (1907, 1929–32, 1937–38, 1946–47, 1961–62) plus the eight bears since 1970 that *Tops and Bottoms* treats. Nine episodes are in both lists. Four narrated episodes fall outside the computed twelve:
+
+- **1907** predates the series.
+- **1937–38** (−54.5% from its own March 1937 high) and **1946–47** (−28.5%) both sit *inside* the 1929 episode, whose September 1929 peak was not recovered until 22 September 1954.
+- **1990** is a near-miss on closes, at **−19.92%** from 16 July to 11 October 1990 — eight hundredths of a point short of the rule. *Tops and Bottoms* includes it by near-universal convention and because a recession accompanied it.
+
+Three run the other way, computed but not narrated: **1956–57** (−21.5%), **1966** (−22.2%) and **1968–70** (−36.1%). All three qualify on the rule, and all three fall between the episodes Chapter 11 selects and the post-1970 roster.
+
+**This paper uses the computed twelve for every figure.** Every number carried under a `baserate.` id — the bear-property distribution in 2.1, and the counter-trend-rally row the Monthly prints — is a distribution over the twelve. The reason is that a figure cited by id must be reproducible from data by a stated rule, and the narrated roster is a selection: it includes episodes by mechanism and convention, and the series cannot recompute it. The thirteen remains the *calibration* sample *Tops and Bottoms* scores its signals against, and Part III's narrative uses it, because there the question is what each episode's mechanism teaches rather than how often a rule fires. Where this paper says "thirteen", read: thirteen narrated, twelve computed.
+
+A third count exists and is not a bear count at all. The threshold-swing ladder in 2.1 records **27** declines of 20% from a *local* high since 1928 (`…|bands.-20%.threshold_swings.full_sample.declines`). A swing confirmed from a local high can open inside an unrecovered episode, so it counts every −20% leg rather than every new loss from the high-water mark. It is the right definition for "how often is a drop this size sat through" and the wrong one for "how many bear markets".
+
+| Definition | Count, 1928– | Use in this paper | Cited as |
+|---|---|---|---|
+| −20% from the running maximum, closes | 12 | Every computed bear figure | `baserate.drawdown_by_depth\|bear_properties.n` |
+| Narrated roster (Chapter 11 + *Tops and Bottoms*) | 13 (incl. 1907) | Part III's narrative; the calibration sample | *Narrated, not computed* |
+| −20% threshold swings from a local high | 27 | The frequency ladder in 2.1 | `…\|bands.-20%.threshold_swings.full_sample.declines` |
 
 ## Chapter 3 — Seasonality
 
@@ -199,9 +210,21 @@ Seasonality is the part of this paper most likely to be misused, so the chapter 
 
 **September** is the only month with a negative average return in most long U.S. samples, and volatility seasonality peaks in September–October, which is where several of the historical crashes sit. Whether the crash cluster causes the statistic or the statistic is the crash cluster is unresolved; the honest reading is that a five-episode cluster in a century is a small sample making a monthly average look worse than the typical September felt.
 
-**The presidential cycle** is the seasonal effect with the most immediate relevance. In the post-war U.S. record, the third year of the cycle has been the strongest by a wide margin and the second — the midterm year — the weakest, with the largest average intra-year drawdown of the four. The more useful form of the statistic is conditional: **forward returns measured from the midterm-year low have been unusually strong**, on the order of high-teens to twenty-plus percent over the subsequent twelve months across most cycles. **2026 is a midterm year**, which places the current calendar in the weakest quarter of the cycle and, if the pattern holds, ahead of its strongest — a fact the paper records as context rather than as a forecast, and one the prediction-market engine's midterm contracts will price independently.
+**The presidential cycle** is the seasonal effect with the most immediate relevance. In the post-war U.S. record, the third year of the cycle has been the strongest by a wide margin and the second — the midterm year — the weakest, with the largest average intra-year drawdown of the four.
+
+**The conditional is stated ex ante: from election day.** Measured from the close on midterm election day to the close twelve months later, the S&P 500 rose in **19 of 19** post-war midterm cycles (1950–2022). The median gain was **+14.5%** and the quartiles **+8.9% / +20.9%**. The same anchor in every year rose **55 times in 73**, a rate of **0.753**, and in the non-midterm years **36 times in 54**, or **0.667**. The probability of 19 in 19 at the all-years rate is **0.005**. A second window, from 1 October of the midterm year to 31 March of the next — the cycle's historically strongest stretch — rose in **17 of 19** midterm cycles against **51 in 73** across all years (**0.699**). The effect survives being measured without hindsight. Its measured size is the one above, and it carries a binomial p beside it because a 19-year sample is small.
+
+**The "from the midterm-year low" version is a hindsight statistic and is not used.** The widely quoted form of this effect measures forward returns *from the midterm year's low*. That low is known only after it has happened — it is fixed on 31 December of the midterm year — and any series measured from its own minimum rises. On ^GSPC closes that form makes 18 of the 19 post-war cycles clear +15% in the following twelve months, which is a selection artefact, not a rate, and no one could have traded it. The paper records it so a reader who meets it elsewhere knows what it is, and leads with the election-day form instead.
+
+**2026 is a midterm year.** That places the current calendar in the weakest quarter of the cycle and, if the pattern holds, ahead of its strongest. The paper records this as context rather than as a forecast. The narrative register's two dated midterm hypotheses — entered at the close of 30 September 2026 at priors shrunk toward the all-years rates, never 0 or 1 — cite this section for the statement and the table for every number. The prediction-market engine's midterm contracts will price the same question independently.
 
 **Day-of-week, holiday, and expiry effects** are smaller. The Monday effect has largely vanished; pre-holiday sessions retain a mild positive drift; monthly expiry week carries a small positive tilt whose sign is unstable.
+
+| Window (S&P 500, close to close, 1950–2022 midterms) | Midterm years | All years, same window | Non-midterm years | Binomial p (midterm count at the all-years rate) | Cited as |
+|---|---|---|---|---|---|
+| Election day → twelve months later | 19 / 19 (1.000), median +14.5% | 55 / 73 (0.753) | 36 / 54 (0.667) | 0.005 | `baserate.midterm_from_election\|primary`, `…\|primary_unconditional.all_years`, `…\|primary_unconditional.non_midterm_years` |
+| 1 Oct of the midterm year → 31 Mar of the next | 17 / 19 (0.895), median +14.6% | 51 / 73 (0.699) | 34 / 54 (0.630) | 0.045 | `…\|secondary`, `…\|secondary_unconditional.all_years`, `…\|secondary_unconditional.non_midterm_years` |
+| *From the midterm-year low (hindsight)* | *18 / 19 clear +15%* | — | — | — | *Not a rate: the anchor is known only after the fact* |
 
 ### 3.2 The decay problem
 
@@ -209,44 +232,43 @@ McLean and Pontiff's work on published anomalies found that returns decay materi
 
 ### 3.3 The ruling
 
-Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesis.** It may shade the size tier within its band or the timing of an entry already justified on other grounds. It may not generate a packet, and every seasonal metric enters the registry `trigger_eligible: false` permanently — not pending evidence, but by construction, because a calendar effect has no counterparty story that survives the Doctrine's Rule 6. The presidential-cycle conditional is the one exception worth watching rather than trading: it is a *positioning* statement about a crowded consensus in an election year, and it belongs to the register as a hypothesis with a dated entry, graded like any other.
+Seasonality is **a tiebreaker at the margin of an existing thesis, never a thesis.** It may shade the size tier within its band or the timing of an entry already justified on other grounds. It may not generate a packet, and every seasonal metric enters the registry `trigger_eligible: false` permanently — not pending evidence, but by construction, because a calendar effect has no counterparty story that survives Doctrine Rule 6. The presidential-cycle conditional is the one exception worth watching rather than trading: it is a *positioning* statement about a crowded consensus in an election year, and it belongs to the register as a hypothesis with a dated entry, graded like any other.
 
 ## Chapter 4 — Trends, streaks, and mean reversion
 
-| Pattern | Base rate |
-|---|---|
-| Consecutive up days | 2 in a row ~29%; 3 ~16%; 5 ~5%; the record is 12–14 |
-| Consecutive down days | Similar, slightly less persistent |
-| Probability the next day is up given today was up | ~54% — essentially the unconditional rate; **daily direction has almost no memory** |
-| Overnight vs intraday | Since the 1990s, a large majority of the index's cumulative return has accrued overnight rather than during regular hours |
-| Gap fill, same day | Small gaps (<0.5%) fill same-session more often than not; large gaps (>1%) fill same-day well under half the time |
-| Momentum, 12-month minus 1-month, cross-sectional | Positive expectancy over most decades; violent crashes after bear-market bottoms |
-| Mean reversion, 1-month | Weakly negative autocorrelation in single names; the short-term reversal effect |
+Daily direction has almost no memory. The probability that a session closes up **given that the previous session closed up** is **54.2%**. The unconditional probability of an up close is **52.4%**, and after a down close it is **50.4%**. The conditional n is the roughly 13,000 sessions that followed an up close; the unconditional n is all 24,802. The lag-one autocorrelation of daily returns is **−0.014**. A two-point tilt in a coin is not a trend.
 
-*Source class: computed and literature.* The reading for Book B: **trend persistence is a cross-sectional and multi-week phenomenon, not a daily one.** A three-day streak is noise; a name at a 12-month high with 12-month relative strength is a documented anomaly. The Doctrine's Book B entry at a pivotal point rather than on a streak follows directly.
+Streaks are coin sequences. Two up sessions in a row occur **28.5%** of the time, three **15.1%** and five **4.1%** — five in a row happens about one week in twenty-five by chance. The longest run since 1928 is **14** up sessions and **12** down. A streak is not momentum, not exhaustion, and not a reason to act in either direction.
 
-**What to take from this table.**
+**Trend persistence is a cross-sectional and multi-week phenomenon, not a daily one.** A name at a twelve-month high with twelve-month relative strength is a documented anomaly. Cross-sectional momentum (twelve months less one) has positive expectancy over most decades and crashes violently after bear-market bottoms; single names show weakly negative one-month autocorrelation (the short-term reversal effect). These are *cited from the literature*. The Doctrine's Book B entry at a pivotal point rather than on a streak follows directly, and momentum's crash after bear bottoms is the trust matrix's "momentum: Off after a bottom signal" row — the strategy that works for most of the cycle is the one that loses most at the turn.
 
-- *A streak is a coin sequence.* Five up days in a row happens about one week in twenty by chance. It is not momentum, not exhaustion, and not a reason to act in either direction.
-- *The overnight row is the Daily Cascade's reason to exist.* Most of the index's cumulative return has accrued outside regular hours. The 07:00 report reads a session that has already happened — two foreign sessions plus futures — and the gap it reports is where the day's return usually already sits.
-- *Gap-fill is a size-dependent base rate.* Small gaps fill more often than not; large gaps under half the time. A Book C fade of a 1.5% gap is a below-coin-flip bet before positioning is considered; the setup requires the positioning read to move it above.
-- *Momentum's crash after bear bottoms is the trust matrix's "momentum: Off after a bottom signal" row.* The strategy that works for most of the cycle is the one that loses most at the turn.
+**Gaps and the overnight session are absent from the computed tables, with a reason.** A gap is the open against the prior close, and the store holds closes only, so `baserate.streaks_and_gaps` reports the gap-fill and overnight-versus-intraday rows as `not_yet_sourced` rather than computing a two-day return under the wrong name. The literature's readings stand as *cited*:
+- Since the 1990s most of the index's cumulative return has accrued overnight rather than in regular hours. That is the Daily Cascade's reason to exist: the 07:00 report reads a session that has already happened.
+- Small gaps (under 0.5%) fill the same session more often than not; large gaps (over 1%) fill the same day well under half the time. A Book C fade of a 1.5% gap is a below-coin-flip bet before positioning is considered, so the setup requires the positioning read to move it above.
+
+| Pattern | Value | n | Cited as |
+|---|---|---|---|
+| P(up \| previous session up) — *conditional* | 54.2% | ~13,000 sessions after an up close | `baserate.streaks_and_gaps\|p_up_given_up` |
+| P(up) — *unconditional* | 52.4% | 24,802 sessions | `baserate.streaks_and_gaps\|p_up` |
+| P(up \| previous session down) | 50.4% | ~11,800 sessions after a down close | `baserate.streaks_and_gaps\|p_up_given_down` |
+| Two / three / five up sessions in a row | 28.5% / 15.1% / 4.1% | 24,802 | `…\|runs.p_2_consecutive_up`, `…\|runs.p_3_consecutive_up`, `…\|runs.p_5_consecutive_up` |
+| Longest run, up / down | 14 / 12 sessions | 24,802 | `…\|longest_up_run`, `…\|longest_down_run` |
+| Gap fill; overnight vs intraday | absent | — | `not_yet_sourced`: the store holds closes only |
+| Momentum, 12–1 cross-sectional; 1-month reversal | positive expectancy, crashes after bottoms; weakly negative | — | *Cited from the literature* |
 
 ## Chapter 5 — Correlation and diversification
 
-| Regime | S&P 500 / 10-year Treasury correlation | Average pairwise stock correlation |
-|---|---|---|
-| Disinflationary calm (1998–2020 typical) | −0.3 to −0.5 | 0.20–0.35 |
-| Inflationary (1970s; 2022) | +0.2 to +0.6 | 0.35–0.50 |
-| Crisis | Bonds usually rally, but not always (2022, and the March 2020 dash-for-cash days) | 0.60–0.85 |
+The base rate that governs Book A's duration sleeve is that **the stock–bond hedge is regime-dependent, and it was negative for one unusually long disinflationary period.** Through the disinflationary calm typical of 1998–2020, the S&P 500 and the 10-year Treasury correlated between about −0.3 and −0.5. In the inflationary regimes of the 1970s and 2022 the correlation ran between about +0.2 and +0.6. In a crisis bonds usually rally, but not always — 2022, and the March 2020 dash-for-cash days. Sizing a duration sleeve as a hedge on the 1998–2020 correlation is sizing on a sample that 2022 falsified. Ask which regime you are in before sizing the hedge. In the disinflationary row, duration hedges equity; in the inflationary row, it amplifies the loss. The Macro dial's Overheat and Tightening states are the inflationary row, and the Doctrine's bands cut duration in exactly those states for this reason.
 
-*Source class: computed.* The base rate that governs Book A's duration sleeve: **the stock–bond hedge is regime-dependent and was negative for one unusually long disinflationary period.** Sizing a duration sleeve as a hedge on the 1998–2020 correlation is sizing on a sample that 2022 falsified. And the crisis row is the reason the Doctrine caps heat across books at a common factor: correlations converge exactly when diversification is being relied upon.
+Average pairwise stock correlation runs about 0.20–0.35 in calm, 0.35–0.50 in inflationary regimes and 0.60–0.85 in crisis. Pairwise correlation that high in crisis means a portfolio of ten names is roughly one position. That is why the Doctrine caps heat across books at a common factor, and why the heat calculator counts correlated positions once: six long semiconductors and a long NQ call spread is one trade with three tickers. The crisis row is also the International Equities paper's diversification finding: correlations converge in joint downside moves and not in joint upside, so the insurance is against the single-country tail, not the bad quarter.
 
-**What to take from this table.**
+**These correlation figures are cited, not computed.** `baserate.correlation_by_regime` computes the stock–bond and pairwise correlations by volatility band, but only over the store's bond history, which reaches back about five years. Its rows state their own windows and n's, and a long-run regime table cannot come from them. The long-run figures below are from the literature until the store's history can carry them.
 
-- *Ask which row you are in before sizing the hedge.* In the disinflationary row, duration hedges equity; in the inflationary row, it amplifies the loss. The Macro dial's Overheat and Tightening states are the inflationary row, and the Doctrine's bands cut duration in exactly those states for this reason.
-- *Pairwise correlation of 0.7–0.9 in crisis means a portfolio of ten names is roughly one position.* The heat calculator's "count correlated positions once at their common factor" is this row applied. Six long semiconductors and a long NQ call spread is one trade with three tickers.
-- *The crisis row is also the diversification-across-countries finding of the International Equities paper:* correlations converge in joint downside moves and not in joint upside. The insurance is against the single-country tail, not the bad quarter.
+| Regime | S&P 500 / 10-year Treasury correlation | Average pairwise stock correlation | Source class |
+|---|---|---|---|
+| Disinflationary calm (1998–2020 typical) | −0.3 to −0.5 | 0.20–0.35 | *Cited* |
+| Inflationary (1970s; 2022) | +0.2 to +0.6 | 0.35–0.50 | *Cited* |
+| Crisis | Bonds usually rally, but not always (2022; March 2020) | 0.60–0.85 | *Cited* |
 
 ---
 
@@ -375,7 +397,7 @@ Adding these five to the eight post-1970 episodes gives the **thirteen-episode n
 
 ## Chapter 12 — What the extended sample changes
 
-**Depth.** Across thirteen-plus episodes, the median bear is about −30% and the interquartile range roughly −25% to −50%. The post-1970 sample alone understates the left tail because it excludes 1929 and 1937.
+**Depth.** Across the thirteen-plus narrated episodes (Chapter 2.4 explains why the computed count is twelve and the computed median −33.7%), the median bear is about −30% and the interquartile range roughly −25% to −50%. The post-1970 sample alone understates the left tail because it excludes 1929 and 1937.
 
 **Duration.** Median peak-to-trough about 10–12 months; the distribution is right-skewed, with 1929–32 and 2000–02 in the tail. Recoveries to the prior peak run from months (1987, 2020) to decades (1929, and in real terms the 1970s).
 
@@ -498,13 +520,13 @@ And the Doctrine's ruling stands unchanged and is, if anything, strengthened by 
 
 ## Appendix A — The one-page card
 
-*Ordinary:* up 54% of days, 62% of months, 74% of years. Median year +12% total return; a year in the +8–12% band is rare. Realized vol ~15%. Fifty ±1% days a year, ten ±2% days.
+*Ordinary:* up 52.4% of sessions, 59.6% of months, 74.0% of post-war years (price). Median post-war year +12.3% price (~+12% total return, cited). The median year has 54 ±1% sessions and 7 ±2% sessions.
 
-*Drawdowns:* −5% three or four times a year; −10% about annually; −20% every four or five years; −30% about every decade. Average intra-year drawdown 14% — in years that finish positive three times in four.
+*Drawdowns:* −5% 3.4 times a year; −10% about annually (1.04); −20% every 3.7 years; −30% every 7.6 years (threshold swings). Average post-war intra-year drawdown −13.6%, in years that finish positive 72.7% of the time.
 
-*Inside a bear:* three to five counter-trend rallies of 5%+. The 1929–30 rally was +46%.
+*Inside a bear:* several counter-trend rallies of 5%+; the largest is a median +13.5%. The 1929–30 rally was +46.8%. Twelve bears computed from the running maximum since 1928, thirteen narrated (Chapter 2.4).
 
-*Streaks:* daily direction has no memory. Trend is cross-sectional and multi-week.
+*Streaks:* daily direction has no memory: P(up | up) 54.2% against P(up) 52.4%, n ≈ 13,000 and 24,802. Trend is cross-sectional and multi-week.
 
 *Earnings:* 70–78% beat; the guidance is the news; implied move slightly exceeds realized; front-month IV falls a third to a half overnight.
 
@@ -512,9 +534,9 @@ And the Doctrine's ruling stands unchanged and is, if anything, strengthened by 
 
 *Costs:* single-name out-of-the-money options are 5–15% of premium wide — a tenth of a Book C risk budget in a round trip.
 
-*Percentiles to carry:* annual return p25 −1% / median +12% / p75 +25%. Intra-year drawdown p25 −6% / median −10% / p75 −18%. Bear depth p25 −22% / median −30% / p75 −48%. Recovery p25 5 months / median 2 years / p75 4–5 years.
+*Percentiles to carry:* post-war annual price return p25 −0.0% / median +12.3% / p75 +21.7%. Post-war intra-year drawdown p25 −7.6% / median −10.3% / p75 −17.2%. Bear depth p25 −26.7% / median −33.7% / p75 −48.4%. Recovery of the prior peak p25 10 months / median 17 months / p75 50 months.
 
-*Seasonality:* Nov–Apr beats May–Oct by several points on average and fails for years at a time; turn of the month carries a disproportionate share; September is the only negative month on average; **2026 is a midterm year — historically the weakest of the cycle and the one whose low precedes the strongest forward twelve months.** Tiebreaker only; never a thesis.
+*Seasonality:* Nov–Apr beats May–Oct by several points on average and fails for years at a time; turn of the month carries a disproportionate share; September is the only negative month on average; **2026 is a midterm year — historically the weakest of the cycle. From election day, the following twelve months were up in 19 of 19 midterm years against 55 of 73 years overall (0.753); the "from the midterm-year low" form is hindsight and is not used.** Tiebreaker only; never a thesis.
 
 *Downturn history, thirteen-plus episodes:* median depth ~−30%, median length ~10–12 months; credit and debt-deflation episodes are deepest and longest; the economy is fine at the peak; credit spreads and breadth signal, valuation does not.
 
