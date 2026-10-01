@@ -174,8 +174,13 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — twenty code gates and one data gate, no
-network, no box. It keeps
+**`make validate` runs every gate** — thirty-four code gates and four data gates, no
+network, no box. **A code gate never reads the live store**: each seeds a
+temporary store of its own, so its verdict is about the commit and is the same
+in CI, on the laptop and on the box. Checks about the box's real history are
+data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
+without setting the exit code and print NOT VALIDATED where there is no store.
+It keeps
 going past a failure and summarises at the end, because the question after a
 change is "what did I break", not "what did I break first"; `make validate-fast`
 stops at the first failure for a tight edit loop. The list lives in the
