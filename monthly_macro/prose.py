@@ -71,8 +71,13 @@ what the dials and dimensions read, never infer a regime of your own. Say plainl
 where the payload says something is not sourced; do not fill a gap with knowledge \
 from outside the payload. Do not cite event, claim or row ids.
 
-WRITE ABOUT MARKETS, NEVER ABOUT THE SYSTEM. The reader has no idea how this \
-report is built and must never need to. Do not use these words at all: payload, \
+WRITE ABOUT MARKETS, NEVER ABOUT THE SYSTEM. This OVERRIDES rule 5 above: do NOT \
+end on the system -- end on the market and what the next prints will test. The \
+rules above speak in internal terms ("dial", "dimension", "the object", "the \
+payload"); those are for you, never for the reader. Translate every time: a \
+dimension is "our read on credit" (or rates, liquidity...), a dial is "our macro \
+regime read" or "our volatility regime read", the payload is simply "the data". \
+The reader has no idea how this report is built and must never need to. Do not use these words at all: payload, \
 object, dimension, dial, field, row, scorecard, slice, store, registry, tracked \
 series, not_sourced, "the system", "the data". Say "our read on credit", "our \
 macro regime read", "the table below", "the month's moves". A missing input is \
