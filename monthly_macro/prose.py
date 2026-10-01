@@ -329,10 +329,14 @@ def _market_states(p: dict) -> Optional[dict]:
 # is the report describing its own plumbing. A section using any of these is
 # withheld like a failed audit. Whole words, case-insensitive; "fielded" or
 # "objective" do not match, "field" and "object" do.
+# "The system" alone is NOT banned: "liquidity in the system" is desk language
+# for the banking system (the second-round dry run withheld a section over it);
+# only the phrases that can mean this report's machinery are.
 BANNED_TERMS = (r"payloads?", r"objects?", r"dimensions?", r"dials?", r"fields?",
                 r"scorecard rows?", r"rows?", r"slices?", r"registry",
                 r"not_sourced", r"not[ _-]sourced", r"absent_reason",
-                r"the system", r"tracked series", r"the data the system tracks",
+                r"the system tracks", r"our system", r"this system", r"the system's",
+                r"tracked series", r"the data the system tracks",
                 r"in the store", r"the store", r"market[- ]state", r"tier-?[123]",
                 r"_ordinal", r"_signed")
 _BANNED = re.compile(r"(?<![\w-])(" + "|".join(BANNED_TERMS) + r")(?![\w-])", re.I)
