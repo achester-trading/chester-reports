@@ -893,6 +893,45 @@ def group_h() -> None:
         check("0.55" in para and "no active position" in para,
               "Where our read lands restates the live weight and the books and "
               "nothing else")
+
+        # --- THE DRY RUN: a pre-v2 archived payload, re-rendered, never sent -----
+        import contextlib
+        import io
+        from daily_cascade import deliver
+        from monthly_macro import run as mrun
+        old = {k: v for k, v in built.items() if k not in v2.V2_SECTIONS
+               and k != "tie_backs"}
+        pay = Path(td) / "monthly_macro_fixture_payload.json"
+        pay.write_text(json.dumps(old, default=str), encoding="utf-8")
+        sends: list = []
+        saved_send = deliver.send_html
+        deliver.send_html = lambda *a, **k: (sends.append(a), ("sent", "x"))[1]
+        argv = sys.argv
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                sys.argv = ["run", "--from-payload", str(pay), "--out-dir", td,
+                            "--skip-narrative"]
+                rc_refused = mrun.main()
+                sys.argv += ["--dry-run"]
+                rc_dry = mrun.main()
+        finally:
+            sys.argv = argv
+            deliver.send_html = saved_send
+        stamp = old.get("report_date")
+        dmd = Path(td) / f"monthly_macro_{stamp}_dryrun.md"
+        check(rc_refused == 1, "--from-payload without --dry-run is refused -- a "
+                               "re-render never replaces an archived edition")
+        check(rc_dry == 0 and dmd.exists()
+              and (Path(td) / f"monthly_macro_{stamp}_dryrun.html").exists()
+              and not sends,
+              f"--dry-run writes _dryrun.md and .html and sends NOTHING "
+              f"({len(sends)} send(s))")
+        text = dmd.read_text(encoding="utf-8") if dmd.exists() else ""
+        check("## 1. The month in one page" in text
+              and "Voices register not yet built" in text,
+              "and a payload archived before v2 gets its v2 sections built at its "
+              "own cutoff")
     finally:
         (observations.DEFAULT_DB, register_store.DEFAULT_DB,
          payload.previous_monthly) = saved

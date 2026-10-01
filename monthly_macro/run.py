@@ -85,6 +85,51 @@ def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
             "delivered_at": session.utc_iso()}
 
 
+def rerender(args, log) -> int:
+    """Re-render an archived payload. Builds nothing it already has.
+
+    A payload archived before a section existed (the 1 Oct edition predates
+    Monthly v2) gets that section built AT THE PAYLOAD'S OWN CUTOFF, so the
+    re-render reads what was knowable then, not what is knowable now. The
+    paragraph is written again through the same audited step, over the same
+    narrative payload; --skip-narrative leaves it out.
+
+    --dry-run writes <name>_dryrun.md/.html and NEVER delivers. Without it the
+    re-render is archived under the edition's own names -- which replaces the
+    record -- so a re-render that is not a dry run is refused here.
+    """
+    if not args.dry_run:
+        print("refused: --from-payload re-renders only as --dry-run; it never "
+              "replaces an archived edition or sends one", file=sys.stderr)
+        return 1
+    p = json.loads(Path(args.from_payload).read_text(encoding="utf-8"))
+    added = []
+    if p.get("month_in_one_page") is None:
+        p.update(payload_mod.v2_sections(p))
+        added = list(payload_mod.SECTIONS[:5])
+        p["sections"] = list(payload_mod.SECTIONS)
+    from daily_cascade import precision
+    p = precision.apply(p)
+    log.info("re-rendering %s (cutoff %s); built at its cutoff: %s",
+             args.from_payload, p.get("as_of"), ", ".join(added) or "nothing")
+    narr = None
+    if not args.skip_narrative:
+        narr = narrative_mod.generate(
+            payload_mod.narrative_payload(p), model=args.narrative_model,
+            system_prompt=monthly_system_prompt(), guide_path=TEMPLATE_PATH,
+            max_chars=MAX_CHARS, one_paragraph=False)
+        log.info("narrative %s (%s)", "published" if narr.published else
+                 "withheld", narr.state)
+    md = render_v2.render(p, narrative=narr)
+    stamp = p.get("report_date")
+    md_path = delivery.archive(md, f"monthly_macro_{stamp}_dryrun.md", args.out_dir)
+    html_path = delivery.archive(build_html(md), f"monthly_macro_{stamp}_dryrun.html",
+                                 args.out_dir)
+    print(f"dry run -- NOT delivered:\n   {md_path}\n   {html_path}")
+    print("delivery=skipped (--dry-run)")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="Generate the Monthly Macro Report")
     ap.add_argument("--skip-fetch", action="store_true",
@@ -107,6 +152,11 @@ def main():
                          "the files as an artifact instead)")
     ap.add_argument("--deliver-only", default=None, metavar="YYYY-MM-DD",
                     help="Send an already-archived edition and build nothing")
+    ap.add_argument("--from-payload", default=None, metavar="PATH",
+                    help="Re-render an ARCHIVED payload instead of building one; "
+                         "sections it predates are built at ITS cutoff")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="Write <name>_dryrun.md/.html and send nothing")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -120,6 +170,8 @@ def main():
     if args.deliver_only:
         out = deliver_edition(args.deliver_only, args.out_dir)
         return 0 if out["delivery"] == "sent" else 2
+    if args.from_payload:
+        return rerender(args, log)
 
     store = Store()
     log.info("Store directory: %s", store.dir)
