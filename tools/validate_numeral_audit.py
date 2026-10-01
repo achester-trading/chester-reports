@@ -598,6 +598,42 @@ def group_j() -> None:
           "and the brief tells the model to copy the _signed field verbatim")
 
 
+def group_k() -> None:
+    """1 Oct 2026: large figures carry a precomputed display form, copied."""
+    print(f"\n{LINE}\nK. A SCALED FIGURE IS COPIED FROM ITS `_display` FIELD\n{LINE}")
+    from altdata import numeral_audit as na
+    M = na.MINUS
+    got = [na.scaled_display(v, u) for v, u in (
+        (7510.0, "M"), (1.2e12, "usd"), (-68500.0, "M"), (159330.0, "K"),
+        (3.2, "B"), (500.0, "usd"), (12.0, "count"))]
+    check(got == ["$7.51bn", "$1.2tn", f"{M}$68.5bn", "159.33 million", "$3.2bn",
+                  None, None],
+          f"display forms in the series' own unit: {got}")
+    P = {"series": [
+        {"series": "Fed balance sheet", "latest_level": 7510123.0,
+         "latest_level_display": na.scaled_display(7510123.0, "M")},
+        {"series": "Net foreign purchases", "change": -68500.0,
+         "change_display": na.scaled_display(-68500.0, "M")},
+        {"series": "Payrolls", "latest_level": 159330.0,
+         "latest_level_display": na.scaled_display(159330.0, "K")}]}
+    for text, want in (("The Fed balance sheet stood at $7.51tn.", True),
+                       ("The Fed balance sheet stood at 7.5 trillion dollars.", True),
+                       (f"Net foreign purchases fell {M}$68.5bn.", True),
+                       ("payrolls reached 159.33 million", True),
+                       ("payrolls reached 162 thousand", False),
+                       ("the balance sheet stood at $7,510 billion", True),
+                       ("the balance sheet fell to $6.2tn", False)):
+        r = na.audit(text, P)
+        check(r.passed == want, f"{text!r} {'passes' if want else 'is WITHHELD'}"
+              + ("" if want or not r.unmatched else
+                 f" ({r.unmatched[0].scale_error[:70]}...)"))
+    r = na.audit("payrolls reached 162 thousand", P)
+    check("latest_level_display" in r.reason() and "159.33 million" in r.reason(),
+          "and the reason names the display field to copy")
+    check(na.type_of_key("latest_level_display") == na.TYPE_ANY,
+          "a display field imposes no type: its unit is in the string")
+
+
 def group_h() -> None:
     """G-1: a numeral beside a named level must be THAT level, for that symbol."""
     print(f"\n{'=' * 78}\nH. THE LABEL AUDIT -- A LEVEL PRINTED UNDER THE WRONG NAME\n"
@@ -684,6 +720,7 @@ def main() -> int:
     group_h()
     group_i()
     group_j()
+    group_k()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

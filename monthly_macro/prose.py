@@ -157,8 +157,9 @@ def _moves(p: dict, ids: Optional[list] = None) -> dict:
 
 def _series(rows: list[dict]) -> list[dict]:
     """Every series a section sees, plainly keyed (the metric id stays out)."""
-    keep = ("latest_level", "latest_pct", "latest_date", "since", "change_pct",
-            "change_bps", "change", "level_percentile_5y")
+    keep = ("latest_level", "latest_level_display", "latest_pct", "latest_date",
+            "since", "change_pct", "change_bps", "change", "change_display",
+            "level_percentile_5y")
     return [{"series": r.get("label"), **{k: r[k] for k in keep if k in r}}
             for r in rows]
 

@@ -303,6 +303,63 @@ def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]
     return out
 
 
+# ---------------------------------------------------------------------------
+# SCALED FIGURES ARE PRECOMPUTED (1 Oct 2026), the third time the same pattern
+# ---------------------------------------------------------------------------
+# The writer kept rescaling large figures itself -- "373 billion", "162 thousand",
+# "1.45 trillion" -- from series stored in millions, thousands or dollars, and
+# the audit withheld the section each time. The display form is now computed by
+# the caller that knows the series' unit (`<field>_display`: "$7.51bn",
+# "$1.2tn", "159.33 million"), the brief says to copy it verbatim, and an
+# unmatched scaled figure is withheld with the field named.
+DISPLAY_FIELD = "_display"
+# Registry `units` -> (multiplier to the base unit, is it dollars).
+SCALE_UNITS = {"usd": (1.0, True), "M": (1e6, True), "B": (1e9, True),
+               "K": (1e3, False), "count": (1.0, False)}
+
+
+def scaled_display(value: float, units: str) -> Optional[str]:
+    """'$7.51bn', '−$68.5bn', '$1.2tn', '159.33 million'; None when the value is
+    small enough to print as it stands, or the units have no scale."""
+    spec = SCALE_UNITS.get(str(units))
+    if not spec:
+        return None
+    mult, dollars = spec
+    x = float(value) * mult
+    sign = MINUS if x < 0 else ""
+    a = abs(x)
+    if dollars:
+        for word, m in (("tn", 1e12), ("bn", 1e9), ("mm", 1e6)):
+            if a >= m:
+                mag = f"{a / m:,.2f}".rstrip("0").rstrip(".")
+                return f"{sign}${mag}{word}"
+        return None
+    for word, m in (("billion", 1e9), ("million", 1e6), ("thousand", 1e3)):
+        if a >= m:
+            mag = f"{a / m:,.2f}".rstrip("0").rstrip(".")
+            return f"{sign}{mag} {word}"
+    return None
+
+
+def display_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:
+    """(value, field, display) for every `_display` string the payload carries."""
+    out: list[tuple[float, str, str]] = []
+    if _depth > 16:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if str(k).endswith(DISPLAY_FIELD) and isinstance(v, str):
+                nums = payload_numbers(v)
+                if nums:
+                    out.append((nums[0], str(k), v))
+            else:
+                out.extend(display_fields(v, _depth + 1))
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out.extend(display_fields(v, _depth + 1))
+    return out
+
+
 def _is_percentile_ordinal(f: "Figure", text: str) -> bool:
     """An ordinal the prose uses AS a percentile: typed so, or with the word
     beside it ("its percentile, the 51st"). Other ordinals -- "the 2nd session"
@@ -411,6 +468,10 @@ TYPE_ANY = "any"
 # FIELD NAME -> TYPE, matched in order, first hit wins. Substrings rather than
 # exact names, because a payload's field names are report fields and grow.
 FIELD_TYPES: tuple[tuple[str, str], ...] = (
+    # A DISPLAY FORM CARRIES ITS OWN UNIT ("$7.51tn", "159.33 million"), so the
+    # field imposes none -- "latest_level_display" is not a price because its
+    # name contains "level". First, because first hit wins.
+    ("_display$", TYPE_ANY),
     ("percentile", TYPE_PERCENTILE),
     ("pctile", TYPE_PERCENTILE),
     ("z_score", TYPE_Z),
@@ -602,6 +663,9 @@ class Figure:
     # Filled when an UNSIGNED figure is the magnitude of a negative move the
     # payload carries: names the `_signed` field the writer should have copied.
     sign_error: str = ""
+    # Filled when a large figure matches nothing but is near a `_display` form
+    # the payload carries: names the field the writer should have copied.
+    scale_error: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -632,7 +696,7 @@ class AuditResult:
         # wrong kind of thing, which is a different fix.
         def label(f) -> str:
             why = (f.type_conflict or f.ordinal_error or f.sign_error
-                   or f.label_conflict)
+                   or f.scale_error or f.label_conflict)
             return f"{f.text} ({why})" if why else f.text
 
         bad = ", ".join(label(f) for f in self.unmatched[:6])
@@ -978,6 +1042,7 @@ def audit(text: str, payload: Any, *,
 
     ordinals = stored_ordinals(payload)
     signed = signed_fields(payload)
+    displays = display_fields(payload)
     for f in figures:
         # A WRONGLY WRITTEN ORDINAL FAILS WHATEVER IT MATCHES (H-1 item 3).
         f.ordinal_error = ordinal_error(f)
@@ -1021,6 +1086,15 @@ def audit(text: str, payload: Any, *,
                 if neg:
                     f.sign_error = (f"the payload's value is negative -- copy "
                                     f"`{neg[1]}` verbatim: {neg[2]}")
+            # A RESCALED LARGE FIGURE: name the display form nearest it.
+            if not f.sign_error and abs(f.value) >= 1e3:
+                near = sorted(((abs(abs(f.value) / abs(v) - 1), fld, disp)
+                               for v, fld, disp in displays if v),
+                              key=lambda t: t[0])[:1]
+                if near and near[0][0] <= 1.0:
+                    f.scale_error = (f"a scaled figure is copied, never "
+                                     f"rescaled -- copy `{near[0][1]}` verbatim: "
+                                     f"{near[0][2]}")
             unmatched.append(f)
             continue
         # THE TYPE CHECK. A value matched; does the word the prose put next to it

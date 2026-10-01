@@ -664,6 +664,17 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
             row["change_pct"] = round((s1 / s0 - 1.0) * 100.0, 2)
         else:
             row["change"] = round(s1 - s0, 4)
+    # THE DISPLAY FORM of a large figure, in the series' own unit ("$7.51tn",
+    # "159.33 million") -- the writer copies it rather than rescaling.
+    from altdata import numeral_audit as na
+    units = (derived.registry_entry(key) or {}).get("units")
+    disp = na.scaled_display(s1, units) if "latest_level" in row else None
+    if disp:
+        row["latest_level_display"] = disp
+    if "change" in row:
+        cdisp = na.scaled_display(row["change"], units)
+        if cdisp:
+            row["change_display"] = cdisp
     try:
         d = derived.derived_forms(key, cutoff, store=st, instrument=inst)
         row["level_percentile_5y"] = d.get("percentile")

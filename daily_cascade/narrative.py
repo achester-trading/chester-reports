@@ -132,6 +132,13 @@ a fall written as a word with an unsigned magnitude does not match the negative 
 value and the whole paragraph is discarded over a phrasing. Say "fell" in the \
 sentence if you like; the figure still carries its own sign.
 
+A LARGE FIGURE IS ALSO COPIED, NEVER RESCALED. A level or change stored in \
+millions, thousands or dollars has a sibling ending in _display -- \
+"latest_level": 7510123 beside "latest_level_display": "$7.51tn", payrolls \
+beside "159.33 million". Write that string as it stands; never convert a stored \
+number to billions or trillions yourself ("373 billion" from a series in \
+millions is a guess at the unit, and it discards the paragraph).
+
 A PERCENTILE IN PROSE IS THE PAYLOAD'S OWN ORDINAL, COPIED VERBATIM. Every \
 percentile field has a sibling ending in _ordinal -- "percentile": 51.7 sits \
 beside "percentile_ordinal": "52nd" -- already rounded to the nearest whole \
