@@ -452,6 +452,79 @@ def group_g() -> None:
           f"the reason names the right form ({r.reason()[:90]})")
 
 
+def group_h() -> None:
+    """G-1: a numeral beside a named level must be THAT level, for that symbol."""
+    print(f"\n{'=' * 78}\nH. THE LABEL AUDIT -- A LEVEL PRINTED UNDER THE WRONG NAME\n"
+          f"{'=' * 78}")
+    import json
+    from altdata import numeral_audit as na
+    from daily_cascade import payload as pm
+    fx = json.loads((REPO / "tests" / "fixtures" / "close_narrative_2026-09-30.json")
+                    .read_text(encoding="utf-8"))
+    para, payload = fx["paragraph"], fx["payload"]
+    consts = pm.NARRATIVE_UNIT_CONSTANTS
+    r = na.audit(para, payload, extra_values=consts)
+    bad = [f.text.strip() for f in r.unmatched]
+    check(not r.passed and bad == ["760"] and r.unmatched[0].label_conflict,
+          f"the 30 Sep paragraph is WITHHELD on exactly one figure, the 760 printed "
+          f"as the put wall ({r.reason()})")
+    check("745" in r.unmatched[0].label_conflict
+          and "max_pain" in r.unmatched[0].label_conflict
+          and "invalidation_level" in r.unmatched[0].label_conflict,
+          "and the reason names the put wall's real value and the two names 760 "
+          "does hold")
+    fixed = para.replace("with the put wall at 760 sitting",
+                         "with the invalidation level at 760 sitting")
+    r2 = na.audit(fixed, payload, extra_values=consts)
+    check(r2.passed and len(r2.figures) == 18,
+          f"the corrected clause passes, all 18 figures ({r2.reason()})")
+    check("745 put wall's" in para and na.audit(
+              "leaving the 745 put wall's new alignment", payload).passed,
+          "the same paragraph's '745 put wall' -- a number BEFORE its label -- passes")
+
+    # A shared number passes only under a name that holds it.
+    p = {"exposure": [{"symbol": "SPY", "put_wall": 745.0, "call_wall": 785.0,
+                       "max_pain": 760.0, "gamma_flip": 768.9167,
+                       "peak_abs_gex_strike": 745.0, "put_wall_change": 15.0},
+                      {"symbol": "QQQ", "put_wall": 760.0, "call_wall": 800.0}],
+         "portfolio": {"positions": [{"instrument": "SPY@ARCA.USD",
+                                      "invalidation_level": 760.0,
+                                      "avg_cost": 771.25}]}}
+    for text, want, why in (
+            ("SPY max pain at 760", True, "760 under max pain, which holds it"),
+            ("the SPY invalidation level at 760", True, "under invalidation"),
+            ("the SPY put wall at 760", False, "under put wall, which is 745"),
+            ("the SPY gamma flip at 768.92", True, "a flip within print precision"),
+            ("the SPY gamma flip at 768.99", False, "a flip outside print precision"),
+            ("the SPY 745 put wall", True, "a number written before its label"),
+            ("the SPY peak gamma at the 745 strike", True,
+             "a bare strike: any strike-valued field"),
+            ("the SPY put wall jumped 15 points to 745", True,
+             "a CHANGE beside the label is skipped; the level after it is checked"),
+            ("the SPY put wall jumped 15 points to 760", False,
+             "and the level after the change is still held to the name"),
+            ("QQQ's put wall at 760", True,
+             "the symbol is the one the sentence names: QQQ's put wall IS 760"),
+            ("the SPY put wall moved, and 760 is the line", True,
+             "a clause boundary ends the binding: 760 is not the put wall here"),
+    ):
+        rr = na.audit(text, p)
+        check(rr.passed is want, f"{text!r}: {'passes' if want else 'fails'} -- "
+                                 f"{why}" + ("" if want else f" ({rr.reason()})"))
+    for text, want, why in (
+            ("the call wall dropped from 780 to 775", True,
+             "FROM 780 is the previous call wall; TO 775 is the call wall"),
+            ("the call wall dropped from 775 to 780", False,
+             "and swapped, both are wrong"),
+    ):
+        rr = na.audit(text, {"call_wall": 775.0, "prior_call_wall": 780.0})
+        check(rr.passed is want, f"{text!r}: {'passes' if want else 'fails'} -- "
+                                 f"{why}" + ("" if want else f" ({rr.reason()})"))
+    check(na.audit("the put wall at 760", {"rows": [{"max_pain": 760.0}]}).passed,
+          "a payload that carries no put wall at all leaves the label unchecked -- "
+          "the plain match still applies")
+
+
 def main() -> int:
     print(f"{LINE}\nD3 numeral audit -- the precondition for any generated "
           f"sentence\n{LINE}")
@@ -462,6 +535,7 @@ def main() -> int:
     group_e()
     group_f()
     group_g()
+    group_h()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

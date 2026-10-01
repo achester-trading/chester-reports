@@ -423,6 +423,10 @@ class Figure:
     # a suffix on a non-integer ("96.1th") or one that disagrees with its number
     # ("21th", "12nd"). A form error, independent of whether the value matched.
     ordinal_error: str = ""
+    # Filled by audit() when the figure is printed beside a named level (put
+    # wall, flip, max pain, ...) and the payload holds that level at a different
+    # value for that symbol (G-1). The figure exists -- under another name.
+    label_conflict: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -452,7 +456,7 @@ class AuditResult:
         # for a missing figure; the figure was there and the sentence called it the
         # wrong kind of thing, which is a different fix.
         def label(f) -> str:
-            why = f.type_conflict or f.ordinal_error
+            why = f.type_conflict or f.ordinal_error or f.label_conflict
             return f"{f.text} ({why})" if why else f.text
 
         bad = ", ".join(label(f) for f in self.unmatched[:6])
@@ -460,6 +464,10 @@ class AuditResult:
         kinds = sum(1 for f in self.unmatched if f.type_conflict)
         tail = (f"; {kinds} of them a unit mismatch rather than a missing figure"
                 if kinds else "")
+        labels = sum(1 for f in self.unmatched if f.label_conflict)
+        if labels:
+            tail += (f"; {labels} of them a level printed under the wrong name "
+                     f"rather than a missing figure")
         return (f"numeral audit failed on {self.n_unmatched} figure(s): "
                 f"{bad}{more}{tail}")
 
@@ -628,6 +636,125 @@ def _derived(values: Iterable[float]) -> list[float]:
     return [v * 100.0 for v in values]
 
 
+# ---------------------------------------------------------------------------
+# THE LABEL AUDIT (G-1). A NUMBER BESIDE A NAMED LEVEL MUST BE THAT LEVEL.
+# ---------------------------------------------------------------------------
+# The 30 Sep close said "the put wall at 760 sitting N points ... away". The
+# payload's SPY put wall was 745.00; 760.00 was SPY's max pain and the position's
+# invalidation level. The numeral audit passed it, because 760 exists in the
+# payload -- under two other names. A value that is TRUE UNDER ANOTHER NAME is a
+# false sentence, and it is the failure the plain match cannot see.
+#
+# So when a numeral is printed beside a named level, it must equal a value the
+# payload stores UNDER THAT NAME, for the symbol the sentence is about, within
+# print precision. A number shared by two names passes only under a name that
+# holds it. (label pattern, the field names that hold it, the name printed.)
+LEVEL_LABELS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    (r"\bpeak(?:\s+absolute)?\s+(?:gamma|gex)(?:\s+strike)?\b",
+     ("peak_abs_gex_strike", "peak_gex_strike"), "peak gamma"),
+    (r"\bput[\s-]wall\b", ("put_wall",), "put wall"),
+    (r"\bcall[\s-]wall\b", ("call_wall",), "call wall"),
+    (r"\b(?:gamma[\s-])?flip(?:[\s-](?:line|level|point))?\b",
+     ("gamma_flip",), "gamma flip"),
+    (r"\bmax(?:imum)?[\s-]pain\b", ("max_pain",), "max pain"),
+    (r"\binvalidation(?:[\s-]level)?\b", ("invalidation_level",), "invalidation"),
+    (r"\b(?:average|avg\.?)\s+cost\b|\bcost\s+basis\b", ("avg_cost",),
+     "average cost"),
+    # A bare "strike" is any strike-valued field: the walls, max pain and the
+    # peak-gamma strike are all strikes, and "the 761 strike" is true of any.
+    (r"\bstrike\b", ("peak_abs_gex_strike", "peak_gex_strike", "put_wall",
+                     "call_wall", "max_pain", "strike"), "strike"),
+)
+_LABEL_RES = [(re.compile(p, re.I), f, n) for p, f, n in LEVEL_LABELS]
+# A figure followed by one of these is a CHANGE, not a level: "jumped 11.00 points
+# to 761.00" names the wall's move and then the wall.
+_CHANGE_AFTER = re.compile(r"\s*(?:points?|pts|bps?|basis|%|per\s?cent|percent)\b",
+                           re.I)
+_CLAUSE_END = re.compile(r"[.;:,()—–]|\s-\s")
+_BIND_WINDOW = 60          # characters after a label within which its level sits
+_SYMBOL_KEYS = ("symbol", "instrument", "underlying", "ticker")
+
+
+def _root(sym: Any) -> Optional[str]:
+    s = str(sym or "").strip()
+    return s.split("@")[0].split(".")[0].upper() if s else None
+
+
+def _symbol_rows(payload: Any, _out: Optional[list] = None) -> list[dict]:
+    """Every dict in the payload, with the symbol it is about (or None)."""
+    out = [] if _out is None else _out
+    if isinstance(payload, dict):
+        out.append(payload)
+        for v in payload.values():
+            _symbol_rows(v, out)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            _symbol_rows(v, out)
+    return out
+
+
+def _row_symbol(d: dict) -> Optional[str]:
+    for k in _SYMBOL_KEYS:
+        if d.get(k):
+            return _root(d[k])
+    return None
+
+
+def _label_values(rows: list[dict], fields: tuple[str, ...],
+                  symbol: Optional[str]) -> list[tuple[float, str]]:
+    out = []
+    for d in rows:
+        if symbol and _row_symbol(d) != symbol:
+            continue
+        for k, v in d.items():
+            name = str(k)
+            if (name in fields or ("strike" in fields and name.endswith("_strike"))) \
+                    and isinstance(v, (int, float)) and not isinstance(v, bool):
+                out.append((float(v), name))
+    return out
+
+
+def label_bindings(text: str, figures: list["Figure"]) -> list[tuple["Figure", str, tuple]]:
+    """(figure, printed name, field names) for every figure printed beside a level."""
+    out = []
+    taken: set[int] = set()
+    spans = []
+    for rx, fields, name in _LABEL_RES:
+        for m in rx.finditer(text):
+            if any(m.start() < e and s < m.end() for s, e, *_ in spans):
+                continue          # inside a longer label already found
+            spans.append((m.start(), m.end(), fields, name))
+    spans.sort()
+    for i, (s, e, fields, name) in enumerate(spans):
+        before = [f for f in figures
+                  if 0 <= s - (f.position + len(f.text)) <= 2
+                  and text[f.position + len(f.text):s].strip(" -") == ""]
+        if before:
+            f = before[-1]
+            out.append((f, name, fields))
+            taken.add(id(f))
+            continue
+        nxt = spans[i + 1][0] if i + 1 < len(spans) else len(text)
+        for f in figures:
+            if f.position < e or f.position - e > _BIND_WINDOW or f.position >= nxt:
+                continue
+            if _CLAUSE_END.search(text[e:f.position]):
+                break
+            if f.is_percent or _CHANGE_AFTER.match(text, f.position + len(f.text)):
+                continue
+            # "dropped FROM 780 to 775": the figure after `from` is the level's
+            # previous value, held to the level's prior name (prior_call_wall);
+            # the scan goes on, and the figure after `to` is the level itself.
+            if re.search(r"\bfrom\s*$", text[max(e, f.position - 8):f.position], re.I):
+                out.append((f, f"previous {name}",
+                            tuple(f"{p}{x}" for x in fields
+                                  for p in ("prior_", "previous_"))))
+                continue
+            out.append((f, name, fields))
+            break
+    return out
+
+
 def audit(text: str, payload: Any, *,
           extra_values: Optional[Iterable[float]] = None) -> AuditResult:
     """Does every numeral in `text` correspond to a value in `payload`?
@@ -705,6 +832,40 @@ def audit(text: str, payload: Any, *,
                 unmatched.append(f)
                 continue
         matched.append((f, hit))
+
+    # THE LABEL AUDIT (G-1): a matched figure beside a named level must be that
+    # level, for the symbol the sentence is about. Only matched figures are
+    # checked -- an unmatched one already fails -- and a level the payload does
+    # not carry under any name is left to the plain match, so an edition whose
+    # payload has no exposure rows is not withheld for a field it never had.
+    rows = _symbol_rows(payload)
+    symbols = {s for s in (_row_symbol(d) for d in rows) if s}
+    ok_ids = {id(f) for f, _ in matched}
+    for f, name, fields in label_bindings(masked, figures):
+        if id(f) not in ok_ids:
+            continue
+        sym = None
+        for m in re.finditer(r"\b[A-Z][A-Z0-9.]{0,6}\b", masked[:f.position]):
+            if m.group(0) in symbols:
+                sym = m.group(0)
+        held = _label_values(rows, fields, sym)
+        if not held:
+            continue
+        if any(f.low <= v < f.high or abs(v - f.value) <= 1e-9 for v, _ in held):
+            continue
+        others = sorted({k for d in rows
+                         if (not sym or _row_symbol(d) == sym)
+                         for k, v in d.items()
+                         if isinstance(v, (int, float)) and not isinstance(v, bool)
+                         and (f.low <= float(v) < f.high
+                              or abs(float(v) - f.value) <= 1e-9)})
+        vals = ", ".join(f"{v:g}" for v in sorted({v for v, _ in held}))
+        f.label_conflict = (
+            f"printed as the {name}{' of ' + sym if sym else ''}, which the payload "
+            f"holds as {vals}"
+            + (f"; {f.text.strip()} is {', '.join(others)}" if others else ""))
+        matched = [(g, h) for g, h in matched if g is not f]
+        unmatched.append(f)
 
     return AuditResult(passed=not unmatched, figures=figures,
                        unmatched=unmatched, matched=matched,

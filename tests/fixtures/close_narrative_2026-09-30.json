@@ -1,0 +1,458 @@
+{
+ "_about": "The 30 Sep 2026 close: the narrative payload the numeral audit saw (daily_cascade.payload.narrative_payload(30 Sep, 29 Sep), rebuilt from the archived payloads) and the paragraph published under it, verbatim. G-1's fixture: '760' beside 'put wall' passed the plain audit because 760 is SPY's max pain and the position's invalidation level; the put wall was 745. POSITION FIGURES ARE SYNTHETIC (L-1, 30 Sep 2026): quantities, average costs, marks, distances, P&L and the decision id are invented, and the paragraph's three position numbers were changed to match. Market data (SPY close, walls, flip, gamma) is the session's own, which is public.",
+ "paragraph": "Wednesday, 30 September \u2014 SPY close 762.48, down -1.82 on the session, spot still below the 768.92 gamma flip. Dealer hedging flow moved to -9.92 billion dollars per one percent move, more negative than Tuesday's -9.55 billion, and the corridor tightened around it: the put wall dropped sixteen points to 745, now sitting exactly on the session's peak absolute gamma strike, while the call wall held at 785. Liquidity's five-year extreme on the NFCI leg cleared, down to the 6th percentile from more stretched levels, but the equities-versus-credit contradiction is still open at a magnitude of 2.5 after three sessions, and two pending shifts \u2014 inflation toward rising, volatility toward normal \u2014 both sit one session into a two-session confirmation requirement. The vol complex itself says little new: volatility is subdued at the 35th percentile with direction flat, and growth remains the outlier of the set, expanding at the 96th percentile against two contradicting inputs. On the book, the SPY position is marked at 765.40 against a 771.25 average cost, already flagged INVALIDATED with the put wall at 760 sitting 5.40 points and 0.71% away \u2014 the rule is the settled close against that level, not a read on the tape. Six exceptions are open, the two furthest from center being ccc_oas in credit and the 10-year yield in rates, both at their own five-year extremes; of the thirteen pin rows logged today none hit wall, max pain, or peak-gex, leaving the 745 put wall's new alignment with peak gamma as the live test for tomorrow's close.",
+ "payload": {
+  "call_wall": 785.0,
+  "call_wall_change": 0.0,
+  "contradictions": [
+   {
+    "exception": false,
+    "id": "price_vs_breadth",
+    "legs": [
+     "calc.spy_vs_252d_high",
+     "calc.breadth_sector_above_50d"
+    ],
+    "magnitude": 1.96,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null,
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "equities_vs_credit",
+    "legs": [
+     "yfinance.mkt_spy",
+     "fred.hy_oas"
+    ],
+    "magnitude": 2.5,
+    "open": true,
+    "open_state": "open",
+    "persistence_days": 3,
+    "since": "2026-09-28",
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "long_bond_vs_hy",
+    "legs": [
+     "fred.yield_30y",
+     "fred.hy_oas"
+    ],
+    "magnitude": 2.31,
+    "open": false,
+    "open_state": "pending",
+    "persistence_days": 1,
+    "since": null,
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "implied_vs_realized_vol",
+    "legs": [
+     "yfinance.mkt_vix",
+     "calc.vol_spy_realized_20d"
+    ],
+    "magnitude": 0.16,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null,
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "growth_vs_cyclicals",
+    "legs": [
+     "growth",
+     "calc.cyclical_over_defensive"
+    ],
+    "magnitude": -1.71,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null,
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "gamma_vs_trend",
+    "legs": [
+     "dial.gamma",
+     "trend"
+    ],
+    "magnitude": null,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null,
+    "threshold_z": 2.0
+   },
+   {
+    "exception": false,
+    "id": "narrative_vs_data.ai_capex_durability",
+    "legs": [
+     "narrative.ai_capex_durability",
+     "credit +",
+     "trend +"
+    ],
+    "magnitude": null,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null
+   },
+   {
+    "exception": false,
+    "id": "narrative_vs_data.fiscal_dominance",
+    "legs": [
+     "narrative.fiscal_dominance",
+     "inflation +",
+     "rates +"
+    ],
+    "magnitude": null,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null
+   },
+   {
+    "exception": false,
+    "id": "narrative_vs_data.midterm_cycle",
+    "legs": [
+     "narrative.midterm_cycle",
+     "trend +"
+    ],
+    "magnitude": null,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null
+   },
+   {
+    "exception": false,
+    "id": "narrative_vs_data.yen_carry",
+    "legs": [
+     "narrative.yen_carry",
+     "rates -",
+     "volatility +"
+    ],
+    "magnitude": null,
+    "open": false,
+    "open_state": "closed",
+    "persistence_days": 0,
+    "since": null
+   }
+  ],
+  "dollar_gamma_change": -375500000.0,
+  "dollar_gamma_per_1pct": -9920000000.0,
+  "gamma_flip": 768.92,
+  "market_state": {
+   "absent_dimensions": [],
+   "dials": {
+    "gamma": {
+     "absent_reason": null,
+     "fault": null,
+     "state": "negative"
+    },
+    "macro": {
+     "absent_reason": null,
+     "fault": null,
+     "state": "expansion"
+    },
+    "vol": {
+     "absent_reason": null,
+     "fault": null,
+     "state": "normal"
+    }
+   },
+   "dimensions": {
+    "breadth": {
+     "absent_reason": null,
+     "confidence": "high",
+     "contradicting": "none found",
+     "direction": "-",
+     "fault": null,
+     "last_changed": "2026-09-10",
+     "pending_state": null,
+     "percentile": 17.0,
+     "state": "narrow",
+     "supporting": [
+      "calc.breadth_sector_above_200d",
+      "calc.breadth_rsp_over_spy"
+     ]
+    },
+    "credit": {
+     "absent_reason": null,
+     "confidence": "high",
+     "contradicting": [
+      "fred.ccc_oas"
+     ],
+     "direction": "-",
+     "fault": null,
+     "last_changed": "2026-09-29",
+     "pending_state": null,
+     "percentile": 51.7,
+     "state": "neutral",
+     "supporting": [
+      "fred.bb_oas",
+      "fred.ig_oas"
+     ]
+    },
+    "growth": {
+     "absent_reason": null,
+     "confidence": "med",
+     "contradicting": [
+      "fred.housing_permits",
+      "fred.job_openings"
+     ],
+     "direction": "+",
+     "fault": null,
+     "last_changed": "2026-09-21",
+     "pending_state": null,
+     "percentile": 96.1,
+     "state": "expanding",
+     "supporting": [
+      "fred.avg_wkly_hours",
+      "calc.sahm_rule"
+     ]
+    },
+    "inflation": {
+     "absent_reason": null,
+     "confidence": "high",
+     "contradicting": [
+      "fred.sticky_core"
+     ],
+     "direction": "0",
+     "fault": null,
+     "last_changed": "2026-09-21",
+     "pending_state": "rising",
+     "percentile": 68.6,
+     "state": "stable",
+     "supporting": [
+      "fred.breakeven_5y5y",
+      "fred.wti"
+     ]
+    },
+    "liquidity": {
+     "absent_reason": null,
+     "confidence": "low",
+     "contradicting": [
+      "fred.rrp",
+      "fred.fed_balance",
+      "fred.nfci"
+     ],
+     "direction": "-",
+     "fault": null,
+     "last_changed": "2026-09-24",
+     "pending_state": null,
+     "percentile": 9.6,
+     "state": "tight",
+     "supporting": [
+      "fred.bank_reserves"
+     ]
+    },
+    "rates": {
+     "absent_reason": null,
+     "confidence": "high",
+     "contradicting": [
+      "calc.yield_curve_2s10s"
+     ],
+     "direction": "+",
+     "fault": null,
+     "last_changed": "2026-09-21",
+     "pending_state": null,
+     "percentile": 100.0,
+     "state": "high",
+     "supporting": [
+      "fred.yield_2y",
+      "fred.yield_30y",
+      "fred.mortgage_30y"
+     ]
+    },
+    "trend": {
+     "absent_reason": null,
+     "confidence": "med",
+     "contradicting": [
+      "calc.trend_spy_vs_50d",
+      "calc.trend_spy_ma20_slope"
+     ],
+     "direction": "-",
+     "fault": null,
+     "last_changed": "2026-08-19",
+     "pending_state": null,
+     "percentile": 40.3,
+     "state": "flat",
+     "supporting": []
+    },
+    "volatility": {
+     "absent_reason": null,
+     "confidence": "high",
+     "contradicting": [
+      "calc.vol_spy_realized_20d"
+     ],
+     "direction": "0",
+     "fault": null,
+     "last_changed": "2026-09-18",
+     "pending_state": "normal",
+     "percentile": 35.4,
+     "state": "subdued",
+     "supporting": [
+      "fred.vix"
+     ]
+    }
+   },
+   "exceptions_by_kind": {
+    "contradiction": 0,
+    "extreme": 6
+   },
+   "exceptions_most_extreme": [
+    {
+     "id": "extreme:fred.ccc_oas",
+     "kind": "extreme",
+     "level": 11.57,
+     "since": null,
+     "threshold": "percentile <= 5 or >= 95",
+     "value": 100.0,
+     "what": "fred.ccc_oas at a five-year extreme (credit)"
+    },
+    {
+     "id": "extreme:fred.yield_10y",
+     "kind": "extreme",
+     "level": 5.24,
+     "since": null,
+     "threshold": "percentile <= 5 or >= 95",
+     "value": 100.0,
+     "what": "fred.yield_10y at a five-year extreme (rates)"
+    }
+   ],
+   "exceptions_open": 6,
+   "schema_version": "market-state-v1",
+   "session": "2026-09-30"
+  },
+  "max_pain": 760.0,
+  "net_gex": -1300000000.0,
+  "peak_abs_gex_strike": 745.0,
+  "pin_hits_today": {
+   "call_wall_hit": 0,
+   "max_pain_hit": 0,
+   "peak_gex_hit": 0,
+   "put_wall_hit": 0
+  },
+  "pin_rows_today": 13,
+  "positions": [
+   {
+    "avg_cost": 771.25,
+    "commission": null,
+    "currency": "USD",
+    "decision_id": "fixture-decision-0001",
+    "distance_pct": 0.71,
+    "distance_points": 5.4,
+    "fill_price": null,
+    "instrument": "SPY@ARCA.USD",
+    "invalidation": "settled close below put wall 760",
+    "invalidation_level": 760.0,
+    "mark": 765.4,
+    "qty": 10.0,
+    "thesis_state": "INVALIDATED",
+    "unrealized_pnl": -58.5
+   },
+   {
+    "avg_cost": 12000.0,
+    "commission": null,
+    "currency": "MXN",
+    "decision_id": null,
+    "distance_pct": null,
+    "distance_points": null,
+    "fill_price": null,
+    "instrument": "SPY@MEXI.MXN",
+    "invalidation": null,
+    "invalidation_level": null,
+    "mark": 12500.0,
+    "qty": -10.0,
+    "thesis_state": null,
+    "unrealized_pnl": -5000.0
+   }
+  ],
+  "prior_call_wall": 785.0,
+  "prior_dollar_gamma_per_1pct": -9550000000.0,
+  "prior_put_wall": 761.0,
+  "prior_session": "2026-09-29",
+  "prior_spot": 764.3,
+  "put_wall": 745.0,
+  "put_wall_change": -16.0,
+  "session": "2026-09-30",
+  "spot": 762.48,
+  "spot_above_flip": false,
+  "spot_change": -1.82,
+  "symbol": "SPY",
+  "what_changed": {
+   "absences_cleared": [],
+   "absences_opened": [],
+   "compared_with": "2026-09-29",
+   "contradictions_closed": [],
+   "contradictions_opened": [],
+   "contradictions_persisting": [
+    {
+     "alert_path": null,
+     "exception": false,
+     "id": "equities_vs_credit",
+     "legs": [
+      "yfinance.mkt_spy",
+      "fred.hy_oas"
+     ],
+     "magnitude": 2.5,
+     "persistence_days": 3,
+     "since": "2026-09-28",
+     "threshold_z": 2.0
+    }
+   ],
+   "dial_changes": [],
+   "dimension_changes": [],
+   "extremes_cleared": [
+    {
+     "dimension": "liquidity",
+     "metric": "fred.nfci",
+     "percentile": 6.0
+    }
+   ],
+   "extremes_set": [],
+   "nothing_changed": false,
+   "pending_states": [
+    {
+     "dimension": "inflation",
+     "pending": "rising",
+     "percentile": 68.6,
+     "published": "stable",
+     "required": 2,
+     "sessions": 1
+    },
+    {
+     "dimension": "volatility",
+     "pending": "normal",
+     "percentile": 35.4,
+     "published": "subdued",
+     "required": 2,
+     "sessions": 1
+    }
+   ],
+   "session": "2026-09-30",
+   "session_move": {
+    "change": -0.21,
+    "delta_unit": "percent",
+    "from_date": "2026-09-29",
+    "long_run_first": "1927-12-30",
+    "long_run_method": "base-rates-method-1",
+    "long_run_n": 24802,
+    "long_run_series": "yfinance.mkt_gspc",
+    "metric": "yfinance.mkt_spy",
+    "n_5y": 1254,
+    "percentile_5y": 36.0,
+    "percentile_long_run": 35.7,
+    "to_date": "2026-09-30",
+    "z_5y": -0.24
+   }
+  }
+ }
+}
