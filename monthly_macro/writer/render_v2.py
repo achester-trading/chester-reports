@@ -208,7 +208,7 @@ def markets_section(p: dict, prose: Optional[dict] = None) -> str:
                    f"on or before {b.get('end')}, from the store. Yields and spreads "
                    f"move in basis points, prices and indices in percent.*\n")
         out.append("| Market | " + f"{b.get('start')} | {b.get('end')} | Move | "
-                   "5y pctile |\n|---|---|---|---|---|")
+                   "Level, 5y pctile |\n|---|---|---|---|---|")
         for r in rows:
             out.append(f"| {r['label']} | {_level(r, 'start')} | {_level(r, 'end')} | "
                        f"**{_move(r)}** | {_v(r.get('percentile'), 1)} |")

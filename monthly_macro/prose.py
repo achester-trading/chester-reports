@@ -113,7 +113,11 @@ def _move_row(r: dict) -> dict:
     and "the 10-year rose to 5.24%" was withheld when 5.24 travelled as
     `end_level` -- a price -- in the first per-section dry run.
     """
-    out = {"label": r.get("label"), "percentile": r.get("percentile")}
+    # THE PERCENTILE IS THE LEVEL'S, over five years -- not the move's. Named so,
+    # because the first per-section opening called the S&P 500's 99th "the 99th
+    # percentile of moves", a mislabel no numeral audit can see.
+    out = {"label": r.get("label"),
+           "level_percentile_5y": r.get("percentile")}
     if r.get("change_unit") == "bps":
         out.update(start_level_pct=r.get("start_level"),
                    end_level_pct=r.get("end_level"), change_bps=r.get("change"))
