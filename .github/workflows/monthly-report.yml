@@ -63,7 +63,8 @@ jobs:
           SNAPSHOT_DIR: snapshots
           CHESTER_STATE_URL: ${{ secrets.CHESTER_STATE_URL }}
           CHESTER_STATE_TOKEN: ${{ secrets.CHESTER_STATE_TOKEN }}
-        run: python -m monthly_macro.run --verbose
+        # --no-deliver: this runner has no SMTP; the artifact below is the copy.
+        run: python -m monthly_macro.run --verbose --no-deliver
 
       # Upload BEFORE the commit step. The report is the product; a git
       # problem must never cost you the artifact.

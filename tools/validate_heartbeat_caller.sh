@@ -864,6 +864,9 @@ case "$1" in
         for p in "${pairs[@]}"; do [[ "${p%%=*}" == "$unit" ]] && res="${p#*=}"; done
         if [[ -n "$res" ]]; then printf 'ActiveState=failed\nResult=%s\n' "$res"
         else printf 'ActiveState=inactive\nResult=success\n'; fi ;;
+    # Enabled only when named in FAKE_ENABLED, so every section that does not
+    # name one keeps the weekly/monthly checks inert, as before.
+    is-enabled) [[ ",${FAKE_ENABLED:-}," == *",$2,"* ]] ;;
     *) exit 1 ;;
 esac
 STUB
@@ -930,6 +933,44 @@ if [[ "$(units_of)" == "skipped" ]] && [[ "$(state_of)" == "ok" ]]; then
 else
     bad "skip switch -> units=$(units_of) state=$(state_of)"
 fi
+
+printf '\n%s\nA report built but not delivered (M-1, 1 Oct 2026)\n%s\n' "$LINE" "$LINE"
+
+# The 1 Oct Monthly built, archived, stamped its heartbeat and reached nobody, and
+# the heartbeat read monthly=fresh. The wrappers now stamp rc=2 as
+# `not_delivered ...`, and the anchor check must name it -- without moving the
+# verdict or the exit code, because the report exists and can be re-sent.
+monthly_of() { sed -n 's/.* monthly=\([^ ]*\).*/\1/p' "$STATUS"; }
+weekly_of()  { sed -n 's/.* weekly=\([^ ]*\).*/\1/p' "$STATUS"; }
+printf 'not_delivered sha=abc1234 rc=2 at=%s\n' "$(date --iso-8601=seconds)" \
+    >"$STATE_DIR/monthly_heartbeat"
+run_units 0 FAKE_ENABLED="chester-monthly.timer"
+if [[ "$(monthly_of)" == "not_delivered" ]] && [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]]; then
+    ok "a fresh monthly heartbeat stamped not_delivered reads monthly=not_delivered, verdict ok, exit 0"
+else
+    bad "not_delivered monthly -> monthly=$(monthly_of) state=$(state_of) rc=$RC"
+fi
+if grep -q 'monthly: the last report was built and archived but NOT delivered' "$SANDBOX/logs"/*.log 2>/dev/null; then
+    ok "and the log says so, naming the re-send"
+else
+    bad "no not-delivered warning in the heartbeat log"
+fi
+printf 'ok sha=abc1234 rc=0 at=%s\n' "$(date --iso-8601=seconds)" >"$STATE_DIR/monthly_heartbeat"
+run_units 0 FAKE_ENABLED="chester-monthly.timer"
+if [[ "$(monthly_of)" == "fresh" ]]; then
+    ok "a delivered one reads monthly=fresh -- the check discriminates"
+else
+    bad "delivered monthly -> monthly=$(monthly_of)"
+fi
+printf 'not_delivered sha=abc1234 rc=2 at=%s\n' "$(date --iso-8601=seconds)" \
+    >"$STATE_DIR/weekly_heartbeat"
+run_units 0 FAKE_ENABLED="chester-weekly.timer"
+if [[ "$(weekly_of)" == "not_delivered" ]] && [[ "$(monthly_of)" == "not_enabled" ]]; then
+    ok "the weekly gets the same reading from the same loop (weekly=not_delivered), and an unenabled monthly stays not_enabled"
+else
+    bad "weekly not_delivered -> weekly=$(weekly_of) monthly=$(monthly_of)"
+fi
+rm -f "$STATE_DIR/monthly_heartbeat" "$STATE_DIR/weekly_heartbeat"
 rm -f "$UNITS"/*.service "$UNITS"/*.timer
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"

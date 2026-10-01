@@ -50,6 +50,41 @@ def setup_logging(verbose: bool = False):
     )
 
 
+SUBJECT = "Monthly Regime & Allocation — {date}"
+
+
+def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
+    """Email one ARCHIVED edition: the HTML in the body, the Markdown attached.
+
+    Reads the files the build archived rather than taking them from memory, so
+    what is mailed is byte-identical to the record and a past edition can be
+    re-sent (--deliver-only) without rebuilding it -- a rebuild would call the
+    model again and rewrite the snapshot next month compares against.
+
+    The same transport as the Weekly and the 16:45 close: daily_cascade/deliver,
+    which reads the SMTP credentials the heartbeat's alert path uses. Never
+    raises. Prints ONE greppable line for run_monthly.sh's log:
+        delivery=smtp ok       sent
+        delivery=smtp failed   anything else, with the named state and detail
+    """
+    d = Path(out_dir)
+    md_name, html_name = f"monthly_macro_{stamp}.md", f"monthly_macro_{stamp}.html"
+    try:
+        md = (d / md_name).read_text(encoding="utf-8")
+        html = (d / html_name).read_text(encoding="utf-8")
+    except OSError as exc:
+        state, detail = "archive_missing", f"{type(exc).__name__}: {exc}"
+    else:
+        state, detail = delivery.send_html(
+            SUBJECT.format(date=stamp), html,
+            text_fallback=md, attachments=[(md_name, md, "markdown")])
+    ok = state == "sent"
+    print(f"delivery=smtp {'ok' if ok else 'failed'} state={state} -- {detail}",
+          flush=True)
+    return {"delivery": state, "delivery_detail": detail,
+            "delivered_at": session.utc_iso()}
+
+
 def main():
     ap = argparse.ArgumentParser(description="Generate the Monthly Macro Report")
     ap.add_argument("--skip-fetch", action="store_true",
@@ -66,11 +101,25 @@ def main():
                     help="Skip the Claude narrative step even if ANTHROPIC_API_KEY is set")
     ap.add_argument("--lookback-days", type=int, default=1500,
                     help="FRED history to pull, in days (default: 1500 ~= 4 years)")
+    ap.add_argument("--no-deliver", action="store_true",
+                    help="Build and archive only; send nothing (the GitHub "
+                         "workflow fallback, which has no SMTP and uploads "
+                         "the files as an artifact instead)")
+    ap.add_argument("--deliver-only", default=None, metavar="YYYY-MM-DD",
+                    help="Send an already-archived edition and build nothing")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
     setup_logging(args.verbose)
     log = logging.getLogger("monthly_macro")
+
+    # EXIT CODES, the Weekly's: 0 built and delivered (or --no-deliver), 1 the
+    # run failed, 2 built and ARCHIVED but not delivered. A delivery failure
+    # never fails the build -- the report exists on disk -- but rc=2 reaches
+    # run_monthly.sh, which records not_delivered where the heartbeat reads it.
+    if args.deliver_only:
+        out = deliver_edition(args.deliver_only, args.out_dir)
+        return 0 if out["delivery"] == "sent" else 2
 
     store = Store()
     log.info("Store directory: %s", store.dir)
@@ -229,6 +278,13 @@ def main():
     if fetch_summary.get("failed"):
         print(f"   Failed series: {len(fetch_summary['failed'])} (see appendix)")
 
+    # ---- DELIVER, LAST: everything above is on disk before a socket opens ----
+    if args.no_deliver:
+        print("delivery=skipped (--no-deliver)")
+        return 0
+    out = deliver_edition(stamp, args.out_dir)
+    return 0 if out["delivery"] == "sent" else 2
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -794,6 +794,13 @@ while IFS=: read -r unit hb_file max_h label; do
             if [[ "$age_h" -gt "$max_h" ]]; then
                 state=stale
                 log "  WARNING $label: heartbeat is ${age_h}h old (allowance ${max_h}h) -- the anchor has not produced a report; re-run its wrapper for the missed period. The verdict and exit code are untouched"
+            elif [[ "$(cut -d' ' -f1 "$hb" 2>/dev/null)" == "not_delivered" ]]; then
+                # BUILT BUT NOBODY RECEIVED IT (1 Oct 2026). The wrappers stamp
+                # the heartbeat on rc=2 because the report exists, with its state
+                # first; a fresh heartbeat for an edition nobody got is the
+                # monthly's 1 Oct failure, so it is named rather than called fresh.
+                state=not_delivered
+                log "  WARNING $label: the last report was built and archived but NOT delivered -- re-send it (run_monthly.sh: CHESTER_MONTHLY_DELIVER_ONLY=<date>). The verdict and exit code are untouched"
             else
                 state=fresh
             fi

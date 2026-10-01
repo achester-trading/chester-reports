@@ -17,9 +17,18 @@
 # `schedule:` block when this landed and keeps workflow_dispatch as the manual
 # fallback; cron-job.org is deleted by the operator on 30 September 2026.
 #
-# Exit codes are monthly_macro.run's, passed through:
-#   0 built and archived
+# Exit codes are monthly_macro.run's, passed through -- the Weekly's set:
+#   0 built, archived and delivered
 #   1 the run failed -- an empty store or an unreadable one
+#   2 built and ARCHIVED but NOT delivered -- the report is on disk
+#
+# DELIVERY (1 Oct 2026). The 1 Oct edition built and archived and nobody received
+# it: this wrapper had no delivery step and its log said "built and archived" as
+# though that were the whole job. The Monthly now mails itself through
+# daily_cascade/deliver -- the Weekly's and the close's transport, on the SMTP
+# credentials the heartbeat's alerts use -- and every run logs a `delivery=` line.
+# rc=2 still stamps the heartbeat (the report exists), with state=not_delivered,
+# which is what the heartbeat's anchor check reports.
 #
 # Overridable:
 #   CHESTER_REPO           repo checkout    (~/chester-reports)
@@ -29,6 +38,8 @@
 #   CHESTER_MONTHLY_AS_OF      point-in-time cutoff, for replaying a past month
 #   CHESTER_MONTHLY_FETCH=1        pull FRED and prices first (see below)
 #   CHESTER_MONTHLY_NO_NARRATIVE=1 ship the data-only edition
+#   CHESTER_MONTHLY_DELIVER_ONLY=YYYY-MM-DD  re-send that archived edition and
+#                                  build nothing (a missed delivery, by hand)
 
 set -uo pipefail
 
@@ -98,6 +109,9 @@ ARGS=()
 [[ -n "${CHESTER_MONTHLY_AS_OF:-}" ]] && ARGS+=(--as-of "$CHESTER_MONTHLY_AS_OF")
 [[ -z "${CHESTER_MONTHLY_FETCH:-}" ]] && ARGS+=(--skip-fetch)
 [[ -n "${CHESTER_MONTHLY_NO_NARRATIVE:-}" ]] && ARGS+=(--skip-narrative)
+if [[ -n "${CHESTER_MONTHLY_DELIVER_ONLY:-}" ]]; then
+    ARGS=(--deliver-only "$CHESTER_MONTHLY_DELIVER_ONLY")
+fi
 
 log "=== monthly start sha=$SHA pull=$PULL_STATUS ${ARGS[*]:-live}"
 START=$(date +%s)
@@ -106,19 +120,25 @@ RC=$?
 ELAPSED=$(( $(date +%s) - START ))
 
 case $RC in
-    0) STATE=ok;     MSG="monthly built and archived" ;;
-    1) STATE=failed; MSG="RUN FAILED -- an empty or unreadable store; see the log" ;;
-    *) STATE=error;  MSG="monthly report failed rc=$RC" ;;
+    0) STATE=ok;            DELIVERY="smtp ok";     MSG="monthly built, archived and delivered" ;;
+    1) STATE=failed;        DELIVERY="none";        MSG="RUN FAILED -- an empty or unreadable store; see the log" ;;
+    2) STATE=not_delivered; DELIVERY="smtp failed"; MSG="built and ARCHIVED but delivery failed -- the report is on disk" ;;
+    *) STATE=error;         DELIVERY="none";        MSG="monthly report failed rc=$RC" ;;
 esac
 log "$MSG (rc=$RC, ${ELAPSED}s)"
+# The python's own `delivery=smtp ok|failed state=... -- detail` line is above in
+# this log; this one is the wrapper's verdict, on one line a month greps into.
+log "delivery=$DELIVERY"
 
-printf 'state=%s rc=%s sha=%s pull=%s elapsed=%s at=%s\n' \
-    "$STATE" "$RC" "$SHA" "$PULL_STATUS" "$ELAPSED" "$(date --iso-8601=seconds)" \
-    >"$STATUS"
+printf 'state=%s rc=%s delivery=%s sha=%s pull=%s elapsed=%s at=%s\n' \
+    "$STATE" "$RC" "${DELIVERY// /_}" "$SHA" "$PULL_STATUS" "$ELAPSED" \
+    "$(date --iso-8601=seconds)" >"$STATUS"
 
 # THE HEARTBEAT IS WRITTEN ONLY ON A RUN THAT PRODUCED A REPORT. Stamping it for a
-# failed run would let a broken month look current for four weeks.
-if [[ "$RC" -eq 0 ]]; then
+# failed run would let a broken month look current for four weeks. A delivery
+# failure DID produce one, so rc=2 stamps it -- with its state first, which is
+# what the heartbeat's anchor check reads to report monthly=not_delivered.
+if [[ "$RC" -eq 0 || "$RC" -eq 2 ]]; then
     printf '%s sha=%s rc=%s at=%s\n' "$STATE" "$SHA" "$RC" \
         "$(date --iso-8601=seconds)" >"$HEARTBEAT"
 fi

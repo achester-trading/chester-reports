@@ -450,9 +450,190 @@ def group_f(built: dict) -> None:
           "the rule it illustrates teaches the example")
 
 
+# ---------------------------------------------------------------------------
+# G. DELIVERY (M-1, 1 Oct 2026)
+# ---------------------------------------------------------------------------
+# The 1 Oct Monthly logged "built and archived (rc=0)" and reached nobody: the
+# wrapper had no delivery step, and nothing could tell a delivered edition from an
+# archived one. Checked without a network: SMTP is a fake that records what it was
+# handed, and the credentials are patched in, so no run of this gate sends mail.
+def group_g() -> None:
+    print(f"\n{LINE}\nG. DELIVERY -- the Monthly reaches the inbox, or says it did not\n{LINE}")
+    import contextlib
+    import io
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+    from email import message_from_bytes
+    from email.policy import default as email_default
+    from daily_cascade import deliver
+    from monthly_macro import run as mrun
+
+    stamp = "2026-10-01"
+    sent: list = []
+
+    class FakeSMTP:
+        fail = None
+
+        def __init__(self, host, port, timeout=None):
+            self.host = host
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self):
+            pass
+
+        def login(self, user, password):
+            if FakeSMTP.fail:
+                raise FakeSMTP.fail
+
+        def send_message(self, msg):
+            sent.append(message_from_bytes(msg.as_bytes(), policy=email_default))
+
+    cfg = {"user": "from@example.invalid", "password": "s3cret-not-real",
+           "rcpt": "to@example.invalid", "host": "smtp.example.invalid", "port": 587}
+    saved = (deliver.smtp_config, deliver.smtplib.SMTP)
+    deliver.smtplib.SMTP = FakeSMTP
+
+    def run_deliver(td: str) -> tuple[dict, str]:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            out = mrun.deliver_edition(stamp, td)
+        return out, buf.getvalue()
+
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            md = "# Monthly\n\n- one figure ✓\n"
+            html = "<html><body><h1>Monthly</h1></body></html>"
+            Path(td, f"monthly_macro_{stamp}.md").write_text(md, encoding="utf-8")
+            Path(td, f"monthly_macro_{stamp}.html").write_text(html, encoding="utf-8")
+
+            # --- SENT ---------------------------------------------------------
+            deliver.smtp_config = lambda: (cfg, [])
+            out, printed = run_deliver(td)
+            check(out["delivery"] == "sent" and len(sent) == 1,
+                  f"configured, the archived edition is SENT once "
+                  f"({out['delivery']}, {len(sent)} message)")
+            m = sent[0] if sent else None
+            if m is not None:
+                check(m["Subject"] == f"Monthly Regime & Allocation — {stamp}",
+                      f"subject is \"Monthly Regime & Allocation — <date>\" "
+                      f"({m['Subject']!r})")
+                body = m.get_body(preferencelist=("html",))
+                check(body is not None and "<h1>Monthly</h1>" in body.get_content(),
+                      "the HTML edition is the message BODY, not an attachment -- "
+                      "32.3's 'a report that must be opened is read late'")
+                atts = list(m.iter_attachments())
+                a = atts[0] if atts else None
+                check(len(atts) == 1 and a.get_filename() == f"monthly_macro_{stamp}.md"
+                      and a.get_content_type() == "text/markdown"
+                      and a.get_content() == md,
+                      f"the Markdown is attached, byte-identical to the archive "
+                      f"({[x.get_filename() for x in atts]})")
+            check(printed.startswith("delivery=smtp ok "),
+                  f"and one greppable line says so ({printed.strip()[:40]}...)")
+
+            # --- NOT CONFIGURED ------------------------------------------------
+            deliver.smtp_config = lambda: (None, ["SMTP_USER"])
+            out, printed = run_deliver(td)
+            check(out["delivery"] == "not_configured" and len(sent) == 1
+                  and printed.startswith("delivery=smtp failed state=not_configured"),
+                  f"no credentials -> not_configured, nothing sent, and the line "
+                  f"says FAILED rather than nothing ({printed.strip()[:60]})")
+
+            # --- SEND FAILED -----------------------------------------------------
+            deliver.smtp_config = lambda: (cfg, [])
+            FakeSMTP.fail = RuntimeError("535 auth rejected for s3cret-not-real")
+            try:
+                out, printed = run_deliver(td)
+            except Exception as exc:                           # noqa: BLE001
+                out, printed = {"delivery": f"RAISED {type(exc).__name__}"}, ""
+            FakeSMTP.fail = None
+            check(out["delivery"] == "send_failed"
+                  and printed.startswith("delivery=smtp failed state=send_failed"),
+                  f"an SMTP error is send_failed and never raises ({out['delivery']})")
+            check("s3cret-not-real" not in printed
+                  and "s3cret-not-real" not in str(out.get("delivery_detail")),
+                  "and the password the server quoted back is redacted")
+
+            # --- THE EXIT CODE ---------------------------------------------------
+            argv = sys.argv
+            try:
+                sys.argv = ["run", "--deliver-only", stamp, "--out-dir", td]
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rc_ok = mrun.main()
+                    deliver.smtp_config = lambda: (None, ["SMTP_USER"])
+                    rc_bad = mrun.main()
+            finally:
+                sys.argv = argv
+            check(rc_ok == 0 and rc_bad == 2,
+                  f"--deliver-only exits 0 when sent and 2 when not (got {rc_ok}, "
+                  f"{rc_bad}) -- the Weekly's codes: built-and-archived-but-not-"
+                  f"delivered is 2, never a build failure")
+
+        with tempfile.TemporaryDirectory() as empty:
+            deliver.smtp_config = lambda: (cfg, [])
+            before = len(sent)
+            out, printed = run_deliver(empty)
+            check(out["delivery"] == "archive_missing" and len(sent) == before,
+                  "an edition that was never archived is not sent, and says why")
+    finally:
+        deliver.smtp_config, deliver.smtplib.SMTP = saved
+
+    # --- THE PATHS THAT MUST NOT SEND --------------------------------------------
+    wf = (REPO / ".github" / "workflows" / "monthly-report.yml").read_text(
+        encoding="utf-8")
+    check("monthly_macro.run --verbose --no-deliver" in wf,
+          "the GitHub fallback passes --no-deliver: that runner has no SMTP, "
+          "and a not_configured rc=2 would fail the workflow that uploads the "
+          "artifact")
+
+    # --- THE WRAPPER: rc=2 is not_delivered, and the heartbeat is stamped -----
+    if not (shutil.which("bash") and shutil.which("flock")):
+        SKIPPED.append("run_monthly.sh rc mapping: no bash+flock on this machine")
+        return
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        (t / "repo").mkdir()
+        subprocess.run(["git", "init", "-q", str(t / "repo")], check=True)
+        stub = t / "py"
+        stub.write_text("#!/usr/bin/env bash\necho 'delivery=smtp failed "
+                        "state=not_configured -- stub'\nexit \"${STUB_RC:-0}\"\n")
+        stub.chmod(0o755)
+        for rc, want_state, want_delivery, stamped in (
+                (2, "not_delivered", "smtp_failed", True),
+                (0, "ok", "smtp_ok", True),
+                (1, "failed", "none", False)):
+            st = t / f"state{rc}"
+            env = {**os.environ, "CHESTER_REPO": str(t / "repo"),
+                   "CHESTER_LOG_DIR": str(t / "logs"), "CHESTER_STATE_DIR": str(st),
+                   "CHESTER_PYTHON": str(stub), "STUB_RC": str(rc)}
+            r = subprocess.run(["bash", str(REPO / "scripts" / "run_monthly.sh")],
+                               env=env, capture_output=True, text=True)
+            status = (st / "monthly_status").read_text() if (st / "monthly_status").exists() else ""
+            hb = st / "monthly_heartbeat"
+            check(r.returncode == rc and f"state={want_state} " in status
+                  and f"delivery={want_delivery} " in status
+                  and hb.exists() == stamped
+                  and (not stamped or hb.read_text().startswith(want_state + " ")),
+                  f"run_monthly.sh rc={rc}: state={want_state}, "
+                  f"delivery={want_delivery}, heartbeat "
+                  f"{'stamped ' + want_state if stamped else 'NOT stamped'} "
+                  f"(got rc {r.returncode}; {status.strip()[:70]})")
+        log_text = "".join(p.read_text() for p in (t / "logs").glob("*.log"))
+        check("delivery=smtp failed" in log_text and "delivery=smtp ok" in log_text,
+              "and the log carries a delivery=smtp ok|failed line per run")
+
+
 def main() -> int:
     print(f"{LINE}\nThe Monthly -- Phase 4b\n{LINE}")
     group_a()
+    group_g()
     built = None
     try:
         from monthly_macro import payload

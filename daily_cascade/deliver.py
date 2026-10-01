@@ -151,12 +151,19 @@ def archive(html: str, name: str, archive_dir: Optional[str] = None) -> Optional
         return None
 
 
-def send_html(subject: str, html: str, text_fallback: str = "") -> tuple[str, str]:
+def send_html(subject: str, html: str, text_fallback: str = "",
+              attachments: Optional[list[tuple[str, str, str]]] = None
+              ) -> tuple[str, str]:
     """(state, detail). Never raises.
 
     States: sent · not_configured · send_failed. `not_configured` is a real
     answer and not an error -- a box without credentials is a box that has not
     been set up yet, and it must say so rather than look like a delivery.
+
+    `attachments` is (filename, text, mime subtype) per file, attached as
+    text/<subtype> in UTF-8 -- the Monthly sends its Markdown beside the HTML
+    body. The HTML stays IN THE BODY, rule 32.3: an attachment is a copy for
+    keeping, never the thing the reader has to open.
     """
     cfg, missing = smtp_config()
     if cfg is None:
@@ -171,6 +178,8 @@ def send_html(subject: str, html: str, text_fallback: str = "") -> tuple[str, st
     # spam filters score a multipart/alternative better than HTML alone.
     msg.set_content(text_fallback or "This report is HTML; see the HTML part.")
     msg.add_alternative(html, subtype="html")
+    for filename, text, subtype in attachments or ():
+        msg.add_attachment(text, subtype=subtype, filename=filename)
 
     try:
         with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as s:
