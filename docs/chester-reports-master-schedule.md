@@ -372,6 +372,25 @@ here are scheduling pointers only.*
   fallback is still alive by then; drops entirely once the VPS migration
   (out-of-band 1b) is proven.
 
+*Phase 5 follow-ups from INC-6 (1 Oct) — recorded, not built:*
+
+- **Structured exit fields on the register** — `exit_price`, `exit_time`,
+  `exit_fx` (and the exec ids) on a closing supersession, read from the
+  executions table rather than typed. Today `set-status --status closed` has
+  nowhere to put a fill: the two SPY closes of 24 Sep and 1 Oct carry their
+  prices and times in `--note` free text, and `decision_time` is the instant the
+  command ran, not the fill. ~2h incl. a validate_register group.
+- **A USDMXN series, and FX generally, in the store** — the realised USD figure
+  for the MEXI short was converted at a one-off yfinance minute bar because the
+  store holds no FX rate at all. Registered daily FX (FRED `DEXMXUS` and peers,
+  or IBKR's own account exchange rates at sync time) with availability, so a
+  non-USD P&L converts at a stored, citable rate. ~1–2h.
+- **A gate on the instrument's currency against the packet's expression
+  currency** — refuse (or flag for the operator) a decision whose instrument's
+  listing currency differs from the currency the packet says it expresses, so
+  a SPY view cannot be carried by the peso listing unnoticed. The lesson of
+  INC-6: a foreign listing is a currency position. ~1h in the order gate.
+
 
 Sequenced by value, not by order added. **Not meant to be completed** — it is a
 menu, and the elevation test governs what leaves it.
