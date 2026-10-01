@@ -285,11 +285,15 @@ def group_f(tables: dict) -> None:
           is True, "the all-sessions comparator says its windows overlap")
     paper = (REPO / "docs" / "whitepapers" / "base-rates-whitepaper.md").read_text(
         encoding="utf-8")
+    # v1.4 resolved the v1.3 "erratum pending": the ex-ante form leads, cited by
+    # id, and the low-anchored form survives only flagged as hindsight.
+    low = paper.lower()
     check("baserate.midterm_from_election" in paper
-          and "from the midterm-year low" in paper.lower()
-          and "erratum pending" in paper.lower(),
-          "the paper flags its 'from the midterm-year low' sentence as a pending "
-          "erratum and names the table that replaces it")
+          and "from the midterm-year low" in low and "hindsight" in low
+          and "erratum pending" not in low,
+          "the paper leads with the ex-ante midterm table by id, flags the "
+          "'from the midterm-year low' form as hindsight, and no longer carries "
+          "it as a pending erratum")
 
 
 def main() -> int:

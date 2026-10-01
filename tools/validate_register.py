@@ -407,8 +407,17 @@ def seed_fresh_signals(td: str) -> dict:
         w.writeheader()
         w.writerow({"date": last, "symbol": "SPY"})
 
+    # AND AN EMPTY OBSERVATION STORE OF ITS OWN. A code gate never reads the live
+    # store: on the box the IBKR sync writes a fresh portfolio.nav into it, and
+    # once freshness resolved keys through the registry (3a1785f) that live row
+    # un-blocked the blocked path below -- the gate failed on the box and passed
+    # on a laptop for a reason that was about the machine, not the code.
+    obs = Path(td) / "group_e_obs.db"
+    with observations.ObservationStore(str(obs)):
+        pass
     return {"CHESTER_COMPUTED_DIR": str(computed),
-            "CHESTER_PIN_LOG_PATH": str(pin)}
+            "CHESTER_PIN_LOG_PATH": str(pin),
+            "CHESTER_DB": str(obs)}
 
 
 def group_e(db_path: str, td: str) -> None:
@@ -431,9 +440,10 @@ def group_e(db_path: str, td: str) -> None:
     # it repointed would redirect group F's pin-log reads at an empty file and
     # turn a real check into a false skip.
     import freshness                             # noqa: PLC0415
-    saved = (config.COMPUTED_DIR, config.PIN_LOG_PATH)
+    saved = (config.COMPUTED_DIR, config.PIN_LOG_PATH, observations.DEFAULT_DB)
     config.COMPUTED_DIR = env["CHESTER_COMPUTED_DIR"]
     config.PIN_LOG_PATH = env["CHESTER_PIN_LOG_PATH"]
+    observations.DEFAULT_DB = env["CHESTER_DB"]
     try:
         check(not freshness.check_signals(
                   ["exposure.gamma_flip", "pin.hit"], "SPY")["blocked"],
@@ -442,7 +452,7 @@ def group_e(db_path: str, td: str) -> None:
               "fixture: portfolio.nav is deliberately NOT seeded, so the "
               "blocked path below has exactly one cause")
     finally:
-        config.COMPUTED_DIR, config.PIN_LOG_PATH = saved
+        config.COMPUTED_DIR, config.PIN_LOG_PATH, observations.DEFAULT_DB = saved
 
     ok_args = ["record", "--instrument", "SPY", "--direction", "long",
                "--thesis", "t", "--edge-type", "positioning",
@@ -733,11 +743,17 @@ def group_i(td: str) -> None:
     obs_db = str(Path(td) / "fresh_obs.db")
     last = session.last_trading_session()
     old = last - dt.timedelta(days=14)
+    # Knowable NOW, whatever the clock says. Stamped 21:00 UTC, today's bar is in
+    # the future before the close, latest_as_of cannot see it, and the gate fails
+    # every trading-day morning -- which is when CI ran 03bf3de. This group is
+    # about bulk-key RESOLUTION; the session-timing rule is not what it tests.
+    seen = min(dt.datetime.fromisoformat(f"{last.isoformat()}T21:00:00+00:00"),
+               session.utc_now() - dt.timedelta(minutes=5)).isoformat()
     with observations.ObservationStore(obs_db) as st:
         st.write_many([
             {"registry_key": "yfinance.mkt_spy", "instrument": None,
              "observed_at": last.isoformat(),
-             "available_at": f"{last.isoformat()}T21:00:00+00:00",
+             "available_at": seen,
              "value": 700.0, "source": "synthetic"},
             {"registry_key": "yfinance.mkt_qqq", "instrument": None,
              "observed_at": old.isoformat(),
