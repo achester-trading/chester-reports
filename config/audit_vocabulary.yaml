@@ -33,6 +33,15 @@ name_tokens:
   - Nasdaq 100
   - Nasdaq-100
   - Russell 2000
+  # Source tiers (config/source_tiers.yaml) -- a tier is a class of outlet, not
+  # a count; the Monthly's themes report how many tier-1-2 headlines a story had.
+  - tier-1
+  - tier-2
+  - tier-3
+  - tier-1-2
+  - tier 1
+  - tier 2
+  - tier 3
   # Moving-average names -- the indicator, not a count of days.
   - 50-day
   - 200-day

@@ -98,7 +98,8 @@ def write_prose(p: dict, args, log) -> dict:
     for k in held:
         log.warning("  section %s withheld: %s", k, out[k].get("reason"))
     p["prose"] = {k: {kk: r.get(kk) for kk in ("title", "state", "published",
-                                               "words", "reason", "model", "text")}
+                                               "words", "reason", "model", "text",
+                                               "rejected_text")}
                   for k, r in out.items()}
     return out
 
@@ -140,6 +141,9 @@ def rerender(args, log) -> int:
     md = render_v2.render(p, prose=prose)
     stamp = p.get("report_date")
     md_path = delivery.archive(md, f"monthly_macro_{stamp}_dryrun.md", args.out_dir)
+    # The dry run's payload, prose and rejected sections included, for reading.
+    delivery.archive(json.dumps(p, indent=2, default=str, sort_keys=True),
+                     f"monthly_macro_{stamp}_dryrun_payload.json", args.out_dir)
     html_path = delivery.archive(build_html(md), f"monthly_macro_{stamp}_dryrun.html",
                                  args.out_dir)
     if prose:

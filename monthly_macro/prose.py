@@ -68,6 +68,12 @@ THE HORIZON IS THE MONTH named in the payload. The regime is the object's: name 
 what the dials and dimensions read, never infer a regime of your own. Say plainly \
 where the payload says something is not sourced; do not fill a gap with knowledge \
 from outside the payload. Do not cite event, claim or row ids.
+
+DO NO ARITHMETIC OF YOUR OWN. Quote each move exactly as the payload gives it. \
+Never compute a difference, a spread between two moves, a ratio, a sum or a \
+relative performance ("the Russell lagged by 4.36%") -- that number is in no \
+field, and one such figure withholds the whole section. Say "lagged" and give \
+both moves instead.
 """
 
 
@@ -257,6 +263,10 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 "title": sec["title"], "state": state, "published": published,
                 "text": r.text if published else None, "reason": reason,
                 "words": words(r.text) if published else 0,
+                # Kept for inspection, never printed: the operator can see what a
+                # withheld section said and why the audit stopped it.
+                "rejected_text": None if published else (
+                    getattr(r, "rejected_text", None) or r.text),
                 "model": r.model,
                 "figures_checked": getattr(r, "figures_checked", None)}
         except Exception as exc:                               # noqa: BLE001
