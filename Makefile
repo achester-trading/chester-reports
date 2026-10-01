@@ -89,6 +89,7 @@ PY_VALIDATORS := \
 DATA_GATES := \
 	tools/validate_iv_solver.py \
 	tools/validate_base_rates_store.py \
+	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py
 

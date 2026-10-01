@@ -125,6 +125,15 @@ case $RC in
     2) STATE=not_delivered; DELIVERY="smtp failed"; MSG="built and ARCHIVED but delivery failed -- the report is on disk" ;;
     *) STATE=error;         DELIVERY="none";        MSG="monthly report failed rc=$RC" ;;
 esac
+# A RE-SEND BUILDS NOTHING, and the log must not say it did: the 1 Oct re-send
+# logged "built, archived and delivered" for a two-second run that only mailed
+# the archive, which a later reader would take for a second edition.
+if [[ -n "${CHESTER_MONTHLY_DELIVER_ONLY:-}" ]]; then
+    case $RC in
+        0) MSG="re-delivered (no build) the archived edition of $CHESTER_MONTHLY_DELIVER_ONLY" ;;
+        2) MSG="re-delivery FAILED (no build) for $CHESTER_MONTHLY_DELIVER_ONLY -- the archive is unchanged" ;;
+    esac
+fi
 log "$MSG (rc=$RC, ${ELAPSED}s)"
 # The python's own `delivery=smtp ok|failed state=... -- detail` line is above in
 # this log; this one is the wrapper's verdict, on one line a month greps into.

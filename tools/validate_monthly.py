@@ -18,6 +18,16 @@ F. The model boundary: the narrative payload is a projection of the document, th
 Groups B, D and F BUILD THE PAYLOAD, which is why this gate is slower than its
 neighbours and worth the seconds: a completeness rule asserted against the code that
 writes the payload, rather than against a payload, is a rule about a promise.
+
+A CODE GATE NEVER READS THE LIVE STORE (1 Oct 2026). B-F built the payload from
+whatever data/chester.db they found, so on the box the verdict was about the box's
+history and in CI about an empty store. main() now points CHESTER_DB and the pin
+log at a temporary database BEFORE anything opens a store, and seeds it: two
+pillar series running past the replay cutoff (so D's no-leak check has something
+to catch), one market-state object computed by regime.compute on them, and one
+Monthly forecast in the probability ledger (so C's per-weight Brier rows exist).
+The same B, C and D over the box's real history are the data gate
+tools/validate_monthly_store.py.
 """
 
 from __future__ import annotations
@@ -305,6 +315,15 @@ def group_d() -> None:
     rg = past.get("regime") or {}
     if rg.get("session") and str(rg["session"])[:10] > day:
         late.append(f"regime session {rg['session']}")
+    # NOT VACUOUS: the store DOES hold observations after the cutoff -- the
+    # current build sees one -- so a clean replay means the cutoff was applied.
+    now_obs = [str(r.get("observed_at"))[:10]
+               for v in ((payload.build().get("appendix") or {}).get("pillars")
+                         or {}).values()
+               for r in v.get("series") or [] if r.get("observed_at")]
+    check(any(o > day for o in now_obs),
+          f"the store holds pillar observations AFTER the cutoff (newest "
+          f"{max(now_obs) if now_obs else None}), so the check below can fail")
     check(not late,
           f"NO figure in the payload was observed after the cutoff "
           f"({len(late)} leak(s)"
@@ -628,10 +647,93 @@ def group_g() -> None:
         log_text = "".join(p.read_text() for p in (t / "logs").glob("*.log"))
         check("delivery=smtp failed" in log_text and "delivery=smtp ok" in log_text,
               "and the log carries a delivery=smtp ok|failed line per run")
+        check("built, archived and delivered" in log_text
+              and "re-delivered (no build)" not in log_text,
+              "a full run says built, archived and delivered")
+        for p in (t / "logs").glob("*.log"):
+            p.unlink()
+        env = {**os.environ, "CHESTER_REPO": str(t / "repo"),
+               "CHESTER_LOG_DIR": str(t / "logs"), "CHESTER_STATE_DIR": str(t / "rs"),
+               "CHESTER_PYTHON": str(stub), "STUB_RC": "0",
+               "CHESTER_MONTHLY_DELIVER_ONLY": "2026-10-01"}
+        subprocess.run(["bash", str(REPO / "scripts" / "run_monthly.sh")],
+                       env=env, capture_output=True, text=True)
+        log_text = "".join(p.read_text() for p in (t / "logs").glob("*.log"))
+        check("re-delivered (no build)" in log_text
+              and "built, archived and delivered" not in log_text,
+              "and a CHESTER_MONTHLY_DELIVER_ONLY re-send says re-delivered (no "
+              "build) -- never that it built a second edition")
+
+
+def isolate_and_seed() -> str:
+    """Point every store the payload reads at a temporary database, and seed it.
+
+    Before ANY import that opens a store: altdata.observations and register.store
+    read CHESTER_DB once, at import, and the ledger and grade store default to
+    observations.DEFAULT_DB. The module attributes are set as well, in case an
+    earlier import already resolved them.
+    """
+    import atexit
+    import datetime as dt
+    import os
+    import shutil
+    import tempfile
+    td = tempfile.mkdtemp(prefix="validate_monthly_")
+    atexit.register(shutil.rmtree, td, ignore_errors=True)
+    db = str(Path(td) / "monthly.db")
+    os.environ["CHESTER_DB"] = db
+    os.environ["CHESTER_PIN_LOG_PATH"] = str(Path(td) / "pin_log.csv")
+    from altdata import config, observations, probability_ledger, session
+    from register import store as register_store
+    import regime
+    observations.DEFAULT_DB = register_store.DEFAULT_DB = db
+    config.PIN_LOG_PATH = os.environ["CHESTER_PIN_LOG_PATH"]
+
+    # Synthetic, NOT market data: two registered pillar members (pillar 5's VIX,
+    # pillar 6's HY OAS), every weekday for 1,200 days up to yesterday -- so past
+    # the replay cutoff, which is the last day of the previous month.
+    today = session.session_date_obj()
+    days, d = [], today - dt.timedelta(days=1200)
+    while d < today:
+        if d.weekday() < 5:
+            days.append(d)
+        d += dt.timedelta(days=1)
+    rows = [{"registry_key": key, "instrument": None,
+             "observed_at": d.isoformat(),
+             "available_at": f"{d.isoformat()}T21:00:00+00:00",
+             "value": float(v), "source": "synthetic"}
+            for i, d in enumerate(days)
+            for key, v in (("fred.vix", 15 + (i % 11)),
+                           ("fred.hy_oas", 3 + (i % 7) * 0.1))]
+    # AND ONE ROW OBSERVED TODAY, knowable five minutes ago: on the 1st, "up to
+    # yesterday" ends ON the cutoff, and D's no-leak check would be vacuous.
+    seen = (session.utc_now() - dt.timedelta(minutes=5)).isoformat()
+    rows += [{"registry_key": key, "instrument": None,
+              "observed_at": today.isoformat(), "available_at": seen,
+              "value": v, "source": "synthetic"}
+             for key, v in (("fred.vix", 21.0), ("fred.hy_oas", 3.4))]
+    with observations.ObservationStore(db) as st:
+        st.write_many(rows)
+        last = days[-1].isoformat()
+        regime.store_object(regime.compute(as_of=regime.session_cutoff(last),
+                                           session_day=last, store=st), st)
+    month = today.replace(day=1) - dt.timedelta(days=1)
+    with probability_ledger.ProbabilityLedger(db) as led:
+        led.record(source="monthly_macro",
+                   scenario_set=f"monthly_macro:{month.replace(day=1).isoformat()}",
+                   claim="Seeded scenario (synthetic)", probability=0.6,
+                   emitted_at=f"{month.replace(day=1).isoformat()}T12:00:00+00:00",
+                   horizon_date=(today + dt.timedelta(days=60)).isoformat(),
+                   resolution_criterion="seeded by validate_monthly")
+    print(f"  seeded {len(rows):,} observations, one market-state object for "
+          f"{last} and one ledger forecast into {db}")
+    return td
 
 
 def main() -> int:
-    print(f"{LINE}\nThe Monthly -- Phase 4b\n{LINE}")
+    print(f"{LINE}\nThe Monthly -- Phase 4b (seeded store; the real one is "
+          f"tools/validate_monthly_store.py)\n{LINE}")
+    isolate_and_seed()
     group_a()
     group_g()
     built = None
