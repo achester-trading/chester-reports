@@ -219,7 +219,11 @@ def assess(key: str, half_life: str, instrument: Optional[str] = None,
 
     today_session = session.session_date(now)
     is_session_today = session.is_trading_session(now)
-    last_session = session.last_trading_session(now).isoformat()
+    # The latest COMPLETED session (close + grace), not the calendar's latest
+    # session: before the close on a trading day that is yesterday, and
+    # yesterday's bar is the current vintage. last_trading_session() answered
+    # "today" there and blocked every session signal each morning.
+    last_session = session.last_completed_session(now).isoformat()
 
     if half_life == "permanent":
         v.update(stale=False, reason="permanent -- a recorded outcome does not decay")
@@ -243,9 +247,14 @@ def assess(key: str, half_life: str, instrument: Optional[str] = None,
     elif half_life == "session":
         # The most recent COMPLETED session, not the calendar day. On a
         # Saturday that is Friday, and Friday's close is the current vintage.
-        if info["session_date"] == last_session:
+        # At or after it: between the EOD write (16:10) and close + grace, today's
+        # bar is newer than the latest completed session and is not stale.
+        if (info["session_date"] or "") >= last_session:
             v.update(stale=False,
-                     reason=f"from the latest completed session {last_session}")
+                     reason=f"from the latest completed session {last_session}"
+                     if info["session_date"] == last_session else
+                     f"from session {info['session_date']}, at or after the "
+                     f"latest completed session {last_session}")
         else:
             v["reason"] = (f"from session {info['session_date']}, but the latest "
                            f"completed session is {last_session}")

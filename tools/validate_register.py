@@ -784,6 +784,36 @@ def group_i(td: str) -> None:
     finally:
         observations.DEFAULT_DB = saved
 
+    # THE SESSION RULE READS THE LATEST *COMPLETED* SESSION (1 Oct 2026). It
+    # read last_trading_session(), which before the close on a trading day is
+    # today, so yesterday's close -- the current vintage -- was blocked as stale
+    # every morning. Pinned clocks and past-dated bars: true whenever this runs.
+    def at(observed: str, seen: str, now: str) -> dict:
+        db = str(Path(td) / f"clock_{observed}_{now[:13]}.db")
+        with observations.ObservationStore(db) as st:
+            st.write_many([{"registry_key": "yfinance.mkt_spy", "instrument": None,
+                            "observed_at": observed, "available_at": seen,
+                            "value": 700.0, "source": "synthetic"}])
+        prev = observations.DEFAULT_DB
+        observations.DEFAULT_DB = db
+        try:
+            return freshness.assess("yfinance.mkt_spy", "session", "SPY", now=now)
+        finally:
+            observations.DEFAULT_DB = prev
+    v = at("2026-09-30", "2026-09-30T20:20:00+00:00", "2026-10-01T13:30:00+00:00")
+    check(not v["stale"],
+          f"09:30 ET Thu 1 Oct: Wednesday's close is fresh, not blocked for want "
+          f"of a Thursday bar that cannot exist yet ({v['reason']})")
+    v = at("2026-09-29", "2026-09-29T20:20:00+00:00", "2026-10-01T13:30:00+00:00")
+    check(v["stale"] and "2026-09-30" in v["reason"],
+          f"and Tuesday's close at that hour IS stale, naming Wednesday "
+          f"({v['reason']})")
+    v = at("2026-09-30", "2026-09-30T20:20:00+00:00", "2026-09-30T20:30:00+00:00")
+    check(not v["stale"],
+          f"16:30 ET Wed 30 Sep, after the EOD write but inside the close grace: "
+          f"Wednesday's own bar is fresh, not stale for being newer than the "
+          f"latest completed session ({v['reason']})")
+
     # AND THROUGH THE CLI, which is where finding 5 bit.
     reg_db = str(Path(td) / "fresh_reg.db")
     env = {**os.environ, "CHESTER_DB": obs_db}
