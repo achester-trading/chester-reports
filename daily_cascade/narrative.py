@@ -129,10 +129,13 @@ an unsigned magnitude does not match the negative value in the payload and the \
 whole paragraph is discarded over a phrasing. Say "fell" in the sentence if \
 you like; the figure still carries its own sign.
 
-A PERCENTILE IN PROSE IS A WHOLE-NUMBER ORDINAL. The payload keeps 96.1; you \
-write "the 96th percentile", and the audit matches it. Never put an ordinal \
-suffix on a decimal ("96.1th") and never mismatch the suffix ("21st", "22nd", \
-"23rd", "11th", "12th", "13th"): either discards the paragraph.
+A PERCENTILE IN PROSE IS THE PAYLOAD'S OWN ORDINAL, COPIED VERBATIM. Every \
+percentile field has a sibling ending in _ordinal -- "percentile": 51.7 sits \
+beside "percentile_ordinal": "52nd" -- already rounded to the nearest whole \
+number. Write exactly that string: "the 52nd percentile". Never round, truncate \
+or re-suffix a percentile yourself ("51st" for 51.7 is wrong), and never put an \
+ordinal on a decimal ("96.1th"): any percentile ordinal that is not one of the \
+payload's _ordinal strings discards the paragraph.
 
 DO NOT RESTATE A TABLE ROW BY ROW. The eight dimensions, the six contradiction \
 rows and the pin tally are all printed in full below your paragraph, and reciting \
@@ -677,6 +680,12 @@ def generate(payload: dict, *, model: Optional[str] = None,
     # percentile it cannot print, and the reader never finds the paragraph and the
     # table beside it disagreeing in the fourth decimal.
     payload = precision.apply(payload)
+    # EVERY PERCENTILE CARRIES ITS ORDINAL, already rounded half up (1 Oct 2026):
+    # the model truncated 51.7 to "51st" and the audit withheld the paragraph.
+    # Done here, the one funnel the close, the anchor, the Weekly and the Monthly
+    # all pass through, so no report's payload can reach the model without it --
+    # and the audit below reads the same augmented payload.
+    payload = numeral_audit.with_ordinals(payload)
 
     if client is None:
         client, why = _client()

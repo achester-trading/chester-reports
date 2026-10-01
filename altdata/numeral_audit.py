@@ -60,6 +60,7 @@ treating them as such would make the audit fail on every correct paragraph:
 from __future__ import annotations
 
 import datetime as dt
+import math
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -141,6 +142,85 @@ def ordinal_error(f: "Figure") -> str:
     if m.group(1).lower() != want:
         return f"the suffix disagrees with its number -- {n}{want}"
     return ""
+
+
+# ---------------------------------------------------------------------------
+# PERCENTILE ORDINALS ARE PRECOMPUTED (1 Oct 2026)
+# ---------------------------------------------------------------------------
+# H-1 made a percentile in prose a whole-number ordinal and left the rounding to
+# the model, which TRUNCATED: 51.7 -> "51st", 68.6 -> "68th". The audit reads
+# "51st" as 50.5-51.5, so the paragraph was withheld -- the 1 Oct Monthly on one
+# figure, its dry run on four. Rounding is arithmetic, so it is done here, once:
+# every percentile field in a narrative payload gets a sibling `<field>_ordinal`
+# rounded to the nearest whole number HALF UP (51.7 -> 52nd, 32.5 -> 33rd, 96.1 ->
+# 96th), the brief tells the model to copy it verbatim, and a percentile ordinal
+# in prose passes ONLY if it equals one of those stored strings.
+ORDINAL_FIELD = "_ordinal"
+
+
+def percentile_ordinal(value: float) -> str:
+    """The whole-number ordinal for a percentile, half up: 32.5 -> '33rd'."""
+    n = int(math.floor(float(value) + 0.5))
+    return f"{n}{ordinal_suffix(n)}"
+
+
+def with_ordinals(payload: Any, _depth: int = 0) -> Any:
+    """A copy of `payload` with `<field>_ordinal` beside every percentile field.
+
+    A field is a percentile by its NAME, the same rule the type audit uses
+    (type_of_key). Idempotent: an existing `_ordinal` sibling is left alone.
+    """
+    if _depth > 16:
+        return payload
+    if isinstance(payload, dict):
+        out = {k: with_ordinals(v, _depth + 1) for k, v in payload.items()}
+        for k, v in payload.items():
+            if (isinstance(v, (int, float)) and not isinstance(v, bool)
+                    and not str(k).endswith(ORDINAL_FIELD)
+                    and type_of_key(str(k)) == TYPE_PERCENTILE
+                    and f"{k}{ORDINAL_FIELD}" not in payload):
+                out[f"{k}{ORDINAL_FIELD}"] = percentile_ordinal(v)
+        return out
+    if isinstance(payload, list):
+        return [with_ordinals(v, _depth + 1) for v in payload]
+    return payload
+
+
+def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
+    """Every percentile ordinal the payload carries or implies, lower-cased.
+
+    The `_ordinal` strings themselves, and -- so a payload that never passed
+    through with_ordinals() is judged by the same rule -- the ordinal of every
+    percentile-typed value. Both are the same function of the same number.
+    """
+    out: set[str] = set()
+    if _depth > 16:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if str(k).endswith(ORDINAL_FIELD) and isinstance(v, str):
+                out.add(v.strip().lower())
+            elif (isinstance(v, (int, float)) and not isinstance(v, bool)
+                  and type_of_key(str(k)) == TYPE_PERCENTILE):
+                out.add(percentile_ordinal(v))
+            else:
+                out |= stored_ordinals(v, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out |= stored_ordinals(v, _depth + 1)
+    return out
+
+
+def _is_percentile_ordinal(f: "Figure", text: str) -> bool:
+    """An ordinal the prose uses AS a percentile: typed so, or with the word
+    beside it ("its percentile, the 51st"). Other ordinals -- "the 2nd session"
+    -- are counts and keep the plain match."""
+    if not re.search(r"\d(st|nd|rd|th)$", f.text.strip(), flags=re.I):
+        return False
+    if f.unit_type == TYPE_PERCENTILE:
+        return True
+    span = text[max(0, f.position - 40):f.position + len(f.text) + 40]
+    return bool(re.search(r"percentile", span, flags=re.I))
 
 
 def payload_days(payload: Any, _depth: int = 0) -> set[int]:
@@ -800,11 +880,31 @@ def audit(text: str, payload: Any, *,
     matched: list[tuple[Figure, float]] = []
     unmatched: list[Figure] = []
 
+    ordinals = stored_ordinals(payload)
     for f in figures:
         # A WRONGLY WRITTEN ORDINAL FAILS WHATEVER IT MATCHES (H-1 item 3).
         f.ordinal_error = ordinal_error(f)
         if f.ordinal_error:
             unmatched.append(f)
+            continue
+        # A PERCENTILE ORDINAL IS COPIED, NEVER ROUNDED BY THE WRITER: it passes
+        # only if it equals a stored `_ordinal` (half up), so a truncated "51st"
+        # for 51.7 fails even though 51 is near it.
+        if _is_percentile_ordinal(f, masked):
+            norm = re.sub(r"[^0-9a-z]", "", f.text.lower())
+            if norm not in ordinals:
+                n = int(re.match(r"\d+", norm).group()) if re.match(r"\d+", norm) \
+                    else 0
+                near = sorted(ordinals, key=lambda o: abs(
+                    int(re.match(r"\d+", o).group()) - n)
+                    if re.match(r"\d+", o) else 999)[:1]
+                f.ordinal_error = (
+                    f"a percentile ordinal must be copied from the payload's "
+                    f"`_ordinal` field (rounded half up) -- {norm} is not one"
+                    + (f"; the nearest stored is {near[0]}" if near else ""))
+                unmatched.append(f)
+                continue
+            matched.append((f, f.value))
             continue
         pool = list(values) + (pct_values if f.is_percent else [])
         hit = next((v for v in pool if f.low <= v < f.high), None)

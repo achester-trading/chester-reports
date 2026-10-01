@@ -424,8 +424,11 @@ def group_g() -> None:
     """Ordinals (H-1 item 3)."""
     print(f"\n{LINE}\nG. A PERCENTILE IN PROSE IS A WHOLE-NUMBER ORDINAL\n{LINE}")
     from altdata import numeral_audit as na
+    # "the 11th percentile" is a PERCENTILE ordinal, so since 1 Oct it must equal
+    # a stored percentile's ordinal -- e_percentile 11.2 rounds to 11th. The
+    # other ordinals here are counts and keep the plain match.
     P = {"percentile": 96.1, "a": 21.0, "b": 12.0, "c": 100.0, "d": 2.0,
-         "e": 11.2, "f": 3.0, "g": 22.0, "h": 13.0}
+         "e_percentile": 11.2, "f": 3.0, "g": 22.0, "h": 13.0}
     check([na.ordinal_suffix(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101,
                                           111, 112)]
           == ["st", "nd", "rd", "th", "th", "th", "th", "st", "nd", "rd", "st",
@@ -450,6 +453,84 @@ def group_g() -> None:
     r = audit("at the 96.1th percentile", P)
     check("write 96th" in r.reason(),
           f"the reason names the right form ({r.reason()[:90]})")
+
+
+def group_i() -> None:
+    """1 Oct 2026: percentile ordinals are precomputed, half up, and copied."""
+    print(f"\n{LINE}\nI. A PERCENTILE ORDINAL IS THE PAYLOAD'S, COPIED -- NEVER "
+          f"ROUNDED BY THE WRITER\n{LINE}")
+    import types
+    from altdata import numeral_audit as na
+    from daily_cascade import narrative as nv
+
+    # The four percentiles the 1 Oct Monthly dry run's paragraph truncated.
+    got = [na.percentile_ordinal(v) for v in (51.7, 68.6, 88.6, 32.5)]
+    check(got == ["52nd", "69th", "89th", "33rd"],
+          f"51.7, 68.6, 88.6 and 32.5 round half up to {got} -- not the "
+          f"truncated 51st, 68th, 88th and 32nd")
+    check([na.percentile_ordinal(v) for v in (96.1, 12.5, 11.49, 0.4, 100.0)]
+          == ["96th", "13th", "11th", "0th", "100th"],
+          "96.1 -> 96th, 12.5 -> 13th (half up, 11-13 keep th), 11.49 -> 11th")
+
+    P = na.with_ordinals({"regime": {"dimensions": [
+        {"dimension": "credit", "percentile": 51.7},
+        {"dimension": "inflation", "percentile": 68.6}]},
+        "alt": [{"metric": "fred.wti", "percentile": 88.6}],
+        "vol": {"champion": {"pctile": 32.5, "ratio": 1.04}}, "sessions": 2})
+    check(P["regime"]["dimensions"][0].get("percentile_ordinal") == "52nd"
+          and P["vol"]["champion"].get("pctile_ordinal") == "33rd"
+          and "ratio_ordinal" not in P["vol"]["champion"],
+          "with_ordinals() puts `<field>_ordinal` beside every percentile field, "
+          "at any depth, and beside nothing else")
+    check(na.with_ordinals(P) == P, "and is idempotent")
+
+    for text, want in (("credit sits at the 51st percentile", False),
+                       ("credit sits at the 52nd percentile", True),
+                       ("inflation is at its 68th percentile", False),
+                       ("inflation is at its 69th percentile", True),
+                       ("oil's percentile, the 88th, is high", False),
+                       ("oil's percentile, the 89th, is high", True),
+                       ("the front ratio's 32nd percentile", False),
+                       ("the front ratio's 33rd percentile", True),
+                       ("a 2nd session of it", True)):
+        r = na.audit(text, P)
+        check(r.passed == want,
+              f"{text!r} {'passes' if want else 'is WITHHELD'}"
+              + ("" if want else f" ({r.unmatched[0].ordinal_error[:70]}...)"
+                 if r.unmatched else ""))
+    r = na.audit("credit sits at the 51st percentile", P)
+    check("_ordinal" in r.reason() and "52nd" in r.reason(),
+          "the reason names the field to copy and the stored value nearest it")
+
+    # THROUGH generate(), the funnel all four reports use: the model sees the
+    # field, and a truncated ordinal withholds the paragraph.
+    seen = {}
+
+    class Resp:
+        def __init__(self, t):
+            self.content = [types.SimpleNamespace(type="text", text=t)]
+            self.model = "fixture-model"
+            self.stop_reason = "end_turn"
+
+    class Client:
+        def __init__(self, t):
+            def create(**k):
+                seen["prompt"] = k["messages"][0]["content"]
+                return Resp(t)
+            self.messages = types.SimpleNamespace(create=create)
+
+    raw = {"regime": {"dimensions": [{"dimension": "credit", "percentile": 51.7}]}}
+    kw = dict(system_prompt=nv.SYSTEM_PROMPT, max_chars=5000, one_paragraph=False,
+              citable_ids=[])
+    bad_ = nv.generate(raw, client=Client("Credit is at the 51st percentile."), **kw)
+    check('"percentile_ordinal": "52nd"' in seen.get("prompt", ""),
+          "generate() hands the model the payload WITH the ordinal field")
+    check(not bad_.published and "51st" in (bad_.reason or ""),
+          f"a truncated 51st is withheld ({bad_.state})")
+    good = nv.generate(raw, client=Client("Credit is at the 52nd percentile."), **kw)
+    check(good.published, f"the copied 52nd publishes ({good.state})")
+    check("_ordinal" in nv.SYSTEM_PROMPT and "verbatim" in nv.SYSTEM_PROMPT.lower(),
+          "and the brief tells the model to copy the _ordinal field verbatim")
 
 
 def group_h() -> None:
@@ -536,6 +617,7 @@ def main() -> int:
     group_f()
     group_g()
     group_h()
+    group_i()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
