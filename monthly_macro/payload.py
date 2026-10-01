@@ -50,7 +50,13 @@ from . import pillars
 
 log = logging.getLogger("monthly_macro.payload")
 
-SECTIONS = ("regime", "scenarios", "top_bottom", "alternative_assets",
+# MONTHLY v2 (brief 2026-10-01, Phase A): the storyline sections come first -- the
+# month in one page, looking back by theme, voices, looking ahead, where our read
+# lands -- and the six 4b sections follow, each opened by its tie-back sentence.
+# monthly_macro/v2.py builds the first five from stored records only.
+SECTIONS = ("month_in_one_page", "looking_back", "voices", "looking_ahead",
+            "our_read",
+            "regime", "scenarios", "top_bottom", "alternative_assets",
             "register_month", "appendix")
 
 # The object's dimensions, in the order the report prints them: the four the macro
@@ -651,6 +657,20 @@ def appendix_block(as_of: Optional[str] = None,
             db.close()
 
 
+def v2_sections(p: dict) -> dict:
+    """The Phase A sections for payload `p`, at its own cutoff. Never raises: a
+    fault is recorded on each section as a FAULT, never as an absence."""
+    try:
+        from . import v2
+        return v2.build(p)
+    except Exception as exc:                                   # noqa: BLE001
+        fault = f"FAULT (code, not data) -- {type(exc).__name__}: {exc}"
+        log.exception("monthly v2 sections failed")
+        return {name: {"state": "fault", "reason": fault}
+                for name in ("month_in_one_page", "looking_back", "voices",
+                             "looking_ahead", "our_read")}
+
+
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
@@ -674,6 +694,7 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None) -> dict:
         out["alternative_assets"] = alternative_assets_block(cutoff, store=db)
         out["register_month"] = register_month_block(cutoff)
         out["appendix"] = appendix_block(cutoff, store=db)
+        out.update(v2_sections(out))
         out["warnings"] = [
             f"{name}: {(out.get(name) or {}).get('state')} -- "
             f"{(out.get(name) or {}).get('reason') or 'no reason recorded'}"
@@ -761,6 +782,16 @@ def narrative_payload(full: dict) -> dict:
                                      "stale_count": v.get("stale_count")}
                                  for n, v in (ap.get("pillars") or {}).items()}},
         "absences": full.get("warnings"),
+        # v2: THE PARAGRAPH FOLLOWS THE FIVE TAKEAWAYS, so they travel -- as the
+        # numbered list the reader sees above it -- with the computed "what
+        # changed" lines they were drawn from. Text only; no new figures.
+        "takeaways": [{"n": t.get("n"), "text": t.get("text")}
+                      for t in ((full.get("month_in_one_page") or {})
+                                .get("takeaways") or [])],
+        "what_changed": [{k: r.get(k) for k in ("what", "from", "to")}
+                         for r in (((full.get("looking_back") or {})
+                                    .get("what_changed") or {}).get("rows") or [])
+                         ][:20],
     }
     return precision.apply(out)
 

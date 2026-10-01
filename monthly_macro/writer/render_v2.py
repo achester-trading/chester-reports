@@ -104,31 +104,192 @@ def _absent(title: str, block: dict) -> str:
             f"{block.get('reason') or 'No reason recorded.'}\n\n---\n")
 
 
+def _paragraph(narrative: Optional[Any]) -> list[str]:
+    """The audited paragraph, or the reason there is none. Never a substitute."""
+    if narrative is None:
+        return ["\n*No paragraph: the narrative step did not run for this "
+                "edition. The takeaways above are the month either way.*\n"]
+    if getattr(narrative, "published", False):
+        return [f"\n{narrative.text}\n",
+                f"\n*Model {narrative.model} · {narrative.figures_checked} figures "
+                f"audited against the payload.*\n"]
+    note = getattr(narrative, "withheld_note", lambda: "narrative withheld")()
+    return [f"\n> **{note}**\n>\n> The paragraph is withheld rather than "
+            f"corrected: a figure the payload does not carry is a figure nobody "
+            f"can check, and the sections below are the record either way.\n"]
+
+
 def masthead(p: dict, narrative: Optional[Any] = None) -> str:
+    """Title, provenance and absences. The paragraph is section 1's (v2)."""
     out = [f"# Monthly Regime & Allocation — {p.get('report_date')}\n",
            f"*As-of cutoff {p.get('as_of')} · run `{p.get('run_id') or 'n/a'}` · "
            f"pillar mapping {p.get('pillar_mapping_version')}*\n",
-           "*Six sections of change. The pillars are inputs to the three dials "
-           "and appear beneath them; their detail is one delta row each in the "
-           "appendix. No section computes a regime — every dial and dimension is "
-           "read from the market-state object.*\n"]
+           "*The month in one page, then the month by theme, the voices, the "
+           "months ahead and where our read lands; then the record — the regime "
+           "read from the market-state object, the scenarios, Top & Bottom, the "
+           "alternative assets, the register and the appendix. Every item names "
+           "the stored record it came from.*\n"]
     if p.get("warnings"):
         out.append("> **Absences**\n>\n"
                    + "\n".join(f"> - {w}" for w in p["warnings"]) + "\n")
-    if narrative is not None:
-        if getattr(narrative, "published", False):
-            out.append(f"\n{narrative.text}\n")
-            out.append(f"\n*Model {narrative.model} · "
-                       f"{narrative.figures_checked} figures audited against the "
-                       f"payload.*\n")
-        else:
-            note = getattr(narrative, "withheld_note",
-                           lambda: "narrative withheld")()
-            out.append(f"\n> **{note}**\n>\n> The paragraph is withheld rather "
-                       f"than corrected: a figure the payload does not carry is a "
-                       f"figure nobody can check, and the sections below are the "
-                       f"record either way.\n")
+    if p.get("month_in_one_page") is None:
+        # A pre-v2 payload (an archived 4b edition): the paragraph stays here.
+        out += _paragraph(narrative)
     return "\n".join(out) + "\n---\n"
+
+
+# ---------------------------------------------------------------------------
+# MONTHLY v2, PHASE A -- sections 1 to 5 and the tie-back sentences
+# ---------------------------------------------------------------------------
+def _cite(s: dict) -> str:
+    """One stored source, as a reader can look it up: kind:id, date."""
+    if not s:
+        return "—"
+    t = f" — {s['title']}" if s.get("title") and s.get("kind") == "event" else ""
+    tier = f", tier {s['tier']}" if s.get("tier") is not None else ""
+    return f"`{s.get('kind')}:{s.get('id')}`, {s.get('date')}{tier}{t[:90]}"
+
+
+def _tie(p: dict, section: str) -> str:
+    s = (p.get("tie_backs") or {}).get(section)
+    return f"*{s}*\n" if s else ""
+
+
+def _with_tie(text: str, p: dict, section: str) -> str:
+    """Insert the section's tie-back sentence under its heading."""
+    tie = _tie(p, section)
+    if not tie:
+        return text
+    head, nl, rest = text.partition("\n")
+    return f"{head}\n\n{tie}{rest}" if nl else text
+
+
+def month_section(p: dict, narrative: Optional[Any] = None) -> str:
+    b = p.get("month_in_one_page") or {}
+    out = ["## 1. The month in one page\n"]
+    takes = b.get("takeaways") or []
+    if b.get("state") == "fault":
+        out.append(f"**FAULT.** {b.get('reason')}\n")
+    elif not takes:
+        out.append(f"**No takeaway.** {b.get('reason') or 'No reason recorded.'}\n")
+    for t in takes:
+        out.append(f"{t['n']}. {t['text']}  \n"
+                   f"   <sub>{'; '.join(_cite(s) for s in t.get('sources') or [])}"
+                   f"</sub>")
+    if takes and len(takes) < 5:
+        out.append(f"\n*{len(takes)} takeaway(s), not five: a takeaway is printed "
+                   f"only when a stored record supports it.*")
+    out += _paragraph(narrative)
+    return "\n".join(out) + "\n---\n"
+
+
+def looking_back_section(p: dict) -> str:
+    b = p.get("looking_back") or {}
+    if b.get("state") != "ok":
+        return _absent("2. Looking back, by theme", b)
+    w = b.get("window") or ["—", "—"]
+    out = ["## 2. Looking back, by theme\n", _tie(p, "looking_back"),
+           f"*Window {w[0]} to {str(w[1])[:10]} · themes "
+           f"{b.get('themes_version')} · tags: CONSENSUS needs two tier-1–2 "
+           f"sources, DISSENT names its source, CORRECTION cites what it "
+           f"corrects, NEW is dated inside the window.*\n"]
+    for t in b.get("themes") or []:
+        out.append(f"### {t['name']}\n")
+        reads = ", ".join(t.get("dimensions") or []) or "no dimension"
+        stories = ", ".join(f"`{s}`" for s in t.get("stories") or []) or "no story"
+        out.append(f"*Reads {reads}; carries {stories}.*"
+                   + (f" *{t['no_dimension_why']}*" if t.get("no_dimension_why")
+                      else "") + "\n")
+        for it in t.get("items") or []:
+            out.append(f"- **{it['tag']}** {it['text']}  \n"
+                       f"  <sub>{'; '.join(_cite(s) for s in it['sources'][:3])}"
+                       f"</sub>")
+            c = it.get("corrects")
+            if c:
+                out.append(f"  - corrects: {c['statement']} (`{c['id']}`, "
+                           f"{c['date']})")
+        if not t.get("items"):
+            out.append("- *Nothing new in the stored record this window.*")
+        if t.get("held"):
+            out.append(f"\n*Held: {'; '.join(t['held'])}.*")
+        if t.get("refused"):
+            out.append(f"\n*{t['refused']} item(s) refused: no stored source, or "
+                       f"a tag its sources do not support.*")
+        out.append("")
+    wc = b.get("what_changed") or {}
+    out.append("### What changed from last month\n")
+    out.append(f"*Computed from the store, never written: {wc.get('count', 0)} "
+               f"difference(s) between stored records inside the window"
+               + (f". {wc['note']}" if wc.get("note") else "") + ".*\n")
+    if wc.get("rows"):
+        out.append("| What | From | To | Source |\n|---|---|---|---|")
+        for r in wc["rows"]:
+            out.append(f"| {r['what']} | {r.get('from') or '—'} | "
+                       f"{r.get('to') or '—'} | {_cite(r.get('source') or {})} |")
+    return "\n".join(out) + "\n\n---\n"
+
+
+def voices_section(p: dict) -> str:
+    b = p.get("voices") or {}
+    out = ["## 3. Voices\n", _tie(p, "voices"),
+           f"**{b.get('reason') or 'Voices register not yet built'}.**\n",
+           "*Sell-side desks, buy-side managers and independent strategists, one "
+           "row each with a computed status (REITERATED / NEW / INFLECTED / "
+           "SILENT), arrive with Phase B. Until then no view is attributed to "
+           "anyone: a voice with no stored source is not printed.*\n"]
+    if b.get("needs"):
+        out.append("Needs: " + "; ".join(b["needs"]) + ".\n")
+    return "\n".join(out) + "\n---\n"
+
+
+def looking_ahead_section(p: dict) -> str:
+    b = p.get("looking_ahead") or {}
+    if b.get("state") not in ("ok", "empty"):
+        return _absent("4. Looking ahead, 2–3 months", b)
+    h = b.get("horizon") or ["—", "—"]
+    out = ["## 4. Looking ahead, 2–3 months\n", _tie(p, "looking_ahead"),
+           f"*{h[0]} to {h[1]}, from the events table.*\n"]
+    cal = b.get("calendar") or []
+    if cal:
+        out.append("| Date | Event | Source |\n|---|---|---|")
+        for c in cal:
+            out.append(f"| {c['date']} | {c['title']} | "
+                       f"`{c['source']['kind']}:{c['source']['id']}` |")
+    else:
+        out.append("*Nothing scheduled in the events table inside the horizon.*")
+    reach = b.get("calendar_reach") or {}
+    if reach:
+        out.append("\n*Each calendar source is stored as far as: "
+                   + ", ".join(f"{k} {v}" for k, v in sorted(reach.items()))
+                   + ". A quiet stretch past those dates is the table's horizon, "
+                     "not the market's.*")
+    out.append("\n### Scenarios, and what would change our mind\n")
+    scen = b.get("scenarios") or []
+    if not scen:
+        out.append("*No live weight in the probability ledger.*")
+    for s in scen:
+        out.append(f"- **p {_v(s.get('probability'), 3)}** · Brier "
+                   f"{_v(s.get('brier'), 4) if s.get('brier') is not None else 'pending'}"
+                   f" · resolves {s.get('resolve_by') or '—'} — {s.get('claim')}  \n"
+                   f"  <sub>{_cite(s.get('cite') or {})}</sub>")
+        for sp in s.get("signposts") or []:
+            out.append(f"  - *would change our mind:* {sp['observable']} "
+                       f"({sp['date']})")
+    if b.get("scenarios_refused"):
+        out.append(f"\n*{len(b['scenarios_refused'])} weight(s) refused: no "
+                   f"stored, dated signpost.*")
+    return "\n".join(out) + "\n\n---\n"
+
+
+def our_read_section(p: dict) -> str:
+    b = p.get("our_read") or {}
+    if b.get("state") != "ok":
+        return _absent("5. Where our read lands", b)
+    return "\n".join(["## 5. Where our read lands\n", _tie(p, "our_read"),
+                      f"{b.get('paragraph')}\n",
+                      "*Bounded: this restates the scenario weights and the "
+                      "books, and states nothing they do not already hold.*\n"]
+                     ) + "\n---\n"
 
 
 def regime_section(p: dict) -> str:
@@ -433,15 +594,28 @@ def appendix_section(p: dict) -> str:
 
 
 def render(payload: dict, narrative: Optional[Any] = None) -> str:
-    """The whole document, in the payload's section order."""
-    return "\n".join([
-        masthead(payload, narrative),
-        regime_section(payload),
-        scenarios_section(payload),
-        top_bottom_section(payload),
-        alt_section(payload),
-        register_section(payload),
-        appendix_section(payload),
+    """The whole document, in the payload's section order.
+
+    v2: sections 1-5 first, then "6. The record" -- the 4b sections, each opened
+    by its tie-back sentence. A pre-v2 payload renders as it always did.
+    """
+    p = payload
+    head = [masthead(p, narrative)]
+    if p.get("month_in_one_page") is not None:
+        head += [month_section(p, narrative), looking_back_section(p),
+                 voices_section(p), looking_ahead_section(p),
+                 our_read_section(p),
+                 "## 6. The record\n\n*The regime read from the object, the "
+                 "scenarios, Top & Bottom, the alternative assets, the register "
+                 "and the appendix: the 4b sections, unchanged, each opened by "
+                 "its tie-back.*\n"]
+    return "\n".join(head + [
+        _with_tie(regime_section(p), p, "regime"),
+        _with_tie(scenarios_section(p), p, "scenarios"),
+        _with_tie(top_bottom_section(p), p, "top_bottom"),
+        _with_tie(alt_section(p), p, "alternative_assets"),
+        _with_tie(register_section(p), p, "register_month"),
+        _with_tie(appendix_section(p), p, "appendix"),
         "\n*End of Monthly Regime & Allocation. Pillars are inputs; the dials are "
         "the regime. Every figure above was read from the object, the register, the "
         "grader, the probability ledger or the store, and anything unreadable says "

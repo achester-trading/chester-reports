@@ -1,0 +1,82 @@
+# monthly_themes.yaml -- the Monthly v2 "Looking back, by theme" map.
+# (docs/briefs/monthly-v2-brief-2026-10-01.md, Phase A)
+#
+# Each theme names the market-state DIMENSIONS it reads, the narrative-register
+# STORIES it carries, and the event SOURCES whose releases count as its news.
+# Declared here rather than in code so a theme's evidence is a rule a reader can
+# check, and so moving a story between themes is a config change with a version.
+#
+# NOTHING HERE COMPUTES A STATE. A dimension item is the object's own state and
+# its change since the previous Monthly; a story item is the register's state and
+# its evaluations; a release item is a stored event. The theme only groups them.
+#
+# A theme with no dimension says so (`dimensions: []` and `no_dimension_why`):
+# geopolitics has no dimension in the object, and a theme that silently printed
+# nothing would read as a theme with nothing to say.
+version: monthly-themes-v1
+updated: 2026-10-01
+
+themes:
+  liquidity_plumbing:
+    name: Liquidity & Plumbing
+    dimensions: [liquidity]
+    # The yen carry is a FUNDING story -- yen borrowed to hold other assets --
+    # and the brief maps it here rather than to the dollar: its unwind is a
+    # liquidity event first and a currency move second.
+    stories: [yen_carry]
+    release_sources: []
+
+  fiscal_dollar:
+    name: Fiscal Dominance & Dollar
+    dimensions: [rates, inflation]
+    stories: [fiscal_dominance]
+    # The inflation prints are the mechanism fiscal dominance runs through (its
+    # evidence rule in config/narratives.yaml signs CPI and core PCE surprises).
+    release_sources: [bls_cpi, bea_news]
+
+  fed_path:
+    name: Fed Policy Path
+    dimensions: [rates]
+    stories: []
+    release_sources: [fed_monetary, bls_empsit]
+
+  credit_cycle:
+    name: Credit Cycle
+    dimensions: [credit]
+    stories: []
+    release_sources: []
+
+  equity_positioning:
+    name: Equity Positioning & Sentiment
+    dimensions: [trend, breadth, volatility]
+    stories: [ai_capex_durability]
+    release_sources: []
+
+  geopolitics_reserve:
+    name: Geopolitics & Reserve Currency
+    dimensions: []
+    no_dimension_why: >-
+      The market-state object has no geopolitical or reserve-currency dimension,
+      so this theme carries register stories and dated claims only.
+    # The midterm cycle is a political-calendar story (election day is
+    # cal.midterm_election_2026), which is the nearest stored thing to
+    # geopolitics this system holds.
+    stories: [midterm_cycle]
+    release_sources: []
+
+# LOOKING AHEAD: which scheduled releases "matter", by FRED release name. Every
+# session_calendar, claims_registry and earnings row in the window is shown; the
+# FRED release calendar carries ~100 routine series a month, so only these print.
+calendar:
+  horizon_days: 92
+  fred_release_names:
+    - Consumer Price Index
+    - Employment Situation
+    - Personal Income and Outlays
+    - Gross Domestic Product
+    - Producer Price Index
+    - Job Openings and Labor Turnover Survey
+    - Retail Sales
+    - Advance Monthly Sales for Retail and Food Services
+    - Employment Cost Index
+  include_sources: [session_calendar, claims_registry, yfinance, fed_monetary]

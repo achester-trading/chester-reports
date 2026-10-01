@@ -674,6 +674,230 @@ def group_g() -> None:
               "build) -- never that it built a second edition")
 
 
+# ---------------------------------------------------------------------------
+# H. MONTHLY v2, PHASE A (brief 2026-10-01)
+# ---------------------------------------------------------------------------
+# The brief's three gates: a fixture month renders ALL sections; a theme item
+# without a source is REFUSED; "What changed" is COMPUTED. The fixture month is a
+# database of its own -- two market-state objects a month apart with credit at
+# opposite poles, a story opened in the window with two tier-1 headlines and an
+# evaluation that moved it, a CPI release, a scheduled FOMC and a live forecast --
+# so every item kind and every tag path has something to print.
+def group_h() -> None:
+    print(f"\n{LINE}\nH. MONTHLY v2 PHASE A -- a fixture month, the tag rules, a "
+          f"computed What changed\n{LINE}")
+    import datetime as dt
+    import json
+    import sqlite3
+    import tempfile
+    from altdata import events, narratives, observations, probability_ledger
+    from monthly_macro import payload, v2
+    from monthly_macro.writer import render_v2
+    from register import store as register_store
+    import regime
+
+    # --- THE TAG RULES, item by item -------------------------------------------
+    win = ("2026-09-01", "2026-10-01T21:00:00+00:00")
+    t1 = [v2.src("event", 1, "2026-09-20", title="a - Reuters", tier=1),
+          v2.src("event", 2, "2026-09-21", title="b - Bloomberg.com", tier=1)]
+    cases = (
+        ("a theme item WITHOUT A SOURCE", {"tag": "NEW", "sources": []}, False),
+        ("a source with no id or date", {"tag": "NEW",
+                                         "sources": [{"kind": "event"}]}, False),
+        ("CONSENSUS on one tier-1 source", {"tag": "CONSENSUS",
+                                            "sources": t1[:1]}, False),
+        ("CONSENSUS on two tier-1 sources", {"tag": "CONSENSUS",
+                                             "sources": t1}, True),
+        ("CONSENSUS on two tier-3 sources", {"tag": "CONSENSUS", "sources": [
+            {**t1[0], "tier": 3}, {**t1[1], "tier": 3}]}, False),
+        ("DISSENT that names nobody", {"tag": "DISSENT", "sources": [
+            v2.src("object", "market_state@x", "2026-09-20")]}, False),
+        ("DISSENT naming its source", {"tag": "DISSENT", "sources": t1[:1]}, True),
+        ("CORRECTION with nothing it corrects", {"tag": "CORRECTION",
+                                                  "sources": t1[:1]}, False),
+        ("CORRECTION citing the prior statement", {
+            "tag": "CORRECTION", "sources": t1[:1],
+            "corrects": {"id": "market_state@2026-09-01", "date": "2026-09-01",
+                         "statement": "credit read easy"}}, True),
+        ("NEW dated outside the window", {"tag": "NEW", "sources": [
+            v2.src("event", 9, "2026-08-15")]}, False),
+        ("an unknown tag", {"tag": "BULLISH", "sources": t1}, False),
+    )
+    for label, item, admit in cases:
+        why = v2.check_item(item, win)
+        check((why is None) == admit,
+              f"{label}: {'admitted' if admit else 'REFUSED'}"
+              + (f" ({why[:60]})" if why else ""))
+    ok_, refused = v2._admit([{"tag": "NEW", "sources": [], "text": "x"}], win)
+    check(not ok_ and refused and refused[0].get("refused_because"),
+          "and _admit keeps a refused item WITH its reason, never printing it")
+
+    # --- THE FIXTURE MONTH --------------------------------------------------------
+    td = tempfile.mkdtemp(prefix="monthly_v2_fixture_")
+    db = str(Path(td) / "fixture.db")
+    saved = (observations.DEFAULT_DB, register_store.DEFAULT_DB,
+             payload.previous_monthly)
+    try:
+        observations.DEFAULT_DB = register_store.DEFAULT_DB = db
+        today = dt.date.fromisoformat(
+            __import__("altdata").session.session_date())
+        prev = (today - dt.timedelta(days=30)).isoformat()
+        mid = (today - dt.timedelta(days=12)).isoformat()
+        nxt = (today + dt.timedelta(days=20)).isoformat()
+        payload.previous_monthly = lambda as_of=None: prev
+        now_iso = __import__("altdata").session.utc_iso()
+
+        # Today's object knowable FIVE MINUTES AGO: stamped at 21:00 UTC it would
+        # be in the future before the close, and the build would read last
+        # month's object as "now" and find nothing changed.
+        seen = (dt.datetime.now(dt.timezone.utc)
+                - dt.timedelta(minutes=5)).isoformat()
+        with observations.ObservationStore(db) as st:
+            for day, credit, at in ((prev, "easy", f"{prev}T21:00:00+00:00"),
+                                    (today.isoformat(), "stressed", seen)):
+                regime.store_object({
+                    "session": day, "computed_at": at,
+                    "config_version": "fixture", "method_version": "fixture",
+                    "dials": {"macro": {"state": "calm" if credit == "easy"
+                                        else "mixed"}},
+                    "dimensions": {"credit": {"state": credit, "percentile": 12.0,
+                                              "members": []}},
+                    "contradictions": []}, st)
+        nr = narratives.NarrativeRegister(db)
+        nr.conn.execute(
+            "INSERT INTO narratives (narrative_id, name, status, state, direction,"
+            " opened, linked_dimensions, implied_outcome, story_query, origin,"
+            " created_at, updated_at) VALUES ('yen_carry', 'The yen carry',"
+            " 'active', 'emerging', 'Yen-funded carry is being unwound.', ?,"
+            " '{}', '{}', 'yen_carry', 'seed', ?, ?)", (mid, now_iso, now_iso))
+        nr.conn.commit()
+        nr.close()
+        es = events.EventStore(db)
+        rows = [
+            ("headline", f"{mid}T12:00:00+00:00", "google_news",
+             "Yen jumps as BoJ signals hike - Reuters",
+             json.dumps({"query": "yen_carry"})),
+            ("headline", f"{mid}T13:00:00+00:00", "google_news",
+             "Carry trade unwinds - Bloomberg.com",
+             json.dumps({"query": "yen_carry"})),
+            ("release", f"{mid}T12:30:00+00:00", "bls_cpi",
+             "Consumer Price Index -- August", "{}"),
+            ("scheduled", f"{nxt}T18:00:00+00:00", "claims_registry",
+             f"FOMC statement -- {nxt}", "{}"),
+        ]
+        for i, (typ, at, source, title, pay) in enumerate(rows):
+            es.conn.execute(
+                "INSERT INTO events (content_hash, type, observed_at, available_at,"
+                " ingested_at, source, title, payload) VALUES (?,?,?,?,?,?,?,?)",
+                (f"fixture-{i}", typ, at, f"{mid}T14:00:00+00:00", now_iso, source,
+                 title, pay))
+        es.conn.commit()
+        es.close()
+        with probability_ledger.ProbabilityLedger(db) as led:
+            led.record(source="narrative_register",
+                       scenario_set="hypothesis:yen_carry:primary",
+                       claim="USD/JPY is lower at the horizon (fixture).",
+                       probability=0.55, emitted_at=f"{mid}T20:00:00+00:00",
+                       horizon_date=(today + dt.timedelta(days=60)).isoformat(),
+                       resolution_criterion="fred.usd_jpy below its emission level")
+
+        built = payload.build()
+        md = render_v2.render(built)
+
+        # --- ALL SECTIONS RENDER -------------------------------------------------
+        for s in v2.V2_SECTIONS:
+            check(isinstance(built.get(s), dict) and built[s].get("state") in
+                  ("ok", "empty", "not_yet_sourced"),
+                  f"the fixture month builds `{s}` ({(built.get(s) or {}).get('state')})")
+        for h in ("## 1. The month in one page", "## 2. Looking back, by theme",
+                  "## 3. Voices", "## 4. Looking ahead, 2–3 months",
+                  "## 5. Where our read lands", "## 6. The record",
+                  "## I. Regime", "## II. Scenarios", "## III. Top & Bottom",
+                  "## IV. Alternative Assets", "## V. The register's month",
+                  "## Appendix"):
+            check(h in md, f"and renders {h!r}")
+        check(md.index("## 1.") < md.index("## 2.") < md.index("## 3.")
+              < md.index("## 4.") < md.index("## 5.") < md.index("## I. Regime"),
+              "in the brief's order: 1-5, then the record")
+        check("Voices register not yet built" in md,
+              "section 3 prints \"Voices register not yet built\"")
+        ties = built.get("tie_backs") or {}
+        check(set(ties) == set(v2.TIE_BACK_SECTIONS)
+              and all(f"*{s}*" in md for s in ties.values()),
+              f"every section after the first opens with its tie-back sentence "
+              f"({len(ties)} of {len(v2.TIE_BACK_SECTIONS)})")
+        takes = built["month_in_one_page"]["takeaways"]
+        check(1 <= len(takes) <= 5 and all(t["sources"] for t in takes),
+              f"{len(takes)} numbered takeaway(s), each with a stored source")
+        check(any(t["origin"] == "regime" and "credit" in t["text"] for t in takes)
+              and "Takeaway" in ties.get("regime", ""),
+              "a takeaway drawn from the regime is named in the regime section's "
+              "tie-back")
+
+        # --- THE ITEMS, TAGGED BY THE RULES ----------------------------------------
+        items = {i.get("story") or i.get("dimension") or i.get("text"): i
+                 for t in built["looking_back"]["themes"] for i in t["items"]}
+        cr = items.get("credit") or {}
+        check(cr.get("tag") == "CORRECTION"
+              and (cr.get("corrects") or {}).get("date") == prev,
+              f"credit easy -> stressed (pole to pole) is a CORRECTION citing the "
+              f"previous Monthly's read ({cr.get('tag')})")
+        yc = items.get("yen_carry") or {}
+        check(yc.get("tag") == "NEW" and yc.get("tier12_in_window") == 2,
+              f"the story opened in the window is NEW with its two tier-1 "
+              f"headlines ({yc.get('tag')}, {yc.get('tier12_in_window')})")
+        check(any(i.get("kind") == "release" and "Consumer Price Index" in i["text"]
+                  for t in built["looking_back"]["themes"] for i in t["items"]),
+              "the CPI release prints under its theme, sourced to its event")
+        for t in built["looking_back"]["themes"]:
+            for i in t["items"]:
+                if v2.check_item(i, tuple(built["looking_back"]["window"])):
+                    bad(f"a printed item fails its own tag rule: {i['text'][:50]}")
+
+        # --- WHAT CHANGED IS COMPUTED ------------------------------------------------
+        wc = built["looking_back"]["what_changed"]
+        whats = [r["what"] for r in wc["rows"]]
+        check(wc.get("computed") is True
+              and all((r.get("source") or {}).get("id") for r in wc["rows"]),
+              f"What changed carries {len(wc['rows'])} row(s), every one sourced")
+        check("dimension credit" in whats and "dial macro" in whats
+              and "story yen_carry" in whats and "forecast emitted" in whats,
+              f"and they are the fixture's differences: the object's credit and "
+              f"macro moves, the story opened, the forecast emitted ({whats})")
+        conn = sqlite3.connect(db)
+        conn.execute("UPDATE narratives SET opened = ? WHERE narrative_id = "
+                     "'yen_carry'", ((today - dt.timedelta(days=90)).isoformat(),))
+        conn.commit()
+        conn.close()
+        again = payload.build()["looking_back"]["what_changed"]
+        check("story yen_carry" not in [r["what"] for r in again["rows"]],
+              "change the stored record and the list changes with it: the story "
+              "opened before the window is no longer listed -- nothing in it is "
+              "written by hand")
+        src_text = (REPO / "monthly_macro" / "writer" / "render_v2.py").read_text(
+            encoding="utf-8")
+        check("Computed from the store, never written" in src_text,
+              "and the renderer prints the list from the payload, saying so")
+
+        # --- LOOKING AHEAD, AND OUR READ ------------------------------------------
+        la = built["looking_ahead"]
+        check(any(c["title"].startswith("FOMC") for c in la["calendar"]),
+              "the scheduled FOMC is on the forward calendar")
+        sc = la["scenarios"][0] if la["scenarios"] else {}
+        check(sc.get("signposts") and all(s.get("date") for s in sc["signposts"]),
+              f"the live weight prints with its Brier field and a dated 'what "
+              f"would change our mind' ({len(sc.get('signposts') or [])} "
+              f"signpost(s))")
+        check("brier" in sc, "and the Brier sits beside the weight")
+        para = built["our_read"]["paragraph"]
+        check("0.55" in para and "no active position" in para,
+              "Where our read lands restates the live weight and the books and "
+              "nothing else")
+    finally:
+        (observations.DEFAULT_DB, register_store.DEFAULT_DB,
+         payload.previous_monthly) = saved
+
+
 def isolate_and_seed() -> str:
     """Point every store the payload reads at a temporary database, and seed it.
 
@@ -745,6 +969,7 @@ def main() -> int:
     isolate_and_seed()
     group_a()
     group_g()
+    group_h()
     built = None
     try:
         from monthly_macro import payload
