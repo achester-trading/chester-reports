@@ -87,7 +87,10 @@ PY_VALIDATORS := \
 # agree. Without that, this list is just a place to quietly park a failing code
 # validator.
 DATA_GATES := \
-	tools/validate_iv_solver.py
+	tools/validate_iv_solver.py \
+	tools/validate_base_rates_store.py \
+	tools/validate_regime_store.py \
+	tools/validate_weekly_store.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \

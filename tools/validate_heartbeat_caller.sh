@@ -655,8 +655,26 @@ mkdir -p "$EXC_SANDBOX"
 # A stub `regime` is not possible -- the wrapper calls the real module -- so this
 # drives the branch through its state file instead: seed a PREVIOUS set that cannot
 # match, and the branch must report a change.
+#
+# AND THROUGH ITS OWN STORE (1 Oct 2026). `regime exceptions` read the LIVE store,
+# so in CI -- no store, no object -- it exited 1, the branch recorded no_object,
+# and the two delivery checks below failed on every run while passing on the box
+# for a reason that was about the box. A code gate never reads the live store: the
+# wrapper now sees CHESTER_DB pointed at a sandbox database holding ONE seeded
+# object with one open contradiction exception.
+EXC_DB="$EXC_SANDBOX/state.db"
+(cd "$REPO" && CHESTER_DB="$EXC_DB" "$FEED_PY" -c '
+import regime
+regime.store_object({"session": "2026-09-30",
+                     "computed_at": "2026-09-30T21:00:00+00:00",
+                     "contradictions": [{"id": "seeded_pair", "exception": True,
+                                         "persistence_days": 5}],
+                     "dimensions": {}})
+') >"$EXC_SANDBOX/seed.out" 2>&1 \
+    || bad "could not seed the exceptions store: $(tail -n 1 "$EXC_SANDBOX/seed.out")"
 run_exc() {                      # run_exc <checker_rc>
     env CHECKER_RC="$1" \
+        CHESTER_DB="$EXC_DB" \
         CHESTER_REPO="$REPO" \
         CHESTER_LOG_DIR="$SANDBOX/logs" \
         CHESTER_STATE_DIR="$STATE_DIR" \

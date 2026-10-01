@@ -7,14 +7,14 @@ non-deterministic compute makes a stored object unreplayable, an undeclared rule
 puts a threshold back in code, and an empty `contradicting` turns "we looked and
 everything agreed" into "nobody looked".
 
-  A  EXACT REPLAY, SCOPED BY BOTH VERSIONS. A stored object, recomputed at its own
-     cutoff and its own compute instant, must equal the stored version field for
-     field -- but only objects computed under the current config_version AND
-     method_version are compared, because a deliberate change to the rules or to the
-     code is not a regression. The source hash is checked FIRST: it is what stops a
-     method_version from quietly ceasing to be true. Provenance (computed_at,
+  A  EXACT REPLAY. The source hash is checked FIRST: it is what stops a
+     method_version from quietly ceasing to be true. Then objects computed and
+     stored on a SEEDED store, recomputed at their own cutoff and compute instant,
+     must equal the stored version field for field. Provenance (computed_at,
      available_at, git_sha) is excluded because it necessarily differs, and
      excluding it is what makes the check meaningful rather than impossible.
+     The same replay over the box's REAL objects is a data gate,
+     tools/validate_regime_store.py.
   B  NO FUTURE LEAK. An observation knowable only after the cutoff must not change
      the object, and the same observation MUST change it once the cutoff passes --
      without the second half the first would pass on a store that lost the write.
@@ -22,8 +22,9 @@ everything agreed" into "nobody looked".
      cover the percentile range, members with a polarity and a reason, a horizon,
      a persistence count. Every dial declared. Every contradiction pair declared
      with its legs.
-  D  `contradicting` IS NEVER EMPTY BY OMISSION -- checked on every stored object
-     and on a seeded one, because §K makes "none found" a positive claim.
+  D  `contradicting` IS NEVER EMPTY BY OMISSION -- checked on a seeded object
+     here, because §K makes "none found" a positive claim, and on every stored
+     object by the data gate tools/validate_regime_store.py.
   E  PERSISTENCE. A flipped reading does not publish until it has held the declared
      number of sessions, and then it does. Seeded, because the production store
      cannot be made to flip.
@@ -43,9 +44,9 @@ everything agreed" into "nobody looked".
   J  AN ABSENCE CITES DATA (6c-3). No reason string in any object may name an
      exception class: a reader that raised records `fault`, and a fault printed as
      an absent_reason is a code problem the reader cannot tell from a gap in the
-     market's record. Checked three ways -- statically over the method modules,
-     over every stored object under the current method, and on a seeded ledger
-     where the tail-weight read finds nothing, finds a set, and raises.
+     market's record. Checked statically over the method modules and on a seeded
+     ledger where the tail-weight read finds nothing, finds a set, and raises; the
+     scan of every stored object is the data gate tools/validate_regime_store.py.
   K  THE RATES-DRIVER MEMBERS (ST-3). Known answers for the two cuts at every
      window, the move floor, the DKW / Kim-Wright shares, availability taken from
      the latest input, an absent model writing nothing, the stock-bond
@@ -57,6 +58,12 @@ everything agreed" into "nobody looked".
      cite data, stale and not-since-written notes -- holds no state; and the
      market-state object is IDENTICAL before and after every attribution series
      is written.
+
+A CODE GATE NEVER READS THE LIVE STORE (1 Oct 2026). Groups A, D and J used to
+open observations.ObservationStore() with no path, so in CI -- a checkout with no
+store -- they failed on every run for want of data, and on the box their verdict
+moved with the box's history rather than with the commit. Every group here now
+runs on a temporary store it seeds itself.
 
     python tools/validate_regime.py
 """
@@ -220,97 +227,60 @@ def compute_at(store, cfg, day: dt.date, stamp_n: int) -> dict:
 # ---------------------------------------------------------------------------
 # A. Exact replay -- against the REAL store and its backfilled objects
 # ---------------------------------------------------------------------------
-def group_a() -> None:
+def group_a(store) -> None:
     print(f"{LINE}\nA. EXACT REPLAY\n{LINE}")
-    store = observations.ObservationStore()
-    try:
-        current = (regime.load_config() or {}).get("version")
-        current_method = regime.METHOD_VERSION
+    # THE SOURCE HASH IS CHECKED FIRST, because it is the thing that makes the
+    # version mean anything. A version constant nobody is forced to change is a
+    # version constant that stops being true: someone edits the band logic, does
+    # not bump, and every stored object silently claims a method it was not
+    # computed under -- and the replay gate PASSES, because it is comparing the
+    # new code against objects it just relabelled.
+    matches, declared, actual = regime.method_pinned()
+    check(matches,
+          f"regime.py and contradictions.py hash to the pinned "
+          f"METHOD_SOURCE_SHA ({declared}); actual {actual}. If the change "
+          f"alters what the object SAYS: bump METHOD_VERSION, run "
+          f"`python -m regime method --update`, re-backfill. If it does not: "
+          f"run the update alone")
 
-        # THE SOURCE HASH IS CHECKED FIRST, because it is the thing that makes the
-        # version mean anything. A version constant nobody is forced to change is a
-        # version constant that stops being true: someone edits the band logic, does
-        # not bump, and every stored object silently claims a method it was not
-        # computed under -- and the replay gate PASSES, because it is comparing the
-        # new code against objects it just relabelled.
-        matches, declared, actual = regime.method_pinned()
-        check(matches,
-              f"regime.py and contradictions.py hash to the pinned "
-              f"METHOD_SOURCE_SHA ({declared}); actual {actual}. If the change "
-              f"alters what the object SAYS: bump METHOD_VERSION, run "
-              f"`python -m regime method --update`, re-backfill. If it does not: "
-              f"run the update alone")
-
-        all_rows = list(store.as_of(regime.STORE_KEY))
-        # ONLY OBJECTS COMPUTED UNDER THE CURRENT RULES CAN BE REPLAYED.
-        #
-        # A stored object records its config_version. When the config changes on
-        # purpose -- a dimension given new members, a contradiction pair pointed at
-        # a different series -- every older object legitimately recomputes to
-        # something else, and failing on that would mean the gate cannot tell "the
-        # rules changed" from "the arithmetic broke". Those are the two things it
-        # exists to distinguish, so superseded objects are REPORTED and skipped.
-        # BOTH VERSIONS, and they answer different questions: config_version says
-        # the RULES were edited, method_version says the CODE was. An object computed
-        # under either an older rule set or an older method legitimately recomputes
-        # to something else, and failing on that would mean the gate cannot tell a
-        # deliberate change from a regression -- which are the two things it exists
-        # to distinguish.
-        rows = []
-        for r in all_rows:
-            o = json.loads(r["value_text"])
-            if (o.get("config_version") == current
-                    and o.get("method_version") == current_method):
-                rows.append(r)
-        superseded = len(all_rows) - len(rows)
-        check(bool(all_rows), f"the store holds market_state objects "
-                              f"({len(all_rows)})")
-        if superseded:
-            print(f"        {superseded} object(s) were computed under an earlier "
-                  f"config or method version and are not replayed against "
-                  f"{current}/{current_method}; re-run `regime backfill` to bring "
-                  f"them forward")
-        check(bool(rows),
-              f"and {len(rows)} of them were computed under the current config "
-              f"{current!r} AND method {current_method!r}, so there is something to "
-              f"replay. A store where EVERY object is superseded is a store whose "
-              f"history no longer matches its own rules")
-        check(all(json.loads(r["value_text"]).get("method_version")
-                  for r in all_rows),
-              "and every stored object records a method_version at all -- an object "
-              "that does not cannot be told from one computed under any other "
-              "method")
-        if not rows:
-            return
-        # The newest and the oldest: the oldest has no history, the newest has
-        # eight predecessors, and persistence is the part most likely to replay
-        # differently.
-        for label, row in (("newest", rows[-1]), ("oldest", rows[0])):
-            stored = json.loads(row["value_text"])
-            again = regime.compute(as_of=stored["as_of"],
-                                   session_day=stored["session"],
-                                   computed_at=stored["computed_at"],
-                                   store=store)
-            a, b = regime.replay_fields(stored), regime.replay_fields(again)
-            if a == b:
-                ok(f"the {label} object ({stored['session']}) replays EXACTLY "
-                   f"from the store")
-            else:
-                diffs = [k for k in set(a) | set(b) if a.get(k) != b.get(k)]
-                bad(f"the {label} object ({stored['session']}) does not replay; "
-                    f"fields differing: {diffs}")
-        stored = json.loads(rows[-1]["value_text"])
-        check(regime.replay_fields(stored) != stored,
-              "and replay_fields() does strip the provenance it claims to -- a "
-              "comparison that included computed_at could never pass")
-        for f in ("computed_at", "git_sha"):
-            check(f not in regime.replay_fields(stored),
-                  f"{f} is excluded from the comparison")
-        check("dimensions" in regime.replay_fields(stored)
-              and "contradictions" in regime.replay_fields(stored),
-              "while the dimensions and the contradiction table ARE compared")
-    finally:
-        store.close()
+    # SEEDED REPLAY: four sessions computed and stored, so the newest has
+    # predecessors and persistence -- the part most likely to replay
+    # differently -- is exercised; the oldest has none.
+    cfg = tiny_config(persistence=2)
+    days = weekdays_back(END, 204)
+    seed(store, "fred.hy_oas", days, [2.9, 3.1] * 100 + [3.0, 9.0, 9.1, 9.2])
+    seed(store, "fred.vix", days, [15.0 + (i % 7) for i in range(204)])
+    seed(store, "fred.bb_oas", days, [2.0 + (i % 3) * 0.01 for i in range(204)])
+    for i, day in enumerate(days[-4:]):
+        compute_at(store, cfg, day, 30 + i)
+    rows = list(store.as_of(regime.STORE_KEY))
+    check(len(rows) == 4, f"four seeded objects stored ({len(rows)})")
+    for label, row in (("newest", rows[-1]), ("oldest", rows[0])):
+        stored = json.loads(row["value_text"])
+        again = regime.compute(as_of=stored["as_of"],
+                               session_day=stored["session"],
+                               computed_at=stored["computed_at"],
+                               store=store, cfg=cfg)
+        a, b = regime.replay_fields(stored), regime.replay_fields(again)
+        diffs = [k for k in set(a) | set(b) if a.get(k) != b.get(k)]
+        check(a == b, f"the {label} seeded object ({stored['session']}) "
+                      f"replays EXACTLY from the store"
+                      + (f"; fields differing: {diffs}" if diffs else ""))
+    stored = json.loads(rows[-1]["value_text"])
+    tampered = json.loads(rows[-1]["value_text"])
+    tampered["dimensions"]["credit"]["state"] = "tampered"
+    check(regime.replay_fields(tampered) != regime.replay_fields(stored),
+          "and a stored object with one dimension's state altered does NOT "
+          "replay -- the comparison can fail, so its passes mean something")
+    check(regime.replay_fields(stored) != stored,
+          "and replay_fields() does strip the provenance it claims to -- a "
+          "comparison that included computed_at could never pass")
+    for f in ("computed_at", "git_sha"):
+        check(f not in regime.replay_fields(stored),
+              f"{f} is excluded from the comparison")
+    check("dimensions" in regime.replay_fields(stored)
+          and "contradictions" in regime.replay_fields(stored),
+          "while the dimensions and the contradiction table ARE compared")
 
 
 # ---------------------------------------------------------------------------
@@ -473,34 +443,6 @@ def group_c() -> None:
 # ---------------------------------------------------------------------------
 def group_d(store) -> None:
     print(f"\n{LINE}\nD. `contradicting` IS NEVER EMPTY BY OMISSION\n{LINE}")
-    real = observations.ObservationStore()
-    try:
-        rows = real.as_of(regime.STORE_KEY)
-        bad_rows = []
-        stated, with_list = 0, 0
-        for r in rows:
-            obj = json.loads(r["value_text"])
-            for name, d in (obj.get("dimensions") or {}).items():
-                if d.get("state") is None:
-                    continue
-                c = d.get("contradicting")
-                if c == [] or c is None:
-                    bad_rows.append((obj["session"], name))
-                elif c == regime.NONE_FOUND:
-                    stated += 1
-                else:
-                    with_list += 1
-        check(not bad_rows,
-              f"across {len(rows)} stored objects, no dimension with a state has "
-              f"an empty or missing `contradicting` "
-              f"({stated} say 'none found', {with_list} name metrics)"
-              + (f" -- offenders: {bad_rows[:5]}" if bad_rows else ""))
-        check(stated + with_list > 0,
-              "and there were dimensions with states to check, so this is not "
-              "vacuously true")
-    finally:
-        real.close()
-
     cfg = tiny_config()
     obj = regime.compute(as_of=regime.session_cutoff(END.isoformat()),
                          session_day=END.isoformat(), store=store, cfg=cfg,
@@ -1128,20 +1070,6 @@ def group_j(store) -> None:
     check(bool(static_reason_faults(probe)),
           "and the static check fires on the shape it forbids")
 
-    # --- every stored object under the current method ------------------------
-    live = observations.ObservationStore()
-    try:
-        cur = regime.METHOD_VERSION
-        objs = [json.loads(r["value_text"]) for r in live.as_of(regime.STORE_KEY)]
-        objs = [o for o in objs if o.get("method_version") == cur]
-    finally:
-        live.close()
-    hits = [(o.get("session"), h) for o in objs
-            for h in exception_names_in_reasons(o)]
-    check(not hits,
-          f"no stored {cur} object ({len(objs)}) names an exception class in a "
-          f"reason" + (f": {hits[:3]}" if hits else ""))
-
     # --- seeded: the tail-weight read, three ways ----------------------------
     from altdata import probability_ledger as pl
     spec = {"scenario_set_prefix": "tail:"}
@@ -1590,9 +1518,8 @@ def group_l(store) -> None:
 
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
-    group_a()
     group_c()
-    for g in (group_b, group_d, group_e, group_f, group_f2, group_g,
+    for g in (group_a, group_b, group_d, group_e, group_f, group_f2, group_g,
               group_h, group_i, group_j, group_k, group_l):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))

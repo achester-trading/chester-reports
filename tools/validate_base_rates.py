@@ -23,6 +23,16 @@ Three properties, and the third is the one that would otherwise go unchecked:
      silently answering both questions is the defect), and the not_yet_sourced
      gaps say what they need.
 
+A CODE GATE NEVER READS THE LIVE STORE (1 Oct 2026). This gate computed from
+whatever store it found, so in CI -- no ^GSPC -- it printed NOT VALIDATED and
+failed on every run, and on the box its verdict was about the box's history.
+It now computes from a SYNTHETIC ^GSPC (1927-12-30 to 2026-09-29) and ^VIX
+(1990-) seeded into a temporary store: determinism, the registry fields, both
+drawdown definitions, the bear list matching its count, the midterm windows and
+the paper's text are properties of the code and the repo, and hold on any
+history. B, the paper's figures, and the claims warning's count are about the
+REAL history; they are the data gate tools/validate_base_rates_store.py.
+
 WHY A SEPARATE GATE AND NOT A GROUP IN validate_derived.py. These tables are a
 different kind of artefact: they are recomputed once a year, they are cited by id
 from decision packets, and their correctness is checked against a document rather
@@ -33,8 +43,12 @@ being wrong.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
+import math
+import random
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -207,7 +221,7 @@ def group_d(tables: dict) -> None:
 # in one place and typed in another. Both are now checked against the table: the
 # caveat that travels with every base-rate claim, and the episode list that the
 # count is supposed to describe.
-def group_e(tables: dict) -> None:
+def group_e(tables: dict, live: bool = False) -> None:
     print(f"\n{LINE}\nE. THE BEAR COUNT IS ONE NUMBER, EVERYWHERE\n{LINE}")
     import re
     bp = (tables["baserate.drawdown_by_depth"].get("bear_properties") or {})
@@ -227,7 +241,9 @@ def group_e(tables: dict) -> None:
     m = re.search(r"([a-z]+) bear\s*\n?\s*markets is a sample of ([a-z]+)", text)
     check(m is not None,
           "the small-sample warning states the sample size in words")
-    if m:
+    # The warning's number is the REAL count. On the seeded history n is the
+    # synthetic one, so the comparison belongs to the data gate.
+    if m and live:
         check(m.group(1) == want and m.group(2) == want,
               f"and it is the COMPUTED count ({m.group(1)}/{m.group(2)} against "
               f"n={n} -> {want!r}) -- the warning travels with every base-rate "
@@ -296,14 +312,46 @@ def group_f(tables: dict) -> None:
           "it as a pending erratum")
 
 
+def synthetic_rows() -> list[dict]:
+    """A deterministic ^GSPC from 1927-12-30 and ^VIX from 1990 -- NOT market data.
+
+    A log random walk with SPX-like drift and a slowly wandering volatility, so
+    declines cluster the way bears do and both drawdown definitions have
+    something to count. The midterm windows are calendar facts and need only
+    that the series spans 1950-2023. Seeded, so every run computes one history.
+    """
+    rng = random.Random(19271230)
+    d, end = dt.date(1927, 12, 30), dt.date(2026, 9, 29)
+    p, vol, rows = 17.66, 0.011, []
+    while d <= end:
+        if d.weekday() < 5:
+            vol = min(0.04, max(0.006, vol * math.exp(rng.gauss(0, 0.06))
+                                * (0.011 / vol) ** 0.02))
+            p *= math.exp(rng.gauss(0.0003, vol))
+            seen = f"{d.isoformat()}T21:00:00+00:00"
+            rows.append({"registry_key": br.GSPC, "instrument": None,
+                         "observed_at": d.isoformat(), "available_at": seen,
+                         "value": round(p, 4), "source": "synthetic"})
+            if d.year >= 1990:
+                rows.append({"registry_key": br.VIX, "instrument": None,
+                             "observed_at": d.isoformat(), "available_at": seen,
+                             "value": round(100 * vol * math.sqrt(252), 2),
+                             "source": "synthetic"})
+        d += dt.timedelta(days=1)
+    return rows
+
+
 def main() -> int:
-    print(f"{LINE}\nbase_rates.py -- 31.1\n{LINE}")
-    db = observations.ObservationStore()
-    try:
-        tables = br.compute(store=db)
-        again = br.compute(store=db)
-    finally:
-        db.close()
+    print(f"{LINE}\nbase_rates.py -- 31.1, on a seeded history (the real one is "
+          f"tools/validate_base_rates_store.py)\n{LINE}")
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = observations.ObservationStore(str(Path(td) / "base_rates.db"))
+        try:
+            db.write_many(synthetic_rows())
+            tables = br.compute(store=db)
+            again = br.compute(store=db)
+        finally:
+            db.close()
     if not tables[br.TABLE_KEYS[0]].get("method_version"):
         print("  FAIL  no tables computed at all")
         return 1
@@ -315,7 +363,6 @@ def main() -> int:
               f"tools/backfill_prices.py --period max --symbols ^GSPC,^VIX\n{LINE}")
         return 1
     group_a(tables, again)
-    group_b(tables)
     group_c(tables)
     group_d(tables)
     group_e(tables)

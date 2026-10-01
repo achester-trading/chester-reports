@@ -27,15 +27,33 @@ Five groups, and the third is the one the phase turns on:
   E. THE UNIT AND THE WRAPPER. Sunday 05:00 ET, zone-pinned, Persistent=true with
      its reason, not in DEPLOY_TIMERS (so no deploy can enable it), and the
      heartbeat check dormant until the timer is.
+
+A CODE GATE NEVER READS THE LIVE STORE (1 Oct 2026). This gate built the test
+week from whatever data/chester.db it found: in CI that is none, and on the box
+it is the box's history, so the verdict moved with the machine rather than with
+the commit. CHESTER_DB now points at an EMPTY temporary database before anything
+imports the store, which exercises every block's absence path -- the same path
+CI always ran. The replay over the box's real objects is the data gate
+tools/validate_weekly_store.py.
 """
 
 from __future__ import annotations
 
+import atexit
 import json
+import os
 import re
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
+
+# BEFORE ANY IMPORT THAT OPENS THE STORE: altdata.observations and register.store
+# both read CHESTER_DB once, at import.
+_TMP = tempfile.mkdtemp(prefix="validate_weekly_")
+atexit.register(shutil.rmtree, _TMP, ignore_errors=True)
+os.environ["CHESTER_DB"] = str(Path(_TMP) / "empty.db")
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -56,6 +74,9 @@ SKIPPED: list[str] = []
 # The week the test edition is built for. A PAST week with objects in the store,
 # so the gate exercises a real replay rather than whatever today happens to be.
 TEST_WEEK = "2026-09-18"
+# The cutoff a replay of TEST_WEEK is built at: Sunday after it, 09:00 UTC (05:00
+# ET), when that edition's timer fires.
+REPLAY_CUTOFF = "2026-09-20T09:00:00+00:00"
 
 # Nothing in a payload or render module may reach a model or a network. The same
 # list validate_daily_close.py applies to the close report's modules.
@@ -199,16 +220,22 @@ def group_d() -> None:
     def dump(d: dict) -> str:
         return json.dumps(strip(d), sort_keys=True, default=str)
 
-    a = wp.build(TEST_WEEK, fetch=False)
-    b = wp.build(TEST_WEEK, fetch=False)
+    # ONE PINNED CUTOFF FOR BOTH BUILDS. Built "as of now", the weekend block's
+    # absence reason quoted the wall-clock cutoff to the microsecond, so on an
+    # empty events table no two builds could agree -- CI's failure on every run
+    # since 27 Sep. Replaying a past edition means rebuilding it at ITS cutoff.
+    a = wp.build(TEST_WEEK, as_of=REPLAY_CUTOFF, fetch=False)
+    b = wp.build(TEST_WEEK, as_of=REPLAY_CUTOFF, fetch=False)
     check(dump(a) == dump(b),
           f"two builds of the week ending {TEST_WEEK} agree byte for byte "
-          f"({len(strip(a))} chars) -- the weekly computes nothing, so a rebuild "
+          f"({len(dump(a)):,} chars) -- the weekly computes nothing, so a rebuild "
           f"must agree with itself")
-    check(a.get("generated_at") != b.get("generated_at")
-          or a.get("as_of") != b.get("as_of"),
-          "and the two runs DID have different stamps, so the comparison is not "
-          "vacuously true")
+    check(a.get("as_of") == b.get("as_of") == REPLAY_CUTOFF,
+          f"and both builds carry the pinned cutoff {REPLAY_CUTOFF}, so the "
+          f"replay is of one instant")
+    check(len(strip(a)) > 5 and all(a.get(k) for k in ("blocks", "week_ending")),
+          "and the payload compared is a whole edition, not an empty shell -- so "
+          "the comparison is not vacuously true")
     check(a.get("week_ending") == TEST_WEEK,
           f"the replayed week is the one asked for ({a.get('week_ending')})")
     np_ = wp.narrative_payload(a)
