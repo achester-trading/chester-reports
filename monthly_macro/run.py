@@ -154,6 +154,22 @@ def rerender(args, log) -> int:
                   + ("" if r.get("published") else f"  -- {r.get('reason')}"))
         print(f"   {'TOTAL':<34} {'':9}  "
               f"{sum(r.get('words') or 0 for r in prose.values()):>5}")
+    cov = (p.get("looking_ahead") or {}).get("coverage") or []
+    if cov:
+        print("calendar coverage (present / missing, by window):")
+        for c in cov:
+            cells = []
+            for wname, w in c["windows"].items():
+                if "have" in w:
+                    cells.append(f"{wname}: {', '.join(w['have']) or 'none'}"
+                                 + (f" (missing {', '.join(w['missing'])})"
+                                    if w.get("missing") else ""))
+                else:
+                    cells.append(f"{wname}: {'present' if w['present'] else 'MISSING'}")
+            print(f"   {c['item']:<30} {' | '.join(cells)}"
+                  + (f"  -- free source: {c['free_source']}" if c.get("free_source")
+                     and not any(w['present'] for w in c['windows'].values())
+                     else ""))
     print(f"dry run -- NOT delivered:\n   {md_path}\n   {html_path}")
     print("delivery=skipped (--dry-run)")
     return 0
