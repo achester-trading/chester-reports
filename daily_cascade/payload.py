@@ -356,11 +356,21 @@ def portfolio_block(as_of: Optional[str] = None) -> dict:
                         "available_at": row.get("available_at"),
                         "account": accounts[0],
                     }
+            # ONLY THE LATEST SYNC'S BOOK (INC-7, 1 Oct 2026). Each sync's position
+            # list is the whole book at its instant, so a holding whose newest row
+            # predates the newest sync was not in that sync: it is closed, however
+            # old and nonzero its last row. Reading each instrument's latest row on
+            # its own kept the 24 Sep SPY exit "held" for a week and listed both
+            # SPY legs on 1 Oct beside a flat account.
+            sync_at = max((v.get("observed_at") or "" for v in
+                           block["account"].values()), default="")
             for inst in db.instruments("portfolio.position_qty"):
                 qty = db.latest_as_of("portfolio.position_qty", as_of=as_of,
                                       instrument=inst)
                 if not qty or not qty.get("value_num"):
                     continue      # a closed position is a zero, not a holding
+                if sync_at and str(qty.get("observed_at") or "") < sync_at:
+                    continue      # not in the latest sync: closed, not held
                 mv = db.latest_as_of("portfolio.position_market_value",
                                      as_of=as_of, instrument=inst)
                 pnl = db.latest_as_of("portfolio.position_unrealized_pnl",

@@ -478,6 +478,55 @@ def to_observations(state: dict, run_id: Optional[str] = None) -> list[dict]:
     return rows
 
 
+# Zeroed when a holding leaves the book. Avg cost, currency and conId stay as
+# they last were: they describe the instrument, not a size, and a zero cost
+# would read as a real fill price.
+CLOSING_ZERO_KEYS = ("portfolio.position_qty", "portfolio.position_market_value",
+                     "portfolio.position_unrealized_pnl")
+
+
+def closing_rows(db, state: dict, run_id: Optional[str] = None) -> list[dict]:
+    """A ZERO position for every holding the store still shows open that this
+    sync does not list. (INC-7, 1 Oct 2026)
+
+    EACH SYNC'S POSITION LIST IS THE WHOLE BOOK AT ITS read_at. The writer used
+    to record only what a sync listed, so a position that disappeared left its
+    last nonzero row as the newest one forever: the 24 Sep exit of the SPY long
+    stayed "held" for a week, and on 1 Oct both SPY legs were still listed as
+    open after the account read flat. Absence is now written down -- a zero at
+    this sync's instant -- so the store says what the broker said.
+
+    REFUSED when the read cannot vouch for itself: a sync listing NO positions
+    while the account reports a nonzero gross position value is a read that
+    failed to load the book, not an account that went flat, and zeroing every
+    holding on it would be the opposite fault.
+    """
+    read_at, src = state["read_at"], state["source"]
+    listed = {instrument_key(h) for h in state.get("positions") or []} - {None}
+    gross = None
+    for tags in (state.get("account_values") or {}).values():
+        got = tags.get("GrossPositionValue")
+        if got and got.get("value") is not None:
+            gross = float(got["value"])
+    if not listed and (gross is None or abs(gross) > 0.5):
+        log.warning("closing rows refused: the sync lists no positions while "
+                    "gross position value is %s -- not treated as flat", gross)
+        return []
+    rows = []
+    for inst in db.instruments("portfolio.position_qty"):
+        if inst in listed:
+            continue
+        last = db.latest_as_of("portfolio.position_qty", as_of=read_at,
+                               instrument=inst)
+        if not last or not last.get("value_num") or last.get("source") != src:
+            continue
+        for key in CLOSING_ZERO_KEYS:
+            rows.append({"registry_key": key, "instrument": inst,
+                         "observed_at": read_at, "available_at": read_at,
+                         "value": 0.0, "source": src, "run_id": run_id})
+    return rows
+
+
 def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
          client_id: int = DEFAULT_CLIENT_ID, timeout: float = DEFAULT_TIMEOUT,
          allow_live: bool = False, dry_run: bool = False,
@@ -499,10 +548,14 @@ def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
             log.warning("disconnect failed; the read already succeeded")
 
     rows = to_observations(state, run_id)
-    written = 0
-    if not dry_run and rows:
-        with observations.ObservationStore(db_path) as db:
-            written = db.write_many(rows)
+    written, closed = 0, []
+    with observations.ObservationStore(db_path) as db:
+        closed = closing_rows(db, state, run_id)
+        if not dry_run and (rows or closed):
+            written = db.write_many(rows + closed)
+    if closed:
+        log.info("closed since the last sync: %s",
+                 sorted({r["instrument"] for r in closed}))
 
     # The fills go to their own table, not to the observation store. An execution
     # is a record with a dozen fields and a broker-assigned unique id -- not a
@@ -521,7 +574,9 @@ def sync(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
             "run_id": run_id, "read_at": state["read_at"], "mode": state["mode"],
             "source": state["source"], "accounts": state["accounts"],
             "positions": len(state["positions"]),
-            "observations": len(rows), "written": written, "dry_run": dry_run,
+            "closed": sorted({r["instrument"] for r in closed}),
+            "observations": len(rows) + len(closed), "written": written,
+            "dry_run": dry_run,
             "account_values": state["account_values"]}
 
 

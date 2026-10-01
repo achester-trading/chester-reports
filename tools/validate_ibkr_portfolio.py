@@ -332,7 +332,12 @@ def group_d() -> None:
               "portfolio state is a series, not a current value")
         store.close()
 
-    res = ibkr.sync(port=4002, dry_run=True, ib_factory=lambda: FakeIB())
+    # ITS OWN EMPTY STORE: a dry run still reads the store to find holdings
+    # that closed (INC-7), and a code gate never reads the live one -- on the
+    # box this check counted the live store's open SPY legs as closings.
+    with tempfile.TemporaryDirectory() as dtd:
+        res = ibkr.sync(port=4002, dry_run=True, db_path=str(Path(dtd) / "dry.db"),
+                        ib_factory=lambda: FakeIB())
     check(res["written"] == 0 and res["observations"] == 21,
           "--dry-run parses everything and writes nothing")
 
@@ -440,6 +445,109 @@ def store_short_check() -> float:
         return (row or {}).get("value_num")
 
 
+class FakeIBBook(FakeIB):
+    """A book whose holdings and gross value the test sets between syncs."""
+
+    def __init__(self, holdings, gross):
+        super().__init__()
+        self.holdings, self.gross = holdings, gross
+
+    def accountSummary(self):
+        return [_Obj(account="DU1234567", tag=t, value=v, currency="USD")
+                for t, v in (("NetLiquidation", "1000000.00"),
+                             ("TotalCashValue", "900000.00"),
+                             ("GrossPositionValue", str(self.gross)),
+                             ("FullMaintMarginReq", "544.00"))]
+
+    def portfolio(self):
+        return list(self.holdings)
+
+
+def _holding(sym, venue, ccy, con_id, qty, mv):
+    return _Obj(account="DU1234567", position=qty, averageCost=abs(mv / qty),
+                marketValue=mv, unrealizedPNL=0.0,
+                contract=_Obj(symbol=sym, localSymbol=sym, secType="STK",
+                              currency=ccy, conId=con_id, primaryExchange=venue))
+
+
+def group_g() -> None:
+    """INC-7: a holding absent from a sync is closed at that sync."""
+    print(f"\n{LINE}\nG. EACH SYNC IS THE WHOLE BOOK -- A HOLDING THAT LEAVES IS "
+          f"WRITTEN CLOSED (INC-7)\n{LINE}")
+    import tempfile
+    from altdata import observations
+    from daily_cascade import payload as close_payload
+    arca = _holding("SPY", "ARCA", "USD", 756733, 100.0, 76200.0)
+    mexi = _holding("SPY", "MEXI", "MXN", 99999, -100.0, -1395131.0)
+    with tempfile.TemporaryDirectory() as td:
+        db = str(Path(td) / "pt.db")
+        saved = observations.DEFAULT_DB
+        observations.DEFAULT_DB = db
+        try:
+            def sync(holdings, gross):
+                ib = FakeIBBook(holdings, gross)
+                return ibkr.sync(port=4002, db_path=db, ib_factory=lambda: ib)
+
+            def book():
+                b = close_payload.portfolio_block()
+                return ({p["instrument"]: p["qty"] for p in b["positions"]},
+                        (b["account"].get("portfolio.gross_position_value") or {})
+                        .get("value"), b)
+
+            r1 = sync([arca, mexi], 76200.0 + 1395131.0)
+            held1, _, _ = book()
+            check(set(held1) == {"SPY@ARCA.USD", "SPY@MEXI.MXN"},
+                  f"sync 1 holds both listings ({sorted(held1)})")
+
+            r2 = sync([mexi], 1395131.0)
+            held2, gross2, _ = book()
+            check(r2["closed"] == ["SPY@ARCA.USD"],
+                  f"sync 2 does not list the ARCA long, and the sync writes it "
+                  f"CLOSED ({r2['closed']})")
+            with observations.ObservationStore(db) as st:
+                z = st.latest_as_of("portfolio.position_qty",
+                                    instrument="SPY@ARCA.USD")
+            check(z and z["value_num"] == 0.0 and z["observed_at"] == r2["read_at"],
+                  "as a zero position at sync 2's own instant -- the store says "
+                  "what the broker said, when it said it")
+            check(set(held2) == {"SPY@MEXI.MXN"},
+                  f"and the close's table shows only what sync 2 held "
+                  f"({sorted(held2)})")
+
+            r3 = sync([], 0.0)
+            held3, gross3, b3 = book()
+            check(r3["closed"] == ["SPY@MEXI.MXN"],
+                  f"sync 3, flat: the MEXI short is written closed ({r3['closed']})")
+            mv = sum(abs(p.get("market_value") or 0) for p in b3["positions"])
+            check(held3 == {} and gross3 == 0.0 and mv == 0.0,
+                  f"the close's table MATCHES gross_position_value: no rows "
+                  f"against a gross of {gross3} -- not two stale SPY legs beside "
+                  f"a flat account")
+
+            # A READ THAT FAILED TO LOAD THE BOOK is not a flat account.
+            sync([arca], 76200.0)
+            r5 = sync([], 76200.0)
+            held5, _, _ = book()
+            check(r5["closed"] == [],
+                  "a sync listing no positions while gross position value is "
+                  "nonzero zeroes NOTHING -- a failed read is not an exit")
+
+            # THE LEGACY CASE: a stale nonzero row with no zero after it, as
+            # the store held from 24 Sep. The reader drops it by the sync rule.
+            with observations.ObservationStore(db) as st:
+                st.write_many([{"registry_key": "portfolio.position_qty",
+                                "instrument": "SPY@OLD.USD",
+                                "observed_at": "2026-09-24T16:01:17+00:00",
+                                "available_at": "2026-09-24T16:01:17+00:00",
+                                "value": 100.0, "source": "ibkr_paper"}])
+            held6, _, _ = book()
+            check("SPY@OLD.USD" not in held6,
+                  "and a stale nonzero row older than the latest sync -- the "
+                  "pre-fix record -- is not shown as held")
+        finally:
+            observations.DEFAULT_DB = saved
+
+
 def main() -> int:
     print(f"{LINE}\nPortfolio Truth validation (fakes only; live test is on the "
           f"VPS)\n{LINE}")
@@ -449,6 +557,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
