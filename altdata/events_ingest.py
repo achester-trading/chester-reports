@@ -19,6 +19,9 @@ SEVEN SOURCES, TWO OF THEM LOCAL
   session         OPEX, triple witching, month- and quarter-end, the rebalances --
                   from altdata/session.py, which is the one place the calendar
                   rules live. No network.
+  schedule        ISM manufacturing and services, FOMC minutes and the Treasury
+                  quarterly refunding, from DECLARED RULES (source schedule_rule,
+                  never presented as a feed). No network.
   claims          FOMC meeting dates and the midterm, from config/claims.yaml. No
                   network. These are CLAIMS rather than observations because they
                   are dates somebody published, and the registry is where such a
@@ -54,7 +57,8 @@ from . import session
 
 log = logging.getLogger(__name__)
 
-SOURCES = ("news", "edgar", "earnings", "fred_releases", "session", "claims")
+SOURCES = ("news", "edgar", "earnings", "fred_releases", "session", "claims",
+           "schedule")
 
 # How far ahead the local calendars are written. Three months of session events and
 # the FOMC dates a quarter out is what a weekly and a monthly can both read; going
@@ -185,6 +189,91 @@ def claims_events() -> tuple[list[ev_mod.Event], dict]:
 
 
 # ---------------------------------------------------------------------------
+# Local source 3: DECLARED SCHEDULE RULES (1 Oct 2026)
+# ---------------------------------------------------------------------------
+# Four releases the Monthly's look-ahead must show have no free feed here: ISM
+# manufacturing and services, FOMC minutes and the Treasury quarterly refunding.
+# Each follows a published RULE, so the dates are computed from it and stored as
+# source "schedule_rule" -- never presented as a feed, and the payload names the
+# rule, so a reader can tell "the publisher said this date" from "the rule says".
+# A rule can be wrong in a month the publisher moves a date; the claim is only
+# what the rule implies.
+SCHEDULE_RULES = {
+    "ism_manufacturing": ("ISM Manufacturing PMI", "1st business day of the month",
+                          "14:00"),
+    "ism_services": ("ISM Services PMI", "3rd business day of the month", "14:00"),
+    "fomc_minutes": ("FOMC minutes", "FOMC decision + 21 days", "18:00"),
+    "treasury_refunding": ("Treasury quarterly refunding announcement",
+                           "first Wednesday of February, May, August and November",
+                           "13:30"),
+}
+
+
+def _business_day(d: dt.date) -> bool:
+    return (session.is_trading_session(d) if session.calendar_covers(d)
+            else d.weekday() < 5)
+
+
+def _nth_business_day(year: int, month: int, n: int) -> dt.date:
+    d, seen = dt.date(year, month, 1), 0
+    while True:
+        if _business_day(d):
+            seen += 1
+            if seen == n:
+                return d
+        d += dt.timedelta(days=1)
+
+
+def schedule_events(first: Optional[str] = None, last: Optional[str] = None
+                    ) -> tuple[list[ev_mod.Event], dict]:
+    """ISM, FOMC minutes and refunding dates, computed from declared rules."""
+    today = dt.date.fromisoformat(session.session_date())
+    lo = dt.date.fromisoformat(first) if first else today - dt.timedelta(
+        days=BACK_DAYS)
+    hi = dt.date.fromisoformat(last) if last else today + dt.timedelta(
+        days=FORWARD_DAYS)
+    dates: dict[str, list[dt.date]] = {k: [] for k in SCHEDULE_RULES}
+    y, m = lo.year, lo.month
+    while (y, m) <= (hi.year, hi.month):
+        dates["ism_manufacturing"].append(_nth_business_day(y, m, 1))
+        dates["ism_services"].append(_nth_business_day(y, m, 3))
+        if m in (2, 5, 8, 11):
+            d = dt.date(y, m, 1)
+            while d.weekday() != 2:                    # Wednesday
+                d += dt.timedelta(days=1)
+            dates["treasury_refunding"].append(d)
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    try:
+        reg = (claims_mod.load() or {}).get("claims") or {}
+        for cid, claim in reg.items():
+            if cid.startswith("cal.") and "fomc" in cid:
+                value = str(claim.get("value") or "")
+                ym = re.search(r"(20\d\d)", cid + " " + value)
+                for d in _fomc_dates(value, int(ym.group(1)) if ym else today.year):
+                    dates["fomc_minutes"].append(d + dt.timedelta(days=21))
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("FOMC minutes rule: claims unreadable: %s", exc)
+    out: list[ev_mod.Event] = []
+    for rule, ds in dates.items():
+        title, how, hhmm = SCHEDULE_RULES[rule]
+        for d in sorted(set(ds)):
+            if not (lo <= d <= hi):
+                continue
+            out.append(ev_mod.Event(
+                type="scheduled", observed_at=f"{d.isoformat()}T{hhmm}:00+00:00",
+                source="schedule_rule",
+                title=f"{title} -- {d.isoformat()} (schedule rule)",
+                entities=[], key=f"rule-{rule}-{d.isoformat()}",
+                payload={"rule": rule, "rule_text": how,
+                         "kind": "schedule rule, not a feed"}))
+    return out, {"state": "ok", "window": [lo.isoformat(), hi.isoformat()],
+                 "events": len(out),
+                 "rules": {k: v[1] for k, v in SCHEDULE_RULES.items()}}
+
+
+# ---------------------------------------------------------------------------
 # The pass
 # ---------------------------------------------------------------------------
 def pull(only: Optional[Iterable[str]] = None, dry_run: bool = False,
@@ -218,6 +307,8 @@ def pull(only: Optional[Iterable[str]] = None, dry_run: bool = False,
                     events, rep = fred_releases.calendar_events()
                 elif name == "session":
                     events, rep = session_events()
+                elif name == "schedule":
+                    events, rep = schedule_events()
                 else:
                     events, rep = claims_events()
             except Exception as exc:                           # noqa: BLE001

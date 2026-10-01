@@ -57,8 +57,28 @@ BASE = "https://api.stlouisfed.org/fred"
 # How far forward and back a pull looks. Forward is the calendar the anchor prints;
 # back is short because the actuals arrive through the ordinary FRED series pull and
 # this is only the record that a release HAPPENED.
-FORWARD_DAYS = 21
+# 92 since 1 Oct 2026: the Monthly's look-ahead covers the rest of the month and
+# the two after it, and at 21 days its November-December calendar was empty.
+FORWARD_DAYS = 92
 BACK_DAYS = 7
+
+# RELEASES WATCHED WHETHER OR NOT A TRACKED SERIES BELONGS TO THEM (1 Oct 2026).
+# The calendar used to list only the releases of the series config.FRED_SERIES
+# tracks, so PPI and retail sales -- which no tracked series comes from -- never
+# appeared. Matched by exact name against FRED's own release catalogue
+# (/fred/releases, one request a pass); a name FRED does not carry is reported as
+# unmatched rather than guessed at. ISM is not on FRED; its dates come from the
+# events ingest's schedule rules.
+WATCHED_RELEASES = (
+    "Consumer Price Index",
+    "Producer Price Index",
+    "Employment Situation",
+    "Job Openings and Labor Turnover Survey",
+    "Advance Monthly Sales for Retail and Food Services",
+    "Personal Income and Outlays",
+    "Gross Domestic Product",
+    "Surveys of Consumers",
+)
 
 
 def key() -> Optional[str]:
@@ -107,8 +127,30 @@ def release_map(refresh: bool = False) -> dict[str, dict]:
     return out
 
 
+def watched_releases() -> tuple[dict[int, str], list[str]]:
+    """{release_id: name} for WATCHED_RELEASES, and the names FRED lacks.
+
+    Held in memory for the pass, never written to disk: one request to learn a
+    dozen ids is cheap, and a cache file under data/ is a write a probe must not
+    make.
+    """
+    got: dict[int, str] = {}
+    offset = 0
+    while True:
+        j = _get("releases", limit=1000, offset=offset)
+        rows = j.get("releases") or []
+        for r in rows:
+            if r.get("name") in WATCHED_RELEASES and r.get("id"):
+                got[int(r["id"])] = r["name"]
+        if len(rows) < 1000:
+            break
+        offset += 1000
+    return got, [n for n in WATCHED_RELEASES if n not in got.values()]
+
+
 def calendar_events() -> tuple[list[ev_mod.Event], dict]:
-    """Upcoming and just-passed release dates for the tracked series."""
+    """Upcoming and just-passed release dates for the tracked series, and for
+    the watched releases."""
     if not key():
         return [], {"state": "not_configured", "reason": (
             "FRED_API_KEY is not set. Every releases endpoint requires it, so "
@@ -134,6 +176,16 @@ def calendar_events() -> tuple[list[ev_mod.Event], dict]:
         r = by_release.setdefault(int(m["release_id"]),
                                   {"name": m.get("release_name"), "keys": []})
         r["keys"].append(skey)
+    # The watched releases join, with no series of their own when none is
+    # tracked: the event says the release is due, not which of our series moves.
+    try:
+        watched, unmatched = watched_releases()
+    except Exception as exc:                                   # noqa: BLE001
+        watched, unmatched = {}, [f"catalogue unreadable: {type(exc).__name__}"]
+    for rid, name in watched.items():
+        by_release.setdefault(rid, {"name": name, "keys": []})["watched"] = True
+    report["watched"] = sorted(watched.values())
+    report["watched_unmatched"] = unmatched
     report["releases"] = len(by_release)
 
     out: list[ev_mod.Event] = []
@@ -163,6 +215,7 @@ def calendar_events() -> tuple[list[ev_mod.Event], dict]:
                 payload={"release_id": rid, "release_name": meta["name"],
                          "series": meta["keys"], "release_date": day,
                          "forward": forward,
+                         "watched": bool(meta.get("watched")),
                          "time_note": "date only from FRED; stamped 13:30 UTC, "
                                       "the usual 08:30 ET print"}))
     report["events"] = len(out)

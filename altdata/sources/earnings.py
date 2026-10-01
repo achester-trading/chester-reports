@@ -49,10 +49,16 @@ log = logging.getLogger(__name__)
 # The names the universe actually reports for. The tracked symbols are ETFs and
 # indices, which do not report earnings -- so the universe for THIS source is the
 # story queries' own entity lists, which is where the single names live.
+# AND THE NAMES THE MONTHLY'S LOOK-AHEAD MUST SHOW (1 Oct 2026): Apple, which no
+# story query names, and the six banks whose Q3 reports open the season. The same
+# free yfinance calendar; they just were not on its list.
+EXTRA_SYMBOLS = ("AAPL", "JPM", "BAC", "C", "WFC", "GS", "MS")
+
+
 def universe() -> list[str]:
-    """Single names from config/story_queries.yaml, which is where they are."""
+    """Single names from config/story_queries.yaml, plus EXTRA_SYMBOLS."""
     from .news import load_queries
-    out: set[str] = set()
+    out: set[str] = set(EXTRA_SYMBOLS)
     for spec in (load_queries().get("queries") or {}).values():
         for e in spec.get("entities") or []:
             s = str(e)

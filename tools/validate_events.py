@@ -333,6 +333,91 @@ def group_f() -> None:
           "CI matrix")
 
 
+def group_g() -> None:
+    """1 Oct 2026: the calendar the Monthly's look-ahead needs."""
+    print(f"\n{LINE}\nG. THE LOOK-AHEAD'S CALENDAR -- schedule rules, the FRED "
+          f"watch list, the earnings names\n{LINE}")
+    import datetime as dt
+    import re
+    from altdata import events_ingest as ei, session
+    from altdata.sources import earnings, fred_releases as fr
+
+    evs, rep = ei.schedule_events("2026-10-01", "2026-12-31")
+    by = {}
+    for e in evs:
+        by.setdefault(e.payload["rule"], []).append(e.observed_at[:10])
+    check(by.get("ism_manufacturing") == ["2026-10-01", "2026-11-02", "2026-12-01"]
+          and by.get("ism_services") == ["2026-10-05", "2026-11-04", "2026-12-03"],
+          f"ISM manufacturing on the 1st business day, services on the 3rd "
+          f"({by.get('ism_manufacturing')}, {by.get('ism_services')})")
+    check(by.get("fomc_minutes") == ["2026-10-07", "2026-11-18", "2026-12-30"],
+          f"FOMC minutes 21 days after each stored decision ({by.get('fomc_minutes')})")
+    check(by.get("treasury_refunding") == ["2026-11-04"],
+          f"the refunding on the first Wednesday of November ({by.get('treasury_refunding')})")
+    check(ei._nth_business_day(2027, 1, 1) == dt.date(2027, 1, 4),
+          "a business-day rule steps over the 1 January holiday and the weekend "
+          "(ISM manufacturing on Monday 4 January 2027)")
+    check(all(e.source == "schedule_rule"
+              and e.payload.get("kind") == "schedule rule, not a feed"
+              and "(schedule rule)" in e.title for e in evs),
+          "every rule date is stored as source schedule_rule and says so in its "
+          "title and payload -- never presented as a feed")
+    check(all(re.search(p, " ".join(e.title for e in evs)) for p in (
+        r"ISM Manufacturing", r"ISM Services", r"FOMC minutes", r"refunding")),
+          "and the titles are the ones the Monthly's coverage check looks for")
+    check("schedule" in ei.SOURCES, "the pass runs it as a seventh source")
+    with tempfile.TemporaryDirectory() as td:
+        st = ev_mod.EventStore(str(Path(td) / "sched.db"))
+        try:
+            a = ei.pull(only=["schedule"], store=st)["sources"]["schedule"]["written"]
+            b = ei.pull(only=["schedule"], store=st)["sources"]["schedule"]["written"]
+        finally:
+            st.close()
+    check(a["inserted"] > 0 and b["inserted"] == 0,
+          f"idempotent: the first pass inserts {a['inserted']}, the second 0")
+
+    # THE FRED WATCH LIST, against a fake catalogue -- no key, no network, and
+    # no write to the release-map cache.
+    check(fr.FORWARD_DAYS >= 92,
+          f"the release calendar looks {fr.FORWARD_DAYS} days ahead -- far enough "
+          f"for the Monthly's November-December window")
+    saved = (fr._get, fr.key, fr.release_map)
+    try:
+        fr.key = lambda: "fixture"
+        fr.release_map = lambda refresh=False: {}
+        today = dt.date.fromisoformat(session.session_date())
+        def fake(path, **kw):
+            if path == "releases":
+                return {"releases": [{"id": 46, "name": "Producer Price Index"},
+                                     {"id": 9, "name": "Advance Monthly Sales for "
+                                                       "Retail and Food Services"},
+                                     {"id": 999, "name": "Not Watched"}]}
+            if path == "release/dates":
+                return {"release_dates": [
+                    {"date": (today + dt.timedelta(days=60)).isoformat()}]}
+            return {}
+        fr._get = fake
+        evs2, rep2 = fr.calendar_events()
+    finally:
+        fr._get, fr.key, fr.release_map = saved
+    names = sorted({e.payload["release_name"] for e in evs2})
+    check(names == ["Advance Monthly Sales for Retail and Food Services",
+                    "Producer Price Index"]
+          and all(e.payload.get("watched") and e.payload.get("series") == []
+                  for e in evs2),
+          f"watched releases join the calendar with no tracked series behind them "
+          f"({names})")
+    check("Job Openings and Labor Turnover Survey" in rep2["watched_unmatched"],
+          "a watched name FRED's catalogue does not carry is reported unmatched, "
+          "not guessed at")
+    check(all(e.type == "scheduled" for e in evs2),
+          "and a date 60 days out is stored as scheduled -- inside the window")
+
+    uni = earnings.universe()
+    check(all(s in uni for s in ("AAPL", "JPM", "BAC", "C", "WFC", "GS", "MS")),
+          f"the earnings calendar covers AAPL and the six banks ({uni})")
+
+
 def main() -> int:
     print(f"{LINE}\nThe events ingest -- 6c-1\n{LINE}")
     with tempfile.TemporaryDirectory() as td:
@@ -345,7 +430,7 @@ def main() -> int:
                     bad(f"{g.__name__} raised {type(exc).__name__}: {exc}")
         finally:
             store.close()
-    for g in (group_d, group_e, group_f):
+    for g in (group_d, group_e, group_f, group_g):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
