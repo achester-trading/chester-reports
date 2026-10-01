@@ -13,12 +13,31 @@
 # A theme with no dimension says so (`dimensions: []` and `no_dimension_why`):
 # geopolitics has no dimension in the object, and a theme that silently printed
 # nothing would read as a theme with nothing to say.
-version: monthly-themes-v1
+version: monthly-themes-v2
 updated: 2026-10-01
+
+# THE MONTH IN MARKETS: the opening scorecard, month-end to month-end, from the
+# store. Each move is in the metric's OWN delta unit (altdata.derived:
+# basis points for a yield or spread, percent for a price or index), never one
+# formula for all. Gold is the GLD fund and the dollar FRED's broad index -- the
+# store holds no spot gold and no ICE DXY, and the labels say so.
+scorecard:
+  - {id: spx,  label: "S&P 500",            metric: yfinance.mkt_gspc}
+  - {id: qqq,  label: "Nasdaq 100 (QQQ)",   metric: yfinance.mkt_qqq}
+  - {id: iwm,  label: "Russell 2000 (IWM)", metric: yfinance.mkt_iwm}
+  - {id: y2,   label: "2-year Treasury",    metric: fred.yield_2y}
+  - {id: y10,  label: "10-year Treasury",   metric: fred.yield_10y}
+  - {id: usd,  label: "Dollar (FRED broad index)", metric: fred.dxy}
+  - {id: wti,  label: "WTI crude",          metric: fred.wti}
+  - {id: gold, label: "Gold (GLD)",         metric: yfinance.mkt_gld}
+  - {id: hy,   label: "High-yield OAS",     metric: fred.hy_oas}
+  - {id: vix,  label: "VIX",                metric: fred.vix}
+  - {id: btc,  label: "Bitcoin",            metric: yfinance.mkt_btc_usd}
 
 themes:
   liquidity_plumbing:
     name: Liquidity & Plumbing
+    scorecard: [y2, vix, btc]
     dimensions: [liquidity]
     # The yen carry is a FUNDING story -- yen borrowed to hold other assets --
     # and the brief maps it here rather than to the dollar: its unwind is a
@@ -28,6 +47,7 @@ themes:
 
   fiscal_dollar:
     name: Fiscal Dominance & Dollar
+    scorecard: [y10, usd, gold]
     dimensions: [rates, inflation]
     stories: [fiscal_dominance]
     # The inflation prints are the mechanism fiscal dominance runs through (its
@@ -36,24 +56,28 @@ themes:
 
   fed_path:
     name: Fed Policy Path
+    scorecard: [y2, y10]
     dimensions: [rates]
     stories: []
     release_sources: [fed_monetary, bls_empsit]
 
   credit_cycle:
     name: Credit Cycle
+    scorecard: [hy, iwm]
     dimensions: [credit]
     stories: []
     release_sources: []
 
   equity_positioning:
     name: Equity Positioning & Sentiment
+    scorecard: [spx, qqq, iwm, vix]
     dimensions: [trend, breadth, volatility]
     stories: [ai_capex_durability]
     release_sources: []
 
   geopolitics_reserve:
     name: Geopolitics & Reserve Currency
+    scorecard: [gold, usd, wti]
     dimensions: []
     no_dimension_why: >-
       The market-state object has no geopolitical or reserve-currency dimension,

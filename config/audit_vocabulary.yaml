@@ -14,8 +14,8 @@
 # would exempt "a 7-year low", which IS a claim (seven years since), so the list
 # is closed: add a token when a report uses it as a name, never a rule that
 # reaches numerals nobody reviewed. Matching is case-insensitive and whole-token.
-version: audit-vocabulary-v1
-updated: 2026-09-27
+version: audit-vocabulary-v2
+updated: 2026-10-01
 
 name_tokens:
   # Tenors -- the instrument, not a duration.
@@ -26,6 +26,13 @@ name_tokens:
   - 3M
   # Instrument classes.
   - 0DTE
+  # Index names -- the Monthly v2 scorecard (1 Oct) names them in every
+  # section's prose, and the 500 in "S&P 500" is no more a magnitude than the
+  # 30 in "30-year".
+  - S&P 500
+  - Nasdaq 100
+  - Nasdaq-100
+  - Russell 2000
   # Moving-average names -- the indicator, not a count of days.
   - 50-day
   - 200-day

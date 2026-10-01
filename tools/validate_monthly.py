@@ -801,6 +801,21 @@ def group_h() -> None:
                        horizon_date=(today + dt.timedelta(days=60)).isoformat(),
                        resolution_criterion="fred.usd_jpy below its emission level")
 
+        # THE SCORECARD'S MONTH-ENDS: the S&P 500 at 5,000 then 5,250 (+5.00%)
+        # and the 10-year at 4.00% then 4.25% (+25.0 bp) -- each in its own unit.
+        m_start, m_end = v2.month_bounds({"report_date": today.isoformat()})
+        with observations.ObservationStore(db) as st:
+            st.write_many([
+                {"registry_key": k, "instrument": None, "observed_at": d.isoformat(),
+                 "available_at": f"{d.isoformat()}T21:00:00+00:00", "value": v,
+                 "source": "synthetic"}
+                for k, d, v in (("yfinance.mkt_gspc", m_start, 5000.0),
+                                ("yfinance.mkt_gspc", m_end, 5250.0),
+                                ("fred.yield_10y", m_start, 4.00),
+                                ("fred.yield_10y", m_end, 4.25),
+                                ("fred.hy_oas", m_start - dt.timedelta(days=40), 3.0),
+                                ("fred.hy_oas", m_end - dt.timedelta(days=40), 3.0))])
+
         built = payload.build()
         md = render_v2.render(built)
 
@@ -809,18 +824,108 @@ def group_h() -> None:
             check(isinstance(built.get(s), dict) and built[s].get("state") in
                   ("ok", "empty", "not_yet_sourced"),
                   f"the fixture month builds `{s}` ({(built.get(s) or {}).get('state')})")
-        for h in ("## 1. The month in one page", "## 2. Looking back, by theme",
-                  "## 3. Voices", "## 4. Looking ahead, 2–3 months",
-                  "## 5. Where our read lands", "## 6. The record",
-                  "## I. Regime", "## II. Scenarios", "## III. Top & Bottom",
-                  "## IV. Alternative Assets", "## V. The register's month",
-                  "## Appendix"):
+        heads = ("## 1. The month in markets", "## 2. The month in one page",
+                 "## 3. Looking back, by theme", "## 4. Voices",
+                 "## 5. Looking ahead, 2–3 months", "## 6. Where our read lands",
+                 "## 7. The record", "## I. Regime", "## II. Scenarios",
+                 "## III. Top & Bottom", "## IV. Alternative Assets",
+                 "## V. The register's month", "## Appendix")
+        for h in heads:
             check(h in md, f"and renders {h!r}")
-        check(md.index("## 1.") < md.index("## 2.") < md.index("## 3.")
-              < md.index("## 4.") < md.index("## 5.") < md.index("## I. Regime"),
-              "in the brief's order: 1-5, then the record")
+        pos = [md.find(h) for h in heads[:8]]
+        check(all(a < b for a, b in zip(pos, pos[1:])),
+              "in order: the month in markets first, then 2-6, then the record")
         check("Voices register not yet built" in md,
-              "section 3 prints \"Voices register not yet built\"")
+              "the voices section prints \"Voices register not yet built\"")
+
+        # --- THE SCORECARD, in each metric's own unit ------------------------------
+        sc = {r["metric"]: r for r in built["month_in_markets"]["rows"]}
+        spx, y10 = sc.get("yfinance.mkt_gspc") or {}, sc.get("fred.yield_10y") or {}
+        check(spx.get("change") == 5.0 and spx.get("change_unit") == "percent"
+              and y10.get("change") == 25.0 and y10.get("change_unit") == "bps",
+              f"the scorecard moves are month-end to month-end in their own unit "
+              f"(S&P {spx.get('change')} {spx.get('change_unit')}, 10y "
+              f"{y10.get('change')} {y10.get('change_unit')})")
+        check("fred.hy_oas" not in sc and any("High-yield OAS" in m and
+                                             "more than a week" in m
+                                             for m in built["month_in_markets"]
+                                             ["missing"]),
+              "a series whose last print is weeks before the month-end is left OFF "
+              "the scorecard with its reason, not printed as a flat month")
+        check("| S&P 500 |" in md and "**+5.00%**" in md and "**+25.0 bp**" in md,
+              "and the table prints them")
+
+        # --- ONE AUDITED CALL PER SECTION -------------------------------------------
+        import types
+        from monthly_macro import prose as prose_mod
+        calls: list[str] = []
+
+        class Resp:
+            def __init__(self, t):
+                self.content = [types.SimpleNamespace(type="text", text=t)]
+                self.model = "fixture-model"
+                self.stop_reason = "end_turn"
+
+        def reply(prompt: str) -> str:
+            if "THE SECTION: Credit Cycle" in prompt:
+                return ("Credit widened by 999 basis points.\n\nThat figure is not "
+                        "in this section's data.")
+            if "THE SECTION: Fed Policy Path" in prompt:
+                return "- a bullet\n- another bullet"
+            if "THE SECTION: The month in markets" in prompt:
+                return ("The S&P 500 rose 5.00% over the month, and the 10-year "
+                        "yield rose 25.0 basis points.\n\nThe move favours "
+                        "duration-light exposures over long duration.")
+            # Every other section: prose with no figure, so only the two seeded
+            # failures can withhold anything.
+            return ("The stored record for this section moved little over the "
+                    "month.\n\nThat argues for reading the next prints before "
+                    "drawing a conclusion from it.")
+
+        class Client:
+            def __init__(self):
+                def create(**k):
+                    calls.append(k["system"] + k["messages"][0]["content"])
+                    return Resp(reply(k["system"]))
+                self.messages = types.SimpleNamespace(create=create)
+
+        written = prose_mod.write_all(built, client=Client())
+        n_themes = len(built["looking_back"]["themes"])
+        check(len(calls) == n_themes + 3 and set(written) == {
+            "month_in_markets", "looking_ahead", "our_read"}
+              | {f"theme:{t['theme']}" for t in built["looking_back"]["themes"]},
+              f"one model call per section: the opening, {n_themes} themes, the "
+              f"look-ahead and our read ({len(calls)} calls)")
+        cc = next((c for c in calls if "THE SECTION: Credit Cycle" in c), "")
+        check("Credit Cycle" in cc and "Fiscal Dominance & Dollar\"" not in cc
+              and "Equity Positioning & Sentiment\"" not in cc,
+              "each call carries its OWN slice -- the credit theme's prompt holds "
+              "no other theme's data")
+        check(not written["theme:credit_cycle"]["published"]
+              and "999" in str(written["theme:credit_cycle"]["reason"]),
+              f"a section citing a figure its slice lacks is WITHHELD alone, with "
+              f"its reason ({str(written['theme:credit_cycle']['reason'])[:60]})")
+        check(not written["theme:fed_path"]["published"]
+              and written["theme:fed_path"]["state"] in ("list_fragments",
+                                                         "markdown_found"),
+              "a section that comes back as bullet fragments is withheld: narrative "
+              "sections are prose")
+        others = [k for k in written if k not in ("theme:credit_cycle",
+                                                  "theme:fed_path")]
+        check(all(written[k]["published"] for k in others),
+              f"while the {len(others)} sections beside them publish")
+        check(all(written[k]["words"] > 0 for k in others),
+              "and each published section carries its word count")
+        pmd = render_v2.render(built, prose=written)
+        check("Section withheld." in pmd and "999" in pmd
+              and "The S&P 500 rose 5.00% over the month" in pmd,
+              "the render prints the withheld section's reason in its place and "
+              "the published prose in theirs")
+        sysp = prose_mod.system_prompt("X", "y")
+        check("open with the claim" in sysp and "implication for positioning" in sysp
+              and "No headings, no bullet points" in sysp,
+              "the section brief asks for prose, insight first: claim, evidence, "
+              "implication for positioning")
         ties = built.get("tie_backs") or {}
         check(set(ties) == set(v2.TIE_BACK_SECTIONS)
               and all(f"*{s}*" in md for s in ties.values()),
@@ -928,7 +1033,7 @@ def group_h() -> None:
               f"--dry-run writes _dryrun.md and .html and sends NOTHING "
               f"({len(sends)} send(s))")
         text = dmd.read_text(encoding="utf-8") if dmd.exists() else ""
-        check("## 1. The month in one page" in text
+        check("## 1. The month in markets" in text
               and "Voices register not yet built" in text,
               "and a payload archived before v2 gets its v2 sections built at its "
               "own cutoff")

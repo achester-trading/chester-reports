@@ -43,13 +43,13 @@ from altdata import claims, observations, session, source_tiers
 REPO = Path(__file__).resolve().parent.parent
 THEMES_PATH = REPO / "config" / "monthly_themes.yaml"
 
-V2_SECTIONS = ("month_in_one_page", "looking_back", "voices", "looking_ahead",
-               "our_read")
+V2_SECTIONS = ("month_in_markets", "month_in_one_page", "looking_back",
+               "voices", "looking_ahead", "our_read")
 TAGS = ("CONSENSUS", "NEW", "DISSENT", "CORRECTION")
 TAKEAWAYS = 5
 
 # The sections a tie-back sentence opens -- every one after the first.
-TIE_BACK_SECTIONS = ("looking_back", "voices", "looking_ahead", "our_read",
+TIE_BACK_SECTIONS = ("month_in_one_page", "looking_back", "voices", "looking_ahead", "our_read",
                      "regime", "scenarios", "top_bottom", "alternative_assets",
                      "register_month", "appendix")
 
@@ -511,6 +511,84 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# THE MONTH IN MARKETS -- the opening scorecard (Ari's revision, 1 Oct)
+# ---------------------------------------------------------------------------
+def month_bounds(p: dict) -> tuple[dt.date, dt.date]:
+    """(start, end): the previous calendar month's two month-ends.
+
+    The 1 Oct edition covers September: the close on or before 31 Aug against
+    the close on or before 30 Sep.
+    """
+    day = dt.date.fromisoformat(str(p.get("report_date") or p.get("as_of"))[:10])
+    end = day.replace(day=1) - dt.timedelta(days=1)
+    start = end.replace(day=1) - dt.timedelta(days=1)
+    return start, end
+
+
+def _level_on(rows: list[dict], day: dt.date) -> Optional[dict]:
+    """The last observation on or before `day`."""
+    best = None
+    for r in rows:
+        if str(r.get("observed_at"))[:10] <= day.isoformat() \
+                and r.get("value_num") is not None:
+            best = r
+    return best
+
+
+def month_in_markets(p: dict) -> dict:
+    from altdata import derived
+    cfg = load_themes()
+    start, end = month_bounds(p)
+    cutoff = str(p.get("as_of") or session.utc_iso())
+    rows, missing = [], []
+    with observations.ObservationStore() as st:
+        for spec in cfg.get("scorecard") or []:
+            key = spec["metric"]
+            obs = sorted(st.as_of(key, as_of=cutoff),
+                         key=lambda r: str(r.get("observed_at")))
+            a, b = _level_on(obs, start), _level_on(obs, end)
+            if not (a and b):
+                missing.append(f"{spec['label']} ({key}): no observation on or "
+                               f"before {start if not a else end} knowable at the "
+                               f"cutoff")
+                continue
+            # A LEVEL OLDER THAN A WEEK IS NOT THAT MONTH-END'S LEVEL. A series
+            # that stopped printing would otherwise read as a flat month -- the
+            # same old value at both ends, "+0.0 bp" -- which is a fact about the
+            # feed presented as one about the market.
+            stale = [(r, day) for r, day in ((a, start), (b, end))
+                     if (day - dt.date.fromisoformat(str(r["observed_at"])[:10])).days > 7]
+            if stale:
+                r, day = stale[0]
+                missing.append(f"{spec['label']} ({key}): its last observation on or "
+                               f"before {day} is dated {str(r['observed_at'])[:10]}, "
+                               f"more than a week earlier")
+                continue
+            s0, s1 = float(a["value_num"]), float(b["value_num"])
+            unit, _why = derived.delta_unit_for(key)
+            if unit == "bps":
+                change = round((s1 - s0) * 100.0, 1)
+            elif unit == "percent" and s0:
+                change = round((s1 / s0 - 1.0) * 100.0, 2)
+            else:
+                unit, change = "raw", round(s1 - s0, 4)
+            d = derived.derived_forms(key, cutoff, store=st)
+            rows.append({"id": spec["id"], "label": spec["label"], "metric": key,
+                         "start_date": str(a["observed_at"])[:10],
+                         "start_level": s0,
+                         "end_date": str(b["observed_at"])[:10], "end_level": s1,
+                         "change": change, "change_unit": unit,
+                         "percentile": d.get("percentile"),
+                         "source": src("store", key, b["observed_at"])})
+    return {"state": "ok" if rows else "empty",
+            "reason": (None if rows else
+                       "no scorecard series has observations at both month-ends"),
+            "month": end.strftime("%B %Y"), "start": start.isoformat(),
+            "end": end.isoformat(), "rows": rows, "missing": missing,
+            "prose": "written per section by monthly_macro.prose"}
+
+
+# ---------------------------------------------------------------------------
 # 5. WHERE OUR READ LANDS -- bounded to the weights and the books
 # ---------------------------------------------------------------------------
 def our_read(p: dict, conn, ahead: dict) -> dict:
@@ -605,6 +683,8 @@ def takeaways(p: dict, back: dict, ahead: dict) -> list[dict]:
 # TIE-BACK SENTENCES -- deterministic, from where each takeaway came
 # ---------------------------------------------------------------------------
 _DEFAULT_TIE = {
+    "month_in_one_page": "The five takeaways below are the month above, each "
+                         "pinned to the stored record it came from.",
     "looking_back": "No takeaway is drawn from the themes this month; they are "
                     "the record behind the paragraph above.",
     "voices": "The voices that would test the paragraph above are Phase B; "
@@ -654,14 +734,14 @@ def build(p: dict) -> dict:
         read = our_read(p, conn, ahead)
         takes = takeaways(p, back, ahead)
         return {
+            "month_in_markets": month_in_markets(p),
             "month_in_one_page": {
                 "state": "ok" if takes else "empty",
                 "reason": (None if takes else
                            "no stored record supports a takeaway this month"),
                 "takeaways": takes,
                 "takeaways_supported": len(takes),
-                "paragraph": "the audited narrative paragraph, placed by the "
-                             "renderer"},
+                "paragraph": None},
             "looking_back": back,
             "voices": {"state": "not_yet_sourced",
                        "reason": "Voices register not yet built",

@@ -85,6 +85,24 @@ def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
             "delivered_at": session.utc_iso()}
 
 
+def write_prose(p: dict, args, log) -> dict:
+    """One audited call per v2 section; the results are kept ON the payload, so
+    the archive records what was written, what was withheld and why."""
+    from . import prose as prose_mod
+    out = prose_mod.write_all(p, model=args.narrative_model)
+    total = sum(r.get("words") or 0 for r in out.values())
+    held = [k for k, r in out.items() if not r.get("published")]
+    log.info("prose: %d section(s), %d published, %d words%s", len(out),
+             len(out) - len(held), total,
+             f"; withheld: {', '.join(held)}" if held else "")
+    for k in held:
+        log.warning("  section %s withheld: %s", k, out[k].get("reason"))
+    p["prose"] = {k: {kk: r.get(kk) for kk in ("title", "state", "published",
+                                               "words", "reason", "model", "text")}
+                  for k, r in out.items()}
+    return out
+
+
 def rerender(args, log) -> int:
     """Re-render an archived payload. Builds nothing it already has.
 
@@ -103,28 +121,35 @@ def rerender(args, log) -> int:
               "replaces an archived edition or sends one", file=sys.stderr)
         return 1
     p = json.loads(Path(args.from_payload).read_text(encoding="utf-8"))
+    from . import v2
     added = []
-    if p.get("month_in_one_page") is None:
+    if p.get("month_in_markets") is None:
+        # Any edition from before the current v2 shape -- a 4b payload, or a
+        # Phase A one without the scorecard -- gets the v2 sections rebuilt at
+        # its own cutoff, all together, so they agree with each other.
         p.update(payload_mod.v2_sections(p))
-        added = list(payload_mod.SECTIONS[:5])
+        added = list(v2.V2_SECTIONS)
         p["sections"] = list(payload_mod.SECTIONS)
     from daily_cascade import precision
     p = precision.apply(p)
     log.info("re-rendering %s (cutoff %s); built at its cutoff: %s",
              args.from_payload, p.get("as_of"), ", ".join(added) or "nothing")
-    narr = None
+    prose = None
     if not args.skip_narrative:
-        narr = narrative_mod.generate(
-            payload_mod.narrative_payload(p), model=args.narrative_model,
-            system_prompt=monthly_system_prompt(), guide_path=TEMPLATE_PATH,
-            max_chars=MAX_CHARS, one_paragraph=False)
-        log.info("narrative %s (%s)", "published" if narr.published else
-                 "withheld", narr.state)
-    md = render_v2.render(p, narrative=narr)
+        prose = write_prose(p, args, log)
+    md = render_v2.render(p, prose=prose)
     stamp = p.get("report_date")
     md_path = delivery.archive(md, f"monthly_macro_{stamp}_dryrun.md", args.out_dir)
     html_path = delivery.archive(build_html(md), f"monthly_macro_{stamp}_dryrun.html",
                                  args.out_dir)
+    if prose:
+        print("prose by section (words; withheld sections say why):")
+        for k, r in prose.items():
+            print(f"   {k:<34} {'published' if r.get('published') else 'WITHHELD'}"
+                  f"  {r.get('words') or 0:>5}"
+                  + ("" if r.get("published") else f"  -- {r.get('reason')}"))
+        print(f"   {'TOTAL':<34} {'':9}  "
+              f"{sum(r.get('words') or 0 for r in prose.values()):>5}")
     print(f"dry run -- NOT delivered:\n   {md_path}\n   {html_path}")
     print("delivery=skipped (--dry-run)")
     return 0
@@ -249,10 +274,15 @@ def main():
     for w in p.get("warnings") or []:
         log.warning("payload absence -- %s", w)
 
-    # ---- Phase 5: the paragraph, audited ---------------------------------------
+    # ---- Phase 5: the prose, audited ------------------------------------------
+    # v2: one audited call per section (monthly_macro.prose). The single
+    # paragraph below remains only for a payload without the v2 sections.
     narr = None
+    prose = None
     if args.skip_narrative:
         log.info("Narrative step skipped (--skip-narrative)")
+    elif p.get("month_in_markets") is not None:
+        prose = write_prose(p, args, log)
     else:
         np_ = payload_mod.narrative_payload(p)
         narr = narrative_mod.generate(
@@ -274,7 +304,7 @@ def main():
                 log.info("  rejected paragraph (NOT published): %s",
                          narr.rejected_text)
 
-    md = render_v2.render(p, narrative=narr)
+    md = render_v2.render(p, narrative=narr, prose=prose)
     html = build_html(md)
 
     # ---- ARCHIVE THROUGH deliver(), like every other report -------------------

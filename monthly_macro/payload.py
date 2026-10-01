@@ -54,7 +54,7 @@ log = logging.getLogger("monthly_macro.payload")
 # month in one page, looking back by theme, voices, looking ahead, where our read
 # lands -- and the six 4b sections follow, each opened by its tie-back sentence.
 # monthly_macro/v2.py builds the first five from stored records only.
-SECTIONS = ("month_in_one_page", "looking_back", "voices", "looking_ahead",
+SECTIONS = ("month_in_markets", "month_in_one_page", "looking_back", "voices", "looking_ahead",
             "our_read",
             "regime", "scenarios", "top_bottom", "alternative_assets",
             "register_month", "appendix")
@@ -667,7 +667,8 @@ def v2_sections(p: dict) -> dict:
         fault = f"FAULT (code, not data) -- {type(exc).__name__}: {exc}"
         log.exception("monthly v2 sections failed")
         return {name: {"state": "fault", "reason": fault}
-                for name in ("month_in_one_page", "looking_back", "voices",
+                for name in ("month_in_markets", "month_in_one_page",
+                             "looking_back", "voices",
                              "looking_ahead", "our_read")}
 
 

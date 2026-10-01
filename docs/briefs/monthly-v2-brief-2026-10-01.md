@@ -39,3 +39,7 @@ The halved Monthly (4b, 23 Sep) made every sentence traceable and every number a
 ## Not in scope
 
 Paywalled research the box cannot retrieve; social-media sentiment beyond the existing ApeWisdom logger; any change to how the regime is computed.
+
+## Revisions
+
+- **2026-10-01, after the first Phase A dry run (Ari):** too abridged, not enough prose, the insight hard to find, no account of where the market went. Revised: a new opening section, **The month in markets** — a month-end to month-end scorecard (S&P 500, QQQ, IWM, 2y and 10y yields, the dollar, WTI, gold, HY OAS, VIX, bitcoin) from the store, then 3–4 paragraphs on what drove the month; every narrative section is **prose, insight first** — claim, evidence with numbers, implication for positioning — with tables for data only; **one audited model call per section** (the opening, each theme, the look-ahead, where our read lands), each over its own payload slice with its own numeral/label audit, a failing section withheld alone with its reason; ~2,000–3,000 words of prose. The prompts cite the style reference `docs/briefs/monthly-style-reference.md` (the May 2026 "Institutional Desk Commentary" excerpt), to be added when the excerpt is supplied.
