@@ -104,12 +104,32 @@ def _dials(p: dict) -> list[dict]:
             for d in ((p.get("regime") or {}).get("dials") or [])]
 
 
+def _move_row(r: dict) -> dict:
+    """One scorecard row, its fields named for what they ARE.
+
+    A yield or a spread is QUOTED in percent and MOVES in basis points, so its
+    levels travel as `*_level_pct` and its move as `change_bps`; a price's levels
+    are `*_level` and its move `change_pct`. The audit types a field by its name,
+    and "the 10-year rose to 5.24%" was withheld when 5.24 travelled as
+    `end_level` -- a price -- in the first per-section dry run.
+    """
+    out = {"label": r.get("label"), "percentile": r.get("percentile")}
+    if r.get("change_unit") == "bps":
+        out.update(start_level_pct=r.get("start_level"),
+                   end_level_pct=r.get("end_level"), change_bps=r.get("change"))
+    elif r.get("change_unit") == "percent":
+        out.update(start_level=r.get("start_level"), end_level=r.get("end_level"),
+                   change_pct=r.get("change"))
+    else:
+        out.update(start_level=r.get("start_level"), end_level=r.get("end_level"),
+                   change=r.get("change"))
+    return out
+
+
 def _scorecard(p: dict, ids: Optional[list] = None) -> dict:
     m = p.get("month_in_markets") or {}
     return {"month": m.get("month"), "from": m.get("start"), "to": m.get("end"),
-            "moves": [{k: r.get(k) for k in ("label", "start_level", "end_level",
-                                             "change", "change_unit", "percentile")}
-                      for r in m.get("rows") or []
+            "moves": [_move_row(r) for r in m.get("rows") or []
                       if ids is None or r.get("id") in ids],
             "not_sourced": m.get("missing") or []}
 
