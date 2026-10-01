@@ -48,7 +48,7 @@ def main() -> int:
     built = payload.build()
     vm.group_b(built)
     vm.group_c(built)
-    vm.group_d()
+    vm.group_d(live=True)
     print(f"\n{L}\n{vm.PASS} passed, {vm.FAIL} failed"
           + (f", {len(vm.SKIPPED)} skipped" if vm.SKIPPED else "") + f"\n{L}")
     for s in vm.SKIPPED:

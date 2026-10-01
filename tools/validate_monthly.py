@@ -280,7 +280,7 @@ def group_c(built: dict) -> None:
 # This is the property that makes a grade worth anything. If the payload can see
 # past its cutoff, every replayed month is marked against data the month did not
 # have, and the Brier ledger measures hindsight.
-def group_d() -> None:
+def group_d(live: bool = False) -> None:
     print(f"\n{LINE}\nD. REPLAY: A PAST MONTH AS-OF ITS OWN CUTOFF\n{LINE}")
     import datetime as dt
     from monthly_macro import payload
@@ -321,9 +321,18 @@ def group_d() -> None:
                for v in ((payload.build().get("appendix") or {}).get("pillars")
                          or {}).values()
                for r in v.get("series") or [] if r.get("observed_at")]
-    check(any(o > day for o in now_obs),
-          f"the store holds pillar observations AFTER the cutoff (newest "
-          f"{max(now_obs) if now_obs else None}), so the check below can fail")
+    newest = max(now_obs) if now_obs else None
+    if live and not any(o > day for o in now_obs):
+        # On the real store, the first days of a month hold nothing observed
+        # after the previous month-end yet: a fact about the calendar, not a
+        # fault. Named, so a vacuous no-leak pass is never read as a real one.
+        SKIPPED.append(f"no-leak check is vacuous today: the store's newest "
+                       f"pillar observation ({newest}) is not after the cutoff "
+                       f"{day}; it bites once this month's first print lands")
+    else:
+        check(any(o > day for o in now_obs),
+              f"the store holds pillar observations AFTER the cutoff (newest "
+              f"{newest}), so the check below can fail")
     check(not late,
           f"NO figure in the payload was observed after the cutoff "
           f"({len(late)} leak(s)"
