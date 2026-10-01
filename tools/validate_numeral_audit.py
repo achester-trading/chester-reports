@@ -533,6 +533,71 @@ def group_i() -> None:
           "and the brief tells the model to copy the _ordinal field verbatim")
 
 
+def group_j() -> None:
+    """1 Oct 2026: every move carries its signed display form, copied verbatim."""
+    print(f"\n{LINE}\nJ. A MOVE IS COPIED FROM ITS `_signed` FIELD -- THE SIGN RULE "
+          f"STANDS\n{LINE}")
+    import types
+    from altdata import numeral_audit as na
+    from daily_cascade import narrative as nv
+    M = na.MINUS
+
+    check([na.signed_display(-6.75, "%"), na.signed_display(0.36, "%"),
+           na.signed_display(12.0, " bp"), na.signed_display(0.0, " bp"),
+           na.signed_display(-1234.5)]
+          == [f"{M}6.75%", "+0.36%", "+12 bp", "0 bp", f"{M}1,234.5"],
+          "the display forms: −6.75%, +0.36%, +12 bp, 0 bp, −1,234.5")
+    P = na.with_signed({"scorecard": [
+        {"label": "Gold (GLD)", "change_pct": -6.75},
+        {"label": "10-year Treasury", "change_bps": 49.0},
+        {"metric": "fred.wti", "delta_20d": 4.35, "delta_unit": "percent",
+         "delta_percentile": 88.6}]})
+    rows = P["scorecard"]
+    check(rows[0].get("change_pct_signed") == f"{M}6.75%"
+          and rows[1].get("change_bps_signed") == "+49 bp"
+          and rows[2].get("delta_20d_signed") == "+4.35%"
+          and "delta_percentile_signed" not in rows[2],
+          "with_signed() puts `<field>_signed` beside every move, its unit from the "
+          "name or the sibling delta_unit, and nothing beside a percentile")
+    check(na.with_signed(P) == P, "and is idempotent")
+    check(na.payload_numbers(f"{M}6.75%") == [-6.75],
+          "the stored −6.75% reads as NEGATIVE, so it cannot excuse an unsigned "
+          "6.75% in the prose")
+
+    # GOLD'S MOVE FROM THE 1 OCT PAYLOAD, through generate().
+    seen = {}
+
+    class Resp:
+        def __init__(self, t):
+            self.content = [types.SimpleNamespace(type="text", text=t)]
+            self.model = "fixture-model"
+            self.stop_reason = "end_turn"
+
+    class Client:
+        def __init__(self, t):
+            def create(**k):
+                seen["prompt"] = k["messages"][0]["content"]
+                return Resp(t)
+            self.messages = types.SimpleNamespace(create=create)
+
+    raw = {"month": "September 2026",
+           "moves": [{"label": "Gold (GLD)", "change_pct": -6.75}]}
+    kw = dict(system_prompt=nv.SYSTEM_PROMPT, max_chars=5000, one_paragraph=False,
+              citable_ids=[])
+    good = nv.generate(raw, client=Client(f"Gold fell {M}6.75% over September."),
+                       **kw)
+    check('"change_pct_signed": "' in seen.get("prompt", "")
+          and f"{M}6.75%" in seen.get("prompt", ""),
+          "generate() hands the model the signed form beside the move")
+    check(good.published, f"gold's {M}6.75%, copied, publishes ({good.state})")
+    bad_ = nv.generate(raw, client=Client("Gold fell 6.75% over September."), **kw)
+    check(not bad_.published and "change_pct_signed" in (bad_.reason or ""),
+          f"an unsigned 6.75% is WITHHELD, and the reason names the field to copy "
+          f"({(bad_.reason or '')[:90]})")
+    check("_signed" in nv.SYSTEM_PROMPT and "verbatim" in nv.SYSTEM_PROMPT,
+          "and the brief tells the model to copy the _signed field verbatim")
+
+
 def group_h() -> None:
     """G-1: a numeral beside a named level must be THAT level, for that symbol."""
     print(f"\n{'=' * 78}\nH. THE LABEL AUDIT -- A LEVEL PRINTED UNDER THE WRONG NAME\n"
@@ -618,6 +683,7 @@ def main() -> int:
     group_g()
     group_h()
     group_i()
+    group_j()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

@@ -123,11 +123,14 @@ You may write a number as words ("ten and a half billion") only when the same \
 value is also printed in the tables below your paragraph. When in doubt, use the \
 numeral.
 
-A SIGN IS PART OF THE NUMERAL, NEVER A WORD. Write "-0.02%", not "down \
-0.02%". The audit matches the sign exactly, so a fall written as a word with \
-an unsigned magnitude does not match the negative value in the payload and the \
-whole paragraph is discarded over a phrasing. Say "fell" in the sentence if \
-you like; the figure still carries its own sign.
+A SIGN IS PART OF THE NUMERAL, NEVER A WORD -- AND THE SIGNED FORM IS IN THE \
+PAYLOAD. Every change, move, delta or return has a sibling ending in _signed: \
+"change_pct": -6.75 sits beside "change_pct_signed": "−6.75%", "change_bps": \
+12 beside "+12 bp". Copy that string verbatim whenever you cite the move: "gold \
+fell −6.75%", never "gold fell 6.75%". The audit matches the sign exactly, so \
+a fall written as a word with an unsigned magnitude does not match the negative \
+value and the whole paragraph is discarded over a phrasing. Say "fell" in the \
+sentence if you like; the figure still carries its own sign.
 
 A PERCENTILE IN PROSE IS THE PAYLOAD'S OWN ORDINAL, COPIED VERBATIM. Every \
 percentile field has a sibling ending in _ordinal -- "percentile": 51.7 sits \
@@ -424,7 +427,10 @@ def build_prompt(payload: dict, guide_path=None) -> str:
     """
     import json  # noqa: PLC0415
     guide = style_guide(guide_path)
-    body = json.dumps(payload, indent=2, default=str, sort_keys=True)
+    # ensure_ascii=False: the model must see "−6.75%" as the characters it
+    # is told to copy, not as a JSON escape it might reproduce literally.
+    body = json.dumps(payload, indent=2, default=str, sort_keys=True,
+                      ensure_ascii=False)
     if guide and len(guide) > MAX_GUIDE_CHARS:
         raise PromptTooLarge(f"the style guide is {len(guide)} characters, past "
                              f"the {MAX_GUIDE_CHARS} guard")
@@ -686,6 +692,10 @@ def generate(payload: dict, *, model: Optional[str] = None,
     # all pass through, so no report's payload can reach the model without it --
     # and the audit below reads the same augmented payload.
     payload = numeral_audit.with_ordinals(payload)
+    # AND EVERY MOVE ITS SIGNED DISPLAY FORM, the same way (1 Oct 2026): "fell
+    # 6.75%" for -6.75 withheld the Monthly's fiscal section twice. The model
+    # copies `<field>_signed`; the sign rule is unchanged.
+    payload = numeral_audit.with_signed(payload)
 
     if client is None:
         client, why = _client()

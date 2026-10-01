@@ -211,6 +211,98 @@ def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# SIGNED MOVES ARE PRECOMPUTED (1 Oct 2026), the ordinals' pattern again
+# ---------------------------------------------------------------------------
+# "Gold fell 6.75%" withheld the Monthly's fiscal section twice in one afternoon:
+# the payload holds -6.75 and the prose wrote the magnitude. The sign rule stays;
+# what changes is that the writer no longer composes the display form. Every
+# change, move, delta or return in a narrative payload gets a sibling
+# `<field>_signed` -- "−6.75%", "+0.36%", "+12 bp" -- in the field's own unit,
+# and the brief says to copy it verbatim. When the prose writes the magnitude
+# unsigned anyway, the audit still withholds, and names the field to copy.
+SIGNED_FIELD = "_signed"
+MINUS = "−"
+_MOVE_KEY = re.compile(r"(^|_)(change|delta|move|return|ret|chg)(_|$|\d)")
+_SKIP_SUFFIXES = ("_unit", SIGNED_FIELD, ORDINAL_FIELD, "_why", "_reason")
+
+
+def _is_move_key(key: str) -> bool:
+    k = str(key).lower()
+    return (bool(_MOVE_KEY.search(k)) and not k.endswith(_SKIP_SUFFIXES)
+            and type_of_key(k) != TYPE_PERCENTILE)
+
+
+def _move_unit(key: str, siblings: dict) -> str:
+    """The display unit: from the field's name, then a sibling unit field
+    (`delta_unit`, `change_unit` -- the registry's delta semantics), then none."""
+    k = str(key).lower()
+    if k.endswith(("_bps", "_bp")):
+        return " bp"
+    if k.endswith(("_pct", "_percent")) or "_pct_" in k:
+        return "%"
+    stem = k.rsplit("_", 1)[0] if "_" in k else k
+    for cand in (f"{k}_unit", f"{stem}_unit", "delta_unit", "change_unit", "unit"):
+        u = str(siblings.get(cand) or "").lower()
+        if u in ("bps", "bp"):
+            return " bp"
+        if u in ("percent", "pct", "%"):
+            return "%"
+        if u:
+            return ""
+    return ""
+
+
+def signed_display(value: float, unit: str = "") -> str:
+    """'+0.36%', '−6.75%', '+12 bp', '0 bp'. The value is already rounded to
+    print precision; this only writes it with its sign and unit."""
+    v = float(value)
+    mag = f"{abs(v):,.4f}".rstrip("0").rstrip(".")
+    if v == 0:
+        return f"{mag}{unit}"
+    return f"{'+' if v > 0 else MINUS}{mag}{unit}"
+
+
+def with_signed(payload: Any, _depth: int = 0) -> Any:
+    """A copy of `payload` with `<field>_signed` beside every move field.
+    Idempotent: an existing `_signed` sibling is left alone."""
+    if _depth > 16:
+        return payload
+    if isinstance(payload, dict):
+        out = {k: with_signed(v, _depth + 1) for k, v in payload.items()}
+        for k, v in payload.items():
+            if (isinstance(v, (int, float)) and not isinstance(v, bool)
+                    and _is_move_key(str(k))
+                    and f"{k}{SIGNED_FIELD}" not in payload):
+                out[f"{k}{SIGNED_FIELD}"] = signed_display(v, _move_unit(k, payload))
+        return out
+    if isinstance(payload, list):
+        return [with_signed(v, _depth + 1) for v in payload]
+    return payload
+
+
+def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:
+    """(value, field, signed display) for every NEGATIVE move the payload carries
+    -- the only case where an unsigned figure can be the right magnitude with the
+    wrong sign."""
+    out: list[tuple[float, str, str]] = []
+    if _depth > 16:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if (isinstance(v, (int, float)) and not isinstance(v, bool)
+                    and v < 0 and _is_move_key(str(k))):
+                out.append((float(v), f"{k}{SIGNED_FIELD}",
+                            str(payload.get(f"{k}{SIGNED_FIELD}")
+                                or signed_display(v, _move_unit(k, payload)))))
+            else:
+                out.extend(signed_fields(v, _depth + 1))
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out.extend(signed_fields(v, _depth + 1))
+    return out
+
+
 def _is_percentile_ordinal(f: "Figure", text: str) -> bool:
     """An ordinal the prose uses AS a percentile: typed so, or with the word
     beside it ("its percentile, the 51st"). Other ordinals -- "the 2nd session"
@@ -457,7 +549,7 @@ def types_of(value, key: str = "") -> list[tuple[float, str]]:
 # allowing the suffixes above, which are part of the number rather than a word.
 _FIGURE = re.compile(
     r"""(?<![\w.])            # not mid-token, not a decimal tail
-        (?P<sign>-|minus\s)?  # a written minus counts
+        (?P<sign>-|−|minus\s)?  # a written minus counts; U+2212 is one too
         \$?\s?
         (?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)
         # THE SPACE IS OPTIONAL AND THE WORD FORMS COME FIRST. "4.59bn" and
@@ -507,6 +599,9 @@ class Figure:
     # wall, flip, max pain, ...) and the payload holds that level at a different
     # value for that symbol (G-1). The figure exists -- under another name.
     label_conflict: str = ""
+    # Filled when an UNSIGNED figure is the magnitude of a negative move the
+    # payload carries: names the `_signed` field the writer should have copied.
+    sign_error: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -536,7 +631,8 @@ class AuditResult:
         # for a missing figure; the figure was there and the sentence called it the
         # wrong kind of thing, which is a different fix.
         def label(f) -> str:
-            why = f.type_conflict or f.ordinal_error or f.label_conflict
+            why = (f.type_conflict or f.ordinal_error or f.sign_error
+                   or f.label_conflict)
             return f"{f.text} ({why})" if why else f.text
 
         bad = ", ".join(label(f) for f in self.unmatched[:6])
@@ -881,6 +977,7 @@ def audit(text: str, payload: Any, *,
     unmatched: list[Figure] = []
 
     ordinals = stored_ordinals(payload)
+    signed = signed_fields(payload)
     for f in figures:
         # A WRONGLY WRITTEN ORDINAL FAILS WHATEVER IT MATCHES (H-1 item 3).
         f.ordinal_error = ordinal_error(f)
@@ -915,6 +1012,15 @@ def audit(text: str, payload: Any, *,
             # exactly f.high (a boundary) would otherwise be missed.
             hit = next((v for v in pool if abs(v - f.value) <= 1e-9), None)
         if hit is None:
+            # THE SIGN RULE, WITH THE FIX NAMED. An unsigned magnitude of a
+            # negative move -- "fell 6.75%" for -6.75 -- is still withheld; the
+            # reason says which `_signed` field holds the form to copy.
+            if f.value > 0:
+                neg = next(((v, fld, disp) for v, fld, disp in signed
+                             if f.low <= -v < f.high), None)
+                if neg:
+                    f.sign_error = (f"the payload's value is negative -- copy "
+                                    f"`{neg[1]}` verbatim: {neg[2]}")
             unmatched.append(f)
             continue
         # THE TYPE CHECK. A value matched; does the word the prose put next to it
