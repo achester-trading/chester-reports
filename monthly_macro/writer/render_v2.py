@@ -344,6 +344,14 @@ def register_section(p: dict) -> str:
                    f"({d.get('status')}, {d.get('thesis_state') or 'no state'}, "
                    f"{d.get('expression_family') or 'no expression'}) "
                    f"— {d.get('created_at')}")
+    bz = b.get("books_vs_benchmark") or {}
+    if bz:
+        vs = bz.get("line") or (f"FAULT (code, not data) -- {bz['fault']}"
+                                if bz.get("fault") else
+                                f"Book Z absent: {bz.get('absent_reason')}")
+        out.append("\n### Books vs Book Z\n")
+        for bk, eq in sorted((bz.get("books") or {}).items()):
+            out.append(f"- Book {bk}: paper equity {eq} · {vs}")
     rb = b.get("rule_breaks") or {}
     out.append(f"\n### Rule breaks\n\nRestricted-instrument attempts this month: "
                f"**{rb.get('restricted_instrument_attempts_this_month')}** · "

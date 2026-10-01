@@ -618,10 +618,29 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
             **_rule_breaks_week(start, ending),
         }
         out["packet_fields"] = packet_fields_week(rows, start, ending)
+        out["books_vs_benchmark"] = books_vs_benchmark(ending, db)
     finally:
         if own:
             db.close()
     return out
+
+
+def books_vs_benchmark(ending: str, db: Any) -> dict:
+    """EL-3: one line beside each book -- "vs cash / SPY / 60-40".
+
+    No book has a paper-equity ledger yet, so each book's own figure says so
+    rather than printing a zero; the Book Z line is the denominator it will be
+    read against once it does.
+    """
+    from altdata import benchmark                              # noqa: PLC0415
+    cutoff = f"{ending[:10]}T23:59:59+00:00"
+    ln = benchmark.line(as_of=cutoff, store=db)
+    return {"line": ln.get("text"), "absent_reason": ln.get("absent_reason"),
+            "returns_pct": ln.get("returns_pct"),
+            "books": {b: {"paper_equity": None,
+                          "paper_equity_absent_reason":
+                              "no paper-equity ledger for this book yet"}
+                      for b in ("A", "B", "C", "D")}}
 
 
 def packet_fields_week(rows: list, start: str, ending: str) -> dict:
@@ -1023,6 +1042,7 @@ def narrative_payload(full: dict) -> dict:
             "open": rg.get("open"),
             "rule_breaks": rg.get("rule_breaks"),
             "packet_fields": rg.get("packet_fields"),
+            "books_vs_benchmark": rg.get("books_vs_benchmark"),
             "absent_reason": rg.get("reason"),
         },
         "week_ahead": {

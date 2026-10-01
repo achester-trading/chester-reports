@@ -464,6 +464,16 @@ def register_month_block(as_of: Optional[str] = None) -> dict:
         }
     except Exception as exc:                                   # noqa: BLE001
         out["register_reason"] = f"{type(exc).__name__}: {exc}"
+    # EL-3: one line beside each book -- "vs cash / SPY / 60-40". Read, never
+    # computed here: the marks are Book Z's, written by the close pass.
+    try:
+        from altdata import benchmark
+        ln = benchmark.line(as_of=as_of)
+        out["books_vs_benchmark"] = {
+            "line": ln.get("text"), "absent_reason": ln.get("absent_reason"),
+            "books": {b: "not yet sourced" for b in ("A", "B", "C", "D")}}
+    except Exception as exc:                                   # noqa: BLE001
+        out["books_vs_benchmark"] = {"fault": f"{type(exc).__name__}: {exc}"}
     return out
 
 

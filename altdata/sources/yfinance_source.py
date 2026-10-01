@@ -157,6 +157,10 @@ SYMBOLS: dict[str, str] = {
     # a name added here needs a backfill (tools/backfill_prices.py) before its beta
     # reads anything.
     "NVDA": "mkt_nvda",
+    # P5-B, EL-3: BOOK Z'S BOND LEG. The 60/40 benchmark is 60% SPY / 40% AGG,
+    # and a ledger marked from the store needs AGG's closes in it. Like NVDA, a
+    # name added here needs tools/backfill_prices.py before its history reads.
+    "AGG": "mkt_agg",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #

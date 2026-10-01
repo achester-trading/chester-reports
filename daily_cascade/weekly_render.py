@@ -361,6 +361,17 @@ def register_block(payload: dict) -> str:
         + gate_line + listed_html
         + f'<p style="{NOTE}">{esc(rb.get("running_total_note"))}</p>'
         + ns_html + fault + '</div>')
+    # EL-3: one line beside each book -- "vs cash / SPY / 60-40".
+    bz = b.get("books_vs_benchmark")
+    if bz:
+        vs = esc(bz.get("line") or f"Book Z absent: {bz.get('absent_reason')}")
+        rows_html = "".join(
+            f'<br>Book {esc(k)}: paper equity '
+            f'{esc(v.get("paper_equity") if v.get("paper_equity") is not None else "not yet sourced")}'
+            f' &middot; {vs}'
+            for k, v in sorted((bz.get("books") or {}).items()))
+        parts.append(f'<div style="{ABSENT}"><strong>Books vs Book Z</strong>'
+                     f'{rows_html}</div>')
     # EL-1: the week's entries by setup and by review.
     pf = b.get("packet_fields")
     if pf:

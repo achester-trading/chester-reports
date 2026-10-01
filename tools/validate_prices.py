@@ -192,8 +192,9 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 41, f"41 symbols declared (got {len(syms)}) -- 31, plus "
-          f"ST-2's nine, plus NVDA for the Phase 5a heat view")
+    check(len(syms) == 42, f"42 symbols declared (got {len(syms)}) -- 31, plus "
+          f"ST-2's nine, NVDA for the Phase 5a heat view, and AGG for Book Z's "
+          f"60/40 (P5-B)")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "

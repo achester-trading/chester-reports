@@ -324,6 +324,9 @@ vocabularies:
     # unprofitable, or profitable and badly calibrated, and merging the groups
     # would let one stand in as evidence for the other.
     - forecast_calibration
+    # P5-B, EL-3: Book Z's reference ledgers. Their own group, because a
+    # benchmark is neither a market series nor a position.
+    - paper_benchmark
     # DECISION GRADES. Its own group, and it must never share one with a market
     # metric: a grade is a measurement of THIS SYSTEM'S OWN OUTPUT, so letting it
     # confirm a market signal would be the system marking its own homework and
@@ -2487,6 +2490,24 @@ metrics:
       Standard deviation of the last 24 month-on-month core CPI changes (CPILFESL),
       annualised, in percentage points. SR-9's regime variable: the lever yield
       level is a proxy for. Consecutive monthly prints only.
+  paper.benchmark:
+    source: derived_state
+    mechanism_group: paper_benchmark
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      Book Z (EL-3): three reference ledgers keyed by (session, ledger) --
+      instrument is `cash` (3-month T-bill accrual, DTB3), `spy` (SPY bought at
+      the start and held) or `sixty_forty` (60% SPY / 40% AGG, rebalanced on the
+      first session of each month). Each starts at 100.0 at the start date's
+      close: the register's first packet date, or 1 Sep 2026 if earlier.
+      Written once per session and never recomputed (altdata/benchmark.py).
   calc.yoy_cpi:
     source: derived_state
     mechanism_group: macro_inflation
@@ -5672,7 +5693,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 41   # 40 + NVDA (Phase 5a, the heat view's single name)
+    expected_members: 42   # 40 + NVDA (Phase 5a's heat view) + AGG (P5-B, Book Z's 60/40)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5696,7 +5717,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 41   # 40 + NVDA (Phase 5a, the heat view's single name)
+    expected_members: 42   # 40 + NVDA (Phase 5a's heat view) + AGG (P5-B, Book Z's 60/40)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

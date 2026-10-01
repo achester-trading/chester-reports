@@ -154,6 +154,17 @@ REC_RC=$?
 printf '%s\n' "$REC_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $REC_RC -ne 0 ]] && log "WARN reconcile exited $REC_RC -- continuing; the close prints what the register holds"
 
+# ---- Book Z (EL-3): the benchmark ledgers, marked from the store ------------
+#
+# Every session a ledger does not yet hold, up to this one, each written once and
+# never recomputed. After the price pull above, so the close is in. Never fatal:
+# a missing mark costs its own line in the Weekly, not the report.
+log "benchmarks: Book Z marks"
+BZ_OUT="$("$PY" -m altdata.benchmark mark 2>&1 | tail -8)"
+BZ_RC=$?
+printf '%s\n' "$BZ_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $BZ_RC -ne 0 ]] && log "WARN benchmark mark exited $BZ_RC -- continuing"
+
 log "=== close report start sha=$SHA pull=$PULL_STATUS ${DRY:-live}"
 "$PY" -m daily_cascade.close_report $DRY >>"$LOG" 2>&1
 RC=$?
