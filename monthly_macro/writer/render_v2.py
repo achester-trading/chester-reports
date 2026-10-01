@@ -18,6 +18,7 @@ delta row in the appendix.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 
@@ -198,42 +199,75 @@ def _level(r: dict, which: str) -> str:
     return f"{_v(v)}%" if r.get("change_unit") == "bps" else _v(v)
 
 
+def _footnote(gaps: Optional[list]) -> str:
+    """The section's gaps, OUTSIDE the prose, in plain words."""
+    gaps = [g for g in (gaps or []) if g]
+    return (f"\n<sub>**Not yet tracked:** {'; '.join(gaps)}.</sub>\n"
+            if gaps else "")
+
+
+def _first_sentence(text: Optional[str]) -> Optional[str]:
+    """The claim a section opens with -- prose is written insight first."""
+    if not text:
+        return None
+    para = text.strip().split("\n\n")[0]
+    m = re.match(r"(.+?[.!?])(\s|$)", para, flags=re.S)
+    return (m.group(1) if m else para).strip()
+
+
+def _series_table(rows: list[dict]) -> list[str]:
+    if not rows:
+        return []
+    out = ["\n| Series | Latest | Date | Change | Since |\n|---|---|---|---|---|"]
+    for r in rows:
+        if "latest_pct" in r:
+            lvl, mv = f"{_v(r['latest_pct'])}%", (
+                f"{_signed(r['change_bps'], 1)} bp" if "change_bps" in r else "—")
+        else:
+            lvl = _v(r.get("latest_level"))
+            mv = (f"{_signed(r['change_pct'])}%" if "change_pct" in r else
+                  _signed(r["change"], 2) if "change" in r else "—")
+        out.append(f"| {_cell(r['label'])} | {lvl} | {r.get('latest_date')} | "
+                   f"{mv} | {r.get('since') or '—'} |")
+    return out
+
+
 def markets_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("month_in_markets") or {}
     out = [f"## 1. The month in markets — {b.get('month') or ''}\n"]
     out += _prose(prose, "month_in_markets")
     rows = b.get("rows") or []
     if rows:
-        out.append(f"\n*Scorecard: close on or before {b.get('start')} against close "
-                   f"on or before {b.get('end')}, from the store. Yields and spreads "
-                   f"move in basis points, prices and indices in percent.*\n")
+        out.append(f"\n*Close on or before {b.get('start')} against close on or "
+                   f"before {b.get('end')}. Yields and spreads move in basis points, "
+                   f"prices and indices in percent.*\n")
         out.append("| Market | " + f"{b.get('start')} | {b.get('end')} | Move | "
                    "Level, 5y pctile |\n|---|---|---|---|---|")
         for r in rows:
             out.append(f"| {r['label']} | {_level(r, 'start')} | {_level(r, 'end')} | "
                        f"**{_move(r)}** | {_v(r.get('percentile'), 1)} |")
     else:
-        out.append(f"\n**No scorecard.** {b.get('reason') or 'No reason recorded.'}")
-    if b.get("missing"):
-        out.append("\n*Not on the scorecard: " + "; ".join(b["missing"]) + ".*")
+        out.append(f"\n**No market moves to show.** {b.get('reason') or ''}")
+    out.append(_footnote([m.split(" (")[0] for m in b.get("missing") or []]))
     return "\n".join(out) + "\n\n---\n"
 
 
-def month_section(p: dict) -> str:
+def month_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("month_in_one_page") or {}
     out = ["## 2. The month in one page\n", _tie(p, "month_in_one_page")]
     takes = b.get("takeaways") or []
-    if b.get("state") == "fault":
-        out.append(f"**FAULT.** {b.get('reason')}\n")
-    elif not takes:
-        out.append(f"**No takeaway.** {b.get('reason') or 'No reason recorded.'}\n")
-    for t in takes:
-        out.append(f"{t['n']}. {t['text']}  \n"
-                   f"   <sub>{'; '.join(_cite(s) for s in t.get('sources') or [])}"
-                   f"</sub>")
-    if takes and len(takes) < 5:
-        out.append(f"\n*{len(takes)} takeaway(s), not five: a takeaway is printed "
-                   f"only when a stored record supports it.*")
+    r = (prose or {}).get("month_in_one_page") or {}
+    if r.get("published") and r.get("text"):
+        out.append(f"{r['text'].strip()}\n")
+    else:
+        if prose is not None:
+            out += _prose(prose, "month_in_one_page")
+        for t in takes:
+            out.append(f"{t['n']}. {t['text']}")
+    if takes:
+        out.append("\n<sub>Built from: "
+                   + "; ".join(_cite(s) for t in takes
+                               for s in (t.get("sources") or [])[:1]) + ".</sub>")
     return "\n".join(out) + "\n\n---\n"
 
 
@@ -241,36 +275,36 @@ def looking_back_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("looking_back") or {}
     if b.get("state") != "ok":
         return _absent("3. Looking back, by theme", b)
-    w = b.get("window") or ["—", "—"]
-    out = ["## 3. Looking back, by theme\n", _tie(p, "looking_back"),
-           f"*Window {w[0]} to {str(w[1])[:10]} · themes {b.get('themes_version')}. "
-           f"Each theme is written first; the stored items it rests on follow as a "
-           f"table, each with one tag — CONSENSUS needs two tier-1–2 sources, "
-           f"DISSENT names its source, CORRECTION cites what it corrects, NEW is "
-           f"dated inside the window.*\n"]
-    for t in b.get("themes") or []:
+    themes = b.get("themes") or []
+    out = ["## 3. Looking back, by theme\n", _tie(p, "looking_back")]
+    # THE EXECUTIVE SUMMARY: one plain line per theme -- each theme's opening
+    # claim, which the prose is written to lead with.
+    lines = []
+    for t in themes:
+        r = (prose or {}).get(f"theme:{t['theme']}") or {}
+        first = _first_sentence(r.get("text")) if r.get("published") else None
+        if first:
+            lines.append(f"**{t['name']}.** {first}")
+    if lines:
+        out.append("### In one line each\n")
+        out.append("  \n".join(lines) + "\n")
+    for t in themes:
         out.append(f"### {t['name']}\n")
         out += _prose(prose, f"theme:{t['theme']}")
+        out += _series_table(t.get("rows") or [])
         items = t.get("items") or []
         if items:
-            out.append("\n| Tag | Item | Source |\n|---|---|---|")
+            out.append("\n| Development | Tag | Source |\n|---|---|---|")
             for it in items:
-                corr = (f" — corrects: {it['corrects']['statement']}"
+                corr = (f" (corrects: {it['corrects']['statement']})"
                         if it.get("corrects") else "")
-                out.append(f"| **{it['tag']}** | {_cell(it['text'])}{_cell(corr) if corr else ''} | "
+                out.append(f"| {_cell(it['text'] + corr)} | **{it['tag']}** | "
                            f"{'; '.join(_cite(s) for s in it['sources'][:2])} |")
-        reads = ", ".join(t.get("dimensions") or []) or "no dimension"
-        out.append(f"\n*Reads {reads}. "
-                   + (f"Held this window: {'; '.join(t['held'])}. " if t.get("held")
-                      else "")
-                   + (f"{t['refused']} item(s) refused for want of a source or a "
-                      f"tag their sources support." if t.get("refused") else "")
-                   + "*\n")
+        out.append(_footnote(t.get("not_yet_tracked")))
     wc = b.get("what_changed") or {}
     out.append("### What changed from last month\n")
-    out.append(f"*Computed from the store, never written: {wc.get('count', 0)} "
-               f"difference(s) between stored records inside the window"
-               + (f". {wc['note']}" if wc.get("note") else "") + ".*\n")
+    out.append(f"*{wc.get('count', 0)} change(s) between this edition and the last, "
+               f"each read from a stored record.*\n")
     if wc.get("rows"):
         out.append("| What | From | To | Source |\n|---|---|---|---|")
         for r in wc["rows"]:
@@ -285,36 +319,28 @@ def voices_section(p: dict) -> str:
         "## 4. Voices\n", _tie(p, "voices"),
         f"**{b.get('reason') or 'Voices register not yet built'}.**\n",
         "Sell-side desks, buy-side managers and independent strategists arrive with "
-        "Phase B, one row each with a status computed against that voice's stored "
-        "entry from the prior month. Until then no view is attributed to anyone, "
-        "because a voice with no stored source is not printed.\n"]) + "\n---\n"
+        "Phase B, one row each with a status computed against that voice's view a "
+        "month earlier. Until then no view is attributed to anyone.\n"]) + "\n---\n"
 
 
 def looking_ahead_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("looking_ahead") or {}
     if b.get("state") not in ("ok", "empty"):
         return _absent("5. Looking ahead, 2–3 months", b)
-    h = b.get("horizon") or ["—", "—"]
     out = ["## 5. Looking ahead, 2–3 months\n", _tie(p, "looking_ahead")]
     out += _prose(prose, "looking_ahead")
-    cal = b.get("calendar") or []
-    out.append(f"\n*The calendar, {h[0]} to {h[1]}, from the events table.*\n")
-    if cal:
-        out.append("| Date | Event | Source |\n|---|---|---|")
-        for c in cal:
-            out.append(f"| {c['date']} | {_cell(c['title'])} | "
-                       f"`{c['source']['kind']}:{c['source']['id']}` |")
-    else:
-        out.append("*Nothing scheduled in the events table inside the horizon.*")
-    reach = b.get("calendar_reach") or {}
-    if reach:
-        out.append("\n*Each calendar source is stored as far as "
-                   + ", ".join(f"{k} {v}" for k, v in sorted(reach.items()))
-                   + "; a quiet stretch past those dates is the table's horizon, "
-                     "not the market's.*")
+    for w in b.get("windows") or []:
+        out.append(f"\n### {w['name']}\n")
+        if w["calendar"]:
+            out.append("| Date | Event |\n|---|---|")
+            for c in w["calendar"]:
+                out.append(f"| {c['date']} | {_cell(c['title'])} |")
+        else:
+            out.append("*Nothing on our calendar for this period yet.*")
     scen = b.get("scenarios") or []
+    out.append("\n### Scenarios, and what would change our mind\n")
     if scen:
-        out.append("\n| Scenario | p | Brier | Resolves | What would change our "
+        out.append("| Scenario | p | Brier | Resolves | What would change our "
                    "mind |\n|---|---|---|---|---|")
         for s in scen:
             brier = (_v(s.get("brier"), 4) if s.get("brier") is not None
@@ -324,10 +350,8 @@ def looking_ahead_section(p: dict, prose: Optional[dict] = None) -> str:
             out.append(f"| {_cell(s.get('claim'))} | {_v(s.get('probability'), 3)} | "
                        f"{brier} | {s.get('resolve_by') or '—'} | {_cell(mind)} |")
     else:
-        out.append("\n*No live weight in the probability ledger.*")
-    if b.get("scenarios_refused"):
-        out.append(f"\n*{len(b['scenarios_refused'])} weight(s) refused: no stored, "
-                   f"dated signpost.*")
+        out.append("*No live scenario weight this month.*")
+    out.append(_footnote(b.get("not_yet_tracked")))
     return "\n".join(out) + "\n\n---\n"
 
 
@@ -337,8 +361,8 @@ def our_read_section(p: dict, prose: Optional[dict] = None) -> str:
         return _absent("6. Where our read lands", b)
     out = ["## 6. Where our read lands\n", _tie(p, "our_read")]
     out += _prose(prose, "our_read")
-    out.append(f"\n*The bound, restated from the weights and the books: "
-               f"{b.get('paragraph')}*\n")
+    out.append(f"\n<sub>The bound, restated from the weights and the positions: "
+               f"{b.get('paragraph')}</sub>\n")
     return "\n".join(out) + "\n---\n"
 
 
@@ -573,7 +597,7 @@ def register_section(p: dict) -> str:
     return "\n".join(out) + "\n---\n"
 
 
-def appendix_section(p: dict) -> str:
+def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("appendix") or {}
     if b.get("state") != "ok":
         return _absent("Appendix — pillar deltas", b)
@@ -629,6 +653,10 @@ def appendix_section(p: dict) -> str:
                    f"(dial: {v.get('dial') or 'none'}, weight "
                    f"{_v(v.get('weight'))}, reads "
                    f"{v.get('reads_dimension') or 'no dimension'})\n")
+        # v2: the pillar's one plain-language paragraph -- what it measures, how
+        # it moved, what to watch -- above its table.
+        if prose is not None and prose.get(f"pillar:{num}"):
+            out += _prose(prose, f"pillar:{num}")
         out.append("| Series | Level | 20d change | Pctile | Conf | Stale |")
         out.append("|---|---|---|---|---|---|")
         for r in v.get("series") or []:
@@ -656,7 +684,7 @@ def render(payload: dict, narrative: Optional[Any] = None,
     p = payload
     head = [masthead(p, narrative)]
     if p.get("month_in_markets") is not None:
-        head += [markets_section(p, prose), month_section(p),
+        head += [markets_section(p, prose), month_section(p, prose),
                  looking_back_section(p, prose), voices_section(p),
                  looking_ahead_section(p, prose), our_read_section(p, prose),
                  "## 7. The record\n\n*The regime read from the object, the "
@@ -669,7 +697,7 @@ def render(payload: dict, narrative: Optional[Any] = None,
         _with_tie(top_bottom_section(p), p, "top_bottom"),
         _with_tie(alt_section(p), p, "alternative_assets"),
         _with_tie(register_section(p), p, "register_month"),
-        _with_tie(appendix_section(p), p, "appendix"),
+        _with_tie(appendix_section(p, prose), p, "appendix"),
         "\n*End of Monthly Regime & Allocation. Pillars are inputs; the dials are "
         "the regime. Every figure above was read from the object, the register, the "
         "grader, the probability ledger or the store, and anything unreadable says "

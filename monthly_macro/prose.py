@@ -33,6 +33,8 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from altdata import observations, session
+
 from .narrative import TEMPLATE_PATH
 
 log = logging.getLogger("monthly_macro.prose")
@@ -69,6 +71,14 @@ what the dials and dimensions read, never infer a regime of your own. Say plainl
 where the payload says something is not sourced; do not fill a gap with knowledge \
 from outside the payload. Do not cite event, claim or row ids.
 
+WRITE ABOUT MARKETS, NEVER ABOUT THE SYSTEM. The reader has no idea how this \
+report is built and must never need to. Do not use these words at all: payload, \
+object, dimension, dial, field, row, scorecard, slice, store, registry, tracked \
+series, not_sourced, "the system", "the data". Say "our read on credit", "our \
+macro regime read", "the table below", "the month's moves". A missing input is \
+either left out or said ONCE, in plain words ("we don't yet track rate-cut \
+odds") -- the footnote under your text lists every gap, so you never need to.
+
 DO NO ARITHMETIC OF YOUR OWN. Quote each move exactly as the payload gives it. \
 Never compute a difference, a spread between two moves, a ratio, a sum or a \
 relative performance ("the Russell lagged by 4.36%") -- that number is in no \
@@ -88,24 +98,28 @@ def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
 
 
 # ---------------------------------------------------------------------------
-# The slices -- each section sees its own data and nothing else
+# The slices -- each section sees everything the store holds for it, under
+# PLAIN-LANGUAGE KEYS: a key name is a word the model will borrow, so the keys
+# say "our_reads" and "series", never "dimensions" or "rows".
 # ---------------------------------------------------------------------------
-def _dims(p: dict, names: Optional[list] = None) -> list[dict]:
-    return [{k: d.get(k) for k in ("dimension", "state", "previous_state",
-                                   "changed", "percentile", "direction",
-                                   "absent_reason")}
+def _reads(p: dict, names: Optional[list] = None) -> list[dict]:
+    """Our regime reads for these areas: the state, last month's, its percentile."""
+    return [{"area": d.get("dimension"), "our_read": d.get("state"),
+             "last_month": d.get("previous_state"),
+             "read_changed": d.get("changed"), "percentile": d.get("percentile"),
+             "not_available_because": d.get("absent_reason")}
             for d in ((p.get("regime") or {}).get("dimensions") or [])
             if names is None or d.get("dimension") in names]
 
 
-def _dials(p: dict) -> list[dict]:
-    return [{k: d.get(k) for k in ("dial", "state", "previous_state", "changed",
-                                   "absent_reason")}
+def _regime(p: dict) -> list[dict]:
+    return [{"regime": d.get("dial"), "our_read": d.get("state"),
+             "last_month": d.get("previous_state"), "read_changed": d.get("changed")}
             for d in ((p.get("regime") or {}).get("dials") or [])]
 
 
 def _move_row(r: dict) -> dict:
-    """One scorecard row, its fields named for what they ARE.
+    """One scorecard move, its fields named for what they ARE.
 
     A yield or a spread is QUOTED in percent and MOVES in basis points, so its
     levels travel as `*_level_pct` and its move as `change_bps`; a price's levels
@@ -116,8 +130,7 @@ def _move_row(r: dict) -> dict:
     # THE PERCENTILE IS THE LEVEL'S, over five years -- not the move's. Named so,
     # because the first per-section opening called the S&P 500's 99th "the 99th
     # percentile of moves", a mislabel no numeral audit can see.
-    out = {"label": r.get("label"),
-           "level_percentile_5y": r.get("percentile")}
+    out = {"market": r.get("label"), "level_percentile_5y": r.get("percentile")}
     if r.get("change_unit") == "bps":
         out.update(start_level_pct=r.get("start_level"),
                    end_level_pct=r.get("end_level"), change_bps=r.get("change"))
@@ -130,61 +143,81 @@ def _move_row(r: dict) -> dict:
     return out
 
 
-def _scorecard(p: dict, ids: Optional[list] = None) -> dict:
+def _moves(p: dict, ids: Optional[list] = None) -> dict:
     m = p.get("month_in_markets") or {}
     return {"month": m.get("month"), "from": m.get("start"), "to": m.get("end"),
             "moves": [_move_row(r) for r in m.get("rows") or []
-                      if ids is None or r.get("id") in ids],
-            "not_sourced": m.get("missing") or []}
+                      if ids is None or r.get("id") in ids]}
+
+
+def _series(rows: list[dict]) -> list[dict]:
+    """Every series a section sees, plainly keyed (the metric id stays out)."""
+    keep = ("latest_level", "latest_pct", "latest_date", "since", "change_pct",
+            "change_bps", "change", "level_percentile_5y")
+    return [{"series": r.get("label"), **{k: r[k] for k in keep if k in r}}
+            for r in rows]
 
 
 def _changed(p: dict, words: Optional[list] = None) -> list[dict]:
     rows = ((p.get("looking_back") or {}).get("what_changed") or {}).get("rows") or []
-    return [{k: r.get(k) for k in ("what", "from", "to")} for r in rows
+    return [{"what_changed": r.get("what"), "from": r.get("from"), "to": r.get("to")}
+            for r in rows
             if words is None or any(w in r.get("what", "") for w in words)]
+
+
+def _stories(p: dict) -> list[dict]:
+    lb = p.get("looking_back") or {}
+    return [{"story": i.get("text"), "status": i.get("state"),
+             "major_outlet_headlines_this_month": i.get("tier12_in_window")}
+            for t in lb.get("themes") or [] for i in t.get("items") or []
+            if i.get("kind") == "story"]
 
 
 def opening_slice(p: dict) -> dict:
     lb = p.get("looking_back") or {}
-    releases = [{"theme": t["name"], "release": i["text"],
+    releases = [{"release": i["text"],
                  "date": (i.get("sources") or [{}])[0].get("date")}
                 for t in lb.get("themes") or [] for i in t.get("items") or []
                 if i.get("kind") == "release"]
-    return {"scorecard": _scorecard(p), "dials": _dials(p),
-            "dimensions": _dims(p),
-            "exceptions_opened": (p.get("regime") or {}).get("exceptions_opened"),
-            "what_changed": _changed(p), "releases_this_month": releases,
-            "stories": [{"story": i.get("story"), "state": i.get("state"),
-                         "headline_count": i.get("headlines_in_window"),
-                         "tier12_headline_count": i.get("tier12_in_window")}
-                        for t in lb.get("themes") or [] for i in t.get("items") or []
-                        if i.get("kind") == "story"]}
+    return {"the_month": _moves(p), "our_regime_reads": _regime(p),
+            "our_reads_by_area": _reads(p),
+            "what_changed_since_last_month": _changed(p),
+            "releases_this_month": releases, "stories": _stories(p)}
+
+
+def takeaways_slice(p: dict) -> dict:
+    takes = (p.get("month_in_one_page") or {}).get("takeaways") or []
+    return {"facts_to_build_from": [t.get("text") for t in takes],
+            "the_month": _moves(p), "our_regime_reads": _regime(p),
+            "what_changed_since_last_month": _changed(p)}
 
 
 def theme_slice(p: dict, theme: dict) -> dict:
     from . import v2
     cfg = (v2.load_themes().get("themes") or {}).get(theme["theme"]) or {}
-    return {"theme": theme["name"], "month": (p.get("month_in_markets") or {})
-            .get("month"),
-            "dimensions": _dims(p, theme.get("dimensions") or []),
-            "no_dimension_why": theme.get("no_dimension_why"),
-            "items": [{"tag": i.get("tag"), "item": i.get("text"),
-                       "date": (i.get("sources") or [{}])[0].get("date"),
-                       "corrects": (i.get("corrects") or {}).get("statement"),
-                       "tier12_headline_count": i.get("tier12_in_window")}
-                      for i in theme.get("items") or []],
-            "held": theme.get("held") or [],
-            "scorecard": _scorecard(p, cfg.get("scorecard")),
-            "what_changed": _changed(p, (theme.get("dimensions") or [])
-                                     + (theme.get("stories") or []))}
+    return {"theme": theme["name"],
+            "month": (p.get("month_in_markets") or {}).get("month"),
+            "our_reads": _reads(p, theme.get("dimensions") or []),
+            "series": _series(theme.get("rows") or []),
+            "moves": _moves(p, cfg.get("scorecard"))["moves"],
+            "fed_calendar": theme.get("fed_calendar"),
+            "developments": [{"kind": i.get("kind"), "development": i.get("text"),
+                              "date": (i.get("sources") or [{}])[0].get("date"),
+                              "major_outlet_headlines":
+                                  i.get("tier12_in_window")}
+                             for i in theme.get("items") or []],
+            "what_changed_since_last_month": _changed(
+                p, (theme.get("dimensions") or []) + (theme.get("stories") or [])),
+            "we_do_not_yet_track": theme.get("not_yet_tracked") or []}
 
 
 def ahead_slice(p: dict) -> dict:
     la = p.get("looking_ahead") or {}
-    return {"horizon": la.get("horizon"),
-            "calendar": [{"date": c["date"], "event": c["title"]}
-                         for c in la.get("calendar") or []],
-            "calendar_stored_through": la.get("calendar_reach"),
+    return {"calendar_by_period": [{"period": w["name"],
+                                    "events": [{"date": c["date"],
+                                                "event": c["title"]}
+                                               for c in w["calendar"]]}
+                                   for w in la.get("windows") or []],
             "scenarios": [{"claim": s.get("claim"),
                            "probability": s.get("probability"),
                            "brier": s.get("brier"), "resolves": s.get("resolve_by"),
@@ -192,46 +225,86 @@ def ahead_slice(p: dict) -> dict:
                                                      for sp in s.get("signposts")
                                                      or []]}
                           for s in la.get("scenarios") or []],
-            "dials": _dials(p)}
+            "our_regime_reads": _regime(p),
+            "not_yet_on_our_calendar": la.get("not_yet_tracked") or []}
 
 
 def our_read_slice(p: dict) -> dict:
     r = p.get("our_read") or {}
     la = p.get("looking_ahead") or {}
-    return {"bounded_statement": r.get("paragraph"),
+    return {"what_we_hold": r.get("paragraph"),
             "live_weights": [{"claim": s.get("claim"),
                               "probability": s.get("probability"),
                               "resolves": s.get("resolve_by")}
                              for s in la.get("scenarios") or []],
-            "active_decisions": r.get("active_decisions"),
-            "books_vs_benchmark": ((p.get("register_month") or {})
-                                   .get("books_vs_benchmark") or {}).get("line"),
-            "dials": _dials(p)}
+            "active_positions": r.get("active_decisions"),
+            "books_against_benchmark": ((p.get("register_month") or {})
+                                        .get("books_vs_benchmark") or {})
+            .get("line"),
+            "our_regime_reads": _regime(p)}
+
+
+def pillar_slice(p: dict, num: str, pillar: dict) -> dict:
+    """One appendix pillar: its series over the month, plainly labelled."""
+    from . import v2
+    cutoff = str(p.get("as_of") or session.utc_iso())
+    _, month_end = v2.month_bounds(p)
+    rows, gaps = [], []
+    with observations.ObservationStore() as st:
+        for r in pillar.get("series") or []:
+            m = v2.metric_month(st, {"metric": r["metric"],
+                                     "label": r.get("description") or r["metric"]},
+                                cutoff, month_end)
+            if m["state"] == "ok":
+                rows.append(m)
+            else:
+                gaps.append(m["label"] + (f" (latest print {m['last_print']})"
+                                          if m.get("last_print") else ""))
+    return {"pillar": pillar.get("name"), "feeds_regime": pillar.get("dial"),
+            "series": _series(rows), "we_do_not_yet_track": gaps,
+            "month": (p.get("month_in_markets") or {}).get("month")}
 
 
 def plan(p: dict) -> list[dict]:
     """Every section's call: its key, title, scope, paragraph count and slice."""
     out = [{"key": "month_in_markets", "title": "The month in markets",
             "scope": "What drove the month across asset classes: lead with the "
-                     "biggest moves on the scorecard and what explains them, then "
-                     "what the regime and the month's releases add.",
-            "paragraphs": "3 to 4", "slice": opening_slice(p)}]
+                     "biggest moves and what explains them, then what our regime "
+                     "reads and the month's releases add.",
+            "paragraphs": "3 to 4", "slice": opening_slice(p)},
+           {"key": "month_in_one_page", "title": "The month in one page",
+            "scope": "Five takeaways for a reader with no context. Each takeaway "
+                     "is ONE short paragraph whose first sentence is a plain-English "
+                     "headline, followed by what is happening, why it matters, and "
+                     "what it means for positioning. Build them from the facts "
+                     "given; one takeaway per paragraph, in order of importance.",
+            "paragraphs": "exactly 5", "slice": takeaways_slice(p)}]
     for t in ((p.get("looking_back") or {}).get("themes") or []):
         out.append({"key": f"theme:{t['theme']}", "title": t["name"],
-                    "scope": "This theme over the month: what its dimensions, "
-                             "stories and releases say, and the moves on its "
-                             "scorecard rows.",
+                    "scope": "This theme over the month, so that a reader with no "
+                             "context understands it: what happened in its markets "
+                             "and series, why, and what it means. Use the series "
+                             "given, with their dates.",
                     "paragraphs": "2 to 4", "slice": theme_slice(p, t)})
     out.append({"key": "looking_ahead", "title": "Looking ahead, 2-3 months",
-                "scope": "What the calendar tests next and what the scenario "
-                         "weights say, with what would change our mind for each.",
+                "scope": "What the calendar tests next, period by period (the "
+                         "first period, then the two months after it), and what "
+                         "the scenario weights say, with what would change our "
+                         "mind for each.",
                 "paragraphs": "2 to 4", "slice": ahead_slice(p)})
     out.append({"key": "our_read", "title": "Where our read lands",
                 "scope": "Our position against consensus, stated ONLY through the "
-                         "scenario weights and the books in the payload. Restate "
-                         "nothing they do not already hold; if they hold little, "
-                         "say so.",
+                         "weights and the positions given. Restate nothing they do "
+                         "not already hold; if they hold little, say so.",
                 "paragraphs": "2 to 3", "slice": our_read_slice(p)})
+    ap = (p.get("appendix") or {}).get("pillars") or {}
+    for num, pillar in sorted(ap.items(), key=lambda kv: int(kv[0])):
+        out.append({"key": f"pillar:{num}", "title": f"Pillar: {pillar.get('name')}",
+                    "scope": "ONE long paragraph: what this pillar measures, in "
+                             "plain terms a newcomer understands; how its series "
+                             "moved over the month, with the numbers; and what to "
+                             "watch next month.",
+                    "paragraphs": "exactly 1", "slice": pillar_slice(p, num, pillar)})
     return out
 
 
@@ -244,6 +317,24 @@ def _market_states(p: dict) -> Optional[dict]:
         return story_block.market_states(obj) if obj else None
     except Exception:                                          # noqa: BLE001
         return None
+
+
+# NEVER WRITE ABOUT THE SYSTEM (Ari's second round). Internal vocabulary in a
+# reader's prose -- "the payload", "the object", "the dimension", "not_sourced" --
+# is the report describing its own plumbing. A section using any of these is
+# withheld like a failed audit. Whole words, case-insensitive; "fielded" or
+# "objective" do not match, "field" and "object" do.
+BANNED_TERMS = (r"payloads?", r"objects?", r"dimensions?", r"dials?", r"fields?",
+                r"scorecard rows?", r"rows?", r"slices?", r"registry",
+                r"not_sourced", r"not[ _-]sourced", r"absent_reason",
+                r"the system", r"tracked series", r"the data the system tracks",
+                r"in the store", r"the store", r"market[- ]state", r"tier-?[123]",
+                r"_ordinal", r"_signed")
+_BANNED = re.compile(r"(?<![\w-])(" + "|".join(BANNED_TERMS) + r")(?![\w-])", re.I)
+
+
+def internal_terms(text: Optional[str]) -> list[str]:
+    return sorted({m.group(0).lower() for m in _BANNED.finditer(text or "")})
 
 
 # NO BULLET FRAGMENTS IN A NARRATIVE SECTION. The brief asks for prose; a reply
@@ -278,7 +369,13 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             published, state = bool(r.published), r.state
             reason = None if published else (r.withheld_note() or r.reason)
             lists = list_lines(r.text) if published else []
-            if lists:
+            jargon = internal_terms(r.text) if published else []
+            if jargon:
+                published, state = False, "internal_vocabulary"
+                reason = (f"narrative withheld: it writes about the system "
+                          f"({', '.join(jargon)}) -- a reader's prose names markets, "
+                          f"not the report's plumbing")
+            elif lists:
                 published, state = False, "list_fragments"
                 reason = (f"narrative withheld: the section came back as list "
                           f"fragments ({len(lists)} list line(s)), and a narrative "

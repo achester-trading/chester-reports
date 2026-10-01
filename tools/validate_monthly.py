@@ -872,6 +872,9 @@ def group_h() -> None:
                         "in this section's data.")
             if "THE SECTION: Fed Policy Path" in prompt:
                 return "- a bullet\n- another bullet"
+            if "THE SECTION: Sentiment" in prompt:
+                return ("The payload shows the sentiment dimension improving.\n\n"
+                        "That argues for patience.")
             if "THE SECTION: The month in markets" in prompt:
                 return ("The S&P 500 rose 5.00% over the month, and the 10-year "
                         "yield rose 25.0 basis points.\n\nThe move favours "
@@ -891,11 +894,31 @@ def group_h() -> None:
 
         written = prose_mod.write_all(built, client=Client())
         n_themes = len(built["looking_back"]["themes"])
-        check(len(calls) == n_themes + 3 and set(written) == {
-            "month_in_markets", "looking_ahead", "our_read"}
-              | {f"theme:{t['theme']}" for t in built["looking_back"]["themes"]},
-              f"one model call per section: the opening, {n_themes} themes, the "
-              f"look-ahead and our read ({len(calls)} calls)")
+        planned = [s["key"] for s in prose_mod.plan(built)]
+        n_pillars = sum(1 for k in planned if k.startswith("pillar:"))
+        check(len(calls) == len(planned) and list(written) == planned
+              and {"month_in_markets", "month_in_one_page", "looking_ahead",
+                   "our_read"} <= set(planned) and n_themes == 7,
+              f"one model call per section: the opening, the takeaways, {n_themes} "
+              f"themes (Sentiment among them), the look-ahead, our read and "
+              f"{n_pillars} appendix pillar(s) ({len(calls)} calls)")
+        check(not written["theme:sentiment"]["published"]
+              and written["theme:sentiment"]["state"] == "internal_vocabulary"
+              and "payload" in str(written["theme:sentiment"]["reason"]),
+              f"a section that writes about the system -- \"the payload\", \"the "
+              f"dimension\" -- is WITHHELD ({written['theme:sentiment']['state']})")
+        check(prose_mod.internal_terms("an objective read of the field trial")
+              == ["field"] and not prose_mod.internal_terms(
+                  "gold is a store of value"[:0] + "credit spreads widened"),
+              "the vocabulary check matches whole words only")
+        fed = next((c for c in calls if "THE SECTION: Fed Policy Path" in c), "")
+        check('"fed_calendar"' in fed and '"next_meetings"' in fed
+              and '"we_do_not_yet_track"' in fed and '"dimensions"' not in fed,
+              "the Fed section is fed its calendar, its series and its gaps, under "
+              "plain keys -- never `dimensions`")
+        pr = [c for c in calls if "THE SECTION: Pillar:" in c]
+        check(len(pr) == n_pillars and all("exactly 1" in c for c in pr),
+              f"each appendix pillar gets one paragraph of its own ({len(pr)})")
         cc = next((c for c in calls if "THE SECTION: Credit Cycle" in c), "")
         check("Credit Cycle" in cc and "Fiscal Dominance & Dollar\"" not in cc
               and "Equity Positioning & Sentiment\"" not in cc,
@@ -911,7 +934,8 @@ def group_h() -> None:
               "a section that comes back as bullet fragments is withheld: narrative "
               "sections are prose")
         others = [k for k in written if k not in ("theme:credit_cycle",
-                                                  "theme:fed_path")]
+                                                  "theme:fed_path",
+                                                  "theme:sentiment")]
         check(all(written[k]["published"] for k in others),
               f"while the {len(others)} sections beside them publish")
         check(all(written[k]["words"] > 0 for k in others),
@@ -921,6 +945,31 @@ def group_h() -> None:
               and "The S&P 500 rose 5.00% over the month" in pmd,
               "the render prints the withheld section's reason in its place and "
               "the published prose in theirs")
+        s3 = pmd[pmd.index("## 3."):pmd.index("## 4.")]
+        check("### In one line each" in s3
+              and s3.index("### In one line each") < s3.index("### Liquidity")
+              and "**Liquidity & Plumbing.** The stored record" in s3,
+              "section 3 opens with an executive summary: one line per theme, its "
+              "opening claim, before the theme sections")
+        check(s3.count("**Not yet tracked:**") == n_themes
+              and "rate-cut odds" in s3,
+              f"every theme ends with a \"Not yet tracked\" footnote outside its "
+              f"prose ({s3.count('**Not yet tracked:**')} of {n_themes}), in plain "
+              f"words")
+        la = built["looking_ahead"]
+        wn = [w["name"] for w in la["windows"]]
+        check(len(wn) == 2 and "–" in wn[1] and "### " + wn[0] in pmd
+              and "### " + wn[1] in pmd,
+              f"the look-ahead splits into the rest of this month and the two after "
+              f"({wn})")
+        cov = {c["item"]: c for c in la["coverage"]}
+        check(len(cov) == 17 and "FOMC meetings" in cov
+              and any(w["present"] for w in cov["FOMC meetings"]["windows"].values())
+              and not any(w["present"] for w in cov["ISM manufacturing"]
+                          ["windows"].values())
+              and "ISM manufacturing dates" in la["not_yet_tracked"],
+              "the coverage check reports every listed release by window: the "
+              "fixture's FOMC is present, ISM is missing and footnoted")
         sysp = prose_mod.system_prompt("X", "y")
         check("open with the claim" in sysp and "implication for positioning" in sysp
               and "No headings, no bullet points" in sysp,
@@ -981,7 +1030,7 @@ def group_h() -> None:
               "written by hand")
         src_text = (REPO / "monthly_macro" / "writer" / "render_v2.py").read_text(
             encoding="utf-8")
-        check("Computed from the store, never written" in src_text,
+        check("each read from a stored record" in src_text,
               "and the renderer prints the list from the payload, saying so")
 
         # --- LOOKING AHEAD, AND OUR READ ------------------------------------------

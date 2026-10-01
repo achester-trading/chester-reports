@@ -354,7 +354,10 @@ def looking_back(p: dict, conn, window: tuple[str, str]) -> dict:
             "no_dimension_why": t.get("no_dimension_why"),
             "stories": t.get("stories") or [],
             "items": ok, "refused": len(refused),
-            "held": d_held + s_held})
+            "held": d_held + s_held,
+            **theme_metrics(p, t),
+            "fed_calendar": (fed_calendar(conn, cutoff) if t.get("fed_calendar")
+                             else None)})
     return {"state": "ok", "window": [start, cutoff],
             "themes_version": cfg.get("version"), "themes": themes,
             "refused": refused_all,
@@ -502,11 +505,36 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
             refused.append({**row, "refused_because":
                             "no stored, dated signpost -- a weight with nothing "
                             "that would change it is not printed"})
+    # SPLIT BY WINDOW (Ari's second round): the rest of this month, then the two
+    # after it -- "October" and "November–December" on 1 Oct.
+    wins = calendar_windows(cutoff)
+    windows = [{"name": n, "first": f, "last": l,
+                "calendar": [c for c in cal if f <= c["date"] <= l]}
+               for n, f, l in wins]
+    cov = coverage(conn, cutoff)
+    gaps = []
+    for c in cov:
+        ws = c["windows"]
+        if any("have" in w for w in ws.values()):
+            have = {s for w in ws.values() for s in w.get("have") or []}
+            want = [s for w in ws.values() for s in (w.get("have") or [])
+                    + (w.get("missing") or [])]
+            absent = [s for s in dict.fromkeys(want) if s not in have]
+            if absent:
+                gaps.append(f"{c['item']}: {', '.join(absent)}")
+        elif not any(w["present"] for w in ws.values()):
+            gaps.append(f"{c['item']} dates")
+        elif c.get("once"):
+            continue          # a one-off event is covered by being in any window
+        else:
+            gaps += [f"{c['item']} for {n}" for n, w in ws.items()
+                     if not w["present"]]
     return {"state": "ok" if (cal or scen) else "empty",
             "reason": (None if (cal or scen) else
                        "nothing scheduled in the events table and no live "
                        "forecast in the ledger inside the horizon"),
             "horizon": [first, last], "calendar": cal, "calendar_reach": reach,
+            "windows": windows, "coverage": cov, "not_yet_tracked": gaps,
             "scenarios": scen, "scenarios_refused": refused}
 
 
@@ -586,6 +614,148 @@ def month_in_markets(p: dict) -> dict:
             "month": end.strftime("%B %Y"), "start": start.isoformat(),
             "end": end.isoformat(), "rows": rows, "missing": missing,
             "prose": "written per section by monthly_macro.prose"}
+
+
+# ---------------------------------------------------------------------------
+# EVERYTHING THE STORE HOLDS FOR A THEME (Ari's second round, 1 Oct)
+# ---------------------------------------------------------------------------
+# A print older than this before the month-end is not "this month's" -- it goes
+# to the footnote with its date instead of into the prose as if it were current.
+STALE_DAYS = 75
+
+
+def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
+    """One series over the month: its latest print on or before the month-end,
+    the change since the print about a month before it, and its level percentile.
+
+    WORKS FOR ANY CADENCE. A daily series compares 30 Sep with 31 Aug; a monthly
+    one its August print with July's; a weekly one with the week four before.
+    `since` names the earlier print's date so the change is never mistaken for a
+    calendar-month move it is not.
+    """
+    from altdata import derived
+    key, inst = spec["metric"], spec.get("instrument")
+    obs = sorted(st.as_of(key, as_of=cutoff, instrument=inst),
+                 key=lambda r: str(r.get("observed_at")))
+    b = _level_on(obs, month_end)
+    out = {"label": spec.get("label") or key, "metric": key, "instrument": inst}
+    if not b:
+        return {**out, "state": "missing",
+                "why": "no print knowable at the cutoff"}
+    b_day = dt.date.fromisoformat(str(b["observed_at"])[:10])
+    if (month_end - b_day).days > STALE_DAYS:
+        return {**out, "state": "stale", "last_print": b_day.isoformat()}
+    prev_target = min(month_end.replace(day=1) - dt.timedelta(days=1),
+                      b_day - dt.timedelta(days=25))
+    a = _level_on(obs, prev_target)
+    unit, _ = derived.delta_unit_for(key)
+    s1 = float(b["value_num"])
+    row = {**out, "state": "ok", "latest_date": b_day.isoformat()}
+    if unit == "bps":
+        row["latest_pct"] = s1
+    else:
+        row["latest_level"] = s1
+    if a:
+        s0 = float(a["value_num"])
+        row["since"] = str(a["observed_at"])[:10]
+        if unit == "bps":
+            row["change_bps"] = round((s1 - s0) * 100.0, 1)
+        elif unit == "percent" and s0:
+            row["change_pct"] = round((s1 / s0 - 1.0) * 100.0, 2)
+        else:
+            row["change"] = round(s1 - s0, 4)
+    try:
+        d = derived.derived_forms(key, cutoff, store=st, instrument=inst)
+        row["level_percentile_5y"] = d.get("percentile")
+    except Exception:                                          # noqa: BLE001
+        pass
+    return row
+
+
+def theme_metrics(p: dict, theme_cfg: dict) -> dict:
+    """{rows, not_yet_tracked}: every configured series, and every gap in words."""
+    cutoff = str(p.get("as_of") or session.utc_iso())
+    _, month_end = month_bounds(p)
+    rows, gaps = [], []
+    with observations.ObservationStore() as st:
+        for spec in theme_cfg.get("metrics") or []:
+            r = metric_month(st, spec, cutoff, month_end)
+            if r["state"] == "ok":
+                rows.append(r)
+            elif r["state"] == "stale":
+                gaps.append(f"{r['label']} (latest print {r['last_print']})")
+            else:
+                gaps.append(r["label"])
+    return {"rows": rows,
+            "not_yet_tracked": gaps + list(theme_cfg.get("untracked") or [])}
+
+
+def fed_calendar(conn, cutoff: str) -> dict:
+    """The latest FOMC decision and the next meeting, from stored events."""
+    last = _q(conn, "SELECT id, observed_at, title FROM events WHERE source ="
+                    " 'fed_monetary' AND observed_at <= ? AND available_at <= ?"
+                    " ORDER BY observed_at DESC LIMIT 1", (cutoff, cutoff))
+    nxt = _q(conn, "SELECT id, observed_at, title FROM events WHERE type ="
+                   " 'scheduled' AND title LIKE 'FOMC%' AND observed_at > ?"
+                   " AND available_at <= ? ORDER BY observed_at LIMIT 2",
+             (cutoff, cutoff))
+    return {"latest_decision": ({"date": str(last[0]["observed_at"])[:10],
+                                 "statement": last[0]["title"]} if last else None),
+            "next_meetings": [str(n["observed_at"])[:10] for n in nxt]}
+
+
+def calendar_windows(cutoff: str) -> list[tuple[str, str, str]]:
+    """(name, first, last): the rest of this month, then the next two months.
+    On 1 Oct: "October", then "November–December"."""
+    d = dt.date.fromisoformat(cutoff[:10])
+    first_next = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+    after = (first_next.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+    end = ((after.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+           - dt.timedelta(days=1))
+    return [(d.strftime("%B"), d.isoformat(),
+             (first_next - dt.timedelta(days=1)).isoformat()),
+            (f"{first_next.strftime('%B')}–{end.strftime('%B')}",
+             first_next.isoformat(), end.isoformat())]
+
+
+def coverage(conn, cutoff: str) -> list[dict]:
+    """Every release on the coverage list, present or missing in each window."""
+    import re
+    cfg = load_themes().get("coverage") or []
+    wins = calendar_windows(cutoff)
+    rows = _q(conn, "SELECT e.source, e.title, e.observed_at, e.payload FROM events e"
+                    " WHERE e.type IN ('scheduled', 'session_event')"
+                    " AND e.observed_at > ? AND e.observed_at <= ?"
+                    " AND e.available_at <= ?",
+              (cutoff, f"{wins[-1][2]}T23:59:59Z", cutoff))
+    out = []
+    for c in cfg:
+        rx = re.compile(c["match"])
+        per = {}
+        for name, first, last in wins:
+            hits = []
+            for r in rows:
+                if c.get("sources") and r["source"] not in c["sources"]:
+                    continue
+                if not (first <= str(r["observed_at"])[:10] <= last):
+                    continue
+                try:
+                    rel = (json.loads(r.get("payload") or "{}") or {}).get(
+                        "release_name") or ""
+                except (TypeError, ValueError):
+                    rel = ""
+                if rx.search(r["title"] or "") or rx.search(rel):
+                    hits.append(r["title"])
+            if c.get("expect"):
+                have = sorted({s for s in c["expect"] for h in hits
+                               if h.startswith(f"{s} ")})
+                per[name] = {"present": bool(have), "have": have,
+                             "missing": [s for s in c["expect"] if s not in have]}
+            else:
+                per[name] = {"present": bool(hits), "count": len(hits)}
+        out.append({"item": c["item"], "windows": per, "once": bool(c.get("once")),
+                    "free_source": c.get("free_source")})
+    return out
 
 
 # ---------------------------------------------------------------------------

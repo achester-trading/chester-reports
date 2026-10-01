@@ -13,7 +13,7 @@
 # A theme with no dimension says so (`dimensions: []` and `no_dimension_why`):
 # geopolitics has no dimension in the object, and a theme that silently printed
 # nothing would read as a theme with nothing to say.
-version: monthly-themes-v2
+version: monthly-themes-v3
 updated: 2026-10-01
 
 # THE MONTH IN MARKETS: the opening scorecard, month-end to month-end, from the
@@ -35,6 +35,11 @@ scorecard:
   - {id: btc,  label: "Bitcoin",            metric: yfinance.mkt_btc_usd}
 
 themes:
+  # EACH THEME SEES EVERYTHING THE STORE HOLDS FOR IT (Ari's second round, 1 Oct):
+  # `metrics` is that list, each with a plain-language label -- the label is what
+  # the prose may call it. A metric whose last print is too old, or that the store
+  # does not hold, goes to the section's "Not yet tracked" footnote with its last
+  # date; `untracked` names the gaps the store has no series for, in plain words.
   liquidity_plumbing:
     name: Liquidity & Plumbing
     scorecard: [y2, vix, btc]
@@ -44,6 +49,21 @@ themes:
     # liquidity event first and a currency move second.
     stories: [yen_carry]
     release_sources: []
+    metrics:
+      - {metric: calc.net_liquidity, label: "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)"}
+      - {metric: fred.fed_balance, label: "Fed balance sheet"}
+      - {metric: fred.bank_reserves, label: "Bank reserves at the Fed"}
+      - {metric: fred.rrp, label: "Overnight reverse repo usage"}
+      - {metric: fred.tga, label: "Treasury cash account"}
+      - {metric: fred.nfci, label: "Chicago Fed financial conditions index (negative is loose)"}
+      - {metric: fred.m2, label: "M2 money supply"}
+      - {metric: fred.usd_jpy, label: "Dollar-yen"}
+      - {metric: mof.jgb_10y, label: "10-year Japanese government bond yield"}
+      - {metric: yfinance.mkt_btc_usd, label: "Bitcoin"}
+    untracked:
+      - repo-market stress (SOFR and general-collateral spreads)
+      - the Fed's standing repo facility usage
+      - yen funding positions held by leveraged accounts
 
   fiscal_dollar:
     name: Fiscal Dominance & Dollar
@@ -53,6 +73,24 @@ themes:
     # The inflation prints are the mechanism fiscal dominance runs through (its
     # evidence rule in config/narratives.yaml signs CPI and core PCE surprises).
     release_sources: [bls_cpi, bea_news]
+    metrics:
+      - {metric: fred.yield_10y, label: "10-year Treasury yield"}
+      - {metric: fred.yield_30y, label: "30-year Treasury yield"}
+      - {metric: acm.term_premium_10y, label: "10-year term premium (NY Fed ACM model)"}
+      - {metric: fred.breakeven_10y, label: "10-year breakeven inflation"}
+      - {metric: fred.dxy, label: "Dollar (Fed broad index)"}
+      - {metric: fred.real_dollar_broad, label: "Real trade-weighted dollar"}
+      - {metric: fiscaldata.mspd_net_marketable_issuance, label: "Net marketable Treasury issuance (month)"}
+      - {metric: fiscaldata.mspd_bills, label: "Treasury bills outstanding"}
+      - {metric: tic.flow_net_foreign, label: "Net foreign purchases of US securities (TIC)"}
+      - {metric: tic.official_holdings, label: "Foreign official holdings of Treasuries"}
+      - {metric: fred.fed_debt_pct_gdp, label: "Federal debt to GDP"}
+      - {metric: fred.core_cpi, label: "Core CPI index"}
+      - {metric: fred.core_pce, label: "Core PCE price index"}
+      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+    untracked:
+      - Treasury quarterly refunding announcements
+      - foreign central bank gold purchases by country beyond China
 
   fed_path:
     name: Fed Policy Path
@@ -60,6 +98,25 @@ themes:
     dimensions: [rates]
     stories: []
     release_sources: [fed_monetary, bls_empsit]
+    # The policy calendar: the latest FOMC decision (fed_monetary) and the next
+    # meeting (the claims registry's FOMC dates), read by v2.fed_calendar().
+    fed_calendar: true
+    metrics:
+      - {metric: fred.fed_funds, label: "Effective fed funds rate (monthly average)"}
+      - {metric: fred.yield_2y, label: "2-year Treasury yield"}
+      - {metric: fred.yield_10y, label: "10-year Treasury yield"}
+      - {metric: fred.tips_10y, label: "10-year real yield (TIPS)"}
+      - {metric: fred.breakeven_10y, label: "10-year breakeven inflation"}
+      - {metric: fred.breakeven_5y5y, label: "5-year, 5-year-forward breakeven inflation"}
+      - {metric: sffed.expected_rate_10y, label: "Expected average short rate over 10 years (SF Fed model)"}
+      - {metric: fred.u3_rate, label: "Unemployment rate"}
+      - {metric: fred.nfp, label: "Nonfarm payrolls (level)"}
+      - {metric: fred.claims_4wk, label: "Initial jobless claims, 4-week average"}
+      - {metric: fred.core_pce, label: "Core PCE price index"}
+    untracked:
+      - market-implied rate-cut odds (fed funds futures)
+      - Fed speeches and speaker calendar
+      - FOMC minutes release dates
 
   credit_cycle:
     name: Credit Cycle
@@ -67,26 +124,102 @@ themes:
     dimensions: [credit]
     stories: []
     release_sources: []
+    metrics:
+      - {metric: fred.hy_oas, label: "High-yield credit spread"}
+      - {metric: fred.ig_oas, label: "Investment-grade credit spread"}
+      - {metric: fred.bbb_oas, label: "BBB credit spread"}
+      - {metric: fred.bb_oas, label: "BB credit spread"}
+      - {metric: fred.ccc_oas, label: "CCC credit spread"}
+      - {metric: fred.nfci_lev, label: "Chicago Fed leverage subindex"}
+      - {metric: fred.cc_delinq_30, label: "Credit-card delinquencies, 30 days"}
+      - {metric: fred.auto_delinq, label: "Auto-loan delinquencies"}
+      - {metric: fred.mortgage_delinq, label: "Mortgage delinquencies"}
+      - {metric: fred.cc_chargeoff, label: "Credit-card charge-offs"}
+    untracked:
+      - private-credit default rates
+      - leveraged-loan prices and defaults
 
   equity_positioning:
-    name: Equity Positioning & Sentiment
+    name: Equity Positioning
     scorecard: [spx, qqq, iwm, vix]
     dimensions: [trend, breadth, volatility]
     stories: [ai_capex_durability]
     release_sources: []
+    metrics:
+      - {metric: yfinance.mkt_gspc, label: "S&P 500"}
+      - {metric: yfinance.mkt_qqq, label: "Nasdaq 100 (QQQ)"}
+      - {metric: yfinance.mkt_iwm, label: "Russell 2000 (IWM)"}
+      - {metric: calc.breadth_sector_above_200d, label: "Share of sectors above their 200-day average"}
+      - {metric: calc.breadth_rsp_over_spy, label: "Equal-weight against cap-weight S&P 500"}
+      - {metric: calc.cyclical_over_defensive, label: "Cyclicals against defensives"}
+      - {metric: shiller.cape, label: "Shiller cyclically adjusted P/E"}
+      - {metric: finra.margin_debit, label: "Margin debt (FINRA)"}
+    untracked:
+      - S&P 500 futures positioning (CFTC holds yen and dollar-index futures only)
+      - 13F holdings of large managers (arrives with the voices register)
+      - hedge-fund gross and net leverage
+
+  sentiment:
+    name: Sentiment
+    scorecard: [vix]
+    dimensions: [volatility]
+    stories: []
+    release_sources: []
+    metrics:
+      # Consumer
+      - {metric: fred.uoM_sent, label: "University of Michigan consumer sentiment"}
+      - {metric: umich.expect_5_10y, label: "Michigan 5-10 year inflation expectations"}
+      - {metric: nyfed.sce_3y, label: "NY Fed consumer 3-year inflation expectations"}
+      # Retail and attention
+      - {metric: apewisdom.mentions, instrument: "SPY@wallstreetbets", label: "SPY mentions on WallStreetBets (ApeWisdom)"}
+      - {metric: apewisdom.mentions, instrument: "NVDA@all-stocks", label: "NVDA mentions across stock forums (ApeWisdom)"}
+      - {metric: ndl.rtat10_sentiment, instrument: SPY, label: "Retail sentiment in SPY (Nasdaq RTAT)"}
+      - {metric: ndl.rtat10_activity, instrument: SPY, label: "Retail activity in SPY (Nasdaq RTAT)"}
+      - {metric: finra.short_interest_days_to_cover, instrument: SPY, label: "SPY short interest, days to cover (FINRA)"}
+      - {metric: finra.short_interest_days_to_cover, instrument: NVDA, label: "NVDA short interest, days to cover (FINRA)"}
+      # Professional and market-based
+      - {metric: fred.vix, label: "VIX"}
+      - {metric: calc.vix3m_over_vix, label: "VIX term structure (3-month over spot; above 1 is calm)"}
+      - {metric: cfe.vx1, label: "Front-month VIX future"}
+      - {metric: cftc.noncomm_net, instrument: USD_INDEX, label: "Speculators' net dollar-index futures position (CFTC)"}
+      - {metric: cftc.noncomm_net, instrument: JPY, label: "Speculators' net yen futures position (CFTC)"}
+      - {metric: finra.margin_debit, label: "Margin debt (FINRA)"}
+    untracked:
+      - the AAII investor sentiment survey
+      - equity put/call ratios
+      - the NAAIM manager exposure index
+      - the Conference Board consumer confidence index
+      - S&P 500 futures positioning
 
   geopolitics_reserve:
     name: Geopolitics & Reserve Currency
     scorecard: [gold, usd, wti]
     dimensions: []
     no_dimension_why: >-
-      The market-state object has no geopolitical or reserve-currency dimension,
-      so this theme carries register stories and dated claims only.
+      Our regime read has no geopolitical or reserve-currency component, so this
+      theme rests on prices, reserve data and the political calendar.
     # The midterm cycle is a political-calendar story (election day is
     # cal.midterm_election_2026), which is the nearest stored thing to
     # geopolitics this system holds.
     stories: [midterm_cycle]
     release_sources: []
+    metrics:
+      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+      - {metric: fred.wti, label: "WTI crude"}
+      - {metric: fred.brent, label: "Brent crude"}
+      - {metric: safe.fx_reserves, label: "China's foreign-exchange reserves (SAFE)"}
+      - {metric: safe.gold_reserves_oz, label: "China's official gold holdings (SAFE)"}
+      - {metric: cfets.cny_fix, label: "Yuan daily fixing"}
+      - {metric: fred.usd_cny, label: "Dollar-yuan"}
+      - {metric: tic.official_holdings, label: "Foreign official holdings of Treasuries"}
+    untracked:
+      - a geopolitical risk index
+      - shipping and strait disruption data
+      - sanctions and export-control announcements
+
+# THE PILLAR APPENDIX: one plain-language paragraph per pillar, written by its own
+# audited call over that pillar's series.
+appendix_prose: true
 
 # LOOKING AHEAD: which scheduled releases "matter", by FRED release name. Every
 # session_calendar, claims_registry and earnings row in the window is shown; the
@@ -104,3 +237,33 @@ calendar:
     - Advance Monthly Sales for Retail and Food Services
     - Employment Cost Index
   include_sources: [session_calendar, claims_registry, yfinance, fed_monetary]
+
+# THE COVERAGE CHECK (Ari's second round): every release the look-ahead should
+# carry, how to recognise it in the events table, and -- when it is missing --
+# whether a free source exists. `match` is a regex over an event's title or its
+# FRED release name; `sources` limits which event sources may satisfy it.
+coverage:
+  - {item: CPI, match: "Consumer Price Index", sources: [fred_releases, bls_cpi]}
+  - {item: PPI, match: "Producer Price Index", sources: [fred_releases]}
+  - {item: Employment Situation, match: "Employment Situation", sources: [fred_releases, bls_empsit]}
+  - {item: JOLTS, match: "Job Openings and Labor Turnover", sources: [fred_releases]}
+  - {item: Retail sales, match: "Retail (Sales|and Food Services)", sources: [fred_releases]}
+  - {item: PCE, match: "Personal Income and Outlays", sources: [fred_releases]}
+  - {item: GDP advance, match: "Gross Domestic Product", sources: [fred_releases]}
+  - {item: ISM manufacturing, match: "ISM.*Manufacturing|Manufacturing ISM", sources: [],
+     free_source: "ISM's own release calendar (ismworld.org); no ingest source here"}
+  - {item: ISM services, match: "ISM.*Services|Services ISM", sources: [],
+     free_source: "ISM's own release calendar (ismworld.org); no ingest source here"}
+  - {item: UMich sentiment, match: "Surveys of Consumers|University of Michigan", sources: [fred_releases]}
+  - {item: FOMC meetings, match: "FOMC statement", sources: [claims_registry, fed_monetary]}
+  - {item: FOMC minutes, match: "FOMC minutes|Minutes of the Federal Open Market", sources: [],
+     free_source: "the Fed's FOMC calendar (federalreserve.gov) lists minutes dates; no ingest source here"}
+  - {item: Treasury quarterly refunding, match: "[Rr]efunding", sources: [],
+     free_source: "Treasury's quarterly refunding schedule (home.treasury.gov); no ingest source here"}
+  - {item: "Q3 earnings, mega-caps", match: "(AAPL|MSFT|GOOGL|AMZN|META|NVDA) earnings", sources: [yfinance],
+     expect: [AAPL, MSFT, GOOGL, AMZN, META, NVDA]}
+  - {item: "Q3 earnings, banks", match: "(JPM|BAC|C|WFC|GS|MS) earnings", sources: [yfinance],
+     expect: [JPM, BAC, C, WFC, GS, MS],
+     free_source: "yfinance's earnings calendar, the same free source the mega-caps use; the banks are not in its symbol list"}
+  - {item: 3 Nov midterms, once: true, match: "midterm election", sources: [claims_registry]}
+  - {item: December quad witching, once: true, match: "TRIPLE_WITCHING|QUAD", sources: [session_calendar]}
