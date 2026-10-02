@@ -1136,16 +1136,29 @@ def audit(text: str, payload: Any, *,
     # payload has no exposure rows is not withheld for a field it never had.
     rows = _symbol_rows(payload)
     symbols = {s for s in (_row_symbol(d) for d in rows) if s}
+    # ALIASES. A row may declare the names prose calls it by ("10-year", "gold",
+    # "WTI"), so a level printed after "the 10-year's week high" is held to the
+    # 10-year's row and not to the last ticker the paragraph happened to name.
+    alias_res = []
+    for d in rows:
+        sym_d = _row_symbol(d)
+        for a in (d.get("aliases") or []) if sym_d else []:
+            alias_res.append((re.compile(r"(?<![\w-])" + re.escape(str(a))
+                                         + r"(?![\w-])", re.I), sym_d))
     ok_ids = {id(f) for f, _ in matched}
     # The UNMASKED text, same length: a level label like "20-day average" is a
     # declared name token and is blanked in `masked`, which would hide the label.
     for f, name, fields in label_bindings(text or "", figures):
         if id(f) not in ok_ids:
             continue
-        sym = None
+        sym, at = None, -1
         for m in re.finditer(r"\b[A-Z][A-Z0-9.]{0,6}\b", masked[:f.position]):
             if m.group(0) in symbols:
-                sym = m.group(0)
+                sym, at = m.group(0), m.start()
+        for rx, sym_d in alias_res:
+            for m in rx.finditer((text or "")[:f.position]):
+                if m.start() > at:
+                    sym, at = sym_d, m.start()
         held = _label_values(rows, fields, sym)
         if not held:
             continue

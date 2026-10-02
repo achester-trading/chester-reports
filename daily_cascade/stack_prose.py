@@ -36,7 +36,11 @@ from altdata import levels as levels_mod
 
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
                     "line": "0"}
-MAX_CHARS = {"deep": 2600, "medium": 1200}
+# Runaway guards, not style rules: a one-sentence section is cut to its first
+# sentence after the audit, so its guard only has to catch a reply that lost
+# the thread.
+MAX_CHARS = {"deep": 2600, "medium": 1200, "light": 900, "short": 900,
+             "line": 700}
 
 RULES = """
 
@@ -66,6 +70,11 @@ THE TAPE'S RULES:
 8. Short declarative sentences; one idea per paragraph; the figure in the
    sentence, not in a parenthesis after it.
 Never write about the report itself: no "the data", "the payload", "this section".
+The word "because" is refused anywhere, whatever it joins.
+"Gamma" beside a state word means the gamma DIAL; for one symbol write its net
+GEX ("QQQ's net GEX is positive"), never "QQQ is in positive gamma".
+Write a date only as given (2026-10-02) or by weekday; never "1 October 2026".
+Never compute a count, a difference or a ratio: copy the one the data carries.
 """
 
 READ_RULES = """
@@ -75,6 +84,9 @@ that matter about the session, as ONE paragraph of exactly five sentences, most
 important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
 as an outlook's; no motive words; never write about the report itself.
+The word "because" is refused anywhere. "Gamma" beside a state word means the
+gamma DIAL; for one symbol write its net GEX. Write a date only as given
+(2026-10-02) or by weekday. A level is named with the market it belongs to.
 """
 
 
@@ -97,27 +109,65 @@ def style_faults(text: str, cfg: dict) -> list[str]:
     return out
 
 
-def level_status_faults(text: str, level_status: dict) -> list[str]:
-    """'held'/'broke' beside a level label must match the level list's status."""
+_VERB = re.compile(r"\b(held|holds|holding|broke|breaks|broken)\b", re.I)
+_CLAUSE = re.compile(r"[;:]|,\s+(?:and|but|while)\s+|\s+(?:and|but|while)\s+")
+
+
+def level_status_faults(text: str, level_status: dict,
+                        rows: Optional[list] = None) -> list[str]:
+    """'held'/'broke' beside a level label must match THAT instrument's status.
+
+    Per clause: the label, the verb, and the instrument named nearest before the
+    label (by ticker, or by an alias the level list declares). A clause naming
+    no instrument is held to the instrument the sentence last named, and failing
+    that to any instrument -- the weakest reading, used only when the prose gives
+    nothing better.
+    """
     out = []
     labels = sorted({lv["label"] for lvs in level_status.values() for lv in lvs},
                     key=len, reverse=True)
-    for s in _sentences(text):
-        verb = re.search(r"\b(held|holds|holding|broke|breaks|broken)\b", s, re.I)
-        if not verb:
+    names: list[tuple[re.Pattern, str]] = []
+    for r in rows or []:
+        iid = next((k for k in level_status
+                    if k.upper() == str(r.get("symbol")).upper()
+                    or k == str(r.get("symbol")).lower()), None)
+        if not iid:
             continue
-        said = "held" if verb.group(1).lower().startswith("hold") or \
-            verb.group(1).lower() == "held" else "broke"
-        for lab in labels:
-            if not re.search(rf"\b{re.escape(lab)}\b", s, re.I):
+        for n in [r.get("symbol"), r.get("name")] + list(r.get("aliases") or []):
+            if n:
+                names.append((re.compile(rf"(?<![\w-]){re.escape(str(n))}(?![\w-])",
+                                         re.I if n != r.get("symbol") else 0), iid))
+
+    def named(s: str) -> Optional[str]:
+        best, at = None, -1
+        for rx, iid in names:
+            for m in rx.finditer(s):
+                if m.start() > at:
+                    best, at = iid, m.start()
+        return best
+    for sent in _sentences(text):
+        context = None
+        pos = 0
+        for clause in _CLAUSE.split(sent):
+            here = named(clause)
+            context = here or context
+            pos += len(clause)
+            v = _VERB.search(clause)
+            if not v:
                 continue
-            ok = any(lv["label"] == lab and lv.get("status") == said
-                     for lvs in level_status.values() for lv in lvs)
-            if not ok:
+            said = "broke" if v.group(1).lower().startswith("br") else "held"
+            lab = next((lb for lb in labels
+                        if re.search(rf"\b{re.escape(lb)}\b", clause, re.I)), None)
+            if not lab:
+                continue
+            pool = ([level_status.get(context) or []] if context
+                    else list(level_status.values()))
+            if not any(lv["label"] == lab and lv.get("status") == said
+                       for lvs in pool for lv in lvs):
+                who = f"{context.upper()}'s " if context else "any listed "
                 out.append(f"'{lab}' said to have "
-                           f"{'held' if said == 'held' else 'broken'}, which no "
-                           f"listed {lab} did")
-            break
+                           f"{'held' if said == 'held' else 'broken'}, which "
+                           f"{who}{lab} did not")
     return out
 
 
@@ -147,6 +197,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     cfg = bars_mod.load_config()
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     lstatus = (tape.get("data") or {}).get("level_status") or {}
+    lrows = (tape.get("data") or {}).get("levels") or []
     results: dict[str, dict] = {}
 
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
@@ -162,8 +213,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         faults = []
         if text:
             faults = (style_faults(text, cfg) + outlook_misprints(text, outlooks or [])
-                      + (level_status_faults(text, lstatus) if sid in ("tape", "read")
-                         else []))
+                      + (level_status_faults(text, lstatus, lrows)
+                         if sid in ("tape", "read") else []))
         if faults:
             return {"state": "tape_rules", "published": False,
                     "reason": "withheld: " + "; ".join(faults[:4]),
@@ -189,7 +240,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         sys_prompt = base.SYSTEM_PROMPT + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body)
         res = run(s["id"], _slice(s, ed), sys_prompt,
-                  MAX_CHARS.get(s["depth"], 500))
+                  MAX_CHARS.get(s["depth"], 900))
         results[s["id"]] = res
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])

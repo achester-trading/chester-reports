@@ -295,6 +295,32 @@ def main() -> int:
           and levels_mod.status_of(100, 105, {"low": 104, "high": 106, "close": 105},
                                    25) == "untested",
           "held / broke / untested by the declared rule")
+    y10 = next(i for i in book["instruments"] if i["id"] == "y10")
+    y10_wh = next(lv["value"] for lv in y10["levels"] if lv["type"] == "week_high")
+    rows_all = [i["row"] for i in book["instruments"]]
+    al = na.audit(f"SPY sat near its 20-day average at {ma20['value']:.2f}; the "
+                  f"10-year yield held under its week high of {y10_wh:.2f}.",
+                  {"levels": rows_all})
+    check(al.passed, f"a level after an alias ('the 10-year yield ... week high "
+                     f"{y10_wh:.2f}') is held to that instrument, not to the last "
+                     f"ticker named ({al.reason()[:80]})")
+    al2 = na.audit(f"The 10-year yield sat under its week high of "
+                   f"{next(lv['value'] for lv in spy['levels'] if lv['type'] == 'week_high'):.2f}.",
+                   {"levels": rows_all})
+    check(not al2.passed, "and SPY's week high printed as the 10-year's is withheld")
+    ls = {i["id"]: [{"label": lv["label"], "value": lv["value"],
+                     "status": lv.get("status")} for lv in i["levels"]]
+          for i in book["instruments"]}
+    ls["spy"] = [dict(lv, status="broke") if lv["label"] == "20-day average" else lv
+                 for lv in ls["spy"]]
+    ls["qqq"] = [dict(lv, status="held") if lv["label"] == "20-day average" else lv
+                 for lv in ls["qqq"]]
+    check(not stack_prose.level_status_faults(
+              "SPY broke its 20-day average; QQQ held its 20-day average.",
+              ls, rows_all)
+          and stack_prose.level_status_faults(
+              "QQQ broke its 20-day average.", ls, rows_all),
+          "held / broke is checked per instrument: QQQ cannot borrow SPY's break")
 
     # --- C. TAPE RULES --------------------------------------------------------------
     print(f"\n{LINE}\nC. THE TAPE'S RULES\n{LINE}")
@@ -303,7 +329,7 @@ def main() -> int:
              ("odds", "There is a 62% chance that SPY holds the week's low.",
               "62%"),
              ("held", f"SPY broke its 20-day average at {ma20['value']:.2f}.",
-              "no listed 20-day average did"))
+              "SPY's 20-day average did not"))
     for label, text, why in cases:
         c2: list = []
         e = stack_mod.build(p, book, ed1["outlooks"], None, db)

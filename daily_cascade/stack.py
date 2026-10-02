@@ -167,14 +167,14 @@ def mechanics_section(p: dict) -> dict:
         flip, spot = r.get("gamma_flip"), r.get("spot")
         side = ("above" if spot and flip and spot > flip else "below") if flip else None
         items.append(item(f"mech:{r['symbol']}",
-                          f"{r['symbol']}: {regime} gamma, spot {spot:,.2f} "
+                          f"{r['symbol']}: net GEX {regime}, spot {spot:,.2f} "
                           f"{side + ' the flip at ' + format(flip, ',.2f') if flip else '(no flip)'}"
                           f"; call wall {r.get('call_wall')}, put wall "
                           f"{r.get('put_wall')}, max pain {r.get('max_pain')}.",
                           1 if r["symbol"] == "SPY" else 2,
                           (regime, flip, r.get("call_wall"), r.get("put_wall"),
                            r.get("max_pain"))))
-        rows.append([r["symbol"], regime, flip, r.get("call_wall"),
+        rows.append([r["symbol"], f"net GEX {regime}", flip, r.get("call_wall"),
                      r.get("put_wall"), r.get("max_pain")])
     hits = p.get("pin_hits") or {}
     if p.get("pins"):
@@ -190,7 +190,7 @@ def mechanics_section(p: dict) -> dict:
         items.append(item(f"mech:dial:{d}", f"{'Dealer gamma' if d == 'gamma' else 'Volatility regime'} "
                           f"read: {st or 'absent'}.", 2, st))
     return {"items": items,
-            "table": {"columns": ["Symbol", "Gamma", "Flip", "Call wall",
+            "table": {"columns": ["Symbol", "Net GEX", "Flip", "Call wall",
                                   "Put wall", "Max pain"], "rows": rows},
             "not_tracked": ["the IV solver's latest verdict in the report",
                             "the FlashAlpha cross-check"],
@@ -227,10 +227,22 @@ def misfit_section(p: dict) -> dict:
     return {"items": items, "charts": ["C3"] if opened else [],
             "not_tracked": ["venue-against-price disagreement (prediction "
                             "markets, 6d)"],
-            "data": {"open_contradictions": [{k: c.get(k) for k in
-                                              ("id", "legs", "magnitude",
-                                               "threshold_z", "persistence_days",
-                                               "since")} for c in opened],
+            "data": {"open_contradictions_count": len(opened),
+                     "exceptions_count": len(exc),
+                     "exceptions_by_kind": {k: sum(1 for e in exc
+                                                   if e.get("kind") == k)
+                                            for k in ("extreme", "contradiction")},
+                     "open_contradictions": [{**{k: c.get(k) for k in
+                                                 ("id", "legs", "magnitude",
+                                                  "threshold_z", "persistence_days",
+                                                  "since")},
+                                              "excess_over_threshold_z": (
+                                                  round(abs(c["magnitude"])
+                                                        - abs(c["threshold_z"]), 2)
+                                                  if isinstance(c.get("magnitude"),
+                                                                (int, float))
+                                                  and c.get("threshold_z")
+                                                  else None)} for c in opened],
                      "exceptions": [{k: e.get(k) for k in ("id", "kind", "what",
                                                            "value")}
                                     for e in exc]}}
@@ -405,7 +417,9 @@ def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
         items.insert(0, item(f"ahead:outlook:{o['id']}",
                              f"{round(o['probability'] * 100):.0f}% that {o['claim']}; "
                              f"resolved {o['horizon_date']} (base rate, n={o['n']}; "
-                             f"ledger {str(o['ledger_id'])[:12]}).", 1,
+                             + (f"ledger {str(o['ledger_id'])[:12]})."
+                                if not str(o["ledger_id"]).startswith("dry-run")
+                                else "not recorded: dry run)."), 1,
                              (o["probability"], o["claim"])))
     return {"items": items[:9],
             "data": {"events": [i["text"] for i in items if "outlook" not in i["key"]],

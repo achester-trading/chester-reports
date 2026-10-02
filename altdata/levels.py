@@ -103,7 +103,8 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
     hist = daily[:-1] if today else daily
     closes = [r["close"] for r in daily]
     out: dict[str, Any] = {"id": iid, "label": spec.get("label") or iid,
-                           "symbol": spec.get("dealer") or spec.get("label") or iid,
+                           "symbol": spec.get("dealer") or iid.upper(),
+                           "aliases": list(spec.get("aliases") or []),
                            "kind": kind, "session": day, "levels": [],
                            "absent": {}, "intraday": {k: intra[k] for k in
                                                       ("n", "expected", "complete",
@@ -169,7 +170,9 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
                                 "close": closes[-1] if today else None})
     as_of_day = str(today["observed_at"])[:10] if today else (
         str(daily[-1]["observed_at"])[:10] if daily else None)
-    row: dict[str, Any] = {"symbol": out["symbol"]}
+    row: dict[str, Any] = {"symbol": out["symbol"], "name": out["label"]}
+    if out["aliases"]:
+        row["aliases"] = out["aliases"]
     for key, label in LEVEL_TYPES:
         v = vals.get(key)
         if v is None:

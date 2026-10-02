@@ -17,12 +17,12 @@ tape:
   - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY}
   - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ}
   - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM}
-  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield}
-  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield}
-  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price}
-  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price}
-  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price}
-  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true}
+  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, aliases: ["10-year yield", "10-year", "ten-year"]}
+  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, aliases: ["30-year yield", "30-year", "long bond"]}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, aliases: ["DXY", "dollar index", "the dollar"]}
+  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, aliases: ["gold"]}
+  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, aliases: ["WTI", "oil", "crude"]}
+  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, aliases: ["bitcoin", "BTC"]}
 
 # INTRADAY BARS (brief 2.3).
 bars:
