@@ -2490,6 +2490,23 @@ metrics:
       Standard deviation of the last 24 month-on-month core CPI changes (CPILFESL),
       annualised, in percentage points. SR-9's regime variable: the lever yield
       level is a proxy for. Consecutive monthly prints only.
+  dealer.scorecard_day:
+    source: derived_state
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Reporting-stack T1 (brief 1.2): one JSON row per session for SPY, written by
+      the close -- the gamma regime, net GEX at the close and that morning, the
+      morning's flip and whether the session crossed it, the session's range and
+      return, the pin verdicts, and 5-minute realized volatility. The Monthly's
+      dealer retrospective reads these and never recomputes them.
   paper.benchmark:
     source: derived_state
     mechanism_group: paper_benchmark

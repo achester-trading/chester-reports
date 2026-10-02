@@ -898,6 +898,22 @@ LEVEL_LABELS: tuple[tuple[str, tuple[str, ...], str], ...] = (
      ("gamma_flip",), "gamma flip"),
     (r"\bmax(?:imum)?[\s-]pain\b", ("max_pain",), "max pain"),
     (r"\binvalidation(?:[\s-]level)?\b", ("invalidation_level",), "invalidation"),
+    # THE TAPE'S LEVEL TYPES (reporting-stack T1, altdata/levels.py). A level
+    # printed under one of these names must be that instrument's listed level.
+    (r"\b(?:prior|previous|yesterday's)\s+close\b", ("prior_close",), "prior close"),
+    (r"\b(?:session|day's|intraday)\s+high\b", ("session_high",), "session high"),
+    (r"\b(?:session|day's|intraday)\s+low\b", ("session_low",), "session low"),
+    (r"\bVWAP\b", ("vwap",), "VWAP"),
+    (r"\bweek(?:'s|ly)?\s+high\b", ("week_high",), "week high"),
+    (r"\bweek(?:'s|ly)?\s+low\b", ("week_low",), "week low"),
+    (r"\b20-day(?:\s+(?:moving\s+)?average)?\b", ("ma_20d",), "20-day average"),
+    (r"\b50-day(?:\s+(?:moving\s+)?average)?\b", ("ma_50d",), "50-day average"),
+    (r"\b200-day(?:\s+(?:moving\s+)?average)?\b", ("ma_200d",), "200-day average"),
+    (r"\b52-week\s+high\b", ("high_52w",), "52-week high"),
+    (r"\b52-week\s+low\b", ("low_52w",), "52-week low"),
+    (r"\b40-week(?:\s+(?:moving\s+)?average)?\b", ("ma_40w",), "40-week average"),
+    (r"\b10-month(?:\s+(?:moving\s+)?average)?\b", ("ma_10m",), "10-month average"),
+    (r"\b20-month(?:\s+(?:moving\s+)?average)?\b", ("ma_20m",), "20-month average"),
     (r"\b(?:average|avg\.?)\s+cost\b|\bcost\s+basis\b", ("avg_cost",),
      "average cost"),
     # A bare "strike" is any strike-valued field: the walls, max pain and the
@@ -1121,7 +1137,9 @@ def audit(text: str, payload: Any, *,
     rows = _symbol_rows(payload)
     symbols = {s for s in (_row_symbol(d) for d in rows) if s}
     ok_ids = {id(f) for f, _ in matched}
-    for f, name, fields in label_bindings(masked, figures):
+    # The UNMASKED text, same length: a level label like "20-day average" is a
+    # declared name token and is blanked in `masked`, which would hide the label.
+    for f, name, fields in label_bindings(text or "", figures):
         if id(f) not in ok_ids:
             continue
         sym = None

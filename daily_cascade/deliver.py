@@ -151,8 +151,36 @@ def archive(html: str, name: str, archive_dir: Optional[str] = None) -> Optional
         return None
 
 
+def build_message(cfg: dict, subject: str, html: str, text_fallback: str = "",
+                  attachments: Optional[list[tuple[str, str, str]]] = None,
+                  inline_images: Optional[list[tuple[str, bytes]]] = None
+                  ) -> EmailMessage:
+    """The message, without sending it -- the gate inspects this.
+
+    `inline_images` is (content_id, png bytes) per chart (reporting-stack T1):
+    each is added to the HTML part as a related image, so the HTML's
+    `<img src="cid:<content_id>">` resolves inside the one multipart/related
+    body and nothing is fetched or attached.
+    """
+    msg = EmailMessage()
+    msg["From"] = cfg["user"]
+    msg["To"] = cfg["rcpt"]
+    msg["Subject"] = subject
+    msg.set_content(text_fallback or "This report is HTML; see the HTML part.")
+    msg.add_alternative(html, subtype="html")
+    if inline_images:
+        html_part = msg.get_payload()[-1]
+        for content_id, png in inline_images:
+            html_part.add_related(png, maintype="image", subtype="png",
+                                  cid=f"<{content_id}>")
+    for filename, text, subtype in attachments or ():
+        msg.add_attachment(text, subtype=subtype, filename=filename)
+    return msg
+
+
 def send_html(subject: str, html: str, text_fallback: str = "",
-              attachments: Optional[list[tuple[str, str, str]]] = None
+              attachments: Optional[list[tuple[str, str, str]]] = None,
+              inline_images: Optional[list[tuple[str, bytes]]] = None
               ) -> tuple[str, str]:
     """(state, detail). Never raises.
 
@@ -169,17 +197,11 @@ def send_html(subject: str, html: str, text_fallback: str = "",
     if cfg is None:
         return "not_configured", f"missing {', '.join(missing)}"
 
-    msg = EmailMessage()
-    msg["From"] = cfg["user"]
-    msg["To"] = cfg["rcpt"]
-    msg["Subject"] = subject
     # A plain-text part first, then HTML as the alternative. A client that
     # cannot render HTML gets something readable rather than markup, and some
     # spam filters score a multipart/alternative better than HTML alone.
-    msg.set_content(text_fallback or "This report is HTML; see the HTML part.")
-    msg.add_alternative(html, subtype="html")
-    for filename, text, subtype in attachments or ():
-        msg.add_attachment(text, subtype=subtype, filename=filename)
+    msg = build_message(cfg, subject, html, text_fallback, attachments,
+                        inline_images)
 
     try:
         with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as s:
@@ -196,15 +218,20 @@ def send_html(subject: str, html: str, text_fallback: str = "",
 
 def deliver(subject: str, html: str, archive_name: str,
             text_fallback: str = "",
-            archive_dir: Optional[str] = None) -> dict:
+            archive_dir: Optional[str] = None,
+            archive_html: Optional[str] = None,
+            inline_images: Optional[list[tuple[str, bytes]]] = None) -> dict:
     """Archive, then send. Returns the outcome; raises nothing.
 
     Order matters and is the point of rule 1: the file is on disk before a
     socket is opened, so a mail server having a bad day costs the delivery and
     never the record.
     """
-    path = archive(html, archive_name, archive_dir)
-    state, detail = send_html(subject, html, text_fallback)
+    # The archived edition may differ from the mailed one ONLY in how it points
+    # at its charts (SVG files on disk, not cid: parts); `archive_html` is that.
+    path = archive(archive_html or html, archive_name, archive_dir)
+    state, detail = send_html(subject, html, text_fallback,
+                              inline_images=inline_images)
 
     if path is None:
         # The one case where the transport succeeding is not the whole story:

@@ -44,8 +44,16 @@ name_tokens:
   - tier 2
   - tier 3
   # Moving-average names -- the indicator, not a count of days.
+  - 20-day
   - 50-day
   - 200-day
+  # The tape's long-frame and window names (reporting-stack T1).
+  - 52-week
+  - 40-week
+  - 10-month
+  - 20-month
+  - 5-minute
+  - 60-session
 
 # DAY-OF-MONTH TOKENS ARE NAMES WHEN THE PAYLOAD CARRIES THE DATE. "The 27th" in
 # a paragraph about a session window names a day; it is not a magnitude. Exempt

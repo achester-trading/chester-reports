@@ -109,6 +109,10 @@ def main() -> int:
                     help="Skip computing the market-state object (it will then "
                          "read as absent, which is the honest rendering)")
     ap.add_argument("--archive-dir", help="Override the archive directory")
+    ap.add_argument("--classic", action="store_true",
+                    help="The pre-stack edition: one paragraph over the tables")
+    ap.add_argument("--no-bars", action="store_true",
+                    help="Stack: read the bars already stored; pull nothing")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -179,6 +183,11 @@ def main() -> int:
     # pulls in no narrative or LLM module. A top-level import in this file would
     # not break that assertion, but keeping the edge inside the one function that
     # publishes makes the boundary legible rather than a fact about import order.
+    # THE TEN-SECTION STACK (reporting-stack brief, T1) is the close's shape.
+    # --classic keeps the pre-stack edition for comparison and fallback.
+    if not args.classic:
+        return _stacked(args, p, run_id, sess)
+
     narr = None
     if not args.no_narrative:
         from daily_cascade import narrative as narrative_mod  # noqa: PLC0415
@@ -307,6 +316,67 @@ def main() -> int:
              as_of=_as_date(sess))
 
     return 2 if out["delivery"] == "send_failed" else 0
+
+
+def _stacked(args, p: dict, run_id: str, sess: str) -> int:
+    """Build, audit, chart, archive and send the stacked close."""
+    import json as _json  # noqa: PLC0415
+    from daily_cascade import stack_close  # noqa: PLC0415
+    archive_dir = args.archive_dir or delivery.ARCHIVE_DIR
+    try:
+        delivery.archive(_json.dumps(p, indent=2, default=str, sort_keys=True),
+                         f"daily_close_{sess}_payload.json", args.archive_dir)
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("payload archive failed (%s) -- the report continues", exc)
+    out = stack_close.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
+                              fetch=not args.no_bars,
+                              model=args.narrative_model,
+                              narrative=not args.no_narrative)
+    ed = out["edition"]
+    print(f"  stack      : {len(ed['sections'])} sections, {ed.get('words')} words "
+          f"(budget {(ed.get('budget') or {}).get('words')}), "
+          f"{ed.get('chart_count')} chart(s)")
+    for s in ed["sections"]:
+        flag = ("collapsed" if s.get("collapsed") else
+                "withheld: " + str(s.get("withheld"))[:90] if s.get("withheld")
+                else "ok")
+        print(f"    {s['id']:<12} {s['depth']:<6} {flag}"
+              + (f"  [{s['depth_reason']}]" if s.get("depth_reason") else "")
+              + ("  (trimmed)" if s.get("trimmed") else ""))
+    for k, c in out["charts"].items():
+        print(f"    chart {k}: " + (f"unavailable: {c['unavailable']}"
+                                    if c.get("unavailable")
+                                    else f"{c.get('png_bytes')} bytes PNG"))
+    for o in ed.get("outlooks") or []:
+        print(f"    outlook {o['id']}: " + (
+            f"{o['probability']} (n={o['n']}) ledger {o.get('ledger_id')}"
+            if o["state"] == "computed" else f"skipped -- {o.get('reason')}"))
+    stack_close.save_edition(ed, sess, args.archive_dir)
+    name = f"daily_close_{sess}.html"
+    subject = f"[chester] Close {sess}"
+    if args.dry_run:
+        path = delivery.archive(out["html_archive"], name, args.archive_dir)
+        res = {"archive_state": "archived" if path else "archive_failed",
+               "archive_path": path, "delivery": "dry_run",
+               "delivery_detail": "--dry-run"}
+    else:
+        res = delivery.deliver(subject, out["html_email"], name,
+                               text_fallback=render_mod.text_fallback(p),
+                               archive_dir=args.archive_dir,
+                               archive_html=out["html_archive"],
+                               inline_images=out["inline_images"])
+    _write_watermark(p.get("grades") or {})
+    print(f"\n  archive    : {res['archive_path'] or 'FAILED'}")
+    print(f"  delivery   : {res['delivery']} ({res['delivery_detail']})")
+    if not args.no_emit:
+        emit(REPORT_KEY, "degraded" if p["warnings"] else "ok",
+             headline=f"stacked close, {ed.get('words')} words, delivery "
+                      f"{res['delivery']}",
+             detail={"run_id": run_id, "stack": ed.get("config_version"),
+                     "words": ed.get("words"), "charts": ed.get("chart_count"),
+                     "prose": ed.get("prose"), "delivery": res["delivery"]},
+             as_of=_as_date(sess))
+    return 2 if res["delivery"] == "send_failed" else 0
 
 
 def _as_date(s: str):

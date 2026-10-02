@@ -1,0 +1,103 @@
+# reporting_stack.yaml -- the ten-section stack, the tape set, the charts and the
+# budgets. (docs/briefs/reporting-stack-brief-2026-10-02.md, Tranche T1)
+#
+# EVERY THRESHOLD AND BUDGET HERE IS *PROPOSED* until the Doctrine monthly
+# (3-4 Oct) rules on it (brief section 6). They are configuration so a ruling is
+# a one-line change with a version, never a code edit.
+version: reporting-stack-v1
+updated: 2026-10-02
+status: proposed
+
+# THE TAPE SET (brief 2.2). `bars` is the Yahoo symbol the close run pulls 5-minute
+# and daily bars for (brief 2.3); `kind` decides the unit a move is printed in:
+# a yield moves in basis points, a price in percent. `dealer` names the symbol
+# whose computed exposure profile supplies flip, walls and max pain. SPY stands
+# for ES until 6b.
+tape:
+  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY}
+  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ}
+  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM}
+  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield}
+  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price}
+  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price}
+  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price}
+  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true}
+
+# INTRADAY BARS (brief 2.3).
+bars:
+  interval: 5m
+  # Fewer than this share of a session's expected 5-minute bars and the
+  # intraday frame prints "bars incomplete (n=...)" and C1 is omitted.
+  complete_share: 0.90
+  # Daily bars kept for the moving averages and the long frames: a first pull
+  # takes this much, later pulls the last few sessions.
+  daily_history: 2y
+
+# THE THREE READING RULES (brief 1.3) and the budgets (1.4).
+budget:
+  daily: {words: 1000, charts: 3}
+  weekly: {words: 3500, charts: 6}
+  monthly: {words: 7000, charts: 10}
+
+# CONDITIONAL DEPTH (brief 1.1): computed, never judged. Proposed thresholds.
+triggers:
+  plumbing:
+    tier1_events:
+      - "FOMC statement"
+      - "FOMC minutes"
+      - "Consumer Price Index"
+      - "Personal Income and Outlays"
+      - "Employment Situation"
+      - "Gross Domestic Product"
+      - "Treasury quarterly refunding"
+    auctions: ["Note:10-Year", "Bond:30-Year"]
+    moves_bp:
+      fred.yield_10y: 10
+      fred.yield_30y: 10
+      calc.yield_curve_2s10s: 8
+      fred.hy_oas: 15
+  priced:
+    moves_bp:
+      fred.breakeven_10y: 10
+      fred.breakeven_5y5y: 10
+
+# THE OUTLOOKS (brief 1.3 rule 3): every lean in Ahead is a ledger entry first.
+# The probability is computed from the store -- an empirical base rate over the
+# stored closes, with its n -- never chosen by the model.
+outlooks:
+  - id: week_low_holds
+    symbol: SPY
+    rule: week_closing_low_holds
+    text: "SPY's lowest close of the week so far holds through the week's last session"
+  - id: above_20d_next
+    symbol: SPY
+    rule: stays_above_20d_next_session
+    text: "SPY closes on the same side of its 20-day average at the next session"
+
+# The section order and the depth each takes on the daily close (brief 1).
+sections:
+  - {id: read,        title: "The read",            daily: deep}
+  - {id: tape,        title: "The tape",            daily: deep}
+  - {id: mechanics,   title: "Mechanics",           daily: deep}
+  - {id: misfit,      title: "What doesn't fit",    daily: deep}
+  - {id: plumbing,    title: "Plumbing & rates",    daily: light, deep_on: plumbing}
+  - {id: positioning, title: "Positioning & flows", daily: light}
+  - {id: priced,      title: "What's priced",       daily: light, deep_on: priced}
+  - {id: narratives,  title: "Narratives",          daily: line}
+  - {id: ahead,       title: "Ahead",               daily: deep}
+  - {id: book,        title: "The book",            daily: short}
+
+# Paragraphs a section's commentary may run to, by depth.
+depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
+
+# TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
+# number's work. A motive word is refused outright; an intensity word only when
+# its sentence carries no figure.
+style:
+  motive_phrases: ["because", "due to", "driven by", "on fears", "on hopes",
+                   "as investors", "amid concerns", "thanks to", "spooked",
+                   "cheered"]
+  intensity_words: ["sharply", "massive", "massively", "huge", "surged",
+                    "plunged", "soared", "skyrocketed", "crashed", "tanked",
+                    "collapsed", "exploded", "dramatic", "dramatically"]
