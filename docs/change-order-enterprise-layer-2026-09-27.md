@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Status | **Rulings R-1, R-2, R-3 signed in chat 2026-09-27 18:21 ET** ("yes to all three"). The work order in §8 is filed for Ari's word; nothing in it starts before that word except EL-0 (filing). |
+| Status | **Rulings R-1, R-2, R-3 signed in chat 2026-09-27 18:21 ET** ("yes to all three"). **Rulings R-4…R-8 signed in chat 2026-10-02 14:52 ET** ("sign all"), item 0 of the Doctrine monthly. The work order in §8 is filed for Ari's word at Audit #4 (14–15 Oct); nothing in it starts before that word except EL-0 (filing, done). |
 | Date | 2026-09-27 (evening) |
 | Proposed by | Ari Chester, as two specifications: *Enterprise Trading Intelligence, Learning, Risk and Governance Architecture* and *Day Trading Layer (DTH-1)*, both filed verbatim under `docs/briefs/` (§9) |
 | Contents | A mapping of both specifications onto the repository as it stands on 27 Sep 2026 (§1); eight rulings (§2); the additions specified literally enough for a session to build them (§3–§7); a work order with placements and hours (§8); filing and precedence (§9) |
@@ -66,15 +66,15 @@ The 22 Enterprise deliverables (Ent. §XXIX) and the 20 DTH deliverables (DTH §
 
 **R-3 The benchmark book.** Ent. §XVII asks what happens when a component is removed, and nothing in the system can answer what happens when the whole system is removed. Three static ledgers — cash, SPY, 60/40 — marked daily, are the denominator for every claim of value and should have preceded the first graded decision. Signed.
 
-**R-4 Evaluation stays code.** Scores are computed; a paragraph may comment on them under the same audits; an LLM never writes counterfactual attribution, which is hindsight narrative by construction (Ent. §XIV). "Missed opportunities" are graded only against setups the system flagged and then declined — abstentions on the register — never against the universe of things that went up, or the metric rewards activity and repeals Ent. §XV.
+**R-4 Evaluation stays code.** Scores are computed; a paragraph may comment on them under the same audits; an LLM never writes counterfactual attribution, which is hindsight narrative by construction (Ent. §XIV). "Missed opportunities" are graded only against setups the system flagged and then declined — abstentions on the register — never against the universe of things that went up, or the metric rewards activity and repeals Ent. §XV. Signed.
 
-**R-5 Red Team's objective.** Not skepticism maximised (Ent. §XXIII scores false objections) but *the cheapest way the conclusion could be wrong, at a stated cost in review time*. v0 is a packet rule enforced at write time (§3.1). v1 is a blinded model pass on material packets only — Book A changes and Book B above a size threshold — gated on decision volume (§6).
+**R-5 Red Team's objective.** Not skepticism maximised (Ent. §XXIII scores false objections) but *the cheapest way the conclusion could be wrong, at a stated cost in review time*. v0 is a packet rule enforced at write time (§3.1). v1 is a blinded model pass on material packets only — Book A changes and Book B above a size threshold — gated on decision volume (§6). Signed.
 
-**R-6 The attention budget.** Neither specification budgets the scarcest input: every "governed approval" is the operator's time. The Doctrine gains an attention budget (§3.4). Anything beyond it queues; the Weekly prints the count used.
+**R-6 The attention budget.** Neither specification budgets the scarcest input: every "governed approval" is the operator's time. The Doctrine gains an attention budget (§3.4). Anything beyond it queues; the Weekly prints the count used. Signed.
 
-**R-7 Organizing principle, revised.** *Code establishes facts and measures outcomes. Books decide within their horizons. The state object holds the market view per horizon and never collapses them. Risk keeps the portfolio alive. Research proposes and never promotes. Doctrine changes by a ladder of evidence. Review asks what each part earned against a baseline. The operator governs, and the operator's attention is the budget everything else spends.* This replaces Ent. §I in the Doctrine's report section.
+**R-7 Organizing principle, revised.** *Code establishes facts and measures outcomes. Books decide within their horizons. The state object holds the market view per horizon and never collapses them. Risk keeps the portfolio alive. Research proposes and never promotes. Doctrine changes by a ladder of evidence. Review asks what each part earned against a baseline. The operator governs, and the operator's attention is the budget everything else spends.* This replaces Ent. §I in the Doctrine's report section. Signed.
 
-**R-8 Precedence.** Part 26 stays controlling. Both specifications are filed as requirements documents (§9) that this order cites; a future amendment may cite them; neither is edited to match the build.
+**R-8 Precedence.** Part 26 stays controlling. Both specifications are filed as requirements documents (§9) that this order cites; a future amendment may cite them; neither is edited to match the build. Signed.
 
 ---
 
@@ -235,4 +235,4 @@ Tranche A (EL-0…EL-7): ≈ 20–30 h, all inside work already scheduled. Tranc
   - **INC-1 2026-09-27** — the off-box backup never ran under its unit: `CHESTER_RCLONE_REMOTE` was never set on the box (every 02:30 sweep since deploy ended `no_remote rc=1`), and with it set the snapshot failed because the unit starts in `$HOME` (`ModuleNotFoundError: altdata`). Found by hand 27 Sep; by-hand copy taken 16:04 UTC; drop-in `remote.conf` added by hand; fix B-1 at 61e9b4b; first unit-run proof due 28 Sep 02:30 ET. Monitoring gap: the heartbeat's verdict line had no `backup=` field (H-1 adds it).
   - **INC-2 2026-09-27** — narrative prompts were truncated silently from first light until 27 Sep 11:02 ET (style guide cut at 6,000 characters, payload at 12,000); every close since 23 Sep and the first Weekly were written from a partial brief. Editions stand as published (each passed the audits); first whole-brief editions are 28 Sep 07:00 and 16:45. Fix W-1 item 7 at 1846815; a gate now confirms every template and the full Weekly payload reach the model whole.
 
-Precedence and numbering as in the header. Rulings R-1…R-3 are signed; R-4…R-8 and §8 are filed for Ari's word.
+Precedence and numbering as in the header. Rulings R-1…R-8 are signed (R-1…R-3 on 27 Sep; R-4…R-8 on 2 Oct); §8 is filed for Ari's word at Audit #4.
