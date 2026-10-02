@@ -353,13 +353,24 @@ def _market_states(p: dict) -> Optional[dict]:
 # "The system" alone is NOT banned: "liquidity in the system" is desk language
 # for the banking system (the second-round dry run withheld a section over it);
 # only the phrases that can mean this report's machinery are.
-BANNED_TERMS = (r"payloads?", r"objects?", r"dimensions?", r"dials?", r"fields?",
-                r"scorecard rows?", r"rows?", r"slices?", r"registry",
+# PHRASES ABOUT THE REPORT, NOT BARE WORDS (Ari, 1 Oct). The first list banned
+# "slice", "row", "field" and "the system's" outright, and the third dry run
+# withheld "the system's shock absorber" and "the cyclically-sensitive slice of
+# CPI" -- ordinary English. A bare word that markets also use ("three sessions in
+# a row", "a playing field", "dial back") is not banned; the phrase that can only
+# mean this report's machinery is.
+_DIMS = r"(?:growth|inflation|rates|liquidity|credit|trend|breadth|volatility|sentiment)"
+BANNED_TERMS = (r"payloads?", r"this payload", r"the object", r"state object",
+                r"(?:the|our|its) " + _DIMS + r" dimensions?",
+                r"dimension framework", r"(?:vol|macro|gamma|regime) dials?",
+                r"the dials?", r"scorecard rows?", r"data rows?",
                 r"not_sourced", r"not[ _-]sourced", r"absent_reason",
-                r"the system tracks", r"our system", r"this system", r"the system's",
+                r"the system tracks", r"our system", r"this system",
+                r"the system's (?:data|reads?|store|payload|object|records?)",
                 r"tracked series", r"the data the system tracks",
-                r"in the store", r"the store", r"market[- ]state", r"tier-?[123]",
-                r"_ordinal", r"_signed")
+                r"in the store", r"the store(?! of value)", r"the registry",
+                r"market[- ]state", r"tier-?[123](?:/2)?",
+                r"_ordinal", r"_signed", r"_display")
 _BANNED = re.compile(r"(?<![\w-])(" + "|".join(BANNED_TERMS) + r")(?![\w-])", re.I)
 
 

@@ -907,10 +907,27 @@ def group_h() -> None:
               and "payload" in str(written["theme:sentiment"]["reason"]),
               f"a section that writes about the system -- \"the payload\", \"the "
               f"dimension\" -- is WITHHELD ({written['theme:sentiment']['state']})")
-        check(prose_mod.internal_terms("an objective read of the field trial")
-              == ["field"] and not prose_mod.internal_terms(
-                  "gold is a store of value"[:0] + "credit spreads widened"),
-              "the vocabulary check matches whole words only")
+        # PHRASES ABOUT THE REPORT, NOT BARE WORDS: dry run 3's two false
+        # positives pass, and so does ordinary English that shares a word.
+        for plain in ("The overnight reverse repo facility, often read as the "
+                      "system's shock absorber, grew.",
+                      "The flexible, more cyclically-sensitive slice of CPI jumped.",
+                      "Credit spreads widened for three sessions in a row.",
+                      "Gold is a store of value on a level playing field.",
+                      "The Fed may dial back its guidance."):
+            check(not prose_mod.internal_terms(plain),
+                  f"plain English passes: {plain[:60]!r}")
+        for jargon, want in (("The system's data shows credit easing.",
+                              "the system's data"),
+                             ("This payload carries the month.", "this payload"),
+                             ("The credit dimension moved to neutral.",
+                              "the credit dimension"),
+                             ("The vol dial reads normal.", "vol dial"),
+                             ("A scorecard row is missing.", "scorecard row"),
+                             ("Rate-cut odds are not_sourced.", "not_sourced")):
+            got = prose_mod.internal_terms(jargon)
+            check(want in got,
+                  f"a phrase about the report is caught: {jargon[:50]!r} -> {got}")
         fed = next((c for c in calls if "THE SECTION: Fed Policy Path" in c), "")
         check('"fed_calendar"' in fed and '"next_meetings"' in fed
               and '"we_do_not_yet_track"' in fed and '"dimensions"' not in fed,
