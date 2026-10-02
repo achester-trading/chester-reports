@@ -90,6 +90,9 @@ sections:
 
 # Paragraphs a section's commentary may run to, by depth.
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
+# Words a section's prose may run to, claim included, by depth -- so ten sections
+# fit the daily budget without the cut doing the editing.
+depth_words: {deep: 150, medium: 80, light: 35, short: 35, line: 25}
 
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
 # number's work. A motive word is refused outright; an intensity word only when

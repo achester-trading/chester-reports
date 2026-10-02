@@ -39,8 +39,10 @@ DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
 # Runaway guards, not style rules: a one-sentence section is cut to its first
 # sentence after the audit, so its guard only has to catch a reply that lost
 # the thread.
-MAX_CHARS = {"deep": 2600, "medium": 1200, "light": 900, "short": 900,
-             "line": 700}
+MAX_CHARS = {"deep": 2600, "medium": 1400, "light": 1600, "short": 1600,
+             "line": 1200}
+# The per-1% hedge-flow metric's own 1 (payload.NARRATIVE_UNIT_CONSTANTS).
+UNIT_CONSTANTS = [1.0]
 
 RULES = """
 
@@ -52,7 +54,8 @@ _signed and _ordinal fields, no recommendation.
 THE SECTION: {title}. Its depth today is {depth}{why}.
 
 SHAPE. Your FIRST SENTENCE is the section's claim line: the one thing this section
-says about the session, with its figure. {body} No headings, no bullets, no bold,
+says about the session, with its figure. {body} At most {words} words in all.
+No headings, no bullets, no bold,
 no tables -- the section's table is printed beside your text.
 
 THE TAPE'S RULES:
@@ -73,7 +76,9 @@ Never write about the report itself: no "the data", "the payload", "this section
 The word "because" is refused anywhere, whatever it joins.
 "Gamma" beside a state word means the gamma DIAL; for one symbol write its net
 GEX ("QQQ's net GEX is positive"), never "QQQ is in positive gamma".
-Write a date only as given (2026-10-02) or by weekday; never "1 October 2026".
+Never write the session's date or weekday: the header carries it. Any other
+date only as given (2026-10-02).
+Name each level with its own market, one at a time; never "respectively".
 Never compute a count, a difference or a ratio: copy the one the data carries.
 """
 
@@ -85,8 +90,8 @@ important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
 as an outlook's; no motive words; never write about the report itself.
 The word "because" is refused anywhere. "Gamma" beside a state word means the
-gamma DIAL; for one symbol write its net GEX. Write a date only as given
-(2026-10-02) or by weekday. A level is named with the market it belongs to.
+gamma DIAL; for one symbol write its net GEX. Never write the session's date
+or weekday. A level is named with the market it belongs to, one at a time.
 """
 
 
@@ -186,7 +191,11 @@ def _slice(s: dict, ed: dict) -> dict:
     return {"section": s["title"], "depth": s["depth"],
             "depth_reason": s.get("depth_reason"), "session": ed["session"],
             "items": [i["text"] for i in s["items"]], "table": s.get("table"),
-            "data": s.get("data") or {}, "not_tracked": s.get("not_tracked")}
+            # The bar-completeness counts stay out: they are about the feed, and
+            # prose given them writes about the feed. Its gaps are in not_tracked.
+            "data": {k: v for k, v in (s.get("data") or {}).items()
+                     if k != "intraday"},
+            "not_tracked": s.get("not_tracked")}
 
 
 def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
@@ -205,6 +214,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             r = base.generate(payload, model=model, client=client,
                               system_prompt=system, max_chars=max_chars,
                               one_paragraph=False, citable_ids=[],
+                              unit_constants=UNIT_CONSTANTS,
                               market_states=market_states)
         except Exception as exc:                                # noqa: BLE001
             return {"state": "fault", "published": False,
@@ -238,7 +248,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                 if paras != "0" else "Write ONLY that one sentence.")
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         sys_prompt = base.SYSTEM_PROMPT + RULES.format(
-            title=s["title"], depth=s["depth"], why=why, body=body)
+            title=s["title"], depth=s["depth"], why=why, body=body,
+            words=(cfg.get("depth_words") or {}).get(s["depth"], 35))
         res = run(s["id"], _slice(s, ed), sys_prompt,
                   MAX_CHARS.get(s["depth"], 900))
         results[s["id"]] = res

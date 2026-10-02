@@ -518,19 +518,31 @@ def enforce_budget(ed: dict) -> dict:
     """Trim to the word budget, lowest priority first; mark what was cut."""
     limit = int((ed.get("budget") or {}).get("words") or 1000)
     total = lambda: sum(section_words(s) for s in ed["sections"])  # noqa: E731
-    cands = sorted(((i["priority"], n, i["key"])
-                    for n, s in enumerate(ed["sections"]) if not s["collapsed"]
-                    for i in s["items"] if i["priority"] >= 2), reverse=True)
-    for _, n, key in cands:
-        if total() <= limit:
-            break
-        s = ed["sections"][n]
-        s["items"] = [i for i in s["items"] if i["key"] != key]
-        s["trimmed"] = True
-    for s in reversed(ed["sections"]):
-        while total() > limit and len(s.get("paragraphs") or []) > 1:
-            s["paragraphs"] = s["paragraphs"][:-1]
-            s["trimmed"] = True
+
+    def cut_paragraphs(keep: int) -> None:
+        for s in reversed(ed["sections"]):
+            while total() > limit and len(s.get("paragraphs") or []) > keep:
+                s["paragraphs"] = s["paragraphs"][:-1]
+                s["trimmed"] = True
+
+    def cut_items(priority: int) -> None:
+        for n in reversed(range(len(ed["sections"]))):
+            s = ed["sections"][n]
+            if s["collapsed"]:
+                continue
+            for it in reversed(list(s["items"])):
+                if total() <= limit:
+                    return
+                if it["priority"] == priority:
+                    s["items"] = [i for i in s["items"] if i is not it]
+                    s["trimmed"] = True
+    # LOWEST PRIORITY FIRST: a deep section's third paragraph, then the
+    # priority-3 lines, then second paragraphs, then priority-2 lines. A claim
+    # line and a priority-1 line are never cut.
+    cut_paragraphs(2)
+    cut_items(3)
+    cut_paragraphs(1)
+    cut_items(2)
     ed["words"] = total()
     return ed
 
