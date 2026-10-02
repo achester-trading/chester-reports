@@ -164,8 +164,28 @@ def _same_side(a: dict, b: dict) -> bool:
     return True
 
 
-def fomc_venue_odds(rows: list[dict]) -> dict:
-    """{meeting date: {venue: {hike, hold, cut}}} in 0..1, summed per side."""
+def _snap_meeting(day: str, meetings: list) -> str:
+    """A venue's date to the FOMC decision day it means. Polymarket dates a
+    decision market by its end (the day after); Kalshi by the decision itself.
+    Snapped within two days to the claims registry's decision days, so one
+    meeting is one row; a date near no meeting is left as the venue gave it."""
+    d = dt.date.fromisoformat(day[:10])
+    near = [m for m in meetings if abs((m - d).days) <= 2]
+    return min(near, key=lambda m: abs((m - d).days)).isoformat() if near else day[:10]
+
+
+def fomc_venue_odds(rows: list[dict], meetings: Optional[list] = None) -> dict:
+    """{meeting date: {venue: {hike, hold, cut}}} in 0..1, summed per side.
+
+    Each side is the SUM of the venue's prices for that side's outcomes, read as
+    the venue quotes them -- last trades on separate contracts, not normalised,
+    so a venue's three sides need not sum to one."""
+    if meetings is None:
+        try:
+            from . import fed_funds                            # noqa: PLC0415
+            meetings = fed_funds.meeting_days()
+        except Exception:                                     # noqa: BLE001
+            meetings = []
     out: dict[str, dict] = {}
     for x in rows:
         if x.get("watch_id") != "fomc_decision" or x.get("probability") is None:
@@ -174,6 +194,7 @@ def fomc_venue_odds(rows: list[dict]) -> dict:
         day = x.get("decision_date")
         if not side or not day:
             continue
+        day = _snap_meeting(day, meetings)
         v = out.setdefault(day, {}).setdefault(x["venue"], {"hike": 0.0, "hold": 0.0,
                                                            "cut": 0.0})
         v[side] += x["probability"]

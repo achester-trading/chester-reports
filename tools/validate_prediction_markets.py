@@ -282,6 +282,12 @@ def main() -> int:
           f"({[d['gap_points'] for d in dis['fed_funds']]})")
     check(("2026-12-09", "polymarket", "hike") not in flagged,
           "Polymarket's 5% December hike against the futures' 0% is 5 points: not")
+    snap = pm.fomc_venue_odds(rows + [{**rows[0], "venue": "polymarket",
+                                        "decision_date": "2026-10-29",
+                                        "instrument": "p2"}], meets)
+    check(set(snap) == {"2026-10-28", "2026-12-09"} and "polymarket" in snap["2026-10-28"],
+          f"a venue dated the day after a decision is snapped to the meeting it "
+          f"means: one meeting, one row ({sorted(snap)})")
     check(any("no venue market is mapped" in n for n in dis["notes"]),
           "with no market mapped to a scenario, the 20-point rule says so")
     cfg2 = {**cfg, "scenario_map": {"k1": "Fed hikes in October"}}
