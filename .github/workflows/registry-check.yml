@@ -109,7 +109,7 @@ jobs:
     if: needs.enumerate.outputs.data != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # No continue-on-error (6d, 2 Oct 2026): each data gate now SKIPS explicitly
+    # No error-tolerance flag (6d, 2 Oct 2026): each data gate now SKIPS explicitly
     # under GitHub Actions -- "skipped: box-only", exit 0 (tools/box_only.py) --
     # so a red leg here is a real failure, not the expected one.
     strategy:

@@ -98,9 +98,13 @@ def load(st: observations.ObservationStore, as_of: Optional[str]) -> list[dict]:
     return out
 
 
-def forms(mk: dict, day: dt.date, cfg: dict) -> dict:
+def forms(mk: dict, day: dt.date, cfg: dict, as_of: Optional[str] = None) -> dict:
+    """TODAY is the newest value knowable at the run's cutoff (the 16:45 close
+    sees the 16:10 pull; a later run the same day sees a later pull); each PRIOR
+    session is its own 16:15 close, so a change is always session to session."""
     hist = mk["history"]
-    now_cut = _close_cutoff(day)
+    now_cut = observations.canonical_instant(as_of) if as_of else \
+        observations.canonical_instant(session.utc_iso(timespec="microseconds"))
     p = _value_at(hist, now_cut)
     last = next((r for r in reversed(hist) if str(r["available_at"]) <= now_cut), None)
     out = {"instrument": mk["instrument"], "venue": mk.get("venue"),
@@ -266,7 +270,7 @@ def block(session_day: str, as_of: Optional[str] = None,
     st = store or observations.ObservationStore()
     try:
         mks = load(st, as_of)
-        rows = [forms(m, day, cfg) for m in mks]
+        rows = [forms(m, day, cfg, as_of) for m in mks]
     finally:
         if own:
             st.close()

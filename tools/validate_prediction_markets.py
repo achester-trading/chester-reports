@@ -395,6 +395,31 @@ def main() -> int:
     check(any("fed funds futures" in t and "points apart" in t for t in mt),
           f"What doesn't fit carries the venue-vs-futures disagreement "
           f"({next((t for t in mt if 'points apart' in t), '')[:80]})")
+    # A venue's own figure may be quoted as the market's price; an invented one
+    # framed as odds is still refused.
+    from daily_cascade import stack_prose
+    vok = stack_prose.venue_percents(ed)
+    check(not stack_prose.outlook_misprints(
+              "Kalshi gives a 62% chance of a hike in October.", [], vok)
+          and stack_prose.outlook_misprints(
+              "There is a 77% chance of a hike in October.", [], vok),
+          f"prose may quote a venue's 62% as the market's price; an invented 77% "
+          f"chance is refused ({sorted(vok)[:8]}...)")
+    # A pull made AFTER the 16:15 cutoff the same day is still today's value for
+    # a run whose own cutoff is later (a dry run at 21:00 reads the 21:00 pull).
+    db6 = str(Path(td) / "late.db")
+    with observations.ObservationStore(db6) as st:
+        src.pull(store=st, get=make_get(), now=f"{SESSION}T01:10:00+00:00")
+        src.pull(store=st, get=make_get(k_hike=0.70, k_hold=0.30),
+                 now=f"{SESSION}T23:30:00+00:00")
+        late = pm.block(SESSION, f"{SESSION}T23:45:00+00:00", store=st)
+        at_close = pm.block(SESSION, f"{SESSION}T20:45:00+00:00", store=st)
+    lk = {r["instrument"]: r["probability"] for r in late["markets"]}
+    ck = {r["instrument"]: r["probability"] for r in at_close["markets"]}
+    check(lk.get("kalshi:KXFEDDECISION-26OCT-H25") == 0.70
+          and ck.get("kalshi:KXFEDDECISION-26OCT-H25") == 0.60,
+          "today's value is the newest knowable at the run's cutoff: 70% for a run "
+          "at 23:45, 60% for the 16:45 close")
     # The outage: Kalshi stops answering today -- its markets print "as of".
     db5 = str(Path(td) / "outage.db")
     seeded5 = vs.seed(db5)
