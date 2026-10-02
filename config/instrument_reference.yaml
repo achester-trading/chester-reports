@@ -12,8 +12,15 @@
 # until the operator checks them against the issuer's holdings, because a number
 # typed from memory is a number nobody can check (the claims registry's rule).
 # The view prints unratified weights as such.
+#
+# RATIFIED 2 OCT 2026 (Doctrine monthly, minutes 2e) as APPROXIMATE, refreshed at
+# each Quarterly Structural from the issuers' published holdings; the as-of date
+# prints beside any limit that uses it. Each entry keeps the as_of of its figures.
 version: instrument-reference-v1
-updated: 2026-09-28
+updated: 2026-10-02
+proposed: false
+refresh: quarterly_structural
+as_of: 2026-10-02
 
 sectors:
   # Single names.
@@ -37,14 +44,14 @@ sectors:
     consumer_discretionary: 0.10
     financials: 0.13
     health_care: 0.10
-    proposed: true
+    proposed: false
     source: approximate S&P 500 sector weights, to verify against SPDR holdings
     as_of: 2026-09
   QQQ:
     technology: 0.60
     communication: 0.15
     consumer_discretionary: 0.14
-    proposed: true
+    proposed: false
     source: approximate Nasdaq-100 sector weights (ICB technology), to verify against Invesco holdings
     as_of: 2026-09
   IWM:
@@ -52,15 +59,15 @@ sectors:
     industrials: 0.17
     health_care: 0.16
     technology: 0.13
-    proposed: true
+    proposed: false
     source: approximate Russell 2000 sector weights, to verify
     as_of: 2026-09
 
 # Effective duration in years, for rate instruments. Dollar duration per 100 bp
 # is notional x duration / 100. Approximate issuer figures, proposed until checked.
 durations:
-  TLT: {years: 16.5, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
-  IEF: {years: 7.3, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
-  SHY: {years: 1.9, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
-  LQD: {years: 8.3, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
-  HYG: {years: 3.2, proposed: true, source: approximate iShares effective duration, as_of: 2026-09}
+  TLT: {years: 16.5, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
+  IEF: {years: 7.3, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
+  SHY: {years: 1.9, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
+  LQD: {years: 8.3, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
+  HYG: {years: 3.2, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}

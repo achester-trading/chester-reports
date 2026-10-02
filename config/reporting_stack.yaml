@@ -1,12 +1,24 @@
 # reporting_stack.yaml -- the ten-section stack, the tape set, the charts and the
 # budgets. (docs/briefs/reporting-stack-brief-2026-10-02.md, Tranche T1)
 #
-# EVERY THRESHOLD AND BUDGET HERE IS *PROPOSED* until the Doctrine monthly
-# (3-4 Oct) rules on it (brief section 6). They are configuration so a ruling is
-# a one-line change with a version, never a code edit.
+# RATIFIED 2 OCT 2026 at the Doctrine monthly, item 10 ("ratify as stated";
+# docs/briefs/doctrine-monthly-2026-10-minutes.md): the trigger thresholds, the
+# reading budgets and chart caps, the long-frame averages, the prediction-market
+# watch list and the two disagreement thresholds. Checked against item 10 by D-1;
+# one value differed and was corrected (the What's-priced breakeven: item 10
+# names the 5-year breakeven, which this file had as the 5y5y forward).
+#
+# NOT PART OF ITEM 10, and set by the T1 session rather than ruled: depth_words,
+# the bars retry, the outlook rules and the style word lists. They stay here,
+# marked as session-set, until a sitting rules on them.
+#
+# Values are configuration so a ruling is a one-line change with a version,
+# never a code edit. Doctrine #2 recalibrates any trigger that fired more than
+# weekly or not at all in October (item 10; the Weekly prints the counts, T2).
+ratified: 2026-10-02
 version: reporting-stack-v1
 updated: 2026-10-02
-status: proposed
+status: ratified
 
 # THE TAPE SET (brief 2.2). `bars` is the Yahoo symbol the close run pulls 5-minute
 # and daily bars for (brief 2.3); `kind` decides the unit a move is printed in:
@@ -45,7 +57,10 @@ budget:
   weekly: {words: 3500, charts: 6}
   monthly: {words: 7000, charts: 10}
 
-# CONDITIONAL DEPTH (brief 1.1): computed, never judged. Proposed thresholds.
+# CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
+# (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).
+# `pending` holds ratified values whose series or feed is not built yet: they are
+# recorded here at their ruled values and read by nothing until it is.
 triggers:
   plumbing:
     tier1_events:
@@ -65,20 +80,51 @@ triggers:
   priced:
     moves_bp:
       fred.breakeven_10y: 10
-      fred.breakeven_5y5y: 10
+    pending:
+      # Item 10 names the 5-YEAR breakeven (FRED T5YIE). The store carries the
+      # 10-year (T10YIE) and the 5y5y forward (T5YIFR) but not T5YIE, so the
+      # 5-year leg waits for the series to be added; the 5y5y is not it.
+      breakeven_5y_bp: 10
+      fomc_implied_rate_next_four_meetings_bp: 12.5    # 6d rate path
+      prediction_market_points: 10                     # 6d
+      consensus_eps_revision_pct: 1.0                  # the Weekly only (T2)
+      expectations_1y_pt: 0.3                          # UMich or SCE one-year; not stored yet
 
-# THE OUTLOOKS (brief 1.3 rule 3): every lean in Ahead is a ledger entry first.
-# The probability is computed from the store -- an empirical base rate over the
-# stored closes, with its n -- never chosen by the model.
+# THE LONG FRAME (Monthly tape, item 10): the 40-week, 10-month and 20-month
+# averages -- levels, never signals; a cross counts only after the monthly close.
+# altdata/levels.py computes them as ma_40w, ma_10m and ma_20m; T3 prints them.
+long_frame_averages: {weekly_weeks: [40], monthly_months: [10, 20]}
+
+# PREDICTION MARKETS (6d, item 10). The watch list goes to
+# config/prediction_markets.yaml when 6d is built; the ruled thresholds are here.
+prediction_markets:
+  watch_list:
+    - "the FOMC decision at each of the next four meetings"
+    - "US recession in 2026 and in 2027"
+    - "each month's CPI print"
+    - "House and Senate control on 3 November"
+    - "a government shutdown by date"
+    - "the twenty highest-volume markets matching the narrative register's stories by keyword"
+  disagreement_points:
+    venue_vs_fed_funds_implied: 15
+    venue_vs_scenario_weight: 20
+
+# THE OUTLOOKS (brief 1.3 rule 3): every probability in Ahead is a ledger entry
+# first. Each is a BASE RATE (kind: base_rate, D-1 2 Oct 2026): the empirical
+# frequency of the rule's outcome over the stored closes, with its n -- never
+# chosen by the model, and printed only as "the base rate for ... is X% (n=...)",
+# never as the system's view. `text` is a noun phrase so that sentence reads.
 outlooks:
   - id: week_low_holds
+    kind: base_rate
     symbol: SPY
     rule: week_closing_low_holds
-    text: "SPY's lowest close of the week so far holds through the week's last session"
+    text: "SPY's lowest close of the week so far holding through the week's last session"
   - id: above_20d_next
+    kind: base_rate
     symbol: SPY
     rule: stays_above_20d_next_session
-    text: "SPY closes on the same side of its 20-day average at the next session"
+    text: "SPY closing on the same side of its 20-day average at the next session"
 
 # The section order and the depth each takes on the daily close (brief 1).
 sections:
@@ -93,10 +139,11 @@ sections:
   - {id: ahead,       title: "Ahead",               daily: deep}
   - {id: book,        title: "The book",            daily: short}
 
-# Paragraphs a section's commentary may run to, by depth.
+# Paragraphs a section's commentary may run to, by depth. (Session-set, T1.)
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
 # Words a section's prose may run to, claim included, by depth -- so ten sections
-# fit the daily budget without the cut doing the editing.
+# fit the daily budget without the cut doing the editing. (Session-set, T1; not
+# part of item 10.)
 depth_words: {deep: 150, medium: 80, light: 35, short: 35, line: 25}
 
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a

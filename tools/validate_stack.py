@@ -340,22 +340,40 @@ def main() -> int:
         t = next(s for s in e["sections"] if s["id"] == "tape")
         check(t.get("claim") is None and why in str(t.get("withheld")),
               f"{label}: '{text[:48]}' is withheld ({str(t.get('withheld'))[:70]})")
+    live1 = [o for o in ed1["outlooks"] if o["state"] == "computed"][:1]
+    pct1 = round(live1[0]["probability"] * 100) if live1 else 0
+    n1 = live1[0]["n"] if live1 else 0
     check(stack_prose.outlook_misprints("a 62% chance that it holds", ed1["outlooks"])
           and not stack_prose.outlook_misprints(
-              f"{round(ed1['outlooks'][0]['probability'] * 100)}% that it holds",
-              [o for o in ed1["outlooks"] if o["state"] == "computed"][:1]),
+              f"The base rate for the week's low holding is {pct1}% (n={n1}).", live1),
           "the odds rule itself: a probability that is not a ledgered outlook's is "
-          "refused, an outlook's own passes")
-    ok_out = next((o for o in ed1["outlooks"] if o["state"] == "computed"), None)
+          "refused; an outlook's, written as a base rate with its n, passes")
+    for bad_line, why in ((f"{pct1}% that the week's low holds.", "without 'base rate'"),
+                          (f"The base rate for the week's low holding is {pct1}%.",
+                           "without 'base rate' and its n"),
+                          (f"We expect the low to hold: the base rate is {pct1}% "
+                           f"(n={n1}).", "framed as a view")):
+        f = stack_prose.outlook_misprints(bad_line, live1)
+        check(any(why in x for x in f),
+              f"an outlook's figure is never our view: '{bad_line[:52]}' is refused "
+              f"({f[:1]})")
+    ok_out = live1[0] if live1 else None
     if ok_out:
         c3: list = []
         e = stack_mod.build(p, book, ed1["outlooks"], None, db)
-        line = f"{round(ok_out['probability'] * 100)}% that {ok_out['claim']}."
+        line = (f"The base rate for {ok_out['claim']} is "
+                f"{round(ok_out['probability'] * 100)}% (n={ok_out['n']}).")
         stack_prose.write(e, client=client({"Ahead": line}, c3),
                           outlooks=ed1["outlooks"])
         a = next(s for s in e["sections"] if s["id"] == "ahead")
         check(a.get("claim") and not a.get("withheld"),
-              "an outlook's own probability, with its ledger entry, publishes")
+              f"an outlook written as a base rate, with its ledger entry, publishes "
+              f"({str(a.get('withheld'))[:60]})")
+        item_txt = next(i["text"] for i in a["items"]
+                        if i["key"] == f"ahead:outlook:{ok_out['id']}")
+        check(item_txt.startswith("The base rate for ") and f"(n={ok_out['n']})"
+              in item_txt and ok_out.get("kind") == "base_rate",
+              f"and the Ahead line itself reads as a base rate ({item_txt[:70]}...)")
     check(len([c for c in calls if "THE SECTION:" in c]) == 9
           and any("Write THE READ" in c for c in calls),
           f"one audited call per section and one for The read "

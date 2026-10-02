@@ -122,16 +122,42 @@ def pkt(i, root, book, direction, notional, fam="outright", vega=None):
 
 
 # ---------------------------------------------------------------------------
+def fixture_limits() -> dict:
+    """THE ACCEPTANCE TEST'S OWN LIMITS: the live file with the sector cap at the
+    25% the EL-2 3.2 test was written against. A code gate's verdict is about the
+    gate's arithmetic and must not move when the operator rules a limit, so the
+    packets are sized against this and the ratified file is asserted separately
+    (D-1, 2 Oct 2026: sector 25 -> 30)."""
+    import copy
+    lim = copy.deepcopy(heat.load_limits())
+    lim["limits"]["sector_max_pct"]["value"] = 25
+    return lim
+
+
 def group_a(store) -> None:
     print(f"{LINE}\nA. THE FOUR-PACKET ACCEPTANCE TEST (EL-2 §3.2)\n{LINE}")
     lim = heat.load_limits()
+    L = lim["limits"]
+    rm = lim.get("regime_mapping") or {}
     check((lim["capital_usd"]["value"] == 300000
-           and lim["limits"]["net_beta_over_band_top_pct"]["source"] == "doctrine"
-           and all(lim["limits"][k].get("proposed")
-                   for k in ("sector_max_pct", "vega_max_pct_per_vol_pt",
-                             "duration_max_pct_per_100bp"))),
-          "config/risk_limits.yaml: the Doctrine's net-beta cap, and every other "
-          "limit marked proposed until the operator rules")
+           and L["net_beta_over_band_top_pct"]["source"] == "doctrine"
+           and L["net_beta_over_band_top_pct"]["value"] == 15
+           and L["sector_max_pct"]["value"] == 30
+           and L["vega_max_pct_per_vol_pt"]["value"] == 0.5
+           and L["duration_max_pct_per_100bp"]["value"] == 5
+           and not any(L[k].get("proposed")
+                       for k in ("sector_max_pct", "vega_max_pct_per_vol_pt",
+                                 "duration_max_pct_per_100bp"))),
+          "config/risk_limits.yaml as ratified 2 Oct 2026: the Doctrine's 15-point "
+          "net-beta cap, sector 30%, vega 0.5%, duration 5%, none proposed")
+    check(rm.get("version") == "dial-to-doctrine-v1.1" and rm.get("proposed") is False
+          and (rm.get("map") or {}).get("disinflationary_slowdown") == "Tightening"
+          and rm.get("transition_sessions") == 10
+          and (lim.get("attention_budget") or {}).get("packets_per_week") == 7
+          and (lim.get("attention_budget") or {}).get("sitting_hours_per_week") == 2,
+          "and the mapping at v1.1 (disinflationary_slowdown -> Tightening), the "
+          "10-session crossing rule, and the attention budget of 7 packets / 2 hours")
+    FIX = fixture_limits()
     b = heat.beta_vs_spy("NVDA", store)
     check(b["beta"] is not None and 1.8 < b["beta"] < 2.2,
           f"NVDA's beta is COMPUTED from stored returns (~2 by construction; "
@@ -145,7 +171,7 @@ def group_a(store) -> None:
                pkt(4, "QQQ", "D", "short", 0.0, fam="iron_condor", vega=-2500)]
     last = None
     for p in packets:
-        g = heat.gate(p, book, store)
+        g = heat.gate(p, book, store, limits=FIX)
         outcomes.append(g["outcome"])
         accepted = dict(p)
         if g["outcome"] == "resize":
@@ -166,7 +192,7 @@ def group_a(store) -> None:
           "and the vega concentration, in the underlying that carries it")
     check(set(v["beta_by_book_usd"]) >= {"A", "B", "C"},
           f"summed across books ({', '.join(sorted(v['beta_by_book_usd']))})")
-    third = heat.gate(packets[2], book[:2], store)
+    third = heat.gate(packets[2], book[:2], store, limits=FIX)
     check(third["resize_factor"] == 0.5
           and any("technology" in r for r in third["reasons"]),
           "the third packet fits at 50%: the room left under the technology "
@@ -176,34 +202,43 @@ def group_a(store) -> None:
 
 
 def group_b(store) -> None:
+    FIX = fixture_limits()
     print(f"{LINE}\nB. EVERY OUTCOME, BY ITS RULE\n{LINE}")
-    g = heat.gate(pkt(9, "NVDA", "B", "long", None), [], store)
+    g = heat.gate(pkt(9, "NVDA", "B", "long", None), [], store, limits=FIX)
     check(g["outcome"] == "delay" and "notional" in g["reasons"][0],
           "no structured size -> delay")
-    g = heat.gate(pkt(9, "QQQ", "D", "short", 0.0, fam="iron_condor"), [], store)
+    g = heat.gate(pkt(9, "QQQ", "D", "short", 0.0, fam="iron_condor"), [], store, limits=FIX)
     check(g["outcome"] == "delay" and "vega" in g["reasons"][0],
           "an options expression with no vega -> delay, not a guess")
-    g = heat.gate(pkt(9, "AAPL", "B", "long", 10000), [], store)
+    g = heat.gate(pkt(9, "AAPL", "B", "long", 10000), [], store, limits=FIX)
     check(g["outcome"] == "delay" and "price basket" in g["reasons"][0],
           "a name the store does not carry has no beta -> delay")
     # Net beta: expansion band 60-80, cap 95% = $285,000 beta-adjusted.
     big = [pkt(20, "SPY", "A", "long", 280000)]
-    g = heat.gate(pkt(21, "SPY", "B", "long", 20000), big, store)
+    g = heat.gate(pkt(21, "SPY", "B", "long", 20000), big, store, limits=FIX)
     check(g["outcome"] == "hedge",
           f"net beta past the Doctrine cap with no useful size -> hedge "
           f"({g['outcome']}: {g['reasons'][0][:60]})")
     g = heat.gate(pkt(22, "NVDA", "B", "long", 5000),
-                  [pkt(23, "NVDA", "C", "long", 74000)], store)
+                  [pkt(23, "NVDA", "C", "long", 74000)], store, limits=FIX)
     check(g["outcome"] == "reject",
           f"a sector past its limit with no useful size -> reject "
           f"({g['outcome']})")
-    g = heat.gate(pkt(24, "SPY", "B", "long", 10000), [], store)
+    g30 = heat.gate(pkt(22, "NVDA", "B", "long", 5000),
+                    [pkt(23, "NVDA", "C", "long", 74000)], store)
+    g30b = heat.gate(pkt(22, "NVDA", "B", "long", 5000),
+                     [pkt(23, "NVDA", "C", "long", 89000)], store)
+    check(g30["outcome"] == "approve" and g30b["outcome"] == "reject",
+          f"at the ratified 30% ($90,000) the same packet fits beside $74,000 of "
+          f"technology and is rejected beside $89,000 ({g30['outcome']}, "
+          f"{g30b['outcome']})")
+    g = heat.gate(pkt(24, "SPY", "B", "long", 10000), [], store, limits=FIX)
     check(g["outcome"] == "approve", "inside every limit -> approve")
 
     rb = heat.regime_band(store)
     check(rb["regime"] == "Expansion" and rb["band"] == [60, 80]
-          and rb["cap_pct"] == 95 and rb["mapping_proposed"],
-          f"expansion -> Expansion, band 60-80, cap 95%, mapping marked proposed "
+          and rb["cap_pct"] == 95 and rb["mapping_proposed"] is False,
+          f"expansion -> Expansion, band 60-80, cap 95%, mapping ratified "
           f"({rb.get('regime')}, {rb.get('band')}, {rb.get('cap_pct')})")
     with tempfile.TemporaryDirectory() as td:
         st2 = observations.ObservationStore(os.path.join(td, "t.db"))

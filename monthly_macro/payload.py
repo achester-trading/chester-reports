@@ -220,6 +220,15 @@ def regime_block(as_of: Optional[str] = None,
 # ---------------------------------------------------------------------------
 FAMILY_MAP_PATH = "config/scenario_families.yaml"
 
+# THE SOURCES WHOSE ROWS ARE SCENARIO WEIGHTS -- an allowlist, not a denylist
+# (D-1, 2 Oct 2026). The probability ledger holds every forecast the system
+# emits: the Monthly's scenario table (`monthly_macro`, seed_from_monthly), the
+# narrative register's story outcomes, the daily close's base-rate outlooks
+# (`daily_close_outlook`, two a session). Only the first are weights. A denylist
+# would let the next source to write the ledger print here as a weight by
+# default, so a source joins this block only by being named.
+SCENARIO_SOURCES = ("monthly_macro",)
+
 
 def scenarios_block() -> dict:
     """Scenario weights and their Brier scores. Grouped by family if one exists."""
@@ -243,12 +252,15 @@ def scenarios_block() -> dict:
         return out
     try:
         with pl.ProbabilityLedger() as ledger:
-            rows = ledger.all_rows()
-            by_source = ledger.score_by_source()
-            due = ledger.due()
+            rows = [r for r in ledger.all_rows()
+                    if r.get("source") in SCENARIO_SOURCES]
+            by_source = {k: v for k, v in ledger.score_by_source().items()
+                         if k in SCENARIO_SOURCES}
+            due = [r for r in ledger.due() if r.get("source") in SCENARIO_SOURCES]
     except Exception as exc:                                   # noqa: BLE001
         out["reason"] = f"ledger unreadable: {type(exc).__name__}: {exc}"
         return out
+    out["sources"] = list(SCENARIO_SOURCES)
     out["method_version"] = pl.METHOD_VERSION
     out["emitted"] = len(rows)
     out["resolved"] = sum(1 for r in rows if r.get("outcome") is not None)

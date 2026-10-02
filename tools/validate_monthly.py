@@ -1209,6 +1209,14 @@ def isolate_and_seed() -> str:
                    emitted_at=f"{month.replace(day=1).isoformat()}T12:00:00+00:00",
                    horizon_date=(today + dt.timedelta(days=60)).isoformat(),
                    resolution_criterion="seeded by validate_monthly")
+        # Two NON-scenario sources, which the weights block must leave out
+        # (D-1, 2 Oct 2026: SCENARIO_SOURCES is an allowlist).
+        for src in ("narrative_register", "daily_close_outlook"):
+            led.record(source=src, claim=f"Not a scenario weight ({src})",
+                       probability=0.7,
+                       emitted_at=f"{month.replace(day=1).isoformat()}T13:00:00+00:00",
+                       horizon_date=(today + dt.timedelta(days=60)).isoformat(),
+                       resolution_criterion="seeded by validate_monthly")
     print(f"  seeded {len(rows):,} observations, one market-state object for "
           f"{last} and one ledger forecast into {db}")
     return td
@@ -1228,6 +1236,13 @@ def main() -> int:
     except Exception as exc:                                   # noqa: BLE001
         bad(f"the payload builds at all (raised {type(exc).__name__}: {exc})")
     if built is not None:
+        sc = built.get("scenarios") or {}
+        srcs = {w.get("source") for w in sc.get("weights") or []}
+        check(srcs == {"monthly_macro"} and sc.get("emitted") == 1
+              and sc.get("sources") == ["monthly_macro"],
+              f"the scenario-weights block prints scenario sources only: the "
+              f"seeded narrative_register and daily_close_outlook rows stay out "
+              f"(weights from {sorted(srcs)}, emitted {sc.get('emitted')})")
         group_b(built)
         group_c(built)
         group_d()

@@ -21,7 +21,8 @@ object, markdown refused. Then four tape rules (2.1) the generic audit cannot se
   held / broke          a level said to have held or broken must carry that status
                         in the level list (rule 5)
   odds                  a probability prints only if it is an outlook's, with its
-                        ledger entry (rule 6; 1.3 rule 3)
+                        ledger entry, and only as a BASE RATE with its n -- never
+                        as the system's view (rule 6; 1.3 rule 3; D-1 2 Oct 2026)
 
 A section that fails any of them is withheld alone, with its reason; the items
 and table beneath it still print.
@@ -67,7 +68,9 @@ THE TAPE'S RULES:
    +2 bp" is allowed; "because", "driven by", "on fears of" are not. A cause is
    named only when a stored event coincides, as "on the day of the CPI release".
 5. Say a level "held" or "broke" only when its status in the data says so.
-6. A probability appears only as an outlook's, copied with its horizon.
+6. A probability appears only as an outlook's BASE RATE, in this form: "the base
+   rate for <the outlook's claim> is 79% (n=82)". It is a frequency in the stored
+   history, never our view: no "we expect", "likely", "odds", "chance", "lean".
 7. No adjective does a number's work: no "plunged", "soared", "massive" without
    the figure in the same sentence.
 8. Short declarative sentences; one idea per paragraph; the figure in the
@@ -88,7 +91,8 @@ THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. Write THE READ: the five lines
 that matter about the session, as ONE paragraph of exactly five sentences, most
 important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
-as an outlook's; no motive words; never write about the report itself.
+as an outlook's base rate ("the base rate for ... is 79% (n=82)"), never as our
+view; no motive words; never write about the report itself.
 The word "because" is refused anywhere. "Gamma" beside a state word means the
 gamma DIAL; for one symbol write its net GEX. Never write the session's date
 or weekday. A level is named with the market it belongs to, one at a time.
@@ -180,11 +184,35 @@ _ODDS = re.compile(r"\b(\d{1,2}(?:\.\d+)?)\s?(?:%|percent)\s+(?:that|chance|"
                    r"probability|odds|likely)\b", re.I)
 
 
+_VIEW = re.compile(r"\b(?:we|our)\s+(?:expect|think|see|believe|view|lean|call|"
+                   r"forecast|odds)\b|\b(?:likely|likelihood|odds|chance|lean|"
+                   r"probably|expected to)\b", re.I)
+_PCT = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d+)?)\s?(?:%|percent)")
+
+
 def outlook_misprints(text: str, outlooks: list[dict]) -> list[str]:
-    ok = {round(o["probability"] * 100) for o in outlooks
-          if o.get("state") == "computed" and o.get("ledger_id")}
-    return [f"{m.group(1)}% is not an outlook in the ledger"
-            for m in _ODDS.finditer(text or "") if round(float(m.group(1))) not in ok]
+    """A probability prints only as a ledgered outlook's base rate, with its n.
+
+    Two refusals. A figure framed as odds ("62% chance that ...") that is not an
+    outlook's is not in the ledger. And a sentence carrying an outlook's figure
+    must name it as a base rate with its n and use no view word -- the outlook is
+    a frequency in the stored history, never the system's view (D-1, 2 Oct 2026).
+    """
+    live = [o for o in outlooks
+            if o.get("state") == "computed" and o.get("ledger_id")]
+    ok = {round(o["probability"] * 100) for o in live}
+    out = [f"{m.group(1)}% is not an outlook in the ledger"
+           for m in _ODDS.finditer(text or "") if round(float(m.group(1))) not in ok]
+    for s in _sentences(text):
+        hits = [m for m in _PCT.finditer(s) if round(float(m.group(1))) in ok]
+        if not hits:
+            continue
+        if not re.search(r"\bbase rate\b", s, re.I) or not re.search(r"\bn\s?=\s?\d", s):
+            out.append(f"{hits[0].group(1)}% printed without 'base rate' and its n")
+        v = _VIEW.search(s)
+        if v:
+            out.append(f"{hits[0].group(1)}% framed as a view ('{v.group(0)}')")
+    return out
 
 
 def _slice(s: dict, ed: dict) -> dict:

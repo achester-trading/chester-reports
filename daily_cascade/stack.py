@@ -415,8 +415,9 @@ def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
         if o["state"] != "computed":
             continue
         items.insert(0, item(f"ahead:outlook:{o['id']}",
-                             f"{round(o['probability'] * 100):.0f}% that {o['claim']}; "
-                             f"resolved {o['horizon_date']} (base rate, n={o['n']}; "
+                             f"The base rate for {o['claim']} is "
+                             f"{round(o['probability'] * 100):.0f}% (n={o['n']}); "
+                             f"resolves {o['horizon_date']} ("
                              + (f"ledger {str(o['ledger_id'])[:12]})."
                                 if not str(o["ledger_id"]).startswith("dry-run")
                                 else "not recorded: dry run)."), 1,
@@ -424,7 +425,7 @@ def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
     return {"items": items[:9],
             "data": {"events": [i["text"] for i in items if "outlook" not in i["key"]],
                      "outlooks": [{k: o.get(k) for k in
-                                   ("id", "claim", "probability", "n",
+                                   ("id", "kind", "claim", "probability", "n",
                                     "horizon_date", "ledger_id", "state", "reason")}
                                   for o in outlook_rows]}}
 

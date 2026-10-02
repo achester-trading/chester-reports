@@ -131,7 +131,8 @@ def build(day: str, store: bars_mod.BarStore, as_of: Optional[str] = None) -> li
     for o in cfg.get("outlooks") or []:
         closes = _closes(store, o["symbol"].lower(), day, as_of)
         res = RULES[o["rule"]](closes, day)
-        row = {"id": o["id"], "symbol": o["symbol"], "rule": o["rule"]}
+        row = {"id": o["id"], "symbol": o["symbol"], "rule": o["rule"],
+               "kind": o.get("kind") or "base_rate"}
         if "skip" in res:
             out.append({**row, "state": "skipped", "reason": res["skip"]})
             continue

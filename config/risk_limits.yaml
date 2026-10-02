@@ -10,9 +10,16 @@
 # Doctrine states it and this file only transcribes it. `proposed: true` means a
 # session proposed it and the operator has NOT ruled on it: the view and the
 # Weekly print such a limit as unratified, and the operator ratifies by setting
-# proposed: false -- in this file, by hand, not by a session.
+# proposed: false -- in this file, by hand, or by a session transcribing a ruling
+# recorded in the Doctrine-monthly minutes under Ari's own line; the session
+# changes no value the minutes do not name. (Amended by the Doctrine monthly of
+# 2 Oct 2026, item 2; docs/briefs/doctrine-monthly-2026-10-minutes.md.)
+#
+# RATIFIED 2 OCT 2026 (minutes items 1 and 2, applied by D-1): the regime mapping
+# at dial-to-doctrine-v1.1, the crossing rule, and the sector, vega and duration
+# limits. Nothing in this file is proposed any more.
 version: risk-limits-v1
-updated: 2026-09-28
+updated: 2026-10-02
 
 # The Doctrine's capital: the kill-switch ladder is written in dollars on it
 # ($6,000 = 2% daily). Every percentage limit below is a share of this.
@@ -29,24 +36,31 @@ limits:
     value: 15
     source: doctrine
     note: Operating Doctrine, "Net exposure is capped across books"
-  # Proposed, unratified. Gross beta-adjusted notional in any one sector, as a
-  # share of capital.
+  # Gross beta-adjusted notional in any one sector, as a share of capital.
+  # Ratified 2 Oct 2026 at 30 (minutes 2b, raised from the proposed 25): the
+  # limit looks through index holdings, and Book A at the top of the Expansion
+  # band (80% SPY) carries about 27% of capital in tech -- a breach at 25 with no
+  # single name held. At 30 the index at full band passes and Books B/C cannot add
+  # tech on top of a full Book A.
   sector_max_pct:
-    value: 25
-    proposed: true
-    source: session proposal, Phase 5a
-  # Proposed, unratified. Net dollars of vega per one volatility point across
-  # every options expression, as a share of capital (0.5% = $1,500 per point).
+    value: 30
+    proposed: false
+    source: session proposal, Phase 5a; ratified Doctrine monthly 2 Oct 2026 (2b)
+  # Net dollars of vega per one volatility point across every options
+  # expression, as a share of capital (0.5% = $1,500 per point). Ratified 2 Oct
+  # 2026 (minutes 2c): a ten-point vol spike costs 5% of capital, inside the 7%
+  # monthly kill switch.
   vega_max_pct_per_vol_pt:
     value: 0.5
-    proposed: true
-    source: session proposal, Phase 5a
-  # Proposed, unratified. Net dollar duration per 100 bp across rate instruments,
-  # as a share of capital (5% = $15,000 per 100 bp).
+    proposed: false
+    source: session proposal, Phase 5a; ratified Doctrine monthly 2 Oct 2026 (2c)
+  # Net dollar duration per 100 bp across rate instruments, as a share of
+  # capital (5% = $15,000 per 100 bp). Ratified 2 Oct 2026 (minutes 2d): admits
+  # the Doctrine's largest duration sleeve and nothing beyond.
   duration_max_pct_per_100bp:
     value: 5
-    proposed: true
-    source: session proposal, Phase 5a
+    proposed: false
+    source: session proposal, Phase 5a; ratified Doctrine monthly 2 Oct 2026 (2d)
 
 # Book A's exposure bands by Doctrine regime, net equity beta as % of capital.
 # Transcribed from the Operating Doctrine's band table; Transition is "the lower
@@ -60,23 +74,29 @@ bands:
 
 # THE MACRO DIAL'S STATES MAPPED ONTO THE DOCTRINE'S REGIMES. The dial speaks
 # nine rule outputs and the Doctrine five regimes; this table joins them. Proposed
-# with the operator's instruction of 28 Sep 2026 and unratified until the Doctrine
-# monthly (3-4 Oct) rules on it -- the view prints this version beside the band.
+# with the operator's instruction of 28 Sep 2026; RATIFIED at the Doctrine monthly
+# of 2 Oct 2026 (minutes 1a) with one change -- disinflationary_slowdown maps to
+# Tightening, not Contraction (same band; Tightening's book rules fit a slowdown
+# with falling inflation, Contraction's are written for a recession). The view
+# prints this version beside the band.
 regime_mapping:
-  version: dial-to-doctrine-v1
-  proposed: true
+  version: dial-to-doctrine-v1.1
+  proposed: false
   map:
     expansion: Expansion
     goldilocks: Expansion
     late_cycle: Overheat
     overheating: Overheat
     stagflation: Tightening
-    disinflationary_slowdown: Contraction
+    disinflationary_slowdown: Tightening
     contraction: Contraction
     deflationary_bust: Contraction
     mixed: Transition
   # THE DOCTRINE'S CROSSING RULE: a Macro dial state that changed within the
   # last N sessions maps to Transition -- the lower half of the band it left.
+  # Ratified 2 Oct 2026 (minutes 1b): 10 sessions, the Doctrine's two-week rule.
+  # Re-engagement into the new regime's band is ruled at a sitting on or after
+  # the 10th session (1c), never applied by code.
   transition_sessions: 10
 
 # Rule-break parameters the Doctrine states.
@@ -86,3 +106,14 @@ rule_breaks:
   book_b_conversion_sessions:
     value: 2
     source: doctrine
+
+# THE ATTENTION BUDGET (Enterprise Layer 3.4b; ruled 2 Oct 2026, minutes item 4).
+# Seven packet approvals a week, and one review sitting of at most two hours (the
+# Doctrine monthly and Audit sittings count as their weeks'). A packet the budget
+# defers is an abstention with reason `attention_budget`, graded like any other
+# (4a); the Weekly prints packets / 7, sitting hours / 2 and the chat rulings taken
+# that week, the third measured and not capped (4b, built in T2).
+attention_budget:
+  packets_per_week: 7
+  sitting_hours_per_week: 2
+  source: Doctrine monthly 2 Oct 2026 (item 4)
