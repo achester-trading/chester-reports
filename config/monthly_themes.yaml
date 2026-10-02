@@ -236,7 +236,9 @@ calendar:
     - Retail Sales
     - Advance Monthly Sales for Retail and Food Services
     - Employment Cost Index
-  include_sources: [session_calendar, claims_registry, yfinance, fed_monetary]
+    - Surveys of Consumers
+  include_sources: [session_calendar, claims_registry, yfinance, fed_monetary,
+                    schedule_rule]
 
 # THE COVERAGE CHECK (Ari's second round): every release the look-ahead should
 # carry, how to recognise it in the events table, and -- when it is missing --
