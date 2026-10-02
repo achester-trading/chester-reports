@@ -387,6 +387,10 @@ def register_block(payload: dict) -> str:
             f'changed by review before entry (review_changed &ne; none): '
             f'<strong>{esc(pf.get("review_changed_not_none"))}</strong>'
             + (f' ({kinds})' if kinds else "") + '</div>')
+    # INC-6 follow-up: the week's closes, realised P&L computed, never typed.
+    if b.get("closed"):
+        from .render import closes_html                         # noqa: PLC0415
+        parts.append(closes_html(b["closed"], "this week"))
     return "".join(parts)
 
 

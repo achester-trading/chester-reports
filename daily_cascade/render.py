@@ -365,7 +365,37 @@ def portfolio_block(payload: dict) -> str:
             'Distance to invalidation is signed by the direction of danger, so '
             'a negative means the level is already breached whether the '
             'position is long or short.</p>')
-    return acc_tbl + pos_tbl + note
+    return acc_tbl + pos_tbl + closes_html(p.get("closed_today"), "today") + note
+
+
+def closes_html(closed, when: str) -> str:
+    """Closes with their realised P&L -- computed from the structured exit and
+    Portfolio Truth, never typed (INC-6 follow-up). Shared with the Weekly."""
+    if not closed:
+        return ""
+    rows = []
+    for c in closed:
+        if c.get("pnl_local") is not None:
+            ccy = c.get("currency") or ""
+            pnl = (f'{c["pnl_local"]:+,.2f} {esc(ccy)}'
+                   + (f' = {c["pnl_usd"]:+,.2f} USD' if c.get("pnl_usd") is not None
+                      and ccy != "USD" else ""))
+        else:
+            pnl = dash("; ".join(c.get("missing") or ["not computed"]))
+        rows.append("<tr>"
+                    f'<td style="{TDL}">{esc(c.get("instrument"))}</td>'
+                    f'<td style="{TDL}">{esc(c.get("direction"))}</td>'
+                    f'<td style="{TD}">{num(c.get("exit_price"))}</td>'
+                    f'<td style="{TDL}">{esc((c.get("exit_time") or "exit not recorded")[:19])}</td>'
+                    f'<td style="{TD}">{pnl}</td>'
+                    f'<td style="{TDL}">{esc(c.get("close_reason") or "")}</td>'
+                    "</tr>")
+    return (f'<p><strong>Closed {esc(when)}</strong> &mdash; realised P&amp;L from '
+            f'the recorded exit and the average cost at the last sync before it'
+            f'</p><table style="{TBL}"><tr><th style="{THL}">Instrument</th>'
+            f'<th style="{THL}">Side</th><th style="{TH}">Exit</th>'
+            f'<th style="{THL}">Exit time (UTC)</th><th style="{TH}">Realised</th>'
+            f'<th style="{THL}">Reason</th></tr>{_rows(rows)}</table>')
 
 
 def narrative_block(narrative) -> str:

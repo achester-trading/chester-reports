@@ -398,6 +398,18 @@ def portfolio_block(as_of: Optional[str] = None) -> dict:
         # the renderer computes nothing -- the distance to invalidation is a
         # number in the report and must therefore be a number in the payload.
         _attach_register(block["positions"])
+        # INC-6 follow-up: the session's closes with their realised P&L,
+        # computed from the structured exit and Portfolio Truth -- never typed.
+        try:
+            from register import pnl as reg_pnl                # noqa: PLC0415
+            from register.store import Register                # noqa: PLC0415
+            day = str(as_of or session.utc_iso())[:10]
+            with Register() as reg:
+                rows = reg.all()
+            with observations.ObservationStore() as st:
+                block["closed_today"] = reg_pnl.closes_in(rows, day, day, st)
+        except Exception as exc:                               # noqa: BLE001
+            block["closed_today_reason"] = f"{type(exc).__name__}: {exc}"
     except Exception as exc:  # noqa: BLE001 -- a report never dies on a block
         block["reason"] = f"store unreadable: {type(exc).__name__}: {exc}"
         return block

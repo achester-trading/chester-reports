@@ -1143,6 +1143,141 @@ def group_k(td: str) -> None:
           "USD/MXN (FRED DEXMXUS, pesos per dollar) is among the FX series pulled")
 
 
+def group_l(td: str) -> None:
+    """INC-6 follow-up: structured exits, and realised P&L computed from them."""
+    print(f"\n{LINE}\nL. STRUCTURED EXITS -- the close carries its fill, the P&L is "
+          f"computed\n{LINE}")
+    from altdata import executions
+    from register import pnl
+    from daily_cascade import render as close_render
+
+    db = str(Path(td) / "exits.db")
+    env = {**os.environ, "CHESTER_DB": db}
+    # SYNTHETIC FIGURES. A long of 100 at 100.00 (USD) and a short of -50 at
+    # 2,000.00 (MXN), with Portfolio Truth before each exit and the closing fills.
+    with observations.ObservationStore(db) as st:
+        rows = []
+        for inst, qty, avg, at in (("TEST@ARCA.USD", 100.0, 100.0,
+                                    "2026-09-20T15:00:00+00:00"),
+                                   ("TEST@MEXI.MXN", -50.0, 2000.0,
+                                    "2026-09-20T15:00:00+00:00")):
+            rows += [{"registry_key": "portfolio.position_qty", "instrument": inst,
+                      "observed_at": at, "available_at": at, "value": qty,
+                      "source": "ibkr_paper"},
+                     {"registry_key": "portfolio.position_avg_cost",
+                      "instrument": inst, "observed_at": at, "available_at": at,
+                      "value": avg, "source": "ibkr_paper"}]
+        rows.append({"registry_key": "fred.usd_mxn", "instrument": None,
+                     "observed_at": "2026-09-21",
+                     "available_at": "2026-09-21T21:00:00+00:00", "value": 20.0,
+                     "source": "synthetic"})
+        st.write_many(rows)
+    with executions.ExecutionStore(db) as xs:
+        xs.write_many([
+            {"exec_id": "t.arca.1", "order_id": 7, "instrument": "TEST@ARCA.USD",
+             "symbol": "TEST", "side": "SLD", "qty": 60, "price": 110.0,
+             "currency": "USD", "sec_type": "STK",
+             "exec_time": "2026-09-22T16:00:00+00:00"},
+            {"exec_id": "t.arca.2", "order_id": 7, "instrument": "TEST@ARCA.USD",
+             "symbol": "TEST", "side": "SLD", "qty": 40, "price": 112.5,
+             "currency": "USD", "sec_type": "STK",
+             "exec_time": "2026-09-22T16:00:05+00:00"},
+            {"exec_id": "t.mexi.1", "order_id": 8, "instrument": "TEST@MEXI.MXN",
+             "symbol": "TEST", "side": "BOT", "qty": 50, "price": 2100.0,
+             "currency": "MXN", "sec_type": "STK",
+             "exec_time": "2026-09-22T17:00:00+00:00"}])
+    with Register(db) as reg:
+        base = dict(thesis="t", edge_type="positioning", horizon="swing",
+                    invalidation="i", book="B", falsifiers=["f"], counter_thesis="c",
+                    decision_time="2026-09-19T15:00:00+00:00")
+        long_id = reg.record(instrument="TEST@ARCA.USD", direction="long",
+                             status="active", **base)
+        short_id = reg.record(instrument="TEST@MEXI.MXN", direction="short",
+                              status="active", currency_exposure="unhedged",
+                              expression_currency="MXN", **base)
+        for bad_kw, what in (({"exit_time": "2026-09-22 16:00"}, "a non-UTC time"),
+                             ({"exit_price": -1.0}, "a negative price"),
+                             ({"exit_currency": "pesos"}, "a free-text currency"),
+                             ({"exit_currency": "USD", "exit_fx_to_usd": 0.9},
+                              "a USD exit at an FX other than 1")):
+            raises(lambda kw=bad_kw: reg.record(
+                instrument="TEST@ARCA.USD", direction="long", status="closed",
+                **{**base, **kw}), ValueError, f"an exit with {what} is refused")
+        xrows = executions.ExecutionStore(db).all()
+        with observations.ObservationStore(db) as st:
+            e1 = pnl.exit_from_executions(reg.get(long_id), xrows, st)
+            e2 = pnl.exit_from_executions(reg.get(short_id), xrows, st)
+    check(e1 and e1["exit_price"] == 111.0 and e1["exit_time"].startswith(
+              "2026-09-22T16:00:05") and e1["exit_currency"] == "USD"
+          and e1["exit_fx_to_usd"] == 1.0,
+          f"the closing fills of one order are one exit: 60 @ 110 and 40 @ 112.5 "
+          f"-> {e1 and e1['exit_price']} USD at the last fill's time")
+    check(e2 and e2["exit_price"] == 2100.0 and e2["exit_currency"] == "MXN"
+          and abs((e2["exit_fx_to_usd"] or 0) - 0.05) < 1e-12,
+          f"a peso close takes its FX from the stored USD/MXN (20.0 -> "
+          f"{e2 and e2['exit_fx_to_usd']} USD per peso)")
+    with observations.ObservationStore(db) as st:
+        p1 = pnl.realised({"id": "a", "instrument": "TEST@ARCA.USD", **e1}, st)
+        p2 = pnl.realised({"id": "b", "instrument": "TEST@MEXI.MXN", **e2}, st)
+        p0 = pnl.realised({"id": "c", "instrument": "TEST@ARCA.USD"}, st)
+    check(p1["pnl_local"] == 1100.0 and p1["pnl_usd"] == 1100.0,
+          f"realised P&L is computed: (111 - 100) x 100 = {p1['pnl_local']:+,.2f} USD")
+    check(p2["pnl_local"] == -5000.0 and p2["pnl_usd"] == -250.0,
+          f"a short that rose is a loss, in its currency and in USD: (2,100 - "
+          f"2,000) x -50 = {p2['pnl_local']:+,.2f} MXN = {p2['pnl_usd']:+,.2f} USD")
+    check(p0["pnl_local"] is None and "exit not recorded" in p0["missing"],
+          "with no exit there is no P&L, and it says so")
+
+    # THE CLI: the dry run shows the exit and the P&L for confirmation.
+    def cli(*a):
+        return subprocess.run([sys.executable, str(REPO / "tools" / "decide.py"),
+                               "--db", db, "set-status", *a],
+                              capture_output=True, text=True, cwd=str(REPO), env=env)
+    r = cli("--id", long_id, "--status", "closed", "--close-reason", "target",
+            "--dry-run")
+    check(r.returncode == 0 and "exit (from executions table" in r.stdout
+          and "111" in r.stdout and "+1,100.00 USD" in r.stdout,
+          "set-status --status closed --dry-run fills the exit from the "
+          "executions table and shows the realised P&L for confirmation")
+    r = cli("--id", long_id, "--status", "closed", "--close-reason", "target")
+    with Register(db) as reg:
+        succ = [d for d in reg.all() if d.get("status") == "closed"
+                and d.get("instrument") == "TEST@ARCA.USD"]
+    check(r.returncode == 0 and succ and succ[-1]["exit_price"] == 111.0
+          and succ[-1]["exit_currency"] == "USD",
+          "and the close is written with the four exit fields on the row")
+    r = cli("--id", succ[-1]["id"], "--status", "closed", "--exit-price", "111",
+            "--exit-time", "2026-09-22T16:00:05+00:00", "--dry-run")
+    check("NO CHANGE" in r.stdout,
+          "re-closing with the same exit is no change -- but a NEW exit is one")
+    # --exit-fx ALONE keeps the fill's price and time: the peso back-fill case.
+    with Register(db) as reg:
+        s_rows = [d for d in reg.all() if d["id"] == short_id]
+    r = cli("--id", short_id, "--status", "closed", "--close-reason", "flatten",
+            "--exit-fx", "0.04", "--dry-run")
+    check("2,100" in r.stdout and "2026-09-22T17:00:00" in r.stdout
+          and "0.04" in r.stdout and "-200.00 USD" in r.stdout and s_rows,
+          "--exit-fx alone keeps the fill's price and time and overrides only the "
+          "rate: -5,000 MXN x 0.04 = -200.00 USD")
+    with Register(db) as reg:
+        lone = reg.record(instrument="NOFILL@ARCA.USD", direction="long",
+                          status="active", **base)
+    r = cli("--id", lone, "--status", "closed", "--dry-run")
+    check("exit not recorded" in r.stdout,
+          "a close with no fill and no flags is allowed, and prints 'exit not "
+          "recorded'")
+
+    # THE CLOSE AND THE WEEKLY print it.
+    with Register(db) as reg, observations.ObservationStore(db) as st:
+        closed = pnl.closes_in(reg.all(), "2026-09-22", "2026-09-22", st)
+    html = close_render.closes_html(closed, "this week")
+    check(any(c["pnl_local"] == 1100.0 for c in closed) and "+1,100.00 USD" in html,
+          "the close report's and the Weekly's 'Closed' table shows the realised "
+          "P&L, computed")
+    src = (REPO / "daily_cascade" / "weekly_payload.py").read_text(encoding="utf-8")
+    check("reg_pnl.closes_in(" in src, "and the Weekly's register block carries it")
+
+
 def main() -> int:
     print(f"{LINE}\nRegister and point-in-time validation   {session.describe()}\n{LINE}")
     # ignore_cleanup_errors: on Windows a SQLite file cannot be unlinked while
@@ -1159,6 +1294,7 @@ def main() -> int:
         group_i(td)
         group_j(td)
         group_k(td)
+        group_l(td)
     group_f()
     group_d()
 

@@ -525,7 +525,11 @@ class Register:
                     "horizon_alignment TEXT", "review_changed TEXT",
                     "falsifiers TEXT", "counter_thesis TEXT",
                     # INC-6 follow-up. NULL on a pre-existing row reads as USD.
-                    "expression_currency TEXT"):
+                    "expression_currency TEXT",
+                    # INC-6 follow-up: a close's fill, structured (exit_fx_to_usd
+                    # is USD per one unit of exit_currency). NULL = not recorded.
+                    "exit_price REAL", "exit_time TEXT", "exit_currency TEXT",
+                    "exit_fx_to_usd REAL"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -636,6 +640,10 @@ class Register:
                falsifiers: Optional[list] = None,
                counter_thesis: Optional[str] = None,
                expression_currency: Optional[str] = "USD",
+               exit_price: Optional[float] = None,
+               exit_time: Optional[str] = None,
+               exit_currency: Optional[str] = None,
+               exit_fx_to_usd: Optional[float] = None,
                becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -722,6 +730,26 @@ class Register:
                 f"{expr} listing, declare --expression-currency {ccy} if the "
                 f"{ccy} exposure is the point, or record an operator override "
                 f"(--override-gate).")
+
+        # THE EXIT, STRUCTURED (INC-6 follow-up). A close used to carry its fill
+        # in --note free text and its decision_time was the instant the command
+        # ran; the realised P&L could not be computed from either.
+        if exit_price is not None and not float(exit_price) > 0:
+            raise ValueError(f"exit_price must be positive; got {exit_price!r}")
+        if exit_time is not None and not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(\+00:00|Z)",
+                str(exit_time)):
+            raise ValueError(f"exit_time must be an ISO instant in UTC "
+                             f"(…+00:00 or Z); got {exit_time!r}")
+        if exit_currency is not None and not re.fullmatch(r"[A-Z]{3}",
+                                                          str(exit_currency)):
+            raise ValueError(f"exit_currency must be a 3-letter ISO code; got "
+                             f"{exit_currency!r}")
+        if exit_fx_to_usd is not None and not float(exit_fx_to_usd) > 0:
+            raise ValueError(f"exit_fx_to_usd must be positive (USD per unit of "
+                             f"exit_currency); got {exit_fx_to_usd!r}")
+        if exit_currency == "USD" and exit_fx_to_usd not in (None, 1, 1.0):
+            raise ValueError("exit_fx_to_usd for a USD exit is 1")
 
         if book is not None and book not in BOOKS:
             raise ValueError(f"book must be one of {BOOKS}; got {book!r}")
@@ -813,9 +841,10 @@ class Register:
             " book, quantity, notional_usd, vega_usd, time_stop, close_reason,"
             " gate_outcome, gate_detail, gate_override,"
             " setup_id, engine_id, horizon_alignment, review_changed,"
-            " falsifiers, counter_thesis, expression_currency)"
+            " falsifiers, counter_thesis, expression_currency,"
+            " exit_price, exit_time, exit_currency, exit_fx_to_usd)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -827,7 +856,8 @@ class Register:
               if gate_detail is not None else None), gate_override,
              setup_id, engine_id, horizon_alignment, review_changed,
              (json.dumps(falsifiers) if falsifiers is not None else None),
-             counter_thesis, expr))
+             counter_thesis, expr, exit_price, exit_time, exit_currency,
+             exit_fx_to_usd))
         self.conn.commit()
         return did
 

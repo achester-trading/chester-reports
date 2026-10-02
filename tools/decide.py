@@ -783,6 +783,75 @@ def cmd_set_status(args) -> int:
             print(LINE)
             return 1
 
+        # ---- THE EXIT, STRUCTURED (INC-6 follow-up) -------------------------
+        # On a close: the operator's --exit-* flags, else the closing fill from
+        # the executions table, shown here (in a dry run too) for confirmation.
+        # The realised P&L is computed from them, never typed.
+        exit_fields = {k: old.get(k) for k in ("exit_price", "exit_time",
+                                               "exit_currency", "exit_fx_to_usd")}
+        if args.status == "closed":
+            from altdata import executions, observations  # noqa: PLC0415
+            from register import pnl  # noqa: PLC0415
+            # The search starts at the FIRST row of the chain: re-closing a row
+            # created after the fill must still find the fill.
+            first = dict(old)
+            prev = reg.conn.execute("SELECT * FROM decisions WHERE superseded_by = ?",
+                                    (first["id"],)).fetchone()
+            while prev is not None:
+                first = dict(prev)
+                prev = reg.conn.execute("SELECT * FROM decisions WHERE "
+                                        "superseded_by = ?", (first["id"],)).fetchone()
+            with observations.ObservationStore() as st:
+                with executions.ExecutionStore(args.db) as xs:
+                    found = pnl.exit_from_executions(
+                        {**dict(old), "decision_time": first.get("decision_time")
+                         or first["created_at"]},
+                        xs.all(), st)
+                given = {"exit_price": args.exit_price, "exit_time": args.exit_time,
+                         "exit_fx_to_usd": args.exit_fx}
+                # THE FILL FIRST, THE FLAGS OVER IT: --exit-fx alone (a peso close
+                # with no stored rate) keeps the fill's price and time.
+                srcs = []
+                if found:
+                    exit_fields.update({k: found[k] for k in exit_fields})
+                    srcs.append(f"executions table ({', '.join(found['exec_ids'])}; "
+                                f"FX {found['fx_source']})")
+                flagged = {k: v for k, v in given.items() if v is not None}
+                if flagged:
+                    exit_fields.update(flagged)
+                    if not exit_fields.get("exit_currency"):
+                        from register.store import listing_currency  # noqa: PLC0415
+                        exit_fields["exit_currency"] = (
+                            listing_currency(old["instrument"]) or "USD")
+                    srcs.append("operator flags: " + ", ".join(
+                        f"--{k.replace('exit_fx_to_usd', 'exit_fx').replace('_', '-')}"
+                        for k in flagged))
+                src = "; ".join(srcs) or None
+                if exit_fields.get("exit_currency") == "USD":
+                    exit_fields["exit_fx_to_usd"] = 1.0
+                if src and exit_fields.get("exit_price") is not None:
+                    print(f"\n  exit (from {src}) -- confirm before writing:")
+                    print(f"    exit_price      : {exit_fields['exit_price']:,.6g} "
+                          f"{exit_fields.get('exit_currency') or ''}")
+                    print(f"    exit_time (UTC) : {exit_fields['exit_time']}")
+                    fx = exit_fields.get("exit_fx_to_usd")
+                    print(f"    exit_fx_to_usd  : "
+                          + (f"{fx:.6g}" if fx else "NOT RECORDED -- pass --exit-fx"))
+                    r = pnl.realised({**dict(old), **exit_fields}, st)
+                    if r.get("pnl_local") is not None:
+                        print(f"    realised P&L    : {r['pnl_local']:+,.2f} "
+                              f"{r['currency']}"
+                              + (f" = {r['pnl_usd']:+,.2f} USD"
+                                 if r.get("pnl_usd") is not None else "")
+                              + f"   (qty {r['quantity']:g}, avg cost "
+                                f"{r['avg_cost']:,.6g})")
+                    for m in r["missing"]:
+                        print(f"    realised P&L    : {m}")
+                else:
+                    print("\n  exit not recorded -- no --exit-price and no closing "
+                          "fill in the executions table; the close is written "
+                          "without its exit")
+
         # The bar counts thesis_state and the note too. It used to compare only
         # status and operator_action, which made the most important revision
         # this command can write unwritable: a thesis that has been INVALIDATED
@@ -793,7 +862,10 @@ def cmd_set_status(args) -> int:
         if (args.status == old["status"] and action == old["operator_action"]
                 and (args.thesis_state or old["thesis_state"]) == old["thesis_state"]
                 and not args.note
-                and (args.instrument or old["instrument"]) == old["instrument"]):
+                and (args.instrument or old["instrument"]) == old["instrument"]
+                # A recorded exit IS a change: back-filling a close's fill
+                # supersedes a closed row with a closed row.
+                and all(exit_fields.get(k) == old.get(k) for k in exit_fields)):
             print(f"\n  NO CHANGE -- nothing written.")
             print(f"    Part 7 rule 4: revision has a bar. A superseding record "
                   f"that changes\n    nothing is noise in the trail that grades "
@@ -976,6 +1048,7 @@ def cmd_set_status(args) -> int:
                 # ACTIVATION of a non-USD listing recorded before the guard is
                 # judged by it like any new decision.
                 expression_currency=old_d.get("expression_currency") or "USD",
+                **exit_fields,
                 becoming_active=becoming_active)
         except CurrencyMismatchError as exc:
             # INC-6 at activation: refused with both currencies named, and
@@ -1222,6 +1295,14 @@ def main() -> int:
     ss.add_argument("--book", default=None, choices=BOOKS,
                     help="Name the book. Carried forward if omitted; required "
                          "when a row BECOMES active and has none.")
+    ss.add_argument("--exit-price", type=float, default=None,
+                    help="INC-6: the close's fill price, in the listing currency. "
+                         "Filled from the executions table when omitted.")
+    ss.add_argument("--exit-time", default=None, metavar="ISO-UTC",
+                    help="the fill time, ISO in UTC (2026-09-24T16:16:52+00:00)")
+    ss.add_argument("--exit-fx", type=float, default=None, metavar="USD_PER_UNIT",
+                    help="USD per one unit of the exit currency (1 for USD; "
+                         "0.054777 for pesos at 18.256 per dollar)")
     ss.add_argument("--close-reason", default=None, metavar="REASON",
                     help="Why a position was closed -- 'invalidation' for its "
                          "invalidation level. Book B closes inside two sessions "

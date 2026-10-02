@@ -618,6 +618,10 @@ def register_week(ending: str, store: Optional[Any] = None) -> dict:
             **_rule_breaks_week(start, ending),
         }
         out["packet_fields"] = packet_fields_week(rows, start, ending)
+        # INC-6 follow-up: the week's closes with their realised P&L, computed
+        # from the structured exit -- never typed.
+        from register import pnl as reg_pnl                    # noqa: PLC0415
+        out["closed"] = reg_pnl.closes_in(rows, start, ending, db)
         out["books_vs_benchmark"] = books_vs_benchmark(ending, db)
     finally:
         if own:
