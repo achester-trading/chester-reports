@@ -165,7 +165,9 @@ def rerender(args, log) -> int:
                                  + (f" (missing {', '.join(w['missing'])})"
                                     if w.get("missing") else ""))
                 else:
-                    cells.append(f"{wname}: {'present' if w['present'] else 'MISSING'}")
+                    cells.append(f"{wname}: " + (
+                        "not expected" if w.get("expected") is False else
+                        "present" if w["present"] else "MISSING"))
             print(f"   {c['item']:<30} {' | '.join(cells)}"
                   + (f"  -- free source: {c['free_source']}" if c.get("free_source")
                      and not any(w['present'] for w in c['windows'].values())

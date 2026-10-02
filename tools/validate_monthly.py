@@ -970,6 +970,47 @@ def group_h() -> None:
               and "ISM manufacturing dates" in la["not_yet_tracked"],
               "the coverage check reports every listed release by window: the "
               "fixture's FOMC is present, ISM is missing and footnoted")
+        # QUARTERLY AND ONE-OFF ITEMS ONLY IN THEIR OWN MONTHS.
+        ref = cov["Treasury quarterly refunding"]["windows"]
+        months_of = {w["name"]: {int(w["first"][5:7]), int(w["last"][5:7])}
+                     for w in la["windows"]}
+        refund_due = {n for n, ms in months_of.items()
+                      if ms & {2, 5, 8, 11} or any(m in (2, 5, 8, 11) for m in
+                                                   range(min(ms), max(ms) + 1))}
+        check(all((ref[n].get("expected") is False) == (n not in refund_due)
+                  for n in ref)
+              and not any(g.startswith("Treasury quarterly refunding for ")
+                          for g in la["not_yet_tracked"]),
+              f"the refunding is expected only in a window holding February, May, "
+              f"August or November, and is never flagged missing from another "
+              f"({ {n: w.get('expected', True) for n, w in ref.items()} })")
+        check(not any(g.startswith(("3 Nov midterms for",
+                                    "December quad witching for",
+                                    "GDP advance for"))
+                      for g in la["not_yet_tracked"]),
+              "nor are the midterms, December quad witching or the GDP advance "
+              "flagged missing outside their own months")
+
+        # TWO VOLATILITY READS, TWO NAMES, each audited against its own value.
+        from daily_cascade import narrative as nv
+        sl = [s["slice"] for s in prose_mod.plan(built)]
+        check(all("volatility regime" in s.get("volatility_terms", "")
+                  and "five-year history" in s.get("volatility_terms", "")
+                  for s in sl),
+              f"every section's input names both volatility reads and explains "
+              f"the difference ({len(sl)} slices)")
+        ms = {"vol": {"kind": "dial", "state": "normal",
+                      "vocabulary": ["crisis", "elevated", "normal", "subdued"]},
+              "volatility": {"kind": "dimension", "state": "subdued",
+                             "vocabulary": ["elevated", "normal", "subdued"]}}
+        check(not nv.state_contradictions(
+                  "The volatility regime is normal, while volatility against its "
+                  "five-year history is subdued.", ms)
+              and nv.state_contradictions("The volatility regime is subdued.", ms)
+              and nv.state_contradictions("Realized volatility is normal.", ms),
+              "the audit holds 'volatility regime' to the regime's stored read and "
+              "'volatility against its five-year history' (or 'realized "
+              "volatility') to the other's -- each name its own value")
         sysp = prose_mod.system_prompt("X", "y")
         check("open with the claim" in sysp and "implication for positioning" in sysp
               and "No headings, no bullet points" in sysp,

@@ -107,9 +107,26 @@ def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
 # PLAIN-LANGUAGE KEYS: a key name is a word the model will borrow, so the keys
 # say "our_reads" and "series", never "dimensions" or "rows".
 # ---------------------------------------------------------------------------
+# THE NAMES THE READER SEES for each read, and the line that tells the two
+# volatility reads apart (1 Oct 2026). Every slice carries VOLATILITY_TERMS so the
+# model can say both without conflating them; the state audit holds each name
+# to its own stored value (daily_cascade.narrative.STATE_ALIASES).
+AREA_NAMES = {"volatility": "volatility against its five-year history"}
+REGIME_NAMES = {"vol": "volatility regime", "macro": "macro regime",
+                "gamma": "dealer gamma"}
+VOLATILITY_TERMS = (
+    "Two different volatility reads, each with its own name. The volatility "
+    "regime bands the VIX's absolute level (normal is 14 to 20). Volatility "
+    "against its five-year history places the VIX and realized volatility within "
+    "their own last five years (subdued is the bottom third). Both can hold at "
+    "once: a VIX ordinary in level but low for recent years. Always use the full "
+    "name of the one you mean; never write bare 'volatility is ...'.")
+
+
 def _reads(p: dict, names: Optional[list] = None) -> list[dict]:
     """Our regime reads for these areas: the state, last month's, its percentile."""
-    return [{"area": d.get("dimension"), "our_read": d.get("state"),
+    return [{"area": AREA_NAMES.get(d.get("dimension"), d.get("dimension")),
+             "our_read": d.get("state"),
              "last_month": d.get("previous_state"),
              "read_changed": d.get("changed"), "percentile": d.get("percentile"),
              "not_available_because": d.get("absent_reason")}
@@ -118,7 +135,8 @@ def _reads(p: dict, names: Optional[list] = None) -> list[dict]:
 
 
 def _regime(p: dict) -> list[dict]:
-    return [{"regime": d.get("dial"), "our_read": d.get("state"),
+    return [{"regime": REGIME_NAMES.get(d.get("dial"), d.get("dial")),
+             "our_read": d.get("state"),
              "last_month": d.get("previous_state"), "read_changed": d.get("changed")}
             for d in ((p.get("regime") or {}).get("dials") or [])]
 
@@ -311,6 +329,8 @@ def plan(p: dict) -> list[dict]:
                              "moved over the month, with the numbers; and what to "
                              "watch next month.",
                     "paragraphs": "exactly 1", "slice": pillar_slice(p, num, pillar)})
+    for sec in out:
+        sec["slice"]["volatility_terms"] = VOLATILITY_TERMS
     return out
 
 

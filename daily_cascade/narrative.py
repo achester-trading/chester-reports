@@ -569,8 +569,20 @@ STATE_AUX = ("did", "does", "has", "had", "also", "then", "move", "moved",
              "again", "back", "firmly")
 # Names a dial is written under. The vol dial is only ever "vol dial": bare "vol"
 # is the volatility dimension's word in every other sentence.
+# TWO VOLATILITY READS, TWO NAMES (1 Oct 2026). The vol dial bands the VIX's
+# absolute level (normal is 14-20); the volatility dimension places the VIX and
+# realized volatility within their own five-year range (subdued is the bottom
+# third). They differ when the VIX is ordinary in level but low for recent years,
+# and a paragraph saying "volatility is normal" was withheld three times in two
+# dry runs for meaning the first while the audit read the second. Each name now
+# reaches its own stored read; bare "volatility" stays the dimension's.
 STATE_ALIASES = {"gamma": ("dealer gamma", "gamma dial", "gamma"),
-                 "vol": ("vol dial",), "macro": ("macro dial",)}
+                 "vol": ("vol dial", "volatility regime", "vol regime"),
+                 "macro": ("macro dial", "macro regime"),
+                 "volatility": ("volatility against its five-year history",
+                                "volatility versus its five-year history",
+                                "realized volatility", "realised volatility",
+                                "volatility")}
 
 
 def _name_re(name: str) -> str:

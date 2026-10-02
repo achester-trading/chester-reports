@@ -514,7 +514,11 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
     cov = coverage(conn, cutoff)
     gaps = []
     for c in cov:
-        ws = c["windows"]
+        # Windows the item is not expected in (its months fall elsewhere) are
+        # neither present nor missing; they are left out of the judgement.
+        ws = {n: w for n, w in c["windows"].items() if w.get("expected", True)}
+        if not ws:
+            continue
         if any("have" in w for w in ws.values()):
             have = {s for w in ws.values() for s in w.get("have") or []}
             want = [s for w in ws.values() for s in (w.get("have") or [])
@@ -744,6 +748,18 @@ def coverage(conn, cutoff: str) -> list[dict]:
         rx = re.compile(c["match"])
         per = {}
         for name, first, last in wins:
+            # ONLY IN ITS OWN MONTHS: a quarterly or one-off item is expected in a
+            # window only if one of its declared months falls inside it.
+            if c.get("months"):
+                f0, l0 = dt.date.fromisoformat(first), dt.date.fromisoformat(last)
+                in_win = {(f0.year, f0.month)}
+                d = f0
+                while (d.year, d.month) < (l0.year, l0.month):
+                    d = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+                    in_win.add((d.year, d.month))
+                if not any(m in c["months"] for _, m in in_win):
+                    per[name] = {"present": None, "expected": False}
+                    continue
             hits = []
             for r in rows:
                 if c.get("sources") and r["source"] not in c["sources"]:

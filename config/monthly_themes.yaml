@@ -240,6 +240,9 @@ calendar:
   include_sources: [session_calendar, claims_registry, yfinance, fed_monetary,
                     schedule_rule]
 
+# `months`: an item expected only in those calendar months (quarterly or one-off)
+# is only checked in a window that contains one of them -- the refunding is not
+# missing from October, it is a February/May/August/November event.
 # THE COVERAGE CHECK (Ari's second round): every release the look-ahead should
 # carry, how to recognise it in the events table, and -- when it is missing --
 # whether a free source exists. `match` is a regex over an event's title or its
@@ -251,7 +254,7 @@ coverage:
   - {item: JOLTS, match: "Job Openings and Labor Turnover", sources: [fred_releases]}
   - {item: Retail sales, match: "Retail (Sales|and Food Services)", sources: [fred_releases]}
   - {item: PCE, match: "Personal Income and Outlays", sources: [fred_releases]}
-  - {item: GDP advance, match: "Gross Domestic Product", sources: [fred_releases]}
+  - {item: GDP advance, months: [1, 4, 7, 10], match: "Gross Domestic Product", sources: [fred_releases]}
   - {item: ISM manufacturing, match: "ISM.*Manufacturing|Manufacturing ISM", sources: [],
      free_source: "ISM's own release calendar (ismworld.org); no ingest source here"}
   - {item: ISM services, match: "ISM.*Services|Services ISM", sources: [],
@@ -260,12 +263,12 @@ coverage:
   - {item: FOMC meetings, match: "FOMC statement", sources: [claims_registry, fed_monetary]}
   - {item: FOMC minutes, match: "FOMC minutes|Minutes of the Federal Open Market", sources: [],
      free_source: "the Fed's FOMC calendar (federalreserve.gov) lists minutes dates; no ingest source here"}
-  - {item: Treasury quarterly refunding, match: "[Rr]efunding", sources: [],
+  - {item: Treasury quarterly refunding, months: [2, 5, 8, 11], match: "[Rr]efunding", sources: [],
      free_source: "Treasury's quarterly refunding schedule (home.treasury.gov); no ingest source here"}
   - {item: "Q3 earnings, mega-caps", match: "(AAPL|MSFT|GOOGL|AMZN|META|NVDA) earnings", sources: [yfinance],
      expect: [AAPL, MSFT, GOOGL, AMZN, META, NVDA]}
   - {item: "Q3 earnings, banks", match: "(JPM|BAC|C|WFC|GS|MS) earnings", sources: [yfinance],
      expect: [JPM, BAC, C, WFC, GS, MS],
      free_source: "yfinance's earnings calendar, the same free source the mega-caps use; the banks are not in its symbol list"}
-  - {item: 3 Nov midterms, once: true, match: "midterm election", sources: [claims_registry]}
-  - {item: December quad witching, once: true, match: "TRIPLE_WITCHING|QUAD", sources: [session_calendar]}
+  - {item: 3 Nov midterms, once: true, months: [11], match: "midterm election", sources: [claims_registry]}
+  - {item: December quad witching, once: true, months: [12], match: "TRIPLE_WITCHING|QUAD", sources: [session_calendar]}
