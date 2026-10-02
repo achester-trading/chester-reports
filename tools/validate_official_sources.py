@@ -1222,22 +1222,25 @@ def group_r() -> None:
     calls: dict = {}
     saved = {n: getattr(feeds, n) for n in
              ("pull_prices", "pull_fred", "pull_official", "pull_external",
-              "pull_loggers")}
+              "pull_loggers", "pull_prediction_markets")}
     try:
         feeds.pull_prices = lambda run_id=None: calls.setdefault("prices", True) and {}
         feeds.pull_fred = lambda run_id=None: calls.setdefault("fred", True) and {}
         feeds.pull_external = lambda run_id=None: calls.setdefault("external", True) and {}
         feeds.pull_loggers = lambda run_id=None: calls.setdefault("loggers", True) and {}
+        feeds.pull_prediction_markets = (lambda run_id=None:
+                                         calls.setdefault("prediction_markets", True)
+                                         and {})
         feeds.pull_official = (lambda run_id=None, names=None:
                                calls.setdefault("official", names) and {})
         r = feeds.pull(early=True)
     finally:
         for n, fn in saved.items():
             setattr(feeds, n, fn)
-    check(r["ran"] == ["prices", "official"]
-          and sorted(r["skipped"]) == ["bars", "external", "fred", "loggers"]
+    check(r["ran"] == ["prices", "official", "prediction_markets"]
+          and sorted(r["skipped"]) == ["bars", "external", "fed_funds", "fred", "loggers"]
           and calls.get("official") == feeds.EARLY_WRITERS,
-          f"pull(early=True) ran {r['ran']} with official limited to "
+          f"pull(early=True) ran {r['ran']} (the venues at 06:45, 6d) with official limited to "
           f"{calls.get('official')}, and skipped {sorted(r['skipped'])} -- the 79 "
           f"FRED series that overran the unit are the 16:10 pull's")
 

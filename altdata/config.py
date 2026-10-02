@@ -184,6 +184,9 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # the unit rule in CLAUDE.md. The price basket's instruments are all
     # USD-listed; MXN is the one non-USD listing the account has held.
     SeriesSpec("usd_mxn",          "DEXMXUS",    "MXN/USD exchange rate (pesos per dollar)","7","MXN","daily"),
+    # 6d (2 Oct 2026, item 10): the 5-year breakeven for the What's-priced trigger,
+    # beside T10YIE and T5YIFR. Percent, daily -- read off FRED's series page.
+    SeriesSpec("breakeven_5y",     "T5YIE",      "5-year breakeven inflation rate",  "4", "%",    "daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

@@ -96,12 +96,12 @@ jobs:
 
   # DATA GATES, REPORTED AND NOT REQUIRED.
   #
-  # continue-on-error, and the reason is not leniency: a CI runner is a fresh
-  # checkout with no captured chains, so this gate cannot reach the data its
-  # verdict is about. Requiring it would make every build red for the absence of
-  # something CI was never going to have, and a build that is always red is a
-  # build nobody reads. It runs so the output is on the record; `make data-gates`
-  # on the box is where the verdict actually means something.
+  # A CI runner is a fresh checkout with no captured chains, so a data gate cannot
+  # reach the data its verdict is about. Until 2 Oct 2026 the five failed here on
+  # every push behind continue-on-error -- a build that is always red is a build
+  # nobody reads. Each now prints "skipped: box-only" and exits 0 under GitHub
+  # Actions (tools/box_only.py); `make data-gates` on the box is where the verdict
+  # actually means something. Still not required by gates-passed.
   #
   # It is deliberately NOT in `needs` for gates-passed below.
   data-gate:
@@ -109,7 +109,9 @@ jobs:
     if: needs.enumerate.outputs.data != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
+    # No continue-on-error (6d, 2 Oct 2026): each data gate now SKIPS explicitly
+    # under GitHub Actions -- "skipped: box-only", exit 0 (tools/box_only.py) --
+    # so a red leg here is a real failure, not the expected one.
     strategy:
       fail-fast: false
       matrix:

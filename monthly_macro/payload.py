@@ -546,6 +546,17 @@ def _read_by(as_of: Optional[str] = None,
     return out, src
 
 
+def pm_gate_block(cutoff: str, store) -> dict:
+    """The prediction-market calibration-archive gate, condition by condition."""
+    try:
+        from altdata import prediction_markets as pm               # noqa: PLC0415
+        from altdata.sources import prediction_markets as pm_src   # noqa: PLC0415
+        return {"state": "ok",
+                **pm.gate_progress(store, cutoff, pm_src.load_config())}
+    except Exception as exc:                                      # noqa: BLE001
+        return {"state": "absent", "reason": f"{type(exc).__name__}: {exc}"}
+
+
 def appendix_block(as_of: Optional[str] = None,
                    store: Optional[Any] = None) -> dict:
     """One delta row per series, grouped by pillar. THIS IS WHERE THE HALVING IS.
@@ -707,6 +718,10 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None) -> dict:
         out["alternative_assets"] = alternative_assets_block(cutoff, store=db)
         out["register_month"] = register_month_block(cutoff)
         out["appendix"] = appendix_block(cutoff, store=db)
+        # 6d: the calibration-archive gate's progress, printed in the appendix.
+        # Confidence-modification from venue odds is not built and may not be
+        # proposed until every condition holds (config/prediction_markets.yaml).
+        out["appendix"]["pm_calibration_gate"] = pm_gate_block(cutoff, db)
         out.update(v2_sections(out))
         out["warnings"] = [
             f"{name}: {(out.get(name) or {}).get('state')} -- "

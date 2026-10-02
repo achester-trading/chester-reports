@@ -71,6 +71,9 @@ THE TAPE'S RULES:
 6. A probability appears only as an outlook's BASE RATE, in this form: "the base
    rate for <the outlook's claim> is 79% (n=82)". It is a frequency in the stored
    history, never our view: no "we expect", "likely", "odds", "chance", "lean".
+   A VENUE'S figure is the market's price, written as such: "Kalshi prices a
+   hike at 62%", "fed funds futures imply 21% of a 25 bp hike" -- never "a 62%
+   chance", never as a fact or as our view, and never as a reason to act.
 7. No adjective does a number's work: no "plunged", "soared", "massive" without
    the figure in the same sentence.
 8. Short declarative sentences; one idea per paragraph; the figure in the

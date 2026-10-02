@@ -394,6 +394,15 @@ class GradeStore:
             self.conn.execute("ALTER TABLE grades ADD COLUMN rule_breaks TEXT")
         except sqlite3.OperationalError:
             pass
+        # ITEM 8c (Doctrine monthly, 2 Oct 2026): the gate outcome the graded
+        # decision was taken under, as a DERIVED label at grading time -- the
+        # register's recorded gate outcome, or "pre-gate" where the decision has
+        # no gate record. ADDITIVE: grades written before the column read NULL,
+        # which means "not recorded at grading", and no existing row is edited.
+        try:
+            self.conn.execute("ALTER TABLE grades ADD COLUMN gate_outcome TEXT")
+        except sqlite3.OperationalError:
+            pass
         self.conn.commit()
 
     def close(self) -> None:
@@ -430,6 +439,21 @@ class GradeStore:
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM grades WHERE method_version = ? AND graded_at > ? "
             "ORDER BY graded_at", (METHOD_VERSION, when))]
+
+
+PRE_GATE = "pre-gate"
+
+
+def gate_label(decision: dict) -> str:
+    """The gate outcome a decision was taken under (item 8c).
+
+    The register's `gate_outcome` when the decision went through the order gate
+    at entry; "pre-gate" when it carries none -- every decision entered before
+    the gate existed. Derived here at grading time and never written back to the
+    register: the label describes the decision, the register row stays as it
+    was recorded."""
+    g = decision.get("gate_outcome")
+    return str(g) if g not in (None, "") else PRE_GATE
 
 
 def grade_one(decision: dict, prices: PriceSeries, *,
@@ -570,6 +594,7 @@ def grade_one(decision: dict, prices: PriceSeries, *,
         "instrument": inst,
         "direction": direction,
         "status": decision.get("status"),
+        "gate_outcome": gate_label(decision),
         "operator_action": decision.get("operator_action"),
         "thesis_state": decision.get("thesis_state"),
         "decision_time": entry,

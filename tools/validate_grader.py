@@ -383,6 +383,52 @@ def group_g(d: Path) -> None:
     check(s["invalidation_hit_rate"] == 1.0, "with a 100% invalidation hit rate")
 
 
+def group_h(d: Path) -> None:
+    print(f"\n{LINE}\nH. ITEM 8c -- gate_outcome, DERIVED AT GRADING, NO ROW EDITED\n{LINE}")
+    import copy
+    import sqlite3
+    px = prices(d)
+    pre = decision(id="seed_h1")
+    before = copy.deepcopy(pre)
+    r1 = grader.grade_one(pre, px, now=AFTER)
+    check(r1["graded"] and r1["grade"]["gate_outcome"] == "pre-gate",
+          f"a decision with no gate record grades as 'pre-gate' "
+          f"({r1['grade'].get('gate_outcome') if r1.get('grade') else r1['reason']})")
+    check(pre == before, "and grading it changes nothing on the decision it read")
+    r2 = grader.grade_one(decision(id="seed_h2", gate_outcome="resize"), px, now=AFTER)
+    check(r2["graded"] and r2["grade"]["gate_outcome"] == "resize",
+          "a decision with a gate record carries the gate's recorded outcome")
+    # A grade store written BEFORE the column existed: its rows must survive the
+    # migration exactly, with the new column NULL ("not recorded"), never filled.
+    db = d / "old_grades.db"
+    con = sqlite3.connect(str(db))
+    con.executescript(grader.SCHEMA)          # the schema as it was: no column
+    con.execute("ALTER TABLE grades ADD COLUMN rule_breaks TEXT")
+    g0 = {k: v for k, v in r1["grade"].items() if k != "gate_outcome"}
+    con.execute(f"INSERT INTO grades ({','.join(g0)}) VALUES "
+                f"({','.join('?' * len(g0))})", list(g0.values()))
+    con.commit()
+    cols_before = [c[1] for c in con.execute("PRAGMA table_info(grades)")]
+    old0 = [tuple(r) for r in con.execute("SELECT * FROM grades")]
+    con.close()
+    with grader.GradeStore(str(db)) as gs:
+        gs.write(r2["grade"])
+        rows = gs.all_grades()
+    con = sqlite3.connect(str(db))
+    cols_after = [c[1] for c in con.execute("PRAGMA table_info(grades)")]
+    old1 = [tuple(r)[:len(old0[0])] for r in con.execute(
+        "SELECT * FROM grades WHERE decision_id = 'seed_h1'")]
+    con.close()
+    check("gate_outcome" not in cols_before and "gate_outcome" in cols_after
+          and old1 == old0,
+          "the column is additive: a row graded before it reopens byte-for-byte "
+          "unchanged")
+    by = {r["decision_id"]: r.get("gate_outcome") for r in rows}
+    check(by.get("seed_h1") is None and by.get("seed_h2") == "resize",
+          f"and stays NULL ('not recorded at grading'), while a new grade stores "
+          f"its label ({by})")
+
+
 def main() -> int:
     print(f"{LINE}\nPhase 3 -- grader, cuts and probability ledger (seeded)\n{LINE}")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
@@ -394,6 +440,7 @@ def main() -> int:
         group_e(d)
         group_f(d)
         group_g(d)
+        group_h(d)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

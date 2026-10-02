@@ -87,7 +87,8 @@ def staleness_multiple() -> float:
     except Exception:                                         # noqa: BLE001
         return float(STALENESS_MULTIPLE_FALLBACK)
 
-FEEDS = ("prices", "fred", "official", "external", "loggers", "bars")
+FEEDS = ("prices", "fred", "official", "external", "loggers", "bars",
+         "prediction_markets", "fed_funds")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
@@ -450,6 +451,39 @@ def pull_bars(run_id: Optional[str] = None) -> dict:
     return out
 
 
+# 6d. The venues' keys the heartbeat watches: pm.market is written only when a
+# description changes, so it is not a freshness key.
+PREDICTION_KEYS = ("pm.probability", "pm.volume")
+
+
+def pull_prediction_markets(run_id: Optional[str] = None) -> dict:
+    """KALSHI AND POLYMARKET (6d): the watch list and the discovery slice, read
+    from public endpoints into the store. In the 16:10 eod run AND the 06:45
+    early set (brief section 4), so the close prints the day's change. An outage
+    is recorded as attempted, so the heartbeat reads a dead venue as stale rather
+    than pending."""
+    from .sources import prediction_markets as pm_src         # noqa: PLC0415
+    out = pm_src.pull(run_id=run_id)
+    record_attempted("prediction_markets", list(PREDICTION_KEYS))
+    for k, v in (out.get("errors") or {}).items():
+        log.warning("prediction_markets: %s -- %s", k, v)
+    log.info("prediction_markets: %s markets, %s written", out.get("markets"),
+             out.get("written"))
+    return out
+
+
+def pull_fed_funds(run_id: Optional[str] = None) -> dict:
+    """FED FUNDS FUTURES (6d rate path, brief 2.4): the next ten monthly
+    contracts from yfinance. In the 16:10 eod run only -- a settlement, like a
+    close, is a 16:00 fact."""
+    from . import fed_funds                                   # noqa: PLC0415
+    out = fed_funds.pull(run_id=run_id)
+    record_attempted("fed_funds", [fed_funds.KEY])
+    log.info("fed_funds: served %s; failed %s", out.get("served"),
+             sorted(out.get("failed") or {}))
+    return out
+
+
 def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = (), early: bool = False) -> dict:
     """Run the feeds. `early` is the 06:45 correction set: the prices and the
@@ -457,12 +491,14 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
     out: dict[str, Any] = {"ran": [], "skipped": []}
     if early:
         only = None
-        skip = ("fred", "external", "loggers", "bars")
+        skip = ("fred", "external", "loggers", "bars", "fed_funds")
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
                      ("official", (lambda run_id: pull_official(run_id, EARLY_WRITERS))
                       if early else pull_official),
                      ("external", pull_external), ("loggers", pull_loggers),
-                     ("bars", pull_bars)):
+                     ("bars", pull_bars),
+                     ("prediction_markets", pull_prediction_markets),
+                     ("fed_funds", pull_fed_funds)):
         if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue
@@ -505,6 +541,9 @@ def freshness(as_of: Optional[str] = None,
                    ("official", official_keys()),
                    ("external", external_keys())]
         rosters += logger_rosters()
+        from . import fed_funds as _ff                         # noqa: PLC0415
+        rosters += [("prediction_markets", list(PREDICTION_KEYS)),
+                    ("fed_funds", [_ff.KEY])]
         attempted = read_attempted()
         out["attempted_recorded"] = attempted is not None
         for name, keys in rosters:

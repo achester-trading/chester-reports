@@ -648,6 +648,19 @@ def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
                 f"nothing is a candidate for deletion, not a finding.*\n")
         out.append("")
 
+    g = b.get("pm_calibration_gate") or {}
+    if g.get("state") == "ok":
+        out.append("### Prediction markets — the calibration-archive gate\n")
+        out.append(f"*{g.get('right')}.*\n")
+        out.append("| Condition | Have | Need | Met |")
+        out.append("|---|---|---|---|")
+        for c in g.get("conditions") or []:
+            out.append(f"| {c['condition']} | {c['have']} | {c['need']} | "
+                       f"{'yes' if c.get('met') else 'no'} |")
+        out.append("")
+    elif g:
+        out.append(f"*Prediction-market calibration gate: not read "
+                   f"({g.get('reason')}).*\n")
     for num, v in sorted((b.get("pillars") or {}).items()):
         out.append(f"### Pillar {num} — {v.get('name')} "
                    f"(dial: {v.get('dial') or 'none'}, weight "
