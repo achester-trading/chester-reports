@@ -171,18 +171,32 @@ def group_f(m: dict) -> None:
     check(a == b, f"two computations agree byte for byte ({len(a)} chars) -- the "
                   f"expectation is a deterministic midpoint grid, not a seeded "
                   f"Monte Carlo")
-    db = observations.ObservationStore()
+    # A TEMPORARY STORE, SEEDED HERE (CLAUDE.md: a code gate never reads the live
+    # store). This read the default store until 2 Oct 2026, so its verdict was
+    # about whenever `weekly` last ran on that machine -- it failed on the laptop
+    # for a row more than a week old, which says nothing about the commit.
+    import datetime as _dt
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="validate_structure_compare_")
+    db = observations.ObservationStore(str(Path(tmp) / "sc.db"))
     try:
-        stale = sc.stale_symbols(db, ["SPY"])
-        rows = db.as_of("structure.compare.spy")
-        if not rows:
-            SKIPPED.append("no stored structure.compare.spy to test the guard")
-            print("  SKIP  nothing stored yet; run `weekly` first")
-        else:
-            check(not stale,
-                  "a symbol written inside the week is not rewritten -- the guard "
-                  "counts days since the last row rather than testing a weekday, "
-                  "so it fires once a week and self-heals after an outage")
+        last = sc.session.last_completed_session()
+
+        def seed(sym: str, days_ago: int) -> None:
+            day = (last - _dt.timedelta(days=days_ago)).isoformat()
+            db.write(f"{sc.KEY_PREFIX}{sym.lower()}", None, day,
+                     f"{day}T21:00:00+00:00", json.dumps({"fixture": True}),
+                     "fixture")
+        seed("SPY", 2)
+        seed("QQQ", sc.WEEKLY_DAYS + 1)
+        stale = sc.stale_symbols(db, ["SPY", "QQQ", "IWM"])
+        check("SPY" not in stale,
+              "a symbol written inside the week is not rewritten -- the guard "
+              "counts days since the last row rather than testing a weekday, "
+              "so it fires once a week and self-heals after an outage")
+        check("QQQ" in stale and "IWM" in stale,
+              f"and one last written {sc.WEEKLY_DAYS + 1} days ago, or never, is "
+              f"({stale})")
         e = derived.registry_entry("structure.compare.spy")
         check(e.get("mechanism_group") == "structure_economics",
               f"the key is registered in its own mechanism group "

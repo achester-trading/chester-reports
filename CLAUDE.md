@@ -174,7 +174,7 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — thirty-four code gates and five data gates, no
+**`make validate` runs every gate** — thirty-five code gates and five data gates, no
 network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are

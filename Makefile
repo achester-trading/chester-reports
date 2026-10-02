@@ -59,6 +59,7 @@ PY_VALIDATORS := \
 	tools/validate_config_refs.py \
 	tools/validate_enforce.py \
 	tools/validate_benchmark.py \
+	tools/validate_stack.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

@@ -1235,7 +1235,7 @@ def group_r() -> None:
         for n, fn in saved.items():
             setattr(feeds, n, fn)
     check(r["ran"] == ["prices", "official"]
-          and sorted(r["skipped"]) == ["external", "fred", "loggers"]
+          and sorted(r["skipped"]) == ["bars", "external", "fred", "loggers"]
           and calls.get("official") == feeds.EARLY_WRITERS,
           f"pull(early=True) ran {r['ran']} with official limited to "
           f"{calls.get('official')}, and skipped {sorted(r['skipped'])} -- the 79 "
