@@ -87,7 +87,7 @@ def staleness_multiple() -> float:
     except Exception:                                         # noqa: BLE001
         return float(STALENESS_MULTIPLE_FALLBACK)
 
-FEEDS = ("prices", "fred", "official", "external", "loggers")
+FEEDS = ("prices", "fred", "official", "external", "loggers", "bars")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
@@ -432,6 +432,24 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
     return out
 
 
+def pull_bars(run_id: Optional[str] = None) -> dict:
+    """THE TAPE SET'S BARS (reporting-stack T1, ruled 2 Oct 2026): the session's
+    5-minute bars and recent daily bars, into the `bars` table this feed creates
+    and owns. In the 16:10 eod run only -- the 06:45 early set skips it and the
+    16:45 close runs prices alone -- because the close reads bars and never
+    fetches them (30.4). Retries a missing final bar for up to five minutes."""
+    from . import bars as bars_mod                             # noqa: PLC0415
+    out = bars_mod.pull()
+    short = {k: v for k, v in out["instruments"].items()
+             if v.get("error") or not v.get("final_bar")}
+    for k, v in short.items():
+        log.warning("bars: %s short -- %s", k, v.get("error") or
+                    f"{v.get('5m')} bars, final bar missing after "
+                    f"{v.get('attempts')} attempt(s)")
+    log.info("bars: %d instruments, %d short", len(out["instruments"]), len(short))
+    return out
+
+
 def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = (), early: bool = False) -> dict:
     """Run the feeds. `early` is the 06:45 correction set: the prices and the
@@ -439,11 +457,12 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
     out: dict[str, Any] = {"ran": [], "skipped": []}
     if early:
         only = None
-        skip = ("fred", "external", "loggers")
+        skip = ("fred", "external", "loggers", "bars")
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
                      ("official", (lambda run_id: pull_official(run_id, EARLY_WRITERS))
                       if early else pull_official),
-                     ("external", pull_external), ("loggers", pull_loggers)):
+                     ("external", pull_external), ("loggers", pull_loggers),
+                     ("bars", pull_bars)):
         if (only and only != name) or name in skip:
             out["skipped"].append(name)
             continue

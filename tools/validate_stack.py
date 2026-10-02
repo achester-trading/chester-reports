@@ -19,7 +19,9 @@ a real position or a real price:
   D CHARTS     C1-C3 render to PNG and SVG; PNG <= 150 KB; the email's Content-ID
                set matches the charts the body references; a chart that cannot
                render prints its reason.
-  E INTRADAY   fewer than 90% of the session's bars: "bars incomplete", C1 omitted.
+  E INTRADAY   fewer than 90% of the session's bars: "bars incomplete", C1 omitted;
+               the bars feed (16:10 eod) retries a missing final bar for five
+               minutes and owns the table; the close fetches nothing.
   F BUDGET     an over-budget edition drops low-priority lines and prints
                "(trimmed)" at the section.
   G LEDGER     outlooks are computed from stored closes, recorded before printing,
@@ -79,7 +81,7 @@ def seed(db: str, *, bars_5m: int = 78, cpi_today: bool = False,
     from altdata import bars as bars_mod, observations, events, session
     import regime
     days = weekdays_back(dt.date.fromisoformat(SESSION), 320)
-    with bars_mod.BarStore(db) as bst:
+    with bars_mod.BarStore(db, create=True) as bst:
         rows = []
         for t in bars_mod.tape():
             base = {"y10": 4.0, "y30": 4.5}.get(t["id"], 500.0)
@@ -206,7 +208,7 @@ def main() -> int:
 
     # --- A. THE STACK -----------------------------------------------------------
     print(f"\n{LINE}\nA. THE STACK\n{LINE}")
-    out1 = stack_close.produce(p, archive_dir=arch, dry_run=False, fetch=False,
+    out1 = stack_close.produce(p, archive_dir=arch, dry_run=False,
                                client=clean, db_path=db)
     ed1 = out1["edition"]
     ids = [s["id"] for s in ed1["sections"]]
@@ -400,7 +402,7 @@ def main() -> int:
     check(not it["complete"] and it["reason"] == "bars incomplete (n=60 of 78)",
           f"60 of 78 bars is incomplete ({it['reason']})")
     o3 = stack_close.produce(payload(s3["market_state"]), archive_dir=None,
-                             dry_run=True, fetch=False, client=clean, db_path=db3)
+                             dry_run=True, client=clean, db_path=db3)
     c1 = o3["charts"]["C1"]
     check(c1.get("unavailable") == "bars incomplete (n=60 of 78)"
           and "chart unavailable: bars incomplete" in o3["html_email"],
@@ -409,21 +411,107 @@ def main() -> int:
     check("vwap" not in {lv["type"] for lv in spy3["levels"]}
           and "incomplete" in spy3["absent"].get("vwap", ""),
           "and no VWAP is computed from an incomplete session")
-    # The pull, against a fixture fetcher: it writes 5m and 1d bars.
+    # THE FEED (ruled 2 Oct 2026): the pull lives in the 16:10 eod run, retries a
+    # missing final bar for up to five minutes, and creates and owns the table.
     import pandas as pd
-    def fetcher(symbol, **kw):
-        if kw.get("interval") == "5m":
-            idx = pd.date_range(f"{SESSION} 09:30", periods=78, freq="5min",
-                                tz="America/New_York")
-        else:
-            idx = pd.DatetimeIndex([pd.Timestamp(SESSION)])
-        return pd.DataFrame({"Open": 1.0, "High": 1.1, "Low": 0.9, "Close": 1.0,
-                             "Volume": 10.0}, index=idx)
-    with bars_mod.BarStore(str(Path(td) / "pull.db")) as bst:
-        rep = bars_mod.pull(SESSION, store=bst, fetcher=fetcher)
+
+    def make_fetcher(served: list):
+        """Serves `served[k]` bars on the k-th intraday call (the last repeats)."""
+        calls = {"n": 0}
+
+        def fetcher(symbol, **kw):
+            if kw.get("interval") == "5m":
+                n = served[min(calls["n"], len(served) - 1)]
+                calls["n"] += 1
+                idx = pd.date_range(f"{SESSION} 09:30", periods=n, freq="5min",
+                                    tz="America/New_York")
+            else:
+                idx = pd.DatetimeIndex([pd.Timestamp(SESSION)])
+            return pd.DataFrame({"Open": 1.0, "High": 1.1, "Low": 0.9, "Close": 1.0,
+                                 "Volume": 10.0}, index=idx)
+        return fetcher, calls
+
+    class Clock:
+        def __init__(self):
+            self.t, self.slept = 0.0, []
+
+        def __call__(self):
+            return self.t
+
+        def sleep(self, s):
+            self.slept.append(s)
+            self.t += s
+
+    from altdata import feeds
+    import inspect
+    fetch1, _ = make_fetcher([78])
+    with bars_mod.BarStore(str(Path(td) / "pull.db"), create=True) as bst:
+        rep = bars_mod.pull(SESSION, store=bst, fetcher=fetch1)
         n5 = len(bst.read("spy", "5m"))
-    check(rep["instruments"]["spy"].get("5m") == 78 and n5 == 78,
-          "the bars pull stores the session's 5-minute bars with their clocks")
+        first = bst.read("spy", "5m")[0]
+    check(rep["instruments"]["spy"].get("5m") == 78 and n5 == 78
+          and first["available_at"] and first["ingested_at"] and first["observed_at"],
+          "the bars feed stores the session's 5-minute bars with the three clocks")
+    spec = [t for t in bars_mod.tape() if t["id"] == "spy"]
+    clk = Clock()
+    fetch2, calls2 = make_fetcher([77, 77, 78])
+    orig = bars_mod.load_config
+    bars_mod.load_config = lambda path=None: {**orig(path), "tape": spec}
+    try:
+        with bars_mod.BarStore(str(Path(td) / "retry.db"), create=True) as bst:
+            r2 = bars_mod.pull(SESSION, store=bst, fetcher=fetch2, sleep=clk.sleep,
+                               clock=clk)["instruments"]["spy"]
+        check(r2["attempts"] == 3 and r2["final_bar"] and r2["5m"] == 78
+              and clk.slept == [30.0, 30.0],
+              f"a missing final bar is fetched again every 30 s until it arrives "
+              f"({r2['attempts']} attempts, slept {clk.slept})")
+        clk = Clock()
+        fetch3, _ = make_fetcher([70])
+        with bars_mod.BarStore(str(Path(td) / "short.db"), create=True) as bst:
+            r3 = bars_mod.pull(SESSION, store=bst, fetcher=fetch3, sleep=clk.sleep,
+                               clock=clk)["instruments"]["spy"]
+            it3 = bars_mod.intraday(bst, "spy", SESSION)
+        check(not r3["final_bar"] and sum(clk.slept) <= 300 and r3["attempts"] == 11
+              and r3["5m"] == 70,
+              f"and gives up inside five minutes, storing what arrived "
+              f"({r3['attempts']} attempts, {sum(clk.slept):.0f} s slept)")
+        check(it3["reason"] == "bars incomplete (n=70 of 78)",
+              f"which the close then prints ({it3['reason']})")
+    finally:
+        bars_mod.load_config = orig
+    fresh = str(Path(td) / "never_fed.db")
+    import sqlite3
+    sqlite3.connect(fresh).close()
+    with bars_mod.BarStore(fresh) as bst:
+        none = bars_mod.intraday(bst, "spy", SESSION)
+    with sqlite3.connect(fresh) as c:
+        made = c.execute("SELECT 1 FROM sqlite_master WHERE name='bars'").fetchone()
+    check(made is None and none["reason"] == "bars incomplete (n=0 of 78)",
+          "a reader never creates the bars table: the feed owns it, and an unfed "
+          "store reads as 'bars incomplete (n=0 of 78)'")
+    try:
+        with bars_mod.BarStore(fresh) as bst:
+            bst.write_many([])
+        wrote = True
+    except RuntimeError:
+        wrote = False
+    check(not wrote, "and a reader cannot write bars")
+    src = "".join(inspect.getsource(m) for m in (stack_close, stack_mod,
+                                                 charts_mod, stack_prose))
+    src += (REPO / "daily_cascade" / "close_report.py").read_text(encoding="utf-8")
+    check("bars_mod.pull" not in src and "import yfinance" not in src
+          and "create=True" not in src,
+          "the close fetches nothing: no bars pull, no yfinance, no table creation "
+          "in the close's modules (30.4)")
+    check("bars" in feeds.FEEDS and "bars" in inspect.getsource(feeds.pull)
+          and "bars" in re.search(r'skip = \(([^)]*)\)',
+                                  inspect.getsource(feeds.pull)).group(1),
+          "bars is a feed, run by the eod pull and skipped by the 06:45 early set")
+    eod = (REPO / "scripts" / "run_eod_cron.sh").read_text(encoding="utf-8")
+    close_sh = (REPO / "scripts" / "run_daily_close.sh").read_text(encoding="utf-8")
+    check("altdata.feeds pull --skip loggers" in eod
+          and "altdata.feeds pull --only prices" in close_sh,
+          "the 16:10 eod run pulls it; the 16:45 close's feed step is prices only")
 
     # --- F. BUDGET ------------------------------------------------------------------
     print(f"\n{LINE}\nF. BUDGET\n{LINE}")

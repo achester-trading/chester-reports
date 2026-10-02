@@ -2,10 +2,11 @@
 The stacked close, end to end. (reporting-stack brief, Tranche T1)
 
     from daily_cascade import stack_close
-    out = stack_close.produce(payload, archive_dir=..., dry_run=..., fetch=...)
+    out = stack_close.produce(payload, archive_dir=..., dry_run=...)
 
-ORDER, AND WHY. (1) The tape set's bars are pulled -- the close run's one fetch,
-before anything reads them (brief 2.3). (2) The level list is computed once and
+ORDER, AND WHY. (1) Nothing is fetched: the tape set's bars were pulled by the
+`bars` feed in the 16:10 eod run, and a short pull prints "bars incomplete (n=...)"
+(brief 2.3; 30.4, ruled 2 Oct 2026). (2) The level list is computed once and
 every later step reads it (2.2). (3) The outlooks are computed and, unless this
 is a dry run, written to the ledger -- before anything prints them (1.3). (4) The
 stack is assembled: items, depth and triggers, change marks against the prior
@@ -114,31 +115,14 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict]) ->
     return row
 
 
-def produce(p: dict, *, archive_dir: str, dry_run: bool = False, fetch: bool = True,
+def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             client=None, model: Optional[str] = None, narrative: bool = True,
-            fetcher=None, db_path: Optional[str] = None) -> dict:
+            db_path: Optional[str] = None) -> dict:
     sess = p["session"]
     cutoff = p.get("as_of") or session.utc_iso()
     cfg = bars_mod.load_config()
     report: dict[str, Any] = {}
-    # A DRY RUN WRITES NOTHING, and still needs the session's bars: it pulls
-    # into a temporary bar store seeded with what is already stored, and every
-    # bar-reading step below reads that.
-    tmp = None
-    if dry_run and fetch:
-        import shutil                                           # noqa: PLC0415
-        import tempfile                                         # noqa: PLC0415
-        tmp = tempfile.mkdtemp(prefix="stack_dry_")
-        bar_path = str(Path(tmp) / "bars.db")
-        with bars_mod.BarStore(db_path) as live, bars_mod.BarStore(bar_path) as t:
-            for spec in cfg.get("tape") or []:
-                t.write_many(live.read(spec["id"], "1d") + live.read(spec["id"], "5m"))
-    else:
-        bar_path = db_path
-    with bars_mod.BarStore(bar_path) as bst:
-        if fetch:
-            report["bars"] = bars_mod.pull(sess, store=bst, dry_run=False,
-                                           fetcher=fetcher)
+    with bars_mod.BarStore(db_path) as bst:
         book = levels_mod.compute(sess, p.get("exposure"), store=bst, as_of=None,
                                   tol_bps=float(p.get("tolerance_bps") or 25.0))
         outs = outlooks_mod.build(sess, bst)
@@ -206,8 +190,6 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False, fetch: bool = T
                                 "observed_at": sess, "available_at": session.utc_iso(),
                                 "value": json.dumps(card, sort_keys=True, default=str),
                                 "source": "daily_close"}])
-    if tmp:
-        shutil.rmtree(tmp, ignore_errors=True)
     ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                     for k, c in charts.items()}
     ed["levels"] = book

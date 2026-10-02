@@ -111,8 +111,6 @@ def main() -> int:
     ap.add_argument("--archive-dir", help="Override the archive directory")
     ap.add_argument("--classic", action="store_true",
                     help="The pre-stack edition: one paragraph over the tables")
-    ap.add_argument("--no-bars", action="store_true",
-                    help="Stack: read the bars already stored; pull nothing")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -329,7 +327,6 @@ def _stacked(args, p: dict, run_id: str, sess: str) -> int:
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
     out = stack_close.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
-                              fetch=not args.no_bars,
                               model=args.narrative_model,
                               narrative=not args.no_narrative)
     ed = out["edition"]
