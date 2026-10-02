@@ -50,4 +50,14 @@ Record the 27 Sep ruling: Books A–D stand; intraday is a tactics layer for Boo
 
 ## 9. Order of work after the session
 
-Proposed: currency guard deploy (2 Oct) → cloud migration → 6b intraday slots → 6e with the metric lenses → 6d prediction markets → 6f → Quarterly Structural → Audit #4 (14–15 Oct). Confirm or reorder.
+*Amended 2 Oct 14:21 ET* — Ari pulled 6d forward to follow the daily commentary build. Proposed: T1 daily close (reporting stack, ~14 h) → 6d prediction markets + rate path (~6 h) → T2 Weekly (~10 h) → T3 Monthly (~12 h, for 1 Nov) → cloud migration → 6b intraday slots → 6e with the metric lenses → 6f → Quarterly Structural; Audit #4 holds 14–15 Oct. Confirm or reorder.
+
+## 10. The reporting stack (docs/briefs/reporting-stack-brief-2026-10-02.md)
+
+Adopted 2 Oct; these values are proposed and run unratified until this sitting:
+
+- Plumbing & rates "deep" trigger on the daily: tier-1 event this session or next, or 10y/30y ≥ ±10 bp, 2s10s ≥ ±8 bp, HY OAS ≥ ±15 bp.
+- What's priced "deep" trigger: breakevens ≥ 10 bp; implied rate for any of the next four meetings ≥ 12.5 bp; a watched prediction market ≥ 10 pts; S&P consensus EPS revision ≥ 1% (Weekly); UMich/SCE expectations ≥ 0.3 pt.
+- Reading budgets: daily ≤ 1,000 words / 3 charts; Weekly ≤ 3,500 / 6; Monthly ≤ 7,000 / 10.
+- Long-frame averages in the Monthly: 40-week, 10-month, 20-month — levels, never signals.
+- Prediction-market watch list and the disagreement thresholds (venue vs fed funds ≥ 15 pts; venue vs our scenario weight ≥ 20 pts).

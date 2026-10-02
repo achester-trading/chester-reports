@@ -68,3 +68,19 @@ Three entries, to be written into the appendix by the EL-4 library session, no f
 ## Item 9 — order of work — **confirmed** (15:12 ET, "order confirmed"; Ari intends to run more session hours a day over the next few weeks and finish sooner)
 
 T1 → D-1 → 6d + rate path → T2 → T3 (first half) → freeze → Audit #4 (14–15 Oct) → cloud migration → T3 (second half) + Phase B voices → dry runs 23 and 28 Oct → freeze 29 Oct → 1 Nov Monthly → 6b → dealer engine registered → 6e with the lenses → 6f → Quarterly Structural + 6i → 6m Thailand → Enterprise Layer Tranche A → signal-triage Tranche 1 → library track. Doctrine #2 on 7–8 Nov. **The order is fixed; the calendar is not** — at a faster pace the dates in Workplan v3 pull forward in the same order, with two anchors that do not move: Audit #4 on 14–15 Oct and the Monthly on 1 Nov. If a week runs short, 6b slips, never those two.
+
+## Item 10 — the reporting stack's values (`docs/briefs/reporting-stack-brief-2026-10-02.md`) — **ratified** (15:14 ET, "ratify as stated")
+
+- **Plumbing & rates "deep" trigger (daily):** a tier-1 release this session or next (FOMC decision or minutes, CPI, PCE, payrolls, GDP, the refunding announcement, a 10- or 30-year auction); or in the session 10-year or 30-year ≥ ±10 bp, 2s10s ≥ ±8 bp, HY OAS ≥ ±15 bp.
+- **What's priced "deep" trigger (daily and Weekly):** 5- or 10-year breakeven ≥ 10 bp; implied rate for any of the next four FOMC meetings ≥ 12.5 bp; a watched prediction market ≥ 10 points; S&P consensus EPS revision ≥ 1% (Weekly only); UMich or SCE one-year expectations ≥ 0.3 pt.
+- **Reading budgets:** daily ≤ 1,000 words / 3 charts; Weekly ≤ 3,500 / 6; Monthly ≤ 7,000 / 10; a firing trigger raises that report's chart cap by one; over budget → lowest-priority lines dropped, "(trimmed)" printed.
+- **Long-frame averages (Monthly tape):** 40-week, 10-month, 20-month — levels, never signals; a cross counts only after the monthly close.
+- **Prediction-market watch list:** the FOMC decision at each of the next four meetings; US recession in 2026 and in 2027; each month's CPI print; House and Senate control on 3 Nov; a government shutdown by date; plus the twenty highest-volume markets matching the narrative register's stories by keyword.
+- **Disagreement thresholds:** venue vs fed-funds-implied ≥ 15 points on the same meeting; venue vs our scenario weight ≥ 20 points.
+- The Weekly prints each trigger's firing count; Doctrine #2 recalibrates any that fired more than weekly or not at all in October. All values live in config; the brief's *proposed* markers become ratified.
+
+---
+
+## Sitting closed 15:14 ET — 22 minutes, ten items and item 0, all ruled
+
+**Applied in chat:** item 0 (change order marked signed). **To apply by session:** D-1 (config: regime mapping v1.1, `transition_sessions`, risk limits incl. sector 30%, instrument reference as approximate with quarterly refresh; the stack's values as ratified in `config/`), EL-4 (Doctrine sections: change ladder with N = 20 and the cadence clause, attention budget 7 / 2 h / three counts, intraday rung, the October appendix entries), T2 (Weekly prints the attention counts and trigger counts), EL-12 (dealer engine registration, after 6b), 6e (lenses values). **Added to the Audit #4 agenda:** re-engagement of Book A into the Overheat band (item 1c).
