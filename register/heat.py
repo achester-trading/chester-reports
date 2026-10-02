@@ -201,6 +201,36 @@ def _sign(direction: str) -> int:
     return {"long": 1, "short": -1, "hedge": -1}.get(str(direction), 0)
 
 
+# THE FX SERIES A NON-USD EXPRESSION CONVERTS AT (INC-6 follow-up). FRED quotes
+# most pairs as local units per dollar and the euro as dollars per euro, so each
+# says which way it reads.
+FX_SERIES = {"MXN": ("fred.usd_mxn", "per_usd"), "JPY": ("fred.usd_jpy", "per_usd"),
+             "CNY": ("fred.usd_cny", "per_usd"), "EUR": ("fred.usd_eur", "usd_per")}
+
+
+def to_usd(amount: float, ccy: str, store: Any,
+           as_of: Optional[str] = None) -> dict:
+    """{usd, rate, series, observed_at} -- or {usd: None, reason} when no rate
+    is stored. NEVER PARITY: an unconverted peso amount counted as dollars is
+    the INC-6 error in the heat view's arithmetic."""
+    ccy = str(ccy or "USD").upper()
+    if ccy == "USD":
+        return {"usd": float(amount), "rate": 1.0, "series": None}
+    spec = FX_SERIES.get(ccy)
+    if not spec:
+        return {"usd": None, "reason": f"no FX series is declared for {ccy}"}
+    key, quote = spec
+    row = store.latest_as_of(key, as_of=as_of) if store is not None else None
+    rate = (row or {}).get("value_num")
+    if not rate:
+        return {"usd": None, "series": key,
+                "reason": f"no stored {key} rate at this cutoff -- not converted, "
+                          f"parity is not assumed"}
+    usd = float(amount) / rate if quote == "per_usd" else float(amount) * rate
+    return {"usd": usd, "rate": rate, "series": key, "quote": quote,
+            "observed_at": str(row.get("observed_at"))[:10]}
+
+
 def exposure(dec: dict, store: Any, ref: dict,
              as_of: Optional[str] = None,
              _beta_cache: Optional[dict] = None) -> dict:
@@ -219,6 +249,19 @@ def exposure(dec: dict, store: Any, ref: dict,
     if notional is None:
         out["missing"].append("notional_usd (structured size) not recorded")
         notional = 0.0
+    # A NON-USD EXPRESSION'S NOTIONAL IS IN ITS OWN CURRENCY, converted here at
+    # a stored rate the view names -- or left out of the USD totals, saying so.
+    ccy = str(dec.get("expression_currency") or "USD").upper()
+    if ccy != "USD" and notional:
+        fx = to_usd(float(notional), ccy, store, as_of)
+        out["fx"] = {"currency": ccy, "notional_local": notional, **fx}
+        if fx["usd"] is None:
+            out["missing"].append(f"{ccy} exposure not in USD totals: "
+                                  f"{fx['reason']}")
+            notional = 0.0
+        else:
+            notional = fx["usd"]
+            out["notional_usd"] = notional
     signed = sgn * float(notional)
     cache = _beta_cache if _beta_cache is not None else {}
     if root not in cache:
@@ -448,7 +491,13 @@ def format_view(v: dict) -> str:
                  f"{p['expression_family']:<16} notional "
                  + (f"{p['notional_usd']:>11,.0f}" if p['notional_usd'] is not None
                     else f"{'unrecorded':>11}")
-                 + f"  beta {p['beta'] if p['beta'] is not None else 'n/a'}")
+                 + f"  beta {p['beta'] if p['beta'] is not None else 'n/a'}"
+                 + (f"  [{p['fx']['notional_local']:,.0f} {p['fx']['currency']} at "
+                    f"{p['fx']['series']} {p['fx']['rate']:g} "
+                    f"({p['fx']['observed_at']})]"
+                    if (p.get("fx") or {}).get("usd") is not None else
+                    f"  [{p['fx']['currency']} NOT CONVERTED: no stored rate]"
+                    if p.get("fx") else ""))
     L.append(f"  net beta : {v['net_beta_usd']:+,.0f} ({v['net_beta_pct']}% of "
              f"capital); by book "
              + ", ".join(f"{k} {x:+,.0f}" for k, x in v["beta_by_book_usd"].items()))

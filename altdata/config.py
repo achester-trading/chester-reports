@@ -177,6 +177,13 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # China long rate at all; it comes from CFETS instead (sources/cfets.py).
     SeriesSpec("jp_10y",           "IRLTLT01JPM156N","Japan 10-year government bond yield, monthly avg (OECD)","7","%","monthly"),
     SeriesSpec("jp_3m",            "IR3TIB01JPM156N","Japan 3-month interbank rate, monthly avg (OECD)","7","%","monthly"),
+
+    # INC-6 follow-up (1 Oct 2026): the rate the heat view converts a peso
+    # exposure at. FRED's DEXMXUS is MEXICAN PESOS PER ONE U.S. DOLLAR, daily,
+    # H.10 -- confirmed against FRED's own series record before the commit, per
+    # the unit rule in CLAUDE.md. The price basket's instruments are all
+    # USD-listed; MXN is the one non-USD listing the account has held.
+    SeriesSpec("usd_mxn",          "DEXMXUS",    "MXN/USD exchange rate (pesos per dollar)","7","MXN","daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

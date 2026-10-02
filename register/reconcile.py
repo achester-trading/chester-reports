@@ -182,6 +182,18 @@ def reconcile_executions(reg: Any, xs: Any, session_day: str,
                 expression_family=dec.get("expression_family"),
                 leverage_form=dec.get("leverage_form"))
             continue
+        # INC-6: THE FILL'S CURRENCY AGAINST THE DECISION'S EXPRESSION CURRENCY.
+        # The root matches SPY@MEXI.MXN to a SPY decision, which is exactly how a
+        # peso fill was booked against a dollar view; the currency is what tells
+        # them apart. A pre-guard decision reads as USD.
+        fill_ccy = str(e.get("currency") or "").upper()
+        expr = str(dec.get("expression_currency") or "USD").upper()
+        if fill_ccy and fill_ccy != expr:
+            brk("currency_mismatch",
+                f"{e.get('side')} {e.get('qty')} {e.get('instrument')} filled in "
+                f"{fill_ccy} against a decision expressed in {expr}", dec,
+                fill_currency=fill_ccy, expression_currency=expr)
+            continue
         sgn = {"BOT": 1, "SLD": -1}.get(str(e.get("side")).upper(), 0)
         want = {"long": 1, "short": -1}.get(dec.get("direction"), 0)
         key = chain[0]["id"]

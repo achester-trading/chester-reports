@@ -151,6 +151,7 @@ RULE_BREAK_KINDS = (
     "allocation_floor_breach",       # Book A's stance below its band's floor
     "book_b_conversion",             # a Book B position closed inside 2 sessions
     "time_stop_passed",              # an active position past its time stop
+    "currency_mismatch",             # a fill in a currency the decision does not express (INC-6)
 )
 
 # -----------------------------------------------------------------------------
@@ -241,6 +242,18 @@ class PacketIncompleteError(ValueError):
 
     A ValueError, so every caller that already refuses an incomplete decision
     refuses this one; its own class, so the refusal can be named in a report.
+    """
+
+
+class CurrencyMismatchError(Exception):
+    """The instrument's listing currency is not the packet's expression currency.
+
+    INC-6 (1 Oct 2026): a SPY view was carried for two weeks by SPY@MEXI.MXN,
+    the peso listing, and lost -8,951.36 USD mostly to the peso and the
+    listing's basis. A packet now declares the currency its view is expressed in
+    (USD by default); an instrument listed in another one is refused at record
+    and at activation, naming both. The operator's override (--override-gate)
+    is the only way past it, and it is a record.
     """
 
 
@@ -510,7 +523,9 @@ class Register:
                     # EL-1. Vocabulary enforced in record(), as for Phase 5a.
                     "setup_id TEXT", "engine_id TEXT",
                     "horizon_alignment TEXT", "review_changed TEXT",
-                    "falsifiers TEXT", "counter_thesis TEXT"):
+                    "falsifiers TEXT", "counter_thesis TEXT",
+                    # INC-6 follow-up. NULL on a pre-existing row reads as USD.
+                    "expression_currency TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -523,9 +538,50 @@ class Register:
         except sqlite3.OperationalError:
             pass
         self.conn.commit()
+        self._migrate_rule_break_kinds()
         self.restrictions = (instruments.Restrictions(entities_path)
                              if entities_path else instruments.restrictions())
         self.sync_restrictions()
+
+    def _migrate_rule_break_kinds(self) -> None:
+        """Widen rule_breaks' CHECK to the current RULE_BREAK_KINDS, keeping
+        every row. (1 Oct 2026: currency_mismatch, the first kind added after
+        the table existed on the box.)
+
+        SQLite cannot ALTER a CHECK, so the table is rebuilt: copied whole into
+        a table with the new constraint, the old one dropped (DROP fires no
+        delete trigger, and the rows are already in the copy), the copy renamed,
+        and the indexes and immutability triggers recreated from SCHEMA. One
+        transaction; a no-op once the stored constraint names every kind.
+        """
+        row = self.conn.execute("SELECT sql FROM sqlite_master WHERE type='table'"
+                                " AND name='rule_breaks'").fetchone()
+        if not row or all(f"'{k}'" in (row[0] or "") for k in RULE_BREAK_KINDS):
+            return
+        ddl = SCHEMA[SCHEMA.index("CREATE TABLE IF NOT EXISTS rule_breaks"):]
+        ddl = ddl[:ddl.index(");") + 2].replace(
+            "CREATE TABLE IF NOT EXISTS rule_breaks", "CREATE TABLE rule_breaks__new")
+        before = self.conn.execute("SELECT COUNT(*) FROM rule_breaks").fetchone()[0]
+        cols = ("id, detected_at, session, kind, decision_id, instrument, exec_ids,"
+                " reason, detail, source, dedupe_key")
+        try:
+            self.conn.execute("BEGIN")
+            self.conn.execute(ddl)
+            self.conn.execute(f"INSERT INTO rule_breaks__new ({cols}) "
+                              f"SELECT {cols} FROM rule_breaks")
+            after = self.conn.execute(
+                "SELECT COUNT(*) FROM rule_breaks__new").fetchone()[0]
+            if after != before:
+                raise sqlite3.DatabaseError(
+                    f"rule_breaks rebuild copied {after} of {before} rows")
+            self.conn.execute("DROP TABLE rule_breaks")
+            self.conn.execute("ALTER TABLE rule_breaks__new RENAME TO rule_breaks")
+            self.conn.execute("COMMIT")
+        except Exception:
+            self.conn.execute("ROLLBACK")
+            raise
+        self.conn.executescript(SCHEMA)     # indexes and triggers, IF NOT EXISTS
+        self.conn.commit()
 
     def close(self) -> None:
         self.conn.close()
@@ -579,6 +635,7 @@ class Register:
                review_changed: Optional[str] = None,
                falsifiers: Optional[list] = None,
                counter_thesis: Optional[str] = None,
+               expression_currency: Optional[str] = "USD",
                becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -645,6 +702,26 @@ class Register:
                 f"different instruments. Pass hedged or unhedged deliberately; "
                 f"if this listing is not the one you meant, that is the point "
                 f"of this refusal.")
+
+        # INC-6: THE LISTING CURRENCY MUST BE THE EXPRESSION CURRENCY. Checked on
+        # a new decision and on activation; not on a close or on annotating an
+        # already-active row -- refusing those would trap a wrong-listing
+        # position in the register instead of letting it be closed. A bare ticker
+        # has no listing currency and is not judged here.
+        expr = str(expression_currency or "USD").upper()
+        if not re.fullmatch(r"[A-Z]{3}", expr):
+            raise ValueError(f"expression_currency must be a 3-letter ISO code; "
+                             f"got {expression_currency!r}")
+        checking = status == "draft" or (status == "active" and becoming_active)
+        if ccy and ccy != expr and checking and not gate_override:
+            raise CurrencyMismatchError(
+                f"{instrument!r} is listed in {ccy}, but the decision expresses "
+                f"its view in {expr}. A {ccy} listing carries the {ccy}/{expr} "
+                f"rate and the listing's own basis as well as the market (INC-6: "
+                f"the SPY@MEXI.MXN short lost mostly to the peso). Name the "
+                f"{expr} listing, declare --expression-currency {ccy} if the "
+                f"{ccy} exposure is the point, or record an operator override "
+                f"(--override-gate).")
 
         if book is not None and book not in BOOKS:
             raise ValueError(f"book must be one of {BOOKS}; got {book!r}")
@@ -736,9 +813,9 @@ class Register:
             " book, quantity, notional_usd, vega_usd, time_stop, close_reason,"
             " gate_outcome, gate_detail, gate_override,"
             " setup_id, engine_id, horizon_alignment, review_changed,"
-            " falsifiers, counter_thesis)"
+            " falsifiers, counter_thesis, expression_currency)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -750,7 +827,7 @@ class Register:
               if gate_detail is not None else None), gate_override,
              setup_id, engine_id, horizon_alignment, review_changed,
              (json.dumps(falsifiers) if falsifiers is not None else None),
-             counter_thesis))
+             counter_thesis, expr))
         self.conn.commit()
         return did
 

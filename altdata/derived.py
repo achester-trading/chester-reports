@@ -106,6 +106,7 @@ DELTA_UNITS: dict[str, str] = {
     "contract_ccy": "percent",
     "JPY": "percent",
     "CNY": "percent",
+    "MXN": "percent",
     # Counts, levels and stocks: moved in their own units.
     "K": "raw",
     "B": "raw",

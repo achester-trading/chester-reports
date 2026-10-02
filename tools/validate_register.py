@@ -251,8 +251,10 @@ def group_g(db_path: str) -> None:
     raises(lambda: reg.record(instrument="SPY@MEXI.MXN", **base),
            CurrencyExposureUnstatedError,
            "a non-USD listing without currency_exposure is refused")
+    # Since INC-6 the expression currency must match the listing too (group K):
+    # a deliberate peso position is expressed in MXN.
     did = reg.record(instrument="SPY@MEXI.MXN", currency_exposure="unhedged",
-                     **base)
+                     expression_currency="MXN", **base)
     check(reg.get(did)["currency_exposure"] == "unhedged",
           "stated deliberately, it records -- and the field is on the row")
 
@@ -991,6 +993,156 @@ def group_j(td: str) -> None:
           f"last week's row excluded ({pf})")
 
 
+def group_k(td: str) -> None:
+    """INC-6 follow-up: the listing currency against the expression currency."""
+    print(f"\n{LINE}\nK. THE CURRENCY GUARD -- a foreign listing is a currency "
+          f"position (INC-6)\n{LINE}")
+    import sqlite3
+    from register import heat, store as rs
+    from register.reconcile import reconcile_executions
+    from register.store import CurrencyMismatchError
+
+    db = str(Path(td) / "ccy.db")
+    base = dict(direction="short", thesis="flatten the wrong-listing leg",
+                edge_type="positioning", horizon="swing",
+                invalidation="none -- flatten at the next open")
+    with Register(db) as reg:
+        # THE 30 SEP CASE: SPY on MEXI in pesos, against a dollar view.
+        try:
+            reg.record(instrument="SPY@MEXI.MXN", currency_exposure="unhedged", **base)
+            bad("SPY@MEXI.MXN against a USD expression was recorded")
+        except CurrencyMismatchError as exc:
+            msg = str(exc)
+            check("MXN" in msg and "USD" in msg,
+                  f"the 30 Sep MEXI case is REFUSED at record, naming both "
+                  f"currencies ({msg[:90]}...)")
+        ok_id = reg.record(instrument="SPY@ARCA.USD", **base)
+        check(bool(ok_id), "a USD listing against the USD expression is recorded")
+        ov = reg.record(instrument="SPY@MEXI.MXN", currency_exposure="unhedged",
+                        gate_override="operator: the peso exposure is intended",
+                        **base)
+        check(bool(ov), "the operator's override (--override-gate) is the way past "
+                        "it, and it is recorded")
+        mx = reg.record(instrument="SPY@MEXI.MXN", currency_exposure="unhedged",
+                        expression_currency="MXN", **base)
+        check((reg.get(mx) or {}).get("expression_currency") == "MXN",
+              "declaring the expression in MXN, the MXN listing passes -- and the "
+              "packet records it")
+        check((reg.get(ok_id) or {}).get("expression_currency") == "USD",
+              "a decision that declares nothing is recorded as USD")
+        # A LEGACY peso draft (written before the guard) can be CLOSED, not
+        # activated.
+        reg.conn.execute("UPDATE decisions SET expression_currency = NULL "
+                         "WHERE id = ?", (ov,))
+        reg.conn.commit()
+        legacy = reg.get(ov)
+        keep = {k: legacy[k] for k in ("instrument", "direction", "thesis",
+                                       "edge_type", "horizon", "invalidation",
+                                       "currency_exposure")}
+        try:
+            reg.supersede(ov, status="active", book="B", falsifiers=["x"],
+                          counter_thesis="y", expression_currency="USD", **keep)
+            bad("a legacy peso draft was ACTIVATED against a USD expression")
+        except CurrencyMismatchError:
+            ok("activation is judged too: a legacy peso draft is refused when it "
+               "would become active")
+        closed = reg.supersede(ov, status="closed", close_reason="flatten",
+                               expression_currency="USD", **keep)
+        check(bool(closed), "but it can always be CLOSED -- refusing the close "
+                            "would trap a wrong-listing position in the register")
+
+    # THE CLI, as a dry run: refused before anything else, exit 2.
+    r = subprocess.run(
+        [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db, "record",
+         "--instrument", "SPY@MEXI.MXN", "--direction", "short", "--thesis", "t",
+         "--edge-type", "positioning", "--horizon", "swing",
+         "--invalidation", "flatten", "--currency-exposure", "unhedged",
+         "--signals-used", "yfinance.mkt_spy", "--dry-run"],
+        capture_output=True, text=True, cwd=str(REPO),
+        env={**os.environ, "CHESTER_DB": db})
+    check(r.returncode == 2 and "CURRENCY MISMATCH" in r.stdout
+          and "MXN" in r.stdout and "USD" in r.stdout,
+          f"decide.py record --dry-run says REFUSED -- CURRENCY MISMATCH and "
+          f"exits 2 (rc {r.returncode})")
+
+    # RECONCILIATION: a peso fill against a dollar decision is a rule break.
+    with Register(str(Path(td) / "ccy_rec.db")) as reg:
+        reg.record(instrument="SPY@ARCA.USD", direction="long", thesis="t",
+                   edge_type="positioning", horizon="swing", invalidation="below 760",
+                   status="active", book="B", falsifiers=["below 760"],
+                   counter_thesis="the tape can gap",
+                   decision_time="2026-09-19T15:00:00+00:00")
+        fill = {"exec_id": "fixture.mexi.1", "instrument": "SPY@MEXI.MXN",
+                "symbol": "SPY", "side": "BOT", "qty": 100.0, "sec_type": "STK",
+                "currency": "MXN", "exec_time": "2026-10-01T14:50:07+00:00"}
+        usd_fill = {**fill, "exec_id": "fixture.arca.1",
+                    "instrument": "SPY@ARCA.USD", "currency": "USD"}
+        out = reconcile_executions(reg, [fill, usd_fill], "2026-10-01")
+        kinds = {b["exec_id"]: b["kind"] for b in out["breaks"]}
+        check(kinds.get("fixture.mexi.1") == "currency_mismatch",
+              f"a fill in MXN against a decision expressed in USD becomes a rule "
+              f"break of kind currency_mismatch ({kinds})")
+        check("fixture.arca.1" not in kinds or
+              kinds["fixture.arca.1"] != "currency_mismatch",
+              "and the USD fill on the same decision is not one")
+        rb = [b for b in reg.rule_breaks() if b["kind"] == "currency_mismatch"]
+        check(len(rb) == 1, "the break is written to the register's rule_breaks")
+
+    # THE MIGRATION: a register created before currency_mismatch existed.
+    old = str(Path(td) / "ccy_old.db")
+    kinds_old = tuple(k for k in rs.RULE_BREAK_KINDS if k != "currency_mismatch")
+    con = sqlite3.connect(old)
+    con.executescript(rs.SCHEMA.replace(repr(rs.RULE_BREAK_KINDS), repr(kinds_old)))
+    con.execute("INSERT INTO rule_breaks (detected_at, session, kind, reason, source,"
+                " dedupe_key) VALUES ('2026-09-30T00:00:00+00:00', '2026-09-30',"
+                " 'side_mismatch', 'pre-existing', 'fixture', 'old-1')")
+    con.commit()
+    con.close()
+    with Register(old) as reg:
+        sql = reg.conn.execute("SELECT sql FROM sqlite_master WHERE name="
+                               "'rule_breaks'").fetchone()[0]
+        kept = [b["dedupe_key"] for b in reg.rule_breaks()]
+        new = reg.write_rule_break(kind="currency_mismatch", session_day="2026-10-01",
+                                   reason="fixture", dedupe_key="new-1",
+                                   source="fixture")
+        trig = {r[0] for r in reg.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='trigger' AND "
+            "tbl_name='rule_breaks'")}
+    check("currency_mismatch" in sql and kept == ["old-1"] and new,
+          "a register created before the new kind is rebuilt in place: the "
+          "constraint widened, the existing break kept, the new kind written")
+    check({"rule_breaks_immutable_update", "rule_breaks_immutable_delete"} <= trig,
+          "and its immutability triggers are back")
+
+    # THE HEAT VIEW: converted at a stored rate it names, or not at all.
+    with observations.ObservationStore(str(Path(td) / "fx.db")) as st:
+        none = heat.to_usd(1395131.0, "MXN", st)
+        st.write_many([{"registry_key": "fred.usd_mxn", "instrument": None,
+                        "observed_at": "2026-09-30",
+                        "available_at": "2026-09-30T21:00:00+00:00",
+                        "value": 18.256, "source": "synthetic"}])
+        got = heat.to_usd(1395131.0, "MXN", st)
+        dec = {"id": "x", "instrument": "SPY@MEXI.MXN", "direction": "short",
+               "notional_usd": 1395131.0, "expression_currency": "MXN",
+               "book": "B"}
+        ex = heat.exposure(dec, st, {})
+    check(none["usd"] is None and "parity is not assumed" in none["reason"],
+          "with no stored USD/MXN rate the heat view converts nothing and says so "
+          "-- never parity")
+    check(got["usd"] is not None and abs(got["usd"] - 1395131.0 / 18.256) < 0.01
+          and got["series"] == "fred.usd_mxn" and got["observed_at"] == "2026-09-30",
+          f"with one stored, 1,395,131 MXN is {got['usd']:,.2f} USD at "
+          f"fred.usd_mxn 18.256 (2026-09-30), and the view names the rate")
+    check(abs(ex["notional_usd"] - 1395131.0 / 18.256) < 0.01
+          and ex["fx"]["currency"] == "MXN",
+          "and a peso decision's exposure enters the heat view in dollars, "
+          "converted")
+    from altdata import config as acfg
+    check(any(s.key == "usd_mxn" and s.fred_id == "DEXMXUS"
+              for s in acfg.FRED_SIGNAL_SERIES),
+          "USD/MXN (FRED DEXMXUS, pesos per dollar) is among the FX series pulled")
+
+
 def main() -> int:
     print(f"{LINE}\nRegister and point-in-time validation   {session.describe()}\n{LINE}")
     # ignore_cleanup_errors: on Windows a SQLite file cannot be unlinked while
@@ -1006,6 +1158,7 @@ def main() -> int:
         group_h(db)
         group_i(td)
         group_j(td)
+        group_k(td)
     group_f()
     group_d()
 

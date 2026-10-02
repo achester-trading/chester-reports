@@ -405,6 +405,22 @@ def cmd_record(args) -> int:
         print(f"  thesis          : {args.thesis}")
         print(f"  invalidation    : {args.invalidation}")
         print(f"  signals_used    : {', '.join(sorted(args.signals_used))}")
+        # INC-6: THE LISTING CURRENCY AGAINST THE EXPRESSION CURRENCY, before
+        # anything else -- so a dry run says what the write would refuse.
+        from register.store import listing_currency  # noqa: PLC0415
+        lccy = listing_currency(args.instrument)
+        expr = (args.expression_currency or "USD").upper()
+        print(f"  expression ccy  : {expr}   listing {lccy or 'unknown (bare ticker)'}")
+        if lccy and lccy != expr and not args.override_gate:
+            print(f"\n  REFUSED -- CURRENCY MISMATCH")
+            print(f"    {args.instrument} is listed in {lccy}; this decision "
+                  f"expresses its view in {expr}.")
+            print(f"    A {lccy} listing carries the {lccy}/{expr} rate and the "
+                  f"listing's basis as well as the market (INC-6).")
+            print(f"    Name the {expr} listing, pass --expression-currency {lccy} if "
+                  f"that exposure is the point, or --override-gate \"<reason>\".")
+            print(LINE)
+            return 2
         align, align_basis = horizon_alignment(args.direction)
         print(f"  setup_id        : {args.setup}")
         print(f"  engine_id       : {args.engine}")
@@ -601,7 +617,8 @@ def cmd_record(args) -> int:
                          review_changed=review_from_gate(
                              (gate_out or {}).get("outcome"), args.review_changed),
                          falsifiers=list(args.falsifier or []),
-                         counter_thesis=args.counter_thesis)
+                         counter_thesis=args.counter_thesis,
+                         expression_currency=args.expression_currency)
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -901,59 +918,71 @@ def cmd_set_status(args) -> int:
 
         run_id = args.run_id or session.new_run_id("set-status")
         now = session.utc_iso()
-        new_id = reg.supersede(
-            args.id,
-            instrument=instrument, direction=old["direction"],
-            thesis=old["thesis"], edge_type=old["edge_type"],
-            horizon=old["horizon"], invalidation=old["invalidation"],
-            size=old["size"], status=args.status, operator_action=action,
-            thesis_state=args.thesis_state or old["thesis_state"],
-            run_id=run_id, decision_time=now, signals_used=signals,
-            blocked_reason=blocked_reason,
-            # Carried forward, because the successor describes the same
-            # position: a status change does not re-open the currency question.
-            currency_exposure=old["currency_exposure"],
-            # Carried forward for the same reason: the successor departs from the
-            # same base rate unless the operator says otherwise, and a supersession
-            # that silently dropped the citation would leave the newer row
-            # unreplayable against the distribution the thesis was written against.
-            base_rate_cited=(getattr(args, "base_rate_cited", None)
-                             or (old["base_rate_cited"]
-                                 if "base_rate_cited" in old.keys() else None)),
-            # Carried forward: the successor describes the same position in the
-            # same shape unless the operator says otherwise, and a supersession
-            # that silently dropped the expression would make 26.7's error
-            # decomposition unanswerable for the row that actually closed.
-            expression_family=(getattr(args, "expression_family", None)
-                               or (old["expression_family"]
-                                   if "expression_family" in old.keys() else None)),
-            leverage_form=(getattr(args, "leverage_form", None)
-                           or (old["leverage_form"]
-                               if "leverage_form" in old.keys() else None)),
-            note=args.note,
-            # Phase 5a: carried forward, the book overridable, the close reason
-            # and the gate's verdict new on this row.
-            book=book, quantity=old_d.get("quantity"),
-            notional_usd=old_d.get("notional_usd"),
-            vega_usd=old_d.get("vega_usd"), time_stop=old_d.get("time_stop"),
-            close_reason=(args.close_reason if args.status == "closed"
-                          else old_d.get("close_reason")),
-            gate_outcome=((gate_out or {}).get("outcome")
-                          or old_d.get("gate_outcome")),
-            gate_detail=(_gate_detail(gate_out) if gate_out else
-                         (json.loads(old_d["gate_detail"])
-                          if old_d.get("gate_detail") else None)),
-            gate_override=args.override_gate or old_d.get("gate_override"),
-            # EL-1: carried forward and NEVER recomputed. A pre-P5-B row has none
-            # of them, and an activation from it is refused by the register --
-            # its successor would be DECISION_OK without falsifiers.
-            setup_id=old_d.get("setup_id"), engine_id=old_d.get("engine_id"),
-            horizon_alignment=old_d.get("horizon_alignment"),
-            review_changed=old_d.get("review_changed"),
-            falsifiers=(json.loads(old_d["falsifiers"])
-                        if old_d.get("falsifiers") else None),
-            counter_thesis=old_d.get("counter_thesis"),
-            becoming_active=becoming_active)
+        from register.store import CurrencyMismatchError  # noqa: PLC0415
+        try:
+            new_id = reg.supersede(
+                args.id,
+                instrument=instrument, direction=old["direction"],
+                thesis=old["thesis"], edge_type=old["edge_type"],
+                horizon=old["horizon"], invalidation=old["invalidation"],
+                size=old["size"], status=args.status, operator_action=action,
+                thesis_state=args.thesis_state or old["thesis_state"],
+                run_id=run_id, decision_time=now, signals_used=signals,
+                blocked_reason=blocked_reason,
+                # Carried forward, because the successor describes the same
+                # position: a status change does not re-open the currency question.
+                currency_exposure=old["currency_exposure"],
+                # Carried forward for the same reason: the successor departs from the
+                # same base rate unless the operator says otherwise, and a supersession
+                # that silently dropped the citation would leave the newer row
+                # unreplayable against the distribution the thesis was written against.
+                base_rate_cited=(getattr(args, "base_rate_cited", None)
+                                 or (old["base_rate_cited"]
+                                     if "base_rate_cited" in old.keys() else None)),
+                # Carried forward: the successor describes the same position in the
+                # same shape unless the operator says otherwise, and a supersession
+                # that silently dropped the expression would make 26.7's error
+                # decomposition unanswerable for the row that actually closed.
+                expression_family=(getattr(args, "expression_family", None)
+                                   or (old["expression_family"]
+                                       if "expression_family" in old.keys() else None)),
+                leverage_form=(getattr(args, "leverage_form", None)
+                               or (old["leverage_form"]
+                                   if "leverage_form" in old.keys() else None)),
+                note=args.note,
+                # Phase 5a: carried forward, the book overridable, the close reason
+                # and the gate's verdict new on this row.
+                book=book, quantity=old_d.get("quantity"),
+                notional_usd=old_d.get("notional_usd"),
+                vega_usd=old_d.get("vega_usd"), time_stop=old_d.get("time_stop"),
+                close_reason=(args.close_reason if args.status == "closed"
+                              else old_d.get("close_reason")),
+                gate_outcome=((gate_out or {}).get("outcome")
+                              or old_d.get("gate_outcome")),
+                gate_detail=(_gate_detail(gate_out) if gate_out else
+                             (json.loads(old_d["gate_detail"])
+                              if old_d.get("gate_detail") else None)),
+                gate_override=args.override_gate or old_d.get("gate_override"),
+                # EL-1: carried forward and NEVER recomputed. A pre-P5-B row has none
+                # of them, and an activation from it is refused by the register --
+                # its successor would be DECISION_OK without falsifiers.
+                setup_id=old_d.get("setup_id"), engine_id=old_d.get("engine_id"),
+                horizon_alignment=old_d.get("horizon_alignment"),
+                review_changed=old_d.get("review_changed"),
+                falsifiers=(json.loads(old_d["falsifiers"])
+                            if old_d.get("falsifiers") else None),
+                counter_thesis=old_d.get("counter_thesis"),
+                # INC-6: carried forward; a pre-guard row reads as USD, so an
+                # ACTIVATION of a non-USD listing recorded before the guard is
+                # judged by it like any new decision.
+                expression_currency=old_d.get("expression_currency") or "USD",
+                becoming_active=becoming_active)
+        except CurrencyMismatchError as exc:
+            # INC-6 at activation: refused with both currencies named, and
+            # nothing superseded -- the draft stays as the record.
+            print(f"\n  REFUSED -- CURRENCY MISMATCH\n    {exc}")
+            print(LINE)
+            return 2
 
         # The successor gets its own packet, because a decision without one
         # cannot be replayed and `show` would report none. Its INPUTS are the
@@ -1040,6 +1069,11 @@ def main() -> int:
                         "unchecked decision is the thing 26.2 #7 forbids.")
     r.add_argument("--size", default=None)
     r.add_argument("--status", default="draft", choices=STATUSES)
+    r.add_argument("--expression-currency", default="USD", metavar="CCY",
+                   help="INC-6: the currency the view is expressed in (default "
+                        "USD). An instrument listed in another currency is "
+                        "refused -- SPY@MEXI.MXN against USD -- unless the "
+                        "operator overrides with --override-gate.")
     r.add_argument("--currency-exposure", default=None,
                    choices=CURRENCY_EXPOSURES,
                    help="Part 31.3(c): required for a non-USD listing "
