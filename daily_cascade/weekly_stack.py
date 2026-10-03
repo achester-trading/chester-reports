@@ -516,8 +516,18 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
     items = [item("book:open", f"{rg.get('open_count', 0)} open decision(s), "
                   f"{rg.get('drafts_count', 0)} draft(s).", 1,
                   (rg.get("open_count"), rg.get("drafts_count")))]
-    n_rb = sum(v for k, v in rb.items() if isinstance(v, int))
-    items.append(item("book:breaks", f"{n_rb} rule break(s) recorded this week.", 2, n_rb))
+    # THE WEEK'S BREAKS ARE THE LISTED ONES. The block also carries a running
+    # total and a count of blocked decisions -- different quantities, never summed.
+    listed = rb.get("rule_breaks_listed") or []
+    kinds = sorted({str(b.get("kind")) for b in listed})
+    items.append(item("book:breaks", f"{len(listed)} rule break(s) this week"
+                      + (f" ({', '.join(kinds)})" if kinds else "")
+                      + f"; {rb.get('rule_breaks_total', 0)} on the register to date.",
+                      2, (len(listed), rb.get("rule_breaks_total"))))
+    if rb.get("decision_blocked_this_week"):
+        items.append(item("book:blocked", f"{rb['decision_blocked_this_week']} "
+                          f"decision(s) blocked at entry this week.", 2,
+                          rb["decision_blocked_this_week"]))
     if bz:
         items.append(item("book:z", f"Book Z: {bz}.", 2, bz))
     items.append(item("book:attention",
@@ -548,14 +558,23 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
 def read_week(pmb: Optional[dict]) -> dict:
     items = []
     th = 10.0
+    # ONE LINE PER VENUE EVENT: a CPI event's strikes are one belief across legs,
+    # so the event's largest five-session move stands for it (as the shock does).
+    best: dict = {}
     for r in (pmb or {}).get("markets") or []:
         c = r.get("change_5s_points")
-        if c is not None and abs(c) >= th and not r.get("stale"):
-            items.append(item(f"read:pm5:{r['instrument']}",
-                              f"{stack_mod._venue_name(r['venue'])} "
-                              f"\"{r.get('question')}\" {c:+.1f} pts over five "
-                              f"sessions to {round(r['probability'] * 100):.0f}%.", 1,
-                              (r["probability"], c)))
+        if c is None or abs(c) < th or r.get("stale"):
+            continue
+        k = (r["venue"], r.get("event_id") or r["instrument"])
+        if k not in best or abs(c) > abs(best[k]["change_5s_points"]):
+            best[k] = r
+    for r in sorted(best.values(), key=lambda x: -abs(x["change_5s_points"])):
+        c = r["change_5s_points"]
+        items.append(item(f"read:pm5:{r['instrument']}",
+                          f"{stack_mod._venue_name(r['venue'])} "
+                          f"\"{r.get('question')}\" {c:+.1f} pts over five "
+                          f"sessions to {round(r['probability'] * 100):.0f}%.", 1,
+                          (r["probability"], c)))
     return {"items": items[:4], "data": {"five_session_moves": [i["text"] for i in items]}}
 
 

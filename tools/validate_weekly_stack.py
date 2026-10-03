@@ -362,6 +362,22 @@ def main() -> int:
           f"a CPI release knowable only from Friday counts Plumbing deep on Friday "
           f"alone -- each session is judged at its own cutoff, never with "
           f"hindsight ({fired})")
+    bk = ws.book_week({"register": {"open_count": 0, "drafts_count": 0, "rule_breaks": {
+        "decision_blocked_this_week": 2, "rule_breaks_total": 5,
+        "rule_breaks_listed": [{"kind": "currency_mismatch"}]}}},
+        a, {"plumbing": [], "priced": [], "sessions": 5}, None)
+    bt = {i["key"]: i["text"] for i in bk["items"]}
+    check(bt["book:breaks"].startswith("1 rule break(s) this week (currency_mismatch); "
+                                        "5 on the register")
+          and bt.get("book:blocked", "").startswith("2 decision(s) blocked"),
+          "the week's rule breaks are the listed ones, never summed with the running "
+          "total or the blocked count")
+    legs = [{"venue": "kalshi", "event_id": "CPI-X", "instrument": f"kalshi:CPI-X-{k}",
+             "question": f"leg {k}", "probability": 0.5, "change_5s_points": c}
+            for k, c in (("a", 13.5), ("b", -27.5), ("c", 11.0))]
+    rw = ws.read_week({"markets": legs})
+    check(len(rw["items"]) == 1 and "-27.5 pts" in rw["items"][0]["text"],
+          "The read carries one line per venue event: its largest five-session move")
     ag = (REPO / "docs" / "attention-log.md").read_text(encoding="utf-8")
     check("| 2026-10-02 | sitting | 22 |" in ag and ws.read_attention_log()
           and all(e["kind"] in ("sitting", "ruling") for e in ws.read_attention_log()),
