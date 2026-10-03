@@ -146,13 +146,18 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict) -> dict:
         nt.append("the dealer scorecard: the close stores one per session from "
                   "the first stacked close on")
     dials = wis.get("dials_now") or {}
+    # The market's names for the three reads -- "dial" is the system's word, and
+    # the prose audit refuses it.
+    name = {"gamma": "Dealer gamma", "vol": "The volatility regime",
+            "macro": "The macro regime"}
     for ch in wis.get("dial_changes") or []:
         items.append(item(f"mech:dial:{ch.get('dial')}",
-                          f"{str(ch.get('dial')).title()} dial: "
-                          f"{ch.get('from') or 'absent'} to {ch.get('to')}.", 1,
+                          f"{name.get(ch.get('dial'), str(ch.get('dial')))} moved "
+                          f"from {ch.get('from') or 'absent'} to {ch.get('to')}.", 1,
                           (ch.get("from"), ch.get("to"))))
-    items.append(item("mech:dials", "Dials at the week's end: " + ", ".join(
-        f"{k} {v}" for k, v in sorted(dials.items())) + ".", 2, dials))
+    items.append(item("mech:dials", "At the week's end: " + "; ".join(
+        f"{name.get(k, k).lower() if n else name.get(k, k)} {v}"
+        for n, (k, v) in enumerate(sorted(dials.items()))) + ".", 2, dials))
     return {"items": items, "not_tracked": nt,
             "table": {"columns": ["Session", "Net GEX", "Flip crossed", "Range %",
                                   "Return %", "Max pain hit"],

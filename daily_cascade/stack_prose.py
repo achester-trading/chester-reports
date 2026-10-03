@@ -80,8 +80,10 @@ THE TAPE'S RULES:
    sentence, not in a parenthesis after it.
 Never write about the report itself: no "the data", "the payload", "this section".
 The word "because" is refused anywhere, whatever it joins.
-"Gamma" beside a state word means the gamma DIAL; for one symbol write its net
-GEX ("QQQ's net GEX is positive"), never "QQQ is in positive gamma".
+The market-wide reads are "dealer gamma", "the volatility regime" and "the macro
+regime" -- never the word "dial", which is the system's word, not the market's.
+For one symbol write its net GEX ("QQQ's net GEX is positive"), never "QQQ is in
+positive gamma".
 Never write the session's date or weekday: the header carries it. Any other
 date only as given (2026-10-02).
 Name each level with its own market, one at a time; never "respectively".
@@ -96,8 +98,8 @@ important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
 as an outlook's base rate ("the base rate for ... is 79% (n=82)"), never as our
 view; no motive words; never write about the report itself.
-The word "because" is refused anywhere. "Gamma" beside a state word means the
-gamma DIAL; for one symbol write its net GEX. Never write the session's date
+The word "because" is refused anywhere. Write "dealer gamma", "the volatility
+regime", "the macro regime" -- never "dial"; for one symbol write its net GEX. Never write the session's date
 or weekday. A level is named with the market it belongs to, one at a time.
 """
 
