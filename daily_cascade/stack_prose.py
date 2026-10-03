@@ -48,19 +48,19 @@ UNIT_CONSTANTS = [1.0]
 RULES = """
 
 THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE SECTION of
-the daily close, in a desk's register. Every other rule above still holds -- every
+{report}, in a desk's register. Every other rule above still holds -- every
 figure from the data given, signs and percentile ordinals copied from their
 _signed and _ordinal fields, no recommendation.
 
 THE SECTION: {title}. Its depth today is {depth}{why}.
 
 SHAPE. Your FIRST SENTENCE is the section's claim line: the one thing this section
-says about the session, with its figure. {body} At most {words} words in all.
+says about the {period}, with its figure. {body} At most {words} words in all.
 No headings, no bullets, no bold,
 no tables -- the section's table is printed beside your text.
 
 THE TAPE'S RULES:
-1. Frames in order: the session first, then the day, then where it sits in the week.
+1. Frames in order: {frames}
 2. A level is named by its label and value exactly as the data lists it ("the
    20-day average at 652.10"); never name a level the data does not list.
 3. A move carries its sign and size, copied from its _signed form.
@@ -91,7 +91,7 @@ Never compute a count, a difference or a ratio: copy the one the data carries.
 READ_RULES = """
 
 THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. Write THE READ: the five lines
-that matter about the session, as ONE paragraph of exactly five sentences, most
+that matter about the {period}, as ONE paragraph of exactly five sentences, most
 important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
 as an outlook's base rate ("the base rate for ... is 79% (n=82)"), never as our
@@ -255,9 +255,27 @@ def _slice(s: dict, ed: dict) -> dict:
             "not_tracked": s.get("not_tracked")}
 
 
+# PER CADENCE (T2): which report, its period, the frames it writes (brief 2.1
+# rule 1: each report writes the frame it owns and the one above it), its word
+# caps per depth, and its runaway guards.
+CADENCES = {
+    "daily": {"report": "the daily close", "period": "session",
+              "frames": "the session first, then the day, then where it sits in "
+                        "the week.",
+              "words_key": "depth_words", "chars_scale": 1.0, "read_chars": 1600},
+    "weekly": {"report": "the Weekly", "period": "week",
+               "frames": "the days of the week first, then the week as a whole, "
+                         "then where the week sits in the month.",
+               "words_key": "depth_words_weekly", "chars_scale": 2.5,
+               "read_chars": 2400},
+}
+
+
 def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
-          model: Optional[str] = None, outlooks: Optional[list] = None) -> dict:
+          model: Optional[str] = None, outlooks: Optional[list] = None,
+          cadence: str = "daily") -> dict:
     """Fill each section's claim and paragraphs; then The read. Never raises."""
+    cad = CADENCES[cadence]
     from daily_cascade import narrative as base                  # noqa: PLC0415
     from altdata import bars as bars_mod                         # noqa: PLC0415
     cfg = bars_mod.load_config()
@@ -307,9 +325,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         sys_prompt = base.SYSTEM_PROMPT + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            words=(cfg.get("depth_words") or {}).get(s["depth"], 35))
+            report=cad["report"], period=cad["period"], frames=cad["frames"],
+            words=(cfg.get(cad["words_key"]) or cfg.get("depth_words") or {})
+            .get(s["depth"], 35))
         res = run(s["id"], _slice(s, ed), sys_prompt,
-                  MAX_CHARS.get(s["depth"], 900))
+                  int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
         results[s["id"]] = res
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])
@@ -327,7 +347,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                         "items": [i["text"] for i in s["items"]]}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
-    res = run("read", rp, base.SYSTEM_PROMPT + READ_RULES, 1600)
+    res = run("read", rp, base.SYSTEM_PROMPT + READ_RULES.format(
+        period=cad["period"]), cad["read_chars"])
     results["read"] = res
     if res.get("published"):
         sents = _sentences(res["text"])

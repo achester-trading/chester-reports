@@ -212,3 +212,169 @@ def c3_rates(series: dict[str, list[tuple[str, float]]], name: str,
 
 def unavailable_line(chart: dict) -> str:
     return f"chart unavailable: {chart.get('unavailable')}"
+
+
+# ---------------------------------------------------------------------------
+# THE WEEKLY'S CHARTS, W1-W6 (reporting-stack brief 3.2; T2). Same rules as the
+# daily three: from the store at edition time, PNG <= 150 KB for the email and
+# SVG on disk, only listed levels drawn, a caption written from the data, and a
+# reason in place of a chart that cannot render. No verdicts.
+# ---------------------------------------------------------------------------
+def weekly_bars(daily: list[dict]) -> list[dict]:
+    """Daily OHLC resampled to weeks (Monday-keyed): first open, max high, min
+    low, last close. The week's observed_at is its last session."""
+    out: dict[str, dict] = {}
+    for b in daily:
+        d = dt.date.fromisoformat(str(b["observed_at"])[:10])
+        k = (d - dt.timedelta(days=d.weekday())).isoformat()
+        w = out.get(k)
+        if w is None:
+            out[k] = {"observed_at": str(b["observed_at"])[:10], "open": b["open"],
+                      "high": b["high"], "low": b["low"], "close": b["close"]}
+        else:
+            w.update(high=max(w["high"], b["high"]), low=min(w["low"], b["low"]),
+                     close=b["close"], observed_at=str(b["observed_at"])[:10])
+    return [out[k] for k in sorted(out)]
+
+
+def candle_chart(cid: str, bars: list[dict], book: dict, iid: str, types: tuple,
+                 title: str, window: str, name: str, out_dir: Optional[str],
+                 min_bars: int = 20, tick_every: int = 20) -> dict:
+    if len(bars) < min_bars:
+        return {"id": cid, "unavailable": f"{len(bars)} bars stored, {min_bars} needed"}
+    try:
+        fig, ax = _base(title)
+        _candles(ax, bars)
+        lo, hi = min(b["low"] for b in bars), max(b["high"] for b in bars)
+        drawn = _draw_levels(ax, _levels_of(book, iid, types), lo, hi)
+        ticks = list(range(0, len(bars), tick_every))
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([str(bars[t]["observed_at"])[2:10] for t in ticks])
+        out = _finish(fig, name, out_dir)
+        lab = next((i["label"] for i in book.get("instruments") or []
+                    if i["id"] == iid), iid.upper())
+        return {"id": cid, "drawn": drawn, "caption": caption(lab, window, drawn),
+                **out, "series": [{k: b[k] for k in ("observed_at", "open", "high",
+                                                      "low", "close")} for b in bars]}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def w1(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
+    """Six months of daily candles with the 50- and 200-day."""
+    bars = daily[-126:]
+    return candle_chart("W1", bars, book, "spy", ("ma_50d", "ma_200d"),
+                        f"SPY, {len(bars)} sessions", f"{len(bars)} sessions",
+                        name, out_dir, min_bars=40)
+
+
+def w2(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
+    """Two years of weekly candles with the 40-week average."""
+    wk = weekly_bars(daily)[-104:]
+    return candle_chart("W2", wk, book, "spy", ("ma_40w",),
+                        f"SPY, {len(wk)} weeks", f"{len(wk)} weekly bars",
+                        name, out_dir, min_bars=20, tick_every=13)
+
+
+def lines_chart(cid: str, series: dict, title: str, name: str,
+                out_dir: Optional[str], right: Optional[str] = None,
+                min_points: int = 20) -> dict:
+    """One or more dated series; `right` names one plotted on a second axis."""
+    short = [k for k, v in series.items() if len(v) < min_points]
+    if not series or len(short) == len(series):
+        return {"id": cid, "unavailable": f"fewer than {min_points} stored points"}
+    try:
+        fig, ax = _base(title)
+        cols = ("#2563eb", "#0d2b45", "#7c3aed", "#b3261e", "#0f766e")
+        ax2 = ax.twinx() if right and right in series else None
+        allx = sorted({d for v in series.values() for d, _ in v})
+        pos = {d: i for i, d in enumerate(allx)}
+        for (lab, pts), col in zip(series.items(), cols):
+            if lab in short:
+                continue
+            tgt = ax2 if (ax2 is not None and lab == right) else ax
+            tgt.plot([pos[d] for d, _ in pts], [v for _, v in pts], color=col,
+                     linewidth=1.1, label=lab)
+        ax.legend(fontsize=7, frameon=False, loc="upper left")
+        if ax2 is not None:
+            ax2.tick_params(labelsize=7)
+            ax2.legend(fontsize=7, frameon=False, loc="upper right")
+        ticks = list(range(0, len(allx), max(1, len(allx) // 6)))
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([allx[t][2:10] for t in ticks])
+        out = _finish(fig, name, out_dir)
+        last = "; ".join(f"{k} {v[-1][1]:,.2f} ({v[-1][0]})"
+                         for k, v in series.items() if v and k not in short)
+        return {"id": cid, "drawn": [], "caption": f"{title}; {last}", **out,
+                "series": {k: [{"date": d, "value": x} for d, x in v]
+                           for k, v in series.items()},
+                "not_drawn": short}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def banded_chart(cid: str, series: dict, title: str, name: str,
+                 out_dir: Optional[str], min_points: int = 20) -> dict:
+    """Each series in its own panel with its mean and +-1 sigma band (W4)."""
+    keep = {k: v for k, v in series.items() if len(v) >= min_points}
+    if not keep:
+        return {"id": cid, "unavailable": f"fewer than {min_points} stored points"}
+    try:
+        plt = _plt()
+        fig, axes = plt.subplots(len(keep), 1, figsize=(7.0, 1.9 * len(keep) + 0.6),
+                                 squeeze=False)
+        fig.suptitle(title, fontsize=9, x=0.02, ha="left", color="#0d2b45")
+        stats = {}
+        for ax, (lab, pts) in zip(axes[:, 0], keep.items()):
+            vals = [v for _, v in pts]
+            m = sum(vals) / len(vals)
+            sd = (sum((v - m) ** 2 for v in vals) / max(1, len(vals) - 1)) ** 0.5
+            ax.plot(range(len(vals)), vals, color="#0d2b45", linewidth=1.1)
+            ax.axhline(m, color="#94a3b8", linestyle="--", linewidth=0.8)
+            for y in (m + sd, m - sd):
+                ax.axhline(y, color="#d97706", linestyle="--", linewidth=0.8)
+            ax.set_title(lab, fontsize=8, loc="left")
+            ax.tick_params(labelsize=7)
+            ax.set_xticks([0, len(vals) - 1])
+            ax.set_xticklabels([pts[0][0], pts[-1][0]])
+            stats[lab] = {"last": vals[-1], "mean": m, "sd": sd, "n": len(vals),
+                          "as_of": pts[-1][0]}
+        fig.tight_layout()
+        out = _finish(fig, name, out_dir)
+        cap = "; ".join(f"{k}: {s['last']:,.0f} against a {s['n']}-print mean of "
+                        f"{s['mean']:,.0f} (one sigma {s['sd']:,.0f}), as of "
+                        f"{s['as_of']}" for k, s in stats.items())
+        return {"id": cid, "drawn": [], "caption": f"{title}. {cap}", **out,
+                "stats": stats, "not_drawn": sorted(set(series) - set(keep))}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def bars_chart(cid: str, rows: list, title: str, name: str,
+               out_dir: Optional[str]) -> dict:
+    """Sorted horizontal bars: the week's sector and style-pair returns (W5)."""
+    if len(rows) < 3:
+        return {"id": cid, "unavailable": f"{len(rows)} returns stored, 3 needed"}
+    try:
+        rows = sorted(rows, key=lambda r: r[1])
+        plt = _plt()
+        fig, ax = plt.subplots(figsize=(7.0, 0.22 * len(rows) + 0.9))
+        ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
+        ax.barh(range(len(rows)), [v for _, v in rows],
+                color=[UP if v >= 0 else DOWN for _, v in rows],
+                edgecolor="#0d2b45", linewidth=0.4)
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([k for k, _ in rows], fontsize=7)
+        ax.axvline(0, color="#94a3b8", linewidth=0.6)
+        ax.tick_params(labelsize=7)
+        for i, (_, v) in enumerate(rows):
+            ax.annotate(f"{v:+.2f}%", xy=(v, i), xytext=(3 if v >= 0 else -3, 0),
+                        textcoords="offset points", va="center",
+                        ha="left" if v >= 0 else "right", fontsize=6.5)
+        out = _finish(fig, name, out_dir)
+        top, bot = rows[-1], rows[0]
+        return {"id": cid, "drawn": [], "caption": f"{title}; highest {top[0]} "
+                f"{top[1]:+.2f}%, lowest {bot[0]} {bot[1]:+.2f}%", **out,
+                "series": [{"name": k, "return_pct": v} for k, v in rows]}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}

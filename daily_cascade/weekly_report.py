@@ -78,6 +78,8 @@ def main() -> int:
                          "was, the paragraph regenerated and audited by the "
                          "current code. Use with --dry-run and --archive-dir so "
                          "the original edition is not overwritten")
+    ap.add_argument("--classic", action="store_true",
+                    help="The pre-stack Weekly: one long paragraph over the blocks")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -100,6 +102,11 @@ def main() -> int:
     if not ending:
         print("no payload -- the week could not be resolved")
         return 1
+
+    # THE TEN-SECTION STACK (reporting-stack brief, T2) is the Weekly's shape;
+    # --classic keeps the pre-stack edition for comparison and fallback.
+    if not args.classic:
+        return _stacked(args, p, run_id, ending)
 
     # --- the paragraph -------------------------------------------------------
     narr = None
@@ -195,6 +202,52 @@ def main() -> int:
     for w in p.get("warnings") or []:
         print(f"  WARNING    : {w}")
     return rc
+
+
+def _stacked(args, p: dict, run_id: str, ending: str) -> int:
+    """Build, audit, chart, archive and send the stacked Weekly."""
+    from daily_cascade import weekly_stack  # noqa: PLC0415
+    archive_dir = args.archive_dir or delivery.ARCHIVE_DIR
+    try:
+        delivery.archive(json.dumps(p, indent=2, default=str, sort_keys=True),
+                         f"weekly_tactical_{ending}_payload.json", args.archive_dir)
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("payload archive failed (%s) -- the report continues", exc)
+    out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
+                               model=args.narrative_model,
+                               narrative=not args.no_narrative)
+    ed = out["edition"]
+    print(f"\nweekly (stacked) -- week ending {ending}")
+    print(f"  run id     : {run_id}")
+    print(f"  stack      : {len(ed['sections'])} sections, {ed.get('words')} words "
+          f"(budget {(ed.get('budget') or {}).get('words')}), "
+          f"{ed.get('chart_count')} chart(s)")
+    for s in ed["sections"]:
+        flag = ("collapsed" if s.get("collapsed") else
+                "withheld: " + str(s.get("withheld"))[:90] if s.get("withheld")
+                else "ok")
+        print(f"    {s['id']:<12} {s['depth']:<6} {flag}"
+              + (f"  [{s['depth_reason']}]" if s.get("depth_reason") else "")
+              + ("  (trimmed)" if s.get("trimmed") else ""))
+    for k, c in out["charts"].items():
+        print(f"    chart {k}: " + (f"unavailable: {c['unavailable']}"
+                                    if c.get("unavailable")
+                                    else f"{c.get('png_bytes')} bytes PNG"))
+    weekly_stack.save_edition(ed, ending, args.archive_dir)
+    name = f"weekly_tactical_{ending}.html"
+    if args.dry_run:
+        path = delivery.archive(out["html_archive"], name, args.archive_dir)
+        print(f"  archive    : {path or 'FAILED'}")
+        print("  delivery   : dry_run (--dry-run)")
+        return 3
+    res = delivery.deliver(f"[chester] Weekly — {ending}", out["html_email"], name,
+                           text_fallback=render_mod.text_fallback(p),
+                           archive_dir=args.archive_dir,
+                           archive_html=out["html_archive"],
+                           inline_images=out["inline_images"])
+    print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
+    print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})")
+    return 0 if res.get("delivery") == "sent" else 2
 
 
 def weekly_system_prompt() -> str:
