@@ -251,7 +251,11 @@ def exposure(dec: dict, store: Any, ref: dict,
         notional = 0.0
     # A NON-USD EXPRESSION'S NOTIONAL IS IN ITS OWN CURRENCY, converted here at
     # a stored rate the view names -- or left out of the USD totals, saying so.
-    ccy = str(dec.get("expression_currency") or "USD").upper()
+    # INC-8: an empty expression currency is the listing's own suffix where it
+    # has one, and USD only for a bare ticker -- never assumed for a peso listing.
+    from register.store import listing_currency          # noqa: PLC0415
+    ccy = str(dec.get("expression_currency")
+              or listing_currency(dec.get("instrument")) or "USD").upper()
     if ccy != "USD" and notional:
         fx = to_usd(float(notional), ccy, store, as_of)
         out["fx"] = {"currency": ccy, "notional_local": notional, **fx}

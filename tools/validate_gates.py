@@ -274,9 +274,19 @@ def group_d() -> None:
           f"the required check does NOT depend on the data gates ({needs!r}) -- "
           f"a CI runner has no captured chains, so their verdict says nothing "
           f"about the commit")
-    check("continue-on-error: true" in wf,
-          "and the data-gate job is continue-on-error, so it reports without "
-          "deciding the build")
+    # 6d (2 Oct 2026): the data gates SKIP explicitly in CI -- "skipped:
+    # box-only", exit 0 -- rather than fail behind continue-on-error. The job
+    # stays out of the required check either way.
+    data_gate_job = wf[wf.find("data-gate:"):wf.find("gates-passed:")]
+    box_only = (REPO / "tools" / "box_only.py").read_text(encoding="utf-8")
+    data_srcs = [(REPO / g).read_text(encoding="utf-8")
+                 for g in makefile_vars()["DATA_GATES"] if g.endswith(".py")]
+    check("continue-on-error" not in data_gate_job
+          and "skipped: box-only" in box_only
+          and data_srcs and all("ci_skip(__file__)" in t for t in data_srcs),
+          f"and every data gate skips explicitly under GitHub Actions ('skipped: "
+          f"box-only', exit 0) instead of failing behind continue-on-error "
+          f"({len(data_srcs)} data gates)")
     check("fail-fast: false" in wf,
           "fail-fast is off, so one broken gate does not hide the others")
 

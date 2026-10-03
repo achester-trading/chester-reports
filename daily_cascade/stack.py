@@ -204,9 +204,25 @@ def mechanics_section(p: dict) -> dict:
                      "dials": {k: (v or {}).get("state") for k, v in dials.items()}}}
 
 
-def misfit_section(p: dict) -> dict:
+def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
     ms = p.get("market_state") or {}
     items = []
+    dis = (pmb or {}).get("disagreements") or {}
+    for d in dis.get("fed_funds") or []:
+        items.append(item(f"misfit:pm_ff:{d['meeting']}:{d['venue']}:{d['side']}",
+                          f"{d['venue'].title()} prices a {d['side']} at the "
+                          f"{d['meeting']} meeting at {round(d['venue_probability'] * 100):.0f}%"
+                          f" against {round(d['fed_funds_implied'] * 100):.0f}% from fed "
+                          f"funds futures: {abs(d['gap_points']):.0f} points apart "
+                          f"(threshold {d['threshold_points']:g}).", 1,
+                          (d["venue_probability"], d["fed_funds_implied"])))
+    for d in dis.get("scenario") or []:
+        items.append(item(f"misfit:pm_sc:{d['instrument']}",
+                          f"A venue prices {d['scenario']} at "
+                          f"{round(d['venue_probability'] * 100):.0f}% against our weight "
+                          f"of {round(d['scenario_weight'] * 100):.0f}% "
+                          f"({abs(d['gap_points']):.0f} points).", 1,
+                          (d["venue_probability"], d["scenario_weight"])))
     opened = [c for c in ms.get("contradictions") or [] if c.get("open")]
     for c in opened:
         items.append(item(f"misfit:{c['id']}",
@@ -225,9 +241,11 @@ def misfit_section(p: dict) -> dict:
         items.append(item("misfit:none", "No contradiction is open and no "
                           "exception is flagged.", 1, "none"))
     return {"items": items, "charts": ["C3"] if opened else [],
-            "not_tracked": ["venue-against-price disagreement (prediction "
-                            "markets, 6d)"],
-            "data": {"open_contradictions_count": len(opened),
+            "not_tracked": list(dis.get("notes") or []) if pmb else
+            ["venue disagreement: no venue market stored"],
+            "data": {"venue_disagreements": {k: dis.get(k) for k in
+                                             ("fed_funds", "scenario")},
+                     "open_contradictions_count": len(opened),
                      "exceptions_count": len(exc),
                      "exceptions_by_kind": {k: sum(1 for e in exc
                                                    if e.get("kind") == k)
@@ -340,9 +358,81 @@ def positioning_section(st, cutoff: str) -> dict:
             "data": data}
 
 
-def priced_section(st, cutoff: str, cfg: dict) -> dict:
+def _pct(p: Optional[float]) -> str:
+    return "n/a" if p is None else f"{round(p * 100):.0f}%"
+
+
+def _pts(v: Optional[float]) -> str:
+    if v is None:
+        return "no prior"
+    sign = "+" if v > 0 else ("\u2212" if v < 0 else "")
+    return f"{sign}{abs(v):.1f} pts"
+
+
+def _venue_name(v: str) -> str:
+    return {"kalshi": "Kalshi", "polymarket": "Polymarket"}.get(v, v)
+
+
+def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
+    """What's priced: the rate path, the FOMC odds per meeting, the watch list."""
+    items: list[dict] = []
+    if fed and fed.get("tracked"):
+        items.append(item("priced:rate_path", f"Fed funds futures: {fed['sentence']}.",
+                          1, [(m["meeting"], m["post_pct"]) for m in fed["meetings"]]))
+    meetings = (fed or {}).get("meetings") or []
+    odds = (pmb or {}).get("fomc_odds") or {}
+    days = sorted(set(list(odds) + [m["meeting"] for m in meetings]))[:4]
+    for d in days:
+        parts = []
+        lo, hi = ((pmb or {}).get("legs_sum_band") or [0.95, 1.05])
+        for v, o in sorted((odds.get(d) or {}).items()):
+            tot = o["hold"] + o["hike"] + o["cut"]
+            flag = (f" (legs sum to {round(tot * 100):.0f}%)"
+                    if not lo <= tot <= hi else "")
+            parts.append(f"{_venue_name(v)} hold {_pct(o['hold'])}, hike "
+                         f"{_pct(o['hike'])}, cut {_pct(o['cut'])}{flag}")
+        m = next((x for x in meetings if abs((dt.date.fromisoformat(x["meeting"])
+                                             - dt.date.fromisoformat(d)).days) <= 2),
+                 None)
+        if m:
+            parts.append(f"futures imply {_pct(m['move_probability_25bp'])} of a "
+                         f"25 bp {m['direction'] if m['direction'] != 'hold' else 'move'}"
+                         f" ({m['pre_pct']:.2f}% to {m['post_pct']:.2f}%)")
+        if parts:
+            items.append(item(f"priced:fomc:{d}", f"FOMC {d}: " + "; ".join(parts) + ".",
+                              1 if d == days[0] else 2,
+                              [(d, sorted((odds.get(d) or {}).items()))]))
+    for wid, rows in ((pmb or {}).get("watch") or {}).items():
+        if wid == "fomc_decision" or not rows:
+            continue
+        best = {}
+        for r in rows:
+            b = best.get(r["venue"])
+            if b is None or (r.get("volume") or 0) > (b.get("volume") or 0):
+                best[r["venue"]] = r
+        txt = "; ".join(
+            f"{_venue_name(v)} {r.get('outcome') or 'Yes'} {_pct(r['probability'])}"
+            f" ({_pts(r.get('change_1s_points'))} on the session"
+            + (", bias zone" if r.get("bias_zone") else "") + ")"
+            for v, r in sorted(best.items()))
+        q = next(iter(best.values())).get("event_title") or wid
+        items.append(item(f"priced:pm:{wid}", f"{q}: {txt}.", 3,
+                          [(v, r["probability"]) for v, r in sorted(best.items())]))
+    for v, info in ((pmb or {}).get("venues") or {}).items():
+        if info.get("outage"):
+            items.append(item(f"priced:outage:{v}",
+                              f"{_venue_name(v)}: as of {info.get('as_of') or 'never'} "
+                              f"(nothing stored for this session).", 1,
+                              info.get("as_of")))
+    return items
+
+
+def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
+                   fed: Optional[dict] = None, fed_prior: Optional[dict] = None
+                   ) -> dict:
     items, data = [], {}
-    for k, name in (("fred.breakeven_10y", "10-year breakeven"),
+    for k, name in (("fred.breakeven_5y", "5-year breakeven"),
+                    ("fred.breakeven_10y", "10-year breakeven"),
                     ("fred.breakeven_5y5y", "5-year, 5-year-forward breakeven"),
                     ("umich.expect_5_10y", "Michigan 5-10 year expectations"),
                     ("nyfed.sce_3y", "NY Fed 3-year expectations")):
@@ -352,18 +442,62 @@ def priced_section(st, cutoff: str, cfg: dict) -> dict:
         data[name] = x
         items.append(item(f"priced:{k}", f"{name} {_lvl(x)} ({_change(x)}, as of "
                           f"{x['observed_at']}).", 2, (x["level"], x["change"])))
+    items = venue_items(pmb, fed) + items
+    trig = (cfg.get("triggers") or {}).get("priced") or {}
     reason = None
-    for k, th in (((cfg.get("triggers") or {}).get("priced") or {})
-                  .get("moves_bp") or {}).items():
+    for k, th in (trig.get("moves_bp") or {}).items():
         x = last_two(st, k, cutoff)
         if x and x.get("change") is not None and abs(x["change"]) >= th:
             reason = f"{k.split('.')[-1]} moved {_change(x)} (threshold {th} bp)"
             break
-    return {"items": items, "deep_reason": reason,
-            "not_tracked": ["the fed funds futures rate path (6d)",
-                            "prediction-market odds (6d)",
-                            "one-year inflation expectations"],
-            "data": {"series": data}}
+    rate_th = float(trig.get("fomc_implied_rate_next_four_meetings_bp") or 12.5)
+    if not reason and fed and fed_prior and fed.get("tracked"):
+        was = {m["meeting"]: m["post_pct"] for m in fed_prior.get("meetings") or []}
+        for m in (fed.get("meetings") or [])[:4]:
+            ch = derived.rate_bp_change(m["post_pct"], was.get(m["meeting"]))
+            if ch is not None and abs(ch) >= rate_th:
+                reason = (f"the implied rate after the {m['meeting']} meeting moved "
+                          f"{_signed(ch, 'bp')} (threshold {rate_th:g} bp)")
+                break
+    pm_th = float(trig.get("prediction_market_points") or 10)
+    if not reason:
+        for sh in (pmb or {}).get("shocks") or []:
+            if abs(sh["change_1s_points"]) >= pm_th:
+                reason = (f"{_venue_name(sh['venue'])} {sh.get('question')!s:.60} moved "
+                          f"{_pts(sh['change_1s_points'])} (threshold {pm_th:g} pts)")
+                break
+    not_tracked = ["one-year inflation expectations"]
+    if not fed or not fed.get("tracked"):
+        not_tracked.insert(0, "the fed funds futures rate path: "
+                              + ((fed or {}).get("reason") or "no contracts stored"))
+    if not pmb or not pmb.get("markets"):
+        not_tracked.insert(0, "prediction-market odds: no venue market stored")
+    return {"items": items, "deep_reason": reason, "not_tracked": not_tracked,
+            "data": {"series": data,
+                     "rate_path": {k: (fed or {}).get(k) for k in
+                                   ("meetings", "tracked", "reason", "sentence",
+                                    "as_of", "contracts")},
+                     "venues": {k: (pmb or {}).get(k) for k in
+                                ("venues", "fomc_odds", "shocks")},
+                     "watch": {wid: [{k: r.get(k) for k in
+                                      ("venue", "question", "outcome", "probability",
+                                       "probability_ordinal", "change_1s_points",
+                                       "change_5s_points", "change_20s_points",
+                                       "bias_zone", "as_of")}
+                                     for r in rows[:6]]
+                               for wid, rows in ((pmb or {}).get("watch") or {}).items()}}}
+
+
+def read_items(pmb: Optional[dict]) -> list[dict]:
+    """The read: an attention shock earns a line (brief 4)."""
+    out = []
+    for sh in (pmb or {}).get("shocks") or []:
+        out.append(item(f"read:shock:{sh['instrument']}",
+                        f"Attention shock ({sh['state']}): {_venue_name(sh['venue'])} "
+                        f"\"{sh.get('question')}\" {_pts(sh['change_1s_points'])} "
+                        f"to {_pct(sh['probability'])} on the session.", 1,
+                        (sh["probability"], sh["change_1s_points"])))
+    return out
 
 
 def narratives_section(st) -> dict:
@@ -453,19 +587,41 @@ def book_section(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Assembly: depth, marks, collapse, budget
 # ---------------------------------------------------------------------------
+def venues_and_path(session_day: str, cutoff: str, st) -> tuple:
+    """6d: the venue block, today's rate path and the prior session's. Each one
+    that cannot be read is None, and the sections say what is not tracked."""
+    fed = fed_prior = pmb = None
+    try:
+        from altdata import fed_funds                            # noqa: PLC0415
+        fed = fed_funds.path_as_of(cutoff, st)
+        prev = session.previous_trading_session(session_day)
+        from altdata.prediction_markets import _close_cutoff     # noqa: PLC0415
+        fed_prior = fed_funds.path_as_of(_close_cutoff(prev), st)
+    except Exception:                                           # noqa: BLE001
+        pass
+    try:
+        from altdata import prediction_markets as pm             # noqa: PLC0415
+        pmb = pm.block(session_day, cutoff, fed_path=fed, store=st)
+    except Exception:                                           # noqa: BLE001
+        pass
+    return pmb, fed, fed_prior
+
+
 def build(p: dict, book: dict, outlook_rows: list[dict],
           prior: Optional[dict] = None, store_path: Optional[str] = None) -> dict:
     cfg = config()
     cutoff = p.get("as_of") or session.utc_iso()
     with observations.ObservationStore(store_path) as st:
+        pmb, fed, fed_prior = venues_and_path(p["session"], cutoff, st)
         built = {
-            "read": {"items": [], "data": {}},
+            "read": {"items": read_items(pmb), "data": {
+                "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
             "mechanics": mechanics_section(p),
-            "misfit": misfit_section(p),
+            "misfit": misfit_section(p, pmb),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),
-            "priced": priced_section(st, cutoff, cfg),
+            "priced": priced_section(st, cutoff, cfg, pmb, fed, fed_prior),
             "narratives": narratives_section(st),
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),

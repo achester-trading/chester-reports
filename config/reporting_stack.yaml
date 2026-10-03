@@ -78,15 +78,18 @@ triggers:
       calc.yield_curve_2s10s: 8
       fred.hy_oas: 15
   priced:
+    # Item 10's "5- or 10-year breakeven >= 10 bp", and the 5y5y forward beside
+    # them at the same threshold (6d, 2 Oct 2026: T5YIE added to the FRED feed).
     moves_bp:
+      fred.breakeven_5y: 10
       fred.breakeven_10y: 10
+      fred.breakeven_5y5y: 10
+    # 6d: the implied rate after any of the next four FOMC meetings moving this
+    # far since the prior session (altdata/fed_funds.py), and any watched venue
+    # probability moving this many points in a session (the attention shock).
+    fomc_implied_rate_next_four_meetings_bp: 12.5
+    prediction_market_points: 10
     pending:
-      # Item 10 names the 5-YEAR breakeven (FRED T5YIE). The store carries the
-      # 10-year (T10YIE) and the 5y5y forward (T5YIFR) but not T5YIE, so the
-      # 5-year leg waits for the series to be added; the 5y5y is not it.
-      breakeven_5y_bp: 10
-      fomc_implied_rate_next_four_meetings_bp: 12.5    # 6d rate path
-      prediction_market_points: 10                     # 6d
       consensus_eps_revision_pct: 1.0                  # the Weekly only (T2)
       expectations_1y_pt: 0.3                          # UMich or SCE one-year; not stored yet
 

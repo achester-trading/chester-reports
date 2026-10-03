@@ -58,4 +58,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # In CI: "skipped: box-only", exit 0 (tools/box_only.py). Elsewhere: the gate.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from box_only import ci_skip  # noqa: E402
+    _skip = ci_skip(__file__)
+    sys.exit(main() if _skip is None else _skip)

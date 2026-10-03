@@ -60,6 +60,7 @@ PY_VALIDATORS := \
 	tools/validate_enforce.py \
 	tools/validate_benchmark.py \
 	tools/validate_stack.py \
+	tools/validate_prediction_markets.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

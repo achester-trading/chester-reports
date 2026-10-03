@@ -1,0 +1,112 @@
+# prediction_markets.yaml -- 6d: the venues, the watch list, the rules.
+# (docs/briefs/reporting-stack-brief-2026-10-02.md section 4; ratified values from
+# the Doctrine monthly of 2 Oct 2026, item 10.)
+#
+# THE SPEC OF RECORD. `docs/prediction-market-spec-v1.1.md` is TO BE FILED; the
+# brief's section 4 reference to it stands pending that. Until it is, the rules
+# below are the spec's rules as Ari recorded them on 2 Oct 2026 (in chat, with the
+# 6d instruction), plus Part 27 of the architecture document where it is stricter.
+#
+#   RIGHTS: discovery, attention shock (>= 10 points in a day) and disagreement,
+#   and nothing else. No automatic change to any scenario weight, narrative, theme
+#   or book from venue odds, ever. Never a trigger, never a packet.
+#   CONFIDENCE-MODIFICATION is not built and may not be proposed until the
+#   calibration-archive gate below is met.
+#   ONE SYSTEM OF RECORD: the box's SQLite store. No other database.
+#   OUTPUTS are blocks inside the existing reports, not a new report.
+#   A one-time historical BACKFILL is allowed and is flagged on every row.
+#   Public endpoints only; if a key is ever required it goes in the box .env by
+#   Ari, never in a file or a chat.
+version: prediction-markets-v1
+ratified: 2026-10-02
+updated: 2026-10-02
+
+venues:
+  kalshi:
+    base: "https://api.elections.kalshi.com/trade-api/v2"
+  polymarket:
+    base: "https://gamma-api.polymarket.com"
+
+# THE WATCH LIST, exactly as item 10 lists it. Each item names how each venue's
+# markets are found: Kalshi by series ticker (open events), Polymarket by a search
+# query, kept when the event's slug matches the pattern. `outcome` names which
+# side's probability is stored for a two-outcome market; a multi-outcome event
+# stores every outcome as its own market row.
+watch_list:
+  - id: fomc_decision
+    label: "the FOMC decision at each of the next four meetings"
+    next_n: 4
+    kalshi: {series: KXFEDDECISION}
+    polymarket: {query: "fed decision", slug_pattern: "^fed-decision-in-"}
+  - id: us_recession
+    label: "US recession in 2026 and in 2027"
+    kalshi: {series: KXRECSSNBER}
+    polymarket: {query: "us recession", slug_pattern: "^us-recession-by-end-of-202[67]"}
+  - id: cpi_monthly
+    label: "each month's CPI print"
+    next_n: 1
+    kalshi: {series: KXCPI}
+    polymarket: {query: "cpi", slug_pattern: "^(core-)?cpi-(yoy|mom)-"}
+  - id: house_control
+    label: "House control on 3 November"
+    kalshi: {event: CONTROLH-2026}
+    polymarket: {query: "house 2026", slug_pattern: "^which-party-will-win-the-house-in-2026$"}
+  - id: senate_control
+    label: "Senate control on 3 November"
+    kalshi: {event: CONTROLS-2026}
+    polymarket: {query: "senate 2026", slug_pattern: "^which-party-will-win-the-senate-in-2026$"}
+  - id: government_shutdown
+    label: "a government shutdown by date"
+    # Neither venue lists a dated shutdown contract as of 2 Oct 2026; Kalshi's
+    # count of 2026 shutdowns is the nearest. economic_question_match: proxy.
+    match: proxy
+    kalshi: {series: KXNUMSHUTDOWNS}
+    polymarket: {query: "government shutdown", slug_pattern: "shutdown"}
+
+# DISCOVERY (item 10): the twenty highest-volume open markets whose titles match
+# the narrative register's stories by keyword. Discovery only -- a name on the
+# alert list, never a packet.
+discovery:
+  top_n: 20
+  # Keywords per narrative story id; a story with none listed is not searched.
+  keywords:
+    ai_capex_durability: ["AI", "Nvidia", "OpenAI", "data center"]
+    fiscal_dominance: ["deficit", "debt ceiling", "Treasury", "shutdown"]
+    midterm_cycle: ["midterm", "House", "Senate"]
+    yen_carry: ["yen", "Bank of Japan", "BOJ"]
+
+# THE RULES (item 10; spec v1.1 as recorded).
+rules:
+  # Attention shock: |change in probability| over one session, in points.
+  attention_shock_points: 10
+  # Part 27's quarantine: a shock is CONFIRMED by the other venue moving the
+  # same way by at least half as much, OR by the market's volume at or above
+  # this; otherwise it prints UNCONFIRMED.
+  shock_confirm_cross_venue_share: 0.5
+  shock_confirm_min_volume_usd: 1000000
+  # Part 27's bias zone: p < 10% or > 90% -- use changes, distrust levels.
+  bias_zone: [0.10, 0.90]
+  disagreement_points:
+    venue_vs_fed_funds_implied: 15
+    venue_vs_scenario_weight: 20
+  # Session changes printed beside each probability.
+  change_sessions: [1, 5, 20]
+  # A meeting's legs (hike + hold + cut) on one venue outside this band print
+  # "(legs sum to X%)" beside them: separate contracts' prices need not sum to
+  # one, and the reader should see when they do not (ruled 2 Oct 2026).
+  legs_sum_band: [0.95, 1.05]
+
+# Venue market -> our scenario weight, for the 20-point disagreement. Empty until
+# a scenario is declared against a venue market by hand: a mapping no one wrote
+# would be the system inventing an equivalence.
+scenario_map: {}
+
+# THE CALIBRATION-ARCHIVE GATE (spec v1.1 as recorded). Confidence-modification
+# is not built and may not be proposed until every condition holds; the Monthly
+# prints progress against each.
+calibration_gate:
+  live_snapshot_days: 90
+  qualifying_shocks: 20
+  qualifying_shock_points: 10
+  venue_leads_assets_net_of_costs: true      # shown by a study; not built
+  consecutive_monthly_calibration_parts: 2

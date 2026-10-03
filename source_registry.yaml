@@ -1267,6 +1267,57 @@ sources:
     implemented_by: altdata/sources/worldbank.py
     status: live
 
+  kalshi:
+    name: Kalshi -- public trade API (api.elections.kalshi.com/trade-api/v2)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [prediction_markets]
+    geography: [US]
+    latency: near-real-time; read at 06:45 and 16:10 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Prices carry no per-quote timestamp in the market listing; the stored
+      availability is the fetch instant (ingest_instant). A market's last price is
+      the venue's statement of a belief, never a fact about the event.
+    license: >-
+      Public market-data endpoints, read without a key or an account (probed 2 Oct
+      2026). If a key is ever required it goes in the box .env by Ari.
+    allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
+    implemented_by: altdata/sources/prediction_markets.py
+    status: active
+    caveats:
+      - >-
+        RIGHTS: discovery, attention shock and disagreement only (6d; spec v1.1 as
+        recorded 2 Oct 2026). No scenario weight, narrative, theme or book changes
+        from venue odds, ever; confidence-modification waits for the
+        calibration-archive gate in config/prediction_markets.yaml.
+      - >-
+        Prices are in dollars per contract (0.00-1.00); the last trade can be old
+        on a thin market, so volume and open interest are stored beside it.
+
+  polymarket:
+    name: Polymarket -- public Gamma API (gamma-api.polymarket.com)
+    tier: C
+    epistemic_role: primary_fact
+    domain: [prediction_markets]
+    geography: [global]
+    latency: near-real-time; read at 06:45 and 16:10 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      outcomePrices carry no quote timestamp; the stored availability is the fetch
+      instant (ingest_instant).
+    license: >-
+      Public read-only endpoints, no key or account (probed 2 Oct 2026). The
+      international book is offshore; nothing here trades on it.
+    allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
+    implemented_by: altdata/sources/prediction_markets.py
+    status: active
+    caveats:
+      - >-
+        Same rights as kalshi. A market is found by a search query and kept only
+        when its slug matches the configured pattern, so a renamed market drops
+        out visibly rather than being matched loosely.
+
   lbma:
     name: LBMA -- Gold Price PM (prices.lbma.org.uk)
     tier: A0

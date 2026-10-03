@@ -859,10 +859,42 @@ def cmd_set_status(args) -> int:
         # marking it was refused as noise. That pair -- status active,
         # thesis_state INVALIDATED -- is the honest record of a missed exit, and
         # it is exactly what the register needs to be able to say.
+        # INC-8: THE EXPRESSION CURRENCY, CARRIED FORWARD HONESTLY. The flag if
+        # given; else the old row's; else the listing's own currency suffix
+        # (SPY@MEXI.MXN expresses MXN); else EMPTY. The 1 Oct code fell back to
+        # "USD" here, which wrote USD onto the peso close d673b498 -- a fallback
+        # that invented a currency. Checked against the listing before the dry
+        # run returns, so a dry run says what the write would refuse.
+        from register.store import (currency_mismatch,  # noqa: PLC0415
+                                    listing_currency as _lccy)
+        target_inst = args.instrument or old["instrument"]
+        old_ccy = dict(old).get("expression_currency")
+        expr_ccy = ((args.expression_currency or "").upper() or old_ccy
+                    or _lccy(target_inst) or None)
+        if expr_ccy != old_ccy:
+            print(f"  expression ccy  : {old_ccy or '(empty)'} -> {expr_ccy or '(empty)'}"
+                  + ("  (from the listing's suffix)"
+                     if not args.expression_currency and not old_ccy else ""))
+        refusal = currency_mismatch(target_inst, expr_ccy)
+        if (not refusal and args.status == "active" and old["status"] != "active"
+                and not expr_ccy and not _lccy(target_inst)):
+            # Ruled 2 Oct 2026: nothing to compare is itself a refusal at
+            # activation -- the register's own rule, said before the dry run.
+            refusal = (f"{target_inst!r} names no listing currency and the "
+                       f"decision declares no expression currency, so the currency "
+                       f"guard has nothing to compare. Name the listing (e.g. "
+                       f"--instrument SPY@ARCA.USD) or declare "
+                       f"--expression-currency before it becomes active.")
+        if refusal and not args.override_gate:
+            print(f"\n  REFUSED -- CURRENCY MISMATCH\n    {refusal}")
+            print(LINE)
+            return 2
+
         if (args.status == old["status"] and action == old["operator_action"]
                 and (args.thesis_state or old["thesis_state"]) == old["thesis_state"]
                 and not args.note
                 and (args.instrument or old["instrument"]) == old["instrument"]
+                and expr_ccy == old_ccy
                 # A recorded exit IS a change: back-filling a close's fill
                 # supersedes a closed row with a closed row.
                 and all(exit_fields.get(k) == old.get(k) for k in exit_fields)):
@@ -1044,10 +1076,9 @@ def cmd_set_status(args) -> int:
                 falsifiers=(json.loads(old_d["falsifiers"])
                             if old_d.get("falsifiers") else None),
                 counter_thesis=old_d.get("counter_thesis"),
-                # INC-6: carried forward; a pre-guard row reads as USD, so an
-                # ACTIVATION of a non-USD listing recorded before the guard is
-                # judged by it like any new decision.
-                expression_currency=old_d.get("expression_currency") or "USD",
+                # INC-8: resolved above -- the flag, else the old row's, else the
+                # listing's own suffix, else EMPTY. Never an invented "USD".
+                expression_currency=expr_ccy,
                 **exit_fields,
                 becoming_active=becoming_active)
         except CurrencyMismatchError as exc:
@@ -1295,6 +1326,10 @@ def main() -> int:
     ss.add_argument("--book", default=None, choices=BOOKS,
                     help="Name the book. Carried forward if omitted; required "
                          "when a row BECOMES active and has none.")
+    ss.add_argument("--expression-currency", default=None, metavar="CCY",
+                    help="INC-8: correct the expression currency (3-letter ISO). "
+                         "Carried forward if omitted; an empty one is taken from "
+                         "the listing's suffix, never assumed USD.")
     ss.add_argument("--exit-price", type=float, default=None,
                     help="INC-6: the close's fill price, in the listing currency. "
                          "Filled from the executions table when omitted.")

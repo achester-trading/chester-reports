@@ -1046,10 +1046,23 @@ def group_k(td: str) -> None:
         except CurrencyMismatchError:
             ok("activation is judged too: a legacy peso draft is refused when it "
                "would become active")
+        # INC-8: the guard judges EVERY supersede, closing included -- a close
+        # carrying an invented "USD" onto a peso listing is refused ...
+        try:
+            reg.supersede(ov, status="closed", close_reason="flatten",
+                          expression_currency="USD", **keep)
+            bad("INC-8: a close wrote USD onto a peso listing")
+        except CurrencyMismatchError:
+            ok("INC-8: a CLOSE is judged too -- a USD expression on a peso listing "
+               "is refused at close as at entry")
+        # ... and closing is still never trapped: the legacy row's EMPTY currency
+        # carries forward as empty (or as the listing's own MXN), and both close.
         closed = reg.supersede(ov, status="closed", close_reason="flatten",
-                               expression_currency="USD", **keep)
-        check(bool(closed), "but it can always be CLOSED -- refusing the close "
-                            "would trap a wrong-listing position in the register")
+                               expression_currency=None, **keep)
+        check(bool(closed) and (reg.get(closed) or {}).get("expression_currency")
+              is None,
+              "but an empty currency closes, and stays EMPTY -- never stored as "
+              "USD, so a wrong-listing position is never trapped")
 
     # THE CLI, as a dry run: refused before anything else, exit 2.
     r = subprocess.run(
@@ -1278,6 +1291,130 @@ def group_l(td: str) -> None:
     check("reg_pnl.closes_in(" in src, "and the Weekly's register block carries it")
 
 
+def group_m(td: str) -> None:
+    """INC-8: an empty currency carries forward empty; the guard judges every
+    supersede; the corrective supersede leaves the chain's P&L unchanged."""
+    print(f"\n{LINE}\nM. INC-8 -- NO INVENTED CURRENCY; THE GUARD ON EVERY SUPERSEDE\n{LINE}")
+    from register import pnl
+    db = str(Path(td) / "inc8.db")
+    env = {**os.environ, "CHESTER_DB": db}
+    # SYNTHETIC FIGURES ONLY: a short of -50 at 2,000.00 MXN, closed at 2,100.00
+    # with USD/MXN at 20.0. The shape of the 1 Oct chain, none of its numbers.
+    with observations.ObservationStore(db) as st:
+        at = "2026-09-20T15:00:00+00:00"
+        st.write_many([
+            {"registry_key": "portfolio.position_qty", "instrument": "TEST@MEXI.MXN",
+             "observed_at": at, "available_at": at, "value": -50.0,
+             "source": "ibkr_paper"},
+            {"registry_key": "portfolio.position_avg_cost",
+             "instrument": "TEST@MEXI.MXN", "observed_at": at, "available_at": at,
+             "value": 2000.0, "source": "ibkr_paper"}])
+    base = dict(instrument="TEST@MEXI.MXN", direction="short", thesis="t",
+                edge_type="positioning", horizon="swing", invalidation="i",
+                book="B", falsifiers=["f"], counter_thesis="c",
+                currency_exposure="unhedged",
+                decision_time="2026-09-19T15:00:00+00:00")
+    exit_kw = dict(exit_price=2100.0, exit_time="2026-09-22T17:00:00+00:00",
+                   exit_currency="MXN", exit_fx_to_usd=0.05)
+    with Register(db) as reg:
+        act = reg.record(status="active", expression_currency="MXN", **base)
+        # The 1 Oct bug, reproduced: a close written with "USD" on a peso listing.
+        # Today's guard refuses that, so the fixture needs an override to make it.
+        bad_head = reg.supersede(act, status="closed", close_reason="flatten",
+                                 expression_currency="USD",
+                                 gate_override="fixture: reproduces the 1 Oct row",
+                                 **base, **exit_kw)
+        head = reg.get(bad_head)
+    with observations.ObservationStore(db) as st:
+        before = pnl.realised(head, st)
+    n0 = _count(db)
+
+    def cli(*extra):
+        return subprocess.run(
+            [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db,
+             "set-status", "--id", bad_head, "--status", "closed",
+             "--close-reason", "flatten", *extra],
+            capture_output=True, text=True, cwd=str(REPO), env=env)
+    r = cli("--expression-currency", "USD", "--dry-run")
+    check(r.returncode == 2 and "CURRENCY MISMATCH" in r.stdout,
+          f"set-status --dry-run is refused with the write: a USD expression on a "
+          f"peso listing, at close (rc {r.returncode})")
+    r = cli("--expression-currency", "MXN", "--dry-run")
+    check(r.returncode == 0 and "USD -> MXN" in r.stdout and _count(db) == n0,
+          f"the corrective supersede, as a dry run, shows USD -> MXN and writes "
+          f"nothing (rc {r.returncode})")
+    r = cli("--expression-currency", "MXN")
+    with Register(db) as reg:
+        new = reg.get(reg.get(bad_head)["superseded_by"] or "") or {}
+        old_row = reg.get(bad_head)
+    check(r.returncode == 0 and new.get("expression_currency") == "MXN"
+          and old_row.get("expression_currency") == "USD",
+          "for real: a NEW head in MXN, and the old head still says USD -- it is "
+          "superseded, never edited")
+    check(all(new.get(k) == head.get(k) for k in exit_kw)
+          and new.get("status") == "closed",
+          "the exit carries across unchanged: price, time, currency and fx")
+    with observations.ObservationStore(db) as st:
+        after = pnl.realised(new, st)
+    check(before.get("pnl_local") == after.get("pnl_local") == -5000.0
+          and before.get("pnl_usd") == after.get("pnl_usd") == -250.0,
+          f"and the chain's realised P&L is identical before and after: "
+          f"{before.get('pnl_local')} MXN / {before.get('pnl_usd')} USD, then "
+          f"{after.get('pnl_local')} MXN / {after.get('pnl_usd')} USD")
+    # An EMPTY currency carries forward from the listing's suffix, never as USD.
+    with Register(db) as reg:
+        legacy = reg.record(status="active", expression_currency=None, **base)
+        check((reg.get(legacy) or {}).get("expression_currency") is None,
+              "the register stores an empty expression currency as EMPTY, not USD")
+    r = subprocess.run(
+        [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db,
+         "set-status", "--id", legacy, "--status", "closed", "--close-reason",
+         "flatten", "--exit-price", "2100", "--exit-time",
+         "2026-09-22T17:00:00+00:00", "--exit-fx", "0.05"],
+        capture_output=True, text=True, cwd=str(REPO), env=env)
+    with Register(db) as reg:
+        nxt = reg.get(reg.get(legacy)["superseded_by"] or "") or {}
+    check(r.returncode == 0 and nxt.get("expression_currency") == "MXN"
+          and "(from the listing's suffix)" in r.stdout,
+          f"an empty one is taken from the listing's suffix on supersede -- MXN, "
+          f"stated as such (rc {r.returncode}, got "
+          f"{nxt.get('expression_currency')!r})")
+    # RULED 2 OCT: nothing to compare is itself a refusal at activation.
+    from register.store import CurrencyMismatchError
+    bare = dict(base, instrument="TEST")
+    with Register(db) as reg:
+        draft = reg.record(status="draft", expression_currency=None, **bare)
+        try:
+            reg.supersede(draft, status="active", expression_currency=None, **bare)
+            bad("a bare ticker with no expression currency was ACTIVATED")
+        except CurrencyMismatchError as exc:
+            ok(f"a bare ticker with no expression currency is refused at activation "
+               f"-- the guard has nothing to compare ({str(exc)[:60]}...)")
+        closed_bare = reg.supersede(draft, status="closed", close_reason="flatten",
+                                    expression_currency=None, **bare)
+        check(bool(closed_bare), "but it can still be closed: nothing is trapped")
+        dollar = reg.record(status="draft", expression_currency="USD", **bare)
+        act = reg.supersede(dollar, status="active", expression_currency="USD",
+                            **bare)
+        check(bool(act), "and a bare ticker that DECLARES its currency activates")
+        draft2 = reg.record(status="draft", expression_currency=None, **bare)
+    r = subprocess.run(
+        [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db,
+         "set-status", "--id", draft2, "--status", "active", "--book", "B",
+         "--dry-run"], capture_output=True, text=True, cwd=str(REPO), env=env)
+    check(r.returncode == 2 and "nothing to compare" in r.stdout,
+          f"decide.py set-status says so before its dry run returns (rc {r.returncode})")
+    src_txt = (REPO / "tools" / "decide.py").read_text(encoding="utf-8")
+    check('expression_currency") or "USD"' not in src_txt,
+          "and decide.py no longer falls back to an invented USD on supersede")
+
+
+def _count(db: str) -> int:
+    import sqlite3
+    with sqlite3.connect(db) as c:
+        return c.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
+
+
 def main() -> int:
     print(f"{LINE}\nRegister and point-in-time validation   {session.describe()}\n{LINE}")
     # ignore_cleanup_errors: on Windows a SQLite file cannot be unlinked while
@@ -1295,6 +1432,7 @@ def main() -> int:
         group_j(td)
         group_k(td)
         group_l(td)
+        group_m(td)
     group_f()
     group_d()
 

@@ -280,6 +280,26 @@ def listing_currency(instrument: Optional[str]) -> Optional[str]:
     return m.group(1) if m else None
 
 
+def currency_mismatch(instrument: Optional[str],
+                      expression_currency: Optional[str]) -> Optional[str]:
+    """The refusal text when a listing's currency is not the expression's, or None.
+
+    INC-8 (2 Oct 2026): one rule, used by the register's write AND by
+    tools/decide.py before a dry run returns, so a dry run says what the write
+    would refuse. An unknown on either side -- a bare ticker, an empty
+    expression currency -- is not judged: unknown is not USD."""
+    ccy = listing_currency(instrument)
+    expr = str(expression_currency).upper() if expression_currency else None
+    if not ccy or not expr or ccy == expr:
+        return None
+    return (f"{instrument!r} is listed in {ccy}, but the decision expresses its "
+            f"view in {expr}. A {ccy} listing carries the {ccy}/{expr} rate and "
+            f"the listing's own basis as well as the market (INC-6: the "
+            f"SPY@MEXI.MXN short lost mostly to the peso). Name the {expr} "
+            f"listing, declare --expression-currency {ccy} if the {ccy} exposure "
+            f"is the point, or record an operator override (--override-gate).")
+
+
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS decisions (
     id               TEXT PRIMARY KEY,
@@ -711,25 +731,34 @@ class Register:
                 f"if this listing is not the one you meant, that is the point "
                 f"of this refusal.")
 
-        # INC-6: THE LISTING CURRENCY MUST BE THE EXPRESSION CURRENCY. Checked on
-        # a new decision and on activation; not on a close or on annotating an
-        # already-active row -- refusing those would trap a wrong-listing
-        # position in the register instead of letting it be closed. A bare ticker
-        # has no listing currency and is not judged here.
-        expr = str(expression_currency or "USD").upper()
-        if not re.fullmatch(r"[A-Z]{3}", expr):
+        # INC-6 / INC-8: THE LISTING CURRENCY MUST BE THE EXPRESSION CURRENCY,
+        # on EVERY write -- a new decision and any supersede, closing included
+        # (INC-8: the 1 Oct guard checked draft and activation only, and a close
+        # written with an invented "USD" on a peso listing passed). Closing a
+        # wrong-listing position is not trapped by this: tools/decide.py carries an
+        # empty currency forward from the listing's own suffix, so the close of a
+        # peso listing is a peso expression. A bare ticker or an EMPTY expression
+        # currency is not judged -- empty is stored as NULL, never as "USD".
+        expr = str(expression_currency).upper() if expression_currency else None
+        if expr is not None and not re.fullmatch(r"[A-Z]{3}", expr):
             raise ValueError(f"expression_currency must be a 3-letter ISO code; "
                              f"got {expression_currency!r}")
-        checking = status == "draft" or (status == "active" and becoming_active)
-        if ccy and ccy != expr and checking and not gate_override:
+        refusal = currency_mismatch(instrument, expr)
+        if refusal and not gate_override:
+            raise CurrencyMismatchError(refusal)
+        # AND NOTHING TO COMPARE IS ITSELF A REFUSAL AT ACTIVATION (ruled 2 Oct
+        # 2026): a row with an empty expression currency on a bare ticker carries
+        # no currency on either side, so the guard cannot judge it -- and an
+        # unjudged activation is the INC-6 hole again. Closing such a row stays
+        # allowed, so nothing is trapped.
+        if (status == "active" and becoming_active and expr is None
+                and listing_currency(instrument) is None and not gate_override):
             raise CurrencyMismatchError(
-                f"{instrument!r} is listed in {ccy}, but the decision expresses "
-                f"its view in {expr}. A {ccy} listing carries the {ccy}/{expr} "
-                f"rate and the listing's own basis as well as the market (INC-6: "
-                f"the SPY@MEXI.MXN short lost mostly to the peso). Name the "
-                f"{expr} listing, declare --expression-currency {ccy} if the "
-                f"{ccy} exposure is the point, or record an operator override "
-                f"(--override-gate).")
+                f"{instrument!r} names no listing currency and the decision "
+                f"declares no expression currency, so the currency guard has "
+                f"nothing to compare. Name the listing (e.g. SPY@ARCA.USD) or "
+                f"declare --expression-currency before it becomes active, or "
+                f"record an operator override (--override-gate).")
 
         # THE EXIT, STRUCTURED (INC-6 follow-up). A close used to carry its fill
         # in --note free text and its decision_time was the instant the command

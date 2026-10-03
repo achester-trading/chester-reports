@@ -71,6 +71,9 @@ THE TAPE'S RULES:
 6. A probability appears only as an outlook's BASE RATE, in this form: "the base
    rate for <the outlook's claim> is 79% (n=82)". It is a frequency in the stored
    history, never our view: no "we expect", "likely", "odds", "chance", "lean".
+   A VENUE'S figure is the market's price, written as such: "Kalshi prices a
+   hike at 62%", "fed funds futures imply 21% of a 25 bp hike" -- never "a 62%
+   chance", never as a fact or as our view, and never as a reason to act.
 7. No adjective does a number's work: no "plunged", "soared", "massive" without
    the figure in the same sentence.
 8. Short declarative sentences; one idea per paragraph; the figure in the
@@ -190,7 +193,28 @@ _VIEW = re.compile(r"\b(?:we|our)\s+(?:expect|think|see|believe|view|lean|call|"
 _PCT = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d+)?)\s?(?:%|percent)")
 
 
-def outlook_misprints(text: str, outlooks: list[dict]) -> list[str]:
+def venue_percents(ed: dict) -> set:
+    """Every probability a VENUE or the futures put in front of the prose, in
+    whole percent -- figures the prose may quote as the market's price."""
+    pr = next((s for s in ed.get("sections") or [] if s["id"] == "priced"), {})
+    d = pr.get("data") or {}
+    out = set()
+    for rows in (d.get("watch") or {}).values():
+        for r in rows:
+            if r.get("probability") is not None:
+                out.add(round(r["probability"] * 100))
+    for by_venue in ((d.get("venues") or {}).get("fomc_odds") or {}).values():
+        for o in by_venue.values():
+            out.update(round(v * 100) for v in o.values())
+    for m in (d.get("rate_path") or {}).get("meetings") or []:
+        p = m.get("move_probability_25bp")
+        if p is not None:
+            out.update({round(p * 100), round((1 - p) * 100), 0})
+    return out
+
+
+def outlook_misprints(text: str, outlooks: list[dict],
+                      venue_ok: Optional[set] = None) -> list[str]:
     """A probability prints only as a ledgered outlook's base rate, with its n.
 
     Two refusals. A figure framed as odds ("62% chance that ...") that is not an
@@ -201,8 +225,13 @@ def outlook_misprints(text: str, outlooks: list[dict]) -> list[str]:
     live = [o for o in outlooks
             if o.get("state") == "computed" and o.get("ledger_id")]
     ok = {round(o["probability"] * 100) for o in live}
-    out = [f"{m.group(1)}% is not an outlook in the ledger"
-           for m in _ODDS.finditer(text or "") if round(float(m.group(1))) not in ok]
+    # A VENUE'S OR THE FUTURES' figure is the market's price, quotable as such;
+    # it is not an outlook and needs no base-rate framing. Anything else framed
+    # as odds came from nowhere and is refused.
+    vok = set(venue_ok or ())
+    out = [f"{m.group(1)}% is not an outlook in the ledger or a venue's price"
+           for m in _ODDS.finditer(text or "")
+           if round(float(m.group(1))) not in ok | vok]
     for s in _sentences(text):
         hits = [m for m in _PCT.finditer(s) if round(float(m.group(1))) in ok]
         if not hits:
@@ -250,7 +279,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         text = r.text if r.published else None
         faults = []
         if text:
-            faults = (style_faults(text, cfg) + outlook_misprints(text, outlooks or [])
+            faults = (style_faults(text, cfg)
+                      + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else []))
         if faults:

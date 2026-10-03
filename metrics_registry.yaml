@@ -463,6 +463,10 @@ vocabularies:
     # FUTURES POSITIONING (ST-2). CFTC Commitments of Traders: what
     # speculators HOLD in a contract, a stock of positions and not a price.
     - futures_positioning
+    # PREDICTION MARKETS (6d). Venue-implied probabilities: market beliefs,
+    # never facts, with discovery / shock / disagreement rights only -- their own
+    # group so a venue move can never confirm a market signal it resembles.
+    - prediction_market
 
 defaults:
   trigger_eligible: false
@@ -2490,6 +2494,107 @@ metrics:
       Standard deviation of the last 24 month-on-month core CPI changes (CPILFESL),
       annualised, in percentage points. SR-9's regime variable: the lever yield
       level is a proxy for. Consecutive monthly prints only.
+  pm.implied:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      RESERVED, WRITTEN BY NOTHING. The leg of config/market_state.yaml's
+      reserved seventh contradiction row (prediction_markets_vs_assets), which
+      prints absent until Part 27 v1 exists. Registered so the leg resolves now
+      that the pm. namespace is live (6d); the row stays reserved, and building
+      it is a change to how the regime is computed -- out of 6d's scope and,
+      for any confidence-modifying use, behind the calibration-archive gate.
+  pm.probability:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      6d: a venue market's implied probability (0..1) -- Kalshi's last trade, or
+      Polymarket's outcome price -- keyed by instrument `<venue>:<market id>`,
+      read at 06:45 and 16:10 ET. Both venues write this key; the instrument
+      names the venue. A market-implied belief, never a fact. Rights:
+      discovery, attention shock, disagreement -- never a trigger
+      (config/prediction_markets.yaml). A backfilled row carries
+      availability_kind reconstructed and source `<venue>_backfill`.
+  pm.price_basis:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      6d (ruled 2 Oct 2026): which price pm.probability carries for the same
+      market and instant -- `mid` (the bid-ask mid, where the venue quotes both
+      sides) or `last` (the last trade, the fallback). Written beside every live
+      probability; backfilled history is last trades by construction.
+  pm.volume:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      6d: a venue market's cumulative traded volume (contracts on Kalshi, USD on
+      Polymarket), same instrument key as pm.probability. Stored so a shock on a
+      thin market can be told from one on a deep market (Part 27's quarantine).
+  pm.market:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: structural
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      6d: a venue market's description as JSON -- watch-list id, venue, event,
+      question, outcome, close date, resolution criteria text verbatim where the
+      venue gives it, economic_question_match. Written when it changes. Part 27:
+      no contract maps to a scenario without its resolution criteria read.
+  fedfunds.futures_price:
+    source: yfinance
+    mechanism_group: inflation_expectations
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      6d rate path (brief 2.4): the CBOT 30-day fed funds futures settlement,
+      keyed by contract month (instrument `2026-11` for ZQX26), from yfinance's
+      ZQ<month><yy>.CBT symbols. 100 minus the price is the month's average
+      effective fed funds rate; altdata/fed_funds.py turns the months into the
+      implied rate after each FOMC meeting. Read at 16:10 ET.
   dealer.scorecard_day:
     source: derived_state
     mechanism_group: dealer_chain_derived
@@ -5671,7 +5776,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 21
+    expected_members: 22   # + T5YIE (6d)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release

@@ -379,6 +379,27 @@ def _delta(level: float, past: float, unit: str) -> Optional[float]:
 # ---------------------------------------------------------------------------
 # Confidence -- rule 4
 # ---------------------------------------------------------------------------
+def probability_points(level: Optional[float], past: Optional[float]
+                       ) -> Optional[float]:
+    """A change in a 0..1 probability, in PERCENTAGE POINTS (6d).
+
+    Here and not in the caller because this module is the one place a delta is
+    computed: a venue's 0.62 -> 0.74 is +12.0 points, never "+19%" (the relative
+    change a `fraction` would otherwise invite) and never +0.12 printed as if it
+    were points."""
+    if level is None or past is None:
+        return None
+    return round((float(level) - float(past)) * 100.0, 2)
+
+
+def rate_bp_change(level_pct: Optional[float], past_pct: Optional[float]
+                   ) -> Optional[float]:
+    """A change in a rate quoted in percent, in basis points (6d rate path)."""
+    if level_pct is None or past_pct is None:
+        return None
+    return round((float(level_pct) - float(past_pct)) * 100.0, 2)
+
+
 def staleness_allowance(metric_id: str) -> tuple[Optional[int], str]:
     """How many sessions this metric may go unrefreshed before it is stale."""
     e = registry_entry(metric_id)
