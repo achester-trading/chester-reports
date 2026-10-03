@@ -384,9 +384,13 @@ def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
     days = sorted(set(list(odds) + [m["meeting"] for m in meetings]))[:4]
     for d in days:
         parts = []
+        lo, hi = ((pmb or {}).get("legs_sum_band") or [0.95, 1.05])
         for v, o in sorted((odds.get(d) or {}).items()):
+            tot = o["hold"] + o["hike"] + o["cut"]
+            flag = (f" (legs sum to {round(tot * 100):.0f}%)"
+                    if not lo <= tot <= hi else "")
             parts.append(f"{_venue_name(v)} hold {_pct(o['hold'])}, hike "
-                         f"{_pct(o['hike'])}, cut {_pct(o['cut'])}")
+                         f"{_pct(o['hike'])}, cut {_pct(o['cut'])}{flag}")
         m = next((x for x in meetings if abs((dt.date.fromisoformat(x["meeting"])
                                              - dt.date.fromisoformat(d)).days) <= 2),
                  None)

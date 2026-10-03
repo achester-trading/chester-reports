@@ -2531,6 +2531,22 @@ metrics:
       discovery, attention shock, disagreement -- never a trigger
       (config/prediction_markets.yaml). A backfilled row carries
       availability_kind reconstructed and source `<venue>_backfill`.
+  pm.price_basis:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      6d (ruled 2 Oct 2026): which price pm.probability carries for the same
+      market and instant -- `mid` (the bid-ask mid, where the venue quotes both
+      sides) or `last` (the last trade, the fallback). Written beside every live
+      probability; backfilled history is last trades by construction.
   pm.volume:
     source: kalshi
     mechanism_group: prediction_market

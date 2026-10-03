@@ -150,6 +150,18 @@ def main() -> int:
           and kr[1]["decision_date"] == "2026-10-28" and kr[1]["volume"] == 2e6,
           f"a Kalshi event parses to one row per market, priced in dollars as a "
           f"probability ({[(r['market_id'], r['probability']) for r in kr]})")
+    mid = src.parse_kalshi_event({**kalshi_fomc(), "markets": [
+        {**k_market("T-MID", "Will the Federal Reserve Hike rates by 25bps?", 0.20),
+         "yes_bid_dollars": "0.6000", "yes_ask_dollars": "0.7000"}]}, "fomc_decision")
+    check(mid[0]["probability"] == 0.65 and mid[0]["price_basis"] == "mid"
+          and mid[0]["last"] == 0.20 and kr[0]["price_basis"] == "last",
+          "the price is the bid-ask mid where both sides are quoted (0.60/0.70 -> "
+          "0.65, not the stale 0.20 last trade); the last trade only as a fallback")
+    pmid = src.parse_polymarket_event({**poly_fomc(), "markets": [
+        {**poly_fomc()["markets"][0], "bestBid": 0.40, "bestAsk": 0.44}]},
+        "fomc_decision")
+    check(pmid[0]["probability"] == 0.42 and pmid[0]["price_basis"] == "mid",
+          "Polymarket's best bid and ask give its mid the same way")
     pr = src.parse_polymarket_event(poly_fomc(), "fomc_decision")
     check(len(pr) == 2 and pr[0]["probability"] == 0.45 and pr[0]["outcome"] ==
           "No change" and pr[1]["criteria"] == "Fixture terms.",
@@ -172,6 +184,11 @@ def main() -> int:
           f"fetch instant, ingest_instant ({r1['markets']} markets)")
     check(n_meta1 == 1 and n_meta2 == 1,
           "a market's description is written once, not once a pull")
+    with observations.ObservationStore(db) as st:
+        basis = st.latest_as_of("pm.price_basis",
+                                instrument="kalshi:KXFEDDECISION-26OCT-H25")
+    check(basis and basis.get("value_text") == "last",
+          "each live probability is stored with its basis (mid or last)")
     with observations.ObservationStore(db) as st:
         r3 = src.pull(store=st, get=make_get(kalshi_down=True),
                       now="2026-09-29T20:12:00+00:00")
@@ -358,6 +375,23 @@ def main() -> int:
           f"availability reconstructed")
     check(live_before == live_after == 1,
           f"and the gate's live-day count ignores them ({live_before} -> {live_after})")
+    # The backfilled path climbs 0.40 -> 0.49 in a day per step; give it a
+    # 12-point jump and confirm no backfilled move counts as a qualifying shock.
+    def bf_jump(url):
+        if "candlesticks" in url:
+            base = int(dt.datetime(2026, 9, 1, tzinfo=dt.timezone.utc).timestamp())
+            return {"candlesticks": [{"end_period_ts": base + 86400 * i,
+                                      "price": {"close_dollars": "0.20" if i < 5
+                                                else "0.80"}} for i in range(10)]}
+        return bf_get(url)
+    db3b = str(Path(td) / "bf2.db")
+    with observations.ObservationStore(db3b) as st:
+        src.pull(store=st, get=make_get(), now=f"{SESSION}T20:10:00+00:00")
+        src.backfill(days=60, store=st, get=bf_jump)
+        shocks_bf = pm.gate_progress(st, None, cfg)["conditions"][1]["have"]
+    check(shocks_bf == 0,
+          f"a 60-point jump in backfilled history advances the shock count by "
+          f"nothing ({shocks_bf}): the gate counts live snapshots only")
 
     # --- J. PLACEMENT ----------------------------------------------------------
     print(f"\n{LINE}\nJ. PLACEMENT -- What's priced, The read, What doesn't fit\n{LINE}")
@@ -392,6 +426,17 @@ def main() -> int:
     check(any(t.startswith("FOMC 2026-10-28:") and "Kalshi hold 38%, hike 62%" in t
               and "futures imply 100%" in t for t in pt),
           "and each meeting's venue odds beside the futures' implied move")
+    from daily_cascade import stack as stack_mod2
+    legs = stack_mod2.venue_items({"fomc_odds": {"2026-10-28": {
+        "kalshi": {"hold": 0.62, "hike": 0.45, "cut": 0.04},
+        "polymarket": {"hold": 0.50, "hike": 0.48, "cut": 0.02}}},
+        "legs_sum_band": [0.95, 1.05]}, None)
+    lt = legs[0]["text"] if legs else ""
+    check("Kalshi hold 62%, hike 45%, cut 4% (legs sum to 111%)" in lt
+          and "Polymarket hold 50%, hike 48%, cut 2%." in lt
+          and "Polymarket hold 50%, hike 48%, cut 2% (legs" not in lt,
+          f"a meeting whose legs sum outside 95-105% says so; one at 100% does not "
+          f"({lt[:110]})")
     check(sec["priced"]["depth"] == "deep" and "pts" in (sec["priced"]["depth_reason"] or ""),
           f"a 12-point move takes What's priced deep ({sec['priced']['depth_reason']})")
     rt = [i["text"] for i in sec["read"]["items"]]

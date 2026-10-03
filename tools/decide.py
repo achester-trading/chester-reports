@@ -876,6 +876,15 @@ def cmd_set_status(args) -> int:
                   + ("  (from the listing's suffix)"
                      if not args.expression_currency and not old_ccy else ""))
         refusal = currency_mismatch(target_inst, expr_ccy)
+        if (not refusal and args.status == "active" and old["status"] != "active"
+                and not expr_ccy and not _lccy(target_inst)):
+            # Ruled 2 Oct 2026: nothing to compare is itself a refusal at
+            # activation -- the register's own rule, said before the dry run.
+            refusal = (f"{target_inst!r} names no listing currency and the "
+                       f"decision declares no expression currency, so the currency "
+                       f"guard has nothing to compare. Name the listing (e.g. "
+                       f"--instrument SPY@ARCA.USD) or declare "
+                       f"--expression-currency before it becomes active.")
         if refusal and not args.override_gate:
             print(f"\n  REFUSED -- CURRENCY MISMATCH\n    {refusal}")
             print(LINE)

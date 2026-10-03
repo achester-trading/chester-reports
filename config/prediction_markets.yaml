@@ -91,6 +91,10 @@ rules:
     venue_vs_scenario_weight: 20
   # Session changes printed beside each probability.
   change_sessions: [1, 5, 20]
+  # A meeting's legs (hike + hold + cut) on one venue outside this band print
+  # "(legs sum to X%)" beside them: separate contracts' prices need not sum to
+  # one, and the reader should see when they do not (ruled 2 Oct 2026).
+  legs_sum_band: [0.95, 1.05]
 
 # Venue market -> our scenario weight, for the 20-point disagreement. Empty until
 # a scenario is declared against a venue market by hand: a mapping no one wrote

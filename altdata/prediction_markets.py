@@ -303,6 +303,7 @@ def block(session_day: str, as_of: Optional[str] = None,
         venues[v] = {"markets": len(vr), "as_of": newest,
                      "outage": newest is None or newest < session_day}
     return {"session": session_day, "config_version": cfg.get("version"),
+            "legs_sum_band": (cfg.get("rules") or {}).get("legs_sum_band"),
             "markets": rows, "venues": venues,
             "watch": {w["id"]: [r for r in rows if r.get("watch_id") == w["id"]]
                       for w in cfg.get("watch_list") or []},

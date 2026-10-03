@@ -746,6 +746,19 @@ class Register:
         refusal = currency_mismatch(instrument, expr)
         if refusal and not gate_override:
             raise CurrencyMismatchError(refusal)
+        # AND NOTHING TO COMPARE IS ITSELF A REFUSAL AT ACTIVATION (ruled 2 Oct
+        # 2026): a row with an empty expression currency on a bare ticker carries
+        # no currency on either side, so the guard cannot judge it -- and an
+        # unjudged activation is the INC-6 hole again. Closing such a row stays
+        # allowed, so nothing is trapped.
+        if (status == "active" and becoming_active and expr is None
+                and listing_currency(instrument) is None and not gate_override):
+            raise CurrencyMismatchError(
+                f"{instrument!r} names no listing currency and the decision "
+                f"declares no expression currency, so the currency guard has "
+                f"nothing to compare. Name the listing (e.g. SPY@ARCA.USD) or "
+                f"declare --expression-currency before it becomes active, or "
+                f"record an operator override (--override-gate).")
 
         # THE EXIT, STRUCTURED (INC-6 follow-up). A close used to carry its fill
         # in --note free text and its decision_time was the instant the command

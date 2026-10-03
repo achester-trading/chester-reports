@@ -1379,6 +1379,31 @@ def group_m(td: str) -> None:
           f"an empty one is taken from the listing's suffix on supersede -- MXN, "
           f"stated as such (rc {r.returncode}, got "
           f"{nxt.get('expression_currency')!r})")
+    # RULED 2 OCT: nothing to compare is itself a refusal at activation.
+    from register.store import CurrencyMismatchError
+    bare = dict(base, instrument="TEST")
+    with Register(db) as reg:
+        draft = reg.record(status="draft", expression_currency=None, **bare)
+        try:
+            reg.supersede(draft, status="active", expression_currency=None, **bare)
+            bad("a bare ticker with no expression currency was ACTIVATED")
+        except CurrencyMismatchError as exc:
+            ok(f"a bare ticker with no expression currency is refused at activation "
+               f"-- the guard has nothing to compare ({str(exc)[:60]}...)")
+        closed_bare = reg.supersede(draft, status="closed", close_reason="flatten",
+                                    expression_currency=None, **bare)
+        check(bool(closed_bare), "but it can still be closed: nothing is trapped")
+        dollar = reg.record(status="draft", expression_currency="USD", **bare)
+        act = reg.supersede(dollar, status="active", expression_currency="USD",
+                            **bare)
+        check(bool(act), "and a bare ticker that DECLARES its currency activates")
+        draft2 = reg.record(status="draft", expression_currency=None, **bare)
+    r = subprocess.run(
+        [sys.executable, str(REPO / "tools" / "decide.py"), "--db", db,
+         "set-status", "--id", draft2, "--status", "active", "--book", "B",
+         "--dry-run"], capture_output=True, text=True, cwd=str(REPO), env=env)
+    check(r.returncode == 2 and "nothing to compare" in r.stdout,
+          f"decide.py set-status says so before its dry run returns (rc {r.returncode})")
     src_txt = (REPO / "tools" / "decide.py").read_text(encoding="utf-8")
     check('expression_currency") or "USD"' not in src_txt,
           "and decide.py no longer falls back to an invented USD on supersede")

@@ -71,6 +71,17 @@ def _f(v: Any) -> Optional[float]:
     return x if x == x else None
 
 
+def price(bid: Optional[float], ask: Optional[float], last: Optional[float]
+          ) -> tuple[Optional[float], str]:
+    """THE VENUE'S PRICE (ruled 2 Oct 2026): the bid-ask mid where the venue
+    quotes both sides of a live book, the last trade only as a fallback -- a last
+    trade on a thin market can be hours old, the mid is the book now. Returns
+    (probability, basis) and the basis is stored with the row."""
+    if bid is not None and ask is not None and 0.0 <= bid <= ask <= 1.0 and ask > 0:
+        return round((bid + ask) / 2.0, 4), "mid"
+    return last, "last"
+
+
 # ---------------------------------------------------------------------------
 # Parsers -- venue JSON to market rows
 # ---------------------------------------------------------------------------
@@ -79,11 +90,12 @@ def parse_kalshi_event(ev: dict, watch_id: str, match: str = "exact") -> list[di
     out = []
     e = ev.get("event") or ev
     for m in ev.get("markets") or e.get("markets") or []:
-        p = _f(m.get("last_price_dollars"))
-        if p is None:
-            p = _f(m.get("last_price"))
-            p = p / 100.0 if p is not None and p > 1 else p
+        last = _f(m.get("last_price_dollars"))
+        if last is None:
+            last = _f(m.get("last_price"))
+            last = last / 100.0 if last is not None and last > 1 else last
         bid, ask = _f(m.get("yes_bid_dollars")), _f(m.get("yes_ask_dollars"))
+        p, basis = price(bid, ask, last)
         out.append({
             "venue": "kalshi", "market_id": m.get("ticker"),
             "event_id": e.get("event_ticker") or m.get("event_ticker"),
@@ -91,7 +103,7 @@ def parse_kalshi_event(ev: dict, watch_id: str, match: str = "exact") -> list[di
             "question": m.get("title") or e.get("title"),
             "outcome": m.get("yes_sub_title") or m.get("subtitle") or "Yes",
             "event_title": e.get("title"),
-            "probability": p,
+            "probability": p, "price_basis": basis, "last": last,
             "bid": bid, "ask": ask,
             "volume": _f(m.get("volume_fp") or m.get("volume")),
             "open_interest": _f(m.get("open_interest_fp") or m.get("open_interest")),
@@ -117,14 +129,19 @@ def parse_polymarket_event(ev: dict, watch_id: str, match: str = "exact"
         if not prices:
             continue
         i = outcomes.index("Yes") if "Yes" in outcomes else 0
+        # bestBid / bestAsk quote the market's FIRST outcome's token; the mid is
+        # used only when that is the side stored.
+        bid, ask = (_f(m.get("bestBid")), _f(m.get("bestAsk"))) if i == 0 \
+            else (None, None)
+        p, basis = price(bid, ask, _f(prices[i]))
         out.append({
             "venue": "polymarket", "market_id": m.get("conditionId") or m.get("id"),
             "event_id": ev.get("slug"), "watch_id": watch_id, "match": match,
             "question": m.get("question"),
             "outcome": m.get("groupItemTitle") or (outcomes[i] if outcomes else "Yes"),
             "event_title": ev.get("title"),
-            "probability": _f(prices[i]),
-            "bid": _f(m.get("bestBid")), "ask": _f(m.get("bestAsk")),
+            "probability": p, "price_basis": basis, "last": _f(prices[i]),
+            "bid": bid, "ask": ask,
             "volume": _f(m.get("volume")),
             "open_interest": _f(m.get("liquidity")),
             "close_at": m.get("endDate") or ev.get("endDate"),
@@ -242,6 +259,8 @@ def collect(cfg: Optional[dict] = None, get: Optional[Callable] = None) -> dict:
 META_FIELDS = ("watch_id", "venue", "event_id", "event_title", "question",
                "outcome", "close_at", "decision_date", "criteria", "match",
                "clob_token")
+# pm.probability's value_text names the basis of its value_num ("mid"/"last");
+# a JSON string because a row holds one number.
 
 
 def to_observations(rows: list[dict], fetched_at: str, run_id: Optional[str] = None,
@@ -254,7 +273,11 @@ def to_observations(rows: list[dict], fetched_at: str, run_id: Optional[str] = N
         base = {"instrument": inst, "observed_at": r.get("observed_at") or fetched_at,
                 "available_at": r.get("available_at") or fetched_at, "source": src,
                 "run_id": run_id, "availability_kind": kind}
-        out.append({**base, "registry_key": "pm.probability", "value": r["probability"]})
+        out.append({**base, "registry_key": "pm.probability",
+                    "value": r["probability"]})
+        if not backfill:
+            out.append({**base, "registry_key": "pm.price_basis",
+                        "value": r.get("price_basis") or "last"})
         if r.get("volume") is not None:
             out.append({**base, "registry_key": "pm.volume", "value": r["volume"]})
         if not backfill:
