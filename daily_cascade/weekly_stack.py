@@ -86,8 +86,8 @@ def week_ago(cutoff: str) -> str:
 # ---------------------------------------------------------------------------
 # The CFTC contracts the Weekly reads, in print order (altdata/sources/cftc.py).
 CFTC_CONTRACTS = (("SP500", "S&P 500 futures"), ("UST10Y", "10-year note futures"),
-                  ("VIX", "VIX futures"), ("USD_INDEX", "Dollar index futures"),
-                  ("JPY", "Yen futures"))
+                  ("VIX", "VIX futures"), ("USD_INDEX", "dollar index futures"),
+                  ("JPY", "yen futures"))
 
 
 def change_over(st, key: str, now_cut: str, then_cut: str,
@@ -368,7 +368,7 @@ def positioning_week(st, now: str, then: str) -> dict:
         cftc[name] = series(st, "cftc.noncomm_net", now, inst, two_years)
         data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 1),
                                 "percentile_2y": pct}
-        items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name.lower()}: "
+        items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name}: "
                           f"{x['level']:,.0f} contracts ({_change(x)} since the prior "
                           f"report, as of {x['observed_at']})"
                           + (f", z {z:+.1f} over two years" if z is not None else "")
@@ -639,16 +639,20 @@ def source_label(src: str) -> str:
 def ahead_week(p: dict, calls: dict) -> dict:
     wa = p.get("week_ahead") or {}
     items = []
-    keep = ("FOMC", "Consumer Price", "Employment Situation", "Producer Price",
-            "Retail", "Personal Income", "Gross Domestic", "ISM", "minutes",
-            "refunding", "Surveys of Consumers", "Job Openings", "H.15")
-    seen = set()
+    # THE WEEK-AHEAD CALENDAR, IN FULL (T2.1 item 11, folded from the old Detail
+    # tail): every tracked release in the window, one line a day. Tier-1
+    # releases rank above the rest, so the budget's cut takes the routine ones.
+    tier1 = ((stack_mod.config().get("triggers") or {}).get("plumbing") or {})         .get("tier1_events") or []
+    by_day: dict = {}
     for r in (wa.get("releases") or {}).get("rows") or []:
         t = str(r.get("release_name") or "")
-        if any(k.lower() in t.lower() for k in keep) and (r["date"], t) not in seen:
-            seen.add((r["date"], t))
-            items.append(item(f"ahead:{r['date']}:{t}", f"{r['date']}: {t}.", 2,
-                              (r["date"], t)))
+        if t and t not in by_day.setdefault(r["date"], []):
+            by_day[r["date"]].append(t)
+    for d in sorted(by_day):
+        names = by_day[d]
+        top = any(any(k.lower() in n.lower() for k in tier1) for n in names)
+        items.append(item(f"ahead:{d}", f"{d}: " + "; ".join(names) + ".",
+                          2 if top else 3, (d, names)))
     for d, evs in (wa.get("session_events") or {}).items():
         odd = [e for e in evs if e != "NORMAL"]
         if odd:
