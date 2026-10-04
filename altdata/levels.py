@@ -92,17 +92,70 @@ def _weekly_closes(daily: list[dict]) -> list[float]:
     return list(out.values())
 
 
+def tape_spec(iid: str) -> dict:
+    """The tape set's config entry for one instrument id."""
+    return next(t for t in bars_mod.tape() if t["id"] == iid)
+
+
+def daily_bars(spec: dict, last_day: str, as_of: Optional[str] = None,
+               db=None) -> tuple[list[dict], dict]:
+    """THE DAILY SERIES FROM THE STORE (T2.1): one dict per session --
+    observed_at, open, high, low, close, and `ohlc` False where only the close
+    is stored (open/high/low then equal the close, so a candle is flat). Reads
+    the instrument's own `daily` series; its labelled `fallback` only if that is
+    empty. Returns (rows, {"key", "proxy", "close_only"})."""
+    from . import observations                                  # noqa: PLC0415
+    own = db is None
+    st = db or observations.ObservationStore()
+    try:
+        meta = {"key": spec.get("daily"), "proxy": None, "close_only": 0}
+
+        def load(key: str) -> list[dict]:
+            if not key:
+                return []
+            closes = {str(r["observed_at"])[:10]: r["value_num"]
+                      for r in st.as_of(key, as_of) if r.get("value_num") is not None}
+            ext = {}
+            for suf in ("_open", "_high", "_low"):
+                ext[suf] = {str(r["observed_at"])[:10]: r["value_num"]
+                            for r in st.as_of(key + suf, as_of)
+                            if r.get("value_num") is not None}
+            out = []
+            for d in sorted(x for x in closes if x <= last_day):
+                c = closes[d]
+                o, h, lo = (ext["_open"].get(d), ext["_high"].get(d), ext["_low"].get(d))
+                full = None not in (o, h, lo)
+                out.append({"observed_at": d, "close": c,
+                            "open": o if full else c, "high": h if full else c,
+                            "low": lo if full else c, "ohlc": full})
+            return out
+        rows = load(spec.get("daily"))
+        if not rows and spec.get("fallback"):
+            fb = spec["fallback"]
+            rows = load(fb.get("daily"))
+            if rows:
+                meta.update(key=fb.get("daily"), proxy=fb.get("label"))
+        meta["close_only"] = sum(1 for r in rows if not r["ohlc"])
+        return rows, meta
+    finally:
+        if own:
+            st.close()
+
+
 def instrument(spec: dict, day: str, store: bars_mod.BarStore,
                dealer: Optional[dict] = None, as_of: Optional[str] = None,
-               tol_bps: float = 25.0, complete_share: float = 0.9) -> dict:
+               tol_bps: float = 25.0, complete_share: float = 0.9,
+               db=None) -> dict:
     """The level list for one tape instrument on `day`."""
     iid, kind = spec["id"], spec.get("kind", "price")
-    daily = bars_mod.daily(store, iid, day, as_of)
+    daily, dmeta = daily_bars(spec, day, as_of, db)
     intra = bars_mod.intraday(store, iid, day, as_of, complete_share)
     today = daily[-1] if daily and str(daily[-1]["observed_at"])[:10] == day else None
     hist = daily[:-1] if today else daily
     closes = [r["close"] for r in daily]
-    out: dict[str, Any] = {"id": iid, "label": spec.get("label") or iid,
+    out: dict[str, Any] = {"id": iid, "label": (spec.get("label") or iid) + (
+                               f" (proxy: {dmeta['proxy']})" if dmeta["proxy"] else ""),
+                           "daily_source": dmeta,
                            "symbol": spec.get("dealer") or iid.upper(),
                            "aliases": list(spec.get("aliases") or []),
                            "kind": kind, "session": day, "levels": [],
@@ -115,6 +168,11 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
     vals["prior_close"], src["prior_close"] = prior, "bars 1d"
     if today:
         out["ohlc"] = {k: today[k] for k in ("open", "high", "low", "close")}
+        if not today.get("ohlc") and intra["bars"]:
+            # The session's own range from its 5-minute bars, where the store
+            # has the close but not yet the day's high and low.
+            out["ohlc"]["high"] = max(x["high"] for x in intra["bars"])
+            out["ohlc"]["low"] = min(x["low"] for x in intra["bars"])
     if intra["bars"]:
         b = intra["bars"]
         vals["session_high"] = max(x["high"] for x in b)
@@ -194,7 +252,7 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
     def move(a, b):
         if a is None or b is None or not b:
             return None
-        return round((a - b) * 100.0, 1) if kind == "yield" else \
+        return round((a - b) * 100.0) if kind == "yield" else \
             round(100.0 * (a / b - 1.0), 2)
     unit = "bps" if kind == "yield" else "pct"
     wk_prior = [r for r in hist if _week_start(dt.date.fromisoformat(
@@ -218,9 +276,14 @@ def compute(day: str, exposure: Optional[list[dict]] = None,
     own = store is None
     st = store or bars_mod.BarStore()
     try:
-        insts = [instrument(t, day, st, by_sym.get(t.get("dealer")), as_of,
-                            tol_bps, share)
-                 for t in cfg.get("tape") or []]
+        from . import observations                              # noqa: PLC0415
+        db = observations.ObservationStore(str(st.path))
+        try:
+            insts = [instrument(t, day, st, by_sym.get(t.get("dealer")), as_of,
+                                tol_bps, share, db)
+                     for t in cfg.get("tape") or []]
+        finally:
+            db.close()
     finally:
         if own:
             st.close()

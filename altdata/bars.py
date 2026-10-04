@@ -160,10 +160,6 @@ def intraday(store: BarStore, instrument: str, day: str,
                        f"bars incomplete (n={len(rows)} of {expected})")}
 
 
-def daily(store: BarStore, instrument: str, last_day: str,
-          as_of: Optional[str] = None, n: Optional[int] = None) -> list[dict]:
-    rows = store.read(instrument, "1d", "", last_day, as_of)
-    return rows[-n:] if n else rows
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +210,6 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
     day = day or session.last_trading_session().isoformat()
     cfg = load_config()
     bcfg = cfg.get("bars") or {}
-    hist = bcfg.get("daily_history") or "2y"
     retry_s = float(bcfg.get("retry_seconds", 300))
     every_s = float(bcfg.get("retry_interval_seconds", 30))
     started = clock()
@@ -244,17 +239,12 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
                             or clock() - started + every_s > retry_s):
                         break
                     sleep(every_s)
-                have = st.read(iid, "1d", "", day)
-                period = hist if len(have) < 60 else "10d"
-                drows = _frame_rows(fetcher(sym, period=period, interval="1d"),
-                                    iid, sym, "1d", fetched)
-                # A daily bar dated after the session is not this session's.
-                drows = [r for r in drows if r["observed_at"] <= day]
-                got = {"5m": len(rows), "1d": len(drows), "daily_period": period,
-                       "attempts": attempts,
+                # INTRADAY ONLY (T2.1, 4 Oct 2026): the session's 5-minute bars.
+                # Daily frames read the price feed's daily OHLC in the store.
+                got = {"5m": len(rows), "attempts": attempts,
                        "final_bar": _final_bar_present(rows, iid, day)}
                 if not dry_run:
-                    got["written"] = st.write_many(rows + drows)
+                    got["written"] = st.write_many(rows)
             except Exception as exc:                            # noqa: BLE001
                 got = {"error": f"{type(exc).__name__}: {exc}"[:200]}
             report["instruments"][iid] = got
@@ -287,7 +277,7 @@ def _main(argv: list[str]) -> int:
             i = intraday(st, t["id"], day)
             print(f"{t['id']:<5} 5m {i['n']}/{i['expected']} "
                   f"{'complete' if i['complete'] else i['reason']}  "
-                  f"1d {len(daily(st, t['id'], day))}")
+                  )
     return 0
 
 

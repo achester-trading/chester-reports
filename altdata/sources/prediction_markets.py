@@ -319,8 +319,19 @@ def pull(store: Optional[observations.ObservationStore] = None,
 # ---------------------------------------------------------------------------
 # The one-time backfill
 # ---------------------------------------------------------------------------
+def covered_session(ts: int) -> dt.date:
+    """The session a daily candle or price point covers: the New York date of the
+    instant it ends (T2.1 ruling, 4 Oct 2026). A Kalshi candle ending 00:00 UTC
+    on 2 Oct ends 20:00 ET on 1 Oct, so it is 1 Oct's -- the end stamp's own UTC
+    date put every backfilled row a day late."""
+    t = dt.datetime.fromtimestamp(int(ts), dt.timezone.utc)
+    return t.astimezone(session._eastern_tz()).date()
+
+
 def backfill_rows(meta: dict, get: Callable, days: int, end: dt.date) -> list[dict]:
-    """Daily history for one stored market, from the venue. Flag set by caller."""
+    """Daily history for one stored market, from the venue. Flag set by caller.
+    Each row: the session it covers, and the instant it became knowable (the
+    candle's end, or the price point's own time)."""
     start = end - dt.timedelta(days=days)
     rows = []
     if meta.get("venue") == "kalshi":
@@ -338,16 +349,19 @@ def backfill_rows(meta: dict, get: Callable, days: int, end: dt.date) -> list[di
                 px /= 100.0
             if px is None:
                 continue
-            day = dt.datetime.fromtimestamp(int(c["end_period_ts"]),
-                                            dt.timezone.utc).date()
-            rows.append({"day": day, "probability": px})
+            ts = int(c["end_period_ts"])
+            rows.append({"day": covered_session(ts), "probability": px,
+                         "available_at": dt.datetime.fromtimestamp(
+                             ts, dt.timezone.utc).isoformat()})
     elif meta.get("venue") == "polymarket" and meta.get("clob_token"):
         d = get("https://clob.polymarket.com/prices-history?" + urllib.parse.urlencode(
             {"market": meta["clob_token"], "interval": "max", "fidelity": 1440}))
         for h in d.get("history") or []:
-            day = dt.datetime.fromtimestamp(int(h["t"]), dt.timezone.utc).date()
+            day = covered_session(int(h["t"]))
             if start <= day <= end:
-                rows.append({"day": day, "probability": _f(h.get("p"))})
+                rows.append({"day": day, "probability": _f(h.get("p")),
+                             "available_at": dt.datetime.fromtimestamp(
+                                 int(h["t"]), dt.timezone.utc).isoformat()})
     return [r for r in rows if r["probability"] is not None]
 
 
@@ -375,7 +389,7 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
         # close, and a backfilled row for it would be stamped available at an
         # instant after the one it was written at.
         end = session.session_date_obj() - dt.timedelta(days=1)
-        obs = []
+        obs, replace = [], []
         for inst in st.instruments("pm.market"):
             r = st.latest_as_of("pm.market", instrument=inst)
             try:
@@ -386,18 +400,32 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
                 out["errors"][inst] = f"{type(exc).__name__}: {exc}"[:160]
                 continue
             out["markets"] += 1
+            mine = []
             for h in hist:
                 if h["day"] > end:
                     continue
-                when = f"{h['day'].isoformat()}T21:00:00+00:00"
-                obs += to_observations([{"venue": meta["venue"],
-                                         "market_id": meta["market_id"],
-                                         "probability": h["probability"],
-                                         "observed_at": when, "available_at": when}],
-                                       when, backfill=True)
+                mine += to_observations([{"venue": meta["venue"],
+                                          "market_id": meta["market_id"],
+                                          "probability": h["probability"],
+                                          "observed_at": h["day"].isoformat(),
+                                          "available_at": h["available_at"]}],
+                                        h["available_at"], backfill=True)
+            obs += mine
+            replace.append((inst, f"{meta['venue']}:backfill"))
             time.sleep(PACING_SECONDS)
         out["rows"] = len(obs)
         if not dry_run:
+            # A RE-RUN REPLACES ITS OWN EARLIER BACKFILL (T2.1 ruling): the rows a
+            # previous backfill wrote for these markets -- and only those, by
+            # their `<venue>:backfill` source -- go before the new ones are
+            # written. Live snapshots are never touched.
+            n_del = 0
+            for inst, src in replace:
+                n_del += st.conn.execute(
+                    "DELETE FROM observations WHERE registry_key = 'pm.probability'"
+                    " AND instrument = ? AND source = ?", (inst, src)).rowcount
+            st.conn.commit()
+            out["replaced"] = n_del
             out["written"] = st.write_many(obs)
     finally:
         if own:

@@ -33,6 +33,8 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
+from pathlib import Path
+
 from altdata import levels as levels_mod
 
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
@@ -116,6 +118,9 @@ def style_faults(text: str, cfg: dict) -> list[str]:
     for ph in st.get("motive_phrases") or []:
         if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", low):
             out.append(f"motive: '{ph}'")
+    for ph in st.get("banned_phrases") or []:
+        if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", low):
+            out.append(f"banned phrase: '{ph}'")
     for s in _sentences(text):
         for w in st.get("intensity_words") or []:
             if re.search(rf"\b{re.escape(w)}\b", s, re.I) and not re.search(r"\d", s):
@@ -209,14 +214,32 @@ def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
         ["CPI", "inflation print", "recession", "House", "Senate", "shutdown"]
     out = []
     for s in _sentences(text):
-        if not _POLICY.search(s):
+        word = None
+        m = _RATE_MOVE.search(s)
+        if m:
+            word = m.group(0)
+        else:
+            # "HOLD" IS A POLICY WORD ONLY BESIDE THE FED (T2.1 item 6): with Fed,
+            # FOMC or meeting in the same clause. "The low holds", "the wall held"
+            # are level verbs and pass.
+            for clause in re.split(r"[;:,—]|\s-\s|\band\b|\bwhile\b", s):
+                h = _HOLD.search(clause)
+                if h and _FED.search(clause):
+                    word = h.group(0)
+                    break
+        if not word:
             continue
         hit = next((t for t in terms
                     if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", s, re.I)), None)
         if hit:
-            out.append(f"a policy word ('{_POLICY.search(s).group(0)}') attached "
-                       f"to a {hit} market")
+            out.append(f"a policy word ('{word}') attached to a {hit} market")
     return out
+
+
+_RATE_MOVE = re.compile(r"\b(?:hike[sd]?|hiking|rate cuts?|cut rates|cuts?|cutting)\b",
+                        re.I)
+_HOLD = re.compile(r"\b(?:hold|holds|holding|held)\b", re.I)
+_FED = re.compile(r"\b(?:Fed|FOMC|meeting)\b", re.I)
 
 
 _BOOKZ = re.compile(r"\b(?:Book Z|the book|book's|cash|60-40|60/40)\b", re.I)
@@ -286,15 +309,81 @@ def outlook_misprints(text: str, outlooks: list[dict],
     return out
 
 
+def _scrub(v):
+    """A prose slice carries no internal id: `_`-prefixed keys (where the
+    charts keep a contradiction's id) are dropped at every depth."""
+    if isinstance(v, dict):
+        return {k: _scrub(x) for k, x in v.items() if not str(k).startswith("_")}
+    if isinstance(v, list):
+        return [_scrub(x) for x in v]
+    return v
+
+
+def _compact(v, depth: int = 0):
+    """The Read's view of a section's data: its figures, not its tables. Scalars
+    and short lists to three levels; long lists (level lists, venue tables,
+    histories) are dropped -- the section's own prose already used them, and The
+    read's payload must stay inside the runaway guard."""
+    if isinstance(v, dict):
+        if depth >= 3:
+            return None
+        out = {k: _compact(x, depth + 1) for k, x in v.items()}
+        return {k: x for k, x in out.items() if x not in (None, {}, [])}
+    if isinstance(v, list):
+        if len(v) > 6 or depth >= 3:
+            return None
+        return [x for x in (_compact(x, depth + 1) for x in v) if x not in (None, {})]
+    return v
+
+
 def _slice(s: dict, ed: dict) -> dict:
+    # NOT-YET-TRACKED ITEMS ARE FOOTNOTES ONLY (T2.1 item 10): the report prints
+    # them under the section, and the prose is never given them to narrate. The
+    # bar-completeness counts stay out for the same reason.
     return {"section": s["title"], "depth": s["depth"],
             "depth_reason": s.get("depth_reason"), "session": ed["session"],
             "items": [i["text"] for i in s["items"]], "table": s.get("table"),
-            # The bar-completeness counts stay out: they are about the feed, and
-            # prose given them writes about the feed. Its gaps are in not_tracked.
-            "data": {k: v for k, v in (s.get("data") or {}).items()
-                     if k != "intraday"},
-            "not_tracked": s.get("not_tracked")}
+            "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
+                            if k != "intraday"})}
+
+
+STACK_GUIDE = Path(__file__).resolve().parent.parent / "docs" / \
+    "narrative-template-stack.md"
+
+# THE BASE PROMPT'S RULE 5 ends a paragraph "on the system ... what it will test
+# next". The stack drops it (T2.1 item 8): a section says what happened in its
+# own window and stops; only Ahead looks forward.
+STACK_RULE5 = ("5. STOP AT WHAT HAPPENED. Do not end on what the next session or "
+               "week will test, and never write about the system. Only the Ahead "
+               "section looks forward.")
+
+
+def stack_system_prompt(base) -> str:
+    sp = base.SYSTEM_PROMPT
+    i = sp.find("5. END ON THE SYSTEM")
+    if i < 0:
+        return sp + "\n\n" + STACK_RULE5
+    j = sp.find("\n\n", i)
+    return sp[:i] + STACK_RULE5 + (sp[j:] if j > 0 else "")
+
+
+# What one section's prose must do beyond the shared rules.
+SECTION_NOTES = {
+    "positioning": (
+        "\n\nPOSITIONING & FLOWS IN PARAGRAPHS BY SOURCE (T2.1): the claim line "
+        "states the week's leadership; then one paragraph per source, in this "
+        "order -- futures positioning (CFTC), retail (RTAT10 sentiment and "
+        "WallStreetBets mentions), short interest (FINRA), TIC flows. A source "
+        "with no figure in the data gets no paragraph and no mention."),
+    "book": (
+        "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
+        "comparison between them is written as an EXCESS ('an excess of +0.8 "
+        "points over cash'), never 'the book against cash' with a figure."),
+    "ahead": (
+        "\n\nTHIS SECTION ALONE LOOKS FORWARD: the calendar, the base rates and "
+        "the graded calls it is given, stated as what is scheduled and what the "
+        "record shows -- never as what the market will do."),
+}
 
 
 # PER CADENCE (T2): which report, its period, the frames it writes (brief 2.1
@@ -332,11 +421,32 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     results: dict[str, dict] = {}
 
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
+        """One audited attempt; if the audit withholds it, ONE retry with the
+        audit's reason fed back (T2.1 ruling), then withhold as before. A fault
+        (the API, the payload guard) is not retried: the reason is not the
+        prose's to fix."""
+        first = attempt(sid, payload, system, max_chars)
+        if first.get("published") or first.get("state") in ("fault", "payload_too_large"):
+            return {**first, "attempts": 1}
+        if "past the" in str(first.get("reason") or "") and "guard" in str(
+                first.get("reason") or ""):
+            return {**first, "attempts": 1}
+        retry_sys = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
+                     "WITHHELD BY THE AUDIT: " + str(first.get("reason"))[:600]
+                     + "\nWrite it again from the same data, fixing exactly that "
+                       "and changing nothing else.")
+        second = attempt(sid, payload, retry_sys, max_chars)
+        second["attempts"] = 2
+        if not second.get("published"):
+            second["first_reason"] = first.get("reason")
+        return second
+
+    def attempt(sid: str, payload: dict, system: str, max_chars: int) -> dict:
         try:
             r = base.generate(payload, model=model, client=client,
                               system_prompt=system, max_chars=max_chars,
                               one_paragraph=False, citable_ids=[],
-                              unit_constants=UNIT_CONSTANTS,
+                              unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
                               market_states=market_states)
         except Exception as exc:                                # noqa: BLE001
             return {"state": "fault", "published": False,
@@ -371,11 +481,12 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         body = ("Then write {} paragraphs of commentary.".format(paras)
                 if paras != "0" else "Write ONLY that one sentence.")
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
-        sys_prompt = base.SYSTEM_PROMPT + RULES.format(
+        sys_prompt = stack_system_prompt(base) + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
             report=cad["report"], period=cad["period"], frames=cad["frames"],
             words=(cfg.get(cad["words_key"]) or cfg.get("depth_words") or {})
             .get(s["depth"], 35))
+        sys_prompt += SECTION_NOTES.get(s["id"], "")
         res = run(s["id"], _slice(s, ed), sys_prompt,
                   int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
         results[s["id"]] = res
@@ -391,11 +502,18 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     # THE READ, over the other sections' claims and items.
     read = next(s for s in ed["sections"] if s["id"] == "read")
     rp = {"session": ed["session"],
+          # THE SECTIONS' DATA TOO (T2.1): The read draws on every section, and
+          # a figure it repeats -- a percentile ordinal, a z -- must be one the
+          # audit can find; ids and not-yet-tracked lists are scrubbed as for
+          # any section.
           "sections": [{"section": s["title"], "claim": s.get("claim"),
-                        "items": [i["text"] for i in s["items"]]}
+                        "items": [i["text"] for i in s["items"]],
+                        "data": _compact(_scrub({k: v for k, v in
+                                                 (s.get("data") or {}).items()
+                                                 if k != "intraday"}))}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
-    res = run("read", rp, base.SYSTEM_PROMPT + READ_RULES.format(
+    res = run("read", rp, stack_system_prompt(base) + READ_RULES.format(
         period=cad["period"]), cad["read_chars"])
     results["read"] = res
     if res.get("published"):
@@ -405,7 +523,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     else:
         read["withheld"] = res.get("reason")
     ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
-                                                 "rejected_text")}
+                                                 "rejected_text", "attempts",
+                                                 "first_reason")}
                    for k, v in results.items()}
     return ed
 

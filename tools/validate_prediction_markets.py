@@ -391,6 +391,46 @@ def main() -> int:
     check(item.get("next_n") == 4 and len(kept) == 4
           and [e["event_ticker"] for e in kept][-1] == "KXFEDDECISION-E4",
           "the FOMC item resolves to the next four meetings only")
+    # T2.1 RULINGS: the covered session, the re-run that replaces, the normalised legs.
+    check(src.covered_session(int(dt.datetime(2026, 10, 2, tzinfo=dt.timezone.utc)
+                                  .timestamp())) == dt.date(2026, 10, 1),
+          "a candle ending 00:00 UTC on 2 Oct is 1 Oct's session (its New York date)")
+    with observations.ObservationStore(db3) as st:
+        n1 = st.conn.execute("SELECT COUNT(*) FROM observations WHERE source LIKE "
+                             "'%backfill%'").fetchone()[0]
+        live1 = st.conn.execute("SELECT COUNT(*) FROM observations WHERE "
+                                "registry_key='pm.probability' AND source NOT LIKE "
+                                "'%backfill%'").fetchone()[0]
+        again = src.backfill(days=60, store=st, get=bf_get)
+        n2 = st.conn.execute("SELECT COUNT(*) FROM observations WHERE source LIKE "
+                             "'%backfill%'").fetchone()[0]
+        live2 = st.conn.execute("SELECT COUNT(*) FROM observations WHERE "
+                                "registry_key='pm.probability' AND source NOT LIKE "
+                                "'%backfill%'").fetchone()[0]
+        bf_row = st.conn.execute("SELECT observed_at, available_at FROM observations "
+                                 "WHERE source='kalshi:backfill' ORDER BY observed_at "
+                                 "LIMIT 1").fetchone()
+    check(n2 == n1 and again.get("replaced") == n1 and live2 == live1,
+          f"a re-run replaces its own backfill rows ({again.get('replaced')} replaced, "
+          f"{n2} after) and leaves the live snapshots alone ({live1} -> {live2})")
+    check(bf_row and len(bf_row[0]) == 10 and bf_row[1] > bf_row[0],
+          f"a backfilled row is dated by its session and available from the candle's "
+          f"end ({bf_row})")
+    legs_rows = [{"venue": "kalshi", "watch_id": "fomc_decision", "decision_date":
+                  "2026-10-28", "question": q, "outcome": "Yes", "probability": p,
+                  "instrument": f"k{n}"}
+                 for n, (q, p) in enumerate((("Hike rates by 25bps?", 0.52),
+                                             ("Hike rates by 0bps?", 0.46),
+                                             ("Cut rates by 25bps?", 0.16)))]
+    dn = pm.disagreements(legs_rows, {"meetings": [{"meeting": "2026-10-28",
+                                                    "direction": "hike",
+                                                    "move_probability_25bp": 0.75}]},
+                          cfg)
+    hk = next((d for d in dn["fed_funds"] if d["side"] == "hike"), {})
+    check(hk and hk["venue_probability"] == round(0.52 / 1.14, 3)
+          and hk["venue_quoted"] == 0.52 and hk["legs_sum"] == 1.14,
+          f"the disagreement reads legs normalised to 100% (52% of a 114% book -> "
+          f"{hk.get('venue_probability')}); the quoted figure is kept")
     check(bres["rows"] > 0 and rows and all(r[0].endswith(":backfill")
                                             and r[1] == "reconstructed" for r in rows),
           f"{len(rows)} backfilled rows, every one flagged: source <venue>:backfill, "
@@ -462,8 +502,11 @@ def main() -> int:
     check(sec["priced"]["depth"] == "deep" and "pts" in (sec["priced"]["depth_reason"] or ""),
           f"a 12-point move takes What's priced deep ({sec['priced']['depth_reason']})")
     rt = [i["text"] for i in sec["read"]["items"]]
-    check(any(t.startswith("Attention shock (CONFIRMED)") for t in rt),
-          "The read carries the attention shock")
+    check(any(t.startswith("Kalshi's odds of a hold at the October meeting moved")
+              and "(confirmed by the other venue or by volume)" in t for t in rt)
+          and not any("Will the Federal Reserve" in t for t in rt),
+          f"The read carries the attention shock as one template sentence, not the "
+          f"market's raw title ({next((t for t in rt), '')[:100]})")
     mt = [i["text"] for i in sec["misfit"]["items"]]
     check(any("fed funds futures" in t and "points apart" in t for t in mt),
           f"What doesn't fit carries the venue-vs-futures disagreement "

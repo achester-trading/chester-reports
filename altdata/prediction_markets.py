@@ -111,6 +111,7 @@ def forms(mk: dict, day: dt.date, cfg: dict, as_of: Optional[str] = None) -> dic
            "watch_id": mk.get("watch_id"), "event_id": mk.get("event_id"),
            "event_title": mk.get("event_title"), "question": mk.get("question"),
            "outcome": mk.get("outcome"), "decision_date": mk.get("decision_date"),
+           "close_at": mk.get("close_at"),
            "probability": p, "volume": mk.get("volume"),
            "as_of": str(last["available_at"])[:10] if last else None}
     for n in (cfg.get("rules") or {}).get("change_sessions") or [1, 5, 20]:
@@ -140,9 +141,10 @@ def shocks(rows: list[dict], cfg: dict) -> list[dict]:
                     and abs(y["change_1s_points"]) >= share * abs(c) for y in peers)
         deep = (x.get("volume") or 0) >= vmin
         out.append({**{k: x.get(k) for k in ("instrument", "venue", "watch_id",
-                                             "event_id", "question", "outcome",
-                                             "probability", "change_1s_points",
-                                             "volume")},
+                                             "event_id", "event_title", "question",
+                                             "outcome", "probability",
+                                             "change_1s_points", "volume",
+                                             "decision_date", "close_at")},
                     "state": "CONFIRMED" if (cross or deep) else "UNCONFIRMED",
                     "confirmed_by": ("the other venue" if cross else
                                      "volume" if deep else None)})
@@ -225,12 +227,26 @@ def disagreements(rows: list[dict], fed_path: Optional[dict], cfg: dict,
                 if not _near(day, m["meeting"]):
                     continue
                 for venue, v in by_venue.items():
+                    # LEGS NORMALISED TO 100% (T2.1 ruling): separate contracts'
+                    # last prices need not sum to one; the rule compares the
+                    # venue's odds as a distribution. The printed figures stay
+                    # as quoted, with the sum noted beside them.
+                    # Only a BOOK can be normalised: the hold leg and at least one
+                    # move leg quoted. A lone leg (a venue listing only "25 bps
+                    # increase") is compared as quoted -- scaling 5% of a one-leg
+                    # book to 100% would invent a distribution.
+                    tot = v["hike"] + v["hold"] + v["cut"]
+                    is_book = v["hold"] > 0 and (v["hike"] > 0 or v["cut"] > 0)
+                    norm = {k: (v[k] / tot if is_book and tot > 0 else v[k])
+                            for k in v}
                     for side in ("hike", "cut"):
-                        gap = derived.probability_points(v[side], implied[side])
+                        gap = derived.probability_points(norm[side], implied[side])
                         if gap is not None and abs(gap) >= th_ff:
                             out["fed_funds"].append({
                                 "meeting": m["meeting"], "venue": venue, "side": side,
-                                "venue_probability": round(v[side], 3),
+                                "venue_probability": round(norm[side], 3),
+                                "venue_quoted": round(v[side], 3),
+                                "legs_sum": round(tot, 3),
                                 "fed_funds_implied": round(implied[side], 3),
                                 "gap_points": gap, "threshold_points": th_ff})
     smap = cfg.get("scenario_map") or {}

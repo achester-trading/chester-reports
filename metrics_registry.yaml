@@ -5818,7 +5818,28 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 42   # 40 + NVDA (Phase 5a's heat view) + AGG (P5-B, Book Z's 60/40)
+    expected_members: 47   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1)
+    key_prefix: yfinance.
+    units: price
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_ohlc:
+    description: >-
+      T2.1 (4 Oct 2026): the daily open, high and low beside the close for the
+      tape set's nine symbols (SPY, QQQ, IWM, ^TNX, ^TYX, DX-Y.NYB, GC=F, CL=F,
+      BTC-USD), keyed yfinance.mkt_<sym>_open / _high / _low, so the tape's daily
+      frames and the Weekly's candles read the store and the bars table holds
+      intraday only. Same basis as the close: split-adjusted, dividend-unadjusted.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.OHLC_KEYS
+    members_are: values
+    member_suffixes: ['_open', '_high', '_low']
+    expected_members: 9
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5842,7 +5863,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 42   # 40 + NVDA (Phase 5a's heat view) + AGG (P5-B, Book Z's 60/40)
+    expected_members: 47   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

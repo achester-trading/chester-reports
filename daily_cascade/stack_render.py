@@ -85,6 +85,8 @@ def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
     for c in s.get("charts_rendered") or []:
         if c in charts:
             out.append(_chart_html(charts[c], mode))
+    if s.get("legend"):
+        out.append(f'<p style="{NOTE}">{esc(s["legend"])}</p>')
     if s.get("not_tracked"):
         out.append(f'<p style="{NOTE}"><strong>Not yet tracked:</strong> '
                    f'{esc("; ".join(s["not_tracked"]))}.</p>')

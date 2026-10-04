@@ -306,8 +306,14 @@ def book_line(as_of: Optional[str] = None,
         if not marks:
             return {"text": None, "absent_reason": "no Book Z mark is stored"}
         start = next(iter(marks.values()))["start"]
-        navs = [r for r in db.as_of("portfolio.nav", as_of=as_of)
-                if r.get("value_num") and str(r["observed_at"])[:10] >= start]
+        # The NAV is keyed to the paper ACCOUNT (instrument = the account code),
+        # one row per hourly sync; read every account the store holds, oldest
+        # first. (The 4 Oct Weekly read instrument NULL and found nothing.)
+        navs = []
+        for inst in [None] + list(db.instruments("portfolio.nav")):
+            navs += [r for r in db.as_of("portfolio.nav", as_of=as_of, instrument=inst)
+                     if r.get("value_num") and str(r["observed_at"])[:10] >= start]
+        navs.sort(key=lambda r: str(r["observed_at"]))
         out: dict = {"start": start, "benchmarks_pct": {}, "excess_pts": {}}
         if not navs:
             out["book_pct"] = None

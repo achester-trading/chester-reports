@@ -61,7 +61,8 @@ def item(key: str, text: str, priority: int = 2, value: Any = None) -> dict:
 def _signed(v: Optional[float], unit: str) -> str:
     if v is None:
         return "n/a"
-    mag = f"{abs(v):,.2f}" if unit == "%" else f"{abs(v):,.1f}"
+    # Basis points whole (T2.1): a 0.4 bp move is noise printed as precision.
+    mag = f"{abs(v):,.2f}" if unit == "%" else f"{abs(v):,.0f}"
     sign = "+" if v > 0 else ("−" if v < 0 else "")
     return f"{sign}{mag}{'%' if unit == '%' else ' bp'}"
 
@@ -84,7 +85,7 @@ def last_two(st, key: str, as_of: Optional[str], instrument: Optional[str] = Non
     if pv is None:
         ch = None
     elif du == "bps":
-        ch = round((lv - pv) * (1.0 if units in ("bps", "bp") else 100.0), 1)
+        ch = round((lv - pv) * (1.0 if units in ("bps", "bp") else 100.0))
     elif du == "percent" and pv:
         ch = round(100.0 * (lv / pv - 1.0), 2)
     else:
@@ -209,9 +210,13 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
     items = []
     dis = (pmb or {}).get("disagreements") or {}
     for d in dis.get("fed_funds") or []:
+        legs = d.get("legs_sum")
+        norm_note = (f" (legs normalised from {round(legs * 100):.0f}%)"
+                     if legs and abs(legs - 1.0) > 0.005 else "")
         items.append(item(f"misfit:pm_ff:{d['meeting']}:{d['venue']}:{d['side']}",
                           f"{d['venue'].title()} prices a {d['side']} at the "
                           f"{d['meeting']} meeting at {round(d['venue_probability'] * 100):.0f}%"
+                          f"{norm_note}"
                           f" against {round(d['fed_funds_implied'] * 100):.0f}% from fed "
                           f"funds futures: {abs(d['gap_points']):.0f} points apart "
                           f"(threshold {d['threshold_points']:g}).", 1,
@@ -223,18 +228,16 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                           f"of {round(d['scenario_weight'] * 100):.0f}% "
                           f"({abs(d['gap_points']):.0f} points).", 1,
                           (d["venue_probability"], d["scenario_weight"])))
+    from altdata import labels                                   # noqa: PLC0415
     opened = [c for c in ms.get("contradictions") or [] if c.get("open")]
     for c in opened:
-        items.append(item(f"misfit:{c['id']}",
-                          f"{c['id']}: open {c.get('persistence_days')} session(s), "
-                          f"z {c.get('magnitude')} against a threshold of "
-                          f"{c.get('threshold_z')}.", 1,
+        items.append(item(f"misfit:{c['id']}", contradiction_line(c), 1,
                           (c.get("persistence_days"), c.get("magnitude"))))
     exc = ms.get("exceptions") or []
     if exc:
         items.append(item("misfit:exceptions",
                           f"{len(exc)} exception(s) open: "
-                          + ", ".join(str(e.get("id")) for e in exc[:4])
+                          + "; ".join(labels.exception(e.get("id")) for e in exc[:4])
                           + ("…" if len(exc) > 4 else "") + ".", 2,
                           sorted(str(e.get("id")) for e in exc)))
     if not items:
@@ -250,20 +253,38 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                      "exceptions_by_kind": {k: sum(1 for e in exc
                                                    if e.get("kind") == k)
                                             for k in ("extreme", "contradiction")},
-                     "open_contradictions": [{**{k: c.get(k) for k in
-                                                 ("id", "legs", "magnitude",
-                                                  "threshold_z", "persistence_days",
-                                                  "since")},
-                                              "excess_over_threshold_z": (
-                                                  round(abs(c["magnitude"])
-                                                        - abs(c["threshold_z"]), 2)
-                                                  if isinstance(c.get("magnitude"),
-                                                                (int, float))
-                                                  and c.get("threshold_z")
-                                                  else None)} for c in opened],
-                     "exceptions": [{k: e.get(k) for k in ("id", "kind", "what",
-                                                           "value")}
+                     "open_contradictions": [contradiction_data(c) for c in opened],
+                     "exceptions": [{"name": labels.exception(e.get("id")),
+                                     "kind": e.get("kind"), "_id": e.get("id")}
                                     for e in exc]}}
+
+
+def _z(v) -> Optional[float]:
+    return round(float(v), 1) if isinstance(v, (int, float)) else None
+
+
+def contradiction_line(c: dict) -> str:
+    """One contradiction in words: its label, sessions open, z to one decimal."""
+    from altdata import labels                                   # noqa: PLC0415
+    z, th = _z(c.get("magnitude")), c.get("threshold_z")
+    return (f"{labels.contradiction(c.get('id')).capitalize()}: open "
+            f"{c.get('persistence_days')} session(s), z {z:+.1f} against a threshold "
+            f"of {float(th):.1f}." if z is not None and th is not None else
+            f"{labels.contradiction(c.get('id')).capitalize()}: open "
+            f"{c.get('persistence_days')} session(s).")
+
+
+def contradiction_data(c: dict) -> dict:
+    """What a prose slice may see of a contradiction: labels, never ids. The id
+    rides under `_id` for the charts, and _slice drops `_` keys."""
+    from altdata import labels                                   # noqa: PLC0415
+    z, th = _z(c.get("magnitude")), c.get("threshold_z")
+    return {"name": labels.contradiction(c.get("id")), "_id": c.get("id"),
+            "legs": [labels.metric(x) for x in c.get("legs") or []],
+            "z": z, "threshold_z": th, "persistence_days": c.get("persistence_days"),
+            "since": c.get("since"),
+            "excess_over_threshold_z": (round(abs(z) - abs(float(th)), 1)
+                                        if z is not None and th else None)}
 
 
 def _tier1(p: dict, st, cutoff: str, cfg: dict) -> Optional[str]:
@@ -402,22 +423,34 @@ def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
             items.append(item(f"priced:fomc:{d}", f"FOMC {d}: " + "; ".join(parts) + ".",
                               1 if d == days[0] else 2,
                               [(d, sorted((odds.get(d) or {}).items()))]))
+    wcfg = _watch_cfg()
     for wid, rows in ((pmb or {}).get("watch") or {}).items():
         if wid == "fomc_decision" or not rows:
             continue
-        best = {}
-        for r in rows:
-            b = best.get(r["venue"])
-            if b is None or (r.get("volume") or 0) > (b.get("volume") or 0):
-                best[r["venue"]] = r
+        w = wcfg.get(wid) or {}
+        label = str(w.get("label") or wid)
+        picked = side_rows(rows, w)
+        if w.get("compare") is False:
+            # EACH VENUE'S MARKET BY ITS OWN TITLE, never paired: a Kalshi CPI
+            # strike and a Polymarket CPI range are different questions.
+            for v, r in sorted(picked.items()):
+                items.append(item(f"priced:pm:{wid}:{v}",
+                                  f"{label[0].upper() + label[1:]} -- "
+                                  f"{_venue_name(v)}: \"{r.get('question')}\" "
+                                  f"{_pct(r['probability'])} "
+                                  f"({_pts(r.get('change_1s_points'))} on the session"
+                                  + (", outside 10-90%" if r.get("bias_zone") else "")
+                                  + ").", 3, (v, r["probability"])))
+            continue
         txt = "; ".join(
-            f"{_venue_name(v)} {r.get('outcome') or 'Yes'} {_pct(r['probability'])}"
+            f"{_venue_name(v)} {_pct(r['probability'])}"
             f" ({_pts(r.get('change_1s_points'))} on the session"
-            + (", bias zone" if r.get("bias_zone") else "") + ")"
-            for v, r in sorted(best.items()))
-        q = next(iter(best.values())).get("event_title") or wid
-        items.append(item(f"priced:pm:{wid}", f"{q}: {txt}.", 3,
-                          [(v, r["probability"]) for v, r in sorted(best.items())]))
+            + (", outside 10-90%" if r.get("bias_zone") else "") + ")"
+            for v, r in sorted(picked.items()))
+        side = w.get("side") or "Yes"
+        items.append(item(f"priced:pm:{wid}", f"{label[0].upper() + label[1:]} "
+                          f"({side}): {txt}.", 3,
+                          [(v, r["probability"]) for v, r in sorted(picked.items())]))
     for v, info in ((pmb or {}).get("venues") or {}).items():
         if info.get("outage"):
             items.append(item(f"priced:outage:{v}",
@@ -425,6 +458,31 @@ def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
                               f"(nothing stored for this session).", 1,
                               info.get("as_of")))
     return items
+
+
+def side_rows(rows: list[dict], w: dict) -> dict:
+    """Per venue, the one market an item prints: its declared side's market (the
+    soonest-closing where several match), or -- with no side, or compare false --
+    the venue's highest-volume market."""
+    side = str(w.get("side") or "")
+    out: dict = {}
+    for r in sorted(rows, key=lambda x: (str(x.get("close_at") or ""),
+                                         -(x.get("volume") or 0))):
+        v = r["venue"]
+        if side and w.get("compare") is not False:
+            events = [x for x in rows if x["venue"] == v
+                      and x.get("event_id") == r.get("event_id")]
+            ok = (side.lower() in str(r.get("outcome") or "").lower()
+                  or len(events) == 1)
+            if ok and v not in out:
+                out[v] = r
+        elif v not in out or (r.get("volume") or 0) > (out[v].get("volume") or 0):
+            out[v] = r
+    return out
+
+
+BIAS_LEGEND = ("Outside 10-90%: at odds this far from even, prediction markets are "
+               "known to misprice the level, so read the change, not the level.")
 
 
 def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
@@ -472,7 +530,9 @@ def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
                               + ((fed or {}).get("reason") or "no contracts stored"))
     if not pmb or not pmb.get("markets"):
         not_tracked.insert(0, "prediction-market odds: no venue market stored")
+    legend = BIAS_LEGEND if any("outside 10-90%" in i["text"] for i in items) else None
     return {"items": items, "deep_reason": reason, "not_tracked": not_tracked,
+            "legend": legend,
             "data": {"series": data,
                      "rate_path": {k: (fed or {}).get(k) for k in
                                    ("meetings", "tracked", "reason", "sentence",
@@ -493,11 +553,49 @@ def read_items(pmb: Optional[dict]) -> list[dict]:
     out = []
     for sh in (pmb or {}).get("shocks") or []:
         out.append(item(f"read:shock:{sh['instrument']}",
-                        f"Attention shock ({sh['state']}): {_venue_name(sh['venue'])} "
-                        f"\"{sh.get('question')}\" {_pts(sh['change_1s_points'])} "
-                        f"to {_pct(sh['probability'])} on the session.", 1,
+                        shock_sentence(sh, "in a session",
+                                       sh["change_1s_points"]), 1,
                         (sh["probability"], sh["change_1s_points"])))
     return out
+
+
+def _watch_cfg() -> dict:
+    try:
+        from altdata.sources import prediction_markets as pm_src  # noqa: PLC0415
+        return {w["id"]: w for w in pm_src.load_config().get("watch_list") or []}
+    except Exception:                                           # noqa: BLE001
+        return {}
+
+
+def market_subject(m: dict) -> str:
+    """A venue market in words, from its watch item's declared SUBJECT template
+    (config/prediction_markets.yaml) -- never the raw market title, except where
+    an item prints each venue's market by its own title."""
+    from altdata.prediction_markets import classify_fomc        # noqa: PLC0415
+    w = _watch_cfg().get(m.get("watch_id")) or {}
+    day = str(m.get("decision_date") or m.get("close_at") or "")[:10]
+    try:
+        d = dt.date.fromisoformat(day)
+        meeting, year = d.strftime("%B"), str(d.year)
+    except ValueError:
+        meeting = year = ""
+    side = classify_fomc(m.get("question") or "", m.get("outcome") or "") or "move"
+    tpl = w.get("subject")
+    if not tpl:
+        story = str(m.get("watch_id") or "").split(":", 1)[-1].replace("_", " ")
+        return f"a market on the {story} story"
+    return tpl.format(side=side, meeting=meeting, year=year,
+                      title=m.get("question") or m.get("event_title") or "")
+
+
+def shock_sentence(sh: dict, window: str, change: float) -> str:
+    """The template sentence for a venue move (T2.1 item 4)."""
+    return (f"{_venue_name(sh['venue'])}'s odds of {market_subject(sh)} moved "
+            f"{_pts(change)} {window}, to {_pct(sh['probability'])}"
+            + (" (confirmed by the other venue or by volume)"
+               if sh.get("state") == "CONFIRMED" else
+               " (one venue, thin volume: unconfirmed)" if sh.get("state") else "")
+            + ".")
 
 
 def narratives_section(st) -> dict:
@@ -665,6 +763,7 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
                     "items": b["items"], "table": b.get("table"),
                     "charts": b.get("charts") or [], "data": b.get("data") or {},
                     "not_tracked": b.get("not_tracked") or [],
+                    "legend": b.get("legend"),
                     "fingerprint": fp, "collapsed": unchanged,
                     "unchanged_since": ((pr.get("unchanged_since") or
                                          (prior or {}).get("session"))
