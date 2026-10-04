@@ -166,9 +166,9 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 misfit = next(s for s in ed["sections"] if s["id"] == "misfit")
                 oc = (misfit.get("data") or {}).get("open_contradictions") or []
                 if oc:
-                    top = max(oc, key=lambda c: abs(c.get("magnitude") or 0))
+                    top = max(oc, key=lambda c: abs(c.get("z") or 0))
                     charts["C3"] = charts_mod.c3_contradiction(
-                        top["id"], _contradiction_history(st, top["id"], cutoff),
+                        top["name"], _contradiction_history(st, top["_id"], cutoff),
                         float(top.get("threshold_z") or 2.0), f"{base_name}_c3",
                         out_dir)
                     misfit["charts_rendered"] = ["C3"]

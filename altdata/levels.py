@@ -252,7 +252,7 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
     def move(a, b):
         if a is None or b is None or not b:
             return None
-        return round((a - b) * 100.0, 1) if kind == "yield" else \
+        return round((a - b) * 100.0) if kind == "yield" else \
             round(100.0 * (a / b - 1.0), 2)
     unit = "bps" if kind == "yield" else "pct"
     wk_prior = [r for r in hist if _week_start(dt.date.fromisoformat(

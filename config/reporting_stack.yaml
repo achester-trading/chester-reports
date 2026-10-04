@@ -165,6 +165,9 @@ style:
   motive_phrases: ["because", "due to", "driven by", "on fears", "on hopes",
                    "as investors", "amid concerns", "thanks to", "spooked",
                    "cheered"]
+  # Closers the stack does not use (T2.1 item 8): refused in any section.
+  banned_phrases: ["for the system", "what it will test next", "what it tests next",
+                   "what next week tests", "what tomorrow tests"]
   intensity_words: ["sharply", "massive", "massively", "huge", "surged",
                     "plunged", "soared", "skyrocketed", "crashed", "tanked",
                     "collapsed", "exploded", "dramatic", "dramatically"]

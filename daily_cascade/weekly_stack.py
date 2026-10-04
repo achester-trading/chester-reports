@@ -127,6 +127,11 @@ def series(st, key: str, cutoff: str, instrument: Optional[str] = None,
 # ---------------------------------------------------------------------------
 # Sections
 # ---------------------------------------------------------------------------
+def labels_metric(k: Optional[str]) -> str:
+    from altdata import labels                                   # noqa: PLC0415
+    return labels.metric(k)
+
+
 def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict) -> dict:
     cards = []
     for s in sessions:
@@ -164,6 +169,23 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict) -> dict:
     items.append(item("mech:dials", "At the week's end: " + "; ".join(
         f"{name.get(k, k).lower() if n else name.get(k, k)} {v}"
         for n, (k, v) in enumerate(sorted(dials.items()))) + ".", 2, dials))
+    for dch in wis.get("dimension_changes") or []:
+        items.append(item(f"mech:dim:{dch.get('dimension')}",
+                          f"Our read on {dch.get('dimension')} moved from "
+                          f"{dch.get('from') or 'absent'} to {dch.get('to')} "
+                          f"({dch.get('last_changed')}).", 2,
+                          (dch.get("from"), dch.get("to"))))
+    held = wis.get("dimensions_held") or []
+    if held:
+        items.append(item("mech:dims_held", "Unchanged on the week: "
+                          + ", ".join(held) + ".", 3, held))
+    vts = wis.get("vol_term_structure") or {}
+    pub = vts.get(vts.get("published_by") or "") or {}
+    if pub.get("state"):
+        items.append(item("mech:vts", f"The VIX term structure is in {pub['state']} "
+                          f"({labels_metric(pub.get('metric'))} at "
+                          f"{float(pub.get('ratio') or 0):.2f}).", 2,
+                          (pub.get("state"), pub.get("ratio"))))
     return {"items": items, "not_tracked": nt,
             "table": {"columns": ["Session", "Net GEX", "Flip crossed", "Range %",
                                   "Return %", "Max pain hit"],
@@ -178,30 +200,35 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict) -> dict:
 def misfit_week(wis: dict, pmb: Optional[dict]) -> dict:
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
+    from altdata import labels                                   # noqa: PLC0415
     opened = [c for c in wis.get("contradictions") or []
               if c.get("open_state") == "open"]
     for c in opened:
-        items.append(item(f"misfit:{c['id']}", f"{c['id']}: open "
-                          f"{c.get('persistence_days')} session(s), z "
-                          f"{c.get('magnitude')} against {c.get('threshold_z')}.", 1,
+        items.append(item(f"misfit:{c['id']}", stack_mod.contradiction_line(c), 1,
                           (c.get("persistence_days"), c.get("magnitude"))))
     for e in wis.get("exceptions_opened") or []:
-        items.append(item(f"misfit:exc:{e}", f"Opened this week: {e}.", 2, e))
+        items.append(item(f"misfit:exc:{e}", f"Opened this week: "
+                          f"{labels.exception(e)}.", 2, e))
     for e in wis.get("exceptions_intraweek_only") or []:
         items.append(item(f"misfit:intra:{e}", f"Opened and closed inside the "
-                          f"week: {e}.", 3, e))
+                          f"week: {labels.exception(e)}.", 3, e))
     if not items:
         items.append(item("misfit:none", "No contradiction open, no exception "
                           "opened this week.", 1, "none"))
     data = dict(base["data"])
-    data.update({"open_contradictions": [{k: c.get(k) for k in
-                                          ("id", "legs", "magnitude", "threshold_z",
-                                           "persistence_days", "since")}
+    now_open = wis.get("exceptions_open_now") or []
+    data.update({"open_contradictions": [stack_mod.contradiction_data(c)
                                          for c in opened],
-                 "exceptions_opened": wis.get("exceptions_opened") or [],
-                 "exceptions_open_now": wis.get("exceptions_open_now") or []})
+                 "exceptions_opened": [labels.exception(e) for e in
+                                       wis.get("exceptions_opened") or []],
+                 "exceptions_open_now": [labels.exception(e) for e in now_open]})
+    # THE EXCEPTIONS TABLE, folded in from the old Detail tail (T2.1 item 11).
+    table = {"columns": ["Open at the week's end", "Kind", "Opened this week"],
+             "rows": [[labels.exception(e), e.split(":", 1)[0],
+                       "yes" if e in (wis.get("exceptions_opened") or []) else ""]
+                      for e in now_open]}
     return {"items": items, "not_tracked": base.get("not_tracked") or [],
-            "data": data}
+            "data": data, "table": table}
 
 
 PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
@@ -241,13 +268,70 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
             continue
         data[name] = x
         items.append(item(f"plumb:{k}", f"{name} {_lvl(x)}, {_change(x)} on the week "
-                          f"(as of {x['observed_at']}).",
+                          f"({window(x)}).",
                           1 if k in ("fred.yield_10y", "fred.hy_oas") else 2,
                           (x["level"], x["change"])))
         rows.append([name, _lvl(x), _change(x), x["observed_at"]])
-    return {"items": items, "data": {"series": data},
+    rel = tier1_releases(st, now, then)
+    for r in rel:
+        items.append(item(f"plumb:rel:{r['release']}:{r['series']}",
+                          f"{r['release']} ({r['date']}): {r['label']} "
+                          f"{r['actual_text']}, prior {r['prior_text']} "
+                          f"(as of {r['as_of']}).", 1,
+                          (r["actual"], r["prior"])))
+    return {"items": items, "data": {"series": data, "tier1_releases": rel},
             "table": {"columns": ["Series", "Level", "Week", "As of"], "rows": rows},
             "not_tracked": ["repo-market stress (SOFR, general collateral)"]}
+
+
+def tier1_releases(st, now: str, then: str) -> list[dict]:
+    """The week's tier-1 releases that occurred, with each tracked series'
+    actual, prior and as-of from the store (T2.1 item 13). The tier-1 list is
+    the Plumbing trigger's (config/reporting_stack.yaml)."""
+    from altdata import events, labels                          # noqa: PLC0415
+    tier1 = ((stack_mod.config().get("triggers") or {}).get("plumbing") or {}) \
+        .get("tier1_events") or []
+    out = []
+    try:
+        with events.EventStore(str(st.path)) as ev:
+            rows = ev.conn.execute(
+                "SELECT observed_at, title, payload FROM events WHERE type = "
+                "'release' AND observed_at > ? AND observed_at <= ? AND "
+                "available_at <= ? ORDER BY observed_at", (then, now, now)).fetchall()
+    except Exception:                                           # noqa: BLE001
+        return out
+    seen = set()
+    for obs_at, title, payload in rows:
+        name = str(title).split(" -- ")[0]
+        if not any(t.lower() in name.lower() for t in tier1):
+            continue
+        try:
+            series = (json.loads(payload or "{}").get("series") or [])
+        except ValueError:
+            series = []
+        for s in series:
+            key = f"fred.{s}"
+            if (name, key) in seen:
+                continue
+            seen.add((name, key))
+            pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
+            pts.sort(key=lambda r: str(r["observed_at"]))
+            if not pts:
+                continue
+            a, p = pts[-1], (pts[-2] if len(pts) > 1 else None)
+            units = str(derived.registry_entry(key).get("units") or "")
+
+            def fmt(v):
+                if v is None:
+                    return "n/a"
+                return f"{v:,.2f}%" if units in ("%", "percent") else f"{v:,.1f}"
+            out.append({"release": name, "date": str(obs_at)[:10], "series": key,
+                        "label": labels.metric(key), "actual": a["value_num"],
+                        "prior": p["value_num"] if p else None,
+                        "actual_text": fmt(a["value_num"]),
+                        "prior_text": fmt(p["value_num"] if p else None),
+                        "as_of": str(a["observed_at"])[:10]})
+    return out
 
 
 def _week_return(st, sym: str, now: str, then: str) -> Optional[float]:
@@ -282,12 +366,12 @@ def positioning_week(st, now: str, then: str) -> dict:
         z = derived.z_of(hist, x["level"]) if len(hist) > 20 else None
         pct = derived.percentile_of(hist, x["level"]) if len(hist) > 20 else None
         cftc[name] = series(st, "cftc.noncomm_net", now, inst, two_years)
-        data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 2),
+        data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 1),
                                 "percentile_2y": pct}
         items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name.lower()}: "
                           f"{x['level']:,.0f} contracts ({_change(x)} since the prior "
                           f"report, as of {x['observed_at']})"
-                          + (f", z {z:+.2f} over two years" if z is not None else "")
+                          + (f", z {z:+.1f} over two years" if z is not None else "")
                           + ".", 2, (x["level"], x["observed_at"])))
         rows.append(["CFTC " + name, f"{x['level']:,.0f}", _change(x), x["observed_at"]])
     if missing:
@@ -326,8 +410,11 @@ def positioning_week(st, now: str, then: str) -> dict:
                      "securities"), ("tic.flow_total", "Total net TIC flows")):
         x = change_over(st, k, now, then)
         if x:
-            data[k] = x
-            items.append(item(f"pos:{k}", f"{name}: {x['level']:,.0f} for "
+            from altdata.numeral_audit import scaled_display    # noqa: PLC0415
+            disp = scaled_display(x["level"], x.get("level_units") or "usd") \
+                or f"{x['level']:,.0f}"
+            data[k] = {**x, "level_display": disp}
+            items.append(item(f"pos:{k}", f"{name}: {disp} for "
                               f"{x['observed_at'][:7]} (TIC, monthly).", 4,
                               (x["level"], x["observed_at"])))
     lead = leadership(st, now, then)
@@ -351,8 +438,37 @@ def positioning_week(st, now: str, then: str) -> dict:
             "_cftc_series": cftc, "_leadership": lead}
 
 
+def window(x: dict) -> str:
+    """The real window of a weekly change: the two observation dates it spans
+    (T2.1 item 14) -- a FRED series lags, so 'on the week' alone would hide
+    which week."""
+    a, b = x.get("prior_observed_at"), x.get("observed_at")
+    return f"{a} to {b}" if a and a != b else f"as of {b}"
+
+
+WEEK_PRICED = (("fred.breakeven_5y", "5-year breakeven"),
+               ("fred.breakeven_10y", "10-year breakeven"),
+               ("fred.breakeven_5y5y", "5-year, 5-year-forward breakeven"),
+               ("umich.expect_5_10y", "Michigan 5-10 year expectations"),
+               ("nyfed.sce_3y", "NY Fed 3-year expectations"))
+
+
 def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     b = stack_mod.priced_section(st, now, cfg, pmb, fed, fed_then)
+    # THE WEEK'S CHANGE, not the day's (T2.1 item 14): the daily section's
+    # series lines are replaced by each series' change over the week's window.
+    b["items"] = [i for i in b["items"]
+                  if not any(i["key"] == f"priced:{k}" for k, _ in WEEK_PRICED)]
+    series = {}
+    for k, name in WEEK_PRICED:
+        x = change_over(st, k, now, then)
+        if not x:
+            continue
+        series[name] = x
+        b["items"].append(item(f"priced:{k}", f"{name} {_lvl(x)}, {_change(x)} on "
+                               f"the week ({window(x)}).", 2,
+                               (x["level"], x["change"])))
+    b["data"]["series"] = series
     trig = (cfg.get("triggers") or {}).get("priced") or {}
     reason = None
     for k, th in (trig.get("moves_bp") or {}).items():
@@ -384,7 +500,7 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     return b
 
 
-def narratives_week_section(nb: dict) -> dict:
+def narratives_week_section(nb: dict, wd: Optional[dict] = None) -> dict:
     stories = nb.get("narratives") or []
     items = []
     for s in stories:
@@ -395,14 +511,24 @@ def narratives_week_section(nb: dict) -> dict:
                             f"{s.get('evidence_against', 0)} against.", 2,
                           (s.get("state"), s.get("evidence_for"),
                            s.get("evidence_against"))))
+    ev = nb.get("evaluations_this_week")
+    if isinstance(ev, int) and ev:
+        items.append(item("narr:evals", f"{ev} story evaluation(s) ran this week "
+                          f"against the stored data.", 3, ev))
     props = nb.get("proposals") or []
     if props:
         items.append(item("narr:proposals", f"{len(props)} proposal(s) await the "
                           f"operator's confirmation.", 1, len(props)))
+    wd = wd or {}
+    if wd.get("state") in ("ok", "empty"):
+        items.append(item("narr:filings", f"Filings since the last Weekly: "
+                          f"{wd.get('filings_total', 0)}; headlines matched to a "
+                          f"story: {wd.get('headlines_total', 0)}.", 3,
+                          (wd.get("filings_total"), wd.get("headlines_total"))))
     if not items:
         items.append(item("narr:none", "No story is active in the register.", 1, "none"))
     return {"items": items, "data": {"stories": [{k: s.get(k) for k in
-                                                  ("id", "name", "state", "direction",
+                                                  ("name", "state", "direction",
                                                    "last_changed")} for s in stories]},
             "not_tracked": ["the voices register (Phase B, week of 19 Oct)"]}
 
@@ -501,6 +627,15 @@ def trigger_counts(sessions: list[str], st, cfg: dict) -> dict:
     return {"sessions": len(sessions), **out}
 
 
+SOURCE_LABELS = {"daily_close_outlook": "base-rate outlooks (daily close)",
+                 "narrative_register": "story forecasts (narrative register)",
+                 "monthly_macro": "scenario weights (Monthly)"}
+
+
+def source_label(src: str) -> str:
+    return SOURCE_LABELS.get(src, str(src).replace("_", " "))
+
+
 def ahead_week(p: dict, calls: dict) -> dict:
     wa = p.get("week_ahead") or {}
     items = []
@@ -519,12 +654,18 @@ def ahead_week(p: dict, calls: dict) -> dict:
         if odd:
             items.append(item(f"ahead:sess:{d}", f"{d}: {', '.join(odd).lower().replace('_', ' ')}.",
                               3, odd))
+    ear = wa.get("earnings") or {}
+    for r in (ear.get("rows") or [])[:8]:
+        items.append(item(f"ahead:earn:{r.get('date')}:{r.get('symbol')}",
+                          f"{r.get('date')}: {r.get('symbol')} reports.", 3,
+                          (r.get("date"), r.get("symbol"))))
     rows = calls.get("rows") or []
     scored = [r for r in rows if not r["base_rate"]]
     base = [r for r in rows if r["base_rate"]]
     items.append(item("ahead:calls", "Graded calls, last four weeks: " + (
-        "; ".join(f"{r['source']} n={r['n']}, Brier {r['mean_brier']:.3f}"
-                  for r in scored) if scored else "none resolved") + ".", 1,
+        "; ".join(f"{source_label(r['source'])} n={r['n']}, Brier "
+                  f"{r['mean_brier']:.3f}" for r in scored) if scored
+        else "none resolved") + ".", 1,
         [(r["source"], r["n"], r["mean_brier"]) for r in scored]))
     items.append(item("ahead:base_rates", "Base-rate outlooks, last four weeks: " + (
         "; ".join(f"n={r['n']}, Brier {r['mean_brier']:.3f} against a coin's "
@@ -533,7 +674,7 @@ def ahead_week(p: dict, calls: dict) -> dict:
     return {"items": items,
             "table": {"columns": ["Source", "Resolved (4 wk)", "Mean Brier",
                                   "Against a coin"],
-                      "rows": [[r["source"] + (" (base rates)" if r["base_rate"] else ""),
+                      "rows": [[source_label(r["source"]),
                                 r["n"], f"{r['mean_brier']:.3f}",
                                 f"{r['vs_coin']:+.3f}"] for r in rows]},
             "data": {"graded_calls": calls,
@@ -551,7 +692,7 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
     # THE WEEK'S BREAKS ARE THE LISTED ONES. The block also carries a running
     # total and a count of blocked decisions -- different quantities, never summed.
     listed = rb.get("rule_breaks_listed") or []
-    kinds = sorted({str(b.get("kind")) for b in listed})
+    kinds = sorted({str(b.get("kind")).replace("_", " ") for b in listed})
     items.append(item("book:breaks", f"{len(listed)} rule break(s) this week"
                       + (f" ({', '.join(kinds)})" if kinds else "")
                       + f"; {rb.get('rule_breaks_total', 0)} on the register to date.",
@@ -562,6 +703,18 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
                           rb["decision_blocked_this_week"]))
     if bz:
         items.append(item("book:z", f"Against Book Z, {bz}.", 2, bz))
+    pk = rg.get("packet_fields") or {}
+    if isinstance(pk, dict) and pk.get("entries_this_week") is not None:
+        items.append(item("book:packets", f"New decisions entered this week: "
+                          f"{pk['entries_this_week']} ({pk.get('setup_unclassified', 0)} "
+                          f"with an unclassified setup; "
+                          f"{pk.get('review_changed_not_none', 0)} changed at review).",
+                          3, (pk["entries_this_week"], pk.get("review_changed_not_none"))))
+    for b in listed:
+        items.append(item(f"book:rb:{b.get('session')}:{b.get('instrument')}",
+                          f"{b.get('session')}: {str(b.get('kind')).replace('_', ' ')} "
+                          f"on {b.get('instrument')} -- {b.get('reason')}.", 3,
+                          b.get("reason")))
     items.append(item("book:attention",
                       f"Attention: {attn['packets_approved']} of "
                       f"{attn['packets_budget']} packets approved"
@@ -603,9 +756,7 @@ def read_week(pmb: Optional[dict]) -> dict:
     for r in sorted(best.values(), key=lambda x: -abs(x["change_5s_points"])):
         c = r["change_5s_points"]
         items.append(item(f"read:pm5:{r['instrument']}",
-                          f"{stack_mod._venue_name(r['venue'])} "
-                          f"\"{r.get('question')}\" {c:+.1f} pts over five "
-                          f"sessions to {round(r['probability'] * 100):.0f}%.", 1,
+                          stack_mod.shock_sentence(r, "over five sessions", c), 1,
                           (r["probability"], c)))
     return {"items": items[:4], "data": {"five_session_moves": [i["text"] for i in items]}}
 
@@ -646,7 +797,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "plumbing": plumbing_week(st, now, then, book),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
-            "narratives": narratives_week_section(p.get("narratives") or {}),
+            "narratives": narratives_week_section(p.get("narratives") or {},
+                                                  p.get("weekend_developments") or {}),
             "ahead": ahead_week(p, graded_calls(now, db_path)),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz),
@@ -658,7 +810,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         extras["contradictions"] = {}
         from .stack_close import _contradiction_history          # noqa: PLC0415
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
-            extras["contradictions"][c["id"]] = _contradiction_history(st, c["id"], now)
+            extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
     ed = {"report": "weekly_stack", "session": ending, "week_ending": ending,
           "config_version": cfg.get("version"), "as_of": now,
@@ -716,7 +868,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             f"{base}_w3", out_dir, right="HY OAS")
     if "W4" in plan:
         charts["W4"] = charts_mod.banded_chart(
-            "W4", {f"CFTC net speculative, {k}": v for k, v in extras["cftc"].items()},
+            "W4", dict(extras["cftc"]),
             "Positioning: CFTC net speculative contracts, two years, +-1 sigma",
             f"{base}_w4", out_dir)
     if "W5" in plan:
@@ -764,12 +916,6 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
 <code>{esc(ed.get('config_version'))}</code> &middot; {esc(ed.get('words'))} words
 &middot; {esc(ed.get('chart_count'))} chart(s) &middot; {marks}</p>
 {secs}
-<h2 style="{base.H2}">Detail</h2>
-{detail(wr.state_block)}
-{detail(wr.grades_block)}
-{detail(wr.register_block)}
-{detail(wr.week_ahead_block)}
-{detail(wr.weekend_block)}
 <p style="{base.NOTE}">Every figure above was read from the store, the register or
 the ledger. No figure here is a recommendation; venue odds are the markets' prices,
 and every probability the system states is a ledger entry.</p>

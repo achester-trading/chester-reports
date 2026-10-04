@@ -1,0 +1,61 @@
+# display_labels.yaml -- the reader's names for the system's ids. (T2.1, 4 Oct 2026)
+#
+# NO INTERNAL ID REACHES PROSE OR A LIST. Every contradiction and every metric the
+# market-state object can name in an exception carries a plain label here;
+# altdata/labels.py reads it, and tools/validate_weekly_stack.py fails if any id in
+# config/market_state.yaml has none. A narrative_vs_data row takes its story's name
+# from config/narratives.yaml.
+version: display-labels-v1
+
+contradictions:
+  price_vs_breadth: "SPY's price against market breadth"
+  equities_vs_credit: "equities against high-yield credit"
+  long_bond_vs_hy: "the long bond against high-yield credit"
+  implied_vs_realized_vol: "implied against realized volatility"
+  growth_vs_cyclicals: "the growth read against cyclicals over defensives"
+  gamma_vs_trend: "dealer gamma against the trend"
+  prediction_markets_vs_assets: "prediction markets against asset prices"
+  narrative_vs_data: "a story against the data"
+
+metrics:
+  calc.breadth_rsp_over_spy: "equal-weight over cap-weight S&P (RSP/SPY)"
+  calc.breadth_sector_above_200d: "sectors above their 200-day average"
+  calc.breadth_sector_above_50d: "sectors above their 50-day average"
+  calc.cyclical_over_defensive: "cyclicals over defensives"
+  calc.net_liquidity: "net liquidity (Fed balance sheet less TGA and RRP)"
+  calc.sahm_rule: "the Sahm rule"
+  calc.spy_vs_252d_high: "SPY against its 52-week high"
+  calc.trend_spy_ma20_slope: "the slope of SPY's 20-day average"
+  calc.trend_spy_vs_200d: "SPY against its 200-day average"
+  calc.trend_spy_vs_50d: "SPY against its 50-day average"
+  calc.vix3m_over_vix: "the VIX term structure (VIX3M over VIX)"
+  calc.vol_spy_realized_20d: "SPY's 20-day realized volatility"
+  calc.vx1_vix_basis: "the front VIX future against spot VIX"
+  calc.vx_front_ratio: "the front two VIX futures"
+  calc.yield_curve_2s10s: "the 2s10s curve"
+  dial.gamma: "dealer gamma"
+  fred.avg_wkly_hours: "average weekly hours"
+  fred.bank_reserves: "bank reserves"
+  fred.bb_oas: "BB credit spreads (OAS)"
+  fred.breakeven_10y: "the 10-year breakeven"
+  fred.breakeven_5y5y: "the 5-year, 5-year-forward breakeven"
+  fred.breakeven_5y: "the 5-year breakeven"
+  fred.ccc_oas: "CCC credit spreads (OAS)"
+  fred.claims_4wk: "four-week average jobless claims"
+  fred.fed_balance: "the Fed's balance sheet"
+  fred.housing_permits: "housing permits"
+  fred.hy_oas: "high-yield credit spreads (OAS)"
+  fred.ig_oas: "investment-grade credit spreads (OAS)"
+  fred.job_openings: "job openings"
+  fred.mortgage_30y: "the 30-year mortgage rate"
+  fred.nfci: "the Chicago Fed financial conditions index"
+  fred.rrp: "the Fed's reverse repo facility"
+  fred.sticky_core: "sticky core inflation"
+  fred.vix: "the VIX"
+  fred.wti: "WTI crude"
+  fred.yield_10y: "the 10-year Treasury yield"
+  fred.yield_2y: "the 2-year Treasury yield"
+  fred.yield_30y: "the 30-year Treasury yield"
+  pm.implied: "prediction-market odds"
+  yfinance.mkt_spy: "SPY"
+  yfinance.mkt_vix: "the VIX"

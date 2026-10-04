@@ -365,7 +365,7 @@ def main() -> int:
         "rule_breaks_listed": [{"kind": "currency_mismatch"}]}}},
         a, {"plumbing": [], "priced": [], "sessions": 5}, None)
     bt = {i["key"]: i["text"] for i in bk["items"]}
-    check(bt["book:breaks"].startswith("1 rule break(s) this week (currency_mismatch); "
+    check(bt["book:breaks"].startswith("1 rule break(s) this week (currency mismatch); "
                                         "5 on the register")
           and bt.get("book:blocked", "").startswith("2 decision(s) blocked"),
           "the week's rule breaks are the listed ones, never summed with the running "
@@ -374,7 +374,7 @@ def main() -> int:
              "question": f"leg {k}", "probability": 0.5, "change_5s_points": c}
             for k, c in (("a", 13.5), ("b", -27.5), ("c", 11.0))]
     rw = ws.read_week({"markets": legs})
-    check(len(rw["items"]) == 1 and "-27.5 pts" in rw["items"][0]["text"],
+    check(len(rw["items"]) == 1 and "27.5 pts" in rw["items"][0]["text"],
           "The read carries one line per venue event: its largest five-session move")
     # --- T2 RULINGS (3 Oct 2026) -------------------------------------------------
     from altdata import benchmark, observations as _o
@@ -433,6 +433,128 @@ def main() -> int:
     check("| 2026-10-02 | sitting | 22 |" in ag and ws.read_attention_log()
           and all(e["kind"] in ("sitting", "ruling") for e in ws.read_attention_log()),
           "docs/attention-log.md holds the 2 Oct sitting at 22 minutes, and parses")
+
+    # --- T2.1 (4 Oct 2026): defects from the first live stacked Weekly ------------
+    print(f"\n{LINE}\nT2.1 THE FIRST LIVE WEEKLY'S DEFECTS\n{LINE}")
+    import inspect as _insp
+    from altdata import bars as _bars, labels as _labels, levels as _lv
+    from altdata.numeral_audit import scaled_display
+    from daily_cascade import stack as _st, stack_prose as _sp
+    spy_i = next(i for i in ed["levels"]["instruments"] if i["id"] == "spy")
+    check(spy_i["daily_source"]["key"] == "yfinance.mkt_spy"
+          and not spy_i["daily_source"]["proxy"] and spy_i.get("frame", {}).get("last"),
+          "1: the tape's daily frames read the store's daily series (yfinance.mkt_spy)")
+    rows_fb, meta_fb = _lv.daily_bars({"id": "x", "daily": "yfinance.mkt_none",
+                                       "fallback": {"daily": "yfinance.mkt_spy",
+                                                    "label": "SPY"}}, ENDING,
+                                      None, _o.ObservationStore(db))
+    check(rows_fb and meta_fb["proxy"] == "SPY",
+          "1: a proxy is read only when the instrument's own series is empty, and named")
+    check("interval=\"1d\"" not in _insp.getsource(_bars.pull)
+          and "def daily(" not in _insp.getsource(_bars),
+          "1: the eod bars feed pulls the session's 5-minute bars only")
+    w4 = out["charts"]["W4"].get("caption") or ""
+    check(w4.count("CFTC net speculative") == 1,
+          f"2: a chart caption prints its words once ({w4[:80]})")
+    every = " ".join([s.get("claim") or "" for s in ed["sections"]]
+                     + [" ".join(s.get("paragraphs") or []) for s in ed["sections"]]
+                     + [i["text"] for s in ed["sections"] for i in s["items"]]
+                     + [" ".join(map(str, r)) for s in ed["sections"]
+                        for r in (s.get("table") or {}).get("rows") or []])
+    ids = re.findall(r"\b(?:extreme|contradiction):\S+|\b(?:fred|calc|yfinance)\.\w+"
+                     r"|\b(?:equities_vs_credit|long_bond_vs_hy|fixture_pair|"
+                     r"narrative_register|daily_close_outlook)\b", every)
+    check(not ids, f"3: no internal id in any section's text or table ({ids[:4]})")
+    ms_ids = re.findall(r"\b(?:fred|calc|yfinance|dial|pm)\.[a-z0-9_]+",
+                        (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8"))
+    check(not _labels.missing(sorted(set(ms_ids))),
+          f"3: every metric the market state can name has a display label "
+          f"({_labels.missing(sorted(set(ms_ids)))[:4]})")
+    pm_rows = [{"venue": v, "watch_id": "us_recession", "event_id": f"E-{v}",
+                "question": "Recession in 2026?", "outcome": "Yes",
+                "probability": 0.04, "change_1s_points": -2.5, "bias_zone": True,
+                "close_at": "2026-12-31"} for v in ("kalshi", "polymarket")]
+    cpi_rows = [{"venue": "kalshi", "watch_id": "cpi_monthly", "event_id": "K",
+                 "question": "Will CPI rise more than 0.3%?", "outcome": "Above 0.3%",
+                 "probability": 0.18, "change_1s_points": 1.0, "volume": 10},
+                {"venue": "polymarket", "watch_id": "cpi_monthly", "event_id": "P",
+                 "question": "CPI 2.4% in December?", "outcome": "2.4%",
+                 "probability": 0.36, "change_1s_points": -3.5, "volume": 10}]
+    vi = _st.venue_items({"watch": {"us_recession": pm_rows, "cpi_monthly": cpi_rows}},
+                         None)
+    vt = [i["text"] for i in vi]
+    check(any(t.startswith("US recession in 2026 and in 2027 (Yes): Kalshi 4%") for t in vt),
+          "5: an item prints its declared side for both venues on one line")
+    check(sum(1 for t in vt if t.startswith("Each month's CPI print --")) == 2
+          and any("Will CPI rise more than 0.3%?" in t for t in vt),
+          "5: the CPI item prints each venue's market by its own title, never paired")
+    check(all("bias zone" not in t for t in vt) and any("outside 10-90%" in t for t in vt)
+          and _st.BIAS_LEGEND.startswith("Outside 10-90%"),
+          "3: the bias zone is in plain words, with a one-line legend")
+    check(not _sp.policy_word_faults("The CPI market holds near 0.3%, and the low held.")
+          and _sp.policy_word_faults("The Fed holds at the October meeting, says the "
+                                     "CPI market."),
+          "6: 'hold' counts only with Fed, FOMC or meeting in its clause")
+    c_line = _st.contradiction_line({"id": "equities_vs_credit", "persistence_days": 5,
+                                     "magnitude": 3.0054, "threshold_z": 2.0})
+    check("z +3.0 against a threshold of 2.0" in c_line
+          and c_line.startswith("Equities against high-yield credit"),
+          f"7: z to one decimal, under its label ({c_line})")
+    check(_st._signed(4.4, "bp") == "+4 bp" and _st._signed(-0.4, "bp") == "−0 bp",
+          "7: basis points whole")
+    check(scaled_display(-68522000000.0, "usd") == "−$68.52bn",
+          "7: TIC in billions through the scaled display")
+    sp = _sp.stack_system_prompt(__import__("daily_cascade.narrative",
+                                            fromlist=["x"]))
+    check("END ON THE SYSTEM" not in sp and "Only the Ahead" in sp
+          and _sp.style_faults("For the system, the week held.",
+                               _bars.load_config()),
+          "8: no section closes on the system; 'For the system' is a banned phrase")
+    pos_calls = [c for c in calls if "THE SECTION: Positioning & flows." in c]
+    check(pos_calls and "ONE PARAGRAPH PER SOURCE" in pos_calls[0].upper().replace(
+          "ONE PARAGRAPH PER SOURCE", "ONE PARAGRAPH PER SOURCE")
+          or (pos_calls and "one paragraph per source" in pos_calls[0]),
+          "9: Positioning's prose is asked for one paragraph per source")
+    sl = _sp._slice(sec["misfit"], ed)
+    check("not_tracked" not in sl and "_id" not in json.dumps(sl),
+          "10: a prose slice carries no not-yet-tracked list and no id")
+    html = out["html_archive"]
+    check(">Detail<" not in html and sec["misfit"].get("table", {}).get("rows") is not None
+          and any(i["key"] == "ahead:calls" for i in sec["ahead"]["items"])
+          and any(i["key"].startswith("mech:") for i in sec["mechanics"]["items"]),
+          "11: the Detail tail is gone; its blocks live in their sections")
+    with _o.ObservationStore(str(Path(td) / "nav.db")) as stn:
+        stn.write_many(rows5[:-2] + [dict(r, instrument="DU0000") for r in rows5[-2:]])
+        bln = benchmark.book_line(AS_OF, stn)
+    check(bln["book_pct"] == 1.2,
+          "12: the book's return reads the NAV keyed to the account (the 4 Oct miss)")
+    with _o.ObservationStore(str(Path(td) / "rel.db")) as str_:
+        str_.write_many([{"registry_key": "fred.nfp", "instrument": None,
+                          "observed_at": d, "available_at": f"{d}T13:00:00+00:00",
+                          "value": v, "source": "synthetic"}
+                         for d, v in (("2026-08-01", 159000.0), ("2026-09-01", 159150.0))])
+        from altdata import events as _ev
+        with _ev.EventStore(str(Path(td) / "rel.db")) as evs:
+            evs.conn.execute(
+                "INSERT INTO events (content_hash, type, observed_at, available_at,"
+                " ingested_at, source, title, payload) VALUES (?,?,?,?,?,?,?,?)",
+                ("rel-1", "release", "2026-10-02T12:30:00+00:00",
+                 "2026-10-02T12:30:00+00:00", "2026-10-02T12:31:00+00:00",
+                 "fred_releases", "Employment Situation -- release date",
+                 json.dumps({"series": ["nfp"]})))
+            evs.conn.commit()
+        rel = ws.tier1_releases(str_, AS_OF, ws.week_ago(AS_OF))
+    check(rel and rel[0]["release"] == "Employment Situation"
+          and rel[0]["prior"] == 159000.0 and rel[0]["actual"] == 159150.0,
+          f"13: Plumbing lists the week's tier-1 release with actual, prior, as-of "
+          f"({rel[:1]})")
+    from altdata import config as _cfg
+    ids_be = {s.key: s.fred_id for s in _cfg.FRED_PULL_SERIES if "breakeven" in s.key}
+    pr_items = [i["text"] for i in sec["priced"]["items"] if "breakeven" in i["text"]]
+    check(len(set(ids_be.values())) == len(ids_be) == 3
+          and any("on the week (2026-09-25 to 2026-10-02)" in t for t in pr_items),
+          f"14: the breakevens are three distinct series, and the week's change "
+          f"prints its real window ({pr_items[:1]})")
 
     # --- H. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nH. BUDGET\n{LINE}")

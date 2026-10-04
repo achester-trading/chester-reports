@@ -111,6 +111,7 @@ def forms(mk: dict, day: dt.date, cfg: dict, as_of: Optional[str] = None) -> dic
            "watch_id": mk.get("watch_id"), "event_id": mk.get("event_id"),
            "event_title": mk.get("event_title"), "question": mk.get("question"),
            "outcome": mk.get("outcome"), "decision_date": mk.get("decision_date"),
+           "close_at": mk.get("close_at"),
            "probability": p, "volume": mk.get("volume"),
            "as_of": str(last["available_at"])[:10] if last else None}
     for n in (cfg.get("rules") or {}).get("change_sessions") or [1, 5, 20]:
@@ -140,9 +141,10 @@ def shocks(rows: list[dict], cfg: dict) -> list[dict]:
                     and abs(y["change_1s_points"]) >= share * abs(c) for y in peers)
         deep = (x.get("volume") or 0) >= vmin
         out.append({**{k: x.get(k) for k in ("instrument", "venue", "watch_id",
-                                             "event_id", "question", "outcome",
-                                             "probability", "change_1s_points",
-                                             "volume")},
+                                             "event_id", "event_title", "question",
+                                             "outcome", "probability",
+                                             "change_1s_points", "volume",
+                                             "decision_date", "close_at")},
                     "state": "CONFIRMED" if (cross or deep) else "UNCONFIRMED",
                     "confirmed_by": ("the other venue" if cross else
                                      "volume" if deep else None)})

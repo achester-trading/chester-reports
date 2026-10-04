@@ -462,8 +462,11 @@ def main() -> int:
     check(sec["priced"]["depth"] == "deep" and "pts" in (sec["priced"]["depth_reason"] or ""),
           f"a 12-point move takes What's priced deep ({sec['priced']['depth_reason']})")
     rt = [i["text"] for i in sec["read"]["items"]]
-    check(any(t.startswith("Attention shock (CONFIRMED)") for t in rt),
-          "The read carries the attention shock")
+    check(any(t.startswith("Kalshi's odds of a hold at the October meeting moved")
+              and "(confirmed by the other venue or by volume)" in t for t in rt)
+          and not any("Will the Federal Reserve" in t for t in rt),
+          f"The read carries the attention shock as one template sentence, not the "
+          f"market's raw title ({next((t for t in rt), '')[:100]})")
     mt = [i["text"] for i in sec["misfit"]["items"]]
     check(any("fed funds futures" in t and "points apart" in t for t in mt),
           f"What doesn't fit carries the venue-vs-futures disagreement "
