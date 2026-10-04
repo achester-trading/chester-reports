@@ -358,6 +358,10 @@ SECTION_NOTES = {
         "order -- futures positioning (CFTC), retail (RTAT10 sentiment and "
         "WallStreetBets mentions), short interest (FINRA), TIC flows. A source "
         "with no figure in the data gets no paragraph and no mention."),
+    "book": (
+        "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
+        "comparison between them is written as an EXCESS ('an excess of +0.8 "
+        "points over cash'), never 'the book against cash' with a figure."),
     "ahead": (
         "\n\nTHIS SECTION ALONE LOOKS FORWARD: the calendar, the base rates and "
         "the graded calls it is given, stated as what is scheduled and what the "
@@ -460,8 +464,14 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     # THE READ, over the other sections' claims and items.
     read = next(s for s in ed["sections"] if s["id"] == "read")
     rp = {"session": ed["session"],
+          # THE SECTIONS' DATA TOO (T2.1): The read draws on every section, and
+          # a figure it repeats -- a percentile ordinal, a z -- must be one the
+          # audit can find; ids and not-yet-tracked lists are scrubbed as for
+          # any section.
           "sections": [{"section": s["title"], "claim": s.get("claim"),
-                        "items": [i["text"] for i in s["items"]]}
+                        "items": [i["text"] for i in s["items"]],
+                        "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
+                                        if k != "intraday"})}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
     res = run("read", rp, stack_system_prompt(base) + READ_RULES.format(
