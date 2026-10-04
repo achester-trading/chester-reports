@@ -95,6 +95,11 @@ rules:
   # "(legs sum to X%)" beside them: separate contracts' prices need not sum to
   # one, and the reader should see when they do not (ruled 2 Oct 2026).
   legs_sum_band: [0.95, 1.05]
+  # T2 ruling 2 (3 Oct 2026): a sentence with hike, cut or hold may cite only the
+  # fomc_decision item or the fed-funds path. A policy word in a sentence naming
+  # any of these is withheld -- a CPI market is odds on an inflation print.
+  non_policy_terms: ["CPI", "inflation print", "recession", "House", "Senate",
+                     "shutdown"]
 
 # Venue market -> our scenario weight, for the 20-point disagreement. Empty until
 # a scenario is declared against a venue market by hand: a mapping no one wrote

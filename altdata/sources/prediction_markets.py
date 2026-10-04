@@ -359,7 +359,22 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
     st = store or observations.ObservationStore()
     out: dict[str, Any] = {"markets": 0, "rows": 0, "errors": {}, "dry_run": dry_run}
     try:
-        end = session.session_date_obj()
+        # NEVER ZERO SILENTLY (T2 ruling 5): with no market stored there is
+        # nothing to backfill, so the watch list is pulled first; if that stores
+        # nothing either, the run says so and writes nothing.
+        if not st.instruments("pm.market"):
+            if dry_run:
+                out["error"] = ("no market is stored, and a dry run does not pull "
+                                "-- run the pull (or backfill without --dry-run)")
+                return out
+            out["pulled_first"] = pull(store=st, get=get)
+            if not st.instruments("pm.market"):
+                out["error"] = "the pull stored no market, so there is nothing to backfill"
+                return out
+        # THE LAST COMPLETED DAY, never today: a day still trading has no daily
+        # close, and a backfilled row for it would be stamped available at an
+        # instant after the one it was written at.
+        end = session.session_date_obj() - dt.timedelta(days=1)
         obs = []
         for inst in st.instruments("pm.market"):
             r = st.latest_as_of("pm.market", instrument=inst)
@@ -372,6 +387,8 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
                 continue
             out["markets"] += 1
             for h in hist:
+                if h["day"] > end:
+                    continue
                 when = f"{h['day'].isoformat()}T21:00:00+00:00"
                 obs += to_observations([{"venue": meta["venue"],
                                          "market_id": meta["market_id"],

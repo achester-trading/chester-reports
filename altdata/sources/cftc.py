@@ -44,7 +44,14 @@ log = logging.getLogger(__name__)
 
 SOURCE = "cftc"
 URL = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
-CONTRACTS = {"097741": "JPY", "098662": "USD_INDEX"}
+# Contract market code -> instrument. The S&P 500 consolidated, the 10-year note
+# and VIX futures were added 3 Oct 2026 (T2 ruling 4), codes read from the
+# CFTC's own Legacy Futures Only dataset that day: 13874+ "S&P 500 Consolidated
+# - CHICAGO MERCANTILE EXCHANGE", 043602 "UST 10Y NOTE - CHICAGO BOARD OF
+# TRADE", 1170E1 "VIX FUTURES - CBOE FUTURES EXCHANGE". Each pull reads a
+# contract's whole history, so a contract added here arrives complete.
+CONTRACTS = {"097741": "JPY", "098662": "USD_INDEX", "13874+": "SP500",
+             "043602": "UST10Y", "1170E1": "VIX"}
 RELEASE_ET = dt.time(15, 30)
 PAGE = 5000
 

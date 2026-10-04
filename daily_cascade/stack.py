@@ -626,14 +626,31 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),
         }
+    out = assemble(built, cfg, prior, "daily")
+    return {"report": "daily_close_stack", "session": p["session"],
+            "config_version": cfg.get("version"), "as_of": cutoff,
+            "prior_session": (prior or {}).get("session"),
+            "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
+
+
+def assemble(built: dict, cfg: dict, prior: Optional[dict],
+             cadence: str = "daily") -> list[dict]:
+    """The ten sections in order, at the cadence's depth, marked and collapsed.
+
+    One function for every cadence (T2): the daily close and the Weekly differ in
+    each section's depth and in which conditional rule may deepen it -- both read
+    from config/reporting_stack.yaml under the cadence's key -- and in nothing
+    else. The change marks and the collapse compare against the PRIOR EDITION OF
+    THE SAME CADENCE, never across cadences."""
     specs = {s["id"]: s for s in cfg.get("sections") or []}
     prior_secs = {s["id"]: s for s in (prior or {}).get("sections") or []}
+    deep_key = "deep_on" if cadence == "daily" else f"{cadence}_deep_on"
     out = []
     for sid in SECTION_ORDER:
         sp, b = specs[sid], built[sid]
-        depth = sp.get("daily") or "light"
+        depth = sp.get(cadence) or "light"
         reason = b.get("deep_reason")
-        if sp.get("deep_on") and reason:
+        if sp.get(deep_key) and reason:
             depth = "deep"
         pr = prior_secs.get(sid) or {}
         pmarks = {i["key"]: i["fingerprint"] for i in pr.get("items") or []}
@@ -643,7 +660,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                  + [b.get("table")])
         unchanged = bool(prior) and pr.get("fingerprint") == fp and sid != "read"
         out.append({"id": sid, "title": sp["title"], "depth": depth,
-                    "depth_reason": (reason if depth == "deep" and sp.get("deep_on")
+                    "depth_reason": (reason if depth == "deep" and sp.get(deep_key)
                                      else None),
                     "items": b["items"], "table": b.get("table"),
                     "charts": b.get("charts") or [], "data": b.get("data") or {},
@@ -654,10 +671,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                                         if unchanged else None),
                     "prior_claim": pr.get("claim") if unchanged else None,
                     "claim": None, "paragraphs": [], "trimmed": False})
-    return {"report": "daily_close_stack", "session": p["session"],
-            "config_version": cfg.get("version"), "as_of": cutoff,
-            "prior_session": (prior or {}).get("session"),
-            "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
+    return out
 
 
 def words(text: Optional[str]) -> int:

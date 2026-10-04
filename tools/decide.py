@@ -895,6 +895,7 @@ def cmd_set_status(args) -> int:
                 and not args.note
                 and (args.instrument or old["instrument"]) == old["instrument"]
                 and expr_ccy == old_ccy
+                and not args.abstention_reason
                 # A recorded exit IS a change: back-filling a close's fill
                 # supersedes a closed row with a closed row.
                 and all(exit_fields.get(k) == old.get(k) for k in exit_fields)):
@@ -1079,6 +1080,9 @@ def cmd_set_status(args) -> int:
                 # INC-8: resolved above -- the flag, else the old row's, else the
                 # listing's own suffix, else EMPTY. Never an invented "USD".
                 expression_currency=expr_ccy,
+                abstention_reason=(args.abstention_reason
+                                   or (old_d.get("abstention_reason")
+                                       if args.status == "declined" else None)),
                 **exit_fields,
                 becoming_active=becoming_active)
         except CurrencyMismatchError as exc:
@@ -1326,6 +1330,11 @@ def main() -> int:
     ss.add_argument("--book", default=None, choices=BOOKS,
                     help="Name the book. Carried forward if omitted; required "
                          "when a row BECOMES active and has none.")
+    ss.add_argument("--abstention-reason", default=None,
+                    choices=("attention_budget", "operator_judgment"),
+                    help="Item 4a: why a packet was not taken, on --status "
+                         "declined. attention_budget = deferred by the weekly "
+                         "budget of seven packets; graded like any abstention.")
     ss.add_argument("--expression-currency", default=None, metavar="CCY",
                     help="INC-8: correct the expression currency (3-letter ISO). "
                          "Carried forward if omitted; an empty one is taken from "

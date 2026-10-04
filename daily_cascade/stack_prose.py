@@ -48,19 +48,19 @@ UNIT_CONSTANTS = [1.0]
 RULES = """
 
 THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE SECTION of
-the daily close, in a desk's register. Every other rule above still holds -- every
+{report}, in a desk's register. Every other rule above still holds -- every
 figure from the data given, signs and percentile ordinals copied from their
 _signed and _ordinal fields, no recommendation.
 
 THE SECTION: {title}. Its depth today is {depth}{why}.
 
 SHAPE. Your FIRST SENTENCE is the section's claim line: the one thing this section
-says about the session, with its figure. {body} At most {words} words in all.
+says about the {period}, with its figure. {body} At most {words} words in all.
 No headings, no bullets, no bold,
 no tables -- the section's table is printed beside your text.
 
 THE TAPE'S RULES:
-1. Frames in order: the session first, then the day, then where it sits in the week.
+1. Frames in order: {frames}
 2. A level is named by its label and value exactly as the data lists it ("the
    20-day average at 652.10"); never name a level the data does not list.
 3. A move carries its sign and size, copied from its _signed form.
@@ -80,8 +80,10 @@ THE TAPE'S RULES:
    sentence, not in a parenthesis after it.
 Never write about the report itself: no "the data", "the payload", "this section".
 The word "because" is refused anywhere, whatever it joins.
-"Gamma" beside a state word means the gamma DIAL; for one symbol write its net
-GEX ("QQQ's net GEX is positive"), never "QQQ is in positive gamma".
+The market-wide reads are "dealer gamma", "the volatility regime" and "the macro
+regime" -- never the word "dial", which is the system's word, not the market's.
+For one symbol write its net GEX ("QQQ's net GEX is positive"), never "QQQ is in
+positive gamma".
 Never write the session's date or weekday: the header carries it. Any other
 date only as given (2026-10-02).
 Name each level with its own market, one at a time; never "respectively".
@@ -91,13 +93,13 @@ Never compute a count, a difference or a ratio: copy the one the data carries.
 READ_RULES = """
 
 THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. Write THE READ: the five lines
-that matter about the session, as ONE paragraph of exactly five sentences, most
+that matter about the {period}, as ONE paragraph of exactly five sentences, most
 important first, each with its figure. Draw only on the section claims and items
 given. Every other rule above still holds; no recommendation; a probability only
 as an outlook's base rate ("the base rate for ... is 79% (n=82)"), never as our
 view; no motive words; never write about the report itself.
-The word "because" is refused anywhere. "Gamma" beside a state word means the
-gamma DIAL; for one symbol write its net GEX. Never write the session's date
+The word "because" is refused anywhere. Write "dealer gamma", "the volatility
+regime", "the macro regime" -- never "dial"; for one symbol write its net GEX. Never write the session's date
 or weekday. A level is named with the market it belongs to, one at a time.
 """
 
@@ -193,6 +195,46 @@ _VIEW = re.compile(r"\b(?:we|our)\s+(?:expect|think|see|believe|view|lean|call|"
 _PCT = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d+)?)\s?(?:%|percent)")
 
 
+_POLICY = re.compile(r"\b(hike[sd]?|hiking|cut|cuts|cutting|hold|holds|holding)\b",
+                     re.I)
+
+
+def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
+    """T2 ruling 2: a sentence with a policy word (hike, cut, hold) may cite only
+    the fomc_decision item or the fed-funds path. A policy word in a sentence that
+    names another watched market -- a CPI print, a recession, an election, a
+    shutdown -- is withheld: a CPI market is odds on an inflation print, nothing
+    more."""
+    terms = ((cfg_pm or {}).get("rules") or {}).get("non_policy_terms") or \
+        ["CPI", "inflation print", "recession", "House", "Senate", "shutdown"]
+    out = []
+    for s in _sentences(text):
+        if not _POLICY.search(s):
+            continue
+        hit = next((t for t in terms
+                    if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", s, re.I)), None)
+        if hit:
+            out.append(f"a policy word ('{_POLICY.search(s).group(0)}') attached "
+                       f"to a {hit} market")
+    return out
+
+
+_BOOKZ = re.compile(r"\b(?:Book Z|the book|book's|cash|60-40|60/40)\b", re.I)
+_VS = re.compile(r"\b(?:vs\.?|versus|against|beat|beats|outperform\w*|"
+                 r"underperform\w*|trail\w*|lag\w*)\b", re.I)
+_FIG = re.compile(r"\d(?:[\d.,]*)\s?(?:%|pts|points|pp)")
+
+
+def excess_faults(text: str) -> list[str]:
+    """T2 ruling 1: a book-against-benchmark comparison with a figure must say
+    'excess' or 'relative to' -- the book's return and a benchmark's are two
+    absolutes, and a 'vs' figure without the word reads as the book's own."""
+    return [f"a vs-figure against Book Z without 'excess' or 'relative to'"
+            for s in _sentences(text)
+            if _BOOKZ.search(s) and _VS.search(s) and _FIG.search(s)
+            and not re.search(r"\bexcess\b|\brelative to\b", s, re.I)]
+
+
 def venue_percents(ed: dict) -> set:
     """Every probability a VENUE or the futures put in front of the prose, in
     whole percent -- figures the prose may quote as the market's price."""
@@ -255,9 +297,32 @@ def _slice(s: dict, ed: dict) -> dict:
             "not_tracked": s.get("not_tracked")}
 
 
+# PER CADENCE (T2): which report, its period, the frames it writes (brief 2.1
+# rule 1: each report writes the frame it owns and the one above it), its word
+# caps per depth, and its runaway guards.
+CADENCES = {
+    "daily": {"report": "the daily close", "period": "session",
+              "frames": "the session first, then the day, then where it sits in "
+                        "the week.",
+              "words_key": "depth_words", "chars_scale": 1.0, "read_chars": 1600},
+    "weekly": {"report": "the Weekly", "period": "week",
+               "frames": "the days of the week first, then the week as a whole, "
+                         "then where the week sits in the month.",
+               "words_key": "depth_words_weekly", "chars_scale": 2.5,
+               "read_chars": 2400},
+}
+
+
 def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
-          model: Optional[str] = None, outlooks: Optional[list] = None) -> dict:
+          model: Optional[str] = None, outlooks: Optional[list] = None,
+          cadence: str = "daily") -> dict:
     """Fill each section's claim and paragraphs; then The read. Never raises."""
+    cad = CADENCES[cadence]
+    try:
+        from altdata.sources import prediction_markets as _pm   # noqa: PLC0415
+        pm_cfg = _pm.load_config()
+    except Exception:                                           # noqa: BLE001
+        pm_cfg = None
     from daily_cascade import narrative as base                  # noqa: PLC0415
     from altdata import bars as bars_mod                         # noqa: PLC0415
     cfg = bars_mod.load_config()
@@ -280,6 +345,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         faults = []
         if text:
             faults = (style_faults(text, cfg)
+                      + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else []))
@@ -307,9 +373,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         sys_prompt = base.SYSTEM_PROMPT + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            words=(cfg.get("depth_words") or {}).get(s["depth"], 35))
+            report=cad["report"], period=cad["period"], frames=cad["frames"],
+            words=(cfg.get(cad["words_key"]) or cfg.get("depth_words") or {})
+            .get(s["depth"], 35))
         res = run(s["id"], _slice(s, ed), sys_prompt,
-                  MAX_CHARS.get(s["depth"], 900))
+                  int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
         results[s["id"]] = res
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])
@@ -327,7 +395,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                         "items": [i["text"] for i in s["items"]]}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
-    res = run("read", rp, base.SYSTEM_PROMPT + READ_RULES, 1600)
+    res = run("read", rp, base.SYSTEM_PROMPT + READ_RULES.format(
+        period=cad["period"]), cad["read_chars"])
     results["read"] = res
     if res.get("published"):
         sents = _sentences(res["text"])

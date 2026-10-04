@@ -130,17 +130,19 @@ outlooks:
     text: "SPY closing on the same side of its 20-day average at the next session"
 
 # The section order and the depth each takes on the daily close (brief 1).
+# The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
+# major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read",            daily: deep}
-  - {id: tape,        title: "The tape",            daily: deep}
-  - {id: mechanics,   title: "Mechanics",           daily: deep}
-  - {id: misfit,      title: "What doesn't fit",    daily: deep}
-  - {id: plumbing,    title: "Plumbing & rates",    daily: light, deep_on: plumbing}
-  - {id: positioning, title: "Positioning & flows", daily: light}
-  - {id: priced,      title: "What's priced",       daily: light, deep_on: priced}
-  - {id: narratives,  title: "Narratives",          daily: line}
-  - {id: ahead,       title: "Ahead",               daily: deep}
-  - {id: book,        title: "The book",            daily: short}
+  - {id: read,        title: "The read",            daily: deep,  weekly: deep}
+  - {id: tape,        title: "The tape",            daily: deep,  weekly: deep}
+  - {id: mechanics,   title: "Mechanics",           daily: deep,  weekly: medium}
+  - {id: misfit,      title: "What doesn't fit",    daily: deep,  weekly: deep}
+  - {id: plumbing,    title: "Plumbing & rates",    daily: light, deep_on: plumbing, weekly: medium}
+  - {id: positioning, title: "Positioning & flows", daily: light, weekly: deep}
+  - {id: priced,      title: "What's priced",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced}
+  - {id: narratives,  title: "Narratives",          daily: line,  weekly: medium}
+  - {id: ahead,       title: "Ahead",               daily: deep,  weekly: deep}
+  - {id: book,        title: "The book",            daily: short, weekly: medium}
 
 # Paragraphs a section's commentary may run to, by depth. (Session-set, T1.)
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
@@ -148,6 +150,9 @@ depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0
 # fit the daily budget without the cut doing the editing. (Session-set, T1; not
 # part of item 10.)
 depth_words: {deep: 150, medium: 80, light: 35, short: 35, line: 25}
+# The Weekly's sections are longer at the same depth (20 minutes against 5);
+# session-set (T2), not part of item 10.
+depth_words_weekly: {deep: 420, medium: 220, light: 60, short: 60, line: 40}
 
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
 # number's work. A motive word is refused outright; an intensity word only when

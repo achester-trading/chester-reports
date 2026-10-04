@@ -86,6 +86,11 @@ DIRECTIONS = ("long", "short", "flat", "hedge")
 HORIZONS = ("intraday", "swing", "positional", "strategic", "structural")
 STATUSES = ("draft", "active", "closed", "declined")
 OPERATOR_ACTIONS = ("TAKE", "DECLINE", "MODIFY")
+# WHY A PACKET WAS NOT TAKEN, on a declined row (Doctrine monthly 2 Oct 2026,
+# item 4a): `attention_budget` is a packet the weekly budget of seven deferred --
+# graded like any other abstention, so the budget's cost is measured.
+# `operator_judgment` is a decline on the merits. NULL on rows before the field.
+ABSTENTION_REASONS = ("attention_budget", "operator_judgment")
 THESIS_STATES = ("INTACT", "STRAINED", "INVALIDATED")
 # Part 31.3(c): a hedged and an unhedged instrument on the same market are two
 # different instruments, never interchangeable. Mandatory for any non-USD
@@ -549,7 +554,9 @@ class Register:
                     # INC-6 follow-up: a close's fill, structured (exit_fx_to_usd
                     # is USD per one unit of exit_currency). NULL = not recorded.
                     "exit_price REAL", "exit_time TEXT", "exit_currency TEXT",
-                    "exit_fx_to_usd REAL"):
+                    "exit_fx_to_usd REAL",
+                    # Item 4a (2 Oct 2026): why a declined packet was not taken.
+                    "abstention_reason TEXT"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -664,6 +671,7 @@ class Register:
                exit_time: Optional[str] = None,
                exit_currency: Optional[str] = None,
                exit_fx_to_usd: Optional[float] = None,
+               abstention_reason: Optional[str] = None,
                becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -779,6 +787,13 @@ class Register:
                              f"exit_currency); got {exit_fx_to_usd!r}")
         if exit_currency == "USD" and exit_fx_to_usd not in (None, 1, 1.0):
             raise ValueError("exit_fx_to_usd for a USD exit is 1")
+        if abstention_reason is not None:
+            if abstention_reason not in ABSTENTION_REASONS:
+                raise ValueError(f"abstention_reason must be one of "
+                                 f"{ABSTENTION_REASONS}; got {abstention_reason!r}")
+            if status != "declined":
+                raise ValueError("an abstention_reason belongs on a DECLINED row "
+                                 "-- it says why a packet was not taken")
 
         if book is not None and book not in BOOKS:
             raise ValueError(f"book must be one of {BOOKS}; got {book!r}")
@@ -871,9 +886,10 @@ class Register:
             " gate_outcome, gate_detail, gate_override,"
             " setup_id, engine_id, horizon_alignment, review_changed,"
             " falsifiers, counter_thesis, expression_currency,"
-            " exit_price, exit_time, exit_currency, exit_fx_to_usd)"
+            " exit_price, exit_time, exit_currency, exit_fx_to_usd,"
+            " abstention_reason)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -886,7 +902,7 @@ class Register:
              setup_id, engine_id, horizon_alignment, review_changed,
              (json.dumps(falsifiers) if falsifiers is not None else None),
              counter_thesis, expr, exit_price, exit_time, exit_currency,
-             exit_fx_to_usd))
+             exit_fx_to_usd, abstention_reason))
         self.conn.commit()
         return did
 
@@ -941,6 +957,15 @@ class Register:
         allowed because superseded_by is still NULL when it runs, and the
         freeze trigger closes the row immediately afterwards.
         """
+        # THE STORED EXIT CARRIES FORWARD (T2 ruling 5, 3 Oct 2026) onto a row
+        # that stays closed, unless the caller overrides a field: a supersede that
+        # corrects one field of a closed decision must not drop its fill. A row
+        # reopened is not given the old exit.
+        if new_decision.get("status") == "closed":
+            old = self.get(old_id) or {}
+            for k in ("exit_price", "exit_time", "exit_currency", "exit_fx_to_usd"):
+                if new_decision.get(k) is None and old.get(k) is not None:
+                    new_decision[k] = old[k]
         new_id = self.record(**new_decision)
         self.conn.execute("UPDATE decisions SET superseded_by = ? WHERE id = ?",
                           (new_id, old_id))
