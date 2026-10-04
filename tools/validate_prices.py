@@ -192,7 +192,8 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 42, f"42 symbols declared (got {len(syms)}) -- 31, plus "
+    check(len(syms) == 47, f"47 symbols declared (got {len(syms)}) -- the tape's "
+                           f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, and AGG for Book Z's "
           f"60/40 (P5-B)")
     check("^VIX" in syms and "^VIX3M" in syms,
@@ -413,11 +414,32 @@ def group_h() -> None:
           "and Friday 18 September is")
 
 
+def group_ohlc() -> None:
+    print(f"\n{LINE}\nI. DAILY OHLC FOR THE TAPE SET (T2.1)\n{LINE}")
+    rows = [{"Date": "2026-10-01", "Open": 760.0, "High": 766.0, "Low": 758.5,
+             "Close": 764.0, "Dividends": 0.0},
+            {"Date": "2026-10-02", "Open": 764.5, "High": 772.6, "Low": 763.0,
+             "Close": 769.6, "Dividends": 0.0}]
+    parsed = yf_src.parse_rows(rows)
+    check(parsed["opens"][-1] == ("2026-10-02", 764.5)
+          and parsed["highs"][-1][1] == 772.6 and parsed["lows"][-1][1] == 763.0,
+          "the parser reads open, high and low beside the close")
+    spy = dict(yf_src.ohlc_series("SPY", parsed, ["2026-10-02"]))
+    check(spy.get("_high") == [("2026-10-02", 772.6)] and len(spy) == 3,
+          "a tape symbol stores _open, _high, _low -- only on days whose close "
+          "was kept")
+    check(yf_src.ohlc_series("XLK", parsed, ["2026-10-02"]) == [],
+          "a symbol outside the tape set stores its close alone")
+    check({"^TNX", "^TYX", "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"} <= set(yf_src.SYMBOLS)
+          and yf_src.OHLC_SYMBOLS <= set(yf_src.SYMBOLS),
+          "the tape's own instruments are in the price basket")
+
+
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_d_backfill,
               group_e, group_f,
-              group_g, group_h):
+              group_g, group_h, group_ohlc):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

@@ -140,6 +140,15 @@ SYMBOLS: dict[str, str] = {
     "CNH=X": "mkt_usdcnh",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
+    # THE TAPE SET'S OWN INSTRUMENTS (T2.1, 4 Oct 2026): the 10- and 30-year
+    # yield indices (quoted in percent), the dollar index, and the gold and WTI
+    # front futures -- so the tape's daily frames read the instruments the tape
+    # names, not proxies.
+    "^TNX": "mkt_tnx",
+    "^TYX": "mkt_tyx",
+    "DX-Y.NYB": "mkt_dxy",
+    "GC=F": "mkt_gold_front",
+    "CL=F": "mkt_wti_front",
     # THE VOLATILITY INDICES, SAME DAY. FRED's VIXCLS arrives the NEXT morning, so
     # a 16:45 object computed from it is reading yesterday's volatility -- and the
     # vol dial is a statement about today by its own definition. yfinance serves
@@ -198,6 +207,26 @@ SPLIT_SUFFIX = "_split"
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNH=X"})
+
+# DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
+# series for every symbol; for these nine the open, high and low are stored beside
+# it as `yfinance.<key>_open` / `_high` / `_low`, so the tape's daily frames and
+# the Weekly's candles (W1, W2) read the store and the bars table stays intraday.
+OHLC_SYMBOLS: frozenset[str] = frozenset({"SPY", "QQQ", "IWM", "^TNX", "^TYX",
+                                          "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"})
+OHLC_SUFFIXES = ("_open", "_high", "_low")
+# symbol -> store key, for the registry's market_ohlc block.
+OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
+
+
+def ohlc_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
+    """(suffix, [(day, value)]) for a tape-set symbol, on the days its close
+    was kept; [] for any other symbol."""
+    if symbol not in OHLC_SYMBOLS:
+        return []
+    keep = set(keep_days)
+    return [(suf, [(d, v) for d, v in parsed.get(suf.strip("_") + "s") or []
+                   if d in keep]) for suf in OHLC_SUFFIXES]
 
 
 def is_session_date(day: str) -> bool:
@@ -268,6 +297,7 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     closes: list[tuple[str, float]] = []
     dividends: list[tuple[str, float]] = []
     splits: list[tuple[str, float]] = []
+    ohlc: dict[str, list] = {"opens": [], "highs": [], "lows": []}
     for r in rows:
         day = str(r.get("Date") or r.get("date") or "")[:10]
         if not day:
@@ -275,6 +305,10 @@ def parse_rows(rows: Iterable[dict]) -> dict:
         close = _f(r.get("Close"))
         if close is not None:
             closes.append((day, close))
+        for col, k in (("Open", "opens"), ("High", "highs"), ("Low", "lows")):
+            v = _f(r.get(col))
+            if v is not None:
+                ohlc[k].append((day, v))
         div = _f(r.get("Dividends"))
         if div:                                   # non-zero and not None
             dividends.append((day, div))
@@ -285,7 +319,8 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     closes.sort()
     dividends.sort()
     splits.sort()
-    return {"closes": closes, "dividends": dividends, "splits": splits}
+    return {"closes": closes, "dividends": dividends, "splits": splits,
+            **{k: sorted(v) for k, v in ohlc.items()}}
 
 
 def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
@@ -305,7 +340,7 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     rows = []
     for idx, row in df.iterrows():
         d = {"Date": idx.date().isoformat()}
-        for col in ("Close", "Dividends", "Stock Splits"):
+        for col in ("Open", "High", "Low", "Close", "Dividends", "Stock Splits"):
             if col in df.columns:
                 d[col] = row.get(col)
         rows.append(d)
@@ -350,7 +385,9 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                          "availability_kind": LIVE_AVAILABILITY_KIND}
                         for d, v in closes]
                 for suffix, events in ((DIVIDEND_SUFFIX, parsed["dividends"]),
-                                       (SPLIT_SUFFIX, parsed["splits"])):
+                                       (SPLIT_SUFFIX, parsed["splits"]),
+                                       *ohlc_series(symbol, parsed,
+                                                    [d for d, _ in closes])):
                     rows += [{"registry_key": f"yfinance.{key}{suffix}",
                               "instrument": None, "observed_at": d,
                               "available_at": now, "value": v,

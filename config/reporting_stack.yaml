@@ -26,15 +26,20 @@ status: ratified
 # whose computed exposure profile supplies flip, walls and max pain. SPY stands
 # for ES until 6b.
 tape:
-  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY}
-  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ}
-  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM}
-  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, aliases: ["10-year yield", "10-year", "ten-year"]}
-  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, aliases: ["30-year yield", "30-year", "long bond"]}
-  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, aliases: ["DXY", "dollar index", "the dollar"]}
-  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, aliases: ["gold"]}
-  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, aliases: ["WTI", "oil", "crude"]}
-  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, aliases: ["bitcoin", "BTC"]}
+#
+# `daily` is the store series the daily frames, moving averages, 52-week levels
+# and the Weekly's candles read (T2.1: the bars table holds intraday only).
+# `fallback` is read ONLY when the instrument's own series is empty, and the
+# tape then names it ("DXY (proxy: UUP)") -- never silently.
+  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy}
+  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq}
+  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm}
+  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, daily: yfinance.mkt_tnx, fallback: {daily: fred.yield_10y, label: "FRED DGS10"}, aliases: ["10-year yield", "10-year", "ten-year"]}
+  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, daily: yfinance.mkt_tyx, fallback: {daily: fred.yield_30y, label: "FRED DGS30"}, aliases: ["30-year yield", "30-year", "long bond"]}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"]}
+  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"]}
+  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"]}
+  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"]}
 
 # INTRADAY BARS (brief 2.3). Pulled by the `bars` feed in the 16:10 eod run
 # (altdata/feeds.py); the close reads the store only.
@@ -43,9 +48,8 @@ bars:
   # Fewer than this share of a session's expected 5-minute bars and the
   # intraday frame prints "bars incomplete (n=...)" and C1 is omitted.
   complete_share: 0.90
-  # Daily bars kept for the moving averages and the long frames: a first pull
-  # takes this much, later pulls the last few sessions.
-  daily_history: 2y
+  # (T2.1: the bars feed pulls the session's 5-minute bars only. Daily frames
+  # read the price feed's daily OHLC in the store.)
   # The session's FINAL counted bar not yet served: fetch again every 30 seconds
   # for up to five minutes, then store what arrived (ruled 2 Oct 2026).
   retry_seconds: 300

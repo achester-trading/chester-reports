@@ -157,7 +157,10 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
             rows = []
             for suffix, series in (("", closes),
                                    (yf_src.DIVIDEND_SUFFIX, parsed["dividends"]),
-                                   (yf_src.SPLIT_SUFFIX, parsed["splits"])):
+                                   (yf_src.SPLIT_SUFFIX, parsed["splits"]),
+                                   # T2.1: open, high and low for the tape set.
+                                   *yf_src.ohlc_series(symbol, parsed,
+                                                       [d for d, _ in closes])):
                 rows += [{"registry_key": f"{metric}{suffix}", "instrument": None,
                           "observed_at": d,
                           "available_at": reconstructed_available_at(d),

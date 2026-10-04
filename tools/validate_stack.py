@@ -105,8 +105,24 @@ def seed(db: str, *, bars_5m: int = 78, cpi_today: bool = False,
                          "open": px * 0.9995, "high": px * 1.001, "low": px * 0.999,
                          "close": px, "volume": 1000 + k,
                          "available_at": f"{SESSION}T20:30:00+00:00"})
-        bst.write_many(rows)
+        bst.write_many([r for r in rows if r["interval"] == "5m"])
+    # T2.1: daily frames read the store's daily OHLC, so the fixture's daily
+    # bars are written as each tape instrument's `daily` series and its
+    # _open / _high / _low beside it; the bars table holds the 5-minute bars only.
+    daily_obs = []
+    keys = {t["id"]: t.get("daily") for t in bars_mod.tape()}
+    for r in rows:
+        k = keys.get(r["instrument"])
+        if r["interval"] != "1d" or not k:
+            continue
+        for suf, f in (("", "close"), ("_open", "open"), ("_high", "high"),
+                       ("_low", "low")):
+            daily_obs.append({"registry_key": k + suf, "instrument": None,
+                              "observed_at": r["observed_at"],
+                              "available_at": r["available_at"], "value": r[f],
+                              "source": "synthetic"})
     with observations.ObservationStore(db) as st:
+        st.write_many(daily_obs)
         prev = days[-2].isoformat()
         obs = []
         for key, a, b in (("fred.yield_2y", 3.90, 3.92),

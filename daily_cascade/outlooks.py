@@ -44,8 +44,11 @@ def _weekday_sessions(day: dt.date) -> list[dt.date]:
 
 
 def _closes(store, symbol_id: str, last_day: str, as_of=None) -> list[tuple[str, float]]:
-    return [(str(r["observed_at"])[:10], r["close"])
-            for r in bars_mod.daily(store, symbol_id, last_day, as_of)]
+    # T2.1: the store's daily closes (the bars table is intraday only).
+    from altdata import levels, observations                   # noqa: PLC0415
+    with observations.ObservationStore(str(store.path)) as db:
+        rows, _ = levels.daily_bars(levels.tape_spec(symbol_id), last_day, as_of, db)
+    return [(r["observed_at"], r["close"]) for r in rows]
 
 
 def _clamp(p: float) -> float:

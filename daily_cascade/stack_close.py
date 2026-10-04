@@ -156,7 +156,10 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             charts["C1"] = charts_mod.c1(book, spy_intra["bars"], spy_intra["complete"],
                                          spy_intra["reason"], f"{base_name}_c1", out_dir)
         if "C2" in plan:
-            charts["C2"] = charts_mod.c2(book, bars_mod.daily(bst, "spy", sess),
+            with observations.ObservationStore(db_path) as _db:
+                spy_daily = levels_mod.daily_bars(levels_mod.tape_spec("spy"), sess,
+                                                  None, _db)[0]
+            charts["C2"] = charts_mod.c2(book, spy_daily,
                                          f"{base_name}_c2", out_dir)
         with observations.ObservationStore(db_path) as st:
             if "C3" in plan:

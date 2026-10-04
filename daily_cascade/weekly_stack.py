@@ -693,7 +693,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
         except Exception:                                       # noqa: BLE001
             exposure = []
         book = levels_mod.compute(ending, exposure, store=bst)
-        daily = bars_mod.daily(bst, "spy", ending)
+        with observations.ObservationStore(db_path) as _db:
+            daily, _ = levels_mod.daily_bars(levels_mod.tape_spec("spy"), ending,
+                                             None, _db)
     prior = load_prior(p.get("previous_week_ending") or "", archive_dir)
     ed, extras = build(p, book, prior, db_path, log_path)
     if narrative:
