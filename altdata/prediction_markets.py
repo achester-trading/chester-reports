@@ -227,12 +227,26 @@ def disagreements(rows: list[dict], fed_path: Optional[dict], cfg: dict,
                 if not _near(day, m["meeting"]):
                     continue
                 for venue, v in by_venue.items():
+                    # LEGS NORMALISED TO 100% (T2.1 ruling): separate contracts'
+                    # last prices need not sum to one; the rule compares the
+                    # venue's odds as a distribution. The printed figures stay
+                    # as quoted, with the sum noted beside them.
+                    # Only a BOOK can be normalised: the hold leg and at least one
+                    # move leg quoted. A lone leg (a venue listing only "25 bps
+                    # increase") is compared as quoted -- scaling 5% of a one-leg
+                    # book to 100% would invent a distribution.
+                    tot = v["hike"] + v["hold"] + v["cut"]
+                    is_book = v["hold"] > 0 and (v["hike"] > 0 or v["cut"] > 0)
+                    norm = {k: (v[k] / tot if is_book and tot > 0 else v[k])
+                            for k in v}
                     for side in ("hike", "cut"):
-                        gap = derived.probability_points(v[side], implied[side])
+                        gap = derived.probability_points(norm[side], implied[side])
                         if gap is not None and abs(gap) >= th_ff:
                             out["fed_funds"].append({
                                 "meeting": m["meeting"], "venue": venue, "side": side,
-                                "venue_probability": round(v[side], 3),
+                                "venue_probability": round(norm[side], 3),
+                                "venue_quoted": round(v[side], 3),
+                                "legs_sum": round(tot, 3),
                                 "fed_funds_implied": round(implied[side], 3),
                                 "gap_points": gap, "threshold_points": th_ff})
     smap = cfg.get("scenario_map") or {}

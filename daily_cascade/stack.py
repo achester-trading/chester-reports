@@ -210,9 +210,13 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
     items = []
     dis = (pmb or {}).get("disagreements") or {}
     for d in dis.get("fed_funds") or []:
+        legs = d.get("legs_sum")
+        norm_note = (f" (legs normalised from {round(legs * 100):.0f}%)"
+                     if legs and abs(legs - 1.0) > 0.005 else "")
         items.append(item(f"misfit:pm_ff:{d['meeting']}:{d['venue']}:{d['side']}",
                           f"{d['venue'].title()} prices a {d['side']} at the "
                           f"{d['meeting']} meeting at {round(d['venue_probability'] * 100):.0f}%"
+                          f"{norm_note}"
                           f" against {round(d['fed_funds_implied'] * 100):.0f}% from fed "
                           f"funds futures: {abs(d['gap_points']):.0f} points apart "
                           f"(threshold {d['threshold_points']:g}).", 1,

@@ -421,6 +421,27 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     results: dict[str, dict] = {}
 
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
+        """One audited attempt; if the audit withholds it, ONE retry with the
+        audit's reason fed back (T2.1 ruling), then withhold as before. A fault
+        (the API, the payload guard) is not retried: the reason is not the
+        prose's to fix."""
+        first = attempt(sid, payload, system, max_chars)
+        if first.get("published") or first.get("state") in ("fault", "payload_too_large"):
+            return {**first, "attempts": 1}
+        if "past the" in str(first.get("reason") or "") and "guard" in str(
+                first.get("reason") or ""):
+            return {**first, "attempts": 1}
+        retry_sys = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
+                     "WITHHELD BY THE AUDIT: " + str(first.get("reason"))[:600]
+                     + "\nWrite it again from the same data, fixing exactly that "
+                       "and changing nothing else.")
+        second = attempt(sid, payload, retry_sys, max_chars)
+        second["attempts"] = 2
+        if not second.get("published"):
+            second["first_reason"] = first.get("reason")
+        return second
+
+    def attempt(sid: str, payload: dict, system: str, max_chars: int) -> dict:
         try:
             r = base.generate(payload, model=model, client=client,
                               system_prompt=system, max_chars=max_chars,
@@ -502,7 +523,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     else:
         read["withheld"] = res.get("reason")
     ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
-                                                 "rejected_text")}
+                                                 "rejected_text", "attempts",
+                                                 "first_reason")}
                    for k, v in results.items()}
     return ed
 

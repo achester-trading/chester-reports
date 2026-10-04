@@ -390,6 +390,32 @@ def main() -> int:
         check(item_txt.startswith("The base rate for ") and f"(n={ok_out['n']})"
               in item_txt and ok_out.get("kind") == "base_rate",
               f"and the Ahead line itself reads as a base rate ({item_txt[:70]}...)")
+    # T2.1 RULING 3: an audited section retries once with the audit's reason.
+    seq = iter(["SPY rose because investors cheered.", "SPY rose on the session."])
+    c_r: list = []
+
+    def create_seq(**k):
+        c_r.append(k["system"])
+        return Resp(next(seq) if "THE SECTION: The tape." in k["system"] else
+                    "The session left this section's picture where it was.")
+    er = stack_mod.build(p, book, ed1["outlooks"], None, db)
+    stack_prose.write(er, client=types.SimpleNamespace(
+        messages=types.SimpleNamespace(create=create_seq)), outlooks=ed1["outlooks"])
+    tr = next(s for s in er["sections"] if s["id"] == "tape")
+    tape_calls = [c for c in c_r if "THE SECTION: The tape." in c]
+    check(tr.get("claim") == "SPY rose on the session." and len(tape_calls) == 2
+          and "WITHHELD BY THE AUDIT" in tape_calls[1] and "motive" in tape_calls[1]
+          and er["prose"]["tape"]["attempts"] == 2,
+          "a withheld section retries once with the audit's reason fed back, and "
+          "publishes if the retry passes")
+    c3b: list = []
+    eb = stack_mod.build(p, book, ed1["outlooks"], None, db)
+    stack_prose.write(eb, client=client({"The tape": "SPY plunged."}, c3b),
+                      outlooks=ed1["outlooks"])
+    tb = next(s for s in eb["sections"] if s["id"] == "tape")
+    check(tb.get("claim") is None and eb["prose"]["tape"]["attempts"] == 2
+          and eb["prose"]["tape"].get("first_reason"),
+          "and withholds, as before, if the retry fails too")
     check(len([c for c in calls if "THE SECTION:" in c]) == 9
           and any("Write THE READ" in c for c in calls),
           f"one audited call per section and one for The read "
