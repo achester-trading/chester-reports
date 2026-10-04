@@ -319,6 +319,23 @@ def _scrub(v):
     return v
 
 
+def _compact(v, depth: int = 0):
+    """The Read's view of a section's data: its figures, not its tables. Scalars
+    and short lists to three levels; long lists (level lists, venue tables,
+    histories) are dropped -- the section's own prose already used them, and The
+    read's payload must stay inside the runaway guard."""
+    if isinstance(v, dict):
+        if depth >= 3:
+            return None
+        out = {k: _compact(x, depth + 1) for k, x in v.items()}
+        return {k: x for k, x in out.items() if x not in (None, {}, [])}
+    if isinstance(v, list):
+        if len(v) > 6 or depth >= 3:
+            return None
+        return [x for x in (_compact(x, depth + 1) for x in v) if x not in (None, {})]
+    return v
+
+
 def _slice(s: dict, ed: dict) -> dict:
     # NOT-YET-TRACKED ITEMS ARE FOOTNOTES ONLY (T2.1 item 10): the report prints
     # them under the section, and the prose is never given them to narrate. The
@@ -470,8 +487,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
           # any section.
           "sections": [{"section": s["title"], "claim": s.get("claim"),
                         "items": [i["text"] for i in s["items"]],
-                        "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
-                                        if k != "intraday"})}
+                        "data": _compact(_scrub({k: v for k, v in
+                                                 (s.get("data") or {}).items()
+                                                 if k != "intraday"}))}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
     res = run("read", rp, stack_system_prompt(base) + READ_RULES.format(
