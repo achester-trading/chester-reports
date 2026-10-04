@@ -279,6 +279,80 @@ def line(as_of: Optional[str] = None,
                                  if ld in marks else None) for ld in LEDGERS}}
 
 
+def _mark_on_or_before(db, ledger: str, day: str, as_of: Optional[str]) -> Optional[dict]:
+    rows = [json.loads(r["value_text"]) for r in db.as_of(KEY, as_of=as_of,
+                                                          instrument=ledger)
+            if r["value_text"] and str(r["observed_at"])[:10] <= day]
+    return rows[-1] if rows else None
+
+
+def book_line(as_of: Optional[str] = None,
+              store: Optional[observations.ObservationStore] = None) -> dict:
+    """THE BOOK AGAINST BOOK Z, as labelled absolutes and then the excess.
+    (T2 ruling 1, 3 Oct 2026.)
+
+    The book's own return is Portfolio Truth's NAV, from its first stored value
+    on or after Book Z's start to the newest knowable at `as_of`. Each benchmark's
+    return is measured over THAT SAME WINDOW -- its mark on the book's first NAV
+    date to its newest mark -- so an excess never compares two windows. The
+    excess is book minus benchmark, in percentage points. Where the book cannot be
+    measured it says so and no excess is printed: an excess against nothing is a
+    benchmark's return in disguise.
+    """
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        marks = latest(as_of, db)
+        if not marks:
+            return {"text": None, "absent_reason": "no Book Z mark is stored"}
+        start = next(iter(marks.values()))["start"]
+        navs = [r for r in db.as_of("portfolio.nav", as_of=as_of)
+                if r.get("value_num") and str(r["observed_at"])[:10] >= start]
+        out: dict = {"start": start, "benchmarks_pct": {}, "excess_pts": {}}
+        if not navs:
+            out["book_pct"] = None
+            out["book_absent_reason"] = "no Portfolio Truth NAV stored since " + start
+            first_day = start
+        else:
+            first_day = str(navs[0]["observed_at"])[:10]
+            out["book_pct"] = round(100.0 * (navs[-1]["value_num"]
+                                             / navs[0]["value_num"] - 1.0), 2)
+            out["book_through"] = str(navs[-1]["observed_at"])[:10]
+        out["window_start"] = first_day
+        through = None
+        for ld in LEDGERS:
+            m0 = _mark_on_or_before(db, ld, first_day, as_of)
+            m1 = marks.get(ld)
+            if not m0 or not m1:
+                out["benchmarks_pct"][ld] = None
+                continue
+            r = round(100.0 * (m1["value"] / m0["value"] - 1.0), 2)
+            out["benchmarks_pct"][ld] = r
+            through = max(through or m1["session"], m1["session"])
+            if out["book_pct"] is not None:
+                out["excess_pts"][ld] = round(out["book_pct"] - r, 2)
+        out["through"] = through
+
+        def pct(v):
+            return "not marked" if v is None else f"{v:+.2f}%"
+        bench = ", ".join(f"{LABEL[ld]} {pct(out['benchmarks_pct'][ld])}"
+                          for ld in LEDGERS)
+        if out["book_pct"] is None:
+            out["text"] = (f"the book: not tracked ({out['book_absent_reason']}); "
+                           f"since {first_day}: {bench}")
+        else:
+            exc = " / ".join(f"{out['excess_pts'][ld]:+.2f}" if ld in out["excess_pts"]
+                             else "n/a" for ld in LEDGERS)
+            out["text"] = (f"since {first_day}: the book {pct(out['book_pct'])} "
+                           f"(Portfolio Truth NAV); {bench}; excess vs cash / SPY / "
+                           f"60-40: {exc} pts"
+                           + (f" (marked to {through})" if through else ""))
+        return out
+    finally:
+        if own:
+            db.close()
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     p = argparse.ArgumentParser(description="Book Z: the benchmark ledgers.")

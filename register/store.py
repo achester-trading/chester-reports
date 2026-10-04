@@ -957,6 +957,15 @@ class Register:
         allowed because superseded_by is still NULL when it runs, and the
         freeze trigger closes the row immediately afterwards.
         """
+        # THE STORED EXIT CARRIES FORWARD (T2 ruling 5, 3 Oct 2026) onto a row
+        # that stays closed, unless the caller overrides a field: a supersede that
+        # corrects one field of a closed decision must not drop its fill. A row
+        # reopened is not given the old exit.
+        if new_decision.get("status") == "closed":
+            old = self.get(old_id) or {}
+            for k in ("exit_price", "exit_time", "exit_currency", "exit_fx_to_usd"):
+                if new_decision.get(k) is None and old.get(k) is not None:
+                    new_decision[k] = old[k]
         new_id = self.record(**new_decision)
         self.conn.execute("UPDATE decisions SET superseded_by = ? WHERE id = ?",
                           (new_id, old_id))

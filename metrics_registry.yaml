@@ -4544,7 +4544,8 @@ metrics:
       NOT AVAILABLE. CNH HIBOR 3m: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
 
   # -------------------------------------------------------------------------
-  # CFTC COT (ST-2; altdata/sources/cftc.py). instrument JPY | USD_INDEX; observed_at =
+  # CFTC COT (ST-2; altdata/sources/cftc.py). instrument JPY | USD_INDEX | SP500 |
+  # UST10Y | VIX (the last three from 3 Oct 2026); observed_at =
   # the report Tuesday; available_at = Friday 15:30 ET (reconstructed).
   # -------------------------------------------------------------------------
   cftc.noncomm_long:

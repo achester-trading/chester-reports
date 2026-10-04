@@ -1404,6 +1404,25 @@ def group_m(td: str) -> None:
          "--dry-run"], capture_output=True, text=True, cwd=str(REPO), env=env)
     check(r.returncode == 2 and "nothing to compare" in r.stdout,
           f"decide.py set-status says so before its dry run returns (rc {r.returncode})")
+    # T2 RULING 5: a supersede carries the stored exit forward unless overridden.
+    with Register(db) as reg:
+        hd = reg.get(new["id"]) if new.get("id") else None
+        if hd:
+            carried = reg.supersede(hd["id"], status="closed", close_reason="flatten",
+                                    expression_currency="MXN", note="carry test",
+                                    **{k: v for k, v in base.items()})
+            c = reg.get(carried)
+            check(all(c.get(k) == hd.get(k) for k in ("exit_price", "exit_time",
+                                                      "exit_currency", "exit_fx_to_usd")),
+                  "a supersede that names no exit field carries the stored exit "
+                  "forward")
+            over = reg.supersede(carried, status="closed", close_reason="flatten",
+                                 expression_currency="MXN", exit_price=2111.0,
+                                 **{k: v for k, v in base.items()})
+            o = reg.get(over)
+            check(o.get("exit_price") == 2111.0 and o.get("exit_time") ==
+                  hd.get("exit_time"),
+                  "and an override replaces only the field it names")
     src_txt = (REPO / "tools" / "decide.py").read_text(encoding="utf-8")
     check('expression_currency") or "USD"' not in src_txt,
           "and decide.py no longer falls back to an invented USD on supersede")

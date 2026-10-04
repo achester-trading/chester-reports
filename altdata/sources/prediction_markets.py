@@ -359,6 +359,18 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
     st = store or observations.ObservationStore()
     out: dict[str, Any] = {"markets": 0, "rows": 0, "errors": {}, "dry_run": dry_run}
     try:
+        # NEVER ZERO SILENTLY (T2 ruling 5): with no market stored there is
+        # nothing to backfill, so the watch list is pulled first; if that stores
+        # nothing either, the run says so and writes nothing.
+        if not st.instruments("pm.market"):
+            if dry_run:
+                out["error"] = ("no market is stored, and a dry run does not pull "
+                                "-- run the pull (or backfill without --dry-run)")
+                return out
+            out["pulled_first"] = pull(store=st, get=get)
+            if not st.instruments("pm.market"):
+                out["error"] = "the pull stored no market, so there is nothing to backfill"
+                return out
         # THE LAST COMPLETED DAY, never today: a day still trading has no daily
         # close, and a backfilled row for it would be stamped available at an
         # instant after the one it was written at.

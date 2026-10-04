@@ -369,6 +369,28 @@ def main() -> int:
                                "WHERE registry_key = 'pm.probability' AND source LIKE "
                                "'%backfill%'").fetchall()
         live_after = pm.gate_progress(st, None, cfg)["conditions"][0]["have"]
+    db3e = str(Path(td) / "bf_empty.db")
+    with observations.ObservationStore(db3e) as st:
+        dry_empty = src.backfill(days=60, store=st, get=bf_get, dry_run=True)
+
+        def both(url):
+            return bf_get(url) if ("candlesticks" in url or "prices-history" in url) \
+                else make_get()(url)
+        real_empty = src.backfill(days=60, store=st, get=both)
+    check(dry_empty.get("error") and dry_empty["rows"] == 0
+          and real_empty.get("pulled_first", {}).get("markets") == 5
+          and real_empty["rows"] > 0,
+          f"a backfill with nothing stored pulls first, never writing zero silently "
+          f"(dry run: {str(dry_empty.get('error'))[:50]}...; real: pulled "
+          f"{real_empty.get('pulled_first', {}).get('markets')} markets, "
+          f"{real_empty['rows']} rows)")
+    six = {"events": [{**kalshi_fomc(), "event_ticker": f"KXFEDDECISION-E{k}",
+                       "strike_date": f"2027-0{k}-15T18:00:00Z"} for k in range(1, 7)]}
+    item = next(w for w in cfg["watch_list"] if w["id"] == "fomc_decision")
+    kept = src._kalshi_events(item, "https://k", lambda u: six)
+    check(item.get("next_n") == 4 and len(kept) == 4
+          and [e["event_ticker"] for e in kept][-1] == "KXFEDDECISION-E4",
+          "the FOMC item resolves to the next four meetings only")
     check(bres["rows"] > 0 and rows and all(r[0].endswith(":backfill")
                                             and r[1] == "reconstructed" for r in rows),
           f"{len(rows)} backfilled rows, every one flagged: source <venue>:backfill, "

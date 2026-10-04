@@ -195,6 +195,46 @@ _VIEW = re.compile(r"\b(?:we|our)\s+(?:expect|think|see|believe|view|lean|call|"
 _PCT = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d+)?)\s?(?:%|percent)")
 
 
+_POLICY = re.compile(r"\b(hike[sd]?|hiking|cut|cuts|cutting|hold|holds|holding)\b",
+                     re.I)
+
+
+def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
+    """T2 ruling 2: a sentence with a policy word (hike, cut, hold) may cite only
+    the fomc_decision item or the fed-funds path. A policy word in a sentence that
+    names another watched market -- a CPI print, a recession, an election, a
+    shutdown -- is withheld: a CPI market is odds on an inflation print, nothing
+    more."""
+    terms = ((cfg_pm or {}).get("rules") or {}).get("non_policy_terms") or \
+        ["CPI", "inflation print", "recession", "House", "Senate", "shutdown"]
+    out = []
+    for s in _sentences(text):
+        if not _POLICY.search(s):
+            continue
+        hit = next((t for t in terms
+                    if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", s, re.I)), None)
+        if hit:
+            out.append(f"a policy word ('{_POLICY.search(s).group(0)}') attached "
+                       f"to a {hit} market")
+    return out
+
+
+_BOOKZ = re.compile(r"\b(?:Book Z|the book|book's|cash|60-40|60/40)\b", re.I)
+_VS = re.compile(r"\b(?:vs\.?|versus|against|beat|beats|outperform\w*|"
+                 r"underperform\w*|trail\w*|lag\w*)\b", re.I)
+_FIG = re.compile(r"\d(?:[\d.,]*)\s?(?:%|pts|points|pp)")
+
+
+def excess_faults(text: str) -> list[str]:
+    """T2 ruling 1: a book-against-benchmark comparison with a figure must say
+    'excess' or 'relative to' -- the book's return and a benchmark's are two
+    absolutes, and a 'vs' figure without the word reads as the book's own."""
+    return [f"a vs-figure against Book Z without 'excess' or 'relative to'"
+            for s in _sentences(text)
+            if _BOOKZ.search(s) and _VS.search(s) and _FIG.search(s)
+            and not re.search(r"\bexcess\b|\brelative to\b", s, re.I)]
+
+
 def venue_percents(ed: dict) -> set:
     """Every probability a VENUE or the futures put in front of the prose, in
     whole percent -- figures the prose may quote as the market's price."""
@@ -278,6 +318,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
           cadence: str = "daily") -> dict:
     """Fill each section's claim and paragraphs; then The read. Never raises."""
     cad = CADENCES[cadence]
+    try:
+        from altdata.sources import prediction_markets as _pm   # noqa: PLC0415
+        pm_cfg = _pm.load_config()
+    except Exception:                                           # noqa: BLE001
+        pm_cfg = None
     from daily_cascade import narrative as base                  # noqa: PLC0415
     from altdata import bars as bars_mod                         # noqa: PLC0415
     cfg = bars_mod.load_config()
@@ -300,6 +345,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         faults = []
         if text:
             faults = (style_faults(text, cfg)
+                      + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else []))

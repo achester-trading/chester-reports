@@ -84,6 +84,12 @@ def week_ago(cutoff: str) -> str:
 # ---------------------------------------------------------------------------
 # Change over the week, from the store
 # ---------------------------------------------------------------------------
+# The CFTC contracts the Weekly reads, in print order (altdata/sources/cftc.py).
+CFTC_CONTRACTS = (("SP500", "S&P 500 futures"), ("UST10Y", "10-year note futures"),
+                  ("VIX", "VIX futures"), ("USD_INDEX", "Dollar index futures"),
+                  ("JPY", "Yen futures"))
+
+
 def change_over(st, key: str, now_cut: str, then_cut: str,
                 instrument: Optional[str] = None) -> Optional[dict]:
     """{level, prior, change, unit, observed_at} between two cutoffs."""
@@ -204,10 +210,33 @@ PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
          ("acm.term_premium_10y", "10-year term premium (ACM)"))
 
 
-def plumbing_week(st, now: str, then: str) -> dict:
+# THE BARS' YIELD FOR THE WEEK'S MOVE (T2 ruling 3, 3 Oct 2026): one 10-year
+# change per edition, the tape's -- Friday close to Friday close from the 5-minute
+# feed's daily bars. FRED stays the level, the percentile and the history, and
+# says its own as-of when it lags the bars.
+BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
+
+
+def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
     items, rows, data = [], [], {}
+    frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
     for k, name in PLUMB:
         x = change_over(st, k, now, then)
+        fr = frames.get(BAR_YIELDS.get(k, ""), {})
+        if k in BAR_YIELDS and fr.get("last") is not None \
+                and fr.get("wtd_change_bps") is not None:
+            fred_lvl = f"; FRED {_lvl(x)} as of {x['observed_at']}" if x else ""
+            data[name] = {"level_bars_pct": fr["last"], "week_change_bp":
+                          fr["wtd_change_bps"], "as_of": fr.get("as_of"),
+                          "fred": x}
+            items.append(item(f"plumb:{k}", f"{name} {fr['last']:.3f}%, "
+                              f"{_signed(fr['wtd_change_bps'], 'bp')} on the week "
+                              f"(Friday to Friday, as of {fr.get('as_of')}{fred_lvl}).",
+                              1 if k == "fred.yield_10y" else 2,
+                              (fr["last"], fr["wtd_change_bps"])))
+            rows.append([name, f"{fr['last']:.3f}%",
+                         _signed(fr["wtd_change_bps"], "bp"), fr.get("as_of")])
+            continue
         if not x:
             continue
         data[name] = x
@@ -243,14 +272,16 @@ def positioning_week(st, now: str, then: str) -> dict:
     items, data, nt, rows = [], {}, [], []
     two_years = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=730)).isoformat()
     cftc = {}
-    for inst, name in (("USD_INDEX", "Dollar index futures"), ("JPY", "Yen futures")):
+    missing = []
+    for inst, name in CFTC_CONTRACTS:
         x = change_over(st, "cftc.noncomm_net", now, then, inst)
         if not x:
+            missing.append(name)
             continue
         hist = [v for _, v in series(st, "cftc.noncomm_net", now, inst, two_years)]
         z = derived.z_of(hist, x["level"]) if len(hist) > 20 else None
         pct = derived.percentile_of(hist, x["level"]) if len(hist) > 20 else None
-        cftc[inst] = series(st, "cftc.noncomm_net", now, inst, two_years)
+        cftc[name] = series(st, "cftc.noncomm_net", now, inst, two_years)
         data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 2),
                                 "percentile_2y": pct}
         items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name.lower()}: "
@@ -259,8 +290,9 @@ def positioning_week(st, now: str, then: str) -> dict:
                           + (f", z {z:+.2f} over two years" if z is not None else "")
                           + ".", 2, (x["level"], x["observed_at"])))
         rows.append(["CFTC " + name, f"{x['level']:,.0f}", _change(x), x["observed_at"]])
-    nt.append("CFTC net speculative positioning in S&P 500 and 10-year futures "
-              "(the store holds the dollar index and the yen only)")
+    if missing:
+        nt.append("CFTC net speculative positioning in " + ", ".join(missing)
+                  + " (not yet stored)")
     for sym in ("SPY", "QQQ", "IWM"):
         x = change_over(st, "finra.short_interest_days_to_cover", now, then, sym)
         if x:
@@ -529,7 +561,7 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
                           f"decision(s) blocked at entry this week.", 2,
                           rb["decision_blocked_this_week"]))
     if bz:
-        items.append(item("book:z", f"Book Z: {bz}.", 2, bz))
+        items.append(item("book:z", f"Against Book Z, {bz}.", 2, bz))
     items.append(item("book:attention",
                       f"Attention: {attn['packets_approved']} of "
                       f"{attn['packets_budget']} packets approved"
@@ -603,7 +635,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         trig = trigger_counts(sessions, st, cfg)
         try:
             from altdata import benchmark                       # noqa: PLC0415
-            bz = benchmark.line(now, st).get("text")
+            bz = benchmark.book_line(now, st).get("text")
         except Exception:                                       # noqa: BLE001
             bz = None
         built = {
@@ -611,7 +643,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "tape": stack_mod.tape_section(book),
             "mechanics": mechanics_week(st, sessions, now, wis),
             "misfit": misfit_week(wis, pmb),
-            "plumbing": plumbing_week(st, now, then),
+            "plumbing": plumbing_week(st, now, then, book),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": narratives_week_section(p.get("narratives") or {}),

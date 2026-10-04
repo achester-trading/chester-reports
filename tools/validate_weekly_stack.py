@@ -308,8 +308,6 @@ def main() -> int:
                       ("pos:tic.", "TIC"), ("pos:leadership", "leadership"),
                       ("pos:style:", "style pairs")):
         check(any(k.startswith(pre) for k in keys), f"{what} is in the section")
-    check(any("S&P 500 and 10-year" in n for n in sec["positioning"]["not_tracked"]),
-          "S&P 500 and 10-year CFTC positioning print as not yet tracked")
 
     # --- F. GRADED CALLS -----------------------------------------------------------
     print(f"\n{LINE}\nF. THE GRADED-CALLS TABLE\n{LINE}")
@@ -378,6 +376,59 @@ def main() -> int:
     rw = ws.read_week({"markets": legs})
     check(len(rw["items"]) == 1 and "-27.5 pts" in rw["items"][0]["text"],
           "The read carries one line per venue event: its largest five-session move")
+    # --- T2 RULINGS (3 Oct 2026) -------------------------------------------------
+    from altdata import benchmark, observations as _o
+    db5 = str(Path(td) / "bookz.db")
+    with _o.ObservationStore(db5) as st5:
+        rows5 = []
+        for ld, v0, v1 in (("cash", 100.0, 100.4), ("spy", 100.0, 101.0),
+                           ("sixty_forty", 100.0, 99.5)):
+            for day, v in (("2026-09-01", 100.0), ("2026-09-05", v0), (ENDING, v1)):
+                rows5.append({"registry_key": benchmark.KEY, "instrument": ld,
+                              "observed_at": day,
+                              "available_at": f"{day}T21:00:00+00:00",
+                              "value": json.dumps({"value": v, "session": day,
+                                                   "start": "2026-09-01"}),
+                              "source": "derived_state"})
+        for day, nav in (("2026-09-05", 1000.0), (ENDING, 1012.0)):
+            rows5.append({"registry_key": "portfolio.nav", "instrument": None,
+                          "observed_at": f"{day}T20:00:00+00:00",
+                          "available_at": f"{day}T20:00:00+00:00", "value": nav,
+                          "source": "ibkr_paper"})
+        st5.write_many(rows5)
+        bl = benchmark.book_line(AS_OF, st5)
+    check(bl["book_pct"] == 1.2 and bl["benchmarks_pct"] == {"cash": 0.4, "spy": 1.0,
+                                                             "sixty_forty": -0.5}
+          and bl["excess_pts"] == {"cash": 0.8, "spy": 0.2, "sixty_forty": 1.7}
+          and bl["window_start"] == "2026-09-05",
+          f"Book Z: the book's return and each benchmark's over the SAME window "
+          f"(from the first NAV), then the excess in points ({bl['text']})")
+    check("the book +1.20%" in bl["text"] and "excess vs cash / SPY / 60-40: "
+          "+0.80 / +0.20 / +1.70 pts" in bl["text"],
+          "printed as labelled absolutes, then the excess")
+    check(stack_prose.excess_faults("The book returned +1.2% against cash at +0.4%.")
+          and not stack_prose.excess_faults("The book's +1.2% is an excess of +0.8 pts "
+                                            "relative to cash."),
+          "the prose check refuses a vs-figure without 'excess' or 'relative to'")
+    check(stack_prose.policy_word_faults("Kalshi's CPI market moved toward a hike.")
+          and not stack_prose.policy_word_faults("Kalshi prices a hike at the "
+                                                 "October meeting at 19%.")
+          and not stack_prose.policy_word_faults("The week's low holds at 515.06."),
+          "a policy word attached to a CPI market is withheld; the FOMC item and a "
+          "level that holds are not")
+    pt = {i["key"]: i["text"] for i in sec["plumbing"]["items"]}
+    y10 = pt.get("plumb:fred.yield_10y", "")
+    check("Friday to Friday" in y10 and "FRED" in y10,
+          f"Plumbing's 10-year week change is the bars' Friday to Friday, FRED "
+          f"labelled with its own as-of ({y10[:90]})")
+    nt = " ".join(sec["positioning"]["not_tracked"])
+    check("S&P 500 futures" in nt and "10-year note futures" in nt
+          and "VIX futures" in nt and "Yen futures" not in nt,
+          "CFTC contracts not yet stored print as not yet tracked, by name")
+    from altdata.sources import cftc
+    check({"13874+": "SP500", "043602": "UST10Y", "1170E1": "VIX"}.items()
+          <= cftc.CONTRACTS.items(),
+          "the CFTC feed carries S&P 500 consolidated, the 10-year note and VIX")
     ag = (REPO / "docs" / "attention-log.md").read_text(encoding="utf-8")
     check("| 2026-10-02 | sitting | 22 |" in ag and ws.read_attention_log()
           and all(e["kind"] in ("sitting", "ruling") for e in ws.read_attention_log()),
