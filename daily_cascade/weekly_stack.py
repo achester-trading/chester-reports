@@ -500,9 +500,15 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     return b
 
 
-def narratives_week_section(nb: dict, wd: Optional[dict] = None) -> dict:
+def narratives_week_section(nb: dict, wd: Optional[dict] = None,
+                            voices: Optional[dict] = None) -> dict:
+    """Section 8. Phase B (4 Oct 2026) makes it the synthesis: for each story,
+    the week's sourced items for and against and who dissented; the voices table
+    with weekly status; one consensus-against-contrarian line -- all from
+    daily_cascade/voices_block.py over stored rows. The register's own lines
+    (state, evaluations, proposals) follow."""
     stories = nb.get("narratives") or []
-    items = []
+    items = list((voices or {}).get("items") or [])
     for s in stories:
         items.append(item(f"narr:{s.get('id')}", f"{s.get('name')}: {s.get('state')}"
                           + (f", last changed {s.get('last_changed')}"
@@ -527,10 +533,24 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None) -> dict:
                           (wd.get("filings_total"), wd.get("headlines_total"))))
     if not items:
         items.append(item("narr:none", "No story is active in the register.", 1, "none"))
-    return {"items": items, "data": {"stories": [{k: s.get(k) for k in
-                                                  ("name", "state", "direction",
-                                                   "last_changed")} for s in stories]},
-            "not_tracked": ["the voices register (Phase B, week of 19 Oct)"]}
+    out = {"items": items, "data": {"stories": [{k: s.get(k) for k in
+                                                 ("name", "state", "direction",
+                                                  "last_changed")} for s in stories]}}
+    if voices is not None:
+        out["data"]["voices"] = voices.get("data")
+        out["table"] = voices.get("table")
+    else:
+        out["not_tracked"] = ["the voices (the register could not be read)"]
+    return out
+
+
+def _voices_week(ending: str, now: str, st) -> Optional[dict]:
+    try:
+        from . import voices_block                              # noqa: PLC0415
+        return voices_block.week_section(ending, now, str(st.path), item_fn=item)
+    except Exception:                                           # noqa: BLE001
+        log.warning("voices section unavailable", exc_info=True)
+        return None
 
 
 def graded_calls(cutoff: str, db_path: Optional[str] = None) -> dict:
@@ -802,7 +822,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": narratives_week_section(p.get("narratives") or {},
-                                                  p.get("weekend_developments") or {}),
+                                                  p.get("weekend_developments") or {},
+                                                  _voices_week(ending, now, st)),
             "ahead": ahead_week(p, graded_calls(now, db_path)),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz),

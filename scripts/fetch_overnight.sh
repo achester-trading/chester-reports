@@ -191,6 +191,20 @@ EV_EXIT=$?
 printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; the anchor prints its EVENTS block with a reason"
 
+# ---- the voices scan (Phase B, ruled 4 Oct 2026) ----------------------------
+#
+# ONCE A DAY, HERE AND NOWHERE ELSE: the reports read the stored voices and never
+# fetch. Declared public sources only (config/voices_sources.yaml), robots.txt
+# obeyed, one model call per NEW item under the day's cap. It also writes the
+# story headlines the retired Google News queries used to (item 7). The seed line
+# is idempotent and writes only the declared seed entries. A failure is a warning:
+# the reports print each unreachable source by name.
+log "voices: seed and scan"
+VO_OUT="$( { "$PY" -m altdata.voices seed && "$PY" -m altdata.sources.voices_scan run; } 2>&1 | tail -24)"
+VO_EXIT=$?
+printf '%s' "$VO_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $VO_EXIT -ne 0 ]] && log "WARN voices scan exited $VO_EXIT -- continuing; the reports print unreachable sources by name"
+
 log "surprise: compute"
 SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?

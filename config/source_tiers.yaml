@@ -82,6 +82,16 @@ tiers:
     - Fidelity Investments
     - cib.natixis.com
     - Yardeni QuickTakes
+    # Phase B (4 Oct 2026): the voices scan's desks and the Board's speaker
+    # feed, named as config/voices_sources.yaml's `outlet` fields name them.
+    - J.P. Morgan Asset Management
+    - BlackRock Investment Institute
+    - BlackRock
+    - PIMCO
+    - Nuveen
+    - Bridgewater Associates
+    - GMO
+    - Federal Reserve Board
   3:
     - TradingView
     - Seeking Alpha

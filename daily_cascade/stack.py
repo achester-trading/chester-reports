@@ -598,23 +598,38 @@ def shock_sentence(sh: dict, window: str, change: float) -> str:
             + ".")
 
 
-def narratives_section(st) -> dict:
+def narratives_section(st, session_day: Optional[str] = None,
+                       cutoff: Optional[str] = None) -> dict:
     try:
         from altdata import narratives                         # noqa: PLC0415
         with narratives.NarrativeRegister(str(st.path)) as reg:
             rows = reg.all("active")
     except Exception:                                           # noqa: BLE001
         rows = []
+    # PHASE B (4 Oct 2026): the day's most-cited story and a dissent if one was
+    # published, each sourced, from the voices the 06:45 scan stored. Fixed
+    # sentences over stored rows; every view printed is audited.
+    voices = None
+    if session_day and cutoff:
+        try:
+            from . import voices_block                          # noqa: PLC0415
+            voices = voices_block.daily_line(session_day, cutoff, str(st.path))
+        except Exception as exc:                                # noqa: BLE001
+            voices = {"lines": [f"Voices unavailable: {type(exc).__name__}."]}
+    vitems = [item(f"narr:voices:{n}", t, 1, t)
+              for n, t in enumerate((voices or {}).get("lines") or [])]
     if not rows:
         return {"items": [item("narr:none", "No story is active in the register.",
-                               1, "none")], "data": {}}
+                               1, "none")] + vitems, "data": {"voices": voices}}
     states = {}
     for r in rows:
         states.setdefault(r["state"], []).append(r["name"])
     text = "; ".join(f"{s}: {', '.join(n)}" for s, n in sorted(states.items()))
-    return {"items": [item("narr:states", f"Stories — {text}.", 1, states)],
+    return {"items": vitems + [item("narr:states", f"Stories — {text}.", 2, states)],
             "data": {"stories": [{"story": r["name"], "state": r["state"]}
-                                 for r in rows]}}
+                                 for r in rows],
+                     "voices": {k: (voices or {}).get(k) for k in
+                                ("lines", "story", "sides")}}}
 
 
 def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
@@ -720,7 +735,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),
             "priced": priced_section(st, cutoff, cfg, pmb, fed, fed_prior),
-            "narratives": narratives_section(st),
+            "narratives": narratives_section(st, p["session"], cutoff),
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),
         }

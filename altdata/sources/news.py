@@ -124,6 +124,20 @@ SEARCH = {
 }
 SEARCH_PRIMARY = "google_news"
 
+# RETIRED 4 Oct 2026 (Phase B, item 7). The story queries returned zero new items
+# for every query: the search ranks by relevance, so the first `cap_per_day` were
+# the same months-old items each morning and every one deduplicated (2 new of 156
+# on 2 Oct). And news.google.com/robots.txt disallows /rss/search for every user
+# agent, as bing.com does /news/search, so the fetch cannot be repaired under the
+# rule that the scans respect robots.txt. The job -- tiered coverage under each
+# story's declared query -- moves to the voices scan (altdata/sources/
+# voices_scan.py), which writes the same `headline` rows from declared public
+# sources. The queries stay declared in config/story_queries.yaml: they still name
+# each story's attention series.
+SEARCH_RETIRED = ("retired 4 Oct 2026: news.google.com/robots.txt disallows "
+                  "/rss/search, and relevance-ranked results deduplicated to zero "
+                  "new items a day; the voices scan writes the story headlines now")
+
 
 def load_queries() -> dict:
     import yaml
@@ -260,8 +274,14 @@ def press_events(now: Optional[str] = None) -> tuple[list[ev_mod.Event], dict]:
 
 def story_events(now: Optional[str] = None,
                  feed: Optional[str] = None) -> tuple[list[ev_mod.Event], dict]:
-    """The declared story queries, as `headline` events, capped per query."""
+    """The declared story queries, as `headline` events, capped per query.
+
+    Retired (SEARCH_RETIRED): returns nothing and says why, unless a caller names
+    a feed explicitly -- which only a probe of the old behaviour should."""
     cfg = load_queries()
+    if feed is None:
+        return [], {"state": "retired", "reason": SEARCH_RETIRED,
+                    "version": cfg.get("version")}
     cap = int(cfg.get("cap_per_day") or 12)
     which = feed or SEARCH_PRIMARY
     template = SEARCH[which]
@@ -336,7 +356,10 @@ def _main(argv: list[str]) -> int:
                   f"{r.get('kept', ''):>6}  "
                   f"{(r.get('reason') or FEEDS[name].get('why') or '')[:74]}")
         stories, srep = story_events()
-        print(f"\nstory queries via {srep['feed']}, cap {srep['cap_per_day']}/day, "
+        if srep.get("state") == "retired":
+            print(f"\nstory queries: {srep['reason']}")
+        print(f"\nstory queries via {srep.get('feed', '-')}, "
+              f"cap {srep.get('cap_per_day', '-')}/day, "
               f"{srep.get('version')}")
         for name, r in srep.items():
             if not isinstance(r, dict):
