@@ -44,6 +44,13 @@ import re
 import sqlite3
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -51,7 +58,7 @@ sys.path.insert(0, str(REPO))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-TMP = tempfile.mkdtemp(prefix="validate_voices_")
+TMP = gate_mkdtemp(prefix="validate_voices_")
 DB = str(Path(TMP) / "chester.db")
 os.environ["CHESTER_DB"] = DB
 
@@ -610,9 +617,20 @@ def main() -> int:
     check(ev_rows == [] and rep.get("state") == "retired" and "robots.txt" in
           rep.get("reason", "") and not hit,
           "the Google News story fetch is retired with its reason and makes no request")
-    sh = (REPO / "scripts" / "fetch_overnight.sh").read_text(encoding="utf-8")
-    check("altdata.sources.voices_scan run" in sh and "altdata.voices seed" in sh,
-          "the 06:45 overnight pass runs the seed and the scan")
+    # PB-1 (5 Oct 2026): the scan runs on its own 06:15 timer, not in the pass.
+    sh = (REPO / "scripts" / "run_voices_scan.sh").read_text(encoding="utf-8")
+    ov = (REPO / "scripts" / "fetch_overnight.sh").read_text(encoding="utf-8")
+    tm = (REPO / "deploy" / "systemd" / "chester-voices.timer").read_text(encoding="utf-8")
+    sv = (REPO / "deploy" / "systemd" / "chester-voices.service").read_text(encoding="utf-8")
+    dr = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
+    check("altdata.sources.voices_scan run" in sh and "altdata.voices seed" in sh
+          and "voices_scan run" not in ov
+          and "OnCalendar=Mon-Fri 06:15 America/New_York" in tm
+          and "run_voices_scan.sh" in sv and "TimeoutStartSec=20min" in sv
+          and "chester-voices.timer" not in dr
+          and vmod.load_config()["time_budget_seconds"] == 900,
+          "2: the scan has its own 06:15 timer and a fifteen-minute budget, out of "
+          "the 06:45 pass; enabling it is the operator's (not in DEPLOY_TIMERS)")
     full = vmod.load_config()
     untiered = [s["id"] for s in full["sources"]
                 if source_tiers.tier_of(f"x - {s['outlet']}") is None]
@@ -642,6 +660,115 @@ def main() -> int:
           and gtm[0]["row"]["tier"] == 2 and gtm[0]["row"]["kind"] == "buy_side",
           "its status is computed NEW, sourced to the GTM URL, 30 Sep 2026, tier 2, "
           "buy-side (an asset manager)")
+
+    # --- G. PB-1 (5 Oct 2026) --------------------------------------------------
+    print(f"\n{LINE}\nG. PB-1: THE SCAN'S FIXES\n{LINE}")
+    import unittest.mock as _mock
+    from altdata.sources import edgar as _edgar
+    with _mock.patch.object(_edgar, "contact", lambda: "ops@example.invalid"):
+        ua2 = vsn.user_agent()
+    check(ua2 == "Mozilla/5.0 (compatible; chester-reports/1.0; +mailto:ops@example.invalid)",
+          f"3: a browser-like User-Agent carrying the contact ({ua2})")
+    with _mock.patch.object(_edgar, "contact", lambda: None):
+        check(vsn.user_agent() is None, "3: no contact, no User-Agent: no anonymous fallback")
+    full = vmod.load_config()
+    off = {x["id"]: x for x in full["sources"] if x.get("enabled") is False}
+    check(set(off) == {"cnbc_market_insider", "cnbc_investing", "goldman_insights",
+                       "morgan_stanley_ideas", "nuveen_insights"}
+          and all(x.get("unreachable_reason") for x in off.values()),
+          "3: the sources the box cannot read are marked unreachable with their reason")
+    check(full["max_model_calls_per_day"] == 60
+          and all(x.get("group") in ("official", "desk", "news") for x in full["sources"]),
+          "4: the day's cap is 60 calls; every source is grouped")
+    gcfg = json.loads(json.dumps(scan_cfg(), default=str))
+    gcfg["max_model_calls_per_day"] = 2
+    gcfg["sources"] = [
+        {"id": "g_news", "name": "G News", "outlet": "CNBC", "method": "rss",
+         "url": "https://gnews.example/rss.xml", "group": "news"},
+        {"id": "g_off", "name": "G Official", "outlet": "Federal Reserve Board",
+         "method": "rss", "url": "https://goff.example/rss.xml", "group": "official"},
+        {"id": "g_down", "name": "G Declared", "outlet": "PIMCO", "method": "rss",
+         "url": "https://gdown.example/rss.xml", "group": "desk", "enabled": False,
+         "unreachable_reason": "403 from the box"},
+        {"id": "g_desk", "name": "G Desk", "outlet": "Goldman Sachs", "method": "rss",
+         "url": "https://gdesk.example/rss.xml", "group": "desk"}]
+    gp = {"https://goff.example/robots.txt": ROBOTS_OK,
+          "https://gdesk.example/robots.txt": ROBOTS_OK,
+          "https://gnews.example/robots.txt": ROBOTS_OK,
+          "https://goff.example/rss.xml": rss([
+              ("Official view", "https://goff.example/a", "Fri, 02 Oct 2026 14:00:00 GMT", "s"),
+              ("Official thin", "https://goff.example/b", "Fri, 02 Oct 2026 14:00:00 GMT", "s")]),
+          "https://goff.example/a": article("Official view", "2026-10-02"),
+          "https://goff.example/b": b"<html><title>Official thin</title><body>Short.</body></html>",
+          "https://gdesk.example/rss.xml": rss([
+              ("Desk none", "https://gdesk.example/a", "Fri, 02 Oct 2026 14:00:00 GMT", "s")]),
+          "https://gdesk.example/a": article("Desk none", "2026-10-02"),
+          "https://gnews.example/rss.xml": rss([
+              ("News late", "https://gnews.example/a", "Fri, 02 Oct 2026 14:00:00 GMT", "s")]),
+          "https://gnews.example/a": article("News late", "2026-10-02")}
+    gweb = FakeWeb(gp)
+    gclient = StubClient({"Official view": replies["Strategist says stocks have room"]})
+    gr = vsn.run(str(Path(TMP) / "pb1.db"), ua=ua, client=gclient,
+                 fetcher=vsn.Fetcher(ua, 0, opener=gweb), today=today, cfg=gcfg)
+    hosts = []
+    for u, _ in gweb.calls:
+        h = u.split("/")[2]
+        if not hosts or hosts[-1] != h:
+            hosts.append(h)
+    check([h for h in hosts if h != "gdown.example"][:3] ==
+          ["goff.example", "gdesk.example", "gnews.example"]
+          and "gdown.example" not in hosts,
+          f"4: officials first, then desks, then news; a declared-unreachable source "
+          f"is never fetched ({hosts})")
+    check(gr["sources"]["g_down"]["state"] == "unreachable"
+          and gr["sources"]["g_down"]["reason"] == "403 from the box",
+          "3: it is recorded unreachable with its reason")
+    outc = {i["title"]: i.get("outcome") for sid in ("g_off", "g_desk", "g_news")
+            for i in gr["sources"][sid]["items"]}
+    check(outc.get("Official view") == "extracted"
+          and outc.get("Official thin") == "no article text"
+          and outc.get("Desk none") == "no view found"
+          and outc.get("News late") == "cap reached",
+          f"4: each item's outcome is logged: extracted, no article text, no view "
+          f"found, cap reached ({outc})")
+    check(gclient.calls == 2, f"4: no call is spent on a page with no text "
+                              f"({gclient.calls} calls for a cap of 2)")
+    lookup = ["JPMORGAN CHASE & CO:0000000001:", "JPMORGAN CHASE & CO:0000000002:",
+              "JPMORGAN CHASE & CO:0000000003:"]
+    recent = (dt.date.today() - dt.timedelta(days=40)).isoformat()
+    old = (dt.date.today() - dt.timedelta(days=900)).isoformat()
+    subs2 = {"0000000001": {"name": "JPMORGAN CHASE & CO", "filings": {"recent": {
+                 "form": ["13F-HR"], "accessionNumber": ["x-1"],
+                 "reportDate": [recent], "filingDate": [recent]}}},
+             "0000000002": {"name": "JPMORGAN CHASE & CO", "filings": {"recent": {
+                 "form": ["13F-HR"], "accessionNumber": ["x-2"],
+                 "reportDate": [old], "filingDate": [old]}}},
+             "0000000003": {"name": "JPMORGAN CHASE & CO", "filings": {"recent": {
+                 "form": ["10-K"], "accessionNumber": ["x-3"],
+                 "reportDate": [recent], "filingDate": [recent]}}}}
+
+    def g2(url):
+        return json.dumps(subs2[url.rsplit("CIK", 1)[1].split(".")[0]]).encode()
+    db13 = str(Path(TMP) / "c13.db")
+    with vmod.VoicesStore(db13) as vs:
+        vs.write(base_row(voice="JPM desk", affiliation="J.P. Morgan Asset Management",
+                          source_url="https://f.example/jpm"))
+    vsn.pull_13f(db13, ua=ua, getter=g2, lines=iter(lookup))
+    with vmod.VoicesStore(db13) as vs:
+        ck = vs.cik_rows().get("J.P. Morgan Asset Management") or {}
+    check(ck.get("state") == "matched" and ck.get("cik") == "0000000001",
+          f"5: of same-named filers, the one with a 13F-HR in the past year is chosen "
+          f"({ck.get('state')}, {ck.get('cik')})")
+    subs2["0000000002"]["filings"]["recent"]["filingDate"] = [recent]
+    db13b = str(Path(TMP) / "c13b.db")
+    with vmod.VoicesStore(db13b) as vs:
+        vs.write(base_row(voice="JPM desk", affiliation="J.P. Morgan Asset Management",
+                          source_url="https://f.example/jpm"))
+    r13b = vsn.pull_13f(db13b, ua=ua, getter=g2, lines=iter(lookup))
+    with vmod.VoicesStore(db13b) as vs:
+        ck = vs.cik_rows().get("J.P. Morgan Asset Management") or {}
+    check(ck.get("state") == "ambiguous" and any("past year" in m for m in r13b["mismatches"]),
+          "5: still ambiguous, the match is refused and printed")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

@@ -34,6 +34,13 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -733,7 +740,7 @@ def group_h() -> None:
           "and _admit keeps a refused item WITH its reason, never printing it")
 
     # --- THE FIXTURE MONTH --------------------------------------------------------
-    td = tempfile.mkdtemp(prefix="monthly_v2_fixture_")
+    td = gate_mkdtemp(prefix="monthly_v2_fixture_")
     db = str(Path(td) / "fixture.db")
     saved = (observations.DEFAULT_DB, register_store.DEFAULT_DB,
              payload.previous_monthly)
@@ -1167,7 +1174,7 @@ def isolate_and_seed() -> str:
     import os
     import shutil
     import tempfile
-    td = tempfile.mkdtemp(prefix="validate_monthly_")
+    td = gate_mkdtemp(prefix="validate_monthly_")
     atexit.register(shutil.rmtree, td, ignore_errors=True)
     db = str(Path(td) / "monthly.db")
     os.environ["CHESTER_DB"] = db

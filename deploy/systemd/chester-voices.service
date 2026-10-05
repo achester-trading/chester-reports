@@ -1,0 +1,28 @@
+[Unit]
+Description=Voices scan (06:15 ET) -- desks', strategists' and officials' published views
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_voices_scan.sh
+
+# The scan reads the EDGAR contact (its User-Agent) and the model key from .env.
+# Optional, as for every unit: without it the scan reports not_configured and
+# the reports print each source as not read.
+EnvironmentFile=-%h/chester-reports/.env
+
+SuccessExitStatus=0
+
+# Its own limit (PB-1, 5 Oct 2026): the scan's budget is fifteen minutes
+# (config/voices_sources.yaml time_budget_seconds), plus margin for the seed and
+# the 13F lookup. It no longer shares the overnight pass's ten minutes.
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

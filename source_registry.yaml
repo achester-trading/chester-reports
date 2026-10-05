@@ -1193,16 +1193,17 @@ sources:
     epistemic_role: primary_fact
     domain: [sentiment, positioning]
     geography: [US]
-    latency: weekly, members report Wednesday
+    latency: weekly
     timestamp_reliability: medium
     timestamp_notes: >-
-      observed_at = the date the widget states; available_at = our fetch.
+      Not read.
     license: >-
-      NAAIM moved the index to a subscription model on 1 Aug 2026. Only the
-      public embeddable number widget is read; no subscription content.
-    allowed_reports: [daily_cascade]
-    implemented_by: altdata/sources/naaim.py
-    status: intermittent
+      DROPPED 5 Oct 2026 (PB-1): subscription-only since 1 Aug 2026 by NAAIM's
+      own statement, and its public widget did not answer from the box. Not
+      gathered, not printed.
+    allowed_reports: []
+    implemented_by: none
+    status: not_yet_sourced
 
   aaii:
     name: American Association of Individual Investors -- Sentiment Survey

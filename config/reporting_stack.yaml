@@ -200,3 +200,6 @@ dealer_flags:
   # VIX close (SPY's 30-day implied volatility), a declared choice: the profile
   # does not store an at-the-money IV per session.
   implied_vol_key: yfinance.mkt_vix
+  # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
+  # vol points, print side by side and mark the row "check".
+  iv_vix_check_points: 5.0

@@ -1,0 +1,17 @@
+[Unit]
+Description=Voices scan at 06:15 ET on weekdays
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 06:15 ET (PB-1, 5 Oct 2026): thirty minutes ahead of the 06:45 overnight fetch,
+# so the scan's fifteen-minute budget ends before that pass begins and neither
+# competes with the other's limit. Clear of every other timer.
+OnCalendar=Mon-Fri 06:15 America/New_York
+RandomizedDelaySec=60
+
+# A missed morning is not caught up: the scan reads what was published since its
+# last run, and the next morning's run reads it then.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -76,10 +76,18 @@ MAX_BYTES = 3_000_000
 # ---------------------------------------------------------------------------
 # Identity and politeness
 # ---------------------------------------------------------------------------
+UA_FORMAT = "Mozilla/5.0 (compatible; chester-reports/1.0; +mailto:{contact})"
+
+
 def user_agent() -> Optional[str]:
-    """The EDGAR User-Agent, with the operator's contact. None when unset."""
+    """A browser-like User-Agent carrying the project's contact string (PB-1, 5 Oct
+    2026): several desks answer a bare `chester-reports/1.0` with 403. Still
+    identifies the project and how to reach it; robots.txt is matched on the
+    `chester-reports` token. None when the contact is unset -- no anonymous
+    fallback."""
     from . import edgar  # noqa: PLC0415
-    return edgar.user_agent()
+    c = edgar.contact()
+    return UA_FORMAT.format(contact=c) if c else None
 
 
 class Fetcher:
@@ -469,8 +477,12 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
     run_id = f"voices-{now.replace(':', '').replace('-', '')[:15]}"
     ua = ua or user_agent()
     report: dict[str, Any] = {"run_id": run_id, "sources": {}, "model": None}
-    sources = [s for s in cfg.get("sources") or []
-               if not only or s["id"] in only]
+    # OFFICIALS, THEN DESKS, THEN NEWS (PB-1): the day's model calls are spent
+    # in that order, so a cap reached late costs news coverage, not a speech.
+    order = {"official": 0, "desk": 1, "news": 2}
+    sources = sorted((s for s in cfg.get("sources") or []
+                      if not only or s["id"] in only),
+                     key=lambda s: order.get(s.get("group"), 3))
     with vmod.VoicesStore(db_path) as vs:
         if not ua:
             for s in sources:
@@ -508,6 +520,13 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                    "model_calls": 0, "refused": [], "items": []}
             report["sources"][s["id"]] = rep
             tier = source_tiers.tier_of(f"x - {s['outlet']}")
+            if s.get("enabled") is False:
+                # Declared unreachable from the box (PB-1): recorded with its
+                # reason, never fetched, no workaround.
+                why = s.get("unreachable_reason") or "declared unreachable"
+                vs.record_run(run_id, s["id"], s["name"], "unreachable", why)
+                rep.update(state="unreachable", reason=why)
+                continue
             if not f.allowed(s["url"]):
                 rp = f.robots(s["url"])
                 state = "unreachable" if rp is None else "robots_disallowed"
@@ -552,6 +571,7 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                     page = f.get(fetch_url).decode("utf-8", "replace")
                 except Exception as exc:                        # noqa: BLE001
                     rep["items"].append({"url": url, "state": "fetch_failed",
+                                         "outcome": "fetch failed",
                                          "reason": str(exc)[:120]})
                     continue
                 fetched += 1
@@ -582,16 +602,26 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                     continue                  # unseen: a model run extracts it
                 if used >= cap or extracted >= int(cfg.get("max_extract_per_source") or 6):
                     item["state"] = "deferred_cap"
+                    item["outcome"] = "cap reached"
                     continue
                 text = page_text(page, int(cfg.get("max_text_chars") or 12000))
                 if c["summary"] and c["summary"] not in text:
                     text = f"{c['summary']}\n\n{text}"
+                # NO ARTICLE TEXT, NO MODEL CALL (PB-1): a page that served its
+                # shell but not its words is recorded, and the call is not spent.
+                if len(text.split()) < int(cfg.get("min_article_words") or 80):
+                    item["state"] = "no_text"
+                    item["outcome"] = "no article text"
+                    vs.mark_seen(s["id"], url, "no_text", published_at=pub,
+                                 title=title, reason="the page served no article text")
+                    continue
                 try:
                     found = extract(client, model, system, title, url, pub, text)
                 except Exception as exc:                        # noqa: BLE001
                     used += 1
                     rep["model_calls"] += 1
                     item["state"] = "extract_failed"
+                    item["outcome"] = "model fault"
                     item["reason"] = f"{type(exc).__name__}: {exc}"[:160]
                     continue
                 used += 1
@@ -637,6 +667,7 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                 rep["voices"] += n_voices
                 item["state"] = "extracted"
                 item["voices"] = n_voices
+                item["outcome"] = "extracted" if n_voices else "no view found"
                 vs.mark_seen(s["id"], url, "extracted" if n_voices else "no_voice",
                              published_at=pub, title=title)
                 # THE FOLD: each story the item bears on is one headline under
@@ -766,6 +797,20 @@ def pull_13f(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                     j = submissions(cik)
                     if j and vmod.norm_name(j.get("name")) == vmod.norm_name(exp):
                         good.append((cik, j.get("name")))
+                if len(good) > 1:
+                    # SAME NAME, SEVERAL FILERS (PB-1: "JPMORGAN CHASE & CO" is
+                    # four CIKs): the one that filed a 13F-HR in the past year.
+                    # Still more than one, or none, and the match is refused.
+                    year_ago = (dt.date.today() - dt.timedelta(days=365)).isoformat()
+                    filing = []
+                    for cik, nm in good:
+                        rec = ((submissions(cik) or {}).get("filings") or {})                             .get("recent") or {}
+                        if any(f in ("13F-HR", "13F-HR/A") and str(d) >= year_ago
+                               for f, d in zip(rec.get("form") or [],
+                                               rec.get("filingDate") or [])):
+                            filing.append((cik, nm))
+                    if len(filing) == 1:
+                        good = filing
                 if len(good) == 1:
                     vs.set_cik(a, exp, "matched", cik=good[0][0],
                                edgar_name=good[0][1])
@@ -777,7 +822,8 @@ def pull_13f(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                     vs.set_cik(a, exp, "unmatched", reason=why)
                     out["mismatches"].append(f"{a}: {why}")
                 else:
-                    why = (f"{len(good)} EDGAR filers are currently named {exp!r}: "
+                    why = (f"{len(good)} EDGAR filers are currently named {exp!r}, "
+                           f"and not exactly one filed a 13F-HR in the past year: "
                            + ", ".join(c for c, _ in good))
                     vs.set_cik(a, exp, "ambiguous", reason=why)
                     out["mismatches"].append(f"{a}: {why}")
@@ -845,6 +891,13 @@ def _main(argv: list[str]) -> int:
               + (f" {r13.get('reason')}" if r13.get("reason") else ""))
         for m in r13.get("mismatches") or []:
             print(f"13F NAME MISMATCH -- no 13F prints for it: {m}")
+    # PER-ITEM OUTCOMES IN THE LOG (PB-1): extracted / no article text / no view
+    # found / cap reached, with the title and the URL.
+    for sid, s in (r.get("sources") or {}).items():
+        for it in s.get("items") or []:
+            if it.get("outcome"):
+                print(f"  item {sid:<24}{it['outcome']:<16}"
+                      f"{str(it.get('title') or '')[:60]}  {it.get('url')}")
     for sid, s in (r.get("sources") or {}).items():
         print(f"{sid:<26}{s.get('state', ''):<18}cand={s.get('candidates', 0):<4}"
               f"new={s.get('new_items', 0):<4}extracted={s.get('extracted', 0):<3}"

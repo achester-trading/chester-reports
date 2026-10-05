@@ -46,12 +46,19 @@ import re
 import shutil
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 from pathlib import Path
 from typing import Optional
 
 # BEFORE ANY IMPORT THAT OPENS THE STORE: altdata.observations and register.store
 # both read CHESTER_DB once, at import.
-_TMP = tempfile.mkdtemp(prefix="validate_weekly_")
+_TMP = gate_mkdtemp(prefix="validate_weekly_")
 atexit.register(shutil.rmtree, _TMP, ignore_errors=True)
 os.environ["CHESTER_DB"] = str(Path(_TMP) / "empty.db")
 

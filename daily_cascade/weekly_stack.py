@@ -1063,13 +1063,13 @@ W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY")
              ("oil", "WTI (front future)"), ("y10", "10-year yield"),
              ("y30", "30-year yield"))
 # W9's gauges: (panel title, store key, instrument). A key of None is not fed yet.
+# NAAIM was dropped (PB-1, 5 Oct 2026): subscription-only since 1 Aug 2026.
 W9_GAUGES = (("SPY put/call, volume (SPY chain, own capture)",
               "chain.spy_put_call_volume", "SPY"),
              ("VIX term structure (VIX3M over VIX)", "calc.vix3m_over_vix", None),
              ("Breadth (RSP over SPY)", "calc.breadth_rsp_over_spy", None),
              ("Retail sentiment, SPY (RTAT10)", "ndl.rtat10_sentiment", "SPY"),
              ("AAII bull-bear spread", "aaii.bull_bear_spread", None),
-             ("NAAIM exposure", "naaim.exposure", None),
              ("MOVE (bond volatility)", "yfinance.mkt_move", None),
              ("VVIX (volatility of the VIX)", "yfinance.mkt_vvix", None),
              ("SKEW", "yfinance.mkt_skew", None))

@@ -32,7 +32,7 @@ updated: 2026-10-04
 
 # The model call: one per NEW item, never on an item already seen.
 model: claude-sonnet-5
-max_model_calls_per_day: 30
+max_model_calls_per_day: 60
 # Per source per run: links followed (each one a polite GET) and items extracted.
 max_fetch_per_source: 10
 max_extract_per_source: 6
@@ -44,10 +44,10 @@ lookback_days: 10
 max_text_chars: 12000
 # Seconds between requests to the same host.
 politeness_seconds: 2
-# The whole scan's wall-clock budget. It runs inside the 06:45 pass, whose unit
-# stops at 10 minutes and which the 07:00 anchor follows; past this, no new item
-# is started, and the rest wait for tomorrow unseen.
-time_budget_seconds: 240
+# The whole scan's wall-clock budget. Since PB-1 (5 Oct 2026) the scan runs on
+# its own 06:15 timer (chester-voices.service, 20-minute unit limit); past this,
+# no new item is started, and the rest wait for tomorrow unseen.
+time_budget_seconds: 900
 
 # -----------------------------------------------------------------------------
 # VOCABULARIES -- what the model may return, and what code compares.
@@ -81,6 +81,11 @@ subjects:
 # -----------------------------------------------------------------------------
 # THE SOURCES
 # -----------------------------------------------------------------------------
+# group: official | desk | news -- the scan reads in that order (PB-1), so the
+#   day's model calls go to officials first, then desks, then news coverage.
+# enabled: false with unreachable_reason -- a source the box cannot read (403,
+#   or robots.txt unreadable) is recorded "unreachable" with that reason and not
+#   fetched; no workaround is attempted.
 # method:
 #   rss       an RSS/Atom feed; each item is a candidate, dated by the feed.
 #   page      a fixed page replaced each edition (BII's weekly commentary): the
@@ -97,6 +102,7 @@ subjects:
 #   desk's own page; the model still names the person when the page does.
 sources:
   - id: fed_speeches
+    group: official
     name: "Federal Reserve Board: speeches and testimony"
     outlet: "Federal Reserve Board"
     method: rss
@@ -105,6 +111,10 @@ sources:
     note: "the Board's speaker feed: governors' speeches and testimony, one item each"
 
   - id: cnbc_market_insider
+    group: news
+    # PB-1: marked unreachable, no workaround.
+    enabled: false
+    unreachable_reason: "403 to the scan from the box (robots.txt also 403), 5 Oct 2026"
     name: "CNBC Market Insider"
     outlet: "CNBC"
     method: rss
@@ -114,6 +124,10 @@ sources:
     note: "strategist quotes in markets coverage; search.cnbc.com is disallowed by its robots.txt, www.cnbc.com/id/... feeds are allowed"
 
   - id: cnbc_investing
+    group: news
+    # PB-1: marked unreachable, no workaround.
+    enabled: false
+    unreachable_reason: "403 to the scan from the box (robots.txt also 403), 5 Oct 2026"
     name: "CNBC Investing"
     outlet: "CNBC"
     method: rss
@@ -122,6 +136,10 @@ sources:
                   "Wall Street", forecast, outlook, "price target", sees, says, warns]
 
   - id: goldman_insights
+    group: desk
+    # PB-1: marked unreachable, no workaround.
+    enabled: false
+    unreachable_reason: "the insights page answers 403 from the box (robots.txt 200), 5 Oct 2026"
     name: "Goldman Sachs Insights"
     outlet: "Goldman Sachs"
     method: listing
@@ -132,6 +150,7 @@ sources:
     note: "robots.txt disallows /insights/top-of-mind/ and /what-we-do/research/; neither is read"
 
   - id: jpm_am_market_insights
+    group: desk
     name: "J.P. Morgan Asset Management Market Insights"
     outlet: "J.P. Morgan Asset Management"
     method: listing
@@ -141,6 +160,10 @@ sources:
     default_kind: buy_side
 
   - id: morgan_stanley_ideas
+    group: desk
+    # PB-1: marked unreachable, no workaround.
+    enabled: false
+    unreachable_reason: "robots.txt and the page time out from the box, 5 Oct 2026"
     name: "Morgan Stanley Ideas"
     outlet: "Morgan Stanley"
     method: listing
@@ -150,6 +173,7 @@ sources:
     default_kind: sell_side
 
   - id: blackrock_bii
+    group: desk
     name: "BlackRock Investment Institute weekly commentary"
     outlet: "BlackRock Investment Institute"
     method: page
@@ -162,6 +186,7 @@ sources:
     default_kind: buy_side
 
   - id: pimco_insights
+    group: desk
     name: "PIMCO Insights"
     outlet: "PIMCO"
     method: listing
@@ -171,6 +196,7 @@ sources:
     default_kind: buy_side
 
   - id: troweprice_insights
+    group: desk
     name: "T. Rowe Price Insights"
     outlet: "T. Rowe Price"
     method: listing
@@ -180,6 +206,10 @@ sources:
     default_kind: buy_side
 
   - id: nuveen_insights
+    group: desk
+    # PB-1: marked unreachable, no workaround.
+    enabled: false
+    unreachable_reason: "robots.txt and the page time out from the box, 5 Oct 2026"
     name: "Nuveen Insights"
     outlet: "Nuveen"
     method: listing
@@ -189,6 +219,7 @@ sources:
     default_kind: buy_side
 
   - id: bridgewater_research
+    group: desk
     name: "Bridgewater Research & Insights"
     outlet: "Bridgewater Associates"
     method: listing
@@ -198,6 +229,7 @@ sources:
     default_kind: buy_side
 
   - id: gmo_research
+    group: desk
     name: "GMO Research Library"
     outlet: "GMO"
     method: listing
@@ -213,6 +245,7 @@ sources:
   # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
   # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.
   - id: sf_fed_speeches
+    group: official
     name: "Federal Reserve Bank of San Francisco: speeches"
     outlet: "Federal Reserve Bank of San Francisco"
     method: rss
@@ -220,6 +253,7 @@ sources:
     default_kind: official
 
   - id: dallas_fed_speeches
+    group: official
     name: "Federal Reserve Bank of Dallas: speeches"
     outlet: "Federal Reserve Bank of Dallas"
     method: rss
@@ -227,6 +261,7 @@ sources:
     default_kind: official
 
   - id: chicago_fed_speeches
+    group: official
     name: "Federal Reserve Bank of Chicago: the president's speeches"
     outlet: "Federal Reserve Bank of Chicago"
     method: listing
@@ -237,6 +272,7 @@ sources:
     default_kind: official
 
   - id: treasury_press
+    group: official
     name: "U.S. Treasury press releases"
     outlet: "U.S. Treasury"
     method: listing
@@ -251,6 +287,7 @@ sources:
     default_kind: official
 
   - id: ecb_speeches
+    group: official
     name: "European Central Bank: speeches"
     outlet: "European Central Bank"
     method: rss
@@ -261,6 +298,7 @@ sources:
     note: "the laptop's Python failed certificate verification on ecb.europa.eu on 4 Oct (curl succeeded); if the box fails the same way it prints unreachable"
 
   - id: boe_speeches
+    group: official
     name: "Bank of England: speeches"
     outlet: "Bank of England"
     method: rss
@@ -268,6 +306,7 @@ sources:
     default_kind: official
 
   - id: yahoo_finance
+    group: news
     name: "Yahoo Finance news"
     outlet: "Yahoo Finance"
     method: rss
