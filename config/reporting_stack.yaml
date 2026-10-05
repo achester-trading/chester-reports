@@ -56,9 +56,13 @@ bars:
   retry_interval_seconds: 30
 
 # THE THREE READING RULES (brief 1.3) and the budgets (1.4).
+# WORDS COUNT PROSE ONLY, every report (T2.2, ruled 4 Oct 2026): the claim lines
+# and paragraphs the model writes. Tables and the code-written lines beneath them
+# are data and are never counted or cut. The Weekly's chart cap is 10 (ruled
+# 4 Oct: W7 intraday, W8 panel, W9 gauges, W10 priced).
 budget:
   daily: {words: 1000, charts: 3}
-  weekly: {words: 3500, charts: 6}
+  weekly: {words: 3500, charts: 10}
   monthly: {words: 7000, charts: 10}
 
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
@@ -133,20 +137,21 @@ outlooks:
     rule: stays_above_20d_next_session
     text: "SPY closing on the same side of its 20-day average at the next session"
 
-# The section order and the depth each takes on the daily close (brief 1).
+# The section order and the depth each takes on the daily close (brief 1). Each
+# header prints "number · name — subtitle" (T2.2 item 1, every stacked report).
 # The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
 # major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read",            daily: deep,  weekly: deep}
-  - {id: tape,        title: "The tape",            daily: deep,  weekly: deep}
-  - {id: mechanics,   title: "Mechanics",           daily: deep,  weekly: medium}
-  - {id: misfit,      title: "What doesn't fit",    daily: deep,  weekly: deep}
-  - {id: plumbing,    title: "Plumbing & rates",    daily: light, deep_on: plumbing, weekly: medium}
-  - {id: positioning, title: "Positioning & flows", daily: light, weekly: deep}
-  - {id: priced,      title: "What's priced",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced}
-  - {id: narratives,  title: "Narratives",          daily: line,  weekly: medium}
-  - {id: ahead,       title: "Ahead",               daily: deep,  weekly: deep}
-  - {id: book,        title: "The book",            daily: short, weekly: medium}
+  - {id: read,        title: "The read", subtitle: "the week's five lines, and the week day by day",            daily: deep,  weekly: deep}
+  - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep}
+  - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium}
+  - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep}
+  - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium}
+  - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep}
+  - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced}
+  - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium}
+  - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep}
+  - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium}
 
 # Paragraphs a section's commentary may run to, by depth. (Session-set, T1.)
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
@@ -167,7 +172,31 @@ style:
                    "cheered"]
   # Closers the stack does not use (T2.1 item 8): refused in any section.
   banned_phrases: ["for the system", "what it will test next", "what it tests next",
-                   "what next week tests", "what tomorrow tests"]
+                   "what next week tests", "what tomorrow tests",
+                   # T2.2 item 2: internal phrases found in the 4 Oct edition.
+                   # "Prediction market" replaces "venue" in prose.
+                   "mapped scenario counterpart", "venue disagreement", "venue",
+                   "venues", "venue's", "bias zone", "the tracker", "scorecard entry",
+                   "legs normalised", "not_sourced", "contradiction:", "extreme:"]
   intensity_words: ["sharply", "massive", "massively", "huge", "surged",
                     "plunged", "soared", "skyrocketed", "crashed", "tanked",
                     "collapsed", "exploded", "dramatic", "dramatically"]
+
+# THE WEEKLY DEALER SCORECARD'S FLAGS (T2.2 item 18). PROPOSED for the Doctrine
+# monthly (#2); computed by code from the stored scorecard rows, never by the
+# model -- the prose may say "pinned", "held" or "amplified" only on a session
+# whose flag is set.
+dealer_flags:
+  status: proposed
+  # pinned: the close within this % of max pain.
+  pinned_pct: 0.25
+  # a wall held: the session's high (call) or low (put) within this % of the
+  # wall, and the close inside it.
+  wall_pct: 0.25
+  # amplified: the flip crossed and the actual range at least this multiple of
+  # the implied one-day range.
+  amplified_range_ratio: 1.2
+  # The implied one-day range is spot x IV x sqrt(1/252). IV is the session's
+  # VIX close (SPY's 30-day implied volatility), a declared choice: the profile
+  # does not store an at-the-money IV per session.
+  implied_vol_key: yfinance.mkt_vix

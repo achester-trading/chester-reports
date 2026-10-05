@@ -305,7 +305,7 @@ def main() -> int:
     check(set(snap) == {"2026-10-28", "2026-12-09"} and "polymarket" in snap["2026-10-28"],
           f"a venue dated the day after a decision is snapped to the meeting it "
           f"means: one meeting, one row ({sorted(snap)})")
-    check(any("no venue market is mapped" in n for n in dis["notes"]),
+    check(any("no prediction market is mapped" in n for n in dis["notes"]),
           "with no market mapped to a scenario, the 20-point rule says so")
     cfg2 = {**cfg, "scenario_map": {"k1": "Fed hikes in October"}}
     d2 = pm.disagreements(rows, path, cfg2, {"Fed hikes in October": 0.35})

@@ -121,7 +121,9 @@ EARLY_WRITERS = ("mof", "cfets")
 EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "lbma", "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
-                    "fundamentals")
+                    "fundamentals",
+                    # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
+                    "aaii")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

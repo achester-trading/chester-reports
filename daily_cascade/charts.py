@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import datetime as dt
 import io
+import math
 from pathlib import Path
 from typing import Any, Optional
 
@@ -263,16 +264,21 @@ def candle_chart(cid: str, bars: list[dict], book: dict, iid: str, types: tuple,
 def w1(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
     """Six months of daily candles with the 50- and 200-day."""
     bars = daily[-126:]
+    title = (span_title("SPY", len(bars), "sessions", str(bars[0]["observed_at"]),
+                        str(bars[-1]["observed_at"]), "six months")
+             if bars else "SPY, six months")
     return candle_chart("W1", bars, book, "spy", ("ma_50d", "ma_200d"),
-                        f"SPY, {len(bars)} sessions", f"{len(bars)} sessions",
-                        name, out_dir, min_bars=40)
+                        title, f"{len(bars)} sessions", name, out_dir, min_bars=40)
 
 
 def w2(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
     """Two years of weekly candles with the 40-week average."""
     wk = weekly_bars(daily)[-104:]
+    title = (span_title("SPY in weekly bars", len(wk), "weeks",
+                        str(wk[0]["observed_at"]), str(wk[-1]["observed_at"]),
+                        "two years") if wk else "SPY, two years")
     return candle_chart("W2", wk, book, "spy", ("ma_40w",),
-                        f"SPY, {len(wk)} weeks", f"{len(wk)} weekly bars",
+                        title, f"{len(wk)} weekly bars",
                         name, out_dir, min_bars=20, tick_every=13)
 
 
@@ -378,3 +384,341 @@ def bars_chart(cid: str, rows: list, title: str, name: str,
                 "series": [{"name": k, "return_pct": v} for k, v in rows]}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+# ---------------------------------------------------------------------------
+# THE WEEKLY'S EDITED AND NEW CHARTS (T2.2, ruled 4 Oct 2026, items 12-17).
+# Every title names the count, the plain span and the date range; every panel
+# with nothing stored says "not yet tracked" in place of a line.
+# ---------------------------------------------------------------------------
+def span_title(label: str, n: int, unit: str, first: str, last: str,
+               plain: str) -> str:
+    """'SPY, 126 sessions (six months), 2026-04-06 to 2026-10-02'."""
+    return f"{label}, {n} {unit} ({plain}), {first[:10]} to {last[:10]}"
+
+
+def _panel_grid(nrows: int, ncols: int, h: float = 2.0):
+    plt = _plt()
+    fig, axes = plt.subplots(nrows, ncols, figsize=(7.4, h * nrows + 0.7),
+                             squeeze=False)
+    for ax in axes.flat:
+        ax.tick_params(labelsize=6.5)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color="#e6ebef", linewidth=0.5)
+    return fig, axes
+
+
+def _untracked(ax, title: str, why: str = "not yet tracked") -> None:
+    ax.set_title(title, fontsize=7.5, loc="left")
+    ax.text(0.5, 0.5, why, ha="center", va="center", fontsize=8, color="#94a3b8",
+            transform=ax.transAxes)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
+def _dated_ticks(ax, dates: list, k: int = 4) -> None:
+    if not dates:
+        return
+    idx = sorted({0, len(dates) - 1} | set(range(0, len(dates), max(1, len(dates) // k))))
+    ax.set_xticks(idx)
+    ax.set_xticklabels([str(dates[i])[2:10] for i in idx])
+
+
+def zscores(pts: list) -> list:
+    """Each point's z against the whole window's mean and standard deviation."""
+    vals = [v for _, v in pts]
+    if len(vals) < 3:
+        return []
+    m = sum(vals) / len(vals)
+    sd = (sum((v - m) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
+    return [(d, (v - m) / sd) for d, v in pts] if sd else []
+
+
+def pct_band(vals: list, lo: float = 10, hi: float = 90) -> Optional[tuple]:
+    if len(vals) < 20:
+        return None
+    s = sorted(vals)
+
+    def q(p):
+        return s[min(len(s) - 1, max(0, int(round(p / 100 * (len(s) - 1)))))]
+    return q(lo), q(hi)
+
+
+def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
+             asof: str) -> dict:
+    """Item 12: 2x2 -- yields (2, 10, 30) over one year and over ten; HY OAS over
+    one year and over ten with the 5- and 20-year 10th-90th percentile bands."""
+    try:
+        end = dt.date.fromisoformat(asof[:10])
+        y1 = (end - dt.timedelta(days=365)).isoformat()
+        y10 = (end - dt.timedelta(days=3653)).isoformat()
+        fig, axes = _panel_grid(2, 2, 2.2)
+        cols = ("#2563eb", "#0d2b45", "#7c3aed")
+        drawn = {}
+        for ax, since, span in ((axes[0, 0], y1, "one year"), (axes[0, 1], y10, "ten years")):
+            pts_all = []
+            for (lab, pts), c in zip(yields.items(), cols):
+                pp = [(d, v) for d, v in pts if d >= since]
+                if pp:
+                    ax.plot(range(len(pp)), [v for _, v in pp], color=c, linewidth=1.0,
+                            label=lab)
+                    pts_all = pp if len(pp) > len(pts_all) else pts_all
+            if pts_all:
+                ax.set_title(span_title("Treasury yields (%)", len(pts_all), "days",
+                                        pts_all[0][0], pts_all[-1][0], span),
+                             fontsize=7.5, loc="left")
+                _dated_ticks(ax, [d for d, _ in pts_all])
+                ax.legend(fontsize=6, frameon=False)
+                drawn[f"yields_{span}"] = len(pts_all)
+            else:
+                _untracked(ax, f"Treasury yields, {span}")
+        for ax, since, span in ((axes[1, 0], y1, "one year"), (axes[1, 1], y10, "ten years")):
+            pp = [(d, v) for d, v in hy if d >= since]
+            if len(pp) < 5:
+                _untracked(ax, f"High-yield OAS, {span}")
+                continue
+            ax.plot(range(len(pp)), [v for _, v in pp], color="#b3261e", linewidth=1.0)
+            for yrs, alpha in ((5, 0.18), (20, 0.08)):
+                start = (end - dt.timedelta(days=int(365.25 * yrs))).isoformat()
+                band = pct_band([v for d, v in hy if d >= start])
+                if band:
+                    ax.axhspan(band[0], band[1], color="#d97706", alpha=alpha,
+                               label=f"{yrs}-year 10th-90th percentile")
+            ax.set_title(span_title("High-yield OAS (%)", len(pp), "days", pp[0][0],
+                                    pp[-1][0], span), fontsize=7.5, loc="left")
+            _dated_ticks(ax, [d for d, _ in pp])
+            ax.legend(fontsize=6, frameon=False)
+            drawn[f"hy_{span}"] = len(pp)
+        fig.tight_layout()
+        out = _finish(fig, name, out_dir)
+        last = "; ".join(f"{k} {v[-1][1]:.2f}% ({v[-1][0]})" for k, v in yields.items() if v)
+        cap = ("Treasury yields and high-yield OAS, one year and ten years; " + last
+               + (f"; HY OAS {hy[-1][1]:.2f}% ({hy[-1][0]})" if hy else ""))
+        return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "W3", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def z_panel(cid: str, series: dict, title: str, name: str,
+            out_dir: Optional[str], ncols: int = 2, min_points: int = 20) -> dict:
+    """Items 13 and 16: one small panel per series, its z-score over the window,
+    the +-1 and +-2 lines; an empty series prints 'not yet tracked'."""
+    try:
+        keys = list(series)
+        nrows = math.ceil(len(keys) / ncols)
+        fig, axes = _panel_grid(nrows, ncols, 1.35)
+        fig.suptitle(title, fontsize=8.5, x=0.02, ha="left", color="#0d2b45")
+        stats, untracked = {}, []
+        for ax, k in zip(axes.flat, keys):
+            pts = series.get(k) or []
+            if len(pts) < min_points:
+                _untracked(ax, k)
+                untracked.append(k)
+                continue
+            z = zscores(pts)
+            if not z:
+                _untracked(ax, k, "no variation stored")
+                untracked.append(k)
+                continue
+            ax.plot(range(len(z)), [v for _, v in z], color="#0d2b45", linewidth=0.9)
+            for y, c in ((0, "#94a3b8"), (1, "#d97706"), (-1, "#d97706"),
+                         (2, "#b3261e"), (-2, "#b3261e")):
+                ax.axhline(y, color=c, linewidth=0.5, linestyle="--" if y else "-")
+            ax.set_title(f"{k}: z {z[-1][1]:+.1f} ({z[-1][0]})", fontsize=7, loc="left")
+            _dated_ticks(ax, [d for d, _ in z], 2)
+            stats[k] = {"z": round(z[-1][1], 2), "as_of": z[-1][0], "n": len(z)}
+        for ax in list(axes.flat)[len(keys):]:
+            ax.axis("off")
+        fig.tight_layout(rect=(0, 0, 1, 0.96))
+        out = _finish(fig, name, out_dir)
+        cap = (f"{title}. " + "; ".join(f"{k} z {v['z']:+.1f} ({v['as_of']})"
+                                        for k, v in stats.items())
+               + (f"; not yet tracked: {', '.join(untracked)}" if untracked else ""))
+        return {"id": cid, "drawn": [], "caption": cap, **out, "stats": stats,
+                "not_drawn": untracked}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def bars_65(bars5: list) -> list:
+    """5-minute bars to 65-minute bars, six per regular session, anchored at
+    09:30 ET (item 14)."""
+    from altdata import session                                 # noqa: PLC0415
+    out: dict = {}
+    for b in bars5:
+        t = session.to_eastern(dt.datetime.fromisoformat(b["observed_at"]))
+        mins = (t.hour * 60 + t.minute) - (9 * 60 + 30)
+        if mins < 0 or mins >= 390:
+            continue
+        k = (t.date().isoformat(), mins // 65)
+        x = out.get(k)
+        vol = b.get("volume") or 0
+        tp = (b["high"] + b["low"] + b["close"]) / 3
+        if x is None:
+            out[k] = {"session": k[0], "slot": k[1], "open": b["open"], "high": b["high"],
+                      "low": b["low"], "close": b["close"], "pv": tp * vol, "v": vol}
+        else:
+            x.update(high=max(x["high"], b["high"]), low=min(x["low"], b["low"]),
+                     close=b["close"], pv=x["pv"] + tp * vol, v=x["v"] + vol)
+    return [out[k] for k in sorted(out)]
+
+
+def w7(bars5: list, levels_by_day: dict, name: str,
+       out_dir: Optional[str], sessions: int = 10) -> dict:
+    """Item 14: SPY in 65-minute bars over the last ten sessions -- session
+    boundaries, each session's VWAP, and the flip, walls and max pain as of
+    each day, drawn only where the day's scorecard stored them."""
+    b65 = bars_65(bars5)
+    days = sorted({b["session"] for b in b65})[-sessions:]
+    b65 = [b for b in b65 if b["session"] in days]
+    if len(days) < 2:
+        return {"id": "W7", "unavailable": f"{len(days)} session(s) of 5-minute bars "
+                                           f"stored, 2 needed (run the 60-day backfill)"}
+    try:
+        fig, ax = _base(span_title("SPY in 65-minute bars", len(days), "sessions",
+                                   days[0], days[-1], "two weeks"))
+        _candles(ax, b65)
+        x0 = 0
+        drawn = []
+        cols = {"flip": LEVEL_COLOURS["gamma_flip"], "call_wall": LEVEL_COLOURS["call_wall"],
+                "put_wall": LEVEL_COLOURS["put_wall"], "max_pain": LEVEL_COLOURS["max_pain"]}
+        for d in days:
+            seg = [b for b in b65 if b["session"] == d]
+            x1 = x0 + len(seg)
+            ax.axvline(x0 - 0.5, color="#cbd5e1", linewidth=0.6)
+            cum_pv = cum_v = 0.0
+            vw = []
+            for b in seg:
+                cum_pv += b["pv"]
+                cum_v += b["v"]
+                vw.append(cum_pv / cum_v if cum_v else None)
+            if vw and all(v is not None for v in vw):
+                ax.plot(range(x0, x1), vw, color=LEVEL_COLOURS["vwap"], linewidth=0.9)
+            for k, v in (levels_by_day.get(d) or {}).items():
+                if isinstance(v, (int, float)):
+                    ax.hlines(v, x0 - 0.4, x1 - 0.6, color=cols.get(k, "#94a3b8"),
+                              linewidth=0.9, linestyle="--")
+                    drawn.append({"session": d, "type": k, "value": v})
+            x0 = x1
+        ax.set_xticks([sum(1 for b in b65 if b["session"] < d) for d in days])
+        ax.set_xticklabels([d[5:10] for d in days])
+        out = _finish(fig, name, out_dir)
+        cap = (f"SPY, {len(b65)} sixty-five-minute bars over {len(days)} sessions "
+               f"({days[0]} to {days[-1]}); VWAP per session; flip, walls and max pain "
+               f"as of each morning where stored ({len({x['session'] for x in drawn})} "
+               f"of {len(days)} sessions)")
+        return {"id": "W7", "drawn": drawn, "caption": cap, **out,
+                "series": [{k: b[k] for k in ("session", "slot", "open", "high", "low",
+                                               "close")} for b in b65]}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "W7", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def w8(panels: dict, name: str, out_dir: Optional[str],
+       yields: tuple = ("10-year yield", "30-year yield"), n: int = 126) -> dict:
+    """Item 15: 2x3, 126 sessions each with the 20-, 50- and 200-day averages;
+    the two yields share one percent axis."""
+    try:
+        fig, axes = _panel_grid(2, 3, 2.0)
+        ylo = yhi = None
+        for lab in yields:
+            closes = [r["close"] for r in (panels.get(lab) or [])][-n:]
+            if closes:
+                ylo = min(closes + ([ylo] if ylo is not None else []))
+                yhi = max(closes + ([yhi] if yhi is not None else []))
+        stats = {}
+        for ax, (lab, rows) in zip(axes.flat, panels.items()):
+            closes_all = [r["close"] for r in rows]
+            if len(closes_all) < 20:
+                _untracked(ax, lab, f"{len(closes_all)} closes stored")
+                continue
+            show = rows[-n:]
+            off = len(rows) - len(show)
+            ax.plot(range(len(show)), [r["close"] for r in show], color="#0d2b45",
+                    linewidth=0.9)
+            for w, c in ((20, LEVEL_COLOURS["ma_20d"]), (50, LEVEL_COLOURS["ma_50d"]),
+                         (200, LEVEL_COLOURS["ma_200d"])):
+                ma = [(i - off, sum(closes_all[i - w + 1:i + 1]) / w)
+                      for i in range(off, len(rows)) if i >= w - 1]
+                if ma:
+                    ax.plot([x for x, _ in ma], [v for _, v in ma], color=c,
+                            linewidth=0.7, label=f"{w}-day")
+            if lab in yields and ylo is not None:
+                ax.set_ylim(ylo - 0.05, yhi + 0.05)
+            d0, d1 = str(show[0]["observed_at"])[:10], str(show[-1]["observed_at"])[:10]
+            ax.set_title(f"{lab}, {len(show)} sessions, {d0} to {d1}", fontsize=7,
+                         loc="left")
+            _dated_ticks(ax, [str(r["observed_at"])[:10] for r in show], 2)
+            stats[lab] = {"last": show[-1]["close"], "as_of": d1, "n": len(show)}
+        handles = axes[0, 0].get_legend_handles_labels()[0]
+        if handles:
+            axes[0, 0].legend(fontsize=5.5, frameon=False)
+        fig.suptitle("Bitcoin, gold, the dollar, oil and the long yields: 126 sessions "
+                     "(six months) with the 20-, 50- and 200-day averages",
+                     fontsize=8.5, x=0.02, ha="left", color="#0d2b45")
+        fig.tight_layout(rect=(0, 0, 1, 0.95))
+        out = _finish(fig, name, out_dir)
+        cap = ("Six markets over 126 sessions with their 20-, 50- and 200-day "
+               "averages; " + "; ".join(f"{k} {v['last']:,.2f} ({v['as_of']})"
+                                        for k, v in stats.items()))
+        return {"id": "W8", "drawn": [], "caption": cap, **out, "stats": stats}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "W8", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
+        path_month: Optional[dict], name: str, out_dir: Optional[str]) -> dict:
+    """Item 17: the watched prediction-market odds over ninety days, beside the
+    fed-funds implied path today, a week ago and a month ago."""
+    try:
+        plt = _plt()
+        fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.4, 3.0))
+        for ax in (a1, a2):
+            ax.tick_params(labelsize=6.5)
+            for side in ("top", "right"):
+                ax.spines[side].set_visible(False)
+        cols = ("#2563eb", "#0d2b45", "#7c3aed", "#b3261e", "#0f766e", "#d97706")
+        alld = sorted({d for v in odds.values() for d, _ in v})
+        pos = {d: i for i, d in enumerate(alld)}
+        drawn = 0
+        for (lab, pts), c in zip(odds.items(), cols):
+            if len(pts) >= 3:
+                a1.plot([pos[d] for d, _ in pts], [100 * v for _, v in pts], color=c,
+                        linewidth=0.9, label=lab)
+                drawn += 1
+        if drawn:
+            a1.set_title(span_title("Prediction-market odds (%)", len(alld), "days",
+                                    alld[0], alld[-1], "ninety days"),
+                         fontsize=7.5, loc="left")
+            a1.legend(fontsize=5.5, frameon=False)
+            _dated_ticks(a1, alld, 3)
+        else:
+            _untracked(a1, "Prediction-market odds, ninety days")
+        paths = [(lab, pth, c) for lab, pth, c in (("today", path_now, "#0d2b45"),
+                                                   ("a week ago", path_week, "#2563eb"),
+                                                   ("a month ago", path_month, "#94a3b8"))
+                 if pth and pth.get("tracked") and pth.get("meetings")]
+        if paths:
+            for lab, pth, c in paths:
+                ms = pth["meetings"][:6]
+                a2.plot(range(len(ms)), [m["post_pct"] for m in ms], color=c,
+                        marker="o", markersize=2.5, linewidth=0.9, label=lab)
+            ms = paths[0][1]["meetings"][:6]
+            a2.set_xticks(range(len(ms)))
+            a2.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6)
+            a2.set_title("Fed funds futures: implied rate after each meeting (%)",
+                         fontsize=7.5, loc="left")
+            a2.legend(fontsize=5.5, frameon=False)
+        else:
+            _untracked(a2, "Fed funds implied path",
+                       "not yet tracked: fewer than four meetings retrievable")
+        fig.tight_layout()
+        out = _finish(fig, name, out_dir)
+        cap = ("Prediction-market odds over ninety days, and the fed-funds implied "
+               "path today, a week ago and a month ago"
+               + ("" if paths else "; the futures path is not yet tracked"))
+        return {"id": "W10", "drawn": [], "caption": cap, **out,
+                "markets": list(odds), "paths": [pp[0] for pp in paths]}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "W10", "unavailable": f"{type(exc).__name__}: {exc}"}

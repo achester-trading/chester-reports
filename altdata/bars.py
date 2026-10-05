@@ -4,6 +4,7 @@ OHLC bars for the tape set: 5-minute for the session, daily for the frames.
 
     python -m altdata.bars pull [--session 2026-10-01] [--dry-run]
     python -m altdata.bars status [--session 2026-10-01]
+    python -m altdata.bars backfill --days 60 [--dry-run]   # one-time (T2.2)
 
 A FEED, IN THE 16:10 EOD RUN (ruled 2 Oct 2026). Reports never fetch (30.4), so
 the pull is the `bars` feed in altdata/feeds.py, which chester-eod runs; the 16:45
@@ -254,6 +255,45 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
             st.close()
 
 
+def backfill(days: int = 60, store: Optional[BarStore] = None,
+             dry_run: bool = False, fetcher=None) -> dict:
+    """ONE-TIME: the last `days` calendar days of 5-minute bars for every tape
+    instrument (T2.2, 4 Oct 2026: W7 needs ten sessions of 65-minute bars, built
+    from the 5-minute table). Yahoo serves 5-minute bars for the last 60 days
+    only. One request per symbol; INSERT OR IGNORE, so a re-run and the nightly
+    pull never duplicate a bar. available_at is the fetch instant -- a backfilled
+    bar was not knowable before it was fetched, so an as-of read of an earlier
+    session will not see it, which is the honest answer."""
+    if fetcher is None:
+        import yfinance as yf                                   # noqa: PLC0415
+
+        def fetcher(symbol, **kw):
+            return yf.Ticker(symbol).history(auto_adjust=False, **kw)
+    own = store is None and not dry_run
+    st = store or (BarStore(create=True) if not dry_run else None)
+    report: dict[str, Any] = {"days": days, "dry_run": dry_run, "instruments": {}}
+    try:
+        for t in tape():
+            iid, sym = t["id"], t["bars"]
+            try:
+                fetched = session.utc_iso()
+                df = fetcher(sym, period=f"{int(days)}d", interval="5m",
+                             prepost=False)
+                rows = _frame_rows(df, iid, sym, "5m", fetched)
+                got: dict[str, Any] = {"bars": len(rows),
+                                       "first": rows[0]["observed_at"] if rows else None,
+                                       "last": rows[-1]["observed_at"] if rows else None}
+                if not dry_run:
+                    got["written"] = st.write_many(rows)
+            except Exception as exc:                            # noqa: BLE001
+                got = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+            report["instruments"][iid] = got
+        return report
+    finally:
+        if own and st is not None:
+            st.close()
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     import json
@@ -263,8 +303,15 @@ def _main(argv: list[str]) -> int:
         s = sub.add_parser(c)
         s.add_argument("--session", default=None)
         s.add_argument("--dry-run", action="store_true")
+    bf = sub.add_parser("backfill", help="one-time: the last N days of 5-minute "
+                                         "bars for the tape set (Yahoo serves 60)")
+    bf.add_argument("--days", type=int, default=60)
+    bf.add_argument("--dry-run", action="store_true")
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
+    if a.cmd == "backfill":
+        print(json.dumps(backfill(a.days, dry_run=a.dry_run), indent=2))
+        return 0
     day = a.session or session.last_trading_session().isoformat()
     if a.cmd == "pull":
         print(json.dumps(pull(day, dry_run=a.dry_run), indent=2))

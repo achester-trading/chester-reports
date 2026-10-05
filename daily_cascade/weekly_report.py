@@ -64,7 +64,8 @@ def main() -> int:
                          "just past)")
     ap.add_argument("--as-of", default=None)
     ap.add_argument("--dry-run", action="store_true",
-                    help="Build and archive; send nothing")
+                    help="Build WITH the model, render to <reports>/dryrun/ "
+                         "(never over the real edition), and send nothing")
     ap.add_argument("--no-narrative", action="store_true",
                     help="Ship the data-only edition; attempt no paragraph")
     ap.add_argument("--no-fetch", action="store_true",
@@ -82,6 +83,14 @@ def main() -> int:
                     help="The pre-stack Weekly: one long paragraph over the blocks")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
+    # THE DRY RUN'S OWN DIRECTORY (T2.2 rulings of 5 Oct, item 2): it renders with
+    # the model like the real edition and writes to <reports>/dryrun/, so a dry
+    # run can never overwrite the archived Weekly; it reads the prior edition
+    # from the real archive, so its change marks are the real ones.
+    args.prior_dir = None
+    if args.dry_run and not args.archive_dir:
+        args.prior_dir = delivery.ARCHIVE_DIR
+        args.archive_dir = str(Path(delivery.ARCHIVE_DIR) / "dryrun")
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
@@ -214,6 +223,7 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
     out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
+                               prior_dir=getattr(args, "prior_dir", None),
                                model=args.narrative_model,
                                narrative=not args.no_narrative)
     ed = out["edition"]

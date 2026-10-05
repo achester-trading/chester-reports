@@ -58,7 +58,10 @@ from . import session
 log = logging.getLogger(__name__)
 
 SOURCES = ("news", "edgar", "earnings", "fred_releases", "session", "claims",
-           "schedule")
+           "schedule",
+           # T2.2 (4 Oct 2026, item 10): the Fed's speaker calendar with times,
+           # and Treasury's announced auctions, for the Weekly's calendar.
+           "fed_calendar", "auctions")
 
 # How far ahead the local calendars are written. Three months of session events and
 # the FOMC dates a quarter out is what a weekly and a monthly can both read; going
@@ -309,6 +312,12 @@ def pull(only: Optional[Iterable[str]] = None, dry_run: bool = False,
                     events, rep = session_events()
                 elif name == "schedule":
                     events, rep = schedule_events()
+                elif name == "fed_calendar":
+                    from .sources import fed_calendar
+                    events, rep = fed_calendar.calendar_events()
+                elif name == "auctions":
+                    from .sources import upcoming_auctions
+                    events, rep = upcoming_auctions.calendar_events()
                 else:
                     events, rep = claims_events()
             except Exception as exc:                           # noqa: BLE001

@@ -303,8 +303,8 @@ def main() -> int:
     parts = {str(pp.get("Content-ID", "")).strip("<>")
              for pp in message_from_bytes(msg.as_bytes(), policy=email_default).walk()
              if pp.get_content_type() == "image/png"}
-    check(len(cids) == 6 and cids == parts,
-          f"the Content-ID set matches the six charts in the body ({sorted(cids)})")
+    check(cids and cids == parts and len(cids) == ed["chart_count"],
+          f"the Content-ID set matches the charts in the body ({sorted(cids)})")
     bad = charts_mod.bars_chart("W5", [], "x", "x", None)
     check(bad.get("unavailable") and "chart unavailable" in
           stack_render._chart_html(bad, "email"),
@@ -467,7 +467,7 @@ def main() -> int:
           and "def daily(" not in _insp.getsource(_bars),
           "1: the eod bars feed pulls the session's 5-minute bars only")
     w4 = out["charts"]["W4"].get("caption") or ""
-    check(w4.count("CFTC net speculative") == 1,
+    check(w4.count("Speculative positioning") == 1,
           f"2: a chart caption prints its words once ({w4[:80]})")
     every = " ".join([s.get("claim") or "" for s in ed["sections"]]
                      + [" ".join(s.get("paragraphs") or []) for s in ed["sections"]]
@@ -524,10 +524,10 @@ def main() -> int:
                                _bars.load_config()),
           "8: no section closes on the system; 'For the system' is a banned phrase")
     pos_calls = [c for c in calls if "THE SECTION: Positioning & flows." in c]
-    check(pos_calls and "ONE PARAGRAPH PER SOURCE" in pos_calls[0].upper().replace(
-          "ONE PARAGRAPH PER SOURCE", "ONE PARAGRAPH PER SOURCE")
-          or (pos_calls and "one paragraph per source" in pos_calls[0]),
-          "9: Positioning's prose is asked for one paragraph per source")
+    check(pos_calls and "[A] Sector rotation and leadership" in pos_calls[0]
+          and "[E] Foreign flows (TIC)" in pos_calls[0],
+          "9: Positioning's prose is asked for one paragraph per sub-section, "
+          "tagged (T2.2 item 7)")
     sl = _sp._slice(sec["misfit"], ed)
     check("not_tracked" not in sl and "_id" not in json.dumps(sl),
           "10: a prose slice carries no not-yet-tracked list and no id")
@@ -557,10 +557,15 @@ def main() -> int:
                  json.dumps({"series": ["nfp"]})))
             evs.conn.commit()
         rel = ws.tier1_releases(str_, AS_OF, ws.week_ago(AS_OF))
+    # Rulings of 5 Oct, item 1: payrolls print as the monthly change, under the
+    # declared label, never the raw series name.
     check(rel and rel[0]["release"] == "Employment Situation"
-          and rel[0]["prior"] == 159000.0 and rel[0]["actual"] == 159150.0,
-          f"13: Plumbing lists the week's tier-1 release with actual, prior, as-of "
-          f"({rel[:1]})")
+          and rel[0]["form"] == "change" and rel[0]["actual"] == 150.0
+          and rel[0]["actual_text"] == "+150"
+          and rel[0]["label"] == "nonfarm payrolls, monthly change (thousands)"
+          and rel[0]["as_of"] == "2026-09-01",
+          f"13: Plumbing lists the week's tier-1 release in its declared form, with "
+          f"actual, prior and as-of ({rel[:1]})")
     from altdata import config as _cfg
     ids_be = {s.key: s.fred_id for s in _cfg.FRED_PULL_SERIES if "breakeven" in s.key}
     pr_items = [i["text"] for i in sec["priced"]["items"] if "breakeven" in i["text"]]
@@ -571,16 +576,21 @@ def main() -> int:
 
     # --- H. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nH. BUDGET\n{LINE}")
-    check(ed["budget"] == {"words": 3500, "charts": 6} and ed["words"] <= 3500
-          and ed["chart_count"] <= 7,
-          f"the Weekly's budget is 3,500 words / 6 charts ({ed['words']} words, "
-          f"{ed['chart_count']} charts; a fired trigger lifts the cap by one)")
+    check(ed["budget"] == {"words": 3500, "charts": 10} and ed["words"] <= 3500
+          and ed["chart_count"] <= 11,
+          f"the Weekly's budget is 3,500 words of prose / 10 charts ({ed['words']} "
+          f"words, {ed['chart_count']} charts; a fired trigger lifts the cap by one)")
     e = json.loads(json.dumps(ed))
+    deep = next(s for s in e["sections"] if s["depth"] == "deep" and s.get("claim"))
+    deep["paragraphs"] = ["Prose for the budget to take. " * 6] * 3
+    n_items = sum(len(s["items"]) for s in e["sections"])
     before = sum(stack_mod.section_words(s) for s in e["sections"])
-    e["budget"] = {"words": before - 40, "charts": 6}
+    e["budget"] = {"words": before - 20, "charts": 10}
     stack_mod.enforce_budget(e)
-    check(any(s["trimmed"] for s in e["sections"]) and e["words"] <= before - 40,
-          "over budget, low-priority lines go and the section prints \"(trimmed)\"")
+    check(deep["trimmed"] and len(deep["paragraphs"]) < 3
+          and sum(len(s["items"]) for s in e["sections"]) == n_items,
+          "over budget, later paragraphs go, the section prints \"(trimmed)\", and "
+          "no item is cut")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

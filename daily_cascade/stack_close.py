@@ -111,7 +111,20 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict]) ->
            "pin_max_pain_hit": pin.get("max_pain_hit"),
            "pin_peak_gex_hit": pin.get("peak_gex_hit"),
            "realized_vol_5m_ann_pct": round(rv, 2) if rv else None,
-           "bars_complete": intra["complete"], "bars_n": intra["n"]}
+           "bars_complete": intra["complete"], "bars_n": intra["n"],
+           # T2.2 (4 Oct 2026, item 18): what the Weekly's dealer table prints
+           # per session -- the close's profile beside the morning's flip, and
+           # the session's close. The flags are computed by the Weekly from
+           # these, never stored as verdicts.
+           "close": (spy.get("frame") or {}).get("last"),
+           "prior_close": prior_close,
+           "dex_close": exp.get("dex_notional"),
+           "call_wall": exp.get("call_wall"), "put_wall": exp.get("put_wall"),
+           "max_pain": exp.get("max_pain"), "flip_close": exp.get("gamma_flip"),
+           # The walls IN FORCE during the session are the morning profile's
+           # (the prior session's close); the held flags read these.
+           "call_wall_morning": morning.get("call_wall"),
+           "put_wall_morning": morning.get("put_wall")}
     return row
 
 
@@ -186,7 +199,16 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             import pin_log                                      # noqa: PLC0415
             prev = session.previous_trading_session(sess).isoformat()
             prof = ((pin_log.load_computed(date=prev) or {}).get("SPY") or {})
+            # SPY'S OWN CHAIN (T2.2 rulings of 5 Oct): the ATM 30-day IV from
+            # the chain solver and the volume put/call, stored per session; the
+            # scorecard carries the IV for the Weekly's implied range.
+            from altdata import chain_metrics                   # noqa: PLC0415
+            chain = (chain_metrics.readings(sess) if dry_run
+                     else chain_metrics.record_session(sess, st))
+            report["chain_readings"] = chain
             card = scorecard_row(p, book, bst, (prof.get("overall") or {}))
+            card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
+            card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",

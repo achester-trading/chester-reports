@@ -231,3 +231,7 @@ data/
 # quietly. They are kept on the box and swept up by the off-box backup (D1a);
 # revisit if the archive should be in git history instead.
 reports/daily_close_*.html
+
+# The Weekly's dry runs (T2.2 rulings of 5 Oct): never committed, never
+# in the way of `git pull --ff-only` on the box.
+reports/dryrun/

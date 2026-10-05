@@ -63,6 +63,7 @@ PY_VALIDATORS := \
 	tools/validate_prediction_markets.py \
 	tools/validate_weekly_stack.py \
 	tools/validate_voices.py \
+	tools/validate_weekly_edits.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

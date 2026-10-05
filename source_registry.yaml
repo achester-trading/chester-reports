@@ -1172,6 +1172,53 @@ sources:
     implemented_by: altdata/sources/umich.py
     status: live
 
+  spy_chain_capture:
+    name: SPY option chain, captured by this system each session (yfinance)
+    tier: B
+    epistemic_role: derived
+    domain: [volatility, positioning]
+    geography: [US]
+    latency: the eod capture after the close; read by the 16:45 close
+    timestamp_reliability: high
+    timestamp_notes: >-
+      observed_at = the session; available_at = the capture's own fetched_at.
+    license: derived from our own capture
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/chain_metrics.py
+    status: live
+
+  naaim:
+    name: National Association of Active Investment Managers -- Exposure Index
+    tier: B
+    epistemic_role: primary_fact
+    domain: [sentiment, positioning]
+    geography: [US]
+    latency: weekly, members report Wednesday
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      observed_at = the date the widget states; available_at = our fetch.
+    license: >-
+      NAAIM moved the index to a subscription model on 1 Aug 2026. Only the
+      public embeddable number widget is read; no subscription content.
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/sources/naaim.py
+    status: intermittent
+
+  aaii:
+    name: American Association of Individual Investors -- Sentiment Survey
+    tier: B
+    epistemic_role: primary_fact
+    domain: [sentiment]
+    geography: [US]
+    latency: weekly, Thursday
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified (observed); one row per weekly survey, dated by its reported Thursday.
+    license: public spreadsheet, no key; no robots.txt rule against it (read 4 Oct 2026)
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/aaii.py
+    status: live
+
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations
     tier: A0

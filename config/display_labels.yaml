@@ -59,3 +59,94 @@ metrics:
   pm.implied: "prediction-market odds"
   yfinance.mkt_spy: "SPY"
   yfinance.mkt_vix: "the VIX"
+
+# -----------------------------------------------------------------------------
+# PLAIN LANGUAGE (T2.2, ruled 4 Oct 2026, item 2). The prose may describe these
+# only in these words; the reports print them beside the ids' labels. A
+# contradiction's `legs` says what each side is saying, `closes` what would close
+# it -- read by "What doesn't fit" and Ahead's "What the system is watching".
+# -----------------------------------------------------------------------------
+contradiction_plain:
+  price_vs_breadth:
+    legs: "SPY near its one-year high says the index is strong; the share of sectors above their 50-day average says fewer stocks are taking part"
+    closes: "breadth recovers toward the index, or the index falls back from its high"
+  equities_vs_credit:
+    legs: "SPY rising says risk appetite is healthy; high-yield spreads widening says lenders are asking more to hold risky debt"
+    closes: "spreads tighten back, or equities fall to meet them"
+  long_bond_vs_hy:
+    legs: "the 30-year yield rising says investors want more to hold long Treasuries; high-yield spreads staying calm says credit sees no matching stress"
+    closes: "the long bond rallies, or high-yield spreads widen to match"
+  implied_vs_realized_vol:
+    legs: "the VIX is what options price for the next month; SPY's 20-day realized volatility is how much it has actually moved"
+    closes: "implied and realized volatility converge"
+  growth_vs_cyclicals:
+    legs: "the growth read says the economy's data is firm or soft; cyclicals over defensives says how equity investors are positioned for it"
+    closes: "cyclical leadership turns to match the growth data, or the data turns"
+  gamma_vs_trend:
+    legs: "dealer gamma says whether dealers' hedging damps or amplifies moves; the trend says which way prices have been going"
+    closes: "dealer gamma or the trend turns so the two agree"
+  prediction_markets_vs_assets:
+    legs: "prediction-market odds say what event bettors expect; asset prices say what investors have priced"
+    closes: "the odds and the prices move into line"
+  narrative_vs_data:
+    legs: "a story the market tells says one thing; the data it is tied to says another"
+    closes: "the data moves the story's way, or the story fades"
+
+exception_kinds:
+  extreme: "a reading at a five-year extreme -- in the top or bottom of its own five-year range"
+  contradiction: "a gap between two markets held past five sessions"
+
+# The narrative register's stories, in plain words: a title and one sentence.
+stories:
+  ai_capex_durability:
+    title: "AI spending keeps growing"
+    statement: "The largest technology companies keep raising what they spend on AI data centres, and investors keep funding it."
+  fiscal_dominance:
+    title: "Deficits drive long-term rates"
+    statement: "Government borrowing, not the Fed, is setting long-term interest rates, so investors demand more to hold long bonds."
+  yen_carry:
+    title: "The yen carry trade unwinds"
+    statement: "Investors who borrowed cheaply in yen to buy other assets are unwinding, so the yen strengthens and markets get more volatile."
+  midterm_cycle:
+    title: "The midterm-year pattern"
+    statement: "Stocks tend to be held back by policy uncertainty before the 3 November election and to rally after it."
+
+sectors:
+  XLK: "Technology (XLK)"
+  XLF: "Financials (XLF)"
+  XLE: "Energy (XLE)"
+  XLV: "Health Care (XLV)"
+  XLI: "Industrials (XLI)"
+  XLP: "Consumer Staples (XLP)"
+  XLY: "Consumer Discretionary (XLY)"
+  XLU: "Utilities (XLU)"
+  XLB: "Materials (XLB)"
+  XLRE: "Real Estate (XLRE)"
+  XLC: "Communication Services (XLC)"
+
+# State words the reports print, in plain words (the legend under Narratives and
+# What doesn't fit, and the glossary).
+states:
+  pending: "a reading has crossed its line but not yet for long enough to count"
+  open: "a gap between two markets has been wide for at least two sessions"
+  exception: "a gap open five sessions or more, or a reading at a five-year extreme"
+  emerging: "the story is new or still gathering evidence"
+  consensus: "the evidence and the data agree with the story"
+  contested: "the evidence is split for and against the story"
+  fading: "the story is losing attention and the data has turned against it"
+  confirmed: "a proposed story the operator has accepted into the register"
+
+# The glossary printed once at the end of the Weekly (item 11).
+glossary:
+  - term: "z"
+    text: "how many standard deviations a reading sits from its own average; 2.0 is further out than about 95% of its history."
+  - term: "gap z-score"
+    text: "how unusual today's distance between two markets is against that pair's own history; rising means the gap is widening, falling means it is closing."
+  - term: "pending, open, exception"
+    text: "pending: a reading has crossed its line but not for long enough to count; open: a gap wide for at least two sessions; exception: a gap open five sessions or more, or a reading at a five-year extreme."
+  - term: "outside 10–90%"
+    text: "prediction-market odds this far from even are known to be mispriced at the level, so the change is read, not the level."
+  - term: "base rate"
+    text: "how often the outcome happened in the stored history under the same rule, with the count of cases (n); a frequency, not a forecast."
+  - term: "Brier"
+    text: "a score for probability calls: the average squared gap between the stated probability and what happened; 0 is perfect, 0.25 is what always saying 50% scores."

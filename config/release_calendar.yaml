@@ -1,0 +1,84 @@
+# release_calendar.yaml -- standard release times and importance, for the
+# Weekly's day-by-day calendar (T2.2 item 10, ruled 4 Oct 2026).
+#
+# THE EVENTS TABLE SAYS WHAT IS SCHEDULED AND ON WHICH DAY; THIS FILE SAYS WHEN IN
+# THE DAY AND HOW MUCH IT MATTERS. A release is matched by the first pattern (a
+# case-insensitive substring of its stored title) that names it; the time is the
+# agency's standard release time in US Eastern. A speaker's time comes from the
+# Fed's own calendar (altdata/sources/fed_calendar.py), never from here. A release
+# no pattern names prints "time not stated" and importance 3.
+#
+# IMPORTANCE is the existing tiers: tier 1 is the Plumbing trigger's list
+# (config/reporting_stack.yaml, triggers.plumbing.tier1_events), tier 2 is ruled
+# here, and everything else is tier 3.
+version: release-calendar-v1
+updated: 2026-10-04
+
+releases:
+  # tier 1
+  - {match: "FOMC statement",              time: "14:00", tier: 1, label: "FOMC statement"}
+  - {match: "FOMC Meeting",                time: "14:00", tier: 1, label: "FOMC statement"}
+  - {match: "Consumer Price Index",        time: "08:30", tier: 1, label: "CPI"}
+  - {match: "Personal Income and Outlays", time: "08:30", tier: 1, label: "PCE (personal income and outlays)"}
+  - {match: "Employment Situation",        time: "08:30", tier: 1, label: "Payrolls (employment situation)"}
+  - {match: "Gross Domestic Product",      time: "08:30", tier: 1, label: "GDP"}
+  - {match: "Treasury quarterly refunding", time: "08:30", tier: 1, label: "Treasury quarterly refunding"}
+  # tier 2
+  - {match: "FOMC minutes",                time: "14:00", tier: 2, label: "FOMC minutes"}
+  - {match: "Minutes of the Federal Open Market Committee", time: "14:00", tier: 2, label: "FOMC minutes"}
+  - {match: "ISM",                         time: "10:00", tier: 2, label: "ISM"}
+  - {match: "Job Openings",                time: "10:00", tier: 2, label: "JOLTS (job openings)"}
+  - {match: "Producer Price",              time: "08:30", tier: 2, label: "PPI"}
+  - {match: "Retail Sales",                time: "08:30", tier: 2, label: "Retail sales"}
+  - {match: "Advance Monthly Sales",       time: "08:30", tier: 2, label: "Retail sales"}
+  - {match: "Unemployment Insurance Weekly Claims", time: "08:30", tier: 2, label: "Jobless claims"}
+  - {match: "Note:10-Year",                time: "13:00", tier: 2, label: "10-year note auction"}
+  - {match: "Bond:30-Year",                time: "13:00", tier: 2, label: "30-year bond auction"}
+  # tier 3, with their standard times
+  - {match: "Surveys of Consumers",        time: "10:00", tier: 3, label: "University of Michigan sentiment"}
+  - {match: "University of Michigan",      time: "10:00", tier: 3, label: "University of Michigan sentiment"}
+  - {match: "H.4.1",                       time: "16:30", tier: 3, label: "Fed balance sheet (H.4.1)"}
+  - {match: "Factors Affecting Reserve Balances", time: "16:30", tier: 3, label: "Fed balance sheet (H.4.1)"}
+  - {match: "Note:",                       time: "13:00", tier: 3, label: null}
+  - {match: "Bond:",                       time: "13:00", tier: 3, label: null}
+  - {match: "Bill:",                       time: "11:30", tier: 3, label: null}
+  - {match: "Industrial Production",       time: "09:15", tier: 3, label: "Industrial production"}
+  - {match: "New Residential Construction", time: "08:30", tier: 3, label: "Housing starts"}
+  - {match: "Durable Goods",               time: "08:30", tier: 3, label: "Durable goods"}
+  - {match: "Consumer Credit",             time: "15:00", tier: 3, label: "Consumer credit"}
+
+# Option expiries come from the session calendar's events (OPEX); a monthly
+# expiry is importance 2, a quarterly one 1.
+expiries:
+  monthly_tier: 2
+  quarterly_tier: 1
+
+# THE HEADLINE OF EACH TIER-1 RELEASE (T2.2; forms ruled 5 Oct 2026): what The
+# read's week-by-day table and Plumbing print for it, in a declared FORM under a
+# declared label -- raw series names never print. A release is matched when its
+# stored name STARTS with the key (so "Debt to Gross Domestic Product Ratios" is
+# not GDP). Values are read from the store as of the cutoff; the prior is the
+# same form one period earlier.
+#   level       the latest print
+#   change      latest minus prior, in the series' own unit (payrolls: thousands)
+#   mom         month on month, percent
+#   yoy         year on year, percent (twelve monthly prints back)
+#   annualised  quarter on quarter, annualised, percent
+tier1_headlines:
+  "Employment Situation":
+    - {key: fred.nfp, form: change, label: "nonfarm payrolls, monthly change (thousands)"}
+    - {key: fred.u3_rate, form: level, label: "unemployment rate"}
+  "Consumer Price Index":
+    - {key: fred.cpi, form: mom, label: "CPI, month on month"}
+    - {key: fred.cpi, form: yoy, label: "CPI, year on year"}
+    - {key: fred.core_cpi, form: mom, label: "core CPI, month on month"}
+    - {key: fred.core_cpi, form: yoy, label: "core CPI, year on year"}
+  "Personal Income and Outlays":
+    - {key: fred.pce, form: mom, label: "PCE prices, month on month"}
+    - {key: fred.pce, form: yoy, label: "PCE prices, year on year"}
+    - {key: fred.core_pce, form: mom, label: "core PCE prices, month on month"}
+    - {key: fred.core_pce, form: yoy, label: "core PCE prices, year on year"}
+  "Gross Domestic Product":
+    - {key: fred.real_gdp, form: annualised, label: "real GDP, quarterly annualised"}
+  "Unemployment Insurance Weekly Claims":
+    - {key: fred.claims_4wk, form: level, label: "jobless claims, four-week average"}

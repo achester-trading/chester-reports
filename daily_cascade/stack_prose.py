@@ -128,6 +128,21 @@ def style_faults(text: str, cfg: dict) -> list[str]:
     return out
 
 
+# NO UNLABELLED ID (T2.2 item 2): a registry key ("fred.hy_oas"), a contradiction
+# or story id ("equities_vs_credit"), or an exception id ("extreme:...") in prose
+# is the system's vocabulary, not the reader's. The labels in
+# config/display_labels.yaml are the only words for them.
+_KEY = re.compile(r"\b(?:fred|calc|yfinance|cftc|acm|pm|dial|ndl|finra|tic|umich|"
+                  r"nyfed|aaii|apewisdom|dealer|auction)\.[a-z0-9_]+\b")
+_SNAKE = re.compile(r"\b[a-z]+(?:_[a-z0-9]+)+\b")
+
+
+def id_faults(text: str) -> list[str]:
+    out = [f"internal id: '{m.group(0)}'" for m in _KEY.finditer(text or "")]
+    out += [f"internal id: '{m.group(0)}'" for m in _SNAKE.finditer(text or "")]
+    return out
+
+
 _VERB = re.compile(r"\b(held|holds|holding|broke|breaks|broken)\b", re.I)
 _CLAUSE = re.compile(r"[;:]|,\s+(?:and|but|while)\s+|\s+(?:and|but|while)\s+")
 
@@ -343,6 +358,10 @@ def _slice(s: dict, ed: dict) -> dict:
     return {"section": s["title"], "depth": s["depth"],
             "depth_reason": s.get("depth_reason"), "session": ed["session"],
             "items": [i["text"] for i in s["items"]], "table": s.get("table"),
+            "table_note": s.get("table_note"),
+            "subsections": [{"tag": chr(65 + n), "title": ss.get("title"),
+                             "table": ss.get("table"), "lines": ss.get("lines")}
+                            for n, ss in enumerate(s.get("subsections") or [])],
             "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
                             if k != "intraday"})}
 
@@ -391,6 +410,45 @@ SECTION_NOTES = {
         "\n\nTHIS SECTION ALONE LOOKS FORWARD: the calendar, the base rates and "
         "the graded calls it is given, stated as what is scheduled and what the "
         "record shows -- never as what the market will do."),
+}
+
+
+# THE WEEKLY'S OWN NOTES (T2.2, ruled 4 Oct 2026), appended after SECTION_NOTES
+# on the Weekly only -- the daily close keeps its shape.
+WEEKLY_NOTES = {
+    "read": (
+        "\n\nTHE WEEK BY DAY: the data carries a table, one row per session -- "
+        "SPY's and the 10-year's moves, the tier-1 release with actual and prior, "
+        "the Fed speech or auction, the day's most-cited story. Your sentences "
+        "after the claim walk the week from that table, day by day, and use only "
+        "its figures. A press outlet's explanation of a move is ITS attribution, "
+        "never ours: write 'CNBC attributed the fall to ...', never the cause "
+        "as fact."),
+    "tape": (
+        "\n\nTHE TAPE IN FOUR PARAGRAPHS, in this order: equities (SPY, QQQ, "
+        "IWM); rates (the 10-year and 30-year yields); the dollar and commodities "
+        "(DXY, gold, WTI); crypto (Bitcoin). Each names only figures in the table "
+        "or the level list. A market with no figure in the table gets no "
+        "sentence."),
+    "mechanics": (
+        "\n\nTHE WEEK'S DEALER STORY FROM THE TABLE AND ITS FLAGS ONLY. Write "
+        "'pinned', 'held' or 'amplified' about a session only where that "
+        "session's flag column says so; never infer a flag from the figures."),
+    "misfit": (
+        "\n\nEach open gap is described in the plain words its row gives "
+        "(what each side is saying), never by an id."),
+    "plumbing": (
+        "\n\nRead the table: the curve, credit and the week's tier-1 releases "
+        "with their actual and prior."),
+    "positioning": (
+        "\n\nOne paragraph per sub-section, from that sub-section's table only."),
+    "priced": (
+        "\n\nOne paragraph per sub-section, from that sub-section's table only. "
+        "Prediction markets are 'prediction markets', never 'venues'."),
+    "narratives": (
+        "\n\nName each story by its plain title as the data gives it, and give "
+        "counts in words ('nine sourced items supported it, none contradicted "
+        "it')."),
 }
 
 
@@ -462,7 +520,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         text = r.text if r.published else None
         faults = []
         if text:
-            faults = (style_faults(text, cfg)
+            faults = (style_faults(text, cfg) + id_faults(text)
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
@@ -486,24 +544,49 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             results[s["id"]] = {"state": "reused", "published": True}
             continue
         paras = DEPTH_PARAGRAPHS.get(s["depth"], "0")
+        subs = s.get("subsections") or []
+        if s.get("prose_paragraphs") and cadence == "weekly":
+            paras = s["prose_paragraphs"]
         body = ("Then write {} paragraphs of commentary.".format(paras)
                 if paras != "0" else "Write ONLY that one sentence.")
+        if subs and cadence == "weekly":
+            # ONE PARAGRAPH PER SUB-SECTION, tagged so it lands under its own
+            # table; the tags are stripped before printing (T2.2 items 7-8).
+            body = (f"Then write exactly {len(subs)} paragraphs, one for each "
+                    f"sub-section, in this order, each beginning with its tag "
+                    f"in square brackets: " + "; ".join(
+                        f"[{chr(65 + n)}] {ss.get('title')}"
+                        for n, ss in enumerate(subs))
+                    + ". The tags are removed before printing. Each paragraph uses "
+                      "only its own sub-section's table and lines.")
+            paras = str(len(subs))
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         sys_prompt = stack_system_prompt(base) + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
             report=cad["report"], period=cad["period"], frames=cad["frames"],
             words=(cfg.get(cad["words_key"]) or cfg.get("depth_words") or {})
             .get(s["depth"], 35))
-        sys_prompt += SECTION_NOTES.get(s["id"], "")
+        if not (cadence == "weekly" and s["id"] in ("positioning", "priced")):
+            sys_prompt += SECTION_NOTES.get(s["id"], "")
+        if cadence == "weekly":
+            sys_prompt += WEEKLY_NOTES.get(s["id"], "")
         res = run(s["id"], _slice(s, ed), sys_prompt,
                   int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
         results[s["id"]] = res
         if res.get("published"):
-            sents = _sentences(res["text"].split("\n\n")[0])
+            head = re.split(r"\[[A-E]\]", res["text"])[0]
+            sents = _sentences(head.split("\n\n")[0])
             s["claim"] = sents[0] if sents else res["text"]
             rest = res["text"][len(s["claim"]):].strip()
-            s["paragraphs"] = [p.strip() for p in rest.split("\n\n") if p.strip()] \
-                if paras != "0" else []
+            if subs and cadence == "weekly":
+                s["paragraphs"] = []
+                for tag, body_ in split_tagged(rest).items():
+                    i = ord(tag) - 65
+                    if 0 <= i < len(subs):
+                        subs[i]["paragraph"] = body_
+            else:
+                s["paragraphs"] = [p.strip() for p in rest.split("\n\n")
+                                   if p.strip()] if paras != "0" else []
         else:
             s["claim"] = None
             s["withheld"] = res.get("reason")
@@ -521,8 +604,15 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                                  if k != "intraday"}))}
                        for s in ed["sections"] if s["id"] != "read"],
           "levels": (tape.get("data") or {}).get("levels")}
-    res = run("read", rp, stack_system_prompt(base) + READ_RULES.format(
-        period=cad["period"]), cad["read_chars"])
+    read_sys = stack_system_prompt(base) + READ_RULES.format(period=cad["period"])
+    if cadence == "weekly":
+        # THE WEEK BY DAY (T2.2 item 3): the opening reads from The read's own
+        # table, and a press attribution is the outlet's, never ours.
+        rp["week_by_day"] = read.get("table")
+        rp["press_attributions"] = [i["text"] for i in read["items"]
+                                    if i["key"].startswith("read:attr")]
+        read_sys += WEEKLY_NOTES["read"]
+    res = run("read", rp, read_sys, cad["read_chars"])
     results["read"] = res
     if res.get("published"):
         sents = _sentences(res["text"])
@@ -535,6 +625,18 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                                  "first_reason")}
                    for k, v in results.items()}
     return ed
+
+
+def split_tagged(text: str) -> dict:
+    """'[A] one. [B] two.' -> {'A': 'one.', 'B': 'two.'}; text before the first
+    tag is dropped (the claim was taken from it)."""
+    parts = re.split(r"\[([A-E])\]\s*", text or "")
+    out = {}
+    for i in range(1, len(parts) - 1, 2):
+        body = parts[i + 1].strip()
+        if body:
+            out[parts[i]] = re.sub(r"\s+", " ", body)
+    return out
 
 
 def prose_levels(text: str, book: dict) -> list[str]:

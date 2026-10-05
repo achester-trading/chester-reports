@@ -462,13 +462,13 @@ def main() -> int:
     line = vb.daily_line("2026-10-05", "2026-10-05T20:45:00+00:00", DB)
     txt = " ".join(line["lines"])
     check(line.get("story") == "ai_capex_durability"
-          and txt.startswith("Most cited: AI capex durability")
+          and txt.startswith("Most cited: AI spending keeps growing")
           and "Dissent: Lima, against" in txt and "https://f.example/Lima" in txt,
           f"the daily line names the most-cited story and its dissent, sourced: "
           f"{txt[:150]}...")
     wk = vb.week_section("2026-10-04", "2026-10-05T20:45:00+00:00", DB)
     texts = [i["text"] for i in wk["items"]]
-    ai = next(t for t in texts if t.startswith("AI capex durability"))
+    ai = next(t for t in texts if t.startswith("AI spending keeps growing"))
     check("for" in ai and "against" in ai and "Dissent:" in ai,
           f"each story states what moved it for and against and who dissented: {ai}")
     ev_lines = [t for t in texts if t.startswith("— ")]
@@ -503,7 +503,7 @@ def main() -> int:
     with observations.ObservationStore(DB) as st:
         dsec = stack_mod.narratives_section(st, "2026-10-05",
                                             "2026-10-05T20:45:00+00:00")
-    check(dsec["items"][0]["text"].startswith("Most cited: AI capex durability"),
+    check(dsec["items"][0]["text"].startswith("Most cited: AI spending keeps growing"),
           "the daily close's Narratives section leads with the voices line")
     # 13F (ruled 4 Oct): the CIK is resolved from EDGAR's company lookup at run
     # time, held to EDGAR's CURRENT name, cached, and only a match prints.

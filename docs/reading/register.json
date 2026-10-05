@@ -1,0 +1,103 @@
+{
+  "_about": "The reading register: every edition of a shelf publication that has been registered, with its link. The Monthly's Reading chapter prints the entries published in its month; the rule is the voices register's — no stored URL, not printed. Entries are added by `tools/reading_register.py add <watch-file>` from the JSON block at the end of each docs/scans/reading-watch-YYYY-MM-DD.md, or by hand. id = <watchlist id>-<edition>. summary: the preview paragraph the Monthly prints (deep 150-250 words, skim 80-150, null for list items). status: read (a scan exists) | listed (link and headline only) | pending (expected, not yet found; never printed). Never delete an entry; supersede with a new one.",
+  "version": "2026-10-05",
+  "entries": [
+    {
+      "id": "jpm-gtm-2026q4",
+      "watch_id": "jpm-gtm",
+      "publication": "Guide to the Markets, U.S. — 4Q 2026",
+      "publisher": "J.P. Morgan Asset Management",
+      "group": "chartbook",
+      "edition": "4Q 2026",
+      "as_of": "2026-09-30",
+      "published": "2026-10-01",
+      "url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/global/en/insights/market-insights/guide-to-the-markets/mi-guide-to-the-markets-us.pdf",
+      "read_on": "2026-10-03",
+      "scan": "docs/scans/jpm-gtm-2026q4.md",
+      "status": "read",
+      "line": "Forward P/E 19.0x on a 5.29% 10-year; CAPE 40.9x; EY minus Baa -1.0%; 2026 EPS +31.6% with margins doing most of it; IG OAS at the 5th percentile.",
+      "summary": "JPM's 71-slide quarterly chartbook, data as of 30 September 2026, opens on the S&P 500 at 7,652 (+12.7% year to date, 27 all-time highs) against a 10-year at 5.29%, and most of the deck explains how those two coexist. The answer it gives is earnings: 2026 EPS is forecast at $362, +31.6%, with margin expansion contributing 19.5 points, revenue 13.2 and share count -1.1, and consensus carries $417 and $488 for 2027 and 2028, so the forward multiple compressed from about 22x at the start of the year to 19.0x while the index rose. The valuation slide leads with that 19.0x, barely a standard deviation over its 30-year average of 17.2x, and carries the less comfortable measures beneath it: CAPE at 40.9x against 28.9x, and the forward earnings yield minus the Baa corporate yield at -1.0% against +0.7%. The rates slides show the curve up 100-140 bp year to date and bear-flattened, with the 10-year -5.3% and the 30-year -8.1% in total return, the Agg yielding 5.56%, and the September dots at 4.10% through 2027 against an OIS curve near 4.9%. The AI slides decompose 53.2% of the index into five buckets and show leadership rotating inside the complex, semis +44% and hardware +37% against hyperscalers +7% and software +4%, with hyperscaler capex on a path from $416bn to $1.2tn by 2028 and free cash flow heading toward zero. Credit sits at an 80 bp IG spread, the 5th percentile of 25 years, with all-in yields at the 88th. The economy section carries a 58.4 US composite PMI, a 71K three-month payroll average, CPI at 3.4%, consumer sentiment at 48.1 and a K-shaped net-worth split. New this edition: a hyperscalers-in-credit slide and a K-shaped-economy slide. Slides worth the time: 4 (inflection points), 5, 8, 11, 22, 36 and 37.",
+      "themes": [
+        "rates did the de-rating",
+        "AI leadership rotating to semis and hardware",
+        "credit complacency",
+        "K-shape"
+      ],
+      "candidates": [
+        "GTM-1 to GTM-23 (ruled 2026-10-03; docs/change-order-jpm-gtm-2026-10-03.md)"
+      ]
+    },
+    {
+      "id": "cembalest-eotm-2026-09-01",
+      "watch_id": "cembalest-eotm",
+      "publication": "Eye on the Market — Rear Window",
+      "publisher": "J.P. Morgan Private Bank (Michael Cembalest)",
+      "group": "voices",
+      "edition": "1 September 2026",
+      "as_of": null,
+      "published": "2026-09-01",
+      "url": "https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/global/en/insights/eye-on-the-market/rear-window-amv.pdf",
+      "read_on": null,
+      "scan": null,
+      "status": "listed",
+      "line": "Registered on 4 Oct 2026 from the shelf set-up; to be read by the first Publication watch run.",
+      "summary": null,
+      "themes": [],
+      "candidates": []
+    },
+    {
+      "id": "cembalest-eotm-2026-01",
+      "watch_id": "cembalest-eotm",
+      "publication": "Eye on the Market Outlook 2026 — Smothering Heights",
+      "publisher": "J.P. Morgan Private Bank (Michael Cembalest)",
+      "group": "voices",
+      "edition": "2026 Outlook",
+      "as_of": null,
+      "published": "2026-01-01",
+      "url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/global/en/insights/eye-on-the-market/smothering-heights-amv.pdf",
+      "read_on": null,
+      "scan": null,
+      "status": "listed",
+      "line": "The year's outlook piece; registered for reference, outside the first watch window.",
+      "summary": null,
+      "themes": [],
+      "candidates": []
+    },
+    {
+      "id": "fed-fsr-2026-05",
+      "watch_id": "fed-fsr",
+      "publication": "Financial Stability Report — May 2026",
+      "publisher": "Federal Reserve Board",
+      "group": "plumbing",
+      "edition": "May 2026",
+      "as_of": null,
+      "published": "2026-05-08",
+      "url": "https://www.federalreserve.gov/publications/files/financial-stability-report-20260508.pdf",
+      "read_on": null,
+      "scan": null,
+      "status": "listed",
+      "line": "Registered for reference; the November 2026 edition is the first the watch reads.",
+      "summary": null,
+      "themes": [],
+      "candidates": []
+    },
+    {
+      "id": "ubs-giry-2026",
+      "watch_id": "ubs-giry",
+      "publication": "Global Investment Returns Yearbook 2026 — public summary",
+      "publisher": "UBS (Dimson, Marsh, Staunton)",
+      "group": "history",
+      "edition": "2026",
+      "as_of": "2025-12-31",
+      "published": "2026-03-03",
+      "url": "https://www.ubs.com/content/dam/assets/wm/static/cio/documents/giry2026-summary-public.pdf",
+      "read_on": null,
+      "scan": null,
+      "status": "listed",
+      "line": "Registered for reference; the 2027 edition (March) is the first the watch reads.",
+      "summary": null,
+      "themes": [],
+      "candidates": []
+    }
+  ]
+}

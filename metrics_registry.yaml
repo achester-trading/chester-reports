@@ -4545,7 +4545,8 @@ metrics:
 
   # -------------------------------------------------------------------------
   # CFTC COT (ST-2; altdata/sources/cftc.py). instrument JPY | USD_INDEX | SP500 |
-  # UST10Y | VIX (the last three from 3 Oct 2026); observed_at =
+  # UST10Y | VIX (from 3 Oct 2026) | NDX100 | RUSSELL2000 | UST30Y | GOLD | WTI
+  # (from 4 Oct 2026, T2.2); observed_at =
   # the report Tuesday; available_at = Friday 15:30 ET (reconstructed).
   # -------------------------------------------------------------------------
   cftc.noncomm_long:
@@ -4689,6 +4690,63 @@ metrics:
     trigger_eligible: false
     description: >-
       University of Michigan median expected inflation over the next 5-10 years (Table 32, PX5_MD). The preliminary reading is superseded by the final as a later vintage.
+  # SPY'S OWN CHAIN, PER SESSION (T2.2 rulings of 5 Oct; altdata/chain_metrics.py):
+  # the ATM 30-day IV from the chain solver and the volume put/call ratio. Written
+  # by the close from the session's last capture; available_at = the capture.
+  chain.spy_atm_iv_30d:
+    source: spy_chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      SPY at-the-money implied volatility at 30 days, solved from mid prices by tools/iv_solver.py and interpolated in total variance between the bracketing expiries, in percent.
+  chain.spy_put_call_volume:
+    source: spy_chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      SPY total put volume over total call volume across the session's captured chain ("SPY chain, own capture").
+  # NAAIM Exposure Index (T2.2 rulings of 5 Oct; altdata/sources/naaim.py): retried
+  # weekly from the public widget; subscription-based at NAAIM since 1 Aug 2026.
+  naaim.exposure:
+    source: naaim
+    mechanism_group: leverage_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      NAAIM Exposure Index: members' average exposure to US equities, percent, read weekly from NAAIM's public number widget.
+  # AAII Sentiment Survey (T2.2, 4 Oct 2026; altdata/sources/aaii.py): the Weekly's
+  # W9 gauge. Weekly, observed_at = the survey's reported Thursday.
+  aaii.bull_bear_spread:
+    source: aaii
+    mechanism_group: retail_activity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent
+    trigger_eligible: false
+    description: >-
+      AAII Sentiment Survey: the share of individual investors bullish minus the share bearish on the next six months, in percentage points.
   nyfed.sce_3y:
     source: nyfed_sce
     mechanism_group: inflation_expectations
@@ -5818,7 +5876,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 47   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1)
+    expected_members: 50   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5863,7 +5921,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 47   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1)
+    expected_members: 50   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

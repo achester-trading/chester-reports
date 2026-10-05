@@ -85,3 +85,37 @@ def missing(ids: list[str]) -> list[str]:
     """Metric and contradiction ids with no declared label (the gate's check)."""
     m, c = _cfg().get("metrics") or {}, _cfg().get("contradictions") or {}
     return [i for i in ids if i not in m and i not in c]
+
+
+# ---------------------------------------------------------------------------
+# PLAIN LANGUAGE (T2.2, 4 Oct 2026, item 2): the words the prose may use
+# ---------------------------------------------------------------------------
+def contradiction_plain(cid: Optional[str]) -> dict:
+    """{'legs': what each side says, 'closes': what would close it}, or {}. A
+    narrative_vs_data row reads the generic narrative entry."""
+    c = _cfg().get("contradiction_plain") or {}
+    head = str(cid or "").partition(".")[0]
+    return dict(c.get(cid) or c.get(head) or {})
+
+
+def exception_kind(kind: Optional[str]) -> str:
+    return str((_cfg().get("exception_kinds") or {}).get(kind) or kind or "")
+
+
+def story(sid: Optional[str]) -> dict:
+    """{'title', 'statement'} in plain words, or {} for an undeclared story."""
+    return dict((_cfg().get("stories") or {}).get(sid) or {})
+
+
+def sector(ticker: Optional[str]) -> str:
+    """'Health Care (XLV)' for 'XLV'; the ticker itself when undeclared."""
+    t = str(ticker or "").upper()
+    return str((_cfg().get("sectors") or {}).get(t) or t)
+
+
+def state(word: Optional[str]) -> str:
+    return str((_cfg().get("states") or {}).get(str(word or "").lower()) or "")
+
+
+def glossary() -> list[dict]:
+    return list(_cfg().get("glossary") or [])

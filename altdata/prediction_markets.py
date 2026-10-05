@@ -216,7 +216,7 @@ def disagreements(rows: list[dict], fed_path: Optional[dict], cfg: dict,
     out: dict[str, Any] = {"fed_funds": [], "scenario": [], "notes": []}
     odds = fomc_venue_odds(rows)
     if not fed_path or not fed_path.get("meetings"):
-        out["notes"].append("venue vs fed funds: no rate path stored")
+        out["notes"].append("prediction markets against fed funds: no rate path stored")
     else:
         for m in fed_path["meetings"]:
             implied = {"hike": 0.0, "hold": 0.0, "cut": 0.0}
@@ -251,8 +251,8 @@ def disagreements(rows: list[dict], fed_path: Optional[dict], cfg: dict,
                                 "gap_points": gap, "threshold_points": th_ff})
     smap = cfg.get("scenario_map") or {}
     if not smap:
-        out["notes"].append("venue vs scenario weight: no venue market is mapped to "
-                            "a scenario in config/prediction_markets.yaml")
+        out["notes"].append("prediction markets against our scenario weights: no "
+                            "prediction market is mapped to a scenario yet")
     for inst, claim in smap.items():
         x = next((y for y in rows if y["instrument"] == inst), None)
         w = (scenario_weights or {}).get(claim)
