@@ -639,13 +639,16 @@ def overnight_intraday(st, sessions: list[str], ending: str, now: str) -> dict:
         out.append({"day": d, "overnight_pct": on, "intraday_pct": intr,
                     "close_to_close_pct": cc})
     totals = ({"overnight_pct": round(100 * (on_tot - 1), 2),
-               "intraday_pct": round(100 * (id_tot - 1), 2)} if out else None)
+               "intraday_pct": round(100 * (id_tot - 1), 2),
+               "close_to_close_pct": round(100 * (on_tot * id_tot - 1), 2)}
+              if out else None)
     table = {"columns": ["Session", "Overnight", "Intraday", "Close to close"],
              "rows": [[_day(r["day"]), _signed(r["overnight_pct"], "%"),
                        _signed(r["intraday_pct"], "%"),
                        _signed(r["close_to_close_pct"], "%")] for r in out]
              + ([["The week", _signed(totals["overnight_pct"], "%"),
-                  _signed(totals["intraday_pct"], "%"), "—"]] if totals else [])}
+                  _signed(totals["intraday_pct"], "%"),
+                  _signed(totals.get("close_to_close_pct"), "%")]] if totals else [])}
     return {"rows": out, "totals": totals, "table": table}
 
 
@@ -672,6 +675,15 @@ def _bn(v: Optional[float], scale: float = 1.0) -> str:
     return (f"${x / 1e12:,.2f}tn" if abs(x) >= 1e12 else f"${x / 1e9:,.0f}bn")
 
 
+def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
+    """A signed dollar change: +$13bn, −$28bn."""
+    if v is None:
+        return "—"
+    x = v * scale
+    sign = "+" if x >= 0 else "−"
+    return sign + _bn(abs(x))
+
+
 def plumbing_rows(st, now: str, then: str) -> dict:
     """Item 3: net liquidity and its legs, SOFR against IORB, the credit
     spreads beside HY, the week's auctions, copper and gold/copper. Rows for
@@ -687,20 +699,21 @@ def plumbing_rows(st, now: str, then: str) -> dict:
     nl, nlp, nla = two("calc.net_liquidity")
     if nl is not None:
         rows.append(["Net liquidity (Fed balance sheet less TGA and RRP)", _bn(nl),
-                     (_bn(nl - nlp) if nlp is not None else "no prior"), nla])
+                     (_bn_change(nl - nlp) if nlp is not None else "no prior"), nla])
         data["net_liquidity"] = {"level": nl, "week_change": None if nlp is None
                                  else nl - nlp, "as_of": nla}
     else:
         nt.append("net liquidity")
-    # H.4.1 legs: reserves and RRP in billions, TGA in millions (CLAUDE.md gotcha).
-    for key, name, scale in (("fred.bank_reserves", "Bank reserves (H.4.1)", 1e9),
+    # H.4.1 legs: reserves and TGA in millions, RRP in billions (CLAUDE.md gotcha;
+    # WRESBAL was declared "B" until the first live render read $2,948tn).
+    for key, name, scale in (("fred.bank_reserves", "Bank reserves (H.4.1)", 1e6),
                              ("fred.tga", "Treasury General Account (H.4.1)", 1e6),
                              ("fred.rrp", "Reverse repo (RRP)", 1e9)):
         v, pv, asof = two(key)
         if v is None:
             nt.append(name)
             continue
-        rows.append([name, _bn(v, scale), _bn((v - pv) if pv is not None else None, scale)
+        rows.append([name, _bn(v, scale), _bn_change(v - pv, scale)
                      if pv is not None else "no prior", asof])
     so, sop, soa = two("fred.sofr")
     io, iop, ioa = two("fred.iorb")
@@ -734,12 +747,13 @@ def plumbing_rows(st, now: str, then: str) -> dict:
     au, aup, _ = two("yfinance.mkt_gold_front")
     if cu is not None:
         rows.append(["Copper, front future ($/lb; a growth gauge)", f"{cu:,.3f}",
-                     _signed(_ret(cu, cup), "%"), cua])
+                     _signed(_ret(cu, cup), "%") if cup else "no prior", cua])
         if au is not None:
             r = au / cu
             rp = (aup / cup) if None not in (aup, cup) else None
             rows.append(["Gold over copper (rises when growth fears rise)",
-                         f"{r:,.0f}", _signed(_ret(r, rp), "%"), cua])
+                         f"{r:,.0f}", _signed(_ret(r, rp), "%") if rp else "no prior",
+                         cua])
             data["gold_copper"] = round(r, 1)
     else:
         nt.append("copper (the price feed adds HG=F from the next run)")
@@ -762,6 +776,8 @@ def plumbing_rows(st, now: str, then: str) -> dict:
                      f"bid-to-cover {btc['value_num']:.2f}" if btc else "—",
                      f"dealers took {100 * dl['value_num']:.0f}%" if dl else "—",
                      "tail not stored"])
+    if not auctions:
+        rows.append(["Treasury coupon auctions this week", "none held", "—", "—"])
     data["auctions"] = auctions
     return {"rows": rows, "data": data, "not_tracked": nt}
 
@@ -778,8 +794,8 @@ def global_fx(st, now: str, then: str) -> dict:
             nt.append(name.split(" (")[0] + " (the price feed adds it from the next run)")
             continue
         rows.append([name, f"{a['value_num']:,.{dp}f}",
-                     _signed(_ret(a["value_num"], b["value_num"] if b else None), "%"),
-                     str(a["observed_at"])[:10]])
+                     _signed(_ret(a["value_num"], b["value_num"]), "%") if b
+                     else "no prior", str(a["observed_at"])[:10]])
     for key, name in (("mof.jgb_10y", "Japan 10-year (JGB)"),
                       ("mof.jgb_30y", "Japan 30-year (JGB)")):
         a = st.latest_as_of(key, now)

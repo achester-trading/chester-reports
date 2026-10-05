@@ -86,7 +86,7 @@ def seed_t23(db: str, sessions: list[str]) -> None:
     for d, scale in ((prev, 1.0), (sessions[-1], 1.0)):
         last = d == sessions[-1]
         put("calc.net_liquidity", d, 5.87e12 if last else 5.80e12)
-        put("fred.bank_reserves", d, 3200.0 if last else 3150.0)
+        put("fred.bank_reserves", d, 3200000.0 if last else 3150000.0)
         put("fred.tga", d, 830296.0 if last else 800000.0)
         put("fred.rrp", d, 120.0 if last else 140.0)
         put("fred.sofr", d, 4.40 if last else 4.36)
@@ -200,7 +200,9 @@ def main() -> int:
     tsubs = {ss["title"]: ss for ss in sec["tape"]["subsections"]}
     check("SPY overnight against the cash session" in tsubs
           and tsubs["SPY overnight against the cash session"]["table"]["rows"][-1][0]
-          == "The week", "the tape carries the table with the week's totals")
+          == "The week" and tsubs["SPY overnight against the cash session"]["table"]
+          ["rows"][-1][3] != "—", "the tape carries the table with the week's totals, "
+          "close to close included")
     book = {"instruments": [{"id": "spy", "ohlc": {"open": 701.0},
                              "frame": {"last": 700.0},
                              "levels": [{"type": "prior_close", "value": 697.0}]}]}
@@ -216,7 +218,7 @@ def main() -> int:
     prow = {r[0]: r for r in sec["plumbing"]["table"]["rows"]}
     check(prow.get("Net liquidity (Fed balance sheet less TGA and RRP)", [None, None])[1]
           == "$5.87tn" and prow["Net liquidity (Fed balance sheet less TGA and RRP)"][2]
-          == "$70bn", f"net liquidity in dollars, with its week change "
+          == "+$70bn", f"net liquidity in dollars, with its week change "
                       f"({prow.get('Net liquidity (Fed balance sheet less TGA and RRP)')})")
     check(prow.get("Treasury General Account (H.4.1)", [0, 0])[1] == "$830bn"
           and prow.get("Bank reserves (H.4.1)", [0, 0])[1] == "$3.20tn",
@@ -230,6 +232,11 @@ def main() -> int:
     check(cb and cb[1] == "520 bp" and cb[2] == "+25 bp" and "CCC OAS" in prow
           and "Investment-grade OAS" in prow, f"IG, CCC and CCC less BB ({cb})")
     auc = [r for r in sec["plumbing"]["table"]["rows"] if "auction" in r[0]]
+    with observations.ObservationStore(db) as st:
+        quiet = wsec.plumbing_rows(st, "2026-08-08T09:00:00+00:00",
+                                   "2026-08-01T09:00:00+00:00")
+    check(any(r[:2] == ["Treasury coupon auctions this week", "none held"]
+              for r in quiet["rows"]), "a week without a coupon auction says so")
     check(auc and "bid-to-cover 2.51" in auc[0][1] and "dealers took 14%" in auc[0][2]
           and auc[0][3] == "tail not stored", f"the week's auctions ({auc[:1]})")
     check("Copper, front future ($/lb; a growth gauge)" in prow

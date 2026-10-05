@@ -77,7 +77,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("m2",               "M2SL",       "M2 money stock",                  "3", "B",    "monthly"),
     SeriesSpec("nfci",             "NFCI",       "Chicago Fed NFCI",                "3", "idx",  "weekly"),
     SeriesSpec("nfci_lev",         "NFCILEVERAGE","NFCI leverage subindex",         "3", "idx",  "weekly"),
-    SeriesSpec("bank_reserves",    "WRESBAL",    "Bank reserves at Fed",            "3", "B",    "weekly"),
+    SeriesSpec("bank_reserves",    "WRESBAL",    "Bank reserves at Fed",            "3", "M",    "weekly"),
 
     # Pillar 4 — Inflation
     SeriesSpec("cpi",              "CPIAUCSL",   "CPI, all items",                  "4", "idx",  "monthly"),
