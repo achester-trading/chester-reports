@@ -138,7 +138,7 @@ sources:
     url: "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/"
     link_pattern: '/us/en/asset-management/adv/insights/market-insights/[a-z0-9-]+/[a-z0-9-]+/'
     default_voice: "J.P. Morgan Asset Management, Global Market Insights"
-    default_kind: sell_side
+    default_kind: buy_side
 
   - id: morgan_stanley_ideas
     name: "Morgan Stanley Ideas"
@@ -209,6 +209,73 @@ sources:
     # the page's other dates belong to related items.
     date_pattern: ['article-banner__caption">[^|<]*\|\s*([A-Z][a-z]+ \d{1,2}, 20\d\d)']
 
+  # --- Added 4 Oct 2026 (Phase B ruling 5): the regional Feds, Treasury, the ECB
+  # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
+  # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.
+  - id: sf_fed_speeches
+    name: "Federal Reserve Bank of San Francisco: speeches"
+    outlet: "Federal Reserve Bank of San Francisco"
+    method: rss
+    url: "https://www.frbsf.org/feed/?post_type=speech"
+    default_kind: official
+
+  - id: dallas_fed_speeches
+    name: "Federal Reserve Bank of Dallas: speeches"
+    outlet: "Federal Reserve Bank of Dallas"
+    method: rss
+    url: "https://www.dallasfed.org/rss/speeches.xml"
+    default_kind: official
+
+  - id: chicago_fed_speeches
+    name: "Federal Reserve Bank of Chicago: the president's speeches"
+    outlet: "Federal Reserve Bank of Chicago"
+    method: listing
+    url: "https://www.chicagofed.org/utilities/about-us/office-of-the-president/office-of-the-president-speaking"
+    link_pattern: '/publications/speeches/20\d\d/[a-z0-9-]+'
+    # The speech pages carry no date metadata; the path does (/2026/sept-30-norc).
+    url_date_pattern: '/speeches/(?P<year>20\d\d)/(?P<month>[a-z]+)-(?P<day>\d{1,2})-'
+    default_kind: official
+
+  - id: treasury_press
+    name: "U.S. Treasury press releases"
+    outlet: "U.S. Treasury"
+    method: listing
+    url: "https://home.treasury.gov/news/press-releases"
+    link_pattern: '/news/press-releases/[a-z]{2}\d{3,5}'
+    # The release date is an unquoted <time datetime=...> attribute.
+    date_pattern: ['<time datetime=([0-9T:Z-]+)']
+    # Most releases are sanctions and enforcement; the scan wants the Secretary's
+    # and the department's statements on the economy, borrowing and markets.
+    require_any: [secretary, remarks, testimony, statement, economy,
+                  refunding, borrowing, debt, deficit, tariff, markets, dollar]
+    default_kind: official
+
+  - id: ecb_speeches
+    name: "European Central Bank: speeches"
+    outlet: "European Central Bank"
+    method: rss
+    url: "https://www.ecb.europa.eu/rss/press.html"
+    # The press feed mixes speeches with decisions and statistics; speeches only.
+    link_filter: '/press/key/date/.*\.html$'
+    default_kind: official
+    note: "the laptop's Python failed certificate verification on ecb.europa.eu on 4 Oct (curl succeeded); if the box fails the same way it prints unreachable"
+
+  - id: boe_speeches
+    name: "Bank of England: speeches"
+    outlet: "Bank of England"
+    method: rss
+    url: "https://www.bankofengland.co.uk/rss/speeches"
+    default_kind: official
+
+  - id: yahoo_finance
+    name: "Yahoo Finance news"
+    outlet: "Yahoo Finance"
+    method: rss
+    url: "https://finance.yahoo.com/news/rssindex"
+    require_any: [strategist, strategists, analyst, analysts, economist, chief,
+                  "Wall Street", forecast, outlook, "price target", sees, says, warns]
+    note: "tier 3 in source_tiers.yaml: stored and shown, never counted toward attention or a consensus"
+
 # -----------------------------------------------------------------------------
 # SOURCES TRIED AND NOT USED, 4 Oct 2026 -- kept so the next attempt starts from
 # evidence rather than repeating these.
@@ -220,6 +287,9 @@ not_used:
   - {name: "Oaktree memos", reason: "the listing page renders its links client-side; nothing to follow without a browser"}
   - {name: "Yardeni QuickTakes", reason: "certificate verification failed on the feed"}
   - {name: "LPL Research", reason: "403 to the project's User-Agent"}
+  - {name: "MarketWatch (asked for 4 Oct)", reason: "the Dow Jones feeds serve, but every item links to marketwatch.com/story, and marketwatch.com/robots.txt disallows / for every user agent"}
+  - {name: "New York Fed speeches (asked for 4 Oct)", reason: "robots.txt allows the page, but its speech links are rendered client-side and no feed was found (/rss/speeches and /feeds/speeches.xml return HTML)"}
+  - {name: "Atlanta Fed speeches (asked for 4 Oct)", reason: "robots.txt allows the page, but its speech links are rendered client-side; /rss/speeches is 404"}
   - {name: "Charles Schwab, Vanguard, Wells Fargo Investment Institute", reason: "the insight paths tried returned 404; no feed found"}
   - {name: "Franklin Templeton, State Street, Invesco", reason: "the listing pages render their article links client-side (0-1 links served)"}
 
@@ -230,11 +300,12 @@ not_used:
 seeds:
   # docs/change-order-jpm-gtm-2026-10-03.md, the voices entry; the stance is the
   # scan's (docs/scans/jpm-gtm-2026q4.md), inferred from exhibit selection rather
-  # than stated, and the view line says so. The change order names it the first
-  # sell-side row. Its status (NEW) is computed, not declared here.
+  # than stated, and the view line says so. Buy-side: an asset manager (ruled
+  # 4 Oct 2026; the change order said sell-side and now says buy-side). Its
+  # status (NEW) is computed, not declared here.
   - voice: "J.P. Morgan Asset Management, Global Market Insights"
     affiliation: "J.P. Morgan Asset Management"
-    kind: sell_side
+    kind: buy_side
     outlet: "J.P. Morgan Asset Management"
     title: "Guide to the Markets, U.S. 4Q 2026"
     source_url: "https://am.jpmorgan.com/content/dam/jpm-am-aem/global/en/insights/market-insights/guide-to-the-markets/mi-guide-to-the-markets-us.pdf"
@@ -253,16 +324,20 @@ seeds:
 # -----------------------------------------------------------------------------
 # 13F -- positioning from SEC EDGAR, where a voice's firm files one.
 # -----------------------------------------------------------------------------
-# Affiliation (as the voices table carries it) -> the filer's CIK. Read by the
-# Monthly only, through the EDGAR contact; dated to the filing's period of report,
-# never to the filing date. A firm not listed prints no positioning, not a guess.
-# The CIKs are as published by EDGAR's company search; the first box run with the
-# contact set confirms each name against the filer record and prints any mismatch.
+# Affiliation (as the voices table carries it, matched by prefix: "BlackRock"
+# covers "BlackRock Investment Institute") -> the NAME its firm files 13F under.
+# NAMES ONLY, NEVER A CIK (ruled 4 Oct 2026): the scan resolves each CIK at run
+# time from EDGAR's company lookup, caches it, and counts it only when EDGAR's
+# current name for that CIK equals the name here. Any that does not match is
+# printed in the scan's log, and no 13F prints for that voice until it does. A
+# voice whose affiliation is not listed here is looked up under the affiliation
+# itself. Read by the Monthly only, dated to the filing's period of report.
 filers_13f:
-  "J.P. Morgan Asset Management": {cik: "0000019617", filer: "JPMORGAN CHASE & CO"}
-  "Goldman Sachs":                {cik: "0000886982", filer: "GOLDMAN SACHS GROUP INC"}
-  "Morgan Stanley":               {cik: "0000895421", filer: "MORGAN STANLEY"}
-  "BlackRock":                    {cik: "0002012383", filer: "BlackRock, Inc."}
-  "T. Rowe Price":                {cik: "0000080255", filer: "PRICE T ROWE ASSOCIATES INC /MD/"}
-  "Bridgewater Associates":       {cik: "0001350694", filer: "Bridgewater Associates, LP"}
-  "GMO":                          {cik: "0000859804", filer: "GRANTHAM, MAYO, VAN OTTERLOO & CO. LLC"}
+  "J.P. Morgan Asset Management": "JPMORGAN CHASE & CO"
+  "Goldman Sachs": "GOLDMAN SACHS GROUP INC"
+  "Morgan Stanley": "MORGAN STANLEY"
+  "BlackRock": "BlackRock, Inc."
+  "PIMCO": "PACIFIC INVESTMENT MANAGEMENT CO LLC"
+  "T. Rowe Price": "PRICE T ROWE ASSOCIATES INC /MD/"
+  "Bridgewater Associates": "Bridgewater Associates, LP"
+  "GMO": "GRANTHAM, MAYO, VAN OTTERLOO & CO. LLC"

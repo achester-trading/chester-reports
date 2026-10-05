@@ -40,6 +40,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -504,23 +505,95 @@ def main() -> int:
                                             "2026-10-05T20:45:00+00:00")
     check(dsec["items"][0]["text"].startswith("Most cited: AI capex durability"),
           "the daily close's Narratives section leads with the voices line")
+    # 13F (ruled 4 Oct): the CIK is resolved from EDGAR's company lookup at run
+    # time, held to EDGAR's CURRENT name, cached, and only a match prints.
+    lookup = ["MORGAN STANLEY:0000895421:",
+              "GRANTHAM, MAYO, VAN OTTERLOO & CO. LLC:0000999001:",
+              "BLACKROCK INC.:0001364742:", "BlackRock, Inc.:0002012383:",
+              "UNRELATED FIRM:0000000042:"]
+    subs = {"0000895421": {"name": "MORGAN STANLEY", "filings": {"recent": {
+                "form": ["10-Q", "13F-HR"], "accessionNumber": ["a-1", "0000895421-26-000001"],
+                "reportDate": ["2026-06-30", "2026-06-30"],
+                "filingDate": ["2026-08-01", "2026-08-14"]}}},
+            "0000999001": {"name": "GMO TRUST (A DIFFERENT FILER NOW)",
+                           "filings": {"recent": {"form": []}}},
+            "0001364742": {"name": "BlackRock Finance, Inc.",
+                           "filings": {"recent": {"form": []}}},
+            "0002012383": {"name": "BlackRock, Inc.", "filings": {"recent": {
+                "form": ["13F-HR"], "accessionNumber": ["0002012383-26-000009"],
+                "reportDate": ["2026-06-30"], "filingDate": ["2026-08-13"]}}}}
+    asked = []
+
+    def sec_get(url):
+        asked.append(url)
+        cik = url.rsplit("CIK", 1)[1].split(".")[0]
+        if cik not in subs:
+            raise OSError("fixture: no such CIK")
+        return json.dumps(subs[cik]).encode()
+    r13 = vsn.pull_13f(DB, ua=ua, getter=sec_get, lines=iter(lookup))
     with vmod.VoicesStore() as vs:
-        vs.write_13f({"accession": "0000895421-26-000001",
-                      "affiliation": "Morgan Stanley", "cik": "0000895421",
-                      "edgar_name": "MORGAN STANLEY", "expected_name": "MORGAN STANLEY",
-                      "form": "13F-HR", "period_of_report": "2026-06-30",
-                      "filed": "2026-08-14", "source_url":
-                      "https://www.sec.gov/Archives/edgar/data/895421/x-index.htm",
-                      "retrieved_at": "2026-10-01T11:00:00+00:00"})
+        ck = vs.cik_rows()
+    check(ck.get("Morgan Stanley", {}).get("state") == "matched"
+          and ck["Morgan Stanley"]["cik"] == "0000895421",
+          "a voice's CIK is resolved from EDGAR's company lookup and matched on "
+          "EDGAR's current name")
+    check(ck.get("BlackRock Investment Institute", {}).get("state") == "matched"
+          and ck["BlackRock Investment Institute"]["cik"] == "0002012383",
+          "a name two CIKs have carried resolves to the one EDGAR names so today "
+          "(the former holding company is not taken)")
+    check(ck.get("GMO", {}).get("state") == "unmatched"
+          and any(m.startswith("GMO:") for m in r13["mismatches"]),
+          f"a name that does not match is printed: {r13['mismatches'][:1]}")
+    check(all(c["state"] != "matched" for a, c in ck.items()
+              if a not in ("Morgan Stanley", "BlackRock Investment Institute")),
+          "every other affiliation is unmatched, not guessed")
+    n_asked = len(asked)
+    vsn.pull_13f(DB, ua=ua, getter=sec_get, lines=iter([]))
+    with vmod.VoicesStore() as vs:
+        ck2 = vs.cik_rows()
+    check(ck2["Morgan Stanley"]["state"] == "matched"
+          and ck2["GMO"]["resolved_at"] == ck["GMO"]["resolved_at"],
+          "the resolution is cached: a matched CIK stays matched and an unmatched "
+          "one is not looked up again inside a week")
     mb = vb.month_block("2026-10-31", "2026-11-01T12:00:00+00:00", DB)
     from monthly_macro.writer import render_v2
     md = render_v2.voices_section({"voices": mb, "tie_backs": {}})
     kilo = next(r for r in mb["table"]["rows"] if r[0] == "Kilo")
+    lima = next(r for r in mb["table"]["rows"] if r[0] == "Lima")
     check("| Voice | Affiliation |" in md and "13F (period of report)" in md
           and "13F-HR for 2026-06-30" in kilo[-1] and "**The four weeks, by story**"
           in md and "Consensus vs contrarian" in md,
           "the Monthly's section 4: monthly status, 13F dated to its period of "
           "report, the weeks rolled up by story, the consensus line")
+    check(lima[-1] == "—",
+          "no 13F figure prints for a voice whose CIK has not matched (GMO)")
+    cfg13 = vmod.load_config().get("filers_13f") or {}
+    check(cfg13 and all(isinstance(v, str) and not re.fullmatch(r"\d+", v)
+                        for v in cfg13.values())
+          and "cik" not in json.dumps(cfg13).lower(),
+          "no hand-typed CIK anywhere in the config: names only")
+
+    # The scanner's declared helpers for the sources added on 4 Oct.
+    check(vsn.url_date("https://x.example/publications/speeches/2026/sept-30-norc",
+                       r"/speeches/(?P<year>20\d\d)/(?P<month>[a-z]+)-(?P<day>\d{1,2})-")
+          == "2026-09-30",
+          "a date the URL carries is read by the source's declared pattern")
+    ecb_cfg = json.loads(json.dumps(scan_cfg(), default=str))
+    ecb_cfg["sources"] = [{"id": "fx_ecb", "name": "Fixture ECB",
+                           "outlet": "European Central Bank", "method": "rss",
+                           "url": "https://ecb.example/rss.xml",
+                           "link_filter": "/press/key/date/.*\\.html$"}]
+    ecb_pages = {"https://ecb.example/robots.txt": ROBOTS_OK,
+                 "https://ecb.example/rss.xml": rss([
+                     ("A speech", "https://ecb.example/press/key/date/2026/sp1.en.html",
+                      "Fri, 02 Oct 2026 10:00:00 GMT", "s"),
+                     ("A decision", "https://ecb.example/press/govcdec/2026/d1.en.html",
+                      "Fri, 02 Oct 2026 10:00:00 GMT", "d")])}
+    re_ = vsn.run(str(Path(TMP) / "ecb.db"), ua=ua, use_model=False,
+                  fetcher=vsn.Fetcher(ua, 0, opener=FakeWeb(ecb_pages)),
+                  today=today, cfg=ecb_cfg)
+    check(re_["sources"]["fx_ecb"]["candidates"] == 1,
+          "a mixed feed keeps only the links its source declares (speeches)")
 
     # --- F. ITEM 7, THE SOURCE LIST, THE SEED ---------------------------------
     print(f"\n{LINE}\nF. THE STORY QUERIES FOLDED IN; THE SOURCES; THE SEED\n{LINE}")
@@ -566,8 +639,9 @@ def main() -> int:
     check(gtm and gtm[0]["status"] == "NEW"
           and gtm[0]["row"]["published_at"] == "2026-09-30"
           and gtm[0]["row"]["source_url"].startswith("https://am.jpmorgan.com/")
-          and gtm[0]["row"]["tier"] == 2,
-          "its status is computed NEW, sourced to the GTM URL, 30 Sep 2026, tier 2")
+          and gtm[0]["row"]["tier"] == 2 and gtm[0]["row"]["kind"] == "buy_side",
+          "its status is computed NEW, sourced to the GTM URL, 30 Sep 2026, tier 2, "
+          "buy-side (an asset manager)")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

@@ -224,6 +224,23 @@ def page_date(html: str, url: str = "",
     return None
 
 
+def url_date(url: str, pattern: Optional[str]) -> Optional[str]:
+    """A date the URL itself carries, by a source's DECLARED pattern with named
+    groups `year`, `month` (a name or abbreviation) and `day` -- the Chicago
+    Fed's pages carry no date but their path (/2026/sept-30-norc)."""
+    if not pattern:
+        return None
+    m = re.search(pattern, url or "")
+    if not m:
+        return None
+    mon = m.group("month").lower()
+    num = MONTHS.get(mon) or MON3.get(mon[:3])
+    try:
+        return dt.date(int(m.group("year")), int(num), int(m.group("day"))).isoformat()
+    except (TypeError, ValueError):
+        return None
+
+
 def _meta(html: str, *names: str) -> Optional[str]:
     for n in names:
         for p in (rf'<meta[^>]+(?:property|name)="{n}"[^>]+content="([^"]*)"',
@@ -386,8 +403,13 @@ def _candidates(src: dict, f: Fetcher, cfg: dict) -> list[dict]:
     raw = f.get(src["url"])
     if src["method"] == "rss":
         out = []
+        keep = re.compile(src["link_filter"]) if src.get("link_filter") else None
         for it in news.parse_feed(raw):
             when = news._when(it["published_raw"])
+            # A feed that mixes kinds (the ECB's press feed carries speeches,
+            # decisions and statistics) declares which links are its voices.
+            if keep and not keep.search(it["url"] or ""):
+                continue
             out.append({"url": it["url"].strip(), "title": it["title"],
                         "summary": re.sub(r"\s+", " ", it.get("body") or "").strip(),
                         "published": when[:10] if when else None,
@@ -511,7 +533,8 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                                      published_at=c["published"], title=c["title"],
                                      reason="no strategist or forecast word")
                         continue
-                if fetched >= int(cfg.get("max_fetch_per_source") or 10) or                         time.monotonic() > deadline:
+                if (fetched >= int(cfg.get("max_fetch_per_source") or 10)
+                        or time.monotonic() > deadline):
                     break                     # the rest wait for tomorrow, unseen
                 fetch_url = c.get("fetch_url") or url
                 if not f.allowed(fetch_url):
@@ -526,7 +549,8 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                 fetched += 1
                 rep["new_items"] += 1
                 title = c["title"] or page_title(page) or url
-                pub = c["published"] or page_date(page, url, s.get("date_pattern"))
+                pub = (c["published"] or page_date(page, url, s.get("date_pattern"))
+                       or url_date(url, s.get("url_date_pattern")))
                 if not pub:
                     vs.mark_seen(s["id"], url, "undated", title=title,
                                  reason="no published date on the feed or the page")
@@ -534,6 +558,14 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                     continue
                 if pub < lookback:
                     vs.mark_seen(s["id"], url, "old", published_at=pub, title=title)
+                    continue
+                # A listing's title is known only now; a source that declares
+                # topic words is held to them here, before any model call. The
+                # TITLE only: a page's navigation names every topic it has.
+                if req and c["title"] is None and not any(
+                        w in str(title).lower() for w in req):
+                    vs.mark_seen(s["id"], url, "filtered", published_at=pub,
+                                 title=title, reason="none of the declared topic words")
                     continue
                 item = {"url": url, "title": title, "published": pub,
                         "state": "candidate"}
@@ -616,55 +648,155 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
 
 
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+# EDGAR's company lookup: every name a CIK has filed under, one "NAME:CIK:" line
+# each. Streamed, never held whole; read only when an affiliation is unresolved.
+LOOKUP_URL = "https://www.sec.gov/Archives/edgar/cik-lookup-data.txt"
 FILING_URL = ("https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/"
               "{acc}-index.htm")
+# An affiliation that did not match is looked up again after this many days, not
+# every morning: the lookup file is large, and a firm that does not file 13F under
+# the expected name will not start to overnight.
+RETRY_UNMATCHED_DAYS = 7
+
+
+def _lookup_lines(ua: str):
+    """EDGAR's company lookup, line by line, over one request."""
+    req = urllib.request.Request(LOOKUP_URL, headers={"User-Agent": ua})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        for raw in r:
+            yield raw.decode("latin-1", "replace").rstrip("\r\n")
+
+
+def lookup_ciks(lines, wanted: set[str]) -> dict[str, set[str]]:
+    """Normalised expected name -> every CIK EDGAR lists under that name (a
+    CIK's former names are listed too, which is why candidates are then held
+    to the filer's CURRENT name)."""
+    out: dict[str, set[str]] = {w: set() for w in wanted}
+    for ln in lines:
+        parts = ln.rsplit(":", 2)
+        if len(parts) < 3:
+            continue
+        n = vmod.norm_name(parts[0])
+        if n in out and parts[1].strip().isdigit():
+            out[n].add(parts[1].strip().zfill(10))
+    return out
 
 
 def pull_13f(db_path: Optional[str] = None, *, ua: Optional[str] = None,
              getter: Optional[Callable[[str], bytes]] = None,
-             cfg: Optional[dict] = None) -> dict:
-    """The latest 13F-HR filings of each declared filer, into voice_13f. Needs
-    the EDGAR contact (EDGAR refuses a User-Agent without one); dormant without
-    it, as edgar.py is. One request per filer."""
+             lines=None, cfg: Optional[dict] = None) -> dict:
+    """13F for every voice whose firm files one (ruled 4 Oct 2026).
+
+    1. Each stored voice's affiliation (officials excluded) is mapped to the
+       EDGAR name its firm is expected to file under (`filers_13f`, names only;
+       otherwise the affiliation itself).
+    2. The CIK is RESOLVED AT RUN TIME from EDGAR's company lookup and cached in
+       voice_13f_ciks. A candidate counts only if EDGAR's current name for it
+       equals the expected name; none is `unmatched`, two are `ambiguous`, and
+       both are printed. No hand-typed CIK exists anywhere.
+    3. For each matched CIK, its recent 13F-HR filings are stored, dated to their
+       period of report. The reports print a 13F only for a matched CIK.
+
+    Needs the EDGAR contact; dormant without it, as edgar.py is."""
     cfg = cfg or vmod.load_config()
     ua = ua or user_agent()
-    filers = cfg.get("filers_13f") or {}
     if not ua:
         return {"state": "not_configured",
                 "reason": "CHESTER_SEC_CONTACT is unset (EDGAR refuses an "
                           "anonymous User-Agent)"}
     get = getter or Fetcher(ua, 0.2).get
-    out: dict[str, Any] = {"state": "ok", "filers": {}}
+    out: dict[str, Any] = {"state": "ok", "filers": {}, "mismatches": []}
     now = session.utc_iso()
-    with vmod.VoicesStore(db_path) as vs:
-        for aff, spec in filers.items():
-            cik = str(spec.get("cik") or "").zfill(10)
+    retry_before = (dt.datetime.fromisoformat(now.replace("Z", "+00:00"))
+                    - dt.timedelta(days=RETRY_UNMATCHED_DAYS)).isoformat()
+    subs: dict[str, dict] = {}
+
+    def submissions(cik: str) -> Optional[dict]:
+        if cik not in subs:
             try:
-                j = json.loads(get(SUBMISSIONS_URL.format(cik=cik)))
+                subs[cik] = json.loads(get(SUBMISSIONS_URL.format(cik=cik)))
+            except Exception:                                   # noqa: BLE001
+                subs[cik] = None
+        return subs[cik]
+
+    with vmod.VoicesStore(db_path) as vs:
+        affs = sorted({r["affiliation"] for r in vs.rows()
+                       if r["kind"] != "official"})
+        cache = vs.cik_rows()
+        todo = {}
+        for a in affs:
+            exp = vmod.expected_filer(a, cfg)
+            c = cache.get(a)
+            if c and c["state"] == "matched" and c["expected_name"] == exp:
+                continue
+            if c and c["expected_name"] == exp and c["resolved_at"] > retry_before:
+                continue                      # unmatched recently; wait a week
+            todo[a] = exp
+        if todo:
+            try:
+                found = lookup_ciks(lines if lines is not None else _lookup_lines(ua),
+                                    {vmod.norm_name(e) for e in todo.values()})
             except Exception as exc:                            # noqa: BLE001
-                out["filers"][aff] = {"state": "unreachable",
-                                      "reason": f"{type(exc).__name__}: {exc}"[:160]}
+                out["state"] = "lookup_unreachable"
+                out["reason"] = f"{type(exc).__name__}: {exc}"[:160]
+                found = None
+            for a, exp in (todo.items() if found is not None else ()):
+                cands = sorted(found.get(vmod.norm_name(exp)) or ())
+                good = []
+                for cik in cands:
+                    j = submissions(cik)
+                    if j and vmod.norm_name(j.get("name")) == vmod.norm_name(exp):
+                        good.append((cik, j.get("name")))
+                if len(good) == 1:
+                    vs.set_cik(a, exp, "matched", cik=good[0][0],
+                               edgar_name=good[0][1])
+                elif not good:
+                    names = [((subs.get(c) or {}).get("name") or "?") for c in cands]
+                    why = (f"no EDGAR filer is currently named {exp!r}"
+                           + (f" (listed under it formerly: {', '.join(names)})"
+                              if names else ""))
+                    vs.set_cik(a, exp, "unmatched", reason=why)
+                    out["mismatches"].append(f"{a}: {why}")
+                else:
+                    why = (f"{len(good)} EDGAR filers are currently named {exp!r}: "
+                           + ", ".join(c for c, _ in good))
+                    vs.set_cik(a, exp, "ambiguous", reason=why)
+                    out["mismatches"].append(f"{a}: {why}")
+        for a, c in vs.cik_rows().items():
+            if c["state"] != "matched":
+                out["filers"][a] = {"state": c["state"], "reason": c["reason"]}
+                continue
+            j = submissions(c["cik"])
+            if not j:
+                out["filers"][a] = {"state": "unreachable"}
+                continue
+            if vmod.norm_name(j.get("name")) != vmod.norm_name(c["expected_name"]):
+                # The filer renamed since it matched: unmatch it, print it.
+                why = (f"EDGAR now names CIK {c['cik']} {j.get('name')!r}, not "
+                       f"{c['expected_name']!r}")
+                vs.set_cik(a, c["expected_name"], "unmatched", cik=c["cik"],
+                           edgar_name=j.get("name"), reason=why)
+                out["mismatches"].append(f"{a}: {why}")
+                out["filers"][a] = {"state": "unmatched", "reason": why}
                 continue
             rec = (j.get("filings") or {}).get("recent") or {}
-            name = j.get("name")
-            n = 0
+            n = seen = 0
             for i, form in enumerate(rec.get("form") or []):
                 if form not in ("13F-HR", "13F-HR/A"):
                     continue
                 acc = rec["accessionNumber"][i]
                 n += vs.write_13f({
-                    "accession": acc, "affiliation": aff, "cik": cik,
-                    "edgar_name": name, "expected_name": spec.get("filer"),
+                    "accession": acc, "affiliation": a, "cik": c["cik"],
+                    "edgar_name": j.get("name"), "expected_name": c["expected_name"],
                     "form": form, "period_of_report": rec["reportDate"][i],
                     "filed": rec["filingDate"][i], "retrieved_at": now,
-                    "source_url": FILING_URL.format(cik=int(cik),
+                    "source_url": FILING_URL.format(cik=int(c["cik"]),
                                                     acc_nodash=acc.replace("-", ""),
                                                     acc=acc)})
-                if n >= 4:
+                seen += 1
+                if seen >= 4:
                     break
-            out["filers"][aff] = {"state": "ok", "edgar_name": name, "new": n,
-                                  "name_matches": (str(name or "").lower()
-                                                   == str(spec.get("filer") or "").lower())}
+            out["filers"][a] = {"state": "matched", "cik": c["cik"], "new": n}
     return out
 
 
@@ -690,10 +822,10 @@ def _main(argv: list[str]) -> int:
         r13 = pull_13f()
         print(f"13F: {r13.get('state')} "
               + "; ".join(f"{k}: {v.get('state')}"
-                          + ("" if v.get("name_matches", True) else
-                             f" (EDGAR name {v.get('edgar_name')!r} differs)")
                           for k, v in (r13.get("filers") or {}).items())
               + (f" {r13.get('reason')}" if r13.get("reason") else ""))
+        for m in r13.get("mismatches") or []:
+            print(f"13F NAME MISMATCH -- no 13F prints for it: {m}")
     for sid, s in (r.get("sources") or {}).items():
         print(f"{sid:<26}{s.get('state', ''):<18}cand={s.get('candidates', 0):<4}"
               f"new={s.get('new_items', 0):<4}extracted={s.get('extracted', 0):<3}"

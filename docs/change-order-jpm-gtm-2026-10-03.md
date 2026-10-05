@@ -41,7 +41,7 @@ Also ruled from the scan:
 - **The triple on every slow-layer row** — latest / long-run average / percentile, with "data as of" — adopted as the Monthly's table form. **T3.**
 - **The core CPI – core PCE gap** as a derived series with a lens (the sign flip is a What-doesn't-fit item). **6e.**
 - **A scans ingest** — the reference table of each `docs/scans/*.md` stored as sourced figures (URL, slide number, as-of), so the Monthly can print them under "No stored source, not printed". **T3.** Without it no LOG item and no by-hand figure can appear.
-- **Voices entry** — J.P. Morgan Asset Management, Global Market Insights (GTM U.S. 4Q 2026, 30 Sep 2026), stance as inferred in the scan, status NEW — the first sell-side row of the Phase B register. **Phase B.**
+- **Voices entry** — J.P. Morgan Asset Management, Global Market Insights (GTM U.S. 4Q 2026, 30 Sep 2026), stance as inferred in the scan, status NEW — the first buy-side row of the Phase B register. **Phase B.**
 - **The disagreement entry** — sentiment at 48.1 with the index at an all-time high has no precedent in the base rate's sample; logged against the base rate's applicability, not as a signal.
 
 ## Build

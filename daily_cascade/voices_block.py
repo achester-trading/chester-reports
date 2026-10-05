@@ -306,15 +306,14 @@ def month_block(month_end: str, as_of: str, db_path: Optional[str] = None) -> di
     end = (dt.date.fromisoformat(month_end[:10]) + dt.timedelta(days=1)).isoformat()
     st = vmod.status_table(end, "monthly", as_of=as_of, db_path=db_path)
     stories = _stories(db_path)
-    cfg = vmod.load_config()
     f13: dict[str, dict] = {}
     with vmod.VoicesStore(db_path, readonly=True) as vs:
+        # Only a CIK that MATCHED EDGAR's current name prints a 13F (4 Oct
+        # ruling); latest_13f returns nothing for any other.
         for v in st["voices"]:
-            k = vmod.filer_for(v["row"]["affiliation"], cfg)
-            if k:
-                f = vs.latest_13f(k, month_end[:10], as_of)
-                if f:
-                    f13[v["voice_key"]] = f
+            f = vs.latest_13f(v["row"]["affiliation"], month_end[:10], as_of)
+            if f:
+                f13[v["voice_key"]] = f
         weeks = []
         e = dt.date.fromisoformat(st["end"])
         while e > dt.date.fromisoformat(st["start"]) and len(weeks) < 5:

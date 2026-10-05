@@ -157,6 +157,21 @@ CREATE TABLE IF NOT EXISTS voice_13f (
     retrieved_at   TEXT NOT NULL
 );
 
+-- WHICH EDGAR FILER A VOICE'S FIRM IS, resolved at run time and cached (ruled
+-- 4 Oct 2026: no hand-typed CIK). `state` is `matched` only when EDGAR's own
+-- current name for the CIK equals the expected name; anything else is printed
+-- by the scan, and no 13F figure prints for that affiliation until it matches.
+CREATE TABLE IF NOT EXISTS voice_13f_ciks (
+    affiliation    TEXT PRIMARY KEY,
+    expected_name  TEXT NOT NULL,
+    cik            TEXT,
+    edgar_name     TEXT,
+    state          TEXT NOT NULL CHECK (state IN ('matched', 'unmatched',
+                                                  'ambiguous')),
+    reason         TEXT,
+    resolved_at    TEXT NOT NULL
+);
+
 -- ONE ROW PER SOURCE PER RUN: what the reports print as "unreachable".
 CREATE TABLE IF NOT EXISTS voice_scan_runs (
     id            INTEGER PRIMARY KEY,
@@ -424,12 +439,38 @@ class VoicesStore:
         self.conn.commit()
         return bool(cur.rowcount)
 
-    def latest_13f(self, affiliation_key: str, on_or_before: str,
+    def set_cik(self, affiliation: str, expected: str, state: str, *,
+                cik: Optional[str] = None, edgar_name: Optional[str] = None,
+                reason: Optional[str] = None) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO voice_13f_ciks (affiliation, expected_name, cik,"
+            " edgar_name, state, reason, resolved_at) VALUES (?,?,?,?,?,?,?)",
+            (affiliation, expected, cik, edgar_name, state, (reason or "")[:300]
+             or None, session.utc_iso()))
+        self.conn.commit()
+
+    def cik_rows(self) -> dict[str, dict]:
+        return {r["affiliation"]: dict(r) for r in
+                self.conn.execute("SELECT * FROM voice_13f_ciks")}
+
+    def matched_cik(self, affiliation: str) -> Optional[str]:
+        r = self.conn.execute(
+            "SELECT cik FROM voice_13f_ciks WHERE affiliation = ? AND "
+            "state = 'matched'", (affiliation,)).fetchone()
+        return r[0] if r else None
+
+    def latest_13f(self, affiliation: str, on_or_before: str,
                    as_of: Optional[str] = None) -> Optional[dict]:
-        q = ("SELECT * FROM voice_13f WHERE affiliation = ? AND period_of_report <= ?"
+        """The latest 13F for the affiliation's MATCHED filer, dated to its
+        period of report. None until the CIK has matched -- a figure from a
+        filer we have not confirmed is the firm's is not printed."""
+        cik = self.matched_cik(affiliation)
+        if not cik:
+            return None
+        q = ("SELECT * FROM voice_13f WHERE cik = ? AND period_of_report <= ?"
              + (" AND retrieved_at <= ?" if as_of else "")
              + " ORDER BY period_of_report DESC, filed DESC LIMIT 1")
-        args = [affiliation_key, on_or_before] + ([as_of] if as_of else [])
+        args = [cik, on_or_before] + ([as_of] if as_of else [])
         r = self.conn.execute(q, args).fetchone()
         return dict(r) if r else None
 
@@ -602,6 +643,21 @@ def filer_for(affiliation: str, cfg: Optional[dict] = None) -> Optional[str]:
     keys = [k for k in ((cfg or load_config()).get("filers_13f") or {})
             if a.startswith(k.lower())]
     return max(keys, key=len) if keys else None
+
+
+def expected_filer(affiliation: str, cfg: Optional[dict] = None) -> str:
+    """The EDGAR name a voice's firm is expected to file 13F under: the declared
+    name where `filers_13f` has one for the affiliation, else the affiliation
+    itself. A NAME, never a CIK -- the CIK is resolved from EDGAR at run time."""
+    cfg = cfg or load_config()
+    k = filer_for(affiliation, cfg)
+    return str((cfg.get("filers_13f") or {})[k]) if k else str(affiliation)
+
+
+def norm_name(name: str) -> str:
+    """EDGAR names compared case- and punctuation-blind ("BlackRock, Inc." is
+    "BLACKROCK INC")."""
+    return re.sub(r"[^a-z0-9]+", "", str(name or "").lower())
 
 
 def seed(db_path: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
