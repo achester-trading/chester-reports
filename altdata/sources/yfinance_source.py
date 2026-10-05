@@ -162,6 +162,12 @@ SYMBOLS: dict[str, str] = {
     # volatility (ICE BofA MOVE), the volatility of the VIX, and Cboe's SKEW. Added
     # by ruling -- the reviewed basket the note above asks for.
     "^MOVE": "mkt_move",
+    # T2.3 (ruled 4 Oct 2026, items 3-4): copper for Plumbing's growth row and the
+    # gold/copper ratio; the yen and the euro for "Global rates and FX" (the yuan
+    # is CNY=X, above).
+    "HG=F": "mkt_copper_front",
+    "JPY=X": "mkt_usdjpy",
+    "EURUSD=X": "mkt_eurusd",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
@@ -211,7 +217,8 @@ SPLIT_SUFFIX = "_split"
 # an ETF and a volatility index exist only while the exchange is open.
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
-CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X"})
+CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
+                                                "EURUSD=X"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside

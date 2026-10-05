@@ -41,6 +41,13 @@ tape:
   - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"]}
   - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"]}
 
+# INTRADAY-ONLY INSTRUMENTS (T2.3, ruled 4 Oct 2026, item 2): pulled into the
+# 5-minute bars table beside the tape set, never printed in the tape's tables.
+# ES=F's FULL SESSION -- 18:00 ET the evening before to 17:00 ET -- so W7 can draw
+# the overnight hours beside the cash session.
+intraday_extra:
+  - {id: es, label: "S&P 500 e-mini (front)", bars: "ES=F", session: full}
+
 # INTRADAY BARS (brief 2.3). Pulled by the `bars` feed in the 16:10 eod run
 # (altdata/feeds.py); the close reads the store only.
 bars:

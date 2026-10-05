@@ -78,12 +78,28 @@ if hasattr(sys.stdout, "reconfigure"):
 CLOSE_HOUR_ET = 16
 
 
+# PER-SYMBOL AVAILABILITY (T2.3 rulings of 5 Oct, item 2). A session-bound
+# symbol's daily bar is complete at the New York close. An FX pair's is not, nor
+# is Bitcoin's: its daily bar is the UTC day, complete at 00:00 UTC the next day, so stamping it
+# at 16:00 ET plus the delay would claim the close about four hours before it
+# existed. Each symbol's rule is declared here; every other symbol is "ny_close".
+AVAILABILITY_RULES = {"JPY=X": "utc_day", "EURUSD=X": "utc_day", "CNY=X": "utc_day",
+                      "BTC-USD": "utc_day"}
+
+
 def reconstructed_available_at(day: str,
-                               latency_minutes: Optional[int] = None) -> str:
-    """When a session's close was knowable: the close plus a declared latency."""
+                               latency_minutes: Optional[int] = None,
+                               symbol: Optional[str] = None) -> str:
+    """When a bar was knowable: its close plus a declared latency -- the New York
+    close for a session-bound symbol, the end of the UTC day for an FX pair or
+    Bitcoin."""
     mins = (yf_src.RECONSTRUCTED_LATENCY_MINUTES if latency_minutes is None
             else latency_minutes)
     d = dt.date.fromisoformat(day[:10])
+    if AVAILABILITY_RULES.get(symbol or "") == "utc_day":
+        end = dt.datetime(d.year, d.month, d.day, tzinfo=dt.timezone.utc) \
+            + dt.timedelta(days=1, minutes=mins)
+        return observations.canonical_instant(end.isoformat())
     naive = dt.datetime(d.year, d.month, d.day, CLOSE_HOUR_ET, 0)
     tz = session._eastern_tz()                                # noqa: SLF001
     eastern = naive.replace(tzinfo=tz) if tz is not None else naive.replace(
@@ -163,7 +179,8 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
                                                        [d for d, _ in closes])):
                 rows += [{"registry_key": f"{metric}{suffix}", "instrument": None,
                           "observed_at": d,
-                          "available_at": reconstructed_available_at(d),
+                          "available_at": reconstructed_available_at(
+                              d, symbol=symbol),
                           "value": v, "source": "yfinance",
                           "availability_kind": "reconstructed"}
                          for d, v in series]

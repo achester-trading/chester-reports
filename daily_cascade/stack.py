@@ -143,6 +143,11 @@ def tape_section(book: dict) -> dict:
                           (f.get("last"), s, [(lv["type"], lv["status"]) for lv in tested])))
         rows.append([i["label"], last, _signed(s, unit), _signed(w, unit),
                      _signed(m, unit)])
+    # OVERNIGHT AGAINST THE CASH SESSION (T2.3 item 1), one line on the close.
+    from .weekly_sections import overnight_line                 # noqa: PLC0415
+    ol = overnight_line(book)
+    if ol:
+        items.insert(0, item("tape:overnight", ol, 1, ol))
         if not i["intraday"]["complete"]:
             gaps.append(f"{i['label']} intraday: {i['intraday']['reason']}")
     return {"items": items,
@@ -786,6 +791,7 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
                     # sub-sections, each with its own table and one paragraph.
                     "print_items": b.get("print_items", True),
                     "prose_paragraphs": b.get("prose_paragraphs"),
+                    "lead_paragraphs": b.get("lead_paragraphs"),
                     "table_note": b.get("table_note"),
                     "subsections": b.get("subsections") or [],
                     "fingerprint": fp, "collapsed": unchanged,

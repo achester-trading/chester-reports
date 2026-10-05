@@ -103,12 +103,20 @@ def events_for(symbol: str) -> tuple[list[ev_mod.Event], dict]:
         cal = t.calendar or {}
         dates = cal.get("Earnings Date") or []
         when = _iso(dates[0] if isinstance(dates, list) and dates else dates)
+        # CONFIRMED OR EXPECTED (T2.3 rulings of 5 Oct, item 1): the calendar
+        # gives a single date once the company has set one and a two-date window
+        # while it is still an estimate. A confirmed date is its own row (its own
+        # title and key), so the moment it became knowable is kept.
+        confirmed = not (isinstance(dates, list) and len(dates) > 1)
         if when:
             out.append(ev_mod.Event(
                 type="scheduled", observed_at=when, source="yfinance",
-                title=f"{symbol} earnings (expected)", entities=[symbol],
-                key=f"earnings-cal-{symbol}-{when[:10]}",
+                title=f"{symbol} earnings ({'confirmed' if confirmed else 'expected'})",
+                entities=[symbol],
+                key=f"earnings-cal-{symbol}-{when[:10]}" + ("-confirmed" if confirmed
+                                                             else ""),
                 payload={"kind": "earnings", "symbol": symbol,
+                         "date_confirmed": confirmed,
                          "eps_estimate": cal.get("Earnings Average"),
                          "eps_estimate_high": cal.get("Earnings High"),
                          "eps_estimate_low": cal.get("Earnings Low"),

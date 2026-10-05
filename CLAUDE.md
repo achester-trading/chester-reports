@@ -406,8 +406,11 @@ regardless of what else it does.
 **Unit mismatch in net liquidity — and the unit this file itself had wrong.**
 (Resolved 24 September 2026; kept here because the trap is generic and the next
 series to hit it will not be net liquidity.)
-`WALCL` (`fed_balance`) **and `WTREGEN` (`tga`) are both in millions**; only
-`RRPONTSYD` (`rrp`) is in billions. This paragraph said TGA was billions, and so
+`WALCL` (`fed_balance`), **`WTREGEN` (`tga`) and `WRESBAL` (`bank_reserves`)
+are all in millions**; only `RRPONTSYD` (`rrp`) is in billions. `WRESBAL` was
+declared `"B"` in `config.py` until 5 October 2026, when the Weekly's first
+Plumbing render printed bank reserves as **$2,948tn** -- the same trap a second
+time, caught only because a figure that absurd was put in front of a reader. This paragraph said TGA was billions, and so
 did `altdata/config.py`'s units field, and so did
 `monthly_macro/compute.py:fed_net_liquidity` — which therefore returned
 **−823.6 trillion** on every run it ever made, and the Monthly printed it as a

@@ -208,9 +208,25 @@ def main() -> int:
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
            "Short interest", "Retail sentiment", "Foreign flows (TIC)"],
           "Positioning in five sub-sections, each with its table")
-    check(len(sec["priced"]["subsections"]) == 3
-          and sec["priced"]["subsections"][1]["title"] == "Prediction markets",
-          "What's priced in three sub-chapters")
+    # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
+    # season by the stored dates, absent otherwise -- so the check asks the season
+    # first, and the fixture must be in season by its stored dates, not by the
+    # fixed windows (2 Oct sits outside them).
+    from altdata import observations as _obs
+    from daily_cascade import weekly_sections as _wsec
+    with _obs.ObservationStore(db) as _st:
+        season = _wsec.earnings_season(_st, vws.ENDING, vws.AS_OF)
+    check(season["in_season"] and season["basis"].startswith("confirmed dates")
+          and season["names"],
+          f"the fixture week is in season by its stored dates, not the fixed "
+          f"windows ({season['basis']}; {season['names']})")
+    titles = [ss["title"] for ss in sec["priced"]["subsections"]]
+    check(titles[:3] == ["Rates priced: the fed-funds path and breakevens",
+                         "Prediction markets", "Surveyed expectations and consensus"]
+          and ("Earnings this week" in titles) == season["in_season"]
+          and len(titles) == 3 + season["in_season"],
+          f"What's priced in three sub-chapters, and the earnings block present "
+          f"when in season, absent otherwise ({titles})")
     check(html.count(">Glossary</h2>") == 1 and html.rfind(">Glossary</h2>") >
           html.rfind("&middot; The book"),
           "the glossary prints once, at the end")
@@ -276,11 +292,14 @@ def main() -> int:
     # --- C. TABLE AND PROSE ------------------------------------------------------
     print(f"\n{LINE}\nC. THE TABLE-AND-PROSE RULE\n{LINE}")
     tt = sec["tape"]["table"]
-    check(tt["columns"] == ["Market", "Last", "Session", "Week", "Month", "YTD",
-                            "Week high / low", "52-week high (distance)",
-                            "vs 20 / 50 / 200-day", "Gamma flip"],
-          "the tape is one table: last, session, week, month, YTD, week range, "
-          "52-week high and distance, the averages, the flip")
+    lv = next(ss for ss in sec["tape"]["subsections"] if ss["title"] == "Levels")
+    check(tt["columns"] == ["Market", "Last", "Session", "Week", "Month", "YTD"]
+          and lv["table"]["columns"] == ["Market", "Week high / low",
+                                         "52-week high (distance)",
+                                         "vs 20 / 50 / 200-day", "Gamma flip"],
+          "the tape: a returns table (last, session, week, month, YTD) and a levels "
+          "table (week range, 52-week high and distance, the averages, the flip) -- "
+          "split for the six-column rule (T2.3)")
     check(not sec["tape"]["print_items"] and not sec["plumbing"]["print_items"],
           "the tape and Plumbing print no bullets; the prose reads the table")
     tape_calls = [c for c in calls if "THE SECTION: The tape." in c]
@@ -354,7 +373,8 @@ def main() -> int:
     g = wsec.flags_for({"close": 700.0}, None, fc)
     check(g["pinned"] is None and g["amplified"] is None and g["call_wall_held"] is None,
           "a flag whose field is missing is None, never guessed")
-    mt = sec["mechanics"]["table"]
+    mt = next(ss for ss in sec["mechanics"]["subsections"]
+              if ss["title"] == "Ranges and flags")["table"]
     check(mt["columns"][-1] == "Flags" and len(mt["rows"]) == len(sessions)
           and any("pinned" in r[-1] for r in mt["rows"]),
           f"the weekly dealer table prints one row per session with its flags "

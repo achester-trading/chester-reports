@@ -77,7 +77,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("m2",               "M2SL",       "M2 money stock",                  "3", "B",    "monthly"),
     SeriesSpec("nfci",             "NFCI",       "Chicago Fed NFCI",                "3", "idx",  "weekly"),
     SeriesSpec("nfci_lev",         "NFCILEVERAGE","NFCI leverage subindex",         "3", "idx",  "weekly"),
-    SeriesSpec("bank_reserves",    "WRESBAL",    "Bank reserves at Fed",            "3", "B",    "weekly"),
+    SeriesSpec("bank_reserves",    "WRESBAL",    "Bank reserves at Fed",            "3", "M",    "weekly"),
 
     # Pillar 4 — Inflation
     SeriesSpec("cpi",              "CPIAUCSL",   "CPI, all items",                  "4", "idx",  "monthly"),
@@ -187,6 +187,11 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # 6d (2 Oct 2026, item 10): the 5-year breakeven for the What's-priced trigger,
     # beside T10YIE and T5YIFR. Percent, daily -- read off FRED's series page.
     SeriesSpec("breakeven_5y",     "T5YIE",      "5-year breakeven inflation rate",  "4", "%",    "daily"),
+    # T2.3 (ruled 4 Oct 2026, item 3): the funding rate against the Fed's floor,
+    # for Plumbing's SOFR-IORB spread. Both percent, daily -- read off FRED's
+    # series pages (SOFR; IORB, from 29 Jul 2021).
+    SeriesSpec("sofr",             "SOFR",       "Secured overnight financing rate", "3", "%",    "daily"),
+    SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

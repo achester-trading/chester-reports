@@ -153,8 +153,9 @@ def daily_line(session_day: str, cutoff: str, db_path: Optional[str] = None) -> 
 # Status table and the consensus line
 # ---------------------------------------------------------------------------
 def table(st: dict, *, with_13f: Optional[dict] = None) -> dict:
-    cols = ["Voice", "Affiliation", "Kind", "View", "Status", "Source", "Tier",
-            "Horizon"]
+    # SIX COLUMNS (T2.3 mobile rule): the affiliation and kind ride in the
+    # voice's cell, the tier in the source's.
+    cols = ["Voice", "View", "Status", "Source", "Horizon"]
     if with_13f is not None:
         cols.append("13F (period of report)")
     rows = []
@@ -167,10 +168,10 @@ def table(st: dict, *, with_13f: Optional[dict] = None) -> dict:
             status += f" ({'; '.join(ch)})"
         elif v["status"] == "UNREACHABLE":
             status += f" ({v.get('source_name')})"
-        row = [r["voice"], r["affiliation"], _kind(r["kind"]),
+        row = [f"{r['voice']}, {r['affiliation']} ({_kind(r['kind'])})",
                (printed_view(r) if v["status"] not in ("SILENT", "UNREACHABLE")
                 else f"last: {printed_view(r)}"),
-               status, cite(r), r["tier"], r.get("horizon") or "—"]
+               status, f"{cite(r)} (tier {r['tier']})", r.get("horizon") or "—"]
         if with_13f is not None:
             f = with_13f.get(r["voice_key"])
             row.append(f"{f['form']} for {f['period_of_report']} (filed {f['filed']}, "

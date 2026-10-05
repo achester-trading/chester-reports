@@ -265,6 +265,10 @@ vocabularies:
     # FRED series that is genuinely re-estimated. See the reconstruction rule in
     # the schema header.
     - split_only
+  # THE METRIC FAMILY (metric-lenses brief, 1 Oct 2026): which forms a series is
+  # measured in. Declared per series in `families` below; a family outside this
+  # list fails tools/check_registry.py.
+  family: [price, rate, spread, release, quantity, conditions, ratio]
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -5820,7 +5824,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 22   # + T5YIE (6d)
+    expected_members: 24   # + T5YIE (6d) + SOFR, IORB (T2.3)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -5862,7 +5866,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 50   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2)
+    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5907,7 +5911,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 50   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2)
+    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6164,6 +6168,37 @@ bulk_imports:
     observation_type: observed
     revision_policy: never
     trigger_eligible: false
+
+# FAMILIES (metric-lenses brief; first declared by T2.3, 4 Oct 2026): every series
+# T2.3 added, and the existing ones its Plumbing, Volatility and FX rows read,
+# with its family. Units stay on the series' own entry or bulk block; the T2.3
+# gate holds each listed key to a resolvable unit and a declared family.
+families:
+  fred.sofr: rate
+  fred.iorb: rate
+  yfinance.mkt_copper_front: price
+  yfinance.mkt_usdjpy: price
+  yfinance.mkt_eurusd: price
+  yfinance.mkt_usdcny: price
+  yfinance.mkt_move: conditions
+  yfinance.mkt_vvix: conditions
+  yfinance.mkt_skew: conditions
+  yfinance.mkt_vix: conditions
+  yfinance.mkt_vix3m: conditions
+  calc.net_liquidity: quantity
+  fred.bank_reserves: quantity
+  fred.tga: quantity
+  fred.rrp: quantity
+  fred.ig_oas: spread
+  fred.hy_oas: spread
+  fred.ccc_oas: spread
+  fred.bb_oas: spread
+  mof.jgb_10y: rate
+  mof.jgb_30y: rate
+  calc.vol_spy_realized_20d: conditions
+  chain.spy_atm_iv_30d: conditions
+  auction.bid_to_cover: ratio
+  auction.dealer_share: ratio
 
 non_metrics:
   provenance:

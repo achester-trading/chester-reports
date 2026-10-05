@@ -53,9 +53,34 @@ def _rect(x, y, w, h, edge, face):
     return Rectangle((x, y), w, h, edgecolor=edge, facecolor=face, linewidth=0.8)
 
 
+# THE MOBILE RULE (T2.3 item 8): every chart reads at 400 px wide. A figure is
+# CHART_W inches; at 400 px a point of text is 400 / (72 * CHART_W) px, so no
+# text is drawn below MIN_PX_AT_400 there -- the floor is applied to every text
+# artist before saving, and the smallest is recorded for the gate.
+CHART_W = 5.6
+MIN_PX_AT_400 = 8.0
+
+
+def legibility_floor(fig) -> float:
+    """Raise any text below the floor; return the smallest text's px at 400 px."""
+    from matplotlib.text import Text                            # noqa: PLC0415
+    w = fig.get_size_inches()[0]
+    floor_pt = MIN_PX_AT_400 * 72.0 * w / 400.0
+    smallest = None
+    for t in fig.findobj(Text):
+        if not t.get_visible() or not str(t.get_text()).strip():
+            continue
+        if t.get_fontsize() < floor_pt:
+            t.set_fontsize(floor_pt)
+        px = t.get_fontsize() * 400.0 / (72.0 * w)
+        smallest = px if smallest is None else min(smallest, px)
+    return round(smallest or MIN_PX_AT_400, 2)
+
+
 def _finish(fig, name: str, out_dir: Optional[str]) -> dict:
     """PNG bytes (shrunk to the cap) and the SVG written to disk."""
     plt = _plt()
+    min_px = legibility_floor(fig)
     png = b""
     for dpi in (200, 160, 130, 100):
         buf = io.BytesIO()
@@ -69,7 +94,8 @@ def _finish(fig, name: str, out_dir: Optional[str]) -> dict:
         svg_path = str(Path(out_dir) / f"{name}.svg")
         fig.savefig(svg_path, format="svg", bbox_inches="tight")
     plt.close(fig)
-    return {"png": png, "png_bytes": len(png), "svg_path": svg_path}
+    return {"png": png, "png_bytes": len(png), "svg_path": svg_path,
+            "min_px_at_400": min_px}
 
 
 def _levels_of(book: dict, iid: str, types: tuple) -> list[dict]:
@@ -95,7 +121,7 @@ def _draw_levels(ax, lvls: list[dict], lo: float, hi: float) -> list[dict]:
 
 def _base(title: str):
     plt = _plt()
-    fig, ax = plt.subplots(figsize=(7.0, 3.3))
+    fig, ax = plt.subplots(figsize=(CHART_W, 3.3))
     ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
     ax.tick_params(labelsize=7)
     for side in ("top", "right"):
@@ -327,7 +353,7 @@ def banded_chart(cid: str, series: dict, title: str, name: str,
         return {"id": cid, "unavailable": f"fewer than {min_points} stored points"}
     try:
         plt = _plt()
-        fig, axes = plt.subplots(len(keep), 1, figsize=(7.0, 1.9 * len(keep) + 0.6),
+        fig, axes = plt.subplots(len(keep), 1, figsize=(CHART_W, 1.9 * len(keep) + 0.6),
                                  squeeze=False)
         fig.suptitle(title, fontsize=9, x=0.02, ha="left", color="#0d2b45")
         stats = {}
@@ -364,7 +390,7 @@ def bars_chart(cid: str, rows: list, title: str, name: str,
     try:
         rows = sorted(rows, key=lambda r: r[1])
         plt = _plt()
-        fig, ax = plt.subplots(figsize=(7.0, 0.22 * len(rows) + 0.9))
+        fig, ax = plt.subplots(figsize=(CHART_W, 0.24 * len(rows) + 0.9))
         ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
         ax.barh(range(len(rows)), [v for _, v in rows],
                 color=[UP if v >= 0 else DOWN for _, v in rows],
@@ -399,7 +425,7 @@ def span_title(label: str, n: int, unit: str, first: str, last: str,
 
 def _panel_grid(nrows: int, ncols: int, h: float = 2.0):
     plt = _plt()
-    fig, axes = plt.subplots(nrows, ncols, figsize=(7.4, h * nrows + 0.7),
+    fig, axes = plt.subplots(nrows, ncols, figsize=(CHART_W, h * nrows + 0.7),
                              squeeze=False)
     for ax in axes.flat:
         ax.tick_params(labelsize=6.5)
@@ -564,11 +590,43 @@ def bars_65(bars5: list) -> list:
     return [out[k] for k in sorted(out)]
 
 
+def es_overnight(es5: list, day: str) -> list[dict]:
+    """ES's overnight for session `day`: 18:00 ET the evening before to the 09:30
+    open, as 65-minute closes (T2.3 item 2)."""
+    from altdata import session                                 # noqa: PLC0415
+    d = dt.date.fromisoformat(day)
+    start = dt.datetime.combine(d - dt.timedelta(days=1), dt.time(18, 0),
+                                tzinfo=session._eastern_tz())
+    end = dt.datetime.combine(d, dt.time(9, 30), tzinfo=session._eastern_tz())
+    out: dict[int, dict] = {}
+    for b in es5:
+        t = session.to_eastern(dt.datetime.fromisoformat(b["observed_at"]))
+        if not (start <= t < end):
+            continue
+        k = int((t - start).total_seconds() // (65 * 60))
+        out.setdefault(k, {"slot": k, "close": b["close"], "first_open": b["open"]})
+        out[k]["close"] = b["close"]
+    return [out[k] for k in sorted(out)]
+
+
+def es_at_open(es5: list, day: str) -> Optional[float]:
+    """ES's price at the 09:30 cash open (the bar starting 09:30 ET)."""
+    from altdata import session                                 # noqa: PLC0415
+    for b in es5:
+        t = session.to_eastern(dt.datetime.fromisoformat(b["observed_at"]))
+        if t.date().isoformat() == day and (t.hour, t.minute) == (9, 30):
+            return b["open"]
+    return None
+
+
 def w7(bars5: list, levels_by_day: dict, name: str,
-       out_dir: Optional[str], sessions: int = 10) -> dict:
-    """Item 14: SPY in 65-minute bars over the last ten sessions -- session
-    boundaries, each session's VWAP, and the flip, walls and max pain as of
-    each day, drawn only where the day's scorecard stored them."""
+       out_dir: Optional[str], sessions: int = 10, es5: Optional[list] = None) -> dict:
+    """Items 14 (T2.2) and 2 (T2.3): SPY over the last ten sessions -- the cash
+    hours as 65-minute candles on a shaded band, the overnight hours as a lighter
+    line from ES=F scaled to SPY by the session's basis (SPY's open over ES's at
+    09:30), each session's VWAP, and the flip, walls and max pain as of each
+    morning across the whole 23-hour session. Without ES bars the chart is the
+    cash session alone and says so."""
     b65 = bars_65(bars5)
     days = sorted({b["session"] for b in b65})[-sessions:]
     b65 = [b for b in b65 if b["session"] in days]
@@ -576,17 +634,27 @@ def w7(bars5: list, levels_by_day: dict, name: str,
         return {"id": "W7", "unavailable": f"{len(days)} session(s) of 5-minute bars "
                                            f"stored, 2 needed (run the 60-day backfill)"}
     try:
-        fig, ax = _base(span_title("SPY in 65-minute bars", len(days), "sessions",
+        fig, ax = _base(span_title("SPY, 23-hour sessions", len(days), "sessions",
                                    days[0], days[-1], "two weeks"))
-        _candles(ax, b65)
         x0 = 0
-        drawn = []
+        drawn, with_es = [], 0
         cols = {"flip": LEVEL_COLOURS["gamma_flip"], "call_wall": LEVEL_COLOURS["call_wall"],
                 "put_wall": LEVEL_COLOURS["put_wall"], "max_pain": LEVEL_COLOURS["max_pain"]}
+        ticks = []
         for d in days:
             seg = [b for b in b65 if b["session"] == d]
-            x1 = x0 + len(seg)
-            ax.axvline(x0 - 0.5, color="#cbd5e1", linewidth=0.6)
+            on = es_overnight(es5 or [], d)
+            es_open = es_at_open(es5 or [], d)
+            basis = (seg[0]["open"] / es_open) if (seg and es_open) else None
+            start = x0
+            if on and basis:
+                with_es += 1
+                ax.plot(range(x0, x0 + len(on)), [o["close"] * basis for o in on],
+                        color="#94a3b8", linewidth=0.9)
+                x0 += len(on)
+            ax.axvspan(x0 - 0.5, x0 + len(seg) - 0.5, color="#eef2ff", zorder=0)
+            for i, b in enumerate(seg):
+                _candles_at(ax, x0 + i, b)
             cum_pv = cum_v = 0.0
             vw = []
             for b in seg:
@@ -594,25 +662,42 @@ def w7(bars5: list, levels_by_day: dict, name: str,
                 cum_v += b["v"]
                 vw.append(cum_pv / cum_v if cum_v else None)
             if vw and all(v is not None for v in vw):
-                ax.plot(range(x0, x1), vw, color=LEVEL_COLOURS["vwap"], linewidth=0.9)
+                ax.plot(range(x0, x0 + len(seg)), vw, color=LEVEL_COLOURS["vwap"],
+                        linewidth=0.9)
+            end = x0 + len(seg)
             for k, v in (levels_by_day.get(d) or {}).items():
                 if isinstance(v, (int, float)):
-                    ax.hlines(v, x0 - 0.4, x1 - 0.6, color=cols.get(k, "#94a3b8"),
+                    ax.hlines(v, start - 0.4, end - 0.6, color=cols.get(k, "#94a3b8"),
                               linewidth=0.9, linestyle="--")
                     drawn.append({"session": d, "type": k, "value": v})
-            x0 = x1
-        ax.set_xticks([sum(1 for b in b65 if b["session"] < d) for d in days])
-        ax.set_xticklabels([d[5:10] for d in days])
+            ax.axvline(start - 0.5, color="#cbd5e1", linewidth=0.6)
+            ticks.append((x0, d[5:10]))
+            x0 = end
+        ax.set_xticks([t for t, _ in ticks])
+        ax.set_xticklabels([lab for _, lab in ticks])
         out = _finish(fig, name, out_dir)
-        cap = (f"SPY, {len(b65)} sixty-five-minute bars over {len(days)} sessions "
-               f"({days[0]} to {days[-1]}); VWAP per session; flip, walls and max pain "
-               f"as of each morning where stored ({len({x['session'] for x in drawn})} "
-               f"of {len(days)} sessions)")
+        cap = (f"SPY over {len(days)} sessions ({days[0]} to {days[-1]}): the cash "
+               f"session in 65-minute candles (shaded), "
+               + (f"the overnight from ES=F scaled to SPY by each session's basis "
+                  f"({with_es} of {len(days)} sessions)" if with_es else
+                  "the overnight not drawn (no ES=F bars stored)")
+               + f"; VWAP per session; flip, walls and max pain as of each morning "
+                 f"where stored ({len({x['session'] for x in drawn})} of {len(days)})")
         return {"id": "W7", "drawn": drawn, "caption": cap, **out,
+                "overnight_sessions": with_es,
                 "series": [{k: b[k] for k in ("session", "slot", "open", "high", "low",
                                                "close")} for b in b65]}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W7", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def _candles_at(ax, x: int, b: dict) -> None:
+    up = b["close"] >= b["open"]
+    col = UP if up else DOWN
+    ax.vlines(x, b["low"], b["high"], color=col, linewidth=0.8)
+    lo, hi = sorted((b["open"], b["close"]))
+    ax.add_patch(_rect(x - 0.32, lo, 0.64, max(hi - lo, 1e-9),
+                       edge=col, face="white" if up else col))
 
 
 def w8(panels: dict, name: str, out_dir: Optional[str],
@@ -673,7 +758,7 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
     fed-funds implied path today, a week ago and a month ago."""
     try:
         plt = _plt()
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.4, 3.0))
+        fig, (a1, a2) = plt.subplots(1, 2, figsize=(CHART_W, 3.2))
         for ax in (a1, a2):
             ax.tick_params(labelsize=6.5)
             for side in ("top", "right"):

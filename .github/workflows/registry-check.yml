@@ -22,8 +22,10 @@
 name: Gates
 
 on:
+  # EVERY BRANCH PUSH (5 Oct 2026): a branch's full validate runs in CI before
+  # it is merged, rather than only on main after the merge.
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 
