@@ -426,7 +426,10 @@ def main() -> int:
     check(S["fx_down"]["state"] == "unreachable" and S["fx_desk"]["state"] == "ok",
           "a failing host costs that source only; the pass goes on")
     from daily_cascade import voices_block as vb
-    line = vb.daily_line("2026-10-05", "2026-10-05T20:45:00+00:00", DB)
+    # The scan stamps its run with the real clock, so the cutoff is the real
+    # clock too: a fixed instant made this check fail on any run after it.
+    import datetime as _dt
+    line = vb.daily_line("2026-10-05", _dt.datetime.now(_dt.timezone.utc).isoformat(), DB)
     check(any("Unreachable on the latest scan: Fixture Blocked; Fixture Down" in t
               for t in line["lines"]),
           "the daily line names each unreachable source")

@@ -439,7 +439,13 @@ WEEKLY_NOTES = {
     "mechanics": (
         "\n\nTHE WEEK'S DEALER STORY FROM THE TABLE AND ITS FLAGS ONLY. Write "
         "'pinned', 'held' or 'amplified' about a session only where that "
-        "session's flag column says so; never infer a flag from the figures."),
+        "session's flag column says so; never infer a flag from the figures. "
+        "The flags sit in the Ranges and flags table."
+        "\n\nTHE VOLATILITY PARAGRAPH ([A] Volatility) opens on the daily move: "
+        "'the market is pricing X% daily moves; it realized Y%', both from the "
+        "table's 'Daily move priced, and realized' row and nowhere else, then the "
+        "VIX against its percentile and the term structure; MOVE and SKEW only "
+        "where their rows carry a level."),
     "misfit": (
         "\n\nEach open gap is described in the plain words its row gives "
         "(what each side is saying), never by an id."),
