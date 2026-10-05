@@ -77,7 +77,7 @@ Title: **Reading**. Placement per D1. Rendered in both the Markdown and the HTML
 
 **Published this month.** Entries with `published` in (previous Monthly's as-of, this Monthly's as-of], status `read` or `listed`, grouped by `group` in the watchlist's group order. An entry with a `summary` renders as a title line and a paragraph:
 
-> **[publication](url)** — publisher · published D Mon YYYY (data as of D Mon YYYY where `as_of` differs) · [scan](scan) where a scan exists
+> **`[publication](url)`** — publisher · published D Mon YYYY (data as of D Mon YYYY where `as_of` differs) · `[scan](scan)` where a scan exists
 >
 > *summary paragraph, as stored*
 
