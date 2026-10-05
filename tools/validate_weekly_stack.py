@@ -557,10 +557,15 @@ def main() -> int:
                  json.dumps({"series": ["nfp"]})))
             evs.conn.commit()
         rel = ws.tier1_releases(str_, AS_OF, ws.week_ago(AS_OF))
+    # Rulings of 5 Oct, item 1: payrolls print as the monthly change, under the
+    # declared label, never the raw series name.
     check(rel and rel[0]["release"] == "Employment Situation"
-          and rel[0]["prior"] == 159000.0 and rel[0]["actual"] == 159150.0,
-          f"13: Plumbing lists the week's tier-1 release with actual, prior, as-of "
-          f"({rel[:1]})")
+          and rel[0]["form"] == "change" and rel[0]["actual"] == 150.0
+          and rel[0]["actual_text"] == "+150"
+          and rel[0]["label"] == "nonfarm payrolls, monthly change (thousands)"
+          and rel[0]["as_of"] == "2026-09-01",
+          f"13: Plumbing lists the week's tier-1 release in its declared form, with "
+          f"actual, prior and as-of ({rel[:1]})")
     from altdata import config as _cfg
     ids_be = {s.key: s.fred_id for s in _cfg.FRED_PULL_SERIES if "breakeven" in s.key}
     pr_items = [i["text"] for i in sec["priced"]["items"] if "breakeven" in i["text"]]

@@ -324,28 +324,60 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
         if not rel:
             continue
         for h in heads[rel]:
-            key = h["key"]
-            if (rel, key) in seen:
+            key, form = h["key"], h.get("form") or "level"
+            if (rel, key, form) in seen:
                 continue
-            seen.add((rel, key))
+            seen.add((rel, key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
-            if not pts:
+            got = headline_form([r["value_num"] for r in pts], form)
+            if not got or not h.get("label"):
                 continue
-            a, p = pts[-1], (pts[-2] if len(pts) > 1 else None)
-            units = str(derived.registry_entry(key).get("units") or "")
-
-            def fmt(v):
-                if v is None:
-                    return "n/a"
-                return f"{v:,.2f}%" if units in ("%", "percent") else f"{v:,.1f}"
             out.append({"release": rel, "date": str(obs_at)[:10], "series": key,
-                        "label": h["label"], "actual": a["value_num"],
-                        "prior": p["value_num"] if p else None,
-                        "actual_text": fmt(a["value_num"]),
-                        "prior_text": fmt(p["value_num"] if p else None),
-                        "as_of": str(a["observed_at"])[:10]})
+                        "form": form, "label": h["label"], "actual": got[0],
+                        "prior": got[1], "actual_text": form_text(got[0], form, key),
+                        "prior_text": form_text(got[1], form, key),
+                        "as_of": str(pts[-1]["observed_at"])[:10]})
     return out
+
+
+def headline_form(vals: list, form: str) -> Optional[tuple]:
+    """(actual, prior) in the declared form, or None when the store holds too
+    few prints to compute it (rulings of 5 Oct, item 1)."""
+    need = {"level": 1, "change": 2, "mom": 2, "yoy": 13, "annualised": 2}[form]
+
+    def at(k: int) -> Optional[float]:
+        """The form `k` prints back (0 = latest)."""
+        n = len(vals) - 1 - k
+        if n - (need - 1) < 0:
+            return None
+        v = vals[n]
+        if form == "level":
+            return v
+        if form == "change":
+            return v - vals[n - 1]
+        if form == "mom":
+            return 100.0 * (v / vals[n - 1] - 1.0) if vals[n - 1] else None
+        if form == "yoy":
+            return 100.0 * (v / vals[n - 12] - 1.0) if vals[n - 12] else None
+        if form == "annualised":
+            return (100.0 * ((v / vals[n - 1]) ** 4 - 1.0)) if vals[n - 1] else None
+        return None
+    a = at(0)
+    return None if a is None else (a, at(1))
+
+
+def form_text(v: Optional[float], form: str, key: str) -> str:
+    if v is None:
+        return "n/a"
+    if form == "change":
+        return f"{v:+,.0f}"
+    if form in ("mom",):
+        return f"{v:+.1f}%"
+    if form in ("yoy", "annualised"):
+        return f"{v:.1f}%"
+    units = str(derived.registry_entry(key).get("units") or "")
+    return f"{v:,.1f}%" if units in ("%", "percent") else f"{v:,.0f}"
 
 
 def _week_return(st, sym: str, now: str, then: str) -> Optional[float]:
@@ -496,7 +528,9 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     aaii = change_over(st, "aaii.bull_bear_spread", now, then)
     if aaii:
         data["aaii"] = aaii
-        rs.append(["AAII bull-bear spread (points)", f"{aaii['level']:+.1f}",
+        # SOURCE AND AS-OF ON THE ROW (rulings of 5 Oct, item 4).
+        rs.append(["AAII bull-bear spread, points (source: AAII Sentiment Survey, "
+                   f"weekly; as of {aaii['observed_at']})", f"{aaii['level']:+.1f}",
                    "—" if aaii.get("prior") is None
                    else f"{aaii['level'] - aaii['prior']:+.1f}", aaii["observed_at"]])
     out.append({"title": "Retail sentiment",
@@ -1029,12 +1063,13 @@ W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY")
              ("oil", "WTI (front future)"), ("y10", "10-year yield"),
              ("y30", "30-year yield"))
 # W9's gauges: (panel title, store key, instrument). A key of None is not fed yet.
-W9_GAUGES = (("Equity put/call", None, None),
+W9_GAUGES = (("SPY put/call, volume (SPY chain, own capture)",
+              "chain.spy_put_call_volume", "SPY"),
              ("VIX term structure (VIX3M over VIX)", "calc.vix3m_over_vix", None),
              ("Breadth (RSP over SPY)", "calc.breadth_rsp_over_spy", None),
              ("Retail sentiment, SPY (RTAT10)", "ndl.rtat10_sentiment", "SPY"),
              ("AAII bull-bear spread", "aaii.bull_bear_spread", None),
-             ("NAAIM exposure", None, None),
+             ("NAAIM exposure", "naaim.exposure", None),
              ("MOVE (bond volatility)", "yfinance.mkt_move", None),
              ("VVIX (volatility of the VIX)", "yfinance.mkt_vvix", None),
              ("SKEW", "yfinance.mkt_skew", None))
@@ -1113,7 +1148,8 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
 
 def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, log_path: Optional[Path] = None) -> dict:
+            db_path: Optional[str] = None, log_path: Optional[Path] = None,
+            prior_dir: Optional[str] = None) -> dict:
     ending = p["week_ending"]
     with bars_mod.BarStore(db_path) as bst:
         try:
@@ -1125,7 +1161,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
         with observations.ObservationStore(db_path) as _db:
             daily, _ = levels_mod.daily_bars(levels_mod.tape_spec("spy"), ending,
                                              None, _db)
-    prior = load_prior(p.get("previous_week_ending") or "", archive_dir)
+    prior = load_prior(p.get("previous_week_ending") or "", prior_dir or archive_dir)
     ed, extras = build(p, book, prior, db_path, log_path)
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],

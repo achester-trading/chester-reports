@@ -199,7 +199,16 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             import pin_log                                      # noqa: PLC0415
             prev = session.previous_trading_session(sess).isoformat()
             prof = ((pin_log.load_computed(date=prev) or {}).get("SPY") or {})
+            # SPY'S OWN CHAIN (T2.2 rulings of 5 Oct): the ATM 30-day IV from
+            # the chain solver and the volume put/call, stored per session; the
+            # scorecard carries the IV for the Weekly's implied range.
+            from altdata import chain_metrics                   # noqa: PLC0415
+            chain = (chain_metrics.readings(sess) if dry_run
+                     else chain_metrics.record_session(sess, st))
+            report["chain_readings"] = chain
             card = scorecard_row(p, book, bst, (prof.get("overall") or {}))
+            card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
+            card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",

@@ -53,21 +53,32 @@ expiries:
   monthly_tier: 2
   quarterly_tier: 1
 
-# THE HEADLINE OF EACH TIER-1 RELEASE (T2.2): what The read's week-by-day table
-# and Plumbing print for it -- one or two figures a reader knows, under these
-# labels, never every series the release revises. A release is matched when its
+# THE HEADLINE OF EACH TIER-1 RELEASE (T2.2; forms ruled 5 Oct 2026): what The
+# read's week-by-day table and Plumbing print for it, in a declared FORM under a
+# declared label -- raw series names never print. A release is matched when its
 # stored name STARTS with the key (so "Debt to Gross Domestic Product Ratios" is
-# not GDP). The values are read from the store as of the cutoff.
+# not GDP). Values are read from the store as of the cutoff; the prior is the
+# same form one period earlier.
+#   level       the latest print
+#   change      latest minus prior, in the series' own unit (payrolls: thousands)
+#   mom         month on month, percent
+#   yoy         year on year, percent (twelve monthly prints back)
+#   annualised  quarter on quarter, annualised, percent
 tier1_headlines:
   "Employment Situation":
-    - {key: fred.nfp, label: "nonfarm payrolls, thousands"}
-    - {key: fred.u3_rate, label: "unemployment rate"}
-    - {key: calc.yoy_ahe, label: "average hourly earnings, year on year"}
+    - {key: fred.nfp, form: change, label: "nonfarm payrolls, monthly change (thousands)"}
+    - {key: fred.u3_rate, form: level, label: "unemployment rate"}
   "Consumer Price Index":
-    - {key: calc.yoy_cpi, label: "CPI, year on year"}
-    - {key: calc.yoy_core_cpi, label: "core CPI, year on year"}
+    - {key: fred.cpi, form: mom, label: "CPI, month on month"}
+    - {key: fred.cpi, form: yoy, label: "CPI, year on year"}
+    - {key: fred.core_cpi, form: mom, label: "core CPI, month on month"}
+    - {key: fred.core_cpi, form: yoy, label: "core CPI, year on year"}
   "Personal Income and Outlays":
-    - {key: calc.yoy_pce, label: "PCE prices, year on year"}
-    - {key: calc.yoy_core_pce, label: "core PCE prices, year on year"}
+    - {key: fred.pce, form: mom, label: "PCE prices, month on month"}
+    - {key: fred.pce, form: yoy, label: "PCE prices, year on year"}
+    - {key: fred.core_pce, form: mom, label: "core PCE prices, month on month"}
+    - {key: fred.core_pce, form: yoy, label: "core PCE prices, year on year"}
   "Gross Domestic Product":
-    - {key: calc.yoy_real_gdp, label: "real GDP, year on year"}
+    - {key: fred.real_gdp, form: annualised, label: "real GDP, quarterly annualised"}
+  "Unemployment Insurance Weekly Claims":
+    - {key: fred.claims_4wk, form: level, label: "jobless claims, four-week average"}

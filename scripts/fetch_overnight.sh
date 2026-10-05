@@ -205,6 +205,14 @@ VO_EXIT=$?
 printf '%s' "$VO_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $VO_EXIT -ne 0 ]] && log "WARN voices scan exited $VO_EXIT -- continuing; the reports print unreachable sources by name"
 
+# ---- NAAIM, retried weekly (T2.2 rulings of 5 Oct) --------------------------
+#
+# Thursdays only, from NAAIM's public widget; a module of its own and NOT a feed,
+# so an unreachable NAAIM never marks the feeds stale (altdata/sources/naaim.py).
+log "naaim: weekly retry"
+NA_OUT="$("$PY" -m altdata.sources.naaim pull 2>&1 | tail -6)"
+printf '%s' "$NA_OUT" | sed 's/^/  /' >>"$LOG"
+
 log "surprise: compute"
 SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?

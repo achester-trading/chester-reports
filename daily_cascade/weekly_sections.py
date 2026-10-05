@@ -207,20 +207,26 @@ def _within(a: Optional[float], b: Optional[float], pct: float) -> bool:
 
 def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     """The code-derived flags (item 18). Each is True, False, or None when a
-    field it needs is not stored -- never guessed."""
+    field it needs is not stored -- never guessed. The implied range uses SPY's
+    own ATM 30-day IV when the card carries it, else the VIX, labelled "VIX as
+    proxy" (rulings of 5 Oct)."""
     fc = cfg.get("dealer_flags") or {}
     pin_pct = float(fc.get("pinned_pct", 0.25))
     wall_pct = float(fc.get("wall_pct", 0.25))
     ratio = float(fc.get("amplified_range_ratio", 1.2))
     close, hi, lo = card.get("close"), card.get("session_high"), card.get("session_low")
     spot = card.get("prior_close") or close
-    implied = (spot * (vix / 100.0) * math.sqrt(1.0 / 252.0)
-               if spot and vix else None)
+    own_iv = card.get("atm_iv_30d")
+    iv = own_iv if own_iv else vix
+    implied = (spot * (iv / 100.0) * math.sqrt(1.0 / 252.0)
+               if spot and iv else None)
     actual = (hi - lo) if None not in (hi, lo) else None
     cw = card.get("call_wall_morning") or card.get("call_wall")
     pw = card.get("put_wall_morning") or card.get("put_wall")
     mp = card.get("max_pain")
     out = {"implied_range": round(implied, 2) if implied else None,
+           "iv_source": ("SPY ATM 30-day IV" if own_iv else
+                         "VIX as proxy" if vix else None),
            "actual_range": round(actual, 2) if actual is not None else None,
            "pinned": (None if close is None or mp is None
                       else _within(close, mp, pin_pct)),
@@ -271,7 +277,10 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      g(c.get("call_wall_morning") or c.get("call_wall")),
                      g(c.get("put_wall_morning") or c.get("put_wall")),
                      g(c.get("flip_morning")), g(c.get("max_pain")),
-                     g(f["implied_range"]), g(f["actual_range"]),
+                     (g(f["implied_range"]) + (" (VIX as proxy)"
+                                               if f.get("iv_source") == "VIX as proxy"
+                                               else "")),
+                     g(f["actual_range"]),
                      f["close_vs_flip"] or "—", c.get("gamma_regime") or "—",
                      ", ".join(set_flags) or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
@@ -286,7 +295,9 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                                   "Close vs flip", "Gamma regime", "Flags"],
                       "rows": rows},
             "table_note": ("SPY. Walls and flip as of each morning; implied one-day "
-                           "range = prior close × VIX × √(1/252); flags are "
+                           "range = prior close × SPY's at-the-money 30-day IV "
+                           "(from our own chain) × √(1/252), or the VIX where that "
+                           "is not stored, marked 'VIX as proxy'; flags are "
                            "computed: pinned = close within "
                            f"{(cfg.get('dealer_flags') or {}).get('pinned_pct', 0.25)}% "
                            "of max pain; a wall held = the session's high (low) "

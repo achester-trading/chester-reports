@@ -367,7 +367,7 @@ def main() -> int:
         check(ok, f"{k} renders to PNG and SVG -- "
                   f"{str(c.get('caption') or c.get('unavailable'))[:80]}")
     w9 = out["charts"].get("W9") or {}
-    check("Equity put/call" in (w9.get("not_drawn") or [])
+    check("SPY put/call, volume (SPY chain, own capture)" in (w9.get("not_drawn") or [])
           and "NAAIM exposure" in (w9.get("not_drawn") or []),
           "W9: an unfed gauge prints 'not yet tracked' on its panel")
     st_ = charts_mod.span_title("SPY", 126, "sessions", "2026-04-01", "2026-10-02",
@@ -465,6 +465,90 @@ def main() -> int:
     att = ws.read_attention_log()
     check(any(e["date"] == "2026-10-04" and e["minutes"] == 35 and "T2.2" in e["note"]
               for e in att), "the attention log carries the 4 Oct ruling line")
+
+    # --- I. THE RULINGS OF 5 OCT ---------------------------------------------
+    print(f"\n{LINE}\nI. THE RULINGS OF 5 OCT\n{LINE}")
+    cal_cfg = wsec.load_calendar()
+    th = cal_cfg.get("tier1_headlines") or {}
+    forms = {(rel, h["key"]): h["form"] for rel, hs in th.items() for h in hs}
+    check(forms.get(("Employment Situation", "fred.nfp")) == "change"
+          and forms.get(("Employment Situation", "fred.u3_rate")) == "level"
+          and forms.get(("Gross Domestic Product", "fred.real_gdp")) == "annualised"
+          and forms.get(("Unemployment Insurance Weekly Claims", "fred.claims_4wk")) == "level"
+          and {h["form"] for h in th["Consumer Price Index"]} == {"mom", "yoy"}
+          and {h["form"] for h in th["Personal Income and Outlays"]} == {"mom", "yoy"},
+          "1: headline forms from config -- payrolls change, CPI and PCE m/m and y/y, "
+          "unemployment level, GDP annualised, claims level")
+    check(all(h.get("label") and "_" not in h["label"] for hs in th.values() for h in hs),
+          "1: every headline prints under a declared label, never a raw series name")
+    hf = ws.headline_form
+    check(hf([159000.0, 159029.0, 159044.0], "change") == (15.0, 29.0)
+          and round(hf([100.0, 100.3], "mom")[0], 2) == 0.3
+          and round(hf([100.0] + [0] * 0 + [100.0 + i * 0.25 for i in range(1, 13)],
+                       "yoy")[0], 2) == 3.0
+          and round(hf([100.0, 101.0], "annualised")[0], 2) == 4.06
+          and hf([231000.0], "level") == (231000.0, None),
+          "1: the forms compute: change, m/m, y/y over twelve prints, annualised, level")
+    check(ws.form_text(29.0, "change", "fred.nfp") == "+29"
+          and ws.form_text(0.31, "mom", "fred.cpi") == "+0.3%"
+          and ws.form_text(4.2, "level", "fred.u3_rate") == "4.2%",
+          "1: printed as +29 (thousands), +0.3%, 4.2%")
+    wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
+    gi = (REPO / ".gitignore").read_text(encoding="utf-8")
+    check('args.archive_dir = str(Path(delivery.ARCHIVE_DIR) / "dryrun")' in wr
+          and "args.prior_dir = delivery.ARCHIVE_DIR" in wr
+          and "reports/dryrun/" in gi
+          and "prior_dir or archive_dir" in _insp.getsource(ws.produce),
+          "2: --dry-run renders with the model to reports/dryrun/, reads the prior "
+          "edition from the real archive, sends nothing, and is gitignored")
+    import iv_solver as _ivs
+    from altdata import chain_metrics as cm
+    rows = []
+    fwd, r = 700.0, 0.043
+    for dte in (28, 35):
+        t = dte / 365.0
+        for k in range(650, 751, 5):
+            for right in ("C", "P"):
+                px = _ivs.black76_price(fwd, float(k), t, r, 0.20, right)
+                rows.append({"expiry": f"exp{dte}", "dte": dte, "right": right,
+                             "strike": float(k), "bid": round(px, 4),
+                             "ask": round(px, 4), "last_price": round(px, 4),
+                             "volume": 100.0 if right == "P" else 80.0,
+                             "last_trade_date": None,
+                             "fetched_at": "2026-10-02T20:14:00+00:00", "spot": fwd})
+    iv = cm.atm_iv_30d(rows, r)
+    check(iv and abs(iv["iv_pct"] - 20.0) < 0.2 and iv["method"] == "variance_interpolated",
+          f"3: SPY's ATM 30-day IV from the chain solver recovers a 20% chain ({iv})")
+    pc = cm.put_call_volume(rows)
+    check(pc and pc["ratio"] == 1.25, f"4: put/call from the chain's own volume ({pc})")
+    f_own = wsec.flags_for({**base_c, "atm_iv_30d": 15.0}, 20.0, fc)
+    f_vix = wsec.flags_for(base_c, 20.0, fc)
+    check(f_own["iv_source"] == "SPY ATM 30-day IV"
+          and abs(f_own["implied_range"] - round(700 * 0.15 * (1 / 252) ** 0.5, 2)) < 0.01
+          and f_vix["iv_source"] == "VIX as proxy",
+          "3: the implied range uses SPY's own IV when stored, else the VIX labelled "
+          "'VIX as proxy'")
+    labels_w9 = [g[0] for g in ws.W9_GAUGES]
+    check(any("SPY chain, own capture" in x for x in labels_w9)
+          and not any("Equity put/call" == x for x in labels_w9)
+          and dict((g[0], g[1]) for g in ws.W9_GAUGES).get("NAAIM exposure") == "naaim.exposure",
+          "4: W9's put/call is SPY's own, labelled 'SPY chain, own capture'; no Cboe "
+          "series")
+    from altdata.sources import naaim
+    from altdata import feeds as _feeds
+    check(naaim.pull(today=dt.date(2026, 10, 5))["state"] == "not_due"
+          and naaim.parse_widget("<b>73.81</b> as of 10/01/2026") ==
+          {"date": "2026-10-01", "value": 73.81}
+          and "naaim" not in _feeds.EXTERNAL_WRITERS
+          and "altdata.sources.naaim pull" in (REPO / "scripts" /
+                                              "fetch_overnight.sh").read_text(encoding="utf-8"),
+          "4: NAAIM is retried weekly (Thursdays) from the overnight pass, and is "
+          "not a feed whose absence marks the feeds stale")
+    aaii_rows = [r for r in sec["positioning"]["subsections"][3]["table"]["rows"]
+                 if str(r[0]).startswith("AAII")]
+    aaii_src = _insp.getsource(ws.positioning_subsections)
+    check("source: AAII Sentiment Survey" in aaii_src and "as of {aaii['observed_at']}" in aaii_src,
+          f"4: the AAII row prints its source and as-of ({aaii_rows[:1]})")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
