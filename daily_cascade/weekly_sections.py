@@ -937,7 +937,8 @@ EARNINGS_SEASONS = ((1, 10, 2, 28), (4, 10, 5, 31), (7, 10, 8, 31), (10, 10, 11,
 def seasons_from_config() -> tuple:
     try:
         return tuple((x["from"][0], x["from"][1], x["to"][0], x["to"][1])
-                     for x in load_calendar().get("earnings_seasons") or [])             or EARNINGS_SEASONS
+                     for x in load_calendar().get("earnings_seasons") or []) \
+            or EARNINGS_SEASONS
     except Exception:                                           # noqa: BLE001
         return EARNINGS_SEASONS
 
@@ -951,13 +952,54 @@ def in_season(day: str, seasons: Optional[tuple] = None) -> bool:
     return False
 
 
+SEASON_DAYS = 7
+
+
+def earnings_season(st, ending: str, now: str) -> dict:
+    """In season or not, from the stored dates (T2.3 rulings of 5 Oct, item 1):
+    in season when any universe name has a confirmed earnings date within seven
+    days of the week's end -- either side, so the week a season's last names
+    report still prints them -- or a reported result inside that span, which is
+    a date that happened. The fixed windows in release_calendar.yaml decide only
+    when no earnings date is stored at all."""
+    from altdata import events                                  # noqa: PLC0415
+    d = dt.date.fromisoformat(ending[:10])
+    lo = (d - dt.timedelta(days=SEASON_DAYS)).isoformat()
+    hi = (d + dt.timedelta(days=SEASON_DAYS)).isoformat() + "T23:59:59"
+    try:
+        with events.EventStore(str(st.path)) as ev:
+            stored = ev.conn.execute(
+                "SELECT COUNT(*) FROM events WHERE available_at <= ? AND "
+                "(type = 'earnings' OR (type = 'scheduled' AND "
+                "json_extract(payload, '$.kind') = 'earnings'))", (now,)).fetchone()[0]
+            near = ev.conn.execute(
+                "SELECT DISTINCT json_extract(payload, '$.symbol') FROM events "
+                "WHERE available_at <= ? AND observed_at >= ? AND observed_at <= ? "
+                "AND (type = 'earnings' OR (type = 'scheduled' AND "
+                "json_extract(payload, '$.kind') = 'earnings' AND "
+                "json_extract(payload, '$.date_confirmed') = 1))",
+                (now, lo, hi)).fetchall()
+    except Exception:                                           # noqa: BLE001
+        stored, near = 0, []
+    if not stored:
+        return {"in_season": in_season(ending), "basis": "fixed windows (no "
+                "earnings date stored)", "names": []}
+    names = sorted(str(r[0]) for r in near if r[0])
+    return {"in_season": bool(names), "basis": f"confirmed dates within "
+            f"{SEASON_DAYS} days of {ending[:10]}", "names": names}
+
+
 def earnings_block(st, ending: str, now: str, then: str,
                    seasons: Optional[tuple] = None) -> Optional[dict]:
     """Item 9: universe names that reported this week -- EPS and revenue against
     stored consensus, beat or miss, the next day's reaction from stored prices.
     None outside the season (prints nothing); inside it, 'no universe name
-    reported' when none did."""
-    if not in_season(ending, seasons):
+    reported' when none did. `seasons` forces the fixed windows (a test's
+    switch); otherwise the season comes from the stored dates."""
+    if seasons is not None:
+        if not in_season(ending, seasons):
+            return None
+    elif not earnings_season(st, ending, now)["in_season"]:
         return None
     from altdata import events                                  # noqa: PLC0415
     rows, data = [], []

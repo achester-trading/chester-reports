@@ -96,6 +96,12 @@ def main() -> int:
         args.prior_dir = delivery.ARCHIVE_DIR
         args.archive_dir = str(Path(delivery.ARCHIVE_DIR) / "dryrun")
 
+    # THE DRY RUN'S CUTOFF (T2.3 rulings of 5 Oct, item 2): a --week-ending dry
+    # run reads the store as the scheduled run would have -- Sunday 05:00 ET after
+    # the week -- so no data from after the week can enter the render.
+    if args.dry_run and args.week_ending and not args.as_of:
+        args.as_of = payload_mod.scheduled_run_utc(args.week_ending)
+
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
     run_id = session.new_run_id("weekly")

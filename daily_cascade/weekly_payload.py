@@ -924,6 +924,18 @@ def weekend_developments(ending: Optional[str] = None,
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
+def scheduled_run_utc(ending: str, now: Optional[str] = None) -> str:
+    """The Weekly's scheduled run for the week ending `ending` (a Friday): Sunday
+    05:00 ET after it (chester-weekly.timer), in UTC -- or the real clock, if that
+    Sunday has not come yet. A --week-ending dry run uses it as its cutoff (T2.3
+    rulings of 5 Oct, item 2), so nothing observed after the week can enter."""
+    d = dt.date.fromisoformat(ending[:10])
+    sunday = d + dt.timedelta(days=(6 - d.weekday()) % 7 or 7)
+    run = dt.datetime.combine(sunday, dt.time(5, 0), tzinfo=session._eastern_tz())
+    real = dt.datetime.fromisoformat(now or session.utc_iso())
+    return min(run.astimezone(dt.timezone.utc), real).isoformat(timespec="seconds")
+
+
 def build(ending: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, fetch: bool = True) -> dict:
     """Every block. Reads only; never raises on a missing one."""

@@ -25,8 +25,13 @@ socket.
   G MOBILE       no table wider than six columns in the Weekly or the daily close;
                  every chart legible at 400 px (smallest text at least 8 px);
                  images scale to the width.
-  H EARNINGS     silent out of season; in season, "no universe name reported", or
-                 a reporter with beat/miss and the next day's reaction.
+  H EARNINGS     in season by the stored dates: a confirmed date (or a reported
+                 result) within seven days; the fixed windows only when no date is
+                 stored; silent out of season; "no universe name reported", or a
+                 reporter with beat/miss and the next day's reaction. The writer
+                 marks a confirmed date.
+  H2 CUTOFF      a --week-ending dry run reads as the scheduled run would: Sunday
+                 05:00 ET after the week.
   I W7 AND THE RECORD  the overnight drawn from ES scaled by the basis; the
                  attention-log line.
 """
@@ -309,23 +314,112 @@ def main() -> int:
           f"(floor {charts_mod.MIN_PX_AT_400})")
 
     # --- H. EARNINGS --------------------------------------------------------
-    print(f"\n{LINE}\nH. EARNINGS, IN SEASON ONLY\n{LINE}")
+    print(f"\n{LINE}\nH. EARNINGS, IN SEASON BY THE STORED DATES\n{LINE}")
+    from altdata import events as ev_mod
+
+    def season_db(name, evs):
+        path = str(Path(TD) / name)
+        with observations.ObservationStore(path):
+            pass
+        with ev_mod.EventStore(path) as ev:
+            for e, avail in evs:
+                ev.write_many([e], available_at=avail)
+        return path
+
+    def sched(sym, day, confirmed):
+        return ev_mod.Event(
+            type="scheduled", observed_at=f"{day}T20:00:00+00:00", source="yfinance",
+            title=f"{sym} earnings ({'confirmed' if confirmed else 'expected'})",
+            entities=[sym], key=f"cal-{sym}-{day}-{confirmed}",
+            payload={"kind": "earnings", "symbol": sym, "date_confirmed": confirmed})
+
+    def block(path, ending):
+        now = f"{(dt.date.fromisoformat(ending) + dt.timedelta(days=2)).isoformat()}" \
+              f"T09:00:00+00:00"
+        with observations.ObservationStore(path) as st:
+            return (wsec.earnings_block(st, ending, now, ws.week_ago(now)),
+                    wsec.earnings_season(st, ending, now))
+    none_db = season_db("e_none.db", [])
+    off, s_off = block(none_db, "2026-09-25")
+    fall, s_fall = block(none_db, "2026-10-23")
+    check(off is None and fall and fall["lines"] == ["No universe name reported this week."]
+          and s_fall["basis"].startswith("fixed windows"),
+          "no earnings date stored: the fixed windows decide (25 Sep out, 23 Oct in)")
+    exp_db = season_db("e_expected.db", [(sched("MSFT", "2026-10-21", False),
+                                          "2026-09-01T00:00:00+00:00")])
+    e_blk, e_s = block(exp_db, "2026-10-16")
+    check(e_blk is None and not e_s["in_season"],
+          "an expected (unconfirmed) date does not open the season, even inside the "
+          "fixed window")
+    conf_db = season_db("e_confirmed.db", [
+        (sched("MSFT", "2026-10-21", True), "2026-09-01T00:00:00+00:00"),
+        (sched("AAPL", "2026-11-05", True), "2026-09-01T00:00:00+00:00")])
+    c_blk, c_s = block(conf_db, "2026-10-16")
+    far, f_s = block(conf_db, "2026-09-25")
+    check(c_blk and c_blk["lines"] == ["No universe name reported this week."]
+          and c_s["names"] == ["MSFT"],
+          "a confirmed date within seven days opens it; no reporter yet: 'no universe "
+          "name reported'")
+    check(far is None and not f_s["in_season"],
+          "a confirmed date more than seven days away does not (and the fixed window "
+          "is not consulted while dates are stored)")
+    late_db = season_db("e_late.db", [(sched("MSFT", "2026-10-21", False),
+                                       "2026-09-01T00:00:00+00:00"),
+                                      (sched("MSFT", "2026-10-21", True),
+                                       "2026-10-20T00:00:00+00:00")])
+    l_blk, _ = block(late_db, "2026-10-16")
+    check(l_blk is None, "a date confirmed after the cutoff is not used before it")
     with observations.ObservationStore(db) as st:
-        off = wsec.earnings_block(st, "2026-09-25", "2026-09-26T09:00:00+00:00",
-                                  "2026-09-19T09:00:00+00:00")
-        empty = wsec.earnings_block(st, "2026-10-23", "2026-10-24T09:00:00+00:00",
-                                    "2026-10-17T09:00:00+00:00")
-        hit = wsec.earnings_block(st, sessions[-1], vws.AS_OF, ws.week_ago(vws.AS_OF),
-                                  seasons=((1, 1, 12, 31),))
-    check(off is None, "out of season the block prints nothing at all")
-    check(empty and empty["lines"] == ["No universe name reported this week."]
-          and not empty["table"]["rows"], "in season with no reporter: 'no universe "
-                                          "name reported'")
+        hit = wsec.earnings_block(st, sessions[-1], vws.AS_OF, ws.week_ago(vws.AS_OF))
     row = (hit or {}).get("table", {}).get("rows", [[]])[0] if hit else []
     check(row and row[0] == "JPM" and row[2] == "beat" and row[4] == "+3.00%",
-          f"a reporter: EPS against consensus, beat or miss, the next day ({row})")
-    check(wsec.in_season("2026-10-16") and not wsec.in_season("2026-09-25"),
-          "the seasons are declared in config/release_calendar.yaml")
+          f"a reporter opens the season and prints: EPS against consensus, beat or "
+          f"miss, the next day ({row})")
+    import types
+    from altdata.sources import earnings as earn_src
+
+    class FakeTicker:
+        def __init__(self, sym):
+            self.calendar = {"Earnings Date": WHEN[sym], "Earnings Average": 1.0}
+
+        def get_earnings_dates(self, limit=12):
+            raise RuntimeError("no history in the fixture")
+    WHEN = {"ONE": [dt.date(2026, 10, 21)],
+            "TWO": [dt.date(2026, 10, 20), dt.date(2026, 10, 24)]}
+    saved = sys.modules.get("yfinance")
+    sys.modules["yfinance"] = types.SimpleNamespace(Ticker=FakeTicker)
+    try:
+        one, _ = earn_src.events_for("ONE")
+        two, _ = earn_src.events_for("TWO")
+    finally:
+        if saved is not None:
+            sys.modules["yfinance"] = saved
+        else:
+            sys.modules.pop("yfinance", None)
+    check(one and one[0].payload["date_confirmed"] is True
+          and one[0].title.endswith("(confirmed)")
+          and two and two[0].payload["date_confirmed"] is False
+          and two[0].title.endswith("(expected)")
+          and one[0].content_hash != ev_mod.Event(
+              type="scheduled", observed_at=one[0].observed_at, source="yfinance",
+              title="ONE earnings (expected)", entities=["ONE"],
+              key=f"earnings-cal-ONE-{one[0].observed_at[:10]}").content_hash,
+          "the writer marks a single calendar date confirmed and a window expected; "
+          "the confirmed date is its own row")
+
+    # --- H2. THE DRY RUN'S CUTOFF -------------------------------------------
+    print(f"\n{LINE}\nH2. A --week-ending DRY RUN READS AS THE SCHEDULED RUN WOULD\n{LINE}")
+    from daily_cascade import weekly_payload as wp, weekly_report as wr
+    check(wp.scheduled_run_utc("2026-10-02") == "2026-10-04T09:00:00+00:00"
+          and wp.scheduled_run_utc("2026-01-02") == "2026-01-04T10:00:00+00:00"
+          and wp.scheduled_run_utc("2026-10-09", "2026-10-06T12:00:00+00:00")
+          == "2026-10-06T12:00:00+00:00",
+          "the cutoff is Sunday 05:00 ET after the week (EDT and EST), never later "
+          "than the real clock")
+    src = inspect.getsource(wr.main)
+    check("args.dry_run and args.week_ending and not args.as_of" in src
+          and "args.as_of = payload_mod.scheduled_run_utc(args.week_ending)" in src,
+          "weekly_report applies it to a --week-ending dry run without --as-of")
 
     # --- I. W7 AND THE RECORD -----------------------------------------------
     print(f"\n{LINE}\nI. W7 OVER 23 HOURS, AND THE RECORD\n{LINE}")
