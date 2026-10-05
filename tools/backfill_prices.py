@@ -79,18 +79,20 @@ CLOSE_HOUR_ET = 16
 
 
 # PER-SYMBOL AVAILABILITY (T2.3 rulings of 5 Oct, item 2). A session-bound
-# symbol's daily bar is complete at the New York close. An FX pair's is not: its
-# daily bar is the UTC day, complete at 00:00 UTC the next day, so stamping it
+# symbol's daily bar is complete at the New York close. An FX pair's is not, nor
+# is Bitcoin's: its daily bar is the UTC day, complete at 00:00 UTC the next day, so stamping it
 # at 16:00 ET plus the delay would claim the close about four hours before it
 # existed. Each symbol's rule is declared here; every other symbol is "ny_close".
-AVAILABILITY_RULES = {"JPY=X": "utc_day", "EURUSD=X": "utc_day", "CNY=X": "utc_day"}
+AVAILABILITY_RULES = {"JPY=X": "utc_day", "EURUSD=X": "utc_day", "CNY=X": "utc_day",
+                      "BTC-USD": "utc_day"}
 
 
 def reconstructed_available_at(day: str,
                                latency_minutes: Optional[int] = None,
                                symbol: Optional[str] = None) -> str:
     """When a bar was knowable: its close plus a declared latency -- the New York
-    close for a session-bound symbol, the end of the UTC day for an FX pair."""
+    close for a session-bound symbol, the end of the UTC day for an FX pair or
+    Bitcoin."""
     mins = (yf_src.RECONSTRUCTED_LATENCY_MINUTES if latency_minutes is None
             else latency_minutes)
     d = dt.date.fromisoformat(day[:10])

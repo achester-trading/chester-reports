@@ -298,9 +298,11 @@ def group_f() -> None:
     print(f"\n{LINE}\nF. THE RECONSTRUCTED CLOCK IS THE CLOSE, IN THE RIGHT ZONE\n{LINE}")
     fx = bp.reconstructed_available_at("2026-10-02", symbol="JPY=X")
     ny = bp.reconstructed_available_at("2026-10-02", symbol="HG=F")
-    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X"}
-          and fx.startswith("2026-10-03T00:20:00") and ny.startswith("2026-10-02T20:20:00"),
-          f"the backfill stamps an FX pair at the end of its UTC day plus the delay, "
+    btc = bp.reconstructed_available_at("2026-10-02", symbol="BTC-USD")
+    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD"}
+          and fx.startswith("2026-10-03T00:20:00") and btc.startswith("2026-10-03T00:20:00")
+          and ny.startswith("2026-10-02T20:20:00"),
+          f"the backfill stamps an FX pair or Bitcoin at the end of its UTC day plus the delay, "
           f"a session-bound symbol at the New York close ({fx} / {ny})")
     summer = bp.reconstructed_available_at("2026-09-18")
     winter = bp.reconstructed_available_at("2026-01-15")
