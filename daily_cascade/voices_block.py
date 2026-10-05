@@ -121,7 +121,9 @@ def daily_line(session_day: str, cutoff: str, db_path: Optional[str] = None) -> 
         top, n = sorted(by.items(), key=lambda kv: (-kv[1], kv[0]))[0]
         rows = [e for e in ev if e["narrative_id"] == top]
         sides = Counter(e["side"] for e in rows)
-        name = (stories.get(top) or {}).get("name") or top
+        from altdata import labels                              # noqa: PLC0415
+        name = (labels.story(top).get("title")
+                or (stories.get(top) or {}).get("name") or top)
         lead_side = "for" if sides["for"] >= sides["against"] else "against"
         lead = next(e for e in rows if e["side"] == lead_side)
         line = (f"Most cited: {name}, {n} item{'s' if n != 1 else ''} "
@@ -255,9 +257,14 @@ def week_section(week_ending: str, as_of: str, db_path: Optional[str] = None,
     syn = story_items(ev, stories)
     for s in syn:
         n = s["for"] + s["against"]
-        head = (f"{s['name']} ({s['state']}): "
-                + (f"{n} sourced item{'s' if n != 1 else ''} this week, "
-                   f"{s['for']} for, {s['against']} against."
+        # PLAIN TITLE, COUNTS IN WORDS (T2.2 item 9).
+        from altdata import labels                              # noqa: PLC0415
+        from .weekly_sections import in_words                   # noqa: PLC0415
+        title = labels.story(s["story"]).get("title") or s["name"]
+        head = (f"{title}: "
+                + (f"{in_words(n)} sourced item{'s' if n != 1 else ''} this week, "
+                   f"{in_words(s['for']) if s['for'] else 'none'} for it and "
+                   f"{in_words(s['against']) if s['against'] else 'none'} against."
                    if n else "no sourced voice bore on it this week."))
         if s["dissent"]:
             d = s["dissent"][-1]

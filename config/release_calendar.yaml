@@ -52,3 +52,22 @@ releases:
 expiries:
   monthly_tier: 2
   quarterly_tier: 1
+
+# THE HEADLINE OF EACH TIER-1 RELEASE (T2.2): what The read's week-by-day table
+# and Plumbing print for it -- one or two figures a reader knows, under these
+# labels, never every series the release revises. A release is matched when its
+# stored name STARTS with the key (so "Debt to Gross Domestic Product Ratios" is
+# not GDP). The values are read from the store as of the cutoff.
+tier1_headlines:
+  "Employment Situation":
+    - {key: fred.nfp, label: "nonfarm payrolls, thousands"}
+    - {key: fred.u3_rate, label: "unemployment rate"}
+    - {key: calc.yoy_ahe, label: "average hourly earnings, year on year"}
+  "Consumer Price Index":
+    - {key: calc.yoy_cpi, label: "CPI, year on year"}
+    - {key: calc.yoy_core_cpi, label: "core CPI, year on year"}
+  "Personal Income and Outlays":
+    - {key: calc.yoy_pce, label: "PCE prices, year on year"}
+    - {key: calc.yoy_core_pce, label: "core PCE prices, year on year"}
+  "Gross Domestic Product":
+    - {key: calc.yoy_real_gdp, label: "real GDP, year on year"}

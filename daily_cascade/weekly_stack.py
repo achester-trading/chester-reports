@@ -186,7 +186,8 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     # THE DEALER TABLE AND ITS FLAGS (T2.2 item 18): one row per session,
     # flags computed by code; the prose may use a flag word only where set.
     return {"items": items, "not_tracked": nt,
-            "table": dw["table"], "table_note": dw["table_note"],
+            "table": dw["table"],
+            "table_note": dw["table_note"] if dw["table"]["rows"] else None,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
                      "dial_changes": wis.get("dial_changes") or []}}
 
@@ -300,12 +301,13 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
-    """The week's tier-1 releases that occurred, with each tracked series'
-    actual, prior and as-of from the store (T2.1 item 13). The tier-1 list is
-    the Plumbing trigger's (config/reporting_stack.yaml)."""
-    from altdata import events, labels                          # noqa: PLC0415
-    tier1 = ((stack_mod.config().get("triggers") or {}).get("plumbing") or {}) \
-        .get("tier1_events") or []
+    """The week's tier-1 releases that occurred, each with its HEADLINE figures'
+    actual, prior and as-of from the store (T2.1 item 13; T2.2: the headline
+    series declared in config/release_calendar.yaml `tier1_headlines`, under
+    their plain labels -- never every series the release revises). A release is
+    matched when its name starts with the declared one."""
+    from altdata import events                                  # noqa: PLC0415
+    heads = (wsec.load_calendar().get("tier1_headlines") or {})
     out = []
     try:
         with events.EventStore(str(st.path)) as ev:
@@ -317,18 +319,15 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
         return out
     seen = set()
     for obs_at, title, payload in rows:
-        name = str(title).split(" -- ")[0]
-        if not any(t.lower() in name.lower() for t in tier1):
+        name = str(title).split(" -- ")[0].strip()
+        rel = next((k for k in heads if name.lower().startswith(k.lower())), None)
+        if not rel:
             continue
-        try:
-            series = (json.loads(payload or "{}").get("series") or [])
-        except ValueError:
-            series = []
-        for s in series:
-            key = f"fred.{s}"
-            if (name, key) in seen:
+        for h in heads[rel]:
+            key = h["key"]
+            if (rel, key) in seen:
                 continue
-            seen.add((name, key))
+            seen.add((rel, key))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
             if not pts:
@@ -340,8 +339,8 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
                 if v is None:
                     return "n/a"
                 return f"{v:,.2f}%" if units in ("%", "percent") else f"{v:,.1f}"
-            out.append({"release": name, "date": str(obs_at)[:10], "series": key,
-                        "label": labels.metric(key), "actual": a["value_num"],
+            out.append({"release": rel, "date": str(obs_at)[:10], "series": key,
+                        "label": h["label"], "actual": a["value_num"],
                         "prior": p["value_num"] if p else None,
                         "actual_text": fmt(a["value_num"]),
                         "prior_text": fmt(p["value_num"] if p else None),
@@ -467,7 +466,7 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     for inst, name in CFTC_CONTRACTS:
         x = data.get(f"cftc:{inst}")
         if x:
-            cf.append([name, f"{x['level']:,.0f}", _change(x),
+            cf.append([name[0].upper() + name[1:], f"{x['level']:,.0f}", _change(x),
                        "—" if x.get("z_2y") is None else f"{x['z_2y']:+.1f}",
                        x["observed_at"]])
     out.append({"title": "Speculative positioning (CFTC)",
