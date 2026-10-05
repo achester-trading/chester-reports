@@ -154,11 +154,17 @@ SYMBOLS: dict[str, str] = {
     # vol dial is a statement about today by its own definition. yfinance serves
     # both of these at the close.
     #
-    # ^VIX9D and ^VVIX are also served and are deliberately NOT here: the order
-    # asked for these two, and a basket that grows on its own is a basket nobody
-    # reviewed.
+    # ^VIX9D is also served and is deliberately NOT here: the order asked for
+    # these two, and a basket that grows on its own is a basket nobody reviewed.
+    # (^VVIX joined below by ruling, 4 Oct 2026.)
     "^VIX": "mkt_vix",
     "^VIX3M": "mkt_vix3m",
+    # THE WEEKLY'S GAUGES (T2.2, ruled 4 Oct 2026, item 16): bond-market implied
+    # volatility (ICE BofA MOVE), the volatility of the VIX, and Cboe's SKEW. Added
+    # by ruling -- the reviewed basket the note above asks for.
+    "^MOVE": "mkt_move",
+    "^VVIX": "mkt_vvix",
+    "^SKEW": "mkt_skew",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
     # computes each position's beta against SPY from stored daily returns, and a
     # name the store does not carry has no beta -- the gate then DELAYS rather than

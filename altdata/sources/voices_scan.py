@@ -334,7 +334,10 @@ For each voice return:
   stories      a list of {{"story": <id>, "side": "for" | "against"}} for each story below the view bears on directly -- "for" when it supports the story as stated, "against" when it disputes it. Leave it empty when the view does not bear on a story.
 {st}
 
-Return exactly: {{"voices": [ ... ]}}. No prose outside the JSON."""
+ALSO, separately: if the article states a REASON for a market move (for example "stocks fell after the jobs report"), return it as an attribution -- the article's claim, not yours:
+  attributions  a list of {{"market": "US stocks" | "Treasury yields" | "the dollar" | "oil" | "gold" | "bitcoin" | ..., "claim": "<the article's stated reason, paraphrased, at most 25 words>"}}; empty when the article states none.
+
+Return exactly: {{"voices": [ ... ], "attributions": [ ... ]}}. No prose outside the JSON."""
 
 
 def _json_from(text: str) -> dict:
@@ -354,7 +357,12 @@ def extract(client, model: str, system: str, title: str, url: str,
                    f"TITLE: {title}\nURL: {url}\nPUBLISHED: {published}\n\n"
                    f"ARTICLE TEXT:\n{text}"}])
     reply = "".join(getattr(b, "text", "") for b in msg.content)
-    return list((_json_from(reply).get("voices") or []))
+    doc = _json_from(reply)
+    voices = list(doc.get("voices") or [])
+    # The press attributions travel on the first voice's list as a side field,
+    # so the call's return shape stays one list for the callers that predate it.
+    extract.last_attributions = list(doc.get("attributions") or [])
+    return voices
 
 
 def _norm(s: str) -> str:
@@ -591,6 +599,17 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                 rep["model_calls"] += 1
                 rep["extracted"] += 1
                 retrieved = session.utc_iso()
+                for a in getattr(extract, "last_attributions", None) or []:
+                    try:
+                        vs.write_attribution({
+                            "outlet": s["outlet"], "market": a.get("market"),
+                            "claim": a.get("claim"), "source_url": url,
+                            "published_at": c.get("published_at") or pub,
+                            "retrieved_at": retrieved, "tier": tier})
+                    except vmod.VoiceError as exc:
+                        rep["refused"].append({"url": url, "attribution": True,
+                                               "reason": str(exc)[:160]})
+                extract.last_attributions = []
                 n_voices, touched = 0, set()
                 for v in found:
                     # The model names the kind; a desk's own page supplies it

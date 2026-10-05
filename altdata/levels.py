@@ -261,6 +261,9 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
     frame[f"session_change_{unit}"] = move(last, prior)
     frame[f"wtd_change_{unit}"] = move(last, wk_prior[-1]["close"] if wk_prior else None)
     frame[f"mtd_change_{unit}"] = move(last, mo_prior[-1]["close"] if mo_prior else None)
+    # Year to date (T2.2 item 4): against the last close of the prior year.
+    yr_prior = [r for r in hist if str(r["observed_at"])[:4] < day[:4]]
+    frame[f"ytd_change_{unit}"] = move(last, yr_prior[-1]["close"] if yr_prior else None)
     out["frame"] = frame
     out["row"] = {**row, **{k: v for k, v in frame.items() if v is not None}}
     return out

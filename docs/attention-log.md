@@ -17,3 +17,4 @@ The Weekly reads this file for its sitting hours (out of 2) and its count of rul
 | 2026-10-02 | ruling | — | 6d report: venue mid price and the legs-sum flag; the gate counts live snapshots only; refusal with nothing to compare; the Monthly gate block accepted; merge and deploy |
 | 2026-10-03 | ruling | 15 | JPM GTM borrow list GTM-1…23 ruled; change order filed |
 | 2026-10-03 | ruling | 10 | T2 report rulings |
+| 2026-10-04 | ruling | 35 | Weekly edits T2.2 (seventeen items) and config rulings |

@@ -233,10 +233,12 @@ def main() -> int:
     check(all(s.get("claim") for s in ed1["sections"]),
           "every section opens with a claim line")
     html1 = out1["html_archive"]
-    pos = [html1.find(f">{n}. {stack_render.esc(s['title'])}") for n, s in
+    pos = [html1.find(f">{n} &middot; {stack_render.esc(s['title'])}") for n, s in
            enumerate(ed1["sections"], start=1)]
-    check(all(x >= 0 for x in pos) and pos == sorted(pos),
-          "and the HTML prints them in that order, numbered")
+    check(all(x >= 0 for x in pos) and pos == sorted(pos)
+          and html1.count("font-style:italic;color:#5a6b7a\">&mdash; ") == 10,
+          "and the HTML prints them in that order, as 'number · name — subtitle' "
+          "with the subtitle styled apart from the body's bold (T2.2 item 1)")
     check(not any(s["collapsed"] for s in ed1["sections"]),
           "with no prior edition nothing collapses")
     stack_close.save_edition(ed1, SESSION, arch)
@@ -579,18 +581,28 @@ def main() -> int:
                                 f"({ed1['words']})")
     e = stack_mod.build(p, book, ed1["outlooks"], None, db)
     stack_prose.write(e, client=clean, outlooks=ed1["outlooks"])
-    p1_before = {i["key"] for s in e["sections"] for i in s["items"]
-                 if i["priority"] == 1}
+    # PROSE ONLY (T2.2, ruled 4 Oct 2026): items and tables are data, never
+    # counted and never cut; over budget, later paragraphs go first.
+    deep = next(s for s in e["sections"] if s["depth"] == "deep" and s.get("claim"))
+    deep["paragraphs"] = ["One more paragraph of prose for the cut to take. " * 4] * 3
+    items_before = {i["key"] for s in e["sections"] for i in s["items"]}
+    tables_before = [s.get("table") for s in e["sections"]]
+    prose_only = sum(stack_mod.words(s.get("claim")) + sum(
+        stack_mod.words(x) for x in s.get("paragraphs") or [])
+        for s in e["sections"] if not s.get("collapsed"))
     before = sum(stack_mod.section_words(s) for s in e["sections"])
-    limit = before - 80
+    check(before == prose_only,
+          f"words count prose only: claims and paragraphs, never items ({before})")
+    limit = before - 40
     e["budget"] = {"words": limit, "charts": 3}
     stack_mod.enforce_budget(e)
     trimmed = [s["id"] for s in e["sections"] if s["trimmed"]]
-    check(trimmed and e["words"] <= limit,
-          f"over budget ({before} words against {limit}), low-priority lines go "
-          f"first until it fits ({trimmed}; {e['words']} words)")
-    check(p1_before <= {i["key"] for s in e["sections"] for i in s["items"]},
-          "and every priority-1 line survives the cut")
+    check(trimmed and len(deep["paragraphs"]) < 3,
+          f"over budget ({before} words against {limit}), the later paragraphs go "
+          f"first ({trimmed}; {e['words']} words)")
+    check(items_before == {i["key"] for s in e["sections"] for i in s["items"]}
+          and tables_before == [s.get("table") for s in e["sections"]],
+          "and no item and no table is cut -- they are data")
     check(all(s.get("claim") for s in e["sections"] if not s.get("withheld")),
           "and no claim line is cut")
     sh = stack_render.section_html(next(s for s in e["sections"]

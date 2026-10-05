@@ -172,6 +172,23 @@ CREATE TABLE IF NOT EXISTS voice_13f_ciks (
     resolved_at    TEXT NOT NULL
 );
 
+-- PRESS ATTRIBUTIONS (T2.2 item 3): an outlet's own stated reason for a market
+-- move, paraphrased, with its URL. Printed ONLY as that outlet's attribution
+-- ("CNBC attributed the fall to ..."), never as the system's cause.
+CREATE TABLE IF NOT EXISTS press_attributions (
+    id            INTEGER PRIMARY KEY,
+    outlet        TEXT NOT NULL,
+    market        TEXT NOT NULL,
+    claim         TEXT NOT NULL,
+    source_url    TEXT NOT NULL CHECK (length(source_url) > 10
+                                      AND source_url LIKE 'http%'),
+    published_at  TEXT NOT NULL,
+    retrieved_at  TEXT NOT NULL,
+    tier          INTEGER NOT NULL,
+    created_at    TEXT NOT NULL,
+    UNIQUE (source_url, market)
+);
+
 -- ONE ROW PER SOURCE PER RUN: what the reports print as "unreachable".
 CREATE TABLE IF NOT EXISTS voice_scan_runs (
     id            INTEGER PRIMARY KEY,
@@ -324,6 +341,15 @@ class VoicesStore:
                 self.conn = sqlite3.connect(":memory:")
                 self.conn.row_factory = sqlite3.Row
                 self.conn.executescript(SCHEMA)
+                return
+            # A table added after this store's last scan (13F CIKs, press
+            # attributions) reads as an empty TEMP table -- never a fault, and
+            # nothing is written to the store.
+            for m in re.finditer(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
+                                 SCHEMA, re.S):
+                if m.group(1) not in have:
+                    self.conn.execute(f"CREATE TEMP TABLE IF NOT EXISTS "
+                                      f"{m.group(1)} ({m.group(2)}\n)")
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(str(self.path))
@@ -438,6 +464,41 @@ class VoicesStore:
                                        "retrieved_at")))
         self.conn.commit()
         return bool(cur.rowcount)
+
+    def write_attribution(self, row: dict) -> bool:
+        """One outlet's stated reason for a move. Refused without its source."""
+        for k in ("outlet", "market", "claim", "source_url", "published_at",
+                  "retrieved_at", "tier"):
+            if row.get(k) in (None, ""):
+                raise VoiceError(f"attribution has no {k} -- no stored source, "
+                                 f"not printed")
+        if len(str(row["claim"]).split()) > 30:
+            raise VoiceError("attribution runs past 30 words")
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO press_attributions (outlet, market, claim, "
+            " source_url, published_at, retrieved_at, tier, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (row["outlet"], row["market"], str(row["claim"]).strip(),
+             row["source_url"], _iso(row["published_at"]),
+             _iso(row["retrieved_at"]), int(row["tier"]), session.utc_iso()))
+        self.conn.commit()
+        return bool(cur.rowcount)
+
+    def attributions(self, *, as_of: Optional[str] = None,
+                     since: Optional[str] = None,
+                     until: Optional[str] = None) -> list[dict]:
+        q, args = "SELECT * FROM press_attributions WHERE 1=1", []
+        if as_of:
+            q += " AND retrieved_at <= ?"
+            args.append(as_of)
+        if since:
+            q += " AND published_at >= ?"
+            args.append(since)
+        if until:
+            q += " AND published_at < ?"
+            args.append(until)
+        return [dict(r) for r in self.conn.execute(q + " ORDER BY published_at, id",
+                                                   args)]
 
     def set_cik(self, affiliation: str, expected: str, state: str, *,
                 cik: Optional[str] = None, edgar_name: Optional[str] = None,

@@ -51,7 +51,15 @@ URL = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
 # TRADE", 1170E1 "VIX FUTURES - CBOE FUTURES EXCHANGE". Each pull reads a
 # contract's whole history, so a contract added here arrives complete.
 CONTRACTS = {"097741": "JPY", "098662": "USD_INDEX", "13874+": "SP500",
-             "043602": "UST10Y", "1170E1": "VIX"}
+             "043602": "UST10Y", "1170E1": "VIX",
+             # T2.2 (4 Oct 2026, item 13): the W4 panel's other five, codes read
+             # from the CFTC API's market names that day. Russell has no
+             # consolidated contract; the E-mini is the benchmark one.
+             "20974+": "NDX100",     # NASDAQ-100 Consolidated
+             "239742": "RUSSELL2000",  # RUSSELL E-MINI
+             "020601": "UST30Y",     # UST BOND (CBOT)
+             "088691": "GOLD",       # GOLD (COMEX)
+             "067651": "WTI"}        # WTI-PHYSICAL (NYMEX)
 RELEASE_ET = dt.time(15, 30)
 PAGE = 5000
 

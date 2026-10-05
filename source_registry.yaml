@@ -1172,6 +1172,21 @@ sources:
     implemented_by: altdata/sources/umich.py
     status: live
 
+  aaii:
+    name: American Association of Individual Investors -- Sentiment Survey
+    tier: B
+    epistemic_role: primary_fact
+    domain: [sentiment]
+    geography: [US]
+    latency: weekly, Thursday
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified (observed); one row per weekly survey, dated by its reported Thursday.
+    license: public spreadsheet, no key; no robots.txt rule against it (read 4 Oct 2026)
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/aaii.py
+    status: live
+
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations
     tier: A0

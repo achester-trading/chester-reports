@@ -84,3 +84,7 @@ T1 → D-1 → 6d + rate path → T2 → T3 (first half) → freeze → Audit #4
 ## Sitting closed 15:14 ET — 22 minutes, ten items and item 0, all ruled
 
 **Applied in chat:** item 0 (change order marked signed). **To apply by session:** D-1 (config: regime mapping v1.1, `transition_sessions`, risk limits incl. sector 30%, instrument reference as approximate with quarterly refresh; the stack's values as ratified in `config/`), EL-4 (Doctrine sections: change ladder with N = 20 and the cadence clause, attention budget 7 / 2 h / three counts, intraday rung, the October appendix entries), T2 (Weekly prints the attention counts and trigger counts), EL-12 (dealer engine registration, after 6b), 6e (lenses values). **Added to the Audit #4 agenda:** re-engagement of Book A into the Overheat band (item 1c).
+
+## Post-sitting notes
+
+- 4 Oct — Weekly chart cap raised (W7 intraday, W8 panel, W9 gauges, W10 priced); reading budgets count prose only.

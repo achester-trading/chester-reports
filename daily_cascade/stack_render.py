@@ -30,6 +30,13 @@ esc, NOTE, TBL, TH, THL, TD, TDL, ABSENT, WARN = (
     base.WARN)
 H2 = base.H2
 DIAMOND = "◆"
+# THE SECTION HEADER (T2.2 item 1): "number · name — subtitle", the name in the
+# heading's own weight and colour, the subtitle in a lighter, italic, muted face
+# -- so a header can never be mistaken for the bold claim line beneath it.
+SUBTITLE = "font-size:13px;font-weight:400;font-style:italic;color:#5a6b7a"
+H3 = ("font-size:13px;font-weight:600;color:#0d2b45;margin:14px 0 4px 0;"
+      "border-bottom:1px solid #e6ebef;padding-bottom:2px")
+TABLE_NOTE = "font-size:11.5px;color:#334155;margin:4px 0 2px 0;line-height:1.45"
 
 
 def cid(chart_id: str) -> str:
@@ -58,11 +65,40 @@ def _table(t: Optional[dict]) -> str:
     return f'<table style="{TBL}"><tr>{head}</tr>{body}</table>'
 
 
-def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
+def header_html(s: dict, n: int) -> str:
     depth = s["depth"] + (f": {s['depth_reason']}" if s.get("depth_reason") else "")
-    out = [f'<h2 style="{H2}">{n}. {esc(s["title"])} '
-           f'<span style="font-size:11px;color:#5a6b7a;font-weight:400">'
-           f'({esc(depth)}){" (trimmed)" if s.get("trimmed") else ""}</span></h2>']
+    sub = (f' <span style="{SUBTITLE}">&mdash; {esc(s["subtitle"])}</span>'
+           if s.get("subtitle") else "")
+    return (f'<h2 style="{H2}">{n} &middot; {esc(s["title"])}{sub} '
+            f'<span style="font-size:10.5px;color:#94a3b8;font-weight:400">'
+            f'({esc(depth)}){" (trimmed)" if s.get("trimmed") else ""}</span></h2>')
+
+
+def _note(t: Optional[str]) -> str:
+    return f'<p style="{TABLE_NOTE}">{esc(t)}</p>' if t else ""
+
+
+def subsection_html(ss: dict, charts: dict, mode: str) -> str:
+    out = [f'<h3 style="{H3}">{esc(ss.get("title"))}</h3>']
+    if ss.get("paragraph"):
+        out.append(f'<p style="font-size:13px;line-height:1.55;margin:0 0 8px 0">'
+                   f'{esc(ss["paragraph"])}</p>')
+    out.append(_note(ss.get("table_note")))
+    out.append(_table(ss.get("table")))
+    if ss.get("lines"):
+        out.append('<ul style="margin:4px 0 8px 0;padding-left:18px;font-size:12.5px">'
+                   + "".join(f"<li>{esc(x)}</li>" for x in ss["lines"]) + "</ul>")
+    for c in ss.get("charts_rendered") or []:
+        if c in charts:
+            out.append(_chart_html(charts[c], mode))
+    if ss.get("not_tracked"):
+        out.append(f'<p style="{NOTE}"><strong>Not yet tracked:</strong> '
+                   f'{esc("; ".join(ss["not_tracked"]))}.</p>')
+    return "".join(out)
+
+
+def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
+    out = [header_html(s, n)]
     if s.get("claim"):
         out.append(f'<p style="font-size:13.5px;margin:0 0 8px 0"><strong>'
                    f'{esc(s["claim"])}</strong>'
@@ -77,11 +113,14 @@ def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
     for p in s.get("paragraphs") or []:
         out.append(f'<p style="font-size:13px;line-height:1.55;margin:0 0 10px 0">'
                    f'{esc(p)}</p>')
-    if s.get("items"):
+    if s.get("items") and s.get("print_items", True):
         out.append('<ul style="margin:4px 0 8px 0;padding-left:18px;font-size:12.5px">'
                    + "".join(f'<li>{DIAMOND + " " if i.get("changed") else ""}'
                              f'{esc(i["text"])}</li>' for i in s["items"]) + "</ul>")
+    out.append(_note(s.get("table_note")))
     out.append(_table(s.get("table")))
+    for ss in s.get("subsections") or []:
+        out.append(subsection_html(ss, charts, mode))
     for c in s.get("charts_rendered") or []:
         if c in charts:
             out.append(_chart_html(charts[c], mode))
@@ -136,3 +175,13 @@ or the 5-minute bars pulled after the close. No figure here is a recommendation;
 every probability printed is a ledger entry written before this edition. Archived
 to <code>{esc((delivery or {}).get('archive_path') or 'n/a')}</code>.</p>
 </div>"""
+
+
+def glossary_html(entries: list[dict]) -> str:
+    """The glossary, printed once at the end of an edition (T2.2 item 11)."""
+    if not entries:
+        return ""
+    rows = "".join(f'<li><strong>{esc(e.get("term"))}</strong>: {esc(e.get("text"))}</li>'
+                   for e in entries)
+    return (f'<h2 style="{H2}">Glossary</h2><ul style="margin:4px 0 8px 0;'
+            f'padding-left:18px;font-size:12px;color:#334155">{rows}</ul>')

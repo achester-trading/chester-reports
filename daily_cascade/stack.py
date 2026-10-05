@@ -22,10 +22,11 @@ THE THREE READING RULES (1.3), as code:
 COLLAPSE. A section whose items and table are identical to the prior edition's
 prints its claim line and "(unchanged since <date>)", and nothing else.
 
-THE BUDGET (1.4). Words are counted over the claim lines, paragraphs and items;
-over budget, the lowest-priority items go first, then the later paragraphs of
-deep sections, and the section prints "(trimmed)". The model never summarizes to
-fit.
+THE BUDGET (1.4). Words are counted over the PROSE ONLY -- the claim lines and
+paragraphs the model writes (T2.2, ruled 4 Oct 2026, every report). Tables and the
+code-written lines are data: never counted, never cut. Over budget, the later
+paragraphs of deep sections go first, and the section prints "(trimmed)". The
+model never summarizes to fit.
 """
 
 from __future__ import annotations
@@ -223,7 +224,7 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                           (d["venue_probability"], d["fed_funds_implied"])))
     for d in dis.get("scenario") or []:
         items.append(item(f"misfit:pm_sc:{d['instrument']}",
-                          f"A venue prices {d['scenario']} at "
+                          f"A prediction market prices {d['scenario']} at "
                           f"{round(d['venue_probability'] * 100):.0f}% against our weight "
                           f"of {round(d['scenario_weight'] * 100):.0f}% "
                           f"({abs(d['gap_points']):.0f} points).", 1,
@@ -245,7 +246,7 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                           "exception is flagged.", 1, "none"))
     return {"items": items, "charts": ["C3"] if opened else [],
             "not_tracked": list(dis.get("notes") or []) if pmb else
-            ["venue disagreement: no venue market stored"],
+            ["prediction markets against fed funds: no prediction market stored"],
             "data": {"venue_disagreements": {k: dis.get(k) for k in
                                              ("fed_funds", "scenario")},
                      "open_contradictions_count": len(opened),
@@ -772,13 +773,21 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
         fp = _fp([(i["key"], i["fingerprint"]) for i in b["items"]]
                  + [b.get("table")])
         unchanged = bool(prior) and pr.get("fingerprint") == fp and sid != "read"
-        out.append({"id": sid, "title": sp["title"], "depth": depth,
+        out.append({"id": sid, "title": sp["title"],
+                    "subtitle": sp.get("subtitle"), "depth": depth,
                     "depth_reason": (reason if depth == "deep" and sp.get(deep_key)
                                      else None),
                     "items": b["items"], "table": b.get("table"),
                     "charts": b.get("charts") or [], "data": b.get("data") or {},
                     "not_tracked": b.get("not_tracked") or [],
                     "legend": b.get("legend"),
+                    # T2.2: a section may print its lines as data beside a table
+                    # (print_items False), carry a note above its table, and hold
+                    # sub-sections, each with its own table and one paragraph.
+                    "print_items": b.get("print_items", True),
+                    "prose_paragraphs": b.get("prose_paragraphs"),
+                    "table_note": b.get("table_note"),
+                    "subsections": b.get("subsections") or [],
                     "fingerprint": fp, "collapsed": unchanged,
                     "unchanged_since": ((pr.get("unchanged_since") or
                                          (prior or {}).get("session"))
@@ -793,10 +802,12 @@ def words(text: Optional[str]) -> int:
 
 
 def section_words(s: dict) -> int:
+    """PROSE ONLY (T2.2, 4 Oct 2026): the claim line, the paragraphs and each
+    sub-section's paragraph. Items and tables are data and never count."""
     if s.get("collapsed"):
         return words(s.get("claim"))
     return (words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
-            + sum(words(i["text"]) for i in s.get("items") or []))
+            + sum(words(ss.get("paragraph")) for ss in s.get("subsections") or []))
 
 
 def enforce_budget(ed: dict) -> dict:
@@ -810,24 +821,11 @@ def enforce_budget(ed: dict) -> dict:
                 s["paragraphs"] = s["paragraphs"][:-1]
                 s["trimmed"] = True
 
-    def cut_items(priority: int) -> None:
-        for n in reversed(range(len(ed["sections"]))):
-            s = ed["sections"][n]
-            if s["collapsed"]:
-                continue
-            for it in reversed(list(s["items"])):
-                if total() <= limit:
-                    return
-                if it["priority"] == priority:
-                    s["items"] = [i for i in s["items"] if i is not it]
-                    s["trimmed"] = True
-    # LOWEST PRIORITY FIRST: a deep section's third paragraph, then the
-    # priority-3 lines, then second paragraphs, then priority-2 lines. A claim
-    # line and a priority-1 line are never cut.
+    # PROSE ONLY IS CUT (T2.2): a deep section's third paragraph, then second
+    # paragraphs. A claim line, an item and a table are never cut -- they are
+    # data, and the budget counts prose.
     cut_paragraphs(2)
-    cut_items(3)
     cut_paragraphs(1)
-    cut_items(2)
     ed["words"] = total()
     return ed
 
