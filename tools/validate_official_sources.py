@@ -54,6 +54,13 @@ import os
 import re
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 import zipfile
 from pathlib import Path
 
@@ -63,7 +70,7 @@ sys.path.insert(0, str(REPO))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-_TMP = tempfile.mkdtemp(prefix="validate_official_")
+_TMP = gate_mkdtemp(prefix="validate_official_")
 os.environ.setdefault("CHESTER_STATE_DIR", _TMP)
 
 import yaml  # noqa: E402
@@ -1056,12 +1063,12 @@ def group_p() -> None:
     from altdata.sources import fundamentals as fu
     from altdata.sources import yfinance_source as yf_src
     print(f"{LINE}\nP. SYMBOLS, FUNDAMENTALS AND THE ST-2 MANUAL KEYS\n{LINE}")
-    added = {"IVW", "IVE", "IWF", "IWD", "VWO", "ACWX", "EMXC", "GUNR", "CNH=X"}
+    added = {"IVW", "IVE", "IWF", "IWD", "VWO", "ACWX", "EMXC", "GUNR", "CNY=X"}
     check(added <= set(yf_src.SYMBOLS) and {"GLD", "EEM"} <= set(yf_src.SYMBOLS),
           "the nine ST-2 symbols are on the price pass; GLD and EEM were already")
-    check(yf_src.SYMBOLS["CNH=X"] == "mkt_usdcnh" and "CNH=X"
+    check(yf_src.SYMBOLS["CNY=X"] == "mkt_usdcny" and "CNY=X"
           in yf_src.CONTINUOUS_SYMBOLS,
-          "USD/CNH is declared continuous: its US-holiday quotes are real")
+          "USD/CNY is declared continuous: its US-holiday quotes are real")
     # fundamentals
     frames = {"cashflow": {"Operating Cash Flow": {"2026-03-31": 26.0e9},
                            "Capital Expenditure": {"2026-03-31": -44.2e9}},
@@ -1149,7 +1156,7 @@ def group_q() -> None:
     import tempfile
     saved_env = os.environ.get("CHESTER_STATE_DIR")
     saved_rosters = feeds.logger_rosters
-    td = tempfile.mkdtemp(prefix="feeds_attempted_")
+    td = gate_mkdtemp(prefix="feeds_attempted_")
     db = temp_store()
     try:
         os.environ["CHESTER_STATE_DIR"] = td
@@ -1248,7 +1255,7 @@ def group_r() -> None:
     # other official writer's absent key back into `pending` until 16:10.
     saved_env = os.environ.get("CHESTER_STATE_DIR")
     saved_wm = feeds._writer_modules
-    td = tempfile.mkdtemp(prefix="feeds_early_")
+    td = gate_mkdtemp(prefix="feeds_early_")
     try:
         os.environ["CHESTER_STATE_DIR"] = td
         feeds.record_attempted("official", list(acm.KEYS))

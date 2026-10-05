@@ -48,6 +48,13 @@ import os
 import re
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 import types
 from pathlib import Path
 
@@ -58,7 +65,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # BEFORE ANY IMPORT: every default store in this process is the fixture.
-_TMP = tempfile.mkdtemp(prefix="validate_narratives_")
+_TMP = gate_mkdtemp(prefix="validate_narratives_")
 DB = os.path.join(_TMP, "fixture.sqlite")
 os.environ["CHESTER_DB"] = DB
 os.environ.setdefault("CHESTER_STATE_DIR", _TMP)

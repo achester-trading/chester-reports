@@ -47,6 +47,13 @@ import os
 import re
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -55,7 +62,7 @@ sys.path.insert(0, str(REPO / "tools"))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-TD = tempfile.mkdtemp(prefix="validate_weekly_edits_")
+TD = gate_mkdtemp(prefix="validate_weekly_edits_")
 os.environ.setdefault("CHESTER_DB", str(Path(TD) / "default.db"))
 
 LINE = "=" * 78
@@ -367,8 +374,7 @@ def main() -> int:
         check(ok, f"{k} renders to PNG and SVG -- "
                   f"{str(c.get('caption') or c.get('unavailable'))[:80]}")
     w9 = out["charts"].get("W9") or {}
-    check("SPY put/call, volume (SPY chain, own capture)" in (w9.get("not_drawn") or [])
-          and "NAAIM exposure" in (w9.get("not_drawn") or []),
+    check("SPY put/call, volume (SPY chain, own capture)" in (w9.get("not_drawn") or []),
           "W9: an unfed gauge prints 'not yet tracked' on its panel")
     st_ = charts_mod.span_title("SPY", 126, "sessions", "2026-04-01", "2026-10-02",
                                 "six months")
@@ -530,25 +536,52 @@ def main() -> int:
           "'VIX as proxy'")
     labels_w9 = [g[0] for g in ws.W9_GAUGES]
     check(any("SPY chain, own capture" in x for x in labels_w9)
-          and not any("Equity put/call" == x for x in labels_w9)
-          and dict((g[0], g[1]) for g in ws.W9_GAUGES).get("NAAIM exposure") == "naaim.exposure",
+          and not any("Equity put/call" == x for x in labels_w9),
           "4: W9's put/call is SPY's own, labelled 'SPY chain, own capture'; no Cboe "
           "series")
-    from altdata.sources import naaim
-    from altdata import feeds as _feeds
-    check(naaim.pull(today=dt.date(2026, 10, 5))["state"] == "not_due"
-          and naaim.parse_widget("<b>73.81</b> as of 10/01/2026") ==
-          {"date": "2026-10-01", "value": 73.81}
-          and "naaim" not in _feeds.EXTERNAL_WRITERS
-          and "altdata.sources.naaim pull" in (REPO / "scripts" /
-                                              "fetch_overnight.sh").read_text(encoding="utf-8"),
-          "4: NAAIM is retried weekly (Thursdays) from the overnight pass, and is "
-          "not a feed whose absence marks the feeds stale")
     aaii_rows = [r for r in sec["positioning"]["subsections"][3]["table"]["rows"]
                  if str(r[0]).startswith("AAII")]
     aaii_src = _insp.getsource(ws.positioning_subsections)
     check("source: AAII Sentiment Survey" in aaii_src and "as of {aaii['observed_at']}" in aaii_src,
           f"4: the AAII row prints its source and as-of ({aaii_rows[:1]})")
+
+    # --- J. PB-1 (5 Oct 2026) -----------------------------------------------------
+    print(f"\n{LINE}\nJ. PB-1: FIXES FROM THE FIRST LIVE SCAN\n{LINE}")
+    from altdata import feeds as _feeds
+    import yaml as _yaml
+    reg = _yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    nreg = (reg.get("sources") or reg).get("naaim") or {}
+    check(not any("NAAIM" in g[0] for g in ws.W9_GAUGES)
+          and "naaim" not in _feeds.EXTERNAL_WRITERS
+          and "naaim" not in (REPO / "scripts" / "fetch_overnight.sh").read_text(
+              encoding="utf-8").replace("NAAIM was dropped", "")
+          and "subscription-only since 1 Aug 2026" in str(nreg.get("license", "")),
+          "6: NAAIM is dropped from the gauges and the feeds, its reason recorded")
+    chk = wsec.flags_for({**base_c, "atm_iv_30d": 12.7}, 18.9, fc)
+    ok_ = wsec.flags_for({**base_c, "atm_iv_30d": 15.0}, 18.9, fc)
+    check(chk["iv_check"] is True and ok_["iv_check"] is False
+          and cfg["dealer_flags"]["iv_vix_check_points"] == 5.0,
+          "7: SPY's ATM IV more than 5 points from the VIX marks the row 'check'")
+    dw = wsec.dealer_week.__code__.co_consts
+    check(any("check" in str(x) for x in dw)
+          and "SPY IV" in _insp.getsource(wsec.dealer_week),
+          "7: the table prints both figures and the flag 'check'")
+    wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
+    check('"--email"' in wr and "[DRY RUN] [chester] Weekly" in wr
+          and 'getattr(args, "email", False)' in wr,
+          "8: --dry-run --email sends the render with the subject prefixed "
+          "'[DRY RUN]'; nothing else changes")
+    gates = sorted((REPO / "tools").glob("validate_*.py")) + [REPO / "smoke_test.py"]
+    leaky = [g.name for g in gates
+             if re.search(r"tempfile\.mkdtemp\(", g.read_text(encoding="utf-8"))]
+    shells = sorted((REPO / "tools").glob("validate_*.sh"))
+    untrapped = [g.name for g in shells if "mktemp -d" in g.read_text(encoding="utf-8")
+                 and "trap 'rm -rf" not in g.read_text(encoding="utf-8")]
+    import gate_tmp as _gt
+    d = _gt.mkdtemp("pb1_probe_")
+    check(not leaky and not untrapped and Path(d).exists()
+          and "atexit" in _insp.getsource(_gt),
+          f"9: every gate removes its temporary store on exit ({leaky} {untrapped})")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

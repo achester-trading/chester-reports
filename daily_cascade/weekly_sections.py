@@ -240,6 +240,11 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     flip = card.get("flip_morning")
     out["close_vs_flip"] = (None if None in (close, flip) else
                             ("above" if close > flip else "below"))
+    # THE IV CHECK (PB-1): SPY's own ATM IV and the VIX more than the declared
+    # gap apart -- both print and the row is marked "check"; neither is chosen.
+    gap = float((cfg.get("dealer_flags") or {}).get("iv_vix_check_points", 5.0))
+    out["iv_check"] = bool(own_iv and vix and abs(own_iv - vix) > gap)
+    out["spy_iv"], out["vix"] = own_iv, vix
     return out
 
 
@@ -277,12 +282,15 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      g(c.get("call_wall_morning") or c.get("call_wall")),
                      g(c.get("put_wall_morning") or c.get("put_wall")),
                      g(c.get("flip_morning")), g(c.get("max_pain")),
-                     (g(f["implied_range"]) + (" (VIX as proxy)"
-                                               if f.get("iv_source") == "VIX as proxy"
-                                               else "")),
+                     (g(f["implied_range"])
+                      + (f" (SPY IV {f['spy_iv']:.1f}, VIX {f['vix']:.1f}: check)"
+                         if f.get("iv_check") else
+                         " (VIX as proxy)" if f.get("iv_source") == "VIX as proxy"
+                         else "")),
                      g(f["actual_range"]),
                      f["close_vs_flip"] or "—", c.get("gamma_regime") or "—",
-                     ", ".join(set_flags) or "none"])
+                     ", ".join(set_flags + (["check"] if f.get("iv_check") else []))
+                     or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
                        ("pinned", "call_wall_held", "put_wall_held", "amplified")},
                        "implied_range": f["implied_range"],

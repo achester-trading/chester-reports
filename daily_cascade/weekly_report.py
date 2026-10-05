@@ -66,6 +66,10 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true",
                     help="Build WITH the model, render to <reports>/dryrun/ "
                          "(never over the real edition), and send nothing")
+    ap.add_argument("--email", action="store_true",
+                    help="With --dry-run: also SEND the dry-run render to the "
+                         "configured recipient, subject prefixed \"[DRY RUN]\" "
+                         "(PB-1); nothing else changes")
     ap.add_argument("--no-narrative", action="store_true",
                     help="Ship the data-only edition; attempt no paragraph")
     ap.add_argument("--no-fetch", action="store_true",
@@ -246,6 +250,20 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     weekly_stack.save_edition(ed, ending, args.archive_dir)
     name = f"weekly_tactical_{ending}.html"
     if args.dry_run:
+        if getattr(args, "email", False):
+            # THE DRY RUN, MAILED (PB-1): the same render, to the configured
+            # recipient, the subject marked "[DRY RUN]"; archived to the dry-run
+            # directory like any dry run, never over the real edition.
+            res = delivery.deliver(f"[DRY RUN] [chester] Weekly — {ending}",
+                                   out["html_email"], name,
+                                   text_fallback=render_mod.text_fallback(p),
+                                   archive_dir=args.archive_dir,
+                                   archive_html=out["html_archive"],
+                                   inline_images=out["inline_images"])
+            print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
+            print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})"
+                  f" -- dry run, mailed")
+            return 3
         path = delivery.archive(out["html_archive"], name, args.archive_dir)
         print(f"  archive    : {path or 'FAILED'}")
         print("  delivery   : dry_run (--dry-run)")

@@ -131,13 +131,12 @@ SYMBOLS: dict[str, str] = {
     #   Commodity producers (SR-24; G-15 asks whether GUNR is an adequate proxy --
     #   ST-4's question, not this list's).
     "GUNR": "mkt_gunr",
-    #   Offshore yuan (SR-4): USD/CNH, CNH per dollar -- the offshore leg of the
-    #   CNH-CNY gap against cfets.cny_fix. An FX rate, not a price of a fund.
-    #   FORWARD-ONLY: Yahoo serves ONE bar for CNH=X whatever the period asked
-    #   (probed 26 Sep 2026: 1 row for "1mo" and for "2y"; USDCNH=X and
-    #   CNHUSD=X the same). So the series is built one close per nightly pull
-    #   from ST-2 on, and the backfill tool cannot reach behind it.
-    "CNH=X": "mkt_usdcnh",
+    #   The yuan (SR-4): USD/CNY, yuan per dollar, onshore. REPLACED CNH=X on
+    #   5 Oct 2026 (PB-1): Yahoo served one bar for CNH=X whatever the period
+    #   asked, and on 5 Oct none at all; CNY=X serves a daily history. The
+    #   offshore leg of the CNH-CNY gap is therefore not tracked; cfets.cny_fix
+    #   stays the onshore fix. An FX rate, not a price of a fund.
+    "CNY=X": "mkt_usdcny",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
     # THE TAPE SET'S OWN INSTRUMENTS (T2.1, 4 Oct 2026): the 10- and 30-year
@@ -212,7 +211,7 @@ SPLIT_SUFFIX = "_split"
 # an ETF and a volatility index exist only while the exchange is open.
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
-CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNH=X"})
+CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside
@@ -269,6 +268,41 @@ def drop_non_session_bars(symbol: str, rows: list[tuple[str, float]]
     kept, dropped = [], []
     for day, value in rows:
         if is_session_date(day):
+            kept.append((day, value))
+        else:
+            dropped.append(day)
+    return kept, dropped
+
+
+def bar_complete(symbol: str, day: str, now: Any = None) -> bool:
+    """Whether the daily bar dated `day` is FINISHED at `now` (PB-1, 5 Oct 2026).
+
+    The 06:45 pass wrote bars dated 5 Oct for VIX, DXY, gold, oil and BTC --
+    partial quotes for a session that had not opened, stored as if they were
+    the session's close. So a bar is written only once it is complete:
+
+      a session-bound symbol (equities, indices, VIX, and the futures and DXY,
+      which the system reads on the US session) once that session's close has
+      passed -- so only the 16:10 eod run writes the session's bar;
+      a 24-hour symbol (CONTINUOUS_SYMBOLS) once its UTC day has ended -- the
+      last completed UTC day, at any run.
+    """
+    from .. import session as sess                       # noqa: PLC0415
+    import datetime as _dt                               # noqa: PLC0415
+    t = sess.to_eastern(now)
+    d = _dt.date.fromisoformat(str(day)[:10])
+    if symbol in CONTINUOUS_SYMBOLS:
+        return t.astimezone(_dt.timezone.utc).date() > d
+    close = _dt.datetime.combine(d, sess.close_time_et(d), tzinfo=t.tzinfo)
+    return t >= close
+
+
+def drop_incomplete_bars(symbol: str, rows: list[tuple[str, float]],
+                         now: Any = None) -> tuple[list[tuple[str, float]], list[str]]:
+    """(kept, dropped): bars not yet complete at `now` are never written."""
+    kept, dropped = [], []
+    for day, value in rows:
+        if bar_complete(symbol, day, now):
             kept.append((day, value))
         else:
             dropped.append(day)
@@ -382,6 +416,10 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                 if dropped:
                     log.warning("yfinance %-8s dropped %d bar(s) on non-session "
                                 "dates: %s", symbol, len(dropped), dropped[-3:])
+                closes, partial = drop_incomplete_bars(symbol, closes)
+                if partial:
+                    log.info("yfinance %-8s held back %d unfinished bar(s): %s",
+                             symbol, len(partial), partial)
                 if not closes:
                     raise RuntimeError(f"no closes parsed for {symbol}")
                 now = sess.utc_iso(timespec="microseconds")

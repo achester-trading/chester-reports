@@ -42,6 +42,13 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -177,7 +184,7 @@ def group_f(m: dict) -> None:
     # for a row more than a week old, which says nothing about the commit.
     import datetime as _dt
     import tempfile
-    tmp = tempfile.mkdtemp(prefix="validate_structure_compare_")
+    tmp = gate_mkdtemp(prefix="validate_structure_compare_")
     db = observations.ObservationStore(str(Path(tmp) / "sc.db"))
     try:
         last = sc.session.last_completed_session()

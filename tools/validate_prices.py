@@ -386,8 +386,8 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNH=X"},
-          f"the exemption is a declared set (BTC-USD, CNH=X), not a guess about "
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X"},
+          f"the exemption is a declared set (BTC-USD, CNY=X), not a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
     # And the live store obeys it, which is the assertion the order asked for.
@@ -435,11 +435,61 @@ def group_ohlc() -> None:
           "the tape's own instruments are in the price basket")
 
 
+def group_unfinished() -> None:
+    """PB-1 (5 Oct 2026): no bar is written before it is finished."""
+    print(f"\n{LINE}\nI. AN UNFINISHED BAR IS NEVER WRITTEN (PB-1)\n{LINE}")
+    import inspect
+    import sqlite3
+    import tempfile
+    bc = yf_src.bar_complete
+    pre, eod, night = ("2026-10-05T10:45:00+00:00", "2026-10-05T20:10:00+00:00",
+                       "2026-10-06T00:30:00+00:00")
+    check(not any(bc(s, "2026-10-05", pre) for s in ("^VIX", "DX-Y.NYB", "GC=F",
+                                                    "CL=F", "SPY", "BTC-USD")),
+          "at 06:45 ET no bar dated the session is finished -- VIX, DXY, gold, "
+          "oil, SPY, BTC")
+    check(all(bc(s, "2026-10-05", eod) for s in ("^VIX", "DX-Y.NYB", "GC=F", "SPY"))
+          and not bc("BTC-USD", "2026-10-05", eod),
+          "at the 16:10 eod run the session's bar is finished; BTC's UTC day is not")
+    check(bc("BTC-USD", "2026-10-05", night) and bc("CNY=X", "2026-10-05", night),
+          "a 24-hour market's bar is finished once its UTC day has ended")
+    check(bc("SPY", "2026-11-27", "2026-11-27T18:05:00+00:00"),
+          "an early close finishes the session at 13:00 ET")
+    kept, held = yf_src.drop_incomplete_bars(
+        "^VIX", [("2026-10-02", 16.0), ("2026-10-05", 16.3)], pre)
+    check(kept == [("2026-10-02", 16.0)] and held == ["2026-10-05"],
+          "the 06:45 pass keeps Friday's VIX and holds back Monday's")
+    src = inspect.getsource(yf_src.pull)
+    check("drop_incomplete_bars(symbol, closes)" in src,
+          "the price writer applies the rule to every symbol it writes")
+    check("CNH=X" not in yf_src.SYMBOLS and yf_src.SYMBOLS.get("CNY=X") == "mkt_usdcny",
+          "CNH=X is replaced by CNY=X (mkt_usdcny)")
+    sys.path.insert(0, str(REPO / "tools"))
+    import remove_partial_bars as rpb
+    with tempfile.TemporaryDirectory() as td:
+        db = str(Path(td) / "p.db")
+        c = sqlite3.connect(db)
+        c.execute("CREATE TABLE observations (registry_key TEXT, observed_at TEXT, "
+                  "available_at TEXT, value_num REAL)")
+        c.executemany("INSERT INTO observations VALUES (?,?,?,?)", [
+            ("yfinance.mkt_vix", "2026-10-05", "2026-10-05T10:46:19+00:00", 16.3),
+            ("yfinance.mkt_vix", "2026-10-05", "2026-10-05T20:10:30+00:00", 16.9),
+            ("yfinance.mkt_btc_usd", "2026-10-05", "2026-10-05T10:46:14+00:00", 86048.8),
+            ("yfinance.mkt_vix", "2026-10-02", "2026-10-02T10:46:14+00:00", 16.0)])
+        c.commit()
+        got = rpb.candidates(c, "2026-10-05")
+        c.close()
+    check(sorted((r[1], r[3][:16]) for r in got) ==
+          [("yfinance.mkt_btc_usd", "2026-10-05T10:46"), ("yfinance.mkt_vix", "2026-10-05T10:46")],
+          "the cleanup removes the session's unfinished rows only: the eod vintage "
+          "and other sessions stay")
+
+
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_d_backfill,
               group_e, group_f,
-              group_g, group_h, group_ohlc):
+              group_g, group_h, group_ohlc, group_unfinished):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

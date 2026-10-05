@@ -37,6 +37,13 @@ import math
 import re
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 import types
 from email import message_from_bytes
 from email.policy import default as email_default
@@ -207,7 +214,7 @@ def main() -> int:
 
     print(f"{LINE}\nThe ten-section stack on the daily close (T1) -- fixture "
           f"session {SESSION}\n{LINE}")
-    td = tempfile.mkdtemp(prefix="validate_stack_")
+    td = gate_mkdtemp(prefix="validate_stack_")
     config.COMPUTED_DIR = str(Path(td) / "computed")          # no live profiles
     db = str(Path(td) / "stack.db")
     arch = str(Path(td) / "reports")

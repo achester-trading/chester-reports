@@ -4717,21 +4717,6 @@ metrics:
     trigger_eligible: false
     description: >-
       SPY total put volume over total call volume across the session's captured chain ("SPY chain, own capture").
-  # NAAIM Exposure Index (T2.2 rulings of 5 Oct; altdata/sources/naaim.py): retried
-  # weekly from the public widget; subscription-based at NAAIM since 1 Aug 2026.
-  naaim.exposure:
-    source: naaim
-    mechanism_group: leverage_positioning
-    native_horizon: weekly
-    freq: weekly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent
-    trigger_eligible: false
-    description: >-
-      NAAIM Exposure Index: members' average exposure to US equities, percent, read weekly from NAAIM's public number widget.
   # AAII Sentiment Survey (T2.2, 4 Oct 2026; altdata/sources/aaii.py): the Weekly's
   # W9 gauge. Weekly, observed_at = the survey's reported Thursday.
   aaii.bull_bear_spread:
@@ -5861,7 +5846,8 @@ bulk_imports:
   market_closes:
     description: >-
       Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
-      (ST-2 added IVW IVE IWF IWD VWO ACWX EMXC GUNR and CNH=X as mkt_usdcnh).
+      (ST-2 added IVW IVE IWF IWD VWO ACWX EMXC GUNR and CNH=X as mkt_usdcnh;
+      PB-1, 5 Oct 2026, replaced CNH=X with CNY=X as mkt_usdcny).
       SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
       adjusted close is deliberately not stored: it restates its own history
       every time a dividend is paid, which no point-in-time store can support,

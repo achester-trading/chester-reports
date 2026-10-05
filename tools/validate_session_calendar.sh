@@ -53,7 +53,7 @@ fi
 [[ -n "$PY" ]] || { echo "no python interpreter found"; exit 1; }
 
 SANDBOX="$(mktemp -d)"
-trap 'rm -rf "$SANDBOX"' EXIT
+trap 'rm -rf "$SANDBOX" "${DW_SB:-}"' EXIT
 
 # ---------------------------------------------------------------------------
 # 1. The table itself

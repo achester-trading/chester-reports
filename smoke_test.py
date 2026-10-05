@@ -31,6 +31,13 @@ import datetime as dt
 import os
 import sys
 import tempfile
+import os as _gt_os                                            # noqa: E402
+import sys as _gt_sys                                          # noqa: E402
+_gt_dir = _gt_os.path.dirname(_gt_os.path.abspath(__file__))
+_gt_sys.path.insert(0, _gt_dir if _gt_os.path.basename(_gt_dir) == "tools"
+                    else _gt_os.path.join(_gt_dir, "tools"))
+# PB-1: the gate's temporary store is removed when the gate exits.
+from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 import traceback
 
 # Windows consoles default to cp1252, which cannot encode the check marks
@@ -42,7 +49,7 @@ if hasattr(sys.stdout, "reconfigure"):
 # CHESTER_DB at import time, so setting it afterwards would silently point this
 # test at the real chester.db -- the register, the grades and the probability
 # ledger -- and a test that writes into the evidence is not a test.
-TMP = tempfile.mkdtemp(prefix="smoketest_")
+TMP = gate_mkdtemp(prefix="smoketest_")
 os.environ["ALTDATA_STORE"] = os.path.join(TMP, "data_store")
 os.environ["CHESTER_DB"] = os.path.join(TMP, "chester.db")
 os.environ["SNAPSHOT_DIR"] = os.path.join(TMP, "snapshots")
