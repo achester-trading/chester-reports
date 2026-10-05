@@ -72,6 +72,19 @@ def tape() -> list[dict]:
     return list(load_config().get("tape") or [])
 
 
+def intraday_instruments(cfg: Optional[dict] = None) -> list[dict]:
+    """The tape set plus the intraday-only instruments (T2.3: ES=F)."""
+    cfg = cfg or load_config()
+    return list(cfg.get("tape") or []) + list(cfg.get("intraday_extra") or [])
+
+
+def full_session(instrument: str) -> bool:
+    """An instrument whose counted session is the futures day, 18:00 ET the
+    evening before to 17:00 ET (T2.3)."""
+    return any(t["id"] == instrument and t.get("session") == "full"
+               for t in load_config().get("intraday_extra") or [])
+
+
 class BarStore:
     """The bars table. `create=True` is the feed's (and a gate's seeding) only."""
 
@@ -136,6 +149,15 @@ class BarStore:
 def session_window(instrument: str, day: str) -> tuple[str, str, int]:
     """(first, last) UTC instants of the counted hours, and the expected bars."""
     d = dt.date.fromisoformat(day)
+    if full_session(instrument):
+        # THE FUTURES DAY (T2.3): 18:00 ET on the previous calendar day to 17:00
+        # ET on the session's date -- 23 hours, 276 five-minute bars.
+        tz = session._eastern_tz()
+        a = dt.datetime.combine(d - dt.timedelta(days=1), dt.time(18, 0), tzinfo=tz)
+        b = dt.datetime.combine(d, dt.time(17, 0), tzinfo=tz)
+        n = int((b - a).total_seconds() // 300)
+        fmt = lambda x: x.astimezone(dt.timezone.utc).isoformat()   # noqa: E731
+        return fmt(a), fmt(b - dt.timedelta(minutes=5)), n
     start_s, end_s = HOURS.get(instrument, EQUITY_HOURS)
     if instrument not in HOURS and session.calendar_covers(d) and \
             session.is_early_close(d):
@@ -224,7 +246,7 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
     report: dict[str, Any] = {"session": day, "instruments": {}}
     try:
         d = dt.date.fromisoformat(day)
-        for t in cfg.get("tape") or []:
+        for t in intraday_instruments(cfg):
             iid, sym = t["id"], t["bars"]
             got: dict[str, Any] = {}
             try:
@@ -232,7 +254,9 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
                 while True:
                     attempts += 1
                     fetched = session.utc_iso()
-                    intra = fetcher(sym, start=d.isoformat(),
+                    full = t.get("session") == "full"
+                    intra = fetcher(sym, start=(d - dt.timedelta(days=1 if full else 0)
+                                                ).isoformat(),
                                     end=(d + dt.timedelta(days=1)).isoformat(),
                                     interval="5m", prepost=False)
                     rows = _frame_rows(intra, iid, sym, "5m", fetched)
@@ -273,7 +297,7 @@ def backfill(days: int = 60, store: Optional[BarStore] = None,
     st = store or (BarStore(create=True) if not dry_run else None)
     report: dict[str, Any] = {"days": days, "dry_run": dry_run, "instruments": {}}
     try:
-        for t in tape():
+        for t in intraday_instruments():
             iid, sym = t["id"], t["bars"]
             try:
                 fetched = session.utc_iso()

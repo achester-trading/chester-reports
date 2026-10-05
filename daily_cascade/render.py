@@ -134,45 +134,42 @@ def exposure_table(payload: dict) -> str:
     rows = payload.get("exposure") or []
     if not rows:
         return f'<div style="{ABSENT}">No exposure profiles for this session.</div>'
-    head = ("<tr>"
-            f'<th style="{THL}">Symbol</th>'
-            f'<th style="{TH}">Spot</th>'
-            f'<th style="{TH}">Net GEX</th>'
-            f'<th style="{TH}">$&gamma;/1%</th>'
-            f'<th style="{TH}">Flip</th>'
-            f'<th style="{TH}">Put wall</th>'
-            f'<th style="{TH}">Call wall</th>'
-            f'<th style="{TH}">Max pain</th>'
-            f'<th style="{TH}">Peak |GEX|</th>'
-            f'<th style="{TH}">DEX $</th>'
-            f'<th style="{TH}">VEX/volpt</th>'
-            f'<th style="{TH}">CHEX/day</th>'
-            f'<th style="{TH}">Q</th>'
-            "</tr>")
-    body = []
-    for r in rows:
-        q = r.get("data_quality") or "?"
-        qcol = "#0b7a3b" if q == "ok" else "#b45309"
-        flag = ("" if not r.get("min_t_load_bearing") else
-                ' <span style="color:#b45309" title="floored rows carry &gt;5%'
-                ' of a bucket\'s |GEX|; the MIN_T guard is load-bearing here">'
-                '&#9888;</span>')
-        body.append(
-            "<tr>"
-            f'<td style="{TDL}"><strong>{esc(r["symbol"])}</strong>{flag}</td>'
-            f'<td style="{TD}">{num(r.get("spot"))}</td>'
-            f'<td style="{TD}">{money(r.get("net_gex"))}</td>'
-            f'<td style="{TD}">{money(r.get("dollar_gamma_per_1pct"))}</td>'
-            f'<td style="{TD}">{num(r.get("gamma_flip"))}</td>'
-            f'<td style="{TD}">{num(r.get("put_wall"))}</td>'
-            f'<td style="{TD}">{num(r.get("call_wall"))}</td>'
-            f'<td style="{TD}">{num(r.get("max_pain"))}</td>'
-            f'<td style="{TD}">{num(r.get("peak_abs_gex_strike"))}</td>'
-            f'<td style="{TD}">{money(r.get("dex_notional"))}</td>'
-            f'<td style="{TD}">{money(r.get("vex_per_volpt"))}</td>'
-            f'<td style="{TD}">{money(r.get("chex_per_day"))}</td>'
-            f'<td style="{TD}"><span style="color:{qcol}">{esc(q)}</span></td>'
-            "</tr>")
+    # THE MOBILE RULE (T2.3 item 8): no table wider than six columns -- the
+    # thirteen columns this table carried are three tables of at most six, each
+    # led by the symbol: the profile, the levels, the other greeks.
+    groups = (
+        (("Spot", lambda r: num(r.get("spot"))),
+         ("Net GEX", lambda r: money(r.get("net_gex"))),
+         ("$&gamma;/1%", lambda r: money(r.get("dollar_gamma_per_1pct"))),
+         ("Flip", lambda r: num(r.get("gamma_flip"))),
+         ("Q", None)),
+        (("Put wall", lambda r: num(r.get("put_wall"))),
+         ("Call wall", lambda r: num(r.get("call_wall"))),
+         ("Max pain", lambda r: num(r.get("max_pain"))),
+         ("Peak |GEX|", lambda r: num(r.get("peak_abs_gex_strike")))),
+        (("DEX $", lambda r: money(r.get("dex_notional"))),
+         ("VEX/volpt", lambda r: money(r.get("vex_per_volpt"))),
+         ("CHEX/day", lambda r: money(r.get("chex_per_day")))),
+    )
+    tables = []
+    for cols in groups:
+        head = ("<tr>" + f'<th style="{THL}">Symbol</th>'
+                + "".join(f'<th style="{TH}">{c}</th>' for c, _ in cols) + "</tr>")
+        body = []
+        for r in rows:
+            q = r.get("data_quality") or "?"
+            qcol = "#0b7a3b" if q == "ok" else "#b45309"
+            flag = ("" if not r.get("min_t_load_bearing") else
+                    ' <span style="color:#b45309" title="floored rows carry &gt;5%'
+                    ' of a bucket\'s |GEX|; the MIN_T guard is load-bearing here">'
+                    '&#9888;</span>')
+            cells = []
+            for c, fn in cols:
+                cells.append(f'<td style="{TD}"><span style="color:{qcol}">{esc(q)}'
+                             f'</span></td>' if fn is None else f'<td style="{TD}">{fn(r)}</td>')
+            body.append("<tr>" + f'<td style="{TDL}"><strong>{esc(r["symbol"])}'
+                        f'</strong>{flag}</td>' + "".join(cells) + "</tr>")
+        tables.append(f'<table style="{TBL}">{head}{_rows(body)}</table>')
     srcs = sorted({r.get("greeks_source") or "?" for r in rows})
     caps = sorted({(r.get("fetched_at") or "?")[:19] for r in rows})
     note = (f'<p style="{NOTE}">Signing is '
@@ -185,7 +182,7 @@ def exposure_table(payload: dict) -> str:
             + " UTC. All four Greeks are one confluence cluster "
               "(<code>mechanism_group=dealer_chain_derived</code>), never four "
               "independent votes.</p>")
-    return (f'<table style="{TBL}">{head}{_rows(body)}</table>{note}')
+    return "".join(tables) + note
 
 
 def missing_block(payload: dict) -> str:
@@ -202,38 +199,29 @@ def pin_table(payload: dict) -> str:
     rows = payload.get("pins") or []
     if not rows:
         return f'<div style="{ABSENT}">No pin-log rows for this session.</div>'
-    head = ("<tr>"
-            f'<th style="{THL}">Symbol</th>'
-            f'<th style="{TH}">Close</th>'
-            f'<th style="{TH}">Max pain</th>'
-            f'<th style="{TH}">bps</th>'
-            f'<th style="{TH}">&nbsp;</th>'
-            f'<th style="{TH}">Peak |GEX|</th>'
-            f'<th style="{TH}">bps</th>'
-            f'<th style="{TH}">&nbsp;</th>'
-            f'<th style="{TH}">Call wall</th>'
-            f'<th style="{TH}">Put wall</th>'
-            f'<th style="{TH}">vs flip</th>'
-            "</tr>")
-    body = []
-    for r in rows:
+    # THE MOBILE RULE (T2.3 item 8): two tables of six, each led by the symbol --
+    # max pain and the flip, then the peak-gamma strike and the walls.
+    def table(heads, cells):
+        head = ("<tr>" + f'<th style="{THL}">Symbol</th>'
+                + "".join(f'<th style="{TH}">{h}</th>' for h in heads) + "</tr>")
+        body = ["<tr>" + f'<td style="{TDL}"><strong>{esc(r["symbol"])}</strong></td>'
+                + "".join(f'<td style="{TD}">{c}</td>' for c in cells(r)) + "</tr>"
+                for r in rows]
+        return f'<table style="{TBL}">{head}{_rows(body)}</table>'
+
+    def flip(r):
         above = r.get("spot_above_flip")
-        above_s = (dash("no flip level") if above is None else
-                   ("above" if above else "below"))
-        body.append(
-            "<tr>"
-            f'<td style="{TDL}"><strong>{esc(r["symbol"])}</strong></td>'
-            f'<td style="{TD}">{num(r.get("close"))}</td>'
-            f'<td style="{TD}">{num(r.get("max_pain"))}</td>'
-            f'<td style="{TD}">{num(r.get("max_pain_dist_bps"), 0)}</td>'
-            f'<td style="{TD}">{hit(r.get("max_pain_hit"))}</td>'
-            f'<td style="{TD}">{num(r.get("peak_gex_strike"))}</td>'
-            f'<td style="{TD}">{num(r.get("peak_gex_dist_bps"), 0)}</td>'
-            f'<td style="{TD}">{hit(r.get("peak_gex_hit"))}</td>'
-            f'<td style="{TD}">{hit(r.get("call_wall_hit"))}</td>'
-            f'<td style="{TD}">{hit(r.get("put_wall_hit"))}</td>'
-            f'<td style="{TD}">{above_s}</td>'
-            "</tr>")
+        return (dash("no flip level") if above is None else
+                ("above" if above else "below"))
+    tables = (table(["Close", "Max pain", "bps", "&nbsp;", "vs flip"],
+                    lambda r: [num(r.get("close")), num(r.get("max_pain")),
+                               num(r.get("max_pain_dist_bps"), 0),
+                               hit(r.get("max_pain_hit")), flip(r)])
+              + table(["Peak |GEX|", "bps", "&nbsp;", "Call wall", "Put wall"],
+                      lambda r: [num(r.get("peak_gex_strike")),
+                                 num(r.get("peak_gex_dist_bps"), 0),
+                                 hit(r.get("peak_gex_hit")), hit(r.get("call_wall_hit")),
+                                 hit(r.get("put_wall_hit"))]))
     h = payload.get("pin_hits") or {}
     n = len(rows)
     tol = payload.get("tolerance_bps")
@@ -246,7 +234,7 @@ def pin_table(payload: dict) -> str:
             'never revised after the fact</strong> &mdash; each row carries the '
             'tolerance it was graded at, so a rerun cannot regrade history at '
             'today&rsquo;s value.</p>')
-    return f'<table style="{TBL}">{head}{_rows(body)}</table>{note}'
+    return tables + note
 
 
 def regime_block(payload: dict) -> str:

@@ -94,7 +94,7 @@ def _fed_or_auction(st, day: str, now: str) -> list[str]:
                 out.append(t.split(" -- ")[0][:80])
     except Exception:                                           # noqa: BLE001
         pass
-    for r in st.as_of("auction.high_yield", now) or []:
+    for r in coupon_auctions(st, now):
         inst = str(r.get("instrument") or "")
         if str(r["observed_at"])[:10] == day and inst.split(":")[0] in ("Note", "Bond"):
             out.append(f"{inst.split(':')[1].lower()} {inst.split(':')[0].lower()} "
@@ -168,6 +168,8 @@ def tape_table(book: dict) -> dict:
     cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
             "52-week high (distance)", "vs 20 / 50 / 200-day", "Gamma flip"]
     rows, gaps = [], []
+    # THE MOBILE RULE (T2.3 item 8): no table wider than six columns -- the
+    # returns table (6) and the levels table (5) are split below.
     for i in book.get("instruments") or []:
         f = i.get("frame") or {}
         y = i["kind"] == "yield"
@@ -195,7 +197,9 @@ def tape_table(book: dict) -> dict:
                      _signed(f.get(f"mtd_change_{k}"), unit),
                      _signed(f.get(f"ytd_change_{k}"), unit), hl, h52, mas,
                      fmt(lv["gamma_flip"]) if lv.get("gamma_flip") is not None else "—"])
-    return {"table": {"columns": cols, "rows": rows}, "not_tracked": gaps}
+    ret = {"columns": cols[:6], "rows": [r[:6] for r in rows]}
+    lev = {"columns": [cols[0]] + cols[6:], "rows": [[r[0]] + r[6:] for r in rows]}
+    return {"table": ret, "levels_table": lev, "not_tracked": gaps}
 
 
 # ---------------------------------------------------------------------------
@@ -277,18 +281,21 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                                      "call_wall_held"), ("put wall held",
                                                          "put_wall_held"),
                                     ("amplified", "amplified")) if f.get(k)]
-        rows.append([_day(c["session"]), bn(c.get("net_gex_close")),
+        rows.append([_day(c["session"]), c.get("gamma_regime") or "—",
+                     bn(c.get("net_gex_close")),
                      bn(c.get("dex_close")),
-                     g(c.get("call_wall_morning") or c.get("call_wall")),
-                     g(c.get("put_wall_morning") or c.get("put_wall")),
-                     g(c.get("flip_morning")), g(c.get("max_pain")),
+                     g(c.get("flip_morning")),
+                     f"{g(c.get('call_wall_morning') or c.get('call_wall'))} / "
+                     f"{g(c.get('put_wall_morning') or c.get('put_wall'))}",
+                     # -- the second table from here
+                     _day(c["session"]), g(c.get("max_pain")),
                      (g(f["implied_range"])
                       + (f" (SPY IV {f['spy_iv']:.1f}, VIX {f['vix']:.1f}: check)"
                          if f.get("iv_check") else
                          " (VIX as proxy)" if f.get("iv_source") == "VIX as proxy"
                          else "")),
                      g(f["actual_range"]),
-                     f["close_vs_flip"] or "—", c.get("gamma_regime") or "—",
+                     f["close_vs_flip"] or "—",
                      ", ".join(set_flags + (["check"] if f.get("iv_check") else []))
                      or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
@@ -297,11 +304,13 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                        "actual_range": f["actual_range"],
                        "close_vs_flip": f["close_vs_flip"],
                        "gamma_regime": c.get("gamma_regime")})
-    return {"table": {"columns": ["Session", "Net GEX", "DEX", "Call wall",
-                                  "Put wall", "Flip", "Max pain",
-                                  "Implied range", "Actual range",
-                                  "Close vs flip", "Gamma regime", "Flags"],
-                      "rows": rows},
+    # TWO TABLES OF SIX (T2.3 mobile rule): the profile, then the ranges.
+    return {"table": {"columns": ["Session", "Gamma regime", "Net GEX", "DEX",
+                                  "Flip", "Call / put wall"],
+                      "rows": [r[:6] for r in rows]},
+            "ranges_table": {"columns": ["Session", "Max pain", "Implied range",
+                                         "Actual range", "Close vs flip", "Flags"],
+                             "rows": [r[6:] for r in rows]},
             "table_note": ("SPY. Walls and flip as of each morning; implied one-day "
                            "range = prior close × SPY's at-the-money 30-day IV "
                            "(from our own chain) × √(1/252), or the VIX where that "
@@ -339,14 +348,14 @@ def gap_table(opened: list[dict], history: dict[str, list]) -> dict:
             trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         z = c.get("magnitude")
         rows.append([labels.contradiction(cid).capitalize(), plain.get("legs") or "—",
-                     f"{float(z):+.1f}" if isinstance(z, (int, float)) else "—",
-                     f"{float(c.get('threshold_z') or 2.0):.1f}", trend,
+                     (f"{float(z):+.1f} (line {float(c.get('threshold_z') or 2.0):.1f})"
+                      if isinstance(z, (int, float)) else "—"), trend,
                      c.get("persistence_days"), plain.get("closes") or "—"])
         data.append({"gap": labels.contradiction(cid), "sides": plain.get("legs"),
                      "z": round(float(z), 1) if isinstance(z, (int, float)) else None,
                      "direction": trend, "sessions_open": c.get("persistence_days"),
                      "closes_when": plain.get("closes")})
-    return {"table": {"columns": ["Gap", "What each side is saying", "z", "Line",
+    return {"table": {"columns": ["Gap", "What each side is saying", "z (line)",
                                   "Direction", "Sessions open", "What would close it"],
                       "rows": rows},
             "table_note": GAP_NOTE, "data": data}
@@ -571,3 +580,402 @@ def states_legend(states: list[str]) -> Optional[str]:
     from altdata import labels                                  # noqa: PLC0415
     parts = [f"{s}: {labels.state(s)}" for s in sorted(set(states)) if labels.state(s)]
     return ("States: " + "; ".join(parts) + ".") if parts else None
+
+
+# ===========================================================================
+# T2.3 -- WEEKLY COMPLETENESS (ruled 4 Oct 2026)
+# ===========================================================================
+def coupon_auctions(st, now: str) -> list[dict]:
+    """Every stored auction high yield, across instruments. `as_of` with no
+    instrument reads only instrument-less rows, and every auction row carries
+    its security as the instrument -- so the instruments are listed first."""
+    try:
+        insts = [r[0] for r in st.conn.execute(
+            "SELECT DISTINCT instrument FROM observations WHERE registry_key = "
+            "'auction.high_yield' AND instrument IS NOT NULL")]
+    except Exception:                                           # noqa: BLE001
+        return []
+    out = []
+    for inst in insts:
+        for r in st.as_of("auction.high_yield", now, inst) or []:
+            out.append({**r, "instrument": inst})
+    return out
+
+
+def _closes_of(st, key: str, now: str) -> list[tuple[str, float]]:
+    rows = sorted((str(r["observed_at"])[:10], r["value_num"])
+                  for r in st.as_of(key, now) if r.get("value_num") is not None)
+    out: dict[str, float] = {}
+    for d, v in rows:
+        out[d] = v
+    return sorted(out.items())
+
+
+def _ret(a: Optional[float], b: Optional[float]) -> Optional[float]:
+    return None if a is None or not b else round(100.0 * (a / b - 1.0), 2)
+
+
+def overnight_intraday(st, sessions: list[str], ending: str, now: str) -> dict:
+    """Item 1: per session, SPY's overnight return (prior cash close -> open) and
+    intraday return (open -> close), from the stored daily OHLC; and the week's
+    totals of each, compounded."""
+    from altdata import levels                                  # noqa: PLC0415
+    rows, _ = levels.daily_bars(levels.tape_spec("spy"), ending, now, st)
+    by = {str(r["observed_at"])[:10]: r for r in rows if r.get("ohlc")}
+    days = sorted(d for d in (sessions or []) if d in by)
+    allc = [str(r["observed_at"])[:10] for r in rows]
+    out, on_tot, id_tot = [], 1.0, 1.0
+    for d in days:
+        i = allc.index(d)
+        if i == 0:
+            continue
+        prior = rows[i - 1]["close"]
+        o, c = by[d]["open"], by[d]["close"]
+        on, intr, cc = _ret(o, prior), _ret(c, o), _ret(c, prior)
+        if None in (on, intr):
+            continue
+        on_tot *= 1 + on / 100.0
+        id_tot *= 1 + intr / 100.0
+        out.append({"day": d, "overnight_pct": on, "intraday_pct": intr,
+                    "close_to_close_pct": cc})
+    totals = ({"overnight_pct": round(100 * (on_tot - 1), 2),
+               "intraday_pct": round(100 * (id_tot - 1), 2)} if out else None)
+    table = {"columns": ["Session", "Overnight", "Intraday", "Close to close"],
+             "rows": [[_day(r["day"]), _signed(r["overnight_pct"], "%"),
+                       _signed(r["intraday_pct"], "%"),
+                       _signed(r["close_to_close_pct"], "%")] for r in out]
+             + ([["The week", _signed(totals["overnight_pct"], "%"),
+                  _signed(totals["intraday_pct"], "%"), "—"]] if totals else [])}
+    return {"rows": out, "totals": totals, "table": table}
+
+
+def overnight_line(book: dict) -> Optional[str]:
+    """The daily close's one line (item 1): 'the overnight carried +0.6% of the
+    day's +0.4%' -- SPY's open against the prior close, inside the day's move."""
+    spy = next((i for i in book.get("instruments") or [] if i["id"] == "spy"), {})
+    o = (spy.get("ohlc") or {}).get("open")
+    c = (spy.get("frame") or {}).get("last")
+    prior = next((lv["value"] for lv in spy.get("levels") or []
+                  if lv["type"] == "prior_close"), None)
+    if None in (o, c, prior) or not prior:
+        return None
+    on, day = _ret(o, prior), _ret(c, prior)
+    return (f"SPY: the overnight carried {_signed(on, '%')} of the day's "
+            f"{_signed(day, '%')} (prior close {prior:,.2f} to the open {o:,.2f}; "
+            f"the cash session {_signed(_ret(c, o), '%')}).")
+
+
+def _bn(v: Optional[float], scale: float = 1.0) -> str:
+    if v is None:
+        return "—"
+    x = v * scale
+    return (f"${x / 1e12:,.2f}tn" if abs(x) >= 1e12 else f"${x / 1e9:,.0f}bn")
+
+
+def plumbing_rows(st, now: str, then: str) -> dict:
+    """Item 3: net liquidity and its legs, SOFR against IORB, the credit
+    spreads beside HY, the week's auctions, copper and gold/copper. Rows for
+    Plumbing's table; each figure from the store with its as-of."""
+    from altdata import derived                                 # noqa: PLC0415
+    rows, data, nt = [], {}, []
+
+    def two(key, inst=None):
+        a = st.latest_as_of(key, now, inst)
+        b = st.latest_as_of(key, then, inst)
+        return (a.get("value_num") if a else None, b.get("value_num") if b else None,
+                str(a["observed_at"])[:10] if a else None)
+    nl, nlp, nla = two("calc.net_liquidity")
+    if nl is not None:
+        rows.append(["Net liquidity (Fed balance sheet less TGA and RRP)", _bn(nl),
+                     (_bn(nl - nlp) if nlp is not None else "no prior"), nla])
+        data["net_liquidity"] = {"level": nl, "week_change": None if nlp is None
+                                 else nl - nlp, "as_of": nla}
+    else:
+        nt.append("net liquidity")
+    # H.4.1 legs: reserves and RRP in billions, TGA in millions (CLAUDE.md gotcha).
+    for key, name, scale in (("fred.bank_reserves", "Bank reserves (H.4.1)", 1e9),
+                             ("fred.tga", "Treasury General Account (H.4.1)", 1e6),
+                             ("fred.rrp", "Reverse repo (RRP)", 1e9)):
+        v, pv, asof = two(key)
+        if v is None:
+            nt.append(name)
+            continue
+        rows.append([name, _bn(v, scale), _bn((v - pv) if pv is not None else None, scale)
+                     if pv is not None else "no prior", asof])
+    so, sop, soa = two("fred.sofr")
+    io, iop, ioa = two("fred.iorb")
+    if so is not None and io is not None:
+        sp = round((so - io) * 100)
+        spp = round((sop - iop) * 100) if None not in (sop, iop) else None
+        rows.append(["SOFR", f"{so:.2f}%", _signed(None if sop is None else
+                                                   round((so - sop) * 100), "bp"), soa])
+        rows.append(["IORB", f"{io:.2f}%", _signed(None if iop is None else
+                                                   round((io - iop) * 100), "bp"), ioa])
+        rows.append(["SOFR less IORB (funding pressure when above zero)",
+                     f"{sp:+d} bp", _signed(None if spp is None else sp - spp, "bp"),
+                     soa])
+        data["sofr_iorb_bp"] = sp
+    else:
+        nt.append("SOFR and IORB (the FRED pull adds them from the next run)")
+    for key, name in (("fred.ig_oas", "Investment-grade OAS"),
+                      ("fred.ccc_oas", "CCC OAS")):
+        v, pv, asof = two(key)
+        if v is not None:
+            rows.append([name, f"{v:.2f}%", _signed(None if pv is None else
+                                                    round((v - pv) * 100), "bp"), asof])
+    ccc, cccp, ccca = two("fred.ccc_oas")
+    bb, bbp, _ = two("fred.bb_oas")
+    if None not in (ccc, bb):
+        gap = round((ccc - bb) * 100)
+        gp = round((cccp - bbp) * 100) if None not in (cccp, bbp) else None
+        rows.append(["CCC less BB (stress inside high yield)", f"{gap:,d} bp",
+                     _signed(None if gp is None else gap - gp, "bp"), ccca])
+    cu, cup, cua = two("yfinance.mkt_copper_front")
+    au, aup, _ = two("yfinance.mkt_gold_front")
+    if cu is not None:
+        rows.append(["Copper, front future ($/lb; a growth gauge)", f"{cu:,.3f}",
+                     _signed(_ret(cu, cup), "%"), cua])
+        if au is not None:
+            r = au / cu
+            rp = (aup / cup) if None not in (aup, cup) else None
+            rows.append(["Gold over copper (rises when growth fears rise)",
+                         f"{r:,.0f}", _signed(_ret(r, rp), "%"), cua])
+            data["gold_copper"] = round(r, 1)
+    else:
+        nt.append("copper (the price feed adds HG=F from the next run)")
+    # THE WEEK'S AUCTIONS: coupons only, with their own figures; the tail is not
+    # stored (no when-issued yield).
+    auctions = []
+    for r in coupon_auctions(st, now):
+        d = str(r["observed_at"])[:10]
+        inst = str(r.get("instrument") or "")
+        if not (then[:10] < d <= now[:10]) or inst.split(":")[0] not in ("Note", "Bond", "TIPS"):
+            continue
+        btc = st.latest_as_of("auction.bid_to_cover", now, inst)
+        dl = st.latest_as_of("auction.dealer_share", now, inst)
+        auctions.append({"date": d, "instrument": inst, "high_yield": r["value_num"],
+                         "bid_to_cover": btc.get("value_num") if btc else None,
+                         "dealer_share": dl.get("value_num") if dl else None})
+        typ, term = inst.split(":", 1)
+        rows.append([f"{term} {typ.lower()} auction ({d}): high yield "
+                     f"{r['value_num']:.3f}%",
+                     f"bid-to-cover {btc['value_num']:.2f}" if btc else "—",
+                     f"dealers took {100 * dl['value_num']:.0f}%" if dl else "—",
+                     "tail not stored"])
+    data["auctions"] = auctions
+    return {"rows": rows, "data": data, "not_tracked": nt}
+
+
+def global_fx(st, now: str, then: str) -> dict:
+    """Item 4: the sub-section 'Global rates and FX'."""
+    rows, nt = [], []
+    for key, name, dp in (("yfinance.mkt_usdjpy", "USD/JPY (yen per dollar)", 2),
+                          ("yfinance.mkt_eurusd", "EUR/USD (dollars per euro)", 4),
+                          ("yfinance.mkt_usdcny", "USD/CNY (yuan per dollar)", 4)):
+        a = st.latest_as_of(key, now)
+        b = st.latest_as_of(key, then)
+        if not a:
+            nt.append(name.split(" (")[0] + " (the price feed adds it from the next run)")
+            continue
+        rows.append([name, f"{a['value_num']:,.{dp}f}",
+                     _signed(_ret(a["value_num"], b["value_num"] if b else None), "%"),
+                     str(a["observed_at"])[:10]])
+    for key, name in (("mof.jgb_10y", "Japan 10-year (JGB)"),
+                      ("mof.jgb_30y", "Japan 30-year (JGB)")):
+        a = st.latest_as_of(key, now)
+        b = st.latest_as_of(key, then)
+        if not a:
+            nt.append(name)
+            continue
+        rows.append([name, f"{a['value_num']:.3f}%",
+                     _signed(None if not b else round((a["value_num"] - b["value_num"]) * 100),
+                             "bp"), str(a["observed_at"])[:10]])
+    nt.append("the 10-year Bund and the OAT-Bund spread (the ECB's data portal is "
+              "the source to add)")
+    return {"title": "Global rates and FX",
+            "table": {"columns": ["Series", "Level", "Week", "As of"], "rows": rows},
+            "not_tracked": nt}
+
+
+def volatility(st, now: str, wis: Optional[dict] = None) -> dict:
+    """Item 5: the 'Volatility' sub-section of Mechanics -- six rows."""
+    from altdata import derived                                 # noqa: PLC0415
+    five = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=1826)).isoformat()
+    vix_hist = [v for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
+    vix = vix_hist[-1] if vix_hist else None
+    rows, data = [], {}
+    if vix is not None:
+        pct = derived.percentile_of(vix_hist, vix) if len(vix_hist) > 20 else None
+        rows.append(["VIX", f"{vix:.2f}",
+                     f"{round(pct):d}th percentile, five years" if pct is not None else "—"])
+        data["vix"] = vix
+        data["vix_percentile_5y"] = None if pct is None else round(pct)
+    vts = (wis or {}).get("vol_term_structure") or {}
+    pub = vts.get(vts.get("published_by") or "") or {}
+    if pub.get("ratio") is not None:
+        rows.append(["VIX3M over VIX (term structure, published)",
+                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—")])
+    rv = st.latest_as_of("calc.vol_spy_realized_20d", now)
+    rvv = rv.get("value_num") if rv else None
+    if rvv is not None and rvv < 3:
+        rvv = rvv * 100.0                     # stored as a fraction
+    if rvv is not None and vix is not None:
+        rows.append(["SPY 20-day realized against the VIX", f"{rvv:.1f} vs {vix:.1f}",
+                     f"implied {'above' if vix > rvv else 'below'} realized by "
+                     f"{abs(vix - rvv):.1f} points"])
+        data["implied_daily_move_pct"] = round(vix / 252 ** 0.5, 2)
+        data["realized_daily_move_pct"] = round(rvv / 252 ** 0.5, 2)
+        rows.append(["Daily move priced, and realized",
+                     f"{data['implied_daily_move_pct']:.2f}% priced",
+                     f"{data['realized_daily_move_pct']:.2f}% realized"])
+    for key, name in (("yfinance.mkt_move", "MOVE (Treasury volatility)"),
+                      ("yfinance.mkt_skew", "SKEW (tail-risk pricing)")):
+        a = st.latest_as_of(key, now)
+        rows.append([name, f"{a['value_num']:.1f}" if a else "—",
+                     str(a["observed_at"])[:10] if a else "not yet stored"])
+    return {"title": "Volatility",
+            "table": {"columns": ["Measure", "Level", "Context"], "rows": rows[:6]},
+            "data": data}
+
+
+def sector_table(st, now: str, then: str, lead: list) -> dict:
+    """Item 6: the week, one month and three months beside each other, and how
+    many sectors sit above their 50- and 200-day averages."""
+    from altdata import labels                                  # noqa: PLC0415
+    from altdata.sources.yfinance_source import SECTOR_KEYS     # noqa: PLC0415
+    rows, above50, above200, n = [], 0, 0, 0
+    for k in SECTOR_KEYS:
+        cl = _closes_of(st, f"yfinance.{k}", now)
+        if len(cl) < 2:
+            continue
+        vals = [v for _, v in cl]
+        last = vals[-1]
+        wk = next((v for d, v in reversed(cl) if d <= then[:10]), None)
+        m1 = vals[-22] if len(vals) > 22 else None
+        m3 = vals[-64] if len(vals) > 64 else None
+        rows.append((labels.sector(k.replace("mkt_", "").upper()), _ret(last, wk),
+                     _ret(last, m1), _ret(last, m3)))
+        if len(vals) >= 200:
+            n += 1
+            above50 += last > sum(vals[-50:]) / 50
+            above200 += last > sum(vals[-200:]) / 200
+    rows.sort(key=lambda r: -(r[1] or -999))
+    styles = [(lab, v) for lab, v in lead if len(lab) > 4]
+    line = (f"Sectors above their 50-day average: {above50} of {n}; above their "
+            f"200-day: {above200} of {n}." if n else None)
+    return {"table": {"columns": ["Sector or pair", "Week", "One month", "Three months"],
+                      "rows": [[r[0], _signed(r[1], "%"), _signed(r[2], "%"),
+                                _signed(r[3], "%")] for r in rows]
+                      + [[lab, _signed(v, "%"), "—", "—"] for lab, v in styles]},
+            "line": line, "above_50d": above50, "above_200d": above200, "of": n}
+
+
+def changed_since(ed: dict, wis: dict, p: dict, trig: dict,
+                  voices: Optional[dict] = None) -> list[str]:
+    """Item 7: what changed since the last Weekly, computed, in display labels."""
+    from altdata import labels                                  # noqa: PLC0415
+    name = {"gamma": "Dealer gamma", "vol": "The volatility regime",
+            "macro": "The macro regime"}
+    out = []
+    for ch in wis.get("dial_changes") or []:
+        out.append(f"{name.get(ch.get('dial'), ch.get('dial'))} moved from "
+                   f"{ch.get('from') or 'absent'} to {ch.get('to')}.")
+    opened = wis.get("exceptions_opened") or []
+    if opened:
+        out.append("Exceptions opened: " + "; ".join(labels.exception(e) for e in opened) + ".")
+    closed = wis.get("exceptions_closed") or []
+    if closed:
+        out.append("Exceptions closed: " + "; ".join(labels.exception(e) for e in closed) + ".")
+    rb = (((p.get("register") or {}).get("rule_breaks") or {}).get("rule_breaks_listed") or [])
+    if rb:
+        out.append(f"Rule breaks: {len(rb)} ("
+                   + ", ".join(sorted({str(b.get('kind')).replace('_', ' ') for b in rb}))
+                   + ").")
+    fired = [f"Plumbing deep on {len(trig.get('plumbing') or [])}"
+             if trig.get("plumbing") else None,
+             f"What's priced deep on {len(trig.get('priced') or [])}"
+             if trig.get("priced") else None]
+    fired = [x for x in fired if x]
+    if fired:
+        out.append(f"Triggers fired: {'; '.join(fired)} of "
+                   f"{trig.get('sessions', 0)} session(s).")
+    inf = [v for v in ((voices or {}).get("data") or {}).get("voices") or []
+           if v.get("status") == "INFLECTED"]
+    if inf:
+        out.append("Voices that inflected: " + "; ".join(
+            f"{v['voice']} ({v['outlet']})" for v in inf[:5]) + ".")
+    return out or ["Nothing in the dials, exceptions, rule breaks, triggers or voices "
+                   "changed since the last Weekly."]
+
+
+def reading_minutes(ed: dict, charts: int) -> float:
+    """Item 7: prose words / 250 plus 20 seconds a chart, in minutes."""
+    from .stack import section_words                          # noqa: PLC0415
+    words = sum(section_words(s) for s in ed.get("sections") or [])
+    return round(words / 250.0 + charts * 20 / 60.0, 1)
+
+
+EARNINGS_SEASONS = ((1, 10, 2, 28), (4, 10, 5, 31), (7, 10, 8, 31), (10, 10, 11, 30))
+
+
+def seasons_from_config() -> tuple:
+    try:
+        return tuple((x["from"][0], x["from"][1], x["to"][0], x["to"][1])
+                     for x in load_calendar().get("earnings_seasons") or [])             or EARNINGS_SEASONS
+    except Exception:                                           # noqa: BLE001
+        return EARNINGS_SEASONS
+
+
+def in_season(day: str, seasons: Optional[tuple] = None) -> bool:
+    seasons = seasons or seasons_from_config()
+    d = dt.date.fromisoformat(day[:10])
+    for m1, d1, m2, d2 in seasons:
+        if dt.date(d.year, m1, d1) <= d <= dt.date(d.year, m2, d2):
+            return True
+    return False
+
+
+def earnings_block(st, ending: str, now: str, then: str,
+                   seasons: Optional[tuple] = None) -> Optional[dict]:
+    """Item 9: universe names that reported this week -- EPS and revenue against
+    stored consensus, beat or miss, the next day's reaction from stored prices.
+    None outside the season (prints nothing); inside it, 'no universe name
+    reported' when none did."""
+    if not in_season(ending, seasons):
+        return None
+    from altdata import events                                  # noqa: PLC0415
+    rows, data = [], []
+    with events.EventStore(str(st.path)) as ev:
+        recs = ev.conn.execute(
+            "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
+            "observed_at > ? AND observed_at <= ? AND available_at <= ?",
+            (then, now, now)).fetchall()
+    for obs, payload in recs:
+        pl = json.loads(payload or "{}")
+        if pl.get("reported_eps") is None:
+            continue
+        sym = str(pl.get("symbol") or "")
+        est = pl.get("eps_estimate")
+        eps = pl.get("reported_eps")
+        verdict = ("beat" if est is not None and eps > est else
+                   "miss" if est is not None and eps < est else
+                   "in line" if est is not None else "no consensus stored")
+        d = str(obs)[:10]
+        cl = _closes_of(st, f"yfinance.mkt_{sym.lower()}", now)
+        before = next((v for dd, v in reversed(cl) if dd < d), None)
+        after = next((v for dd, v in cl if dd > d), None)
+        react = _ret(after, before)
+        rev_a, rev_e = pl.get("reported_revenue"), pl.get("revenue_estimate")
+        rows.append([sym, f"{eps:.2f} vs {est:.2f}" if est is not None else f"{eps:.2f}",
+                     verdict,
+                     (f"{rev_a / 1e9:,.1f}bn vs {rev_e / 1e9:,.1f}bn"
+                      if None not in (rev_a, rev_e) else "revenue not stored"),
+                     _signed(react, "%") if react is not None else "not yet",
+                     d])
+        data.append({"symbol": sym, "eps": eps, "eps_estimate": est, "verdict": verdict,
+                     "reaction_pct": react, "date": d})
+    return {"title": "Earnings this week",
+            "table": {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
+                                  "Next day", "Reported"], "rows": rows},
+            "lines": [] if rows else ["No universe name reported this week."],
+            "data": data}

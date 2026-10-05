@@ -185,10 +185,18 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                           (pub.get("state"), pub.get("ratio"))))
     # THE DEALER TABLE AND ITS FLAGS (T2.2 item 18): one row per session,
     # flags computed by code; the prose may use a flag word only where set.
+    subs = []
+    if dw["table"]["rows"]:
+        subs.append({"title": "Ranges and flags", "table": dw["ranges_table"],
+                     "paragraph_wanted": False})
+    vol = wsec.volatility(st, cutoff, wis)
+    subs.append({**vol, "paragraph_wanted": True})
     return {"items": items, "not_tracked": nt,
+            "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
             "table_note": dw["table_note"] if dw["table"]["rows"] else None,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
+                     "volatility": vol.get("data"),
                      "dial_changes": wis.get("dial_changes") or []}}
 
 
@@ -291,13 +299,20 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
                           (r["actual"], r["prior"])))
         rows.append([f"{r['release']}: {r['label']}", r["actual_text"],
                      f"prior {r['prior_text']}", r["as_of"]])
+    # PLUMBING, MADE PLUMBING (T2.3 item 3): liquidity and its legs, SOFR
+    # against IORB (in place of the repo footnote), the spreads beside HY, the
+    # week's auctions, copper and gold/copper. Global rates and FX below.
+    pr = wsec.plumbing_rows(st, now, then)
+    rows += pr["rows"]
+    fx = wsec.global_fx(st, now, then)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
-            "data": {"series": data, "tier1_releases": rel},
+            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
             "table": {"columns": ["Series", "Level or actual", "Week or prior",
                                   "As of"], "rows": rows},
-            "not_tracked": ["repo-market stress (SOFR, general collateral)"]}
+            "subsections": [{**fx, "paragraph_wanted": False}],
+            "not_tracked": pr["not_tracked"]}
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
@@ -489,11 +504,15 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     """T2.2 item 7: five sub-sections, each with its table and one paragraph."""
     from altdata import labels                                   # noqa: PLC0415
     out = []
-    lr = [[labels.sector(n) if len(n) <= 4 else n, _signed(v, "%")]
-          for n, v in sorted(lead, key=lambda r: -r[1])]
-    out.append({"title": "Sector rotation and leadership",
-                "table": {"columns": ["Sector or pair", "Week"], "rows": lr},
-                "not_tracked": [] if lr else ["the week's sector returns"]})
+    # THE WEEK, ONE MONTH AND THREE MONTHS, and the 50/200-day count (T2.3
+    # item 6), sector names from the display labels.
+    sec = wsec.sector_table(st, now, then, lead)
+    data["sectors_above_50d"] = sec["above_50d"]
+    data["sectors_above_200d"] = sec["above_200d"]
+    out.append({"title": "Sector rotation and leadership", "table": sec["table"],
+                "lines": [sec["line"]] if sec["line"] else [],
+                "not_tracked": [] if sec["table"]["rows"] else
+                ["the week's sector returns"]})
     cf = []
     for inst, name in CFTC_CONTRACTS:
         x = data.get(f"cftc:{inst}")
@@ -605,11 +624,16 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     b["deep_reason"] = reason
     b["not_tracked"] = []
     b["print_items"] = False
-    b["subsections"] = priced_subsections(b, series, fed)
+    try:
+        earn = wsec.earnings_block(st, now[:10], now, then)
+    except Exception:                                           # noqa: BLE001
+        earn = None
+    b["subsections"] = priced_subsections(b, series, fed, earn)
     return b
 
 
-def priced_subsections(b: dict, series: dict, fed: Optional[dict]) -> list[dict]:
+def priced_subsections(b: dict, series: dict, fed: Optional[dict],
+                       earnings: Optional[dict] = None) -> list[dict]:
     """T2.2 item 8: rates priced; prediction markets; surveyed expectations."""
     rows = []
     for m in ((fed or {}).get("meetings") or [])[:6]:
@@ -643,7 +667,9 @@ def priced_subsections(b: dict, series: dict, fed: Optional[dict]) -> list[dict]
              "table": {"columns": ["Survey", "Level", "Change", "Window"],
                        "rows": surveys},
              "not_tracked": ["the S&P 500 consensus EPS revision (the Weekly's 1% "
-                             "trigger)", "one-year inflation expectations"]}]
+                             "trigger)", "one-year inflation expectations"]}] + (
+        # IN SEASON ONLY (T2.3 item 9): nothing at all outside it.
+        [{**earnings, "paragraph_wanted": False}] if earnings else [])
 
 
 def narratives_week_section(nb: dict, wd: Optional[dict] = None,
@@ -999,8 +1025,18 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         wbd = wsec.week_by_day(st, sessions, ending, now, then, rel, str(st.path))
         tape = stack_mod.tape_section(book)
         tt = wsec.tape_table(book)
+        oi = wsec.overnight_intraday(st, sessions, ending, now)
         tape.update({"table": tt["table"], "print_items": False,
-                     "prose_paragraphs": "exactly four"})
+                     "prose_paragraphs": "exactly four",
+                     "subsections": [
+                         {"title": "Levels", "table": tt["levels_table"],
+                          "paragraph_wanted": False},
+                         # OVERNIGHT AGAINST THE CASH SESSION (T2.3 item 1)
+                         {"title": "SPY overnight against the cash session",
+                          "table": oi["table"], "paragraph_wanted": False}]})
+        tape["data"] = {**(tape.get("data") or {}),
+                        "overnight_intraday": {"sessions": oi["rows"],
+                                               "week": oi["totals"]}}
         try:
             cal = wsec.calendar_week(st, ending, now, pmb)
         except Exception:                                       # noqa: BLE001
@@ -1031,7 +1067,12 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    changed = wsec.changed_since({}, wis, p, trig,
+                                 (built["narratives"].get("data") or {})
+                                 and {"data": (built["narratives"].get("data") or {})
+                                      .get("voices") or {}})
     ed = {"report": "weekly_stack", "session": ending, "week_ending": ending,
+          "changed_since": changed,
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("week_ending"),
           "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly")}
@@ -1178,6 +1219,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     with bars_mod.BarStore(db_path) as bst:
         first = (dt.date.fromisoformat(ending) - dt.timedelta(days=21)).isoformat()
         spy5 = bst.read("spy", "5m", first, ending + "T23:59:59+00:00", now)
+        es5 = bst.read("es", "5m", first, ending + "T23:59:59+00:00", now)
     then = week_ago(now)
     if "W1" in plan:
         charts["W1"] = charts_mod.w1(book, daily, f"{base}_w1", out_dir)
@@ -1186,7 +1228,8 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W8" in plan:
         charts["W8"] = charts_mod.w8(cd["w8"], f"{base}_w8", out_dir)
     if "W7" in plan:
-        charts["W7"] = charts_mod.w7(spy5, cd["w7_levels"], f"{base}_w7", out_dir)
+        charts["W7"] = charts_mod.w7(spy5, cd["w7_levels"], f"{base}_w7", out_dir,
+                                     es5=es5)
     if "W3" in plan:
         charts["W3"] = charts_mod.w3_panel(cd["yields10"], cd["hy20"], f"{base}_w3",
                                            out_dir, now)
@@ -1261,13 +1304,28 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
 <h1 style="{base.H1}">Weekly &mdash; week ending {esc(ed.get('week_ending'))}</h1>
 <p style="{base.SUB}">As-of cutoff {esc(ed.get('as_of'))} &middot; stack
 <code>{esc(ed.get('config_version'))}</code> &middot; {esc(ed.get('words'))} words
-&middot; {esc(ed.get('chart_count'))} chart(s) &middot; {marks}</p>
+&middot; {esc(ed.get('chart_count'))} chart(s) &middot; about
+{esc(wsec.reading_minutes(ed, int(ed.get('chart_count') or 0)))} minutes to read
+&middot; {marks}</p>
+{changed_html(ed)}
 {secs}
 {stack_render.glossary_html(_glossary())}
 <p style="{base.NOTE}">Every figure above was read from the store, the register or
 the ledger. No figure here is a recommendation; prediction-market odds are the
 markets' prices, and every probability the system states is a ledger entry.</p>
 </div>"""
+
+
+def changed_html(ed: dict) -> str:
+    """'Changed since last Weekly' (T2.3 item 7), under the header."""
+    esc = stack_render.base.esc
+    lines = ed.get("changed_since") or []
+    if not lines:
+        return ""
+    return (f'<div style="border:1px solid #cbd5e1;border-radius:4px;padding:8px 10px;'
+            f'margin:8px 0 12px 0;font-size:12.5px"><strong>Changed since last '
+            f'Weekly</strong><ul style="margin:4px 0 0 0;padding-left:18px">'
+            + "".join(f"<li>{esc(x)}</li>" for x in lines) + "</ul></div>")
 
 
 def _glossary() -> list[dict]:

@@ -187,6 +187,11 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # 6d (2 Oct 2026, item 10): the 5-year breakeven for the What's-priced trigger,
     # beside T10YIE and T5YIFR. Percent, daily -- read off FRED's series page.
     SeriesSpec("breakeven_5y",     "T5YIE",      "5-year breakeven inflation rate",  "4", "%",    "daily"),
+    # T2.3 (ruled 4 Oct 2026, item 3): the funding rate against the Fed's floor,
+    # for Plumbing's SOFR-IORB spread. Both percent, daily -- read off FRED's
+    # series pages (SOFR; IORB, from 29 Jul 2021).
+    SeriesSpec("sofr",             "SOFR",       "Secured overnight financing rate", "3", "%",    "daily"),
+    SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

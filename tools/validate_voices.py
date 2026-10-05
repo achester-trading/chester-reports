@@ -437,9 +437,9 @@ def main() -> int:
                           published_at="2026-09-29",
                           retrieved_at="2026-09-30T11:00:00+00:00"))
     wk = vb.week_section("2026-10-10", "2026-10-10T12:00:00+00:00", DB)
-    stale = [r for r in wk["table"]["rows"] if r[0] == "Stale Voice"]
-    check(stale and stale[0][4].startswith("UNREACHABLE")
-          and stale[0][3].startswith("last:"),
+    stale = [r for r in wk["table"]["rows"] if r[0].startswith("Stale Voice")]
+    check(stale and stale[0][2].startswith("UNREACHABLE")
+          and stale[0][1].startswith("last:"),
           "its voice prints UNREACHABLE with its last view marked as last, never "
           "as this week's")
 
@@ -490,15 +490,17 @@ def main() -> int:
               for t in texts),
           "one consensus-against-contrarian line, with the contrarian sourced")
     cols = wk["table"]["columns"]
-    check(cols[:8] == ["Voice", "Affiliation", "Kind", "View", "Status", "Source",
-                       "Tier", "Horizon"],
-          "the voices table: voice, affiliation, kind, view, status, source, tier, "
-          "horizon")
-    noisy = next(r for r in wk["table"]["rows"] if r[0] == "Noisy")
-    pol = next(r for r in wk["table"]["rows"] if r[0] == "Policy")
-    check(noisy[3].startswith("view withheld") and pol[3].startswith("view withheld"),
+    check(cols == ["Voice", "View", "Status", "Source", "Horizon"]
+          and wk["table"]["rows"][0][0].count("(") >= 1
+          and "(tier " in wk["table"]["rows"][0][3],
+          "the voices table, six columns at most (T2.3): the voice with its "
+          "affiliation and kind, the view, the status, the source with its tier, "
+          "the horizon")
+    noisy = next(r for r in wk["table"]["rows"] if r[0].startswith("Noisy"))
+    pol = next(r for r in wk["table"]["rows"] if r[0].startswith("Policy"))
+    check(noisy[1].startswith("view withheld") and pol[1].startswith("view withheld"),
           f"a view breaking the style rule or the policy-word rule prints withheld "
-          f"({noisy[3][:60]} / {pol[3][:60]})")
+          f"({noisy[1][:60]} / {pol[1][:60]})")
     from daily_cascade import weekly_stack, stack as stack_mod, stack_render
     sec = weekly_stack.narratives_week_section({"narratives": []}, {}, wk)
     html = stack_render.section_html(
@@ -565,9 +567,9 @@ def main() -> int:
     mb = vb.month_block("2026-10-31", "2026-11-01T12:00:00+00:00", DB)
     from monthly_macro.writer import render_v2
     md = render_v2.voices_section({"voices": mb, "tie_backs": {}})
-    kilo = next(r for r in mb["table"]["rows"] if r[0] == "Kilo")
-    lima = next(r for r in mb["table"]["rows"] if r[0] == "Lima")
-    check("| Voice | Affiliation |" in md and "13F (period of report)" in md
+    kilo = next(r for r in mb["table"]["rows"] if r[0].startswith("Kilo"))
+    lima = next(r for r in mb["table"]["rows"] if r[0].startswith("Lima"))
+    check("| Voice | View | Status |" in md and "13F (period of report)" in md
           and "13F-HR for 2026-06-30" in kilo[-1] and "**The four weeks, by story**"
           in md and "Consensus vs contrarian" in md,
           "the Monthly's section 4: monthly status, 13F dated to its period of "

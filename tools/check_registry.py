@@ -231,6 +231,19 @@ def main() -> int:
     entries = metrics.get("metrics") or {}
     bulk = metrics.get("bulk_imports") or {}
 
+    # --- FAMILIES (metric-lenses brief; T2.3, 4 Oct 2026) ------------------
+    # Each declared family is in the vocabulary, and each key it names resolves
+    # to a registered series (a metric entry or a bulk block's member prefix).
+    fam_vocab = set(mvocab.get("family") or [])
+    for key, fam in (metrics.get("families") or {}).items():
+        if fam not in fam_vocab:
+            f.add("family vocabulary", f"{key}: {fam!r}")
+        known = key in entries or any(
+            key.startswith(str((b or {}).get("key_prefix") or "\0"))
+            for b in bulk.values())
+        if not known:
+            f.add("family names a registered series", f"{key}: not registered")
+
     # --- 2/3/4: per-metric declarations ----------------------------------
     for mid, m in entries.items():
         m = m or {}

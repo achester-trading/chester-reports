@@ -192,10 +192,11 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 50, f"50 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 53, f"53 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
-          f"60/40 (P5-B), and the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2)")
+          f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), and HG=F, "
+          f"JPY=X and EURUSD=X (T2.3)")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "
@@ -386,8 +387,9 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X"},
-          f"the exemption is a declared set (BTC-USD, CNY=X), not a guess about "
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"},
+          f"the exemption is a declared set (BTC-USD and the three FX pairs), not "
+          f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
     # And the live store obeys it, which is the assertion the order asked for.

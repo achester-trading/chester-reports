@@ -361,7 +361,13 @@ def _slice(s: dict, ed: dict) -> dict:
             "table_note": s.get("table_note"),
             "subsections": [{"tag": chr(65 + n), "title": ss.get("title"),
                              "table": ss.get("table"), "lines": ss.get("lines")}
-                            for n, ss in enumerate(s.get("subsections") or [])],
+                            for n, ss in enumerate(
+                                x for x in s.get("subsections") or []
+                                if x.get("paragraph_wanted", True))],
+        "subsection_tables": [{"title": ss.get("title"), "table": ss.get("table"),
+                               "lines": ss.get("lines")}
+                              for ss in s.get("subsections") or []
+                              if not ss.get("paragraph_wanted", True)],
             "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
                             if k != "intraday"})}
 
@@ -544,7 +550,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             results[s["id"]] = {"state": "reused", "published": True}
             continue
         paras = DEPTH_PARAGRAPHS.get(s["depth"], "0")
-        subs = s.get("subsections") or []
+        # Only the sub-sections that want a paragraph are tagged (T2.3): a
+        # levels table or an FX table under its section's prose takes none.
+        subs = [ss for ss in s.get("subsections") or []
+                if ss.get("paragraph_wanted", True)]
+        lead = s.get("lead_paragraphs")
         if s.get("prose_paragraphs") and cadence == "weekly":
             paras = s["prose_paragraphs"]
         body = ("Then write {} paragraphs of commentary.".format(paras)
@@ -552,7 +562,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         if subs and cadence == "weekly":
             # ONE PARAGRAPH PER SUB-SECTION, tagged so it lands under its own
             # table; the tags are stripped before printing (T2.2 items 7-8).
-            body = (f"Then write exactly {len(subs)} paragraphs, one for each "
+            body = ((f"Then write {lead} untagged paragraph(s) on the section's "
+                     f"own table. " if lead else "")
+                    + f"Then write exactly {len(subs)} paragraphs, one for each "
                     f"sub-section, in this order, each beginning with its tag "
                     f"in square brackets: " + "; ".join(
                         f"[{chr(65 + n)}] {ss.get('title')}"
@@ -579,7 +591,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             s["claim"] = sents[0] if sents else res["text"]
             rest = res["text"][len(s["claim"]):].strip()
             if subs and cadence == "weekly":
-                s["paragraphs"] = []
+                untagged = re.split(r"\[[A-E]\]", rest)[0].strip()
+                s["paragraphs"] = ([p.strip() for p in untagged.split("\n\n")
+                                    if p.strip()] if lead else [])
                 for tag, body_ in split_tagged(rest).items():
                     i = ord(tag) - 65
                     if 0 <= i < len(subs):

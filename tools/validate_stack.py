@@ -525,7 +525,8 @@ def main() -> int:
     clk = Clock()
     fetch2, calls2 = make_fetcher([77, 77, 78])
     orig = bars_mod.load_config
-    bars_mod.load_config = lambda path=None: {**orig(path), "tape": spec}
+    bars_mod.load_config = lambda path=None: {**orig(path), "tape": spec,
+                                              "intraday_extra": []}
     try:
         with bars_mod.BarStore(str(Path(td) / "retry.db"), create=True) as bst:
             r2 = bars_mod.pull(SESSION, store=bst, fetcher=fetch2, sleep=clk.sleep,
