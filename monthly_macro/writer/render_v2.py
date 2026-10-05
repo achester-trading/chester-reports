@@ -313,14 +313,38 @@ def looking_back_section(p: dict, prose: Optional[dict] = None) -> str:
     return "\n".join(out) + "\n\n---\n"
 
 
+def _md_table(t: Optional[dict]) -> list[str]:
+    if not t or not t.get("rows"):
+        return []
+    out = ["| " + " | ".join(t["columns"]) + " |",
+           "|" + "---|" * len(t["columns"])]
+    out += ["| " + " | ".join(_cell(c) for c in r) + " |" for r in t["rows"]]
+    return out + [""]
+
+
 def voices_section(p: dict) -> str:
+    """Section 4 (Phase B): one row per voice with its monthly status, computed
+    from stored rows; the four weeks rolled up by story; consensus against
+    contrarian. Every row carries its source; nothing is printed without one."""
     b = p.get("voices") or {}
-    return "\n".join([
-        "## 4. Voices\n", _tie(p, "voices"),
-        f"**{b.get('reason') or 'Voices register not yet built'}.**\n",
-        "Sell-side desks, buy-side managers and independent strategists arrive with "
-        "Phase B, one row each with a status computed against that voice's view a "
-        "month earlier. Until then no view is attributed to anyone.\n"]) + "\n---\n"
+    if b.get("state") not in ("ok", "empty"):
+        return _absent("4. Voices", b)
+    w = b.get("window") or {}
+    out = ["## 4. Voices\n", _tie(p, "voices")]
+    if b.get("state") == "empty":
+        out.append(f"**{b.get('reason')}.**\n")
+    else:
+        out.append(f"Status is computed against each voice's stored entry before "
+                   f"{w.get('start')}; SILENT means an entry in the month before "
+                   f"and none in this one.\n")
+        out += _md_table(b.get("table"))
+        out.append(f"**Consensus vs contrarian.** {b.get('consensus')}\n")
+    if (b.get("rollup") or {}).get("rows"):
+        out.append("**The four weeks, by story** (sourced items for and against):\n")
+        out += _md_table(b.get("rollup"))
+    if b.get("unreachable"):
+        out.append(f"*{b['unreachable']}*\n")
+    return "\n".join(out) + "\n---\n"
 
 
 def looking_ahead_section(p: dict, prose: Optional[dict] = None) -> str:

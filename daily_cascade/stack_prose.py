@@ -379,6 +379,14 @@ SECTION_NOTES = {
         "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
         "comparison between them is written as an EXCESS ('an excess of +0.8 "
         "points over cash'), never 'the book against cash' with a figure."),
+    "narratives": (
+        "\n\nNARRATIVES AS SYNTHESIS (Phase B): for each story, what moved it for "
+        "and against this period and who dissented, from the sourced items in the "
+        "data. Name a voice only as the data names it, with its outlet; a voice "
+        "not in the data does not exist for this section. Never declare a status "
+        "-- NEW, REITERATED, INFLECTED and SILENT are computed and printed in the "
+        "table; describe an inflection only where the data marks one. Attribute "
+        "every view ('Goldman Sachs Research expects ...'); never adopt one."),
     "ahead": (
         "\n\nTHIS SECTION ALONE LOOKS FORWARD: the calendar, the base rates and "
         "the graded calls it is given, stated as what is scheduled and what the "

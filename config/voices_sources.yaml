@@ -1,0 +1,343 @@
+# voices_sources.yaml -- the voices scan's declared sources, caps and vocabularies.
+# (Phase B, pulled forward and ruled 4 Oct 2026; docs/briefs/monthly-v2-brief-
+# 2026-10-01.md, Phase B and the Rules; reporting-stack brief section 1, row 8.)
+#
+# -----------------------------------------------------------------------------
+# WHAT THIS FILE IS
+# -----------------------------------------------------------------------------
+# The list of places the daily scan reads, declared ahead of the scan that reads
+# them, for the same reason config/story_queries.yaml was: a scan that chose its own
+# sources on the day would find whoever agreed with the day. Adding a source is an
+# edit here, in a dated commit.
+#
+# PUBLIC ONLY. Each source below was fetched from the laptop on 4 Oct 2026 with the
+# project's User-Agent, its robots.txt was read and the listed path allowed, and it
+# served dated items without a login. No paywalled outlet, no email, no Drive, no
+# personal source. The scan re-reads robots.txt on every run and skips a path it
+# disallows, so a site that tightens its rules is obeyed the next morning.
+#
+# ONCE A DAY, in the 06:45 overnight fetch (scripts/fetch_overnight.sh). Reports
+# never fetch: they read the stored rows.
+#
+# IDENTITY. Requests carry the User-Agent EDGAR uses, `chester-reports/1.0
+# (<CHESTER_SEC_CONTACT>)` (altdata/sources/edgar.user_agent). With no contact set
+# the scan is dormant and reports `not_configured`, as EDGAR does -- it does not
+# fall back to an anonymous agent.
+#
+# TIER. A source names its `outlet`; the tier is read from config/source_tiers.yaml
+# and never declared here, so the two files cannot disagree. An outlet absent from
+# source_tiers.yaml is refused by the gate.
+version: voices-sources-v1
+updated: 2026-10-04
+
+# The model call: one per NEW item, never on an item already seen.
+model: claude-sonnet-5
+max_model_calls_per_day: 30
+# Per source per run: links followed (each one a polite GET) and items extracted.
+max_fetch_per_source: 10
+max_extract_per_source: 6
+# An item published longer ago than this is recorded as seen and not extracted:
+# the first run would otherwise read a desk's whole back catalogue.
+lookback_days: 10
+# Characters of an article's text the model is shown. The text is read in memory
+# and never stored; only the paraphrase, the URL and the dates are.
+max_text_chars: 12000
+# Seconds between requests to the same host.
+politeness_seconds: 2
+# The whole scan's wall-clock budget. It runs inside the 06:45 pass, whose unit
+# stops at 10 minutes and which the 07:00 anchor follows; past this, no new item
+# is started, and the rest wait for tomorrow unseen.
+time_budget_seconds: 240
+
+# -----------------------------------------------------------------------------
+# VOCABULARIES -- what the model may return, and what code compares.
+# -----------------------------------------------------------------------------
+kinds:
+  sell_side: "sell-side desk"
+  buy_side: "buy-side manager"
+  independent: "independent strategist"
+  official: "official"
+directions: [bullish, bearish, neutral]
+# Subjects a direction may be stated on. Status compares directions on the SAME
+# subject, so the subject is declared, never free text; a view on anything else is
+# stored without that direction. `bullish` means what `means` says.
+subjects:
+  us_equities:     {label: "US equities",            means: "expects US stocks to rise"}
+  us_tech:         {label: "US large-cap tech",      means: "expects the large-cap tech complex to rise"}
+  us_small_caps:   {label: "US small caps",          means: "expects small caps to rise"}
+  intl_equities:   {label: "non-US developed equities", means: "expects non-US developed stocks to rise"}
+  em_equities:     {label: "emerging-market equities", means: "expects emerging-market stocks to rise"}
+  treasuries:      {label: "Treasuries",             means: "expects Treasury prices to rise (yields to fall)"}
+  credit:          {label: "corporate credit",       means: "expects credit to outperform (spreads to tighten)"}
+  usd:             {label: "the dollar",             means: "expects the dollar to strengthen"}
+  gold:            {label: "gold",                   means: "expects gold to rise"}
+  oil:             {label: "oil",                    means: "expects oil to rise"}
+  bitcoin:         {label: "bitcoin",                means: "expects bitcoin to rise"}
+  us_growth:       {label: "US growth",              means: "expects US growth to hold up or accelerate"}
+  inflation:       {label: "inflation",              means: "expects inflation to rise or stay sticky"}
+  fed_easing:      {label: "Fed easing",             means: "expects more or faster easing by the Fed"}
+  ai_capex:        {label: "AI capital spending",    means: "expects AI capital spending to keep rising"}
+
+# -----------------------------------------------------------------------------
+# THE SOURCES
+# -----------------------------------------------------------------------------
+# method:
+#   rss       an RSS/Atom feed; each item is a candidate, dated by the feed.
+#   page      a fixed page replaced each edition (BII's weekly commentary): the
+#             edition is the dated document the page links, matched by
+#             `edition_pattern` and dated by its stamp; the page is the text.
+#   listing   an HTML index page; links matching `link_pattern` are candidates,
+#             each fetched once and dated by the article's own metadata. An item
+#             with no published date is NOT stored ("no date, no row", as the news
+#             feeds already rule).
+# require_any: for a general outlet, a candidate is extracted only when its title
+#   or summary carries one of these words -- the scan wants a named strategist's
+#   view, not every markets story.
+# default_voice / default_kind: what the model is told the publisher is, for a
+#   desk's own page; the model still names the person when the page does.
+sources:
+  - id: fed_speeches
+    name: "Federal Reserve Board: speeches and testimony"
+    outlet: "Federal Reserve Board"
+    method: rss
+    url: "https://www.federalreserve.gov/feeds/speeches_and_testimony.xml"
+    default_kind: official
+    note: "the Board's speaker feed: governors' speeches and testimony, one item each"
+
+  - id: cnbc_market_insider
+    name: "CNBC Market Insider"
+    outlet: "CNBC"
+    method: rss
+    url: "https://www.cnbc.com/id/20409666/device/rss/rss.html"
+    require_any: [strategist, strategists, analyst, analysts, economist, chief,
+                  "Wall Street", forecast, outlook, "price target", sees, says, warns]
+    note: "strategist quotes in markets coverage; search.cnbc.com is disallowed by its robots.txt, www.cnbc.com/id/... feeds are allowed"
+
+  - id: cnbc_investing
+    name: "CNBC Investing"
+    outlet: "CNBC"
+    method: rss
+    url: "https://www.cnbc.com/id/15839069/device/rss/rss.html"
+    require_any: [strategist, strategists, analyst, analysts, economist, chief,
+                  "Wall Street", forecast, outlook, "price target", sees, says, warns]
+
+  - id: goldman_insights
+    name: "Goldman Sachs Insights"
+    outlet: "Goldman Sachs"
+    method: listing
+    url: "https://www.goldmansachs.com/insights"
+    link_pattern: '/insights/articles/[a-z0-9-]+'
+    default_voice: "Goldman Sachs Research"
+    default_kind: sell_side
+    note: "robots.txt disallows /insights/top-of-mind/ and /what-we-do/research/; neither is read"
+
+  - id: jpm_am_market_insights
+    name: "J.P. Morgan Asset Management Market Insights"
+    outlet: "J.P. Morgan Asset Management"
+    method: listing
+    url: "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/"
+    link_pattern: '/us/en/asset-management/adv/insights/market-insights/[a-z0-9-]+/[a-z0-9-]+/'
+    default_voice: "J.P. Morgan Asset Management, Global Market Insights"
+    default_kind: buy_side
+
+  - id: morgan_stanley_ideas
+    name: "Morgan Stanley Ideas"
+    outlet: "Morgan Stanley"
+    method: listing
+    url: "https://www.morganstanley.com/ideas"
+    link_pattern: '/insights/articles/[a-z0-9-]+'
+    default_voice: "Morgan Stanley Research"
+    default_kind: sell_side
+
+  - id: blackrock_bii
+    name: "BlackRock Investment Institute weekly commentary"
+    outlet: "BlackRock Investment Institute"
+    method: page
+    url: "https://www.blackrock.com/us/individual/insights/blackrock-investment-institute/weekly-commentary"
+    # The page is replaced each week; its edition is the dated PDF it links,
+    # which is the permanent document stored as the source. The BII publications
+    # listing was tried first and its pages carry no publication date.
+    edition_pattern: '/us/individual/literature/market-commentary/weekly-investment-commentary-en-us-20\d{6}[a-z0-9-]*\.pdf'
+    default_voice: "BlackRock Investment Institute"
+    default_kind: buy_side
+
+  - id: pimco_insights
+    name: "PIMCO Insights"
+    outlet: "PIMCO"
+    method: listing
+    url: "https://www.pimco.com/us/en/insights"
+    link_pattern: '/us/en/insights/[a-z0-9-]+'
+    default_voice: "PIMCO"
+    default_kind: buy_side
+
+  - id: troweprice_insights
+    name: "T. Rowe Price Insights"
+    outlet: "T. Rowe Price"
+    method: listing
+    url: "https://www.troweprice.com/personal-investing/resources/insights.html"
+    link_pattern: '/personal-investing/resources/insights/[a-z0-9-]+\.html'
+    default_voice: "T. Rowe Price"
+    default_kind: buy_side
+
+  - id: nuveen_insights
+    name: "Nuveen Insights"
+    outlet: "Nuveen"
+    method: listing
+    url: "https://www.nuveen.com/en-us/insights"
+    link_pattern: '/en-us/insights/[a-z-]+/[a-z0-9-]+'
+    default_voice: "Nuveen"
+    default_kind: buy_side
+
+  - id: bridgewater_research
+    name: "Bridgewater Research & Insights"
+    outlet: "Bridgewater Associates"
+    method: listing
+    url: "https://www.bridgewater.com/research-and-insights"
+    link_pattern: '/research-and-insights/[a-z0-9-]+'
+    default_voice: "Bridgewater Associates"
+    default_kind: buy_side
+
+  - id: gmo_research
+    name: "GMO Research Library"
+    outlet: "GMO"
+    method: listing
+    url: "https://www.gmo.com/americas/research-library/"
+    link_pattern: '/americas/research-library/[a-z0-9-]+_[a-z]+/'
+    default_voice: "GMO"
+    default_kind: buy_side
+    # The article banner's caption ("GMO Quarterly Letter | September 24, 2026");
+    # the page's other dates belong to related items.
+    date_pattern: ['article-banner__caption">[^|<]*\|\s*([A-Z][a-z]+ \d{1,2}, 20\d\d)']
+
+  # --- Added 4 Oct 2026 (Phase B ruling 5): the regional Feds, Treasury, the ECB
+  # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
+  # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.
+  - id: sf_fed_speeches
+    name: "Federal Reserve Bank of San Francisco: speeches"
+    outlet: "Federal Reserve Bank of San Francisco"
+    method: rss
+    url: "https://www.frbsf.org/feed/?post_type=speech"
+    default_kind: official
+
+  - id: dallas_fed_speeches
+    name: "Federal Reserve Bank of Dallas: speeches"
+    outlet: "Federal Reserve Bank of Dallas"
+    method: rss
+    url: "https://www.dallasfed.org/rss/speeches.xml"
+    default_kind: official
+
+  - id: chicago_fed_speeches
+    name: "Federal Reserve Bank of Chicago: the president's speeches"
+    outlet: "Federal Reserve Bank of Chicago"
+    method: listing
+    url: "https://www.chicagofed.org/utilities/about-us/office-of-the-president/office-of-the-president-speaking"
+    link_pattern: '/publications/speeches/20\d\d/[a-z0-9-]+'
+    # The speech pages carry no date metadata; the path does (/2026/sept-30-norc).
+    url_date_pattern: '/speeches/(?P<year>20\d\d)/(?P<month>[a-z]+)-(?P<day>\d{1,2})-'
+    default_kind: official
+
+  - id: treasury_press
+    name: "U.S. Treasury press releases"
+    outlet: "U.S. Treasury"
+    method: listing
+    url: "https://home.treasury.gov/news/press-releases"
+    link_pattern: '/news/press-releases/[a-z]{2}\d{3,5}'
+    # The release date is an unquoted <time datetime=...> attribute.
+    date_pattern: ['<time datetime=([0-9T:Z-]+)']
+    # Most releases are sanctions and enforcement; the scan wants the Secretary's
+    # and the department's statements on the economy, borrowing and markets.
+    require_any: [secretary, remarks, testimony, statement, economy,
+                  refunding, borrowing, debt, deficit, tariff, markets, dollar]
+    default_kind: official
+
+  - id: ecb_speeches
+    name: "European Central Bank: speeches"
+    outlet: "European Central Bank"
+    method: rss
+    url: "https://www.ecb.europa.eu/rss/press.html"
+    # The press feed mixes speeches with decisions and statistics; speeches only.
+    link_filter: '/press/key/date/.*\.html$'
+    default_kind: official
+    note: "the laptop's Python failed certificate verification on ecb.europa.eu on 4 Oct (curl succeeded); if the box fails the same way it prints unreachable"
+
+  - id: boe_speeches
+    name: "Bank of England: speeches"
+    outlet: "Bank of England"
+    method: rss
+    url: "https://www.bankofengland.co.uk/rss/speeches"
+    default_kind: official
+
+  - id: yahoo_finance
+    name: "Yahoo Finance news"
+    outlet: "Yahoo Finance"
+    method: rss
+    url: "https://finance.yahoo.com/news/rssindex"
+    require_any: [strategist, strategists, analyst, analysts, economist, chief,
+                  "Wall Street", forecast, outlook, "price target", sees, says, warns]
+    note: "tier 3 in source_tiers.yaml: stored and shown, never counted toward attention or a consensus"
+
+# -----------------------------------------------------------------------------
+# SOURCES TRIED AND NOT USED, 4 Oct 2026 -- kept so the next attempt starts from
+# evidence rather than repeating these.
+# -----------------------------------------------------------------------------
+not_used:
+  - {name: "Reuters", reason: "no public feed: reuters.com answers automated requests with 401 and its robots.txt disallows them; the Google News route is disallowed by news.google.com's robots.txt"}
+  - {name: "Google News search (the story queries' feed)", reason: "news.google.com/robots.txt disallows /rss/search for every user agent (retired from the story queries, 4 Oct 2026)"}
+  - {name: "Apollo Academy (Torsten Slok)", reason: "robots.txt disallows / for every user agent"}
+  - {name: "Oaktree memos", reason: "the listing page renders its links client-side; nothing to follow without a browser"}
+  - {name: "Yardeni QuickTakes", reason: "certificate verification failed on the feed"}
+  - {name: "LPL Research", reason: "403 to the project's User-Agent"}
+  - {name: "MarketWatch (asked for 4 Oct)", reason: "the Dow Jones feeds serve, but every item links to marketwatch.com/story, and marketwatch.com/robots.txt disallows / for every user agent"}
+  - {name: "New York Fed speeches (asked for 4 Oct)", reason: "robots.txt allows the page, but its speech links are rendered client-side and no feed was found (/rss/speeches and /feeds/speeches.xml return HTML)"}
+  - {name: "Atlanta Fed speeches (asked for 4 Oct)", reason: "robots.txt allows the page, but its speech links are rendered client-side; /rss/speeches is 404"}
+  - {name: "Charles Schwab, Vanguard, Wells Fargo Investment Institute", reason: "the insight paths tried returned 404; no feed found"}
+  - {name: "Franklin Templeton, State Street, Invesco", reason: "the listing pages render their article links client-side (0-1 links served)"}
+
+# -----------------------------------------------------------------------------
+# SEEDS -- entries written by hand from a ruled source, once (`python -m
+# altdata.voices seed`, idempotent). Held to the same refusal as a scanned row.
+# -----------------------------------------------------------------------------
+seeds:
+  # docs/change-order-jpm-gtm-2026-10-03.md, the voices entry; the stance is the
+  # scan's (docs/scans/jpm-gtm-2026q4.md), inferred from exhibit selection rather
+  # than stated, and the view line says so. Buy-side: an asset manager (ruled
+  # 4 Oct 2026; the change order said sell-side and now says buy-side). Its
+  # status (NEW) is computed, not declared here.
+  - voice: "J.P. Morgan Asset Management, Global Market Insights"
+    affiliation: "J.P. Morgan Asset Management"
+    kind: buy_side
+    outlet: "J.P. Morgan Asset Management"
+    title: "Guide to the Markets, U.S. 4Q 2026"
+    source_url: "https://am.jpmorgan.com/content/dam/jpm-am-aem/global/en/insights/market-insights/guide-to-the-markets/mi-guide-to-the-markets-us.pdf"
+    published_at: "2026-09-30"
+    retrieved_at: "2026-10-03T00:00:00+00:00"
+    view: >-
+      Stay invested through all-time highs, broaden beyond the ten largest stocks
+      and beyond the US, and lock in bond yields above 5.5% (inferred from the
+      Guide's exhibit selection, not stated).
+    directions:
+      - {subject: us_equities, direction: bullish}
+      - {subject: intl_equities, direction: bullish}
+      - {subject: treasuries, direction: bullish}
+    horizon: "multi-year (the Guide's 5-year forward-return exhibit)"
+
+# -----------------------------------------------------------------------------
+# 13F -- positioning from SEC EDGAR, where a voice's firm files one.
+# -----------------------------------------------------------------------------
+# Affiliation (as the voices table carries it, matched by prefix: "BlackRock"
+# covers "BlackRock Investment Institute") -> the NAME its firm files 13F under.
+# NAMES ONLY, NEVER A CIK (ruled 4 Oct 2026): the scan resolves each CIK at run
+# time from EDGAR's company lookup, caches it, and counts it only when EDGAR's
+# current name for that CIK equals the name here. Any that does not match is
+# printed in the scan's log, and no 13F prints for that voice until it does. A
+# voice whose affiliation is not listed here is looked up under the affiliation
+# itself. Read by the Monthly only, dated to the filing's period of report.
+filers_13f:
+  "J.P. Morgan Asset Management": "JPMORGAN CHASE & CO"
+  "Goldman Sachs": "GOLDMAN SACHS GROUP INC"
+  "Morgan Stanley": "MORGAN STANLEY"
+  "BlackRock": "BlackRock, Inc."
+  "PIMCO": "PACIFIC INVESTMENT MANAGEMENT CO LLC"
+  "T. Rowe Price": "PRICE T ROWE ASSOCIATES INC /MD/"
+  "Bridgewater Associates": "Bridgewater Associates, LP"
+  "GMO": "GRANTHAM, MAYO, VAN OTTERLOO & CO. LLC"

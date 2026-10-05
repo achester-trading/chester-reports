@@ -26,8 +26,19 @@
 # It is prose for a human reading the block, not a rule -- a rule would need a
 # threshold, and none of these has an honest one yet.
 
+# -----------------------------------------------------------------------------
+# THE FETCH WAS RETIRED, THE QUERIES WERE NOT (Phase B, 4 Oct 2026)
+# -----------------------------------------------------------------------------
+# These were run against Google News search, which returned zero new items a day
+# (relevance-ranked, so the same old items deduplicated every morning) and whose
+# robots.txt disallows /rss/search for every user agent. The voices scan
+# (config/voices_sources.yaml) now writes each story's `headline` rows from a
+# declared list of public sources, keyed by the query names below, so the
+# register's attention series keep their names and their rules. The `query` text
+# and `cap_per_day` are no longer fetched; they stay as the record of what each
+# series meant from 26 Sep to 3 Oct 2026.
 version: story-queries-v2
-updated: 2026-09-27
+updated: 2026-10-04
 
 # Per query per day. The block prints counts and links the top few; a hundred
 # stories a day about one theme is not a hundred facts, and storing them would

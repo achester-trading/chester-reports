@@ -129,9 +129,23 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
            "2026-08-28T12:00:00+00:00", 0, 4)
     # The register: two packets approved this week, one deferred by the budget.
     from register.store import Register
+    from altdata import session as _sess
     base = dict(direction="long", thesis="t", edge_type="positioning",
                 horizon="swing", invalidation="i", book="B", falsifiers=["f"],
                 counter_thesis="c", currency_exposure="unhedged")
+    # THE CLOCK IS PINNED INSIDE THE FIXTURE WEEK. The register stamps created_at
+    # from the real clock, so on any day after the fixture week these rows fell
+    # outside it and the counts read 0 (first seen 5 Oct 2026, 00:00 UTC).
+    real_now = _sess.utc_iso
+    _sess.utc_iso = lambda timespec="seconds": f"{ENDING}T15:00:00+00:00"
+    try:
+        _seed_register(Register, db, base)
+    finally:
+        _sess.utc_iso = real_now
+    return seeded
+
+
+def _seed_register(Register, db, base) -> None:
     with Register(db) as reg:
         for k in range(2):
             d = reg.record(instrument="TEST@ARCA.USD", status="draft",
@@ -143,7 +157,6 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
         reg.supersede(d, instrument="TEST@ARCA.USD", status="declined",
                       operator_action="DECLINE", abstention_reason="attention_budget",
                       expression_currency="USD", **base)
-    return seeded
 
 
 def payload(seeded: dict) -> dict:

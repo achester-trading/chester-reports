@@ -884,8 +884,8 @@ _DEFAULT_TIE = {
                          "pinned to the stored record it came from.",
     "looking_back": "No takeaway is drawn from the themes this month; they are "
                     "the record behind the paragraph above.",
-    "voices": "The voices that would test the paragraph above are Phase B; "
-              "nothing here is attributed to anyone yet.",
+    "voices": "These are the voices that would test the paragraph above, each "
+              "with its source and a status computed against last month.",
     "looking_ahead": "The calendar below is where the paragraph above gets "
                      "tested next.",
     "our_read": "This restates the weights and books the paragraph above "
@@ -918,6 +918,23 @@ def tie_backs(takes: list[dict]) -> dict[str, str]:
     return out
 
 
+def voices_block_for(win: tuple[str, str]) -> dict:
+    """Section 4 (Phase B, 4 Oct 2026): the voices table with MONTHLY status,
+    the four weeks' story evidence rolled up, the consensus line, and 13F where
+    a voice's firm files one -- read from the stored rows, never fetched."""
+    try:
+        from daily_cascade import voices_block                  # noqa: PLC0415
+        cutoff = win[1]
+        month_end = (dt.date.fromisoformat(cutoff[:10])
+                     - dt.timedelta(days=1)).isoformat()
+        b = voices_block.month_block(month_end, cutoff, observations.DEFAULT_DB)
+        return b
+    except Exception as exc:                                    # noqa: BLE001
+        return {"state": "fault",
+                "reason": f"the voices register could not be read "
+                          f"({type(exc).__name__})"}
+
+
 # ---------------------------------------------------------------------------
 # The Phase A sections, built onto an existing payload
 # ---------------------------------------------------------------------------
@@ -940,15 +957,7 @@ def build(p: dict) -> dict:
                 "takeaways_supported": len(takes),
                 "paragraph": None},
             "looking_back": back,
-            "voices": {"state": "not_yet_sourced",
-                       "reason": "Voices register not yet built",
-                       "phase": "B",
-                       "needs": ["a voices table (voice, affiliation, kind, view, "
-                                 "source_url, published_at, retrieved_at, tier, "
-                                 "horizon)",
-                                 "the monthly news scan extended to strategist "
-                                 "and desk commentary",
-                                 "13F via SEC EDGAR (CHESTER_SEC_CONTACT)"]},
+            "voices": voices_block_for(win),
             "looking_ahead": ahead,
             "our_read": read,
             "tie_backs": tie_backs(takes),

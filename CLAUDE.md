@@ -228,6 +228,20 @@ method-9/10 are retired numbers, so the next bumps are v1.13 and method-11.
 Three of the eight dimensions are absent today for want of data, and each says so
 with its reason rather than substituting a proxy. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
 
+**Voices are stored and sourced before they are printed (Phase B, 4 Oct 2026).**
+`altdata/sources/voices_scan.py` runs once a day in the 06:45 overnight pass over
+the public sources declared in `config/voices_sources.yaml`. It obeys robots.txt,
+identifies itself with the EDGAR contact, and makes one model call per new item
+under a daily cap. `altdata/voices.py` refuses any row without a URL, a published
+date, a retrieval instant or a tier, and never stores the article body. Status
+(NEW / REITERATED / INFLECTED / SILENT) is computed from the stored directions;
+the model never declares it. `daily_cascade/voices_block.py` is the only renderer,
+for the close's Narratives line, the Weekly's section 8 and the Monthly's section
+4, and it audits every printed view.
+
+The Google News story-query fetch is retired: its robots.txt forbids it. The scan
+now writes those `headline` rows under each story's declared query.
+
 ### Known cleanup
 
 Resolved: the root-level `compute.py` (a misplaced copy of

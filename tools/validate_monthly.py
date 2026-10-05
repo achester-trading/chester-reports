@@ -835,8 +835,12 @@ def group_h() -> None:
         pos = [md.find(h) for h in heads[:8]]
         check(all(a < b for a, b in zip(pos, pos[1:])),
               "in order: the month in markets first, then 2-6, then the record")
-        check("Voices register not yet built" in md,
-              "the voices section prints \"Voices register not yet built\"")
+        # Phase B (4 Oct 2026): the placeholder is gone. With no voice stored in
+        # the fixture month the section says so; it never prints the placeholder.
+        check("Voices register not yet built" not in md
+              and ("no voice was stored in the month" in md or "| Voice |" in md),
+              "the voices section prints the computed block (Phase B), not the "
+              "placeholder")
 
         # --- THE SCORECARD, in each metric's own unit ------------------------------
         sc = {r["metric"]: r for r in built["month_in_markets"]["rows"]}
@@ -1141,7 +1145,8 @@ def group_h() -> None:
               f"({len(sends)} send(s))")
         text = dmd.read_text(encoding="utf-8") if dmd.exists() else ""
         check("## 1. The month in markets" in text
-              and "Voices register not yet built" in text,
+              and "## 4. Voices" in text
+              and "Voices register not yet built" not in text,
               "and a payload archived before v2 gets its v2 sections built at its "
               "own cutoff")
     finally:
