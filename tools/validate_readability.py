@@ -515,7 +515,10 @@ def main() -> int:
         have, why = False, f"{type(exc).__name__}: {str(exc)[:120]}"
     if have:
         pdf, detail = rd.pdf_bytes(whtml, wk["inline_images"])
-        pages = len(re.findall(rb"/Type\s*/Page\b", pdf or b""))
+        # Pages counted by WeasyPrint's own document: the PDF keeps its page
+        # objects in compressed object streams, so the bytes cannot be grepped.
+        pages = len(weasyprint.HTML(string=rd.pdf_html(whtml, wk["inline_images"]))
+                    .render().pages)
         check(pdf and pdf[:5] == b"%PDF-" and len(pdf) <= rd.PDF_MAX_BYTES
               and pages >= 2,
               f"the fixture Weekly renders to PDF: {detail}, {pages} pages")
