@@ -17,7 +17,8 @@ table and its three clocks stay.
 
 THE THREE CLOCKS. `observed_at` is the bar's own start (UTC), `available_at` the
 instant the bar was fetched -- an upper bound on when this system knew it, which
-is what an as-of read needs -- and `ingested_at` the write. A bar is never
+is what an as-of read needs; the one-time backfill reconstructs it instead, as the
+bar's close plus the feed's delay -- and `ingested_at` the write. A bar is never
 knowable before it was fetched, so a replay of an old session sees only the bars
 that existed then.
 
@@ -113,6 +114,27 @@ class BarStore:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+    def restamp_many(self, rows: Iterable[dict]) -> int:
+        """The backfill's write: insert, or on a bar already stored move its
+        available_at EARLIER to the reconstructed instant -- never later, and never
+        a second row. Returns the rows inserted or restamped."""
+        if not self.create:
+            raise RuntimeError("bars are written by the eod feed only -- open "
+                               "BarStore(create=True)")
+        now = session.utc_iso()
+        cur = self.conn.executemany(
+            "INSERT INTO bars (instrument, symbol, interval, observed_at,"
+            " open, high, low, close, volume, available_at, ingested_at, source)"
+            " VALUES (:instrument, :symbol, :interval, :observed_at, :open, :high,"
+            " :low, :close, :volume, :available_at, :ingested_at, :source)"
+            " ON CONFLICT (instrument, interval, observed_at) DO UPDATE SET"
+            " available_at = excluded.available_at"
+            " WHERE excluded.available_at < bars.available_at",
+            [{"volume": None, "source": "yfinance", "ingested_at": now, **r}
+             for r in rows])
+        self.conn.commit()
+        return cur.rowcount
 
     def write_many(self, rows: Iterable[dict]) -> int:
         if not self.create:
@@ -212,6 +234,29 @@ def _frame_rows(df, instrument: str, symbol: str, interval: str,
     return out
 
 
+# THE BACKFILL'S AVAILABILITY (5 Oct 2026). A bar is knowable at its close plus
+# the feed's declared delay -- the same delay the price backfill reconstructs
+# with -- or at the instant it was fetched, if that came first. A bar fetched
+# before it closed was a bar in progress, and is dropped.
+BAR_MINUTES = {"5m": 5}
+
+
+def reconstruct_availability(rows: list[dict], fetched_at: str) -> tuple[list, int]:
+    """Each row stamped min(close + delay, fetched); bars still open dropped."""
+    from altdata.sources import yfinance_source as yf_src       # noqa: PLC0415
+    delay = dt.timedelta(minutes=yf_src.RECONSTRUCTED_LATENCY_MINUTES)
+    fetched = dt.datetime.fromisoformat(fetched_at)
+    kept, dropped = [], 0
+    for r in rows:
+        close = (dt.datetime.fromisoformat(r["observed_at"])
+                 + dt.timedelta(minutes=BAR_MINUTES.get(r["interval"], 5)))
+        if close > fetched:
+            dropped += 1
+            continue
+        kept.append({**r, "available_at": min(close + delay, fetched).isoformat()})
+    return kept, dropped
+
+
 def _final_bar_present(rows: list[dict], instrument: str, day: str) -> bool:
     _, last, _ = session_window(instrument, day)
     return any(r["observed_at"] >= last for r in rows)
@@ -284,10 +329,13 @@ def backfill(days: int = 60, store: Optional[BarStore] = None,
     """ONE-TIME: the last `days` calendar days of 5-minute bars for every tape
     instrument (T2.2, 4 Oct 2026: W7 needs ten sessions of 65-minute bars, built
     from the 5-minute table). Yahoo serves 5-minute bars for the last 60 days
-    only. One request per symbol; INSERT OR IGNORE, so a re-run and the nightly
-    pull never duplicate a bar. available_at is the fetch instant -- a backfilled
-    bar was not knowable before it was fetched, so an as-of read of an earlier
-    session will not see it, which is the honest answer."""
+    only. One request per symbol. AVAILABILITY IS RECONSTRUCTED (5 Oct 2026): a
+    bar is stamped at its close plus the feed's delay, or its fetch if that came
+    first -- a backfilled bar stamped at the fetch made every earlier session's
+    as-of read find nothing, so a dry run of a past Weekly could not draw W7. A
+    re-run moves the stamp of a bar already stored EARLIER, never later, and
+    never writes a second row (BarStore.restamp_many); a bar fetched before it
+    closed is dropped and counted."""
     if fetcher is None:
         import yfinance as yf                                   # noqa: PLC0415
 
@@ -304,11 +352,13 @@ def backfill(days: int = 60, store: Optional[BarStore] = None,
                 df = fetcher(sym, period=f"{int(days)}d", interval="5m",
                              prepost=False)
                 rows = _frame_rows(df, iid, sym, "5m", fetched)
+                rows, still_open = reconstruct_availability(rows, fetched)
                 got: dict[str, Any] = {"bars": len(rows),
+                                       "dropped_still_open": still_open,
                                        "first": rows[0]["observed_at"] if rows else None,
                                        "last": rows[-1]["observed_at"] if rows else None}
                 if not dry_run:
-                    got["written"] = st.write_many(rows)
+                    got["written_or_restamped"] = st.restamp_many(rows)
             except Exception as exc:                            # noqa: BLE001
                 got = {"error": f"{type(exc).__name__}: {exc}"[:200]}
             report["instruments"][iid] = got

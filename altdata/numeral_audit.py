@@ -580,6 +580,43 @@ def type_of_key(key: str) -> str:
     return TYPE_ANY
 
 
+# A TABLE CELL CARRIES ITS OWN UNIT. Every table's cells sit in lists under the
+# key `rows`, and `rows` types as a count -- so "1,011 bp" in Plumbing's table was
+# a count of 1,011, and a paragraph quoting "1,011 bp" was withheld as a unit
+# mismatch (the first live T2.3 render: Plumbing, Mechanics and The read all
+# withheld). A cell's figure now takes the unit written beside it: % a percent, bp
+# a basis-point figure, pts or points a price, a dollar sign or a scale word (k,
+# bn, tn, thousand...) carries its own and imposes none. A figure with no unit
+# word stays a count, as before -- and an ISO date in a cell keeps the date reading.
+_ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}(?:[T ][\d:.+Z-]*)?")
+_CELL_FIGURE = re.compile(
+    r"""(?P<lead>\$?)[-+\u2212]?\$?\d[\d,]*(?:\.\d+)?
+        (?P<scale>\s?(?:trillion|billion|million|thousand|tn|bn|mm|k)\b)?
+        (?P<unit>\s?(?:%|bps?\b|pts\b|points?\b))?""", re.X | re.I)
+
+
+def cell_types(text: str) -> list[tuple[float, str]]:
+    """The figures in one table cell, each typed by the unit written beside it."""
+    out: list[tuple[float, str]] = []
+    for d in _ISO_DATE.findall(text):
+        out += [(v, TYPE_COUNT) for v in payload_numbers(d)]
+    rest = _ISO_DATE.sub(" ", text)
+    for m in _CELL_FIGURE.finditer(rest):
+        unit = (m.group("unit") or "").strip().lower()
+        if unit == "%":
+            kind = TYPE_PERCENT
+        elif unit.startswith("bp"):
+            kind = TYPE_BP
+        elif unit in ("pts", "point", "points"):
+            kind = TYPE_PRICE
+        elif m.group("lead") or "$" in m.group(0) or m.group("scale"):
+            kind = TYPE_ANY
+        else:
+            kind = TYPE_COUNT
+        out += [(v, kind) for v in payload_numbers(m.group(0).strip())]
+    return out
+
+
 def types_of(value, key: str = "") -> list[tuple[float, str]]:
     """Every numeric leaf as (value, type). The typed form of payload_numbers()."""
     out: list[tuple[float, str]] = []
@@ -587,6 +624,8 @@ def types_of(value, key: str = "") -> list[tuple[float, str]]:
         return out
     if isinstance(value, (int, float)):
         return [(float(value), type_of_key(key))]
+    if isinstance(value, str) and (key or "").lower() == "rows":
+        return cell_types(value)
     if isinstance(value, str):
         # A numeral inside a string is a payload figure (see payload_numbers), and
         # its type is the string's field -- a level quoted inside an invalidation

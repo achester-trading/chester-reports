@@ -386,7 +386,11 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
     if v is None:
         return "n/a"
     if form == "change":
-        return f"{v:+,.0f}"
+        # IN THE SERIES' OWN SCALE, WRITTEN (5 Oct): payrolls are stored in
+        # thousands, so +29 prints "+29k" -- the model then has nothing to rescale,
+        # and "+29" read as 29,000 was withheld by the audit.
+        units = str(derived.registry_entry(key).get("units") or "")
+        return f"{v:+,.0f}k" if units == "K" else f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):
