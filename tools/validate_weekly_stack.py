@@ -568,8 +568,8 @@ def main() -> int:
     # declared label, never the raw series name.
     check(rel and rel[0]["release"] == "Employment Situation"
           and rel[0]["form"] == "change" and rel[0]["actual"] == 150.0
-          and rel[0]["actual_text"] == "+150"
-          and rel[0]["label"] == "nonfarm payrolls, monthly change (thousands)"
+          and rel[0]["actual_text"] == "+150k"
+          and rel[0]["label"] == "nonfarm payrolls, monthly change"
           and rel[0]["as_of"] == "2026-09-01",
           f"13: Plumbing lists the week's tier-1 release in its declared form, with "
           f"actual, prior and as-of ({rel[:1]})")

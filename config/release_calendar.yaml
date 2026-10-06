@@ -60,13 +60,14 @@ expiries:
 # not GDP). Values are read from the store as of the cutoff; the prior is the
 # same form one period earlier.
 #   level       the latest print
-#   change      latest minus prior, in the series' own unit (payrolls: thousands)
+#   change      latest minus prior, in the series' own unit, its scale written
+#               (payrolls are stored in thousands and print as +29k)
 #   mom         month on month, percent
 #   yoy         year on year, percent (twelve monthly prints back)
 #   annualised  quarter on quarter, annualised, percent
 tier1_headlines:
   "Employment Situation":
-    - {key: fred.nfp, form: change, label: "nonfarm payrolls, monthly change (thousands)"}
+    - {key: fred.nfp, form: change, label: "nonfarm payrolls, monthly change"}
     - {key: fred.u3_rate, form: level, label: "unemployment rate"}
   "Consumer Price Index":
     - {key: fred.cpi, form: mom, label: "CPI, month on month"}

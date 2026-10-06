@@ -34,6 +34,13 @@ socket.
                  05:00 ET after the week.
   I W7 AND THE RECORD  the overnight drawn from ES scaled by the basis; the
                  attention-log line.
+  J AUDIT        the prose may quote the T2.3 tables: every unit-bearing cell,
+                 quoted verbatim, passes the real numeral audit; a wrong unit
+                 still fails (5 Oct: the first live render withheld three
+                 sections because a cell was typed by its `rows` key).
+  K BARS         the bars backfill stamps a bar at its close plus the delay and a
+                 re-run moves the stamp earlier without a second row.
+  L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source.
 """
 
 from __future__ import annotations
@@ -104,6 +111,8 @@ def seed_t23(db: str, sessions: list[str]) -> None:
         put("yfinance.mkt_eurusd", d, 1.10 if last else 1.11)
         put("yfinance.mkt_skew", d, 140.0)
         put("yfinance.mkt_move", d, 105.0)
+        put("calc.vol_spy_realized_20d", d, 10.3)
+        put("yfinance.mkt_vix", d, 15.6)
     put("auction.high_yield", sessions[2], 4.112, "Note:10-Year")
     put("auction.bid_to_cover", sessions[2], 2.51, "Note:10-Year")
     put("auction.dealer_share", sessions[2], 0.14, "Note:10-Year")
@@ -433,6 +442,80 @@ def main() -> int:
     att = ws.read_attention_log()
     check(any(e["date"] == "2026-10-04" and e["minutes"] == 15 and "T2.3" in e["note"]
               for e in att), "the attention log carries the T2.3 line")
+
+    # --- J. THE AUDIT READS A TABLE CELL'S OWN UNIT ---------------------------
+    print(f"\n{LINE}\nJ. THE PROSE MAY QUOTE THE T2.3 TABLES (5 Oct, the first live render)\n{LINE}")
+    from altdata import numeral_audit as na
+    unit_re = re.compile(r"(%|\bbps?\b|\bpoints?\b|\bpts\b)")
+
+    def quoted_cells(tbl):
+        return [c for r in tbl["rows"] for c in r[1:]
+                if isinstance(c, str) and unit_re.search(c)]
+    probes = {
+        "plumbing": sec["plumbing"]["table"],
+        "tape": tsubs["SPY overnight against the cash session"]["table"],
+        "mechanics": vol["table"],
+    }
+    for sid, tbl in probes.items():
+        cells = quoted_cells(tbl)
+        text = " ".join(f"The row read {c}." for c in cells)
+        r = na.audit(text, sec[sid])
+        check(cells and r.n_unmatched == 0,
+              f"{sid}: every unit-bearing cell of its T2.3 table, quoted verbatim, "
+              f"passes the real audit ({len(cells)} cells; {r.reason()[:120] if r.n_unmatched else 'clean'})")
+    bp_cell = next(r[1] for r in sec["plumbing"]["table"]["rows"]
+                   if r[0].startswith("CCC less BB"))
+    wrong = bp_cell.replace(" bp", "%")
+    check(na.audit(f"The spread read {wrong}.", sec["plumbing"]).n_unmatched >= 1,
+          f"and the audit still refuses a wrong unit ({bp_cell!r} quoted as {wrong!r})")
+    check(na.cell_types("2026-10-02") == [(2026.0, "count"), (10.0, "count"), (2.0, "count")]
+          and na.cell_types("bid-to-cover 2.51") == [(2.51, "count")]
+          and na.cell_types("+29k") == [(29000.0, "any")],
+          "a cell with no unit word stays a count; a date keeps its date reading; a "
+          "scaled figure carries its own")
+    for c in ("29,000", "29k"):
+        check(na.audit(f"Payrolls rose by {c}.", {"table": {"rows": [["Payrolls", "+29k"]]}}
+                       ).n_unmatched == 0, f"payrolls printed +29k may be quoted as {c}")
+
+    # --- K. THE BARS BACKFILL'S AVAILABILITY ------------------------------------
+    print(f"\n{LINE}\nK. A BACKFILLED BAR IS KNOWN AT ITS CLOSE PLUS THE DELAY\n{LINE}")
+    from altdata.sources import yfinance_source as yf_src
+    bar = {"instrument": "spy", "symbol": "SPY", "interval": "5m", "open": 1.0,
+           "high": 1.0, "low": 1.0, "close": 1.0, "volume": 1.0}
+    rows = [{**bar, "observed_at": "2026-10-02T13:30:00+00:00"},
+            {**bar, "observed_at": "2026-10-02T19:55:00+00:00"},
+            {**bar, "observed_at": "2026-10-02T20:10:00+00:00"}]
+    kept, still_open = bars_mod.reconstruct_availability(rows, "2026-10-02T20:12:00+00:00")
+    check(yf_src.RECONSTRUCTED_LATENCY_MINUTES == 20 and still_open == 1
+          and [k["available_at"] for k in kept] == ["2026-10-02T13:55:00+00:00",
+                                                    "2026-10-02T20:12:00+00:00"],
+          f"close + 20 minutes, or the fetch if that came first; a bar still open at "
+          f"the fetch is dropped ({[k['available_at'] for k in kept]}, {still_open} dropped)")
+    rdb = str(Path(TD) / "restamp.db")
+    first = {**bar, "observed_at": "2026-10-02T13:30:00+00:00",
+             "available_at": "2026-10-05T23:40:00+00:00"}
+    with bars_mod.BarStore(rdb, create=True) as bst:
+        bst.write_many([first])
+        n1 = bst.restamp_many([{**first, "available_at": "2026-10-02T13:55:00+00:00"}])
+        n2 = bst.restamp_many([{**first, "available_at": "2026-10-03T00:00:00+00:00"}])
+        got = bst.conn.execute("SELECT COUNT(*), MIN(available_at) FROM bars").fetchone()
+    check(n1 == 1 and n2 == 0 and tuple(got) == (1, "2026-10-02T13:55:00+00:00"),
+          f"a re-run moves a stored bar's availability earlier, never later, and never "
+          f"writes a second row ({tuple(got)}, restamped {n1} then {n2})")
+    import inspect as _inspect
+    check("restamp_many" in _inspect.getsource(bars_mod.backfill)
+          and "reconstruct_availability" in _inspect.getsource(bars_mod.backfill),
+          "the backfill writes through both")
+
+    # --- L. THE YFINANCE WARNING NOISE ------------------------------------------
+    print(f"\n{LINE}\nL. YFINANCE'S NUMPY WARNINGS ARE SILENCED, OURS ARE NOT\n{LINE}")
+    import warnings
+    import altdata                                               # noqa: F401
+    hits = [f for f in warnings.filters if f[0] == "ignore" and f[2] is DeprecationWarning
+            and f[3] is not None and f[3].pattern.startswith("yfinance")]
+    check(hits and hits[0][3].match("yfinance.utils") and hits[0][3].match("yfinance")
+          and not hits[0][3].match("altdata.fx_charts"),
+          "a filter on yfinance's own modules only")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
