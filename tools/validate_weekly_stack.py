@@ -314,7 +314,7 @@ def main() -> int:
           f"the Content-ID set matches the charts in the body ({sorted(cids)})")
     bad = charts_mod.bars_chart("W5", [], "x", "x", None)
     check(bad.get("unavailable") and "chart unavailable" in
-          stack_render._chart_html(bad, "email"),
+          stack_render._chart_html(bad, "email").lower(),
           f"a chart that cannot render prints its reason ({bad['unavailable']})")
     check(out["charts"]["W2"]["caption"].startswith("SPY, ") and "weekly bars"
           in out["charts"]["W2"]["caption"],
@@ -441,7 +441,11 @@ def main() -> int:
     check("Friday to Friday" in y10 and "FRED" in y10,
           f"Plumbing's 10-year week change is the bars' Friday to Friday, FRED "
           f"labelled with its own as-of ({y10[:90]})")
-    nt = " ".join(sec["positioning"]["not_tracked"])
+    # The section's footnote and its sub-sections' (T2.5: the CFTC sub-section
+    # lists the contracts once; the section no longer repeats them).
+    nt = " ".join(sec["positioning"]["not_tracked"]
+                  + [x for ss in sec["positioning"].get("subsections") or []
+                     for x in ss.get("not_tracked") or []])
     check("S&P 500 futures" in nt and "10-year note futures" in nt
           and "VIX futures" in nt and "Yen futures" not in nt,
           "CFTC contracts not yet stored print as not yet tracked, by name")
@@ -531,10 +535,13 @@ def main() -> int:
                                _bars.load_config()),
           "8: no section closes on the system; 'For the system' is a banned phrase")
     pos_calls = [c for c in calls if "THE SECTION: Positioning & flows." in c]
-    check(pos_calls and "[A] Sector rotation and leadership" in pos_calls[0]
-          and "[E] Foreign flows (TIC)" in pos_calls[0],
-          "9: Positioning's prose is asked for one paragraph per sub-section, "
-          "tagged (T2.2 item 7)")
+    # T2.5 item 2 (ruled 5 Oct 2026) replaced T2.2 item 7's tagged paragraph
+    # per sub-section: one paragraph across every sub-section's table.
+    check(pos_calls and "ONE paragraph" in pos_calls[0]
+          and "[A]" not in pos_calls[0]
+          and "across the sub-sections' tables" in pos_calls[0],
+          "9: Positioning's prose is asked for ONE paragraph across its "
+          "sub-sections' tables, untagged (T2.5 item 2)")
     sl = _sp._slice(sec["misfit"], ed)
     check("not_tracked" not in sl and "_id" not in json.dumps(sl),
           "10: a prose slice carries no not-yet-tracked list and no id")
@@ -577,7 +584,8 @@ def main() -> int:
     ids_be = {s.key: s.fred_id for s in _cfg.FRED_PULL_SERIES if "breakeven" in s.key}
     pr_items = [i["text"] for i in sec["priced"]["items"] if "breakeven" in i["text"]]
     check(len(set(ids_be.values())) == len(ids_be) == 3
-          and any("on the week (2026-09-25 to 2026-10-02)" in t for t in pr_items),
+          # The window in prose reads "25 Sep to 2 Oct" (T2.5 item 6).
+          and any("on the week (25 Sep to 2 Oct)" in t for t in pr_items),
           f"14: the breakevens are three distinct series, and the week's change "
           f"prints its real window ({pr_items[:1]})")
 

@@ -536,9 +536,18 @@ def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
                               + ((fed or {}).get("reason") or "no contracts stored"))
     if not pmb or not pmb.get("markets"):
         not_tracked.insert(0, "prediction-market odds: no venue market stored")
-    legend = BIAS_LEGEND if any("outside 10-90%" in i["text"] for i in items) else None
+    # PREDICTION MARKETS AS ONE TABLE (T2.5 item 9): the odds lines stay as the
+    # section's data and change marks; the table is what prints. The bias note
+    # is the table's own column, and the glossary explains it.
+    from . import readability                                   # noqa: PLC0415
+    pmt = readability.pm_table(pmb, "1s")
+    for i in items:
+        if i["key"].startswith(("priced:fomc", "priced:pm", "priced:outage")):
+            i["show"] = False
+    not_tracked += readability.pm_outages(pmb)
+    subs = ([{"title": "Prediction markets", "table": pmt}] if pmt["rows"] else [])
     return {"items": items, "deep_reason": reason, "not_tracked": not_tracked,
-            "legend": legend,
+            "legend": None, "subsections": subs,
             "data": {"series": data,
                      "rate_path": {k: (fed or {}).get(k) for k in
                                    ("meetings", "tracked", "reason", "sentence",
@@ -558,10 +567,13 @@ def read_items(pmb: Optional[dict]) -> list[dict]:
     """The read: an attention shock earns a line (brief 4)."""
     out = []
     for sh in (pmb or {}).get("shocks") or []:
-        out.append(item(f"read:shock:{sh['instrument']}",
-                        shock_sentence(sh, "in a session",
-                                       sh["change_1s_points"]), 1,
-                        (sh["probability"], sh["change_1s_points"])))
+        it = item(f"read:shock:{sh['instrument']}",
+                  shock_sentence(sh, "in a session", sh["change_1s_points"]), 1,
+                  (sh["probability"], sh["change_1s_points"]))
+        # The move prints once, in What's priced's table (T2.5 item 1); here it
+        # is The read's data.
+        it["show"] = False
+        out.append(it)
     return out
 
 
@@ -800,6 +812,13 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
                                         if unchanged else None),
                     "prior_claim": pr.get("claim") if unchanged else None,
                     "claim": None, "paragraphs": [], "trimmed": False})
+    # EMPTY MEANS ONE LINE (T2.5 item 5): marked here, so the prose skips the
+    # section and the renderer prints its footnote alone.
+    from . import readability                                   # noqa: PLC0415
+    period = "session" if cadence == "daily" else "week"
+    for s in out:
+        s["period"] = period
+    readability.mark_empty(out, period)
     return out
 
 
@@ -817,22 +836,14 @@ def section_words(s: dict) -> int:
 
 
 def enforce_budget(ed: dict) -> dict:
-    """Trim to the word budget, lowest priority first; mark what was cut."""
-    limit = int((ed.get("budget") or {}).get("words") or 1000)
-    total = lambda: sum(section_words(s) for s in ed["sections"])  # noqa: E731
-
-    def cut_paragraphs(keep: int) -> None:
-        for s in reversed(ed["sections"]):
-            while total() > limit and len(s.get("paragraphs") or []) > keep:
-                s["paragraphs"] = s["paragraphs"][:-1]
-                s["trimmed"] = True
-
-    # PROSE ONLY IS CUT (T2.2): a deep section's third paragraph, then second
-    # paragraphs. A claim line, an item and a table are never cut -- they are
-    # data, and the budget counts prose.
-    cut_paragraphs(2)
-    cut_paragraphs(1)
-    ed["words"] = total()
+    """ONE PARAGRAPH OF AT MOST 120 WORDS PER SECTION (T2.5 item 2), which keeps
+    every edition inside its word budget by construction; then a sentence that
+    repeats The read is withheld where it repeats it (item 4). A claim line, an
+    item and a table are never cut -- they are data, and the budget counts prose."""
+    from . import readability                                   # noqa: PLC0415
+    readability.finalize(ed)
+    readability.withhold_duplicates(ed)
+    ed["words"] = sum(section_words(s) for s in ed["sections"])
     return ed
 
 

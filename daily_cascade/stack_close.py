@@ -220,13 +220,19 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     ed["levels"] = book
     ed["outlooks"] = outs
     ed["chart_count"] = sum(1 for c in charts.values() if not c.get("unavailable"))
+    # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
+    from . import readability                                   # noqa: PLC0415
+    readability.polish_edition(ed, charts)
+    ed["run_id"] = p.get("run_id")
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()
               if c.get("png")]
+    # THE PDF (T2.5 item 11), from the emailed HTML.
+    pdf, pdf_detail = readability.pdf_bytes(html_email, images)
     return {"edition": ed, "charts": charts, "html_email": html_email,
             "html_archive": html_archive, "inline_images": images,
-            "report": report}
+            "pdf": pdf, "pdf_detail": pdf_detail, "report": report}
 
 
 def save_edition(ed: dict, sess: str, archive_dir: Optional[str]) -> Optional[str]:

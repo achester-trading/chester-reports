@@ -151,6 +151,20 @@ def archive(html: str, name: str, archive_dir: Optional[str] = None) -> Optional
         return None
 
 
+def archive_bytes(data: bytes, name: str, archive_dir: Optional[str] = None
+                  ) -> Optional[str]:
+    """archive() for a binary file -- the edition's PDF beside its HTML."""
+    try:
+        d = Path(archive_dir or ARCHIVE_DIR)
+        d.mkdir(parents=True, exist_ok=True)
+        p = d / name
+        p.write_bytes(data)
+        return str(p)
+    except OSError as exc:
+        log.warning("archive failed for %s: %s", name, exc)
+        return None
+
+
 def build_message(cfg: dict, subject: str, html: str, text_fallback: str = "",
                   attachments: Optional[list[tuple[str, str, str]]] = None,
                   inline_images: Optional[list[tuple[str, bytes]]] = None
@@ -173,8 +187,14 @@ def build_message(cfg: dict, subject: str, html: str, text_fallback: str = "",
         for content_id, png in inline_images:
             html_part.add_related(png, maintype="image", subtype="png",
                                   cid=f"<{content_id}>")
-    for filename, text, subtype in attachments or ():
-        msg.add_attachment(text, subtype=subtype, filename=filename)
+    for filename, data, subtype in attachments or ():
+        if isinstance(data, (bytes, bytearray)):
+            # A BINARY ATTACHMENT (T2.5 item 11): the edition's PDF, beside the
+            # HTML body -- a copy for keeping, never the thing to open.
+            msg.add_attachment(bytes(data), maintype="application",
+                               subtype=subtype, filename=filename)
+        else:
+            msg.add_attachment(data, subtype=subtype, filename=filename)
     return msg
 
 
@@ -220,7 +240,8 @@ def deliver(subject: str, html: str, archive_name: str,
             text_fallback: str = "",
             archive_dir: Optional[str] = None,
             archive_html: Optional[str] = None,
-            inline_images: Optional[list[tuple[str, bytes]]] = None) -> dict:
+            inline_images: Optional[list[tuple[str, bytes]]] = None,
+            pdf: Optional[bytes] = None) -> dict:
     """Archive, then send. Returns the outcome; raises nothing.
 
     Order matters and is the point of rule 1: the file is on disk before a
@@ -230,7 +251,12 @@ def deliver(subject: str, html: str, archive_name: str,
     # The archived edition may differ from the mailed one ONLY in how it points
     # at its charts (SVG files on disk, not cid: parts); `archive_html` is that.
     path = archive(archive_html or html, archive_name, archive_dir)
+    # THE PDF (T2.5 item 11): archived next to the HTML, under the same name,
+    # before the send; then attached beside the body.
+    pdf_name = Path(archive_name).with_suffix(".pdf").name
+    pdf_path = archive_bytes(pdf, pdf_name, archive_dir) if pdf else None
     state, detail = send_html(subject, html, text_fallback,
+                              attachments=[(pdf_name, pdf, "pdf")] if pdf else None,
                               inline_images=inline_images)
 
     if path is None:
@@ -250,5 +276,6 @@ def deliver(subject: str, html: str, archive_name: str,
         log.warning("NOT delivered (%s): %s", state, detail)
 
     return {"archive_state": archived_state, "archive_path": path,
+            "pdf_path": pdf_path,
             "delivery": state, "delivery_detail": detail,
             "delivered_at": session.utc_iso()}

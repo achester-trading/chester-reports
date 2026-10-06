@@ -237,13 +237,17 @@ def main() -> int:
     ids = [s["id"] for s in ed1["sections"]]
     check(ids == list(stack_mod.SECTION_ORDER),
           f"ten sections in the brief's order ({ids})")
-    check(all(s.get("claim") for s in ed1["sections"]),
-          "every section opens with a claim line")
+    # T2.5 item 5: a section with no new facts prints its one line instead.
+    check(all(s.get("claim") or (s.get("empty") and s.get("empty_note"))
+              or any("repeated The read" in n for n in s.get("notes") or [])
+              for s in ed1["sections"]),
+          "every section opens with a claim line, or is empty and prints its one "
+          "line, or its claim repeated The read and was withheld")
     html1 = out1["html_archive"]
     pos = [html1.find(f">{n} &middot; {stack_render.esc(s['title'])}") for n, s in
            enumerate(ed1["sections"], start=1)]
     check(all(x >= 0 for x in pos) and pos == sorted(pos)
-          and html1.count("font-style:italic;color:#5a6b7a\">&mdash; ") == 10,
+          and html1.count(f'style="{stack_render.SUBTITLE}">&mdash; ') == 10,
           "and the HTML prints them in that order, as 'number · name — subtitle' "
           "with the subtitle styled apart from the body's bold (T2.2 item 1)")
     check(not any(s["collapsed"] for s in ed1["sections"]),
@@ -256,14 +260,18 @@ def main() -> int:
                        .read_text(encoding="utf-8"))
     ed_same = stack_mod.build(p, book, ed1["outlooks"], prior, db)
     mech = next(s for s in ed_same["sections"] if s["id"] == "mechanics")
+    # T2.5 item 5: an unchanged section is EMPTY -- one line, no model call.
     check(mech["collapsed"] and mech["unchanged_since"] == SESSION
-          and mech["prior_claim"],
-          "an unchanged section collapses, citing the edition it is unchanged since "
-          "and reusing its claim")
-    stack_prose.write(ed_same, client=clean, outlooks=ed1["outlooks"])
+          and mech["empty"] and mech["empty_note"] == "Unchanged since 30 Sep.",
+          "an unchanged section collapses, citing the edition it is unchanged since, "
+          "as its one line")
+    same_calls: list = []
+    stack_prose.write(ed_same, client=client({}, same_calls), outlooks=ed1["outlooks"])
     sh = stack_render.section_html(mech, 3, {}, "archive")
-    check("(unchanged since" in sh and "<ul" not in sh and "<table" not in sh,
-          "and prints its claim line and '(unchanged since ...)' and nothing else")
+    check("Unchanged since 30 Sep." in sh and "<ul" not in sh and "<table" not in sh
+          and f'style="{stack_render.CLAIM}"' not in sh
+          and not any("THE SECTION: Mechanics." in c for c in same_calls),
+          "and prints its header and that line and nothing else, with no model call")
     check(all(not i["changed"] for s in ed_same["sections"] for i in s["items"]),
           "no item carries a change mark when nothing changed")
     p_moved = json.loads(json.dumps(p))
@@ -425,7 +433,8 @@ def main() -> int:
     check(tb.get("claim") is None and eb["prose"]["tape"]["attempts"] == 2
           and eb["prose"]["tape"].get("first_reason"),
           "and withholds, as before, if the retry fails too")
-    check(len([c for c in calls if "THE SECTION:" in c]) == 9
+    wanted = sum(1 for s in ed1["sections"] if s["id"] != "read" and not s["empty"])
+    check(len([c for c in calls if "THE SECTION:" in c]) == wanted
           and any("Write THE READ" in c for c in calls),
           f"one audited call per section and one for The read "
           f"({len(calls)} calls)")
@@ -456,7 +465,7 @@ def main() -> int:
           "the archived edition points at its SVGs instead")
     bad_c = charts_mod.c2(book, [], "x", None)
     check(bad_c.get("unavailable") and "chart unavailable" in
-          stack_render._chart_html(bad_c, "email"),
+          stack_render._chart_html(bad_c, "email").lower(),
           f"a chart that cannot render prints its reason ({bad_c['unavailable']})")
     check(all(not re.search(r"\b(buy|sell)\b", c.get("caption", ""), re.I)
               for c in ch.values()), "no chart caption carries a verdict")
@@ -474,7 +483,7 @@ def main() -> int:
                              dry_run=True, client=clean, db_path=db3)
     c1 = o3["charts"]["C1"]
     check(c1.get("unavailable") == "bars incomplete (n=60 of 78)"
-          and "chart unavailable: bars incomplete" in o3["html_email"],
+          and "chart unavailable: bars incomplete" in o3["html_email"].lower(),
           "C1 is omitted with that reason")
     spy3 = next(i for i in bk3["instruments"] if i["id"] == "spy")
     check("vwap" not in {lv["type"] for lv in spy3["levels"]}
@@ -611,11 +620,16 @@ def main() -> int:
     check(items_before == {i["key"] for s in e["sections"] for i in s["items"]}
           and tables_before == [s.get("table") for s in e["sections"]],
           "and no item and no table is cut -- they are data")
-    check(all(s.get("claim") for s in e["sections"] if not s.get("withheld")),
+    # A claim is never cut by the budget; one that repeats The read is
+    # withheld with its reason (T2.5 item 4), and an empty section has none.
+    check(all(s.get("claim") for s in e["sections"]
+              if not s.get("withheld") and not s.get("empty")
+              and not any("repeated The read" in n for n in s.get("notes") or [])),
           "and no claim line is cut")
     sh = stack_render.section_html(next(s for s in e["sections"]
                                         if s["id"] == trimmed[0]), 1, {}, "email")
-    check("(trimmed)" in sh, "the cut section prints '(trimmed)'")
+    check("Commentary trimmed to one paragraph." in sh,
+          "the cut section says so in its footnote")
 
     # --- G. LEDGER ------------------------------------------------------------------
     print(f"\n{LINE}\nG. ODDS IN THE LEDGER\n{LINE}")

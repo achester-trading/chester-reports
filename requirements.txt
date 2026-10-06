@@ -33,3 +33,9 @@ ib_async>=1.0,<3.0
 # is the one new dependency. `make deploy` does not pip install: until the box's
 # venv has it, altdata/sources/acm.py reports STALE with the ImportError as reason.
 xlrd>=2.0,<3.0
+
+# T2.5 item 11 (ruled 5 Oct 2026): the PDF of each stacked edition, built from the
+# emailed HTML with print CSS. WeasyPrint needs Pango at the system level
+# (libpango-1.0-0, libpangoft2-1.0-0 on Debian/Ubuntu). Without it the report is
+# built, archived and sent exactly as before, and says the PDF was not built.
+weasyprint>=62,<67

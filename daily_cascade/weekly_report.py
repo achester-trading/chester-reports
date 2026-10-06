@@ -273,30 +273,44 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                                     else f"{c.get('png_bytes')} bytes PNG"))
     weekly_stack.save_edition(ed, ending, args.archive_dir)
     name = f"weekly_tactical_{ending}.html"
+    # THE SUBJECT CARRIES THE CLAIM (T2.5 item 8):
+    # "Weekly — w/e 2 Oct — <The read's claim, at most 90 characters>".
+    from daily_cascade import readability  # noqa: PLC0415
+    when = f"w/e {readability.prose_date(ending)}"
+    print(f"  subject    : {readability.subject('Weekly', when, ed)}")
+    print(f"  pdf        : {'built, ' if out.get('pdf') else 'NOT built -- '}"
+          f"{out.get('pdf_detail')}")
     if args.dry_run:
         if getattr(args, "email", False):
             # THE DRY RUN, MAILED (PB-1): the same render, to the configured
             # recipient, the subject marked "[DRY RUN]"; archived to the dry-run
-            # directory like any dry run, never over the real edition.
-            res = delivery.deliver(f"[DRY RUN] [chester] Weekly — {ending}",
+            # directory like any dry run, never over the real edition. The PDF
+            # rides with it (T2.5 item 11).
+            res = delivery.deliver(readability.subject("Weekly", when, ed, True),
                                    out["html_email"], name,
                                    text_fallback=render_mod.text_fallback(p),
                                    archive_dir=args.archive_dir,
                                    archive_html=out["html_archive"],
-                                   inline_images=out["inline_images"])
+                                   inline_images=out["inline_images"],
+                                   pdf=out.get("pdf"))
             print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
+            print(f"  pdf archive: {res.get('pdf_path') or 'none'}")
             print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})"
                   f" -- dry run, mailed")
             return 3
         path = delivery.archive(out["html_archive"], name, args.archive_dir)
+        if out.get("pdf"):
+            print(f"  pdf archive: " + str(delivery.archive_bytes(
+                out["pdf"], f"weekly_tactical_{ending}.pdf", args.archive_dir)))
         print(f"  archive    : {path or 'FAILED'}")
         print("  delivery   : dry_run (--dry-run)")
         return 3
-    res = delivery.deliver(f"[chester] Weekly — {ending}", out["html_email"], name,
-                           text_fallback=render_mod.text_fallback(p),
+    res = delivery.deliver(readability.subject("Weekly", when, ed), out["html_email"],
+                           name, text_fallback=render_mod.text_fallback(p),
                            archive_dir=args.archive_dir,
                            archive_html=out["html_archive"],
-                           inline_images=out["inline_images"])
+                           inline_images=out["inline_images"],
+                           pdf=out.get("pdf"))
     print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
     print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})")
     _emit(args, _status(p, res),

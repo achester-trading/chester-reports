@@ -924,11 +924,11 @@ def changed_since(ed: dict, wis: dict, p: dict, trig: dict,
                    "changed since the last Weekly."]
 
 
-def reading_minutes(ed: dict, charts: int) -> float:
-    """Item 7: prose words / 250 plus 20 seconds a chart, in minutes."""
-    from .stack import section_words                          # noqa: PLC0415
-    words = sum(section_words(s) for s in ed.get("sections") or [])
-    return round(words / 250.0 + charts * 20 / 60.0, 1)
+def reading_minutes(ed: dict, charts: int) -> int:
+    """Item 7: prose words / 250 plus 20 seconds a chart, in whole minutes
+    rounded up (T2.5 item 6) -- readability.reading_minutes is the one rule."""
+    from .readability import reading_minutes as rm             # noqa: PLC0415
+    return rm(ed, charts)
 
 
 EARNINGS_SEASONS = ((1, 10, 2, 28), (4, 10, 5, 31), (7, 10, 8, 31), (10, 10, 11, 30))
