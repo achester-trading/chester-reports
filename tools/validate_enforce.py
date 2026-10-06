@@ -382,6 +382,58 @@ def group_d() -> None:
           "options on an outright and futures without futures leverage mismatch; "
           "stock inside a covered call does not")
 
+    # AN EMPTY CURRENCY IS REFUSED WITH A REASON, NEVER READ AS USD (INC-8, L-1).
+    # The write guard no longer lets a bare ticker activate with no currency, so a
+    # pre-guard row is simulated: the register's own rows, read back with the
+    # expression currency blanked -- what reg.all() returns for a row written
+    # before 1 Oct.
+    class PreGuard:
+        def __init__(self, reg, blank):
+            self.reg, self.blank = reg, blank
+
+        def all(self):
+            return [{**r, "expression_currency": None}
+                    if r["instrument_norm"] in self.blank else r
+                    for r in self.reg.all()]
+
+        def write_rule_break(self, **kw):
+            return self.reg.write_rule_break(**kw)
+
+    with Register(DB) as reg:
+        n0 = len(reg.rule_breaks())
+        pre = PreGuard(reg, {"XLE"})
+        eusd = fill("c1", "XLE@ARCA.USD", "BOT", 1)
+        eusd["currency"] = "USD"
+        bare = fill("c2", "XLE", "BOT", 1)
+        r = reconcile.reconcile_executions(pre, [eusd], "2026-09-25")
+        check(not r["breaks"] and r["matched"] == 0
+              and [x["exec_id"] for x in r["refused"]] == ["c1"]
+              and "not recorded" in r["refused"][0]["reason"]
+              and "refused, not read as USD" in r["refused"][0]["reason"],
+              f"a USD fill against a decision whose expression currency is empty "
+              f"is REFUSED with its reason -- not matched as USD, which is what "
+              f"the old `or \"USD\"` did ({r['refused']})")
+        mxn = {**eusd, "exec_id": "c3", "instrument": "XLE@MEXI.MXN",
+               "currency": "MXN"}
+        r = reconcile.reconcile_executions(pre, [mxn], "2026-09-25")
+        check(not r["breaks"] and [x["exec_id"] for x in r["refused"]] == ["c3"],
+              "and a peso fill against the same empty currency is refused too, not "
+              "a currency_mismatch against an invented USD")
+        r = reconcile.reconcile_executions(reg, [bare], "2026-09-25")
+        check([x["exec_id"] for x in r["refused"]] == ["c2"]
+              and "the fill's currency" in r["refused"][0]["reason"],
+              "a fill with no currency and a bare ticker is refused, naming the "
+              "fill's currency as the gap")
+        r = reconcile.reconcile_executions(reg, [{**eusd, "exec_id": "c4",
+                                                  "currency": ""}], "2026-09-25")
+        check(not r["refused"],
+              "a fill with an empty currency field on a qualified listing takes "
+              "the listing's suffix (@ARCA.USD -> USD) -- the register's own rule, "
+              "not a default")
+        check(len(reg.rule_breaks()) == n0,
+              "a refusal writes no rule break: an unrecorded field is the record's "
+              "gap, not the operator's")
+
 
 def group_e(store) -> None:
     print(f"{LINE}\nE. THE DOCTRINE'S POSITION RULES\n{LINE}")

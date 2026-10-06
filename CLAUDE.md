@@ -16,7 +16,8 @@ Cloudflare Worker so one dashboard can show the health of all five at a glance.
 | Daily Cascade | `daily_cascade` | Not yet built |
 
 The state keys are already reserved in `state/emit.py:VALID_KEYS` (which also
-carries a sixth, `gamma_weekly`). Treat that set as the registry of report
+carries `gamma_weekly`, the EOD options pass, and `weekly_tactical`, the Weekly,
+added 6 Oct 2026). Treat that set as the registry of report
 identities — a new report adds its key there before anything else.
 
 `docs/chester-reports-architecture-v3.md` **is the canonical planning document**
@@ -28,7 +29,8 @@ governs where it is going and overrides this file on intent.
 
 `docs/` also carries `chester-reports-master-schedule.md` and
 `white-paper-library-guide.md`, plus the white paper library itself in
-`docs/whitepapers/`.
+`docs/whitepapers/`. `docs/scheduled-tasks.md` lists the chat-side scheduled
+tasks, which the box's units do not declare.
 
 **The Markdown is canonical for everything.** A paper's `.md` under
 `docs/whitepapers/` holds its text, its tables and its figure references, and it
@@ -174,7 +176,7 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — thirty-seven code gates and five data gates, no
+**`make validate` runs every gate** — thirty-eight code gates and five data gates, no
 network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -383,6 +385,16 @@ glob would enable them the first time anybody deployed.
 Exit codes: `0` clean, `3` a changed unit is running and needs the printed
 restart, `4` drift still reported after the copy so the deploy did not take, `1`
 the pull or copy failed, or the connection did.
+
+## Operating windows (Eastern time)
+
+- **Deploys and box writes:** weekdays 09:05–15:40 and 17:20–23:30 ET, and never
+  16:00–17:20, when the EOD pass and the 16:45 close are running. Weekends are
+  open, but stay clear of Sunday 05:00, when the Weekly runs.
+- **Check the clock in ET, not UTC.** Git Bash's `TZ=` prints UTC on the laptop,
+  so read the time in ET through Python's `zoneinfo`.
+- **A session never runs unit commands, `sudo` or register writes.** It prints
+  them for the operator to run, as described under "What runs without asking".
 
 ## Standing rules
 

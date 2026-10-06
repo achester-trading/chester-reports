@@ -31,6 +31,11 @@ WHEN IT RUNS, AND WHY TWICE
          every session from 28 Sep: systemd killed the pass before the
          overnight fetch it exists for ever ran. FRED and the other writers
          publish in the US day, so the 16:10 pull is the one that sees them.
+         Then, in the same pass, `pull --only loggers` -- the loggers' ONE
+         scheduled run. 16:10 skips them and so does --early, and from 30 Sep
+         to 6 Oct that left them running nowhere (INC-9).
+         tools/validate_feeds_scheduled.py fails a commit in which any feed in
+         FEEDS has no scheduled runner.
 
 Two pulls a day of the same window is deliberate duplication, and it is cheap:
 the observation store is append-only with a vintage key, so a re-pull of an
@@ -486,6 +491,24 @@ def pull_fed_funds(run_id: Optional[str] = None) -> dict:
     return out
 
 
+# THE EARLY SET'S SKIPS. Named rather than inlined in pull() so that
+# tools/validate_feeds_scheduled.py can ask what `--early` leaves out instead of
+# keeping its own copy -- a fixed set that silently dropped the loggers is the
+# reason that gate exists (INC-9).
+EARLY_SKIP = ("fred", "external", "loggers", "bars", "fed_funds")
+
+
+def selection(only: Optional[str] = None, skip: tuple[str, ...] = (),
+              early: bool = False) -> tuple[str, ...]:
+    """The feeds a pull with these arguments runs, in FEEDS order. The one
+    answer to "does this invocation run feed X", shared by pull() and the
+    scheduling gate."""
+    if early:
+        only, skip = None, EARLY_SKIP
+    return tuple(n for n in FEEDS
+                 if not (only and only != n) and n not in skip)
+
+
 def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = (), early: bool = False) -> dict:
     """Run the feeds. `early` is the 06:45 correction set: the prices and the
@@ -493,7 +516,7 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
     out: dict[str, Any] = {"ran": [], "skipped": []}
     if early:
         only = None
-        skip = ("fred", "external", "loggers", "bars", "fed_funds")
+        skip = EARLY_SKIP
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
                      ("official", (lambda run_id: pull_official(run_id, EARLY_WRITERS))
                       if early else pull_official),
