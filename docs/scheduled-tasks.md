@@ -18,15 +18,18 @@ writes to the register, changes a report's configuration, edits a paper, or
 runs anything on the box. Whatever a task finds, a human acts on it through the
 normal channels (a change order, a commit, an operator's register write).
 
-All times are Eastern.
+Times are Eastern unless the scheduler holds the task in UTC, in which case
+the UTC time is given with its Eastern equivalent in summer and winter.
 
-| Task | When (ET) | Delivers | Lands in | Notes |
-|---|---|---|---|---|
-| JPM Guide to the Markets — quarterly read | 06:56, the 6th of Jan, Apr, Jul and Oct | The quarter's read of J.P. Morgan's *Guide to the Markets* | `docs/scans/jpm-gtm-YYYYqN.md` (e.g. [`jpm-gtm-2026q4.md`](scans/jpm-gtm-2026q4.md)) | Rulings on what it reads and how: [`change-order-jpm-gtm-2026-10-03.md`](change-order-jpm-gtm-2026-10-03.md) |
-| Monthly signal scan | 06:57, the 25th of each month | A monthly scan for signals | *to confirm* | — |
-| AI-risk consensus-drift scan | the 20th of even months (time *to confirm*) | A read of drift in consensus on AI risk | *to confirm* | — |
-| Saturday crypto mechanism scan | Saturdays (time *to confirm*) | A weekly read of crypto mechanisms | *to confirm* | **Interim, due to retire.** Remove this row when it retires |
-| Reading-shelf publication watch | 06:58, the 12th and 27th of each month | A watch for new publications on the reading shelf | *to confirm* | — |
+**Where the output lands.** Every task's output lands in its own session in the
+Claude app. Nothing reaches the repository unless a human commits it. The
+"Delivers" column names the file a task produces where it produces one, at the
+path it lands at once committed.
 
-A cell marked *to confirm* has not been checked against the scheduler. Fill it
-from the scheduler's own entry rather than from memory.
+| Task | When | Delivers | Notes |
+|---|---|---|---|
+| JPM Guide to the Markets — quarterly read | 06:56 ET, the 6th of Jan, Apr, Jul and Oct | `docs/scans/jpm-gtm-YYYYqN.md` (e.g. [`jpm-gtm-2026q4.md`](scans/jpm-gtm-2026q4.md)) | Last ran 6 Oct 2026, a second read of the 4Q edition. Rulings: [`change-order-jpm-gtm-2026-10-03.md`](change-order-jpm-gtm-2026-10-03.md) |
+| Monthly signal scan | 06:57 ET, the 25th of each month | `docs/scans/signal-scan-YYYY-MM.md` | Signal-triage batch 3, decision 7 |
+| AI-risk consensus drift scan (pre-refresh) | 13:00 UTC on the 20th of even months (09:00 ET in summer, 08:00 ET in winter) | A read of drift in consensus on AI risk | Folds into the monthly signal scan once that is stable |
+| Weekly crypto tech scan — Pearl (PRL) + new mechanisms | Saturdays 12:00 UTC (08:00 ET in summer, 07:00 ET in winter) | A weekly read of Pearl (PRL) and new crypto mechanisms | **Interim, due to retire.** Remove this row when it retires |
+| Publication watch — reading shelf | 06:58 ET, the 12th and 27th of each month | A watch for new publications on the reading shelf | — |
