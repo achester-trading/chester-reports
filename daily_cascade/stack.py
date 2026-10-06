@@ -613,7 +613,7 @@ def narratives_section(st, session_day: Optional[str] = None,
     except Exception:                                           # noqa: BLE001
         rows = []
     # PHASE B (4 Oct 2026): the day's most-cited story and a dissent if one was
-    # published, each sourced, from the voices the 06:45 scan stored. Fixed
+    # published, each sourced, from the voices the 06:15 scan stored. Fixed
     # sentences over stored rows; every view printed is audited.
     voices = None
     if session_day and cutoff:

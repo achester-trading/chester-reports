@@ -150,6 +150,9 @@ log "feeds: pull start"
 # end-of-day read) and this step exists to put prices and FRED in front of the
 # 16:45 object. Running them twice would be harmless -- drop_unchanged sees to that
 # -- and would still spend a vendor's rate limit twice for nothing.
+# THIS COMMENT WAS FALSE from 30 Sep to 6 Oct (INC-9): the overnight pass had
+# become `--early`, which skips them too. tools/validate_feeds_scheduled.py now
+# fails the commit if no scheduled runner pulls them.
 FEED_OUT="$("$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
 FEED_RC=$?
 printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"

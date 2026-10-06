@@ -3,7 +3,8 @@
 # The 06:45 ET overnight fetch, as the VPS timer runs it.
 #
 #   git pull --ff-only -> calendar guard -> venv overnight -> log -> status
-#     -> correction pull (early set) -> weekly/annual checks -> events -> surprise
+#     -> correction pull (early set) -> loggers -> weekly/annual checks -> events
+#     -> surprise
 #
 # WHY IT IS A SEPARATE UNIT FROM THE 07:00 RENDER. Reports never fetch (30.4),
 # and the reason is not tidiness. A render that fetched would fail for transport
@@ -139,6 +140,26 @@ FEED_RC=$?
 printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
 log "feeds: correction pull done"
+
+# ---- the loggers (L-1, 6 Oct 2026) -----------------------------------------
+#
+# THIS IS THEIR ONE SCHEDULED RUN. The 16:10 eod pull skips them ("they run in
+# the overnight pass") and --early's fixed set skips them too, so from 30 Sep to
+# 6 Oct borrow, consensus, vxcurve, shielded and rtat ran nowhere and nothing
+# said so (INC-9, docs/incidents.md). tools/validate_feeds_scheduled.py now
+# fails any commit in which a feed has no scheduled runner.
+#
+# After the correction pull, and after the status line, for the same reason the
+# correction pull is: the overnight fetch is the capture and nothing goes in front
+# of it. Its failure is not this run's failure -- one logger never takes another
+# down (feeds.pull_loggers), and a dead one surfaces as the freshness roster
+# reporting its keys stale.
+log "feeds: loggers start"
+LOG_OUT="$("$PY" -m altdata.feeds pull --only loggers 2>&1)"
+LOG_RC=$?
+printf '%s' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
+log "feeds: loggers done"
 
 # THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
 #

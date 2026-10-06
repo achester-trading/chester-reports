@@ -9,7 +9,7 @@ The voices register -- who said what about the market, where, and when.
 Phase B, pulled forward and ruled 4 Oct 2026 (docs/briefs/monthly-v2-brief-2026-
 10-01.md, Phase B and the Rules; reporting-stack brief section 1, row 8; the J.P.
 Morgan GTM change order's voices entry). The scan that fills it is
-altdata/sources/voices_scan.py, run once a day in the 06:45 overnight fetch.
+altdata/sources/voices_scan.py, run once a day at 06:15 ET (chester-voices.timer).
 
 -----------------------------------------------------------------------------
 NO STORED SOURCE, NOT PRINTED

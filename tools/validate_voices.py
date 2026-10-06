@@ -632,10 +632,11 @@ def main() -> int:
           and "voices_scan run" not in ov
           and "OnCalendar=Mon-Fri 06:15 America/New_York" in tm
           and "run_voices_scan.sh" in sv and "TimeoutStartSec=20min" in sv
-          and "chester-voices.timer" not in dr
+          and "chester-voices.timer" in (re.search(
+              r'^DEPLOY_TIMERS="([^"]*)"', dr, re.M) or [None, ""])[1].split()
           and vmod.load_config()["time_budget_seconds"] == 900,
           "2: the scan has its own 06:15 timer and a fifteen-minute budget, out of "
-          "the 06:45 pass; enabling it is the operator's (not in DEPLOY_TIMERS)")
+          "the 06:45 pass; the deploy enables it (in DEPLOY_TIMERS since L-1)")
     full = vmod.load_config()
     untiered = [s["id"] for s in full["sources"]
                 if source_tiers.tier_of(f"x - {s['outlet']}") is None]

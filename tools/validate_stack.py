@@ -574,8 +574,8 @@ def main() -> int:
           "the close fetches nothing: no bars pull, no yfinance, no table creation "
           "in the close's modules (30.4)")
     check("bars" in feeds.FEEDS and "bars" in inspect.getsource(feeds.pull)
-          and "bars" in re.search(r'skip = \(([^)]*)\)',
-                                  inspect.getsource(feeds.pull)).group(1),
+          and "bars" in feeds.EARLY_SKIP
+          and "bars" not in feeds.selection(early=True),
           "bars is a feed, run by the eod pull and skipped by the 06:45 early set")
     eod = (REPO / "scripts" / "run_eod_cron.sh").read_text(encoding="utf-8")
     close_sh = (REPO / "scripts" / "run_daily_close.sh").read_text(encoding="utf-8")

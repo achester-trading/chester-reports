@@ -65,6 +65,7 @@ PY_VALIDATORS := \
 	tools/validate_voices.py \
 	tools/validate_weekly_edits.py \
 	tools/validate_weekly_complete.py \
+	tools/validate_feeds_scheduled.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

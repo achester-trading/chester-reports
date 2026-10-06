@@ -49,6 +49,9 @@ chester-ibkr-sync.timer
 chester-backup.timer
 chester-overnight.timer
 chester-morning-anchor.timer
+chester-weekly.timer
+chester-voices.timer
+chester-auction.timer
 "
 
 deploy_main() {

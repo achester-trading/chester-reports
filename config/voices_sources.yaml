@@ -16,7 +16,8 @@
 # personal source. The scan re-reads robots.txt on every run and skips a path it
 # disallows, so a site that tightens its rules is obeyed the next morning.
 #
-# ONCE A DAY, in the 06:45 overnight fetch (scripts/fetch_overnight.sh). Reports
+# ONCE A DAY, at 06:15 ET on its own timer (chester-voices.timer, scripts/
+# run_voices_scan.sh; out of the 06:45 overnight fetch since PB-1). Reports
 # never fetch: they read the stored rows.
 #
 # IDENTITY. Requests carry the User-Agent EDGAR uses, `chester-reports/1.0

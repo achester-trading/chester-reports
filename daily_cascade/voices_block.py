@@ -7,7 +7,7 @@ stored rows only.
     voices_block.week_section(week_ending, as_of, db_path)    # Weekly section 8
     voices_block.month_block(start, end, as_of, db_path)      # Monthly section 4
 
-Phase B, ruled 4 Oct 2026. Nothing here fetches (the 06:45 scan does) and nothing
+Phase B, ruled 4 Oct 2026. Nothing here fetches (the 06:15 scan does) and nothing
 here declares a status (altdata/voices.py computes it). Every line that carries a
 voice carries its source: outlet, date and URL. "No stored source, not printed."
 

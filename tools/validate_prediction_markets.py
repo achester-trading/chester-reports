@@ -561,9 +561,7 @@ def main() -> int:
     # --- K. FEEDS / CI -----------------------------------------------------------
     print(f"\n{LINE}\nK. FEEDS, THE BREAKEVEN TRIGGER, CI\n{LINE}")
     from altdata import config as acfg, feeds
-    import inspect
-    fsrc = inspect.getsource(feeds.pull)
-    skip = re.search(r'skip = \(([^)]*)\)', fsrc).group(1)
+    skip = feeds.EARLY_SKIP
     check("prediction_markets" in feeds.FEEDS and "prediction_markets" not in skip
           and "fed_funds" in skip and "fed_funds" in feeds.FEEDS,
           "the venues run at 16:10 and in the 06:45 early set; the futures at 16:10 "

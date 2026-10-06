@@ -1289,9 +1289,11 @@ def group_r() -> None:
           "fetch_overnight.sh runs the overnight fetch and writes its status BEFORE "
           "the correction pull -- a slow pull can no longer stand in front of the "
           "capture")
-    check(bool(re.search(r"-m altdata\.feeds pull --early\b", code))
-          and code.count("-m altdata.feeds pull") == 1,
-          "and its one feeds pull is `pull --early`")
+    pulls = re.findall(r"-m altdata\.feeds pull([^\n\"]*)", code)
+    check([p.split("2>")[0].strip() for p in pulls] == ["--early", "--only loggers"],
+          f"and its feeds pulls are `pull --early` then `pull --only loggers` -- "
+          f"the correction set, then the loggers' one scheduled run (L-1) "
+          f"({pulls})")
     unit = (REPO / "deploy" / "systemd" / "chester-overnight.service").read_text(
         encoding="utf-8")
     check(re.search(r"^TimeoutStartSec=10min\s*$", unit, re.M) is not None,

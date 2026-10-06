@@ -2,7 +2,7 @@
 The voices scan: desks', strategists' and officials' published views, once a day.
 
     python -m altdata.sources.voices_scan probe          # fetch and filter; no model, no writes
-    python -m altdata.sources.voices_scan run            # the 06:45 step
+    python -m altdata.sources.voices_scan run            # the 06:15 step
     python -m altdata.sources.voices_scan run --no-model # fetch, record nothing as seen
 
 Phase B, ruled 4 Oct 2026. Sources, caps and vocabularies are declared in
