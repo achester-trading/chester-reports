@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="8783ffff7b540faee21b1005810474e2b4daa63baf1e0f59d15bf5a2346303d8">
+<title>The Reporting System: A Reader&#x27;s Guide</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>The Reporting System: A Reader's Guide</h1>
+<h2>What Each Report Is, Where Its Numbers Come From, What It May Say, and How It Learns</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXXIII</strong> — System shelf, after <em>The Operating Doctrine</em> and <em>Building and Validating a Systematic Book</em>, per the library guide. Cross-references in this paper are by name.
+<strong>Version:</strong> Draft 1 — 6 October 2026
+<strong>Status:</strong> As-built. Describes the system as the code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Reread when the Monthly joins the stack, when the intraday layer is built, and at each Audit.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-the-system-is-for">Part I — What the System Is For</a></li><li><a href="#s3-part-ii-the-data-the-system-holds">Part II — The Data the System Holds</a></li><li><a href="#s4-part-iii-the-market-state-object">Part III — The Market-State Object</a></li><li><a href="#s5-part-iv-the-reports-and-the-ten-section-stack">Part IV — The Reports and the Ten-Section Stack</a></li><li><a href="#s6-part-v-how-the-prose-is-made-honest">Part V — How the Prose Is Made Honest</a></li><li><a href="#s7-part-vi-the-scans">Part VI — The Scans</a></li><li><a href="#s8-part-vii-the-register-and-the-books">Part VII — The Register and the Books</a></li><li><a href="#s9-part-viii-the-intraday-layer">Part VIII — The Intraday Layer</a></li><li><a href="#s10-part-ix-how-the-system-learns">Part IX — How the System Learns</a></li><li><a href="#s11-part-x-reading-the-reports">Part X — Reading the Reports</a></li><li><a href="#s12-appendix-a-dated-timers-thresholds-budgets-sources-charts-as">Appendix A — Dated: Timers, Thresholds, Budgets, Sources, Charts (as of 6 October 2026)</a></li><li><a href="#s13-appendix-b-the-incident-log-to-date-as-of-6-october-2026">Appendix B — The Incident Log to Date (as of 6 October 2026)</a></li><li><a href="#s14-appendix-c-assumptions-and-falsifiers">Appendix C — Assumptions and Falsifiers</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>This paper is for the operator: the one person who reads every report, takes every decision and rules on every change. It is meant to be read once from start to finish, on a phone or at a desk, and then consulted when a report prints something unfamiliar. It answers four questions about every report the system produces: what the report is, where its numbers come from, what it may and may not say, and how the system learns from what it said.</p>
+<p>The other papers on this shelf describe one machine each. The Daily Cascade paper is the field guide to the daily sections; the Monthly manual covers the macro pillars; the Systematic Book paper describes the register and the broker connection as they were built; the Operating Doctrine says what the operator is to do. This paper sits above them and explains how the pieces fit: how a number travels from a public website into the store, from the store into one shared description of the market, from that description into a report, from the report into a decision, and from the decision into a graded record that eventually changes the rules. Figure 1 draws that path; the ten Parts walk it.</p>
+<p>Three conventions run through the paper. First, nothing here is a market view. The paper describes machinery; the reports carry the readings. Second, the body is timeless. Anything that will change with the next configuration edit, such as a timer, a threshold, a word budget or the number of sources, sits in Appendix A with the date it was true. Third, where a capability is specified but not yet built, the paper says so in the sentence that describes it. A guide that describes the intended system as if it were running is the most dangerous kind of documentation, because it is the kind a reader trusts.</p>
+<p><strong>Prerequisites.</strong> None beyond the Operating Doctrine's first three Parts, which explain the books and the dials. The Dealer's Hand teaches the options mechanics behind the dealer-positioning figures; Base Rates and Evidence and Inference teach the statistics behind the grading. This paper uses their results and does not re-derive them.</p>
+<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 1010" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13">
+  <defs>
+    <marker id="f01-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5b5b"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="640" height="1010" fill="#fff"/>
+  <text x="20" y="28" font-weight="600" font-size="15" fill="#1a1a1a">The reporting system: how a number becomes a lesson</text>
+  <text x="20" y="48" fill="#5b5b5b" font-size="12">Each stage reads only from the one above it. Who acts at each stage is on the left.</text>
+
+  <!-- left-hand bands: who acts -->
+  <rect x="20" y="70" width="128" height="268" rx="6" fill="#3a5f8a" opacity="0.12"/>
+  <text x="84" y="196" text-anchor="middle" font-weight="600" fill="#3a5f8a">Code</text>
+  <text x="84" y="214" text-anchor="middle" fill="#3a5f8a" font-size="12">establishes</text>
+  <text x="84" y="230" text-anchor="middle" fill="#3a5f8a" font-size="12">the facts</text>
+
+  <rect x="20" y="350" width="128" height="112" rx="6" fill="#8a5fb0" opacity="0.12"/>
+  <text x="84" y="394" text-anchor="middle" font-weight="600" fill="#8a5fb0">The model</text>
+  <text x="84" y="412" text-anchor="middle" fill="#8a5fb0" font-size="12">copies them</text>
+  <text x="84" y="428" text-anchor="middle" fill="#8a5fb0" font-size="12">into prose</text>
+
+  <rect x="20" y="474" width="128" height="112" rx="6" fill="#7a5c2e" opacity="0.14"/>
+  <text x="84" y="520" text-anchor="middle" font-weight="600" fill="#7a5c2e">The operator</text>
+  <text x="84" y="538" text-anchor="middle" fill="#7a5c2e" font-size="12">decides</text>
+
+  <rect x="20" y="598" width="128" height="236" rx="6" fill="#2f6f4f" opacity="0.12"/>
+  <text x="84" y="706" text-anchor="middle" font-weight="600" fill="#2f6f4f">Code</text>
+  <text x="84" y="724" text-anchor="middle" fill="#2f6f4f" font-size="12">measures</text>
+  <text x="84" y="740" text-anchor="middle" fill="#2f6f4f" font-size="12">the outcomes</text>
+
+  <rect x="20" y="846" width="128" height="112" rx="6" fill="#9c3b3b" opacity="0.12"/>
+  <text x="84" y="890" text-anchor="middle" font-weight="600" fill="#9c3b3b">The operator</text>
+  <text x="84" y="908" text-anchor="middle" fill="#9c3b3b" font-size="12">ratifies values</text>
+
+  <!-- stages -->
+  <g fill="#f2efe9" stroke="#5b5b5b" stroke-width="1">
+    <rect x="168" y="70" width="372" height="80" rx="6"/>
+    <rect x="168" y="164" width="372" height="80" rx="6"/>
+    <rect x="168" y="258" width="372" height="80" rx="6"/>
+    <rect x="168" y="350" width="372" height="112" rx="6"/>
+    <rect x="168" y="474" width="372" height="112" rx="6"/>
+    <rect x="168" y="598" width="372" height="112" rx="6"/>
+    <rect x="168" y="722" width="372" height="112" rx="6"/>
+    <rect x="168" y="846" width="372" height="112" rx="6"/>
+  </g>
+
+  <g fill="#1a1a1a">
+    <text x="184" y="96" font-weight="600">1  Feeds</text>
+    <text x="184" y="116" font-size="12">Prices and bars, FRED, the official writers, external</text>
+    <text x="184" y="132" font-size="12">tables, loggers, option chains, the voices scan</text>
+
+    <text x="184" y="190" font-weight="600">2  The store</text>
+    <text x="184" y="210" font-size="12">One row per observation, three clocks: when it</text>
+    <text x="184" y="226" font-size="12">happened, when it was knowable, when it was written</text>
+
+    <text x="184" y="284" font-weight="600">3  The market-state object</text>
+    <text x="184" y="304" font-size="12">Dimensions, dials, contradictions, exceptions:</text>
+    <text x="184" y="320" font-size="12">computed once a session, read by every report</text>
+
+    <text x="184" y="376" font-weight="600">4  The reports</text>
+    <text x="184" y="396" font-size="12">The ten-section stack at each cadence. Code puts</text>
+    <text x="184" y="412" font-size="12">every figure on the page; the model writes around</text>
+    <text x="184" y="428" font-size="12">them, and the audits withhold any paragraph whose</text>
+    <text x="184" y="444" font-size="12">figure is not in the payload</text>
+
+    <text x="184" y="500" font-weight="600">5  The register</text>
+    <text x="184" y="520" font-size="12">Decision Packets, written by the operator and</text>
+    <text x="184" y="536" font-size="12">never edited (a change is a supersession); the</text>
+    <text x="184" y="552" font-size="12">gate at entry refuses what the rules forbid</text>
+
+    <text x="184" y="624" font-weight="600">6  The ledger</text>
+    <text x="184" y="644" font-size="12">Every probability, call and outcome, dated before</text>
+    <text x="184" y="660" font-size="12">the result is known — decisions declined</text>
+    <text x="184" y="676" font-size="12">included, as shadow outcomes</text>
+
+    <text x="184" y="748" font-weight="600">7  Grading</text>
+    <text x="184" y="768" font-size="12">Brier scores against a coin, base rates as the</text>
+    <text x="184" y="784" font-size="12">baseline, the dealer scorecard, rule breaks and</text>
+    <text x="184" y="800" font-size="12">incidents counted</text>
+
+    <text x="184" y="872" font-weight="600">8  The Doctrine</text>
+    <text x="184" y="892" font-size="12">Rules and thresholds change only at the monthly</text>
+    <text x="184" y="908" font-size="12">sitting, one tier at a time, on graded evidence;</text>
+    <text x="184" y="924" font-size="12">scans propose, rulings in chat decide</text>
+  </g>
+
+  <!-- downward arrows -->
+  <g stroke="#5b5b5b" stroke-width="1.4" fill="none" marker-end="url(#f01-ah)">
+    <line x1="354" y1="150" x2="354" y2="162"/>
+    <line x1="354" y1="244" x2="354" y2="256"/>
+    <line x1="354" y1="338" x2="354" y2="348"/>
+    <line x1="354" y1="462" x2="354" y2="472"/>
+    <line x1="354" y1="586" x2="354" y2="596"/>
+    <line x1="354" y1="710" x2="354" y2="720"/>
+    <line x1="354" y1="834" x2="354" y2="844"/>
+  </g>
+
+  <!-- the return path: the Doctrine changes the configuration the reports run on -->
+  <path d="M540,902 L600,902 L600,406 L548,406" stroke="#9c3b3b" stroke-width="1.6" fill="none" stroke-dasharray="6 4" marker-end="url(#f01-ah)"/>
+  <text x="612" y="660" fill="#9c3b3b" font-size="12" transform="rotate(-90 612 660)" text-anchor="middle">ratified changes return as configuration</text>
+
+  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5.</text>
+</svg>
+<figcaption>Figure 1 — The reporting system&#x27;s data flow: feeds, the store, the market-state object, the reports, the register, the ledger, grading and the Doctrine</figcaption></figure></p>
+<p><em>Figure 1 — How a number becomes a lesson. Each stage reads only from the stage above it; the left-hand bands name who acts at each stage. The dashed return path is the only way the system changes itself: graded evidence, ratified at a sitting, comes back as configuration.</em></p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-what-the-system-is-for">
+      <summary class="section-head">
+        <span class="section-title">Part I — What the System Is For</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>1.1 One regime, one store, one register</h3>
+<p>The system exists to replace the operator's news consumption with something narrower and more honest. A financial news feed is written to be read, not to be right. It explains every move after the fact, names a cause for every wiggle, and never returns to check whether last week's explanation held up. The reports are built on the opposite principle. They say what moved and by how much, state what the system's own rules make of it, and keep a record that allows every forward-looking statement to be graded later.</p>
+<p>Three single points of truth make this possible. There is <strong>one store</strong>: every number any report prints was first written to a single database, together with the time it became knowable, so that any figure can be traced and any past report can be replayed as it would have looked at the time. There is <strong>one regime</strong>: a single object, computed once per session, describes the state of the market in a fixed vocabulary, and every report reads that object rather than forming its own opinion. And there is <strong>one register</strong>: every decision the operator takes, declines or abstains from is written once, in a fixed format, and never edited.</p>
+<p>The three are deliberately separate. The store holds facts, the regime object holds a description of those facts, and the register holds what the operator decided to do about them. None of them can write into another. A report can read all three, but it can write only to the ledger of its own forecasts and to the archive of its own editions.</p>
+<h3>1.2 The organising principle</h3>
+<p>The system's organising principle was ruled in October 2026 as the seventh of the Enterprise Layer rulings, and its first sentence carries the design: <em>code establishes facts and measures outcomes.</em> The rest of the ruling follows from it. Books decide within their horizons. Research proposes and never promotes. The operator governs, and the operator's attention is the budget everything else spends.</p>
+<p>In practice this principle splits the work of every report into three layers, and the split is the most important thing to understand about how the reports are made.</p>
+<p><strong>Code establishes facts.</strong> Every number on the page, including every level, percentile, change, count and flag, is computed by deterministic code from the store. The language model never computes a figure. When a report says that the 20-day average "held", that is a status computed by a declared rule, not a reading of a chart.</p>
+<p><strong>The model copies.</strong> A language model writes the connecting prose: the claim lines, the paragraphs, the explanations of what a table shows. It sees only a small payload of already-computed figures, and every number it writes is audited against that payload before the paragraph can print. If the audit fails, the paragraph is withheld and the reader sees why.</p>
+<p><strong>Code measures outcomes.</strong> Every forward-looking statement, whether an outlook, a scenario weight or a decision, is written to a ledger before its outcome is known and graded by code when it resolves. Nobody, including the operator, grades by hand.</p>
+<h3>1.3 What the reports replace, and what they do not</h3>
+<p>The reports replace the habit of scanning headlines to find out what happened. They do not replace judgment. Each one stops at the edge of a decision: it can say that a gap between two markets has been unusually wide for six sessions, but it cannot say what to do about it. That boundary is enforced in two places. The prose rules forbid the model from offering motives, recommendations or views (Part V). The register is the only place a decision can be written, and only the operator writes to it (Part VII).</p>
+<p>The same boundary applies to the research the system does on its own schedule. The scans (Part VI) read public sources, compare them with what the system already holds and propose changes, but none of them can change anything. Every proposal goes to a ruling in chat, and only ratified rulings change the configuration.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-the-data-the-system-holds">
+      <summary class="section-head">
+        <span class="section-title">Part II — The Data the System Holds</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>2.1 The store and its three clocks</h3>
+<p>Every number the system uses lives in one SQLite database as an <em>observation</em>: a value, the series it belongs to, the source it came from, and three timestamps. The three timestamps are the foundation of everything else, so they are worth stating carefully.</p>
+<p><strong>When it happened</strong> (<code>observed_at</code>) is the period the value describes. August's payrolls describe August.</p>
+<p><strong>When it was knowable</strong> (<code>available_at</code>) is the first moment the system could have known the value. August's payrolls become knowable when they are released in early September.</p>
+<p><strong>When it was written</strong> (<code>ingested_at</code>) is when the system actually wrote it down.</p>
+<p>A single date is not enough because economic data is revised. The first print of a payroll number is often changed in the following months, and a store that overwrites the old value with the new one destroys the information a backtest needs: what was known on the day. The store therefore never overwrites. A revision arrives as a new row with a later <em>knowable</em> time, and history accumulates instead of being replaced.</p>
+<h3>2.2 The point-in-time rule and the vintage rule</h3>
+<p>Two rules govern how the store is read and how its history is filled.</p>
+<p><strong>The point-in-time rule.</strong> Every read of the store asks for the latest value that was knowable at a stated cutoff, filtering on <em>when it was knowable</em> and never on <em>when it happened</em>. Leakage, the error of using information that did not yet exist, is about when something was known. A report written for a past date sees exactly what it would have seen on that date. This is why a dry run of an old Weekly can be trusted: it is the old Weekly, minus only the data that arrived later.</p>
+<p><strong>The vintage rule.</strong> History that was collected late has to be stamped with <em>some</em> knowable time, and the rule is strict about which. A daily closing price is knowable shortly after the close and is never revised except by a stock split, so when the system backfills years of prices it may <em>reconstruct</em> the knowable time as the close plus a declared delay. Those rows are flagged as reconstructed. A revisable series, such as payrolls or GDP, may not be reconstructed this way, because stamping the third revision as "known at the first release" would hand a backtest a number that did not exist for months. Revisable series get true historical vintages or nothing. The backfill tool reads each series' declared revision policy and refuses any that is not reconstructable.</p>
+<p>Every row also records <em>how</em> its knowable time was set: observed from a true vintage source, taken as the moment of ingestion (what every live pull does, which is an honest upper bound), or reconstructed. One consequence is visible in the reports. A series first ingested today has no knowable history before today, so a week-on-week change prints "no prior" until a week of history exists, unless an honest backfill reconstructs it.</p>
+<p>Intraday bars live in their own table in the same database, with the same three clocks: a bar's start time, the moment it was knowable, and the moment it was written. A backfilled bar is stamped as knowable at its close plus the feed's delay. A bar fetched before it closed is dropped, because it was a bar in progress rather than a bar.</p>
+<h3>2.3 The feed families</h3>
+<p>The feeds are grouped into families. Each family has its own puller, its own schedule and its own definition of stale. A heartbeat check reads each series against its declared freshness allowance every morning and raises a "feed stale" verdict when any family falls behind.</p>
+<p><strong>Prices.</strong> Daily closes, and for the tape set opens, highs and lows, for several dozen market symbols: the major index funds, the eleven sector funds, bond, credit and commodity funds, the dollar index, the main currency pairs, the Treasury yield indices, front-month gold, oil and copper futures, Bitcoin, and the volatility indices. These are the raw material of the trend, breadth and volatility readings and of every chart. A separate <em>bars</em> feed pulls five-minute bars for the tape set, plus the S&amp;P 500 e-mini future across its nearly 24-hour session, so that the overnight move can be drawn beside the cash session.</p>
+<p><strong>FRED.</strong> The St. Louis Fed's database supplies the bulk of the macro series: rates and yields, credit spreads, inflation expectations, labour-market data, the Fed's balance sheet and its liabilities, and a set of signal series pulled and watched without yet being read by any report. FRED deprecates series without notice; a series that goes quiet surfaces as stale rather than breaking a run.</p>
+<p><strong>The official writers.</strong> A set of small writers reads specific official sources directly: the New York Fed's term-premium model, the San Francisco Fed's term-structure model, the Fed Board's TIPS decomposition and its inflation-expectations index, the New York Fed's consumer survey, TreasuryDirect's auction results, the Treasury's debt statistics, the TIC capital-flow data, China's SAFE reserve and balance-of-payments data, Japan's Ministry of Finance bond yields, the CFETS yuan fixing, the CFTC's Commitments of Traders, and the EIA's weekly petroleum report. Each writer declares its keys. If one fails, it marks itself stale and keeps the last good vintage, so one outage never takes down another source.</p>
+<p><strong>External tables.</strong> Slower or less official sources: the University of Michigan's long-run inflation expectations, Ken French's industry and value-factor returns, Damodaran's industry multiples, Shiller's CAPE inputs, the World Bank's commodity indices, the LBMA gold price, FINRA's margin statistics, the AAII sentiment survey, leveraged-ETF assets and a set of company fundamentals stamped by their filing dates.</p>
+<p><strong>Loggers.</strong> Forward-only collectors for things nobody archives: retail trading activity in the most-traded names, analyst consensus estimates, short volume and short interest, retail chatter on social forums (including the WallStreetBets feed) measured as mention counts, the Zcash market, the VIX futures curve and, dormant until a data entitlement is confirmed, the closing-auction imbalance. Loggers exist because these series cannot be backfilled: a day not logged is a day lost.</p>
+<p><strong>Prediction markets.</strong> Odds from Kalshi and Polymarket on a declared watch list. Their rights are narrow by ruling: discovery, an attention flag when a probability moves sharply in a day, and a disagreement flag when the venues differ materially from the futures market or from a scenario weight. They never change a scenario weight, a narrative, a theme or a book, and they are never a trigger. A gate stands in front of any larger role. Only after a long archive of live (not backfilled) snapshots, a minimum number of qualifying shocks, a study showing the venues lead the assets after costs, and two Monthly calibration reviews may anyone propose letting them modify confidence. That study is not built.</p>
+<p><strong>Fed funds futures.</strong> The CBOT contracts for the next several meetings, converted into the market's implied path for the policy rate. When too few meetings are priced, the path prints as "not yet tracked".</p>
+<p><strong>The option chain capture.</strong> Every evening the system captures the full option chains for the major index funds and a set of large single names, and stores them raw. From each chain it computes the dealer-positioning figures the Dealer's Hand derives: net gamma exposure and its dollar value per 1% move, delta, vanna and charm exposure, the gamma flip, the call and put walls, the strike of peak absolute gamma, and max pain. These rest on a stated convention about which side dealers are on, which the reports name every time they print a dealer figure. The four exposures are treated as one piece of evidence, never four. The capture also yields two figures of the market's own: SPY's at-the-money implied volatility at thirty days, solved by the system's own solver from the option mid prices, and SPY's put/call volume ratio. A missed night is gone; option chains cannot be fetched after the fact.</p>
+<p><strong>The voices scan.</strong> A morning scan of declared public sources (central banks and finance ministries first, then the large asset managers' published views, then news) that records who said what, when, on which subject and in which direction, with a URL for every row. It is described fully in Part VI.</p>
+<p><strong>The events feed.</strong> Release calendars, the session calendar, official news feeds, earnings dates and filings, which tell the reports what is scheduled and what has happened.</p>
+<h3>2.4 Which report reads what</h3>
+<p>The families matter to a reader because each report draws on a different subset. The table summarises it; Appendix A gives the counts.</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Representative series</th>
+<th>Cadence</th>
+<th>Read by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prices</td>
+<td>SPY, the VIX, the 10-year yield index</td>
+<td>Daily, after the close; corrected next morning</td>
+<td>The state object, every report</td>
+</tr>
+<tr>
+<td>Bars</td>
+<td>SPY and the tape set at 5 minutes; ES across 23 hours</td>
+<td>Daily, after the close</td>
+<td>The close's charts; the Weekly's two-week chart</td>
+</tr>
+<tr>
+<td>FRED</td>
+<td>HY spread, 10-year yield, net liquidity</td>
+<td>Daily pull; series at their own frequencies</td>
+<td>The state object, every report</td>
+</tr>
+<tr>
+<td>Official writers</td>
+<td>Term premium, auctions, TIC, CFTC, JGBs</td>
+<td>Daily pull; each at its source's frequency</td>
+<td>The close and the Weekly (Plumbing, Positioning); the Monthly</td>
+</tr>
+<tr>
+<td>External tables</td>
+<td>Michigan expectations, AAII, Shiller</td>
+<td>Daily pull; mostly monthly sources</td>
+<td>The Weekly and the Monthly</td>
+</tr>
+<tr>
+<td>Loggers</td>
+<td>Retail activity, short volume, VIX futures</td>
+<td>Daily, forward-only</td>
+<td>The close, the Weekly, the state object (VIX curve)</td>
+</tr>
+<tr>
+<td>Prediction markets</td>
+<td>Watched probabilities</td>
+<td>Twice daily</td>
+<td>The close and the Weekly (What's priced); the Monthly's gate count</td>
+</tr>
+<tr>
+<td>Fed funds futures</td>
+<td>The implied policy path</td>
+<td>Daily</td>
+<td>The close and the Weekly (What's priced)</td>
+</tr>
+<tr>
+<td>Option chains</td>
+<td>Gamma, walls, flip, max pain; SPY's own IV and put/call</td>
+<td>Every evening</td>
+<td>The close (Mechanics), the Weekly, the dealer scorecard</td>
+</tr>
+<tr>
+<td>Voices</td>
+<td>Who said what, sourced</td>
+<td>Weekday mornings</td>
+<td>Narratives in the close, the Weekly and the Monthly</td>
+</tr>
+</tbody>
+</table>
+<p>Several sources are pulled and watched for freshness but read by no report yet. They are there because a series cannot be given a history retroactively once its first months have passed unrecorded.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-the-market-state-object">
+      <summary class="section-head">
+        <span class="section-title">Part III — The Market-State Object</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>3.1 One description of the market</h3>
+<p>Once a session, after the close, the system computes one object that describes the market in a fixed vocabulary. Every report reads it; nothing else computes a regime. The object is stored like any other observation, with its own knowable time, so a report written for a past date reads the object as it stood then.</p>
+<p>The machinery that computes it holds no market knowledge of its own. Every dimension, member series, threshold and polarity is declared in one configuration file, and each line carries a short "because" that says why the rule points the way it does. Changing the description of the market therefore means changing a declared rule, through the same ratification path as any other rule, rather than editing code.</p>
+<h3>3.2 The eight dimensions</h3>
+<p>The object describes the market along eight dimensions. Each has three states, and each reads an ordered list of member series. The first member is the <em>primary</em>: it alone sets the state, by asking where today's value sits in its own five-year history. Roughly, the top third of that history gives the first state, the middle third the second and the bottom third the third, with the direction reversed where a high reading means the opposite thing. The other members are <em>evidence</em>. A member in the same band as the state is listed as supporting; a member in a different band is listed as contradicting. This is deliberately not a composite score. A composite would average away exactly the disagreements a reader most needs to see, so the object reports the primary's state and lists the disagreement beside it.</p>
+<p>When nothing disagrees, the object says "none found" as a positive claim rather than leaving the field empty. When a dimension cannot be computed, it says why: no series, no fresh series, or no registry entry. Freshness is judged against each series' own reporting rhythm (a weekly series is allowed more sessions than a daily one), and a dimension whose primary is older than a declared multiple of that allowance goes absent rather than reporting a stale state.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>States</th>
+<th>Primary (what sets the state)</th>
+<th>Evidence members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Growth</td>
+<td>expanding / slowing / contracting</td>
+<td>Four-week jobless claims (inverted)</td>
+<td>Permits, job openings, hours, the Sahm rule</td>
+</tr>
+<tr>
+<td>Inflation</td>
+<td>rising / stable / falling</td>
+<td>10-year breakeven</td>
+<td>5y5y breakeven, sticky core CPI, oil</td>
+</tr>
+<tr>
+<td>Rates</td>
+<td>high / mid / low</td>
+<td>10-year yield</td>
+<td>2- and 30-year yields, mortgage rate, the 2s10s curve</td>
+</tr>
+<tr>
+<td>Liquidity</td>
+<td>ample / neutral / tight</td>
+<td>Net liquidity</td>
+<td>Reverse repo, bank reserves, the Fed's balance sheet, financial conditions</td>
+</tr>
+<tr>
+<td>Credit</td>
+<td>easy / neutral / stressed</td>
+<td>High-yield spread (inverted)</td>
+<td>BB, CCC and investment-grade spreads</td>
+</tr>
+<tr>
+<td>Trend</td>
+<td>up / flat / down</td>
+<td>SPY against its 200-day average</td>
+<td>SPY against its 50-day; the 20-day's slope</td>
+</tr>
+<tr>
+<td>Breadth</td>
+<td>broad / mixed / narrow</td>
+<td>Share of sector funds above their 50-day</td>
+<td>Share above the 200-day; equal- against cap-weight</td>
+</tr>
+<tr>
+<td>Volatility</td>
+<td>elevated / normal / subdued</td>
+<td>The VIX, same day</td>
+<td>FRED's VIX series; SPY's 20-day realized volatility</td>
+</tr>
+</tbody>
+</table>
+<p>Two notes belong with the table. Growth has no daily series, so its state moves with the weekly claims data and lags the market. Breadth is measured across the eleven sector funds, not across every stock, and so understates how narrow a market led by a few large names can be. The object says both things in its own text.</p>
+<h3>3.3 The three dials</h3>
+<p>Three dials condense the dimensions into the vocabulary the Operating Doctrine uses.</p>
+<p><strong>The macro dial</strong> is a declared lookup over two dimensions, growth and inflation, not a model. Expanding growth with rising inflation reads <em>overheating</em>; expanding with falling inflation reads <em>goldilocks</em>; slowing with rising reads <em>late cycle</em>; contracting with rising reads <em>stagflation</em>; and so on through nine named outcomes, with <em>mixed</em> as the catch-all when the inputs exist but fit no named case. If an input is absent, the dial is absent, not "mixed".</p>
+<p><strong>The volatility dial</strong> reads the VIX against fixed bands (subdued, normal, elevated, crisis), with two companion readings: realized volatility against implied, and the VIX term structure. The term structure is being measured two ways in parallel for a declared trial period, the VIX futures curve against the VIX3M-to-VIX ratio, and the object publishes the one ruled to be published while the other is graded beside it.</p>
+<p><strong>The gamma dial</strong> is the sign of SPY's dollar gamma from the evening's chain capture: positive, negative or flat. It is read from the exposure computation, never recomputed, with no threshold and no smoothing.</p>
+<h3>3.4 Persistence</h3>
+<p>A state that flickers is worse than useless, because it forces the reader to judge whether a change is real. The object therefore applies a persistence rule. A new raw state must hold for a declared number of consecutive sessions before the published state moves. Until then, the object publishes the old state and says so in plain words: the new state, how many of the required sessions it has held, and that the old state stands until it does. The reports call this <em>pending</em>. A recompute of the same session is a revision, not a new reading: the later computation wins, and the earlier one stays in the store as a vintage.</p>
+<h3>3.5 The contradiction table</h3>
+<p>The dimensions describe each market on its own terms. The contradiction table asks whether markets that usually agree have stopped agreeing. It holds a declared list of pairs, including price against breadth, equities against high-yield credit, the long bond against high yield, implied volatility against realized, growth against cyclical stocks, the gamma dial against the trend, and each active story against the data. Each pair has a plain-language description of what each side is saying and what would close the gap.</p>
+<p><strong>The gap z-score, for a reader.</strong> For a pair of series, the system takes each series over the same five-year window and expresses each day's value as a z-score: how many standard deviations it sits from its own five-year average. It subtracts one from the other, with the signs arranged so that normal agreement is the baseline. That daily difference is the <em>gap</em>. The question is then how unusual today's gap is compared with the gap's own five-year history, so the gap is itself turned into a z-score. A gap z of 2 means the two markets are further apart than they have been on roughly 95% of days in five years. It is a statement about the relationship, not about either market's level: both can be unremarkable on their own and still disagree unusually. The two series are aligned on common dates first, a slower series being read as of the faster one's dates, and a pair with too few common dates prints no magnitude rather than an unreliable one.</p>
+<p>A pair <em>opens</em> when its gap z has been at or beyond the declared threshold for the persistence number of sessions, and the date of the first session of that run is kept as its "since". In the code as it stands, an open pair closes on the first session the condition fails. Some pairs, such as gamma against trend, are state mismatches with no magnitude at all, and a reserved pair for prediction markets prints absent until its own gate opens.</p>
+<h3>3.6 Exceptions</h3>
+<p>An exception is something the reports must surface even when no state moved. There are two kinds. A <strong>contradiction exception</strong> is an open pair that has stayed open for a declared number of sessions; the plain-language label is "a gap between two markets held past five sessions". An <strong>extreme exception</strong> is any member series at a five-year extreme, meaning a percentile at the very top or bottom of its history, reported even when its dimension's state did not change, unless the reading is itself stale. Exceptions are listed contradictions first, and they are report-only: they inform; they do not alert and they do not trigger.</p>
+<h3>3.7 From dials to the Doctrine's regimes</h3>
+<p>The Operating Doctrine sizes Book A by regime, and its regimes (Expansion, Overheat, Tightening, Contraction and Transition) are not the dial's words. A ratified mapping translates them. Expansion and goldilocks map to Expansion. Late cycle and overheating map to Overheat. Stagflation and the disinflationary slowdown map to Tightening. Contraction and the deflationary bust map to Contraction. Mixed maps to Transition. Each Doctrine regime carries a band for Book A's net equity exposure (Appendix A).</p>
+<p><strong>Transition</strong> has no band of its own; it is computed. When the macro dial has changed state within a declared number of sessions, the regime is Transition, and its band is the lower half of the band the dial is leaving, hedged. Transition applies at once, by code. The move <em>into</em> the new regime's band, re-engagement, is never applied by code: the operator rules on it at a sitting. The asymmetry is deliberate. Cutting exposure when the description of the market changes is cheap and reversible. Adding it back is a judgment.</p>
+<p>The mapping and the bands live with the risk limits, not with the object. The object describes the market; the Doctrine's regimes are a use the book makes of that description.</p>
+<h3>3.8 Why no report recomputes regime</h3>
+<p>Every report reads the object through one reader that reads and never computes. The close is the object's only writer. The reason is simple and absolute. A report that computed its own regime could disagree with the close's, and then the system would hold two regimes and no way to say which one a decision was taken under. The grading in Part IX depends on every decision being attributable to one description of the market at one moment. A second regime anywhere would break it.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-the-reports-and-the-ten-section-stack">
+      <summary class="section-head">
+        <span class="section-title">Part IV — The Reports and the Ten-Section Stack</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>4.1 The stack</h3>
+<p>The daily close and the Weekly are built on one skeleton, the <em>stack</em>: ten sections in a fixed order. The same section answers the same question in every edition, so a reader learns where to look once. The Monthly is scheduled to join the stack; until it does, it keeps its own layout (§4.6).</p>
+<p>Each section answers one question.</p>
+<ol>
+<li><strong>The read</strong> — the handful of lines that matter. In the Weekly, also the week day by day. It never collapses.</li>
+<li><strong>The tape</strong> — where prices went and the levels they met, across timeframes, with volume.</li>
+<li><strong>Mechanics</strong> — how dealer hedging shaped the moves: the dealer positioning, the volatility regime and its term structure.</li>
+<li><strong>What doesn't fit</strong> — where markets disagree with each other: the open contradictions, the exceptions, the divergences.</li>
+<li><strong>Plumbing &amp; rates</strong> — yields, auctions, term premium, liquidity and credit.</li>
+<li><strong>Positioning &amp; flows</strong> — who holds what and how it changed, and which sectors lead.</li>
+<li><strong>What's priced</strong> — what markets and surveys expect, as distinct from how they are positioned: breakevens, consensus, the policy-rate path, prediction markets and, in season, earnings against consensus.</li>
+<li><strong>Narratives</strong> — the stories the market is telling and who is telling them, with sourced voices.</li>
+<li><strong>Ahead</strong> — what is scheduled and what is being watched, with any outlook printed as a ledgered base rate.</li>
+<li><strong>The book</strong> — the operator's decisions, the rules broken, the benchmarks and the attention spent.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Section</th>
+<th>The question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>The read</td>
+<td>What matters, in a few lines</td>
+</tr>
+<tr>
+<td>2</td>
+<td>The tape</td>
+<td>Where prices went, and the levels they met</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Mechanics</td>
+<td>How dealer hedging shaped the moves</td>
+</tr>
+<tr>
+<td>4</td>
+<td>What doesn't fit</td>
+<td>Where markets disagree with each other</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Plumbing &amp; rates</td>
+<td>Rates, the curve, liquidity, credit</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Positioning &amp; flows</td>
+<td>Who holds what, and how it changed</td>
+</tr>
+<tr>
+<td>7</td>
+<td>What's priced</td>
+<td>What markets and surveys expect</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Narratives</td>
+<td>The stories, and who is telling them</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Ahead</td>
+<td>What is scheduled, and what we are watching</td>
+</tr>
+<tr>
+<td>10</td>
+<td>The book</td>
+<td>Our decisions, our rules, our attention</td>
+</tr>
+</tbody>
+</table>
+<h3>4.2 Depth, and the triggers that deepen it</h3>
+<p>Not every section deserves the same space every day. Each section has a <em>depth</em> per cadence: <strong>deep</strong> (paragraphs, a table and possibly a chart), <strong>medium</strong> (one paragraph and a table), <strong>light</strong> (two to four lines), <strong>short</strong>, or a single <strong>line</strong>. The daily close runs the read, the tape, mechanics, what doesn't fit and ahead deep; plumbing and what's priced light; positioning light; narratives as a line; and the book short. The Weekly deepens positioning and gives every section at least a medium treatment. The depths are declared in configuration, with the word allowance for each depth (Appendix A).</p>
+<p>Two sections can be <em>deepened by computation</em> rather than by habit. Plumbing goes deep on the daily close when a top-tier release (an FOMC statement or minutes, CPI, the PCE report, payrolls, GDP or the Treasury's quarterly refunding) falls in this session or the next, when a 10- or 30-year auction does, or when a rate or spread moves by more than a declared amount in one session. What's priced goes deep, daily or weekly, when a breakeven, the implied rate for one of the next few FOMC meetings, or a watched prediction-market probability moves by more than its declared threshold. When a trigger fires, the section header says why, and the chart allowance rises by one. The Weekly counts how many sessions each trigger fired on, so that a trigger firing every day or never can be recalibrated at the Doctrine monthly.</p>
+<h3>4.3 The three reading rules</h3>
+<p>Three rules make a stacked report quick to read.</p>
+<p><strong>Every section opens with a claim line</strong>: one bold sentence that says what the section found. It is written by the model and audited like any other prose.</p>
+<p><strong>Change marks.</strong> A small diamond (◆) appears beside any item whose value differs from the previous edition of the same cadence. A daily mark compares with yesterday's close and a Weekly mark with last week's Weekly, never with a daily. The mark is placed by code, comparing fingerprints of the stored values; the model never places one. With no prior edition, the header says nothing is marked.</p>
+<p><strong>Odds live in the ledger.</strong> A probability may print only if it was first written to the probability ledger (Part IX), and only in the form "the base rate for … is X% (n = …)". There is no other way for a number that looks like a forecast to reach the page.</p>
+<p>Two further conventions follow from these rules. A section whose items and table are identical to the prior edition <em>collapses</em> to its claim line and "(unchanged since <date>)", so the reader's attention goes where something changed. The read never collapses. And a figure the system does not yet hold is never narrated as missing; it appears once, as a "Not yet tracked" footnote at the foot of its section, so the reader can see the gap without the prose dwelling on it.</p>
+<h3>4.4 The daily close</h3>
+<p>The close runs each weekday after the cash session, once the evening's prices, bars and option chains are in. It is the system's anchor in three ways. It is the only writer of the market-state object: it computes the object before building the report, and a failure there degrades the report rather than stopping it. It writes the session's base-rate outlooks to the probability ledger <em>before</em> it prints them, and resolves those that have come due. And it stores the session's dealer scorecard row, the evening's dealer positioning with SPY's own implied volatility and put/call ratio, from which the Weekly's flags and the Monthly's retrospective are computed.</p>
+<p>The close carries up to three charts. The first is SPY's session in five-minute candles with its volume-weighted average price and the dealer levels. It is omitted, with the reason, if too few bars arrived. The second is a few months of daily candles with the moving averages and the week's range. The third is chosen by rule: an open contradiction's gap over recent sessions if one is open; otherwise, if plumbing went deep, the yield curve over the same span; otherwise nothing. It writes its edition to an archive (the payload, the stack, the rendered page) and reports its health to the dashboard.</p>
+<h3>4.5 The Weekly</h3>
+<p>The Weekly runs early on Sunday and reads the week ending on Friday. It assembles the same ten sections at Weekly depth, and every change it reports is the week's. Its prior edition is last week's Weekly, so its change marks mean "since last Sunday".</p>
+<p>The Weekly is where the slower data lives. Positioning &amp; flows carries speculative futures positioning, short interest, retail activity and capital flows, and a sector table with one-week, one-month and three-month returns. What's priced adds, in earnings season, the universe names that reported against their stored consensus. Earnings season is determined from the stored earnings dates rather than from the calendar. Ahead carries the graded calls: each forecasting source's running Brier score against the coin. The book carries the benchmarks, the rule-break counts, the attention counts and the expiry of any Transition. A "Changed since last Weekly" block sits under the header, computed from the dials, exceptions, rule breaks, triggers and voices. The header line carries an estimated reading time: prose words at a steady reading pace, plus a short allowance per chart.</p>
+<p>The Weekly carries a fixed chart set: SPY over six months and two years; the yield curve and the high-yield spread over one and ten years; speculative positioning as z-scores; the week's sector and style returns; any open contradictions; SPY over two weeks in hour-scale candles with the overnight futures drawn beside the cash session; six markets with their averages; a panel of positioning and sentiment gauges as z-scores; and prediction-market odds beside the futures path. Appendix A lists them by number. It prints the glossary once, at the end.</p>
+<h3>4.6 The Monthly</h3>
+<p>The Monthly runs on the first of the month and is the longest report. It is in transition. Its present form (Monthly v2's first phase) is a storyline in six parts. <em>The month in markets</em> opens it: a month-end-to-month-end scorecard and a few paragraphs. Then come <em>the month in one page</em> (five takeaways); <em>looking back</em>, organised by theme, each theme's items tagged CONSENSUS, NEW, DISSENT or CORRECTION, with a computed "what changed"; <em>voices</em>; <em>looking ahead</em> two to three months, with the scenario set, each weight beside its Brier score and "what would change our mind"; and <strong>where our read lands</strong>. That last part is built by code and bounded by rule: the system's read is what the scenario weights and the books already hold, and nothing beyond them. After the storyline come the older sections: the regime, the scenarios, Top &amp; Bottom, alternative assets, the register's month and the appendix. Each part's prose is one audited model call.</p>
+<p>The themes are declared, each mapped to the state object's dimensions and, where one exists, to a story. They are liquidity and plumbing, fiscal dominance and the dollar, the Fed's path, the credit cycle, equity positioning, sentiment, and geopolitics and reserve currency. A tag carries rules: CONSENSUS needs at least two high-tier sources, DISSENT names its source, and CORRECTION cites the earlier statement it corrects.</p>
+<p>The stacked Monthly, with the ten sections in Monthly depth, a dealer retrospective, a "slow layers" section and its own chart set, is specified and scheduled but not built. The Monthly's depth column and charts exist in the commissioning brief, not yet in configuration.</p>
+<h3>4.7 The anchor in the morning</h3>
+<p>A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a <strong>What changed</strong> block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. In the stacked close, the state and contradiction tables appear at the end as detail tables rather than as an opening block.</p>
+<h3>4.8 The reports that are specified but not built</h3>
+<p>Four reports appear in the architecture and are not running.</p>
+<p><strong>The Quarterly Structural</strong> is planned as the quarter-end report on structural positioning, the tail budget and the states of the long-horizon themes: the Disruptive Themes factor states, the tail families, a rewrite of the library guide's executive summary and a review of the international sleeve, opening on a table of system metrics. It has a place in the work plan and no specification document yet.</p>
+<p><strong>Disruptive Themes</strong> has a reserved dashboard identity and has been re-cadenced from monthly to quarterly, folded into the Quarterly Structural.</p>
+<p><strong>Top &amp; Bottom</strong> is no longer planned as a standalone report. It becomes a state variable, a verdict and a composite printed inside the Monthly and the Weekly. The Monthly already has its section, which prints "the Top &amp; Bottom harness is not built" until it is.</p>
+<p><strong>The Thailand quarterly</strong> is a short, isolated monitor of a personal exposure, with alerts on the currency, the central bank and payment dates. It sits outside the dials and the register by design, can never trigger anything, and is deferred to the end of the roadmap.</p>
+<h3>4.9 The chart-and-prose rule</h3>
+<p>Charts and prose describe the same market, so they must describe the same levels. Before a report is assembled, the system computes one <strong>level list</strong> for the edition. Each level (prior close, session range, the moving averages, the week's range, the 52-week extremes, the dealer levels) carries its value, source, as-of time and a status: <em>held</em>, <em>broke</em> or <em>untested</em>, set by a declared rule. The prose may name only levels on the list, and may say "held" or "broke" only where the list says so. A chart may draw only levels on the list. A gate holds both to the one object. Charts carry no verdicts. A chart that cannot be drawn prints "chart unavailable" with the reason. The email carries each chart as a small image; the archive keeps it as a scalable file.</p>
+<h3>4.10 What each report writes</h3>
+<table>
+<thead>
+<tr>
+<th>Report</th>
+<th>Runs</th>
+<th>Reads</th>
+<th>Writes</th>
+<th>Prose budget</th>
+<th>Charts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily close</td>
+<td>Weekday evenings</td>
+<td>Store, object, register, ledger</td>
+<td>The object; outlooks; the dealer scorecard row; chain readings; archive; dashboard state</td>
+<td>Smallest</td>
+<td>Up to 3</td>
+</tr>
+<tr>
+<td>Morning anchor</td>
+<td>Weekday mornings</td>
+<td>The prior object; overnight moves; events</td>
+<td>Archive; dashboard state</td>
+<td>Short</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>Sunday morning</td>
+<td>Store, object, register, ledger, voices</td>
+<td>Archive</td>
+<td>Middle</td>
+<td>Fixed set</td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td>The 1st</td>
+<td>Store, object, register, ledger, voices, scenarios</td>
+<td>Snapshot; archive; dashboard state; scenario weights to the ledger</td>
+<td>Largest</td>
+<td>Planned set</td>
+</tr>
+<tr>
+<td>Quarterly Structural</td>
+<td>Quarter-end</td>
+<td>—</td>
+<td>—</td>
+<td>Not built</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Thailand quarterly</td>
+<td>Quarterly</td>
+<td>—</td>
+<td>—</td>
+<td>Not built</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-v-how-the-prose-is-made-honest">
+      <summary class="section-head">
+        <span class="section-title">Part V — How the Prose Is Made Honest</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>5.1 Code computes, the model copies</h3>
+<p>The model that writes the prose is given a small structured payload and nothing else: no store access, no raw chain, no internet. Every figure in that payload was computed by code, rounded to the precision the report prints, and given ready-made companion forms: an ordinal for every percentile ("52nd"), a signed form for every change ("−6.75%", "+12 bp"), and a display form for every large or scaled figure ("$5.87tn", "+29k"). The instruction is to copy these, never to derive. A figure the model was not shown is a figure it would have to invent, and the audits exist to catch exactly that.</p>
+<p>The prose is never in the decision path. It writes nothing to the register. Its job is to make the computed page readable, and a page whose prose is withheld is still a complete report.</p>
+<h3>5.2 The audits</h3>
+<p>Every paragraph passes a series of checks before it can print. Each was added because a real paragraph failed in a way the earlier checks missed.</p>
+<p><strong>The numeral audit</strong> requires every number in the prose to exist in the payload, to within the precision it was written at: "762.45" must match a payload value that rounds to exactly that, so a transposed digit fails. Identifiers that contain digits, dates the payload carries, and small counts spelled as words are not treated as figures, and declared names such as "the 30-year yield" are masked first. Magnitude words are part of the number, so "770 billion" cannot pass against a price of 770. The audit is explicit about its limits: it is not a hallucination detector. A model can still put a true number in a false sentence, which is why the other audits exist.</p>
+<p><strong>The type audit</strong> asks whether a number is the <em>right kind</em> of number. Each payload figure carries a type from its field: a count, days, a price, a percentile, a percent, a z-score, basis points, dollars or a ratio. A unit word in the prose that contradicts the type fails: "13-day-old" against a count of 13 rows, or "51st percent" against a percentile. A figure inside a table cell takes the unit written beside it in the cell.</p>
+<p><strong>The ordinal check</strong> fails a malformed ordinal ("96.1th", "52th") and requires a percentile's ordinal to be one of the stored ones, so a model that truncates 51.7 to "51st" is caught.</p>
+<p><strong>The signed check</strong> fails an unsigned magnitude of a negative move. "Gold fell 6.75%" is withheld in favour of the stored signed form.</p>
+<p><strong>The scaled-display check</strong> fails a large figure the model has rescaled itself. A scaled figure is copied, never rescaled.</p>
+<p><strong>The label audit</strong> checks that a number printed beside a named level is the value stored under that name, for the instrument the sentence is about. It was added after a close called max pain "the put wall".</p>
+<p><strong>The tape rules</strong> apply to the stacked reports. They refuse internal vocabulary and registry identifiers in prose. They refuse motive phrases ("because", "driven by", "on fears of", "as investors"). They refuse intensity words ("plunged", "soared") in a sentence that carries no figure. They refuse a "held" or "broke" that disagrees with the level list. The policy words <em>hike</em>, <em>cut</em> and <em>hold</em> are reserved for the FOMC decision and the policy-rate path. A book-against-benchmark figure must say "excess" or "relative to". A probability may appear only as a ledgered base rate or as a prediction market's own price.</p>
+<p><strong>The plain-language rule</strong> gives every contradiction pair, story, exception kind, state word and sector a set of plain words, declared in one file. The prose may describe these things only in those words, and no internal identifier may reach a rendered edition.</p>
+<p>The Monthly adds its own list of banned internal terms and refuses bullet-list fragments, and every report refuses markdown it cannot render.</p>
+<table>
+<thead>
+<tr>
+<th>Audit</th>
+<th>It refuses</th>
+<th>Added after</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Numeral</td>
+<td>A number not in the payload, at its written precision</td>
+<td>The first audited close</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>A unit that contradicts the figure's kind</td>
+<td>"Thirteen-day-old" from a row count</td>
+</tr>
+<tr>
+<td>Ordinal</td>
+<td>A malformed or truncated ordinal</td>
+<td>"51st" for 51.7</td>
+</tr>
+<tr>
+<td>Signed</td>
+<td>An unsigned negative move</td>
+<td>"Gold fell 6.75%"</td>
+</tr>
+<tr>
+<td>Scaled display</td>
+<td>A figure rescaled by the model</td>
+<td>Rescaled liquidity figures</td>
+</tr>
+<tr>
+<td>Label</td>
+<td>A level's number under another level's name</td>
+<td>Max pain called the put wall</td>
+</tr>
+<tr>
+<td>Tape rules</td>
+<td>Motives, intensity without a figure, policy words, ids, wrong held/broke, unledgered odds</td>
+<td>The first stacked closes</td>
+</tr>
+<tr>
+<td>Plain language</td>
+<td>An internal name or id in a rendered edition</td>
+<td>The first stacked Weekly</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Withhold with a reason, and the one retry</h3>
+<p>A paragraph that fails is never rewritten by code and never "fixed" quietly. It is <strong>withheld</strong>, and the reader sees a short note saying which audit failed and on which figure. The tables and items of a section print even when its prose is withheld, so the reader loses the commentary, not the facts. An outage reads differently from a refusal: "model call failed" is never confused with "audit failed". The rejected text is kept out of the edition so that it cannot be published by accident.</p>
+<p>In the stacked reports only, a section the audit withholds gets <strong>one retry</strong>. The audit's reason goes back to the model with the instruction to fix exactly that and change nothing else. If the second attempt fails, the section is withheld as before. Faults such as an API error or a malformed payload are not retried, and neither is a reply that overran its length. The Monthly's section writer, the morning anchor and the voices block make one attempt only.</p>
+<h3>5.4 No stored source, not printed</h3>
+<p>A view attributed to a named person or institution may print only if the system holds a stored row for it with a URL, a publication date, the moment it was retrieved and a source tier. The rule is enforced when a voice is written, not when it is printed: a row missing any of the four is refused, and stored voices cannot be edited or deleted. A voice whose extracted view fails the style or policy rules still prints its name, source and status, with the view itself withheld and the reason given.</p>
+<h3>5.5 Attributions, not causes</h3>
+<p>Financial prose's oldest habit is the after-the-fact cause: stocks fell <em>on fears of</em>, yields rose <em>as investors</em>. The reports do not do this. A press outlet's explanation of a move is that outlet's attribution, and the prose must say so: "CNBC attributed the fall to …", never the cause stated as fact. The system names a cause of its own only when a stored event coincides, and then only as coincidence: "on the day of the CPI release". Co-movement is reported; motive is not. The same discipline applies to the overnight block, where a move is assigned to a time window (Tokyo hours, European hours) on the stated understanding that a window is not a cause.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s7-part-vi-the-scans">
+      <summary class="section-head">
+        <span class="section-title">Part VI — The Scans</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>6.1 What a scan is</h3>
+<p>A scan is research the system does on a schedule, reading sources outside the store and comparing them with what the system already holds. Every scan ends in the same place: a file of findings and a short summary, from which the operator rules in chat on what, if anything, to adopt. Adopted items become a change-order batch with numbered entries. No scan has decision rights. A third party's conclusion never inherits rights because a scan found it. Rights come only from a gate the system's own evidence has passed. The principle is part of the organising ruling: research proposes and never promotes.</p>
+<h3>6.2 The daily voices and news scan</h3>
+<p>Each weekday morning, before the overnight fetch, a scan reads a declared list of public sources in priority order: officials first (central banks, finance ministries), then the published views of large asset managers, then news. It obeys each site's robots.txt, re-read on every run. It identifies itself honestly and does not run at all without a contact address configured. It reads only public pages: no paywalls, no email, no personal sources.</p>
+<p>For each new item, the scan makes one model call, under a daily cap, to extract who said it, on which declared subject, in which direction (bullish, bearish or neutral) and over what horizon, with a short quote. The article itself is held in memory only and never stored. A source the scan cannot read is recorded as unreachable with its reason, and the reports print "unreachable" for it rather than presenting its last view as current.</p>
+<p><strong>Status is computed, never declared.</strong> Comparing each voice's new entry with its earlier ones gives one of four statuses. NEW means no earlier entry from this voice. REITERATED means the same subject and the same direction. INFLECTED means the same subject and a different direction. SILENT means an entry in the prior window and none in this one, which becomes UNREACHABLE when the source itself could not be read. The model supplies a direction; code decides what changed.</p>
+<p>The scan also feeds the <strong>four stories</strong> the system tracks: that AI capital spending keeps growing, that deficits drive long-term rates, that the yen carry trade unwinds, and the midterm-year pattern. Each story has declared evidence that counts for or against it (earnings, inflation surprises, currency and bond moves, headlines matched by declared patterns) and a declared outcome against which it is eventually graded. Evidence rows are written directly. A story's state (emerging, consensus, contested, fading) moves only by declared rules, and a new story the model proposes waits behind the operator's confirmation.</p>
+<h3>6.3 The signal intake and its register</h3>
+<p>Any proposal to add a signal, from any scan or any reading, enters through one intake template with six fields: where it would live, its mechanism, its data, the rights requested, how it would be validated, and its disposition. Every proposal gets a numbered entry in the signal-triage register (SR-1, SR-2, …), and numbers are never reused. The rights a signal may request run from none, through "base rate only" and a narrow flag, up to a confidence modifier or a composite input. Everything enters at the lowest class: nothing from the intake can block a decision, produce a packet, enter a composite or change a theme until its gate is passed.</p>
+<p>The commissioning brief for this paper also describes a Monthly signal scan on the 25th, feeding this register. The repository records the intake and the register but not a scan by that name, nor its prompt. Appendix A marks it "schedule per the scheduled task".</p>
+<h3>6.4 The quarterly read of the Guide to the Markets</h3>
+<p>Once a quarter, shortly after J.P. Morgan publishes its Guide to the Markets, a scheduled task reads the new edition and compares it with a reference table kept from the previous read. It records the deltas, notes what does not fit the system's own description of the market, writes any candidates in the intake template, adds a voices entry for the Guide, and refreshes the reference table. A short chat summary follows, then rulings, then that month's change-order batch. The Guide's recommendations never print. What may be adopted from it is narrow: a base-rate row, a modifier, a sourced figure or a voices entry. The task's prompt lives outside the repository.</p>
+<h3>6.5 The crypto mechanism scan and the consensus-drift scan</h3>
+<p>Two further scheduled tasks run outside the repository on their own calendars. A <strong>Saturday crypto mechanism scan</strong> tracks a declared set of mechanisms in one digital-asset thesis and sweeps for new ones. Its rights are watch-level only, and it is slated to retire once the Weekly's own mechanism watch has run cleanly for several weeks. A <strong>consensus-drift scan</strong> every second month follows how expert opinion on the long-horizon AI risks is moving, under a reserved register entry with no rights yet. Neither task's prompt is in the repository, and Appendix A marks both "schedule per the scheduled task".</p>
+<h3>6.6 The reading shelf</h3>
+<p>A twice-monthly <strong>publication watch</strong>, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's planned Reading chapter: every shelf edition published in the month, linked, with a summary paragraph and nothing of the system's own stance. It has no decision rights either.</p>
+<table>
+<thead>
+<tr>
+<th>Scan</th>
+<th>Cadence</th>
+<th>Reads</th>
+<th>May propose</th>
+<th>In the repo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Voices and news</td>
+<td>Weekday mornings</td>
+<td>Declared public sources</td>
+<td>Voices rows; story evidence; new stories (behind confirmation)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Signal intake</td>
+<td>As proposals arrive</td>
+<td>Any source</td>
+<td>SR entries in the register</td>
+<td>Template and register</td>
+</tr>
+<tr>
+<td>Guide to the Markets</td>
+<td>Quarterly</td>
+<td>The Guide</td>
+<td>Base-rate rows, modifiers, sourced figures, voices</td>
+<td>Change order and scan file; prompt outside</td>
+</tr>
+<tr>
+<td>Crypto mechanisms</td>
+<td>Saturdays</td>
+<td>Declared mechanism sources</td>
+<td>Watch-level notes</td>
+<td>Change order; prompt outside</td>
+</tr>
+<tr>
+<td>Consensus drift</td>
+<td>Every second month</td>
+<td>Expert-opinion sources</td>
+<td>Reserved entry, no rights</td>
+<td>Change order; prompt outside</td>
+</tr>
+<tr>
+<td>Reading shelf</td>
+<td>Twice monthly</td>
+<td>The declared shelf</td>
+<td>Candidates, voices, Reading chapter entries</td>
+<td>Brief and watchlist</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s8-part-vii-the-register-and-the-books">
+      <summary class="section-head">
+        <span class="section-title">Part VII — The Register and the Books</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>7.1 A decision, not a trade</h3>
+<p>The register's unit is a <em>decision</em>, not a trade. A decision names an instrument, a direction (long, short, flat or hedge), a thesis, the kind of edge claimed, a horizon, a size and, always, an invalidation: the condition under which the thesis is wrong. It carries a status (draft, active, closed or declined), the operator's action (take, decline or modify) and, separately, the thesis's own health (intact, strained or invalidated). These are different questions. A decision can be active and strained at the same time, and the register keeps both answers.</p>
+<p>A decision that the operator declines, or abstains from, is still a decision and is still recorded. An abstention is a position, and the grading in Part IX measures it like any other.</p>
+<h3>7.2 The Decision Packet and supersession</h3>
+<p>Each decision is written with a <strong>Decision Packet</strong>: a record, built at the moment of writing rather than reconstructed later, of everything the decision was made with. It holds the run that produced the report, the cutoff time of the data, the code version, a fingerprint of the data used, the versions of the metric and source registries and, where a broker preview was run, the expected costs. The packet is <strong>immutable</strong>: a database trigger refuses any attempt to edit or delete it, and the same is true of the record of rule breaks.</p>
+<p>Decisions are never edited. A change, whether a new status, a close or a correction, is made by <strong>supersession</strong>: a new decision is written, and the old one gains a single pointer to its successor, the one change it ever accepts. A superseded decision is frozen. The register refuses to supersede a decision that has already been superseded, because a chain with two live heads is not a chain. The reason is the grading trail. If decisions could be edited, a decision could be made to look right after the fact, and the record the system is graded against would be worthless.</p>
+<h3>7.3 The gate at entry</h3>
+<p>When the operator records a decision, a sequence of checks runs before anything is written. Each was added because a weaker form failed.</p>
+<p><strong>Currency first.</strong> A foreign listing's currency is read from its symbol, and a mismatch between the listing and the declared currency is refused unless explicitly overridden. This check runs even in a dry run, so it is seen before it matters.</p>
+<p><strong>The restricted list.</strong> No recommendation touching a Brookfield-related security may be written. The check runs twice: once in code, before any other validation, which logs the attempt, and once as a database trigger that refuses the row from any writer at all. It is a standing invariant of the system, not a preference.</p>
+<p><strong>Signal freshness.</strong> Each signal a decision cites is checked against its own declared half-life. If any is stale or missing, the decision is still recorded, because an abstention is a decision, but held at draft with the reason stated, and it cannot be promoted in place. The report may still publish; the recommendation may not. This is the state called DECISION_BLOCKED.</p>
+<p><strong>The expression check</strong> compares the chosen instrument with the thesis. On a draft it warns; on an active decision it binds.</p>
+<p><strong>The packet rule.</strong> An active decision must name its book, at least one falsifier, an invalidation and a counter-thesis: the cheapest way the conclusion could be wrong. This is the first version of the Red Team (Part IX), enforced at write time.</p>
+<p><strong>The order gate.</strong> Last, the system reads the cross-book view of the open decisions and asks whether the new one would worsen a declared limit: net beta, sector concentration, interest-rate duration or volatility exposure. The outcome is deterministic. It approves if no limit is worsened. It delays if an input is missing. It asks for a restructure if the volatility limit is worsened. It resizes if a useful fraction of the request fits. It asks for a hedge if net beta is worsened. It rejects if sector or duration is worsened and no useful size fits. Anything short of approval holds the decision at draft unless the operator records an override with a reason, and the override is kept.</p>
+<p>The limits are few and declared (Appendix A). Several of the Operating Doctrine's other numbers, namely the per-position risk tiers, the books' loss stops, the kill-switch ladder and the cap on total open risk across the shorter books, are measured and reported but not yet refused by the gate. The Doctrine states them as rules for the operator. The code enforces the four limits above.</p>
+<h3>7.4 The books</h3>
+<p>The Operating Doctrine defines four books by horizon, and the register knows exactly those four. <strong>Book A</strong> (Allocation) holds the long-horizon exposure, managed inside a band set by the regime (Part III). <strong>Book B</strong> (Swing) holds positions of weeks. <strong>Book C</strong> (Tactical) holds positions of days. <strong>Book D</strong> (Opportunistic) holds rare, small, pre-defined opportunities. Each has its own risk per position and its own loss limits, set by the Doctrine.</p>
+<p>Beside them sits <strong>Book Z</strong>, which is not a book in the register but a set of three benchmark ledgers: <strong>cash</strong> (Treasury bills accruing interest, the "no trade" book), <strong>SPY</strong> held without trading, and a <strong>60/40</strong> of SPY and an aggregate bond fund rebalanced monthly. Each starts at 100 on a fixed date, is marked once per session and never recomputed. Book Z answers the question every book must face: would doing nothing, or doing the obvious thing, have done better? A figure comparing a book with Book Z must say "excess" or "relative to"; it may not present a book's return as if it stood alone.</p>
+<table>
+<thead>
+<tr>
+<th>Book</th>
+<th>Horizon</th>
+<th>What it holds</th>
+<th>How it is bounded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A — Allocation</td>
+<td>Months</td>
+<td>Strategic exposure</td>
+<td>A regime band for net beta; Transition by rule</td>
+</tr>
+<tr>
+<td>B — Swing</td>
+<td>Weeks</td>
+<td>Positions on a thesis</td>
+<td>Per-position risk; a monthly stop</td>
+</tr>
+<tr>
+<td>C — Tactical</td>
+<td>Days</td>
+<td>Short positions on a setup</td>
+<td>Per-position risk; daily, weekly and monthly stops</td>
+</tr>
+<tr>
+<td>D — Opportunistic</td>
+<td>Event-bound</td>
+<td>Rare, pre-defined opportunities</td>
+<td>A small cap per position and in total</td>
+</tr>
+<tr>
+<td>Z — Benchmarks</td>
+<td>Every session</td>
+<td>Cash, SPY, 60/40</td>
+<td>Not traded; marked and never revised</td>
+</tr>
+</tbody>
+</table>
+<h3>7.5 Rule breaks</h3>
+<p>A rule break is a recorded departure from the system's rules, found by code. Some come from reconciling what the broker shows against the register: an execution with no registered decision, an execution against a decision not accepted, the wrong side, more than the registered size, the wrong instrument type, the wrong currency. Others come from the Doctrine's position rules: Book A below its regime floor, a Book B position held long enough to have become something else, a position past its time stop. Each break is written once, with a key that makes a second sighting of the same break a no-op, and the close and the Weekly count them. The Doctrine's target for this count is zero.</p>
+<h3>7.6 Reconciliation against Portfolio Truth</h3>
+<p>Nothing in the system places an order. The broker connection is read-only, enforced by the broker's own server setting rather than by a client flag, and the code contains no order-placing path at all. A validator checks that absence on every run. Because orders are placed by hand, the check that matters happens after the fact: <strong>reconciliation</strong>. Through the trading day, the system reads the account (the <em>Portfolio Truth</em>, a complete snapshot of holdings each time) and requires every fill to match an accepted decision in instrument, side, size and type. A fill that does not match becomes a rule break. Where no snapshot precedes a chain's first fill, the side and size are stated as not judged rather than guessed.</p>
+<h3>7.7 The heat view, P&amp;L and currency</h3>
+<p>The <strong>heat view</strong> sums the open decisions across all four books on four measures: beta-adjusted exposure, sector concentration by look-through weights, interest-rate duration in dollars per point, and volatility exposure. Its purpose is to catch the case where four separate decisions in four books are really one trade. It feeds the order gate and prints in the close and the Weekly. The name has two meanings in the library, so it is worth stating precisely: the Doctrine's <em>heat</em> is total open risk to invalidation across the shorter books. That figure is a rule for the operator, while the heat view is a factor view and does not compute it.</p>
+<p><strong>Realised P&amp;L</strong> is computed from stored fields only: the exit price, the average cost from the last Portfolio Truth before the exit, the quantity and, for a foreign listing, the exchange rate at the exit. It is never typed by hand, and a missing input leaves the P&amp;L absent rather than estimated. Exchange rates come from stored series, never from an assumed parity.</p>
+<p>Two incidents shaped the <strong>currency rules</strong>, and both are in Appendix B. The first (INC-6) was a position in SPY listed in Mexico, held in pesos. Its loss came mostly from the peso and from the listing's basis, and only slightly from SPY itself. Its lesson was written into the rules: <em>a foreign listing is a currency position</em>. Every non-dollar listing must now declare its currency exposure, and an activation that names no currency on either side is refused. The second (INC-8) was a fallback in the code that filled an empty currency with "USD", which recorded a peso close as dollars. Its lesson: <em>a fallback that invents a value is worse than an empty field</em>. An unknown currency is now stored as unknown, one rule judges every write, and corrections are new rows.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s9-part-viii-the-intraday-layer">
+      <summary class="section-head">
+        <span class="section-title">Part VIII — The Intraday Layer</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>8.1 Tactics, not a book</h3>
+<p>The question of day trading was ruled on, and the ruling is narrow. The base rate for individual day traders is close to one-sided. In large studies only a very small fraction are reliably profitable after costs, and the system does not assume it is the exception. The intraday layer is therefore <strong>not a fifth book</strong>. It is an expression-and-timing layer for Books B and C, used to time the entry and exit of decisions those books have already approved. Most of the familiar intraday patterns (opening ranges, VWAP plays, most gap trades) enter only as execution tactics in that role.</p>
+<h3>8.2 At most two paper engines</h3>
+<p>Beside the tactics layer, the ruling allows <strong>at most two paper engines</strong>: systems that generate their own intraday trades on paper to test a mechanism. The first, when built, is a dealer-positioning engine for zero-day options, the mechanism the Dealer's Hand derives. The second is a scheduled-event engine, after an offline study of how markets react to surprises.</p>
+<p>Before an engine's first trade it must register four things: a paragraph stating its mechanism, the unconditional base rate set beside the edge it claims, a target sample size and a kill criterion. The kill criterion is fixed by ruling and not chosen per engine. An engine is retired when, after at least forty graded paper trades, its expectancy after modelled costs is zero or worse, or its Brier score is worse than the unconditional base rate's. It is never resized before that sample exists.</p>
+<p>An engine's trades are <strong>ledger entries graded against stored bars</strong>. They are never orders and never Decision Packets. They carry the engine's identity, they do not draw on the operator's attention budget, and the operator reviews the engine, not its individual trades. The dealer engine carries further conditions: a base rate from a minimum run of stored close verdicts, and defined-risk structures only.</p>
+<h3>8.3 The state vector</h3>
+<p>The engines and the tactics layer will read one intraday <strong>state vector</strong>, built from measurable variables only: the opening gap and how much of it has filled; the opening range and whether it has broken; the price against VWAP; breadth, measured on the sector funds; realized against implied volatility; the VIX term structure; dealer positioning; how near the next scheduled event is; volume against its twenty-session average; and whether the session agrees with the trend dimension. It carries no narrative labels, and no engine reads it until an engine is registered.</p>
+<h3>8.4 What is built</h3>
+<p>None of the intraday layer is built. No engine is registered, the register's list of engine identities holds only the reports and the operator, and the intraday capture times the state vector needs do not yet run. The order gate, the heat view and reconciliation, which the layer will use, do exist. The intraday build and the first engine's registration are scheduled after the work in progress, and the Daily Cascade paper's description of intraday slots should be read as that plan, not as running reports.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s10-part-ix-how-the-system-learns">
+      <summary class="section-head">
+        <span class="section-title">Part IX — How the System Learns</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>9.1 The probability ledger</h3>
+<p>Every probability the system states is written to the <strong>probability ledger</strong> before its outcome is known, with its resolution criterion declared at the same moment. When the outcome arrives, code resolves the entry and scores it with the <strong>Brier score</strong>: the square of the difference between the probability and the outcome (1 if it happened, 0 if not), averaged over many forecasts. Lower is better. A forecaster who always says 50% scores 0.25, so 0.25 is the coin, and any source above it is doing worse than a coin. The Weekly prints each forecasting source's running Brier score beside the coin, with its sample size. A set of scenario weights must sum to one, and an incoherent set is reported as incoherent rather than quietly normalised.</p>
+<h3>9.2 Base rates as the baseline</h3>
+<p>The first forecasts the reports make are deliberately humble: <strong>base-rate outlooks</strong>. Each is the empirical frequency of a declared rule over SPY's stored history, such as how often the week's low has held, or how often SPY stays above its 20-day average for the next session, with its sample size, clamped short of certainty. These are written to the ledger before printing and resolved from the same stored prices. They are the baseline every richer forecast must beat. A view that cannot outscore the base rate has not earned a place in the reports, and the same standard appears in the kill criterion of every intraday engine. The tables of the Base Rates paper are stored the same way, as denominators that can never act as signals.</p>
+<h3>9.3 Graded calls and the grader</h3>
+<p>The <strong>grader</strong> grades every recorded decision from stored prices only: taken, declined and draft alike. Grading the declined and draft decisions is what turns "doing nothing" into something measurable. It shows what the operator's filter cost and what it saved. Missed opportunities are graded only against setups that were flagged and declined, never against hindsight. Evaluation stays in code: no model writes counterfactual attribution.</p>
+<h3>9.4 The dealer scorecard</h3>
+<p>Each session the close stores the dealer row: the evening's positioning and levels, SPY's own implied volatility and put/call ratio, and the session's actual range. From these rows the Weekly computes flags per session. <em>Pinned</em> means the close finished very near max pain. <em>Held</em> means a wall contained the session's extreme and the close. <em>Amplified</em> means the flip was crossed and the realized range far exceeded the implied. A check flag marks SPY's own implied volatility diverging from the VIX. A flag is absent when an input is missing; it is never guessed. The prose may say "pinned", "held" or "amplified" about a session only where that session's flag says so. Over a month, these rows become the Monthly's dealer retrospective, which prints "insufficient sessions" until there are enough.</p>
+<h3>9.5 The change ladder</h3>
+<p>Rules change only through a ladder of five tiers, from the most local to the most fundamental: tactical, regime, relationship, structural, and durable principle. Each step up requires evidence: a declared minimum of graded cases (twenty at the second tier), and no more than one tier per review cadence, the cadence of the tier being entered. The ladder exists to stop the most common failure of a learning system: one vivid outcome changing a deep rule.</p>
+<h3>9.6 The Red Team</h3>
+<p>The <strong>Red Team's</strong> objective is to find the cheapest way a conclusion could be wrong, at a stated cost in review time. Its first version is the packet rule in Part VII: no active decision without a falsifier, an invalidation and a counter-thesis, enforced at write time. A second version, a blinded review pass, is gated on the cost-measurement stage of the broker gates and on a minimum number of graded packets.</p>
+<h3>9.7 The attention budget</h3>
+<p>The operator's attention is the budget everything else spends, and it is measured. The ruled budget is <strong>seven packets approved a week and one sitting of at most two hours a week</strong>. A packet deferred for want of attention is recorded as an abstention with that reason, so the cost of the budget is itself graded. The Weekly prints <strong>three counts</strong>: packets against seven, sitting hours against two, and rulings taken in chat, which are measured but not capped. A log of every sitting and ruling, with the minutes it took, feeds them.</p>
+<h3>9.8 Incidents and the sittings where values are ratified</h3>
+<p>An <strong>incident</strong> is a failure that reached production or nearly did: a unit that silently did not run, a prompt silently truncated, a currency invented by a fallback. Each is logged with what happened, the fix, the gate that now holds the fix, and a one-line lesson. The lessons that bear on the operator's rules are carried into the Operating Doctrine's dated appendix, so the Doctrine records not only what the rules are but what taught them.</p>
+<p>Values, meaning thresholds, mappings, budgets and limits, are ratified at sittings, never between them. The <strong>Doctrine monthly</strong> is the regular sitting: it takes a numbered agenda, rules item by item, and records minutes with the time of each ruling. The <strong>Audits</strong> are the larger, rarer sittings that review the whole system, set its roadmap and rule on the questions the monthly sitting defers. Between sittings, the configuration stands as last ratified, and anything marked "proposed" in it waits for the next one.</p>
+<table>
+<thead>
+<tr>
+<th>Instrument</th>
+<th>What it measures</th>
+<th>Baseline it must beat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Probability ledger</td>
+<td>Every stated probability, scored by Brier</td>
+<td>The coin, 0.25</td>
+</tr>
+<tr>
+<td>Base-rate outlooks</td>
+<td>Simple empirical frequencies</td>
+<td>They are the baseline</td>
+</tr>
+<tr>
+<td>Grader</td>
+<td>Every decision: taken, declined, draft</td>
+<td>Book Z and the declined alternative</td>
+</tr>
+<tr>
+<td>Dealer scorecard</td>
+<td>Whether dealer levels behaved as positioned</td>
+<td>The session's implied range</td>
+</tr>
+<tr>
+<td>Change ladder</td>
+<td>Whether a rule may move, and how far</td>
+<td>A minimum graded N per tier</td>
+</tr>
+<tr>
+<td>Red Team</td>
+<td>The cheapest way a decision is wrong</td>
+<td>A falsifier stated in advance</td>
+</tr>
+<tr>
+<td>Attention budget</td>
+<td>What the operator's time was spent on</td>
+<td>Seven packets, two hours</td>
+</tr>
+<tr>
+<td>Incident log</td>
+<td>Failures, fixes and lessons</td>
+<td>Zero repeats</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s11-part-x-reading-the-reports">
+      <summary class="section-head">
+        <span class="section-title">Part X — Reading the Reports</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>10.1 Targets</h3>
+<p>Each cadence has a reading target: about five minutes for the close, twenty for the Weekly and forty for the Monthly. These are enforced through budgets rather than by hope. Each report has a ceiling on prose words and on charts (Appendix A). Only prose counts toward the word ceiling; tables and code-written lines do not, because they are the facts the prose serves. When a report runs over, code cuts the third paragraphs of the deep sections first, then the second paragraphs, and marks the cut "(trimmed)". The model is never asked to summarise to fit. The Weekly prints its own estimated reading time in its header.</p>
+<h3>10.2 How to read a stacked report</h3>
+<p>Read the claim lines first. Ten bold sentences give the whole edition in under a minute. Then look for the diamonds. A ◆ marks what changed since the last edition of the same cadence, and an unchanged section has already collapsed to one line, so attention goes where something moved. Read What doesn't fit next, whatever the claim lines say, because it is the one section built to show where the system's own picture is under strain. Footnotes marked "Not yet tracked" are the honest edge of the system's knowledge. They do not need reading every day, but they are where the gaps are. A note saying a paragraph was withheld is a working audit, not a broken report. The figures in that section's table still stand.</p>
+<p>The words in the reports have fixed meanings, listed in the glossary at the end of the Weekly. <em>Pending</em> means a reading has crossed its line but not for long enough to count. <em>Open</em> means a gap has been wide for at least two sessions. An <em>exception</em> is a gap open five sessions or more, or a reading at a five-year extreme. "Outside 10–90%" means a reading in the outer fifth of its history. A <em>base rate</em> is how often something has happened, with its sample size. <em>Brier</em> is the forecast score, where 0.25 is the coin.</p>
+<h3>10.3 A reading order for a busy week</h3>
+<p>When time is short, the system is designed to degrade gracefully. On a weekday, the close's claim lines and its What doesn't fit take two minutes; the morning anchor's What changed block takes one. On Sunday, the Weekly's header, its "Changed since last Weekly" block, The read and The book take five minutes and cover the decisions that need attention. The Monthly's <em>month in one page</em> and <em>where our read lands</em> take ten. Everything else can wait for a quieter week, because the system's record is written to be read late. Every figure is dated, every forecast is in the ledger, and nothing a report said is lost by not being read on the day.</p>
+<table>
+<thead>
+<tr>
+<th>If there is time for</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 minute, weekday</td>
+<td>The anchor's What changed</td>
+</tr>
+<tr>
+<td>2 minutes, weekday</td>
+<td>The close's claim lines and What doesn't fit</td>
+</tr>
+<tr>
+<td>5 minutes, Sunday</td>
+<td>The Weekly's header, Changed since last Weekly, The read, The book</td>
+</tr>
+<tr>
+<td>10 minutes, the 1st</td>
+<td>The Monthly's one page and where our read lands</td>
+</tr>
+<tr>
+<td>A sitting</td>
+<td>The Weekly whole; the ledger's Brier table; open rule breaks</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s12-appendix-a-dated-timers-thresholds-budgets-sources-charts-as">
+      <summary class="section-head">
+        <span class="section-title">Appendix A — Dated: Timers, Thresholds, Budgets, Sources, Charts (as of 6 October 2026)</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><em>Everything in this appendix is as of 6 October 2026, from the repository at that date: the systemd units in <code>deploy/systemd/</code>, <code>config/reporting_stack.yaml</code>, <code>config/risk_limits.yaml</code>, <code>config/market_state.yaml</code> and the feed modules. All times are U.S. Eastern. Whether each optional timer is enabled on the production box is not recorded in the repository.</em></p>
+<p><strong>Timers.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Unit</th>
+<th>When</th>
+<th>What it runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Voices and news scan</td>
+<td>Weekdays 06:15</td>
+<td>The voices scan, then the voice seeds</td>
+</tr>
+<tr>
+<td>Overnight fetch</td>
+<td>Weekdays 06:45</td>
+<td>Correction pass on prices; Japan and China writers; events</td>
+</tr>
+<tr>
+<td>Morning anchor</td>
+<td>Weekdays 07:00</td>
+<td>The morning report</td>
+</tr>
+<tr>
+<td>Heartbeat</td>
+<td>Daily 08:30</td>
+<td>Health check; verdict and exit code</td>
+</tr>
+<tr>
+<td>Broker sync</td>
+<td>Weekdays, every 30 minutes, 09:00–17:00</td>
+<td>Portfolio Truth; reconciliation; news top-up</td>
+</tr>
+<tr>
+<td>Closing-auction sampler</td>
+<td>Weekdays 15:49</td>
+<td>Auction imbalance (dormant pending entitlement)</td>
+</tr>
+<tr>
+<td>End-of-day pull</td>
+<td>Weekdays 16:10</td>
+<td>Every feed but the loggers; events; option chains and exposures</td>
+</tr>
+<tr>
+<td>Daily close</td>
+<td>Weekdays 16:45</td>
+<td>Price re-pull; the object; the close</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>Sundays 05:00</td>
+<td>The Weekly</td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td>The 1st, 07:30</td>
+<td>The Monthly</td>
+</tr>
+<tr>
+<td>Backup</td>
+<td>Daily 02:30</td>
+<td>Off-box backup</td>
+</tr>
+<tr>
+<td>Broker gateway restart and watchdog</td>
+<td>Held back</td>
+<td>Enabled only after a witnessed clean start</td>
+</tr>
+</tbody>
+</table>
+<p>A deploy enables only a declared list of timers: the end-of-day pull, the close, the heartbeat, the broker sync, the backup, the overnight fetch and the morning anchor. The Weekly, Monthly, voices and auction timers are enabled by hand. Deploy windows are weekdays 09:05–15:40 and 17:20–23:30, never 16:00–17:20. They are an operating convention, not a setting in the repository.</p>
+<p><strong>The stack.</strong> Configuration <code>reporting-stack-v1</code>, ratified 2 October 2026. Prose budgets: close 1,000 words and 3 charts; Weekly 3,500 words and 10 charts (raised from 6 on 4 October); Monthly 7,000 words and 10 charts. Words per section by depth, daily: deep 150, medium 80, light and short 35, line 25. Weekly: deep 420, medium 220, light and short 60, line 40. Reading time printed by the Weekly is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart.</p>
+<p><strong>Deep triggers.</strong> Plumbing (daily): a top-tier release or a 10- or 30-year auction this session or next; or a one-session move of ±10 bp in the 10- or 30-year yield, ±8 bp in the 2s10s curve or ±15 bp in the high-yield spread. What's priced (daily and Weekly): ±10 bp in a 5-year, 10-year or 5y5y breakeven; ±12.5 bp in the implied rate for any of the next four FOMC meetings; ±10 points in a watched prediction-market probability. Pending, read by nothing yet: a consensus EPS revision of 1% (Weekly) and one-year inflation expectations of 0.3 points.</p>
+<p><strong>The market-state object.</strong> Rules <code>market-state-v1.10</code>; method <code>market-state-method-8</code> (v1.11–v1.12 and methods 9–10 are retired numbers). Persistence: 2 sessions. Window: five years. Staleness: 3 × a series' own allowance (daily 2 sessions, weekly 8, monthly 32, quarterly 95). Percentile bands: 66 and 33. Contradictions open at |gap z| ≥ 2.0 for 2 sessions and become exceptions at 5 sessions. Extremes: percentile ≤ 5 or ≥ 95. Volatility dial: VIX subdued below 14, normal 14–20, elevated 20–30, crisis 30 and above. Term structure runs as a dual trial from 23 September to 23 December 2026, with the VIX3M/VIX ratio published.</p>
+<p><strong>Risk limits.</strong> <code>risk-limits-v1</code>, ratified 2 October 2026. Capital base $300,000. Net beta capped at the regime band's top plus 15 points. Sector at most 30% of capital. Volatility exposure at most 0.5% of capital per vol point. Duration at most 5% of capital per 100 bp. Book A bands (net equity beta): Expansion 60–80%, Overheat 40–60%, Tightening 20–40%, Contraction 20–40%. Transition: the lower half of the departing band, for 10 sessions after the macro dial changes. Mapping <code>dial-to-doctrine-v1.1</code>. Attention budget: 7 packets and 2 sitting hours a week.</p>
+<p><strong>Prose and audits.</strong> Model pinned in configuration; one call per report paragraph or section, with one retry for stacked sections. Close paragraph at most 2,600 characters. Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget.</p>
+<p><strong>Sources.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Price symbols</td>
+<td>53 (9 with daily open, high and low)</td>
+</tr>
+<tr>
+<td>Intraday bar instruments</td>
+<td>10 (the 9-instrument tape set plus the e-mini future)</td>
+</tr>
+<tr>
+<td>FRED series</td>
+<td>83 (59 core, 24 signal)</td>
+</tr>
+<tr>
+<td>Official writers</td>
+<td>13 writers, 96 series</td>
+</tr>
+<tr>
+<td>External tables</td>
+<td>10 writers, 54 series</td>
+</tr>
+<tr>
+<td>Loggers</td>
+<td>6 (5 watched for freshness)</td>
+</tr>
+<tr>
+<td>Prediction markets</td>
+<td>2 venues</td>
+</tr>
+<tr>
+<td>Fed funds futures</td>
+<td>About 10 contracts</td>
+</tr>
+<tr>
+<td>Option chains</td>
+<td>13 symbols by yfinance; SPX and one other by a second vendor, ingestion only</td>
+</tr>
+<tr>
+<td>Voices sources</td>
+<td>19 declared, 5 unreachable as of 5 October</td>
+</tr>
+<tr>
+<td>Event sources</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scans outside the repository.</strong> The Guide to the Markets read: 06:56 on the 6th of January, April, July and October (schedule per the scheduled task). The Monthly signal scan: the 25th (schedule per the scheduled task). The Saturday crypto mechanism scan: about 08:00 Saturdays (schedule per the scheduled task). The consensus-drift scan: the 20th of even months (schedule per the scheduled task). The reading-shelf publication watch: the 12th and the 27th, 06:58.</p>
+<p><strong>Chart sets.</strong> The close: C1 SPY session (5-minute candles, VWAP, dealer levels); C2 sixty daily candles with averages; C3 by rule (an open gap's z, or the curve). The Weekly: W1 SPY six months; W2 SPY two years, weekly; W3 the curve and high-yield spread over one and ten years; W4 speculative positioning z-scores; W5 the week's sector and style returns; W6 open contradictions (only when one is open); W7 SPY over two weeks with the overnight future; W8 six markets with averages; W9 positioning and sentiment gauges; W10 prediction-market odds and the futures path. The Monthly (planned): M1–M9, including a three-year weekly chart, a ten-year monthly chart with drawdown, the dealer retrospective, the term premium, twenty years of high-yield spread, positioning, what's priced at month start against month end, scenario weights with Brier, and Book Z.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s13-appendix-b-the-incident-log-to-date-as-of-6-october-2026">
+      <summary class="section-head">
+        <span class="section-title">Appendix B — The Incident Log to Date (as of 6 October 2026)</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Date</th>
+<th>What happened</th>
+<th>Fix and lesson</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INC-1</td>
+<td>27 Sep 2026</td>
+<td>The off-box backup never ran under its unit</td>
+<td>Unit corrected; the heartbeat gained a backup field</td>
+</tr>
+<tr>
+<td>INC-2</td>
+<td>27 Sep 2026</td>
+<td>Narrative prompts silently truncated; every close for four days and the first Weekly were written from a partial brief</td>
+<td>Whole templates now reach the model, with a gate that proves it</td>
+</tr>
+<tr>
+<td>INC-3</td>
+<td>29 Sep 2026</td>
+<td>The backup stalled on a cloud-storage quota error until its unit timed out</td>
+<td>Stall limits, a per-tree cap, a clean kill record</td>
+</tr>
+<tr>
+<td>INC-4</td>
+<td>30 Sep 2026</td>
+<td>The overnight fetch timed out three mornings running while the heartbeat said healthy</td>
+<td>Fetch first, an early pull, a shorter limit; the heartbeat now reads each unit's own result</td>
+</tr>
+<tr>
+<td>INC-5</td>
+<td>1 Oct 2026</td>
+<td>The implied-volatility solver missed its accuracy bound on the index chain</td>
+<td>A finding, not a fault: the index stays out of the solved-volatility path</td>
+</tr>
+<tr>
+<td>INC-6</td>
+<td>1 Oct 2026</td>
+<td>A peso-listed SPY short was held on a draft decision and closed at a loss of about $8,950, mostly from the currency and the listing's basis</td>
+<td><em>A foreign listing is a currency position</em>: structured exit fields, an FX series, a currency gate</td>
+</tr>
+<tr>
+<td>INC-7</td>
+<td>1 Oct 2026</td>
+<td>Closed positions persisted in Portfolio Truth for a week</td>
+<td>Each sync is now the whole book; absent holdings are written as zero</td>
+</tr>
+<tr>
+<td>INC-8</td>
+<td>2 Oct 2026</td>
+<td>A fallback recorded a peso close as dollars</td>
+<td><em>A fallback that invents a value is worse than an empty field</em>: unknown stays unknown; one rule judges every write</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s14-appendix-c-assumptions-and-falsifiers">
+      <summary class="section-head">
+        <span class="section-title">Appendix C — Assumptions and Falsifiers</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><strong>Mechanisms this paper assumes.</strong></p>
+<ol>
+<li><em>One regime prevents contradictory decisions.</em> Falsified if two reports print different regimes for the same session, which a gate checks by construction, or if a decision cannot be attributed to the object it was taken under.</li>
+<li><em>Auditing figures against a payload keeps prose honest about numbers.</em> Falsified by any printed paragraph containing a figure not in its payload, or a true figure under a false name. The label audit exists because the second happened once.</li>
+<li><em>Point-in-time reads make past editions reproducible.</em> Falsified if a dry run of a past edition prints a figure that was not knowable at its cutoff. The rule that a <code>--week-ending</code> dry run reads at the scheduled run time exists because one did.</li>
+<li><em>Grading in code against a coin and a base rate distinguishes skill from luck over time.</em> Falsified only slowly. Evidence and Inference shows how long a sample must be before a Brier difference means anything, and this paper claims no result yet.</li>
+<li><em>Supersession preserves the grading trail.</em> Falsified by any edit to a stored packet or decision, which the database refuses.</li>
+</ol>
+<p><strong>Regularities with dates.</strong> The Brier coin of 0.25 is arithmetic, not a regularity. The thresholds in Appendix A were set by ruling, not estimated, and are falsified in the operational sense if a trigger fires every session or never over a month. That is the test the Doctrine monthly applies.</p>
+<p><strong>Standing-register items touching this paper.</strong> The intraday layer (Part VIII) is unbuilt and scheduled. The stacked Monthly, its chart set and its depth column are unbuilt and scheduled. The Quarterly Structural, Disruptive Themes, the Top &amp; Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.</p>
+<p><strong>Dated figures in this paper.</strong> Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 6 October 2026, from the configuration files named there.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/reporting-system-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

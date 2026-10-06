@@ -1,6 +1,6 @@
 # The White Paper Library — A Reader's Guide
 
-*Twenty-five companion documents as of 7 September 2026 — twenty-one full papers, one doctrine, and three Draft-1 editions written the week the execution layer was built, roughly 378,000 words. Twenty-five numerals on the roster and twenty-five papers in `docs/whitepapers/`: the roster is complete for the numerals assigned so far, and Phase 2 of the corpus audit adds more.
+*Twenty-six companion documents as of 6 October 2026 — twenty-one full papers, one doctrine, three Draft-1 editions written the week the execution layer was built, and the System shelf's reader's guide to the reporting system (XXXIII), roughly 401,000 words. Twenty-six numerals on the roster and twenty-six papers in `docs/whitepapers/`; XXVI–XXXII are reserved by Audit 2's approved roster for the Phase 2 papers, which is why the guide to the reporting system took XXXIII.
 The reports say what is happening; the papers explain the machinery, so each
 refresh can be read quickly without re-deriving the framework. Every report has
 at least one companion, and the tail watch has its own. Per the Final
@@ -49,6 +49,7 @@ registry.*
 | XVIII | The Operating Doctrine | Positioning & the book |
 | XIX | Building and Validating a Systematic Book | Positioning & the book |
 | XXIII | Evidence and Inference | Positioning & the book |
+| XXXIII | The Reporting System: A Reader's Guide | System |
 
 **Back matter**
 - [In draft and planned](#in-draft-and-planned)
@@ -85,6 +86,7 @@ registry.*
 |  | **XVIII** | The Operating Doctrine | the Doctrine | How every report is consumed; how capital is deployed | **v1.0 · Doctrine** · ~25,550 words | The four books, the three regime dials, the kill-switch ladder, the volatile-day protocol, twenty-nine rules each traced to its Wizard origin and its enforcement point, the honest arithmetic of the return target, and the adoption sequence. Changes only at the monthly session |
 |  | **XIX** | Building and Validating a Systematic Book | Systematic Book | Trading infrastructure; the register; IBKR gates | Draft 1 · ~9,100 words · as-built | The register and its immutable packets, DECISION_BLOCKED, the three senses of read-only (and which was false), execution mechanics, sizing and cost as code, the five named failure classes, tax as an expression decision, the compliance boundary, the gate ladder and the honest not-yet-built list |
 |  | **XXIII** | Evidence and Inference: How to Read Your Own Ledger | Evidence and Inference | How every register figure is read; the promotion gates; the trust matrix's sample-size rules | Draft 1 · ~4,050 words, 5 figure placeholders — none drawn, nothing in `docs/figures/` | The error bar on everything — a year cannot exclude zero, two years give the sign, five give the size; effective sample size; **regime as a sample size** (the doctrine's most important cut is permanently the thinnest); forking paths, overfitting, survivorship, outcome bias; Bayes in sentences and mechanism as evidence; **the shadow outcome as a 3.5× sample multiplier**; the decidability table of every register cut at three horizons; Kelly under edge uncertainty; edge decay detected in the mechanism, not the P&L |
+| System | **XXXIII** | The Reporting System: A Reader's Guide | The Reporting System | Every report; the register; the operator's reading | Draft 1 · ~14,500 words, 1 figure in `docs/figures/` | How the machine works end to end, for the person who reads it — **the store and its three clocks** (what happened, when it was knowable, when it was written) and the point-in-time and vintage rules; the feed families and which report reads which; **the market-state object** — eight dimensions, three dials, the gap z-score in plain words, exceptions, persistence, the dial-to-Doctrine mapping and Transition; **the ten-section stack**, its depths and computed triggers, and each report as built or as only specified; **how the prose is made honest** (code computes, the model copies, the audits withhold with a reason); the scans and their lack of decision rights; the register, the books and Book Z; the intraday layer as ruled and unbuilt; how the system learns (the ledger and Brier against the coin, base rates, the dealer scorecard, the change ladder, the Red Team, the attention budget); and how to read a stacked report in a busy week — with every timer, threshold and source count in a dated appendix |
 
 *Numerals are the canonical series IDs. They were first assigned in reading order and are now stable accession numbers — later papers took the next free numeral wherever they sit — so reading order is what the tables above show, not the numeral sequence. Numerals are never reassigned. Where a paper's masthead carries a different number, the masthead is relabelled to match this guide when it is committed to `docs/`. Word counts marked (est.) are estimated from page counts; the others are measured. Detailed summaries follow, one page per paper. File this guide in the repo's
 `docs/` index so future sessions know the library exists.*
@@ -127,6 +129,7 @@ what a paper needs; read across to see what breaks if it is wrong.
 | XVI Positioning & Flows *(Draft 1.2)* | The mechanical holders, their calendars, absorption | II (price-insensitive buyers), XIII (dealer flow), XI (vol-control), XIV (trigger levels) | XII's Confirmation block; XVIII's trust matrix rows and Rule 16 factor map; XIX's heat calculator; XV |
 | XVII Portfolio Construction *(Draft 1)* | Cross-asset sizing, hedge cost, rebalancing disciplines | X, XI, IV, V, VI, VIII, IX, XV | XVIII's Book A bands; the book |
 | XVIII Operating Doctrine *(v1.0)* | Books, dials, switches, rules, target arithmetic, adoption | Every paper (consumes the whole library); XIII (gamma dial), XI (vol dial), III (macro dial), X (override) | XIX (what enforces it); the operator |
+| XXXIII The Reporting System *(Draft 1, as-built)* | How the reports, the store, the state object, the register and the grading fit together | XII, XIII, XVIII, XIX, XX, XXIII; the repository's configuration | The operator's reading of every report |
 | XIX Systematic Book *(Draft 1, as-built)* | Register, execution, sizing-as-code, validation, tax, compliance, the gate ladder | XVIII (the rules it enforces), XII, XIII, XIV, XVI, X (calibration lessons) | The execution layer; Gate 2 |
 
 **Where a wrong paper does the most damage.** Three papers are load-bearing for
@@ -1324,6 +1327,42 @@ the system can and cannot automate.
   banks, insurers, the asset-heavy — and nothing where buybacks have consumed
   the equity. An insurer's beat from reserve releases is not a beat from
   underwriting.
+
+---
+
+## XXXIII. The Reporting System: A Reader's Guide
+**Companion to: every report, the register and the operator's reading · Draft 1 · ~14,500 words (about 11,400 of body prose), ten parts + three appendices, 1 figure · as-built (6 Oct 2026)**
+
+**What it contains.** The System shelf's overview: the one paper that walks a
+number from a public source to a graded lesson. Part I is the purpose — one
+store, one regime, one register, and the organising principle that code
+establishes facts and measures outcomes. Part II is the store and its three
+clocks, the point-in-time and vintage rules, and every feed family with what it
+contributes and who reads it. Part III is the market-state object — eight
+dimensions, three dials, the contradiction table with the gap z-score explained
+for a reader, exceptions, persistence, and the mapping from the dials to the
+Doctrine's regimes with Transition computed. Part IV is the ten-section stack,
+its depths and computed triggers, the close, the Weekly and the Monthly as
+built, and the Quarterly Structural, Disruptive Themes, Top & Bottom and the
+Thailand quarterly as specified but not built. Part V is how the prose is made
+honest — the payload the model copies from, the audits, withhold-with-reason and
+the one retry, no stored source not printed, attributions not causes. Part VI is
+the scans, none with decision rights. Part VII is the register, the packet, the
+gate at entry, the books and Book Z, rule breaks, reconciliation and the
+currency rules. Part VIII is the intraday layer as ruled and unbuilt. Part IX is
+how the system learns; Part X is how to read the reports in a busy week.
+Appendix A holds every timer, threshold, budget and source count, dated.
+
+**Timeless takeaways:**
+- **One regime, or none** — a report that computed its own regime could disagree
+  with the close's, and a decision could then not be attributed to the market
+  it was taken in.
+- **Code computes, the model copies, the audit withholds** — a withheld
+  paragraph is a working audit, and the section's facts still print.
+- **Knowable, not happened** — every read asks what was knowable at the cutoff,
+  so a past edition can be replayed as it was.
+- **Research proposes, sittings ratify** — no scan, venue or model changes a
+  rule; the change ladder and the attention budget decide what may.
 
 ---
 
