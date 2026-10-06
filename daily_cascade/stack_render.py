@@ -1,5 +1,5 @@
 """
-The daily close as the ten-section stack. DATA AND PLACED PROSE ONLY. (T1)
+The stacked editions' HTML: the daily close and the Weekly, one renderer. (T1; T2.5)
 
     html = stack_render.render(payload, edition, charts, mode="email")
 
@@ -8,35 +8,84 @@ TWO EDITIONS OF ONE DOCUMENT. `mode="email"` references each chart as
 `mode="archive"` references the SVG written beside the HTML on disk. Everything
 else is byte-for-byte the same.
 
-Each section prints, in order: its title (and the trigger when a conditional
-depth fired); its claim line in bold, or the reason it was withheld; "(unchanged
-since <date>)" and nothing more when it collapsed; its paragraphs; its items, a ◆
-before each that changed since the prior edition; its table; its charts; and a
-"Not yet tracked" footnote. "(trimmed)" marks a section the budget cut.
+THE FIXED ORDER INSIDE EVERY SECTION (T2.5 item 2, ruled 5 Oct 2026): the header;
+the claim line; the table(s) -- the section's, then each sub-section's under its
+own small heading, then any code-written lines as a table of their own; the
+chart(s); ONE paragraph; the footnote. A section with no new facts prints its
+header and its footnote and nothing else (item 5).
 
-The detail tables of the pre-stack close follow the stack, unchanged, so nothing
-the report used to carry is lost.
+THE STYLES (item 10), inline because Gmail strips stylesheets, and the same
+constants for every stacked report: the section header; the claim line, bold and
+larger; the table, with a header row, light zebra rows, numbers right-aligned and
+at most six columns; the chart with a small italic caption; the paragraph; the
+footnote, small and grey. Nothing prints as a list.
+
+The run's metadata -- stack version, word count, as-of cutoff, run id -- sits in a
+small footer with the one line that points to the Reader's Guide (item 7).
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
+from . import readability as rd
 from . import render as base
-from . import state_block
 
-esc, NOTE, TBL, TH, THL, TD, TDL, ABSENT, WARN = (
-    base.esc, base.NOTE, base.TBL, base.TH, base.THL, base.TD, base.TDL, base.ABSENT,
-    base.WARN)
-H2 = base.H2
+esc = base.esc
 DIAMOND = "◆"
-# THE SECTION HEADER (T2.2 item 1): "number · name — subtitle", the name in the
-# heading's own weight and colour, the subtitle in a lighter, italic, muted face
-# -- so a header can never be mistaken for the bold claim line beneath it.
-SUBTITLE = "font-size:13px;font-weight:400;font-style:italic;color:#5a6b7a"
-H3 = ("font-size:13px;font-weight:600;color:#0d2b45;margin:14px 0 4px 0;"
-      "border-bottom:1px solid #e6ebef;padding-bottom:2px")
-TABLE_NOTE = "font-size:11.5px;color:#334155;margin:4px 0 2px 0;line-height:1.45"
+
+# ---- the six element styles (item 10) -------------------------------------
+WRAP = ("font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,"
+        "sans-serif;font-size:13px;color:#1a1a1a;background:#ffffff;"
+        "max-width:720px;margin:0 auto;padding:12px;")
+H1 = "font-size:20px;margin:0 0 4px 0;color:#0d2b45;font-weight:700;line-height:1.3"
+SUB = "font-size:12.5px;color:#43525f;margin:0 0 12px 0;line-height:1.5"
+SECTION = ("font-size:13px;margin:26px 0 8px 0;padding-top:8px;color:#0d2b45;"
+           "font-weight:600;text-transform:uppercase;letter-spacing:0.04em;"
+           "border-top:2px solid #0d2b45")
+SUBTITLE = ("font-size:12px;font-weight:400;font-style:italic;color:#5a6b7a;"
+            "text-transform:none;letter-spacing:0")
+CLAIM = ("font-size:15.5px;font-weight:700;line-height:1.4;color:#0d2b45;"
+         "margin:0 0 10px 0")
+H3 = ("font-size:12px;font-weight:600;color:#0d2b45;margin:12px 0 4px 0")
+# AT 400 PX (T2.5 item 10): a table wider than the screen scrolls inside its
+# own box (SCROLL) instead of widening the page; a number never breaks inside
+# itself (TD) -- a cell of several, "a / b / c", wraps at its spaces (TDW); and a
+# long unbroken string in a footnote or caption -- a path, a URL -- wraps
+# anywhere, so nothing pushes the page past the screen.
+SCROLL = "overflow-x:auto;max-width:100%;margin:0 0 10px 0"
+TBL = ("border-collapse:collapse;width:100%;font-size:12px;margin:0;"
+       "font-variant-numeric:tabular-nums")
+TH = ("text-align:right;padding:5px 6px;background:#e9eef3;color:#0d2b45;"
+      "font-weight:600;border-bottom:1px solid #c5d0db")
+THL = ("text-align:left;padding:5px 6px;background:#e9eef3;color:#0d2b45;"
+       "font-weight:600;border-bottom:1px solid #c5d0db")
+TD = ("text-align:right;padding:4px 6px;border-bottom:1px solid #edf1f4;"
+      "white-space:nowrap")
+TDW = "text-align:right;padding:4px 6px;border-bottom:1px solid #edf1f4"
+TDL = "text-align:left;padding:4px 6px;border-bottom:1px solid #edf1f4"
+ZEBRA = "background:#f6f8fa"
+FIG = "margin:6px 0 12px 0"
+IMG = "max-width:100%;height:auto;display:block"
+CAPTION = ("font-size:11px;font-style:italic;color:#5a6b7a;margin:3px 0 0 0;"
+           "line-height:1.4;overflow-wrap:anywhere")
+PARA = "font-size:13.5px;line-height:1.6;margin:4px 0 10px 0;color:#1a1a1a"
+FOOT = ("font-size:11px;color:#6b7785;margin:2px 0 0 0;line-height:1.45;"
+        "overflow-wrap:anywhere")
+
+# Kept for callers that still read the old names.
+TABLE_NOTE = FOOT
+NOTE = FOOT
+H2 = SECTION
+
+# A NUMBER, not a name that starts with one: "4.289%", "+4 bp", "772.65 / 758.79"
+# and "22 minutes" are right-aligned; "10-year yield" and "2026-10-02" are not.
+_NUMERIC = re.compile(r"^[+\-−±]?\$?\d[\d,.]*(?![\w\-])")
+
+
+def is_number(txt: str) -> bool:
+    return bool(_NUMERIC.match(str(txt)))
 
 
 def cid(chart_id: str) -> str:
@@ -45,143 +94,228 @@ def cid(chart_id: str) -> str:
 
 def _chart_html(ch: dict, mode: str) -> str:
     if ch.get("unavailable"):
-        return f'<p style="{NOTE}"><em>chart unavailable: {esc(ch["unavailable"])}</em></p>'
+        return f'<p style="{FOOT}">Chart unavailable: {esc(ch["unavailable"])}</p>'
     src = (f"cid:{cid(ch['id'])}" if mode == "email" else
            esc(str(ch.get("svg_path") or "").replace("\\", "/").split("/")[-1]))
-    return (f'<figure style="margin:8px 0 12px 0">'
-            f'<img src="{src}" alt="{esc(ch.get("caption"))}" '
-            f'style="max-width:100%;height:auto" width="700">'
-            f'<figcaption style="{NOTE}">{esc(ch.get("caption"))}</figcaption></figure>')
+    return (f'<figure style="{FIG}">'
+            f'<img src="{src}" alt="{esc(ch.get("caption"))}" style="{IMG}" width="700">'
+            f'<figcaption style="{CAPTION}">{esc(ch.get("caption"))}</figcaption>'
+            f'</figure>')
+
+
+def _split(t: dict) -> list[dict]:
+    """At most six columns (item 10): a wider table prints as several, each
+    repeating its first column."""
+    cols = list(t.get("columns") or [])
+    if len(cols) <= rd.MAX_TABLE_COLUMNS:
+        return [t]
+    step = rd.MAX_TABLE_COLUMNS - 1
+    out = []
+    for a in range(1, len(cols), step):
+        idx = [0] + list(range(a, min(a + step, len(cols))))
+        out.append({"columns": [cols[i] for i in idx],
+                    "rows": [[r[i] if i < len(r) else None for i in idx]
+                             for r in t.get("rows") or []]})
+    return out
+
+
+def _cell(v: Any, n: int) -> str:
+    txt = "—" if v is None or v == "" else str(v)
+    right = n > 0 and is_number(txt)
+    style = (TDW if " / " in txt else TD) if right else TDL
+    return f'<td style="{style}">{esc(txt)}</td>'
 
 
 def _table(t: Optional[dict]) -> str:
     if not t or not t.get("rows"):
         return ""
-    head = "".join(f'<th style="{THL if n == 0 else TH}">{esc(c)}</th>'
-                   for n, c in enumerate(t["columns"]))
-    body = "".join("<tr>" + "".join(
-        f'<td style="{TDL if n == 0 else TD}">{esc(v if v is not None else "—")}</td>'
-        for n, v in enumerate(r)) + "</tr>" for r in t["rows"])
-    return f'<table style="{TBL}"><tr>{head}</tr>{body}</table>'
+    out = []
+    for part in _split(t):
+        head = "".join(f'<th style="{THL if n == 0 else TH}">{esc(c)}</th>'
+                       for n, c in enumerate(part["columns"]))
+        zebra = f' style="{ZEBRA}"'
+        body = "".join(
+            f'<tr{zebra if k % 2 else ""}>'
+            + "".join(_cell(v, n) for n, v in enumerate(r)) + "</tr>"
+            for k, r in enumerate(part["rows"]))
+        out.append(f'<div style="{SCROLL}"><table style="{TBL}"><tr>{head}</tr>'
+                   f'{body}</table></div>')
+    return "".join(out)
+
+
+def lines_table(lines: list[str], head: str = "Readings",
+                marks: Optional[list[bool]] = None) -> str:
+    """Code-written lines as a one-column table -- never a list (item 1)."""
+    if not lines:
+        return ""
+    rows = [[(DIAMOND + " " if marks and marks[n] else "") + x]
+            for n, x in enumerate(lines)]
+    return _table({"columns": [head], "rows": rows})
 
 
 def header_html(s: dict, n: int) -> str:
-    depth = s["depth"] + (f": {s['depth_reason']}" if s.get("depth_reason") else "")
     sub = (f' <span style="{SUBTITLE}">&mdash; {esc(s["subtitle"])}</span>'
            if s.get("subtitle") else "")
-    return (f'<h2 style="{H2}">{n} &middot; {esc(s["title"])}{sub} '
-            f'<span style="font-size:10.5px;color:#94a3b8;font-weight:400">'
-            f'({esc(depth)}){" (trimmed)" if s.get("trimmed") else ""}</span></h2>')
+    return f'<h2 style="{SECTION}">{n} &middot; {esc(s["title"])}{sub}</h2>'
 
 
-def _note(t: Optional[str]) -> str:
-    return f'<p style="{TABLE_NOTE}">{esc(t)}</p>' if t else ""
+def _foot(parts: list[str]) -> str:
+    return "".join(f'<p style="{FOOT}">{esc(x)}</p>' for x in parts if x)
 
 
-def subsection_html(ss: dict, charts: dict, mode: str) -> str:
-    out = [f'<h3 style="{H3}">{esc(ss.get("title"))}</h3>']
-    if ss.get("paragraph"):
-        out.append(f'<p style="font-size:13px;line-height:1.55;margin:0 0 8px 0">'
-                   f'{esc(ss["paragraph"])}</p>')
-    out.append(_note(ss.get("table_note")))
-    out.append(_table(ss.get("table")))
-    if ss.get("lines"):
-        out.append('<ul style="margin:4px 0 8px 0;padding-left:18px;font-size:12.5px">'
-                   + "".join(f"<li>{esc(x)}</li>" for x in ss["lines"]) + "</ul>")
-    for c in ss.get("charts_rendered") or []:
-        if c in charts:
-            out.append(_chart_html(charts[c], mode))
-    if ss.get("not_tracked"):
-        out.append(f'<p style="{NOTE}"><strong>Not yet tracked:</strong> '
-                   f'{esc("; ".join(ss["not_tracked"]))}.</p>')
-    return "".join(out)
+def footnote(s: dict) -> str:
+    """Everything that is not the section's facts or its reading: the legend,
+    what is not yet tracked, and why anything was withheld or cut."""
+    nt = list(s.get("not_tracked") or [])
+    for ss in s.get("subsections") or []:
+        nt += list(ss.get("not_tracked") or [])
+    nt = list(dict.fromkeys(nt))
+    parts = []
+    if s.get("empty"):
+        parts.append(s.get("empty_note"))
+    parts.append(s.get("legend"))
+    if nt:
+        parts.append("Not yet tracked: " + "; ".join(nt) + ".")
+    if s.get("withheld"):
+        why = re.sub(r"^(?:narrative\s+)?withheld:\s*", "", str(s["withheld"]),
+                     flags=re.I)
+        parts.append("Commentary withheld by the audit: " + why)
+    parts += list(s.get("notes") or [])
+    if s.get("trimmed"):
+        parts.append("Commentary trimmed to one paragraph.")
+    return _foot(parts)
 
 
 def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
     out = [header_html(s, n)]
+    if s.get("empty"):
+        return "".join(out) + footnote(s)
     if s.get("claim"):
-        out.append(f'<p style="font-size:13.5px;margin:0 0 8px 0"><strong>'
-                   f'{esc(s["claim"])}</strong>'
-                   + (f' <span style="{NOTE}">(unchanged since '
-                      f'{esc(s["unchanged_since"])})</span>' if s.get("collapsed")
-                      else "") + "</p>")
-    elif s.get("withheld"):
-        out.append(f'<div style="{ABSENT}"><strong>Claim withheld.</strong> '
-                   f'{esc(s["withheld"])}</div>')
-    if s.get("collapsed"):
-        return "".join(out)
-    for p in s.get("paragraphs") or []:
-        out.append(f'<p style="font-size:13px;line-height:1.55;margin:0 0 10px 0">'
-                   f'{esc(p)}</p>')
-    if s.get("items") and s.get("print_items", True):
-        out.append('<ul style="margin:4px 0 8px 0;padding-left:18px;font-size:12.5px">'
-                   + "".join(f'<li>{DIAMOND + " " if i.get("changed") else ""}'
-                             f'{esc(i["text"])}</li>' for i in s["items"]) + "</ul>")
-    out.append(_note(s.get("table_note")))
+        out.append(f'<p style="{CLAIM}">{esc(s["claim"])}</p>')
+    # TABLES: the section's, each sub-section's, then the lines left over.
+    # A TABLE'S STANDING NOTE -- how to read it, how its flags are computed --
+    # is printed once, in the glossary (table_notes), never under the table.
     out.append(_table(s.get("table")))
     for ss in s.get("subsections") or []:
-        out.append(subsection_html(ss, charts, mode))
-    for c in s.get("charts_rendered") or []:
+        body = _table(ss.get("table")) + lines_table(
+            ss.get("lines") or [], f"This {s.get('period') or 'week'}")
+        if body:
+            out.append(f'<h3 style="{H3}">{esc(ss.get("title"))}</h3>' + body)
+    items = rd.printable_items(s)
+    if items:
+        out.append(lines_table([i["text"] for i in items],
+                               s.get("lines_head") or
+                               f"Also this {s.get('period') or 'week'}",
+                               [bool(i.get("changed")) for i in items]))
+    # CHARTS: the section's own, then its sub-sections'.
+    ids = list(s.get("charts_rendered") or [])
+    for ss in s.get("subsections") or []:
+        ids += list(ss.get("charts_rendered") or [])
+    for c in ids:
         if c in charts:
             out.append(_chart_html(charts[c], mode))
-    if s.get("legend"):
-        out.append(f'<p style="{NOTE}">{esc(s["legend"])}</p>')
-    if s.get("not_tracked"):
-        out.append(f'<p style="{NOTE}"><strong>Not yet tracked:</strong> '
-                   f'{esc("; ".join(s["not_tracked"]))}.</p>')
+    # ONE PARAGRAPH.
+    for p in (s.get("paragraphs") or [])[:1]:
+        out.append(f'<p style="{PARA}">{esc(p)}</p>')
+    out.append(footnote(s))
     return "".join(out)
 
 
-def _detail(fn, p: dict) -> str:
-    """A pre-stack detail table; one that cannot render says so, never blanks."""
-    try:
-        return fn(p)
-    except Exception as exc:                                    # noqa: BLE001
-        return (f'<p style="{NOTE}">detail table unavailable: '
-                f'{esc(type(exc).__name__)}: {esc(exc)}</p>')
+def page_header(title: str, stamp: str, minutes: int,
+                changed: Optional[list[str]] = None,
+                changed_head: Optional[str] = None,
+                extra_html: str = "") -> str:
+    """Title, the as-of in ET, the reading time, and what changed (item 7)."""
+    ch = (lines_table(changed, changed_head) if changed and changed_head else "")
+    return (f'<h1 style="{H1}">{esc(title)}</h1>'
+            f'<p style="{SUB}">{esc(stamp)} &middot; about '
+            f'{esc(rd.plural(minutes, "minute"))} to read{extra_html}</p>{ch}')
+
+
+def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
+                marks: str, pdf_note: Optional[str] = None) -> str:
+    """The run's metadata, small, and the one line to the Reader's Guide."""
+    meta = (f"Stack {ed.get('config_version')} &middot; "
+            f"{esc(rd.plural(int(ed.get('words') or 0), 'word'))} &middot; "
+            f"{esc(rd.plural(int(ed.get('chart_count') or 0), 'chart'))} &middot; "
+            f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
+            f"{esc(run_id or 'n/a')}")
+    lines = [meta, esc(marks)]
+    if archive_path:
+        lines.append(f"Archived to {esc(archive_path)}.")
+    if pdf_note:
+        lines.append(esc(pdf_note))
+    lines.append(f"How to read this report: {esc(rd.READERS_GUIDE)} "
+                 f"({esc(rd.READERS_GUIDE_PATH)}).")
+    return (f'<div style="margin:24px 0 0 0;padding-top:8px;border-top:1px solid '
+            f'#d5dde5">' + "".join(f'<p style="{FOOT}">{x}</p>' for x in lines)
+            + "</div>")
+
+
+def table_notes(ed: Optional[dict]) -> list[dict]:
+    """Each printed table's standing note as a glossary entry named for its
+    table (T2.5 item 3): the explanation is kept, once, out of the body."""
+    out = []
+    for s in (ed or {}).get("sections") or []:
+        if s.get("empty"):
+            continue
+        if s.get("table_note") and (s.get("table") or {}).get("rows"):
+            out.append({"term": f"{s['title']} table", "text": s["table_note"]})
+        for ss in s.get("subsections") or []:
+            if ss.get("table_note") and (ss.get("table") or {}).get("rows"):
+                out.append({"term": str(ss.get("title")), "text": ss["table_note"]})
+    return out
+
+
+def glossary_html(entries: list[dict], ed: Optional[dict] = None) -> str:
+    """The glossary, printed once at the end of an edition, as a table: the
+    declared terms, the tables' standing notes, and the standing notes that
+    left the body (T2.5 item 3)."""
+    entries = list(entries or []) + table_notes(ed)
+    entries += [e for e in rd.STANDING_NOTES
+                if e["term"] not in {x.get("term") for x in entries}]
+    if not entries:
+        return ""
+    rows = [[e.get("term"), e.get("text")] for e in entries]
+    return (f'<h2 style="{SECTION}">Glossary</h2>'
+            + _table({"columns": ["Term", "Meaning"], "rows": rows}))
+
+
+def _marks(ed: dict, what: str) -> str:
+    if ed.get("prior_session"):
+        try:
+            when = rd.prose_date(ed["prior_session"])
+        except ValueError:
+            when = ed["prior_session"]
+        return f"{DIAMOND} marks a line that changed since the {what} of {when}."
+    return (f"No prior stacked {what} to compare against: nothing is marked as "
+            f"changed and nothing collapses.")
 
 
 def render(p: dict, ed: dict, charts: dict, mode: str = "email",
            delivery: Optional[dict] = None) -> str:
+    """The daily close."""
+    from altdata import labels                                  # noqa: PLC0415
+    from . import state_block                                   # noqa: PLC0415
     secs = "".join(section_html(s, n, charts, mode)
                    for n, s in enumerate(ed["sections"], start=1))
-    marks = (f"{DIAMOND} marks a line that changed since the {esc(ed['prior_session'])} "
-             f"edition." if ed.get("prior_session") else
-             "No prior stacked edition to compare against: nothing is marked as "
-             "changed and nothing collapses.")
     warn = ""
     if p.get("warnings"):
-        warn = (f'<div style="{WARN}"><strong>Warnings</strong><ul style="margin:6px '
-                f'0 0 0;padding-left:18px">' + "".join(f"<li>{esc(w)}</li>"
-                                                      for w in p["warnings"])
-                + "</ul></div>")
-    return f"""<div style="{base.WRAP}">
-<h1 style="{base.H1}">Close &mdash; {esc(p.get('session'))}</h1>
-<p style="{base.SUB}">As-of cutoff {esc(p.get('as_of'))} &middot; run
-<code>{esc(p.get('run_id') or 'n/a')}</code> &middot; stack
-<code>{esc(ed.get('config_version'))}</code> &middot; {esc(ed.get('words'))} words
-&middot; {marks}<br>{state_block.session_events_line(p)}</p>
-{warn}
-{secs}
-<h2 style="{H2}">Detail tables</h2>
-{_detail(state_block.state_table, p)}
-{_detail(state_block.contradiction_table, p)}
-{_detail(base.exposure_table, p)}
-{_detail(base.pin_table, p)}
-{_detail(base.portfolio_block, p)}
-{_detail(base.enforcement_block, p)}
-<p style="{NOTE}">Every figure above was read from the store, the computed profiles
-or the 5-minute bars pulled after the close. No figure here is a recommendation;
-every probability printed is a ledger entry written before this edition. Archived
-to <code>{esc((delivery or {}).get('archive_path') or 'n/a')}</code>.</p>
-</div>"""
-
-
-def glossary_html(entries: list[dict]) -> str:
-    """The glossary, printed once at the end of an edition (T2.2 item 11)."""
-    if not entries:
-        return ""
-    rows = "".join(f'<li><strong>{esc(e.get("term"))}</strong>: {esc(e.get("text"))}</li>'
-                   for e in entries)
-    return (f'<h2 style="{H2}">Glossary</h2><ul style="margin:4px 0 8px 0;'
-            f'padding-left:18px;font-size:12px;color:#334155">{rows}</ul>')
+        warn = lines_table([str(w) for w in p["warnings"]], "Warnings")
+    try:
+        day = rd.prose_date(p.get("session"))
+        dow = __import__("datetime").date.fromisoformat(p["session"]).strftime("%a")
+    except (ValueError, TypeError, KeyError):
+        day, dow = str(p.get("session")), ""
+    events = state_block.session_events_line(p)
+    head = page_header(f"Close — {dow} {day}".strip(), rd.stamp_et(ed.get("as_of")),
+                       rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
+                       extra_html=f" &middot; {events}")
+    try:
+        gl = labels.glossary()
+    except Exception:                                           # noqa: BLE001
+        gl = []
+    return (f'<div style="{WRAP}">{head}{warn}{secs}{glossary_html(gl, ed)}'
+            + page_footer(ed, p.get("run_id"), (delivery or {}).get("archive_path"),
+                          _marks(ed, "close"), ed.get("pdf_note"))
+            + "</div>")

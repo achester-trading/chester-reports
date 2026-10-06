@@ -37,6 +37,8 @@ from pathlib import Path
 
 from altdata import levels as levels_mod
 
+from . import readability
+
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
                     "line": "0"}
 # Runaway guards, not style rules: a one-sentence section is cut to its first
@@ -57,9 +59,14 @@ _signed and _ordinal fields, no recommendation.
 THE SECTION: {title}. Its depth today is {depth}{why}.
 
 SHAPE. Your FIRST SENTENCE is the section's claim line: the one thing this section
-says about the {period}, with its figure. {body} At most {words} words in all.
-No headings, no bullets, no bold,
-no tables -- the section's table is printed beside your text.
+says about the {period}, with its figure. {body}
+No headings, no bullets, no lists, no bold, no tables -- the section's tables are
+printed ABOVE your paragraph, and every figure lives in them. Your paragraph
+INTERPRETS the tables -- what the figures mean together, what moved with what --
+and never re-lists their rows: cite at most SIX figures in it.
+Never write about how this report, its checks or its data work: no sentence about
+the method, what the report tracks, what it can or cannot see, or why something is
+printed. Write about the market.
 
 THE TAPE'S RULES:
 1. Frames in order: {frames}
@@ -94,16 +101,31 @@ Never compute a count, a difference or a ratio: copy the one the data carries.
 
 READ_RULES = """
 
-THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. Write THE READ: the five lines
-that matter about the {period}, as ONE paragraph of exactly five sentences, most
-important first, each with its figure. Draw only on the section claims and items
-given. Every other rule above still holds; no recommendation; a probability only
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. Write THE READ: the lines that
+matter about the {period}, as ONE paragraph of at most five sentences and at most
+120 words, most important first, citing at most six figures in all. The FIRST
+sentence is the claim line and the email's subject: keep it under 90 characters.
+Draw only on the section claims and items given, and NEVER copy a section's claim
+or any of its sentences: every sentence of The read is worded afresh, because the
+sections print theirs below and a sentence printed twice is withheld. Never write
+about how this report works. Every other rule above still holds; no recommendation; a probability only
 as an outlook's base rate ("the base rate for ... is 79% (n=82)"), never as our
 view; no motive words; never write about the report itself.
 The word "because" is refused anywhere. Write "dealer gamma", "the volatility
 regime", "the macro regime" -- never "dial"; for one symbol write its net GEX. Never write the session's date
 or weekday. A level is named with the market it belongs to, one at a time.
 """
+
+
+def figure_faults(text: str) -> list[str]:
+    """ONE FACT, ONCE (T2.5 item 1): the paragraph after the claim line cites at
+    most six figures -- the tables carry the rest."""
+    sents = _sentences((text or "").split("\n\n")[0])
+    rest = (text or "")[len(sents[0]):] if sents else ""
+    n = readability.figure_count(rest)
+    return ([f"the paragraph cites {n} figures; at most "
+             f"{readability.PARAGRAPH_FIGURES} -- the tables carry the rest"]
+            if n > readability.PARAGRAPH_FIGURES else [])
 
 
 def _sentences(text: str) -> list[str]:
@@ -359,15 +381,11 @@ def _slice(s: dict, ed: dict) -> dict:
             "depth_reason": s.get("depth_reason"), "session": ed["session"],
             "items": [i["text"] for i in s["items"]], "table": s.get("table"),
             "table_note": s.get("table_note"),
-            "subsections": [{"tag": chr(65 + n), "title": ss.get("title"),
-                             "table": ss.get("table"), "lines": ss.get("lines")}
-                            for n, ss in enumerate(
-                                x for x in s.get("subsections") or []
-                                if x.get("paragraph_wanted", True))],
-        "subsection_tables": [{"title": ss.get("title"), "table": ss.get("table"),
-                               "lines": ss.get("lines")}
-                              for ss in s.get("subsections") or []
-                              if not ss.get("paragraph_wanted", True)],
+            # EVERY SUB-SECTION'S TABLE, untagged (T2.5 item 2): the section
+            # writes one paragraph across them.
+            "subsections": [{"title": ss.get("title"), "table": ss.get("table"),
+                             "lines": ss.get("lines")}
+                            for ss in s.get("subsections") or []],
             "data": _scrub({k: v for k, v in (s.get("data") or {}).items()
                             if k != "intraday"})}
 
@@ -395,11 +413,10 @@ def stack_system_prompt(base) -> str:
 # What one section's prose must do beyond the shared rules.
 SECTION_NOTES = {
     "positioning": (
-        "\n\nPOSITIONING & FLOWS IN PARAGRAPHS BY SOURCE (T2.1): the claim line "
-        "states the week's leadership; then one paragraph per source, in this "
-        "order -- futures positioning (CFTC), retail (RTAT10 sentiment and "
-        "WallStreetBets mentions), short interest (FINRA), TIC flows. A source "
-        "with no figure in the data gets no paragraph and no mention."),
+        "\n\nPOSITIONING & FLOWS: the claim line states the leadership; the "
+        "paragraph reads the sources together -- futures positioning (CFTC), "
+        "retail, short interest, foreign flows -- for what they say jointly. A "
+        "source with no figure in the data gets no mention."),
     "book": (
         "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
         "comparison between them is written as an EXCESS ('an excess of +0.8 "
@@ -425,26 +442,25 @@ WEEKLY_NOTES = {
     "read": (
         "\n\nTHE WEEK BY DAY: the data carries a table, one row per session -- "
         "SPY's and the 10-year's moves, the tier-1 release with actual and prior, "
-        "the Fed speech or auction, the day's most-cited story. Your sentences "
-        "after the claim walk the week from that table, day by day, and use only "
-        "its figures. A press outlet's explanation of a move is ITS attribution, "
-        "never ours: write 'CNBC attributed the fall to ...', never the cause "
-        "as fact."),
+        "the Fed speech or auction, the day's most-cited story. The table prints "
+        "under your claim: interpret the week's shape from it (which day carried "
+        "the move, what coincided with it), never walk it day by day. A press "
+        "outlet's explanation of a move is ITS attribution, never ours: write "
+        "'CNBC attributed the fall to ...', never the cause as fact."),
     "tape": (
-        "\n\nTHE TAPE IN FOUR PARAGRAPHS, in this order: equities (SPY, QQQ, "
-        "IWM); rates (the 10-year and 30-year yields); the dollar and commodities "
-        "(DXY, gold, WTI); crypto (Bitcoin). Each names only figures in the table "
-        "or the level list. A market with no figure in the table gets no "
-        "sentence."),
+        "\n\nTHE TAPE IN ONE PARAGRAPH: what the week's moves across equities, "
+        "rates, the dollar and commodities, and crypto say together -- which led, "
+        "which diverged. Name only figures in the table or the level list; a "
+        "market with no figure in the table gets no sentence."),
     "mechanics": (
         "\n\nTHE WEEK'S DEALER STORY FROM THE TABLE AND ITS FLAGS ONLY. Write "
         "'pinned', 'held' or 'amplified' about a session only where that "
         "session's flag column says so; never infer a flag from the figures. "
         "The flags sit in the Ranges and flags table."
-        "\n\nTHE VOLATILITY PARAGRAPH ([A] Volatility) opens on the daily move: "
-        "'the market is pricing X% daily moves; it realized Y%', both from the "
-        "table's 'Daily move priced, and realized' row and nowhere else, then the "
-        "VIX against its percentile and the term structure; MOVE and SKEW only "
+        "\n\nTHE VOLATILITY READ, inside the one paragraph, is stated from the "
+        "daily move: 'the market is pricing X% daily moves; it realized Y%', both "
+        "from the Volatility table's 'Daily move priced, and realized' row and "
+        "nowhere else, then the VIX against its percentile; MOVE and SKEW only "
         "where their rows carry a level."),
     "misfit": (
         "\n\nEach open gap is described in the plain words its row gives "
@@ -453,9 +469,11 @@ WEEKLY_NOTES = {
         "\n\nRead the table: the curve, credit and the week's tier-1 releases "
         "with their actual and prior."),
     "positioning": (
-        "\n\nOne paragraph per sub-section, from that sub-section's table only."),
+        "\n\nOne paragraph across the sub-sections' tables: what they say "
+        "together."),
     "priced": (
-        "\n\nOne paragraph per sub-section, from that sub-section's table only. "
+        "\n\nOne paragraph across the sub-sections' tables: what they say "
+        "together. "
         "Prediction markets are 'prediction markets', never 'venues'."),
     "narratives": (
         "\n\nName each story by its plain title as the data gives it, and give "
@@ -513,13 +531,17 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                      "WITHHELD BY THE AUDIT: " + str(first.get("reason"))[:600]
                      + "\nWrite it again from the same data, fixing exactly that "
                        "and changing nothing else.")
-        second = attempt(sid, payload, retry_sys, max_chars)
+        # THE RETRY MAY KEEP A REPEATED SENTENCE (T2.5 item 4): the code check
+        # after the prose withholds it in the later section, so a Read that
+        # repeats one sentence is not lost whole.
+        second = attempt(sid, payload, retry_sys, max_chars, dup_ok=True)
         second["attempts"] = 2
         if not second.get("published"):
             second["first_reason"] = first.get("reason")
         return second
 
-    def attempt(sid: str, payload: dict, system: str, max_chars: int) -> dict:
+    def attempt(sid: str, payload: dict, system: str, max_chars: int,
+                dup_ok: bool = False) -> dict:
         try:
             r = base.generate(payload, model=model, client=client,
                               system_prompt=system, max_chars=max_chars,
@@ -536,7 +558,16 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
-                         if sid in ("tape", "read") else []))
+                         if sid in ("tape", "read") else [])
+                      + figure_faults(text)
+                      # NO SENTENCE TWICE (T2.5 item 4): The read is written
+                      # last, over the sections' claims, so it is the one held
+                      # to them; what survives the retry is withheld where it
+                      # repeats (readability.withhold_duplicates).
+                      + ([f"repeats a section's sentence: '{x[:80]}'" for x in
+                          readability.duplicates_of(text,
+                                                    readability.section_sentences(ed))]
+                         if sid == "read" and not dup_ok else []))
         if faults:
             return {"state": "tape_rules", "published": False,
                     "reason": "withheld: " + "; ".join(faults[:4]),
@@ -551,39 +582,21 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     for s in ed["sections"]:
         if s["id"] == "read":
             continue
-        if s["collapsed"] and s.get("prior_claim"):
-            s["claim"] = s["prior_claim"]
-            results[s["id"]] = {"state": "reused", "published": True}
+        # EMPTY MEANS ONE LINE (T2.5 item 5): no new facts, no model call.
+        if s.get("empty"):
+            results[s["id"]] = {"state": "empty", "published": False}
             continue
         paras = DEPTH_PARAGRAPHS.get(s["depth"], "0")
-        # Only the sub-sections that want a paragraph are tagged (T2.3): a
-        # levels table or an FX table under its section's prose takes none.
-        subs = [ss for ss in s.get("subsections") or []
-                if ss.get("paragraph_wanted", True)]
-        lead = s.get("lead_paragraphs")
-        if s.get("prose_paragraphs") and cadence == "weekly":
-            paras = s["prose_paragraphs"]
-        body = ("Then write {} paragraphs of commentary.".format(paras)
+        # ONE PARAGRAPH (T2.5 item 2): a section that carries prose writes its
+        # claim line and one paragraph over ALL its tables -- the sub-sections
+        # no longer take paragraphs of their own.
+        body = (f"Then write ONE paragraph of at most "
+                f"{readability.PARAGRAPH_WORDS} words."
                 if paras != "0" else "Write ONLY that one sentence.")
-        if subs and cadence == "weekly":
-            # ONE PARAGRAPH PER SUB-SECTION, tagged so it lands under its own
-            # table; the tags are stripped before printing (T2.2 items 7-8).
-            body = ((f"Then write {lead} untagged paragraph(s) on the section's "
-                     f"own table. " if lead else "")
-                    + f"Then write exactly {len(subs)} paragraphs, one for each "
-                    f"sub-section, in this order, each beginning with its tag "
-                    f"in square brackets: " + "; ".join(
-                        f"[{chr(65 + n)}] {ss.get('title')}"
-                        for n, ss in enumerate(subs))
-                    + ". The tags are removed before printing. Each paragraph uses "
-                      "only its own sub-section's table and lines.")
-            paras = str(len(subs))
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         sys_prompt = stack_system_prompt(base) + RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            report=cad["report"], period=cad["period"], frames=cad["frames"],
-            words=(cfg.get(cad["words_key"]) or cfg.get("depth_words") or {})
-            .get(s["depth"], 35))
+            report=cad["report"], period=cad["period"], frames=cad["frames"])
         if not (cadence == "weekly" and s["id"] in ("positioning", "priced")):
             sys_prompt += SECTION_NOTES.get(s["id"], "")
         if cadence == "weekly":
@@ -592,21 +605,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                   int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
         results[s["id"]] = res
         if res.get("published"):
-            head = re.split(r"\[[A-E]\]", res["text"])[0]
-            sents = _sentences(head.split("\n\n")[0])
+            sents = _sentences(res["text"].split("\n\n")[0])
             s["claim"] = sents[0] if sents else res["text"]
             rest = res["text"][len(s["claim"]):].strip()
-            if subs and cadence == "weekly":
-                untagged = re.split(r"\[[A-E]\]", rest)[0].strip()
-                s["paragraphs"] = ([p.strip() for p in untagged.split("\n\n")
-                                    if p.strip()] if lead else [])
-                for tag, body_ in split_tagged(rest).items():
-                    i = ord(tag) - 65
-                    if 0 <= i < len(subs):
-                        subs[i]["paragraph"] = body_
-            else:
-                s["paragraphs"] = [p.strip() for p in rest.split("\n\n")
-                                   if p.strip()] if paras != "0" else []
+            s["paragraphs"] = ([re.sub(r"\s+", " ", rest)] if rest and paras != "0"
+                               else [])
         else:
             s["claim"] = None
             s["withheld"] = res.get("reason")
@@ -622,7 +625,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                         "data": _compact(_scrub({k: v for k, v in
                                                  (s.get("data") or {}).items()
                                                  if k != "intraday"}))}
-                       for s in ed["sections"] if s["id"] != "read"],
+                       for s in ed["sections"]
+                       if s["id"] != "read" and not s.get("empty")],
           "levels": (tape.get("data") or {}).get("levels")}
     read_sys = stack_system_prompt(base) + READ_RULES.format(period=cad["period"])
     if cadence == "weekly":

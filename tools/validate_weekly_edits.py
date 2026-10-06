@@ -195,8 +195,9 @@ def main() -> int:
 
     # --- A. STRUCTURE -------------------------------------------------------------
     print(f"\n{LINE}\nA. HEADERS, SUB-SECTIONS, THE GLOSSARY\n{LINE}")
-    heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\"font-size:13px;"
-                       r"font-weight:400;font-style:italic;color:#5a6b7a\">&mdash; "
+    # The subtitle's style is the renderer's own constant (T2.5 item 10).
+    heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\""
+                       + re.escape(stack_render.SUBTITLE) + r"\">&mdash; "
                        r"([^<]+)</span>", html)
     check(len(heads) == 10 and [int(h[0]) for h in heads] == list(range(1, 11)),
           f"every header is 'number · name — subtitle', styled apart ({len(heads)})")
@@ -232,7 +233,9 @@ def main() -> int:
           "the glossary prints once, at the end")
     for t in ("z", "gap z-score", "pending, open, exception", "outside 10–90%",
               "base rate", "Brier"):
-        check(f"<strong>{stack_render.esc(t)}</strong>" in html, f"glossary: {t}")
+        # The glossary is a table (T2.5: nothing prints as a list).
+        check(re.search(r">" + re.escape(stack_render.esc(t)) + r"</td>", html),
+              f"glossary: {t}")
 
     # --- B. PLAIN WORDS -----------------------------------------------------------
     print(f"\n{LINE}\nB. THE PLAIN-LANGUAGE RULE\n{LINE}")
@@ -303,9 +306,11 @@ def main() -> int:
     check(not sec["tape"]["print_items"] and not sec["plumbing"]["print_items"],
           "the tape and Plumbing print no bullets; the prose reads the table")
     tape_calls = [c for c in calls if "THE SECTION: The tape." in c]
-    check(tape_calls and "exactly four paragraphs" in tape_calls[0]
-          and "equities (SPY, QQQ, IWM); rates" in tape_calls[0],
-          "the tape's prose is asked for four paragraphs: equities, rates, the dollar "
+    # T2.5 item 2: the four paragraphs became ONE across the four groups.
+    check(tape_calls and "THE TAPE IN ONE PARAGRAPH" in tape_calls[0]
+          and "equities, rates, the dollar and commodities, and crypto"
+          in tape_calls[0],
+          "the tape's prose is asked for ONE paragraph across equities, rates, the dollar "
           "and commodities, crypto")
     rel = [{"release": "Consumer Price Index", "label": "CPI", "actual_text": "3.10%",
             "prior_text": "3.00%", "as_of": "2026-09-01", "date": "2026-10-01",
@@ -457,8 +462,9 @@ def main() -> int:
     check(te and te["changed_on"] == "2026-10-01" and te["expires_after"] == "2026-10-15",
           f"the Transition count runs ten sessions from the change ({te})")
     w_lines = (sec["ahead"]["data"] or {}).get("watching") or []
-    check(sec["ahead"]["subsections"][0]["title"] == "What the system is watching",
-          f"Ahead carries 'What the system is watching' ({w_lines[:1]})")
+    # "What the system is watching" is a sentence about the system (T2.5 item 3).
+    check(sec["ahead"]["subsections"][0]["title"] == "Watching",
+          f"Ahead carries 'Watching' ({w_lines[:1]})")
 
     # --- H. FEEDS, CONFIG AND RECORDS ------------------------------------------
     print(f"\n{LINE}\nH. FEEDS, CONFIG AND THE RECORDS\n{LINE}")
@@ -588,7 +594,10 @@ def main() -> int:
           and "SPY IV" in _insp.getsource(wsec.dealer_week),
           "7: the table prints both figures and the flag 'check'")
     wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
-    check('"--email"' in wr and "[DRY RUN] [chester] Weekly" in wr
+    from daily_cascade import readability as _rd
+    check('"--email"' in wr and 'readability.subject("Weekly", when, ed, True)' in wr
+          and _rd.subject("Weekly", "w/e 2 Oct", {"sections": []}, True)
+          .startswith("[DRY RUN] Weekly — w/e 2 Oct")
           and 'getattr(args, "email", False)' in wr,
           "8: --dry-run --email sends the render with the subject prefixed "
           "'[DRY RUN]'; nothing else changes")

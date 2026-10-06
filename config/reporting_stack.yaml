@@ -184,7 +184,16 @@ style:
                    # "Prediction market" replaces "venue" in prose.
                    "mapped scenario counterpart", "venue disagreement", "venue",
                    "venues", "venue's", "bias zone", "the tracker", "scorecard entry",
-                   "legs normalised", "not_sourced", "contradiction:", "extreme:"]
+                   "legs normalised", "not_sourced", "contradiction:", "extreme:",
+                   # T2.5 item 3 (ruled 5 Oct 2026): sentences about the
+                   # system's own method. They are not the market; the standing
+                   # notes they came from moved to the glossary, and the Reader's
+                   # Guide explains the rest. tools/validate_readability.py
+                   # holds the whole rendered body to this list.
+                   "which is itself the finding", "written as such rather than left silent",
+                   "rather than left silent", "a count is attention, not evidence",
+                   "cited by id", "said positively so", "the system is watching",
+                   "the system tested", "the system will test"]
   intensity_words: ["sharply", "massive", "massively", "huge", "surged",
                     "plunged", "soared", "skyrocketed", "crashed", "tanked",
                     "collapsed", "exploded", "dramatic", "dramatically"]

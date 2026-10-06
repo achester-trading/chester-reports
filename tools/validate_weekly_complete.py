@@ -267,12 +267,14 @@ def main() -> int:
     # --- D. VOLATILITY ------------------------------------------------------
     print(f"\n{LINE}\nD. VOLATILITY\n{LINE}")
     vol = next(ss for ss in sec["mechanics"]["subsections"] if ss["title"] == "Volatility")
-    check(len(vol["table"]["rows"]) <= 6 and vol["table"]["rows"]
-          and vol.get("paragraph_wanted"),
-          f"a table of at most six rows and its paragraph ({len(vol['table']['rows'])})")
+    check(len(vol["table"]["rows"]) <= 6 and vol["table"]["rows"],
+          f"a table of at most six rows ({len(vol['table']['rows'])})")
+    # T2.5 item 2: one paragraph per section; the volatility read sits inside it.
     mcalls = [c for c in calls if "THE SECTION: Mechanics." in c]
-    check(mcalls and "[A] Volatility" in mcalls[0] and "1 untagged paragraph" in mcalls[0],
-          "Mechanics: one paragraph on the dealer table, then [A] Volatility")
+    check(mcalls and "ONE paragraph" in mcalls[0] and "[A]" not in mcalls[0]
+          and "THE VOLATILITY READ, inside the one paragraph" in mcalls[0]
+          and "Daily move priced, and realized" in mcalls[0],
+          "Mechanics: ONE paragraph, the volatility read stated from the daily move")
 
     # --- E. BREADTH ---------------------------------------------------------
     print(f"\n{LINE}\nE. LEADERSHIP AND BREADTH\n{LINE}")
@@ -292,7 +294,7 @@ def main() -> int:
     check(0 < i_changed < i_read and ed.get("changed_since"),
           f"'Changed since last Weekly' under the header, before The read "
           f"({ed.get('changed_since')[:2]})")
-    m = re.search(r"about\s+([\d.]+) minutes to read", html)
+    m = re.search(r"about\s+([\d.]+) minutes? to read", html)
     check(m and abs(float(m.group(1)) - wsec.reading_minutes(ed, ed["chart_count"]))
           < 0.05, f"the reading time (prose / 250 + 20 s a chart): {m and m.group(1)}")
 

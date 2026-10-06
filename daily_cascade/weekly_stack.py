@@ -159,10 +159,13 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     name = {"gamma": "Dealer gamma", "vol": "The volatility regime",
             "macro": "The macro regime"}
     for ch in wis.get("dial_changes") or []:
-        items.append(item(f"mech:dial:{ch.get('dial')}",
-                          f"{name.get(ch.get('dial'), str(ch.get('dial')))} moved "
-                          f"from {ch.get('from') or 'absent'} to {ch.get('to')}.", 1,
-                          (ch.get("from"), ch.get("to"))))
+        it = item(f"mech:dial:{ch.get('dial')}",
+                  f"{name.get(ch.get('dial'), str(ch.get('dial')))} moved "
+                  f"from {ch.get('from') or 'absent'} to {ch.get('to')}.", 1,
+                  (ch.get("from"), ch.get("to")))
+        # Printed once, under "Changed since last Weekly" (T2.5 item 1).
+        it["show"] = False
+        items.append(it)
     items.append(item("mech:dials", "At the week's end: " + "; ".join(
         f"{name.get(k, k).lower() if n else name.get(k, k)} {v}"
         for n, (k, v) in enumerate(sorted(dials.items()))) + ".", 2, dials))
@@ -211,8 +214,10 @@ def misfit_week(wis: dict, pmb: Optional[dict],
         items.append(item(f"misfit:{c['id']}", stack_mod.contradiction_line(c), 1,
                           (c.get("persistence_days"), c.get("magnitude"))))
     for e in wis.get("exceptions_opened") or []:
-        items.append(item(f"misfit:exc:{e}", f"Opened this week: "
-                          f"{labels.exception(e)}.", 2, e))
+        it = item(f"misfit:exc:{e}", f"Opened this week: {labels.exception(e)}.", 2, e)
+        # The exceptions table's "Opened this week" column carries it (T2.5).
+        it["show"] = False
+        items.append(it)
     for e in wis.get("exceptions_intraweek_only") or []:
         items.append(item(f"misfit:intra:{e}", f"Opened and closed inside the "
                           f"week: {labels.exception(e)}.", 3, e))
@@ -244,7 +249,9 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                           for e in now_open]}
     return {"items": items, "not_tracked": base.get("not_tracked") or [],
             "data": data, "table": gaps["table"] if opened else None,
-            "table_note": gaps["table_note"] if opened else None,
+            # The gap table's how-to-read note is the glossary's "gap z-score"
+            # entry already (T2.5 item 3): not printed twice.
+            "table_note": None,
             "subsections": ([{"title": "Exceptions open at the week's end",
                               "table": exc_table}] if now_open else [])}
 
@@ -439,9 +446,8 @@ def positioning_week(st, now: str, then: str) -> dict:
                           + (f", z {z:+.1f} over two years" if z is not None else "")
                           + ".", 2, (x["level"], x["observed_at"])))
         rows.append(["CFTC " + name, f"{x['level']:,.0f}", _change(x), x["observed_at"]])
-    if missing:
-        nt.append("CFTC net speculative positioning in " + ", ".join(missing)
-                  + " (not yet stored)")
+    # The contracts not yet stored are the CFTC sub-section's own footnote;
+    # listing them here too printed them twice (T2.5 item 1).
     for sym in ("SPY", "QQQ", "IWM"):
         x = change_over(st, "finra.short_interest_days_to_cover", now, then, sym)
         if x:
@@ -632,7 +638,9 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
         earn = wsec.earnings_block(st, now[:10], now, then)
     except Exception:                                           # noqa: BLE001
         earn = None
+    b["_pmb"] = pmb
     b["subsections"] = priced_subsections(b, series, fed, earn)
+    b.pop("_pmb", None)
     return b
 
 
@@ -654,9 +662,11 @@ def priced_subsections(b: dict, series: dict, fed: Optional[dict],
     nt_rates = [] if (fed or {}).get("tracked") else [
         "the fed funds futures rate path: " + str((fed or {}).get("reason")
                                                    or "no contracts stored")]
-    pm_lines = [i["text"] for i in b["items"]
-                if i["key"].startswith("priced:fomc") or i["key"].startswith("priced:pm")
-                or i["key"].startswith("priced:outage")]
+    # PREDICTION MARKETS AS ONE TABLE (T2.5 item 9), the week's change beside
+    # each venue's price; outages go to the footnote.
+    from . import readability                                   # noqa: PLC0415
+    pmb = b.get("_pmb")
+    pmt = readability.pm_table(pmb, "5s")
     surveys = []
     for name in ("Michigan 5-10 year expectations", "NY Fed 3-year expectations"):
         x = series.get(name)
@@ -665,8 +675,9 @@ def priced_subsections(b: dict, series: dict, fed: Optional[dict],
     return [{"title": "Rates priced: the fed-funds path and breakevens",
              "table": {"columns": ["Measure", "Level", "Priced or change", "As of"],
                        "rows": rows}, "not_tracked": nt_rates},
-            {"title": "Prediction markets", "lines": pm_lines,
-             "not_tracked": [] if pm_lines else ["no prediction market stored"]},
+            {"title": "Prediction markets", "table": pmt,
+             "not_tracked": (readability.pm_outages(pmb) if pmt["rows"]
+                             else ["no prediction market stored"])},
             {"title": "Surveyed expectations and consensus",
              "table": {"columns": ["Survey", "Level", "Change", "Window"],
                        "rows": surveys},
@@ -708,7 +719,40 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
     if not items:
         items.append(item("narr:none", "No story is active in the register.", 1, "none"))
     from altdata import labels                                   # noqa: PLC0415
+    # ONE FACT, ONCE (T2.5 item 1). Each story is one row of the stories table --
+    # its state, the week's sourced items for and against, the register's
+    # evidence and the week's dissent -- and each voice is one row of the voices
+    # table; the lines that said either again are the section's data only. A
+    # source the scan could not read is a footnote.
+    week = {}
+    for d in ((voices or {}).get("data") or {}).get("stories") or []:
+        week[str(d.get("name"))] = d
+    srows = []
+    for s in stories:
+        title = labels.story(s.get("id")).get("title") or s.get("name")
+        w = week.get(str(s.get("name"))) or {}
+        srows.append([title, s.get("state"),
+                      f"{w.get('for', 0)} / {w.get('against', 0)}",
+                      f"{int(s.get('evidence_for') or 0)} / "
+                      f"{int(s.get('evidence_against') or 0)}",
+                      ", ".join(w.get("dissent") or []) or "—"])
+    nt = []
+    for it in items:
+        k = str(it["key"])
+        if k.startswith(("voices:ev:", "voices:story:", "narr:evals")) or (
+                k.startswith("narr:") and k[5:] in {str(s.get("id")) for s in stories}):
+            it["show"] = False
+        if k == "voices:unreachable":
+            it["show"] = False
+            nt.append(it["text"].rstrip("."))
     out = {"items": items,
+           "subsections": ([{"title": "Stories",
+                             "table": {"columns": ["Story", "State",
+                                                   "This week, for / against",
+                                                   "To date, for / against",
+                                                   "Dissent"], "rows": srows}}]
+                           if srows else []),
+           "not_tracked": nt,
            "legend": wsec.states_legend([str(s.get("state")) for s in stories]),
            "data": {"stories": [{"title": labels.story(s.get("id")).get("title")
                                  or s.get("name"),
@@ -885,11 +929,13 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
                              f"{r['vs_coin']:+.3f}"] for r in rows]}
     # THE DAY-BY-DAY CALENDAR (T2.2 item 10) is the section's table; what the
     # system is watching and the graded calls follow as sub-sections.
-    subs = [{"title": "What the system is watching",
+    subs = [{"title": "Watching",
              "lines": watch or ["No contradiction is open and no count is running."]},
+            # The lines only when the table is empty: one fact, once (T2.5).
             {"title": "Graded calls, last four weeks", "table": calls_table,
-             "lines": [i["text"] for i in items if i["key"] in ("ahead:calls",
-                                                                "ahead:base_rates")]}]
+             "lines": [] if calls_table["rows"] else
+             [i["text"] for i in items if i["key"] in ("ahead:calls",
+                                                       "ahead:base_rates")]}]
     nt = ["scenario weights with odds and signposts (scenario set #1, Audit #4 "
           "agenda item 2)"]
     if cal and cal.get("routine_not_listed"):
@@ -938,16 +984,22 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
                           f"{b.get('session')}: {str(b.get('kind')).replace('_', ' ')} "
                           f"on {b.get('instrument')} -- {b.get('reason')}.", 3,
                           b.get("reason")))
-    items.append(item("book:attention",
-                      f"Attention: {attn['packets_approved']} of "
-                      f"{attn['packets_budget']} packets approved"
-                      + (f", {attn['packets_deferred_attention_budget']} deferred by "
-                         f"the budget" if attn['packets_deferred_attention_budget']
-                         else "")
-                      + f"; {attn['sitting_hours']:g} of "
-                        f"{attn['sitting_hours_budget']} sitting hours"
-                      + f"; {attn['rulings']} ruling(s) taken in chat.", 1,
-                      (attn["packets_approved"], attn["sitting_hours"], attn["rulings"])))
+    # DURATIONS IN MINUTES (T2.5 item 6): "22 of 120 minutes", never "0.37 of 2
+    # hours". The table carries the counts; the item is its data and change mark.
+    from .readability import minutes_of, plural                 # noqa: PLC0415
+    sat, budget_min = minutes_of(attn["sitting_hours"]), \
+        minutes_of(attn["sitting_hours_budget"])
+    it = item("book:attention",
+              f"Attention: {attn['packets_approved']} of "
+              f"{plural(attn['packets_budget'], 'packet')} approved"
+              + (f", {attn['packets_deferred_attention_budget']} deferred by "
+                 f"the budget" if attn['packets_deferred_attention_budget']
+                 else "")
+              + f"; {sat} of {plural(budget_min, 'minute')} sitting"
+              + f"; {plural(attn['rulings'], 'ruling')} taken in chat.", 1,
+              (attn["packets_approved"], attn["sitting_hours"], attn["rulings"]))
+    it["show"] = False
+    items.append(it)
     items.append(item("book:triggers",
                       f"Triggers fired: Plumbing deep on {len(trig['plumbing'])} and "
                       f"What's priced deep on {len(trig['priced'])} of "
@@ -958,8 +1010,8 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
             "table": {"columns": ["Count", "This week", "Budget"],
                       "rows": [["Packets approved", attn["packets_approved"],
                                 attn["packets_budget"]],
-                               ["Sitting hours", attn["sitting_hours"],
-                                attn["sitting_hours_budget"]],
+                               ["Sitting time", plural(sat, "minute"),
+                                plural(budget_min, "minute")],
                                ["Rulings in chat", attn["rulings"], "measured"]]}}
 
 
@@ -978,9 +1030,12 @@ def read_week(pmb: Optional[dict], wbd: Optional[dict] = None) -> dict:
             best[k] = r
     for r in sorted(best.values(), key=lambda x: -abs(x["change_5s_points"])):
         c = r["change_5s_points"]
-        items.append(item(f"read:pm5:{r['instrument']}",
-                          stack_mod.shock_sentence(r, "over five sessions", c), 1,
-                          (r["probability"], c)))
+        it = item(f"read:pm5:{r['instrument']}",
+                  stack_mod.shock_sentence(r, "over five sessions", c), 1,
+                  (r["probability"], c))
+        # The move prints once, in What's priced's table (T2.5 items 1 and 9).
+        it["show"] = False
+        items.append(it)
     # THE WEEK BY DAY (T2.2 item 3): the table the opening paragraph reads, and
     # the press's own attributions, each with its URL -- never our cause.
     wbd = wbd or {}
@@ -1031,7 +1086,6 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         tt = wsec.tape_table(book)
         oi = wsec.overnight_intraday(st, sessions, ending, now)
         tape.update({"table": tt["table"], "print_items": False,
-                     "prose_paragraphs": "exactly four",
                      "subsections": [
                          {"title": "Levels", "table": tt["levels_table"],
                           "paragraph_wanted": False},
@@ -1280,56 +1334,50 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
                     for k, c in charts.items()}
     ed["levels"] = book
     ed["chart_count"] = sum(1 for c in charts.values() if not c.get("unavailable"))
+    # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
+    from . import readability                                   # noqa: PLC0415
+    readability.polish_edition(ed, charts)
+    ed["run_id"] = p.get("run_id")
+    ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
+                          if archive_dir else None)
     html_email = render(p, ed, charts, mode="email")
     html_archive = render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items() if c.get("png")]
+    # THE PDF (T2.5 item 11): the emailed HTML with print CSS, its charts the
+    # same PNGs; archived beside the HTML and attached beside the body.
+    pdf, pdf_detail = readability.pdf_bytes(html_email, images)
     return {"edition": ed, "charts": charts, "html_email": html_email,
-            "html_archive": html_archive, "inline_images": images}
+            "html_archive": html_archive, "inline_images": images,
+            "pdf": pdf, "pdf_detail": pdf_detail}
 
 
 def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
-    from . import weekly_render as wr                           # noqa: PLC0415
-    base = stack_render.base
-    esc = base.esc
+    """The Weekly (T2.5 item 7): the title and week, the as-of in ET, the
+    reading time and what changed since the last Weekly in the header; the ten
+    sections; the glossary; the run's metadata in a small footer."""
+    from . import readability as rd                             # noqa: PLC0415
     secs = "".join(stack_render.section_html(s, n, charts, mode)
                    for n, s in enumerate(ed["sections"], start=1))
-    marks = (f"{stack_render.DIAMOND} marks a line that changed since the Weekly of "
-             f"{esc(ed['prior_session'])}." if ed.get("prior_session") else
-             "No prior stacked Weekly to compare against: nothing is marked as "
-             "changed and nothing collapses.")
-
-    def detail(fn):
-        try:
-            return fn(p)
-        except Exception as exc:                                # noqa: BLE001
-            return (f'<p style="{base.NOTE}">detail block unavailable: '
-                    f'{esc(type(exc).__name__)}: {esc(exc)}</p>')
-    return f"""<div style="{base.WRAP}">
-<h1 style="{base.H1}">Weekly &mdash; week ending {esc(ed.get('week_ending'))}</h1>
-<p style="{base.SUB}">As-of cutoff {esc(ed.get('as_of'))} &middot; stack
-<code>{esc(ed.get('config_version'))}</code> &middot; {esc(ed.get('words'))} words
-&middot; {esc(ed.get('chart_count'))} chart(s) &middot; about
-{esc(wsec.reading_minutes(ed, int(ed.get('chart_count') or 0)))} minutes to read
-&middot; {marks}</p>
-{changed_html(ed)}
-{secs}
-{stack_render.glossary_html(_glossary())}
-<p style="{base.NOTE}">Every figure above was read from the store, the register or
-the ledger. No figure here is a recommendation; prediction-market odds are the
-markets' prices, and every probability the system states is a ledger entry.</p>
-</div>"""
+    try:
+        week = rd.prose_date(ed.get("week_ending"))
+    except ValueError:
+        week = str(ed.get("week_ending"))
+    head = stack_render.page_header(
+        f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
+        rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
+        ed.get("changed_since") or [], "Changed since last Weekly")
+    return (f'<div style="{stack_render.WRAP}">{head}{secs}'
+            f'{stack_render.glossary_html(_glossary(), ed)}'
+            + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
+                                       ed.get("archive_path"),
+                                       stack_render._marks(ed, "Weekly"))
+            + "</div>")
 
 
 def changed_html(ed: dict) -> str:
-    """'Changed since last Weekly' (T2.3 item 7), under the header."""
-    esc = stack_render.base.esc
-    lines = ed.get("changed_since") or []
-    if not lines:
-        return ""
-    return (f'<div style="border:1px solid #cbd5e1;border-radius:4px;padding:8px 10px;'
-            f'margin:8px 0 12px 0;font-size:12.5px"><strong>Changed since last '
-            f'Weekly</strong><ul style="margin:4px 0 0 0;padding-left:18px">'
-            + "".join(f"<li>{esc(x)}</li>" for x in lines) + "</ul></div>")
+    """'Changed since last Weekly' (T2.3 item 7) -- a table, never a list."""
+    return stack_render.lines_table(ed.get("changed_since") or [],
+                                    "Changed since last Weekly")
 
 
 def _glossary() -> list[dict]:
