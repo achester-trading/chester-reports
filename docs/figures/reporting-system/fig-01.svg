@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 1010" width="100%" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5b5b"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="640" height="1010" fill="#fff"/>
+  <text x="20" y="28" font-weight="600" font-size="15" fill="#1a1a1a">The reporting system: how a number becomes a lesson</text>
+  <text x="20" y="48" fill="#5b5b5b" font-size="12">Each stage reads only from the one above it. Who acts at each stage is on the left.</text>
+
+  <!-- left-hand bands: who acts -->
+  <rect x="20" y="70" width="128" height="268" rx="6" fill="#3a5f8a" opacity="0.12"/>
+  <text x="84" y="196" text-anchor="middle" font-weight="600" fill="#3a5f8a">Code</text>
+  <text x="84" y="214" text-anchor="middle" fill="#3a5f8a" font-size="12">establishes</text>
+  <text x="84" y="230" text-anchor="middle" fill="#3a5f8a" font-size="12">the facts</text>
+
+  <rect x="20" y="350" width="128" height="112" rx="6" fill="#8a5fb0" opacity="0.12"/>
+  <text x="84" y="394" text-anchor="middle" font-weight="600" fill="#8a5fb0">The model</text>
+  <text x="84" y="412" text-anchor="middle" fill="#8a5fb0" font-size="12">copies them</text>
+  <text x="84" y="428" text-anchor="middle" fill="#8a5fb0" font-size="12">into prose</text>
+
+  <rect x="20" y="474" width="128" height="112" rx="6" fill="#7a5c2e" opacity="0.14"/>
+  <text x="84" y="520" text-anchor="middle" font-weight="600" fill="#7a5c2e">The operator</text>
+  <text x="84" y="538" text-anchor="middle" fill="#7a5c2e" font-size="12">decides</text>
+
+  <rect x="20" y="598" width="128" height="236" rx="6" fill="#2f6f4f" opacity="0.12"/>
+  <text x="84" y="706" text-anchor="middle" font-weight="600" fill="#2f6f4f">Code</text>
+  <text x="84" y="724" text-anchor="middle" fill="#2f6f4f" font-size="12">measures</text>
+  <text x="84" y="740" text-anchor="middle" fill="#2f6f4f" font-size="12">the outcomes</text>
+
+  <rect x="20" y="846" width="128" height="112" rx="6" fill="#9c3b3b" opacity="0.12"/>
+  <text x="84" y="890" text-anchor="middle" font-weight="600" fill="#9c3b3b">The operator</text>
+  <text x="84" y="908" text-anchor="middle" fill="#9c3b3b" font-size="12">ratifies values</text>
+
+  <!-- stages -->
+  <g fill="#f2efe9" stroke="#5b5b5b" stroke-width="1">
+    <rect x="168" y="70" width="372" height="80" rx="6"/>
+    <rect x="168" y="164" width="372" height="80" rx="6"/>
+    <rect x="168" y="258" width="372" height="80" rx="6"/>
+    <rect x="168" y="350" width="372" height="112" rx="6"/>
+    <rect x="168" y="474" width="372" height="112" rx="6"/>
+    <rect x="168" y="598" width="372" height="112" rx="6"/>
+    <rect x="168" y="722" width="372" height="112" rx="6"/>
+    <rect x="168" y="846" width="372" height="112" rx="6"/>
+  </g>
+
+  <g fill="#1a1a1a">
+    <text x="184" y="96" font-weight="600">1  Feeds</text>
+    <text x="184" y="116" font-size="12">Prices and bars, FRED, the official writers, external</text>
+    <text x="184" y="132" font-size="12">tables, loggers, option chains, the voices scan</text>
+
+    <text x="184" y="190" font-weight="600">2  The store</text>
+    <text x="184" y="210" font-size="12">One row per observation, three clocks: when it</text>
+    <text x="184" y="226" font-size="12">happened, when it was knowable, when it was written</text>
+
+    <text x="184" y="284" font-weight="600">3  The market-state object</text>
+    <text x="184" y="304" font-size="12">Dimensions, dials, contradictions, exceptions:</text>
+    <text x="184" y="320" font-size="12">computed once a session, read by every report</text>
+
+    <text x="184" y="376" font-weight="600">4  The reports</text>
+    <text x="184" y="396" font-size="12">The ten-section stack at each cadence. Code puts</text>
+    <text x="184" y="412" font-size="12">every figure on the page; the model writes around</text>
+    <text x="184" y="428" font-size="12">them, and the audits withhold any paragraph whose</text>
+    <text x="184" y="444" font-size="12">figure is not in the payload</text>
+
+    <text x="184" y="500" font-weight="600">5  The register</text>
+    <text x="184" y="520" font-size="12">Decision Packets, written by the operator and</text>
+    <text x="184" y="536" font-size="12">never edited (a change is a supersession); the</text>
+    <text x="184" y="552" font-size="12">gate at entry refuses what the rules forbid</text>
+
+    <text x="184" y="624" font-weight="600">6  The ledger</text>
+    <text x="184" y="644" font-size="12">Every probability, call and outcome, dated before</text>
+    <text x="184" y="660" font-size="12">the result is known — decisions declined</text>
+    <text x="184" y="676" font-size="12">included, as shadow outcomes</text>
+
+    <text x="184" y="748" font-weight="600">7  Grading</text>
+    <text x="184" y="768" font-size="12">Brier scores against a coin, base rates as the</text>
+    <text x="184" y="784" font-size="12">baseline, the dealer scorecard, rule breaks and</text>
+    <text x="184" y="800" font-size="12">incidents counted</text>
+
+    <text x="184" y="872" font-weight="600">8  The Doctrine</text>
+    <text x="184" y="892" font-size="12">Rules and thresholds change only at the monthly</text>
+    <text x="184" y="908" font-size="12">sitting, one tier at a time, on graded evidence;</text>
+    <text x="184" y="924" font-size="12">scans propose, rulings in chat decide</text>
+  </g>
+
+  <!-- downward arrows -->
+  <g stroke="#5b5b5b" stroke-width="1.4" fill="none" marker-end="url(#ah)">
+    <line x1="354" y1="150" x2="354" y2="162"/>
+    <line x1="354" y1="244" x2="354" y2="256"/>
+    <line x1="354" y1="338" x2="354" y2="348"/>
+    <line x1="354" y1="462" x2="354" y2="472"/>
+    <line x1="354" y1="586" x2="354" y2="596"/>
+    <line x1="354" y1="710" x2="354" y2="720"/>
+    <line x1="354" y1="834" x2="354" y2="844"/>
+  </g>
+
+  <!-- the return path: the Doctrine changes the configuration the reports run on -->
+  <path d="M540,902 L600,902 L600,406 L548,406" stroke="#9c3b3b" stroke-width="1.6" fill="none" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+  <text x="612" y="660" fill="#9c3b3b" font-size="12" transform="rotate(-90 612 660)" text-anchor="middle">ratified changes return as configuration</text>
+
+  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5.</text>
+</svg>

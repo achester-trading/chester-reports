@@ -57,6 +57,10 @@ REGISTRY = {
     "XIX": "systematic-book", "XX": "base-rates", "XXI": "international-equities",
     "XXII": "options-expression", "XXIII": "evidence-inference", "XXIV": "earnings",
     "XXV": "price-time-and-edge",
+    # System shelf. XXVI-XXXII are reserved by Audit 2's approved roster
+    # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
+    # Review XXXII), so the next free numeral was XXXIII.
+    "XXXIII": "reporting-system",
 }
 
 # D4: the two papers that own a dotted rule namespace, and the chapters whose
@@ -71,7 +75,22 @@ NUMERAL_OK = {
     "VIX",
 }
 
-ROMAN = {r: i for i, r in enumerate(REGISTRY, start=1)}
+def roman_value(r):
+    """A roman numeral's value, or None. Computed rather than read off the
+    registry's order: the registry stopped being consecutive at XXXIII, and an
+    order-derived map would have read XXXIII as 26."""
+    vals = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100}
+    if not r or any(c not in vals for c in r):
+        return None
+    total = 0
+    for i, c in enumerate(r):
+        v = vals[c]
+        nxt = vals[r[i + 1]] if i + 1 < len(r) else 0
+        total += -v if nxt > v else v
+    return total
+
+
+ROMAN = {r: roman_value(r) for r in REGISTRY}
 
 fails: list[str] = []
 warns: list[str] = []
@@ -252,7 +271,7 @@ def check_3_sequences(papers):
                 if not m:
                     continue
                 raw = m.group(1)
-                n = ROMAN.get(raw.upper(), None) if conv is None and not raw.isdigit() \
+                n = roman_value(raw.upper()) if conv is None and not raw.isdigit() \
                     else int(raw)
                 if n is not None and n not in seen:
                     seen.append(n)
