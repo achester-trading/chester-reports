@@ -211,24 +211,29 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and a seven-row
+`config/market_state.yaml` — eight dimensions, three dials and an eight-row
 contradiction table — and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was
-taken under. Both anchors open on a **WHAT CHANGED** block rendered by
-`daily_cascade/state_block.py`, with every magnitude stamped with its percentile
-and the levels moved behind it. `altdata/derived.py` is the one place a delta, a
-percentile or a z-score is computed — the delta's meaning comes from the
-registry's `units` (bps for rates and spreads, percent for prices, raw for
-counts), never from one formula. Do not add a second regime anywhere: if a report
-needs one, point it at the object. ST-3's rates attribution is deliberately NOT
+taken under. The **07:00 morning anchor** opens on a **WHAT CHANGED** block rendered
+by `daily_cascade/state_block.py`, with every magnitude stamped with its percentile
+and the levels moved behind it, and so does the pre-stack `--classic` close. The
+live stacked close does NOT open on it: ruled 6 Oct 2026, the state and
+contradiction tables belong at the END of the stacked close as detail tables — and
+that is not built yet, `daily_cascade/stack_render.py` taking only the
+session-events line from that module and rendering neither table.
+`altdata/derived.py` is the one place a delta, a percentile or a z-score is
+computed — the delta's meaning comes from the registry's `units` (bps for rates
+and spreads, percent for prices, raw for counts), never from one formula. Do not
+add a second regime anywhere: if a report needs one, point it at the object. ST-3's rates attribution is deliberately NOT
 part of it: `altdata/rates_attribution.py` prints each model's path/premium split,
 dated, and a models-agree flag, and decides nothing. The four-cell driver it
 replaces failed its gate twice and was withdrawn; config v1.11/v1.12 and
 method-9/10 are retired numbers, so the next bumps are v1.13 and method-11.
-Three of the eight dimensions are absent today for want of data, and each says so
-with its reason rather than substituting a proxy. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
+In the latest stored object (session 2026-09-25) all eight dimensions are absent for
+want of fresh data, and each says so with its reason rather than substituting a
+proxy — `regime show` prints the current count. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
 
 **Voices are stored and sourced before they are printed (Phase B, 4 Oct 2026).**
 `altdata/sources/voices_scan.py` runs once a day on its own timer
