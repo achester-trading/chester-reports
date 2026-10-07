@@ -16,8 +16,10 @@ it needs, and a failure costs that section alone.
 THE AUDITS ARE THE CLOSE REPORT'S, per section. Every call goes through
 daily_cascade.narrative.generate(): print precision, the precomputed percentile
 ordinals, the numeral and label audit against THAT SECTION'S slice, the state audit
-against the object, markdown refused. A section that fails is WITHHELD WITH ITS
-REASON; the sections beside it publish.
+against the object, markdown refused. A section the audit withholds gets ONE
+RETRY with the audit's reason fed back (T3, the stacked reports' rule); if that
+fails too it is WITHHELD WITH ITS REASON, and the sections beside it publish. A
+fault -- the API, a payload past its guard -- is not retried.
 
 THE SHAPE IS INSTITUTIONAL DESK COMMENTARY, insight first: each paragraph opens
 with the claim, gives the evidence with numbers, and ends with what it implies for
@@ -391,26 +393,137 @@ def words(text: Optional[str]) -> int:
     return len(re.findall(r"\b[\w'.%$-]+\b", text or ""))
 
 
+# ---------------------------------------------------------------------------
+# THE STACK'S OWN SECTIONS (T3): the six with no Monthly v2 prose -- the tape,
+# Mechanics, What doesn't fit, Plumbing, Positioning, What's priced -- plus the
+# claim lines of Narratives and Slow layers. Each is one call over that section's
+# data, written as the stack writes the close's and the Weekly's
+# (daily_cascade.stack_prose: the claim line, the tape's rules, the same audits),
+# in the Monthly's frames.
+# ---------------------------------------------------------------------------
+STACK_SECTIONS = ("tape", "mechanics", "misfit", "plumbing", "positioning",
+                  "priced", "narratives", "slow")
+# Sections whose call writes the claim line alone: Narratives' paragraphs are the
+# themes' own.
+CLAIM_ONLY = ("narratives",)
+MONTHLY_FRAMES = ("the weeks of the month first, then the month as a whole, then "
+                  "where the month sits in the long frame.")
+MONTHLY_NOTES = {
+    "mechanics": (
+        "\n\nTHE DEALER RETROSPECTIVE: how the market behaved against dealer "
+        "positioning over the month, never what to do about it. Every figure "
+        "comes from the counts table and the per-session flags. Write 'pinned', "
+        "'held' or 'amplified' about a session ONLY where that session's flag "
+        "is set, naming the session; or state the month's count for that flag "
+        "exactly as the table gives it. Never infer a flag from the figures."),
+    "misfit": (
+        "\n\nEach open gap in the plain words its row gives, never by an id; the "
+        "month's dissent and corrections as their sources state them."),
+    "slow": (
+        "\n\nSLOW LAYERS: the base rates and the alternative assets as the "
+        "tables state them -- levels and frequencies, never a signal."),
+}
+
+
+def stack_plan(ed: dict) -> list[dict]:
+    """One entry per stack section that wants prose (not empty, not collapsed,
+    not Mechanics below its session threshold)."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    cfg = bars_mod.load_config()
+    caps = cfg.get("depth_words_monthly") or {}
+    out = []
+    for s in ed.get("sections") or []:
+        if s["id"] not in STACK_SECTIONS or s.get("empty") \
+                or not s.get("prose_wanted", True):
+            continue
+        paras = "0" if s["id"] in CLAIM_ONLY else \
+            sp.DEPTH_PARAGRAPHS.get(s["depth"], "0")
+        cap = int(caps.get(s["depth"]) or 120)
+        body = (f"Then write ONE paragraph of at most {cap} words."
+                if paras != "0" else "Write ONLY that one sentence.")
+        why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
+        system = sp.stack_system_prompt(base) + sp.RULES.format(
+            title=s["title"], depth=s["depth"], why=why, body=body,
+            report="the Monthly", period="month", frames=MONTHLY_FRAMES)
+        system += sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
+        out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
+                    "sid": s["id"], "system": system,
+                    "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
+                    "slice": sp._slice(s, ed)})
+    return out
+
+
+def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
+    """The stack's tape rules (daily_cascade.stack_prose), and in Mechanics the
+    flag words held to the per-session flags (monthly_macro.dealer)."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    cfg = bars_mod.load_config()
+    out = (sp.style_faults(text, cfg) + sp.id_faults(text)
+           + sp.policy_word_faults(text, pm_cfg) + sp.excess_faults(text)
+           + sp.outlook_misprints(text, [], sp.venue_percents(ed))
+           + sp.figure_faults(text))
+    if sec["sid"] == "mechanics" and ed.get("_retro"):
+        from . import dealer                                    # noqa: PLC0415
+        out += dealer.flag_word_faults(text, ed["_retro"])
+    return out
+
+
+# Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
+# API call failed, a payload past its guard, an empty reply, a reply that overran
+# its length. Only an AUDIT's refusal is retried.
+NOT_RETRIED = ("fault", "unavailable", "call_failed", "prompt_too_large",
+               "payload_too_large", "empty", "too_long")
+
+
+def _not_retried(r: dict) -> bool:
+    reason = str(r.get("reason") or "")
+    return (r.get("state") in NOT_RETRIED
+            or ("past the" in reason and "guard" in reason))
+
+
 def write_all(p: dict, *, model: Optional[str] = None, client=None,
-              only: Optional[Callable[[dict], bool]] = None) -> dict:
-    """{section key: result}, one audited call each. Never raises."""
+              only: Optional[Callable[[dict], bool]] = None,
+              ed: Optional[dict] = None) -> dict:
+    """{section key: result}, one audited call each -- and, for a section the
+    audit withholds, ONE RETRY with the audit's reason fed back (T3: the stack's
+    retry, extended to the Monthly's section writer). Never raises.
+
+    With `ed` (the stacked edition, monthly_macro.stack), the stack's own
+    sections are written too, after the Monthly v2 sections."""
     from daily_cascade import narrative as base
     states = _market_states(p)
+    try:
+        from altdata.sources import prediction_markets as _pm   # noqa: PLC0415
+        pm_cfg = _pm.load_config()
+    except Exception:                                           # noqa: BLE001
+        pm_cfg = None
     out: dict[str, dict] = {}
-    for sec in plan(p):
-        if only and not only(sec):
-            continue
+    secs = plan(p) + (stack_plan(ed) if ed else [])
+
+    def attempt(sec: dict, system: str) -> dict:
+        stack = sec.get("kind") == "stack"
         try:
-            r = base.generate(sec["slice"], model=model, client=client,
-                              system_prompt=system_prompt(sec["title"], sec["scope"],
-                                                          sec["paragraphs"]),
-                              guide_path=_style_guide(),
-                              max_chars=SECTION_MAX_CHARS, one_paragraph=False,
-                              citable_ids=[], market_states=states)
+            if stack:
+                from daily_cascade import stack_prose as sp     # noqa: PLC0415
+                r = base.generate(sec["slice"], model=model, client=client,
+                                  system_prompt=system, max_chars=sec["max_chars"],
+                                  one_paragraph=False, citable_ids=[],
+                                  unit_constants=sp.UNIT_CONSTANTS,
+                                  guide_path=sp.STACK_GUIDE, market_states=states)
+            else:
+                r = base.generate(sec["slice"], model=model, client=client,
+                                  system_prompt=system, guide_path=_style_guide(),
+                                  max_chars=SECTION_MAX_CHARS, one_paragraph=False,
+                                  citable_ids=[], market_states=states)
             published, state = bool(r.published), r.state
             reason = None if published else (r.withheld_note() or r.reason)
             lists = list_lines(r.text) if published else []
             jargon = internal_terms(r.text) if published else []
+            tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
+                    if (published and stack) else [])
             if jargon:
                 published, state = False, "internal_vocabulary"
                 reason = (f"narrative withheld: it writes about the system "
@@ -421,7 +534,10 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 reason = (f"narrative withheld: the section came back as list "
                           f"fragments ({len(lists)} list line(s)), and a narrative "
                           f"section is prose")
-            out[sec["key"]] = {
+            elif tape:
+                published, state = False, "tape_rules"
+                reason = "withheld: " + "; ".join(tape[:4])
+            return {
                 "title": sec["title"], "state": state, "published": published,
                 "text": r.text if published else None, "reason": reason,
                 "words": words(r.text) if published else 0,
@@ -432,10 +548,31 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 "model": r.model,
                 "figures_checked": getattr(r, "figures_checked", None)}
         except Exception as exc:                               # noqa: BLE001
-            out[sec["key"]] = {"title": sec["title"], "state": "fault",
-                               "published": False, "text": None, "words": 0,
-                               "reason": f"FAULT (code, not data) -- "
-                                         f"{type(exc).__name__}: {exc}"}
-        log.info("section %s: %s (%s words)", sec["key"], out[sec["key"]]["state"],
-                 out[sec["key"]]["words"])
+            return {"title": sec["title"], "state": "fault",
+                    "published": False, "text": None, "words": 0,
+                    "reason": f"FAULT (code, not data) -- "
+                              f"{type(exc).__name__}: {exc}"}
+
+    for sec in secs:
+        if only and not only(sec):
+            continue
+        system = sec.get("system") or system_prompt(sec["title"], sec["scope"],
+                                                    sec["paragraphs"])
+        first = attempt(sec, system)
+        if first["published"] or _not_retried(first):
+            res = {**first, "attempts": 1}
+        else:
+            # THE ONE RETRY (Reader's Guide 5.3): the audit's reason goes back
+            # with the instruction to fix exactly that; a second failure is
+            # withheld as before, with both reasons kept.
+            retry = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
+                     "WITHHELD BY THE AUDIT: " + str(first.get("reason"))[:600]
+                     + "\nWrite it again from the same data, fixing exactly that "
+                       "and changing nothing else.")
+            res = {**attempt(sec, retry), "attempts": 2}
+            if not res["published"]:
+                res["first_reason"] = first.get("reason")
+        out[sec["key"]] = res
+        log.info("section %s: %s (%s words, %d attempt(s))", sec["key"],
+                 res["state"], res["words"], res["attempts"])
     return out
