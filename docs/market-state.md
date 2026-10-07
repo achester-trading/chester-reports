@@ -287,10 +287,12 @@ the part of it that remains, and the tables above carry the current mapping.
 The Phase 2 order chose the eight dimensions "because the store already has daily
 series for them". For five that is true.
 
-- **trend and breadth need equity prices, and the store has none.**
-  `altdata/sources/yfinance_source.py` declares 27 symbols including SPY and all
-  eleven sector ETFs, and **nothing schedules it** — no timer, no unit, no CI job.
-  `data_store/` holds 59 FRED series and not one price.
+- **trend and breadth need equity prices.** `altdata/sources/yfinance_source.py`
+  declares 27 symbols including SPY and all eleven sector ETFs, and it *is*
+  scheduled: twice a session, through `altdata/feeds.py` — the 16:10 pass in
+  `chester-eod` and the 06:45 correction pass in `chester-overnight`, which re-reads
+  the last two years so a missed session heals itself. When this section was written
+  nothing ran it and `data_store/` held 59 FRED series and not one price.
 - **growth has no daily series either.** Its primary is initial claims (weekly),
   which is the fastest growth signal the store actually carries.
 - **the volatility dimension is implied-only** for the same reason: realized
@@ -302,13 +304,13 @@ pair the order itself calls the standing watch line.
 
 Two further data facts bound what v1 can say:
 
-- **The FRED store in this checkout stops at 2026-05-28.** The pull itself *is*
+- **A FRED series is only as current as the pull behind it.** The pull *is*
   scheduled: the 16:10 pass in `chester-eod` runs it through `altdata/feeds.py`,
   ahead of the 16:45 object, with the 06:45 correction pass behind it. A pull that
   cannot run — no `FRED_API_KEY` — logs once at WARNING and exits 0 by design, so
-  the gap surfaces as the data going stale rather than as a red pipeline. For any
-  recent session every FRED-primary dimension is then past its staleness allowance
-  and reports absent.
+  the gap surfaces as the data going stale rather than as a red pipeline. Wherever
+  the series have gone stale, every FRED-primary dimension is past its staleness
+  allowance and reports absent.
 - **The FRED history has no real `available_at`.** All 20,372 migrated
   observations share `2026-05-30`, the CSV-to-SQLite migration instant, because
   the CSVs only ever carried `date` and `as_of`. An as-of-correct backfill
@@ -337,8 +339,7 @@ added in config v1.9 and expands to one row per active story
 
 **Computes** means the legs are implemented and in the store — not that the row
 reported on the last object. Whether a row reports is a freshness question, judged
-per leg on its own cadence. In the latest stored object (session 2026-09-25) all
-eight are absent, every one of them for a stale or missing leg.
+per leg on its own cadence, so how many rows are absent varies by session.
 
 ### The magnitude is the z of the gap, not the gap
 
@@ -359,7 +360,9 @@ magnitude is honestly `None`.
 Rows open and close on the same persistence rule the dimensions use, `since` is
 the session the divergence *began*, and a leg staler than the declared allowance
 sends the row absent — a gap measured between two stale prints is not a divergence
-today.
+today. In the code, though, a pair closes on the FIRST session the condition fails
+where opening needs two, and a symmetric two-session close is ruled for v1.13 at
+Audit #4 (14–15 Oct).
 
 ### The exception is report-only
 
@@ -437,12 +440,9 @@ approximated here:
 | `debt_cycle_branch` | §K's two mutually exclusive branches, architecture 31.2. Still listed as not-built in the close payload. |
 | VIX term structure | Gated on the CFE Enhanced subscription; the dial names the store keys it needs. |
 
-Two nearer-term items, both outside Phase 2's scope and both blocking more than
-they cost:
+One nearer-term item, outside Phase 2's scope and blocking more than it costs:
 
-1. **Schedule a price fetch.** `yfinance_source.py` exists and nothing runs it.
-   That single gap accounts for two absent dimensions, the missing realized-vol
-   leg, and five of six contradiction rows.
-2. **Ingest ALFRED vintages.** The FRED pull is scheduled — the 16:10 pass, through
-   `altdata/feeds.py`. What remains is the vintage history, which gives the migrated
-   observations a real `available_at` and lets the backfill reach back to 2022.
+**Ingest ALFRED vintages.** Both fetches are scheduled now — FRED on the 16:10 pass
+and the prices twice a session, through `altdata/feeds.py`. What remains is the
+vintage history, which gives the migrated observations a real `available_at` and lets
+the backfill reach back to 2022.

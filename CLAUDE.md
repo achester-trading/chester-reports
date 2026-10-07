@@ -231,9 +231,8 @@ part of it: `altdata/rates_attribution.py` prints each model's path/premium spli
 dated, and a models-agree flag, and decides nothing. The four-cell driver it
 replaces failed its gate twice and was withdrawn; config v1.11/v1.12 and
 method-9/10 are retired numbers, so the next bumps are v1.13 and method-11.
-In the latest stored object (session 2026-09-25) all eight dimensions are absent for
-want of fresh data, and each says so with its reason rather than substituting a
-proxy — `regime show` prints the current count. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
+Dimensions whose data is missing or stale are absent, each with its reason, rather
+than substituting a proxy; the count varies by session. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
 
 **Voices are stored and sourced before they are printed (Phase B, 4 Oct 2026).**
 `altdata/sources/voices_scan.py` runs once a day on its own timer
