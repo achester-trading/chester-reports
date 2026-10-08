@@ -764,6 +764,30 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
 
 
+def section_ids(cfg: dict, cadence: str, built: Optional[dict] = None) -> list[str]:
+    """The sections assemble() lays out at `cadence`, in config order (T2.7).
+
+    The ten (SECTION_ORDER) always, each at its declared depth or "light". A
+    section that exists at ONE CADENCE ONLY -- the Monthly's Reading chapter
+    declares a `monthly` depth and no other -- is skipped at every cadence that
+    declares no depth for it, and at its own cadence too unless the caller built
+    it (the Monthly builds Reading after assembly, from the register, and places
+    it itself). A section missing from config is a code fault: KeyError."""
+    specs = [s for s in cfg.get("sections") or []]
+    have = {s["id"] for s in specs}
+    missing = [sid for sid in SECTION_ORDER if sid not in have]
+    if missing:
+        raise KeyError(f"config sections lack {missing}")
+    out = []
+    for sp in specs:
+        sid = sp["id"]
+        if sid in SECTION_ORDER:
+            out.append(sid)
+        elif sp.get(cadence) and built is not None and sid in built:
+            out.append(sid)
+    return out
+
+
 def assemble(built: dict, cfg: dict, prior: Optional[dict],
              cadence: str = "daily") -> list[dict]:
     """The ten sections in order, at the cadence's depth, marked and collapsed.
@@ -777,7 +801,7 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
     prior_secs = {s["id"]: s for s in (prior or {}).get("sections") or []}
     deep_key = "deep_on" if cadence == "daily" else f"{cadence}_deep_on"
     out = []
-    for sid in SECTION_ORDER:
+    for sid in section_ids(cfg, cadence, built):
         sp, b = specs[sid], built[sid]
         depth = sp.get(cadence) or "light"
         reason = b.get("deep_reason")
@@ -857,9 +881,49 @@ def enforce_budget(ed: dict, cadence: str = "daily") -> dict:
     it repeats it (item 4). A claim line, an item and a table are never cut --
     they are data, and the budget counts prose."""
     from . import readability                                   # noqa: PLC0415
+    from . import cadence as cadence_mod                        # noqa: PLC0415
     readability.finalize(ed, cadence)
     readability.withhold_duplicates(ed)
+    cad = cadence_mod.get(cadence)
+    if cad.get("trim_to_budget"):
+        trim_to_budget(ed, int((cad.get("budget") or {}).get("words") or 0))
     ed["words"] = edition_words(ed)
+    return ed
+
+
+def trim_to_budget(ed: dict, budget: int) -> dict:
+    """THE BUDGET CUT (T2.7; the Monthly's, config `trim_to_budget`): while the
+    prose runs over `budget` words, the lowest-priority paragraph goes -- a
+    detail block's sub-section paragraphs first (the appendix), then the last
+    paragraph of a block that keeps several, from the back of the edition
+    forward, then any last paragraph -- and the block and its section print
+    "(trimmed)". A claim, an item, a line, a table and a reading entry are never
+    cut; the model never summarises to fit. Returns the edition."""
+    if budget <= 0:
+        return ed
+    order = [(d, ss) for d in ed.get("detail") or [] for ss in d.get("subsections") or []]
+    blocks = []
+    for s in reversed(ed.get("sections") or []):
+        for ss in reversed(s.get("subsections") or []):
+            blocks.append((s, ss))
+        blocks.append((s, s))
+
+    def cut_one() -> bool:
+        for owner, blk in order:
+            if blk.get("paragraphs"):
+                blk["paragraphs"] = []
+                blk["trimmed"] = owner["trimmed"] = True
+                return True
+        for least in (2, 1):
+            for owner, blk in blocks:
+                if len(blk.get("paragraphs") or []) >= least:
+                    blk["paragraphs"] = blk["paragraphs"][:-1]
+                    blk["trimmed"] = owner["trimmed"] = True
+                    return True
+        return False
+
+    while edition_words(ed) > budget and cut_one():
+        pass
     return ed
 
 

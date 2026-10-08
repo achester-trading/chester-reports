@@ -44,6 +44,13 @@ same on a CI runner as on the laptop.
      fractions, future dates, non-numbers and missing notes are refused; a
      correction is a new vintage that supersedes, not an edit; the order's six
      keys exist.
+  S  AAII (T2.7). The parser reads the bull-bear spread in percentage points
+     from a sheet whose header row is found by name, skips undated and
+     non-numeric rows, and refuses a sheet with no Bullish/Bearish header;
+     robots.txt is read with its wildcards (`Disallow: /files/*` forbids the
+     file, which urllib.robotparser misses); a disallowing or refused
+     robots.txt fetches nothing and the run is STALE with the reason; the
+     operator's file, when present, is read with no network call.
 """
 
 from __future__ import annotations
@@ -1340,11 +1347,124 @@ def group_r() -> None:
           "chester-overnight.service allows 10min (was 5min)")
 
 
+def group_s() -> None:
+    """AAII: the parser, the robots rule, the operator's file (T2.7)."""
+    print(f"{LINE}\nS. AAII -- THE PARSER, THE ROBOTS RULE, THE OPERATOR'S FILE\n{LINE}")
+    from altdata.sources import aaii
+
+    def serial(d: str) -> float:
+        return float((dt.date.fromisoformat(d) - dt.date(1899, 12, 30)).days)
+
+    class Sheet:
+        def __init__(self, rows):
+            self.rows = rows
+            self.nrows = len(rows)
+
+        def row_values(self, r):
+            return self.rows[r]
+
+    rows = [["AAII Sentiment Survey", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["Reported Date", "Bullish", "Neutral", "Bearish", "Total", "Bull-Bear Spread"],
+            [serial("2026-09-24"), 0.3077, 0.2308, 0.4615, 1.0, -0.1538],
+            ["Average", 0.375, 0.315, 0.31, "", ""],
+            [serial("2026-10-01"), 0.3421, 0.1974, 0.4605, 1.0, -0.1184],
+            [serial("2026-10-02"), "", "", "", "", ""]]
+    at = "2026-10-08T00:00:00.000000+00:00"
+    out = aaii.rows_from_sheet(Sheet(rows), 0, at, "ingest_instant")
+    check([(r["observed_at"], r["value"]) for r in out]
+          == [("2026-09-24", -15.38), ("2026-10-01", -11.84)]
+          and all(r["registry_key"] == aaii.KEY for r in out),
+          f"the parser: two dated surveys, Bullish minus Bearish in percentage "
+          f"points; the average and the blank row skipped ({out})")
+    # The header found by name: a column inserted before Bullish moves nothing.
+    wide = [r[:1] + ["x"] + r[1:] for r in rows]
+    wide[2][1] = "Week"
+    out2 = aaii.rows_from_sheet(Sheet(wide), 0, at, "ingest_instant")
+    check([r["value"] for r in out2] == [r["value"] for r in out],
+          "an inserted column does not shift the read -- the header is found by name")
+    try:
+        aaii.rows_from_sheet(Sheet(rows[3:]), 0, at, "ingest_instant")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a sheet with no Bullish/Bearish header raises -- a changed shape "
+                   "is a failure, not a quiet week")
+
+    robots = ("User-agent: *\nDisallow: /survey2007/\nDisallow: /files/*\n\n"
+              "User-agent: SemrushBot\nDisallow: /\n")
+    ok, rule = aaii.robots_verdict(robots, aaii.URL)
+    import urllib.robotparser
+    rp = urllib.robotparser.RobotFileParser()
+    rp.parse(robots.splitlines())
+    check(not ok and rule == "Disallow: /files/*"
+          and rp.can_fetch(aaii.AGENT, aaii.URL),
+          f"robots.txt read with its wildcards: `Disallow: /files/*` forbids the "
+          f"file ({rule}) -- urllib.robotparser says allowed, which is how 4 Oct "
+          f"missed it")
+    check(aaii.robots_verdict(robots, "https://www.aaii.com/sentimentsurvey")[0]
+          and aaii.robots_verdict("User-agent: *\nDisallow: /files/*\n"
+                                  "Allow: /files/surveys/\n", aaii.URL)[0]
+          and not aaii.robots_verdict("User-agent: chester-reports\nDisallow: /\n"
+                                      "User-agent: *\nAllow: /\n", aaii.URL)[0],
+          "an unmatched path is allowed; the longer Allow wins; a group naming "
+          "chester-reports is ours over `*`")
+
+    saved = (aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls,
+             os.environ.get(aaii.FILE_VAR))
+    fetched: list = []
+    db = temp_store()
+    try:
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_aaii.xls")
+        aaii.http_get_response = lambda url, *a, **k: fetched.append(url) or (b"", {})
+        aaii.http_get_text = lambda url, *a, **k: robots
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.STALE and r["written"] == 0 and not fetched
+              and "robots.txt disallows" in (r.get("reason") or ""),
+              f"a disallowing robots.txt: STALE, nothing fetched, nothing written, "
+              f"the reason named ({(r.get('reason') or '')[:70]}...)")
+
+        def refused_robots(url, *a, **k):
+            raise FetchError(f"HTTP 403 from {url}: <html>")
+        aaii.http_get_text = refused_robots
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.STALE and not fetched
+              and "refused robots.txt" in (r.get("reason") or "")
+              and aaii.FILE_VAR in (r.get("reason") or ""),
+              "a refused robots.txt (the box's 403): STALE, the file not fetched, "
+              "and the reason says where the operator's file goes")
+
+        f = Path(_TMP) / "aaii_sentiment.xls"
+        f.write_bytes(b"not read: rows_from_xls is the fixture")
+        os.environ[aaii.FILE_VAR] = str(f)
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or robots
+        aaii.rows_from_xls = lambda data, when, kind: aaii.rows_from_sheet(
+            Sheet(rows), 0, when, kind)
+        r = aaii.pull(db=db)
+        n = db.conn.execute("SELECT COUNT(*) FROM observations WHERE registry_key = ?",
+                            (aaii.KEY,)).fetchone()[0]
+        kinds = {x[0] for x in db.conn.execute(
+            "SELECT availability_kind FROM observations WHERE registry_key = ?",
+            (aaii.KEY,))}
+        check(r["status"] == pub.OK and n == 2 and not fetched
+              and kinds == {"ingest_instant"},
+              f"the operator's file is read with no network call and writes the "
+              f"rows ({n}, availability {sorted(kinds)}: the file's time, an upper "
+              f"bound)")
+    finally:
+        aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls = saved[:3]
+        if saved[3] is None:
+            os.environ.pop(aaii.FILE_VAR, None)
+        else:
+            os.environ[aaii.FILE_VAR] = saved[3]
+        db.close()
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q, group_r):
+              group_p, group_n, group_q, group_r, group_s):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

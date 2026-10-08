@@ -443,10 +443,21 @@ def _untracked(ax, title: str, why: str = "not yet tracked") -> None:
     ax.set_yticks([])
 
 
+def dated_tick_index(n: int, k: int = 4) -> list[int]:
+    """Tick positions for `n` dated points: about `k` evenly spaced, the first
+    and the last. A spaced tick within half a step of the last is dropped, so
+    two labels are never printed on top of each other (T2.7: B's finding)."""
+    if n <= 0:
+        return []
+    step = max(1, n // k)
+    idx = {i for i in range(0, n, step) if i == 0 or n - 1 - i >= step / 2}
+    return sorted(idx | {n - 1})
+
+
 def _dated_ticks(ax, dates: list, k: int = 4) -> None:
     if not dates:
         return
-    idx = sorted({0, len(dates) - 1} | set(range(0, len(dates), max(1, len(dates) // k))))
+    idx = dated_tick_index(len(dates), k)
     ax.set_xticks(idx)
     ax.set_xticklabels([str(dates[i])[2:10] for i in idx])
 

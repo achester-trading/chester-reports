@@ -165,12 +165,15 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
         for it in s.get("items") or []:
             it["text"] = P(it["text"])
         _polish_table(s.get("table"))
+        for t in s.get("tables") or []:
+            _polish_table(t)
         for ss in s.get("subsections") or []:
             for k in ("paragraph", "table_note", "title"):
                 ss[k] = P(ss.get(k))
             ss["lines"] = [P(x) for x in ss.get("lines") or []]
             ss["not_tracked"] = [P(x) for x in ss.get("not_tracked") or []]
             _polish_table(ss.get("table"))
+            _polish_more(ss, P)
     # THE DETAIL BLOCKS (T2.6): the close's state and contradiction tables, the
     # Monthly's record -- their notes and lines are code-written prose too.
     for d in ed.get("detail") or []:
@@ -179,6 +182,11 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
         _polish_table(d.get("table"))
         for t in d.get("tables") or []:
             _polish_table(t)
+        _polish_more(d, P)
+        for ss in d.get("subsections") or []:
+            ss["lines"] = [P(x) for x in ss.get("lines") or []]
+            _polish_table(ss.get("table"))
+            _polish_more(ss, P)
     for c in (charts or {}).values():
         if c.get("caption"):
             c["caption"] = P(c["caption"])
@@ -187,15 +195,44 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
     return ed
 
 
+def _polish_more(b: dict, P) -> None:
+    """What a Monthly block may carry beyond the close's and the Weekly's: its
+    own paragraphs, notes and "not yet tracked", and further tables -- polished
+    where the block carries them, and never added where it does not. A block's
+    reading `entries` are STORED TEXT and are not touched (T2.7)."""
+    for k in ("paragraphs", "notes", "not_tracked"):
+        if k in b:
+            b[k] = [P(x) for x in b.get(k) or []]
+    for t in b.get("tables") or []:
+        _polish_table(t)
+
+
+def stored_words(ed: dict) -> int:
+    """Words of STORED TEXT the edition prints verbatim -- each reading entry's
+    summary, or its one line where it has no summary (T2.7, the Monthly's
+    Reading chapter). A reader reads them, so they count in the reading time;
+    they are not this edition's prose, so never in the word budget and never
+    cut. An empty section prints none."""
+    n = 0
+    for s in ed.get("sections") or []:
+        if s.get("empty"):
+            continue
+        for b in [s] + list(s.get("subsections") or []):
+            for e in b.get("entries") or []:
+                n += len(str(e.get("summary") or e.get("line") or "").split())
+    return n
+
+
 def reading_minutes(ed: dict, charts: Optional[int] = None) -> int:
     """Prose words at 250 a minute plus 20 seconds a chart, rounded up; at
-    least one minute. The words are the edition's (stack.edition_words: every
-    section and any detail block); `charts` defaults to the edition's count.
-    One estimate for every cadence (T2.6)."""
+    least one minute. The words are the edition's prose (stack.edition_words:
+    every section and any detail block) and the stored text it prints
+    (stored_words, T2.7); `charts` defaults to the edition's count. One
+    estimate for every cadence (T2.6)."""
     from .stack import edition_words                            # noqa: PLC0415
     if charts is None:
         charts = int(ed.get("chart_count") or 0)
-    return max(1, math.ceil(edition_words(ed) / WORDS_PER_MINUTE
+    return max(1, math.ceil((edition_words(ed) + stored_words(ed)) / WORDS_PER_MINUTE
                             + charts * SECONDS_PER_CHART / 60.0))
 
 

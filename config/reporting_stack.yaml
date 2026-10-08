@@ -163,6 +163,10 @@ sections:
   - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium}
   - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep}
   - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep}
+  # THE READING CHAPTER, the Monthly only (reading-shelf brief section 5; ruling
+  # D1, 5 Oct 2026: immediately after Narratives, before Ahead). No daily or
+  # weekly depth: the close and the Weekly never carry it. No model call.
+  - {id: reading,     title: "Reading", subtitle: "what the shelf published this month, and what is due",                                    monthly: deep}
   - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep, monthly: deep}
   - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium, monthly: medium}
 
@@ -194,6 +198,11 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 #   paragraph_words  words a kept paragraph may run to: a number, or "depth" for
 #                 the section's allowance in its depth_words map
 #   subsection_paragraphs  whether a sub-section keeps paragraphs of its own
+#   subsection_charts  whether a sub-section's charts print under it (T2.7);
+#                 otherwise they print with the section's own
+#   trim_to_budget  whether the budget step cuts paragraphs, lowest priority
+#                 first, until the prose fits `budget` (T2.7; the close and the
+#                 Weekly fit by construction, one capped paragraph a section)
 #   report, frames  the prose prompt's report name and its frames (brief 2.1 rule 1)
 #   chars_scale, read_chars  the prose's runaway guards (not style rules)
 cadences:
@@ -205,6 +214,8 @@ cadences:
     paragraphs: 1
     paragraph_words: 120
     subsection_paragraphs: false
+    subsection_charts: false
+    trim_to_budget: false
     frames: "the session first, then the day, then where it sits in the week."
     chars_scale: 1.0
     read_chars: 1600
@@ -216,6 +227,8 @@ cadences:
     paragraphs: 1
     paragraph_words: 120
     subsection_paragraphs: false
+    subsection_charts: false
+    trim_to_budget: false
     frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
     chars_scale: 2.5
     read_chars: 2400
@@ -227,6 +240,8 @@ cadences:
     paragraphs: null
     paragraph_words: depth
     subsection_paragraphs: true
+    subsection_charts: true
+    trim_to_budget: true
     frames: "the weeks of the month first, then the month as a whole, then where the month sits in the long frame."
     chars_scale: 2.5
     read_chars: 2400
@@ -242,6 +257,47 @@ monthly_slow_layers: {id: slow, title: "Slow layers", subtitle: "valuation, base
 # (n=...)", no counts or hit rates, and asks the model for nothing. The brief's
 # section 1.2 wrote 15; the ruling is 20 (errata to follow).
 dealer_retrospective_min_sessions: 20
+
+# THE CROSS-ASSET YEAR TO DATE (GTM-14, the quilt's current column; adopted 3 Oct
+# 2026 "from the proxies the store already holds", pulled forward into T3). The
+# Monthly's tape ranks these by total return from the prior year's last close to
+# the month-end close: a fund's dividends are added on their ex-dates and not
+# reinvested (as Book Z's ledgers), and cash accrues at the 3-month bill as Book
+# Z's does (rate x calendar days / 360). Proxies are funds, not the quilt's
+# indices, and print beside their class. A class with no proxy in the store says
+# why, rather than borrowing a near neighbour. (Session-set, T3; not ruled.)
+monthly_cross_asset_ytd:
+  - {id: large,  label: "U.S. large cap",           proxy: SPY,  key: yfinance.mkt_spy}
+  - {id: small,  label: "U.S. small cap",           proxy: IWM,  key: yfinance.mkt_iwm}
+  - {id: dm,     label: "Developed ex-U.S. equity", proxy: EFA,  key: yfinance.mkt_efa}
+  - {id: em,     label: "Emerging-market equity",   proxy: EEM,  key: yfinance.mkt_eem}
+  - {id: reits,  label: "REITs",                    proxy: XLRE, key: yfinance.mkt_xlre}
+  - {id: hy,     label: "High-yield bonds",         proxy: HYG,  key: yfinance.mkt_hyg}
+  - {id: agg,    label: "U.S. aggregate bonds",     proxy: AGG,  key: yfinance.mkt_agg}
+  - {id: cash,   label: "Cash",                     proxy: "3-month T-bill", key: fred.tbill_3m, kind: bill}
+  - {id: commod, label: "Commodities", absent: "no broad commodity index in the store; GLD and USO are single commodities"}
+
+# THE SLOW LAYERS' TRIPLE (T3; the JPM Guide's form, change order 3 Oct 2026, "A
+# form worth borrowing"): every level row prints latest / long-run average /
+# percentile, each with its data-as-of date and its window. Until the metric
+# lenses (6e) declare each family's long_window, the long-run average is over the
+# store's FULL history and the percentile over five years where the store holds
+# them (percentile_window_days); a shorter history prints its own start and n.
+# (Session-set, T3; the windows are the 8 Oct paste's.)
+monthly_slow_triple:
+  percentile_window_days: 1825
+  valuation:
+    - {key: shiller.cape,          label: "CAPE (Shiller P/E10)"}
+    - {key: damodaran.pe_forward,  instrument: "Total Market", label: "Forward P/E, total market (Damodaran)"}
+    - {key: damodaran.pe_trailing, instrument: "Total Market", label: "Trailing P/E, total market (Damodaran)"}
+  not_tracked:
+    - "the equity risk premium and the dividend yield (the metric lenses, 6e)"
+
+# THE READING CHAPTER'S LINKS (T3, session-set): a register entry's `scan` is a
+# repository path, and an emailed edition can only follow an absolute link, so
+# the scan line links to this base + the path.
+monthly_reading:
+  repo_blob_url: "https://github.com/achester-trading/chester-reports/blob/main"
 
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
 # number's work. A motive word is refused outright; an intensity word only when
