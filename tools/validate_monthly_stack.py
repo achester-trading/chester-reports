@@ -52,6 +52,10 @@ SECOND HALF:
                 lines, stored summaries verbatim (no audit, no budget cut, in the
                 reading time), list items' lines, withheld without a URL, shelf
                 a voices URL match footnoted, the due list, the empty month.
+  M DRY RUN     --dry-run [--email] on monthly_macro.run: every write under
+                reports/dryrun/ and nowhere else, the prior read from the real
+                archive, no snapshot, no state record, one "[DRY RUN]" copy
+                with --email, --email alone refused.
 """
 
 from __future__ import annotations
@@ -960,6 +964,86 @@ def reading_group(cfg: dict) -> None:
           "the JPM Guide and its stored summary")
 
 
+def tree(root: Path) -> dict[str, str]:
+    """Every file under `root`, by relative path, with its content hash."""
+    import hashlib
+    return {str(f.relative_to(root)).replace("\\", "/"):
+            hashlib.sha256(f.read_bytes()).hexdigest()
+            for f in root.rglob("*") if f.is_file()}
+
+
+def dryrun_group(p: dict, prior: dict) -> None:
+    """M: the real dry run (--dry-run [--email]) on monthly_macro.run."""
+    import copy
+    import sys as _sys
+    from monthly_macro import run as run_mod, snapshot as snap_mod
+    from monthly_macro import stack as ms
+    print(f"\n{LINE}\nM. THE DRY RUN: WRITES ONLY reports/dryrun/, READS THE REAL "
+          f"ARCHIVE\n{LINE}")
+    root = Path(TD)
+    reports = root / "box" / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    (root / "box" / "store").mkdir(exist_ok=True)
+    (root / "box" / "snapshots").mkdir(exist_ok=True)
+    # The real archive holds the prior Monthly the marks compare against.
+    ms.save_edition(dict(prior, report_date=PREV), str(reports))
+    emitted: list = []
+    sent: list = []
+    saved = (run_mod.payload_mod.build, run_mod.emit, run_mod.delivery.send_html,
+             snap_mod.SNAPSHOT_DIR, os.environ.get("ALTDATA_STORE"), _sys.argv)
+    run_mod.payload_mod.build = lambda as_of=None, run_id=None: copy.deepcopy(p)
+    run_mod.emit = lambda *a, **k: emitted.append(k)
+    run_mod.delivery.send_html = (lambda subject, html, **k:
+                                  sent.append((subject, html, k)) or ("sent", "ok"))
+    snap_mod.SNAPSHOT_DIR = root / "box" / "snapshots"
+    os.environ["ALTDATA_STORE"] = str(root / "box" / "store")
+
+    def run(*argv: str) -> int:
+        _sys.argv = ["monthly_macro.run", "--out-dir", str(reports), *argv]
+        try:
+            return run_mod.main()
+        except SystemExit as exc:
+            return int(exc.code or 0)
+
+    try:
+        rc_refused = run("--email", "--skip-narrative")
+        sent_refused = len(sent)
+        before = tree(root)
+        rc = run("--dry-run", "--email", "--skip-narrative")
+        after = tree(root)
+        rc_quiet = run("--dry-run", "--skip-narrative")
+    finally:
+        (run_mod.payload_mod.build, run_mod.emit, run_mod.delivery.send_html,
+         snap_mod.SNAPSHOT_DIR, store_env, _sys.argv) = saved
+        if store_env is None:
+            os.environ.pop("ALTDATA_STORE", None)
+        else:
+            os.environ["ALTDATA_STORE"] = store_env
+    check(rc_refused == 1 and sent_refused == 0,
+          "--email without --dry-run is refused and sends nothing")
+    dry = "box/reports/dryrun/"
+    changed = sorted(k for k in set(before) | set(after)
+                     if before.get(k) != after.get(k))
+    outside = [k for k in changed if not k.startswith(dry)]
+    check(rc == 0 and changed and not outside,
+          f"--dry-run writes nothing outside reports/dryrun/ ({len(changed)} "
+          f"file(s) written there; outside: {outside or 'none'})")
+    check(not any(k.startswith("box/snapshots/") for k in after) and not emitted,
+          "no snapshot and no state record")
+    stack_json = reports / "dryrun" / f"monthly_macro_{REPORT_DATE}_stack.json"
+    ed = json.loads(stack_json.read_text(encoding="utf-8")) if stack_json.exists() else {}
+    check(ed.get("prior_session") == PREV,
+          f"it reads the real archive: the change marks compare against the prior "
+          f"Monthly of {PREV} ({ed.get('prior_session')})")
+    check(len(sent) == 1 and sent[0][0].startswith("[DRY RUN] ")
+          and sent[0][1] == (reports / "dryrun" / f"monthly_macro_{REPORT_DATE}.html"
+                             ).read_text(encoding="utf-8"),
+          f"--email sends one copy, \"[DRY RUN]\" in the subject, byte-identical to "
+          f"the dry-run archive ({sent[0][0] if sent else 'nothing sent'})")
+    check(rc_quiet == 0 and len(sent) == 1,
+          "without --email the dry run sends nothing")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1242,6 +1326,7 @@ def main() -> int:
     triple_group(cfg, ed, out)
     charts_group(cfg)
     reading_group(cfg)
+    dryrun_group(p, ed)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")

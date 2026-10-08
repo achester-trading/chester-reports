@@ -1250,14 +1250,16 @@ def markdown(ed: dict) -> str:
 
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
             model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, write=None) -> dict:
+            db_path: Optional[str] = None, write=None,
+            prior_dir: Optional[str] = None) -> dict:
     """Build, write, budget, polish and render the stacked Monthly. Archives
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
     its own, which logs and records the prose on the payload)."""
     from . import charts as charts_mod                           # noqa: PLC0415
     from . import prose as prose_mod                             # noqa: PLC0415
-    prior = load_prior(str(p.get("report_date")), archive_dir)
+    prior = load_prior(str(p.get("report_date")),
+                       prior_dir if prior_dir is not None else archive_dir)
     book = level_book(p, db_path)
     ed = build(p, prior, db_path, book=book)
     if not narrative:

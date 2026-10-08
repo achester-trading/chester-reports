@@ -189,6 +189,9 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
+`--dry-run` builds with the model, reads the real archive's prior Monthly and
+writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
+`--email` to send it once under a "[DRY RUN]" subject.
 
 **`make validate` runs every gate** — forty-five code gates (forty-two Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
