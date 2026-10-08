@@ -20,7 +20,8 @@ Monthly exactly when it was pinned in its Weekly:
 
 THE MONTH'S COUNTS AND HIT RATES are counts of those flags over the sessions on
 which the flag could be computed (a flag a card cannot support is None, never
-False). Below MIN_SESSIONS scored sessions the counts are not printed as rates:
+False). Below `dealer_retrospective_min_sessions` (config/reporting_stack.yaml,
+ruled 8 Oct 2026: 20) scored sessions the counts are not printed as rates:
 the section says "insufficient sessions (n=...)" and the prose is not asked for.
 
 THE PROSE MAY USE A FLAG WORD ONLY WHERE THE FLAG SAYS SO. flag_word_faults()
@@ -39,9 +40,12 @@ from typing import Any, Optional
 from daily_cascade import weekly_sections as wsec
 
 KEY = "dealer.scorecard_day"
-# T3 (Ari, 7 Oct 2026): "insufficient sessions" below 20. The brief's section
-# 1.2 wrote 15; the T3 instruction is the later ruling and governs.
-MIN_SESSIONS = 20
+# Used only when the config does not carry the floor.
+DEFAULT_MIN_SESSIONS = 20
+
+
+def min_sessions(cfg: dict) -> int:
+    return int(cfg.get("dealer_retrospective_min_sessions") or DEFAULT_MIN_SESSIONS)
 
 FLAGS = (("pinned", "pinned"), ("call_wall_held", "call wall held"),
          ("put_wall_held", "put wall held"), ("amplified", "amplified"))
@@ -150,7 +154,8 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
                         "actual_range_mean": mean([r["actual_range"] for r in rs]),
                         "implied_range_mean": mean([r["implied_range"] for r in rs])}
     counts["range_by_regime"] = by_regime
-    insufficient = n < MIN_SESSIONS
+    floor = min_sessions(cfg)
+    insufficient = n < floor
 
     table_rows, range_rows = [], []
     for r in rows:
@@ -172,7 +177,7 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
     if insufficient:
         summary = None
         lines = [f"insufficient sessions (n={n}): the month's counts and hit rates "
-                 f"need {MIN_SESSIONS} scored sessions"]
+                 f"need {floor} scored sessions"]
     else:
         summary = [
             ["Sessions scored", n, "—"],
@@ -196,7 +201,7 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
                          f"{_bn(big['net_gex_morning'])} "
                          f"({big['gamma_regime'] or 'regime not stored'}).")
     return {"sessions": rows, "counts": counts, "rates": rates,
-            "insufficient": insufficient, "min_sessions": MIN_SESSIONS,
+            "insufficient": insufficient, "min_sessions": floor,
             "table": {"columns": ["Session", "Gamma regime", "Net GEX, morning",
                                   "Net GEX, close", "Flip", "Flip crossed"],
                       "rows": table_rows},

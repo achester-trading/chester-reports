@@ -186,6 +186,12 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 # it as the detail tables (T3, 7 Oct 2026).
 monthly_slow_layers: {id: slow, title: "Slow layers", subtitle: "valuation, base rates, tails and themes", monthly: deep}
 
+# THE DEALER RETROSPECTIVE'S FLOOR (Mechanics, Monthly; ruled 8 Oct 2026, T3):
+# fewer scored sessions than this and the section prints "insufficient sessions
+# (n=...)", no counts or hit rates, and asks the model for nothing. The brief's
+# section 1.2 wrote 15; the ruling is 20 (errata to follow).
+dealer_retrospective_min_sessions: 20
+
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
 # number's work. A motive word is refused outright; an intensity word only when
 # its sentence carries no figure.

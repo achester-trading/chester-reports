@@ -396,6 +396,12 @@ def main() -> int:
     check(not any(ss.get("table") and "Hit rate" in ss["table"]["columns"]
                   for ss in m2["subsections"]),
           "and no hit rate prints below the threshold")
+    check(cfg.get("dealer_retrospective_min_sessions") == 20
+          and dealer.min_sessions(cfg) == 20
+          and dealer.min_sessions({"dealer_retrospective_min_sessions": 25}) == 25
+          and retro["min_sessions"] == 20,
+          "the threshold is configuration (dealer_retrospective_min_sessions: 20, "
+          "ruled 8 Oct), read by the code rather than written into it")
     point(DB)
     pinned_day = next(r for r in retro["sessions"] if r["flags"]["pinned"])
     free_day = next(r for r in retro["sessions"] if r["flags"]["pinned"] is False)
