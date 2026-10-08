@@ -47,6 +47,11 @@ SECOND HALF:
                 dates, only listed levels drawn (one list with the prose), each
                 in its section, unavailable with its reason, delivered from the
                 archive.
+  L READING     the Reading chapter between Narratives and Ahead (D1): the
+                month's register entries in group order, hyperlinked title
+                lines, stored summaries verbatim (no audit, no budget cut, in the
+                reading time), list items' lines, withheld without a URL, shelf
+                voices deduped by URL, the due list, the empty month.
 """
 
 from __future__ import annotations
@@ -714,7 +719,8 @@ def charts_group(cfg: dict) -> None:
     check(all(f"]({Path(c['svg_path']).name})" in out["markdown"] for c in ok),
           "the Markdown carries each chart with its caption as the alt text")
     check(ed["reading_minutes"] == max(1, math.ceil(
-              ed["words"] / rd.WORDS_PER_MINUTE + 9 * rd.SECONDS_PER_CHART / 60.0)),
+              (ed["words"] + ms.stored_words(ed)) / rd.WORDS_PER_MINUTE
+              + 9 * rd.SECONDS_PER_CHART / 60.0)),
           "the reading time counts the nine charts at 20 seconds each")
     hist = mch.scenario_history([
         {"source": "monthly_macro", "scenario_set": "monthly_macro:2026-09",
@@ -759,6 +765,190 @@ def charts_group(cfg: dict) -> None:
           "the archived HTML")
 
 
+SUMMARY_DEEP = ("The fixture chartbook, data as of 31 August 2026, argues earnings "
+                "did the work: EPS +31.6% with margins at 15.9%, the forward yield "
+                "minus Baa at -1.0%, and 2s10s - 5 bp because the long end sold "
+                "off. Exhibits 4 and 11 are worth the time.")
+SUMMARY_SKIM = ("The fixture stability report, published 12 September 2026, finds "
+                "leverage in non-banks at a record 41% of credit and says so twice.")
+
+
+def reading_fixture(d: Path) -> tuple[Path, Path]:
+    reg = {"entries": [
+        {"id": "fx-deep-2026-09", "watch_id": "fx-deep", "group": "chartbook",
+         "publication": "Fixture Chartbook — September 2026", "publisher": "Fixture AM",
+         "published": "2026-09-10", "as_of": "2026-08-31",
+         "url": "https://example.org/deep.pdf", "scan": "docs/scans/fx-deep.md",
+         "status": "read", "line": "Lead line.", "summary": SUMMARY_DEEP,
+         "themes": ["a theme tag"], "candidates": ["FX-CAND-1"]},
+        {"id": "fx-skim-2026-09", "watch_id": "fx-skim", "group": "plumbing",
+         "publication": "Fixture Stability Report", "publisher": "Fixture Bank",
+         "published": "2026-09-12", "as_of": "2026-09-12",
+         "url": "https://example.org/skim.pdf", "scan": None, "status": "read",
+         "line": "Skim lead.", "summary": SUMMARY_SKIM, "themes": [], "candidates": []},
+        {"id": "fx-list-2026-09", "watch_id": "fx-list", "group": "history",
+         "publication": "Fixture Yearbook", "publisher": "Fixture Uni",
+         "published": "2026-09-30", "as_of": None, "url": "https://example.org/list",
+         "scan": None, "status": "listed", "line": "Equities beat bills in 7 of 10 "
+         "decades.", "summary": None, "themes": [], "candidates": []},
+        {"id": "fx-nourl", "watch_id": "fx-v", "group": "voices", "publication":
+         "Unsourced Letter", "publisher": "Nobody", "published": "2026-09-16",
+         "url": None, "status": "listed", "line": "x", "summary": None},
+        {"id": "fx-pending", "watch_id": "fx-v", "group": "voices", "publication":
+         "Pending Letter", "publisher": "Nobody", "published": "2026-09-17",
+         "url": "https://example.org/pending", "status": "pending", "line": "x",
+         "summary": None},
+        {"id": "fx-old", "watch_id": "fx-v", "group": "voices", "publication":
+         "August Letter", "publisher": "Nobody", "published": "2026-08-31",
+         "url": "https://example.org/old", "status": "listed", "line": "x",
+         "summary": None},
+        {"id": "fx-dup", "watch_id": "fx-v", "group": "voices", "publication":
+         "Scanned Letter", "publisher": "Desk", "published": "2026-09-20",
+         "url": "https://example.org/dup", "status": "listed", "line": "dup",
+         "summary": None},
+        {"id": "fx-voice", "watch_id": "fx-v", "group": "voices", "publication":
+         "Shelf Letter", "publisher": "Desk", "published": "2026-09-21",
+         "url": "https://example.org/voice", "status": "listed", "line": "A letter.",
+         "summary": None}]}
+    wl = {"groups": {"chartbook": "Chartbooks", "plumbing": "Plumbing",
+                     "history": "History", "voices": "Letters"},
+          "items": [
+              {"id": "due-oct", "publication": "October Outlook", "publisher": "P1",
+               "expected": {"months": [10], "window": "mid-October"},
+               "index_url": "https://example.org/oct"},
+              {"id": "due-nov", "publication": "November Outlook", "publisher": "P2",
+               "expected": {"months": [11], "window": "November"},
+               "index_url": "https://example.org/nov"},
+              {"id": "irr", "publication": "Irregular Notes", "publisher": "P3",
+               "expected": "irregular", "index_url": "https://example.org/irr"}]}
+    r, w = d / "register.json", d / "watchlist.json"
+    r.write_text(json.dumps(reg), encoding="utf-8")
+    w.write_text(json.dumps(wl), encoding="utf-8")
+    return r, w
+
+
+def reading_group(cfg: dict) -> None:
+    """L: the Reading chapter (T3 second half, step 5)."""
+    import html as htmlmod
+    from monthly_macro import reading, stack as ms
+    from monthly_macro.writer import render_stack
+    print(f"\n{LINE}\nL. THE READING CHAPTER: AFTER NARRATIVES, STORED TEXT VERBATIM\n"
+          f"{LINE}")
+    reg, wl = reading_fixture(Path(TD))
+    saved = (reading.REGISTER, reading.WATCHLIST)
+    reading.REGISTER, reading.WATCHLIST = reg, wl
+    calls: list = []
+    try:
+        out = ms.produce(build_payload(), archive_dir=None, client=client(calls, {}),
+                         db_path=DB)
+    finally:
+        reading.REGISTER, reading.WATCHLIST = saved
+    ed, page, md = out["edition"], out["html_email"], out["markdown"]
+    ids = [s["id"] for s in ed["sections"]]
+    sec = next(s for s in ed["sections"] if s["id"] == "reading")
+    spec = next(s for s in cfg["sections"] if s["id"] == "reading")
+    check(ids.index("reading") == ids.index("narratives") + 1
+          and ids.index("ahead") == ids.index("reading") + 1,
+          "Reading sits immediately after Narratives and before Ahead (D1)")
+    check(spec.get("monthly") == "deep" and "daily" not in spec and "weekly" not in spec
+          and sec["depth"] == "deep",
+          "config/reporting_stack.yaml carries a reading row in the Monthly's "
+          "column only")
+    check(not any("THE SECTION: Reading" in c for c in calls)
+          and not sec["paragraphs"] and sec["prose_wanted"] is False,
+          "no model call: the chapter is the register's text and code-written "
+          "lines")
+    groups = [ss["title"] for ss in sec["subsections"]]
+    check(groups == ["Chartbooks", "Plumbing", "History", "Letters",
+                     "Due before the next Monthly"],
+          f"published this month, in the watchlist's group order ({groups})")
+    shown = [e["id"] for ss in sec["subsections"] for e in ss.get("entries") or []
+             if e.get("id")]
+    check(shown == ["fx-deep-2026-09", "fx-skim-2026-09", "fx-list-2026-09",
+                    "fx-dup", "fx-voice"],
+          "the month is (31 Aug, 30 Sep]: the 31 Aug edition is last month's, the "
+          "30 Sep one is this month's; pending never prints")
+    check(htmlmod.escape(SUMMARY_DEEP) in page and SUMMARY_DEEP in md
+          and htmlmod.escape(SUMMARY_SKIM) in page and SUMMARY_SKIM in md,
+          "each stored summary prints verbatim in the HTML (escaped) and the "
+          "Markdown: no polish, no minus-sign rewrite, no trim")
+    check("because the long end" in page and not sec.get("withheld")
+          and "Commentary withheld" not in page.split(">Reading<")[-1].split(
+              ">Ahead<")[0],
+          "the audits do not apply: a motive word in a stored summary is not "
+          "withheld")
+    check('<a href="https://example.org/deep.pdf"' in page
+          and "**[Fixture Chartbook — September 2026](https://example.org/deep.pdf)**"
+          in md,
+          "the title line is hyperlinked to the stored URL")
+    check("published 10 Sep 2026 (data as of 31 Aug 2026)" in page
+          and "published 12 Sep 2026 (data as of" not in page,
+          "the data-as-of date prints where it differs from the published date")
+    check(f'{cfg["monthly_reading"]["repo_blob_url"]}/docs/scans/fx-deep.md' in page,
+          "the scan line links the scan at an absolute address an email can follow")
+    check("Fixture Yearbook</a></strong>" in page and "Equities beat bills" in page
+          and "Lead line." not in page,
+          "a list item prints its one-liner on the title line; a summarised item "
+          "prints its summary, not its line")
+    check("1 entry withheld: no stored source." in page
+          and "Unsourced Letter" not in page and "Pending Letter" not in page,
+          "an entry without a URL is withheld and counted in the footnote")
+    check("FX-CAND-1" not in page and "a theme tag" not in page,
+          "no candidate or theme prints")
+    due = next(ss for ss in sec["subsections"]
+               if ss["title"] == "Due before the next Monthly")
+    check([e["publication"] for e in due["entries"]] == ["October Outlook"]
+          and 'href="https://example.org/oct"' in page and "Irregular Notes" not in page,
+          "due before the next Monthly: the coming month's expected items, linked "
+          "to their index pages; irregular items left out")
+    data = reading.section("2026-08-31T23:59:59+00:00", "2026-09-30",
+                           "2026-10-01T10:00:00+00:00",
+                           reading.voices_urls({"table": {"rows": [
+                               ["Desk", "Outlet, 20 Sep 2026, https://example.org/dup"]]}}),
+                           cfg, reg, wl)
+    rs = reading.stack_section(data, spec, None)
+    check([e["id"] for g in data["entries_by_group"] for e in g["entries"]
+           if g["group"] == "voices"] == ["fx-voice"]
+          and "Scanned Letter" in " ".join(rs["notes"]),
+          "a shelf voices entry the daily scan already stored (same URL) prints once, "
+          "under Narratives, and the footnote says so")
+    e2 = json.loads(json.dumps(ed))
+    before = ms.edition_words(e2)
+    check(before == ms.edition_words({"sections": [dict(s, subsections=[])
+                                                   if s["id"] == "reading" else s
+                                                   for s in e2["sections"]],
+                                      "detail": e2["detail"]})
+          and ms.stored_words(e2) == reading.words(sec["data"]["reading"])
+          and ms.stored_words(e2) > 50,
+          f"the summaries are not this edition's prose: no budget word "
+          f"({ms.stored_words(e2)} stored words counted in the reading time instead)")
+    e2["budget"] = {"words": 10, "charts": 10}
+    ms.enforce_budget(e2)
+    rs2 = next(s for s in e2["sections"] if s["id"] == "reading")
+    check(json.dumps(rs2["subsections"]) == json.dumps(sec["subsections"]),
+          "over budget, the budget never cuts or trims a stored summary")
+    check(ed["reading_minutes"] == max(1, math.ceil(
+              (ed["words"] + ms.stored_words(ed)) / 250.0 + ed["chart_count"] / 3.0)),
+          "and the reading time counts them")
+    empty = reading.stack_section(reading.section(
+        "2026-05-31T23:59:59+00:00", "2026-06-30", "2026-07-01T10:00:00+00:00", set(),
+        cfg, reg, wl), spec, None)
+    sub_html = "".join(render_stack._sub_html(ss, "month")
+                       for ss in empty["subsections"])
+    check(empty["claim"] == reading.EMPTY_LINE and not empty.get("empty")
+          and "Nothing on the shelf is due" in sub_html,
+          "an empty month prints \"Nothing on the shelf was published this month.\" "
+          "and the due list")
+    live = reading.section("2026-09-30T23:59:59+00:00", "2026-10-31",
+                           "2026-11-01T10:00:00+00:00", set(), cfg)
+    check([e["id"] for g in live["entries_by_group"] for e in g["entries"]][:1]
+          == ["jpm-gtm-2026q4"] and any(
+              e.get("summary", "").startswith("JPM's 71-slide quarterly chartbook")
+              for g in live["entries_by_group"] for e in g["entries"]),
+          "against the committed register, the 1 Nov Monthly opens the chapter with "
+          "the JPM Guide and its stored summary")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -791,11 +981,16 @@ def main() -> int:
     # --- A. STACK --------------------------------------------------------------
     print(f"\n{LINE}\nA. TEN SECTIONS AT MONTHLY DEPTH, THEN SLOW LAYERS AND THE "
           f"DETAIL TABLES\n{LINE}")
-    check([s["id"] for s in ed["sections"]] == list(stack_mod.SECTION_ORDER) + ["slow"],
-          "the ten sections in the brief's order, Slow layers eleventh")
+    ten = list(stack_mod.SECTION_ORDER)
+    order = ten[:ten.index("narratives") + 1] + ["reading"] \
+        + ten[ten.index("narratives") + 1:] + ["slow"]
+    check([s["id"] for s in ed["sections"]] == order,
+          "the ten sections in the brief's order, Reading between Narratives and "
+          "Ahead (D1), Slow layers last")
     want = {"read": "deep", "tape": "light", "mechanics": "deep", "misfit": "deep",
             "plumbing": "deep", "positioning": "medium", "priced": "deep",
-            "narratives": "deep", "ahead": "deep", "book": "medium", "slow": "deep"}
+            "narratives": "deep", "reading": "deep", "ahead": "deep",
+            "book": "medium", "slow": "deep"}
     got = {k: sec[k]["depth"] for k in want}
     check(got == want, f"each at the matrix's Monthly depth ({got})")
     declared = {s["id"]: s.get("monthly") for s in cfg["sections"]}
@@ -830,7 +1025,7 @@ def main() -> int:
     # --- B. READING TIME ---------------------------------------------------------
     print(f"\n{LINE}\nB. THE READING TIME, COMPUTED AND PRINTED\n{LINE}")
     words = ms.edition_words(ed)
-    mins = max(1, math.ceil(words / rd.WORDS_PER_MINUTE
+    mins = max(1, math.ceil((words + ms.stored_words(ed)) / rd.WORDS_PER_MINUTE
                             + int(ed["chart_count"]) * rd.SECONDS_PER_CHART / 60.0))
     check(ed["words"] == words and ed["reading_minutes"] == mins,
           f"{words} prose words and {ed['chart_count']} charts read in "
@@ -1034,6 +1229,7 @@ def main() -> int:
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)
     charts_group(cfg)
+    reading_group(cfg)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")

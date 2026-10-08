@@ -1043,6 +1043,19 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                      "period": "month", "phase_a": slow["phase_a"], "notes": [],
                      "prose_wanted": True})
     rd.mark_empty(sections, "month")
+    # THE READING CHAPTER (D1): immediately after Narratives, before Ahead. Built
+    # after the empty-marking -- an empty month still prints its line and the due
+    # list -- from the committed register, with no model call.
+    try:
+        from . import reading as reading_mod                     # noqa: PLC0415
+        rdata = reading_mod.section(
+            then, last, now, reading_mod.voices_urls(p.get("voices")), cfg)
+    except Exception as exc:                                    # noqa: BLE001
+        rdata = {"entries_by_group": [], "due": [], "withheld": 0, "deduped": [],
+                 "fault": f"FAULT (code, not data) -- {type(exc).__name__}"}
+    rsec = reading_mod.stack_section(rdata, specs.get("reading") or {}, prior)
+    at = next(i for i, s in enumerate(sections) if s["id"] == "narratives") + 1
+    sections.insert(at, rsec)
     mech = next(s for s in sections if s["id"] == "mechanics")
     if retro and retro.get("insufficient") and not mech.get("empty"):
         # BELOW THE THRESHOLD THE SECTION'S CLAIM IS THE COUNT, written by code,
@@ -1187,12 +1200,22 @@ def edition_words(ed: dict) -> int:
             + sum(section_words(d) for d in ed.get("detail") or []))
 
 
+def stored_words(ed: dict) -> int:
+    """Stored text the edition prints verbatim -- the Reading chapter's summaries
+    and lines. Read, so counted in the reading time; not this edition's prose,
+    so never in the budget and never cut."""
+    return sum(int(s.get("stored_words") or 0) for s in ed.get("sections") or []
+               if not s.get("empty"))
+
+
 def reading_minutes(ed: dict) -> int:
     """The Weekly's estimate (readability.reading_minutes): prose words at 250 a
     minute plus 20 seconds a chart, rounded up -- over the Monthly's prose, which
-    includes its sub-sections' paragraphs."""
+    includes its sub-sections' paragraphs, and the Reading chapter's stored
+    summaries, which a reader reads too."""
     charts = int(ed.get("chart_count") or 0)
-    return max(1, math.ceil(edition_words(ed) / rd.WORDS_PER_MINUTE
+    return max(1, math.ceil((edition_words(ed) + stored_words(ed))
+                            / rd.WORDS_PER_MINUTE
                             + charts * rd.SECONDS_PER_CHART / 60.0))
 
 

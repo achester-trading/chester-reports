@@ -67,9 +67,39 @@ def _charts_html(b: dict, charts: Optional[dict], mode: str) -> str:
                    for c in b.get("charts_rendered") or [] if c in (charts or {}))
 
 
+LINK = "color:#0d2b45;text-decoration:underline"
+META = "color:#475569"
+
+
+def _a(text: Any, url: Optional[str]) -> str:
+    if not url:
+        return esc(text)
+    return f'<a href="{esc(url)}" style="{LINK}">{esc(text)}</a>'
+
+
+def _entries_html(b: dict) -> str:
+    """The Reading chapter's entries: the hyperlinked title line, then the
+    stored summary as a paragraph -- escaped, and otherwise exactly as stored --
+    or, for a list item, its line on the title line."""
+    out = []
+    for e in b.get("entries") or []:
+        head = f"<strong>{_a(e.get('publication'), e.get('url'))}</strong>"
+        if e.get("meta"):
+            head += f' <span style="{META}">— {esc(e["meta"])}</span>'
+        if e.get("scan_url"):
+            head += f' <span style="{META}">· {_a("scan", e["scan_url"])}</span>'
+        if e.get("line"):
+            head += f" — {esc(e['line'])}"
+        out.append(f'<p style="{sr.PARA}">{head}</p>')
+        if e.get("summary"):
+            out.append(f'<p style="{sr.PARA}">{esc(e["summary"])}</p>')
+    return "".join(out)
+
+
 def _sub_html(ss: dict, period: str, charts: Optional[dict] = None,
               mode: str = "email") -> str:
     body = (_tables_html(ss)
+            + _entries_html(ss)
             + sr.lines_table(ss.get("lines") or [], f"This {period}")
             + _charts_html(ss, charts, mode)
             + "".join(f'<p style="{sr.PARA}">{esc(p)}</p>'
@@ -156,8 +186,30 @@ def _md_table(t: Optional[dict]) -> list[str]:
             + ["| " + " | ".join(_c(c) for c in r) + " |" for r in t["rows"]] + [""])
 
 
+def _md_link(text: Any, url: Optional[str]) -> str:
+    t = str(text or "").replace("[", "(").replace("]", ")")
+    return f"[{t}]({url})" if url else t
+
+
+def _md_entries(b: dict) -> list[str]:
+    """As _entries_html: the title line, then the stored summary verbatim."""
+    out = []
+    for e in b.get("entries") or []:
+        head = f"**{_md_link(e.get('publication'), e.get('url'))}**"
+        if e.get("meta"):
+            head += f" — {e['meta']}"
+        if e.get("scan_url"):
+            head += f" · {_md_link('scan', e['scan_url'])}"
+        if e.get("line"):
+            head += f" — {e['line']}"
+        out.append(head + "\n")
+        if e.get("summary"):
+            out.append(f"{e['summary']}\n")
+    return out
+
+
 def _md_block(b: dict) -> list[str]:
-    out = _md_table(b.get("table"))
+    out = _md_table(b.get("table")) + _md_entries(b)
     for t in b.get("tables") or []:
         out += _md_table(t)
     out += [f"- {x}" for x in b.get("lines") or []]
