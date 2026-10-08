@@ -85,11 +85,13 @@ def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
             "delivered_at": session.utc_iso()}
 
 
-def write_prose(p: dict, args, log) -> dict:
-    """One audited call per v2 section; the results are kept ON the payload, so
-    the archive records what was written, what was withheld and why."""
+def write_prose(p: dict, args, log, ed: dict = None) -> dict:
+    """One audited call per v2 section -- and, given the stacked edition `ed`,
+    per stack section -- with one retry for a section the audit withholds. The
+    results are kept ON the payload, so the archive records what was written,
+    what was withheld and why."""
     from . import prose as prose_mod
-    out = prose_mod.write_all(p, model=args.narrative_model)
+    out = prose_mod.write_all(p, model=args.narrative_model, ed=ed)
     total = sum(r.get("words") or 0 for r in out.values())
     held = [k for k, r in out.items() if not r.get("published")]
     log.info("prose: %d section(s), %d published, %d words%s", len(out),
@@ -99,9 +101,24 @@ def write_prose(p: dict, args, log) -> dict:
         log.warning("  section %s withheld: %s", k, out[k].get("reason"))
     p["prose"] = {k: {kk: r.get(kk) for kk in ("title", "state", "published",
                                                "words", "reason", "model", "text",
-                                               "rejected_text")}
+                                               "rejected_text", "attempts",
+                                               "first_reason")}
                   for k, r in out.items()}
     return out
+
+
+def build_stack(p: dict, args, log, out_dir) -> dict:
+    """The stacked Monthly (T3), or None if building it FAULTED -- a fault in
+    the new path degrades the edition to the v2 render rather than stopping the
+    Monthly; the prose already written is kept on the payload and reused."""
+    from . import stack as stack_mod
+    try:
+        return stack_mod.produce(
+            p, archive_dir=out_dir, narrative=not args.skip_narrative,
+            write=lambda ed: write_prose(p, args, log, ed))
+    except Exception:                                          # noqa: BLE001
+        log.exception("the stacked Monthly faulted; rendering the v2 layout")
+        return None
 
 
 def rerender(args, log) -> int:
@@ -136,11 +153,21 @@ def rerender(args, log) -> int:
     log.info("re-rendering %s (cutoff %s); built at its cutoff: %s",
              args.from_payload, p.get("as_of"), ", ".join(added) or "nothing")
     prose = None
-    if not args.skip_narrative:
-        prose = write_prose(p, args, log)
+    # THE STACKED DRY RUN BESIDE THE v2 ONE (T3): one prose pass serves both --
+    # the stack's sections are written once, and render_v2 reads only its own.
+    stacked = build_stack(p, args, log, None)
+    if stacked:
+        prose = stacked["written"] or None
+    elif not args.skip_narrative:
+        prose = p.get("prose") or write_prose(p, args, log)
     md = render_v2.render(p, prose=prose)
     stamp = p.get("report_date")
     md_path = delivery.archive(md, f"monthly_macro_{stamp}_dryrun.md", args.out_dir)
+    if stacked:
+        delivery.archive(stacked["markdown"],
+                         f"monthly_macro_{stamp}_dryrun_stack.md", args.out_dir)
+        delivery.archive(stacked["html_archive"],
+                         f"monthly_macro_{stamp}_dryrun_stack.html", args.out_dir)
     # The dry run's payload, prose and rejected sections included, for reading.
     delivery.archive(json.dumps(p, indent=2, default=str, sort_keys=True),
                      f"monthly_macro_{stamp}_dryrun_payload.json", args.out_dir)
@@ -296,15 +323,28 @@ def main():
     for w in p.get("warnings") or []:
         log.warning("payload absence -- %s", w)
 
-    # ---- Phase 5: the prose, audited ------------------------------------------
-    # v2: one audited call per section (monthly_macro.prose). The single
-    # paragraph below remains only for a payload without the v2 sections.
+    # ---- Phase 5: the stack and its prose, audited ------------------------------
+    # T3: the Monthly is the ten-section stack at Monthly depth, with Monthly v2
+    # Phase A reconciled into it, then Slow layers and the detail tables
+    # (monthly_macro.stack). One audited call per section, one retry for a
+    # section the audit withholds. The single paragraph below remains only for
+    # a payload without the v2 sections, rendered by render_v2 as before.
     narr = None
     prose = None
-    if args.skip_narrative:
+    stacked = None
+    if p.get("month_in_markets") is not None:
+        if args.skip_narrative:
+            log.info("Narrative step skipped (--skip-narrative)")
+        stacked = build_stack(p, args, log, args.out_dir)
+        if stacked:
+            log.info("stack: %d prose words, about %s minute(s) to read (target "
+                     "%s)", stacked["edition"].get("words") or 0,
+                     stacked["edition"].get("reading_minutes"),
+                     stacked["edition"].get("reading_target_minutes"))
+        elif not args.skip_narrative:
+            prose = p.get("prose") or write_prose(p, args, log)
+    elif args.skip_narrative:
         log.info("Narrative step skipped (--skip-narrative)")
-    elif p.get("month_in_markets") is not None:
-        prose = write_prose(p, args, log)
     else:
         np_ = payload_mod.narrative_payload(p)
         narr = narrative_mod.generate(
@@ -326,8 +366,11 @@ def main():
                 log.info("  rejected paragraph (NOT published): %s",
                          narr.rejected_text)
 
-    md = render_v2.render(p, narrative=narr, prose=prose)
-    html = build_html(md)
+    if stacked:
+        md, html = stacked["markdown"], stacked["html_email"]
+    else:
+        md = render_v2.render(p, narrative=narr, prose=prose)
+        html = build_html(md)
 
     # ---- ARCHIVE THROUGH deliver(), like every other report -------------------
     # run.py used to write both files with Path.write_text, which is the Windows
@@ -341,6 +384,10 @@ def main():
         f"monthly_macro_{stamp}_payload.json", args.out_dir)
     html_path = delivery.archive(html, f"monthly_macro_{stamp}.html", args.out_dir)
     log.info("archived %s, %s and the payload %s", md_path, html_path, pay_path)
+    if stacked:
+        # The stacked edition's data: next month's change marks read it.
+        from . import stack as stack_mod
+        stack_mod.save_edition(stacked["edition"], args.out_dir)
 
     # ---- Persist this run's snapshot for next month's comparison ----
     try:

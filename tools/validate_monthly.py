@@ -907,12 +907,18 @@ def group_h() -> None:
         n_themes = len(built["looking_back"]["themes"])
         planned = [s["key"] for s in prose_mod.plan(built)]
         n_pillars = sum(1 for k in planned if k.startswith("pillar:"))
-        check(len(calls) == len(planned) and list(written) == planned
+        # T3: a section the audit withholds is retried ONCE (Reader's Guide
+        # 5.3, extended to the Monthly's section writer), so the three seeded
+        # failures below each cost a second call.
+        retried = sum(1 for r in written.values() if r.get("attempts") == 2)
+        check(len(calls) == len(planned) + retried and list(written) == planned
+              and retried == 3
               and {"month_in_markets", "month_in_one_page", "looking_ahead",
                    "our_read"} <= set(planned) and n_themes == 7,
-              f"one model call per section: the opening, the takeaways, {n_themes} "
-              f"themes (Sentiment among them), the look-ahead, our read and "
-              f"{n_pillars} appendix pillar(s) ({len(calls)} calls)")
+              f"one model call per section, and one retry for each the audit "
+              f"withheld: the opening, the takeaways, {n_themes} themes (Sentiment "
+              f"among them), the look-ahead, our read and {n_pillars} appendix "
+              f"pillar(s) ({len(calls)} calls, {retried} retries)")
         check(not written["theme:sentiment"]["published"]
               and written["theme:sentiment"]["state"] == "internal_vocabulary"
               and "payload" in str(written["theme:sentiment"]["reason"]),

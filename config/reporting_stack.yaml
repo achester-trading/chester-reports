@@ -72,6 +72,12 @@ budget:
   weekly: {words: 3500, charts: 10}
   monthly: {words: 7000, charts: 10}
 
+# THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
+# minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's
+# estimate is prose words at 250 a minute plus 20 seconds a chart
+# (daily_cascade/readability.py); these are what it is read against.
+reading_targets_minutes: {daily: 5, weekly: 20, monthly: 40}
+
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
 # (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).
 # `pending` holds ratified values whose series or feed is not built yet: they are
@@ -149,16 +155,16 @@ outlooks:
 # The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
 # major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read", subtitle: "the week's five lines, and the week day by day",            daily: deep,  weekly: deep}
-  - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep}
-  - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium}
-  - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep}
-  - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium}
-  - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep}
-  - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced}
-  - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium}
-  - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep}
-  - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium}
+  - {id: read,        title: "The read", subtitle: "the week's five lines, and the week day by day",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
+  - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep, monthly: light, monthly_note: "light + the long frame (brief 3.4)"}
+  - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)"}
+  - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep}
+  - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium, monthly: deep}
+  - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium}
+  - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep}
+  - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep}
+  - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep, monthly: deep}
+  - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium, monthly: medium}
 
 # Paragraphs a section's commentary may run to, by depth. (Session-set, T1.)
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
@@ -169,6 +175,22 @@ depth_words: {deep: 150, medium: 80, light: 35, short: 35, line: 25}
 # The Weekly's sections are longer at the same depth (20 minutes against 5);
 # session-set (T2), not part of item 10.
 depth_words_weekly: {deep: 420, medium: 220, light: 60, short: 60, line: 40}
+# The Monthly's (T3, session-set, not part of item 10): forty minutes against
+# twenty, and the long-form Monthly v2 prose (themes, the look-ahead, our read)
+# sits inside the same 7,000-word budget.
+depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
+
+# THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
+# deep). It follows The book; the old Monthly's record -- the regime, the
+# scenario record, the register's month and the pillar appendix -- prints after
+# it as the detail tables (T3, 7 Oct 2026).
+monthly_slow_layers: {id: slow, title: "Slow layers", subtitle: "valuation, base rates, tails and themes", monthly: deep}
+
+# THE DEALER RETROSPECTIVE'S FLOOR (Mechanics, Monthly; ruled 8 Oct 2026, T3):
+# fewer scored sessions than this and the section prints "insufficient sessions
+# (n=...)", no counts or hit rates, and asks the model for nothing. The brief's
+# section 1.2 wrote 15; the ruling is 20 (errata to follow).
+dealer_retrospective_min_sessions: 20
 
 # TAPE STYLE (brief 2.1 rules 4 and 7): words that assert a motive or do a
 # number's work. A motive word is refused outright; an intensity word only when
