@@ -295,6 +295,21 @@ def main():
         except Exception:
             log.exception("yfinance fetch failed entirely; continuing with FRED data only")
 
+    # ---- Phase 2b: the scans' reference tables, as sourced figures ----
+    # No network: the committed docs/scans/*.md into the store, idempotently.
+    # The stack prints a scan's figure only from the store (altdata/scans.py).
+    if not args.skip_fetch:
+        try:
+            from altdata import scans                            # noqa: PLC0415
+            sc = scans.ingest()
+            log.info("scans ingest: %d scan(s), %d figure(s) added, %d refused",
+                     len(sc["scans"]), sc["added"], len(sc["refused"]))
+            for r in sc["refused"]:
+                log.warning("scan figure refused: %s %s: %s", r["scan_id"],
+                            r["metric"], r["reason"])
+        except Exception:
+            log.exception("scans ingest failed; sourced figures print as absent")
+
     # ---- Snapshot memory: compare against the last run before rendering ----
     report_date = session.session_date_obj()
     try:

@@ -580,7 +580,45 @@ def book_section(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Slow layers (the matrix's last row) and the detail tables
 # ---------------------------------------------------------------------------
-def slow_layers(p: dict, cfg: dict) -> dict:
+def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, list, list]:
+    """The scans' reference tables, as stored (altdata/scans.py): one sub-section
+    per scan family, the newest edition readable at the cutoff. A figure prints
+    only from the store -- no stored source, not printed -- and with its source
+    beside it: the URL, the scan's own section (and slide, when the scan recorded
+    one), the as-of date. Only reference-table rows were ever stored, so none of
+    the publisher's recommendations can reach this table."""
+    from altdata import scans                                    # noqa: PLC0415
+    rows = scans.latest(now, db_path)
+    subs, items, data = [], [], []
+    by_fam: dict[str, list] = {}
+    for r in rows:
+        by_fam.setdefault(r["family"], []).append(r)
+    for fam, rs in by_fam.items():
+        r0 = rs[0]
+        subs.append({
+            "title": f"Sourced figures: {r0.get('edition') or r0['title']}",
+            "table": {"columns": ["Metric", "Figure", "Long-run comparison",
+                                  "Source"],
+                      "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
+                                r["source_ref"]] for r in rs]},
+            "notes": [f"Source: {r0['source_url']}, from the scan's "
+                      f"{r0['section_ref']} reference table, data as of "
+                      f"{r0['as_of']}, read {r0['read_on']}. Figures as "
+                      f"published; the publisher's recommendations are not "
+                      f"printed."]})
+        for r in rs:
+            items.append(item(f"slow:scan:{fam}:{r['metric']}",
+                              f"{r['metric']} {r['value']}", 3,
+                              (r["value"], r.get("comparison"), r["as_of"])))
+            data.append({"family": fam, "metric": r["metric"], "figure": r["value"],
+                         "comparison": r.get("comparison"),
+                         "source": r["source_ref"], "url": r["source_url"],
+                         "as_of": r["as_of"]})
+    return subs, items, data
+
+
+def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
+                db_path: Optional[str] = None) -> dict:
     tb = p.get("top_bottom") or {}
     br = tb.get("bear_rally_base_rate") or {}
     base_rows = []
@@ -626,15 +664,27 @@ def slow_layers(p: dict, cfg: dict) -> dict:
                                    "Percentile"], "rows": arows},
              "not_tracked": alt_nt + ["Disruptive Themes (quarterly; folded into "
                                       "the Quarterly Structural)"]}]
+    try:
+        src_subs, src_items, src_data = sourced_figures(now, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("sourced figures unavailable", exc_info=True)
+        src_subs, src_items, src_data = [], [], []
+        subs[-1]["not_tracked"].append(f"the scans' sourced figures: FAULT {exc}")
+    if not src_subs:
+        subs[-1]["not_tracked"].append(
+            "the scans' sourced figures: no scan ingested by this edition's cutoff")
+    subs += src_subs
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]
+    items += src_items
     for it in items:
         it["show"] = False
     return {"items": items, "print_items": False, "subsections": subs,
             "phase_a": (["top_bottom"] if base_rows else [])
             + [f"alternative_assets:{r[1]}" for r in arows],
-            "data": {"base_rates": base_rows, "alternative_assets": arows}}
+            "data": {"base_rates": base_rows, "alternative_assets": arows,
+                     "sourced_figures": src_data}}
 
 
 def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
@@ -815,7 +865,7 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         printed = [(k, "tape") for k in sorted(on_tape)]
         for sid in ("plumbing", "narratives"):
             printed += [(k, sid) for k in built[sid].pop("_printed", None) or []]
-        slow = slow_layers(p, cfg)
+        slow = slow_layers(p, cfg, st, now, db_path)
     sections = stack_mod.assemble(built, cfg, prior, CADENCE)
     specs = {s["id"]: s for s in cfg.get("sections") or []}
     for s in sections:

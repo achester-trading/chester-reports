@@ -28,6 +28,14 @@ monthly_macro.stack with a fake model client:
                 back; a second failure is withheld with both reasons; a fault is
                 not retried.
   G REGISTRY    the gate is in the Makefile's list.
+
+SECOND HALF:
+
+  H SCANS       the scans ingest: each docs/scans/*.md reference table stored as
+                sourced figures (URL, the scan's own section, as-of; a slide only
+                when recorded), idempotent, immutable, point in time by the read
+                date; advice refused, nothing outside the reference table read;
+                Slow layers prints them from the store only.
 """
 
 from __future__ import annotations
@@ -269,6 +277,146 @@ def printed_rows(ed: dict) -> list[tuple]:
                 out += [(tuple(map(str, r)), f"{s['id']}/{ss.get('title')}")
                         for r in (t or {}).get("rows") or []]
     return out
+
+
+FIXTURE_SCAN = """# Fixture Guide -- quarterly read
+
+**Edition:** Fixture Guide, 3Q 2026 -- data as of 30 June 2026 (40 slides).
+**Read on:** 5 July 2026. **Source:** https://example.org/fixture-guide.pdf (stable URL).
+
+## 1. The read
+
+We would overweight duration here. This sentence is ours and is never ingested.
+
+## 6. Reference table -- 3Q 2026 (as of 30 Jun 2026)
+
+| Metric | Value | Long-run comparison |
+|---|---|---|
+| Forward P/E | 18.1x (slide 5) | 30-yr avg 16.9x |
+| Duration call | overweight long duration | — |
+| Credit | IG OAS 90bp | avg 140bp |
+
+## 7. After the table
+
+| Metric | Value | Long-run comparison |
+|---|---|---|
+| Not ingested | 1 | — |
+"""
+
+
+def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
+    """H: the scans ingest (T3 second half, step 1)."""
+    import sqlite3
+    from altdata import scans
+    from monthly_macro import stack as ms
+    from monthly_macro.writer import render_stack
+    print(f"\n{LINE}\nH. THE SCANS INGEST: SOURCED FIGURES, NO STORED SOURCE NOT "
+          f"PRINTED\n{LINE}")
+    jpm = REPO / "docs" / "scans" / "jpm-gtm-2026q4.md"
+    sdir = Path(TD) / "scans"
+    sdir.mkdir(exist_ok=True)
+    fx = sdir / "fixture-guide-2026q3.md"
+    fx.write_text(FIXTURE_SCAN, encoding="utf-8")
+    nourl = sdir / "nourl-guide-2026q3.md"
+    nourl.write_text(FIXTURE_SCAN.replace("https://example.org/fixture-guide.pdf",
+                                          "(no link recorded)"), encoding="utf-8")
+    db = str(Path(TD) / "scans.db")
+    first = scans.ingest([jpm, fx, nourl], db_path=db)
+    again = scans.ingest([jpm, fx, nourl], db_path=db)
+    by = {s["scan_id"]: s for s in first["scans"]}
+    check(by["jpm-gtm-2026q4"]["figures"] == 44 and by["jpm-gtm-2026q4"]["added"] == 44
+          and again["added"] == 0,
+          f"the JPM Guide's §6 reference table stores 44 figures, and a re-ingest "
+          f"adds none ({again['added']})")
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM scan_figures WHERE scan_id = 'jpm-gtm-2026q4'")]
+    check(rows and all(r["source_url"].startswith("https://am.jpmorgan.com/")
+                       and r["section_ref"] == "§6" and r["as_of"] == "2026-09-30"
+                       and r["read_on"] == "2026-10-03" for r in rows),
+          "each carries the URL, the scan's own section (§6) and the as-of date "
+          "(30 Sep 2026), read 3 Oct")
+    check(all(r["slide"] is None for r in rows),
+          "the JPM scan recorded no slide numbers, and none is stored: ingested as "
+          "it stands")
+    fxr = {r["metric"]: dict(r) for r in conn.execute(
+        "SELECT * FROM scan_figures WHERE scan_id = 'fixture-guide-2026q3'")}
+    check(fxr.get("Forward P/E", {}).get("slide") == 5
+          and scans.source_ref(fxr["Forward P/E"]) == "§6, slide 5"
+          and fxr.get("Credit", {}).get("slide") is None,
+          "a slide the scan recorded is stored and printed as \"§6, slide 5\"; a "
+          "row without one has none")
+    refused = {(r["scan_id"], r["metric"]): r["reason"] for r in first["refused"]}
+    check("Duration call" not in fxr
+          and "recommendation" in refused.get(("fixture-guide-2026q3",
+                                               "Duration call"), ""),
+          "a reference-table row that reads as advice (\"overweight\") is refused "
+          "and named, never stored")
+    check("Not ingested" not in fxr and not any(
+              "duration here" in json.dumps(r) for r in fxr.values()),
+          "only the reference-table section is read: the scan's own read and a "
+          "later table are not ingested")
+    check(not conn.execute("SELECT COUNT(*) FROM scan_figures WHERE scan_id = "
+                           "'nourl-guide-2026q3'").fetchone()[0]
+          and refused.get(("nourl-guide-2026q3", "Credit")) == "no source URL",
+          "a scan with no source URL stores nothing: every row refused, \"no "
+          "source URL\"")
+    try:
+        conn.execute("INSERT INTO scan_figures (scan_id, family, title, metric, "
+                     "value, source_url, section_ref, as_of, read_on, scan_path, "
+                     "ingested_at) VALUES ('x','x','x','m','1','','§6','2026-09-30',"
+                     "'2026-10-03','x','now')")
+        schema_refuses = False
+    except sqlite3.IntegrityError:
+        schema_refuses = True
+    try:
+        conn.execute("UPDATE scan_figures SET value = '0' WHERE id = 1")
+        immutable = False
+    except sqlite3.DatabaseError:
+        immutable = True
+    conn.close()
+    check(schema_refuses and immutable,
+          "the schema refuses a row without a URL underneath the writer, and a "
+          "stored figure is never edited")
+    check(not [r for r in scans.latest("2026-10-02", db) if r["family"] == "jpm-gtm"]
+          and [r["family"] for r in scans.latest("2026-10-02", db)] == ["fixture-guide"] * 2
+          and len([r for r in scans.latest("2026-10-31", db)
+                   if r["family"] == "jpm-gtm"]) == 44,
+          "point in time: a cutoff before the read (2 Oct) sees no JPM figure; the "
+          "1 Nov Monthly's (31 Oct) sees all 44")
+    sl = next(s for s in ed["sections"] if s["id"] == "slow")
+    check(not any(ss["title"].startswith("Sourced figures") for ss in sl["subsections"])
+          and "no scan ingested by this edition's cutoff" in json.dumps(sl),
+          "the fixture's 1 Oct edition prints no scan figure (none ingested in its "
+          "store) and says so")
+    slow = ms.slow_layers(p, cfg, None, "2026-11-01T10:00:00+00:00", db)
+    subs = [ss for ss in slow["subsections"]
+            if ss["title"] == "Sourced figures: Guide to the Markets, U.S., 4Q 2026"]
+    printed = {tuple(r[:2]) for r in (subs[0]["table"]["rows"] if subs else [])}
+    stored = {(r["metric"], r["value"]) for r in scans.latest("2026-10-31", db)
+              if r["family"] == "jpm-gtm"}
+    check(subs and printed == stored and len(printed) == 44,
+          "in Slow layers, the JPM figures print in their own sub-section, every "
+          "printed row exactly a stored row")
+    page = render_stack._sub_html(subs[0], "month") if subs else ""
+    check("am.jpmorgan.com" in page and "data as of 2026-09-30" in page
+          and "recommendations are not printed" in page and "CAPE" in page,
+          "with its source line: the URL, §6, the as-of and read dates")
+    # Phrases from the scan's own read and borrow list, outside its §6.
+    ours = ["a sector trade wearing a regional label", "Bull Rebuttal gate",
+            "Tier 1 — build into the pipeline"]
+    scan_text = jpm.read_text(encoding="utf-8")
+    check(all(x in scan_text for x in ours)
+          and not any(x in page or x in json.dumps(slow) for x in ours),
+          "nothing outside the reference table -- our read, the borrow list, any "
+          "recommendation -- reaches the page")
+    rp = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
+    check("scans.ingest()" in rp and "if not args.skip_fetch:" in rp.split(
+              "scans.ingest()")[0][-900:],
+          "the Monthly run ingests the scans before it builds (skipped with "
+          "--skip-fetch, which renders from the store as it stands)")
+    del out
 
 
 def main() -> int:
@@ -541,6 +689,8 @@ def main() -> int:
     check(all(r.get("attempts") == 1 for k, r in written.items()
               if r.get("published") and k not in ("stack:plumbing",)),
           "and a section published first time is called once")
+
+    scans_group(p, cfg, ed, out)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")
