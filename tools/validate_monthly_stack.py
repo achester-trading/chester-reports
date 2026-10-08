@@ -39,6 +39,9 @@ SECOND HALF:
   I YTD         GTM-14: the cross-asset year to date from the store's proxies,
                 ranked, total return with dividends unreinvested, cash at the
                 bill; a class without a proxy or a close says why.
+  J TRIPLE      the slow layers' level rows as latest / long-run average /
+                percentile, the data-as-of date and each window printed; full
+                history and five years until 6e; a short history says so.
 """
 
 from __future__ import annotations
@@ -123,6 +126,26 @@ def card(day: str, i: int) -> dict:
             "put_wall_morning": close - 20.0, "atm_iv_30d": 15.0}
 
 
+def months(first: str, last: str) -> list[str]:
+    y, m = int(first[:4]), int(first[5:7])
+    out = []
+    while f"{y:04d}-{m:02d}-01" <= last:
+        out.append(f"{y:04d}-{m:02d}-01")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def cape_series() -> list[tuple[str, float]]:
+    """1990-01 to 2026-09: a slow wave, the latest month high in its five years."""
+    ds = months("1990-01-01", "2026-09-01")
+    return [(d, round(20.0 + 8.0 * math.sin(i / 30.0) + i / 40.0, 3))
+            for i, d in enumerate(ds)]
+
+
+def gld_series() -> list[tuple[str, float]]:
+    return [(d, 100.0 + i) for i, d in enumerate(months("2015-01-01", "2026-09-01"))]
+
+
 def seed(db: str, dealer_sessions: int) -> None:
     point(db)
     from altdata import events, narratives, observations, probability_ledger
@@ -160,6 +183,15 @@ def seed(db: str, dealer_sessions: int) -> None:
     put("yfinance.mkt_hyg_dividend", None, "2026-03-02", 1.0)
     put("fred.tbill_3m", None, "2025-12-01", 4.0)
     put("fred.tbill_3m", None, M_END, 4.0)
+    # THE SLOW LAYERS' TRIPLE: CAPE monthly over 36 years, a forward P/E with
+    # one observation (a window shorter than five years), and GLD monthly.
+    for d, v in cape_series():
+        put("shiller.cape", None, d, v)
+    obs.append({"registry_key": "damodaran.pe_forward", "instrument": "Total Market",
+                "observed_at": "2026-01-05", "available_at": "2026-01-06T12:00:00+00:00",
+                "value": 21.5, "source": "synthetic"})
+    for d, v in gld_series():
+        put("yfinance.mkt_gld", None, d, v)
     days = weekdays("2026-09-01", M_END)[:dealer_sessions]
     for i, d in enumerate(days):
         put("yfinance.mkt_vix", None, d, 16.0)
@@ -492,6 +524,72 @@ def ytd_group(cfg: dict, ed: dict, out: dict) -> None:
           "not prose")
 
 
+def triple_group(cfg: dict, ed: dict, out: dict) -> None:
+    """J: the slow layers in triple form (T3 second half, step 3)."""
+    print(f"\n{LINE}\nJ. THE SLOW LAYERS' TRIPLE: LATEST, LONG-RUN AVERAGE, "
+          f"PERCENTILE\n{LINE}")
+    slow = next(s for s in ed["sections"] if s["id"] == "slow")
+    subs = {ss["title"]: ss for ss in slow["subsections"]}
+    val = subs.get("Valuation") or {}
+    rows = {r[0]: r for r in (val.get("table") or {}).get("rows") or []}
+    now_day = dt.date.fromisoformat(ed["window"]["now"][:10])
+    cape = cape_series()
+    mean = sum(v for _, v in cape) / len(cape)
+    win = [v for d, v in cape if dt.date.fromisoformat(d) >= now_day - dt.timedelta(days=1825)]
+    pct = 100.0 * sum(1 for v in win if v <= cape[-1][1]) / len(win)
+    c = rows.get("CAPE (Shiller P/E10)") or []
+
+    def num(x: str) -> float:
+        return float(x.split(" (")[0].replace(",", "").replace("−", "-"))
+    check(val.get("table", {}).get("columns") == ["Series", "Latest (data as of)",
+                                                  "Long-run average (window)",
+                                                  "Percentile (window)"],
+          "the valuation table carries the triple, each column naming its window")
+    check(c and num(c[1]) == round(cape[-1][1], 1) and "(2026-09-01)" in c[1],
+          f"CAPE's latest with its data-as-of date: {c[1] if c else None}")
+    check(c and abs(num(c[2]) - mean) < 0.051
+          and f"full history since 1990-01-01, n={len(cape)}" in c[2],
+          f"the long-run average over the store's full history, the window "
+          f"printed beside it ({c[2] if c else None})")
+    check(c and abs(num(c[3]) - pct) < 0.51 and f"5 years, n={len(win)}" in c[3],
+          f"the percentile over five years, its window and n beside it "
+          f"({c[3] if c else None}; by hand {pct:.1f})")
+    f = rows.get("Forward P/E, total market (Damodaran)") or []
+    check(f and "since 2026-01-05, n=1; under 5 years" in f[3]
+          and "full history since 2026-01-05, n=1" in f[2],
+          "a series with less than five years prints its own start and n rather "
+          "than claiming the window")
+    nt = " ".join(val.get("not_tracked") or [])
+    check("Trailing P/E, total market (Damodaran): no observation" in nt
+          and "equity risk premium" in nt,
+          "a configured series the store lacks says so; the ERP waits for 6e")
+    alt = subs.get("Themes: alternative assets") or {}
+    arow = next((r for r in (alt.get("table") or {}).get("rows") or []
+                 if r[1] == "yfinance.mkt_gld"), None)
+    g = gld_series()
+    gmean = sum(v for _, v in g) / len(g)
+    check(arow and alt["table"]["columns"][2:] == ["Latest (data as of)",
+                                                   "20-day change",
+                                                   "Long-run average (window)",
+                                                   "Percentile (window)"]
+          and abs(num(arow[4]) - gmean) < 0.006 and num(arow[5]) == 100
+          and "5 years" in arow[5],
+          "the alternative assets carry the same triple (GLD: full-history "
+          "average, the latest at the top of five years)")
+    check(any("until the metric lenses (6e)" in x for x in val.get("notes") or [])
+          and "Long-run average (window)" in out["markdown"],
+          "the interim windows are stated beneath the table and print in the "
+          "edition")
+    tc = cfg.get("monthly_slow_triple") or {}
+    check(tc.get("percentile_window_days") == 1825
+          and [v["key"] for v in tc.get("valuation") or []][:1] == ["shiller.cape"],
+          "the window and the series are configuration (monthly_slow_triple)")
+    from altdata import derived
+    check(callable(getattr(derived, "long_run_average", None)),
+          "the average is computed in altdata/derived.py, where every derived form "
+          "is")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -765,6 +863,7 @@ def main() -> int:
 
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
+    triple_group(cfg, ed, out)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")

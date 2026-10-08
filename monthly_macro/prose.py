@@ -420,8 +420,12 @@ MONTHLY_NOTES = {
         "\n\nEach open gap in the plain words its row gives, never by an id; the "
         "month's dissent and corrections as their sources state them."),
     "slow": (
-        "\n\nSLOW LAYERS: the base rates and the alternative assets as the "
-        "tables state them -- levels and frequencies, never a signal."),
+        "\n\nSLOW LAYERS: the valuation, the base rates and the alternative "
+        "assets as the tables state them -- levels and frequencies, never a "
+        "signal. A level beside its long-run average or percentile names that "
+        "window as the table gives it ('full history since ...', 'five years'). "
+        "A sourced figure is the publisher's, stated with the publisher and its "
+        "as-of date; never the publisher's view, forecast or recommendation."),
 }
 
 

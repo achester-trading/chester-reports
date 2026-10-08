@@ -302,12 +302,12 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
         lv = {x["type"]: x["value"] for x in i.get("levels") or []}
         if not any(k in lv for k in ("ma_40w", "ma_10m", "ma_20m")):
             continue
-        last = (i.get("frame") or {}).get("last")
+        close = (i.get("frame") or {}).get("last")
         dd = (i.get("row") or {}).get("drawdown_52w_pct")
-        lf_rows.append([i["label"], _v(last), _v(lv.get("ma_40w")),
+        lf_rows.append([i["label"], _v(close), _v(lv.get("ma_40w")),
                         _v(lv.get("ma_10m")), _v(lv.get("ma_20m")),
                         "—" if dd is None else f"{dd:+.2f}%"])
-        lf_data.append({"market": i["label"], "close": last,
+        lf_data.append({"market": i["label"], "close": close,
                         "ma_40w": lv.get("ma_40w"), "ma_10m": lv.get("ma_10m"),
                         "ma_20m": lv.get("ma_20m"), "drawdown_52w_pct": dd})
     if not lf_rows:
@@ -705,6 +705,41 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     return subs, items, data
 
 
+TRIPLE_COLUMNS = ["Latest (data as of)", "Long-run average (window)",
+                  "Percentile (window)"]
+
+
+def triple(st, key: str, now: str, window_days: int = 1825,
+           instrument: Optional[str] = None) -> Optional[dict]:
+    """Latest / long-run average / percentile for one stored series, each with
+    its window (altdata.derived computes all three). None when the store holds
+    nothing knowable at the cutoff."""
+    from altdata import derived                                  # noqa: PLC0415
+    f = derived.derived_forms(key, now, window=window_days, store=st,
+                              instrument=instrument)
+    if f.get("level") is None:
+        return None
+    lr = derived.long_run_average(key, now, store=st, instrument=instrument)
+    full = (f.get("window_actual_days") or 0) >= window_days - 31
+    yrs = window_days // 365
+    pct_win = (f"{yrs} years, n={f['n']:,}" if full else
+               f"since {f['first_observed']}, n={f['n']:,}; under {yrs} years")
+    return {"key": key, "instrument": instrument, "latest": f["level"],
+            "as_of": f["observed_at"], "mean": lr.get("mean"), "mean_n": lr.get("n"),
+            "mean_since": lr.get("first_observed"), "percentile": f.get("percentile"),
+            "percentile_window": pct_win, "percentile_n": f["n"],
+            "percentile_since": f.get("first_observed"),
+            "delta_20d": f.get("delta_20d"), "delta_unit": f.get("delta_unit")}
+
+
+def triple_cells(t: dict, dp: int = 2) -> list[str]:
+    return [f"{_v(t['latest'], dp)} ({t['as_of']})",
+            (f"{_v(t['mean'], dp)} (full history since {t['mean_since']}, "
+             f"n={t['mean_n']:,})" if t.get("mean") is not None else "—"),
+            (f"{_v(t['percentile'], 0)} ({t['percentile_window']})"
+             if t.get("percentile") is not None else "—")]
+
+
 def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                 db_path: Optional[str] = None) -> dict:
     tb = p.get("top_bottom") or {}
@@ -724,32 +759,53 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         base_nt.append(f"the Top & Bottom verdict: {tb.get('reason')}")
     if br.get("absent_reason"):
         base_nt.append(f"the bear-rally base rate: {br['absent_reason']}")
+    tcfg = cfg.get("monthly_slow_triple") or {}
+    win = int(tcfg.get("percentile_window_days") or 1825)
+    vrows, vdata, val_nt = [], [], list(tcfg.get("not_tracked") or [])
+    for v in tcfg.get("valuation") or []:
+        t = triple(st, v["key"], now, win, v.get("instrument")) if st and now else None
+        if t is None:
+            val_nt.append(f"{v['label']}: no observation knowable at this cutoff")
+            continue
+        vrows.append([v["label"], *triple_cells(t, 1)])
+        vdata.append({"series": v["label"], **{k: t[k] for k in (
+            "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
+            "percentile_window")}})
     alt = p.get("alternative_assets") or {}
-    arows, alt_nt = [], []
+    arows, alt_nt, adata = [], [], []
     for fam, v in sorted((alt.get("families") or {}).items()):
         if v.get("state") == "not_yet_sourced":
             alt_nt.append(f"{fam}: needs {', '.join(v.get('needs') or [])}")
             continue
         for m in v.get("metrics") or []:
-            if m.get("level") is None:
+            t = triple(st, m["metric"], now, win) if st and now else None
+            if m.get("level") is None or t is None:
                 alt_nt.append(f"{fam}: {m['metric']}")
                 continue
-            arows.append([fam, m["metric"], _v(m.get("level")),
+            cells = triple_cells(t)
+            arows.append([fam, m["metric"], cells[0],
                           (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
                            if isinstance(m.get("delta_20d"), (int, float)) else "—"),
-                          _v(m.get("percentile"), 1)])
+                          cells[1], cells[2]])
+            adata.append({"family": fam, "series": m["metric"], **{k: t[k] for k in (
+                "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
+                "percentile_window")}})
     subs = [{"title": "Valuation",
-             "not_tracked": ["CAPE, the equity risk premium and forward P/E in "
-                             "their latest, long-run-average and percentile form "
-                             "(T3, second half)"]},
+             "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
+             "notes": ([f"Long-run average over the store's full history and "
+                        f"percentile over {win // 365} years where the store holds "
+                        f"them, until the metric lenses (6e) set each series' long "
+                        f"window."] if vrows else []),
+             "not_tracked": val_nt},
             {"title": "Base rates: Top & Bottom",
              "table": {"columns": ["Base rate", "Level", "Range", "As of or extreme"],
                        "rows": base_rows}, "not_tracked": base_nt},
             {"title": "Tails",
              "not_tracked": ["the 25 tail scenarios (not yet stored)"]},
             {"title": "Themes: alternative assets",
-             "table": {"columns": ["Family", "Series", "Level", "20-day change",
-                                   "Percentile"], "rows": arows},
+             "table": {"columns": ["Family", "Series", TRIPLE_COLUMNS[0],
+                                   "20-day change", *TRIPLE_COLUMNS[1:]],
+                       "rows": arows},
              "not_tracked": alt_nt + ["Disruptive Themes (quarterly; folded into "
                                       "the Quarterly Structural)"]}]
     try:
@@ -765,14 +821,15 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]
+    items += [item(f"slow:val:{r[0]}", f"{r[0]} {r[1]}", 1, r) for r in vrows]
     items += src_items
     for it in items:
         it["show"] = False
     return {"items": items, "print_items": False, "subsections": subs,
             "phase_a": (["top_bottom"] if base_rows else [])
             + [f"alternative_assets:{r[1]}" for r in arows],
-            "data": {"base_rates": base_rows, "alternative_assets": arows,
-                     "sourced_figures": src_data}}
+            "data": {"valuation": vdata, "base_rates": base_rows,
+                     "alternative_assets": adata, "sourced_figures": src_data}}
 
 
 def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
