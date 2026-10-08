@@ -1215,7 +1215,11 @@ sources:
     timestamp_reliability: medium
     timestamp_notes: >-
       Last-Modified (observed); one row per weekly survey, dated by its reported Thursday.
-    license: public spreadsheet, no key; no robots.txt rule against it (read 4 Oct 2026)
+    license: >-
+      public spreadsheet, no key; robots.txt disallows /files/* for every agent
+      (read 8 Oct 2026; the 4 Oct reading missed the wildcard) and the site 403s
+      an identified client, so the writer reads the operator's browser-downloaded
+      file ($AAII_SENTIMENT_FILE) and fetches only if robots.txt allows it
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/aaii.py
     status: live

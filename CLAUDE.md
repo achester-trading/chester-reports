@@ -248,6 +248,13 @@ a `cadence` ("daily", "weekly", "monthly"). What differs is config, under
 allowances, paragraph rule, prompt frames, guards), read through
 `daily_cascade/cadence.py`, whose `Period` builds every period phrase ("on the
 week", "This month"). No section hard-codes "week": a new phrase goes in `Period`.
+The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` and
+`stack_render.markdown` print a whole edition at any cadence; at "monthly" a
+sub-section carries its own charts and notes, a Reading entry's stored summary
+prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
+never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 7,000
+words. A section declared at one cadence only (Reading) is skipped at the others
+(`stack.section_ids`).
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates
@@ -282,6 +289,13 @@ Pending: not yet due -- never tried, or tried by a writer that ran cleanly while
 the source has published nothing, until one staleness allowance has passed since
 the first attempt. The 08:30 heartbeat uses those words and no others, and names
 each stale series with its reason in the verdict line.
+
+**A writer obeys robots.txt with its wildcards.** `urllib.robotparser` ignores `*`
+inside a path, which is how AAII's `Disallow: /files/*` was read as "no rule" on
+4 Oct; aaii.com also answers any client that names itself with a 403. The AAII
+writer (`altdata/sources/aaii.py`) therefore reads the operator's browser-downloaded
+spreadsheet ($AAII_SENTIMENT_FILE, by default the box's chester-data inbox)
+and fetches only while robots.txt allows it; it never passes for a browser.
 
 **Import yfinance through `altdata.import_yfinance()`, never bare.** yfinance's own
 `__init__` puts a `default` warnings rule for its modules at the front of the

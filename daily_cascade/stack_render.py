@@ -1,10 +1,14 @@
 """
 The stacked editions' HTML: the daily close, the Weekly and the Monthly, one
-renderer. (T1; T2.5; T2.6)
+renderer. (T1; T2.5; T2.6; T2.7)
 
     html = stack_render.render(payload, edition, charts, mode="email")
     one = stack_render.section_html(section, n, charts, mode, cadence="monthly")
     tail = stack_render.details_html(edition["detail"], cadence="monthly")
+    page = stack_render.page_html(edition, "monthly", title, mode, charts,
+                                  "Changed since last Monthly", "Monthly")
+    md = stack_render.markdown(edition, "monthly", title,
+                               "Changed since last Monthly", "Monthly")
 
 TWO EDITIONS OF ONE DOCUMENT. `mode="email"` references each chart as
 `cid:<id>@chester` -- the PNG travels in the same multipart/related message;
@@ -23,6 +27,13 @@ section's footnote. A cadence whose sub-sections keep their own paragraphs (the
 Monthly) prints each sub-section as a block of its own -- its tables, its lines,
 its paragraphs, its footnote -- and every paragraph the guard kept. The period in
 "This week" / "Also this month" is the cadence's.
+
+THE MONTHLY'S LONG FORM (T2.7), all per cadence from config: a sub-section
+carries its own charts (`subsection_charts`) and notes; any block may carry
+READING ENTRIES (entries_html) -- a hyperlinked title line, then a stored summary
+printed escaped and otherwise verbatim, never polished, audited or trimmed;
+page_html prints a whole edition and markdown() the same edition in the same
+order, each chart as an image line where the HTML places it.
 
 DETAIL TABLES (T2.6): after the last section, an edition may carry `detail`, a
 list of blocks each printed under "Detail tables" with its own heading -- the
@@ -224,11 +235,56 @@ def tables_html(b: dict) -> str:
     return _table(b.get("table")) + "".join(_table(t) for t in b.get("tables") or [])
 
 
-def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3) -> str:
-    """One sub-section: its heading, its tables and lines; on a cadence whose
-    sub-sections keep their own paragraphs, those paragraphs and its own
-    footnote too. Nothing at all when it has nothing to print."""
-    body = tables_html(ss) + lines_table(ss.get("lines") or [], f"This {period}")
+LINK = "color:#0d2b45;text-decoration:underline"
+META = "color:#475569"
+
+
+def _a(text: Any, url: Optional[str]) -> str:
+    if not url:
+        return esc(text)
+    return f'<a href="{esc(url)}" style="{LINK}">{esc(text)}</a>'
+
+
+def entries_html(b: dict) -> str:
+    """A block's READING ENTRIES (T2.7; the Monthly's Reading chapter): for each,
+    the hyperlinked title line -- the publication, its meta, a link to the scan,
+    a list item's one line -- then the stored summary as a paragraph. A summary
+    is STORED TEXT: HTML-escaped and otherwise printed exactly as stored --
+    never polished, audited or trimmed, outside the prose budget, inside the
+    reading time (readability.stored_words). Nothing when the block has none."""
+    out = []
+    for e in b.get("entries") or []:
+        head = f"<strong>{_a(e.get('publication'), e.get('url'))}</strong>"
+        if e.get("meta"):
+            head += f' <span style="{META}">— {esc(e["meta"])}</span>'
+        if e.get("scan_url"):
+            head += f' <span style="{META}">· {_a("scan", e["scan_url"])}</span>'
+        if e.get("line"):
+            head += f" — {esc(e['line'])}"
+        out.append(f'<p style="{PARA}">{head}</p>')
+        if e.get("summary"):
+            out.append(f'<p style="{PARA}">{esc(e["summary"])}</p>')
+    return "".join(out)
+
+
+def charts_html(b: dict, charts: Optional[dict], mode: str) -> str:
+    """The charts a block carries (`charts_rendered`) that were drawn: `cid:` in
+    the email, the SVG's file name beside the archived HTML."""
+    return "".join(_chart_html(charts[c], mode)
+                   for c in b.get("charts_rendered") or [] if c in (charts or {}))
+
+
+def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
+                    charts: Optional[dict] = None, mode: str = "email") -> str:
+    """One sub-section: its heading, its tables, its reading entries and its
+    lines; on a cadence whose sub-sections carry their own charts, those charts;
+    on one whose sub-sections keep their own paragraphs, those paragraphs and
+    its own footnote (its notes, what it does not track, why anything was
+    withheld) too. Nothing at all when it has nothing to print."""
+    body = (tables_html(ss) + entries_html(ss)
+            + lines_table(ss.get("lines") or [], f"This {period}"))
+    if cad.get("subsection_charts"):
+        body += charts_html(ss, charts, mode)
     if cad.get("subsection_paragraphs"):
         body += "".join(f'<p style="{PARA}">{esc(p)}</p>'
                         for p in ss.get("paragraphs") or [])
@@ -248,20 +304,22 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     # TABLES: the section's, each sub-section's, then the lines left over.
     # A TABLE'S STANDING NOTE -- how to read it, how its flags are computed --
     # is printed once, in the glossary (table_notes), never under the table.
-    out.append(tables_html(s))
+    out.append(tables_html(s) + entries_html(s))
     for ss in s.get("subsections") or []:
-        out.append(subsection_html(ss, period, cad))
+        out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
     items = rd.printable_items(s)
     if items:
         out.append(lines_table([i["text"] for i in items],
                                s.get("lines_head") or f"Also this {period}",
                                [bool(i.get("changed")) for i in items]))
-    # CHARTS: the section's own, then its sub-sections'.
+    # CHARTS: the section's own, then -- on a cadence whose sub-sections do not
+    # carry their own (the close, the Weekly) -- its sub-sections'.
     ids = list(s.get("charts_rendered") or [])
-    for ss in s.get("subsections") or []:
-        ids += list(ss.get("charts_rendered") or [])
+    if not cad.get("subsection_charts"):
+        for ss in s.get("subsections") or []:
+            ids += list(ss.get("charts_rendered") or [])
     for c in ids:
-        if c in charts:
+        if c in (charts or {}):
             out.append(_chart_html(charts[c], mode))
     # THE PARAGRAPHS THE GUARD KEPT: one on the close and the Weekly.
     limit = cad.get("paragraphs")
@@ -361,6 +419,189 @@ def _marks(ed: dict, what: str) -> str:
         return f"{DIAMOND} marks a line that changed since the {what} of {when}."
     return (f"No prior stacked {what} to compare against: nothing is marked as "
             f"changed and nothing collapses.")
+
+
+# What the footer's change-mark line calls the prior edition, by cadence.
+EDITION_NAMES = {"daily": "close", "weekly": "Weekly", "monthly": "Monthly"}
+
+
+def _glossary_entries() -> list[dict]:
+    try:
+        from altdata import labels                              # noqa: PLC0415
+        return labels.glossary()
+    except Exception:                                           # noqa: BLE001
+        return []
+
+
+def edition_minutes(ed: dict) -> int:
+    """The header's reading time: the edition's own figure where its budget step
+    set one, else readability.reading_minutes over it."""
+    return int(ed.get("reading_minutes") or rd.reading_minutes(ed))
+
+
+def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
+              charts: Optional[dict] = None, changed_head: Optional[str] = None,
+              what: Optional[str] = None) -> str:
+    """A whole stacked edition at `cadence` (T2.7, the Monthly's page): the
+    header -- the title, the as-of in ET, the reading time and, where the
+    edition carries one, its target; what changed since the last edition under
+    `changed_head` -- then every section, the detail tables, the glossary and
+    the footer, whose change-mark line names the prior edition as `what`.
+    `charts` defaults to the edition's own."""
+    charts = charts if charts is not None else (ed.get("charts") or {})
+    secs = "".join(section_html(s, n, charts, mode, cadence)
+                   for n, s in enumerate(ed["sections"], start=1))
+    target = ed.get("reading_target_minutes")
+    head = page_header(title, rd.stamp_et(ed.get("as_of")), edition_minutes(ed),
+                       ed.get("changed_since") or [], changed_head,
+                       extra_html=(f" &middot; target {esc(target)} minutes"
+                                   if target else ""))
+    return (f'<div style="{WRAP}">{head}{secs}'
+            f'{details_html(ed.get("detail"), cadence)}'
+            f'{glossary_html(_glossary_entries(), ed)}'
+            + page_footer(ed, ed.get("run_id"), ed.get("archive_path"),
+                          _marks(ed, what or EDITION_NAMES.get(cadence, cadence)))
+            + "</div>")
+
+
+# ---------------------------------------------------------------------------
+# The Markdown: the same edition in the same order (T2.7) -- the attachment and
+# the text fallback. Computes nothing.
+# ---------------------------------------------------------------------------
+def _md_cell(v: Any) -> str:
+    return str("—" if v in (None, "") else v).replace("|", "/").replace("\n", " ")
+
+
+def md_table(t: Optional[dict]) -> list[str]:
+    if not t or not t.get("rows"):
+        return []
+    return (["| " + " | ".join(_md_cell(c) for c in t["columns"]) + " |",
+             "|" + "---|" * len(t["columns"])]
+            + ["| " + " | ".join(_md_cell(c) for c in r) + " |" for r in t["rows"]]
+            + [""])
+
+
+def _md_link(text: Any, url: Optional[str]) -> str:
+    t = str(text or "").replace("[", "(").replace("]", ")")
+    return f"[{t}]({url})" if url else t
+
+
+def md_entries(b: dict) -> list[str]:
+    """As entries_html: the title line, then the stored summary verbatim."""
+    out = []
+    for e in b.get("entries") or []:
+        head = f"**{_md_link(e.get('publication'), e.get('url'))}**"
+        if e.get("meta"):
+            head += f" — {e['meta']}"
+        if e.get("scan_url"):
+            head += f" · {_md_link('scan', e['scan_url'])}"
+        if e.get("line"):
+            head += f" — {e['line']}"
+        out.append(head + "\n")
+        if e.get("summary"):
+            out.append(f"{e['summary']}\n")
+    return out
+
+
+def md_block(b: dict) -> list[str]:
+    """A block's table, its reading entries, its further tables, its lines."""
+    out = md_table(b.get("table")) + md_entries(b)
+    for t in b.get("tables") or []:
+        out += md_table(t)
+    out += [f"- {x}" for x in b.get("lines") or []]
+    if b.get("lines"):
+        out.append("")
+    return out
+
+
+def md_charts(ids: list, charts: Optional[dict]) -> list[str]:
+    """Each drawn chart as an image line: the SVG beside the archived Markdown,
+    its caption as the alt text; an unavailable chart says why."""
+    out = []
+    for c in ids:
+        x = (charts or {}).get(c)
+        if not x:
+            continue
+        if x.get("unavailable"):
+            out.append(f"*Chart unavailable: {x['unavailable']}*\n")
+            continue
+        svg = str(x.get("svg_path") or "").replace("\\", "/").split("/")[-1]
+        out.append(f"![{_md_cell(x.get('caption'))}]({svg})\n" if svg else
+                   f"*{_md_cell(x.get('caption'))}*\n")
+    return out
+
+
+def _md_foot(parts: list[str]) -> list[str]:
+    return [f"<sub>{x}</sub>\n" for x in parts]
+
+
+def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
+            with_charts: bool = True) -> list[str]:
+    body = md_block(ss)
+    if with_charts and cad.get("subsection_charts"):
+        body += md_charts(list(ss.get("charts_rendered") or []), charts)
+    if cad.get("subsection_paragraphs"):
+        body += [f"{p}\n" for p in ss.get("paragraphs") or []]
+        body += _md_foot(foot_parts(ss, True, _trimmed_note(cad)))
+    return ([f"{level} {ss.get('title')}\n"] + body) if body else []
+
+
+def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = None,
+             what: Optional[str] = None, charts: Optional[dict] = None) -> str:
+    """The edition as Markdown, in page_html's order: sections (their tables,
+    entries, sub-sections, lines, charts, paragraphs, footnotes), the detail
+    tables, and the run's line."""
+    cad = _cadence(cadence)
+    charts = charts if charts is not None else (ed.get("charts") or {})
+    target = ed.get("reading_target_minutes")
+    out = [f"# {title}\n",
+           f"*{rd.stamp_et(ed.get('as_of'))} · about "
+           f"{rd.plural(edition_minutes(ed), 'minute')} to read"
+           + (f" · target {target} minutes" if target else "") + "*\n"]
+    if ed.get("changed_since") and changed_head:
+        out.append(f"**{changed_head}**\n")
+        out += [f"- {x}" for x in ed["changed_since"]] + [""]
+    limit = cad.get("paragraphs")
+    for n, s in enumerate(ed["sections"], start=1):
+        out.append(f"## {n} · {s['title']}" + (f" — *{s['subtitle']}*"
+                                               if s.get("subtitle") else "") + "\n")
+        if s.get("empty"):
+            out += _md_foot(foot_parts(s, not cad.get("subsection_paragraphs"),
+                                       _trimmed_note(cad)))
+            continue
+        if s.get("claim"):
+            out.append(f"**{s['claim']}**\n")
+        out += md_block(s)
+        for ss in s.get("subsections") or []:
+            out += _md_sub(ss, cad, charts)
+        items = rd.printable_items(s)
+        out += [f"- {DIAMOND + ' ' if i.get('changed') else ''}{i['text']}"
+                for i in items]
+        if items:
+            out.append("")
+        ids = list(s.get("charts_rendered") or [])
+        if not cad.get("subsection_charts"):
+            for ss in s.get("subsections") or []:
+                ids += list(ss.get("charts_rendered") or [])
+        out += md_charts(ids, charts)
+        paras = s.get("paragraphs") or []
+        out += [f"{p}\n" for p in (paras[:limit] if limit else paras)]
+        out += _md_foot(foot_parts(s, not cad.get("subsection_paragraphs"),
+                                   _trimmed_note(cad)))
+    if ed.get("detail"):
+        out.append("## Detail tables\n")
+        for d in ed["detail"]:
+            out.append(f"### {d['title']}\n")
+            out += md_block(d)
+            for ss in d.get("subsections") or []:
+                out += _md_sub(ss, cad, charts, "####", with_charts=False)
+            out += _md_foot(foot_parts(d, False, _trimmed_note(cad)))
+    out.append(f"\n*Stack {ed.get('config_version')} · "
+               f"{rd.plural(int(ed.get('words') or 0), 'word')} · "
+               f"{rd.plural(int(ed.get('chart_count') or 0), 'chart')} · run "
+               f"{ed.get('run_id') or 'n/a'}. "
+               f"{_marks(ed, what or EDITION_NAMES.get(cadence, cadence))}*\n")
+    return "\n".join(out)
 
 
 def render(p: dict, ed: dict, charts: dict, mode: str = "email",

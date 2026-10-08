@@ -33,6 +33,21 @@ No network, no box, no live store -- every store here is a temporary one:
   J GLOSSARY    Slow layers, the dealer flags, the IV check and hit rates are in
                 the glossary, quoting config's thresholds.
   I REGISTRY    the gate is in the Makefile's list.
+
+T2.7 (8 Oct 2026): what the shared renderer carries for the Monthly.
+
+  K ENTRIES     a Reading entry's title line is hyperlinked and its stored
+                summary prints escaped and otherwise verbatim: never polished or
+                trimmed, outside the prose words, inside the reading time.
+  L CHARTS      at "monthly" a sub-section's charts print under it; at "weekly"
+                every chart at section level as before; page_html and markdown
+                print the edition in one order, each chart's line in place.
+  M BUDGET      trim_to_budget (the Monthly's): the appendix first, then the
+                last of several paragraphs, back to front; never a claim or item.
+  N CONFIG      a section declared at one cadence only (Reading) is skipped at
+                the others; the ten always; B's Monthly keys are present.
+  O TICKS       dated ticks: first and last always, none within half a step.
+  P NAMES       the helper names the Monthly imports stay.
 """
 
 from __future__ import annotations
@@ -455,11 +470,244 @@ def group_i() -> None:
     check("tools/validate_stack_cadence.py" in mk, "the Makefile's list carries it")
 
 
+def _chart(cid: str, caption: str) -> dict:
+    return {"id": cid, "caption": caption, "svg_path": f"/tmp/x/{cid.lower()}.svg"}
+
+
+def group_k() -> None:
+    print(f"\n{LINE}\nK. READING ENTRIES: STORED TEXT, VERBATIM (T2.7)\n{LINE}")
+    from daily_cascade import readability as rd
+    from daily_cascade import stack as stack_mod
+    from daily_cascade import stack_render as sr
+    raw = "Fed's  \"path\" -- <b>2026-10-01</b> & 3 week(s) rise."
+    entries = [{"publication": "Desk note [Oct]", "url": "https://ex.com/a?x=1&y=2",
+                "meta": "Publisher · 1 Oct 2026", "scan_url": "https://ex.com/scan",
+                "summary": raw, "line": None},
+               {"publication": "Listed paper", "url": None, "meta": None,
+                "summary": None, "line": "one stored line"}]
+    s = _sec("reading", "deep", subs=[{"title": "Desks", "entries": entries}],
+             period="month", claim="Two shelf editions this month.")
+    h = sr.section_html(s, 9, {}, "email", "monthly")
+    check('<a href="https://ex.com/a?x=1&amp;y=2"' in h
+          and "Desk note [Oct]</a></strong>" in h
+          and f'<p style="{sr.PARA}">{sr.esc(raw)}</p>' in h,
+          "the title line is hyperlinked and the summary prints HTML-escaped and "
+          "otherwise exactly as stored")
+    check("<strong>Listed paper</strong>" in h and " — one stored line" in h
+          and h.index("Desks") < h.index("Desk note"),
+          "a list item without a URL prints its name unlinked, its line on the "
+          "title line, under its sub-section's heading")
+    ed = {"sections": [s], "session": "2026-10-01", "detail": []}
+    rd.polish_edition(ed)
+    check(entries[0]["summary"] == raw and entries[1]["line"] == "one stored line",
+          "the formatting pass never touches a stored summary (no date rewrite, "
+          "no (s) plural, no minus sign)")
+    ed2 = {"sections": [dict(s, paragraphs=["word " * 50])], "detail": []}
+    before = stack_mod.edition_words(ed2)
+    stored = len(raw.split()) + 3
+    check(rd.stored_words(ed2) == stored
+          and before == stack_mod.edition_words({"sections": [dict(
+              s, paragraphs=["word " * 50], subsections=[])], "detail": []}),
+          f"stored text counts in stored_words ({rd.stored_words(ed2)}) and never "
+          f"in the prose words")
+    import math
+    check(rd.reading_minutes(ed2, 0) == max(1, math.ceil(
+        (before + stored) / rd.WORDS_PER_MINUTE)),
+          "the reading time counts the stored words")
+    stack_mod.trim_to_budget(ed2, 1)
+    check(ed2["sections"][0]["subsections"][0]["entries"][0]["summary"] == raw,
+          "the budget cut never trims a stored summary")
+    md = sr.markdown({"sections": [s], "detail": []}, "monthly", "Monthly — x")
+    check("**[Desk note (Oct)](https://ex.com/a?x=1&y=2)** — Publisher · 1 Oct 2026"
+          in md and f"\n{raw}\n" in md,
+          "the Markdown carries the linked title line and the summary verbatim")
+    check(sr.entries_html({}) == "" and sr.md_entries({}) == [],
+          "a block without entries prints nothing for them")
+
+
+def group_l() -> None:
+    print(f"\n{LINE}\nL. CHARTS UNDER SUB-SECTIONS; THE PAGE AND ITS MARKDOWN (T2.7)\n{LINE}")
+    from daily_cascade import cadence as cadence_mod
+    from daily_cascade import stack_render as sr
+    check([cadence_mod.get(c).get("subsection_charts") for c in cadence_mod.NAMES]
+          == [False, False, True],
+          "config: only the Monthly's sub-sections carry their own charts")
+    charts = {"M6": _chart("M6", "CFTC z-scores"), "M1": _chart("M1", "SPY weekly"),
+              "M9": {"id": "M9", "unavailable": "no NAV stored"}}
+    subs = [{"title": "Futures", "table": {"columns": ["C", "Z"], "rows": [["ES", "1.2"]]},
+             "charts_rendered": ["M6"], "paragraphs": ["Futures paragraph."],
+             "notes": ["A sub-section note."]},
+            {"title": "Book", "lines": ["a line"], "charts_rendered": ["M9"]}]
+    s = _sec(paragraphs=["Section paragraph."], subs=subs, period="month",
+             claim="The claim.", charts_rendered=["M1"])
+    m = sr.section_html(s, 6, charts, "email", "monthly")
+    check(m.index("Futures") < m.index("cid:m6@chester") < m.index("Futures paragraph.")
+          < m.index("A sub-section note.") < m.index("Book")
+          < m.index("Chart unavailable: no NAV stored") < m.index("cid:m1@chester")
+          < m.index("Section paragraph."),
+          "at 'monthly' a sub-section's chart prints under it, before its "
+          "paragraphs and its notes; the section's own chart after the sub-sections")
+    s["period"] = "week"
+    w = sr.section_html(s, 6, charts, "email", "weekly")
+    check(w.index("cid:m1@chester") < w.index("cid:m6@chester")
+          and w.index("Book") < w.index("cid:m1@chester")
+          and "A sub-section note." not in w,
+          "at 'weekly' every chart prints at section level, the section's first "
+          "(unchanged)")
+    s["period"] = "month"
+    a = sr.section_html(s, 6, charts, "archive", "monthly")
+    check('src="m6.svg"' in a and "cid:" not in a,
+          "the archive edition references each SVG by file name")
+    ed = {"sections": [s], "detail": [{"title": "The regime", "lines": ["x"],
+                                       "subsections": [{"title": "Appendix",
+                                                        "paragraphs": ["App para."]}]}],
+          "as_of": "2026-10-01T20:00:00+00:00", "session": "2026-09-30",
+          "changed_since": ["one change"], "reading_target_minutes": 40,
+          "reading_minutes": 7, "config_version": "v1", "words": 10,
+          "chart_count": 2, "run_id": "r1", "prior_session": "2026-09-01"}
+    p = sr.page_html(ed, "monthly", "Monthly — September 2026", "email", charts,
+                     "Changed since last Monthly", "Monthly")
+    check("Monthly — September 2026</h1>" in p and "about 7 minutes to read" in p
+          and "target 40 minutes" in p and "Changed since last Monthly" in p
+          and p.index("Section paragraph.") < p.index("Detail tables")
+          < p.index("App para.") < p.index("Glossary")
+          and "since the Monthly of" in p,
+          "page_html: the header with reading time and target, the sections, the "
+          "detail tables, the glossary, the footer naming the prior Monthly")
+    md = sr.markdown(ed, "monthly", "Monthly — September 2026",
+                     "Changed since last Monthly", "Monthly", charts=charts)
+    check(md.index("### Futures") < md.index("![CFTC z-scores](m6.svg)")
+          < md.index("Futures paragraph.") < md.index("*Chart unavailable: no NAV stored*")
+          < md.index("![SPY weekly](m1.svg)") < md.index("Section paragraph.")
+          < md.index("## Detail tables") < md.index("#### Appendix"),
+          "the Markdown: each chart's line where the HTML places it, sub-section "
+          "and section, then the detail tables")
+    check("about 7 minutes to read · target 40 minutes" in md
+          and "since the Monthly of" in md,
+          "and the Markdown's header and footer say what the page's do")
+
+
+def group_m() -> None:
+    print(f"\n{LINE}\nM. THE BUDGET CUT (T2.7)\n{LINE}")
+    from daily_cascade import cadence as cadence_mod
+    from daily_cascade import stack as stack_mod
+    check([cadence_mod.get(c).get("trim_to_budget") for c in cadence_mod.NAMES]
+          == [False, False, True],
+          "config: only the Monthly trims to its budget; the close and the Weekly "
+          "fit by construction")
+    para = "word " * 100
+    ed = {"sections": [
+        {"id": "a", "claim": "Claim a.", "paragraphs": [para, para], "trimmed": False,
+         "items": [{"text": "item"}],
+         "subsections": [{"title": "s", "paragraphs": [para]}]},
+        {"id": "b", "claim": "Claim b.", "paragraphs": [para], "trimmed": False,
+         "subsections": []}],
+        "detail": [{"title": "Appendix", "trimmed": False,
+                    "subsections": [{"title": "p", "paragraphs": [para, para]}]}]}
+    stack_mod.trim_to_budget(ed, 350)
+    a, b = ed["sections"]
+    check(ed["detail"][0]["subsections"][0]["paragraphs"] == []
+          and ed["detail"][0]["trimmed"],
+          "the appendix's paragraphs go first")
+    check(len(a["paragraphs"]) == 1 and a["trimmed"] and b["paragraphs"] == [para]
+          and stack_mod.edition_words(ed) <= 350,
+          f"then the last paragraph of a block that keeps several, until it fits "
+          f"({stack_mod.edition_words(ed)} words)")
+    check(a["claim"] == "Claim a." and a["items"] == [{"text": "item"}],
+          "a claim and an item are never cut")
+    w = {"sections": [{"id": "x", "claim": "c", "paragraphs": [para] * 5,
+                       "subsections": [], "trimmed": False}], "detail": []}
+    stack_mod.trim_to_budget(w, 0)
+    check(len(w["sections"][0]["paragraphs"]) == 5,
+          "no budget, no cut")
+
+
+def group_n() -> None:
+    print(f"\n{LINE}\nN. A SECTION AT ONE CADENCE ONLY (T2.7)\n{LINE}")
+    from daily_cascade import stack as stack_mod
+    cfg = stack_mod.config()
+    specs = {s["id"]: s for s in cfg["sections"]}
+    check("reading" in specs and specs["reading"].get("monthly")
+          and not specs["reading"].get("weekly") and not specs["reading"].get("daily"),
+          "config declares the Reading chapter at the Monthly's depth only")
+    check(cfg.get("monthly_slow_triple", {}).get("percentile_window_days") == 1825
+          and cfg.get("monthly_reading", {}).get("repo_blob_url", "").startswith("https://"),
+          "B's monthly_slow_triple and monthly_reading keys are in config")
+    ten = list(stack_mod.SECTION_ORDER)
+    check(stack_mod.section_ids(cfg, "daily", {}) == ten
+          and stack_mod.section_ids(cfg, "weekly", {}) == ten
+          and stack_mod.section_ids(cfg, "monthly", {}) == ten,
+          "the close, the Weekly and an unbuilt Reading lay out the ten")
+    got = stack_mod.section_ids(cfg, "monthly", {"reading": {}})
+    check(got == ten[:8] + ["reading"] + ten[8:],
+          "a built Reading is laid out in its config place, after Narratives")
+    built = {sid: {"items": [stack_mod.item(f"{sid}:x", f"{sid} fact")]} for sid in ten}
+    secs = stack_mod.assemble(built, cfg, None, "weekly")
+    check([s["id"] for s in secs] == ten,
+          "assemble at 'weekly' over the ten: no KeyError for a Monthly-only section")
+    bad = {"sections": [s for s in cfg["sections"] if s["id"] != "tape"]}
+    try:
+        stack_mod.section_ids(bad, "weekly", {})
+        raised = False
+    except KeyError:
+        raised = True
+    check(raised, "one of the ten missing from config is a code fault")
+
+
+def group_o() -> None:
+    print(f"\n{LINE}\nO. DATED TICKS NEVER OVERLAP AT THE END (T2.7)\n{LINE}")
+    from daily_cascade import charts
+    old = lambda n, k: sorted({0, n - 1} | set(range(0, n, max(1, n // k))))  # noqa: E731
+    check(old(22, 4)[-2:] == [20, 21] and charts.dated_tick_index(22, 4) == [0, 5, 10, 15, 21],
+          f"22 points, 4 ticks: the spaced tick one point before the last is "
+          f"dropped ({old(22, 4)} -> {charts.dated_tick_index(22, 4)})")
+    ok = True
+    for n in range(1, 300):
+        for k in (2, 3, 4, 5):
+            idx = charts.dated_tick_index(n, k)
+            step = max(1, n // k)
+            ok &= idx[0] == 0 and idx[-1] == n - 1 and idx == sorted(set(idx))
+            ok &= all(b - a >= step / 2 for a, b in zip(idx, idx[1:])) or n <= 2
+    check(ok, "for every length and tick count: first and last always, no two "
+              "ticks within half a step")
+
+    class Ax:
+        def set_xticks(self, i):
+            self.i = i
+
+        def set_xticklabels(self, labels):
+            self.labels = labels
+    ax = Ax()
+    charts._dated_ticks(ax, [f"2026-09-{d:02d}" for d in range(1, 23)])
+    check(ax.i == [0, 5, 10, 15, 21] and ax.labels[-1] == "26-09-22",
+          "_dated_ticks (the Weekly's) uses it")
+
+
+def group_p() -> None:
+    print(f"\n{LINE}\nP. THE NAMES B IMPORTS STAY (T2.7)\n{LINE}")
+    from daily_cascade import charts, deliver, stack_render, weekly_stack
+    names = ("_base", "_levels_of", "span_title", "z_panel", "caption", "_candles",
+             "_draw_levels", "_finish", "_plt", "_untracked", "lines_chart",
+             "weekly_bars", "CHART_W", "DOWN", "LEVEL_COLOURS", "MAX_PNG_BYTES",
+             "MIN_PX_AT_400")
+    gone = [n for n in names if not hasattr(charts, n)]
+    check(not gone, f"daily_cascade.charts keeps {', '.join(names)} ({gone or 'all'})")
+    check(len(weekly_stack.CFTC_CONTRACTS) >= 2
+          and all(len(x) == 2 for x in weekly_stack.CFTC_CONTRACTS),
+          "weekly_stack.CFTC_CONTRACTS stays (instrument, label) pairs")
+    check(stack_render.cid("M6") == "m6@chester" and callable(deliver.send_html),
+          "stack_render.cid and deliver.send_html stay")
+    for n in ("page_html", "markdown", "section_html", "subsection_html",
+              "details_html", "entries_html", "charts_html", "md_block", "md_table"):
+        check(callable(getattr(stack_render, n, None)), f"stack_render.{n}")
+
+
 def main() -> int:
     print(f"{LINE}\nT2.6 -- the stack's cadences, the close's detail tables, and the "
           f"week's small items\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_glossary, group_i):
+              group_h, group_glossary, group_k, group_l, group_m, group_n,
+              group_o, group_p, group_i):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
