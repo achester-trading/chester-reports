@@ -1,5 +1,24 @@
 # Brief — The Reporting System: A Reader's Guide (System shelf)
 
+## Errata (7 Oct 2026)
+
+Found while writing the paper and verified against the code. Part II's feed-family
+list is wrong in two places; the body of the brief is otherwise as commissioned.
+
+- **The balance-sheet figures come through FRED, and there is no H.4.1 writer.**
+  Reserves, the TGA and the RRP are `fred.bank_reserves` (WRESBAL), `fred.tga`
+  (WTREGEN) and `fred.rrp`, with `fred.fed_balance` (WALCL) for total assets;
+  `calc.net_liquidity` is computed from them. "Fed" in the official-writers list is
+  therefore not an H.4.1 feed. The official writers do include two the list leaves
+  out: the NY Fed consumer survey `nyfed_sce` (`nyfed.sce_3y`, `nyfed.sce_5y`) and
+  the Fed Board's own expectations index `fedboard` (`fedboard.cie`), both in
+  `altdata.feeds.OFFICIAL_WRITERS`.
+- **WallStreetBets is a feed, not a logger.** ApeWisdom's `wallstreetbets` feed sits
+  inside the short-interest-and-mentions logger (`borrow_short_mentions`,
+  `altdata/loggers/borrow.py`) beside FINRA Reg SHO short volume and the
+  `all-stocks` feed. The six loggers are `auction`, `borrow_short_mentions`,
+  `consensus`, `rtat10`, `shielded_zec` and `vx_curve`.
+
 Commissioned 5 Oct 2026. Audience: the operator, reading on an iPhone or at a desk, who wants to know what each report is, where its numbers come from, what it may and may not say, and how the reports learn. Prose first; a cheat-sheet table after any taxonomy or matrix (library presentation standard, Sep 2026). ~10–12k words. Timeless body; everything dated (timers, thresholds, reading budgets, the current source list) in a dated appendix policed by the library gate. Cross-references by paper name, never numeral; Doctrine rules as "Doctrine Rule N". Numeral: the next free one on the System shelf per the library guide's roster.
 
 Parts:

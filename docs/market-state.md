@@ -13,7 +13,7 @@ regime.**
 | The object | `regime.py` |
 | The contradiction table | `contradictions.py` |
 | Every rule, threshold and metric | `config/market_state.yaml` |
-| The rendered block both anchors open on | `daily_cascade/state_block.py` |
+| The WHAT CHANGED block and the state tables | `daily_cascade/state_block.py` |
 | Gates | `tools/validate_derived.py`, `tools/validate_regime.py` |
 
 ---
@@ -124,7 +124,7 @@ market_state
   dials:      macro, vol, gamma
   dimensions: growth, inflation, rates, liquidity, credit, trend, breadth,
               volatility
-  contradictions: [ ... seven rows ... ]
+  contradictions: [ ... eight rows ... ]
   absent_dimensions, open_contradictions, absent_contradictions,
   prior_objects_read
 ```
@@ -213,14 +213,20 @@ Primary first; polarity in brackets.
 
 | Dimension | States | Members |
 |---|---|---|
-| growth | expanding / slowing / contracting | `fred.claims_4wk` (−1), `fred.housing_permits`, `fred.job_openings`, `fred.avg_wkly_hours` |
+| growth | expanding / slowing / contracting | `fred.claims_4wk` (−1), `fred.housing_permits`, `fred.job_openings`, `fred.avg_wkly_hours`, `calc.sahm_rule` (−1) |
 | inflation | rising / stable / falling | `fred.breakeven_10y`, `fred.breakeven_5y5y`, `fred.sticky_core`, `fred.wti` |
-| rates | high / mid / low | `fred.yield_10y`, `fred.yield_2y`, `fred.yield_30y`, `fred.mortgage_30y` |
-| liquidity | ample / neutral / tight | `fred.rrp` (−1), `fred.bank_reserves`, `fred.fed_balance`, `fred.nfci` (−1) |
+| rates | high / mid / low | `fred.yield_10y`, `fred.yield_2y`, `fred.yield_30y`, `fred.mortgage_30y`, `calc.yield_curve_2s10s` (−1) |
+| liquidity | ample / neutral / tight | `calc.net_liquidity`, `fred.rrp` (−1), `fred.bank_reserves`, `fred.fed_balance`, `fred.nfci` (−1) |
 | credit | easy / neutral / stressed | `fred.hy_oas` (−1), `fred.bb_oas` (−1), `fred.ccc_oas` (−1), `fred.ig_oas` (−1) |
-| trend | up / flat / down | `calc.trend_spy_vs_50d`, `calc.trend_spy_vs_200d`, `calc.trend_spy_ma20_slope` |
-| breadth | broad / mixed / narrow | `calc.breadth_sector_above_50d` (+200d), `calc.breadth_rsp_over_spy` — `sample: sector_etf_proxy` |
-| volatility | elevated / normal / subdued | `yfinance.mkt_vix`, with `calc.vol_spy_realized_20d` as the realized leg and `fred.vix` kept as the revisable official member |
+| trend | up / flat / down | `calc.trend_spy_vs_200d`, `calc.trend_spy_vs_50d`, `calc.trend_spy_ma20_slope` |
+| breadth | broad / mixed / narrow | `calc.breadth_sector_above_50d`, `calc.breadth_sector_above_200d`, `calc.breadth_rsp_over_spy` — `sample: sector_etf_proxy` |
+| volatility | elevated / normal / subdued | `yfinance.mkt_vix`, `fred.vix` (the revisable official member), `calc.vol_spy_realized_20d` (the realized leg) |
+
+Liquidity's primary is a **computed weekly** series: `calc.net_liquidity` is the
+balance sheet less the two drains (the RRP and the TGA), the quantity every other
+member of that dimension is a piece of. The legs stay as members so a disagreement
+between them stays visible, and the dimension's cadence is now weekly — its
+staleness allowance eight sessions rather than two.
 
 ### Rates attribution — descriptive, outside the object (ST-3, re-scoped)
 
@@ -273,17 +279,20 @@ section: `yfinance_source.py` runs twice a session under `chester-eod.timer` and
 `chester-overnight.timer` with five years backfilled, `altdata/market_features.py`
 derives the `calc.*` series from those closes, and both price passes recompute them
 after their own pull. **trend, breadth and the volatility dimension's realized leg
-all compute today**, and so do five of the six contradiction pairs. What follows
-records the gap as it stood when the object was built; growth's cadence problem is
+all compute today**, and so do five of the six contradiction pairs then
+declared (the table has since grown to eight rows — §6). What follows records
+the gap as it stood when the object was built; growth's cadence problem is
 the part of it that remains, and the tables above carry the current mapping.
 
 The Phase 2 order chose the eight dimensions "because the store already has daily
 series for them". For five that is true.
 
-- **trend and breadth need equity prices, and the store has none.**
-  `altdata/sources/yfinance_source.py` declares 27 symbols including SPY and all
-  eleven sector ETFs, and **nothing schedules it** — no timer, no unit, no CI job.
-  `data_store/` holds 59 FRED series and not one price.
+- **trend and breadth need equity prices.** `altdata/sources/yfinance_source.py`
+  declares 27 symbols including SPY and all eleven sector ETFs, and it *is*
+  scheduled: twice a session, through `altdata/feeds.py` — the 16:10 pass in
+  `chester-eod` and the 06:45 correction pass in `chester-overnight`, which re-reads
+  the last two years so a missed session heals itself. When this section was written
+  nothing ran it and `data_store/` held 59 FRED series and not one price.
 - **growth has no daily series either.** Its primary is initial claims (weekly),
   which is the fastest growth signal the store actually carries.
 - **the volatility dimension is implied-only** for the same reason: realized
@@ -295,9 +304,13 @@ pair the order itself calls the standing watch line.
 
 Two further data facts bound what v1 can say:
 
-- **The FRED store stops at 2026-05-28.** Nothing in the repo schedules a FRED
-  pull; the series land when the Monthly runs. So for any recent session every
-  dimension is past its staleness allowance and reports absent.
+- **A FRED series is only as current as the pull behind it.** The pull *is*
+  scheduled: the 16:10 pass in `chester-eod` runs it through `altdata/feeds.py`,
+  ahead of the 16:45 object, with the 06:45 correction pass behind it. A pull that
+  cannot run — no `FRED_API_KEY` — logs once at WARNING and exits 0 by design, so
+  the gap surfaces as the data going stale rather than as a red pipeline. Wherever
+  the series have gone stale, every FRED-primary dimension is past its staleness
+  allowance and reports absent.
 - **The FRED history has no real `available_at`.** All 20,372 migrated
   observations share `2026-05-30`, the CSV-to-SQLite migration instant, because
   the CSVs only ever carried `date` and `as_of`. An as-of-correct backfill
@@ -309,17 +322,24 @@ Two further data facts bound what v1 can say:
 
 ## 6. The contradiction table
 
-Seven declared rows: six computed and one reserved.
+**Eight declared rows: seven computed and one reserved.** `narrative_vs_data` was
+added in config v1.9 and expands to one row per active story
+(`narrative_vs_data.<id>`), each a state mismatch with no z.
 
-| Row | Legs | Computes today |
-|---|---|---|
-| `price_vs_breadth` | trend, breadth | no — prices |
-| `equities_vs_credit` | trend, credit | no — prices |
-| `long_bond_vs_hy` | `fred.yield_30y`, `fred.hy_oas` | **yes** |
-| `implied_vs_realized_vol` | `yfinance.mkt_vix`, `calc.vol_spy_realized_20d` | **yes** |
-| `growth_vs_cyclicals` | growth, XLY/XLP | no — prices |
-| `gamma_vs_trend` | gamma dial, trend | no — trend |
-| `prediction_markets_vs_assets` | PM implied, trend | reserved: Part 27 v1 |
+| Row | Legs | Kind | Computes |
+|---|---|---|---|
+| `price_vs_breadth` | `calc.spy_vs_252d_high`, `calc.breadth_sector_above_50d` | metric pair | yes |
+| `equities_vs_credit` | `yfinance.mkt_spy`, `fred.hy_oas` | metric pair | yes |
+| `long_bond_vs_hy` | `fred.yield_30y`, `fred.hy_oas` | metric pair | yes |
+| `implied_vs_realized_vol` | `yfinance.mkt_vix`, `calc.vol_spy_realized_20d` | metric pair | yes |
+| `growth_vs_cyclicals` | growth, `calc.cyclical_over_defensive` | mixed pair | yes |
+| `gamma_vs_trend` | gamma dial, trend | dial pair | yes — a state mismatch, magnitude `None` |
+| `prediction_markets_vs_assets` | PM implied, trend | reserved | no — requires `part_27_v1` |
+| `narrative_vs_data` | narrative register, linked dimensions | narrative pair | yes, once the register holds an active story |
+
+**Computes** means the legs are implemented and in the store — not that the row
+reported on the last object. Whether a row reports is a freshness question, judged
+per leg on its own cadence, so how many rows are absent varies by session.
 
 ### The magnitude is the z of the gap, not the gap
 
@@ -340,7 +360,9 @@ magnitude is honestly `None`.
 Rows open and close on the same persistence rule the dimensions use, `since` is
 the session the divergence *began*, and a leg staler than the declared allowance
 sends the row absent — a gap measured between two stale prints is not a divergence
-today.
+today. In the code, though, a pair closes on the FIRST session the condition fails
+where opening needs two, and a symmetric two-session close is ruled for v1.13 at
+Audit #4 (14–15 Oct).
 
 ### The exception is report-only
 
@@ -356,8 +378,15 @@ branch in that script.
 
 ## 7. What the anchors print
 
-Both the 16:45 close report and the 07:00 morning anchor open on **WHAT CHANGED**,
-rendered by the one shared module, in HTML and in the text fallback:
+The 07:00 morning anchor opens on **WHAT CHANGED**, rendered by
+`daily_cascade/state_block.py` in HTML and in the text fallback, and so does the
+pre-stack `--classic` close. **The live stacked close does not.**
+`daily_cascade/stack_render.py` takes only the session-events line from that module,
+for its page header. Ruled 6 October 2026: in the stacked close the state and
+contradiction tables belong at the END, as detail tables rather than as an opening
+block — which is not built yet, and stack_render.py renders neither table today.
+
+What the block carries:
 
 dimension state changes since the previous object · extreme flags set or cleared ·
 dial moves · contradictions opened, closed or persisting with their days ·
@@ -395,7 +424,7 @@ reporting the symptom over the cause sends the reader to the wrong place.
 
 ## 9. The v1 / v2 boundary
 
-**v1 (this).** Eight dimensions, bands on one primary, three dials, six
+**v1 (this).** Eight dimensions, bands on one primary, three dials, seven
 contradiction pairs plus one reserved, persistence, absence with reasons, exact
 replay.
 
@@ -411,12 +440,9 @@ approximated here:
 | `debt_cycle_branch` | §K's two mutually exclusive branches, architecture 31.2. Still listed as not-built in the close payload. |
 | VIX term structure | Gated on the CFE Enhanced subscription; the dial names the store keys it needs. |
 
-Two nearer-term items, both outside Phase 2's scope and both blocking more than
-they cost:
+One nearer-term item, outside Phase 2's scope and blocking more than it costs:
 
-1. **Schedule a price fetch.** `yfinance_source.py` exists and nothing runs it.
-   That single gap accounts for two absent dimensions, the missing realized-vol
-   leg, and five of six contradiction rows.
-2. **Schedule a FRED pull, and ingest ALFRED vintages.** The first makes the five
-   working dimensions current; the second gives the history a real `available_at`
-   and lets the backfill reach back to 2022.
+**Ingest ALFRED vintages.** Both fetches are scheduled now — FRED on the 16:10 pass
+and the prices twice a session, through `altdata/feeds.py`. What remains is the
+vintage history, which gives the migrated observations a real `available_at` and lets
+the backfill reach back to 2022.
