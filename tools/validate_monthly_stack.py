@@ -367,7 +367,7 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     import sqlite3
     from altdata import scans
     from monthly_macro import stack as ms
-    from monthly_macro.writer import render_stack
+    from daily_cascade import cadence as cadence_mod, stack_render as sr
     print(f"\n{LINE}\nH. THE SCANS INGEST: SOURCED FIGURES, NO STORED SOURCE NOT "
           f"PRINTED\n{LINE}")
     jpm = REPO / "docs" / "scans" / "jpm-gtm-2026q4.md"
@@ -457,7 +457,8 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     check(subs and printed == stored and len(printed) == 44,
           "in Slow layers, the JPM figures print in their own sub-section, every "
           "printed row exactly a stored row")
-    page = render_stack._sub_html(subs[0], "month") if subs else ""
+    page = (sr.subsection_html(subs[0], "month", cadence_mod.get("monthly"))
+            if subs else "")
     check("am.jpmorgan.com" in page and "data as of 2026-09-30" in page
           and "recommendations are not printed" in page and "CAPE" in page,
           "with its source line: the URL, §6, the as-of and read dates")
@@ -719,7 +720,7 @@ def charts_group(cfg: dict) -> None:
     check(all(f"]({Path(c['svg_path']).name})" in out["markdown"] for c in ok),
           "the Markdown carries each chart with its caption as the alt text")
     check(ed["reading_minutes"] == max(1, math.ceil(
-              (ed["words"] + ms.stored_words(ed)) / rd.WORDS_PER_MINUTE
+              (ed["words"] + rd.stored_words(ed)) / rd.WORDS_PER_MINUTE
               + 9 * rd.SECONDS_PER_CHART / 60.0)),
           "the reading time counts the nine charts at 20 seconds each")
     hist = mch.scenario_history([
@@ -831,7 +832,8 @@ def reading_group(cfg: dict) -> None:
     """L: the Reading chapter (T3 second half, step 5)."""
     import html as htmlmod
     from monthly_macro import reading, stack as ms
-    from monthly_macro.writer import render_stack
+    from daily_cascade import cadence as cadence_mod, readability as rd
+    from daily_cascade import stack as sm, stack_render as sr
     print(f"\n{LINE}\nL. THE READING CHAPTER: AFTER NARRATIVES, STORED TEXT VERBATIM\n"
           f"{LINE}")
     reg, wl = reading_fixture(Path(TD))
@@ -920,27 +922,29 @@ def reading_group(cfg: dict) -> None:
           "a shelf voices entry sharing a URL with a scan voice: the scan row stands, "
           "the shelf summary still prints, and the footnote names the match")
     e2 = json.loads(json.dumps(ed))
-    before = ms.edition_words(e2)
-    check(before == ms.edition_words({"sections": [dict(s, subsections=[])
+    before = sm.edition_words(e2)
+    rs_only = {"sections": [s for s in e2["sections"] if s["id"] == "reading"]}
+    check(before == sm.edition_words({"sections": [dict(s, subsections=[])
                                                    if s["id"] == "reading" else s
                                                    for s in e2["sections"]],
                                       "detail": e2["detail"]})
-          and ms.stored_words(e2) == reading.words(sec["data"]["reading"])
-          and ms.stored_words(e2) > 50,
+          and rd.stored_words(e2) == rd.stored_words(rs_only)
+          and rd.stored_words(e2) > 50,
           f"the summaries are not this edition's prose: no budget word "
-          f"({ms.stored_words(e2)} stored words counted in the reading time instead)")
-    e2["budget"] = {"words": 10, "charts": 10}
+          f"({rd.stored_words(e2)} stored words counted in the reading time instead)")
     ms.enforce_budget(e2)
+    sm.trim_to_budget(e2, 10)
     rs2 = next(s for s in e2["sections"] if s["id"] == "reading")
-    check(json.dumps(rs2["subsections"]) == json.dumps(sec["subsections"]),
+    check([ss.get("entries") for ss in rs2["subsections"]]
+          == [ss.get("entries") for ss in sec["subsections"]],
           "over budget, the budget never cuts or trims a stored summary")
     check(ed["reading_minutes"] == max(1, math.ceil(
-              (ed["words"] + ms.stored_words(ed)) / 250.0 + ed["chart_count"] / 3.0)),
+              (ed["words"] + rd.stored_words(ed)) / 250.0 + ed["chart_count"] / 3.0)),
           "and the reading time counts them")
     empty = reading.stack_section(reading.section(
         "2026-05-31T23:59:59+00:00", "2026-06-30", "2026-07-01T10:00:00+00:00", set(),
         cfg, reg, wl), spec, None)
-    sub_html = "".join(render_stack._sub_html(ss, "month")
+    sub_html = "".join(sr.subsection_html(ss, "month", cadence_mod.get("monthly"))
                        for ss in empty["subsections"])
     check(empty["claim"] == reading.EMPTY_LINE and not empty.get("empty")
           and "Nothing on the shelf is due" in sub_html,
@@ -1031,8 +1035,8 @@ def main() -> int:
 
     # --- B. READING TIME ---------------------------------------------------------
     print(f"\n{LINE}\nB. THE READING TIME, COMPUTED AND PRINTED\n{LINE}")
-    words = ms.edition_words(ed)
-    mins = max(1, math.ceil((words + ms.stored_words(ed)) / rd.WORDS_PER_MINUTE
+    words = stack_mod.edition_words(ed)
+    mins = max(1, math.ceil((words + rd.stored_words(ed)) / rd.WORDS_PER_MINUTE
                             + int(ed["chart_count"]) * rd.SECONDS_PER_CHART / 60.0))
     check(ed["words"] == words and ed["reading_minutes"] == mins,
           f"{words} prose words and {ed['chart_count']} charts read in "
@@ -1188,17 +1192,19 @@ def main() -> int:
     check(ed["words"] <= 7000 and ed["chart_count"] <= 10,
           f"{ed['words']} prose words of 7,000 and {ed['chart_count']} charts of 10")
     e = json.loads(json.dumps(ed))
-    before = ms.edition_words(e)
+    before = stack_mod.edition_words(e)
     e["sections"][1]["table"]["rows"] += [["filler"] * 5] * 200
-    check(ms.edition_words(e) == before, "a 200-row table adds no words: tables "
+    check(stack_mod.edition_words(e) == before, "a 200-row table adds no words: tables "
                                          "are data")
     deep = next(s for s in e["sections"] if s["id"] == "narratives")
     deep["subsections"][0]["paragraphs"] = ["Prose for the budget to take. " * 8] * 4
     n_items = sum(len(s["items"]) for s in e["sections"])
     n_rows = len(printed_rows(e))
     claims = [s.get("claim") for s in e["sections"]]
-    e["budget"] = {"words": ms.edition_words(e) - 40, "charts": 10}
+    e["budget"] = {"words": stack_mod.edition_words(e) - 40, "charts": 10}
     ms.enforce_budget(e)
+    stack_mod.trim_to_budget(e, e["budget"]["words"])
+    e["words"] = stack_mod.edition_words(e)
     check(e["words"] <= e["budget"]["words"]
           and any(s.get("trimmed") for s in e["sections"] + e["detail"]),
           f"over budget, paragraphs go until it fits ({e['words']} of "
@@ -1207,8 +1213,7 @@ def main() -> int:
           and len(printed_rows(e)) == n_rows
           and [s.get("claim") for s in e["sections"]] == claims,
           "and no item, table row or claim line is cut")
-    from monthly_macro.writer import render_stack
-    check("(trimmed)" in render_stack.html(e), "the cut section prints \"(trimmed)\"")
+    check("(trimmed)" in ms.html(e), "the cut section prints \"(trimmed)\"")
 
     # --- F. THE ONE RETRY --------------------------------------------------------------
     print(f"\n{LINE}\nF. THE ONE RETRY, IN THE MONTHLY'S SECTION WRITER\n{LINE}")

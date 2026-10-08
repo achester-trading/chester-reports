@@ -21,7 +21,7 @@ where one exists -- and then:
                   nor cuts it (it is stored text, not this edition's prose); the
                   numeral audit does not apply (its figures are the
                   publication's, carried with their as-of dates). The reading
-                  time does count it.
+                  time does count it (readability.stored_words).
   list            the one-liner (`line`) on the title line.
 
 NO STORED SOURCE, NOT PRINTED: an entry without a URL is withheld and the
@@ -150,16 +150,6 @@ def due(wl: dict, now: str) -> list[dict]:
     return out
 
 
-def words(sec: dict) -> int:
-    """The stored text the chapter prints -- counted in the reading time, never
-    in the prose budget."""
-    n = 0
-    for g in sec.get("entries_by_group") or []:
-        for e in g["entries"]:
-            n += len(str(e.get("summary") or e.get("line") or "").split())
-    return n
-
-
 def stack_section(data: dict, spec: dict, prior: Optional[dict]) -> dict:
     """The chapter as a stack section, in the shape every renderer reads, plus
     `entries` blocks: one sub-section per group, then the due list."""
@@ -209,5 +199,4 @@ def stack_section(data: dict, spec: dict, prior: Optional[dict]) -> dict:
             "fingerprint": _fp([(i["key"], i["fingerprint"]) for i in items]),
             "collapsed": False, "unchanged_since": None, "prior_claim": None,
             "claim": claim, "paragraphs": [], "trimmed": False, "period": "month",
-            "phase_a": [], "prose_wanted": False, "empty": False,
-            "stored_words": words(data)}
+            "phase_a": [], "prose_wanted": False, "empty": False}

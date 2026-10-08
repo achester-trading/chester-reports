@@ -162,9 +162,7 @@ monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the t
   narrative.py            The Monthly's brief and template path. One paragraph
                           over one payload, long form, behind the numeral audit.
                           The ten per-pillar placeholders are gone
-  writer/
-    render_stack.py       The stacked Monthly's HTML and Markdown on the stacked
-                          reports' styles (to be retired for
+  writer/                 (the stacked Monthly renders through
                           daily_cascade/stack_render.py at cadence "monthly")
     render_v2.py          The v2 report (the fallback): six sections in payload
                           order, each pillar printed beneath the dial it feeds

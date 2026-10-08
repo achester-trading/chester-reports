@@ -54,7 +54,6 @@ import copy
 import datetime as dt
 import json
 import logging
-import math
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -63,6 +62,7 @@ from altdata import observations, session
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
+from daily_cascade import stack_render as sr
 from daily_cascade.stack import item
 
 from . import dealer as dealer_mod
@@ -1054,8 +1054,11 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         rdata = {"entries_by_group": [], "due": [], "withheld": 0, "matched": [],
                  "fault": f"FAULT (code, not data) -- {type(exc).__name__}"}
     rsec = reading_mod.stack_section(rdata, specs.get("reading") or {}, prior)
-    at = next(i for i, s in enumerate(sections) if s["id"] == "narratives") + 1
-    sections.insert(at, rsec)
+    # ITS PLACE IS CONFIG ORDER (stack.section_ids: the reading row follows
+    # narratives); Slow layers, which has no row there, stays last.
+    by_id = {x["id"]: x for x in sections + [rsec]}
+    ids = stack_mod.section_ids(cfg, CADENCE, by_id)
+    sections = [by_id[i] for i in ids] + [x for x in sections if x["id"] not in ids]
     mech = next(s for s in sections if s["id"] == "mechanics")
     if retro and retro.get("insufficient") and not mech.get("empty"):
         # BELOW THE THRESHOLD THE SECTION'S CLAIM IS THE COUNT, written by code,
@@ -1178,90 +1181,18 @@ def apply_prose(ed: dict, written: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# The budget: prose only
+# The budget: the shared guard (T2.7)
 # ---------------------------------------------------------------------------
-def _w(text: Optional[str]) -> int:
-    return stack_mod.words(text)
-
-
-def section_words(s: dict) -> int:
-    """PROSE ONLY (ruled 4 Oct 2026, every report): the claim, the paragraphs and
-    every sub-section's paragraphs. Items, lines and tables are data."""
-    if s.get("empty"):
-        return 0
-    n = _w(s.get("claim")) + sum(_w(x) for x in s.get("paragraphs") or [])
-    for ss in s.get("subsections") or []:
-        n += sum(_w(x) for x in ss.get("paragraphs") or [])
-    return n
-
-
-def edition_words(ed: dict) -> int:
-    return (sum(section_words(s) for s in ed.get("sections") or [])
-            + sum(section_words(d) for d in ed.get("detail") or []))
-
-
-def stored_words(ed: dict) -> int:
-    """Stored text the edition prints verbatim -- the Reading chapter's summaries
-    and lines. Read, so counted in the reading time; not this edition's prose,
-    so never in the budget and never cut."""
-    return sum(int(s.get("stored_words") or 0) for s in ed.get("sections") or []
-               if not s.get("empty"))
-
-
-def reading_minutes(ed: dict) -> int:
-    """The Weekly's estimate (readability.reading_minutes): prose words at 250 a
-    minute plus 20 seconds a chart, rounded up -- over the Monthly's prose, which
-    includes its sub-sections' paragraphs, and the Reading chapter's stored
-    summaries, which a reader reads too."""
-    charts = int(ed.get("chart_count") or 0)
-    return max(1, math.ceil((edition_words(ed) + stored_words(ed))
-                            / rd.WORDS_PER_MINUTE
-                            + charts * rd.SECONDS_PER_CHART / 60.0))
-
-
 def enforce_budget(ed: dict) -> dict:
-    """Over 7,000 prose words, the lowest-priority paragraphs go first -- the
-    appendix pillars' paragraphs, then the last paragraph of each long block from
-    the back of the edition forward -- and the section prints "(trimmed)". A
-    claim, an item, a line and a table are never cut; the model never
-    summarises to fit. Then The read's sentences are not repeated elsewhere."""
-    rd.withhold_duplicates(ed)
-    budget = int((ed.get("budget") or {}).get("words") or 7000)
-    order: list[tuple[dict, dict]] = []
-    for d in ed.get("detail") or []:
-        for ss in d.get("subsections") or []:
-            order.append((d, ss))
-    blocks = []
-    for s in reversed(ed["sections"]):
-        for ss in reversed(s.get("subsections") or []):
-            blocks.append((s, ss))
-        blocks.append((s, s))
-    while edition_words(ed) > budget:
-        cut = False
-        for owner, blk in order:
-            if blk.get("paragraphs"):
-                blk["paragraphs"] = []
-                blk["trimmed"] = owner["trimmed"] = True
-                cut = True
-                break
-        if not cut:
-            for owner, blk in blocks:
-                if len(blk.get("paragraphs") or []) > 1:
-                    blk["paragraphs"] = blk["paragraphs"][:-1]
-                    blk["trimmed"] = owner["trimmed"] = True
-                    cut = True
-                    break
-        if not cut:
-            for owner, blk in blocks:
-                if blk.get("paragraphs"):
-                    blk["paragraphs"] = blk["paragraphs"][:-1]
-                    blk["trimmed"] = owner["trimmed"] = True
-                    cut = True
-                    break
-        if not cut:
-            break
-    ed["words"] = edition_words(ed)
-    ed["reading_minutes"] = reading_minutes(ed)
+    """The stacked reports' guard at the Monthly's cadence
+    (daily_cascade.stack.enforce_budget): each paragraph cut to its section's
+    depth allowance, The read's sentences not repeated elsewhere, then over the
+    budget the lowest-priority paragraphs go and the block prints "(trimmed)".
+    A claim, an item, a line, a table and a reading entry are never cut. The
+    reading time is the shared estimate, which counts the stored text the
+    Reading chapter prints (readability.stored_words)."""
+    stack_mod.enforce_budget(ed, CADENCE)
+    ed["reading_minutes"] = rd.reading_minutes(ed)
     return ed
 
 
@@ -1289,35 +1220,32 @@ def public(ed: dict) -> dict:
 
 
 def polish(ed: dict, charts: Optional[dict] = None) -> dict:
-    """The stacked reports' formatting pass (readability.polish_edition, T2.5
-    item 6), and the same over what only the Monthly carries: a sub-section's
-    paragraphs and extra tables, the detail tables, and the charts' captions."""
+    """The shared formatting pass (readability.polish_edition), which covers
+    what the Monthly carries -- sub-section paragraphs, extra tables, the detail
+    tables, the charts' captions -- and leaves the reading entries as stored.
+    The edition keeps the charts without their PNG bytes."""
     rd.polish_edition(ed, charts)
     if charts:
         ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                         for k, c in charts.items()}
-    try:
-        year = dt.date.fromisoformat(str(ed.get("session"))[:10]).year
-    except ValueError:
-        year = None
-
-    def blk(b: dict) -> None:
-        b["paragraphs"] = [rd.polish(x, year) for x in b.get("paragraphs") or []]
-        b["lines"] = [rd.polish(x, year) for x in b.get("lines") or []]
-        b["notes"] = [rd.polish(x, year) for x in b.get("notes") or []]
-        b["not_tracked"] = [rd.polish(x, year) for x in b.get("not_tracked") or []]
-        rd._polish_table(b.get("table"))
-        for t in b.get("tables") or []:
-            rd._polish_table(t)
-        b.pop("paragraph", None)
-    for s in ed.get("sections") or []:
-        for ss in s.get("subsections") or []:
-            blk(ss)
-    for d in ed.get("detail") or []:
-        blk(d)
-        for ss in d.get("subsections") or []:
-            blk(ss)
     return ed
+
+
+CHANGED_HEAD = "Changed since last Monthly"
+
+
+def title(ed: dict) -> str:
+    return f"Monthly — {ed.get('month') or ed.get('report_date')}"
+
+
+def html(ed: dict, mode: str = "email", charts: Optional[dict] = None) -> str:
+    """The page, by the shared renderer at the Monthly's cadence."""
+    return sr.page_html(ed, CADENCE, title(ed), mode, charts, CHANGED_HEAD, "Monthly")
+
+
+def markdown(ed: dict) -> str:
+    """The attachment and text fallback, by the shared renderer."""
+    return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
@@ -1329,7 +1257,6 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     its own, which logs and records the prose on the payload)."""
     from . import charts as charts_mod                           # noqa: PLC0415
     from . import prose as prose_mod                             # noqa: PLC0415
-    from .writer import render_stack                             # noqa: PLC0415
     prior = load_prior(str(p.get("report_date")), archive_dir)
     book = level_book(p, db_path)
     ed = build(p, prior, db_path, book=book)
@@ -1356,8 +1283,8 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
     return {"edition": public(ed), "written": written, "charts": charts,
-            "inline_images": [(render_stack.sr.cid(k), c["png"])
+            "inline_images": [(sr.cid(k), c["png"])
                               for k, c in charts.items() if c.get("png")],
-            "html_email": render_stack.html(ed, mode="email", charts=charts),
-            "html_archive": render_stack.html(ed, mode="archive", charts=charts),
-            "markdown": render_stack.markdown(ed)}
+            "html_email": html(ed, mode="email", charts=charts),
+            "html_archive": html(ed, mode="archive", charts=charts),
+            "markdown": markdown(ed)}

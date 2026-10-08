@@ -99,13 +99,12 @@ def drawdowns(bars: list[dict]) -> list[float]:
 
 
 def spaced_ticks(ax, dates: list, k: int = 5) -> None:
-    """k evenly spaced dated ticks and the last date, dropping a spaced tick that
-    falls within half a step of the last (two labels printed over each other)."""
+    """The shared tick positions (daily_cascade.charts.dated_tick_index: about k
+    spaced, the first and the last, none crowding the last), labelled by month
+    rather than the Weekly's day: a ten-year span reads by year and month."""
     if not dates:
         return
-    n = len(dates)
-    step = max(1, n // k)
-    idx = [i for i in range(0, n, step) if n - 1 - i >= step / 2] + [n - 1]
+    idx = ch.dated_tick_index(len(dates), k)
     ax.set_xticks(idx)
     ax.set_xticklabels([str(dates[i])[:7] for i in idx])
 
