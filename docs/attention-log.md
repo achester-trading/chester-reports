@@ -21,3 +21,5 @@ The Weekly reads this file for its sitting hours (out of 2) and its count of rul
 | 2026-10-05 | ruling | — | Reading shelf: the Publication watch scheduled (12th and 27th); the Monthly Reading chapter brief filed (docs/briefs/reading-shelf-brief-2026-10-05.md) with D1–D3 open; insurance reporting excluded |
 | 2026-10-04 | ruling | 15 | T2.3 Weekly completeness (nine items) and ES overnight |
 | 2026-10-05 | ruling | 15 | T2.5 readability pass (eleven items) |
+| 2026-10-05 | ruling | 6 | Reading shelf D1–D3 ruled (09:08–09:10 ET): chapter after narratives; watch on the 12th and 27th; ECB/BoE FSRs promoted to deep |
+| 2026-10-08 | ruling | — | Reading shelf: eight publications added (Fidelity ×2, Bridgewater, PIMCO ×2, UBS Year Ahead, Morgan Stanley outlooks, Blackstone Ten Surprises); change order filed |
