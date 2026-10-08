@@ -783,6 +783,39 @@ def percentile_at(values: list[float], q: float) -> float:
     return float(s[lo] + (s[hi] - s[lo]) * (pos - lo))
 
 
+def long_run_average(metric_id: str, as_of: Optional[str] = None,
+                     store: Optional[observations.ObservationStore] = None,
+                     instrument: Optional[str] = None) -> dict:
+    """The mean of EVERY observation knowable at the cutoff, with its span.
+
+    The slow layers' middle term (T3; the JPM Guide's latest / long-run average /
+    percentile triple). Until the metric lenses (6e) declare each family's
+    `long_window`, "long run" means the store's full history, and the span is
+    returned so a report prints the window beside the average rather than
+    implying a century the store may not hold. Each observed day counts once, at
+    its newest vintage knowable at the cutoff -- the same as-of join as every
+    other form here.
+    """
+    cutoff = as_of or session.utc_iso(timespec="microseconds")
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        rows = _rows_as_of(metric_id, cutoff, st, instrument)
+    finally:
+        if own:
+            st.close()
+    vals = sorted((str(r["observed_at"])[:10], float(r["value_num"]))
+                  for r in rows if r.get("value_num") is not None)
+    if not vals:
+        return {"metric_id": metric_id, "mean": None, "n": 0, "first_observed": None,
+                "last_observed": None,
+                "absent_reason": f"no numeric observation for {metric_id!r} "
+                                 f"knowable at {cutoff}"}
+    return {"metric_id": metric_id, "mean": sum(v for _, v in vals) / len(vals),
+            "n": len(vals), "first_observed": vals[0][0],
+            "last_observed": vals[-1][0]}
+
+
 def _delta_in_unit(a: float, b: float, unit: str) -> Optional[float]:
     """b minus a, expressed in the declared delta unit."""
     if unit == "percent":

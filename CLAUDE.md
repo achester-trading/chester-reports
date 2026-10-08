@@ -162,9 +162,7 @@ monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the t
   narrative.py            The Monthly's brief and template path. One paragraph
                           over one payload, long form, behind the numeral audit.
                           The ten per-pillar placeholders are gone
-  writer/
-    render_stack.py       The stacked Monthly's HTML and Markdown on the stacked
-                          reports' styles (to be retired for
+  writer/                 (the stacked Monthly renders through
                           daily_cascade/stack_render.py at cadence "monthly")
     render_v2.py          The v2 report (the fallback): six sections in payload
                           order, each pillar printed beneath the dial it feeds
@@ -191,6 +189,9 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
+`--dry-run` builds with the model, reads the real archive's prior Monthly and
+writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
+`--email` to send it once under a "[DRY RUN]" subject.
 
 **`make validate` runs every gate** — forty-five code gates (forty-two Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a

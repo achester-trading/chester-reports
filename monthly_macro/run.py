@@ -53,7 +53,8 @@ def setup_logging(verbose: bool = False):
 SUBJECT = "Monthly Regime & Allocation — {date}"
 
 
-def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
+def deliver_edition(stamp: str, out_dir: str = "reports",
+                    dry_run: bool = False) -> dict:
     """Email one ARCHIVED edition: the HTML in the body, the Markdown attached.
 
     Reads the files the build archived rather than taking them from memory, so
@@ -75,9 +76,16 @@ def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
     except OSError as exc:
         state, detail = "archive_missing", f"{type(exc).__name__}: {exc}"
     else:
+        # THE CHARTS TRAVEL BY CONTENT-ID, read back from the archive like the
+        # HTML: every `cid:` the record references, from its archived PNG.
+        from . import charts as charts_mod
+        images, missing = charts_mod.inline_images(html, stamp, out_dir)
+        if missing:
+            print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
         state, detail = delivery.send_html(
-            SUBJECT.format(date=stamp), html,
-            text_fallback=md, attachments=[(md_name, md, "markdown")])
+            ("[DRY RUN] " if dry_run else "") + SUBJECT.format(date=stamp), html,
+            text_fallback=md, attachments=[(md_name, md, "markdown")],
+            inline_images=images or None)
     ok = state == "sent"
     print(f"delivery=smtp {'ok' if ok else 'failed'} state={state} -- {detail}",
           flush=True)
@@ -107,14 +115,17 @@ def write_prose(p: dict, args, log, ed: dict = None) -> dict:
     return out
 
 
-def build_stack(p: dict, args, log, out_dir) -> dict:
+def build_stack(p: dict, args, log, out_dir, prior_dir=None) -> dict:
     """The stacked Monthly (T3), or None if building it FAULTED -- a fault in
     the new path degrades the edition to the v2 render rather than stopping the
-    Monthly; the prose already written is kept on the payload and reused."""
+    Monthly; the prose already written is kept on the payload and reused.
+    `prior_dir` is where the prior Monthly is read (a dry run's: the real
+    archive), `out_dir` where the charts are written."""
     from . import stack as stack_mod
     try:
         return stack_mod.produce(
-            p, archive_dir=out_dir, narrative=not args.skip_narrative,
+            p, archive_dir=out_dir, prior_dir=prior_dir,
+            narrative=not args.skip_narrative,
             write=lambda ed: write_prose(p, args, log, ed))
     except Exception:                                          # noqa: BLE001
         log.exception("the stacked Monthly faulted; rendering the v2 layout")
@@ -230,7 +241,13 @@ def main():
                     help="Re-render an ARCHIVED payload instead of building one; "
                          "sections it predates are built at ITS cutoff")
     ap.add_argument("--dry-run", action="store_true",
-                    help="Write <name>_dryrun.md/.html and send nothing")
+                    help="Build WITH the model against the real archive's prior "
+                         "Monthly, write ONLY to <out-dir>/dryrun/, and send "
+                         "nothing: no fetch, no snapshot, no state record. With "
+                         "--from-payload: write <name>_dryrun.md/.html")
+    ap.add_argument("--email", action="store_true",
+                    help="With --dry-run: also SEND the dry-run render, once, "
+                         "subject prefixed \"[DRY RUN]\"; nothing else changes")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -241,11 +258,27 @@ def main():
     # run failed, 2 built and ARCHIVED but not delivered. A delivery failure
     # never fails the build -- the report exists on disk -- but rc=2 reaches
     # run_monthly.sh, which records not_delivered where the heartbeat reads it.
+    if args.email and (not args.dry_run or args.from_payload or args.deliver_only):
+        print("refused: --email sends a DRY-RUN render and needs --dry-run on a "
+              "live build (not --from-payload or --deliver-only)", file=sys.stderr)
+        return 1
     if args.deliver_only:
         out = deliver_edition(args.deliver_only, args.out_dir)
         return 0 if out["delivery"] == "sent" else 2
     if args.from_payload:
         return rerender(args, log)
+
+    # THE DRY RUN (PB-1's shape, the Weekly's): the real build, model and all,
+    # whose every write lands in <out-dir>/dryrun/. It reads the real archive --
+    # the prior Monthly the change marks compare against -- and writes nothing
+    # else: no fetch or scans ingest (both write the store), no snapshot, no
+    # state record, no stacked edition or PNG beside the real ones. Until this,
+    # --dry-run without --from-payload was accepted and ignored: the run built,
+    # archived, snapshotted, emitted and delivered as a live Monthly.
+    arch = str(Path(args.out_dir) / "dryrun") if args.dry_run else args.out_dir
+    if args.dry_run and not args.skip_fetch:
+        log.info("--dry-run: no fetch and no scans ingest (they write the store)")
+        args.skip_fetch = True
 
     store = Store()
     log.info("Store directory: %s", store.dir)
@@ -295,6 +328,21 @@ def main():
         except Exception:
             log.exception("yfinance fetch failed entirely; continuing with FRED data only")
 
+    # ---- Phase 2b: the scans' reference tables, as sourced figures ----
+    # No network: the committed docs/scans/*.md into the store, idempotently.
+    # The stack prints a scan's figure only from the store (altdata/scans.py).
+    if not args.skip_fetch:
+        try:
+            from altdata import scans                            # noqa: PLC0415
+            sc = scans.ingest()
+            log.info("scans ingest: %d scan(s), %d figure(s) added, %d refused",
+                     len(sc["scans"]), sc["added"], len(sc["refused"]))
+            for r in sc["refused"]:
+                log.warning("scan figure refused: %s %s: %s", r["scan_id"],
+                            r["metric"], r["reason"])
+        except Exception:
+            log.exception("scans ingest failed; sourced figures print as absent")
+
     # ---- Snapshot memory: compare against the last run before rendering ----
     report_date = session.session_date_obj()
     try:
@@ -335,7 +383,7 @@ def main():
     if p.get("month_in_markets") is not None:
         if args.skip_narrative:
             log.info("Narrative step skipped (--skip-narrative)")
-        stacked = build_stack(p, args, log, args.out_dir)
+        stacked = build_stack(p, args, log, arch, prior_dir=args.out_dir)
         if stacked:
             log.info("stack: %d prose words, about %s minute(s) to read (target "
                      "%s)", stacked["edition"].get("words") or 0,
@@ -378,49 +426,62 @@ def main():
     # the report's own check marks. delivery.archive() writes explicit UTF-8 and is
     # the one archive path in the system.
     stamp = p.get("report_date")
-    md_path = delivery.archive(md, f"monthly_macro_{stamp}.md", args.out_dir)
+    md_path = delivery.archive(md, f"monthly_macro_{stamp}.md", arch)
     pay_path = delivery.archive(
         json.dumps(p, indent=2, default=str, sort_keys=True),
-        f"monthly_macro_{stamp}_payload.json", args.out_dir)
-    html_path = delivery.archive(html, f"monthly_macro_{stamp}.html", args.out_dir)
+        f"monthly_macro_{stamp}_payload.json", arch)
+    html_path = delivery.archive(html, f"monthly_macro_{stamp}.html", arch)
     log.info("archived %s, %s and the payload %s", md_path, html_path, pay_path)
     if stacked:
         # The stacked edition's data: next month's change marks read it.
         from . import stack as stack_mod
-        stack_mod.save_edition(stacked["edition"], args.out_dir)
+        stack_mod.save_edition(stacked["edition"], arch)
+        # The charts' PNGs beside the HTML (their SVGs are already there), so the
+        # delivery -- and any re-send -- mails exactly what the record shows.
+        from . import charts as charts_mod
+        pngs = charts_mod.archive_pngs(stacked.get("charts") or {}, stamp,
+                                       arch)
+        log.info("archived %d chart PNG(s)", len(pngs))
 
     # ---- Persist this run's snapshot for next month's comparison ----
-    try:
-        write_snapshot(store, report_date, altconfig.FRED_SERIES)
-    except Exception:
-        log.exception("Could not write snapshot; next run will lack a comparison point")
+    # A DRY RUN writes none: next month compares against a real Monthly.
+    if args.dry_run:
+        log.info("--dry-run: no snapshot, no state record")
+    else:
+        try:
+            write_snapshot(store, report_date, altconfig.FRED_SERIES)
+        except Exception:
+            log.exception("Could not write snapshot; next run will lack a "
+                          "comparison point")
 
     # ---- Emit state to the dashboard Worker (telemetry; never fatal) ----
-    try:
-        snap_series = change_ctx["current"]["series"] if change_ctx else {}
-        def _v(k):
-            e = snap_series.get(k) or {}
-            return e.get("value")
-        emit(
-            report_key="monthly_macro",
-            status="published",
-            headline=f"Monthly Macro {report_date.isoformat()} — "
-                     f"{fetch_summary['success']}/{fetch_summary['total']} series",
-            detail={
-                "series_ok": fetch_summary["success"],
-                "series_total": fetch_summary["total"],
-                "failures": [k for k, _ in fetch_summary.get("failed", [])],
-                "hy_oas": _v("hy_oas"),
-                "ccc_oas": _v("ccc_oas"),
-                "vix": _v("vix"),
-                "nfci": _v("nfci"),
-                "yield_10y": _v("yield_10y"),
-                "narrative": not args.skip_narrative,
-            },
-            as_of=report_date,
-        )
-    except Exception:
-        log.exception("State emission raised unexpectedly; report is unaffected")
+    # A dry run emits nothing: the dashboard shows the Monthly that was sent.
+    if not args.dry_run:
+        try:
+            snap_series = change_ctx["current"]["series"] if change_ctx else {}
+            def _v(k):
+                e = snap_series.get(k) or {}
+                return e.get("value")
+            emit(
+                report_key="monthly_macro",
+                status="published",
+                headline=f"Monthly Macro {report_date.isoformat()} — "
+                         f"{fetch_summary['success']}/{fetch_summary['total']} series",
+                detail={
+                    "series_ok": fetch_summary["success"],
+                    "series_total": fetch_summary["total"],
+                    "failures": [k for k, _ in fetch_summary.get("failed", [])],
+                    "hy_oas": _v("hy_oas"),
+                    "ccc_oas": _v("ccc_oas"),
+                    "vix": _v("vix"),
+                    "nfci": _v("nfci"),
+                    "yield_10y": _v("yield_10y"),
+                    "narrative": not args.skip_narrative,
+                },
+                as_of=report_date,
+            )
+        except Exception:
+            log.exception("State emission raised unexpectedly; report is unaffected")
 
     print(f"\n✅ Report generated:")
     print(f"   {md_path}")
@@ -430,10 +491,14 @@ def main():
         print(f"   Failed series: {len(fetch_summary['failed'])} (see appendix)")
 
     # ---- DELIVER, LAST: everything above is on disk before a socket opens ----
+    if args.dry_run and not args.email:
+        print("dry run -- NOT delivered")
+        print("delivery=skipped (--dry-run)")
+        return 0
     if args.no_deliver:
         print("delivery=skipped (--no-deliver)")
         return 0
-    out = deliver_edition(stamp, args.out_dir)
+    out = deliver_edition(stamp, arch, dry_run=args.dry_run)
     return 0 if out["delivery"] == "sent" else 2
 
 
