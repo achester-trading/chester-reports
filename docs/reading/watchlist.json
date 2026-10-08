@@ -77,6 +77,6 @@
   "not_on_the_shelf": [
     "Apollo (Torsten Slok) daily chart, AAII, NAAIM, ICI flows, CFTC COT, Glassnode, IEA OMR, EIA STEO, OPEC MOMR — daily/weekly data feeds, handled by the pipeline or the Monthly signal scan, not the shelf",
     "Insurance and reinsurance reporting (Swiss Re sigma, renewal reports, Artemis) — excluded by ruling 5 Oct 2026",
-    "BlackRock Investment Institute, Vanguard outlooks, Blackstone Ten Surprises, Third Point / Greenlight letters — low information value for the framework"
+    "BlackRock Investment Institute, Vanguard outlooks, Third Point / Greenlight letters — low information value for the framework"
   ]
 }
