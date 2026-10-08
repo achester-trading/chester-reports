@@ -612,6 +612,23 @@ else
     bad "empty store -> state=$(state_of) exit=$RC feeds=$(feeds_of) (wanted feed_stale/11)"
 fi
 
+# T2.6: THE VERDICT NAMES THE SERIES, not only the counts -- the stale keys, by
+# family, with why, in the one verdict line; and each named on its own log line.
+if [[ "$(feeds_of)" != "no_python" ]]; then
+    HB_LOG="$(ls -t "$SANDBOX"/logs/heartbeat_check-*.log 2>/dev/null | head -n 1)"
+    VLINE="$(grep 'verdict=feed_stale' "$HB_LOG" 2>/dev/null | tail -n 1)"
+    if [[ "$VLINE" == *"-- stale: prices yfinance."*"(absent): attempted, nothing written"* ]]; then
+        ok "the feed_stale verdict names the stale series and why"
+    else
+        bad "the verdict line does not name the stale series: ${VLINE: -200}"
+    fi
+    if grep -q '^[^ ]* *  stale prices yfinance\.' "$HB_LOG" 2>/dev/null; then
+        ok "each stale series is logged on its own line"
+    else
+        bad "no per-series stale line in the heartbeat log"
+    fi
+fi
+
 # AND IT MUST NOT OUTRANK ANYTHING UPSTREAM. A dead pipeline explains a stale
 # feed; reporting the feed would send the reader to the wrong place.
 rm -f "$STATUS"

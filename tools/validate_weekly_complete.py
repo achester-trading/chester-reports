@@ -40,7 +40,8 @@ socket.
                  sections because a cell was typed by its `rows` key).
   K BARS         the bars backfill stamps a bar at its close plus the delay and a
                  re-run moves the stamp earlier without a second row.
-  L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source.
+  L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source,
+                 proven in a fresh interpreter under the real import order (T2.6).
 """
 
 from __future__ import annotations
@@ -518,6 +519,57 @@ def main() -> int:
     check(hits and hits[0][3].match("yfinance.utils") and hits[0][3].match("yfinance")
           and not hits[0][3].match("altdata.fx_charts"),
           "a filter on yfinance's own modules only")
+    # UNDER THE REAL IMPORT ORDER (T2.6). The filter above was present on 6 Oct and
+    # the box still printed thirteen warnings: yfinance's own __init__ inserts a
+    # 'default' rule for its modules AT THE FRONT when it is imported, after
+    # ours. So the proof is a FRESH interpreter, no -W, importing the package
+    # first as `python -m altdata.bars` does, then yfinance through a production
+    # import site, then calling the two yfinance lines that warned
+    # (utils.py:432 and :612). The control -- the same calls after a BARE
+    # `import yfinance` -- shows the check can see the warning at all.
+    import subprocess
+    probe = ("import pandas as pd\n"
+             "import altdata.bars\n"
+             "{imp}\n"
+             "import yfinance.utils as u\n"
+             "u._interval_to_timedelta('5m')\n"
+             "u._dts_in_same_interval(pd.Timestamp('2026-10-01 10:00'), "
+             "pd.Timestamp('2026-10-01 10:30'), '1h')\n"
+             "print('probe ok')\n")
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONWARNINGS"}
+
+    def run_probe(imp: str) -> tuple[str, str]:
+        r = subprocess.run([sys.executable, "-c", probe.format(imp=imp)],
+                           cwd=str(REPO), capture_output=True, text=True, env=env,
+                           timeout=180)
+        return r.stdout, r.stderr
+    out_c, err_c = run_probe("import yfinance")
+    control = "DeprecationWarning" in err_c and "yfinance" in err_c
+    out_p, err_p = run_probe("from altdata.sources import overnight\n"
+                             "assert overnight._yf() is not None")
+    check("probe ok" in out_p and "DeprecationWarning" not in err_p,
+          "a fresh interpreter importing yfinance through the repo's import site "
+          "prints no yfinance DeprecationWarning from utils.py:432 or :612"
+          + (f" -- stderr: {err_p.strip()[-300:]}" if err_p.strip() else ""))
+    if control:
+        check(True, "and the control prints it after a bare `import yfinance` -- "
+                    "yfinance's own filter wins there, which is why the helper exists")
+    else:
+        print("  NOTE  the control printed no warning: this yfinance no longer "
+              "raises it, so the silence above is not yet tested against it")
+    root = REPO
+    bare = []
+    for f in list(root.glob("*.py")) + [p for d in ("altdata", "daily_cascade",
+                                                     "monthly_macro", "tools", "scripts")
+                                        for p in (root / d).rglob("*.py")]:
+        if f.as_posix().endswith("altdata/__init__.py") or ".venv" in f.parts:
+            continue
+        for n, ln in enumerate(f.read_text(encoding="utf-8", errors="replace")
+                               .splitlines(), 1):
+            if re.match(r"\s*(import yfinance\b|from yfinance\b)", ln):
+                bare.append(f"{f.relative_to(root).as_posix()}:{n}")
+    check(not bare, "every import of yfinance goes through altdata.import_yfinance()"
+          + (f"; bare imports at {bare}" if bare else ""))
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

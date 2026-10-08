@@ -813,9 +813,12 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
                     "prior_claim": pr.get("claim") if unchanged else None,
                     "claim": None, "paragraphs": [], "trimmed": False})
     # EMPTY MEANS ONE LINE (T2.5 item 5): marked here, so the prose skips the
-    # section and the renderer prints its footnote alone.
+    # section and the renderer prints its footnote alone. The period noun is the
+    # cadence's (config `cadences:`), so "Nothing new this month" is written as
+    # such rather than rewritten from the Weekly's.
     from . import readability                                   # noqa: PLC0415
-    period = "session" if cadence == "daily" else "week"
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    period = cadence_mod.get(cadence, cfg)["period"]
     for s in out:
         s["period"] = period
     readability.mark_empty(out, period)
@@ -827,23 +830,36 @@ def words(text: Optional[str]) -> int:
 
 
 def section_words(s: dict) -> int:
-    """PROSE ONLY (T2.2, 4 Oct 2026): the claim line, the paragraphs and each
-    sub-section's paragraph. Items and tables are data and never count."""
+    """PROSE ONLY (T2.2, 4 Oct 2026, every report): the claim line, the
+    paragraphs and each sub-section's paragraphs -- the Monthly's sub-sections
+    keep theirs (`paragraphs`), the close's and the Weekly's keep none. Items,
+    lines and tables are data and never count. One function for every cadence
+    (T2.6); a detail block (the Monthly's) is counted the same way."""
     if s.get("collapsed"):
         return words(s.get("claim"))
-    return (words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
-            + sum(words(ss.get("paragraph")) for ss in s.get("subsections") or []))
+    n = words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
+    for ss in s.get("subsections") or []:
+        n += words(ss.get("paragraph")) + sum(words(x) for x in ss.get("paragraphs") or [])
+    return n
 
 
-def enforce_budget(ed: dict) -> dict:
-    """ONE PARAGRAPH OF AT MOST 120 WORDS PER SECTION (T2.5 item 2), which keeps
-    every edition inside its word budget by construction; then a sentence that
-    repeats The read is withheld where it repeats it (item 4). A claim line, an
-    item and a table are never cut -- they are data, and the budget counts prose."""
+def edition_words(ed: dict) -> int:
+    """The edition's prose: every section, and every detail block after them."""
+    return (sum(section_words(s) for s in ed.get("sections") or [])
+            + sum(section_words(d) for d in ed.get("detail") or []))
+
+
+def enforce_budget(ed: dict, cadence: str = "daily") -> dict:
+    """THE PARAGRAPH GUARD (T2.5 item 2; per cadence, T2.6): the close and the
+    Weekly keep one paragraph of at most 120 words per section, which keeps them
+    inside their budgets by construction; the Monthly's allowance is its own
+    (config `cadences:`). Then a sentence that repeats The read is withheld where
+    it repeats it (item 4). A claim line, an item and a table are never cut --
+    they are data, and the budget counts prose."""
     from . import readability                                   # noqa: PLC0415
-    readability.finalize(ed)
+    readability.finalize(ed, cadence)
     readability.withhold_duplicates(ed)
-    ed["words"] = sum(section_words(s) for s in ed["sections"])
+    ed["words"] = edition_words(ed)
     return ed
 
 

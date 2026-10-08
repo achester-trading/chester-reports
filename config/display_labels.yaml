@@ -150,3 +150,14 @@ glossary:
     text: "how often the outcome happened in the stored history under the same rule, with the count of cases (n); a frequency, not a forecast."
   - term: "Brier"
     text: "a score for probability calls: the average squared gap between the stated probability and what happened; 0 is perfect, 0.25 is what always saying 50% scores."
+  # T2.6 (8 Oct 2026): the Monthly's terms. The flag thresholds quoted here are
+  # config/reporting_stack.yaml `dealer_flags` and the retrospective's floor;
+  # tools/validate_stack_cadence.py holds these sentences to those values.
+  - term: "Slow layers"
+    text: "the Monthly's eleventh section: valuation, base rates, tail risks and the long-running themes — the readings that move over months, printed as levels and frequencies, never as signals."
+  - term: "pinned, held, amplified"
+    text: "a session's dealer flags, computed from the stored close and never judged: pinned, SPY closed within 0.25% of max pain; held, the session's high came within 0.25% of the morning's call wall (or its low of the put wall) and the close stayed inside it; amplified, price crossed the morning's gamma flip and the session's range was at least 1.2 times the one-day range implied by volatility. A flag is left blank when an input is missing, never guessed."
+  - term: "IV check"
+    text: "marks a session on which SPY's own 30-day at-the-money implied volatility and the VIX differ by more than 5 volatility points; both are printed side by side and neither is chosen. The implied range uses SPY's own volatility when it is stored, and the VIX, labelled as a proxy, when it is not."
+  - term: "hit rate"
+    text: "in the Monthly's dealer retrospective, how often a flag was set over the sessions on which it could be computed — a count over a count; below 20 scored sessions the section prints \"insufficient sessions\" and no rate."

@@ -183,7 +183,8 @@ def _fetch_fred_api(series_id: str) -> pd.Series | None:
 
 def _fetch_yf(ticker: str) -> pd.Series | None:
     try:
-        import yfinance as yf
+        from altdata import import_yfinance
+        yf = import_yfinance()
         df = yf.download(ticker, start=START.isoformat(), progress=False,
                          auto_adjust=False)
         if df is None or df.empty:

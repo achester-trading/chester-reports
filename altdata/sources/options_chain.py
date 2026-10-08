@@ -153,7 +153,8 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
     Returns (rows, manifest). Never raises -- a total failure returns an empty
     row list and a manifest saying why.
     """
-    import yfinance as yf   # lazy, same pattern as yfinance_source
+    from altdata import import_yfinance   # lazy, same pattern as yfinance_source
+    yf = import_yfinance()
 
     fetched_at = session.utc_iso()
     manifest: dict = {

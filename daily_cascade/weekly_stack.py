@@ -38,6 +38,7 @@ from typing import Any, Optional
 from altdata import bars as bars_mod, derived, levels as levels_mod, observations, session
 
 from . import charts as charts_mod
+from .cadence import Period
 from . import stack as stack_mod
 from . import stack_prose, stack_render
 from . import weekly_sections as wsec
@@ -204,7 +205,8 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
 
 
 def misfit_week(wis: dict, pmb: Optional[dict],
-                history: Optional[dict] = None) -> dict:
+                history: Optional[dict] = None, cadence: str = "weekly") -> dict:
+    w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
     from altdata import labels                                   # noqa: PLC0415
@@ -214,16 +216,16 @@ def misfit_week(wis: dict, pmb: Optional[dict],
         items.append(item(f"misfit:{c['id']}", stack_mod.contradiction_line(c), 1,
                           (c.get("persistence_days"), c.get("magnitude"))))
     for e in wis.get("exceptions_opened") or []:
-        it = item(f"misfit:exc:{e}", f"Opened this week: {labels.exception(e)}.", 2, e)
+        it = item(f"misfit:exc:{e}", f"Opened {w.this}: {labels.exception(e)}.", 2, e)
         # The exceptions table's "Opened this week" column carries it (T2.5).
         it["show"] = False
         items.append(it)
     for e in wis.get("exceptions_intraweek_only") or []:
-        items.append(item(f"misfit:intra:{e}", f"Opened and closed inside the "
-                          f"week: {labels.exception(e)}.", 3, e))
+        items.append(item(f"misfit:intra:{e}", f"Opened and closed inside "
+                          f"{w.the}: {labels.exception(e)}.", 3, e))
     if not items:
         items.append(item("misfit:none", "No contradiction open, no exception "
-                          "opened this week.", 1, "none"))
+                          f"opened {w.this}.", 1, "none"))
     data = dict(base["data"])
     now_open = wis.get("exceptions_open_now") or []
     data.update({"open_contradictions": [stack_mod.contradiction_data(c)
@@ -241,8 +243,8 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                                          for c in opened)]
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
-                          "no exception opened this week.", 1, "none"))
-    exc_table = {"columns": ["Open at the week's end", "What it is", "Opened this week"],
+                          f"no exception opened {w.this}.", 1, "none"))
+    exc_table = {"columns": [f"Open {w.end}", "What it is", f"Opened {w.this}"],
                  "rows": [[labels.exception(e),
                            labels.exception_kind(e.split(":", 1)[0]),
                            "yes" if e in (wis.get("exceptions_opened") or []) else ""]
@@ -252,7 +254,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
             # The gap table's how-to-read note is the glossary's "gap z-score"
             # entry already (T2.5 item 3): not printed twice.
             "table_note": None,
-            "subsections": ([{"title": "Exceptions open at the week's end",
+            "subsections": ([{"title": f"Exceptions open {w.end}",
                               "table": exc_table}] if now_open else [])}
 
 
@@ -269,7 +271,9 @@ PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
 BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 
-def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
+def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
+                  cadence: str = "weekly") -> dict:
+    w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
     for k, name in PLUMB:
@@ -282,7 +286,7 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
                           fr["wtd_change_bps"], "as_of": fr.get("as_of"),
                           "fred": x}
             items.append(item(f"plumb:{k}", f"{name} {fr['last']:.3f}%, "
-                              f"{_signed(fr['wtd_change_bps'], 'bp')} on the week "
+                              f"{_signed(fr['wtd_change_bps'], 'bp')} {w.on} "
                               f"(Friday to Friday, as of {fr.get('as_of')}{fred_lvl}).",
                               1 if k == "fred.yield_10y" else 2,
                               (fr["last"], fr["wtd_change_bps"])))
@@ -292,7 +296,7 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
         if not x:
             continue
         data[name] = x
-        items.append(item(f"plumb:{k}", f"{name} {_lvl(x)}, {_change(x)} on the week "
+        items.append(item(f"plumb:{k}", f"{name} {_lvl(x)}, {_change(x)} {w.on} "
                           f"({window(x)}).",
                           1 if k in ("fred.yield_10y", "fred.hy_oas") else 2,
                           (x["level"], x["change"])))
@@ -309,14 +313,14 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None) -> dict:
     # PLUMBING, MADE PLUMBING (T2.3 item 3): liquidity and its legs, SOFR
     # against IORB (in place of the repo footnote), the spreads beside HY, the
     # week's auctions, copper and gold/copper. Global rates and FX below.
-    pr = wsec.plumbing_rows(st, now, then)
+    pr = wsec.plumbing_rows(st, now, then, cadence)
     rows += pr["rows"]
-    fx = wsec.global_fx(st, now, then)
+    fx = wsec.global_fx(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
             "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
-            "table": {"columns": ["Series", "Level or actual", "Week or prior",
+            "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
             "subsections": [{**fx, "paragraph_wanted": False}],
             "not_tracked": pr["not_tracked"]}
@@ -424,7 +428,8 @@ def leadership(st, now: str, then: str) -> list[tuple[str, float]]:
     return out
 
 
-def positioning_week(st, now: str, then: str) -> dict:
+def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
+    w = Period.of(cadence)
     items, data, nt, rows = [], {}, [], []
     two_years = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=730)).isoformat()
     cftc = {}
@@ -441,8 +446,8 @@ def positioning_week(st, now: str, then: str) -> dict:
         data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 1),
                                 "percentile_2y": pct}
         items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name}: "
-                          f"{x['level']:,.0f} contracts ({_change(x)} since the prior "
-                          f"report, as of {x['observed_at']})"
+                          f"{x['level']:,.0f} contracts ({_change(x)} {w.since_report}, "
+                          f"as of {x['observed_at']})"
                           + (f", z {z:+.1f} over two years" if z is not None else "")
                           + ".", 2, (x["level"], x["observed_at"])))
         rows.append(["CFTC " + name, f"{x['level']:,.0f}", _change(x), x["observed_at"]])
@@ -468,14 +473,14 @@ def positioning_week(st, now: str, then: str) -> dict:
                                    None if pm is None else round(pm, 2), "n": len(wk)}
             items.append(item(f"pos:rtat:{sym}", f"Retail sentiment in {sym} (RTAT10) "
                               f"averaged {m:+.2f} over {len(wk)} session(s)"
-                              + (f" against {pm:+.2f} the week before" if pm is not None
+                              + (f" against {pm:+.2f} {w.week_before}" if pm is not None
                                  else "") + ".", 3, round(m, 2)))
     for sym in ("SPY", "QQQ", "NVDA", "TSLA"):
         x = change_over(st, "apewisdom.mentions", now, then, f"{sym}@wallstreetbets")
         if x:
             data[f"ape:{sym}"] = x
             items.append(item(f"pos:ape:{sym}", f"{sym} mentions on WallStreetBets: "
-                              f"{x['level']:,.0f} ({_change(x)} on the week).", 4,
+                              f"{x['level']:,.0f} ({_change(x)} {w.on}).", 4,
                               (x["level"], x["observed_at"])))
     for k, name in (("tic.flow_net_foreign", "Net foreign purchases of US long-term "
                      "securities"), ("tic.flow_total", "Total net TIC flows")):
@@ -492,7 +497,7 @@ def positioning_week(st, now: str, then: str) -> dict:
     if lead:
         srt = sorted([r for r in lead if len(r[0]) <= 4], key=lambda r: -r[1])
         if len(srt) >= 4:
-            items.insert(0, item("pos:leadership", "Leadership on the week: "
+            items.insert(0, item("pos:leadership", f"Leadership {w.on}: "
                                  + ", ".join(f"{n} {_signed(v, '%')}" for n, v in srt[:3])
                                  + "; lagging " + ", ".join(f"{n} {_signed(v, '%')}"
                                                            for n, v in srt[-3:]) + ".",
@@ -500,29 +505,30 @@ def positioning_week(st, now: str, then: str) -> dict:
         for lab, v in lead:
             if len(lab) > 4:
                 items.append(item(f"pos:style:{lab}", f"{lab}: {_signed(v, '%')} "
-                                  f"on the week.", 2, v))
+                                  f"{w.on}.", 2, v))
         data["leadership"] = [{"name": n, "week_return_pct": v} for n, v in lead]
     else:
-        nt.append("the week's sector and style-pair returns (no closes stored)")
-    subs = positioning_subsections(st, now, then, data, lead, rows)
+        nt.append(f"{w.poss} sector and style-pair returns (no closes stored)")
+    subs = positioning_subsections(st, now, then, data, lead, rows, cadence)
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
 
 
 def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
-                            rows: list) -> list[dict]:
+                            rows: list, cadence: str = "weekly") -> list[dict]:
     """T2.2 item 7: five sub-sections, each with its table and one paragraph."""
     from altdata import labels                                   # noqa: PLC0415
+    w = Period.of(cadence)
     out = []
     # THE WEEK, ONE MONTH AND THREE MONTHS, and the 50/200-day count (T2.3
     # item 6), sector names from the display labels.
-    sec = wsec.sector_table(st, now, then, lead)
+    sec = wsec.sector_table(st, now, then, lead, cadence)
     data["sectors_above_50d"] = sec["above_50d"]
     data["sectors_above_200d"] = sec["above_200d"]
     out.append({"title": "Sector rotation and leadership", "table": sec["table"],
                 "lines": [sec["line"]] if sec["line"] else [],
                 "not_tracked": [] if sec["table"]["rows"] else
-                ["the week's sector returns"]})
+                [f"{w.poss} sector returns"]})
     cf = []
     for inst, name in CFTC_CONTRACTS:
         x = data.get(f"cftc:{inst}")
@@ -545,7 +551,7 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     for sym in ("SPY", "QQQ", "IWM", "NVDA", "TSLA"):
         r = data.get(f"rtat:{sym}")
         if r:
-            rs.append([f"{sym} retail sentiment (RTAT10, week mean)",
+            rs.append([f"{sym} retail sentiment (RTAT10, {w.mean})",
                        f"{r['week_mean']:+.2f}",
                        "—" if r.get("prior_week_mean") is None
                        else f"{r['prior_week_mean']:+.2f}", f"n={r['n']}"])
@@ -563,7 +569,7 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                    "—" if aaii.get("prior") is None
                    else f"{aaii['level'] - aaii['prior']:+.1f}", aaii["observed_at"]])
     out.append({"title": "Retail sentiment",
-                "table": {"columns": ["Series", "This week", "Prior or change",
+                "table": {"columns": ["Series", w.This, "Prior or change",
                                       "As of"], "rows": rs},
                 "not_tracked": [] if aaii else ["the AAII bull-bear spread"]})
     tic = [[("Net foreign purchases of US long-term securities"
@@ -590,7 +596,9 @@ WEEK_PRICED = (("fred.breakeven_5y", "5-year breakeven"),
                ("nyfed.sce_3y", "NY Fed 3-year expectations"))
 
 
-def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
+def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then,
+                cadence: str = "weekly") -> dict:
+    w = Period.of(cadence, cfg)
     b = stack_mod.priced_section(st, now, cfg, pmb, fed, fed_then)
     # THE WEEK'S CHANGE, not the day's (T2.1 item 14): the daily section's
     # series lines are replaced by each series' change over the week's window.
@@ -602,8 +610,8 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
         if not x:
             continue
         series[name] = x
-        b["items"].append(item(f"priced:{k}", f"{name} {_lvl(x)}, {_change(x)} on "
-                               f"the week ({window(x)}).", 2,
+        b["items"].append(item(f"priced:{k}", f"{name} {_lvl(x)}, {_change(x)} "
+                               f"{w.on} ({window(x)}).", 2,
                                (x["level"], x["change"])))
     b["data"]["series"] = series
     trig = (cfg.get("triggers") or {}).get("priced") or {}
@@ -611,7 +619,7 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     for k, th in (trig.get("moves_bp") or {}).items():
         x = change_over(st, k, now, then)
         if x and x.get("change") is not None and abs(x["change"]) >= th:
-            reason = f"{k.split('.')[-1]} moved {_change(x)} on the week " \
+            reason = f"{k.split('.')[-1]} moved {_change(x)} {w.on} " \
                      f"(threshold {th} bp)"
             break
     rate_th = float(trig.get("fomc_implied_rate_next_four_meetings_bp") or 12.5)
@@ -621,7 +629,7 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
             ch = derived.rate_bp_change(m["post_pct"], was.get(m["meeting"]))
             if ch is not None and abs(ch) >= rate_th:
                 reason = (f"the implied rate after the {m['meeting']} meeting moved "
-                          f"{_signed(ch, 'bp')} on the week (threshold {rate_th:g} bp)")
+                          f"{_signed(ch, 'bp')} {w.on} (threshold {rate_th:g} bp)")
                 break
     pm_th = float(trig.get("prediction_market_points") or 10)
     if not reason:
@@ -635,7 +643,7 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
     b["not_tracked"] = []
     b["print_items"] = False
     try:
-        earn = wsec.earnings_block(st, now[:10], now, then)
+        earn = wsec.earnings_block(st, now[:10], now, then, cadence=cadence)
     except Exception:                                           # noqa: BLE001
         earn = None
     b["_pmb"] = pmb
@@ -1265,7 +1273,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],
                           cadence="weekly")
-    stack_mod.enforce_budget(ed)
+    stack_mod.enforce_budget(ed, "weekly")
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir
@@ -1356,7 +1364,7 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     reading time and what changed since the last Weekly in the header; the ten
     sections; the glossary; the run's metadata in a small footer."""
     from . import readability as rd                             # noqa: PLC0415
-    secs = "".join(stack_render.section_html(s, n, charts, mode)
+    secs = "".join(stack_render.section_html(s, n, charts, mode, "weekly")
                    for n, s in enumerate(ed["sections"], start=1))
     try:
         week = rd.prose_date(ed.get("week_ending"))

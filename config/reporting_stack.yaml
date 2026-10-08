@@ -180,6 +180,57 @@ depth_words_weekly: {deep: 420, medium: 220, light: 60, short: 60, line: 40}
 # sits inside the same 7,000-word budget.
 depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 
+# THE CADENCES (T2.6, 8 Oct 2026): one entry per stacked report, read by
+# daily_cascade/cadence.py and through it by the shared builders, the renderer,
+# the prose and the budget guard. Nothing here is a ruling; it gathers what was
+# spread across code (stack_prose.CADENCES, the Monthly's word swaps) so every
+# period word a section prints derives from `period`, and each cadence's paragraph
+# allowance is one line here.
+#   period        the noun every period string is built from: "on the week",
+#                 "This month", "at the session's end"
+#   column        the period's column head in a change table ("Week", "The month")
+#   depth_words   which depth_words* map above holds this cadence's allowances
+#   paragraphs    paragraphs a section keeps after the guard (null: no count cap)
+#   paragraph_words  words a kept paragraph may run to: a number, or "depth" for
+#                 the section's allowance in its depth_words map
+#   subsection_paragraphs  whether a sub-section keeps paragraphs of its own
+#   report, frames  the prose prompt's report name and its frames (brief 2.1 rule 1)
+#   chars_scale, read_chars  the prose's runaway guards (not style rules)
+cadences:
+  daily:
+    report: "the daily close"
+    period: session
+    column: "Session"
+    depth_words: depth_words
+    paragraphs: 1
+    paragraph_words: 120
+    subsection_paragraphs: false
+    frames: "the session first, then the day, then where it sits in the week."
+    chars_scale: 1.0
+    read_chars: 1600
+  weekly:
+    report: "the Weekly"
+    period: week
+    column: "Week"
+    depth_words: depth_words_weekly
+    paragraphs: 1
+    paragraph_words: 120
+    subsection_paragraphs: false
+    frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
+    chars_scale: 2.5
+    read_chars: 2400
+  monthly:
+    report: "the Monthly"
+    period: month
+    column: "The month"
+    depth_words: depth_words_monthly
+    paragraphs: null
+    paragraph_words: depth
+    subsection_paragraphs: true
+    frames: "the weeks of the month first, then the month as a whole, then where the month sits in the long frame."
+    chars_scale: 2.5
+    read_chars: 2400
+
 # THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
 # deep). It follows The book; the old Monthly's record -- the regime, the
 # scenario record, the register's month and the pillar appendix -- prints after

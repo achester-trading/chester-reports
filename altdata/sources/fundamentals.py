@@ -145,7 +145,8 @@ def timedelta_ok(accepted: dt.datetime, now: dt.datetime) -> bool:
 
 # --- fetch ---------------------------------------------------------------------
 def fetch_frames(ticker: str) -> dict[str, dict[str, dict[str, Any]]]:
-    import yfinance as yf  # noqa: PLC0415 -- lazily, as the price pass does
+    from altdata import import_yfinance  # noqa: PLC0415 -- lazily, as the price pass does
+    yf = import_yfinance()
     tk = yf.Ticker(ticker)
     out = {}
     for stmt, df in (("cashflow", tk.quarterly_cashflow),

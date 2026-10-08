@@ -142,7 +142,7 @@ fi
 if [[ "$NEWS_AGE_MIN" -ge "$NEWS_MIN_MINUTES" ]]; then
     NEWS_OUT="$("$PY" -m altdata.events_ingest pull --only news 2>&1 | tail -6)"
     NEWS_EXIT=$?
-    printf '%s' "$NEWS_OUT" | sed 's/^/  /' >>"$LOG"
+    printf '%s\n' "$NEWS_OUT" | sed 's/^/  /' >>"$LOG"
     if [[ $NEWS_EXIT -eq 0 ]]; then
         date --iso-8601=seconds >"$NEWS_STAMP"
         log "events: hourly news top-up done (previous was ${NEWS_AGE_MIN}m ago)"

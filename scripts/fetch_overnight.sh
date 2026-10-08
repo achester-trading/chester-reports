@@ -137,7 +137,7 @@ printf 'state=%s rc=%s sha=%s at=%s\n' \
 log "feeds: correction pull start (early set)"
 FEED_OUT="$("$PY" -m altdata.feeds pull --early 2>&1)"
 FEED_RC=$?
-printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
 log "feeds: correction pull done"
 
@@ -157,7 +157,7 @@ log "feeds: correction pull done"
 log "feeds: loggers start"
 LOG_OUT="$("$PY" -m altdata.feeds pull --only loggers 2>&1)"
 LOG_RC=$?
-printf '%s' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
 log "feeds: loggers done"
 
@@ -182,13 +182,13 @@ log "feeds: loggers done"
 log "structure compare: weekly check"
 SC_OUT="$("$PY" tools/structure_compare.py weekly --if-stale 2>&1 | tail -20)"
 SC_RC=$?
-printf '%s' "$SC_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SC_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SC_RC -ne 0 ]] && log "WARN structure_compare exited $SC_RC -- continuing"
 
 log "base rates: annual check"
 BR_OUT="$("$PY" tools/base_rates.py maybe-recompute 2>&1)"
 BR_RC=$?
-printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $BR_RC -ne 0 ]] && log "WARN base_rates maybe-recompute exited $BR_RC -- continuing"
 
 # AFTER THE VERDICT IS TAKEN, and this position is load-bearing. `RC=$?` above
@@ -209,7 +209,7 @@ printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 log "events: ingest"
 EV_OUT="$("$PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
 EV_EXIT=$?
-printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; the anchor prints its EVENTS block with a reason"
 
 # ---- the voices scan moved to its own timer (PB-1, 5 Oct 2026) -------------
@@ -220,7 +220,7 @@ printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 log "surprise: compute"
 SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
-printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
 

@@ -68,6 +68,7 @@ PY_VALIDATORS := \
 	tools/validate_weekly_complete.py \
 	tools/validate_feeds_scheduled.py \
 	tools/validate_readability.py \
+	tools/validate_stack_cadence.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

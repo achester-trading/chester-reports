@@ -257,6 +257,16 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 # import contributes its KEYS (read from source), and a pull skipped for a
 # missing key counts too -- the module's rule is that a missing FRED_API_KEY
 # surfaces as the series going stale, and "pending" would hide it forever.
+#
+# NOT YET DUE IS PENDING (T2.6, 8 Oct 2026). The published-file writers (official,
+# external) also record, per key, the FIRST attempt and whether the writer FAILED
+# (a fetch error, a parse error, an import failure: status not OK). An absent key
+# whose writer failed is STALE, with the writer's reason -- AAII's HTTP 403 is a
+# fault, not a calendar. An absent key whose writer ran cleanly is the source not
+# having published it yet: PENDING, until a full staleness allowance (the key's
+# own cadence x the multiple) has passed since its first attempt, after which it
+# is STALE ("no row in N sessions of clean pulls"). A family that records no
+# outcomes (prices, FRED, the loggers) keeps the rule above.
 ATTEMPTED_FILE = "feeds_attempted.json"
 
 
@@ -281,7 +291,35 @@ def read_attempted() -> Optional[dict]:
     return {k: list((v or {}).get("keys") or []) for k, v in d.items()}
 
 
-def record_attempted(family: str, keys: list[str], merge: bool = False) -> None:
+def read_attempt_outcomes() -> dict:
+    """{family: {"first": {key: iso}, "failed": {key: reason}, "outcomes": bool}}
+    for the families that record outcomes; {} when nothing is recorded."""
+    import json
+    try:
+        d = json.loads((_state_dir() / ATTEMPTED_FILE).read_text(encoding="utf-8"))
+    except Exception:                                         # noqa: BLE001
+        return {}
+    return {k: {"first": dict((v or {}).get("first") or {}),
+                "failed": dict((v or {}).get("failed") or {}),
+                "outcomes": bool((v or {}).get("outcomes"))}
+            for k, v in d.items() if isinstance(v, dict)}
+
+
+def writer_failures(mods: list, out: dict) -> dict:
+    """{key: reason} for every key of a writer whose pull did not return OK."""
+    failed: dict[str, str] = {}
+    for name, mod in mods:
+        r = out.get(name) or {}
+        if r.get("status") == "OK":
+            continue
+        why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
+        for k in _keys([(name, mod)]):
+            failed[k] = why[:160]
+    return failed
+
+
+def record_attempted(family: str, keys: list[str], merge: bool = False,
+                     failed: Optional[dict] = None) -> None:
     """Merge one family's attempted keys into the file. Never raises: a pull that
     wrote its rows must not fail on its bookkeeping.
 
@@ -298,8 +336,23 @@ def record_attempted(family: str, keys: list[str], merge: bool = False) -> None:
             cur = json.loads(p.read_text(encoding="utf-8"))
         except Exception:                                     # noqa: BLE001
             cur = {}
-        prior = set(((cur.get(family) or {}).get("keys") or [])) if merge else set()
-        cur[family] = {"keys": sorted(prior | set(keys)), "at": session.utc_iso()}
+        was = cur.get(family) or {}
+        prior = set(was.get("keys") or []) if merge else set()
+        now = session.utc_iso()
+        entry = {"keys": sorted(prior | set(keys)), "at": now}
+        if failed is not None:
+            # OUTCOMES (T2.6): the first attempt per key is kept across pulls; the
+            # failures are this pull's, merged over the prior ones for the keys a
+            # partial pull did not try.
+            first = dict(was.get("first") or {})
+            for k in keys:
+                first.setdefault(k, now)
+            old = dict(was.get("failed") or {}) if merge else {}
+            for k in keys:
+                old.pop(k, None)
+            old.update(failed)
+            entry.update({"outcomes": True, "first": first, "failed": old})
+        cur[family] = entry
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
         tmp.replace(p)
@@ -366,7 +419,8 @@ def pull_official(run_id: Optional[str] = None,
     """
     mods = _official_modules() if names is None else _writer_modules(names)
     out = _pull_writers(mods, run_id)
-    record_attempted("official", _keys(mods), merge=names is not None)
+    record_attempted("official", _keys(mods), merge=names is not None,
+                     failed=writer_failures(mods, out))
     return out
 
 
@@ -374,7 +428,7 @@ def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
     mods = _writer_modules(EXTERNAL_WRITERS)
     out = _pull_writers(mods, run_id)
-    record_attempted("external", _keys(mods))
+    record_attempted("external", _keys(mods), failed=writer_failures(mods, out))
     return out
 
 
@@ -570,11 +624,13 @@ def freshness(as_of: Optional[str] = None,
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
         attempted = read_attempted()
+        outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
         for name, keys in rosters:
             absent, stale, fresh, pending = [], [], [], []
-            detail = {}
+            detail, pdetail = {}, {}
             tried = set((attempted or {}).get(name) or [])
+            oc = outcomes.get(name) or {}
             if not keys:
                 out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
                                       "absent": 0, "pending": 0, "stale_keys": [],
@@ -600,20 +656,43 @@ def freshness(as_of: Optional[str] = None,
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
-                        if k in tried:
+                        if k not in tried:
+                            pending.append(k)
+                            pdetail[k] = "no pull has tried it yet"
+                        elif not oc.get("outcomes"):
                             stale.append(k)
                             detail[k] = "attempted, nothing written"
+                        elif k in oc["failed"]:
+                            stale.append(k)
+                            detail[k] = f"never written; the writer failed ({oc['failed'][k]})"
                         else:
-                            pending.append(k)
+                            # THE WRITER RAN CLEANLY: the source has not
+                            # published it. Pending while its next release is
+                            # not yet due -- one allowance since the first try.
+                            first = str(oc["first"].get(k) or "")[:10]
+                            allow, _w = derived.staleness_allowance(k)
+                            lim = None if allow is None else int(round(allow * multiple))
+                            n = (_sessions_between(first, last)[0]
+                                 if first and first <= last else 0)
+                            if lim is not None and first and n > lim:
+                                stale.append(k)
+                                detail[k] = (f"never written; no row in {n} sessions "
+                                             f"of clean pulls, limit {lim}")
+                            else:
+                                pending.append(k)
+                                pdetail[k] = (f"not yet published; first tried "
+                                              f"{first or 'n/a'}, due within "
+                                              f"{lim if lim is not None else 'any'} "
+                                              f"sessions")
                         continue
                     rows = [{"observed_at": newest_any}]
                 newest = str(rows[-1]["observed_at"])[:10]
                 n, _ = _sessions_between(newest, last)
-                own, _why = derived.staleness_allowance(k)
+                allow, _why = derived.staleness_allowance(k)
                 # half_life permanent cannot go stale -- a graded outcome does not
                 # decay -- so such a series is fresh by definition rather than by
                 # a number nobody can choose.
-                limit = None if own is None else int(round(own * multiple))
+                limit = None if allow is None else int(round(allow * multiple))
                 if limit is not None and n > limit:
                     stale.append(k)
                     detail[k] = f"{n} sessions, limit {limit}"
@@ -627,6 +706,7 @@ def freshness(as_of: Optional[str] = None,
                 "stale_detail": {k: detail[k] for k in sorted(detail)[:8]},
                 "absent_keys": sorted(absent)[:8],
                 "pending_keys": sorted(pending)[:8],
+                "pending_detail": {k: pdetail[k] for k in sorted(pdetail)[:8]},
                 # OK = NO STALE KEYS. A pending key is a key no pull has tried.
                 "ok": not stale}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())
@@ -643,6 +723,7 @@ def _sessions_between(a: str, b: str) -> tuple[int, str]:
 
 
 def format_freshness(r: dict) -> str:
+    """The one-line summary: per family, fresh of expected, then the counts."""
     bits = []
     for name, f in (r.get("feeds") or {}).items():
         bits.append(f"{name}={f['fresh']}/{f['expected']}"
@@ -650,6 +731,26 @@ def format_freshness(r: dict) -> str:
                     + (f" absent:{f['absent']}" if f["absent"] else "")
                     + (f" pending:{f.get('pending', 0)}" if f["absent"] else ""))
     return f"session={r.get('session')} " + " ".join(bits)
+
+
+def named_keys(r: dict) -> list[str]:
+    """THE SERIES BEHIND THE COUNTS (T2.6): one line per stale key and per
+    pending key, family first, with why -- what the 08:30 verdict names. The
+    vocabulary is this module's and only this module's: STALE (due and not
+    current, or a writer that failed), PENDING (not yet due, or never tried).
+    An absent key is one or the other, and says which. At most eight per family
+    (the JSON's own cap); the counts above carry the rest."""
+    out = []
+    for name, f in (r.get("feeds") or {}).items():
+        absent = set(f.get("absent_keys") or [])
+        for k in f.get("stale_keys") or []:
+            out.append(f"stale {name} {k}"
+                       + (" (absent)" if k in absent else "")
+                       + f": {(f.get('stale_detail') or {}).get(k) or 'stale'}")
+        for k in f.get("pending_keys") or []:
+            out.append(f"pending {name} {k} (absent): "
+                       f"{(f.get('pending_detail') or {}).get(k) or 'pending'}")
+    return out
 
 
 def _main(argv: list[str]) -> int:
@@ -719,8 +820,14 @@ def _main(argv: list[str]) -> int:
         return 0                      # a feed failure is stale data, not a crash
 
     r = freshness(as_of=a.as_of)
-    print(json.dumps(r, indent=2, sort_keys=True) if a.json
-          else format_freshness(r))
+    if a.json:
+        print(json.dumps(r, indent=2, sort_keys=True))
+    else:
+        # THE SUMMARY, THEN THE NAMES (T2.6): the heartbeat logs every line and
+        # puts the first in its verdict, with the stale names after it.
+        print(format_freshness(r))
+        for ln in named_keys(r):
+            print(f"  {ln}")
     return 0 if r["ok"] else 1
 
 

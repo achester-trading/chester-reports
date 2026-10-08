@@ -30,6 +30,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  # THE RUNNER IS PINNED (T2.6, 8 Oct 2026): GitHub moves ubuntu-latest to Ubuntu
+  # 26 on 19 Oct, inside the freeze week, and a gate's verdict must not change
+  # because the image under it did. Every job here and in monthly-report.yml says
+  # ubuntu-24.04; tools/validate_deploy.py refuses `-latest` in any workflow.
+  #
   # One job resolves both lists so the matrices and the Makefile cannot disagree.
   #
   # TWO LISTS, BECAUSE THERE ARE TWO KINDS OF CHECK. A code gate returns the same
@@ -40,7 +45,7 @@ jobs:
   # about the commit. `make list-code` and `make list-data` print them bare, one
   # per line, so nothing here has to parse the human-readable `make list`.
   enumerate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       gates: ${{ steps.list.outputs.gates }}
       data: ${{ steps.list.outputs.data }}
@@ -58,7 +63,7 @@ jobs:
 
   gate:
     needs: enumerate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       # THE POINT OF THIS FILE. Every gate reports, whatever the others do.
@@ -109,7 +114,7 @@ jobs:
   data-gate:
     needs: enumerate
     if: needs.enumerate.outputs.data != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     # No error-tolerance flag (6d, 2 Oct 2026): each data gate now SKIPS explicitly
     # under GitHub Actions -- "skipped: box-only", exit 0 (tools/box_only.py) --
@@ -140,7 +145,7 @@ jobs:
   gates-passed:
     needs: gate
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: All gates passed
         run: |

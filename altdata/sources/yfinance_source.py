@@ -377,7 +377,8 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     per-symbol failure rather than an import-time one that takes the pipeline
     down with it.
     """
-    import yfinance as yf  # lazy import by design
+    from altdata import import_yfinance  # lazy import by design
+    yf = import_yfinance()
 
     t = yf.Ticker(symbol)
     df = t.history(period=period or LOOKBACK_PERIOD, interval="1d",

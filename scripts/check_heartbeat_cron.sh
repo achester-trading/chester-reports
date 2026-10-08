@@ -607,20 +607,34 @@ fi
 # when FRED_API_KEY is absent, rather than failing the wrapper, because a
 # configuration gap should not read as a broken pipeline. The consequence is that
 # the series go stale, and this is what says so.
+#
+# THE NAMES, NOT JUST THE COUNTS (T2.6). `feeds check` prints its summary line,
+# then one line per stale or pending key with why ("stale external
+# aaii.bull_bear_spread (absent): never written; the writer failed (...)"). Each
+# is logged; the verdict carries the summary and the STALE names, so the 08:30
+# line says which series rather than "stale:1 absent:1". The words are
+# feeds.check's: stale is due and not current, pending is not yet due -- this
+# wrapper adds no vocabulary of its own.
 FEEDS_STATE=unknown
 FEEDS_LINE=""
+FEEDS_STALE_NAMES=""
 if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
     FEEDS_STATE=skipped
 elif [[ -z "${STATE_PY:-}" ]]; then
     FEEDS_STATE=no_python
 else
-    FEEDS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.feeds check 2>/dev/null)"
+    FEEDS_OUT="$(cd "$REPO" && "$STATE_PY" -m altdata.feeds check 2>/dev/null)"
     if [[ $? -eq 0 ]]; then
         FEEDS_STATE=fresh
     else
         FEEDS_STATE=stale
     fi
+    FEEDS_LINE="$(printf '%s\n' "$FEEDS_OUT" | head -n 1)"
+    FEEDS_STALE_NAMES="$(printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  stale //p' \
+        | paste -sd ';' - | sed 's/;/; /g')"
     [[ -n "$FEEDS_LINE" ]] && log "  feeds: $FEEDS_LINE"
+    printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(stale\|pending\) /\1 /p' \
+        | while IFS= read -r ln; do log "    $ln"; done
 fi
 
 # Ranked below the pipeline verdicts, below drift, and below the state object, on
@@ -630,7 +644,7 @@ fi
 if [[ "$STATE" == "ok" ]] && [[ "$FEEDS_STATE" == "stale" ]]; then
     STATE=feed_stale
     RC=11
-    HEADLINE="FEED STALE $FEEDS_LINE"
+    HEADLINE="FEED STALE $FEEDS_LINE${FEEDS_STALE_NAMES:+ -- stale: $FEEDS_STALE_NAMES}"
 fi
 
 # ---- the object's exceptions, and the only thing here that pushes -----------
