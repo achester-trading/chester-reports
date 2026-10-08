@@ -36,6 +36,9 @@ SECOND HALF:
                 when recorded), idempotent, immutable, point in time by the read
                 date; advice refused, nothing outside the reference table read;
                 Slow layers prints them from the store only.
+  I YTD         GTM-14: the cross-asset year to date from the store's proxies,
+                ranked, total return with dividends unreinvested, cash at the
+                bill; a class without a proxy or a close says why.
 """
 
 from __future__ import annotations
@@ -144,6 +147,19 @@ def seed(db: str, dealer_sessions: int) -> None:
                            "xlb", "xlre", "xlc", "spy", "iwm", "rsp")):
         put(f"yfinance.mkt_{s}", None, M_START, 100.0)
         put(f"yfinance.mkt_{s}", None, M_END, 100.0 + (i % 7) - 3)
+    # GTM-14's proxies: the prior year's last close, the month end, and HYG's
+    # dividends (one inside the year, one before it). EEM has no year-start
+    # close, so its class must say so; the bill accrues at 4.00% throughout.
+    for s, a, b in (("spy", 90.0, None), ("iwm", 104.0, None), ("efa", 50.0, 55.0),
+                    ("xlre", 88.0, None), ("hyg", 80.0, 82.0), ("agg", 100.0, 99.0)):
+        put(f"yfinance.mkt_{s}", None, "2025-12-31", a)
+        if b is not None:
+            put(f"yfinance.mkt_{s}", None, M_END, b)
+    put("yfinance.mkt_eem", None, M_END, 45.0)
+    put("yfinance.mkt_hyg_dividend", None, "2025-12-15", 0.5)
+    put("yfinance.mkt_hyg_dividend", None, "2026-03-02", 1.0)
+    put("fred.tbill_3m", None, "2025-12-01", 4.0)
+    put("fred.tbill_3m", None, M_END, 4.0)
     days = weekdays("2026-09-01", M_END)[:dealer_sessions]
     for i, d in enumerate(days):
         put("yfinance.mkt_vix", None, d, 16.0)
@@ -419,6 +435,63 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     del out
 
 
+def ytd_group(cfg: dict, ed: dict, out: dict) -> None:
+    """I: GTM-14, the cross-asset year to date (T3 second half, step 2)."""
+    print(f"\n{LINE}\nI. GTM-14: THE CROSS-ASSET YEAR TO DATE, FROM THE STORE'S "
+          f"PROXIES\n{LINE}")
+    tape = next(s for s in ed["sections"] if s["id"] == "tape")
+    sub = next((ss for ss in tape["subsections"]
+                if ss["title"] == "Across assets, year to date"), None)
+    rows = (sub or {}).get("table", {}).get("rows") or []
+    got = {r[1]: (r[0], r[2], r[3]) for r in rows}
+
+    def pct(x: str) -> float:                    # the polish prints U+2212
+        return float(x.rstrip("%").replace("−", "-"))
+    days = (dt.date(2026, 9, 30) - dt.date(2025, 12, 31)).days
+    cash = 100.0 * ((1 + 0.04 / 360) ** days - 1)
+    # SPY 90 -> 101, IWM 104 -> 102 and XLRE 88 -> 99: the month-ends the
+    # sector and scorecard legs seed (100 + i % 7 - 3).
+    want = {"U.S. large cap": round(100 * (101 / 90 - 1), 2),
+            "Developed ex-U.S. equity": 10.0,
+            "High-yield bonds": round(100 * ((82 + 1.0) / 80 - 1), 2),
+            "U.S. small cap": round(100 * (102 / 104 - 1), 2),
+            "U.S. aggregate bonds": -1.0, "REITs": 12.5,
+            "Cash": round(cash, 2)}
+    check(sub and {k: pct(v[2]) for k, v in got.items()} == want,
+          f"each class's total return from the 31 Dec 2025 close to the 30 Sep "
+          f"close, as hand-computed ({len(got)} classes)")
+    check([r[0] for r in rows] == list(range(1, len(rows) + 1))
+          and [pct(r[3]) for r in rows]
+          == sorted(want.values(), reverse=True),
+          "ranked, best first")
+    check(got.get("High-yield bonds", (0, ""))[1] == "HYG"
+          and want["High-yield bonds"] == 3.75,
+          "a dividend inside the year is added on its ex-date and not reinvested; "
+          "one before the start is not (HYG +3.75%)")
+    check(got.get("Cash", (0, ""))[1] == "3-month T-bill"
+          and abs(want["Cash"] - 3.08) < 0.01,
+          f"cash accrues at the 3-month bill as Book Z's does, rate x days / 360 "
+          f"(+{want['Cash']:.2f}% over {days} days)")
+    nt = " ".join((sub or {}).get("not_tracked") or [])
+    check("Emerging-market equity" in nt and "no close at both" in nt
+          and "Emerging-market equity" not in got,
+          "a class whose proxy has no year-start close says so and is not ranked")
+    check("Commodities year to date: no broad commodity index" in nt
+          and "Commodities" not in got,
+          "a class with no proxy in the store says why rather than borrowing one")
+    check(any("not reinvested" in x and "GTM-14" in x for x in sub.get("notes") or [])
+          and "Across assets, year to date" in out["html_email"]
+          and "Across assets, year to date" in out["markdown"],
+          "the method prints beneath the table, in the HTML and the Markdown")
+    proxies = [c.get("key") for c in cfg.get("monthly_cross_asset_ytd") or []]
+    check(len(proxies) == 9 and "yfinance.mkt_agg" in proxies
+          and "fred.tbill_3m" in proxies,
+          "the classes and proxies are configuration (monthly_cross_asset_ytd)")
+    check(tape["depth"] == "light" and tape["data"].get("cross_asset_ytd"),
+          "The tape stays light: the ranking is a table and in the section's data, "
+          "not prose")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -691,6 +764,7 @@ def main() -> int:
           "and a section published first time is called once")
 
     scans_group(p, cfg, ed, out)
+    ytd_group(cfg, ed, out)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")

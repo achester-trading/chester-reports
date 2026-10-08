@@ -211,7 +211,78 @@ def _lvl(r: dict, which: str) -> str:
     return f"{_v(v)}%" if r.get("change_unit") == "bps" else _v(v)
 
 
-def tape_section(p: dict, book: Optional[dict]) -> dict:
+def _closes(st, key: str, now: str) -> list[tuple[str, float]]:
+    return sorted((str(r["observed_at"])[:10], float(r["value_num"]))
+                  for r in st.as_of(key, now) if r.get("value_num") is not None)
+
+
+def _ytd_fund(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
+    """Total return from the last close on or before `start` to the last on or
+    before `end`, a dividend added on its ex-date and not reinvested."""
+    px = [x for x in _closes(st, key, now) if x[0] <= end]
+    p0 = [x for x in px if x[0] <= start]
+    if not p0 or not px or px[-1][0] <= p0[-1][0]:
+        return None
+    (d0, v0), (d1, v1) = p0[-1], px[-1]
+    div = sum(v for d, v in _closes(st, f"{key}_dividend", now) if d0 < d <= d1)
+    return {"from": d0, "to": d1, "pct": round(100.0 * ((v1 + div) / v0 - 1.0), 2),
+            "dividends": round(div, 4)}
+
+
+def _ytd_bill(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
+    """Cash: the 3-month bill as Book Z accrues it, rate x calendar days / 360,
+    each day at the latest rate observed before it."""
+    rates = [x for x in _closes(st, key, now) if x[0] <= end]
+    if not rates or rates[0][0] > start:
+        return None
+    d, stop = dt.date.fromisoformat(start), dt.date.fromisoformat(min(end, rates[-1][0]))
+    if stop <= d:
+        return None
+    val, i, r = 1.0, 0, None
+    while d < stop:
+        while i < len(rates) and rates[i][0] <= d.isoformat():
+            r = rates[i][1]
+            i += 1
+        val *= 1.0 + (r or 0.0) / 100.0 / 360.0
+        d += dt.timedelta(days=1)
+    return {"from": start, "to": stop.isoformat(),
+            "pct": round(100.0 * (val - 1.0), 2), "dividends": None}
+
+
+def cross_asset_ytd(st, last: str, now: str, cfg: dict) -> dict:
+    """GTM-14: the quilt's current column, from the proxies the store holds,
+    ranked. Code-written; a class without a proxy or without closes says why."""
+    year = int(str(last)[:4])
+    start, end = f"{year - 1}-12-31", str(last)[:10]
+    got, nt = [], []
+    for c in cfg.get("monthly_cross_asset_ytd") or []:
+        if c.get("absent") or not c.get("key"):
+            nt.append(f"{c['label']} year to date: {c.get('absent') or 'no proxy'}")
+            continue
+        fn = _ytd_bill if c.get("kind") == "bill" else _ytd_fund
+        r = fn(st, c["key"], start, end, now)
+        if r is None:
+            nt.append(f"{c['label']} year to date ({c['proxy']}): the store holds no "
+                      f"close at both {start} and the month end")
+            continue
+        got.append({**c, **r})
+    got.sort(key=lambda r: -r["pct"])
+    rows = [[n, r["label"], str(r["proxy"]), f"{r['pct']:+.2f}%"]
+            for n, r in enumerate(got, start=1)]
+    ends = sorted({r["to"] for r in got})
+    note = (f"Total return from the {start} close to the {end} close"
+            + (f" (latest close {ends[0]})" if ends and ends[0] != end else "")
+            + ": a fund's dividends added on their ex-dates, not reinvested; cash "
+              "at the 3-month bill, rate x days / 360. Proxies are funds, not the "
+              "indices JPM's quilt uses (GTM-14).")
+    return {"rows": rows, "not_tracked": nt, "note": note if rows else None,
+            "data": [{"rank": n, "class": r["label"], "proxy": r["proxy"],
+                      "ytd_pct": r["pct"], "from": r["from"], "to": r["to"]}
+                     for n, r in enumerate(got, start=1)]}
+
+
+def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = None,
+                 now: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
     m = p.get("month_in_markets") or {}
     rows = m.get("rows") or []
     items, trows = [], []
@@ -247,6 +318,22 @@ def tape_section(p: dict, book: Optional[dict]) -> dict:
                                    "10-month average", "20-month average",
                                    "From the 52-week high"], "rows": lf_rows},
              "not_tracked": nt}]
+    ytd = None
+    if st is not None and last and now:
+        try:
+            ytd = cross_asset_ytd(st, last, now, cfg or {})
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("cross-asset year to date unavailable", exc_info=True)
+            nt.append(f"the cross-asset year to date: FAULT {exc}")
+    if ytd is not None:
+        subs.append({"title": "Across assets, year to date",
+                     "table": {"columns": ["Rank", "Asset class", "Proxy",
+                                           "Year to date"], "rows": ytd["rows"]},
+                     "notes": [ytd["note"]] if ytd["note"] else [],
+                     "not_tracked": ytd["not_tracked"]})
+        items.extend(item(f"tape:ytd:{r['class']}", f"{r['class']} "
+                          f"{r['ytd_pct']:+.2f}% year to date", 3,
+                          (r["rank"], r["ytd_pct"])) for r in ytd["data"])
     levels = [{"symbol": i.get("symbol"), "name": i.get("label"),
                **{x["label"]: x["value"] for x in i.get("levels") or []
                   if x["type"] in ("ma_40w", "ma_10m", "ma_20m")}}
@@ -260,7 +347,8 @@ def tape_section(p: dict, book: Optional[dict]) -> dict:
                      "moves": [{"market": r["label"], "move": _move(r),
                                 "level_percentile_5y": r.get("percentile")}
                                for r in rows],
-                     "long_frame": lf_data, "levels": levels}}
+                     "long_frame": lf_data, "levels": levels,
+                     "cross_asset_ytd": (ytd or {}).get("data") or []}}
 
 
 # ---------------------------------------------------------------------------
@@ -845,7 +933,7 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
             fed_then = None
         steps = {
             "read": lambda: read_section(p),
-            "tape": lambda: tape_section(p, book),
+            "tape": lambda: tape_section(p, book, st, last, now, cfg),
             "mechanics": lambda: mechanics_section(st, first, last, now, cfg),
             "misfit": lambda: misfit_section(p, st, now, pmb),
             "plumbing": lambda: plumbing_section(st, now, then, on_tape),
