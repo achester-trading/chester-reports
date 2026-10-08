@@ -408,6 +408,13 @@ would otherwise reach it.
 (`scripts/deploy_remote.sh`) that is not yet enabled, run the drift check and the heartbeat checker, print the timer
 roster.
 
+**A deploy does not ship code.** Each box wrapper runs `git pull --ff-only` on main
+before it starts, so code and config reach the box at the next timer run after a
+push to main, whether or not anybody deploys. The deploy's own pull only brings the
+checkout current for the unit-file copy; what it ships is the unit files, the
+timers and the checks. Hence the rule under "Operating windows": a merge to main
+is a box write and happens only inside the windows.
+
 **All six box-side steps run over ONE ssh connection.** `scripts/deploy.sh`
 ships `scripts/deploy_remote.sh` to the box as `ssh -o BatchMode=yes vps 'bash -s'
 < deploy_remote.sh`, streams its sections back, and decides the exit code from
@@ -434,6 +441,12 @@ the pull or copy failed, or the connection did.
 - **Deploys and box writes:** weekdays 09:05–15:40 and 17:20–23:30 ET, and never
   16:00–17:20, when the EOD pass and the 16:45 close are running. Weekends are
   open, but stay clear of Sunday 05:00, when the Weekly runs.
+- **A merge to main is a box write.** Every box wrapper (`run_eod_cron.sh`,
+  `run_daily_close.sh`, `fetch_overnight.sh`, `sync_ibkr.sh`, the anchors, the
+  Weekly and the Monthly) runs `git pull --ff-only` on main before it starts, so
+  a push to main reaches the box at the next timer run -- not at the next deploy.
+  Merges to main therefore happen only inside the windows above, the same as
+  deploys; `scripts/deploy.sh` is for unit files, timers and the checks only.
 - **Check the clock in ET, not UTC.** Git Bash's `TZ=` prints UTC on the laptop,
   so read the time in ET through Python's `zoneinfo`.
 - **A session never runs unit commands, `sudo` or register writes.** It prints
