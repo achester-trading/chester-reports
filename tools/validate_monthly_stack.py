@@ -42,6 +42,11 @@ SECOND HALF:
   J TRIPLE      the slow layers' level rows as latest / long-run average /
                 percentile, the data-as-of date and each window printed; full
                 history and five years until 6e; a short history says so.
+  K CHARTS      M1-M9 by the Weekly's mechanics: the plan inside the cap, PNG by
+                Content-ID and SVG on disk, the mobile rule, titles with span and
+                dates, only listed levels drawn (one list with the prose), each
+                in its section, unavailable with its reason, delivered from the
+                archive.
 """
 
 from __future__ import annotations
@@ -590,6 +595,170 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           "is")
 
 
+def seed_chart_history(db: str) -> None:
+    """Enough history for M1-M9 to render: SPY daily for ten years (close only,
+    the fixture's own month-end closes kept), weekly yields and the ACM term
+    premium for five years, HY OAS monthly for twenty, two CFTC contracts weekly
+    for five, Book Z's ledgers and the account NAV since 1 Sep."""
+    from altdata import observations
+    obs = []
+
+    def put(key, inst, day, v):
+        obs.append({"registry_key": key, "instrument": inst, "observed_at": day,
+                    "available_at": f"{day}T21:00:00+00:00", "value": v,
+                    "source": "synthetic"})
+    keep = {"2025-12-31", M_START, M_END}
+    for i, d in enumerate(weekdays("2016-10-03", M_END)):
+        if d not in keep:
+            put("yfinance.mkt_spy", None, d, round(40.0 + i * 0.022
+                                                   + 3.0 * math.sin(i / 40.0), 3))
+    for i, d in enumerate(weekdays("2021-10-01", M_END)[::5]):
+        put("fred.yield_10y", None, d, round(2.0 + i / 120.0, 3))
+        put("acm.term_premium_10y", None, d, round(-0.5 + i / 260.0, 3))
+        for inst, base in (("SP500", 50_000.0), ("UST10Y", -200_000.0)):
+            put("cftc.noncomm_net", inst, d, base + 3_000.0 * math.sin(i / 9.0))
+    for i, d in enumerate(months("2006-10-01", "2026-09-01")):
+        put("fred.hy_oas", None, d, round(4.5 + 2.0 * math.sin(i / 14.0), 3))
+    for i, d in enumerate(weekdays("2026-09-01", M_END)):
+        for lg, step in (("cash", 0.011), ("spy", 0.05), ("sixty_forty", 0.03)):
+            put("paper.benchmark", lg, d, round(100.0 + i * step, 4))
+        put("portfolio.nav", None, d, 1_000_000.0 + 900.0 * i)
+    with observations.ObservationStore(db) as st:
+        st.write_many(obs)
+
+
+def charts_group(cfg: dict) -> None:
+    """K: the Monthly's charts, M1-M9 (T3 second half, step 4)."""
+    from daily_cascade import charts as dch, readability as rd
+    from monthly_macro import charts as mch, run as run_mod, stack as ms
+    print(f"\n{LINE}\nK. THE CHARTS, M1-M9: THE WEEKLY'S MECHANICS AT THE MONTHLY'S "
+          f"SPANS\n{LINE}")
+    db3 = str(Path(TD) / "charts.db")
+    seed(db3, dealer_sessions=21)
+    seed_chart_history(db3)
+    point(db3)
+    p3 = build_payload()
+    arch = str(Path(TD) / "chart_reports")
+    out = ms.produce(p3, archive_dir=arch, client=client([], {}), db_path=db3)
+    point(DB)
+    ed = out["edition"]
+    charts = out["charts"]
+    check(ed.get("chart_plan") == list(mch.ORDER) and cfg["budget"]["monthly"]["charts"]
+          == 10, "the plan is M1-M9, inside the Monthly's cap of 10")
+    tiny = mch.plan({"budget": {"charts": 3}, "sections": [{"depth_reason": None}]})
+    lifted = mch.plan({"budget": {"charts": 3},
+                       "sections": [{"depth_reason": "CPI released"}]})
+    check(tiny == ["M1", "M2", "M3"] and len(lifted) == 4,
+          "the cap is the budget's, and a fired trigger lifts it by one")
+    bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
+    check(not bad and ed["chart_count"] == 9,
+          f"with history stored, all nine render ({ed['chart_count']})"
+          + (f" -- unavailable: {bad}" if bad else ""))
+    ok = [c for c in charts.values() if not c.get("unavailable")]
+    check(ok and all(c["png_bytes"] <= dch.MAX_PNG_BYTES and c["png"][:4] == b"\x89PNG"
+                     for c in ok),
+          f"each a PNG of at most 150 KB for the email (largest "
+          f"{max((c['png_bytes'] for c in ok), default=0):,} bytes)")
+    check(ok and all(c.get("svg_path") and Path(c["svg_path"]).exists()
+                     and Path(c["svg_path"]).parent == Path(arch) for c in ok),
+          "and an SVG on disk beside the archived edition")
+    check(ok and all(c["min_px_at_400"] >= dch.MIN_PX_AT_400 for c in ok),
+          "the mobile rule: no text below 8 px at 400 px wide")
+    span = re.compile(r"\d{4}-\d{2}(-\d{2})? to \d{4}-\d{2}(-\d{2})?")
+    check(all(span.search(str(c.get("title") or "")) for c in ok)
+          and all(re.search(r"\(.+\)", str(c.get("title") or "")) for c in ok),
+          "every title names its count, its plain span and its dates")
+    check("M2" in charts and "ten years" in charts["M2"]["title"]
+          and "M1" in charts and "three years" in charts["M1"]["title"]
+          and "twenty years" in charts["M5"]["title"],
+          "the spans are the brief's: three years weekly, ten years monthly, "
+          "twenty years of the spread")
+    book = ed.get("levels") or {}
+    check(all(mch.drawn_levels_ok(c, book) for c in ok)
+          and {d["type"] for d in charts["M1"]["drawn"]} == {"ma_40w"}
+          and {d["type"] for d in charts["M2"]["drawn"]} <= {"ma_10m", "ma_20m"}
+          and charts["M2"]["drawn"],
+          "M1 and M2 draw only levels from the level list: the 40-week; the 10- and "
+          "20-month")
+    tape = next(s for s in ed["sections"] if s["id"] == "tape")
+    prose_levels = {(k, v) for lv in tape["data"]["levels"] for k, v in lv.items()
+                    if k not in ("symbol", "name")}
+    check(all((d["label"], d["value"]) in prose_levels
+              for c in (charts["M1"], charts["M2"]) for d in c["drawn"]),
+          "and the same list is the one the tape's prose is given: one level list")
+    dd = mch.drawdowns([{"close": x} for x in (100.0, 110.0, 99.0, 121.0, 108.9)])
+    check([round(x, 2) for x in dd] == [0.0, 0.0, -10.0, 0.0, -10.0]
+          and "drawdown from the high" in charts["M2"]["caption"],
+          "M2's drawdown is each month's close against the highest close before it")
+    where = {}
+    for s in ed["sections"]:
+        for c in s.get("charts_rendered") or []:
+            where[c] = s["id"]
+        for ss in s.get("subsections") or []:
+            for c in ss.get("charts_rendered") or []:
+                where[c] = f"{s['id']}/{ss['title']}"
+    check(where == {"M1": "tape", "M2": "tape", "M3": "mechanics", "M4": "plumbing",
+                    "M5": "plumbing", "M6": "positioning", "M7": "priced",
+                    "M8": "ahead/Scenarios, and what would change our mind",
+                    "M9": "book"},
+          "each prints in its section: the long frame in the tape, the "
+          "retrospective in Mechanics, the weights beside Ahead's scenarios")
+    em, ar = out["html_email"], out["html_archive"]
+    check(all(f"cid:{k.lower()}@chester" in em for k in charts)
+          and {c for c, _ in out["inline_images"]} == {f"{k.lower()}@chester"
+                                                      for k in charts},
+          "the email references each PNG by Content-ID, and carries exactly those "
+          "images")
+    check(all(Path(c["svg_path"]).name in ar for c in ok) and "cid:" not in ar,
+          "the archived HTML references the SVGs on disk")
+    check(all(f"]({Path(c['svg_path']).name})" in out["markdown"] for c in ok),
+          "the Markdown carries each chart with its caption as the alt text")
+    check(ed["reading_minutes"] == max(1, math.ceil(
+              ed["words"] / rd.WORDS_PER_MINUTE + 9 * rd.SECONDS_PER_CHART / 60.0)),
+          "the reading time counts the nine charts at 20 seconds each")
+    hist = mch.scenario_history([
+        {"source": "monthly_macro", "scenario_set": "monthly_macro:2026-09",
+         "claim": "a", "probability": 0.7, "emitted_at": "2026-09-02",
+         "brier": 0.09, "resolved_at": "2026-09-25"},
+        {"source": "monthly_macro", "scenario_set": "monthly_macro:2026-09",
+         "claim": "b", "probability": 0.3, "emitted_at": "2026-09-02",
+         "brier": 0.09, "resolved_at": "2026-10-05"},
+        {"source": "other", "scenario_set": "x", "claim": "c", "probability": 0.5,
+         "emitted_at": "2026-09-02"}], "2026-10-01")
+    check(hist == [{"edition": "2026-09", "weights": [("a", 0.7), ("b", 0.3)],
+                    "n_resolved": 1, "brier": 0.09}],
+          "M8 reads the Monthly's own scenario sets, and a Brier only once resolved "
+          "by the cutoff")
+    check("Book Z: cash" in json.dumps(charts["M9"].get("series"))
+          and "Paper account NAV" in json.dumps(charts["M9"].get("series"))
+          and "not marked separately" in charts["M9"]["caption"],
+          "M9: Book Z's three ledgers against the account's NAV, and it says the "
+          "books are not yet marked one by one")
+    pthin = ms.produce(build_payload(), archive_dir=None, client=client([], {}),
+                       db_path=DB)
+    check("Chart unavailable: " in pthin["html_email"]
+          and "weekly bars stored, 20 needed" in pthin["html_email"],
+          "a chart the store cannot support prints \"Chart unavailable: <reason>\" "
+          "in its place")
+    stamp = REPORT_DATE
+    mch.archive_pngs(charts, stamp, arch)
+    (Path(arch) / f"monthly_macro_{stamp}.html").write_text(em, encoding="utf-8")
+    (Path(arch) / f"monthly_macro_{stamp}.md").write_text(out["markdown"],
+                                                          encoding="utf-8")
+    sent = {}
+    saved = run_mod.delivery.send_html
+    run_mod.delivery.send_html = lambda *a, **k: (sent.update(k) or ("sent", "ok"))
+    try:
+        run_mod.deliver_edition(stamp, arch)
+    finally:
+        run_mod.delivery.send_html = saved
+    check(sorted(c for c, _ in sent.get("inline_images") or [])
+          == sorted(f"{k.lower()}@chester" for k in charts)
+          and all(b[:4] == b"\x89PNG" for _, b in sent["inline_images"]),
+          "delivery reads the archived PNGs back and sends them by Content-ID with "
+          "the archived HTML")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -864,6 +1033,7 @@ def main() -> int:
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)
+    charts_group(cfg)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")

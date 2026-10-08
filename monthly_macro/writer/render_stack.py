@@ -60,16 +60,26 @@ def _tables_html(b: dict) -> str:
     return out
 
 
-def _sub_html(ss: dict, period: str) -> str:
+def _charts_html(b: dict, charts: Optional[dict], mode: str) -> str:
+    """A block's charts by the Weekly's own figure markup: `cid:` in the email,
+    the SVG's file name beside the archived HTML."""
+    return "".join(sr._chart_html(charts[c], mode)
+                   for c in b.get("charts_rendered") or [] if c in (charts or {}))
+
+
+def _sub_html(ss: dict, period: str, charts: Optional[dict] = None,
+              mode: str = "email") -> str:
     body = (_tables_html(ss)
             + sr.lines_table(ss.get("lines") or [], f"This {period}")
+            + _charts_html(ss, charts, mode)
             + "".join(f'<p style="{sr.PARA}">{esc(p)}</p>'
                       for p in ss.get("paragraphs") or [])
             + sr._foot(_foot_parts(ss)))
     return (f'<h3 style="{sr.H3}">{esc(ss.get("title"))}</h3>' + body) if body else ""
 
 
-def section_html(s: dict, n: int) -> str:
+def section_html(s: dict, n: int, charts: Optional[dict] = None,
+                 mode: str = "email") -> str:
     out = [sr.header_html(s, n)]
     if s.get("empty"):
         return "".join(out) + sr._foot(_foot_parts(s))
@@ -77,12 +87,13 @@ def section_html(s: dict, n: int) -> str:
         out.append(f'<p style="{sr.CLAIM}">{esc(s["claim"])}</p>')
     out.append(_tables_html(s))
     for ss in s.get("subsections") or []:
-        out.append(_sub_html(ss, s.get("period") or "month"))
+        out.append(_sub_html(ss, s.get("period") or "month", charts, mode))
     items = rd.printable_items(s)
     if items:
         out.append(sr.lines_table([i["text"] for i in items],
                                   f"Also this {s.get('period') or 'month'}",
                                   [bool(i.get("changed")) for i in items]))
+    out.append(_charts_html(s, charts, mode))
     for p in s.get("paragraphs") or []:
         out.append(f'<p style="{sr.PARA}">{esc(p)}</p>')
     out.append(sr._foot(_foot_parts(s)))
@@ -102,11 +113,13 @@ def title(ed: dict) -> str:
     return f"Monthly — {ed.get('month') or ed.get('report_date')}"
 
 
-def html(ed: dict, mode: str = "email") -> str:
+def html(ed: dict, mode: str = "email", charts: Optional[dict] = None) -> str:
     """The page: the header (as-of in ET, reading time against its target, what
-    changed since the last Monthly), the eleven sections, the detail tables, the
-    glossary, the footer."""
-    secs = "".join(section_html(s, n) for n, s in enumerate(ed["sections"], start=1))
+    changed since the last Monthly), the eleven sections with their charts, the
+    detail tables, the glossary, the footer."""
+    charts = charts if charts is not None else (ed.get("charts") or {})
+    secs = "".join(section_html(s, n, charts, mode)
+                   for n, s in enumerate(ed["sections"], start=1))
     target = ed.get("reading_target_minutes")
     head = sr.page_header(title(ed), rd.stamp_et(ed.get("as_of")),
                           int(ed.get("reading_minutes") or 1),
@@ -153,11 +166,28 @@ def _md_block(b: dict) -> list[str]:
     return out
 
 
+def _md_charts(b: dict, charts: dict) -> list[str]:
+    """The SVG beside the archived Markdown, its caption as the alt text."""
+    out = []
+    for c in b.get("charts_rendered") or []:
+        x = charts.get(c)
+        if not x:
+            continue
+        if x.get("unavailable"):
+            out.append(f"*Chart unavailable: {x['unavailable']}*\n")
+            continue
+        svg = str(x.get("svg_path") or "").replace("\\", "/").split("/")[-1]
+        out.append(f"![{_c(x.get('caption'))}]({svg})\n" if svg else
+                   f"*{_c(x.get('caption'))}*\n")
+    return out
+
+
 def _md_foot(b: dict) -> list[str]:
     return [f"<sub>{x}</sub>\n" for x in _foot_parts(b)]
 
 
 def markdown(ed: dict) -> str:
+    charts = ed.get("charts") or {}
     target = ed.get("reading_target_minutes")
     out = [f"# {title(ed)}\n",
            f"*{rd.stamp_et(ed.get('as_of'))} · about "
@@ -176,14 +206,15 @@ def markdown(ed: dict) -> str:
             out.append(f"**{s['claim']}**\n")
         out += _md_block(s)
         for ss in s.get("subsections") or []:
-            body = _md_block(ss) + [f"{p}\n" for p in ss.get("paragraphs") or []] \
-                + _md_foot(ss)
+            body = _md_block(ss) + _md_charts(ss, charts) \
+                + [f"{p}\n" for p in ss.get("paragraphs") or []] + _md_foot(ss)
             if body:
                 out += [f"### {ss.get('title')}\n"] + body
         items = rd.printable_items(s)
         out += [f"- {'◆ ' if i.get('changed') else ''}{i['text']}" for i in items]
         if items:
             out.append("")
+        out += _md_charts(s, charts)
         out += [f"{p}\n" for p in s.get("paragraphs") or []]
         out += _md_foot(s)
     if ed.get("detail"):

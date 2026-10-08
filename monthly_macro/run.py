@@ -75,9 +75,16 @@ def deliver_edition(stamp: str, out_dir: str = "reports") -> dict:
     except OSError as exc:
         state, detail = "archive_missing", f"{type(exc).__name__}: {exc}"
     else:
+        # THE CHARTS TRAVEL BY CONTENT-ID, read back from the archive like the
+        # HTML: every `cid:` the record references, from its archived PNG.
+        from . import charts as charts_mod
+        images, missing = charts_mod.inline_images(html, stamp, out_dir)
+        if missing:
+            print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
         state, detail = delivery.send_html(
             SUBJECT.format(date=stamp), html,
-            text_fallback=md, attachments=[(md_name, md, "markdown")])
+            text_fallback=md, attachments=[(md_name, md, "markdown")],
+            inline_images=images or None)
     ok = state == "sent"
     print(f"delivery=smtp {'ok' if ok else 'failed'} state={state} -- {detail}",
           flush=True)
@@ -403,6 +410,12 @@ def main():
         # The stacked edition's data: next month's change marks read it.
         from . import stack as stack_mod
         stack_mod.save_edition(stacked["edition"], args.out_dir)
+        # The charts' PNGs beside the HTML (their SVGs are already there), so the
+        # delivery -- and any re-send -- mails exactly what the record shows.
+        from . import charts as charts_mod
+        pngs = charts_mod.archive_pngs(stacked.get("charts") or {}, stamp,
+                                       args.out_dir)
+        log.info("archived %d chart PNG(s)", len(pngs))
 
     # ---- Persist this run's snapshot for next month's comparison ----
     try:

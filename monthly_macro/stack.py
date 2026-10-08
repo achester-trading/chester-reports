@@ -1265,11 +1265,14 @@ def public(ed: dict) -> dict:
     return out
 
 
-def polish(ed: dict) -> dict:
+def polish(ed: dict, charts: Optional[dict] = None) -> dict:
     """The stacked reports' formatting pass (readability.polish_edition, T2.5
     item 6), and the same over what only the Monthly carries: a sub-section's
-    paragraphs and extra tables, and the detail tables."""
-    rd.polish_edition(ed)
+    paragraphs and extra tables, the detail tables, and the charts' captions."""
+    rd.polish_edition(ed, charts)
+    if charts:
+        ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
+                        for k, c in charts.items()}
     try:
         year = dt.date.fromisoformat(str(ed.get("session"))[:10]).year
     except ValueError:
@@ -1301,10 +1304,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
     its own, which logs and records the prose on the payload)."""
+    from . import charts as charts_mod                           # noqa: PLC0415
     from . import prose as prose_mod                             # noqa: PLC0415
     from .writer import render_stack                             # noqa: PLC0415
     prior = load_prior(str(p.get("report_date")), archive_dir)
-    ed = build(p, prior, db_path, book=level_book(p, db_path))
+    book = level_book(p, db_path)
+    ed = build(p, prior, db_path, book=book)
     if not narrative:
         written = {}
     elif write is not None:
@@ -1312,12 +1317,24 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     else:
         written = prose_mod.write_all(p, model=model, client=client, ed=ed)
     apply_prose(ed, written)
-    enforce_budget(ed)
-    polish(ed)
+    # THE CHARTS (brief 3; T3 second half): after the prose, as the Weekly's, and
+    # before the budget, so the reading time counts them. M1 and M2 draw from the
+    # same level list the tape's prose is audited against.
     stamp = p.get("report_date")
+    try:
+        charts = charts_mod.build(ed, book, ed.get("_retro"), db_path, archive_dir,
+                                  f"monthly_macro_{stamp}")
+    except Exception:                                           # noqa: BLE001
+        log.exception("the Monthly's charts faulted; the edition prints none")
+        charts = {}
+    ed["levels"] = book
+    enforce_budget(ed)
+    polish(ed, charts)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
-    return {"edition": public(ed), "written": written,
-            "html_email": render_stack.html(ed, mode="email"),
-            "html_archive": render_stack.html(ed, mode="archive"),
+    return {"edition": public(ed), "written": written, "charts": charts,
+            "inline_images": [(render_stack.sr.cid(k), c["png"])
+                              for k, c in charts.items() if c.get("png")],
+            "html_email": render_stack.html(ed, mode="email", charts=charts),
+            "html_archive": render_stack.html(ed, mode="archive", charts=charts),
             "markdown": render_stack.markdown(ed)}
