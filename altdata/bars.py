@@ -282,7 +282,8 @@ def pull(day: Optional[str] = None, store: Optional[BarStore] = None,
     every_s = float(bcfg.get("retry_interval_seconds", 30))
     started = clock()
     if fetcher is None:
-        import yfinance as yf                                   # noqa: PLC0415
+        from altdata import import_yfinance                     # noqa: PLC0415
+        yf = import_yfinance()
 
         def fetcher(symbol, **kw):
             return yf.Ticker(symbol).history(auto_adjust=False, **kw)
@@ -337,7 +338,8 @@ def backfill(days: int = 60, store: Optional[BarStore] = None,
     never writes a second row (BarStore.restamp_many); a bar fetched before it
     closed is dropped and counted."""
     if fetcher is None:
-        import yfinance as yf                                   # noqa: PLC0415
+        from altdata import import_yfinance                     # noqa: PLC0415
+        yf = import_yfinance()
 
         def fetcher(symbol, **kw):
             return yf.Ticker(symbol).history(auto_adjust=False, **kw)

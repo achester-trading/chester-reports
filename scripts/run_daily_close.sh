@@ -127,7 +127,7 @@ DRY=""
 log "feeds: price pull (16:45 -- VIX settles 16:15, so the 16:10 read is not final)"
 FEED_OUT="$("$PY" -m altdata.feeds pull --only prices 2>&1)"
 FEED_RC=$?
-printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN price pull exited $FEED_RC -- continuing; the close report's state block reports what it finds"
 
 # THE DERIVED FEATURES, BETWEEN THE FINAL PRICE AND THE OBJECT BUILT ON IT. The
@@ -139,7 +139,7 @@ printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 log "features: derived recompute (16:45 -- the object is built on these)"
 FEAT_OUT="$("$PY" -m altdata.market_features compute 2>&1)"
 FEAT_RC=$?
-printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEAT_RC -ne 0 ]] && log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
 
 # ---- the order gate, by reconciliation (Phase 5a), BEFORE the report ---------
@@ -191,7 +191,7 @@ log "$MSG"
 log "narratives: evaluate"
 NARR_OUT="$("$PY" -m altdata.narratives evaluate 2>&1 | tail -12)"
 NARR_RC=$?
-printf '%s' "$NARR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$NARR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $NARR_RC -ne 0 ]] && log "WARN narratives evaluate exited $NARR_RC -- continuing; the register keeps its last state"
 
 printf 'state=%s rc=%s sha=%s at=%s\n' \

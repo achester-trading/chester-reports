@@ -132,8 +132,21 @@ altdata/                  Shared ingestion package — used by every report
                           across its inputs' — a feature is never knowable before
                           the data it is made of
 
-monthly_macro/            The one built report
+monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the ten
+                          sections at Monthly depth, Slow layers eleventh, then the
+                          detail tables (the regime, the scenario record, the
+                          register's month, the appendix); the Monthly v2 render is
+                          its fallback when the stacked edition faults
   run.py                  Entry point: python -m monthly_macro.run
+  stack.py                The stacked edition: builds the sections through the
+                          Weekly's builders at cadence "monthly" and the one
+                          stack.assemble(), reconciles Monthly v2 Phase A into
+                          them (each fact printed once), enforces the 7,000-word
+                          budget, archives the edition JSON
+  dealer.py               Mechanics' dealer retrospective: the month's stored
+                          dealer.scorecard_day rows, per-session flags by the
+                          Weekly's rule, counts and hit rates; "insufficient
+                          sessions (n=...)" below 20; the flag-word audit
   snapshot.py             Writes snapshots/<report_date>.json each run; compares
                           against the newest snapshot strictly BEFORE today so a
                           same-day re-run still compares to last month
@@ -150,8 +163,11 @@ monthly_macro/            The one built report
                           over one payload, long form, behind the numeral audit.
                           The ten per-pillar placeholders are gone
   writer/
-    render_v2.py          The report: six sections in payload order, each pillar
-                          printed beneath the dial it feeds
+    render_stack.py       The stacked Monthly's HTML and Markdown on the stacked
+                          reports' styles (to be retired for
+                          daily_cascade/stack_render.py at cadence "monthly")
+    render_v2.py          The v2 report (the fallback): six sections in payload
+                          order, each pillar printed beneath the dial it feeds
     build_html.py         Markdown -> navy-styled <details> accordion HTML
 
 state/emit.py             POSTs one report's state to the Worker. Never raises.
@@ -176,8 +192,8 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
 
-**`make validate` runs every gate** — thirty-nine code gates and five data gates, no
-network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — forty-five code gates (forty-two Python,
+three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -220,9 +236,19 @@ taken under. The **07:00 morning anchor** opens on a **WHAT CHANGED** block rend
 by `daily_cascade/state_block.py`, with every magnitude stamped with its percentile
 and the levels moved behind it, and so does the pre-stack `--classic` close. The
 live stacked close does NOT open on it: ruled 6 Oct 2026, the state and
-contradiction tables belong at the END of the stacked close as detail tables — and
-that is not built yet, `daily_cascade/stack_render.py` taking only the
-session-events line from that module and rendering neither table.
+contradiction tables belong at the END of the stacked close as detail tables, and
+they are built (T2.6) -- `state_block.detail_tables()` reads them from the stored
+object the payload carries, never recomputing, and `stack_render.details_html()`
+prints them after section 10 and before the glossary.
+
+**One stack, three cadences (T2.6).** The close, the Weekly and the Monthly share
+the section builders, the renderer, the prose and the paragraph guard, each taking
+a `cadence` ("daily", "weekly", "monthly"). What differs is config, under
+`cadences:` in `config/reporting_stack.yaml` (period noun, column head, depth
+allowances, paragraph rule, prompt frames, guards), read through
+`daily_cascade/cadence.py`, whose `Period` builds every period phrase ("on the
+week", "This month"). No section hard-codes "week": a new phrase goes in `Period`.
+
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates
 and spreads, percent for prices, raw for counts), never from one formula. Do not
@@ -249,6 +275,19 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
+
+**Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
+(T2.6).** Stale: due and not current, or never written by a writer that failed.
+Pending: not yet due -- never tried, or tried by a writer that ran cleanly while
+the source has published nothing, until one staleness allowance has passed since
+the first attempt. The 08:30 heartbeat uses those words and no others, and names
+each stale series with its reason in the verdict line.
+
+**Import yfinance through `altdata.import_yfinance()`, never bare.** yfinance's own
+`__init__` puts a `default` warnings rule for its modules at the front of the
+filter list, overriding ours, so the helper re-asserts the filter after the import.
+Gate L in `tools/validate_weekly_complete.py` refuses a bare import and proves the
+silence in a fresh interpreter.
 
 ### Known cleanup
 

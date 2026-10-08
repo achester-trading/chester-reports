@@ -155,7 +155,7 @@ log "feeds: pull start"
 # fails the commit if no scheduled runner pulls them.
 FEED_OUT="$("$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
 FEED_RC=$?
-printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 if [[ $FEED_RC -ne 0 ]]; then
     log "WARN feeds pull exited $FEED_RC -- continuing; the freshness check reports it"
 else
@@ -178,7 +178,7 @@ fi
 log "features: derived recompute"
 FEAT_OUT="$("$VENV_PY" -m altdata.market_features compute 2>&1)"
 FEAT_RC=$?
-printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
 if [[ $FEAT_RC -ne 0 ]]; then
     log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
 else
@@ -198,13 +198,13 @@ fi
 log "events: ingest"
 EV_OUT="$("$VENV_PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
 EV_EXIT=$?
-printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; tomorrow's anchor prints its EVENTS block with a reason"
 
 log "surprise: compute"
 SUR_OUT="$("$VENV_PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
-printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
 START_EPOCH=$(date +%s)

@@ -1,7 +1,10 @@
 """
-The stacked editions' HTML: the daily close and the Weekly, one renderer. (T1; T2.5)
+The stacked editions' HTML: the daily close, the Weekly and the Monthly, one
+renderer. (T1; T2.5; T2.6)
 
     html = stack_render.render(payload, edition, charts, mode="email")
+    one = stack_render.section_html(section, n, charts, mode, cadence="monthly")
+    tail = stack_render.details_html(edition["detail"], cadence="monthly")
 
 TWO EDITIONS OF ONE DOCUMENT. `mode="email"` references each chart as
 `cid:<id>@chester` -- the PNG travels in the same multipart/related message;
@@ -13,6 +16,17 @@ the claim line; the table(s) -- the section's, then each sub-section's under its
 own small heading, then any code-written lines as a table of their own; the
 chart(s); ONE paragraph; the footnote. A section with no new facts prints its
 header and its footnote and nothing else (item 5).
+
+PER CADENCE (T2.6), from config `cadences:`. The close and the Weekly print one
+paragraph per section, and a sub-section's "not yet tracked" folds into the
+section's footnote. A cadence whose sub-sections keep their own paragraphs (the
+Monthly) prints each sub-section as a block of its own -- its tables, its lines,
+its paragraphs, its footnote -- and every paragraph the guard kept. The period in
+"This week" / "Also this month" is the cadence's.
+
+DETAIL TABLES (T2.6): after the last section, an edition may carry `detail`, a
+list of blocks each printed under "Detail tables" with its own heading -- the
+close's state and contradiction tables (ruled 6 Oct 2026), the Monthly's record.
 
 THE STYLES (item 10), inline because Gmail strips stylesheets, and the same
 constants for every stacked report: the section header; the claim line, bold and
@@ -163,12 +177,20 @@ def _foot(parts: list[str]) -> str:
     return "".join(f'<p style="{FOOT}">{esc(x)}</p>' for x in parts if x)
 
 
-def footnote(s: dict) -> str:
-    """Everything that is not the section's facts or its reading: the legend,
-    what is not yet tracked, and why anything was withheld or cut."""
+def _cadence(name: str) -> dict:
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    return cadence_mod.get(name)
+
+
+def foot_parts(s: dict, fold_subsections: bool = True,
+               trimmed_note: str = "Commentary trimmed to one paragraph.") -> list[str]:
+    """Everything that is not the block's facts or its reading: the legend,
+    what is not yet tracked, and why anything was withheld or cut. With
+    `fold_subsections`, the sub-sections' "not yet tracked" print here too."""
     nt = list(s.get("not_tracked") or [])
-    for ss in s.get("subsections") or []:
-        nt += list(ss.get("not_tracked") or [])
+    if fold_subsections:
+        for ss in s.get("subsections") or []:
+            nt += list(ss.get("not_tracked") or [])
     nt = list(dict.fromkeys(nt))
     parts = []
     if s.get("empty"):
@@ -182,30 +204,57 @@ def footnote(s: dict) -> str:
         parts.append("Commentary withheld by the audit: " + why)
     parts += list(s.get("notes") or [])
     if s.get("trimmed"):
-        parts.append("Commentary trimmed to one paragraph.")
-    return _foot(parts)
+        parts.append(trimmed_note)
+    return [x for x in parts if x]
 
 
-def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
+def _trimmed_note(cad: dict) -> str:
+    return ("Commentary trimmed to one paragraph." if cad.get("paragraphs") == 1
+            else "(trimmed)")
+
+
+def footnote(s: dict, cadence: str = "daily") -> str:
+    cad = _cadence(cadence)
+    return _foot(foot_parts(s, not cad.get("subsection_paragraphs"),
+                            _trimmed_note(cad)))
+
+
+def tables_html(b: dict) -> str:
+    """A block's table, then any further tables it carries (`tables`)."""
+    return _table(b.get("table")) + "".join(_table(t) for t in b.get("tables") or [])
+
+
+def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3) -> str:
+    """One sub-section: its heading, its tables and lines; on a cadence whose
+    sub-sections keep their own paragraphs, those paragraphs and its own
+    footnote too. Nothing at all when it has nothing to print."""
+    body = tables_html(ss) + lines_table(ss.get("lines") or [], f"This {period}")
+    if cad.get("subsection_paragraphs"):
+        body += "".join(f'<p style="{PARA}">{esc(p)}</p>'
+                        for p in ss.get("paragraphs") or [])
+        body += _foot(foot_parts(ss, True, _trimmed_note(cad)))
+    return (f'<h3 style="{heading}">{esc(ss.get("title"))}</h3>' + body) if body else ""
+
+
+def section_html(s: dict, n: int, charts: dict, mode: str,
+                 cadence: str = "daily") -> str:
+    cad = _cadence(cadence)
+    period = s.get("period") or cad["period"]
     out = [header_html(s, n)]
     if s.get("empty"):
-        return "".join(out) + footnote(s)
+        return "".join(out) + footnote(s, cadence)
     if s.get("claim"):
         out.append(f'<p style="{CLAIM}">{esc(s["claim"])}</p>')
     # TABLES: the section's, each sub-section's, then the lines left over.
     # A TABLE'S STANDING NOTE -- how to read it, how its flags are computed --
     # is printed once, in the glossary (table_notes), never under the table.
-    out.append(_table(s.get("table")))
+    out.append(tables_html(s))
     for ss in s.get("subsections") or []:
-        body = _table(ss.get("table")) + lines_table(
-            ss.get("lines") or [], f"This {s.get('period') or 'week'}")
-        if body:
-            out.append(f'<h3 style="{H3}">{esc(ss.get("title"))}</h3>' + body)
+        out.append(subsection_html(ss, period, cad))
     items = rd.printable_items(s)
     if items:
         out.append(lines_table([i["text"] for i in items],
-                               s.get("lines_head") or
-                               f"Also this {s.get('period') or 'week'}",
+                               s.get("lines_head") or f"Also this {period}",
                                [bool(i.get("changed")) for i in items]))
     # CHARTS: the section's own, then its sub-sections'.
     ids = list(s.get("charts_rendered") or [])
@@ -214,11 +263,33 @@ def section_html(s: dict, n: int, charts: dict, mode: str) -> str:
     for c in ids:
         if c in charts:
             out.append(_chart_html(charts[c], mode))
-    # ONE PARAGRAPH.
-    for p in (s.get("paragraphs") or [])[:1]:
+    # THE PARAGRAPHS THE GUARD KEPT: one on the close and the Weekly.
+    limit = cad.get("paragraphs")
+    paras = s.get("paragraphs") or []
+    for p in (paras[:limit] if limit else paras):
         out.append(f'<p style="{PARA}">{esc(p)}</p>')
-    out.append(footnote(s))
+    out.append(footnote(s, cadence))
     return "".join(out)
+
+
+def detail_html(d: dict, cadence: str = "daily") -> str:
+    """One detail block: its heading, its tables and lines, its sub-sections,
+    its footnote."""
+    cad = _cadence(cadence)
+    period = cad["period"]
+    out = [f'<h3 style="{H3}">{esc(d["title"])}</h3>', tables_html(d),
+           lines_table(d.get("lines") or [], f"This {period}")]
+    for ss in d.get("subsections") or []:
+        out.append(subsection_html(ss, period, cad))
+    out.append(_foot(foot_parts(d, False, _trimmed_note(cad))))
+    return "".join(out)
+
+
+def details_html(detail: Optional[list], cadence: str = "daily") -> str:
+    """The detail tables after the last section, under one heading; nothing
+    when the edition carries none."""
+    body = "".join(detail_html(d, cadence) for d in detail or [])
+    return (f'<h2 style="{SECTION}">Detail tables</h2>' + body) if body else ""
 
 
 def page_header(title: str, stamp: str, minutes: int,
@@ -315,7 +386,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email",
         gl = labels.glossary()
     except Exception:                                           # noqa: BLE001
         gl = []
-    return (f'<div style="{WRAP}">{head}{warn}{secs}{glossary_html(gl, ed)}'
+    return (f'<div style="{WRAP}">{head}{warn}{secs}'
+            f'{details_html(ed.get("detail"), "daily")}{glossary_html(gl, ed)}'
             + page_footer(ed, p.get("run_id"), (delivery or {}).get("archive_path"),
                           _marks(ed, "close"), ed.get("pdf_note"))
             + "</div>")

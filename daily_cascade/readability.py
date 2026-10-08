@@ -16,10 +16,12 @@ What this module owns, all of it code:
   mark_empty                a section with no new facts, and its one line (item 5)
   read_duplicates /         a sentence in another section that repeats The read
   withhold_duplicates       is withheld there, with its reason (item 4)
-  finalize                  one paragraph, at most 120 words, per section (item 2)
+  finalize                  one paragraph, at most 120 words, per section (item 2);
+                            the Monthly's allowance from its cadence (T2.6)
   polish / polish_edition   plurals by count, dates in prose as "28 Sep", "±"
                             never "+-", the true minus sign (item 6)
-  stamp_et, reading_minutes the header's timestamp and reading time (items 6-7)
+  stamp_et, reading_minutes the header's timestamp and reading time (items 6-7),
+                            every cadence's, against reading_target
   subject                   the email subject carries The read's claim (item 8)
   pm_table                  prediction markets as one table (item 9)
   pdf_bytes                 the PDF, from the same HTML, with print CSS (item 11)
@@ -169,6 +171,14 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
             ss["lines"] = [P(x) for x in ss.get("lines") or []]
             ss["not_tracked"] = [P(x) for x in ss.get("not_tracked") or []]
             _polish_table(ss.get("table"))
+    # THE DETAIL BLOCKS (T2.6): the close's state and contradiction tables, the
+    # Monthly's record -- their notes and lines are code-written prose too.
+    for d in ed.get("detail") or []:
+        d["notes"] = [P(x) for x in d.get("notes") or []]
+        d["lines"] = [P(x) for x in d.get("lines") or []]
+        _polish_table(d.get("table"))
+        for t in d.get("tables") or []:
+            _polish_table(t)
     for c in (charts or {}).values():
         if c.get("caption"):
             c["caption"] = P(c["caption"])
@@ -177,13 +187,23 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
     return ed
 
 
-def reading_minutes(ed: dict, charts: int) -> int:
+def reading_minutes(ed: dict, charts: Optional[int] = None) -> int:
     """Prose words at 250 a minute plus 20 seconds a chart, rounded up; at
-    least one minute."""
-    from .stack import section_words                            # noqa: PLC0415
-    words = sum(section_words(s) for s in ed.get("sections") or [])
-    return max(1, math.ceil(words / WORDS_PER_MINUTE
+    least one minute. The words are the edition's (stack.edition_words: every
+    section and any detail block); `charts` defaults to the edition's count.
+    One estimate for every cadence (T2.6)."""
+    from .stack import edition_words                            # noqa: PLC0415
+    if charts is None:
+        charts = int(ed.get("chart_count") or 0)
+    return max(1, math.ceil(edition_words(ed) / WORDS_PER_MINUTE
                             + charts * SECONDS_PER_CHART / 60.0))
+
+
+def reading_target(cadence: str) -> Optional[int]:
+    """The cadence's reading-time target in minutes (config
+    `reading_targets_minutes`): daily 5, Weekly 20, Monthly 40."""
+    from .cadence import get                                    # noqa: PLC0415
+    return get(cadence).get("reading_target_minutes")
 
 
 # ---------------------------------------------------------------------------
@@ -388,33 +408,67 @@ def withhold_duplicates(ed: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# 2. One paragraph, at most 120 words
+# 2. One paragraph, at most 120 words (per cadence, T2.6)
 # ---------------------------------------------------------------------------
-def finalize(ed: dict) -> dict:
-    """Each section keeps ONE paragraph, cut at a sentence boundary to 120 words
-    (the prompt asks for that; this is the guard). A sub-section carries no
-    paragraph of its own: the section's one paragraph follows its charts."""
-    from .stack import section_words, words                     # noqa: PLC0415
+def _cut(para: str, cap: int) -> tuple[str, bool]:
+    """`para` cut at a sentence boundary to `cap` words; (text, was it cut)."""
+    from .stack import words                                    # noqa: PLC0415
+    if words(para) <= cap:
+        return para, False
+    keep: list[str] = []
+    for x in sentences(para):
+        if keep and words(" ".join(keep + [x])) > cap:
+            break
+        keep.append(x)
+    return " ".join(keep), True
+
+
+def _guard(paras: list, limit: Optional[int], cap: int) -> tuple[list[str], bool]:
+    """At most `limit` paragraphs (None: any number), each cut to `cap` words."""
+    kept = [p for p in paras or [] if p and p.strip()]
+    trimmed = limit is not None and len(kept) > limit
+    if limit is not None:
+        kept = kept[:limit]
+    out = []
+    for p in kept:
+        p, cut = _cut(p, cap)
+        trimmed = trimmed or cut
+        if p:
+            out.append(p)
+    return out, trimmed
+
+
+def finalize(ed: dict, cadence: str = "daily") -> dict:
+    """The paragraph guard, from the cadence's config (`cadences:`): how many
+    paragraphs a section keeps, how many words each may run to, and whether a
+    sub-section keeps its own. The prompt asks for the shape; this is the guard.
+
+    The close and the Weekly: ONE paragraph per section, cut at a sentence
+    boundary to 120 words, and no sub-section paragraph -- the section's one
+    paragraph follows its charts (T2.5 item 2). The Monthly: its paragraphs and
+    its sub-sections' kept, each cut to the section's depth allowance."""
+    from .cadence import get, paragraph_cap                     # noqa: PLC0415
+    from .stack import edition_words                            # noqa: PLC0415
+    cad = get(cadence)
+    limit = cad.get("paragraphs")
     for s in ed.get("sections") or []:
+        cap = paragraph_cap(cad, s.get("depth"))
         for ss in s.get("subsections") or []:
             ss.pop("paragraph", None)
+            if not cad.get("subsection_paragraphs"):
+                continue
+            if ss.get("paragraphs"):
+                ss["paragraphs"], cut = _guard(ss["paragraphs"], None, cap)
+                if cut:
+                    ss["trimmed"] = s["trimmed"] = True
         if s.get("empty"):
             s["paragraphs"] = []
             continue
-        paras = [p for p in s.get("paragraphs") or [] if p and p.strip()]
-        if len(paras) > 1:
+        paras, cut = _guard(s.get("paragraphs") or [], limit, cap)
+        if cut:
             s["trimmed"] = True
-        para = paras[0] if paras else None
-        if para and words(para) > PARAGRAPH_WORDS:
-            keep: list[str] = []
-            for x in sentences(para):
-                if keep and words(" ".join(keep + [x])) > PARAGRAPH_WORDS:
-                    break
-                keep.append(x)
-            para = " ".join(keep)
-            s["trimmed"] = True
-        s["paragraphs"] = [para] if para else []
-    ed["words"] = sum(section_words(s) for s in ed.get("sections") or [])
+        s["paragraphs"] = paras
+    ed["words"] = edition_words(ed)
     return ed
 
 

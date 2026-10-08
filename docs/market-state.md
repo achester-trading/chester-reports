@@ -384,7 +384,14 @@ pre-stack `--classic` close. **The live stacked close does not.**
 `daily_cascade/stack_render.py` takes only the session-events line from that module,
 for its page header. Ruled 6 October 2026: in the stacked close the state and
 contradiction tables belong at the END, as detail tables rather than as an opening
-block — which is not built yet, and stack_render.py renders neither table today.
+block — built 8 October (T2.6). `state_block.detail_tables()` reads both from the
+stored object the payload carries (`regime.latest()`), formatting its fields and
+computing nothing: the dials and dimensions with state, percentile, direction,
+confidence and contradictions; each pair with its state, gap z, days and since.
+An absent row prints "absent" with its reason (a fault labelled as one) in the
+block's footnote, and a session with no object says so rather than recomputing
+one. `stack_render.details_html()` prints them under "Detail tables" after
+section 10 and before the glossary.
 
 What the block carries:
 

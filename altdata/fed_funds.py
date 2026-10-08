@@ -189,7 +189,8 @@ def pull(store=None, fetcher: Optional[Callable] = None, dry_run: bool = False,
          run_id: Optional[str] = None) -> dict:
     """The next CONTRACT_MONTHS settlements into the store. Never raises."""
     if fetcher is None:
-        import yfinance as yf                                   # noqa: PLC0415
+        from altdata import import_yfinance                     # noqa: PLC0415
+        yf = import_yfinance()
 
         def fetcher(sym):
             return yf.Ticker(sym).history(period="5d", interval="1d")

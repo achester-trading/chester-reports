@@ -37,6 +37,8 @@ import yaml
 
 from altdata import derived, session
 
+from .cadence import Period
+
 REPO = Path(__file__).resolve().parent.parent
 CALENDAR_PATH = REPO / "config" / "release_calendar.yaml"
 
@@ -684,7 +686,7 @@ def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
     return sign + _bn(abs(x))
 
 
-def plumbing_rows(st, now: str, then: str) -> dict:
+def plumbing_rows(st, now: str, then: str, cadence: str = "weekly") -> dict:
     """Item 3: net liquidity and its legs, SOFR against IORB, the credit
     spreads beside HY, the week's auctions, copper and gold/copper. Rows for
     Plumbing's table; each figure from the store with its as-of."""
@@ -777,12 +779,13 @@ def plumbing_rows(st, now: str, then: str) -> dict:
                      f"dealers took {100 * dl['value_num']:.0f}%" if dl else "—",
                      "tail not stored"])
     if not auctions:
-        rows.append(["Treasury coupon auctions this week", "none held", "—", "—"])
+        rows.append([f"Treasury coupon auctions {Period.of(cadence).this}", "none held",
+                     "—", "—"])
     data["auctions"] = auctions
     return {"rows": rows, "data": data, "not_tracked": nt}
 
 
-def global_fx(st, now: str, then: str) -> dict:
+def global_fx(st, now: str, then: str, cadence: str = "weekly") -> dict:
     """Item 4: the sub-section 'Global rates and FX'."""
     rows, nt = [], []
     for key, name, dp in (("yfinance.mkt_usdjpy", "USD/JPY (yen per dollar)", 2),
@@ -809,7 +812,8 @@ def global_fx(st, now: str, then: str) -> dict:
     nt.append("the 10-year Bund and the OAT-Bund spread (the ECB's data portal is "
               "the source to add)")
     return {"title": "Global rates and FX",
-            "table": {"columns": ["Series", "Level", "Week", "As of"], "rows": rows},
+            "table": {"columns": ["Series", "Level", Period.of(cadence).col, "As of"],
+                      "rows": rows},
             "not_tracked": nt}
 
 
@@ -854,7 +858,8 @@ def volatility(st, now: str, wis: Optional[dict] = None) -> dict:
             "data": data}
 
 
-def sector_table(st, now: str, then: str, lead: list) -> dict:
+def sector_table(st, now: str, then: str, lead: list,
+                 cadence: str = "weekly") -> dict:
     """Item 6: the week, one month and three months beside each other, and how
     many sectors sit above their 50- and 200-day averages."""
     from altdata import labels                                  # noqa: PLC0415
@@ -879,7 +884,8 @@ def sector_table(st, now: str, then: str, lead: list) -> dict:
     styles = [(lab, v) for lab, v in lead if len(lab) > 4]
     line = (f"Sectors above their 50-day average: {above50} of {n}; above their "
             f"200-day: {above200} of {n}." if n else None)
-    return {"table": {"columns": ["Sector or pair", "Week", "One month", "Three months"],
+    return {"table": {"columns": ["Sector or pair", Period.of(cadence).col, "One month",
+                                  "Three months"],
                       "rows": [[r[0], _signed(r[1], "%"), _signed(r[2], "%"),
                                 _signed(r[3], "%")] for r in rows]
                       + [[lab, _signed(v, "%"), "—", "—"] for lab, v in styles]},
@@ -990,7 +996,8 @@ def earnings_season(st, ending: str, now: str) -> dict:
 
 
 def earnings_block(st, ending: str, now: str, then: str,
-                   seasons: Optional[tuple] = None) -> Optional[dict]:
+                   seasons: Optional[tuple] = None,
+                   cadence: str = "weekly") -> Optional[dict]:
     """Item 9: universe names that reported this week -- EPS and revenue against
     stored consensus, beat or miss, the next day's reaction from stored prices.
     None outside the season (prints nothing); inside it, 'no universe name
@@ -1032,8 +1039,9 @@ def earnings_block(st, ending: str, now: str, then: str,
                      d])
         data.append({"symbol": sym, "eps": eps, "eps_estimate": est, "verdict": verdict,
                      "reaction_pct": react, "date": d})
-    return {"title": "Earnings this week",
+    w = Period.of(cadence)
+    return {"title": f"Earnings {w.this}",
             "table": {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
                                   "Next day", "Reported"], "rows": rows},
-            "lines": [] if rows else ["No universe name reported this week."],
+            "lines": [] if rows else [f"No universe name reported {w.this}."],
             "data": data}

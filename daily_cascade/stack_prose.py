@@ -26,6 +26,17 @@ object, markdown refused. Then four tape rules (2.1) the generic audit cannot se
 
 A section that fails any of them is withheld alone, with its reason; the items
 and table beneath it still print.
+
+THE ONE RETRY (Reader's Guide 5.3) is for the audit's refusals only. A fault --
+no client, the API call failing (`call_failed`), a payload past its guard, an
+empty reply, a reply that overran its length -- is not retried: the reason is not
+the prose's to fix (NOT_RETRIED, not_retried).
+
+PER CADENCE (T2.6). The report's name, its period and its frames, the paragraph
+allowance and the runaway guards come from config `cadences:` through
+daily_cascade/cadence.py. section_prompt / read_prompt / section_max_chars are
+the hook a report outside this package (the Monthly) builds its prompts from, so
+every cadence's sections are written to the same rule text.
 """
 
 from __future__ import annotations
@@ -482,27 +493,90 @@ WEEKLY_NOTES = {
 }
 
 
-# PER CADENCE (T2): which report, its period, the frames it writes (brief 2.1
-# rule 1: each report writes the frame it owns and the one above it), its word
-# caps per depth, and its runaway guards.
-CADENCES = {
-    "daily": {"report": "the daily close", "period": "session",
-              "frames": "the session first, then the day, then where it sits in "
-                        "the week.",
-              "words_key": "depth_words", "chars_scale": 1.0, "read_chars": 1600},
-    "weekly": {"report": "the Weekly", "period": "week",
-               "frames": "the days of the week first, then the week as a whole, "
-                         "then where the week sits in the month.",
-               "words_key": "depth_words_weekly", "chars_scale": 2.5,
-               "read_chars": 2400},
-}
+# PER CADENCE (T2; config `cadences:` since T2.6): the report, its period, the
+# frames it writes (brief 2.1 rule 1: each report writes the frame it owns and
+# the one above it), its paragraph allowance and its runaway guards. A cadence's
+# own notes follow the shared SECTION_NOTES; on the Weekly, Positioning's and
+# What's priced's shared notes give way to the Weekly's.
+CADENCE_NOTES = {"weekly": WEEKLY_NOTES}
+CADENCE_REPLACES_NOTES = {"weekly": ("positioning", "priced")}
+
+# Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
+# API call failed, a payload past its guard, an empty reply, a reply that overran
+# its length. Only an AUDIT's refusal is retried.
+NOT_RETRIED = ("fault", "unavailable", "call_failed", "prompt_too_large",
+               "payload_too_large", "empty", "too_long")
+
+
+def not_retried(r: dict) -> bool:
+    reason = str(r.get("reason") or "")
+    return (r.get("state") in NOT_RETRIED
+            or ("past the" in reason and "guard" in reason))
+
+
+def retry_prompt(system: str, reason: Optional[str]) -> str:
+    """The one retry's system prompt: the audit's reason, and the instruction to
+    fix exactly that."""
+    return (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
+            "WITHHELD BY THE AUDIT: " + str(reason)[:600]
+            + "\nWrite it again from the same data, fixing exactly that "
+              "and changing nothing else.")
+
+
+def cadence_of(cadence: str) -> dict:
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    return cadence_mod.get(cadence)
+
+
+def section_prompt(s: dict, cadence: str = "daily", base=None,
+                   extra_notes: Optional[dict] = None,
+                   claim_only: bool = False) -> str:
+    """One section's system prompt at `cadence`: the stack's base prompt, the
+    shared RULES in the cadence's report, period and frames, the paragraph
+    allowance, the section's shared note and the cadence's own. `extra_notes`
+    ({section id: text}) is appended last -- the Monthly's notes live with the
+    Monthly. `claim_only` asks for the claim line alone."""
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    if base is None:
+        from daily_cascade import narrative as base             # noqa: PLC0415
+    cad = cadence_mod.get(cadence)
+    paras = "0" if claim_only else DEPTH_PARAGRAPHS.get(s["depth"], "0")
+    # ONE PARAGRAPH (T2.5 item 2): a section that carries prose writes its
+    # claim line and one paragraph over ALL its tables -- the sub-sections
+    # no longer take paragraphs of their own.
+    body = (f"Then write ONE paragraph of at most "
+            f"{cadence_mod.paragraph_cap(cad, s['depth'])} words."
+            if paras != "0" else "Write ONLY that one sentence.")
+    why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
+    sys_prompt = stack_system_prompt(base) + RULES.format(
+        title=s["title"], depth=s["depth"], why=why, body=body,
+        report=cad["report"], period=cad["period"], frames=cad["frames"])
+    if s["id"] not in CADENCE_REPLACES_NOTES.get(cadence, ()):
+        sys_prompt += SECTION_NOTES.get(s["id"], "")
+    sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
+    sys_prompt += (extra_notes or {}).get(s["id"], "")
+    return sys_prompt
+
+
+def section_max_chars(s: dict, cadence: str = "daily") -> int:
+    """The section's runaway guard at `cadence` (not a style rule)."""
+    return int(MAX_CHARS.get(s["depth"], 900) * float(cadence_of(cadence)["chars_scale"]))
+
+
+def read_prompt(cadence: str = "daily", base=None) -> str:
+    """The read's system prompt at `cadence`."""
+    if base is None:
+        from daily_cascade import narrative as base             # noqa: PLC0415
+    sp = stack_system_prompt(base) + READ_RULES.format(period=cadence_of(cadence)["period"])
+    return sp + (CADENCE_NOTES.get(cadence, {}).get("read", "")
+                 if cadence == "weekly" else "")
 
 
 def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
           model: Optional[str] = None, outlooks: Optional[list] = None,
           cadence: str = "daily") -> dict:
     """Fill each section's claim and paragraphs; then The read. Never raises."""
-    cad = CADENCES[cadence]
+    cad = cadence_of(cadence)
     try:
         from altdata.sources import prediction_markets as _pm   # noqa: PLC0415
         pm_cfg = _pm.load_config()
@@ -522,15 +596,12 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         (the API, the payload guard) is not retried: the reason is not the
         prose's to fix."""
         first = attempt(sid, payload, system, max_chars)
-        if first.get("published") or first.get("state") in ("fault", "payload_too_large"):
+        # A FAULT IS NOT RETRIED (Reader's Guide 5.3): until T2.6 only "fault"
+        # and the payload guard were excluded here, so a failed API call
+        # (`call_failed`) was sent a second time with an "audit" reason.
+        if first.get("published") or not_retried(first):
             return {**first, "attempts": 1}
-        if "past the" in str(first.get("reason") or "") and "guard" in str(
-                first.get("reason") or ""):
-            return {**first, "attempts": 1}
-        retry_sys = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
-                     "WITHHELD BY THE AUDIT: " + str(first.get("reason"))[:600]
-                     + "\nWrite it again from the same data, fixing exactly that "
-                       "and changing nothing else.")
+        retry_sys = retry_prompt(system, first.get("reason"))
         # THE RETRY MAY KEEP A REPEATED SENTENCE (T2.5 item 4): the code check
         # after the prose withholds it in the later section, so a Read that
         # repeats one sentence is not lost whole.
@@ -587,22 +658,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             results[s["id"]] = {"state": "empty", "published": False}
             continue
         paras = DEPTH_PARAGRAPHS.get(s["depth"], "0")
-        # ONE PARAGRAPH (T2.5 item 2): a section that carries prose writes its
-        # claim line and one paragraph over ALL its tables -- the sub-sections
-        # no longer take paragraphs of their own.
-        body = (f"Then write ONE paragraph of at most "
-                f"{readability.PARAGRAPH_WORDS} words."
-                if paras != "0" else "Write ONLY that one sentence.")
-        why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
-        sys_prompt = stack_system_prompt(base) + RULES.format(
-            title=s["title"], depth=s["depth"], why=why, body=body,
-            report=cad["report"], period=cad["period"], frames=cad["frames"])
-        if not (cadence == "weekly" and s["id"] in ("positioning", "priced")):
-            sys_prompt += SECTION_NOTES.get(s["id"], "")
-        if cadence == "weekly":
-            sys_prompt += WEEKLY_NOTES.get(s["id"], "")
-        res = run(s["id"], _slice(s, ed), sys_prompt,
-                  int(MAX_CHARS.get(s["depth"], 900) * cad["chars_scale"]))
+        res = run(s["id"], _slice(s, ed), section_prompt(s, cadence, base),
+                  section_max_chars(s, cadence))
         results[s["id"]] = res
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])
@@ -628,15 +685,14 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                        for s in ed["sections"]
                        if s["id"] != "read" and not s.get("empty")],
           "levels": (tape.get("data") or {}).get("levels")}
-    read_sys = stack_system_prompt(base) + READ_RULES.format(period=cad["period"])
+    read_sys = read_prompt(cadence, base)
     if cadence == "weekly":
         # THE WEEK BY DAY (T2.2 item 3): the opening reads from The read's own
         # table, and a press attribution is the outlet's, never ours.
         rp["week_by_day"] = read.get("table")
         rp["press_attributions"] = [i["text"] for i in read["items"]
                                     if i["key"].startswith("read:attr")]
-        read_sys += WEEKLY_NOTES["read"]
-    res = run("read", rp, read_sys, cad["read_chars"])
+    res = run("read", rp, read_sys, int(cad["read_chars"]))
     results["read"] = res
     if res.get("published"):
         sents = _sentences(res["text"])

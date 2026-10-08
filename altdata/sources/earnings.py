@@ -93,7 +93,8 @@ def _iso(value: Any) -> Optional[str]:
 
 def events_for(symbol: str) -> tuple[list[ev_mod.Event], dict]:
     """One symbol: the next date with its consensus, and the reported history."""
-    import yfinance as yf
+    from altdata import import_yfinance
+    yf = import_yfinance()
     out: list[ev_mod.Event] = []
     rep: dict[str, Any] = {"symbol": symbol}
     t = yf.Ticker(symbol)

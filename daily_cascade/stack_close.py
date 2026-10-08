@@ -220,6 +220,11 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     ed["levels"] = book
     ed["outlooks"] = outs
     ed["chart_count"] = sum(1 for c in charts.values() if not c.get("unavailable"))
+    # THE DETAIL TABLES (ruled 6 Oct 2026): the state table and the contradiction
+    # table after section 10, read from the stored object the payload carries
+    # (regime.latest), never recomputed.
+    from . import state_block                                   # noqa: PLC0415
+    ed["detail"] = state_block.detail_tables(p)
     # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
     from . import readability                                   # noqa: PLC0415
     readability.polish_edition(ed, charts)

@@ -1182,6 +1182,46 @@ def group_q() -> None:
         line = feeds.format_freshness(r)
         check("fixture_family=0/3 stale:1 absent:3 pending:2" in line,
               f"the feeds line carries pending beside absent ({line[-60:]})")
+        names = feeds.named_keys(r)
+        check(f"stale fixture_family {k3} (absent): attempted, nothing written"
+              in names and any(n.startswith(f"pending fixture_family {k1}")
+                               for n in names),
+              f"named_keys names each stale and pending key with why "
+              f"({[n for n in names if 'fixture' in n]})")
+
+        # T2.6: NOT YET DUE IS PENDING; A FAILED WRITER IS STALE. With outcomes
+        # recorded, an absent key whose writer FAILED is stale with the writer's
+        # reason, and one whose writer ran cleanly is pending -- until a full
+        # allowance of clean pulls has passed since its first attempt.
+        feeds.record_attempted("fixture_family", [k1, k2, k3],
+                               failed={k3: "fixture: FetchError: HTTP 403"})
+        f2 = feeds.freshness(store=db)["feeds"]["fixture_family"]
+        check(f2["stale_keys"] == [k3]
+              and "the writer failed (fixture: FetchError: HTTP 403)"
+              in f2["stale_detail"].get(k3, ""),
+              f"a failed writer's absent key is stale, with its reason "
+              f"({f2['stale_detail']})")
+        check(set(f2["pending_keys"]) == {k1, k2}
+              and "not yet published" in f2["pending_detail"].get(k1, ""),
+              f"a clean writer's absent key is pending: not yet published "
+              f"({f2['pending_detail']})")
+        import json as _json
+        p = Path(td) / feeds.ATTEMPTED_FILE
+        d = _json.loads(p.read_text(encoding="utf-8"))
+        d["fixture_family"]["first"][k1] = "2025-01-02T00:00:00+00:00"
+        p.write_text(_json.dumps(d), encoding="utf-8")
+        f3 = feeds.freshness(store=db)["feeds"]["fixture_family"]
+        check(k1 in f3["stale_keys"]
+              and "of clean pulls" in f3["stale_detail"].get(k1, "")
+              and k2 in f3["pending_keys"],
+              f"past a full allowance of clean pulls since its first attempt, the "
+              f"key is stale ({f3['stale_detail'].get(k1)})")
+        feeds.record_attempted("fixture_family", [k3], merge=True, failed={})
+        d = _json.loads(p.read_text(encoding="utf-8"))
+        check(d["fixture_family"]["first"][k1].startswith("2025-01-02")
+              and k3 not in d["fixture_family"]["failed"],
+              "a later pull keeps each key's first attempt and clears a "
+              "failure it did not repeat")
 
         # A WRITER THAT WILL NOT IMPORT STILL ATTEMPTED, and its keys are read
         # from source -- an import failure used to drop them from the roster.
