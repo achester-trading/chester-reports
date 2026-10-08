@@ -51,7 +51,7 @@ SECOND HALF:
                 month's register entries in group order, hyperlinked title
                 lines, stored summaries verbatim (no audit, no budget cut, in the
                 reading time), list items' lines, withheld without a URL, shelf
-                voices deduped by URL, the due list, the empty month.
+                a voices URL match footnoted, the due list, the empty month.
 """
 
 from __future__ import annotations
@@ -804,8 +804,8 @@ def reading_fixture(d: Path) -> tuple[Path, Path]:
          "summary": None},
         {"id": "fx-dup", "watch_id": "fx-v", "group": "voices", "publication":
          "Scanned Letter", "publisher": "Desk", "published": "2026-09-20",
-         "url": "https://example.org/dup", "status": "listed", "line": "dup",
-         "summary": None},
+         "url": "https://example.org/dup", "status": "read", "line": None,
+         "summary": "The scanned letter's stored summary."},
         {"id": "fx-voice", "watch_id": "fx-v", "group": "voices", "publication":
          "Shelf Letter", "publisher": "Desk", "published": "2026-09-21",
          "url": "https://example.org/voice", "status": "listed", "line": "A letter.",
@@ -907,11 +907,18 @@ def reading_group(cfg: dict) -> None:
                                ["Desk", "Outlet, 20 Sep 2026, https://example.org/dup"]]}}),
                            cfg, reg, wl)
     rs = reading.stack_section(data, spec, None)
-    check([e["id"] for g in data["entries_by_group"] for e in g["entries"]
-           if g["group"] == "voices"] == ["fx-voice"]
-          and "Scanned Letter" in " ".join(rs["notes"]),
-          "a shelf voices entry the daily scan already stored (same URL) prints once, "
-          "under Narratives, and the footnote says so")
+    dup = [e for g in data["entries_by_group"] for e in g["entries"]
+           if e["id"] == "fx-dup"]
+    check(len(dup) == 1 and dup[0]["summary"] == "The scanned letter's stored summary."
+          and "Also in Narratives' voices" in " ".join(rs["notes"])
+          and "Scanned Letter" in " ".join(rs["notes"])
+          and "Also in Narratives' voices" not in " ".join(
+              reading.stack_section(reading.section(
+                  "2026-08-31T23:59:59+00:00", "2026-09-30",
+                  "2026-10-01T10:00:00+00:00", set(), cfg, reg, wl),
+                  spec, None)["notes"]),
+          "a shelf voices entry sharing a URL with a scan voice: the scan row stands, "
+          "the shelf summary still prints, and the footnote names the match")
     e2 = json.loads(json.dumps(ed))
     before = ms.edition_words(e2)
     check(before == ms.edition_words({"sections": [dict(s, subsections=[])

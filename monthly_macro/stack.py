@@ -1051,7 +1051,7 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         rdata = reading_mod.section(
             then, last, now, reading_mod.voices_urls(p.get("voices")), cfg)
     except Exception as exc:                                    # noqa: BLE001
-        rdata = {"entries_by_group": [], "due": [], "withheld": 0, "deduped": [],
+        rdata = {"entries_by_group": [], "due": [], "withheld": 0, "matched": [],
                  "fault": f"FAULT (code, not data) -- {type(exc).__name__}"}
     rsec = reading_mod.stack_section(rdata, specs.get("reading") or {}, prior)
     at = next(i for i, s in enumerate(sections) if s["id"] == "narratives") + 1

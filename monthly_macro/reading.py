@@ -27,8 +27,9 @@ where one exists -- and then:
 NO STORED SOURCE, NOT PRINTED: an entry without a URL is withheld and the
 footnote counts it. A pending entry never prints. A shelf voices entry whose URL
 the daily scan already stored -- and Narratives' voices table therefore already
-prints -- is not printed twice: it is deduped by URL and named in the footnote.
-No candidate, ruling, theme or stance prints here.
+prints -- still prints here with its summary or line: the scan's row stands in
+Narratives, and the footnote names the match (ruled 8 Oct 2026). No candidate,
+ruling, theme or stance prints here.
 
 DUE BEFORE THE NEXT MONTHLY: the watchlist's items whose expected months include
 the coming month, linked to their index pages. Irregular items are not listed.
@@ -96,7 +97,7 @@ def section(then: str, month_end: str, now: str, printed_voice_urls: set[str],
     try:
         entries, wl = load(register, watchlist)
     except (OSError, ValueError) as exc:
-        return {"entries_by_group": [], "due": [], "withheld": 0, "deduped": [],
+        return {"entries_by_group": [], "due": [], "withheld": 0, "matched": [],
                 "fault": f"the reading register could not be read "
                          f"({type(exc).__name__})"}
     groups = wl.get("groups") or {}
@@ -106,9 +107,9 @@ def section(then: str, month_end: str, now: str, printed_voice_urls: set[str],
              if e.get("status") in ("read", "listed")
              and lo < str(e.get("published") or "")[:10] <= hi]
     withheld = [e for e in month if not str(e.get("url") or "").startswith("http")]
-    deduped = [e for e in month if e not in withheld and e.get("group") == "voices"
+    shown = [e for e in month if e not in withheld]
+    matched = [e for e in shown if e.get("group") == "voices"
                and e["url"] in printed_voice_urls]
-    shown = [e for e in month if e not in withheld and e not in deduped]
     by_group = []
     for g in order:
         rows = sorted((e for e in shown if e.get("group") == g),
@@ -129,7 +130,7 @@ def section(then: str, month_end: str, now: str, printed_voice_urls: set[str],
                 "line": None if e.get("summary") else (e.get("line") or None)})
         by_group.append({"group": g, "title": groups.get(g, g), "entries": out})
     return {"entries_by_group": by_group, "due": due(wl, now), "withheld": len(withheld),
-            "deduped": [e.get("publication") or e["id"] for e in deduped]}
+            "matched": [e.get("publication") or e["id"] for e in matched]}
 
 
 def due(wl: dict, now: str) -> list[dict]:
@@ -186,9 +187,9 @@ def stack_section(data: dict, spec: dict, prior: Optional[dict]) -> dict:
         k = data["withheld"]
         notes.append(f"{k} {'entry' if k == 1 else 'entries'} withheld: no stored "
                      f"source.")
-    if data.get("deduped"):
-        notes.append("Printed once, under Narratives' voices (same URL): "
-                     + "; ".join(data["deduped"]) + ".")
+    if data.get("matched"):
+        notes.append("Also in Narratives' voices, from the daily scan (same URL): "
+                     + "; ".join(data["matched"]) + ".")
     if data.get("fault"):
         notes.append(data["fault"] + ".")
     for it in items:
