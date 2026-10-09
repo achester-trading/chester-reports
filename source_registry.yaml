@@ -1382,14 +1382,15 @@ sources:
       Last-Modified (observed), when it answers.
     license: free to view; redistribution licensed -- stored for this system's own use, never republished
     allowed_reports: [monthly_macro, daily_cascade]
-    implemented_by: altdata/sources/lbma.py
-    status: not_yet_sourced
+    implemented_by: altdata/sources/lbma.py      # parked: parser retained, not scheduled
+    status: retired
     caveats:
       - >-
-        UNREACHABLE AS OF 9 Oct 2026 (A-4). prices.lbma.org.uk/json/gold_pm.json
-        answers 403 and its robots.txt 401. FRED's GOLDPMGBD228NLBM redirects to
-        its January 2022 notice that IBA data was removed. The parser stays,
-        fixture-tested and off the writer roster (feeds.EXTERNAL_WRITERS), so a
+        RETIRED FROM THE WRITER ROSTER 9 Oct 2026 (A-4); THE PARSER IS RETAINED.
+        prices.lbma.org.uk/json/gold_pm.json answers 403 and its robots.txt 401.
+        FRED's GOLDPMGBD228NLBM redirects to its January 2022 notice that IBA data
+        was removed. altdata/sources/lbma.py stays, fixture-tested
+        (validate_official_sources group O) and off feeds.EXTERNAL_WRITERS, so a
         restored licence is a probe and not a build. lbma.gold_pm_usd is
         registered not_yet_sourced; the themes read yfinance.mkt_gold_front
         (COMEX GC=F, USD per troy ounce) under its own name, never this key.
