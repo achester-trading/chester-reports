@@ -156,7 +156,6 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 pass
             stack_prose.write(ed, market_states=ms, client=client, model=model,
                               outlooks=outs)
-        stack_mod.enforce_budget(ed)
         # THE CHARTS, from the same level list the prose was audited against.
         plan = stack_mod.chart_plan(ed, {})
         charts: dict[str, dict] = {}
@@ -228,6 +227,10 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
     from . import readability                                   # noqa: PLC0415
     readability.polish_edition(ed, charts)
+    # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
+    # formatting pass, run after it, wrote the key back -- so nothing after
+    # the budget may rewrite the edition's prose.
+    stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")

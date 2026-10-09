@@ -87,7 +87,7 @@ themes:
       - {metric: fred.fed_debt_pct_gdp, label: "Federal debt to GDP"}
       - {metric: fred.core_cpi, label: "Core CPI index"}
       - {metric: fred.core_pce, label: "Core PCE price index"}
-      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+      - {metric: yfinance.mkt_gold_front, label: "Gold, COMEX front-month future (GC=F)"}
     untracked:
       - Treasury quarterly refunding announcements
       - foreign central bank gold purchases by country beyond China
@@ -204,7 +204,7 @@ themes:
     stories: [midterm_cycle]
     release_sources: []
     metrics:
-      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+      - {metric: yfinance.mkt_gold_front, label: "Gold, COMEX front-month future (GC=F)"}
       - {metric: fred.wti, label: "WTI crude"}
       - {metric: fred.brent, label: "Brent crude"}
       - {metric: safe.fx_reserves, label: "China's foreign-exchange reserves (SAFE)"}

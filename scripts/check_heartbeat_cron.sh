@@ -56,6 +56,14 @@
 #                       does not ship -- which is how the box ran a stale
 #                       ibgateway.service for a week while the gate stayed
 #                       green. A pipeline verdict always wins over this one.
+#  14 restart pending -> the pipeline is healthy, installed units match, AND a
+#                       deploy (the box's self-deploy, chester-deploy.timer, or
+#                       the laptop's) installed a changed unit that was running
+#                       and has not been restarted since: it still runs the old
+#                       file. Read live from $ALERT_DIR/restart_pending. No
+#                       deploy restarts a unit; the operator does, and the next
+#                       check clears. Ranked just below drift, which it is a
+#                       kind of. A-4, 9 Oct 2026.
 #  10 no state object -> the pipeline is healthy AND the most recently completed
 #                       session has no market-state object. The close pass is the
 #                       only writer of it (audit §K: one object, every report
@@ -495,6 +503,31 @@ if [[ "$STATE" == "ok" ]] && [[ "$DRIFT_STATE" == "drifted" ]]; then
     HEADLINE="DRIFT installed units differ from the repo: $DRIFT_NAMES"
 fi
 
+# ---- a restart the deploy left to the operator (A-4) -----------------------
+#
+# The box's self-deploy (chester-deploy.timer) copies a changed unit and never
+# restarts it. When the unit was RUNNING it is still on the old file, so the copy
+# writes "restart pending: <unit>" to $ALERT_DIR/restart_pending, and this names
+# it until the operator restarts it. The ledger is read LIVE through
+# scripts/restart_pending.sh list -- a unit restarted (or stopped) since the copy
+# is resolved whatever the file still says -- and only read: the deploy prunes.
+#
+# Ranked just below drift, on drift's argument: the box is running something other
+# than what is installed, which is drift that no byte comparison can see.
+RESTART_PENDING=""
+if [[ -n "${CHESTER_SKIP_UNIT_CHECK:-}" ]]; then
+    :
+elif [[ -f "$ALERT_DIR/restart_pending" ]] && [[ -f "$REPO/scripts/restart_pending.sh" ]]; then
+    RESTART_PENDING="$(bash "$REPO/scripts/restart_pending.sh" "$STATE_DIR" list 2>/dev/null \
+        | paste -sd, -)"
+    [[ -n "$RESTART_PENDING" ]] && log "  restart pending: $RESTART_PENDING (copied by a deploy while running; the operator restarts)"
+fi
+if [[ "$STATE" == "ok" ]] && [[ -n "$RESTART_PENDING" ]]; then
+    STATE=restart_pending
+    RC=14
+    HEADLINE="RESTART PENDING a deploy installed a changed unit that is still running the old one: $RESTART_PENDING -- the operator runs: systemctl --user restart ${RESTART_PENDING//,/ }"
+fi
+
 # ---- the market-state object ----------------------------------------------
 #
 # ON A SESSION DAY, THE LAST COMPLETED SESSION MUST HAVE AN OBJECT. The close pass
@@ -890,15 +923,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -933,6 +966,7 @@ python_json() {
     printf '  "unit_drift_since": %s,\n' \
         "$([[ -z "$DRIFT_SINCE" ]] && echo null || printf '"%s"' "$DRIFT_SINCE")"
     printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
+    printf '  "restart_pending": "%s",\n' "$RESTART_PENDING"
     printf '  "backup": "%s",\n' "$BACKUP_STATE"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
@@ -964,6 +998,7 @@ heartbeat state   : $STATE (checker exit $RC)
 last clean run    : $HB_AT (${AGE_H}h ago)
 unhealthy since   : ${UNHEALTHY_SINCE:-n/a}
 unit drift        : ${DRIFT_STATE}${DRIFT_SINCE:+ since $DRIFT_SINCE (${DRIFT_DAYS:-0} day(s))}
+restart pending   : ${RESTART_PENDING:-none}
 
 --- checker output ---
 $OUT"

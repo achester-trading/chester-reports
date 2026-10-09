@@ -123,8 +123,12 @@ EARLY_WRITERS = ("mof", "cfets")
 # issuer. A separate group so the freshness roster reports them separately: a
 # stale Ken French file is not the same news as a stale TIC release. Same step,
 # same pass, same entry point; no second unit.
+# LBMA left on 9 Oct 2026 (A-4): prices.lbma.org.uk answers 403 and its
+# robots.txt 401, and FRED dropped the IBA gold series in January 2022. Its
+# parser stays, unscheduled; the themes read the COMEX front future
+# (yfinance.mkt_gold_front) under its own name.
 EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
-                    "lbma", "finra", "proshares",
+                    "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge

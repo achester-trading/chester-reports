@@ -874,8 +874,14 @@ cat >"$FAKESYS/systemctl" <<'STUB'
 #!/usr/bin/env bash
 [[ "$1" == "--user" ]] && shift
 case "$1" in
+    # A-4: the restart-pending ledger asks whether a unit is active and when it
+    # last became so; FAKE_ACTIVE names the active units, FAKE_ENTER the instant.
+    is-active)
+        u="${*: -1}"
+        [[ ",${FAKE_ACTIVE:-}," == *",$u,"* ]] ;;
     show)
         [[ -n "${FAKE_NO_BUS:-}" ]] && { echo "Failed to connect to bus" >&2; exit 1; }
+        if [[ "$*" == *ActiveEnterTimestamp* ]]; then echo "${FAKE_ENTER:-}"; exit 0; fi
         unit="$2"; res=""
         IFS=, read -ra pairs <<< "${FAKE_FAILED:-}"
         for p in "${pairs[@]}"; do [[ "${p%%=*}" == "$unit" ]] && res="${p#*=}"; done
@@ -949,6 +955,74 @@ if [[ "$(units_of)" == "skipped" ]] && [[ "$(state_of)" == "ok" ]]; then
     ok "CHESTER_SKIP_UNIT_CHECK records units=skipped rather than ok"
 else
     bad "skip switch -> units=$(units_of) state=$(state_of)"
+fi
+
+printf '\n%s\nA restart the deploy left to the operator (A-4, 9 Oct 2026)\n%s\n' "$LINE" "$LINE"
+
+# The self-deploy copies a changed unit and never restarts it; a unit that was
+# running is written to alerts/restart_pending, and the verdict names it until
+# the unit has been restarted (or stopped) since the copy -- read live, so the
+# file saying so is not enough.
+restart_of() { sed -n 's/.* restart_pending=\([^ ]*\).*/\1/p' "$STATUS"; }
+PENDING="$STATE_DIR/alerts/restart_pending"
+mkdir -p "$STATE_DIR/alerts"
+COPIED=$(( $(date +%s) - 3600 ))
+BEFORE="$(date -d "@$((COPIED - 86400))" --iso-8601=seconds)"
+AFTER="$(date -d "@$((COPIED + 60))" --iso-8601=seconds)"
+printf 'restart pending: chester-eod.timer copied_at=%s (x) commit=abc1234\n' "$COPIED" >"$PENDING"
+
+run_units 0 FAKE_ACTIVE="chester-eod.timer" FAKE_ENTER="$BEFORE"
+if [[ "$(state_of)" == "restart_pending" ]] && [[ "$RC" == "14" ]] \
+        && [[ "$(restart_of)" == "chester-eod.timer" ]] \
+        && grep -q 'RESTART PENDING .*chester-eod.timer' "$ALERT" \
+        && grep -q '"restart_pending": "chester-eod.timer"' "$ALERT" \
+        && grep -q 'verdict=restart_pending rc=14 .*restart_pending=chester-eod.timer' $LOG_GLOB; then
+    ok "a unit copied while running and not restarted since -> restart_pending, exit 14, named in the status, the alert and the log line"
+else
+    bad "pending restart -> state=$(state_of) exit=$RC restart=$(restart_of)"
+fi
+
+run_units 0 FAKE_ACTIVE="chester-eod.timer" FAKE_ENTER="$AFTER"
+if [[ "$(state_of)" == "ok" ]] && [[ "$(restart_of)" == "none" ]] && [[ -f "$PENDING" ]]; then
+    ok "restarted after the copy -> resolved, verdict ok -- and the heartbeat leaves the ledger alone (the deploy prunes)"
+else
+    bad "restarted unit -> state=$(state_of) restart=$(restart_of) ledger=$([[ -f "$PENDING" ]] && echo kept || echo gone)"
+fi
+
+run_units 0 FAKE_ENTER="$BEFORE"
+if [[ "$(state_of)" == "ok" ]] && [[ "$(restart_of)" == "none" ]]; then
+    ok "a unit no longer active is resolved -- its next start loads the new file"
+else
+    bad "inactive unit -> state=$(state_of) restart=$(restart_of)"
+fi
+
+run_units 0 FAKE_ACTIVE="chester-eod.timer"
+if [[ "$(state_of)" == "restart_pending" ]]; then
+    ok "an unreadable ActiveEnterTimestamp keeps it pending -- an unanswerable question is not a resolution"
+else
+    bad "no timestamp -> state=$(state_of)"
+fi
+
+run_units 1 FAKE_ACTIVE="chester-eod.timer" FAKE_ENTER="$BEFORE"
+if [[ "$(state_of)" == "stale" ]] && [[ "$(restart_of)" == "chester-eod.timer" ]]; then
+    ok "a pipeline verdict still wins (stale), and the pending restart is still recorded in restart_pending="
+else
+    bad "pipeline-wins case -> state=$(state_of) restart=$(restart_of)"
+fi
+
+run_units 0 FAKE_ACTIVE="chester-eod.timer" FAKE_ENTER="$BEFORE" FAKE_FAILED="chester-overnight.service=timeout"
+if [[ "$(state_of)" == "unit_failed" ]] && [[ "$(restart_of)" == "chester-eod.timer" ]]; then
+    ok "a failed unit outranks a pending restart, which stays named"
+else
+    bad "failed-and-pending -> state=$(state_of) restart=$(restart_of)"
+fi
+rm -f "$PENDING"
+
+run_units 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$(restart_of)" == "none" ]]; then
+    ok "no ledger -> restart_pending=none, verdict ok"
+else
+    bad "no ledger -> state=$(state_of) restart=$(restart_of)"
 fi
 
 printf '\n%s\nA report built but not delivered (M-1, 1 Oct 2026)\n%s\n' "$LINE" "$LINE"

@@ -210,7 +210,7 @@ def main() -> int:
         long_ = [s["id"] for s in ed["sections"]
                  if len(s.get("paragraphs") or []) > 1
                  or any(len(p.split()) > rd.PARAGRAPH_WORDS for p in s["paragraphs"])
-                 or any(ss.get("paragraph") for ss in s.get("subsections") or [])]
+                 or any("paragraph" in ss for ss in s.get("subsections") or [])]
         check(not long_, f"{name}: one paragraph per section, at most "
                          f"{rd.PARAGRAPH_WORDS} words, none under a sub-section "
                          f"({long_})")
@@ -223,6 +223,38 @@ def main() -> int:
           and tp["trimmed"] and "paragraph" not in tp["subsections"][0],
           f"the guard keeps one paragraph, cut at a sentence to 120 words "
           f"({len(tp['paragraphs'][0].split())} words)")
+    # THE GUARD IS THE LAST STEP (A-4). The formatting pass rewrites every
+    # sub-section's `paragraph` with ss[k] = P(ss.get(k)), so run after the
+    # guard it wrote back the key the guard had popped.
+    def fresh() -> dict:
+        return {"session": "2026-10-01", "sections": [{"id": "tape", "paragraphs": [
+            "One paragraph."], "subsections": [{"paragraph": "x", "title": "t"}]}]}
+    late = fresh()
+    rd.polish_edition(late)
+    rd.finalize(late)
+    early = fresh()
+    rd.finalize(early)
+    rd.polish_edition(early)
+    check("paragraph" not in late["sections"][0]["subsections"][0]
+          and "paragraph" in early["sections"][0]["subsections"][0],
+          "polish then guard leaves no sub-section paragraph; guard then polish "
+          "writes the popped key back (the check fires)")
+    import inspect
+    from daily_cascade import stack_close
+    from monthly_macro import stack as mstack
+    order = {}
+    for name, fn, pol, guard in (
+            ("close", stack_close.produce, "readability.polish_edition(ed",
+             "stack_mod.enforce_budget(ed"),
+            ("Weekly", ws.produce, "readability.polish_edition(ed",
+             "stack_mod.enforce_budget(ed"),
+            ("Monthly", mstack.produce, "    polish(ed", "    enforce_budget(ed")):
+        src = inspect.getsource(fn)
+        order[name] = (src.count(guard) == 1 and src.count(pol) == 1
+                       and src.index(pol) < src.index(guard))
+    check(all(order.values()),
+          f"each producer runs the formatting pass once and the guard once, the "
+          f"guard after it ({order})")
     sec_calls = [c for c in wcalls if "THE SECTION:" in c]
     check(sec_calls and all("ONE paragraph" in c or "ONLY that one sentence" in c
                             for c in sec_calls)

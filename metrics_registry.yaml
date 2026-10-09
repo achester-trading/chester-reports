@@ -445,8 +445,8 @@ vocabularies:
     # histories that restate themselves by edition, used as yardsticks and
     # calibration inputs. One cluster; none is a live market witness.
     - reference_library
-    # COMMODITY PRICES (ST-2). The World Bank indices and the LBMA gold
-    # benchmark.
+    # COMMODITY PRICES (ST-2). The World Bank indices; the LBMA gold
+    # benchmark is declared and not sourced (A-4, 9 Oct 2026).
     - commodity_prices
     # LEVERAGE (ST-2). Margin debt and leveraged-ETF assets: how much of
     # the book is borrowed or daily-rebalanced (SR-8). One cluster.
@@ -5038,6 +5038,7 @@ metrics:
     mechanism_group: commodity_prices
     native_horizon: daily
     freq: daily
+    status_extra: not_yet_sourced
     information_half_life: until_next_release
     invalidated_by: none
     observation_type: observed
@@ -5045,7 +5046,7 @@ metrics:
     units: price
     trigger_eligible: false
     description: >-
-      LBMA Gold Price PM, USD per troy ounce.
+      NOT AVAILABLE. LBMA Gold Price PM, USD per troy ounce. prices.lbma.org.uk answers 403 (robots.txt 401) and FRED removed the IBA gold series in January 2022; declared, never written. The Monthly's themes read yfinance.mkt_gold_front, the COMEX front-month future (GC=F), USD per troy ounce, under its own name.
 
   # -------------------------------------------------------------------------
   # LEVERAGE (ST-2). DOLLARS.

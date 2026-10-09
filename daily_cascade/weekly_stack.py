@@ -1273,7 +1273,6 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],
                           cadence="weekly")
-    stack_mod.enforce_budget(ed, "weekly")
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir
@@ -1345,6 +1344,10 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
     from . import readability                                   # noqa: PLC0415
     readability.polish_edition(ed, charts)
+    # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
+    # formatting pass, run after it, wrote the key back -- so nothing after
+    # the budget may rewrite the edition's prose.
+    stack_mod.enforce_budget(ed, "weekly")
     ed["run_id"] = p.get("run_id")
     ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
                           if archive_dir else None)
