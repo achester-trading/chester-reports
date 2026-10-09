@@ -55,6 +55,7 @@ chester-weekly.timer
 chester-voices.timer
 chester-auction.timer
 chester-deploy.timer
+chester-monthly.timer
 "
 
 deploy_main() {
