@@ -1252,7 +1252,7 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
             model: Optional[str] = None, narrative: bool = True,
             db_path: Optional[str] = None, write=None,
             prior_dir: Optional[str] = None) -> dict:
-    """Build, write, budget, polish and render the stacked Monthly. Archives
+    """Build, write, polish, budget and render the stacked Monthly. Archives
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
     its own, which logs and records the prose on the payload)."""
@@ -1280,8 +1280,11 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
         log.exception("the Monthly's charts faulted; the edition prints none")
         charts = {}
     ed["levels"] = book
-    enforce_budget(ed)
     polish(ed, charts)
+    # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
+    # formatting pass, run after it, wrote the key back -- so nothing after
+    # the budget may rewrite the edition's prose.
+    enforce_budget(ed)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
     return {"edition": public(ed), "written": written, "charts": charts,

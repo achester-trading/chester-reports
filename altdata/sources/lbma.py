@@ -7,6 +7,11 @@ Signal-triage order ST-2 (SR-15 gold valuation, SR-24): gold in dollars, daily,
 from the benchmark administrator rather than an ETF (GLD is on the price pass for
 the tradable proxy).
 
+OFF THE ROSTER since 9 Oct 2026 (A-4): the JSON answers 403 and robots.txt 401,
+so feeds.EXTERNAL_WRITERS no longer names this module and nothing runs it. The
+parser stays, fixture-tested, so a restored licence is a probe and not a build.
+The Monthly's themes read yfinance.mkt_gold_front (COMEX GC=F) instead.
+
 SOURCE. https://prices.lbma.org.uk/json/gold_pm.json -- no key. One record per
 auction day since 1968-04-01: {"d": date, "v": [USD, GBP, EUR]}; the USD leg is
 stored. Sends Last-Modified.

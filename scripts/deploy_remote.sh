@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
-# THE BOX-SIDE HALF OF THE DEPLOY. Not run by hand: scripts/deploy.sh ships this
-# file over ONE ssh connection --
+# THE BOX-SIDE HALF OF THE DEPLOY. Not run by hand. It has two callers:
+# scripts/deploy.sh ships this file over ONE ssh connection --
 #
 #     ssh -o BatchMode=yes vps 'bash -s -- <repo> <unit_dir> <state_dir>' < scripts/deploy_remote.sh
 #
-# -- and it runs steps 1-6 on the box in that one session.
+# -- and it runs steps 1-6 on the box in that one session; and the box's own
+# self-deploy (scripts/run_self_deploy.sh, chester-deploy.timer, A-4) runs the
+# same file from the checkout when main's deploy/systemd/ has changed.
 #
 # WHY ONE CONNECTION. Until 28 Sep 2026 the deploy opened a new ssh session per
 # step and two per timer in step 4 -- about fifteen connections in under a minute
@@ -52,6 +54,8 @@ chester-morning-anchor.timer
 chester-weekly.timer
 chester-voices.timer
 chester-auction.timer
+chester-deploy.timer
+chester-monthly.timer
 "
 
 deploy_main() {
@@ -79,6 +83,18 @@ deploy_main() {
         [ "$was_active" = yes ] && need="$need $u"
     done
     echo "   (nothing copied = every unit already matched the repo)"
+    # THE LEDGER (A-4): a changed unit left RUNNING is written to
+    # $STATE_DIR/alerts/restart_pending, and the heartbeat names it until the
+    # operator restarts it. Resolved lines are pruned first. Recorded, never acted
+    # on: the restart stays the operator's.
+    if [ -f ./scripts/restart_pending.sh ]; then
+        bash ./scripts/restart_pending.sh "$STATE_DIR" prune
+        if [ -n "$need" ]; then
+            # shellcheck disable=SC2086  # $need is a space-separated unit list
+            bash ./scripts/restart_pending.sh "$STATE_DIR" record $need \
+                && echo "   restart pending, recorded in $STATE_DIR/alerts/restart_pending:$need"
+        fi
+    fi
     echo
 
     echo "-- 3. daemon-reload"

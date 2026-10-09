@@ -926,7 +926,9 @@ def group_n() -> None:
 
 
 NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "wgc.cb_gold_holdings_t",
-                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity"]
+                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity",
+                         # A-4 (9 Oct 2026): LBMA answers 403; off the roster
+                         "lbma.gold_pm_usd"]
 
 
 def group_o() -> None:
@@ -1061,8 +1063,9 @@ def group_o() -> None:
           == derived.FREQ_SESSIONS["annual"],
           "an annual table gets the annual staleness allowance, not the monthly")
     check("external" in feeds.FEEDS and set(feeds.EXTERNAL_WRITERS) >= {
-        "umich", "french", "damodaran", "shiller", "worldbank", "lbma", "finra",
-        "proshares"}, "the external writers run as the `external` feed")
+        "umich", "french", "damodaran", "shiller", "worldbank", "finra",
+        "proshares"} and "lbma" not in feeds.EXTERNAL_WRITERS,
+          "the external writers run as the `external` feed; LBMA (403) is not one")
 
 
 def group_p() -> None:

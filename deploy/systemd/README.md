@@ -411,8 +411,9 @@ heartbeat is exactly the alarm wanted.
 ### Exit codes
 
 `0` healthy · `1` stale · `2` no heartbeat ever · `3` last run failed · `8`
-healthy but installed units have drifted from the repo · `9` the check itself
-could not run. That last one is deliberately outside the
+healthy but installed units have drifted from the repo · `14` healthy but a
+deploy installed a changed unit that is still running the old file (restart
+pending, section 12) · `9` the check itself could not run. That last one is deliberately outside the
 checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 
@@ -838,6 +839,47 @@ ssh vps 'm=~/chester-data/.migrated; echo "new store, files written since migrat
 Healthy is **a positive first count and a zero second count**; the third stays
 at its pre-migration value (the old untracked copies remain until you remove
 them — by hand, once you are satisfied; nothing here deletes them).
+
+## 12. The self-deploy (A-4, 9 Oct 2026)
+
+A push to main reaches the box's **code** at the next timer run, because every
+wrapper pulls first. Unit files used to wait for somebody to run
+`scripts/deploy.sh` from the laptop. `chester-deploy.timer` closes that gap:
+
+- **When.** Every 30 minutes, inside the operating windows only: weekdays
+  09:05–15:35 and 17:20–23:20 ET (firings), weekends on the half hour except
+  Sunday 04:00–06:59 around the 05:00 Weekly. `Persistent=false`, so a missed
+  tick is never caught up at boot. `scripts/run_self_deploy.sh` checks the
+  window again in ET before it touches anything.
+- **What.** `git pull --ff-only`; then, only when `git rev-parse
+  HEAD:deploy/systemd` differs from `~/state/self_deploy_last_tree`, the box
+  half of the deploy, `scripts/deploy_remote.sh`: unit copy, `daemon-reload`,
+  `enable --now` of any `DEPLOY_TIMERS` entry not yet enabled, the drift check
+  and the heartbeat. The log is `~/logs/self_deploy-YYYY-MM.log`, and the last
+  outcome is in `~/state/self_deploy_status`.
+- **What it never does.** It never restarts, stops, disables, kills or masks a
+  unit. A changed unit that was **running** keeps the old file until it is
+  restarted, so the copy writes it to `~/state/alerts/restart_pending`:
+
+  ```
+  restart pending: chester-eod.timer copied_at=1791522132 (2026-10-09T10:05:12-04:00) commit=abc1234
+  ```
+
+  The heartbeat reads that ledger live and names the unit in its verdict
+  (`restart_pending=<units>`, exit 14 on an otherwise healthy box) until you
+  restart it:
+
+  ```bash
+  systemctl --user restart <unit>
+  ```
+
+  A line is resolved, and pruned at the next deploy, once the unit has become
+  active since the copy or is no longer active. The laptop deploy writes the
+  same ledger.
+
+**Install, once.** The first laptop deploy after the merge copies both units
+and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
+box keeps its own unit files current.
 
 ## Timezone note
 
