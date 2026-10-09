@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="3844804c7e0d744acd57458d4c0fcf8f5ee67c3a792d07d49702123e03041dac">
+<meta name="source-sha256" content="d0e3e75cf2173af0da223576558c448e9786d8fdc325d0f93a80f70d4c1e85ba">
 <title>THE DAILY CASCADE — WHITE PAPER</title>
 <style>
 :root {
@@ -131,7 +131,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>THE DAILY CASCADE — WHITE PAPER</h1>
 <h3>A Field Guide to the Analytical Sections, and the Architecture That Generates Them</h3>
-<p><strong>Companion XII · Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Supersedes v1.0 (August 30, 2026)</strong></p>
+<p><strong>Companion XII · Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Part 0 status note added October 9, 2026 · Supersedes v1.0 (August 30, 2026)</strong></p>
 <p><em>Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.</em></p>
   </div>
 
@@ -165,6 +165,60 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <hr />
 <h2>PART 0 — THE V2 ARCHITECTURE</h2>
 <p><em>Read this part first. Everything in Parts I–VI describes content; this part describes when the content is produced, what triggers it, what it reads from, and what happens to it afterward.</em></p>
+<blockquote>
+<p><strong>As built, 9 October 2026 — what runs, and what is plan.</strong> Part 0 was written on 6 September as the v2 design, in the present tense. As of 9 October 2026 three of its slots run and the rest are <strong>plan</strong>: specified, scheduled behind the intraday captures, and not built. Where a passage below describes a plan item, it is marked <em>[plan, 9 Oct 2026]</em>. The Reporting System paper, Part VIII, gives the intraday layer's status and its ruled limits.</p>
+<table>
+<thead>
+<tr>
+<th>Part 0 describes</th>
+<th>As of 9 October 2026</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The 07:00 anchor</td>
+<td><strong>Runs</strong>, weekdays. It reads the prior session's market-state object without recomputing it and opens on a What changed block, with the overnight block, the session's events and the news and narrative scan behind the numeral audit</td>
+</tr>
+<tr>
+<td>The 16:45 anchor</td>
+<td><strong>Runs</strong>, weekdays, as the stacked close described below</td>
+</tr>
+<tr>
+<td>The Sunday 05:00 anchor</td>
+<td><strong>Runs</strong>, as the stacked Weekly</td>
+</tr>
+<tr>
+<td>The 09:15, 10:30, 15:00 and 21:45 conditionals, the Sunday 21:45 conditional and the 12:30 alert</td>
+<td><strong>Plan.</strong> No unit schedules them</td>
+</tr>
+<tr>
+<td>The 09:45 and 12:30 chain captures</td>
+<td><strong>Plan.</strong> The exposure engine captures once a session, at 16:10</td>
+</tr>
+<tr>
+<td>"Sixteen dimensions" in the state object</td>
+<td><strong>Plan.</strong> The object has eight dimensions (v1), three dials and an eight-row contradiction table</td>
+</tr>
+<tr>
+<td>The state object "recomputed by the EOD pass"</td>
+<td>The <strong>16:45 close</strong> is the object's only writer; the 16:10 pass pulls the data it reads</td>
+</tr>
+<tr>
+<td>§22–§23 setups drafted into the register, and the shadow grader that scores them</td>
+<td><strong>Plan.</strong> No setup is drafted into the register. The grader grades every recorded decision, taken, declined and draft, from stored prices; the ledger resolves the reports' stored outlooks</td>
+</tr>
+<tr>
+<td>"There are no word counts" (0.5)</td>
+<td><strong>Superseded</strong> on 2 October 2026: each stacked report has a ruled prose budget and chart cap</td>
+</tr>
+<tr>
+<td>Prose waiting on the numeral audit (0.6)</td>
+<td><strong>Done.</strong> The audit and the checks built beside it exist, and the close ships prose behind them</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The stacked close, as it runs.</strong> At 16:45 ET each weekday the close re-pulls the session's prices, computes and stores the market-state object, writes the session's base-rate outlooks to the probability ledger before printing them, and stores the session's dealer scorecard row. It then prints the ten sections of the reporting stack at daily depth: the read, the tape, mechanics, what doesn't fit, plumbing and rates, positioning and flows, what's priced, narratives, ahead and the book. Each section opens on a claim line; change marks compare it with yesterday's close; an unchanged section collapses to one line; the prose sits inside a ruled word budget with up to three charts, every paragraph behind the audits and a withheld section given one retry. It does not open on the What changed block. The state and contradiction tables print at the end, after the book and before the glossary, read from the stored object. It archives the edition, emails it and reports its health to the dashboard. The chapters of Parts I–VI remain the reference for what each of its numbers means.</p>
+</blockquote>
 <h3>0.1 The cadence — three anchors, six conditionals, one alert</h3>
 <table>
 <thead>
@@ -182,13 +236,13 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td><strong>07:00</strong></td>
 <td>Anchor</td>
 <td>Always</td>
-<td>Overnight complete (Tokyo closed 02:00, Europe four hours in, futures); the regime stamp from the state object; <strong>the news and narrative scan</strong> (0.4); every Tier 1–5 section; setups drafted into the register</td>
+<td>Overnight complete (Tokyo closed 02:00, Europe four hours in, futures); the regime stamp from the state object; <strong>the news and narrative scan</strong> (0.4); every Tier 1–5 section; setups drafted into the register <em>[plan, 9 Oct 2026]</em></td>
 <td>—</td>
 <td>0700</td>
 </tr>
 <tr>
 <td>09:15</td>
-<td>Conditional</td>
+<td>Conditional <em>[plan, 9 Oct 2026]</em></td>
 <td>A tier-1/2 release at 08:30; futures past threshold since 07:00; a dial change</td>
 <td>45 minutes of reaction to the 08:30 releases; the SPX global-hours options tape, which closes at 09:15</td>
 <td>16:45</td>
@@ -196,7 +250,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>10:30</td>
-<td>Conditional</td>
+<td>Conditional <em>[plan, 9 Oct 2026]</em></td>
 <td>A move past threshold; a 10:00 release; gamma sign differs from the EOD read</td>
 <td>The opening range complete; live 0DTE gamma from the 09:45 capture; the first-hour internals (Chapter 6's §3 read, now measured at 60 minutes rather than 30); the thesis grade against the 07:00 anchor</td>
 <td>16:45</td>
@@ -204,7 +258,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>12:30</td>
-<td><strong>Alert only</strong></td>
+<td><strong>Alert only</strong> <em>[plan, 9 Oct 2026]</em></td>
 <td>Gamma sign flips, or a 1% move since 10:30</td>
 <td>The midday chain capture runs for data; it publishes nothing unless the gate opens</td>
 <td>16:45</td>
@@ -212,7 +266,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>15:00</td>
-<td>Conditional</td>
+<td>Conditional <em>[plan, 9 Oct 2026]</em></td>
 <td>A move past threshold since 10:30; a VIX change; a 14:00 event; a live pin setup</td>
 <td><strong>The predictable last-hour flows, computed before they happen</strong> — the leveraged-ETF rebalance from the day's return, the vol-control exposure change, the pin distance; the FOMC reaction on Fed days; the trade-into-the-close read</td>
 <td>16:45</td>
@@ -222,13 +276,13 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td><strong>16:45</strong></td>
 <td>Anchor</td>
 <td>Always</td>
-<td>Cash close, MOC outcome, ES settlement, the first fifteen minutes of after-hours earnings reactions, post-close futures drift; the final candle and the day's grade; <strong>the recap of every conditional</strong></td>
+<td>Cash close, MOC outcome, ES settlement, the first fifteen minutes of after-hours earnings reactions, post-close futures drift; the final candle and the day's grade; <strong>the recap of every conditional</strong> <em>[the recap is plan, 9 Oct 2026; the close runs as the stacked close above]</em></td>
 <td>07:00 next day</td>
 <td>1630</td>
 </tr>
 <tr>
 <td>21:45</td>
-<td>Conditional</td>
+<td>Conditional <em>[plan, 9 Oct 2026]</em></td>
 <td>Futures, USD/JPY, the Nikkei, or a Chinese release past threshold</td>
 <td>ES reopen (18:00) with nearly four hours traded; Tokyo open; Shanghai/HK open at 21:30; Chinese data; USD/JPY and JGBs for the yen monitor</td>
 <td>07:00</td>
@@ -244,7 +298,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>Sunday 21:45</td>
-<td>Conditional</td>
+<td>Conditional <em>[plan, 9 Oct 2026]</em></td>
 <td>As 21:45</td>
 <td>ES reopen, Asia open, weekend policy announcements and the first reaction</td>
 <td>Monday 07:00</td>
@@ -257,7 +311,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h3>0.2 What every slot reads — and the rule that no slot computes</h3>
 <p>Every figure a slot prints is read from one of three places, with provenance attached:</p>
 <ul>
-<li><strong>The market-state object</strong> — the three dials, the sixteen dimensions with state / direction / rate of change / percentile / confidence / horizon / supporting and contradicting signals, the contradiction table, the exceptions — recomputed by the EOD pass and versioned.</li>
+<li><strong>The market-state object</strong> — the three dials, the sixteen dimensions <em>[plan, 9 Oct 2026: v1 has eight]</em> with state / direction / rate of change / percentile / confidence / horizon / supporting and contradicting signals, the contradiction table, the exceptions — computed by the 16:45 close, its only writer, and versioned.</li>
 <li><strong>The register</strong> — open decisions, drafts, grades.</li>
 <li><strong>The store</strong> — observations as-of the slot's timestamp, stored events, the narrative register.</li>
 </ul>
@@ -296,9 +350,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>3 — Analytical core</td>
 <td>§06–§12</td>
 <td>Full</td>
-<td>Deltas at 09:15 / 10:30 / 15:00; 12:30 alert</td>
+<td>Deltas at 09:15 / 10:30 / 15:00; 12:30 alert <em>[plan, 9 Oct 2026]</em></td>
 <td>Final read + recap</td>
-<td>Exposure engine captures (16:10, 09:45, 12:30); state object; PM engine when built</td>
+<td>Exposure engine captures (16:10; 09:45 and 12:30 <em>[plan, 9 Oct 2026]</em>); state object; PM engine when built</td>
 </tr>
 <tr>
 <td>4 — Slow backdrop</td>
@@ -311,7 +365,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>5 — Trajectory and execution</td>
 <td>§18–§23</td>
-<td>§22–§23 as <strong>drafted packets</strong></td>
+<td>§22–§23 as <strong>drafted packets</strong> <em>[plan, 9 Oct 2026]</em></td>
 <td>15:00's last-hour read</td>
 <td>§18–§19 session trajectory; the grade</td>
 <td>Register (drafts); exposure engine; store</td>
@@ -326,7 +380,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p>Two consequences for reading. <strong>Levels no longer appear in the morning anchor for any metric whose half-life exceeds a day</strong> — the change, the percentile, and the extreme flag do. And <strong>§22–§23 are no longer prose.</strong> Each setup is a packet in the register with <code>status: draft</code>, the four questions of <em>Options as Expression</em> answered (how far, by when, what implied volatility says, worst case), the expression named with its vertical numbers where applicable, the mechanism groups it cites (voted once, per Chapter 21), and its <code>base_rate_cited</code>.</p>
+<p>Two consequences for reading. <strong>Levels no longer appear in the morning anchor for any metric whose half-life exceeds a day</strong> — the change, the percentile, and the extreme flag do. And <strong>§22–§23 are no longer prose</strong> <em>[plan, 9 Oct 2026: no setup is yet drafted into the register]</em>. Each setup is a packet in the register with <code>status: draft</code>, the four questions of <em>Options as Expression</em> answered (how far, by when, what implied volatility says, worst case), the expression named with its vertical numbers where applicable, the mechanism groups it cites (voted once, per Chapter 21), and its <code>base_rate_cited</code>.</p>
 <h3>0.4 The news and narrative scan — a first-class block</h3>
 <p>v1 treated Tier 1 as contamination to be fenced. v2 keeps the fence — Tier 1 never votes — and elevates the scan itself, because markets trade stories and a system that reads only numbers is blind to the variable that moves positioning before the numbers confirm it. The rule is <em>narrative with the same discipline as signals</em>:</p>
 <ul>
@@ -335,7 +389,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><strong>The block's content:</strong> which stories gained or lost force overnight; which are consensus and which contested; where the market's story and the data disagree — Chapter 21's cross-cluster divergences read as narrative; what would change each. This is the block where the reasoning model earns its cost — synthesis, hypothesis, anomaly explanation — and it runs as long as the analysis warrants.</li>
 </ul>
 <h3>0.5 Length</h3>
-<p>There are no word counts. The budget for <em>repetition</em> is zero — a metric is not reprinted when only its change matters — and the budget for <em>insight</em> is whatever the insight needs. The 07:00 narrative block and the Sunday reflection run long when warranted. The discipline that replaces a count: <strong>the first screen answers "what changed and does it matter"; the depth follows.</strong> Conditionals and the close anchor are terse because they are deltas; a long conditional is a failed exception gate.</p>
+<p><em>[Superseded 2 October 2026: each stacked report now has a ruled prose budget and chart cap, and the close's is the smallest.]</em> There are no word counts. The budget for <em>repetition</em> is zero — a metric is not reprinted when only its change matters — and the budget for <em>insight</em> is whatever the insight needs. The 07:00 narrative block and the Sunday reflection run long when warranted. The discipline that replaces a count: <strong>the first screen answers "what changed and does it matter"; the depth follows.</strong> Conditionals and the close anchor are terse because they are deltas; a long conditional is a failed exception gate.</p>
 <h3>0.6 Generation — payload, prose, audit</h3>
 <p>Every slot is produced in three stages, and the middle one is mandatory:</p>
 <ol>
@@ -343,9 +397,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><strong>Prose</strong> — the reasoning model, over the payload only, model pinned per slot, model version recorded on the artifact.</li>
 <li><strong>Numeral audit</strong> — every number in the prose matched to a number in the payload; a mismatch fails the slot to its data-only edition.</li>
 </ol>
-<p>No slot ships prose until the numeral audit exists. Until then the close anchor ships as the data-only edition — the D4c pattern — and the CI check that fails the build on any narrative import in the data-only path stays in force. <strong>A Daily that can invent a number is worse than no Daily.</strong></p>
+<p>No slot ships prose until the numeral audit exists. Until then the close anchor ships as the data-only edition — the D4c pattern — and the CI check that fails the build on any narrative import in the data-only path stays in force. <em>[As of 9 October 2026 the audit exists, with the checks built beside it, and the 07:00 and 16:45 anchors ship prose behind them; a withheld paragraph leaves the data-only edition of its section.]</em> <strong>A Daily that can invent a number is worse than no Daily.</strong></p>
 <h3>0.7 Delivery, archive, and grading</h3>
-<p>Every slot is delivered by HTML email rendered in the message body, written to the archive <em>before</em> the socket is opened (the durable copy exists even if delivery fails), and recorded as a state row so the heartbeat knows it ran; a missed anchor is a non-healthy verdict. The shadow grader scores every drafted setup at its horizon whether or not it was traded, cut by regime, and the Sunday anchor prints the trailing calibration of each owning slot — which is how a slot earns or loses its publish right. v1's Chapter 24 put "the outcome-logging layer" first in its backlog and said every other refinement's value is unmeasurable without it. v2 makes it the architecture.</p>
+<p>Every slot is delivered by HTML email rendered in the message body, written to the archive <em>before</em> the socket is opened (the durable copy exists even if delivery fails), and recorded as a state row so the heartbeat knows it ran; a missed anchor is a non-healthy verdict. The shadow grader <em>[plan, 9 Oct 2026, for setups]</em> scores every drafted setup at its horizon whether or not it was traded, cut by regime, and the Sunday anchor prints the trailing calibration of each owning slot — which is how a slot earns or loses its publish right. v1's Chapter 24 put "the outcome-logging layer" first in its backlog and said every other refinement's value is unmeasurable without it. v2 makes it the architecture.</p>
 <h3>0.8 What the Daily no longer does</h3>
 <p>It does not fetch at render time. It does not restate levels. It does not run nine narrative reports — the intraday reads are conditionals and one alert. It does not describe setups in prose. It does not exist in a chat. And it does not claim a floor, a probability, or a level it cannot trace to a stored observation.</p>
 <hr />
