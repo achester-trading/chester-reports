@@ -91,6 +91,9 @@ Never compute a difference, a spread between two moves, a ratio, a sum or a \
 relative performance ("the Russell lagged by 4.36%") -- that number is in no \
 field, and one such figure withholds the whole section. Say "lagged" and give \
 both moves instead.
+
+FIGURES. Cite at most {figure_cap} figures in any one paragraph -- the tables carry \
+the rest.{ordinals}
 """
 
 
@@ -98,10 +101,33 @@ def _style_guide() -> Path:
     return STYLE_REFERENCE if STYLE_REFERENCE.exists() else TEMPLATE_PATH
 
 
+# THE MONTHLY'S FIGURE CAP AND ITS ORDINALS (T3.2 items 1-2, 10 Oct 2026). Every
+# Monthly frame states the cap -- the cadence's `paragraph_figures`, 8 -- and that
+# the tables carry the rest; the executive summary's frame asks for at most three.
+# An ordinal is copied as printed: the tables and the `_ordinal` fields share the
+# one half-up rule (numeral_audit.percentile_ordinal), so the two agree.
+SUMMARY_FIGURES = 3
+ORDINAL_RULE = (" A percentile ordinal is copied exactly as it is printed -- from "
+                "the table, or from its _ordinal field -- never re-rounded from a "
+                "decimal: \"the 100th percentile\" stays 100th.")
+
+
+def figure_cap() -> int:
+    """The Monthly's per-paragraph figure cap (cadences.monthly)."""
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.figure_cap(cadence_mod.get("monthly"))
+
+
+def _cap_word(n: Optional[int] = None) -> str:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.figure_word(figure_cap() if n is None else n)
+
+
 def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
     from daily_cascade import narrative as base
     return base.SYSTEM_PROMPT + SECTION_RULES.format(
-        title=title, scope=scope, paragraphs=paragraphs)
+        title=title, scope=scope, paragraphs=paragraphs, figure_cap=_cap_word(),
+        ordinals=ORDINAL_RULE)
 
 
 # ---------------------------------------------------------------------------
@@ -450,8 +476,10 @@ def stack_plan(ed: dict) -> list[dict]:
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         system = sp.stack_system_prompt(base) + sp.RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            report="the Monthly", period="month", frames=MONTHLY_FRAMES)
-        system += sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
+            report="the Monthly", period="month", frames=MONTHLY_FRAMES,
+            figure_cap=_cap_word(), figure_tail=" -- the tables carry the rest")
+        system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
+                   + "\n" + ORDINAL_RULE.strip())
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
                     "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
@@ -482,7 +510,8 @@ SHAPE. ONE paragraph of {words} words. Its FIRST SENTENCE is the takeaway: the
 one thing the block's figures say together about the {period}, with its figure.
 No headings, no bullets, no lists, no bold, no tables -- the block's table is
 printed ABOVE your paragraph. Interpret it -- what the figures mean together,
-what moved with what -- and never re-list its rows: cite at most SIX figures.
+what moved with what -- and never re-list its rows: cite at most
+{figure_cap} figures -- the tables carry the rest.{ordinals}
 Write about the market, never about this report, its checks or its data.
 """
 
@@ -508,7 +537,8 @@ def block_plan(ed: dict) -> list[dict]:
             system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
                 report="the Monthly", title=ss["title"], section=s["title"],
                 scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
-                period="month") + tape
+                period="month", figure_cap=_cap_word(),
+                ordinals=ORDINAL_RULE) + tape
             system += (spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
             out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
                         "kind": "stack", "sid": s["id"], "system": system,
@@ -540,10 +570,11 @@ other rule above still holds -- every figure from the data given, signs and
 percentile ordinals as the data gives them, no recommendation.
 
 SHAPE. THREE TO FIVE sentences of continuous prose. Carry the section's
-takeaways -- what it says about the {period} -- and its two or three
-load-bearing figures, each copied exactly as the section prints it. Introduce no
-figure, name or claim the section does not print. No headings, bullets, lists or
-bold. Write about the market, never about this report or its sections.
+takeaways -- what it says about the {period} -- and its load-bearing figures:
+at most {figures} figures per paragraph -- the section's tables carry the rest --
+each copied exactly as the section prints it.{ordinals} Introduce no figure, name
+or claim the section does not print. No headings, bullets, lists or bold. Write
+about the market, never about this report or its sections.
 """
 SUMMARY_WITHHELD = "(summary withheld — audit)"
 
@@ -580,7 +611,9 @@ def summary_plan(ed: dict) -> list[dict]:
         if s.get("empty"):
             continue
         system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
-            report="the Monthly", title=s["title"], period="month") + tape
+            report="the Monthly", title=s["title"], period="month",
+            figures=_cap_word(SUMMARY_FIGURES).lower(),
+            ordinals=ORDINAL_RULE) + tape
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
                     "max_chars": 1400, "slice": summary_slice(s)})
@@ -596,7 +629,7 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
     out = (sp.style_faults(text, cfg) + sp.id_faults(text)
            + sp.policy_word_faults(text, pm_cfg) + sp.excess_faults(text)
            + sp.outlook_misprints(text, [], sp.venue_percents(ed))
-           + sp.figure_faults(text))
+           + sp.figure_faults(text, figure_cap()))
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])

@@ -686,12 +686,26 @@ def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
     return sign + _bn(abs(x))
 
 
-def plumbing_rows(st, now: str, then: str, cadence: str = "weekly") -> dict:
+def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
+                  liquidity_deltas: bool = False) -> dict:
     """Item 3: net liquidity and its legs, SOFR against IORB, the credit
     spreads beside HY, the week's auctions, copper and gold/copper. Rows for
-    Plumbing's table; each figure from the store with its as-of."""
+    Plumbing's table; each figure from the store with its as-of.
+
+    `liquidity_deltas` (the Monthly's, T3.2 item 4): the change column of net
+    liquidity and each H.4.1 leg is a level difference the reader needs, so it
+    rides in `data["liquidity"]` as a figure in dollars with its signed form --
+    the one the table prints -- for the writer to copy."""
     from altdata import derived                                 # noqa: PLC0415
     rows, data, nt = [], {}, []
+    liq: list[dict] = []
+
+    def delta(name, level, change, scale, asof):
+        if liquidity_deltas and change is not None:
+            liq.append({"series": name, "level_display": _bn(level, scale),
+                        "change_dollars": change * scale,
+                        "change_dollars_signed": _bn_change(change, scale),
+                        "as_of": asof})
 
     def two(key, inst=None):
         a = st.latest_as_of(key, now, inst)
@@ -704,6 +718,8 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly") -> dict:
                      (_bn_change(nl - nlp) if nlp is not None else "no prior"), nla])
         data["net_liquidity"] = {"level": nl, "week_change": None if nlp is None
                                  else nl - nlp, "as_of": nla}
+        delta("Net liquidity (Fed balance sheet less TGA and RRP)", nl,
+              None if nlp is None else nl - nlp, 1.0, nla)
     else:
         nt.append("net liquidity")
     # H.4.1 legs: reserves and TGA in millions, RRP in billions (CLAUDE.md gotcha;
@@ -717,6 +733,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly") -> dict:
             continue
         rows.append([name, _bn(v, scale), _bn_change(v - pv, scale)
                      if pv is not None else "no prior", asof])
+        delta(name, v, None if pv is None else v - pv, scale, asof)
     so, sop, soa = two("fred.sofr")
     io, iop, ioa = two("fred.iorb")
     if so is not None and io is not None:
@@ -782,6 +799,8 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly") -> dict:
         rows.append([f"Treasury coupon auctions {Period.of(cadence).this}", "none held",
                      "—", "—"])
     data["auctions"] = auctions
+    if liquidity_deltas:
+        data["liquidity"] = liq
     return {"rows": rows, "data": data, "not_tracked": nt}
 
 

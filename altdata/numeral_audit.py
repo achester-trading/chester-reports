@@ -588,31 +588,72 @@ def type_of_key(key: str) -> str:
 # a basis-point figure, pts or points a price, a dollar sign or a scale word (k,
 # bn, tn, thousand...) carries its own and imposes none. A figure with no unit
 # word stays a count, as before -- and an ISO date in a cell keeps the date reading.
+#
+# TWO UNITS THE CELLS PRINT THAT THIS READ AS COUNTS (T3.2 item 3, the first real
+# Monthly dry run, 10 Oct 2026). The word "percent" -- the slow layers' 20-day
+# change prints "−5.40 percent" -- is a percent, as "%" is. And a PAIR sharing
+# one unit -- the prediction markets' "+35.5 / +38.0 pts", Kalshi then
+# Polymarket -- is two figures in that unit: the first took none, so 35.5 was a
+# count and "up 35.5 points" was withheld as a unit mismatch. Each figure now has
+# the type it truly has; a figure with no unit word anywhere is still a count.
 _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}(?:[T ][\d:.+Z-]*)?")
 _CELL_FIGURE = re.compile(
     r"""(?P<lead>\$?)[-+\u2212]?\$?\d[\d,]*(?:\.\d+)?
         (?P<scale>\s?(?:trillion|billion|million|thousand|tn|bn|mm|k)\b)?
-        (?P<unit>\s?(?:%|bps?\b|pts\b|points?\b))?""", re.X | re.I)
+        (?P<unit>\s?(?:%|percent\b|per\s?cent\b|bps?\b|pts\b|points?\b))?""",
+    re.X | re.I)
+# "a / b unit": the first of a pair takes the unit written after the second;
+# "a / — unit" (one venue unpriced) the unit written after the dash.
+_CELL_PAIR = re.compile(r"\s*/\s*$")
+_CELL_PAIR_DASH = re.compile(
+    r"\s*/\s*[—–-]\s*(?P<unit>%|percent\b|per\s?cent\b|bps?\b|pts\b|points?\b)",
+    re.I)
+
+
+def _unit_kind(unit: str) -> str:
+    unit = (unit or "").strip().lower()
+    if unit == "%" or unit.startswith("per"):
+        return TYPE_PERCENT
+    if unit.startswith("bp"):
+        return TYPE_BP
+    if unit in ("pts", "point", "points"):
+        return TYPE_PRICE
+    return TYPE_COUNT
+
+
+def _cell_kind(m: "re.Match") -> str:
+    unit = (m.group("unit") or "").strip().lower()
+    if unit == "%" or unit.startswith("per"):
+        return TYPE_PERCENT
+    if unit.startswith("bp"):
+        return TYPE_BP
+    if unit in ("pts", "point", "points"):
+        return TYPE_PRICE
+    if m.group("lead") or "$" in m.group(0) or m.group("scale"):
+        return TYPE_ANY
+    return TYPE_COUNT
 
 
 def cell_types(text: str) -> list[tuple[float, str]]:
-    """The figures in one table cell, each typed by the unit written beside it."""
+    """The figures in one table cell, each typed by the unit written beside it
+    -- or, for the first of an "a / b unit" pair, after its partner."""
     out: list[tuple[float, str]] = []
     for d in _ISO_DATE.findall(text):
         out += [(v, TYPE_COUNT) for v in payload_numbers(d)]
     rest = _ISO_DATE.sub(" ", text)
-    for m in _CELL_FIGURE.finditer(rest):
-        unit = (m.group("unit") or "").strip().lower()
-        if unit == "%":
-            kind = TYPE_PERCENT
-        elif unit.startswith("bp"):
-            kind = TYPE_BP
-        elif unit in ("pts", "point", "points"):
-            kind = TYPE_PRICE
-        elif m.group("lead") or "$" in m.group(0) or m.group("scale"):
-            kind = TYPE_ANY
-        else:
-            kind = TYPE_COUNT
+    ms = list(_CELL_FIGURE.finditer(rest))
+    kinds = [_cell_kind(m) for m in ms]
+    for i in range(len(ms) - 1, -1, -1):
+        if kinds[i] != TYPE_COUNT or ms[i].group("unit"):
+            continue
+        if (i + 1 < len(ms) and ms[i + 1].group("unit")
+                and _CELL_PAIR.match(rest[ms[i].end():ms[i + 1].start()])):
+            kinds[i] = kinds[i + 1]
+            continue
+        dash = _CELL_PAIR_DASH.match(rest, ms[i].end())
+        if dash:
+            kinds[i] = _unit_kind(dash.group("unit"))
+    for m, kind in zip(ms, kinds):
         out += [(v, kind) for v in payload_numbers(m.group(0).strip())]
     return out
 

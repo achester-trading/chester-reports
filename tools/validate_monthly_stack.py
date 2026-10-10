@@ -64,6 +64,14 @@ t3-1-monthly-notes-brief-2026-10-09.md), one group per ruling or set of them:
   N1 PHONE      text cells wrap, numbers do not, a table wider than six columns
                 lays out fixed -- at the Monthly's cadence only; the email
                 attaches the edition's HTML with its charts embedded.
+
+T3.2, THE FIXES FROM THE FIRST REAL DRY RUN (box, 10 Oct 2026):
+
+  O CAP/UNITS   the per-paragraph figure cap is the cadence's (6, 6, 8) and every
+                Monthly frame states it, the summary's three; one half-up rule
+                for every ordinal a table prints and its _ordinal; a cell's
+                "a / b pts" pair and "percent" typed as they are; Plumbing's
+                level differences carried with their signed forms.
 """
 
 from __future__ import annotations
@@ -611,7 +619,8 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
     c = rows.get("CAPE (Shiller P/E10)") or []
 
     def num(x: str) -> float:
-        return float(x.split(" (")[0].replace(",", "").replace("−", "-"))
+        return float(re.sub(r"(?<=\d)(st|nd|rd|th)$", "",
+                            x.split(" (")[0].replace(",", "").replace("−", "-")))
     check(val.get("table", {}).get("columns") == ["Series", "Latest (data as of)",
                                                   "Long-run average (window)",
                                                   "Percentile (window)"],
@@ -1580,6 +1589,186 @@ def t31_summary_group(ed: dict, out: dict) -> None:
           "weight, and counts only once it draws")
 
 
+ORDINAL = re.compile(r"\b\d{1,3}(?:st|nd|rd|th)\b")
+
+
+def _tables_with_data(ed: dict):
+    """(where, table, the data its section and sub-section carry) for every
+    table the Monthly's sections print."""
+    for s in ed.get("sections") or []:
+        if s.get("table"):
+            yield s["id"], s["table"], [s.get("data") or {}]
+        for ss in s.get("subsections") or []:
+            if ss.get("table"):
+                yield (f"{s['id']}/{ss.get('title')}", ss["table"],
+                       [ss.get("data") or {}, s.get("data") or {}])
+
+
+def t32_group(ed: dict, out: dict) -> None:
+    """O: the fixes from the first real dry run (T3.2, 10 Oct 2026)."""
+    from altdata import numeral_audit as na
+    from daily_cascade import cadence as cad_mod, stack_prose as sp
+    from monthly_macro import prose as prose_mod, stack as ms
+    print(f"\n{LINE}\nO. T3.2: THE FIXES FROM THE FIRST REAL DRY RUN\n{LINE}")
+
+    # O1 -- the paragraph figure cap.
+    caps = {c: cad_mod.figure_cap(cad_mod.get(c)) for c in cad_mod.NAMES}
+    check(caps == {"daily": 6, "weekly": 6, "monthly": 8}
+          and prose_mod.figure_cap() == 8,
+          f"O1 item 1: the per-paragraph figure cap is the cadence's -- the close "
+          f"and the Weekly 6, the Monthly 8 ({caps})")
+    seven = ("SPY rose. It closed at 512.30, up 1.2%, with QQQ up 1.5%, IWM down "
+             "0.4%, the 10-year at 4.12% and the 30-year at 4.61%, while HY OAS "
+             "sat at 3.10%.")
+    nine = seven[:-1] + ", gold at 2,401 and oil at 71.20."
+    check(sp.figure_faults(seven) and not sp.figure_faults(seven, 8)
+          and sp.figure_faults(nine, 8)
+          and "at most 8 -- the tables carry the rest" in sp.figure_faults(nine, 8)[0],
+          "seven figures pass the Monthly's guard and fail the close's; nine fail "
+          "both, the reason naming the cap")
+    plans = (prose_mod.stack_plan(ed) + prose_mod.block_plan(ed))
+    frames = [x["system"] for x in plans] + [prose_mod.system_prompt("T", "S")]
+    check(plans and all("EIGHT figures" in f and "the tables carry the rest" in f
+                        for f in frames),
+          f"every Monthly section, block and v2 frame states the cap of eight and "
+          f"that the tables carry the rest ({len(frames)} frames)")
+    summ = prose_mod.summary_plan(ed)
+    check(summ and all("at most three figures per paragraph" in x["system"]
+                       and "EIGHT" not in x["system"].split("SHAPE.", 1)[1]
+                                                      .split("THE TAPE'S", 1)[0]
+                       for x in summ),
+          f"the executive summary's frames say \"at most three figures per "
+          f"paragraph\" ({len(summ)} frames)")
+    wk = sp.section_prompt({"id": "tape", "title": "The tape", "depth": "medium"},
+                           "weekly")
+    dl = sp.section_prompt({"id": "tape", "title": "The tape", "depth": "medium"},
+                           "daily")
+    check("cite at most SIX figures in it.\n" in wk and "EIGHT" not in wk
+          and "cite at most SIX figures in it.\n" in dl,
+          "the close's and the Weekly's prompts are unchanged: six figures")
+    written = out.get("written") or {}
+    over = [k for k, r in written.items()
+            if "at most 6 --" in str(r.get("reason")) + str(r.get("first_reason"))]
+    check(not over, f"no Monthly paragraph is held to six ({over[:3]})")
+
+    # O2 -- one rounding rule for the ordinals.
+    check(ms._ord(98.5) == "99th" and ms._ord(99.95) == "100th"
+          and ms._ord(51.7) == "52nd" and ms._ord(32.5) == "33rd"
+          and ms._ord(None) == "—"
+          and na.with_ordinals({"percentile": 98.5})["percentile_ordinal"] == "99th"
+          and f"{98.5:.0f}" == "98",
+          "O2 item 2: a table's percentile is the half-up ordinal the payload's "
+          "_ordinal fields use (98.5 -> 99th, 99.95 -> 100th), where the old "
+          "format printed 98")
+    printed, bad = 0, []
+    for where, t, data in _tables_with_data(ed):
+        cols = [i for i, c in enumerate(t.get("columns") or [])
+                if "percentile" in str(c).lower()]
+        if not cols:
+            continue
+        held = set()
+        for d in data:
+            held |= na.stored_ordinals(na.with_ordinals(d))
+        for r in t.get("rows") or []:
+            for i in cols:
+                for o in ORDINAL.findall(str(r[i]) if i < len(r) else ""):
+                    printed += 1
+                    if o.lower() not in held:
+                        bad.append((where, r[0], o))
+    check(printed and not bad,
+          f"every ordinal printed in a Monthly table's percentile column equals "
+          f"its _ordinal ({printed} printed" + (f"; unmatched {bad[:3]})" if bad
+                                                else ")"))
+    tape = next(s for s in ed["sections"] if s["id"] == "tape")
+    pair = [(r[4], m.get("level_percentile_5y_ordinal")) for r, m in
+            zip(tape["table"]["rows"], tape["data"]["moves"])]
+    check(pair and all(a == (b or "—") for a, b in pair)
+          and all(not re.search(r"\d\.\d", a) for a, _ in pair),
+          f"the tape's percentile column is its rows' _ordinal, row for row, never "
+          f"a decimal ({pair[:2]})")
+    check(all(prose_mod.ORDINAL_RULE.strip() in f for f in frames)
+          and all(prose_mod.ORDINAL_RULE.strip() in x["system"] for x in summ),
+          "and every Monthly frame says to copy an ordinal exactly as printed")
+
+    # O3 -- units at the source.
+    ct = na.cell_types
+    check(ct("+35.5 / +38.0 pts") == [(35.5, "price"), (38.0, "price")]
+          and ct("+2.0 / — pts") == [(2.0, "price")]
+          and ct("−5.40 percent") == [(-5.4, "percent")]
+          and ct("+44.00 bps") == [(44.0, "bp")]
+          and ct("12 / 30") == [(12.0, "count"), (30.0, "count")]
+          and ct("prior 200,500") == [(200500.0, "count")],
+          "O3 item 3: a cell's \"a / b pts\" pair is two figures in points, "
+          "\"percent\" is a percent; a figure with no unit word is still a count")
+    sl = {"table": {"columns": ["Item", "Week change"],
+                    "rows": [["FOMC hold", "+35.5 / +38.0 pts"],
+                             ["Shutdown", "+2.0 / — pts"]]},
+          "rows": [{"series": "WTI", "change_20d_pct": -6.03}]}
+    ok = [na.audit(t, na.with_signed(sl)).passed for t in (
+        "The hold rose +35.5 points.", "The shutdown rose +2.0 points.",
+        "WTI fell −6.03%.")]
+    no = [na.audit(t, na.with_signed(sl)).passed for t in (
+        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.", "WTI fell 6.03%.")]
+    check(all(ok) and not any(no),
+          f"the figures the 10 Oct run withheld now pass in their true unit, and the "
+          f"audit is no looser: a wrong unit word or a dropped sign still fails "
+          f"({ok}, {no})")
+    slow = next(s for s in ed["sections"] if s["id"] == "slow")
+    fam = [(r, row) for ss in slow.get("subsections") or [] if ss.get("family")
+           for r, row in zip((ss.get("table") or {}).get("rows") or [],
+                             (ss.get("data") or {}).get("rows") or [])]
+    moved = [(r, d) for r, d in fam if r[2] != "—"]
+    typed = [(r, d) for r, d in moved if d.get("change_20d_pct") is not None
+             and r[2] == f"{d['change_20d_pct']:+.2f} percent"]
+    fc = ms.family_change
+    uso = {"family": "energy", "series": "yfinance.mkt_uso",
+           **fc({"delta_20d": -5.4, "delta_unit": "percent"})}
+    check(fam and len(typed) == len(moved)
+          and fc({"delta_20d": -5.4, "delta_unit": "percent"})
+          == {"change_20d_pct": -5.4}
+          and fc({"delta_20d": 12.0, "delta_unit": "bps"}) == {"change_20d_bp": 12.0}
+          and fc({"delta_20d": -6000.0, "delta_unit": "raw"}) == {}
+          and fc({"delta_20d": None, "delta_unit": "percent"}) == {}
+          and na.audit("USO fell −5.40 percent.", na.with_signed(uso)).passed
+          and not na.audit("USO fell −5.40 bp.", na.with_signed(uso)).passed,
+          f"each slow-layer family row with a 20-day change carries it in a field "
+          f"typed by the registry's delta unit -- percent or bp, a raw change "
+          f"nothing ({len(typed)} of {len(moved)} moved in the fixture, "
+          f"{len(fam)} rows)")
+
+    # O4 -- Plumbing's level differences.
+    pl = next(s for s in ed["sections"] if s["id"] == "plumbing")
+    liq = next(ss for ss in pl["subsections"] if ss.get("bucket") == "liquidity")
+    ch = (liq.get("data") or {}).get("changes") or []
+    cells = {r[0]: r[2] for r in liq["table"]["rows"]}
+    check(ch and all(c["change_dollars_signed"] == cells.get(c["series"])
+                     for c in ch),
+          f"O4 item 4: the liquidity bucket's month changes ride in its data in "
+          f"dollars, each with the signed form its table prints "
+          f"({[(c['series'][:14], c['change_dollars_signed']) for c in ch][:3]})")
+    neg = next((c for c in ch if c["change_dollars"] < 0), None)
+    if neg:
+        sl = na.with_signed(liq["data"])
+        mag = neg["change_dollars_signed"].lstrip("−")
+        r_bad = na.audit(f"It fell {mag}.", sl)
+        r_ok = na.audit(f"It moved {neg['change_dollars_signed']}.", sl)
+        check(not r_bad.passed and "change_dollars_signed" in r_bad.reason()
+              and r_ok.passed,
+              f"the bare magnitude ({mag}) is still withheld, now naming the field "
+              f"to copy; the signed form passes")
+    else:
+        check(False, "the fixture's liquidity bucket has a negative change to test")
+    import inspect
+    from daily_cascade import weekly_sections as wsec, weekly_stack as wst
+    check(((pl.get("data") or {}).get("plumbing") or {}).get("liquidity")
+          and inspect.signature(wsec.plumbing_rows).parameters["liquidity_deltas"]
+          .default is False
+          and inspect.signature(wst.plumbing_week).parameters["liquidity_deltas"]
+          .default is False,
+          "the Monthly asks for the deltas; the Weekly's builders carry them only "
+          "when asked (liquidity_deltas defaults off)")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1871,6 +2060,7 @@ def main() -> int:
     t31_narratives_group(ed, out)
     t31_scenarios_themes_group(ed, out)
     t31_summary_group(ed, out)
+    t32_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

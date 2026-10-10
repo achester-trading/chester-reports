@@ -206,6 +206,9 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 #   paragraph_words  words a kept paragraph may run to: a number, or "depth" for
 #                 the section's allowance in its depth_words map
 #   subsection_paragraphs  whether a sub-section keeps paragraphs of its own
+#   paragraph_figures  the most figures one paragraph after the claim line may
+#                 cite before the guard withholds it; the tables carry the rest
+#                 (T2.5 item 1: six; the Monthly 8 from 10 Oct 2026, T3.2 item 1)
 #   subsection_charts  whether a sub-section's charts print under it (T2.7);
 #                 otherwise they print with the section's own
 #   trim_to_budget  whether the budget step cuts paragraphs, lowest priority
@@ -224,6 +227,7 @@ cadences:
     depth_words: depth_words
     paragraphs: 1
     paragraph_words: 120
+    paragraph_figures: 6
     subsection_paragraphs: false
     subsection_charts: false
     trim_to_budget: false
@@ -237,6 +241,7 @@ cadences:
     depth_words: depth_words_weekly
     paragraphs: 1
     paragraph_words: 120
+    paragraph_figures: 6
     subsection_paragraphs: false
     subsection_charts: false
     trim_to_budget: false
@@ -250,6 +255,7 @@ cadences:
     depth_words: depth_words_monthly
     paragraphs: null
     paragraph_words: depth
+    paragraph_figures: 8
     subsection_paragraphs: true
     subsection_charts: true
     trim_to_budget: true
