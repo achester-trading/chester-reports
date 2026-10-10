@@ -1,76 +1,69 @@
-# Dealer positioning — the tables, the charts, the commentary and the scorecard (brief, 9 Oct 2026)
+# Dealer positioning — the tables, the charts, the commentary and the scorecard (brief v2, 9 Oct 2026)
 
 | | |
 |---|---|
-| Status | Drafted 9 Oct 2026 from the operator's ask ("deep awareness of dealer positioning, how it might affect the strategy, and whether the market does in fact respond as positioning implies") and an outside four-table recommendation he supplied. Placed by Audit #4 under Part V (the "dealer charts as a tool" row expands into this brief); builds inside **6b** as the dealer block, with the scorecard extension beside EL-12's engine registration. |
+| Status | **v2, after the adversarial audit of the same day** (`docs/briefs/dealer-positioning-audit-2026-10-09.md`); replaces v1, which is withdrawn. Placed by Audit #4 under Part V; builds inside **6b** as the dealer block, with the scorecard beside EL-12's engine registration. |
 | Owner | Ari Chester |
-| Source of every figure | The engine's exposure output (`tools/exposure_compute.py`, convention `dealers-hand-v1`): one exposure JSON per capture per symbol, with `overall`, `buckets`, `per_strike`, `expiration_release`, `max_pain`, `gates`. **Every table and chart below is a view of that one dataset; nothing recomputes.** The outside note's own first principle — one canonical exposure dataset, the tables as views — is already how the engine is built. |
-| Captures | Today: 16:10 settled (0DTE excluded by rule). With 6b: 09:45 and 12:30 as well, and the engine's 5–15-minute SPY recompute between them; an intraday capture includes the day's 0DTE. |
-| Charts | `tools/dealer_charts.py` (this commit): the four figures of 9 Oct, drawn from an exposure JSON and its chain. `daily_cascade/charts.py` imports its `draw_*` functions when the block lands. |
-| Hours | ≈ 17 h in 6b: tables and synthesis 6, charts wired 2, scorecard extension 6, Weekly/Monthly wiring 3. |
+| Source of every figure | The engine's exposure JSON per capture per symbol (`tools/exposure_compute.py`, `dealers-hand-v1`). Every table and chart is a view of it; nothing recomputes. |
+| Captures | 16:10 settled today (DTE 0 excluded by rule); 09:45 and 12:30 with 6b, plus the 5–15-minute SPY recompute. Open interest is the **prior close's vintage in every capture** (OCC publishes once a day): an intraday capture carries today's IV and spot on yesterday's OI. |
+| Charts | `tools/dealer_charts.py` (committed with this brief; release panel is magnitude-only per audit F3). `daily_cascade/charts.py` imports its `draw_*` functions when the block lands. |
+| Hours | ≈ 19 h in 6b: engine additions 2, tables and quality panel 6, charts wired 2, scorecard and pre-registration 6, Weekly/Monthly wiring 3. |
 
-## 1. What the block answers, in order
+## 1. What the page may and may not say
 
-1. **Which regime, how far from the flip, and how steep** — the sign is not the story when spot is 0.2% from the zero-gamma level; the profile's slope is.
-2. **Where the hedging concentrates** — walls, max pain, the secondary strikes, and which expiry carries them.
-3. **What rolls off and when** — the expiration-release schedule and the DEX horizon.
-4. **Whether the horizons agree** — 0DTE against the week against everything.
-5. **What changed since the equivalent capture** — settled against settled, 09:45 against 09:45; never a settled read against an intraday one.
-6. **Whether the market did what positioning implied** — the scorecard, with the base rate beside every hit rate.
+Printed first, as convention-free quantities: the **call-gamma mass** and the **put-gamma mass** ($ per 1%), their per-strike concentrations, and the **balance level** — the spot at which the two masses are equal, which is the zero-gamma level under any symmetric convention. Printed second, as convention-dependent quantities with their confidence: net GEX and the regime word, gated by the **net-to-gross ratio** (`overall.net_to_gross`, new): below 0.10 the regime prints "indeterminate (net is x% of gross)". The sign convention prints once per edition; "inferred, not observed" stays on every dealer table.
+
+Never printed: a direction for DEX (positive by construction under the convention — it is the **size and tenor of the hedge book**); a direction for the expiry roll-off (the same); "support" or "resistance" as facts; the horizon rules of §3 as readings before they are promoted (§5); a 0DTE gamma figure without the words "OI as of prior close".
 
 ## 2. The tables (views; horizons by days to expiry)
 
-The engine buckets by listing type (0DTE, weekly ≤ 7 days, monthly third-Fridays, quarterly, other). The outside note's four horizons are **windows by days to expiry**, which read better on a page and avoid the "other" bucket's 29% of |GEX| sitting under an opaque label. The tables therefore print **0DTE · ≤ 7 days · ≤ 45 days · all**, each a roll-up of the engine's buckets by DTE (a `horizon_windows` list in `config/reporting_stack.yaml`; the engine's buckets stay as stored). At a settled capture the 0DTE column prints "settled — excluded", never a number.
+Cumulative windows for the tables — **0DTE · ≤ 7 days · ≤ 45 days · all** — as roll-ups of the engine's listing buckets by DTE (`horizon_windows` in `config/reporting_stack.yaml`; the engine's buckets stay as stored). Exclusive bands for the bucket chart — 0DTE · 1–7 · 8–45 · > 45 — which sum to "all"; the renderer prints the reconciliation. At a settled capture the 0DTE column prints "settled — excluded".
 
-**T1 — Dashboard** (every capture; the close, and each intraday slot after 6b). Rows: net GEX ($ per 1%), regime, zero-gamma level and its distance from spot, call wall, put wall (OTM and gamma), net DEX (dealer-hand, with the raw-signed figure in a footnote for the FlashAlpha cross-check), spot's distance to each level. Columns: the four horizons. Every qualitative word sits beside its number. Below the table, three sentences (§4).
+**T1 — Dashboard** (every capture). Rows: call-gamma mass, put-gamma mass, net GEX ($/1%) with net-to-gross, regime (gated), zero-gamma level and its distance from spot, OTM call wall, OTM put gamma wall, hedge-book size (dealer-hand DEX, $bn) with the ≤ 7-day share, the raw-signed OI balance (Σ Δ·OI, calls − puts, no directional word), spot's distance to each level. Columns: the four horizons. Under it, **the quality panel**: capture time and kind, `convention_version`, `greeks_source`, rows in / exposure rows / rows skipped and why, `settled_0dte_excluded_rows`, data quality and the liquidity-floor reasons, IV roughness (raw figure and the provisional verdict), OI concentration (effective strikes), `min_t_load_bearing`, OI vintage ("prior close"). Then the three sentences of §4.
 
-**T2 — Key levels** (the close and the Weekly; one table per horizon at the Weekly, the all-expiries table at the close). Rows: call wall, secondary call concentration, zero-gamma, spot, secondary put concentration, put wall, max pain. Columns: strike, GEX at the strike, DEX at the strike, distance from spot, rank (share of the horizon's |GEX|), and a conditional reading ("potential pin / resistance", "acceleration zone below", "regime transition") — conditional words only, the Doctrine's and the Dealer's Hand's, never "support" or "resistance" as facts.
+**T2 — Key levels** (the close: all expiries; the Weekly: one per horizon). Rows: OTM call wall, secondary call concentration, zero-gamma, spot, secondary put concentration, OTM put gamma wall, peak-gamma strike, max pain (expiry sessions only; otherwise "not an expiry"). Columns: strike, call-gamma and put-gamma at the strike, distance from spot, rank as share of **gross**, and a conditional reading in the Dealer's Hand's words. **One name per definition** (audit F5): *OTM call wall* and *OTM put gamma wall* (the levels; FlashAlpha-matching), *peak put-gamma strike*, *put OI shelf*; the flags in §5 say which level they score. The all-strike extremes print as "peak" figures, not walls.
 
-**T3 — Horizon agreement** (the close, as three lines, not a table; the Weekly as a table). Per horizon: gamma sign and magnitude (low / medium / high against the series' own five-year percentile), delta bias, nearest major level, expected behaviour (reversion / expansion / unclear). Then the synthesis line from a fixed rule set, each rule printed with its own hit rate and base rate from the scorecard (§5) — "0DTE negative, aggregate positive: intraday amplification inside a stabilising week (n = 14, 9 amplified; base rate 0.38)". A rule with fewer than 20 scored sessions prints "untested (n = …)".
+**T3 — Horizon matrix** (the close as lines; the Weekly as a table). Per horizon: gamma sign with net-to-gross, magnitude against the series' own five-year percentile, nearest major level and distance, implied one-day range. No synthesis sentence until a registered hypothesis is promoted (§5); until then the matrix is followed by one line: "registered hypotheses: n, none promoted".
 
-**T4 — Changes since the equivalent capture** (every capture). Rows: all-expiry GEX, ≤ 7-day GEX, 0DTE GEX (intraday only), zero-gamma, call wall, put wall, all-expiry DEX, largest |GEX| strike. Columns: now, the equivalent prior capture, change, and one clause ("pivot moved up 1.9 points", "overhead concentration migrated 780 → 785"). The comparison key is the capture slot: 16:10 against the prior session's 16:10; 09:45 against the prior 09:45. A missing prior capture prints "no equivalent capture", never a comparison against a different slot.
+**T4 — Changes since the equivalent capture** (every capture; 16:10 vs the prior 16:10, 09:45 vs the prior 09:45; "no equivalent capture" otherwise). Rows: call mass, put mass, net GEX and net-to-gross, zero-gamma, the two OTM walls, hedge-book size, peak-gamma strike. Later (Doctrine #2 or Audit #5): the three-step decomposition — spot at yesterday's book, IV at yesterday's book, OI and roll-off — from the two stored chains keyed by `contract_symbol`.
 
-**The decision summary** (the close and the 09:45 slot; the Doctrine's form, not the outside note's "buy dip / sell rip"): intraday regime; broader regime; upside reference; downside reference; **the setups whose conditions hold** from `config/setups.yaml` (`c_pin_fade` in positive gamma near a pin candidate; `c_negative_gamma_continuation` after confirmation through a level; `d_forced_flow` on an expiry-pin or release day), each with the level, the invalidation and the time stop the setup requires; and "no setup" when none holds. The books decide; the block proposes. The Book B scanner (Audit #4 item II.3) reads these conditions; nothing here writes the register.
+**The decision summary** (the close and the 09:45 slot): regime (gated) and distance to the flip; the two walls; **the setups whose conditions hold** from `config/setups.yaml` (`c_pin_fade` on an expiry session in positive gamma near the peak-gamma strike; `c_negative_gamma_continuation` after confirmation through a level in negative gamma; `d_forced_flow` on expiry and release days), each with the level, the invalidation and the time stop the setup requires; "no setup" when none holds. The books decide; the block proposes; nothing writes the register.
 
 ## 3. The charts
 
-| Figure | Where it prints | Why |
+| Figure | Where | Note |
 |---|---|---|
-| 2 — gamma profile across spot | the close (its one dealer chart), the Weekly, the Monthly | Carries the regime, the distance to the flip and the asymmetry in one picture; the sign alone misleads near the flip |
-| 1 — GEX by strike with the levels | the Weekly, the Monthly; the 09:45 slot after 6b | Where the gamma sits and in which hand |
-| 3 — buckets and the expiration-release schedule | the Weekly, the Monthly | What rolls off this week and next, and the week's dealer flow from expiries |
-| 4 — DEX by horizon | the Monthly | The hedge book's tenor; slow-moving, monthly is enough |
-| 5 — the scorecard chart (new, with §5) | the Weekly, the Monthly | Hit rate against base rate per rule, last 20 and last 60 sessions, with n |
+| 2 — gamma profile across spot | the close (its one dealer chart), the Weekly, the Monthly | the regime, the distance to the flip and the asymmetry; later, a shaded band from a ±0.5-vol skew tilt (audit F10) |
+| 1 — gamma by strike with the OTM walls | the Weekly, the Monthly; the 09:45 slot after 6b | where the gamma sits and in which hand |
+| 3 — exclusive bands and the hedge rolling off by expiry | the Weekly, the Monthly | size per expiry; no direction |
+| 4 — hedge book by horizon | the Monthly | tenor |
+| 5 — the scorecard | the Weekly, the Monthly | k/n with intervals, base rate and baseline per registered hypothesis |
 
-The close's budget is three charts; the profile takes one. The Weekly's cap of ten takes figures 1–3 and 5; the Monthly's all five. Each figure is stamped with the capture time and "settled" or "intraday".
+Each figure is stamped with the capture time, "settled" or "intraday", and "OI as of prior close".
 
 ## 4. The commentary
 
-Fixed shape, model-written through the section writer, behind the numeral and flag-word audits, every capture:
+Three fixed sentences per capture, model-written behind the numeral and flag-word audits: (1) regime with net-to-gross and the distance to the flip, and the ±1% asymmetry from the profile; (2) where the gamma concentrates — the two OTM walls, the peak-gamma strike, which expiry carries them, and the size rolling off at the next expiry; (3) the setups whose conditions hold, or none, and the level that invalidates the read. At the Weekly a fourth: the week against the Monday read, from the scorecard rows, with the registered hypotheses' running evidence. The words "pinned", "held", "amplified", "dampened" appear only where the scorecard's flag for that session is True (the existing flag-word audit, extended to the two new words).
 
-1. **Regime and distance.** "Negative gamma, $3.5bn per 1%, with the zero-gamma level 0.2% above spot: a regime on a knife-edge. One percent lower and the book is $16bn short gamma; one percent higher, $19bn long."
-2. **Where the hedging is.** Walls, max pain, the strikes that matter and their expiry; what releases at the next expiry and in which direction.
-3. **What it implies, conditionally, and what would change it.** The setups whose conditions hold (or none), with the level that invalidates the read — the flip crossing, the wall breaking, the expiry passing. Written in the Doctrine's conditional language; a sentence may say "pinned", "held" or "amplified" about a past session only where the scorecard's flag says so (the existing flag-word audit).
+## 5. The scorecard — a pre-registered experiment
 
-At the Weekly, a fourth paragraph: how the week went against the Monday read (from the scorecard rows), and the base-rate line.
+The close stores one `dealer.scorecard_day` row per session; the Weekly computes the flags; the Monthly's retrospective prints them. This brief changes **what is eligible, what is a base rate, and what counts as evidence** (audit C), not where the rows live.
 
-## 5. The scorecard — does the market do what positioning implies?
+1. **Pre-registration first.** Before the first scored month, `docs/ledgers/dealer-scorecard-preregistration-2026-10.md` records every hypothesis: mechanism, eligibility, outcome, window, base rate, price-action baseline, the formation/test split and the promotion rule. Dated, unchanged thereafter; a change is a new registration.
+2. **Eligibility before outcome.** *dampened* and *amplified / expanded*: regime sessions (net-to-gross ≥ 0.10), outcome against 0.8× / 1.2× the implied one-day range; *call wall held* and *put wall held*: sessions that **approached** the morning OTM wall within 0.25%, outcome the close inside it, baseline the round-number test; *pinned*: **expiry sessions only**, against the peak-gamma strike with max pain as the control, baseline the nearest-round-number test; *flip crossing*: sessions whose range contained the morning flip, outcome the next three sessions' realised vol against the prior ten. An ineligible session is `None`, never `False`; `gamma_regime` is `None` when `net_gex` is `None`.
+3. **How rates print.** k/n, a Wilson 95% interval, the base rate and the baseline beside it; sessions and episodes both counted (a regime run or a wall approach is one episode). The printing floor stays at 20 scored sessions for counts; **no rate is a decision** below 120 eligible sessions.
+4. **Promotion.** The first 120 eligible sessions per hypothesis form; the next 120 test; promotion needs the test interval to exclude both the base rate and the baseline after a Benjamini–Hochberg control at 0.10 across the registered family, with the formation estimate in the same direction. A promoted hypothesis may then be printed as a reading in T3 and is demoted when a rolling 120-session interval includes the base rate for two consecutive months.
+5. **Tradable is a further step**: the setup ledger (a hypothesis's setups graded against stored bars with a modelled cost — a market order at the signal bar's close plus one tick) over N ≥ 40 setups, the Doctrine's existing engine rule. The scorecard's base rates are what EL-12's engine registers as its prior; they are not an edge.
+6. **The vendor line** (FlashAlpha, weekly) prints in the Weekly's Mechanics.
 
-The close already stores one `dealer.scorecard_day` row per session with three flags (pinned, held, amplified) and an IV check, scored by the Weekly's rule; the Monthly's Mechanics prints their counts as hit rates once 20 sessions are scored. This brief extends that, it does not replace it:
+## 6. Engine additions (small, in 6b)
 
-- **A base rate beside every hit rate** (the Base Rates convention): pinned against the unconditional share of closes within `pinned_pct` of max pain; held against the share of all wall touches that closed inside; amplified against the share of all sessions whose range exceeded the implied range by the ratio. A hit rate without its base rate is not printed.
-- **Split by regime**: every rate reported for positive-gamma and negative-gamma sessions separately, because the hypothesis is conditional.
-- **Two more flags**: *dampened* (positive gamma; the realised range below the implied range by the mirror ratio — the half of the claim the scorecard does not yet test) and *expanded* (negative gamma with the profile steeper than its 60-session median; the next session's range in the top tercile of the trailing 60). Both scored from the stored captures and the pin log, never from the live store.
-- **The rule set in T3** is graded the same way: each synthesis rule is a named flag with its hit rate, base rate and n, so a rule that does not beat its base rate after 40 sessions is retired by the Doctrine's own kill criterion, not by argument.
-- **Horizons**: last 20 and last 60 sessions at the Weekly; the month and the trailing three months at the Monthly's retrospective.
-- **The vendor line**: the Wednesday FlashAlpha reconciliation's verdicts (ledger of 9 Oct) print once a week in the Weekly's Mechanics, so a definition drift is seen the week it happens.
+`overall.gross_gex_abs` and `overall.net_to_gross`; `net_gex_at_spot` calls `dealer_position()` (audit F21); walls named per §2 in the JSON keys the renderer reads (`call_wall_otm`, `put_wall_otm` are *the* walls); `scorecard_row` fixes (`gamma_regime` `None`; eligibility fields: `wall_approached_call`, `wall_approached_put`, `is_expiry_session`, `flip_in_range`); failure tests for an empty chain, a chain without IV and a settled capture whose rows are all DTE 0, in `validate_weekly_complete.py`; the IV-roughness threshold calibrated at the first 60 stored captures.
 
-This scorecard is also the base rate the first paper engine needs before its first paper trade (Doctrine item 5: ≥ 20 sessions of stored close verdicts), so the engine's registration (EL-12) reads it rather than building its own.
+## 7. Not built, on purpose
 
-## 6. What is deliberately not built
+Strike charts per expiry; a "market direction" cell; any directional reading from DEX, VEX, CHEX or the roll-off; synthesis rules as readings before promotion; an intraday 0DTE gamma from OI alone; any order, alert or register write; cross-symbol comparisons in raw dollars.
 
-Strike-level charts for every expiry (the per-strike figure at one horizon is enough; the rest is in T2); a "market direction" cell (direction comes from the full framework, as the outside note itself says); directional readings from DEX alone (DEX says how much hedge rolls off and when, not which way the market goes); any order, alert or setup written to the register by this block (the scanner and the books do that); comparisons across SPY, QQQ and IWM in raw dollars (normalised per 1% of each underlying's notional, and labelled).
+## 8. Build order inside 6b
 
-## 7. Build order inside 6b
-
-1. `horizon_windows` roll-up and T1/T4 at the close (2 h) → 2. T2 and the decision summary (2 h) → 3. charts wired through `daily_cascade/charts.py` from `tools/dealer_charts.py` (2 h) → 4. the scorecard extension: base rates, regime split, the two flags, the rule flags (6 h) → 5. T3 and the synthesis with its rates (2 h) → 6. Weekly and Monthly wiring, figure 5, the vendor line (3 h). Validators extend `validate_weekly_complete.py` and `validate_monthly_stack.py`; the flag-word audit covers the new words.
+1. engine additions and tests (2 h) → 2. `horizon_windows`, T1 with the quality panel, T4 (3 h) → 3. T2 and the decision summary (2 h) → 4. charts wired (2 h) → 5. the pre-registration ledger, scorecard eligibility fields and the rate printer with intervals (6 h) → 6. T3 matrix, Weekly and Monthly wiring, figure 5, the vendor line (4 h).

@@ -19,16 +19,21 @@ Four figures, the ones ruled on 9 Oct 2026 from the 8 Oct SPY/QQQ captures:
                            and the asymmetry either side of spot. One panel per
                            symbol.
   3_buckets_release.png    Net GEX ($ per 1%) by expiry bucket per symbol, and
-                           the first symbol's expiration-release schedule (DEX
-                           released at each of the next ten expiries, signed by
-                           unwind direction).
+                           the first symbol's expiration-release schedule: the
+                           SIZE of delta hedge attached to each of the next ten
+                           expiries. No direction is drawn: under dealers-hand-v1
+                           every expiry's DEX is positive by construction, so
+                           "dealer buys" would be a tautology, not a forecast
+                           (audit of 9 Oct 2026, finding F3).
   4_dex_horizon.png        Cumulative DEX by days to expiry (log), the 1-week /
                            1-month / 1-quarter marks.
 
 UNITS AND SIGNS are the engine's (tools/exposure_compute.py, convention
 dealers-hand-v1): per-strike `gex` is sigma sign*Gamma*OI*100*S in dollars; the
-"$ per 1%" figures are that times 0.01*S; DEX is dealer-hand. A settled capture
-excludes DTE 0 (the engine's rule), and the profile does the same.
+"$ per 1%" figures are that times 0.01*S; DEX is dealer-hand and therefore a
+SIZE, never a direction. A settled capture excludes DTE 0 (the engine's rule),
+and the profile does the same. The profile holds IV fixed per contract (sticky
+strike); a skew tilt moves the at-spot magnitude, not the slope's sign.
 
 The figures are a diagnostic today and the 6b dealer block's charts tomorrow:
 daily_cascade/charts.py imports the draw_* functions when that build lands, so
@@ -208,15 +213,15 @@ def draw_buckets_release(exs: list[dict], out: Path, n_expiries: int = 10) -> Pa
     ex = exs[0]
     rel = ex["expiration_release"][:n_expiries]
     xs2 = range(len(rel))
-    vals = [_bn(e["dex_notional"]) * (1 if e["unwind_direction"] == "dealer_buys" else -1) for e in rel]
+    vals = [abs(_bn(e["dex_notional"])) for e in rel]           # size only (F3)
     ax2.bar(list(xs2), vals, color=[BUCKET_COL.get(e["bucket"], MUTED) for e in rel], width=0.7, zorder=2)
     for x, v, e in zip(xs2, vals, rel):
         ax2.text(x, v + (0.3 if v >= 0 else -0.3), f"{v:.1f}\n{e['share_of_abs_dex']:.1%}", ha="center",
                  va="bottom" if v >= 0 else "top", fontsize=8, color=INK2)
     ax2.set_xticks(list(xs2), [f"{e['expiry'][5:]}\n{e['dte']}d" for e in rel], fontsize=8.5)
     ax2.axhline(0, color=BASE, lw=1)
-    ax2.set_ylabel("Delta hedge released, \\$bn (+ = dealers buy back)")
-    ax2.set_title(f"{ex['symbol']} expiration-release schedule, next {len(rel)} expiries (share of |DEX|)")
+    ax2.set_ylabel("Delta hedge attached to the expiry, \\$bn (size)")
+    ax2.set_title(f"{ex['symbol']} hedge rolling off by expiry, next {len(rel)} expiries (share of |DEX|)")
     ax2.legend(handles=[Patch(color=BUCKET_COL[b], label=b) for b in BUCKET_ORDER
                         if any(e["bucket"] == b for e in rel)], frameon=False, loc="upper right")
     ax2.margins(y=0.25)
