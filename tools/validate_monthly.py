@@ -915,18 +915,22 @@ def group_h() -> None:
         n_themes = len(built["looking_back"]["themes"])
         planned = [s["key"] for s in prose_mod.plan(built)]
         n_pillars = sum(1 for k in planned if k.startswith("pillar:"))
-        # T3: a section the audit withholds is retried ONCE (Reader's Guide
-        # 5.3, extended to the Monthly's section writer), so the three seeded
-        # failures below each cost a second call.
-        retried = sum(1 for r in written.values() if r.get("attempts") == 2)
-        check(len(calls) == len(planned) + retried and list(written) == planned
+        # T3: a section the audit withholds is retried (Reader's Guide 5.3,
+        # extended to the Monthly's section writer) -- up to three attempts from
+        # T3.3 -- so each of the three seeded failures below costs its retries.
+        retried = sum(1 for r in written.values() if r.get("attempts", 1) > 1)
+        extra = sum(r.get("attempts", 1) - 1 for r in written.values())
+        check(len(calls) == len(planned) + extra and list(written) == planned
               and retried == 3
+              and all(r.get("attempts", 1) <= prose_mod.ATTEMPTS
+                      for r in written.values())
               and {"month_in_markets", "month_in_one_page", "looking_ahead",
                    "our_read"} <= set(planned) and n_themes == 7,
-              f"one model call per section, and one retry for each the audit "
-              f"withheld: the opening, the takeaways, {n_themes} themes (Sentiment "
-              f"among them), the look-ahead, our read and {n_pillars} appendix "
-              f"pillar(s) ({len(calls)} calls, {retried} retries)")
+              f"one model call per section, and up to two retries for each the "
+              f"audit withheld: the opening, the takeaways, {n_themes} themes "
+              f"(Sentiment among them), the look-ahead, our read and {n_pillars} "
+              f"appendix pillar(s) ({len(calls)} calls, {extra} retries over "
+              f"{retried} sections)")
         check(not written["theme:sentiment"]["published"]
               and written["theme:sentiment"]["state"] == "internal_vocabulary"
               and "payload" in str(written["theme:sentiment"]["reason"]),

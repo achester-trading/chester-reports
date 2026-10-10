@@ -109,6 +109,7 @@ DELTA_UNITS: dict[str, str] = {
     "MXN": "percent",
     # Counts, levels and stocks: moved in their own units.
     "K": "raw",
+    "N": "raw",          # a plain count (FRED "Number": IC4WSA, EXHOSLUSM495S)
     "B": "raw",
     "M": "raw",
     "hrs": "raw",
@@ -117,6 +118,7 @@ DELTA_UNITS: dict[str, str] = {
     "days": "raw",
     "ratio": "raw",
     "fraction": "raw",
+    "0/1": "raw",        # a 0/1 indicator (USREC); its change is the flip itself
 }
 
 # PERCENTAGE POINTS, for the one case `units` cannot separate on its own.

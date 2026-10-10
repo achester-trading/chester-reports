@@ -314,8 +314,23 @@ def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]
 # unmatched scaled figure is withheld with the field named.
 DISPLAY_FIELD = "_display"
 # Registry `units` -> (multiplier to the base unit, is it dollars).
+#
+# EACH SERIES' OWN UNITS, NEVER AN ASSUMED SCALE (T3.3 item 1, the second box dry
+# run of 10 Oct 2026). The Fed-path block printed initial jobless claims at
+# "200.5 million": IC4WSA is published in plain Number (200,500 claims) and its
+# SeriesSpec said "K", so the scaler multiplied by a thousand. The scaler already
+# read the registry; the registry was wrong (claims, existing home sales) or the
+# other way about (CMDEBT in millions, declared billions). FRED's own unit names
+# are accepted beside the short codes, and a unit the table does not name has no
+# display -- the figure prints as it stands rather than at a guessed scale.
+#   N / Number      a plain count            200,500 -> "200.5 thousand"
+#   K / Thousands   thousands (of persons)   159,040 -> "159.04 million"
+#   M / Millions    millions of dollars    2,948,000 -> "$2.95tn"
+#   B / Billions    billions of dollars       22,804 -> "$22.8tn"
 SCALE_UNITS = {"usd": (1.0, True), "M": (1e6, True), "B": (1e9, True),
-               "K": (1e3, False), "count": (1.0, False)}
+               "K": (1e3, False), "N": (1.0, False), "count": (1.0, False),
+               "Number": (1.0, False), "Thousands": (1e3, False),
+               "Millions": (1e6, True), "Billions": (1e9, True)}
 
 
 def scaled_display(value: float, units: str) -> Optional[str]:
@@ -339,6 +354,46 @@ def scaled_display(value: float, units: str) -> Optional[str]:
             mag = f"{a / m:,.2f}".rstrip("0").rstrip(".")
             return f"{sign}{mag} {word}"
     return None
+
+
+def change_display(value: float, units: str) -> Optional[str]:
+    """A CHANGE in its series' own scale, SIGNED: '+$23.15bn', '−7 thousand',
+    '+29 thousand' (T3.3 item 2). Built by scaled_display, so a change and the
+    level beside it are printed by the one scaler; None where the level would
+    have no display either."""
+    d = scaled_display(value, units)
+    if d is None:
+        return None
+    return d if d.startswith(MINUS) or float(value) == 0 else "+" + d
+
+
+# NO BARE DELTA ABOVE 9,999 (T3.3 item 2). The Systemic Liquidity pillar printed
+# "rose +23,154 to $2.95tn" -- bank reserves' change in raw millions, copied from
+# the number beside the display form. A change that large means nothing without
+# its scale, so a published paragraph may not carry one: a signed figure, or one
+# after a change verb, of 10,000 or more with no currency sign, scale word,
+# percent, basis points or points beside it is withheld, naming the display to
+# copy instead.
+_BARE_DELTA = re.compile(
+    r"(?P<lead>(?:\b(?:rose|rising|fell|falling|added|adding|gained|lost|dropped|"
+    r"declined|increased|decreased|climbed|slipped|shed|jumped|grew|shrank|"
+    r"up|down|by)\s+)|[+−-])"
+    r"(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{5,}(?:\.\d+)?)"
+    r"(?!\s?(?:%|percent|per\s?cent|bps?\b|basis|pts\b|points?\b|"
+    r"trillion|billion|million|thousand|tn\b|bn\b|mm\b|k\b))"
+    r"(?![\d.,])", re.I)
+
+
+def bare_deltas(text: Optional[str]) -> list[str]:
+    """Every change of 10,000 or more printed with no unit or scale beside it."""
+    out = []
+    for m in _BARE_DELTA.finditer(text or ""):
+        before = (text or "")[max(0, m.start("num") - 2):m.start("num")]
+        if "$" in before:
+            continue
+        if float(m.group("num").replace(",", "")) >= 10000:
+            out.append(m.group(0).strip())
+    return out
 
 
 def display_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:

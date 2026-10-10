@@ -238,7 +238,7 @@ def group_d(store) -> None:
     check(near(w["delta_5d"], 1.0),
           f"and 100 -> 101 is +1.0 percent, not +1.0 raw (got {w['delta_5d']})")
 
-    # fred.claims_4wk: units 'K' -> raw. 221000 -> 229000 is +8000.
+    # fred.claims_4wk: units 'N' (plain number, T3.3) -> raw. 221000 -> 229000 is +8000.
     seed(store, "fred.claims_4wk", days, [221000.0] * 59 + [229000.0])
     c = derived.derived_forms("fred.claims_4wk", AS_OF, store=store)
     check(c["delta_unit"] == "raw", f"a count moves raw ({c['delta_unit']})")

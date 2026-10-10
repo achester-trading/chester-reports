@@ -765,7 +765,9 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
     cu, cup, cua = two("yfinance.mkt_copper_front")
     au, aup, _ = two("yfinance.mkt_gold_front")
     if cu is not None:
-        rows.append(["Copper, front future ($/lb; a growth gauge)", f"{cu:,.3f}",
+        # IN DOLLARS, AS THE LABEL SAYS (T3.3 item 6): the bare "6.710" typed
+        # as a count in the audit, while the prose wrote "$6.710 per pound".
+        rows.append(["Copper, front future ($/lb; a growth gauge)", f"${cu:,.3f}",
                      _signed(_ret(cu, cup), "%") if cup else "no prior", cua])
         if au is not None:
             r = au / cu

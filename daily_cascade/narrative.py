@@ -679,7 +679,8 @@ def generate(payload: dict, *, model: Optional[str] = None,
              citable_ids: Optional[Any] = None,
              cite_word: str = "event",
              citable_events: Optional[list] = None,
-             market_states: Optional[dict] = None) -> NarrativeResult:
+             market_states: Optional[dict] = None,
+             audit_payload: Optional[dict] = None) -> NarrativeResult:
     """One paragraph over `payload`, audited, or an honest refusal.
 
     Never raises. `client` is injectable so the validation gate can exercise
@@ -691,6 +692,12 @@ def generate(payload: dict, *, model: Optional[str] = None,
     numeral audit, the model pin, thinking off, the rejected text kept. What a
     report may vary is its coverage and its length; what it may not vary is whether
     a figure it prints exists.
+
+    `audit_payload` WIDENS THE AUDIT, NEVER THE PROMPT (T3.3 item 3): figures a
+    paragraph may cite from finished sections it summarises but was not handed --
+    the Monthly's executive summary of The read, whose lines come from the tape.
+    It passes through the same precision, ordinal and signed transforms, and the
+    numeral audit runs against the payload and it together.
     """
     model = model or DEFAULT_MODEL
     res = NarrativeResult(model=model)
@@ -862,7 +869,11 @@ def generate(payload: dict, *, model: Optional[str] = None,
         return res
 
     # THE GATE. Every numeral in the prose against the payload it was given.
-    result = numeral_audit.audit(text, payload, extra_values=unit_constants)
+    reference = payload
+    if audit_payload:
+        reference = {"given": payload, "summarised": numeral_audit.with_signed(
+            numeral_audit.with_ordinals(precision.apply(audit_payload)))}
+    result = numeral_audit.audit(text, reference, extra_values=unit_constants)
     res.audit = result
     res.figures_checked = len(result.figures)
 
