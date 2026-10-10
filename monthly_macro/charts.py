@@ -46,11 +46,12 @@ monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5); M6 is
 one ranked z chart (item 11); M7's two panels are two charts, M7 and M10, each
 beside its block in What's priced (item 12).
 
-THE CAP HOLDS ON WHAT PRINTS. Eleven charts are planned against the cap of ten
-(the brief counted M6's ten panels as ten). Every chart is drawn; if more than
-the cap render, the ones first in DROP_ORDER are set aside, each printing "Chart
-not printed: over the Monthly's cap of 10 charts" in its place. M8 goes first: its
-content arrives with scenario set #1 (Audit #4, item II.2).
+THE CAP HOLDS ON WHAT PRINTS. Eleven charts are planned; the Monthly's cap is 12
+from 9 Oct 2026 (T3.1 ruling; it was 10). M8 counts once scenario set #1 exists:
+while the ledger holds no monthly_macro weight it prints "not yet: scenario set
+#1" and is not drawn. Should more than the cap ever render, the ones first in
+DROP_ORDER are set aside as the fallback, each printing "not printed: over the
+Monthly's cap of N charts" in its place -- M8 first.
 """
 
 from __future__ import annotations
@@ -521,7 +522,7 @@ def scenario_history(rows: list[dict], now: str) -> list[dict]:
 
 def m8(hist: list[dict], name: str, out_dir: Optional[str]) -> dict:
     if not hist:
-        return {"id": "M8", "unavailable": "no Monthly scenario weight in the ledger"}
+        return {"id": "M8", "unavailable": "not yet: scenario set #1"}
     try:
         plt = ch._plt()
         fig, (a1, a2) = plt.subplots(2, 1, figsize=(ch.CHART_W, 4.0), sharex=True,

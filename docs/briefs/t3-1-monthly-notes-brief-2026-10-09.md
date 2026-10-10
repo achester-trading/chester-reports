@@ -5,7 +5,7 @@
 | Status | Ruled 9 Oct 2026 in chat (the operator's notes on the 8 Oct `[DRY RUN]` Monthly, rounds one and two). Binds session B's T3.1 build. |
 | Owner | Ari Chester |
 | Scope | The stacked Monthly only (`monthly_macro/stack.py`, the shared stack code at cadence "monthly", `config/reporting_stack.yaml`). The Weekly and the close change only where a shared builder changes and the change is cadence-gated. |
-| Amends | Doctrine monthly item 7a (no content change to Monthly v2 Phase A before the 23 Oct dry run) — the operator's own ruling, amended by these notes: the executive summary (item 22) and the themes paragraphs (item 21) are content. Everything else is shape. |
+| Amends | Doctrine monthly item 7a (no content change to Monthly v2 Phase A before the 23 Oct dry run) — the operator's own ruling, amended by these notes: the executive summary (item 20) and the themes paragraphs (item 19) are content. Everything else is shape. |
 | Lands | Branch `t3-1-monthly-notes` during the freeze (13–15 Oct); merge to main Fri 16 Oct inside a window; first seen in the 23 Oct dry run. |
 | Hours | ≈ 27 h of session work in two sittings (round one ≈ 17 h, round two ≈ 10 h). |
 
@@ -13,7 +13,7 @@
 
 ## The rulings, section by section
 
-Numbers 1–17 are round one, 18–22 round two, 23 the budget. "Prose" means a model-written paragraph through the Monthly's section writer, behind the same audits as every other paragraph (numeral audit, flag-word audit, "no stored source, not printed"); the writer prints nothing it cannot cite from the section's own data.
+Numbers 1–17 are round one, 18–22 round two, 22 the budget. "Prose" means a model-written paragraph through the Monthly's section writer, behind the same audits as every other paragraph (numeral audit, flag-word audit, "no stored source, not printed"); the writer prints nothing it cannot cite from the section's own data.
 
 ### Delivery
 
@@ -25,7 +25,7 @@ Numbers 1–17 are round one, 18–22 round two, 23 the budget. "Prose" means a 
 3. **Long frames keep their ruled values, labelled with the daily equivalent**: "40-week (≈200-day)", "10-month (≈210-day)", "20-month (≈400-day)". Levels, never signals, as ruled 2 Oct. ~0.25 h.
 4. **Cross-asset table (GTM-14): month, YTD, twelve months.** Prior-month and twelve-month returns from the store's daily closes. ~0.5 h.
 5. **156-week SPY chart carries the "% from high" underlay**, the same construction as the 120-month chart. (`charts.py`.) ~0.5 h.
-6. **A 3-month daily SPY bar chart, placed first**, with the 50- and 200-day averages; then the weekly, then the monthly — daily → weekly → monthly. Chart count net +1 here, −9 under item 13; the cap of ten holds. ~1 h.
+6. **A 3-month daily SPY bar chart, placed first**, with the 50- and 200-day averages; then the weekly, then the monthly — daily → weekly → monthly. Chart count net +1 here, −9 under item 11; the cap of ten holds. ~1 h.
 
 ### What doesn't fit
 

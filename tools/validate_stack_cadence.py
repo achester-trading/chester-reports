@@ -112,7 +112,7 @@ def group_a() -> None:
     check([c["period"] for c in cads.values()] == ["session", "week", "month"],
           "daily, weekly and monthly resolve to session, week and month")
     check(cads["weekly"]["budget"] == {"words": 3500, "charts": 10}
-          and cads["monthly"]["budget"] == {"words": 10000, "charts": 10}
+          and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
           and [cads[n]["reading_target_minutes"] for n in cadence.NAMES] == [5, 20, 55],
           "each carries its budget and reading target from the ratified config")
     check(cads["monthly"]["depth_words"]["deep"] == 450

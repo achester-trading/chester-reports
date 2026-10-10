@@ -69,13 +69,15 @@ bars:
 # 4 Oct: W7 intraday, W8 panel, W9 gauges, W10 priced).
 # THE MONTHLY'S WORDS RISE TO 10,000 (T3.1 item 22, ruled 9 Oct 2026) so that
 # nothing is trimmed to make room for the prose the operator's notes add (about
-# 3,000 words: the executive summary, the buckets' and blocks' reads); the chart
-# cap of ten is unchanged. The operator confirms or changes it at the 23 Oct dry
-# run with the count in front of him.
+# 3,000 words: the executive summary, the buckets' and blocks' reads). The
+# operator confirms or changes it at the 23 Oct dry run with the count in front
+# of him.
+# The Monthly's chart cap: 12 from 9 Oct 2026 (T3.1 ruling; M8 counts once
+# scenario set #1 exists).
 budget:
   daily: {words: 1000, charts: 3}
   weekly: {words: 3500, charts: 10}
-  monthly: {words: 10000, charts: 10}
+  monthly: {words: 10000, charts: 12}
 
 # THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
 # minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's

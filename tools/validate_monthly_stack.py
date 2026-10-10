@@ -713,7 +713,7 @@ def charts_group(cfg: dict) -> None:
     ed = out["edition"]
     charts = out["charts"]
     check(ed.get("chart_plan") == list(mch.ORDER) and cfg["budget"]["monthly"]["charts"]
-          == 10, f"the plan is {', '.join(mch.ORDER)}; the cap of 10 holds on what "
+          == 12, f"the plan is {', '.join(mch.ORDER)}; the cap of 12 holds on what "
                  f"prints")
     check(mch.cap_of({"budget": {"charts": 3}, "sections": [{"depth_reason": None}]})
           == 3 and mch.cap_of({"budget": {"charts": 3},
@@ -723,7 +723,7 @@ def charts_group(cfg: dict) -> None:
     aside = mch.hold_cap(many, 10)
     check(aside == ["M8"] and "cap of 10" in many["M8"]["unavailable"]
           and sum(1 for c in many.values() if not c.get("unavailable")) == 10,
-          "eleven planned: with all rendered, M8 is set aside first and says why "
+          "the fallback: over a cap (here 10), M8 is set aside first and says why "
           "(its content arrives with scenario set #1); ten print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
     nch = ed["chart_count"]
@@ -1569,10 +1569,15 @@ def t31_summary_group(ed: dict, out: dict) -> None:
     check(ms.apply_summary({"sections": ed["sections"]}, {}, False)["summary"] == []
           and not sr.summary_html({"summary": []}),
           "with no narrative step there is no summary, and the page prints none")
-    check(ed.get("budget") == {"words": 10000, "charts": 10}
+    check(ed.get("budget") == {"words": 10000, "charts": 12}
           and ed.get("reading_target_minutes") == 55,
           "item 22: the Monthly's budget is 10,000 words and its target 55 minutes; "
-          "the chart cap stays ten")
+          "the chart cap is 12 (ruled 9 Oct 2026)")
+    from monthly_macro import charts as mch
+    check(mch.m8([], "x", None) == {"id": "M8",
+                                    "unavailable": "not yet: scenario set #1"},
+          "M8 prints \"not yet: scenario set #1\" while the ledger holds no Monthly "
+          "weight, and counts only once it draws")
 
 
 def main() -> int:
@@ -1631,10 +1636,10 @@ def main() -> int:
                                               "appendix"],
           "the old record follows as the detail tables, in order: regime, scenario "
           "record, the register's month, the appendix")
-    check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 10}
+    check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
           and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
                                                      "monthly": 55},
-          "the Monthly budget (10,000 words, 10 charts; T3.1 item 22) and the three "
+          "the Monthly budget (10,000 words, 12 charts; T3.1) and the three "
           "reading targets (5, 20, 55 minutes) are configuration")
     check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
               and s["id"] not in ("positioning",)),
@@ -1808,8 +1813,8 @@ def main() -> int:
 
     # --- E. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE BUDGET, PROSE ONLY\n{LINE}")
-    check(ed["words"] <= 10000 and ed["chart_count"] <= 10,
-          f"{ed['words']} prose words of 10,000 and {ed['chart_count']} charts of 10")
+    check(ed["words"] <= 10000 and ed["chart_count"] <= 12,
+          f"{ed['words']} prose words of 10,000 and {ed['chart_count']} charts of 12")
     e = json.loads(json.dumps(ed))
     before = stack_mod.edition_words(e)
     e["sections"][1]["table"]["rows"] += [["filler"] * 5] * 200
