@@ -141,8 +141,10 @@ monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the t
   stack.py                The stacked edition: builds the sections through the
                           Weekly's builders at cadence "monthly" and the one
                           stack.assemble(), reconciles Monthly v2 Phase A into
-                          them (each fact printed once), enforces the 7,000-word
-                          budget, archives the edition JSON
+                          them (each fact printed once), enforces the 10,000-word
+                          budget (T3.1), opens on the executive summary written
+                          last from the finished sections, archives the edition
+                          JSON
   dealer.py               Mechanics' dealer retrospective: the month's stored
                           dealer.scorecard_day rows, per-session flags by the
                           Weekly's rule, counts and hit rates; "insufficient
@@ -253,8 +255,8 @@ The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` 
 `stack_render.markdown` print a whole edition at any cadence; at "monthly" a
 sub-section carries its own charts and notes, a Reading entry's stored summary
 prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
-never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 7,000
-words. A section declared at one cadence only (Reading) is skipped at the others
+never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
+words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is

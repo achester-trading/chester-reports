@@ -21,7 +21,8 @@ monthly_macro.stack with a fake model client:
   D PHASE A     every Monthly v2 Phase A fact printed, each exactly once: no
                 Phase A id twice, no table row twice, the takeaways once, the
                 themes' first sentences not repeated as a summary.
-  E BUDGET      7,000 prose words and 10 charts; words count prose only (a table
+  E BUDGET      10,000 prose words (T3.1 item 22; 7,000 before) and 10 charts;
+                words count prose only (a table
                 adds none); over budget, paragraphs go, "(trimmed)" prints, and no
                 claim, item or table is cut.
   F RETRY       a section the audit withholds is retried once with the reason fed
@@ -1039,7 +1040,8 @@ def reading_group(cfg: dict) -> None:
     check(before == sm.edition_words({"sections": [dict(s, subsections=[])
                                                    if s["id"] == "reading" else s
                                                    for s in e2["sections"]],
-                                      "detail": e2["detail"]})
+                                      "detail": e2["detail"],
+                                      "summary": e2.get("summary")})
           and rd.stored_words(e2) == rd.stored_words(rs_only)
           and rd.stored_words(e2) > 50,
           f"the summaries are not this edition's prose: no budget word "
@@ -1522,6 +1524,57 @@ def t31_scenarios_themes_group(ed: dict, out: dict) -> None:
           "a family not yet sourced says what it needs, and asks for no paragraph")
 
 
+def t31_summary_group(ed: dict, out: dict) -> None:
+    """N10: the executive summary (T3.1 item 20) and the budget (item 22)."""
+    from daily_cascade import stack as stack_mod, stack_render as sr
+    from monthly_macro import prose as prose_mod, stack as ms
+    print(f"\n{LINE}\nN10. T3.1 ITEMS 20 AND 22: THE EXECUTIVE SUMMARY, THE BUDGET\n{LINE}")
+    summ = ed.get("summary") or []
+    check([e["id"] for e in summ] == [s["id"] for s in ed["sections"]],
+          f"item 20: one summary paragraph per section, in stack order, the read "
+          f"to Slow layers ({len(summ)})")
+    sw = out.get("summary_written") or {}
+    live = [s["id"] for s in ed["sections"] if not s.get("empty")]
+    check(sorted(k.split(":", 1)[1] for k in sw) == sorted(live)
+          and all(e.get("note") for e in summ if e["id"] not in live),
+          "one audited call per section with something to say; an empty section "
+          "prints its empty note")
+    tape = next(e for e in summ if e["id"] == "tape")
+    check(not tape["text"] and tape["note"] == prose_mod.SUMMARY_WITHHELD
+          and "999" in str(sw["summary:tape"].get("first_reason"))
+          and sw["summary:tape"]["attempts"] == 2,
+          "a paragraph the audit withholds, after its one retry, prints \"(summary "
+          "withheld — audit)\" rather than an unaudited sentence")
+    plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
+    sl = (plan.get("summary:plumbing") or {}).get("slice") or {}
+    check(sl.get("section") == "Plumbing & rates" and "subsections" in sl
+          and not any(k in json.dumps(sl) for k in ("month_in_markets",
+                                                     "looking_back")),
+          "each call sees its finished section -- claim, paragraphs, tables, lines, "
+          "points -- never the raw payload")
+    html, md = out["html_email"], out["markdown"]
+    check("Executive summary" in html and html.index("Executive summary")
+          < html.index("1 &middot; The read") and prose_mod.SUMMARY_WITHHELD in html
+          and md.index("## Executive summary") < md.index("## 1 · The read"),
+          "it opens the edition, before section 1, in the HTML and the Markdown")
+    check(ed.get("summary_minutes") and f"About {ed['summary_minutes']} minute"
+          in html and "with section 1" in md,
+          f"the short path prints its own reading time, the summary with section 1 "
+          f"({ed.get('summary_minutes')} min)")
+    n = sum(stack_mod.words(e.get("text")) for e in summ)
+    check(n and ed["words"] == stack_mod.edition_words(ed)
+          and stack_mod.edition_words(dict(ed, summary=[])) == ed["words"] - n,
+          f"the summary is prose and counts in the budget ({n} of {ed['words']} "
+          f"words)")
+    check(ms.apply_summary({"sections": ed["sections"]}, {}, False)["summary"] == []
+          and not sr.summary_html({"summary": []}),
+          "with no narrative step there is no summary, and the page prints none")
+    check(ed.get("budget") == {"words": 10000, "charts": 10}
+          and ed.get("reading_target_minutes") == 55,
+          "item 22: the Monthly's budget is 10,000 words and its target 55 minutes; "
+          "the chart cap stays ten")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1543,6 +1596,10 @@ def main() -> int:
             "Credit widened by 998 basis points.\n\nStill not in the data."],
         # F: a fault is not retried.
         "THE SECTION: Positioning & flows": [RuntimeError("fixture API outage")],
+        # N10: the tape's summary paragraph cites a figure its section does not
+        # print, twice -- withheld, and the page says so in its place.
+        '"The tape". A reader': ["The tape moved 999 points.",
+                                 "The tape moved 998 points."],
     }
     arch = str(Path(TD) / "reports")
     out = ms.produce(p, archive_dir=arch, client=client(calls, script), db_path=DB)
@@ -1574,11 +1631,11 @@ def main() -> int:
                                               "appendix"],
           "the old record follows as the detail tables, in order: regime, scenario "
           "record, the register's month, the appendix")
-    check(cfg["budget"]["monthly"] == {"words": 7000, "charts": 10}
+    check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 10}
           and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
-                                                     "monthly": 40},
-          "the Monthly budget (7,000 words, 10 charts) and the three reading "
-          "targets (5, 20, 40 minutes) are configuration")
+                                                     "monthly": 55},
+          "the Monthly budget (10,000 words, 10 charts; T3.1 item 22) and the three "
+          "reading targets (5, 20, 55 minutes) are configuration")
     check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
               and s["id"] not in ("positioning",)),
           "every non-empty section opens with a claim line (Positioning's call "
@@ -1604,9 +1661,9 @@ def main() -> int:
           f"{words} prose words and {ed['chart_count']} charts read in "
           f"{ed['reading_minutes']} minute(s), by the Weekly's formula")
     check(f"about {rd.plural(mins, 'minute')} to read" in out["html_email"]
-          and "target 40 minutes" in out["html_email"]
+          and "target 55 minutes" in out["html_email"]
           and f"about {rd.plural(mins, 'minute')} to read" in out["markdown"],
-          "the header prints it the way the Weekly's does, beside its 40-minute "
+          "the header prints it the way the Weekly's does, beside its 55-minute "
           "target, in the HTML and the Markdown")
     check("Changed since last Monthly" in out["html_email"],
           "and the header carries what changed since the last Monthly")
@@ -1751,8 +1808,8 @@ def main() -> int:
 
     # --- E. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE BUDGET, PROSE ONLY\n{LINE}")
-    check(ed["words"] <= 7000 and ed["chart_count"] <= 10,
-          f"{ed['words']} prose words of 7,000 and {ed['chart_count']} charts of 10")
+    check(ed["words"] <= 10000 and ed["chart_count"] <= 10,
+          f"{ed['words']} prose words of 10,000 and {ed['chart_count']} charts of 10")
     e = json.loads(json.dumps(ed))
     before = stack_mod.edition_words(e)
     e["sections"][1]["table"]["rows"] += [["filler"] * 5] * 200
@@ -1808,6 +1865,7 @@ def main() -> int:
     t31_ahead_group(ed)
     t31_narratives_group(ed, out)
     t31_scenarios_themes_group(ed, out)
+    t31_summary_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

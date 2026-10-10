@@ -67,16 +67,22 @@ bars:
 # and paragraphs the model writes. Tables and the code-written lines beneath them
 # are data and are never counted or cut. The Weekly's chart cap is 10 (ruled
 # 4 Oct: W7 intraday, W8 panel, W9 gauges, W10 priced).
+# THE MONTHLY'S WORDS RISE TO 10,000 (T3.1 item 22, ruled 9 Oct 2026) so that
+# nothing is trimmed to make room for the prose the operator's notes add (about
+# 3,000 words: the executive summary, the buckets' and blocks' reads); the chart
+# cap of ten is unchanged. The operator confirms or changes it at the 23 Oct dry
+# run with the count in front of him.
 budget:
   daily: {words: 1000, charts: 3}
   weekly: {words: 3500, charts: 10}
-  monthly: {words: 7000, charts: 10}
+  monthly: {words: 10000, charts: 10}
 
 # THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
 # minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's
 # estimate is prose words at 250 a minute plus 20 seconds a chart
 # (daily_cascade/readability.py); these are what it is read against.
-reading_targets_minutes: {daily: 5, weekly: 20, monthly: 40}
+# The Monthly's target rose from 40 to 55 minutes with its words (T3.1 item 22).
+reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55}
 
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
 # (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).
@@ -181,7 +187,7 @@ depth_words: {deep: 150, medium: 80, light: 35, short: 35, line: 25}
 depth_words_weekly: {deep: 420, medium: 220, light: 60, short: 60, line: 40}
 # The Monthly's (T3, session-set, not part of item 10): forty minutes against
 # twenty, and the long-form Monthly v2 prose (themes, the look-ahead, our read)
-# sits inside the same 7,000-word budget.
+# sits inside the same budget (10,000 words since T3.1 item 22).
 depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 
 # THE CADENCES (T2.6, 8 Oct 2026): one entry per stacked report, read by

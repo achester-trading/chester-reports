@@ -495,6 +495,39 @@ def edition_minutes(ed: dict) -> int:
     return int(ed.get("reading_minutes") or rd.reading_minutes(ed))
 
 
+def summary_html(ed: dict) -> str:
+    """THE EXECUTIVE SUMMARY (T3.1 item 20, the Monthly's): after the header and
+    before section 1, one paragraph per section under the section's name, with
+    the short path's own reading time -- the summary with section 1. Nothing
+    when the edition carries no summary (every other report)."""
+    summ = ed.get("summary") or []
+    if not summ:
+        return ""
+    mins = ed.get("summary_minutes")
+    out = [f'<h2 style="{SECTION}">Executive summary</h2>']
+    if mins:
+        out.append(f'<p style="{SUB}">About {esc(rd.plural(int(mins), "minute"))} to '
+                   f'read, with section 1 &middot; the short path</p>')
+    for e in summ:
+        out.append(f'<p style="{PARA}"><strong>{esc(e.get("title"))}.</strong> '
+                   f'{esc(e.get("text") or e.get("note") or "")}</p>')
+    return "".join(out)
+
+
+def md_summary(ed: dict) -> list[str]:
+    """As summary_html, for the Markdown."""
+    summ = ed.get("summary") or []
+    if not summ:
+        return []
+    out = ["## Executive summary\n"]
+    if ed.get("summary_minutes"):
+        out.append(f"*About {rd.plural(int(ed['summary_minutes']), 'minute')} to "
+                   f"read, with section 1 · the short path*\n")
+    out += [f"**{e.get('title')}.** {e.get('text') or e.get('note') or ''}\n"
+            for e in summ]
+    return out
+
+
 def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
               charts: Optional[dict] = None, changed_head: Optional[str] = None,
               what: Optional[str] = None) -> str:
@@ -513,7 +546,7 @@ def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
                        ed.get("changed_since") or [], changed_head,
                        extra_html=(f" &middot; target {esc(target)} minutes"
                                    if target else ""), wrap=wrap)
-    return (f'<div style="{WRAP}">{head}{secs}'
+    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{secs}'
             f'{details_html(ed.get("detail"), cadence)}'
             f'{glossary_html(_glossary_entries(), ed, wrap)}'
             + page_footer(ed, ed.get("run_id"), ed.get("archive_path"),
@@ -641,6 +674,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
     if ed.get("changed_since") and changed_head:
         out.append(f"**{changed_head}**\n")
         out += [f"- {x}" for x in ed["changed_since"]] + [""]
+    out += md_summary(ed)
     limit = cad.get("paragraphs")
     for n, s in enumerate(ed["sections"], start=1):
         out.append(f"## {n} · {s['title']}" + (f" — *{s['subtitle']}*"

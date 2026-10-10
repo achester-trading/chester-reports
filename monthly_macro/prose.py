@@ -522,6 +522,71 @@ def block_plan(ed: dict) -> list[dict]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# THE EXECUTIVE SUMMARY (T3.1 item 20, ruled 9 Oct 2026): one paragraph per
+# section, in stack order, opening the edition. BUILT LAST, FROM THE FINISHED
+# SECTIONS -- each call sees only what its section prints (its claim, its
+# paragraphs, its tables, lines, points and reading entries, and the data they
+# were written from), never the raw payload -- and through the same writer and
+# audits, with the one retry. A paragraph the audit withholds prints "(summary
+# withheld — audit)" rather than an unaudited sentence.
+# ---------------------------------------------------------------------------
+SUMMARY_RULES = """
+
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE PARAGRAPH of
+the EXECUTIVE SUMMARY that opens {report}: the paragraph for its section
+"{title}". A reader may read only the summary, so it must stand alone. Every
+other rule above still holds -- every figure from the data given, signs and
+percentile ordinals as the data gives them, no recommendation.
+
+SHAPE. THREE TO FIVE sentences of continuous prose. Carry the section's
+takeaways -- what it says about the {period} -- and its two or three
+load-bearing figures, each copied exactly as the section prints it. Introduce no
+figure, name or claim the section does not print. No headings, bullets, lists or
+bold. Write about the market, never about this report or its sections.
+"""
+SUMMARY_WITHHELD = "(summary withheld — audit)"
+
+
+def summary_slice(s: dict) -> dict:
+    """What a finished section prints, for its summary paragraph."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    subs = [{"title": ss.get("title"), "table": ss.get("table"),
+             "lines": ss.get("lines"), "points": ss.get("points"),
+             "paragraphs": ss.get("paragraphs"),
+             "entries": [{"publication": e.get("publication"),
+                          "summary": e.get("summary") or e.get("line")}
+                         for e in ss.get("entries") or []]}
+            for ss in s.get("subsections") or []]
+    return {"section": s["title"], "claim": s.get("claim"),
+            "paragraphs": s.get("paragraphs"), "table": s.get("table"),
+            "points": s.get("points"),
+            "entries": [{"publication": e.get("publication"),
+                         "summary": e.get("summary") or e.get("line")}
+                        for e in s.get("entries") or []],
+            "subsections": subs, "data": sp._scrub(s.get("data") or {})}
+
+
+def summary_plan(ed: dict) -> list[dict]:
+    """One entry per section that is not empty, in stack order -- the read,
+    the tape, ..., Reading, Ahead, the book, Slow layers. An empty section gets
+    no call; its summary line is its empty note."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
+        .replace("{frames}", MONTHLY_FRAMES)
+    out = []
+    for s in ed.get("sections") or []:
+        if s.get("empty"):
+            continue
+        system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
+            report="the Monthly", title=s["title"], period="month") + tape
+        out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
+                    "kind": "stack", "sid": s["id"], "system": system,
+                    "max_chars": 1400, "slice": summary_slice(s)})
+    return out
+
+
 def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
     """The stack's tape rules (daily_cascade.stack_prose), and in Mechanics the
     flag words held to the per-session flags (monthly_macro.dealer)."""
@@ -553,13 +618,15 @@ def _not_retried(r: dict) -> bool:
 
 def write_all(p: dict, *, model: Optional[str] = None, client=None,
               only: Optional[Callable[[dict], bool]] = None,
-              ed: Optional[dict] = None) -> dict:
+              ed: Optional[dict] = None,
+              secs: Optional[list[dict]] = None) -> dict:
     """{section key: result}, one audited call each -- and, for a section the
     audit withholds, ONE RETRY with the audit's reason fed back (T3: the stack's
     retry, extended to the Monthly's section writer). Never raises.
 
     With `ed` (the stacked edition, monthly_macro.stack), the stack's own
-    sections are written too, after the Monthly v2 sections."""
+    sections are written too, after the Monthly v2 sections. With `secs`, only
+    those calls are made (the executive summary's, summary_plan)."""
     from daily_cascade import narrative as base
     states = _market_states(p)
     try:
@@ -568,7 +635,8 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
     except Exception:                                           # noqa: BLE001
         pm_cfg = None
     out: dict[str, dict] = {}
-    secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
+    if secs is None:
+        secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
     def attempt(sec: dict, system: str) -> dict:
         stack = sec.get("kind") == "stack"

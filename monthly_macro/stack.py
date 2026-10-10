@@ -1676,6 +1676,55 @@ def apply_prose(ed: dict, written: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# The executive summary (T3.1 item 20)
+# ---------------------------------------------------------------------------
+def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
+    """ed["summary"]: one entry per section in stack order -- its paragraph as
+    published (one paragraph, polished), "(summary withheld — audit)" with the
+    reason kept where the audit withheld it, or the section's empty note where it
+    had nothing new. No narrative step, no summary. Then the short path's
+    reading time: the summary with section 1."""
+    from . import prose as prose_mod                             # noqa: PLC0415
+    if not narrative:
+        ed["summary"] = []
+        return ed
+    year = None
+    try:
+        year = dt.date.fromisoformat(str(ed.get("session"))[:10]).year
+    except ValueError:
+        pass
+    out = []
+    for s in ed.get("sections") or []:
+        e = {"id": s["id"], "title": s["title"], "text": None}
+        if s.get("empty"):
+            e["note"] = s.get("empty_note") or "Nothing new this month."
+        else:
+            r = written.get(f"summary:{s['id']}") or {}
+            if r.get("published") and r.get("text"):
+                e["text"] = rd.polish(" ".join(_paras(r["text"])), year)
+            else:
+                e["note"] = prose_mod.SUMMARY_WITHHELD
+                e["withheld"] = r.get("reason") or r.get("state") or "not written"
+        out.append(e)
+    ed["summary"] = out
+    ed.setdefault("prose", {}).update(
+        {k: {kk: v.get(kk) for kk in ("state", "published", "reason", "attempts",
+                                       "first_reason", "words")}
+         for k, v in written.items()})
+    return ed
+
+
+def summary_minutes(ed: dict) -> int:
+    """The short path's reading time (T3.1 item 22): the executive summary and
+    section 1, at the shared rate."""
+    import math                                                  # noqa: PLC0415
+    read = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
+    n = (sum(stack_mod.words(x.get("text")) for x in ed.get("summary") or [])
+         + stack_mod.section_words(read))
+    return max(1, math.ceil(n / rd.WORDS_PER_MINUTE))
+
+
+# ---------------------------------------------------------------------------
 # The budget: the shared guard (T2.7)
 # ---------------------------------------------------------------------------
 def enforce_budget(ed: dict) -> dict:
@@ -1688,6 +1737,8 @@ def enforce_budget(ed: dict) -> dict:
     Reading chapter prints (readability.stored_words)."""
     stack_mod.enforce_budget(ed, CADENCE)
     ed["reading_minutes"] = rd.reading_minutes(ed)
+    if ed.get("summary"):
+        ed["summary_minutes"] = summary_minutes(ed)
     return ed
 
 
@@ -1776,13 +1827,31 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
         charts = {}
     ed["levels"] = book
     polish(ed, charts)
+    # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item
+    # 20): the sections are finished first -- each paragraph cut to its depth,
+    # The read's repeats withheld -- then one audited call per section over what
+    # that section now prints. The summary is prose and counts in the budget;
+    # it is never cut, so over the budget the body's lowest-priority paragraphs
+    # go, in the guard below.
+    rd.finalize(ed, CADENCE)
+    rd.withhold_duplicates(ed)
+    sw: dict = {}
+    if narrative:
+        try:
+            sw = prose_mod.write_all(p, model=model, client=client, ed=ed,
+                                     secs=prose_mod.summary_plan(ed))
+        except Exception:                                       # noqa: BLE001
+            log.exception("the executive summary faulted; each paragraph prints "
+                          "as withheld")
+    apply_summary(ed, sw, narrative)
     # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
     # formatting pass, run after it, wrote the key back -- so nothing after
     # the budget may rewrite the edition's prose.
     enforce_budget(ed)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
-    return {"edition": public(ed), "written": written, "charts": charts,
+    return {"edition": public(ed), "written": written, "summary_written": sw,
+            "charts": charts,
             "inline_images": [(sr.cid(k), c["png"])
                               for k, c in charts.items() if c.get("png")],
             "html_email": html(ed, mode="email", charts=charts),

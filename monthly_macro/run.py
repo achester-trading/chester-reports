@@ -130,10 +130,16 @@ def build_stack(p: dict, args, log, out_dir, prior_dir=None) -> dict:
     archive), `out_dir` where the charts are written."""
     from . import stack as stack_mod
     try:
-        return stack_mod.produce(
+        out = stack_mod.produce(
             p, archive_dir=out_dir, prior_dir=prior_dir,
-            narrative=not args.skip_narrative,
+            narrative=not args.skip_narrative, model=args.narrative_model,
             write=lambda ed: write_prose(p, args, log, ed))
+        sw = out.get("summary_written") or {}
+        held = [k for k, r in sw.items() if not r.get("published")]
+        if sw:
+            log.info("executive summary: %d paragraph(s), %d withheld%s", len(sw),
+                     len(held), f" ({', '.join(held)})" if held else "")
+        return out
     except Exception:                                          # noqa: BLE001
         log.exception("the stacked Monthly faulted; rendering the v2 layout")
         return None
