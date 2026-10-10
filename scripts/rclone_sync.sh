@@ -236,6 +236,32 @@ copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
 log "  prune: $PRUNE"
 
+# --- the one inbound file: the AAII weekly row (10 Oct 2026) ----------------
+# The chat-side task "AAII weekly read -- Thursday" appends a row a week to
+# chester-vendor-checks/aaii/aaii-weekly.csv in Drive; this copies exactly
+# that one named file into the inbox the AAII writer reads. Same remote, its
+# path replaced. `copyto` of one file, never a sync: the inbox only gains or
+# overwrites that file. It runs after the trees and the prune and NEVER
+# touches RC -- a missing or failed pull is a log line, not a failed backup.
+pull_aaii_weekly() {
+    local rname="${REMOTE%%:*}" dest="$DATA_DIR/inbox/aaii/aaii-weekly.csv"
+    local src="$rname:chester-vendor-checks/aaii/aaii-weekly.csv"
+    if ! timeout 2m rclone lsf "$rname:chester-vendor-checks/aaii" --files-only \
+            --include "/aaii-weekly.csv" $RCLONE_LIMITS 2>>"$LOG" \
+            | grep -qx "aaii-weekly.csv"; then
+        log "  aaii weekly: skip -- $src is absent (or unlistable)"
+        return 0
+    fi
+    if timeout 3m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
+            --log-file "$LOG" --log-level INFO; then
+        log "  aaii weekly: ok -> $dest"
+    else
+        log "  aaii weekly: FAILED copyto (not counted against the sweep)"
+    fi
+    return 0
+}
+pull_aaii_weekly || true
+
 if [[ $RC -eq 0 ]]; then
     finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi
