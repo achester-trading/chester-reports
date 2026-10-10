@@ -257,6 +257,17 @@ POINT_HEAD = ("font-size:13px;font-weight:600;color:#0d2b45;margin:10px 0 2px 0;
               "line-height:1.4")
 BULLETS = "margin:2px 0 10px 0;padding-left:18px;font-size:12.5px;line-height:1.5"
 BULLET = "margin:0 0 2px 0;overflow-wrap:anywhere"
+BULLET_SOURCE = "font-size:11px;color:#6b7785;line-height:1.4"
+
+
+def _bullet(x: Any) -> str:
+    """A bullet is a string, or {"text", "source"}: the source prints on its
+    own line under the bullet (T3.1 item 17, the voices)."""
+    if isinstance(x, dict):
+        src = (f'<br><span style="{BULLET_SOURCE}">{esc(x["source"])}</span>'
+               if x.get("source") else "")
+        return f'<li style="{BULLET}">{esc(x.get("text"))}{src}</li>'
+    return f'<li style="{BULLET}">{esc(x)}</li>'
 
 
 def _a(text: Any, url: Optional[str]) -> str:
@@ -298,8 +309,7 @@ def points_html(b: dict) -> str:
             out.append(f'<p style="{PARA}">{esc(pt["sentence"])}</p>')
         if pt.get("bullets"):
             out.append(f'<ul style="{BULLETS}">'
-                       + "".join(f'<li style="{BULLET}">{esc(x)}</li>'
-                                 for x in pt["bullets"]) + "</ul>")
+                       + "".join(_bullet(x) for x in pt["bullets"]) + "</ul>")
     return "".join(out)
 
 
@@ -555,7 +565,13 @@ def md_points(b: dict) -> list[str]:
         out.append(f"**{pt.get('head')}**\n")
         if pt.get("sentence"):
             out.append(f"{pt['sentence']}\n")
-        out += [f"- {x}" for x in pt.get("bullets") or []]
+        for x in pt.get("bullets") or []:
+            if isinstance(x, dict):
+                out.append(f"- {x.get('text')}"
+                           + (f"  \n  <sub>{x['source']}</sub>" if x.get("source")
+                              else ""))
+            else:
+                out.append(f"- {x}")
         if pt.get("bullets"):
             out.append("")
     return out

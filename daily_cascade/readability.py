@@ -201,7 +201,8 @@ def _polish_points(b: dict, P) -> None:
     for pt in b.get("points") or []:
         pt["head"] = P(pt.get("head"))
         pt["sentence"] = P(pt.get("sentence"))
-        pt["bullets"] = [P(x) for x in pt.get("bullets") or []]
+        pt["bullets"] = [({**x, "text": P(x.get("text"))} if isinstance(x, dict)
+                          else P(x)) for x in pt.get("bullets") or []]
 
 
 def _polish_more(b: dict, P) -> None:

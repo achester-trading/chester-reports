@@ -255,6 +255,27 @@ def seed(db: str, dealer_sessions: int) -> None:
         " '{}', '{}', 'yen_carry', 'seed', ?, ?)", ("2026-09-15", now_iso, now_iso))
     nr.conn.commit()
     nr.close()
+    # T3.1 items 16-17: three voices, two on the yen carry (one each side) and
+    # one on no story; the register's first row is 18 Sep, younger than the
+    # three-month window.
+    from altdata import voices as vmod
+    with vmod.VoicesStore(db) as vs:
+        for voice, url, day, side, view in (
+                ("Alpha Strategist", "https://fixture.example/v1", "2026-09-18",
+                 "for", "Expects the yen to keep strengthening as carry unwinds."),
+                ("Bravo Economist", "https://fixture.example/v2", "2026-09-25",
+                 "against", "Sees the carry trade holding while rate gaps stay wide."),
+                ("Charlie Analyst", "https://fixture.example/v3", "2026-09-22",
+                 None, "Expects equities to grind higher into year-end.")):
+            vs.write({"voice": voice, "affiliation": "Fixture Bank",
+                      "kind": "sell_side", "view": view, "outlet": "Goldman Sachs",
+                      "source_url": url, "published_at": day,
+                      "retrieved_at": f"{day}T11:00:00+00:00", "tier": 2,
+                      "directions": [{"subject": "us_equities",
+                                      "direction": "bullish"}],
+                      "source_id": "fixture", "origin": "scan",
+                      **({"stories": [{"story": "yen_carry", "side": side}]}
+                         if side else {})}, stories={"yen_carry"})
     es = events.EventStore(db)
     for i, (typ, at, source, title, pay) in enumerate([
             ("headline", "2026-09-18T12:00:00+00:00", "google_news",
@@ -1404,6 +1425,61 @@ def t31_ahead_group(ed: dict) -> None:
           "a reason prints only beside a rank of 4 or 5")
 
 
+def t31_narratives_group(ed: dict, out: dict) -> None:
+    """N8: the Narratives' longer horizons and the voices as prose (T3.1
+    items 16-17)."""
+    print(f"\n{LINE}\nN8. T3.1 ITEMS 16-17: NARRATIVES\n{LINE}")
+    nar = next(s for s in ed["sections"] if s["id"] == "narratives")
+    subs = {ss["title"]: ss for ss in nar["subsections"]}
+    roll = next((ss for t, ss in subs.items() if t.startswith("The four weeks")), {})
+    cols = (roll.get("table") or {}).get("columns") or []
+    rows = {r[0]: r for r in (roll.get("table") or {}).get("rows") or []}
+    yen = rows.get("The yen carry") or []
+    check(cols[-2:] == ["Three months", "Since the register began (18 Sep)"],
+          f"item 16: the story table gains the three months and the register's "
+          f"whole span ({cols[-2:]})")
+    check(yen and yen[-2] == "since 18 Sep: 1 for / 1 against"
+          and yen[-1] == "1 for / 1 against",
+          f"where the register is younger than the window the cell says \"since 18 "
+          f"Sep\" with the count it has, never a blank ({yen[-2:] if yen else None})")
+    check(not any((ss.get("table") or {}).get("columns", [""])[0] == "Voice"
+                  for ss in nar["subsections"]),
+          "item 17: the voices table no longer prints")
+    vy = next((ss for t, ss in subs.items() if t.startswith("Voices: The yen carry")),
+              {})
+    pt = (vy.get("points") or [{}])[0]
+    b = pt.get("bullets") or []
+    check(pt.get("head", "").startswith("The yen carry")
+          and "1 for and 1 against this month; 1 for and 1 against over three "
+              "months" in pt.get("head", "")
+          and "dissent from" not in pt.get("head", "")
+          and len(b) == 2 and all(isinstance(x, dict) and x["source"].startswith(
+              "Source: Goldman Sachs, ") and "https://fixture.example/" in x["source"]
+              for x in b),
+          "per story: who said what as bullets, each with its source line beneath")
+    check(all("Status this month" in x["text"] and "over three months" in x["text"]
+              and "(since 18 Sep)" in x["text"] for x in b),
+          "each voice carries its status this month and over three months, the "
+          "latter \"since 18 Sep\"")
+    check(vy.get("paragraphs") and "block:voices:yen_carry" in out["written"],
+          "and one short written paragraph per story, through the section writer")
+    vo = subs.get("Voices on no story") or {}
+    check([p["head"] for p in vo.get("points") or []]
+          == ["Charlie Analyst, Fixture Bank (sell-side strategist)"]
+          or any("Charlie Analyst" in p["head"] for p in vo.get("points") or []),
+          "a voice heard on no story prints after the stories, with its status and "
+          "source")
+    html = out["html_email"]
+    check(sr_bullet_source_in(html) and "Consensus against contrarian" in html,
+          "the page prints the bullets with their source lines, and the consensus "
+          "line")
+
+
+def sr_bullet_source_in(html: str) -> bool:
+    from daily_cascade import stack_render as sr
+    return f'<br><span style="{sr.BULLET_SOURCE}">Source: Goldman Sachs' in html
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1688,6 +1764,7 @@ def main() -> int:
     t31_positioning_group(ed, out)
     t31_priced_group(ed, out)
     t31_ahead_group(ed)
+    t31_narratives_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

@@ -310,7 +310,95 @@ def week_section(week_ending: str, as_of: str, db_path: Optional[str] = None,
 # The Monthly: the voices table with monthly status, the four weeks rolled up,
 # and 13F where the voice's firm files one
 # ---------------------------------------------------------------------------
+def _month_back(day: str, months: int) -> str:
+    """The first of the month `months` calendar months before `day`'s."""
+    d = dt.date.fromisoformat(str(day)[:10]).replace(day=1)
+    y, m = d.year, d.month - months
+    while m < 1:
+        y, m = y - 1, m + 12
+    return dt.date(y, m, 1).isoformat()
+
+
+def _since_label(day: Optional[str]) -> Optional[str]:
+    if not day:
+        return None
+    d = dt.date.fromisoformat(str(day)[:10])
+    return f"since {d.day} {d:%b}"
+
+
+def _counts(ev: list[dict], sid: str) -> dict:
+    c = Counter(e["side"] for e in ev if e["narrative_id"] == sid)
+    return {"for": c.get("for", 0), "against": c.get("against", 0)}
+
+
+def _count_cell(c: dict, since: Optional[str] = None) -> str:
+    """'3 for / 1 against', or 'since 4 Oct: 3 for / 1 against' where the
+    register is younger than the window -- never a blank (T3.1 item 16)."""
+    txt = f"{c['for']} for / {c['against']} against"
+    return f"{since}: {txt}" if since else txt
+
+
+def month_stories(st: dict, ev_m: list[dict], ev_3: list[dict], ev_all: list[dict],
+                  stories: dict, st3: list[dict], f13: dict,
+                  since3: Optional[str]) -> tuple[list[dict], list[dict]]:
+    """THE VOICES AS A PROSE VIEW (T3.1 item 17): for each active story, who
+    said what over the month -- each item's voice, side and audited view, its
+    computed status this month and over three months, and its source -- and who
+    dissented; then the voices the month heard on no story. Every line a stored
+    row; every view through printed_view's audit."""
+    from altdata import labels                                  # noqa: PLC0415
+    by_name = {v["row"]["voice"]: v for v in st["voices"]}
+    by_name3 = {v["row"]["voice"]: v for v in st3}
+
+    def status_of(name: str) -> tuple[str, str]:
+        m = (by_name.get(name) or {}).get("status") or "—"
+        t = (by_name3.get(name) or {}).get("status") or "—"
+        return m, (f"{t} ({since3})" if since3 and t != "—" else t)
+
+    out, named = [], set()
+    for s in story_items(ev_m, stories):
+        sid = s["story"]
+        items = []
+        for e in s["items"]:
+            m, t = status_of(e["voice"])
+            named.add(e["voice"])
+            items.append({"voice": e["voice"], "kind": _kind(e["kind"]),
+                          "side": e["side"], "view": printed_view(e),
+                          "status_month": m, "status_three_months": t,
+                          "source": cite(e)})
+        out.append({"story": sid,
+                    "title": labels.story(sid).get("title") or s["name"],
+                    "state": s["state"], "month": _counts(ev_m, sid),
+                    "three_months": _counts(ev_3, sid),
+                    "since_start": _counts(ev_all, sid), "items": items,
+                    "minority": s["minority"],
+                    "dissent": [e["voice"] for e in s["dissent"]]})
+    others = []
+    for v in st["voices"]:
+        r = v["row"]
+        if r["voice"] in named:
+            continue
+        m, t = status_of(r["voice"])
+        f = f13.get(v["voice_key"])
+        others.append({"voice": r["voice"], "affiliation": r["affiliation"],
+                       "kind": _kind(r["kind"]),
+                       "view": (printed_view(r) if v["status"] not in
+                                ("SILENT", "UNREACHABLE")
+                                else f"last: {printed_view(r)}"),
+                       "status_month": m, "status_three_months": t,
+                       "source": f"{cite(r)} (tier {r['tier']})",
+                       "13f": (f"{f['form']} for {f['period_of_report']} (filed "
+                               f"{f['filed']}, {f['source_url']})" if f else None)})
+    return out, others
+
+
 def month_block(month_end: str, as_of: str, db_path: Optional[str] = None) -> dict:
+    """The Monthly's voices. T3.1 (ruled 9 Oct 2026): the four weeks' story
+    table gains the three months and the register's whole span (item 16), and
+    the voices print as a prose view by story (item 17, month_stories), each
+    voice with its status this month and over three months. Where the register
+    (Phase B, from 4 Oct) is younger than a window, the cell says "since 4 Oct"
+    with the count it has."""
     end = (dt.date.fromisoformat(month_end[:10]) + dt.timedelta(days=1)).isoformat()
     st = vmod.status_table(end, "monthly", as_of=as_of, db_path=db_path)
     stories = _stories(db_path)
@@ -333,6 +421,18 @@ def month_block(month_end: str, as_of: str, db_path: Optional[str] = None) -> di
                                       for sid in stories}})
             e = s
         runs = vs.latest_runs(as_of)
+        # THE LONGER HORIZONS (T3.1 item 16): the three months to the month's
+        # end and the register's whole span, from the same stored evidence.
+        s3 = _month_back(st["start"], 2)
+        rows_all = vs.rows(as_of=as_of)
+        ev_all = vs.evidence(as_of=as_of, until=st["end"])
+        ev_3 = [x for x in ev_all if str(x["published_at"])[:10] >= s3]
+        ev_m = [x for x in ev_all if str(x["published_at"])[:10] >= st["start"]]
+        st3 = vmod.compute_status(rows_all, s3, st["end"], _month_back(s3, 3), runs)
+    starts = sorted(str(x.get("retrieved_at") or "")[:10]
+                    for x in list(rows_all) + list(ev_all) if x.get("retrieved_at"))
+    reg_start = starts[0] if starts else None
+    since3 = _since_label(reg_start) if reg_start and reg_start > s3 else None
     weeks.reverse()
     roll_rows = []
     for sid, s in stories.items():
@@ -340,7 +440,11 @@ def month_block(month_end: str, as_of: str, db_path: Optional[str] = None) -> di
         for w in weeks:
             c = w["stories"].get(sid) or {}
             row.append(f"{c.get('for', 0)} for / {c.get('against', 0)} against")
+        row.append(_count_cell(_counts(ev_3, sid), since3))
+        row.append(_count_cell(_counts(ev_all, sid)))
         roll_rows.append(row)
+    by_story, others = month_stories(st, ev_m, ev_3, ev_all, stories, st3, f13,
+                                     since3)
     return {"state": "ok" if st["voices"] else "empty",
             "reason": None if st["voices"] else
             "no voice was stored in the month or the month before",
@@ -349,8 +453,14 @@ def month_block(month_end: str, as_of: str, db_path: Optional[str] = None) -> di
             "table": table(st, with_13f=f13),
             "consensus": consensus_line(st)["text"],
             "rollup": {"columns": ["Story"] + [f"Week to {w['week_ending']}"
-                                               for w in weeks],
+                                               for w in weeks]
+                       + ["Three months", "Since the register began"
+                          + (f" ({_since_label(reg_start)[6:]})" if reg_start
+                             else "")],
                        "rows": roll_rows},
+            "by_story": by_story, "other_voices": others,
+            "register_start": reg_start, "three_month_start": s3,
+            "three_months_label": since3,
             "unreachable": unreachable_line(runs),
             "voices": len(st["voices"]),
             "with_13f": len(f13)}

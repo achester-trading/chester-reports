@@ -848,6 +848,62 @@ def _series_rows(rows: list[dict]) -> list[list]:
     return out
 
 
+def _story_head(s: dict) -> str:
+    m, t = s["month"], s["three_months"]
+    head = (f"{s['title']}: {m['for']} for and {m['against']} against this month; "
+            f"{t['for']} for and {t['against']} against over three months")
+    if s.get("dissent"):
+        head += f"; dissent from {', '.join(dict.fromkeys(s['dissent']))}"
+    return head + "."
+
+
+def voices_prose_view(vb: dict) -> tuple[list[dict], list[str]]:
+    """The Monthly's voices as sub-sections (T3.1 item 17): the consensus line;
+    one per story the month's voices bore on, with its counts as the header,
+    each item a bullet with its source beneath, and one short paragraph asked of
+    the writer; then the voices heard on no story. Code-written from
+    voices_block.month_block; nothing here reads a row itself."""
+    subs, ids = [], ["voices:table"]
+    lead = [f"Consensus against contrarian: {vb.get('consensus')}"] \
+        if vb.get("consensus") else []
+    quiet = [s["title"] for s in vb.get("by_story") or [] if not s.get("items")]
+    if quiet:
+        lead.append("No sourced voice bore on " + "; ".join(quiet) + " this month.")
+    if vb.get("consensus"):
+        ids.append("voices:consensus")
+    subs.append({"title": "Voices", "lines": lead})
+    for s in vb.get("by_story") or []:
+        if not s.get("items"):
+            continue
+        bullets = [{"text": f"{x['voice']} ({x['kind']}), {x['side']}: {x['view']} "
+                            f"Status this month {x['status_month']}; over three "
+                            f"months {x['status_three_months']}.",
+                    "source": f"Source: {x['source']}"} for x in s["items"]]
+        subs.append({"title": f"Voices: {s['title']}",
+                     "phase": f"block:voices:{s['story']}",
+                     "points": [{"head": _story_head(s), "bullets": bullets}],
+                     "data": {k: s[k] for k in ("title", "state", "month",
+                                                "three_months", "since_start",
+                                                "items", "minority", "dissent")},
+                     "prose": {"words": "40 to 80",
+                               "scope": "who said what about this story over the "
+                                        "month, their status, and who dissented, "
+                                        "each named as the bullets name them"}})
+    others = vb.get("other_voices") or []
+    if others:
+        pts = []
+        for x in others:
+            b = [{"text": f"Status this month {x['status_month']}; over three months "
+                          f"{x['status_three_months']}.",
+                  "source": f"Source: {x['source']}"}]
+            if x.get("13f"):
+                b.append(f"13F: {x['13f']}")
+            pts.append({"head": f"{x['voice']}, {x['affiliation']} ({x['kind']})",
+                        "sentence": x["view"], "bullets": b})
+        subs.append({"title": "Voices on no story", "points": pts})
+    return subs, ids
+
+
 def narratives_section(p: dict, on_tape: Optional[set] = None,
                        in_plumbing: Optional[set] = None) -> dict:
     lb = p.get("looking_back") or {}
@@ -896,7 +952,18 @@ def narratives_section(p: dict, on_tape: Optional[set] = None,
     if vb.get("state") in ("ok", "empty"):
         if vb.get("state") == "empty":
             nt.append(str(vb.get("reason") or "no voice stored this month"))
-        if (vb.get("table") or {}).get("rows"):
+        if vb.get("by_story") is not None and (vb.get("table") or {}).get("rows"):
+            # THE VOICES AS PARAGRAPHS AND BULLETS (T3.1 item 17): per story,
+            # who said what, each voice's status this month and over three
+            # months, and the dissent, the source under each bullet; one short
+            # written paragraph per story. voices_block built every line.
+            vsubs, vids = voices_prose_view(vb)
+            subs += vsubs
+            ids += vids
+            items.append(item("narr:voices", f"{len(vb['table']['rows'])} voice(s) "
+                              f"this month.", 1, vb["table"]["rows"]))
+            items[-1]["show"] = False
+        elif (vb.get("table") or {}).get("rows"):
             subs.append({"title": "Voices", "table": vb["table"],
                          "lines": ([f"Consensus against contrarian: "
                                     f"{vb.get('consensus')}"]
