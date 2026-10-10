@@ -18,7 +18,9 @@ is audited against (`book`, altdata/levels.py at the month-end session): the
 scorecard (the flip and max pain each morning), which is what the Mechanics
 prose is held to.
 
-    M1  SPY, three years of weekly candles, the 40-week average     The tape
+    M0  SPY, three months of daily candles, the 50- and 200-day     The tape
+    M1  SPY, three years of weekly candles, the 40-week average,
+        and the drawdown from the high                            The tape
     M2  SPY, ten years of monthly candles, the 10- and 20-month,
         and the drawdown from the high                            The tape
     M3  the dealer retrospective: the month's closes against the
@@ -36,6 +38,9 @@ prose is held to.
 
 The cap is the Monthly's chart budget (10); a fired depth trigger lifts it by
 one, as on every cadence.
+
+T3.1 (ruled 9 Oct 2026): M0 is new and prints first -- daily, then weekly, then
+monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5).
 """
 
 from __future__ import annotations
@@ -50,14 +55,16 @@ from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
 
-ORDER = ("M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9")
+ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9")
 # Where each chart prints: (section id, sub-section title or None).
-PLACE = {"M1": ("tape", None), "M2": ("tape", None), "M3": ("mechanics", None),
+PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
+         "M3": ("mechanics", None),
          "M4": ("plumbing", None), "M5": ("plumbing", None),
          "M6": ("positioning", None), "M7": ("priced", None),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
          "M9": ("book", None)}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
+DAILY_TYPES = ("ma_50d", "ma_200d")
 BREAKEVENS = (("fred.breakeven_5y", "5-year"), ("fred.breakeven_10y", "10-year"),
               ("fred.breakeven_5y5y", "5y5y forward"))
 
@@ -161,6 +168,55 @@ def _unstack_level_labels(ax, min_gap_px: float = 11.0) -> None:
         t.xyann = (3, shift * 72.0 / ax.figure.dpi)
 
 
+def m0(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
+    """Three months of daily candles with the 50- and 200-day averages, from the
+    level list (T3.1 item 6): the first of the tape's three frames."""
+    bars = daily[-63:]
+    title = (ch.span_title("SPY in daily bars", len(bars), "sessions",
+                           str(bars[0]["observed_at"]), str(bars[-1]["observed_at"]),
+                           _plain_span(len(bars), 63, "sessions", "three months"))
+             if bars else "SPY in daily bars, three months")
+    r = ch.candle_chart("M0", bars, book or {}, "spy", DAILY_TYPES, title,
+                        f"{len(bars)} daily bars", name, out_dir, min_bars=20,
+                        tick_every=15)
+    if not r.get("unavailable"):
+        r["title"] = title
+    return r
+
+
+def _with_drawdown(cid: str, bars: list[dict], book: dict, title: str, unit: str,
+                   name: str, out_dir: Optional[str], tick_every: int) -> dict:
+    """Candles on a log axis with the long-frame levels, over an underlay of
+    each bar's close against the highest close before it -- M2's construction,
+    which M1 shares (T3.1 item 5)."""
+    plt = ch._plt()
+    fig, (ax, ax2) = plt.subplots(2, 1, figsize=(ch.CHART_W, 4.4), sharex=True,
+                                  gridspec_kw={"height_ratios": [3, 1]})
+    ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
+    for a in (ax, ax2):
+        a.tick_params(labelsize=7)
+        for side in ("top", "right"):
+            a.spines[side].set_visible(False)
+    r = _candles_log(cid, bars, book, title, f"{len(bars)} {unit}", name,
+                     out_dir, ax=ax, fig=fig, tick_every=tick_every)
+    dd = drawdowns(bars)
+    ax2.fill_between(range(len(dd)), dd, 0, color=ch.DOWN, alpha=0.35,
+                     linewidth=0)
+    ax2.plot(range(len(dd)), dd, color=ch.DOWN, linewidth=0.8)
+    ax2.set_ylabel("From the high, %", fontsize=7)
+    fig.tight_layout()
+    out = ch._finish(fig, name, out_dir)
+    worst = min(range(len(dd)), key=lambda i: dd[i])
+    cap = (ch.caption("SPY", f"{len(bars)} {unit}", r["drawn"])
+           + f"; drawdown from the high {dd[-1]:+.1f}% at "
+             f"{bars[-1]['observed_at']}, deepest {dd[worst]:+.1f}% at "
+             f"{bars[worst]['observed_at']}")
+    return {"id": cid, "title": title, "drawn": r["drawn"], "caption": cap,
+            **out, "drawdown_pct": round(dd[-1], 2),
+            "series": [{k: b[k] for k in ("observed_at", "open", "high", "low",
+                                           "close")} for b in bars]}
+
+
 def m1(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict:
     wk = ch.weekly_bars(daily)[-156:]
     if len(wk) < 20:
@@ -169,13 +225,8 @@ def m1(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict
         title = ch.span_title("SPY in weekly bars", len(wk), "weeks",
                               wk[0]["observed_at"], wk[-1]["observed_at"],
                               _plain_span(len(wk), 156, "weeks", "three years"))
-        r = _candles_log("M1", wk, book, title, f"{len(wk)} weekly bars", name, out_dir,
-                         tick_every=26)
-        out = ch._finish(r["fig"], name, out_dir)
-        return {"id": "M1", "title": title, "drawn": r["drawn"],
-                "caption": ch.caption("SPY", f"{len(wk)} weekly bars", r["drawn"]),
-                **out, "series": [{k: b[k] for k in ("observed_at", "open", "high",
-                                                      "low", "close")} for b in wk]}
+        return _with_drawdown("M1", wk, book, title, "weekly bars", name, out_dir,
+                              tick_every=26)
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "M1", "unavailable": f"{type(exc).__name__}: {exc}"}
 
@@ -185,35 +236,11 @@ def m2(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict
     if len(mo) < 12:
         return {"id": "M2", "unavailable": f"{len(mo)} monthly bars stored, 12 needed"}
     try:
-        plt = ch._plt()
-        fig, (ax, ax2) = plt.subplots(2, 1, figsize=(ch.CHART_W, 4.4), sharex=True,
-                                      gridspec_kw={"height_ratios": [3, 1]})
         title = ch.span_title("SPY in monthly bars", len(mo), "months",
                               mo[0]["observed_at"], mo[-1]["observed_at"],
                               _plain_span(len(mo), 120, "months", "ten years"))
-        ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
-        for a in (ax, ax2):
-            a.tick_params(labelsize=7)
-            for side in ("top", "right"):
-                a.spines[side].set_visible(False)
-        r = _candles_log("M2", mo, book, title, f"{len(mo)} monthly bars", name,
-                         out_dir, ax=ax, fig=fig, tick_every=24)
-        dd = drawdowns(mo)
-        ax2.fill_between(range(len(dd)), dd, 0, color=ch.DOWN, alpha=0.35,
-                         linewidth=0)
-        ax2.plot(range(len(dd)), dd, color=ch.DOWN, linewidth=0.8)
-        ax2.set_ylabel("From the high, %", fontsize=7)
-        fig.tight_layout()
-        out = ch._finish(fig, name, out_dir)
-        worst = min(range(len(dd)), key=lambda i: dd[i])
-        cap = (ch.caption("SPY", f"{len(mo)} monthly bars", r["drawn"])
-               + f"; drawdown from the high {dd[-1]:+.1f}% at "
-                 f"{mo[-1]['observed_at']}, deepest {dd[worst]:+.1f}% at "
-                 f"{mo[worst]['observed_at']}")
-        return {"id": "M2", "title": title, "drawn": r["drawn"], "caption": cap,
-                **out, "drawdown_pct": round(dd[-1], 2),
-                "series": [{k: b[k] for k in ("observed_at", "open", "high", "low",
-                                               "close")} for b in mo]}
+        return _with_drawdown("M2", mo, book, title, "monthly bars", name, out_dir,
+                              tick_every=24)
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "M2", "unavailable": f"{type(exc).__name__}: {exc}"}
 
@@ -538,6 +565,7 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
             daily, _ = levels_mod.daily_bars(levels_mod.tape_spec("spy"), last, now, st)
         except Exception:                                       # noqa: BLE001
             daily = []
+        run("M0", lambda: m0(book or {}, daily, f"{base}_m0", out_dir))
         run("M1", lambda: m1(book or {}, daily, f"{base}_m1", out_dir))
         run("M2", lambda: m2(book or {}, daily, f"{base}_m2", out_dir))
         run("M3", lambda: m3((retro or {}).get("sessions") or [], f"{base}_m3",

@@ -218,10 +218,15 @@ def _closes(st, key: str, now: str) -> list[tuple[str, float]]:
 
 def _ytd_fund(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
     """Total return from the last close on or before `start` to the last on or
-    before `end`, a dividend added on its ex-date and not reinvested."""
+    before `end`, a dividend added on its ex-date and not reinvested. A start
+    close more than a week before `start` is not that day's (the scorecard's
+    rule): the window is not spanned and the answer is None."""
     px = [x for x in _closes(st, key, now) if x[0] <= end]
     p0 = [x for x in px if x[0] <= start]
     if not p0 or not px or px[-1][0] <= p0[-1][0]:
+        return None
+    if (dt.date.fromisoformat(start[:10])
+            - dt.date.fromisoformat(p0[-1][0])).days > 7:
         return None
     (d0, v0), (d1, v1) = p0[-1], px[-1]
     div = sum(v for d, v in _closes(st, f"{key}_dividend", now) if d0 < d <= d1)
@@ -249,11 +254,30 @@ def _ytd_bill(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
             "pct": round(100.0 * (val - 1.0), 2), "dividends": None}
 
 
-def cross_asset_ytd(st, last: str, now: str, cfg: dict) -> dict:
+def _year_back(day: str) -> str:
+    d = dt.date.fromisoformat(str(day)[:10])
+    try:
+        return d.replace(year=d.year - 1).isoformat()
+    except ValueError:                                          # 29 February
+        return d.replace(year=d.year - 1, day=28).isoformat()
+
+
+def _pct_cell(r: Optional[dict]) -> str:
+    return "—" if r is None else f"{r['pct']:+.2f}%"
+
+
+def cross_asset_ytd(st, last: str, now: str, cfg: dict,
+                    month_start: Optional[str] = None) -> dict:
     """GTM-14: the quilt's current column, from the proxies the store holds,
-    ranked. Code-written; a class without a proxy or without closes says why."""
+    ranked by the year to date. Beside it the month and the twelve months (T3.1
+    item 4), by the same total-return rule over the store's daily closes: the
+    month from the close on or before `month_start` (the prior month-end), the
+    twelve months from the close on or before the same day a year earlier. A
+    window the store cannot span prints a dash. Code-written; a class without a
+    proxy or without closes says why."""
     year = int(str(last)[:4])
     start, end = f"{year - 1}-12-31", str(last)[:10]
+    t12 = _year_back(end)
     got, nt = [], []
     for c in cfg.get("monthly_cross_asset_ytd") or []:
         if c.get("absent") or not c.get("key"):
@@ -265,35 +289,96 @@ def cross_asset_ytd(st, last: str, now: str, cfg: dict) -> dict:
             nt.append(f"{c['label']} year to date ({c['proxy']}): the store holds no "
                       f"close at both {start} and the month end")
             continue
-        got.append({**c, **r})
+        mo = fn(st, c["key"], month_start, end, now) if month_start else None
+        yr = fn(st, c["key"], t12, end, now)
+        got.append({**c, **r, "month": mo, "twelve": yr})
     got.sort(key=lambda r: -r["pct"])
-    rows = [[n, r["label"], str(r["proxy"]), f"{r['pct']:+.2f}%"]
+    rows = [[n, r["label"], str(r["proxy"]), _pct_cell(r["month"]),
+             f"{r['pct']:+.2f}%", _pct_cell(r["twelve"])]
             for n, r in enumerate(got, start=1)]
     ends = sorted({r["to"] for r in got})
-    note = (f"Total return from the {start} close to the {end} close"
+    note = (f"Total return to the {end} close"
             + (f" (latest close {ends[0]})" if ends and ends[0] != end else "")
-            + ": a fund's dividends added on their ex-dates, not reinvested; cash "
-              "at the 3-month bill, rate x days / 360. Proxies are funds, not the "
-              "indices JPM's quilt uses (GTM-14).")
+            + (f": the month from the {month_start} close, " if month_start
+               else ": ")
+            + f"the year to date from the {start} close, the twelve months from the "
+              f"{t12} close; a fund's dividends added on their ex-dates, not "
+              "reinvested; cash at the 3-month bill, rate x days / 360. Ranked by "
+              "the year to date. Proxies are funds, not the indices JPM's quilt "
+              "uses (GTM-14).")
     return {"rows": rows, "not_tracked": nt, "note": note if rows else None,
             "data": [{"rank": n, "class": r["label"], "proxy": r["proxy"],
-                      "ytd_pct": r["pct"], "from": r["from"], "to": r["to"]}
+                      "month_pct": (r["month"] or {}).get("pct"),
+                      "ytd_pct": r["pct"],
+                      "twelve_month_pct": (r["twelve"] or {}).get("pct"),
+                      "from": r["from"], "to": r["to"]}
                      for n, r in enumerate(got, start=1)]}
+
+
+# THE LONG FRAME'S AVERAGES, each with its daily equivalent (T3.1 item 3): the
+# ruled values stay -- levels, never signals (2 Oct) -- and a reader used to the
+# 200-day sees where each one sits.
+LONG_FRAME_LABELS = {"ma_40w": "40-week (≈200-day)", "ma_10m": "10-month (≈210-day)",
+                     "ma_20m": "20-month (≈400-day)"}
+
+
+def year_end_close(st, key: str, year: int, now: str) -> Optional[tuple[str, float]]:
+    """The last close on or before 31 December of `year`, as knowable at `now`;
+    None when that close is more than a week before the year's end -- an old
+    level is not the year-end's (the scorecard's own rule)."""
+    px = [x for x in _closes(st, key, now) if x[0] <= f"{year}-12-31"]
+    return px[-1] if px and px[-1][0] >= f"{year}-12-24" else None
+
+
+def _ytd_move(r: dict, ye: Optional[tuple[str, float]]) -> Optional[dict]:
+    """A scorecard row's year to date in the row's own unit: basis points for a
+    yield or a spread, percent for a price, raw otherwise."""
+    end = r.get("end_level")
+    if ye is None or end is None:
+        return None
+    v0 = ye[1]
+    if r.get("change_unit") == "bps":
+        return {"from": ye[0], "value": round((float(end) - v0) * 100.0, 1),
+                "unit": "bps"}
+    if r.get("change_unit") == "percent":
+        if not v0:
+            return None
+        return {"from": ye[0], "value": round(100.0 * (float(end) / v0 - 1.0), 2),
+                "unit": "percent"}
+    return {"from": ye[0], "value": round(float(end) - v0, 4), "unit": "raw"}
+
+
+def _ytd_text(y: Optional[dict]) -> str:
+    if y is None:
+        return "—"
+    if y["unit"] == "bps":
+        return stack_mod._signed(y["value"], "bp")
+    if y["unit"] == "percent":
+        return stack_mod._signed(y["value"], "%")
+    return _v(y["value"], 4)
 
 
 def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = None,
                  now: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
     m = p.get("month_in_markets") or {}
     rows = m.get("rows") or []
-    items, trows = [], []
+    items, trows, ytds = [], [], {}
+    # THE CLOSE AND THE MOVE, AND THE YEAR TO DATE (T3.1 item 2): the prior
+    # month-end's close is dropped -- the move carries it -- and the year to date
+    # is the row's own unit from the last close on or before the prior year-end
+    # the store holds.
+    year = int(str(m.get("end") or last or "2000")[:4])
     for r in rows:
+        ye = (year_end_close(st, r["metric"], year - 1, now)
+              if st is not None and now and r.get("metric") else None)
+        ytds[r["id"]] = _ytd_move(r, ye)
         items.append(item(f"tape:{r['id']}", f"{r['label']} {_lvl(r, 'end')}, "
                           f"{_move(r)} on the month.", 1 if r is rows[0] else 2,
                           (r.get("end_level"), r.get("change"))))
-        trows.append([r["label"], _lvl(r, "start"), _lvl(r, "end"), _move(r),
+        trows.append([r["label"], _lvl(r, "end"), _move(r), _ytd_text(ytds[r["id"]]),
                       _v(r.get("percentile"), 1)])
-    table = {"columns": ["Market", f"Close, {m.get('start')}", f"Close, {m.get('end')}",
-                         "Move", "Level, 5y percentile"], "rows": trows}
+    table = {"columns": ["Market", f"Close, {m.get('end')}", "Move", "Year to date",
+                         "Level, 5y percentile"], "rows": trows}
     # THE LONG FRAME: levels, never signals; a cross counts only after the
     # monthly close (item 10). The 40-week, 10-month and 20-month averages from
     # the level list, beside the month-end close and the drawdown.
@@ -314,21 +399,25 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
         nt.append("the long-frame averages (40-week, 10-month, 20-month): the store "
                   "holds too few daily closes to resample")
     subs = [{"title": "The long frame: levels, never signals",
-             "table": {"columns": ["Market", "Month-end close", "40-week average",
-                                   "10-month average", "20-month average",
+             "table": {"columns": ["Market", "Month-end close",
+                                   f"{LONG_FRAME_LABELS['ma_40w']} average",
+                                   f"{LONG_FRAME_LABELS['ma_10m']} average",
+                                   f"{LONG_FRAME_LABELS['ma_20m']} average",
                                    "From the 52-week high"], "rows": lf_rows},
              "not_tracked": nt}]
     ytd = None
     if st is not None and last and now:
         try:
-            ytd = cross_asset_ytd(st, last, now, cfg or {})
+            ytd = cross_asset_ytd(st, last, now, cfg or {},
+                                  month_start=m.get("start"))
         except Exception as exc:                                # noqa: BLE001
             log.warning("cross-asset year to date unavailable", exc_info=True)
             nt.append(f"the cross-asset year to date: FAULT {exc}")
     if ytd is not None:
         subs.append({"title": "Across assets, year to date",
                      "table": {"columns": ["Rank", "Asset class", "Proxy",
-                                           "Year to date"], "rows": ytd["rows"]},
+                                           "The month", "Year to date",
+                                           "Twelve months"], "rows": ytd["rows"]},
                      "notes": [ytd["note"]] if ytd["note"] else [],
                      "not_tracked": ytd["not_tracked"]})
         items.extend(item(f"tape:ytd:{r['class']}", f"{r['class']} "
@@ -345,6 +434,7 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
             "data": {"month": m.get("month"), "from": m.get("start"),
                      "to": m.get("end"),
                      "moves": [{"market": r["label"], "move": _move(r),
+                                "year_to_date": _ytd_text(ytds.get(r["id"])),
                                 "level_percentile_5y": r.get("percentile")}
                                for r in rows],
                      "long_frame": lf_data, "levels": levels,

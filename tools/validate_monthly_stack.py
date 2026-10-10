@@ -200,6 +200,10 @@ def seed(db: str, dealer_sessions: int) -> None:
         if b is not None:
             put(f"yfinance.mkt_{s}", None, M_END, b)
     put("yfinance.mkt_eem", None, M_END, 45.0)
+    # T3.1 item 2: the tape's year to date -- the 10-year's 2025 year-end close,
+    # and an S&P 500 close too old to be the year-end's (it must print a dash).
+    put("fred.yield_10y", None, "2025-12-31", 4.40)
+    put("yfinance.mkt_gspc", None, "2025-12-10", 4800.0)
     put("yfinance.mkt_hyg_dividend", None, "2025-12-15", 0.5)
     put("yfinance.mkt_hyg_dividend", None, "2026-03-02", 1.0)
     put("fred.tbill_3m", None, "2025-12-01", 4.0)
@@ -497,7 +501,7 @@ def ytd_group(cfg: dict, ed: dict, out: dict) -> None:
     sub = next((ss for ss in tape["subsections"]
                 if ss["title"] == "Across assets, year to date"), None)
     rows = (sub or {}).get("table", {}).get("rows") or []
-    got = {r[1]: (r[0], r[2], r[3]) for r in rows}
+    got = {r[1]: (r[0], r[2], r[4]) for r in rows}
 
     def pct(x: str) -> float:                    # the polish prints U+2212
         return float(x.rstrip("%").replace("−", "-"))
@@ -515,9 +519,24 @@ def ytd_group(cfg: dict, ed: dict, out: dict) -> None:
           f"each class's total return from the 31 Dec 2025 close to the 30 Sep "
           f"close, as hand-computed ({len(got)} classes)")
     check([r[0] for r in rows] == list(range(1, len(rows) + 1))
-          and [pct(r[3]) for r in rows]
+          and [pct(r[4]) for r in rows]
           == sorted(want.values(), reverse=True),
           "ranked, best first")
+    mo = {r[1]: (r[3], r[5]) for r in rows}
+    bill_m = 100.0 * ((1 + 0.04 / 360) ** 30 - 1)
+    check(sub and sub["table"]["columns"] == ["Rank", "Asset class", "Proxy",
+                                              "The month", "Year to date",
+                                              "Twelve months"]
+          and mo.get("U.S. large cap", ("",))[0] == "+1.00%"
+          and mo.get("U.S. small cap", ("",))[0] == "+2.00%",
+          f"N2 (item 4): the month beside the year to date, by the same rule (SPY "
+          f"100 to 101: {mo.get('U.S. large cap')})")
+    check(mo.get("High-yield bonds", ("",))[0] == "—"
+          and all(v[1] == "—" for v in mo.values())
+          and abs(pct(mo.get("Cash", ("+0%",))[0]) - round(bill_m, 2)) < 0.006,
+          "N2 (item 4): a window the store cannot span prints a dash -- HYG has no "
+          "month-start close, and no class a close a year back; cash accrues the "
+          "month at the bill")
     check(got.get("High-yield bonds", (0, ""))[1] == "HYG"
           and want["High-yield bonds"] == 3.75,
           "a dividend inside the year is added on its ex-date and not reinvested; "
@@ -660,16 +679,18 @@ def charts_group(cfg: dict) -> None:
     point(DB)
     ed = out["edition"]
     charts = out["charts"]
+    nch = len(mch.ORDER)
     check(ed.get("chart_plan") == list(mch.ORDER) and cfg["budget"]["monthly"]["charts"]
-          == 10, "the plan is M1-M9, inside the Monthly's cap of 10")
+          == 10 and nch <= 10,
+          f"the plan is {mch.ORDER[0]}-{mch.ORDER[-1]}, inside the Monthly's cap of 10")
     tiny = mch.plan({"budget": {"charts": 3}, "sections": [{"depth_reason": None}]})
     lifted = mch.plan({"budget": {"charts": 3},
                        "sections": [{"depth_reason": "CPI released"}]})
-    check(tiny == ["M1", "M2", "M3"] and len(lifted) == 4,
+    check(tiny == list(mch.ORDER[:3]) and len(lifted) == 4,
           "the cap is the budget's, and a fired trigger lifts it by one")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
-    check(not bad and ed["chart_count"] == 9,
-          f"with history stored, all nine render ({ed['chart_count']})"
+    check(not bad and ed["chart_count"] == nch,
+          f"with history stored, all {nch} render ({ed['chart_count']})"
           + (f" -- unavailable: {bad}" if bad else ""))
     ok = [c for c in charts.values() if not c.get("unavailable")]
     check(ok and all(c["png_bytes"] <= dch.MAX_PNG_BYTES and c["png"][:4] == b"\x89PNG"
@@ -687,9 +708,10 @@ def charts_group(cfg: dict) -> None:
           "every title names its count, its plain span and its dates")
     check("M2" in charts and "ten years" in charts["M2"]["title"]
           and "M1" in charts and "three years" in charts["M1"]["title"]
+          and "M0" in charts and "three months" in charts["M0"]["title"]
           and "twenty years" in charts["M5"]["title"],
-          "the spans are the brief's: three years weekly, ten years monthly, "
-          "twenty years of the spread")
+          "the spans are the brief's: three months daily, three years weekly, ten "
+          "years monthly, twenty years of the spread")
     book = ed.get("levels") or {}
     check(all(mch.drawn_levels_ok(c, book) for c in ok)
           and {d["type"] for d in charts["M1"]["drawn"]} == {"ma_40w"}
@@ -697,6 +719,17 @@ def charts_group(cfg: dict) -> None:
           and charts["M2"]["drawn"],
           "M1 and M2 draw only levels from the level list: the 40-week; the 10- and "
           "20-month")
+    tape0 = next(s for s in ed["sections"] if s["id"] == "tape")
+    check(tape0.get("charts_rendered", [])[:3] == ["M0", "M1", "M2"]
+          and charts["M0"]["drawn"]
+          and {d["type"] for d in charts["M0"]["drawn"]} <= {"ma_50d", "ma_200d"}
+          and len(charts["M0"]["series"]) == 63,
+          "N2 (item 6): M0, three months of daily bars with the 50- and 200-day "
+          "from the level list, prints first in the tape -- daily, weekly, monthly")
+    check("drawdown from the high" in charts["M1"]["caption"]
+          and charts["M1"].get("drawdown_pct") is not None,
+          "N2 (item 5): the 156-week chart carries the % from high underlay, M2's "
+          "construction")
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     prose_levels = {(k, v) for lv in tape["data"]["levels"] for k, v in lv.items()
                     if k not in ("symbol", "name")}
@@ -714,7 +747,8 @@ def charts_group(cfg: dict) -> None:
         for ss in s.get("subsections") or []:
             for c in ss.get("charts_rendered") or []:
                 where[c] = f"{s['id']}/{ss['title']}"
-    check(where == {"M1": "tape", "M2": "tape", "M3": "mechanics", "M4": "plumbing",
+    check(where == {"M0": "tape", "M1": "tape", "M2": "tape", "M3": "mechanics",
+                    "M4": "plumbing",
                     "M5": "plumbing", "M6": "positioning", "M7": "priced",
                     "M8": "ahead/Scenarios, and what would change our mind",
                     "M9": "book"},
@@ -732,8 +766,8 @@ def charts_group(cfg: dict) -> None:
           "the Markdown carries each chart with its caption as the alt text")
     check(ed["reading_minutes"] == max(1, math.ceil(
               (ed["words"] + rd.stored_words(ed)) / rd.WORDS_PER_MINUTE
-              + 9 * rd.SECONDS_PER_CHART / 60.0)),
-          "the reading time counts the nine charts at 20 seconds each")
+              + nch * rd.SECONDS_PER_CHART / 60.0)),
+          f"the reading time counts the {nch} charts at 20 seconds each")
     hist = mch.scenario_history([
         {"source": "monthly_macro", "scenario_set": "monthly_macro:2026-09",
          "claim": "a", "probability": 0.7, "emitted_at": "2026-09-02",
@@ -1081,6 +1115,39 @@ def t31_phone_group(ed: dict, out: dict) -> None:
           "cadence's (config `mobile_tables`)")
 
 
+def t31_tape_group(ed: dict, out: dict) -> None:
+    """N2: the tape (T3.1 items 2-4; the charts, items 5-6, in K)."""
+    print(f"\n{LINE}\nN2. T3.1 ITEMS 2-6: THE TAPE\n{LINE}")
+    tape = next(s for s in ed["sections"] if s["id"] == "tape")
+    t = tape.get("table") or {}
+    rows = {r[0]: r for r in t.get("rows") or []}
+    norm = lambda x: str(x).replace("−", "-")                    # noqa: E731
+    check(t.get("columns") == ["Market", f"Close, {M_END}", "Move", "Year to date",
+                               "Level, 5y percentile"]
+          and not any(f"Close, {M_START}" in c for c in t.get("columns") or []),
+          "item 2: the first table is the close and the move, plus the year to date; "
+          "the prior month-end's close is gone")
+    iwm = rows.get("Russell 2000 (IWM)") or []
+    y10 = rows.get("10-year Treasury") or []
+    spx = rows.get("S&P 500") or []
+    check(iwm and norm(iwm[3]) == f"{100 * (102 / 104 - 1):+.2f}%"
+          and y10 and norm(y10[3]) == "-15 bp",
+          f"the year to date in the row's own unit, from the prior year-end close: "
+          f"IWM {iwm[3] if iwm else None}, the 10-year {y10[3] if y10 else None}")
+    check(spx and spx[3] == "—",
+          "a close more than a week before the year's end is not the year-end's: "
+          "the S&P 500 prints a dash")
+    lf = next((ss for ss in tape["subsections"]
+               if ss["title"].startswith("The long frame")), {})
+    cols = (lf.get("table") or {}).get("columns") or []
+    check(cols[2:5] == ["40-week (≈200-day) average", "10-month (≈210-day) average",
+                        "20-month (≈400-day) average"],
+          "item 3: the long frame keeps its ruled averages, each labelled with its "
+          "daily equivalent")
+    check("Year to date" in out["markdown"] and "40-week (≈200-day)" in out["html_email"],
+          "both print in the HTML and the Markdown")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1359,6 +1426,7 @@ def main() -> int:
           "and a section published first time is called once")
 
     t31_phone_group(ed, out)
+    t31_tape_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)
