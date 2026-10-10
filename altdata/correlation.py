@@ -569,12 +569,22 @@ def credit_escalation(breaks: list[dict], cfg: Optional[dict] = None) -> list[st
                    and b["benchmark"] == "spy" and b["direction"] == "away"})
 
 
-def shifts_between(st, start: str, now: str, cfg: Optional[dict] = None) -> list[dict]:
-    """Every pair whose stored shift flag was on at a session in (start, now],
-    with the evaluation on its strongest flagged day, strongest first."""
+def weekly_shift_pairs(cfg: Optional[dict] = None) -> list[tuple]:
+    """The pairs whose shifts the Weekly may print: config weekly.shift_pairs,
+    the named rows' matrix pairs. All-pairs shifts are the Monthly's."""
+    c = cfg or config()
+    want = {tuple(p.split("__")) for p in (c.get("weekly") or {}).get("shift_pairs") or []}
+    return [p for p in pairs(c) if p in want or p[::-1] in want]
+
+
+def shifts_between(st, start: str, now: str, cfg: Optional[dict] = None,
+                   only: Optional[list] = None) -> list[dict]:
+    """Every pair (or every pair in `only`) whose stored shift flag was on at a
+    session in (start, now], with the evaluation on its strongest flagged day,
+    strongest first."""
     c = cfg or config()
     out = []
-    for a, b in pairs(c):
+    for a, b in (pairs(c) if only is None else only):
         on = [d for d, v, _ in _stored(st, shift_key(a, b), now)
               if d > start[:10] and v >= 0.5]
         if not on:
@@ -602,11 +612,14 @@ def label(aid: str, cfg: Optional[dict] = None) -> str:
 
 
 def weekly_line(st, now: str, then: str, cfg: Optional[dict] = None) -> Optional[dict]:
-    """The Weekly's one line: only in a week a break or a shift fired; None
-    otherwise, and the Weekly then prints nothing."""
+    """The Weekly's one line: only in a week a break or a shift OF A NAMED ROW
+    (weekly.shift_pairs) fired; None otherwise, and the Weekly then prints
+    nothing. All-pairs shifts are the Monthly's top five, never this line."""
     c = cfg or config()
+    wk = c.get("weekly") or {}
+    nb, ns = int(wk.get("breaks_shown", 3)), int(wk.get("shifts_shown", 2))
     brk = breaks_between(st, then, now, c)
-    sh = shifts_between(st, then, now, c)
+    sh = shifts_between(st, then, now, c, only=weekly_shift_pairs(c))
     if not brk and not sh:
         return None
     parts = []
@@ -615,15 +628,15 @@ def weekly_line(st, now: str, then: str, cfg: Optional[dict] = None) -> Optional
         shown = ", ".join(f"{label(b['asset'], c)} {b['direction']}"
                           f"{' from' if b['direction'] == 'away' else ''} "
                           f"{b['benchmark'].upper()} ({b['delta']:+.2f})"
-                          for b in brk[:3])
-        more = f" and {len(brk) - 3} more" if len(brk) > 3 else ""
+                          for b in brk[:nb])
+        more = f" and {len(brk) - nb} more" if len(brk) > nb else ""
         parts.append(f"30-day against 120-day break{'s' if len(brk) > 1 else ''}: "
                      f"{shown}{more}")
     if sh:
         shown = ", ".join(f"{label(s['pair'][0], c)}-{label(s['pair'][1], c)} "
                           f"(60d {s['c60']:+.2f} against 252d {s['c252']:+.2f}, "
-                          f"{s['rule']})" for s in sh[:2])
-        more = f" and {len(sh) - 2} more" if len(sh) > 2 else ""
+                          f"{s['rule']})" for s in sh[:ns])
+        more = f" and {len(sh) - ns} more" if len(sh) > ns else ""
         parts.append(f"shift{'s' if len(sh) > 1 else ''}: {shown}{more}")
     cr = credit_escalation(brk, c)
     if cr:

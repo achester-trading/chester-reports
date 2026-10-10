@@ -139,6 +139,17 @@ SYMBOLS: dict[str, str] = {
     "CNY=X": "mkt_usdcny",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
+    # AQ-5 (10 Oct 2026, the correlation layer's universe v1): the six former-
+    # report assets that had no feed, each on the proxy config/correlation.yaml
+    # names. The three coins trade every day, as Bitcoin does, and are declared
+    # continuous below. Like NVDA, a name added here needs tools/backfill_prices.py
+    # before its history reads.
+    "DBA": "mkt_dba",           # agriculture (Invesco DB Agriculture)
+    "ETH-USD": "mkt_eth_usd",
+    "SOL-USD": "mkt_sol_usd",
+    "ZEC-USD": "mkt_zec_usd",
+    "VNQI": "mkt_vnqi",         # international real estate (Vanguard ex-US REIT)
+    "MCHI": "mkt_mchi",         # China equity (iShares MSCI China)
     # THE TAPE SET'S OWN INSTRUMENTS (T2.1, 4 Oct 2026): the 10- and 30-year
     # yield indices (quoted in percent), the dollar index, and the gold and WTI
     # front futures -- so the tape's daily frames read the instruments the tape
@@ -217,8 +228,10 @@ SPLIT_SUFFIX = "_split"
 # an ETF and a volatility index exist only while the exchange is open.
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
+# ETH, SOL and ZEC (AQ-5) trade every day for the same reason Bitcoin does.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
-                                                "EURUSD=X"})
+                                                "EURUSD=X", "ETH-USD", "SOL-USD",
+                                                "ZEC-USD"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside

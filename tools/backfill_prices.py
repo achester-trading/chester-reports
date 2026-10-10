@@ -84,7 +84,8 @@ CLOSE_HOUR_ET = 16
 # at 16:00 ET plus the delay would claim the close about four hours before it
 # existed. Each symbol's rule is declared here; every other symbol is "ny_close".
 AVAILABILITY_RULES = {"JPY=X": "utc_day", "EURUSD=X": "utc_day", "CNY=X": "utc_day",
-                      "BTC-USD": "utc_day"}
+                      "BTC-USD": "utc_day", "ETH-USD": "utc_day", "SOL-USD": "utc_day",
+                      "ZEC-USD": "utc_day"}
 
 
 def reconstructed_available_at(day: str,

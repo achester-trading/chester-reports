@@ -131,7 +131,7 @@
 #
 # Instruments that genuinely trade when the US equity market does not are DECLARED
 # (yfinance_source.CONTINUOUS_SYMBOLS -- Bitcoin, whose 528 non-session bars out of
-# 1,827 are all real). Everything else is filtered against the session calendar,
+# 1,827 are all real, and since AQ-5 ETH, SOL and ZEC). Everything else is filtered against the session calendar,
 # which sees holidays only in the years it covers (2026-2027) and falls back to
 # weekdays outside them.
 #
@@ -6299,7 +6299,9 @@ bulk_imports:
     description: >-
       Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
       (ST-2 added IVW IVE IWF IWD VWO ACWX EMXC GUNR and CNH=X as mkt_usdcnh;
-      PB-1, 5 Oct 2026, replaced CNH=X with CNY=X as mkt_usdcny).
+      PB-1, 5 Oct 2026, replaced CNH=X with CNY=X as mkt_usdcny; AQ-5, 10 Oct
+      2026, added DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI for the correlation
+      layer's universe).
       SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
       adjusted close is deliberately not stored: it restates its own history
       every time a dividend is paid, which no point-in-time store can support,
@@ -6314,7 +6316,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 59   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6359,7 +6361,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 59   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6629,13 +6631,13 @@ bulk_imports:
       Rolling Pearson correlations of daily returns (log returns; a yield's
       change; USD/JPY and USD/CNY inverted to the yen and the yuan) over 60 and
       252 COMMON sessions, for every pair of the v1 universe that has a price
-      series in the store (15 of 21; agri, eth, sol, zec, intl_re and china join
-      by one config line each when their feeds exist). SPY-TLT at 60 days is not
+      series (all 21; DBA, ETH-USD, SOL-USD, ZEC-USD, VNQI and MCHI joined the
+      price basket for agri, eth, sol, zec, intl_re and china). SPY-TLT at 60 days is not
       a member: it is calc.corr_spy_tlt_60d, read under its alias.
     source: derived_state
     members_from: altdata.correlation.PAIR_SERIES
     members_are: keys
-    expected_members: 209
+    expected_members: 419
     mechanism_group: cross_asset_correlation
     native_horizon: daily
     freq: daily
@@ -6661,7 +6663,7 @@ bulk_imports:
     source: derived_state
     members_from: altdata.correlation.SHIFT_SERIES
     members_are: keys
-    expected_members: 105
+    expected_members: 210
     mechanism_group: cross_asset_correlation
     native_horizon: daily
     freq: daily
@@ -6687,7 +6689,7 @@ bulk_imports:
     source: derived_state
     members_from: altdata.correlation.BREAK_SERIES
     members_are: keys
-    expected_members: 24
+    expected_members: 36
     mechanism_group: cross_asset_correlation
     native_horizon: daily
     freq: daily

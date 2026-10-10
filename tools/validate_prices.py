@@ -192,11 +192,12 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 53, f"53 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 59, f"59 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
           f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), and HG=F, "
-          f"JPY=X and EURUSD=X (T2.3)")
+          f"JPY=X and EURUSD=X (T2.3), and AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
+          f"VNQI MCHI (the correlation universe)")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "
@@ -299,10 +300,11 @@ def group_f() -> None:
     fx = bp.reconstructed_available_at("2026-10-02", symbol="JPY=X")
     ny = bp.reconstructed_available_at("2026-10-02", symbol="HG=F")
     btc = bp.reconstructed_available_at("2026-10-02", symbol="BTC-USD")
-    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD"}
+    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD",
+                                         "ETH-USD", "SOL-USD", "ZEC-USD"}
           and fx.startswith("2026-10-03T00:20:00") and btc.startswith("2026-10-03T00:20:00")
           and ny.startswith("2026-10-02T20:20:00"),
-          f"the backfill stamps an FX pair or Bitcoin at the end of its UTC day plus the delay, "
+          f"the backfill stamps an FX pair or a coin at the end of its UTC day plus the delay, "
           f"a session-bound symbol at the New York close ({fx} / {ny})")
     summer = bp.reconstructed_available_at("2026-09-18")
     winter = bp.reconstructed_available_at("2026-01-15")
@@ -395,8 +397,10 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"},
-          f"the exemption is a declared set (BTC-USD and the three FX pairs), not "
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
+                                             "ETH-USD", "SOL-USD", "ZEC-USD"},
+          f"the exemption is a declared set (the four coins and the three FX "
+          f"pairs), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 

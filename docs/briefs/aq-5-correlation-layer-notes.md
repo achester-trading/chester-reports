@@ -20,7 +20,9 @@ Quarterly change order (`docs/change-order-alternative-assets-quarterly-2026-10-
 ### The universe
 
 The former eighteen, in signals.py's order, plus SPY, TLT and VIX (`fred.vix`,
-VIXCLS). Fifteen have a price series in the store today:
+VIXCLS). All 21 are keyed. Six of them joined the price basket on this branch
+(the follow-up of 10 Oct), and their history reads once the operator's price
+backfill has run:
 
 | id | series | note |
 |---|---|---|
@@ -35,10 +37,16 @@ VIXCLS). Fifteen have a price series in the store today:
 | jpy, cny | `mkt_usdjpy`, `mkt_usdcny` | **inverted**: the yen and the yuan, as the former report's assets were |
 | spy, tlt | `mkt_spy`, `mkt_tlt` | |
 | vix | `fred.vix` | VIXCLS, as ordered; lands the next morning |
+| agri | `mkt_dba` | **new**: DBA, Invesco DB Agriculture (a futures fund, as the former report read it) |
+| eth, sol, zec | `mkt_eth_usd`, `mkt_sol_usd`, `mkt_zec_usd` | **new**: ETH-USD, SOL-USD, ZEC-USD; continuous like BTC-USD, their bars stamped at the end of the UTC day. `zec.price_usd` (the shielded logger's CoinGecko snapshot) is not a close and is not used |
+| intl_re | `mkt_vnqi` | **new**: VNQI, Vanguard Global ex-US Real Estate |
+| china | `mkt_mchi` | **new**: MCHI, iShares MSCI China |
 
-Six carry an `absent:` reason and join by giving them a `key`, one line each, once
-their feed exists: **agri, eth, sol, zec, intl_re, china**. PRL, the light-tier
-coins and uranium join the same way. No feed was added.
+The six were added to `yfinance_source.SYMBOLS` in the basket's own pattern
+(the registry's `market_close` and `market_actions` blocks now 59; the coins in
+`CONTINUOUS_SYMBOLS` and in `tools/backfill_prices.py`'s `utc_day` rule, as
+Bitcoin is). An asset without a feed would carry an `absent:` reason and join by
+being given a `key`; PRL, the light-tier coins and uranium join that way.
 
 The named rows read four more inputs: `mkt_gspc` (SPX), `mkt_qqq`, `mkt_efa` (the
 "international" leg of US–international) and `fred.yield_10y` (as a change, not a
@@ -46,13 +54,13 @@ log return).
 
 ### The series (all `source: derived_state`, `observation_type: calculated`, `trigger_eligible: false`, `rights_ceiling: narrow_flag`, `added_date: 2026-10-10`)
 
-- **The matrix.** `corr.<a>__<b>.60d` and `.252d` for all 105 pairs: 209 series.
+- **The matrix.** `corr.<a>__<b>.60d` and `.252d` for all 210 pairs: 419 series.
   The SPY–TLT 60-day cell is **not written**: it is SR-9's
   `calc.corr_spy_tlt_60d`, computed the same way (the gate shows the two agree to
   the digit, value and availability), and read under that alias.
-- **The shift flag.** `corr.<a>__<b>.shift`, 0/1, 105 series.
+- **The shift flag.** `corr.<a>__<b>.shift`, 0/1, 210 series.
 - **The break.** `corr.<asset>__{spy,tlt}.break` = 30-day minus 120-day
-  correlation, 24 series. A break is |Δ| ≥ 0.30, "toward" when positive and
+  correlation, 36 series. A break is |Δ| ≥ 0.30, "toward" when positive and
   "away" otherwise — signals.py's constants and rule, which the gate reads from
   signals.py's own source. The credit-sensitive escalation (us_re, intl_re, em,
   china breaking away from SPY) is a flag the Weekly prints; it escalates no
@@ -91,11 +99,16 @@ log return).
 
 - **The Weekly** — Positioning & flows (the stack config's positioning section),
   a "Cross-asset correlations" sub-section with **one line**, only in a week a
-  break or a shift fired; otherwise nothing. Weekly cadence only.
+  30-vs-120-day break or a **named-row shift** fired; otherwise nothing. Weekly
+  cadence only. Ruled 10 Oct (follow-up): the line's shifts are the named rows'
+  matrix pairs only — BTC–SPY, gold–SPY, gold–DXY, oil–DXY (`weekly.shift_pairs`
+  in the config). All-pairs shifts leave the Weekly. The caps are ceilings: at
+  most three breaks and two shifts, each then "and N more".
 - **The Monthly** — a "Correlations" block in the slow layers: the stock–bond rows
   in the triple form (latest with its data-as-of / long-run average with its
   window / percentile over the store's full history / five-year percentile
-  "until the lenses"), and the month's top five shifts.
+  "until the lenses"), and the month's top five shifts **across all pairs** —
+  the only place an all-pairs shift prints.
 - **No chart** this round: the cap of 12 stands; the heatmap waits for AQ-1.
 
 ## What waits
@@ -131,12 +144,19 @@ VIX, natgas or SPX–10y correlation.
 
 ## The box backfill — run by the operator, inside a window, after the merge
 
-Code reaches the box at the next timer after a merge to main; the daily pass then
-writes the last 14 days on its own. The history is a one-shot:
+Code reaches the box at the next timer after a merge to main; the 16:10 price pass
+then starts pulling the six new symbols (two years) and the daily correlation pass
+writes the last 14 days on its own. The history is two one-shots, **in order**:
+the six symbols' five-year price history first, so the correlation backfill
+reads all 21 assets.
 
 ```bash
 ssh vps
 cd ~/chester-reports
+# 1. The six new symbols' price history (five years)
+.venv/bin/python tools/backfill_prices.py --years 5 --symbols DBA,ETH-USD,SOL-USD,ZEC-USD,VNQI,MCHI --dry-run
+.venv/bin/python tools/backfill_prices.py --years 5 --symbols DBA,ETH-USD,SOL-USD,ZEC-USD,VNQI,MCHI
+# 2. The correlation history, over all 21
 .venv/bin/python -m altdata.correlation compute --backfill --dry-run   # counts only, writes nothing
 .venv/bin/python -m altdata.correlation compute --backfill
 .venv/bin/python -m altdata.correlation show                           # the named rows, the month's breaks and shifts

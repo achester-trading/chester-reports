@@ -8,11 +8,12 @@
 # trigger_eligible: false in metrics_registry.yaml. Nothing here enters a composite.
 
 # ---------------------------------------------------------------------------
-# THE UNIVERSE, v1: the former report's eighteen, on the price series the store
-# already carries, plus SPY, TLT and VIX (VIXCLS). An asset with no feed in the
-# store says so (`absent`) and joins by giving it a `key` -- one line, once its
-# price feed exists. PRL, the light-tier coins and uranium join the same way; no
-# feed is added by this branch.
+# THE UNIVERSE, v1: the former report's eighteen plus SPY, TLT and VIX (VIXCLS),
+# all 21 keyed. Six joined the price basket on this branch (DBA, ETH-USD,
+# SOL-USD, ZEC-USD, VNQI, MCHI -- yfinance_source.SYMBOLS); their history reads
+# once the operator's price backfill has run. An asset with no feed would say so
+# (`absent`, with its reason) and join by giving it a `key`; PRL, the light-tier
+# coins and uranium join that way.
 #
 #   key        the store series whose daily returns the asset is read on
 #   transform  log_return (a price) | diff (a yield, in its own units)
@@ -31,15 +32,15 @@ universe:
   # and it printed below zero in April 2020; the fund carries neither.
   - {id: oil,      label: "Oil",           key: yfinance.mkt_uso,          former: true, proxy: "USO"}
   - {id: natgas,   label: "Natural gas",   key: fred.natgas,               former: true, proxy: "Henry Hub spot (FRED DHHNGSP)"}
-  - {id: agri,     label: "Agriculture",   former: true, absent: "no agriculture price feed in the store (the former report read DBA)"}
+  - {id: agri,     label: "Agriculture",   key: yfinance.mkt_dba,          former: true, proxy: "DBA (Invesco DB Agriculture; futures fund, as the former report read it)"}
   - {id: btc,      label: "Bitcoin",       key: yfinance.mkt_btc_usd,      former: true, proxy: "BTC-USD"}
-  - {id: eth,      label: "Ether",         former: true, absent: "no ETH price feed in the store (coingecko is off)"}
-  - {id: sol,      label: "Solana",        former: true, absent: "no SOL price feed in the store (coingecko is off)"}
-  - {id: zec,      label: "Zcash",         former: true, absent: "no ZEC price feed in the store (coingecko is off)"}
+  - {id: eth,      label: "Ether",         key: yfinance.mkt_eth_usd,      former: true, proxy: "ETH-USD"}
+  - {id: sol,      label: "Solana",        key: yfinance.mkt_sol_usd,      former: true, proxy: "SOL-USD"}
+  - {id: zec,      label: "Zcash",         key: yfinance.mkt_zec_usd,      former: true, proxy: "ZEC-USD (the yfinance close; zec.price_usd is the logger's snapshot, not a close)"}
   - {id: us_re,    label: "US real estate", key: yfinance.mkt_xlre,        former: true, proxy: "XLRE"}
-  - {id: intl_re,  label: "International real estate", former: true, absent: "no international real-estate fund in the store"}
+  - {id: intl_re,  label: "International real estate", key: yfinance.mkt_vnqi, former: true, proxy: "VNQI (Vanguard Global ex-US Real Estate)"}
   - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       former: true, proxy: "EEM"}
-  - {id: china,    label: "China",         former: true, absent: "no China equity fund in the store (FXI/MCHI not pulled)"}
+  - {id: china,    label: "China",         key: yfinance.mkt_mchi,         former: true, proxy: "MCHI (iShares MSCI China)"}
   - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          former: true, proxy: "DX-Y.NYB"}
   - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       former: true, proxy: "EUR/USD"}
   - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       former: true, invert: true, proxy: "USD/JPY, inverted"}
@@ -126,6 +127,16 @@ average_pairwise:
   # A pair's latest 60-day value carries at most this many sessions to a day the
   # pair did not print (VIXCLS lands the next morning); older, it is left out.
   carry_sessions: 5
+
+# The Weekly's one line (Positioning). Ruled 10 Oct 2026 (session B follow-up):
+# it reports the 30-vs-120-day breaks and the shifts of the NAMED ROWS only --
+# the pairs below, each a matrix pair with a named_pairs row. All-pairs shifts
+# leave the Weekly and stay in the Monthly's top five. The caps are ceilings:
+# at most `breaks_shown` breaks and `shifts_shown` shifts, then a count.
+weekly:
+  shift_pairs: [btc__spy, gold__spy, gold__dxy, oil__dxy]
+  breaks_shown: 3
+  shifts_shown: 2
 
 # The Monthly's Correlations block (slow layers): the stock-bond rows in the
 # triple form and the top shifts of the month.

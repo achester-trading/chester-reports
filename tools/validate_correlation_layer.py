@@ -7,8 +7,8 @@ returns whose correlations are known by construction, so the verdict is about th
 commit and is the same in CI, on the laptop and on the box. Nothing here opens the
 live store.
 
-  A  SHAPES. The universe is the former eighteen plus SPY, TLT and VIX; every
-     absent asset says why; the registry's three bulk blocks hold exactly the
+  A  SHAPES. The universe is the former eighteen plus SPY, TLT and VIX, all 21
+     keyed on symbols the price pass carries; an absent asset would say why; the registry's three bulk blocks hold exactly the
      members the config implies; every corr.* entry is calculated, a narrow flag
      at most, never trigger-eligible, dated, and family-declared; the 3-year
      stock-bond row carries section 5's kill condition; the peer table is
@@ -34,7 +34,9 @@ live store.
      from only the rows knowable at its own available_at; a row's available_at
      is the latest of its inputs' (a late input makes a late row).
   H  WHERE IT PRINTS. The Weekly's Positioning carries the line only in a week
-     something fired and only at the weekly cadence; the Monthly's slow layers
+     something fired and only at the weekly cadence, and the line's shifts are
+     the named rows' only (all-pairs shifts stay in the Monthly), two plus a
+     count at most; the Monthly's slow layers
      carry the Correlations block -- the stock-bond rows in the triple form with
      the five-year column "until the lenses", the top shifts, and the surprise
      quadrant's hook named and empty.
@@ -219,6 +221,14 @@ def group_a() -> None:
     ids = [a["id"] for a in cfg["universe"]]
     check(ids == FORMER + ["spy", "tlt", "vix"],
           "the universe is the former eighteen, in order, plus SPY, TLT and VIX")
+    check(len(C.assets(cfg)) == 21 and not C.absent_assets(cfg),
+          "all 21 keyed: DBA, ETH-USD, SOL-USD, ZEC-USD, VNQI and MCHI joined the "
+          "price basket for agri, eth, sol, zec, intl_re and china")
+    from altdata.sources import yfinance_source as yfs            # noqa: PLC0415
+    basket = {f"yfinance.{v}" for v in yfs.SYMBOLS.values()}
+    check(all(a["key"] in basket for a in C.assets(cfg)
+              if a["key"].startswith("yfinance.")),
+          "every yfinance key in the universe is a symbol on the price pass")
     vix = next(a for a in cfg["universe"] if a["id"] == "vix")
     check(vix.get("key") == "fred.vix", "VIX is VIXCLS (fred.vix)")
     check(all(a.get("former") for a in cfg["universe"] if a["id"] in FORMER)
@@ -625,6 +635,36 @@ def group_h() -> None:
           f"{subs and subs[0]['lines'][0][:110]!r}")
     check(bool(cd) and all(isinstance(s["pair"], list) for s in cd["shifts"]),
           "the line's breaks and shifts are in the section's data")
+    # THE WEEKLY'S SCOPE (ruled 10 Oct 2026): breaks, and shifts on the named
+    # rows only. All-pairs shifts are the Monthly's top five.
+    named = set(C.weekly_shift_pairs())
+    check(named == {("btc", "spy"), ("gold", "spy"), ("gold", "dxy"), ("oil", "dxy")}
+          and all(f"{a}__{b}.60d" in (C.config().get("named_pairs") or [])
+                  or f"{b}__{a}.60d" in (C.config().get("named_pairs") or [])
+                  for a, b in named),
+          "the Weekly's shift pairs are the named rows' matrix pairs (BTC-SPY, "
+          "gold-SPY, gold-DXY, oil-DXY)")
+    all_sh = C.shifts_between(st, then, now)
+    outside = [x for x in all_sh if tuple(x["pair"]) not in named]
+    check(bool(outside) and all(tuple(x["pair"]) in named for x in cd["shifts"]),
+          f"{len(outside)} all-pairs shift(s) fired outside the named rows this "
+          f"week; the line carries none of them ({len(cd['shifts'])} named)")
+    c2 = copy.deepcopy(C.config())
+    c2["weekly"]["shift_pairs"] = [f"{a}__{b}" for a, b in
+                                   (x["pair"] for x in outside[:3])]
+    l2 = C.weekly_line(st, now, then, c2) or {}
+    got = {tuple(x["pair"]) for x in l2.get("shifts") or []}
+    want = {tuple(x["pair"]) for x in outside[:3]}
+    cap = c2["weekly"]["shifts_shown"]
+    check(got == want and cap == 2
+          and (len(want) <= cap or f"and {len(want) - cap} more" in l2.get("text", "")),
+          f"a pair the config names does reach the line; shifts cap at {cap} plus a "
+          f"count ({len(want)} named: {l2.get('text', '')[-90:]!r})")
+    c3 = copy.deepcopy(C.config())
+    c3["weekly"]["shift_pairs"] = []
+    l3 = C.weekly_line(st, now, then, c3) or {}
+    check(not l3.get("shifts") and bool(l3.get("breaks")),
+          "with no named shift the line still reports the week's breaks")
     mon = ws.positioning_week(st, now, then, cadence="monthly")
     check(not any(s.get("title") == "Cross-asset correlations"
                   for s in mon["subsections"]),

@@ -512,8 +512,9 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     subs = positioning_subsections(st, now, then, data, lead, rows, cadence)
     # THE CORRELATION LAYER'S ONE LINE (AQ-5, change order 10 Oct 2026, section
     # 9): the Weekly only, and only in a week a 30-vs-120-day break or a shift
-    # fired -- otherwise nothing, not even a "no breaks" line. The Monthly reads
-    # the same layer in its slow layers instead.
+    # on a NAMED ROW fired (config/correlation.yaml weekly.shift_pairs, ruled 10
+    # Oct) -- otherwise nothing, not even a "no breaks" line. All-pairs shifts
+    # are the Monthly's top five, in its slow layers.
     if cadence == "weekly":
         try:
             from altdata import correlation                      # noqa: PLC0415
