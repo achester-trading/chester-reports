@@ -524,6 +524,43 @@ metrics:
     units: usd_per_1pct
     derived_from: exposure.shares_per_1pct
     description: shares_per_1pct x spot. Derived so the two cannot drift.
+  exposure.gross_gex_abs:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd
+    description: >-
+      Call-gamma mass plus put-gamma mass, unnetted: the sum of
+      |sign x gamma x OI x 100 x spot| over rows. Same units as net_gex. The
+      denominator against which the net's sign is read (dealer audit F1).
+  exposure.gross_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_1pct
+    derived_from: exposure.gross_gex_abs
+    description: gross_gex_abs x 0.01 x spot, the gross counterpart of dollar_gamma_per_1pct.
+  exposure.net_to_gross:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: fraction
+    derived_from: exposure.gross_gex_abs
+    description: >-
+      |net_gex| / gross_gex_abs; None when gross is zero. Computed and stored
+      only (dealer audit F1); the regime-word gate on it arrives with 6b.
   exposure.gamma_flip:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -6104,7 +6141,7 @@ bulk_imports:
       this block exists so the CI check can prove the column list is covered.
     source: yfinance
     members_from: tools.pin_log.PIN_COLUMNS
-    expected_members: 80
+    expected_members: 83
     trigger_eligible: false
     mechanism_group: pin_outcome
     native_horizon: daily

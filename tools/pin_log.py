@@ -128,6 +128,10 @@ PIN_COLUMNS = [
     # Which IV produced the greeks behind this grading. Constant until 5 Sep,
     # which meant a solved-IV grading and a vendor-IV grading looked identical.
     "greeks_source",
+    # --- appended 9 Oct 2026: gross against net (dealer audit F1) ---------
+    # The net is a small difference of two large masses; these record how
+    # small, so a row's regime word can be read against its own ratio later.
+    "gross_gex_abs", "gross_gamma_per_1pct", "net_to_gross",
 ]
 
 
@@ -248,6 +252,8 @@ def row_for(computed: dict, close: Optional[float] = None,
 
     z = b.get("0dte") or {}
     row["greeks_source"] = computed.get("greeks_source")
+    for name in ("gross_gex_abs", "gross_gamma_per_1pct", "net_to_gross"):
+        row[name] = o.get(name)
     row["oi_0dte"] = z.get("oi_total")
     row["oi_0dte_put_call_ratio"] = z.get("oi_put_call_ratio")
     # Named, not counted: which bucket is leaning on the floor matters more
