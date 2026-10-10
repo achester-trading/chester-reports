@@ -147,7 +147,9 @@ The sitting counts as the week's review sitting (≤ 2 h; record the hours). Pac
 
 ---
 
-## Part VII — Where the "yes" column lands (2× pace, two sessions, 40–50 h a week)
+## Part VII — Where the "yes" column lands
+
+*Superseded on 9 Oct 2026, 23:05 ET, by `docs/workplan-v5-2026-10-09.md` (the accelerated schedule: the Category 1 block builds from the week of 12 Oct on branches and lands in late October; Audit #5 moves to the week of 23 Nov). The table below is the floor the sitting can fall back to if v5's conditions fail; v5 is the plan.*
 
 | Week | Session work | Sittings and anchors |
 |---|---|---|
