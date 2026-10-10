@@ -510,6 +510,23 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     else:
         nt.append(f"{w.poss} sector and style-pair returns (no closes stored)")
     subs = positioning_subsections(st, now, then, data, lead, rows, cadence)
+    # THE CORRELATION LAYER'S ONE LINE (AQ-5, change order 10 Oct 2026, section
+    # 9): the Weekly only, and only in a week a 30-vs-120-day break or a shift
+    # fired -- otherwise nothing, not even a "no breaks" line. The Monthly reads
+    # the same layer in its slow layers instead.
+    if cadence == "weekly":
+        try:
+            from altdata import correlation                      # noqa: PLC0415
+            cl = correlation.weekly_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("correlation line unavailable", exc_info=True)
+            cl = None
+            nt.append(f"the correlation layer's line: FAULT {type(exc).__name__}")
+        if cl:
+            data["correlations"] = {k: cl[k] for k in
+                                    ("breaks", "shifts", "credit_sensitive_away")}
+            subs.append({"title": "Cross-asset correlations", "lines": [cl["text"]],
+                         "paragraph_wanted": False})
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
 

@@ -70,6 +70,7 @@ PY_VALIDATORS := \
 	tools/validate_readability.py \
 	tools/validate_stack_cadence.py \
 	tools/validate_exposure_edges.py \
+	tools/validate_correlation_layer.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

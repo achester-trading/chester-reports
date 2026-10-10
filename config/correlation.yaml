@@ -1,0 +1,205 @@
+# THE CORRELATION LAYER (AQ-5; change order "Alternative Assets Quarterly", 10 Oct
+# 2026, section 9 and the section 5 rows "Stock-bond correlation anchor", "The
+# former report's break logic" and "Peer pairs"). Read by altdata/correlation.py,
+# which computes and stores every series named here; nothing here is a ruling the
+# change order did not make, and the session-set readings are marked as such.
+#
+# RIGHTS: every series this file names is a NARROW FLAG at most and
+# trigger_eligible: false in metrics_registry.yaml. Nothing here enters a composite.
+
+# ---------------------------------------------------------------------------
+# THE UNIVERSE, v1: the former report's eighteen, on the price series the store
+# already carries, plus SPY, TLT and VIX (VIXCLS). An asset with no feed in the
+# store says so (`absent`) and joins by giving it a `key` -- one line, once its
+# price feed exists. PRL, the light-tier coins and uranium join the same way; no
+# feed is added by this branch.
+#
+#   key        the store series whose daily returns the asset is read on
+#   transform  log_return (a price) | diff (a yield, in its own units)
+#   invert     the returns are negated, so the asset reads as ITS OWN price:
+#              USD/JPY and USD/CNY are quoted as yen and yuan per dollar, and the
+#              former report's jpy and cny are the yen and the yuan
+#   former     one of the former report's eighteen: the 30-vs-120-day break runs
+#              over these (signals.py ran over its ASSETS, not the benchmarks)
+#   proxy      what the series is, where it is not the asset itself
+# ---------------------------------------------------------------------------
+universe:
+  - {id: gold,     label: "Gold",          key: yfinance.mkt_gld,          former: true, proxy: "GLD"}
+  - {id: silver,   label: "Silver",        key: yfinance.mkt_slv,          former: true, proxy: "SLV"}
+  - {id: copper,   label: "Copper",        key: yfinance.mkt_copper_front, former: true, proxy: "HG=F, front month"}
+  # USO rather than CL=F: the front future's roll is a jump in its return series
+  # and it printed below zero in April 2020; the fund carries neither.
+  - {id: oil,      label: "Oil",           key: yfinance.mkt_uso,          former: true, proxy: "USO"}
+  - {id: natgas,   label: "Natural gas",   key: fred.natgas,               former: true, proxy: "Henry Hub spot (FRED DHHNGSP)"}
+  - {id: agri,     label: "Agriculture",   former: true, absent: "no agriculture price feed in the store (the former report read DBA)"}
+  - {id: btc,      label: "Bitcoin",       key: yfinance.mkt_btc_usd,      former: true, proxy: "BTC-USD"}
+  - {id: eth,      label: "Ether",         former: true, absent: "no ETH price feed in the store (coingecko is off)"}
+  - {id: sol,      label: "Solana",        former: true, absent: "no SOL price feed in the store (coingecko is off)"}
+  - {id: zec,      label: "Zcash",         former: true, absent: "no ZEC price feed in the store (coingecko is off)"}
+  - {id: us_re,    label: "US real estate", key: yfinance.mkt_xlre,        former: true, proxy: "XLRE"}
+  - {id: intl_re,  label: "International real estate", former: true, absent: "no international real-estate fund in the store"}
+  - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       former: true, proxy: "EEM"}
+  - {id: china,    label: "China",         former: true, absent: "no China equity fund in the store (FXI/MCHI not pulled)"}
+  - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          former: true, proxy: "DX-Y.NYB"}
+  - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       former: true, proxy: "EUR/USD"}
+  - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       former: true, invert: true, proxy: "USD/JPY, inverted"}
+  - {id: cny,      label: "Yuan",          key: yfinance.mkt_usdcny,       former: true, invert: true, proxy: "USD/CNY, inverted"}
+  - {id: spy,      label: "SPY",           key: yfinance.mkt_spy}
+  - {id: tlt,      label: "TLT",           key: yfinance.mkt_tlt}
+  - {id: vix,      label: "VIX",           key: fred.vix,                  proxy: "VIXCLS"}
+
+# Inputs the named rows read that are not in the matrix.
+extra_inputs:
+  - {id: spx,  label: "S&P 500",            key: yfinance.mkt_gspc}
+  - {id: qqq,  label: "QQQ",                key: yfinance.mkt_qqq}
+  - {id: intl, label: "International equity (EFA)", key: yfinance.mkt_efa}
+  - {id: y10,  label: "10-year yield",      key: fred.yield_10y, transform: diff}
+
+# ---------------------------------------------------------------------------
+# THE WINDOWS, in sessions of COMMON returns (a pair's two series, joined on the
+# days both printed; a return spans two consecutive common days, so Bitcoin's
+# Monday return against SPY's is Friday to Monday for both).
+# ---------------------------------------------------------------------------
+windows:
+  matrix: [60, 252]          # every pair, stored (section 9, "the matrix")
+  regime: 756                # three years: stock-bond against CPI; US-international
+  break_short: 30            # the former report's break (signals.py CORR_SHORT_WIN)
+  break_long: 120            #   and its baseline (CORR_BASELINE_WIN)
+
+# THE FORMER REPORT'S BREAK, exactly as altdata/report/signals.py defines it:
+# |30-day - 120-day| >= 0.30 against SPY and against TLT; "toward" when the
+# change is positive, "away" otherwise.
+break:
+  delta: 0.30
+  benchmarks: [spy, tlt]
+  # signals.py CREDIT_SENSITIVE: one of these breaking AWAY from SPY confirms
+  # credit stress laterally. Kept as a flag the Weekly prints; it escalates no
+  # trigger here (nothing in this layer is trigger-eligible).
+  credit_sensitive: [us_re, intl_re, em, china]
+
+# THE SHIFT FLAG (section 9): the 60-day crossing the 252-day by more than its own
+# five-year interquartile range, or a sign change held 20 sessions. Off where
+# either window is not yet full. The two readings below are SESSION-SET, not
+# ruled, and named so a ruling can change them in one place:
+#   cross_lookback  "crossing": the 60-day sat on the other side of the 252-day
+#                   at least once in this many sessions -- it crossed recently,
+#                   and has gone past it by more than the IQR
+#   iqr_min         the fewest 60-day values an IQR is taken over; below it the
+#                   IQR is not a distribution and the crossing arm is off (the
+#                   sign arm still reads)
+shift:
+  iqr_years: 5
+  iqr_min: 252
+  cross_lookback: 60
+  sign_hold: 20
+
+# Aliases: a matrix cell the store already computes under another key is read
+# from there and not written twice. SPY-TLT at 60 days IS SR-9's
+# calc.corr_spy_tlt_60d (altdata/market_features.py), by the same method.
+aliases:
+  spy__tlt.60d: calc.corr_spy_tlt_60d
+
+# ---------------------------------------------------------------------------
+# THE NAMED ROWS (section 9), each registered in metrics_registry.yaml with its
+# paper's reading rule in the description. `pair` rows are matrix cells; the
+# others are computed here.
+# ---------------------------------------------------------------------------
+named:
+  - {key: corr.stock_bond.spx_tlt.60d,  a: spx, b: tlt, window: 60,  label: "S&P 500-TLT, 60 days"}
+  - {key: corr.stock_bond.spx_tlt.252d, a: spx, b: tlt, window: 252, label: "S&P 500-TLT, one year"}
+  - {key: corr.stock_bond.spx_tlt.756d, a: spx, b: tlt, window: 756, label: "S&P 500-TLT, three years (the CPI test)"}
+  - {key: corr.stock_bond.spx_10y.60d,  a: spx, b: y10, window: 60,  label: "S&P 500-10-year yield, 60 days"}
+  - {key: corr.stock_bond.spx_10y.252d, a: spx, b: y10, window: 252, label: "S&P 500-10-year yield, one year"}
+  - {key: corr.us_intl.756d,            a: spy, b: intl, window: 756, label: "US-international, three years"}
+  - {key: corr.btc__qqq.60d,            a: btc, b: qqq, window: 60,  label: "Bitcoin-QQQ, 60 days"}
+  - {key: corr.btc__qqq.252d,           a: btc, b: qqq, window: 252, label: "Bitcoin-QQQ, one year"}
+  - {key: corr.copper_gold__10y.60d,    a: [copper, gold], b: y10, window: 60,  label: "Copper/gold against the 10-year, 60 days"}
+  - {key: corr.copper_gold__10y.252d,   a: [copper, gold], b: y10, window: 252, label: "Copper/gold against the 10-year, one year"}
+# Matrix cells with a reading rule of their own (registered individually).
+named_pairs: [btc__spy.60d, btc__spy.252d, gold__spy.60d, gold__dxy.60d, gold__dxy.252d, oil__dxy.60d, oil__dxy.252d]
+# Levels, not correlations.
+ratios:
+  - {key: corr.silver_over_gold, num: silver, den: gold, label: "SLV/GLD (fund ratio; scaled, not the metal price ratio)"}
+average_pairwise:
+  key: corr.avg_pairwise.60d
+  window: 60
+  # A pair's latest 60-day value carries at most this many sessions to a day the
+  # pair did not print (VIXCLS lands the next morning); older, it is left out.
+  carry_sessions: 5
+
+# The Monthly's Correlations block (slow layers): the stock-bond rows in the
+# triple form and the top shifts of the month.
+monthly:
+  top_shifts: 5
+  stock_bond: [corr.stock_bond.spx_tlt.60d, corr.stock_bond.spx_tlt.252d, corr.stock_bond.spx_10y.60d, corr.stock_bond.spx_10y.252d, corr.stock_bond.spx_tlt.756d]
+
+# The daily pass writes the last few sessions; `--backfill` writes every session.
+recompute_days: 14
+
+# ---------------------------------------------------------------------------
+# PEER PAIRS, ported from altdata/report/peers.py: each asset's textbook pairs,
+# most informative first, with the textbook expectation. "Divergence from the
+# textbook expectation is the signal" -- computed as the pair's 60-day correlation
+# against its own full-history median. A pair with an absent asset prints why.
+# ---------------------------------------------------------------------------
+peers:
+  gold:
+    - {peer: silver, rationale: "Gold and silver share the precious-metals identity; silver typically tracks with higher beta. A breakdown in this pairing (gold rallying while silver stalls) signals safe-haven flows dominating industrial demand — a defensive regime."}
+    - {peer: dxy, rationale: "The classic inverse relationship: dollar strength is a headwind for gold (priced in dollars globally). When gold rallies despite a strong dollar, the relationship has been broken by another force — typically central bank buying or fiscal-credibility concerns."}
+    - {peer: us_re, rationale: "Both are real assets that historically hedge inflation. Divergence — gold up, real estate down — points to monetary debasement / safe-haven demand rather than broad inflation expectations."}
+  silver:
+    - {peer: gold, rationale: "Silver typically tracks gold with higher beta — the gold/silver ratio is the canonical relative-value gauge. Persistent ratio extremes flag dislocation in one of the two."}
+    - {peer: copper, rationale: "Silver's industrial demand (solar, electronics, EVs) makes it part-cyclical. High correlation to copper signals the industrial component is dominant; decoupling signals the precious-metal identity is driving."}
+  copper:
+    - {peer: china, rationale: "China consumes roughly half of global copper. Copper-China correlation is the cleanest read on the Chinese cycle; a break either flags China-specific stress or the rising influence of non-China demand (electrification, grid, AI data centers)."}
+    - {peer: em, rationale: "Copper is the canonical global-growth proxy; EM equities are highly cyclical. The pair moves together in growth phases. Decoupling can signal that copper's structural demand thesis is overcoming the cyclical EM weakness."}
+    - {peer: silver, rationale: "Both have major industrial demand vectors. Tight co-movement signals an industrial-cycle move; divergence flags one being driven by its non-industrial use case."}
+  oil:
+    - {peer: natgas, rationale: "Both energy commodities, but with largely separate supply-demand dynamics — oil is global, gas is regional. High correlation signals broad energy moves (geopolitics, macro); divergence is the norm."}
+    - {peer: em, rationale: "Oil is a global-growth and EM-demand proxy. Strong positive correlation in growth-led moves; supply-shock spikes can invert this (high oil prices pressure EM growth)."}
+    - {peer: cny, rationale: "China is the world's largest crude importer. Yuan weakness signals China demand stress, which historically weighs on oil; persistent yuan weakness with oil holding up flags geopolitical premium or OPEC+ floor."}
+  natgas:
+    - {peer: oil, rationale: "Both energy, but gas is increasingly LNG-globalized rather than purely regional. Rising correlation reflects LNG-tied US prices to global energy; near-zero correlation reflects the historical regional-weather pattern."}
+  agri:
+    - {peer: oil, rationale: "Energy is a major input cost for agriculture (fertilizer, machinery, transport). High oil prices compress agri margins and pressure planting; biofuel mandates also link prices directly (corn-ethanol, soy-biodiesel)."}
+    - {peer: em, rationale: "Many large agri producers and consumers are EM economies. Currency moves and demand from EM populations drive significant share of agri demand."}
+  btc:
+    - {peer: eth, rationale: "BTC and ETH are the two largest crypto assets and trade in tight correlation. The BTC/ETH ratio is the canonical rotation signal — a falling ratio signals risk-on/alt-season; a rising ratio signals flight to crypto quality."}
+    - {peer: gold, rationale: "The 'digital gold' thesis claims BTC behaves as a debasement hedge / store of value. The reality: BTC's correlation to gold is unstable and typically lower than its correlation to risk assets. A genuine high BTC-gold correlation would be a major validation of the digital-gold thesis."}
+    - {peer: sol, rationale: "BTC vs SOL captures the BTC-vs-alt-coin rotation. SOL outperforming BTC signals risk-on appetite; underperformance signals concentration in BTC quality."}
+  eth:
+    - {peer: btc, rationale: "ETH typically trades 0.7-0.9 correlation to BTC. The ETH/BTC ratio is the cleanest measure of ETH's relative attractiveness — sustained ratio downtrend signals BTC dominance and ETH's persistent value-capture problem."}
+    - {peer: sol, rationale: "ETH and SOL compete in the smart-contract layer. Tight correlation is the norm; SOL outperforming materially flags rotation away from ETH on adoption or technical concerns."}
+  sol:
+    - {peer: eth, rationale: "Direct L1 competitor. The SOL/ETH ratio is the canonical alt-vs-ETH rotation gauge."}
+    - {peer: btc, rationale: "SOL has the highest beta among major crypto. Strong correlation to BTC in directional moves; SOL leads BTC in alt-season rallies and lags in flight-to-quality."}
+  zec:
+    - {peer: btc, rationale: "Zcash shares Bitcoin's hard-cap monetary policy and was originally a Bitcoin fork. High beta to BTC; ZEC outperformance is rare and typically tied to privacy-coin-specific catalysts."}
+    - {peer: eth, rationale: "Both alt-coins with technical narratives (privacy for ZEC, smart contracts for ETH). Correlated as part of the broader alt complex; divergence flags privacy-coin regulatory news."}
+  us_re:
+    - {peer: tlt, rationale: "REITs are highly rate-sensitive; the inverse relationship with long bonds is fundamental. A break here — REITs falling alongside bonds — signals credit stress separate from rates (CRE-specific) and is the primary lateral confirmation channel for credit-spread widening."}
+    - {peer: intl_re, rationale: "Different regional real estate markets respond to local rate cycles, demographics, and currency. Tight correlation signals global rate cycle dominating; divergence flags regional-specific drivers."}
+  intl_re:
+    - {peer: us_re, rationale: "Globally listed real estate moves with shared rate-sensitivity, but local cycles can dominate. Divergence often reflects regional rate differentials or currency moves."}
+    - {peer: em, rationale: "International property and EM equities share exposure to global growth and dollar dynamics."}
+  em:
+    - {peer: dxy, rationale: "The single most important EM relationship: dollar strength is an EM headwind (financing costs, capital outflows). Inverse correlation is the textbook view; tight inverse correlation confirms the dollar cycle is the master variable."}
+    - {peer: china, rationale: "China is the largest EM-index constituent. EM-China correlation measures how much of EM is the China story vs the rest (India, Korea, Taiwan, LatAm)."}
+    - {peer: copper, rationale: "EM is highly cyclical and tied to global growth. Copper-EM correlation is the global-cycle confirmation pair."}
+  china:
+    - {peer: copper, rationale: "China consumes about half of world copper. Copper-China correlation is the cleanest read on the Chinese cycle."}
+    - {peer: em, rationale: "China is the largest EM constituent. China leading EM higher or lower flags the China-specific component of the move."}
+    - {peer: cny, rationale: "Equity-currency correlation within a single economy. Weak yuan with weak Chinese equities confirms broad pessimism; divergence (equities up, yuan still weak) flags managed-currency dynamics or stimulus-driven asset rally not yet reflected in capital flows."}
+  dxy:
+    - {peer: eur, rationale: "EUR is the largest DXY component (~57%); they move inversely by construction. The pair is mechanical — but divergences vs the broader dollar trade-weighted index can flag EUR-specific moves (ECB, periphery stress)."}
+    - {peer: jpy, rationale: "JPY is roughly 14% of DXY. The dollar-yen pair is also a major carry-trade gauge — yen strength against the dollar is often a stress signal beyond what DXY alone shows."}
+    - {peer: em, rationale: "Inverse dollar-EM relationship is one of the cleanest in global macro. EM rallying despite dollar strength flags structural EM bid (e.g., India structural flows) overcoming the cyclical headwind."}
+  eur:
+    - {peer: dxy, rationale: "EUR/USD dominates DXY; inverse relationship is mechanical. Divergences reflect EUR-specific moves vs the broader dollar."}
+    - {peer: intl_re, rationale: "European real estate is rate-sensitive to ECB policy; the EUR captures the broader ECB-vs-Fed differential."}
+  jpy:
+    - {peer: tlt, rationale: "Both are safe-haven assets that strengthen during risk-off. Tight positive correlation confirms a true risk-off regime; divergence (yen up, bonds down) flags carry-trade unwind dynamics distinct from broad risk-off."}
+    - {peer: dxy, rationale: "The yen has been the world's premier carry-trade funding currency. Yen strength against the dollar is a stress signal (carry unwind, repatriation flows)."}
+  cny:
+    - {peer: china, rationale: "Currency-equity link within one economy. Weak yuan with weak Chinese equities reflects broad pessimism; divergence is the managed-currency tell — a stimulus rally not yet validated by capital flows."}
+    - {peer: copper, rationale: "Yuan weakness signals Chinese demand stress, which weighs on copper. Persistent yuan weakness with copper holding up flags non-China structural demand absorbing the slowdown."}

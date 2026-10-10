@@ -131,6 +131,12 @@ altdata/                  Shared ingestion package — used by every report
                           every price fetch. A row's available_at is the MAXIMUM
                           across its inputs' — a feature is never knowable before
                           the data it is made of
+  correlation.py          The correlation layer (AQ-5): rolling 60/252-session
+                          return correlations across config/correlation.yaml's
+                          universe, the former report's 30-vs-120-day break, a
+                          shift flag per pair, the named rows. Rides the
+                          market_features pass (last few sessions); the full
+                          history is `compute --backfill`. Narrow flags only
 
 monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the ten
                           sections at Monthly depth, Slow layers eleventh, then the
