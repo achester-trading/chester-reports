@@ -670,12 +670,89 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     return b
 
 
-def positioning_section(st, now: str, then: str) -> dict:
+# WHERE EACH POSITIONING SERIES SITS IN ITS OWN HISTORY (T3.1 items 10 and 11):
+# its z over two years -- the CFTC table's window -- until the metric lenses (6e)
+# give each family its dual percentile. Fewer than HISTORY_MIN observations in
+# the window and the series prints "history too short" with its n.
+HISTORY_YEARS = 2
+HISTORY_MIN = 20
+# (group, label, registry key, instrument); the CFTC contracts are the Weekly's
+# own list (weekly_stack.CFTC_CONTRACTS), read at run time.
+POSITIONING_SERIES = (
+    ("short", "SPY days to cover", "finra.short_interest_days_to_cover", "SPY"),
+    ("short", "QQQ days to cover", "finra.short_interest_days_to_cover", "QQQ"),
+    ("short", "IWM days to cover", "finra.short_interest_days_to_cover", "IWM"),
+    ("retail", "SPY retail sentiment (RTAT10)", "ndl.rtat10_sentiment", "SPY"),
+    ("retail", "QQQ retail sentiment (RTAT10)", "ndl.rtat10_sentiment", "QQQ"),
+    ("retail", "AAII bull-bear spread", "aaii.bull_bear_spread", None),
+    ("tic", "Net foreign purchases of US long-term securities",
+     "tic.flow_net_foreign", None),
+    ("tic", "Total net TIC flows", "tic.flow_total", None))
+
+
+def positioning_history(st, now: str) -> list[dict]:
+    """Every positioning series the store holds, with its latest value and
+    where that value sits in its own last two years: the z, its n and window, or
+    "history too short (n=...)". Read from the store; computed by derived.z_of."""
+    from altdata import derived                                  # noqa: PLC0415
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
-    b = ws.positioning_week(st, now, then)
+    since = (dt.date.fromisoformat(now[:10])
+             - dt.timedelta(days=int(365.25 * HISTORY_YEARS))).isoformat()
+    cftc = [("cftc", f"CFTC {lab}", "cftc.noncomm_net", inst)
+            for inst, lab in ws.CFTC_CONTRACTS]
+    out = []
+    for group, label, key, inst in cftc + list(POSITIONING_SERIES):
+        pts = [(d, v) for d, v in ws.series(st, key, now, inst) if d >= since]
+        if not pts:
+            continue
+        vals = [v for _, v in pts]
+        z = derived.z_of(vals, vals[-1]) if len(vals) >= HISTORY_MIN else None
+        out.append({"group": group, "series": label, "latest": vals[-1],
+                    "as_of": pts[-1][0], "n": len(vals),
+                    "z_two_years": None if z is None else round(z, 1),
+                    "history": (f"z {z:+.1f} over two years (n={len(vals)})"
+                                if z is not None else
+                                f"history too short (n={len(vals)})")})
+    return out
+
+
+POSITIONING_READS = {
+    "Sector rotation and leadership": (
+        "sectors", "the month's leaders and laggards against three and twelve "
+        "months, and how many sectors sit above their 50- and 200-day averages"),
+    "Speculative positioning (CFTC)": ("cftc", None),
+    "Short interest": ("short", None),
+    "Retail sentiment": ("retail", None),
+    "Foreign flows (TIC)": ("tic", None),
+}
+READ_SCOPE = ("the level, its change against the prior month, and where the level "
+              "sits in the series' own history -- the z over two years where the "
+              "history allows it, and 'history too short' where it does not")
+
+
+def positioning_section(st, now: str, then: str) -> dict:
+    """The Weekly's Positioning at the Monthly's cadence: the sector table's
+    horizons are the month, three months and twelve months (T3.1 item 9); every
+    sub-section carries a written read with each series' place in its own
+    history (item 10); the section's own call writes the claim line alone."""
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    b = ws.positioning_week(st, now, then, cadence=CADENCE)
     b.pop("_cftc_series", None)
     b.pop("_leadership", None)
-    return _month_words(b)
+    b = _month_words(b)
+    hist = positioning_history(st, now)
+    b["data"]["history"] = hist
+    for ss in b.get("subsections") or []:
+        group, scope = POSITIONING_READS.get(ss.get("title"), (None, None))
+        if not group:
+            continue
+        ss["phase"] = f"block:positioning:{group}"
+        if group != "sectors":
+            ss["data"] = {"history": [h for h in hist if h["group"] == group]}
+        if (ss.get("table") or {}).get("rows"):
+            ss["prose"] = {"words": "60 to 100", "scope": scope or READ_SCOPE}
+    b["claim_only"] = True
+    return b
 
 
 def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:

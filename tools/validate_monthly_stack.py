@@ -663,6 +663,9 @@ def seed_chart_history(db: str) -> None:
             put("cftc.noncomm_net", inst, d, base + 3_000.0 * math.sin(i / 9.0))
     for i, d in enumerate(months("2006-10-01", "2026-09-01")):
         put("fred.hy_oas", None, d, round(4.5 + 2.0 * math.sin(i / 14.0), 3))
+    # T3.1 item 10: a positioning series whose history is too short to place.
+    for i, d in enumerate(("2026-08-14", "2026-08-29", "2026-09-15")):
+        put("finra.short_interest_days_to_cover", "SPY", d, 1.5 + i / 10.0)
     for i, d in enumerate(weekdays("2026-09-01", M_END)):
         for lg, step in (("cash", 0.011), ("spy", 0.05), ("sixty_forty", 0.03)):
             put("paper.benchmark", lg, d, round(100.0 + i * step, 4))
@@ -738,6 +741,24 @@ def charts_group(cfg: dict) -> None:
           and charts["M1"].get("drawdown_pct") is not None,
           "N2 (item 5): the 156-week chart carries the % from high underlay, M2's "
           "construction")
+    pos = next(s for s in ed["sections"] if s["id"] == "positioning")
+    hist = {h["series"]: h for h in pos["data"].get("history") or []}
+    m6s = charts["M6"].get("series") or []
+    check(len(m6s) >= 2 and [x["z"] for x in m6s] == sorted(x["z"] for x in m6s)
+          and {x["series"] for x in m6s} == {k for k, h in hist.items()
+                                             if h.get("z_two_years") is not None}
+          and "highest" in charts["M6"]["caption"],
+          f"N5 (item 11): one ranked bar chart of every positioning series' current "
+          f"z replaces the ten small panels ({len(m6s)} series)")
+    spy = hist.get("SPY days to cover") or {}
+    check(spy.get("history") == "history too short (n=3)"
+          and "SPY days to cover" in charts["M6"]["caption"]
+          and "SPY days to cover" not in {x["series"] for x in m6s},
+          "N5 (item 10): a series with too short a history says so, and is named "
+          "in the chart's caption rather than drawn")
+    cf = hist.get("CFTC S&P 500 futures") or {}
+    check(cf.get("z_two_years") is not None and "over two years" in cf["history"],
+          f"and a series with two years of history carries its z ({cf.get('history')})")
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     prose_levels = {(k, v) for lv in tape["data"]["levels"] for k, v in lv.items()
                     if k not in ("symbol", "name")}
@@ -1266,6 +1287,46 @@ def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
           "M4 and M5 are placed in the yields & spreads bucket")
 
 
+def t31_positioning_group(ed: dict, out: dict) -> None:
+    """N5: Positioning at the Monthly's horizons, with a read on every
+    sub-section (T3.1 items 9-10; the chart, item 11, in K)."""
+    from altdata import observations
+    from daily_cascade import weekly_sections as wsec
+    print(f"\n{LINE}\nN5. T3.1 ITEMS 9-11: POSITIONING & FLOWS\n{LINE}")
+    pos = next(s for s in ed["sections"] if s["id"] == "positioning")
+    subs = {ss["title"]: ss for ss in pos["subsections"]}
+    sec = subs.get("Sector rotation and leadership") or {}
+    check((sec.get("table") or {}).get("columns") == ["Sector or pair", "The month",
+                                                     "Three months", "Twelve months"],
+          "item 9: the sector table's horizons are the month, three months and "
+          "twelve months; the trailing 22 sessions are gone")
+    with observations.ObservationStore(DB) as st:
+        wk = wsec.sector_table(st, ed["window"]["now"], ed["window"]["then"], [])
+    check(wk["table"]["columns"] == ["Sector or pair", "Week", "One month",
+                                     "Three months"],
+          "the Weekly's sector table is unchanged: the switch is the cadence")
+    want = ["sectors", "cftc", "short", "retail", "tic"]
+    check([ss.get("phase") for ss in pos["subsections"]]
+          == [f"block:positioning:{g}" for g in want],
+          "item 10: each of the five sub-sections -- sectors, CFTC, short interest, "
+          "retail sentiment, TIC -- is set up for its own written read")
+    with_rows = [ss for ss in pos["subsections"] if (ss.get("table") or {}).get("rows")]
+    check(with_rows and all(ss.get("prose") and ss.get("paragraphs") for ss in with_rows)
+          and all(ss.get("prose") is None for ss in pos["subsections"]
+                  if not (ss.get("table") or {}).get("rows")),
+          f"a sub-section with figures carries its paragraph ({len(with_rows)}); one "
+          f"without asks for none")
+    from monthly_macro import stack as ms
+    check("prior month" in ms.READ_SCOPE and "own history" in ms.READ_SCOPE
+          and "history too short" in ms.READ_SCOPE
+          and all((ss.get("prose") or {}).get("scope") == ms.READ_SCOPE
+                  for ss in with_rows if ss["title"] != "Sector rotation and leadership"),
+          "the read is asked for the level, the change on the prior month and the "
+          "level's place in its own history, or \"history too short\"")
+    check(pos.get("claim_only") and not pos.get("paragraphs"),
+          "the section's own call writes the claim line alone (here it faulted, F)")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1547,6 +1608,7 @@ def main() -> int:
     t31_tape_group(ed, out)
     t31_misfit_group(ed, out)
     t31_plumbing_group(cfg, ed, out)
+    t31_positioning_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

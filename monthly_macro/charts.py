@@ -29,7 +29,8 @@ prose is held to.
         years                                                      Plumbing
     M5  the high-yield spread over twenty years, its percentiles
         marked and the latest's own                                Plumbing
-    M6  speculative positioning (CFTC) as z-scores, five years     Positioning
+    M6  every positioning series' current z over two years, ranked
+        in one bar chart (T3.1 item 11; was ten small panels)     Positioning
     M7  what's priced at the month's start against its end:
         breakevens and the fed-funds implied path                  What's priced
     M8  the scenario weights by edition, and their Brier           Ahead
@@ -339,6 +340,54 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# M6: the positioning z-scores, ranked (T3.1 item 11)
+# ---------------------------------------------------------------------------
+def m6(history: list[dict], now: str, name: str, out_dir: Optional[str]) -> dict:
+    """One ranked horizontal bar per positioning series that has a z (its
+    latest value against its own last two years, monthly_macro.stack
+    .positioning_history) -- the z is the insight, and ten panes hid it. A
+    series with too short a history is named in the caption, not drawn."""
+    rows = sorted([(h["series"], h["z_two_years"]) for h in history or []
+                   if h.get("z_two_years") is not None], key=lambda r: r[1])
+    short = [h["series"] for h in history or [] if h.get("z_two_years") is None]
+    if len(rows) < 2:
+        return {"id": "M6", "unavailable": f"{len(rows)} positioning series with two "
+                                           f"years of history stored, 2 needed"}
+    try:
+        plt = ch._plt()
+        fig, ax = plt.subplots(figsize=(ch.CHART_W, 0.26 * len(rows) + 1.0))
+        title = ch.span_title("Positioning, each series' z over its own two years",
+                              len(rows), "series", _years_back(now, 2), now,
+                              "ranked")
+        ax.set_title(title, fontsize=9, loc="left", color="#0d2b45")
+        ax.barh(range(len(rows)), [v for _, v in rows],
+                color=[ch.UP if v >= 0 else ch.DOWN for _, v in rows],
+                edgecolor="#0d2b45", linewidth=0.4)
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([k for k, _ in rows], fontsize=7)
+        for x in (-2, -1, 1, 2):
+            ax.axvline(x, color="#d97706" if abs(x) == 1 else "#b3261e",
+                       linewidth=0.5, linestyle="--")
+        ax.axvline(0, color="#94a3b8", linewidth=0.6)
+        ax.tick_params(labelsize=7)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        for i, (_, v) in enumerate(rows):
+            ax.annotate(f"{v:+.1f}", xy=(v, i), xytext=(3 if v >= 0 else -3, 0),
+                        textcoords="offset points", va="center",
+                        ha="left" if v >= 0 else "right", fontsize=6.5)
+        out = ch._finish(fig, name, out_dir)
+        cap = (f"{title}; highest {rows[-1][0]} z {rows[-1][1]:+.1f}, lowest "
+               f"{rows[0][0]} z {rows[0][1]:+.1f}"
+               + (f"; history too short to rank: {', '.join(short)}" if short else ""))
+        return {"id": "M6", "title": title, "drawn": [], "caption": cap, **out,
+                "series": [{"series": k, "z": v} for k, v in rows],
+                "not_drawn": short}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "M6", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+# ---------------------------------------------------------------------------
 # M7: what's priced, month start against month end
 # ---------------------------------------------------------------------------
 def m7(be: dict, path_then: Optional[dict], path_now: Optional[dict],
@@ -585,19 +634,10 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
                              f"{base}_m5", out_dir))
 
         def _m6():
-            from daily_cascade.weekly_stack import CFTC_CONTRACTS  # noqa: PLC0415
-            cftc = {lab: series(st, "cftc.noncomm_net", now, inst, five)
-                    for inst, lab in CFTC_CONTRACTS}
-            got = [v for v in cftc.values() if len(v) >= 20]
-            if not got:
-                return {"id": "M6", "unavailable": "no CFTC contract with 20 weekly "
-                                                   "reports stored"}
-            d0 = min(v[0][0] for v in got)
-            title = ch.span_title(
-                "Speculative positioning, CFTC net contracts as z-scores",
-                max(len(v) for v in got), "weekly reports", d0, now, "five years")
-            return {**ch.z_panel("M6", cftc, title, f"{base}_m6", out_dir,
-                                 min_points=20), "title": title}
+            pos = next((s for s in ed.get("sections") or []
+                        if s["id"] == "positioning"), {})
+            return m6((pos.get("data") or {}).get("history") or [], now,
+                      f"{base}_m6", out_dir)
         run("M6", _m6)
 
         def _m7():

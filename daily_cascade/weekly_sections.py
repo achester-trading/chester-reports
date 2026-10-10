@@ -861,9 +861,14 @@ def volatility(st, now: str, wis: Optional[dict] = None) -> dict:
 def sector_table(st, now: str, then: str, lead: list,
                  cadence: str = "weekly") -> dict:
     """Item 6: the week, one month and three months beside each other, and how
-    many sectors sit above their 50- and 200-day averages."""
+    many sectors sit above their 50- and 200-day averages.
+
+    AT THE MONTHLY'S CADENCE (T3.1 item 9, ruled 9 Oct 2026): the month, three
+    months and twelve months. "One month" -- the trailing 22 sessions -- is
+    dropped there, because at month-end it is the month a second time."""
     from altdata import labels                                  # noqa: PLC0415
     from altdata.sources.yfinance_source import SECTOR_KEYS     # noqa: PLC0415
+    monthly = cadence == "monthly"
     rows, above50, above200, n = [], 0, 0, 0
     for k in SECTOR_KEYS:
         cl = _closes_of(st, f"yfinance.{k}", now)
@@ -874,6 +879,8 @@ def sector_table(st, now: str, then: str, lead: list,
         wk = next((v for d, v in reversed(cl) if d <= then[:10]), None)
         m1 = vals[-22] if len(vals) > 22 else None
         m3 = vals[-64] if len(vals) > 64 else None
+        if monthly:
+            m1, m3 = m3, (vals[-253] if len(vals) > 253 else None)
         rows.append((labels.sector(k.replace("mkt_", "").upper()), _ret(last, wk),
                      _ret(last, m1), _ret(last, m3)))
         if len(vals) >= 200:
@@ -884,8 +891,9 @@ def sector_table(st, now: str, then: str, lead: list,
     styles = [(lab, v) for lab, v in lead if len(lab) > 4]
     line = (f"Sectors above their 50-day average: {above50} of {n}; above their "
             f"200-day: {above200} of {n}." if n else None)
-    return {"table": {"columns": ["Sector or pair", Period.of(cadence).col, "One month",
-                                  "Three months"],
+    later = ["Three months", "Twelve months"] if monthly else ["One month",
+                                                                 "Three months"]
+    return {"table": {"columns": ["Sector or pair", Period.of(cadence).col, *later],
                       "rows": [[r[0], _signed(r[1], "%"), _signed(r[2], "%"),
                                 _signed(r[3], "%")] for r in rows]
                       + [[lab, _signed(v, "%"), "—", "—"] for lab, v in styles]},
