@@ -163,6 +163,7 @@ vocabularies:
   units:
     - usd                    # a dollar amount
     - usd_per_1pct           # dollars per 1% move in spot
+    - usd_per_point          # dollars per one-point move in spot
     - usd_per_volpt          # dollars per 1 implied-vol point
     - usd_per_day            # dollars per calendar day
     - shares                 # shares of the underlying
@@ -500,7 +501,7 @@ metrics:
     invalidated_by: expiry_rewrite
     observation_type: inferred
     revision_policy: recomputed
-    units: usd
+    units: usd_per_point     # Γ·OI·100·S: dollars per one-point move
     description: Raw signed gamma notional across strikes. Underlying quantity.
   exposure.shares_per_1pct:
     source: yfinance
@@ -532,7 +533,7 @@ metrics:
     invalidated_by: expiry_rewrite
     observation_type: inferred
     revision_policy: recomputed
-    units: usd
+    units: usd_per_point     # Γ·OI·100·S: dollars per one-point move
     description: >-
       Call-gamma mass plus put-gamma mass, unnetted: the sum of
       |sign x gamma x OI x 100 x spot| over rows. Same units as net_gex. The
