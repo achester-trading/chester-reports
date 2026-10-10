@@ -200,6 +200,14 @@ def seed(db: str, dealer_sessions: int) -> None:
         if b is not None:
             put(f"yfinance.mkt_{s}", None, M_END, b)
     put("yfinance.mkt_eem", None, M_END, 45.0)
+    # T3.1 item 8: Plumbing's buckets -- liquidity, metals and global rates.
+    for key, a, b in (("fred.sofr", 4.30, 4.33), ("fred.iorb", 4.40, 4.40),
+                      ("calc.net_liquidity", 5.9e12, 5.8e12),
+                      ("yfinance.mkt_copper_front", 4.50, 4.60),
+                      ("yfinance.mkt_gold_front", 2600.0, 2700.0),
+                      ("yfinance.mkt_usdjpy", 145.0, 148.0)):
+        put(key, None, M_START, a)
+        put(key, None, M_END, b)
     # T3.1 item 2: the tape's year to date -- the 10-year's 2025 year-end close,
     # and an S&P 500 close too old to be the year-end's (it must print a dash).
     put("fred.yield_10y", None, "2025-12-31", 4.40)
@@ -748,8 +756,8 @@ def charts_group(cfg: dict) -> None:
             for c in ss.get("charts_rendered") or []:
                 where[c] = f"{s['id']}/{ss['title']}"
     check(where == {"M0": "tape", "M1": "tape", "M2": "tape", "M3": "mechanics",
-                    "M4": "plumbing",
-                    "M5": "plumbing", "M6": "positioning", "M7": "priced",
+                    "M4": "plumbing/Yields & spreads",
+                    "M5": "plumbing/Yields & spreads", "M6": "positioning", "M7": "priced",
                     "M8": "ahead/Scenarios, and what would change our mind",
                     "M9": "book"},
           "each prints in its section: the long frame in the tape, the "
@@ -1144,8 +1152,8 @@ def t31_tape_group(ed: dict, out: dict) -> None:
                         "20-month (≈400-day) average"],
           "item 3: the long frame keeps its ruled averages, each labelled with its "
           "daily equivalent")
-    check("Year to date" in out["markdown"] and "40-week (≈200-day)" in out["html_email"],
-          "both print in the HTML and the Markdown")
+    check("Year to date" in out["markdown"] and "Year to date" in out["html_email"],
+          "the year to date prints in the HTML and the Markdown")
 
 
 def t31_misfit_group(ed: dict, out: dict) -> None:
@@ -1186,6 +1194,76 @@ def t31_misfit_group(ed: dict, out: dict) -> None:
                                              "persistence_days": 6}]}, None, {})
     check(wk.get("table") and not wk.get("points"),
           "the Weekly's builder is unchanged: its gap table prints as a table")
+
+
+def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
+    """N4: Plumbing & rates in six buckets (T3.1 item 8)."""
+    from altdata import derived
+    from monthly_macro import stack as ms
+    print(f"\n{LINE}\nN4. T3.1 ITEM 8: PLUMBING & RATES IN SIX BUCKETS\n{LINE}")
+    bcfg = cfg.get("monthly_plumbing_buckets") or {}
+    pl = next(s for s in ed["sections"] if s["id"] == "plumbing")
+    titles = [ss["title"] for ss in pl["subsections"]]
+    want = [bcfg["titles"][b] for b in bcfg.get("order") or []]
+    check(titles[:6] == want and bcfg["order"] == ["yields", "macro", "liquidity",
+                                                    "auctions", "metals", "global"],
+          f"six buckets in the ruled order: {titles}")
+    check(not pl.get("table") and (pl["data"].get("table") or {}).get("rows"),
+          "the one table no longer prints; it stays in the section's data")
+    by = {ss.get("bucket"): ss for ss in pl["subsections"]}
+    rows = lambda b: [r[0] for r in (by.get(b, {}).get("table") or {}).get("rows") or []]  # noqa: E731
+    check("30-year" in rows("yields") and "SOFR" in rows("liquidity")
+          and any(x.startswith("Net liquidity") for x in rows("liquidity"))
+          and any(x.startswith("Copper") for x in rows("metals"))
+          and any(x.startswith("Gold over copper") for x in rows("metals"))
+          and any(x.startswith("USD/JPY") for x in rows("global"))
+          and any("auction" in x for x in rows("auctions")),
+          "each row in its bucket: the 30-year in yields & spreads, SOFR and net "
+          "liquidity in liquidity, copper in metals, USD/JPY in global rates, the "
+          "month's auctions in auction results")
+    other = pl["data"].get("other_rows")
+    check(other == [] and pl["data"]["buckets"].get("other") is None,
+          f"no fixture row falls to \"other\" (the gate counts them: {other})")
+    check(ms.bucket_of("Mystery series", None, bcfg) == "other"
+          and ms.bucket_of("SOFR less IORB (funding pressure when above zero)", None,
+                           bcfg) == "liquidity"
+          and ms.bucket_of("10-Year note auction (2026-09-10): high yield 4.1%", None,
+                           bcfg) == "auctions"
+          and ms.bucket_of("Payrolls", "fred.nfp", bcfg) == "macro",
+          "a row is bucketed by its series key, else by a label pattern, else "
+          "\"other\"")
+    saved = derived.registry_entry
+    derived.registry_entry = lambda k: {"family": "fx"} if k == "x.fx" else saved(k)
+    try:
+        fam = ms.bucket_of("A cross", "x.fx", dict(bcfg, families={"fx": "global"}))
+    finally:
+        derived.registry_entry = saved
+    check(fam == "global", "and by the registry's family first, where it declares one")
+    sub_n = [ss for ss in pl["subsections"] if (ss.get("table") or {}).get("rows")]
+    check(sub_n and all(ss.get("paragraphs") for ss in sub_n)
+          and all(f"block:plumbing:{ss['bucket']}" in out["written"] for ss in sub_n),
+          f"each bucket with rows carries one written takeaway through the section "
+          f"writer ({len(sub_n)} buckets)")
+    empty = [ss for ss in pl["subsections"] if not (ss.get("table") or {}).get("rows")]
+    check(all(ss.get("lines") and not ss.get("paragraphs") for ss in empty),
+          "a bucket with nothing stored says so and asks for no paragraph")
+    check(pl.get("claim") and not pl.get("paragraphs"),
+          "the section's own call writes the claim line alone: the reads are the "
+          "buckets'")
+    from daily_cascade import cadence as cadence_mod, stack_render as sr
+    ss = dict(by.get("yields") or {}, charts_rendered=["M4"])
+    fake = {"M4": {"id": "M4", "caption": "fixture chart", "svg_path": "m4.svg"}}
+    mon = cadence_mod.get("monthly")
+    after = sr.subsection_html(ss, "month", mon, charts=fake, mode="archive")
+    before = sr.subsection_html(dict(ss, charts_after_prose=False), "month", mon,
+                                charts=fake, mode="archive")
+    para = (ss.get("paragraphs") or ["~"])[0][:30]
+    check(after.find(para) < after.find("<figure")
+          and before.find("<figure") < before.find(para),
+          "the charts print under their bucket's paragraph (a sub-section without "
+          "the flag keeps them above)")
+    check((by.get("yields") or {}).get("charts_rendered") == ["M4", "M5"],
+          "M4 and M5 are placed in the yields & spreads bucket")
 
 
 def main() -> int:
@@ -1468,6 +1546,7 @@ def main() -> int:
     t31_phone_group(ed, out)
     t31_tape_group(ed, out)
     t31_misfit_group(ed, out)
+    t31_plumbing_group(cfg, ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

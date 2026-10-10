@@ -320,12 +320,15 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
     wrap = bool(cad.get("mobile_tables"))
     body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
             + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
-    if cad.get("subsection_charts"):
-        body += charts_html(ss, charts, mode)
+    figs = charts_html(ss, charts, mode) if cad.get("subsection_charts") else ""
+    paras = foot = ""
     if cad.get("subsection_paragraphs"):
-        body += "".join(f'<p style="{PARA}">{esc(p)}</p>'
+        paras = "".join(f'<p style="{PARA}">{esc(p)}</p>'
                         for p in ss.get("paragraphs") or [])
-        body += _foot(foot_parts(ss, True, _trimmed_note(cad)))
+        foot = _foot(foot_parts(ss, True, _trimmed_note(cad)))
+    # A sub-section may print its charts UNDER its paragraph (T3.1 item 8, the
+    # Monthly's Plumbing buckets); otherwise they print above it.
+    body += (paras + figs if ss.get("charts_after_prose") else figs + paras) + foot
     return (f'<h3 style="{heading}">{esc(ss.get("title"))}</h3>' + body) if body else ""
 
 
@@ -594,11 +597,13 @@ def _md_foot(parts: list[str]) -> list[str]:
 def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
             with_charts: bool = True) -> list[str]:
     body = md_block(ss)
-    if with_charts and cad.get("subsection_charts"):
-        body += md_charts(list(ss.get("charts_rendered") or []), charts)
+    figs = (md_charts(list(ss.get("charts_rendered") or []), charts)
+            if with_charts and cad.get("subsection_charts") else [])
+    paras, foot = [], []
     if cad.get("subsection_paragraphs"):
-        body += [f"{p}\n" for p in ss.get("paragraphs") or []]
-        body += _md_foot(foot_parts(ss, True, _trimmed_note(cad)))
+        paras = [f"{p}\n" for p in ss.get("paragraphs") or []]
+        foot = _md_foot(foot_parts(ss, True, _trimmed_note(cad)))
+    body += (paras + figs if ss.get("charts_after_prose") else figs + paras) + foot
     return ([f"{level} {ss.get('title')}\n"] + body) if body else []
 
 

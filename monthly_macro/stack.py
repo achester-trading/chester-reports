@@ -579,11 +579,59 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
 # ---------------------------------------------------------------------------
 # 5-7. Plumbing, positioning, what's priced: the Weekly's builders, the month
 # ---------------------------------------------------------------------------
-def plumbing_section(st, now: str, then: str, on_tape: set) -> dict:
+def bucket_of(label: str, key: Optional[str], bcfg: dict) -> str:
+    """A Plumbing row's bucket (T3.1 item 8): by the registry's `family` where
+    it declares one, else by the series key, else by the first label pattern the
+    printed label contains; "other" when nothing names it."""
+    if key:
+        from altdata import derived                              # noqa: PLC0415
+        fam = derived.registry_entry(key).get("family")
+        if fam and fam in (bcfg.get("families") or {}):
+            return bcfg["families"][fam]
+        if key in (bcfg.get("keys") or {}):
+            return bcfg["keys"][key]
+    for m in bcfg.get("labels") or []:
+        if m["match"] in str(label):
+            return m["bucket"]
+    return "other"
+
+
+def buckets(rows: list[list], keys: dict, bcfg: dict, columns: list) -> tuple:
+    """(the bucket sub-sections in the ruled order, each with its table; the
+    rows no bucket named). A bucket with no row still prints, with its line."""
+    by: dict[str, list] = {}
+    for r in rows:
+        by.setdefault(bucket_of(r[0], keys.get(r[0]), bcfg), []).append(r)
+    titles = bcfg.get("titles") or {}
+    words = bcfg.get("paragraph_words") or "60 to 100"
+    subs = []
+    for bid in list(bcfg.get("order") or []) + (["other"] if by.get("other") else []):
+        got = by.get(bid) or []
+        subs.append({"title": titles.get(bid) or bid, "bucket": bid,
+                     "phase": f"block:plumbing:{bid}",
+                     "table": {"columns": columns, "rows": got},
+                     "lines": [] if got else ["Nothing stored for this bucket this "
+                                              "month."],
+                     "prose": ({"words": words,
+                                "scope": "what the bucket's figures say together "
+                                         "over the month, and the takeaway"}
+                               if got else None),
+                     "charts_after_prose": True})
+    return subs, by.get("other") or []
+
+
+def plumbing_section(st, now: str, then: str, on_tape: set,
+                     cfg: Optional[dict] = None) -> dict:
     """The Weekly's Plumbing over the month. A rate or spread the tape's
     scorecard already prints (its month-end level and move) is not printed a
     second time here; the footnote says where it is, and the prose still reads
-    it."""
+    it.
+
+    SIX BUCKETS (T3.1 item 8): the Weekly's one table and its global-rates
+    sub-section are regrouped into yields & spreads, macro, liquidity, auction
+    results, metals and global rates (config `monthly_plumbing_buckets`), each a
+    table and a written takeaway; the charts print under their bucket's
+    paragraph. The one table stays in the section's data."""
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     b = _month_words(ws.plumbing_week(st, now, then, None))
     names = {name: k for k, name in ws.PLUMB}
@@ -594,6 +642,31 @@ def plumbing_section(st, now: str, then: str, on_tape: set) -> dict:
         b.setdefault("notes", []).append(
             f"In The tape's table: {', '.join(moved)}.")
     b["_printed"] = [names[r[0]] for r in b["table"]["rows"] if r[0] in names]
+    bcfg = (cfg or {}).get("monthly_plumbing_buckets")
+    if not bcfg:
+        return b
+    keys = dict(names)
+    for r in (b.get("data") or {}).get("tier1_releases") or []:
+        keys[f"{r['release']}: {r['label']}"] = r["series"]
+    fx = next((ss for ss in b.get("subsections") or []
+               if ss.get("title") == "Global rates and FX"), None)
+    allrows = list(b["table"]["rows"]) + list(((fx or {}).get("table") or {})
+                                              .get("rows") or [])
+    subs, other = buckets(allrows, keys, bcfg, list(b["table"]["columns"]))
+    # Every row rides as a hidden item, so the fingerprint -- the change marks and
+    # the collapse -- reads what the one table carried.
+    for r in allrows:
+        b["items"].append(item(f"plumb:row:{r[0]}", str(r[0]), 3, r))
+        b["items"][-1]["show"] = False
+    glob = next((s for s in subs if s["bucket"] == "global"), None)
+    if fx and glob is not None:
+        glob["not_tracked"] = list(fx.get("not_tracked") or [])
+    b["data"]["table"] = b["table"]
+    b["data"]["buckets"] = {s["bucket"]: len(s["table"]["rows"]) for s in subs}
+    b["data"]["other_rows"] = [r[0] for r in other]
+    b["table"] = None
+    b["subsections"] = subs
+    b["claim_only"] = True
     return b
 
 
@@ -1128,7 +1201,7 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
             "tape": lambda: tape_section(p, book, st, last, now, cfg),
             "mechanics": lambda: mechanics_section(st, first, last, now, cfg),
             "misfit": lambda: misfit_section(p, st, now, pmb),
-            "plumbing": lambda: plumbing_section(st, now, then, on_tape),
+            "plumbing": lambda: plumbing_section(st, now, then, on_tape, cfg),
             "positioning": lambda: positioning_section(st, now, then),
             "priced": lambda: priced_section(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": lambda: narratives_section(
@@ -1158,6 +1231,10 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         s["prose_wanted"] = b.get("prose_wanted", True)
         if b.get("points"):
             s["points"] = b["points"]
+        # A SECTION WHOSE SUB-SECTIONS CARRY THE WRITTEN READS (T3.1: Plumbing's
+        # buckets, Positioning's reads, What's priced's blocks) asks its own call
+        # for the claim line alone, so the reads are not said twice.
+        s["claim_only"] = bool(b.get("claim_only"))
     sl = cfg.get("monthly_slow_layers") or {"id": SLOW_ID, "title": "Slow layers",
                                             "monthly": "deep"}
     pr = {x["id"]: x for x in (prior or {}).get("sections") or []}.get(SLOW_ID) or {}
@@ -1278,7 +1355,7 @@ def apply_prose(ed: dict, written: dict) -> dict:
             if ok:
                 s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
                 s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
-                    "deep", "medium") else []
+                    "deep", "medium") and not s.get("claim_only") else []
             else:
                 s["withheld"] = why
             continue

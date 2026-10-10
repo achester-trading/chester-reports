@@ -297,6 +297,77 @@ monthly_slow_triple:
   not_tracked:
     - "the equity risk premium and the dividend yield (the metric lenses, 6e)"
 
+# PLUMBING & RATES IN SIX BUCKETS (T3.1 item 8, ruled 9 Oct 2026; the Monthly
+# only): each bucket a table and a written takeaway. A row goes to the bucket its
+# registry `family` names (`families`, empty while the registry declares none),
+# else to the bucket its series key names (`keys`), else to the first `labels`
+# pattern found in its printed label (rows with no series of their own: SOFR
+# less IORB, an auction, gold over copper); a row nothing names prints under
+# "other", and the gate counts those. `charts` places a chart under its bucket's
+# paragraph. (The buckets are ruled; the map is session-set.)
+monthly_plumbing_buckets:
+  order: [yields, macro, liquidity, auctions, metals, global]
+  titles:
+    yields: "Yields & spreads"
+    macro: "Macro: employment, income, GDP"
+    liquidity: "Liquidity"
+    auctions: "Auction results"
+    metals: "Metals"
+    global: "Global rates"
+    other: "Other"
+  families: {}
+  keys:
+    fred.yield_2y: yields
+    fred.yield_10y: yields
+    fred.yield_30y: yields
+    calc.yield_curve_2s10s: yields
+    fred.hy_oas: yields
+    acm.term_premium_10y: yields
+    fred.ig_oas: yields
+    fred.ccc_oas: yields
+    fred.nfp: macro
+    fred.u3_rate: macro
+    fred.cpi: macro
+    fred.core_cpi: macro
+    fred.pce: macro
+    fred.core_pce: macro
+    fred.real_gdp: macro
+    fred.claims_4wk: macro
+    calc.net_liquidity: liquidity
+    fred.bank_reserves: liquidity
+    fred.tga: liquidity
+    fred.rrp: liquidity
+    fred.sofr: liquidity
+    fred.iorb: liquidity
+    yfinance.mkt_copper_front: metals
+    yfinance.mkt_gold_front: metals
+    yfinance.mkt_usdjpy: global
+    yfinance.mkt_eurusd: global
+    yfinance.mkt_usdcny: global
+    mof.jgb_10y: global
+    mof.jgb_30y: global
+  labels:
+    - {match: "Investment-grade OAS", bucket: yields}
+    - {match: "CCC OAS", bucket: yields}
+    - {match: "CCC less BB", bucket: yields}
+    - {match: "Net liquidity", bucket: liquidity}
+    - {match: "Bank reserves", bucket: liquidity}
+    - {match: "Treasury General Account", bucket: liquidity}
+    - {match: "Reverse repo", bucket: liquidity}
+    - {match: "SOFR", bucket: liquidity}
+    - {match: "IORB", bucket: liquidity}
+    - {match: "auction", bucket: auctions}
+    - {match: "Copper", bucket: metals}
+    - {match: "Gold over copper", bucket: metals}
+    - {match: "USD/", bucket: global}
+    - {match: "EUR/", bucket: global}
+    - {match: "Japan ", bucket: global}
+    - {match: "Bund", bucket: global}
+  charts: {M4: yields, M5: yields}
+  # The written takeaway under each bucket's table: one paragraph through the
+  # Monthly's section writer, behind the same audits.
+  paragraph_words: "60 to 100"
+
 # THE READING CHAPTER'S LINKS (T3, session-set): a register entry's `scan` is a
 # repository path, and an emailed edition can only follow an absolute link, so
 # the scan line links to this base + the path.

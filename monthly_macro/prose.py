@@ -442,7 +442,7 @@ def stack_plan(ed: dict) -> list[dict]:
         if s["id"] not in STACK_SECTIONS or s.get("empty") \
                 or not s.get("prose_wanted", True):
             continue
-        paras = "0" if s["id"] in CLAIM_ONLY else \
+        paras = "0" if (s["id"] in CLAIM_ONLY or s.get("claim_only")) else \
             sp.DEPTH_PARAGRAPHS.get(s["depth"], "0")
         cap = int(caps.get(s["depth"]) or 120)
         body = (f"Then write ONE paragraph of at most {cap} words."
@@ -456,6 +456,69 @@ def stack_plan(ed: dict) -> list[dict]:
                     "sid": s["id"], "system": system,
                     "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
                     "slice": sp._slice(s, ed)})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# THE WRITTEN READS UNDER A SUB-SECTION'S TABLE (T3.1, ruled 9 Oct 2026): "the
+# operator reads the Monthly for takeaways, not for numbers". A sub-section that
+# declares `prose` -- Plumbing's buckets, Positioning's reads, What's priced's
+# blocks, Slow layers' families -- gets ONE paragraph through this writer, over
+# that sub-section's own table and data and nothing else, behind every audit the
+# section's own paragraph passes (the numeral audit against the slice, the tape's
+# rules, "no stored source, not printed"), with the one retry.
+# ---------------------------------------------------------------------------
+BLOCK_RULES = """
+
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE BLOCK of a
+section of {report}: the written read printed under the block's table, in a
+desk's register. Every other rule above still holds -- every figure from the data
+given, signs and percentile ordinals copied from their _signed and _ordinal
+fields, no recommendation.
+
+THE BLOCK: {title}, in the section {section}. {scope}
+
+SHAPE. ONE paragraph of {words} words. Its FIRST SENTENCE is the takeaway: the
+one thing the block's figures say together about the {period}, with its figure.
+No headings, no bullets, no lists, no bold, no tables -- the block's table is
+printed ABOVE your paragraph. Interpret it -- what the figures mean together,
+what moved with what -- and never re-list its rows: cite at most SIX figures.
+Write about the market, never about this report, its checks or its data.
+"""
+
+
+def block_plan(ed: dict) -> list[dict]:
+    """One entry per sub-section that declares `prose`, in a section that is
+    not empty. Keyed by the sub-section's `phase`, so apply_prose sets its
+    paragraphs, or its withheld note."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
+        .replace("{frames}", MONTHLY_FRAMES)
+    out = []
+    for s in ed.get("sections") or []:
+        if s.get("empty"):
+            continue
+        for ss in s.get("subsections") or []:
+            spec = ss.get("prose")
+            if not spec or not ss.get("phase"):
+                continue
+            words_ = str(spec.get("words") or "60 to 100")
+            hi = max(int(x) for x in re.findall(r"\d+", words_) or ["100"])
+            system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
+                report="the Monthly", title=ss["title"], section=s["title"],
+                scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
+                period="month") + tape
+            system += (spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
+            out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
+                        "kind": "stack", "sid": s["id"], "system": system,
+                        "max_chars": hi * 9 + 500,
+                        "slice": {"section": s["title"], "block": ss["title"],
+                                  "month": ed.get("month"),
+                                  "table": ss.get("table"),
+                                  "lines": ss.get("lines"),
+                                  "points": ss.get("points"),
+                                  "data": sp._scrub(ss.get("data") or {})}})
     return out
 
 
@@ -505,7 +568,7 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
     except Exception:                                           # noqa: BLE001
         pm_cfg = None
     out: dict[str, dict] = {}
-    secs = plan(p) + (stack_plan(ed) if ed else [])
+    secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
     def attempt(sec: dict, system: str) -> dict:
         stack = sec.get("kind") == "stack"

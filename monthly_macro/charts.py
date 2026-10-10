@@ -59,7 +59,9 @@ ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
-         "M4": ("plumbing", None), "M5": ("plumbing", None),
+         # Under the yields & spreads bucket's paragraph (T3.1 item 8): matched by
+         # the sub-section's `bucket` (config monthly_plumbing_buckets.charts).
+         "M4": ("plumbing", "yields"), "M5": ("plumbing", "yields"),
          "M6": ("positioning", None), "M7": ("priced", None),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
          "M9": ("book", None)}
@@ -649,7 +651,7 @@ def place(ed: dict, charts: dict) -> None:
         if s is None:
             continue
         tgt = next((ss for ss in s.get("subsections") or []
-                    if sub and ss.get("title") == sub), s)
+                    if sub and sub in (ss.get("title"), ss.get("bucket"))), s)
         tgt.setdefault("charts_rendered", []).append(cid)
 
 
