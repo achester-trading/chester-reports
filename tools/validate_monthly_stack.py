@@ -1378,6 +1378,32 @@ def t31_priced_group(ed: dict, out: dict) -> None:
           "the section's own call writes the claim line alone")
 
 
+def t31_ahead_group(ed: dict) -> None:
+    """N7: Ahead's weekday and 1-5 significance rank (T3.1 item 14)."""
+    from daily_cascade import events_block as eb
+    print(f"\n{LINE}\nN7. T3.1 ITEM 14: AHEAD, WEEKDAY AND SIGNIFICANCE\n{LINE}")
+    ah = next(s for s in ed["sections"] if s["id"] == "ahead")
+    rows = [r for ss in ah["subsections"] for r in (ss.get("table") or {}).get("rows")
+            or [] if (ss.get("table") or {}).get("columns", [""])[0] == "Date"]
+    fomc = next((r for r in rows if str(r[2]).startswith("FOMC statement")), None)
+    check(fomc and fomc[1] == "Wed" and str(fomc[3]) == "5"
+          and fomc[4] == "the rate decision itself",
+          f"every calendar row carries its weekday and its rank, with a one-clause "
+          f"reason at 4-5 ({fomc})")
+    cases = {"Consumer Price Index -- September": 5, "FOMC minutes": 4,
+             "Note:10-Year auction": 4, "ISM Manufacturing PMI": 3,
+             "Industrial Production": 2, "A conference nobody lists": 1,
+             "TRIPLE_WITCHING": 5}
+    got = {t: eb.significance(t)["rank"] for t in cases}
+    check(got == cases,
+          f"the rank is read from the tiers: tier 1 is 5, tier 2 is 4 on the "
+          f"Plumbing trigger's list and 3 off it, a named tier 3 is 2, the rest 1 "
+          f"({got})")
+    check(eb.significance("ISM Manufacturing PMI")["why"] is None
+          and eb.significance("Note:10-Year auction")["why"],
+          "a reason prints only beside a rank of 4 or 5")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1661,6 +1687,7 @@ def main() -> int:
     t31_plumbing_group(cfg, ed, out)
     t31_positioning_group(ed, out)
     t31_priced_group(ed, out)
+    t31_ahead_group(ed)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

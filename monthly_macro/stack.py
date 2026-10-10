@@ -926,12 +926,34 @@ def narratives_section(p: dict, on_tape: Optional[set] = None,
 # ---------------------------------------------------------------------------
 # 9. Ahead: the look-ahead, the scenario weights, the month's graded calls
 # ---------------------------------------------------------------------------
+def _weekday(day: str) -> str:
+    try:
+        return dt.date.fromisoformat(str(day)[:10]).strftime("%a")
+    except ValueError:
+        return "—"
+
+
+AHEAD_COLUMNS = ["Date", "Day", "Event", "Rank (1-5)", "Why it ranks high"]
+
+
 def ahead_section(p: dict, now: str, db_path: Optional[str]) -> dict:
+    """Ahead: the look-ahead by period, the scenario weights, the month's
+    graded calls. Every calendar row carries its weekday and a 1-5 significance
+    rank from the release calendar's tiers, with a one-clause reason on ranks 4
+    and 5 (T3.1 item 14; events_block.significance)."""
+    from daily_cascade import events_block                       # noqa: PLC0415
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    cal = wsec.load_calendar()
+    scfg = stack_mod.config()
     la = p.get("looking_ahead") or {}
     items, subs, ids = [], [], ["looking_ahead:prose"]
     for w in la.get("windows") or []:
-        rows = [[c["date"], c["title"]] for c in w.get("calendar") or []]
-        subs.append({"title": w["name"], "table": {"columns": ["Date", "Event"],
+        rows = []
+        for c in w.get("calendar") or []:
+            sg = events_block.significance(c["title"], cal, scfg)
+            rows.append([c["date"], _weekday(c["date"]), c["title"], sg["rank"],
+                         sg["why"] or "—"])
+        subs.append({"title": w["name"], "table": {"columns": AHEAD_COLUMNS,
                                                    "rows": rows},
                      "lines": [] if rows else
                      ["Nothing on our calendar for this period yet."]})

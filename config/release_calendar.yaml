@@ -11,29 +11,35 @@
 # IMPORTANCE is the existing tiers: tier 1 is the Plumbing trigger's list
 # (config/reporting_stack.yaml, triggers.plumbing.tier1_events), tier 2 is ruled
 # here, and everything else is tier 3.
+#
+# THE MONTHLY'S 1-5 SIGNIFICANCE RANK (T3.1 item 14, ruled 9 Oct 2026) is read
+# from the tiers by daily_cascade/events_block.significance: tier 1 is 5; tier 2
+# is 4 when the Plumbing trigger's list names it and 3 otherwise; a tier-3
+# release this file names is 2, anything else 1. `why` is the one clause printed
+# beside a rank of 4 or 5 (session-set, not ruled).
 version: release-calendar-v1
-updated: 2026-10-04
+updated: 2026-10-09
 
 releases:
   # tier 1
-  - {match: "FOMC statement",              time: "14:00", tier: 1, label: "FOMC statement"}
-  - {match: "FOMC Meeting",                time: "14:00", tier: 1, label: "FOMC statement"}
-  - {match: "Consumer Price Index",        time: "08:30", tier: 1, label: "CPI"}
-  - {match: "Personal Income and Outlays", time: "08:30", tier: 1, label: "PCE (personal income and outlays)"}
-  - {match: "Employment Situation",        time: "08:30", tier: 1, label: "Payrolls (employment situation)"}
-  - {match: "Gross Domestic Product",      time: "08:30", tier: 1, label: "GDP"}
-  - {match: "Treasury quarterly refunding", time: "08:30", tier: 1, label: "Treasury quarterly refunding"}
+  - {match: "FOMC statement",              time: "14:00", tier: 1, label: "FOMC statement", why: "the rate decision itself"}
+  - {match: "FOMC Meeting",                time: "14:00", tier: 1, label: "FOMC statement", why: "the rate decision itself"}
+  - {match: "Consumer Price Index",        time: "08:30", tier: 1, label: "CPI", why: "the inflation print the rate path is priced on"}
+  - {match: "Personal Income and Outlays", time: "08:30", tier: 1, label: "PCE (personal income and outlays)", why: "the Fed's own inflation gauge"}
+  - {match: "Employment Situation",        time: "08:30", tier: 1, label: "Payrolls (employment situation)", why: "the labour market's monthly read"}
+  - {match: "Gross Domestic Product",      time: "08:30", tier: 1, label: "GDP", why: "growth for the quarter, against the cycle read"}
+  - {match: "Treasury quarterly refunding", time: "08:30", tier: 1, label: "Treasury quarterly refunding", why: "coupon supply, and so the term premium"}
   # tier 2
-  - {match: "FOMC minutes",                time: "14:00", tier: 2, label: "FOMC minutes"}
-  - {match: "Minutes of the Federal Open Market Committee", time: "14:00", tier: 2, label: "FOMC minutes"}
+  - {match: "FOMC minutes",                time: "14:00", tier: 2, label: "FOMC minutes", why: "how the committee argued the last decision"}
+  - {match: "Minutes of the Federal Open Market Committee", time: "14:00", tier: 2, label: "FOMC minutes", why: "how the committee argued the last decision"}
   - {match: "ISM",                         time: "10:00", tier: 2, label: "ISM"}
   - {match: "Job Openings",                time: "10:00", tier: 2, label: "JOLTS (job openings)"}
   - {match: "Producer Price",              time: "08:30", tier: 2, label: "PPI"}
   - {match: "Retail Sales",                time: "08:30", tier: 2, label: "Retail sales"}
   - {match: "Advance Monthly Sales",       time: "08:30", tier: 2, label: "Retail sales"}
   - {match: "Unemployment Insurance Weekly Claims", time: "08:30", tier: 2, label: "Jobless claims"}
-  - {match: "Note:10-Year",                time: "13:00", tier: 2, label: "10-year note auction"}
-  - {match: "Bond:30-Year",                time: "13:00", tier: 2, label: "30-year bond auction"}
+  - {match: "Note:10-Year",                time: "13:00", tier: 2, label: "10-year note auction", why: "demand for duration at the benchmark"}
+  - {match: "Bond:30-Year",                time: "13:00", tier: 2, label: "30-year bond auction", why: "demand for the long end"}
   # tier 3, with their standard times
   - {match: "Surveys of Consumers",        time: "10:00", tier: 3, label: "University of Michigan sentiment"}
   - {match: "University of Michigan",      time: "10:00", tier: 3, label: "University of Michigan sentiment"}
@@ -52,6 +58,7 @@ releases:
 expiries:
   monthly_tier: 2
   quarterly_tier: 1
+  quarterly_why: "a quarterly expiry: dealers' hedges roll off at once"
 
 # THE HEADLINE OF EACH TIER-1 RELEASE (T2.2; forms ruled 5 Oct 2026): what The
 # read's week-by-day table and Plumbing print for it, in a declared FORM under a
