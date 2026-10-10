@@ -1148,6 +1148,46 @@ def t31_tape_group(ed: dict, out: dict) -> None:
           "both print in the HTML and the Markdown")
 
 
+def t31_misfit_group(ed: dict, out: dict) -> None:
+    """N3: What doesn't fit as headers, a sentence and bullets (T3.1 item 7)."""
+    from daily_cascade import stack_render as sr, weekly_stack as ws
+    print(f"\n{LINE}\nN3. T3.1 ITEM 7: WHAT DOESN'T FIT, HEADERS AND BULLETS\n{LINE}")
+    mis = next(s for s in ed["sections"] if s["id"] == "misfit")
+    pts = mis.get("points") or []
+    gt = (mis.get("data") or {}).get("gap_table") or {}
+    check(not mis.get("table") and gt.get("rows") and len(pts) == len(gt["rows"]),
+          f"the gap table no longer prints; each of its {len(gt.get('rows') or [])} "
+          f"row(s) is a point, and the table stays in the section's data")
+    p0 = pts[0] if pts else {}
+    check(p0.get("head") and p0.get("sentence") and p0.get("sentence").endswith(".")
+          and any(b.startswith("z +2.4") for b in p0.get("bullets") or [])
+          and any("session" in b for b in p0.get("bullets") or []),
+          f"a point is a short header, one sentence on the mechanism, and the "
+          f"figures as bullets ({p0.get('head')}: {p0.get('bullets')})")
+    html = out["html_email"]
+    mark = "&middot; What doesn"
+    block = (html.split(mark)[1].split("&middot; Plumbing")[0] if mark in html
+             else "")
+    check(f'<p style="{sr.POINT_HEAD}">' in block and f'<ul style="{sr.BULLETS}">' in block
+          and "What each side is saying" not in block,
+          "the page prints them as header, paragraph and bullets, not the table")
+    check(f"**{p0.get('head')}**" in out["markdown"],
+          "and the Markdown the same way")
+    dis = next((ss for ss in mis["subsections"]
+                if ss["title"] == "Dissent and corrections this month"), {})
+    check(not dis.get("table") and (dis.get("points") or dis.get("lines")),
+          "the dissent and corrections print as points too, or say there were none")
+    check(any(i["key"].startswith("misfit:gap:") and i.get("show") is False
+              for i in mis["items"]),
+          "each gap row stays in the fingerprint as a hidden item, so the change "
+          "marks still see it")
+    wk = ws.misfit_week({"contradictions": [{"id": "equities_vs_credit",
+                                             "open_state": "open", "magnitude": 2.4,
+                                             "persistence_days": 6}]}, None, {})
+    check(wk.get("table") and not wk.get("points"),
+          "the Weekly's builder is unchanged: its gap table prints as a table")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1427,6 +1467,7 @@ def main() -> int:
 
     t31_phone_group(ed, out)
     t31_tape_group(ed, out)
+    t31_misfit_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

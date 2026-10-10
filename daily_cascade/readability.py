@@ -167,6 +167,7 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
         _polish_table(s.get("table"))
         for t in s.get("tables") or []:
             _polish_table(t)
+        _polish_points(s, P)
         for ss in s.get("subsections") or []:
             for k in ("paragraph", "table_note", "title"):
                 ss[k] = P(ss.get(k))
@@ -195,6 +196,14 @@ def polish_edition(ed: dict, charts: Optional[dict] = None) -> dict:
     return ed
 
 
+def _polish_points(b: dict, P) -> None:
+    """A Monthly block's points (T3.1 item 7): header, sentence, bullets."""
+    for pt in b.get("points") or []:
+        pt["head"] = P(pt.get("head"))
+        pt["sentence"] = P(pt.get("sentence"))
+        pt["bullets"] = [P(x) for x in pt.get("bullets") or []]
+
+
 def _polish_more(b: dict, P) -> None:
     """What a Monthly block may carry beyond the close's and the Weekly's: its
     own paragraphs, notes and "not yet tracked", and further tables -- polished
@@ -205,6 +214,7 @@ def _polish_more(b: dict, P) -> None:
             b[k] = [P(x) for x in b.get(k) or []]
     for t in b.get("tables") or []:
         _polish_table(t)
+    _polish_points(b, P)
 
 
 def stored_words(ed: dict) -> int:
@@ -327,10 +337,10 @@ def printable_items(s: dict) -> list[dict]:
 # 5. Empty means one line
 # ---------------------------------------------------------------------------
 def has_facts(s: dict) -> bool:
-    if (s.get("table") or {}).get("rows"):
+    if (s.get("table") or {}).get("rows") or s.get("points"):
         return True
     for ss in s.get("subsections") or []:
-        if (ss.get("table") or {}).get("rows") or ss.get("lines"):
+        if (ss.get("table") or {}).get("rows") or ss.get("lines") or ss.get("points"):
             return True
     return any(it.get("show") is not False and not str(it.get("key", "")).endswith(":none")
                for it in s.get("items") or [])

@@ -505,6 +505,39 @@ def _dev_row(it: dict) -> list:
             "; ".join(_cite(s) for s in (it.get("sources") or [])[:2])]
 
 
+def gap_points(gaps: list[dict]) -> list[dict]:
+    """Each open gap as a point (T3.1 item 7): what doesn't fit as the header,
+    the two sides as the one sentence on the mechanism, the figures as bullets.
+    From the gap table's own data (weekly_sections.gap_table) -- nothing new."""
+    out = []
+    for g in gaps or []:
+        sides = str(g.get("sides") or "").strip().rstrip(".")
+        bullets = []
+        if g.get("z") is not None:
+            bullets.append(f"z {g['z']:+.1f} against its own history")
+        if g.get("direction") and g["direction"] != "—":
+            bullets.append(f"the gap is {g['direction']}")
+        if g.get("sessions_open") is not None:
+            bullets.append(f"open {g['sessions_open']} session(s)")
+        if g.get("closes_when"):
+            bullets.append(f"closes when {str(g['closes_when']).rstrip('.')}")
+        out.append({"head": str(g.get("gap") or "").capitalize(),
+                    "sentence": (sides[0].upper() + sides[1:] + ".") if sides else None,
+                    "bullets": bullets})
+    return out
+
+
+def dev_point(theme: str, it: dict) -> dict:
+    """A dissent or a correction as a point: the tag and theme, the
+    development as its source states it, the source under it."""
+    text = str(it.get("text") or "").strip()
+    if it.get("corrects"):
+        text += f" (It corrects: {it['corrects']['statement']})"
+    return {"head": f"{str(it.get('tag')).capitalize()}: {theme}",
+            "sentence": text,
+            "bullets": [f"Source: {_cite(s)}" for s in (it.get("sources") or [])[:2]]}
+
+
 def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     from daily_cascade.stack_close import _contradiction_history  # noqa: PLC0415
@@ -512,21 +545,33 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
     hist = {c["id"]: _contradiction_history(st, c["id"], now)
             for c in mis["contradictions"]}
     b = _month_words(ws.misfit_week(mis, pmb, hist))
-    rows, ids = [], []
+    rows, ids, pts = [], [], []
     for t in (p.get("looking_back") or {}).get("themes") or []:
         for n, it in enumerate(t.get("items") or []):
             if it.get("tag") in MISFIT_TAGS:
                 rows.append([t.get("name")] + _dev_row(it))
+                pts.append(dev_point(t.get("name"), it))
                 ids.append(f"looking_back:{t['theme']}:item:{n}")
                 b["items"].append(item(f"misfit:dev:{t['theme']}:{n}",
                                        f"{it.get('tag')}: {it.get('text')}", 2,
                                        (it.get("tag"), it.get("text"))))
                 b["items"][-1]["show"] = False
     b["items"] = [i for i in b["items"] if i["key"] != "misfit:none" or not rows]
+    # PARAGRAPHS WITH HEADERS AND BULLETS, NOT TABLES (T3.1 item 7): the gap
+    # table and the dissent table stay the source -- in the section's data, and so
+    # in its prose slice -- and print as points. Each gap row rides as a hidden
+    # item, so the fingerprint, the change marks and the collapse still read it.
+    for r in (b.get("table") or {}).get("rows") or []:
+        b["items"].append(item(f"misfit:gap:{r[0]}", str(r[0]), 1, r))
+        b["items"][-1]["show"] = False
+    b["data"]["gap_table"] = b.get("table")
+    b["data"]["dissent"] = [{"theme": r[0], "development": r[1], "tag": r[2],
+                             "source": r[3]} for r in rows]
+    b["points"] = gap_points((b.get("data") or {}).get("gaps") or [])
+    b["table"] = None
     b.setdefault("subsections", []).append(
-        {"title": "Dissent and corrections this month",
-         "table": {"columns": ["Theme", "Development", "Tag", "Source"],
-                   "rows": rows}})
+        {"title": "Dissent and corrections this month", "points": pts,
+         "lines": [] if pts else ["No dissent or correction this month."]})
     b["phase_a"] = ids
     return b
 
@@ -1111,6 +1156,8 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         s["phase_a"] = list(b.get("phase_a") or [])
         s["notes"] = list(b.get("notes") or [])
         s["prose_wanted"] = b.get("prose_wanted", True)
+        if b.get("points"):
+            s["points"] = b["points"]
     sl = cfg.get("monthly_slow_layers") or {"id": SLOW_ID, "title": "Slow layers",
                                             "monthly": "deep"}
     pr = {x["id"]: x for x in (prior or {}).get("sections") or []}.get(SLOW_ID) or {}

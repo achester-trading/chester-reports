@@ -250,6 +250,13 @@ def tables_html(b: dict, wrap: bool = False) -> str:
 
 LINK = "color:#0d2b45;text-decoration:underline"
 META = "color:#475569"
+# POINTS (T3.1 item 7, the Monthly's What doesn't fit): a short header, one
+# sentence, then the figures as bullets -- the one place a stacked edition prints
+# a list, because the operator ruled the table carried the message less well.
+POINT_HEAD = ("font-size:13px;font-weight:600;color:#0d2b45;margin:10px 0 2px 0;"
+              "line-height:1.4")
+BULLETS = "margin:2px 0 10px 0;padding-left:18px;font-size:12.5px;line-height:1.5"
+BULLET = "margin:0 0 2px 0;overflow-wrap:anywhere"
 
 
 def _a(text: Any, url: Optional[str]) -> str:
@@ -280,6 +287,22 @@ def entries_html(b: dict) -> str:
     return "".join(out)
 
 
+def points_html(b: dict) -> str:
+    """A block's POINTS (T3.1 item 7): for each, its header, its one sentence
+    and its bullets. Code-written from the block's data; nothing when the block
+    carries none -- only the Monthly's builders set them."""
+    out = []
+    for pt in b.get("points") or []:
+        out.append(f'<p style="{POINT_HEAD}">{esc(pt.get("head"))}</p>')
+        if pt.get("sentence"):
+            out.append(f'<p style="{PARA}">{esc(pt["sentence"])}</p>')
+        if pt.get("bullets"):
+            out.append(f'<ul style="{BULLETS}">'
+                       + "".join(f'<li style="{BULLET}">{esc(x)}</li>'
+                                 for x in pt["bullets"]) + "</ul>")
+    return "".join(out)
+
+
 def charts_html(b: dict, charts: Optional[dict], mode: str) -> str:
     """The charts a block carries (`charts_rendered`) that were drawn: `cid:` in
     the email, the SVG's file name beside the archived HTML."""
@@ -295,7 +318,7 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
     its own footnote (its notes, what it does not track, why anything was
     withheld) too. Nothing at all when it has nothing to print."""
     wrap = bool(cad.get("mobile_tables"))
-    body = (tables_html(ss, wrap) + entries_html(ss)
+    body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
             + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
     if cad.get("subsection_charts"):
         body += charts_html(ss, charts, mode)
@@ -319,7 +342,7 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     # TABLES: the section's, each sub-section's, then the lines left over.
     # A TABLE'S STANDING NOTE -- how to read it, how its flags are computed --
     # is printed once, in the glossary (table_notes), never under the table.
-    out.append(tables_html(s, wrap) + entries_html(s))
+    out.append(tables_html(s, wrap) + entries_html(s) + points_html(s))
     for ss in s.get("subsections") or []:
         out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
     items = rd.printable_items(s)
@@ -522,9 +545,23 @@ def md_entries(b: dict) -> list[str]:
     return out
 
 
+def md_points(b: dict) -> list[str]:
+    """As points_html: the header in bold, the sentence, the bullets."""
+    out = []
+    for pt in b.get("points") or []:
+        out.append(f"**{pt.get('head')}**\n")
+        if pt.get("sentence"):
+            out.append(f"{pt['sentence']}\n")
+        out += [f"- {x}" for x in pt.get("bullets") or []]
+        if pt.get("bullets"):
+            out.append("")
+    return out
+
+
 def md_block(b: dict) -> list[str]:
-    """A block's table, its reading entries, its further tables, its lines."""
-    out = md_table(b.get("table")) + md_entries(b)
+    """A block's table, its reading entries, its points, its further tables,
+    its lines."""
+    out = md_table(b.get("table")) + md_entries(b) + md_points(b)
     for t in b.get("tables") or []:
         out += md_table(t)
     out += [f"- {x}" for x in b.get("lines") or []]
