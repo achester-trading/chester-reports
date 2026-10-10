@@ -56,6 +56,13 @@ SECOND HALF:
                 reports/dryrun/ and nowhere else, the prior read from the real
                 archive, no snapshot, no state record, one "[DRY RUN]" copy
                 with --email, --email alone refused.
+
+T3.1, THE OPERATOR'S NOTES ON THE FIRST DRY RUN (docs/briefs/
+t3-1-monthly-notes-brief-2026-10-09.md), one group per ruling or set of them:
+
+  N1 PHONE      text cells wrap, numbers do not, a table wider than six columns
+                lays out fixed -- at the Monthly's cadence only; the email
+                attaches the edition's HTML with its charts embedded.
 """
 
 from __future__ import annotations
@@ -768,6 +775,13 @@ def charts_group(cfg: dict) -> None:
           and all(b[:4] == b"\x89PNG" for _, b in sent["inline_images"]),
           "delivery reads the archived PNGs back and sends them by Content-ID with "
           "the archived HTML")
+    att = {a[0]: a for a in sent.get("attachments") or []}
+    page = att.get(f"monthly_macro_{stamp}.html")
+    check(f"monthly_macro_{stamp}.md" in att and page and page[2] == "html"
+          and "cid:" not in page[1]
+          and page[1].count("data:image/png;base64,") == len(charts),
+          "N1: the email attaches the edition's HTML beside the Markdown, every "
+          "chart embedded in it, so Safari can lay it out to the phone")
 
 
 SUMMARY_DEEP = ("The fixture chartbook, data as of 31 August 2026, argues earnings "
@@ -1042,6 +1056,29 @@ def dryrun_group(p: dict, prior: dict) -> None:
           f"the dry-run archive ({sent[0][0] if sent else 'nothing sent'})")
     check(rc_quiet == 0 and len(sent) == 1,
           "without --email the dry run sends nothing")
+
+
+def t31_phone_group(ed: dict, out: dict) -> None:
+    """N1: text wraps on the phone (T3.1 item 1)."""
+    from daily_cascade import stack_render as sr
+    print(f"\n{LINE}\nN1. T3.1 ITEM 1: TEXT WRAPS ON THE PHONE\n{LINE}")
+    html = out["html_email"]
+    check(sr.TDL_WRAP in html and sr.TDL + '"' not in html,
+          "at the Monthly's cadence every text cell wraps (overflow-wrap:anywhere)")
+    check(f'<td style="{sr.TD}">' in html and "nowrap" not in sr.TDL_WRAP,
+          "and only a numeric cell keeps nowrap")
+    wide = {"columns": [f"c{i}" for i in range(8)], "rows": [["a"] * 8]}
+    check(sr.TBL_FIXED in sr._table(wide, True)
+          and sr.TBL_FIXED not in sr._table(dict(wide, columns=wide["columns"][:5],
+                                                  rows=[["a"] * 5]), True),
+          "a table wider than six columns lays out fixed; a narrower one does not")
+    sec = next(s for s in ed["sections"] if s["id"] == "tape")
+    weekly = sr.section_html(sec, 2, {}, "email", "weekly")
+    daily = sr.section_html(sec, 2, {}, "email", "daily")
+    check(sr.TDL_WRAP not in weekly and sr.TDL_WRAP not in daily
+          and sr.TBL_FIXED not in sr._table(wide),
+          "the close and the Weekly render as before: the switch is the Monthly "
+          "cadence's (config `mobile_tables`)")
 
 
 def main() -> int:
@@ -1321,6 +1358,7 @@ def main() -> int:
               if r.get("published") and k not in ("stack:plumbing",)),
           "and a section published first time is called once")
 
+    t31_phone_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

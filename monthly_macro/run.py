@@ -55,7 +55,8 @@ SUBJECT = "Monthly Regime & Allocation — {date}"
 
 def deliver_edition(stamp: str, out_dir: str = "reports",
                     dry_run: bool = False) -> dict:
-    """Email one ARCHIVED edition: the HTML in the body, the Markdown attached.
+    """Email one ARCHIVED edition: the HTML in the body, the Markdown and the
+    HTML attached.
 
     Reads the files the build archived rather than taking them from memory, so
     what is mailed is byte-identical to the record and a past edition can be
@@ -64,7 +65,10 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
 
     The same transport as the Weekly and the 16:45 close: daily_cascade/deliver,
     which reads the SMTP credentials the heartbeat's alert path uses. Never
-    raises. Prints ONE greppable line for run_monthly.sh's log:
+    raises. THE HTML TRAVELS TWICE (T3.1 item 1): in the body, and as an
+    attachment with its charts embedded, because Gmail on iPhone zooms a wide
+    body out while Safari lays the attached page out to the screen.
+    Prints ONE greppable line for run_monthly.sh's log:
         delivery=smtp ok       sent
         delivery=smtp failed   anything else, with the named state and detail
     """
@@ -84,7 +88,10 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
             print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
         state, detail = delivery.send_html(
             ("[DRY RUN] " if dry_run else "") + SUBJECT.format(date=stamp), html,
-            text_fallback=md, attachments=[(md_name, md, "markdown")],
+            text_fallback=md,
+            attachments=[(md_name, md, "markdown"),
+                         (html_name, charts_mod.self_contained(html, images),
+                          "html")],
             inline_images=images or None)
     ok = state == "sent"
     print(f"delivery=smtp {'ok' if ok else 'failed'} state={state} -- {detail}",

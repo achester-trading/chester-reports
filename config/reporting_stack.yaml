@@ -205,6 +205,9 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 #                 Weekly fit by construction, one capped paragraph a section)
 #   report, frames  the prose prompt's report name and its frames (brief 2.1 rule 1)
 #   chars_scale, read_chars  the prose's runaway guards (not style rules)
+#   mobile_tables  text cells wrap and a table wider than six columns lays out
+#                 fixed, so no table widens an email past a phone's screen (T3.1
+#                 item 1, ruled 9 Oct 2026: the Monthly only)
 cadences:
   daily:
     report: "the daily close"
@@ -245,6 +248,7 @@ cadences:
     frames: "the weeks of the month first, then the month as a whole, then where the month sits in the long frame."
     chars_scale: 2.5
     read_chars: 2400
+    mobile_tables: true
 
 # THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
 # deep). It follows The book; the old Monthly's record -- the regime, the

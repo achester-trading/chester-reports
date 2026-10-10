@@ -669,3 +669,14 @@ def inline_images(html: str, stamp: str, out_dir: str) -> tuple[list, list[str]]
         else:
             missing.append(cid)
     return got, missing
+
+
+def self_contained(html: str, images: Optional[list]) -> str:
+    """The archived email HTML with each `cid:` chart replaced by its PNG as a
+    data URI: the page attached to the email (T3.1 item 1), which a phone's
+    browser opens on its own and lays out to the screen."""
+    import base64                                               # noqa: PLC0415
+    for c, png in images or []:
+        html = html.replace(f"cid:{c}", "data:image/png;base64,"
+                            + base64.b64encode(png).decode("ascii"))
+    return html
