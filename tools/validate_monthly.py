@@ -565,11 +565,19 @@ def group_g() -> None:
                       "32.3's 'a report that must be opened is read late'")
                 atts = list(m.iter_attachments())
                 a = atts[0] if atts else None
-                check(len(atts) == 1 and a.get_filename() == f"monthly_macro_{stamp}.md"
+                check(len(atts) == 2 and a.get_filename() == f"monthly_macro_{stamp}.md"
                       and a.get_content_type() == "text/markdown"
                       and a.get_content() == md,
                       f"the Markdown is attached, byte-identical to the archive "
                       f"({[x.get_filename() for x in atts]})")
+                h = atts[1] if len(atts) > 1 else None
+                # T3.1 item 1: the HTML is attached too, its charts embedded (this
+                # edition has none, so it is the archive's HTML byte for byte).
+                check(h is not None and h.get_filename() == f"monthly_macro_{stamp}.html"
+                      and h.get_content_type() == "text/html"
+                      and h.get_content().rstrip("\n") == html,
+                      "and the edition's HTML beside it, for a phone's browser "
+                      "(T3.1 item 1)")
             check(printed.startswith("delivery=smtp ok "),
                   f"and one greppable line says so ({printed.strip()[:40]}...)")
 

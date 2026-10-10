@@ -561,3 +561,45 @@ def render(block: dict) -> str:
                    + "; ".join(f"{k} ({v})" for k, v in dormant.items())
                    + ".*\n")
     return "\n".join(out)
+
+
+# ---------------------------------------------------------------------------
+# THE MONTHLY'S SIGNIFICANCE RANK (T3.1 item 14, ruled 9 Oct 2026)
+# ---------------------------------------------------------------------------
+def significance(title: str, cal: Optional[dict] = None,
+                 stack_cfg: Optional[dict] = None) -> dict:
+    """{"rank": 1-5, "why": a clause for a rank of 4 or 5, else None}, read from
+    the release calendar's tiers (config/release_calendar.yaml): tier 1 is 5;
+    tier 2 is 4 when the Plumbing trigger's list (config/reporting_stack.yaml
+    triggers.plumbing) names it and 3 otherwise; a tier-3 release the calendar
+    names is 2; anything else 1. A quarterly options expiry is tier 1 and a
+    monthly one tier 2, by the calendar's `expiries`. Computed, never judged."""
+    from . import weekly_sections as wsec                       # noqa: PLC0415
+    cal = cal if cal is not None else wsec.load_calendar()
+    if stack_cfg is None:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        stack_cfg = bars_mod.load_config()
+    t = str(title or "")
+    low = t.lower()
+    exp = cal.get("expiries") or {}
+    r = wsec.match_release(t, cal) or {}
+    tier, why = r.get("tier"), r.get("why")
+    if ("triple" in low and "witch" in low) or ("quarterly" in low and "expir" in low):
+        tier, why = int(exp.get("quarterly_tier") or 1), exp.get("quarterly_why")
+    elif tier is None and ("opex" in low or "options expir" in low):
+        tier = int(exp.get("monthly_tier") or 2)
+    trig = ((stack_cfg.get("triggers") or {}).get("plumbing") or {})
+    listed = any(str(x).lower() in low for x in
+                 list(trig.get("tier1_events") or []) + list(trig.get("auctions") or []))
+    if tier == 1:
+        rank = 5
+    elif tier == 2:
+        rank = 4 if listed else 3
+    elif r:
+        rank = 2
+    else:
+        rank = 1
+    if rank >= 4 and not why:
+        why = ("a top-tier release" if rank == 5 else
+               "on the Plumbing trigger's list")
+    return {"rank": rank, "why": why if rank >= 4 else None}

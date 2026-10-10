@@ -868,9 +868,12 @@ def section_words(s: dict) -> int:
 
 
 def edition_words(ed: dict) -> int:
-    """The edition's prose: every section, and every detail block after them."""
+    """The edition's prose: every section, and every detail block after them,
+    and an executive summary where the edition carries one (the Monthly's,
+    T3.1 item 20 -- it is prose and counts in the budget)."""
     return (sum(section_words(s) for s in ed.get("sections") or [])
-            + sum(section_words(d) for d in ed.get("detail") or []))
+            + sum(section_words(d) for d in ed.get("detail") or [])
+            + sum(words(x.get("text")) for x in ed.get("summary") or []))
 
 
 def enforce_budget(ed: dict, cadence: str = "daily") -> dict:

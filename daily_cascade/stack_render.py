@@ -90,6 +90,14 @@ TD = ("text-align:right;padding:4px 6px;border-bottom:1px solid #edf1f4;"
       "white-space:nowrap")
 TDW = "text-align:right;padding:4px 6px;border-bottom:1px solid #edf1f4"
 TDL = "text-align:left;padding:4px 6px;border-bottom:1px solid #edf1f4"
+# ON THE PHONE (T3.1 item 1, the Monthly; config `cadences: mobile_tables`). Gmail
+# on iPhone ignores SCROLL's horizontal scrolling, so one table wider than the
+# screen zooms the whole email out. A cadence that sets `mobile_tables` therefore
+# lets a text cell wrap anywhere (a URL, a long series name) while a number keeps
+# TD's nowrap, and fixes the column layout of a table that came in wider than six
+# columns, so its parts lay out to the screen rather than to their longest cell.
+TDL_WRAP = TDL + ";overflow-wrap:anywhere;word-break:break-word"
+TBL_FIXED = TBL + ";table-layout:fixed"
 ZEBRA = "background:#f6f8fa"
 FIG = "margin:6px 0 12px 0"
 IMG = "max-width:100%;height:auto;display:block"
@@ -144,38 +152,42 @@ def _split(t: dict) -> list[dict]:
     return out
 
 
-def _cell(v: Any, n: int) -> str:
+def _cell(v: Any, n: int, wrap: bool = False) -> str:
     txt = "—" if v is None or v == "" else str(v)
     right = n > 0 and is_number(txt)
-    style = (TDW if " / " in txt else TD) if right else TDL
+    style = (TDW if " / " in txt else TD) if right else (TDL_WRAP if wrap else TDL)
     return f'<td style="{style}">{esc(txt)}</td>'
 
 
-def _table(t: Optional[dict]) -> str:
+def _table(t: Optional[dict], wrap: bool = False) -> str:
+    """`wrap`: the cadence's `mobile_tables` (T3.1 item 1) -- text cells wrap,
+    numbers do not, and a table wider than six columns lays out fixed."""
     if not t or not t.get("rows"):
         return ""
     out = []
+    tbl = (TBL_FIXED if wrap and len(t.get("columns") or []) > rd.MAX_TABLE_COLUMNS
+           else TBL)
     for part in _split(t):
         head = "".join(f'<th style="{THL if n == 0 else TH}">{esc(c)}</th>'
                        for n, c in enumerate(part["columns"]))
         zebra = f' style="{ZEBRA}"'
         body = "".join(
             f'<tr{zebra if k % 2 else ""}>'
-            + "".join(_cell(v, n) for n, v in enumerate(r)) + "</tr>"
+            + "".join(_cell(v, n, wrap) for n, v in enumerate(r)) + "</tr>"
             for k, r in enumerate(part["rows"]))
-        out.append(f'<div style="{SCROLL}"><table style="{TBL}"><tr>{head}</tr>'
+        out.append(f'<div style="{SCROLL}"><table style="{tbl}"><tr>{head}</tr>'
                    f'{body}</table></div>')
     return "".join(out)
 
 
 def lines_table(lines: list[str], head: str = "Readings",
-                marks: Optional[list[bool]] = None) -> str:
+                marks: Optional[list[bool]] = None, wrap: bool = False) -> str:
     """Code-written lines as a one-column table -- never a list (item 1)."""
     if not lines:
         return ""
     rows = [[(DIAMOND + " " if marks and marks[n] else "") + x]
             for n, x in enumerate(lines)]
-    return _table({"columns": [head], "rows": rows})
+    return _table({"columns": [head], "rows": rows}, wrap)
 
 
 def header_html(s: dict, n: int) -> str:
@@ -230,13 +242,32 @@ def footnote(s: dict, cadence: str = "daily") -> str:
                             _trimmed_note(cad)))
 
 
-def tables_html(b: dict) -> str:
+def tables_html(b: dict, wrap: bool = False) -> str:
     """A block's table, then any further tables it carries (`tables`)."""
-    return _table(b.get("table")) + "".join(_table(t) for t in b.get("tables") or [])
+    return (_table(b.get("table"), wrap)
+            + "".join(_table(t, wrap) for t in b.get("tables") or []))
 
 
 LINK = "color:#0d2b45;text-decoration:underline"
 META = "color:#475569"
+# POINTS (T3.1 item 7, the Monthly's What doesn't fit): a short header, one
+# sentence, then the figures as bullets -- the one place a stacked edition prints
+# a list, because the operator ruled the table carried the message less well.
+POINT_HEAD = ("font-size:13px;font-weight:600;color:#0d2b45;margin:10px 0 2px 0;"
+              "line-height:1.4")
+BULLETS = "margin:2px 0 10px 0;padding-left:18px;font-size:12.5px;line-height:1.5"
+BULLET = "margin:0 0 2px 0;overflow-wrap:anywhere"
+BULLET_SOURCE = "font-size:11px;color:#6b7785;line-height:1.4"
+
+
+def _bullet(x: Any) -> str:
+    """A bullet is a string, or {"text", "source"}: the source prints on its
+    own line under the bullet (T3.1 item 17, the voices)."""
+    if isinstance(x, dict):
+        src = (f'<br><span style="{BULLET_SOURCE}">{esc(x["source"])}</span>'
+               if x.get("source") else "")
+        return f'<li style="{BULLET}">{esc(x.get("text"))}{src}</li>'
+    return f'<li style="{BULLET}">{esc(x)}</li>'
 
 
 def _a(text: Any, url: Optional[str]) -> str:
@@ -267,6 +298,23 @@ def entries_html(b: dict) -> str:
     return "".join(out)
 
 
+def points_html(b: dict) -> str:
+    """A block's POINTS (T3.1 item 7): for each, its header, its one sentence
+    and its bullets. Code-written from the block's data; nothing when the block
+    carries none -- only the Monthly's builders set them."""
+    out = []
+    for pt in b.get("points") or []:
+        out.append(f'<p style="{POINT_HEAD}">{esc(pt.get("head"))}</p>')
+        if pt.get("sentence"):
+            out.append(f'<p style="{PARA}">{esc(pt["sentence"])}</p>')
+        for x in pt.get("more") or []:
+            out.append(f'<p style="{PARA}">{esc(x)}</p>')
+        if pt.get("bullets"):
+            out.append(f'<ul style="{BULLETS}">'
+                       + "".join(_bullet(x) for x in pt["bullets"]) + "</ul>")
+    return "".join(out)
+
+
 def charts_html(b: dict, charts: Optional[dict], mode: str) -> str:
     """The charts a block carries (`charts_rendered`) that were drawn: `cid:` in
     the email, the SVG's file name beside the archived HTML."""
@@ -281,20 +329,25 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
     on one whose sub-sections keep their own paragraphs, those paragraphs and
     its own footnote (its notes, what it does not track, why anything was
     withheld) too. Nothing at all when it has nothing to print."""
-    body = (tables_html(ss) + entries_html(ss)
-            + lines_table(ss.get("lines") or [], f"This {period}"))
-    if cad.get("subsection_charts"):
-        body += charts_html(ss, charts, mode)
+    wrap = bool(cad.get("mobile_tables"))
+    body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
+            + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
+    figs = charts_html(ss, charts, mode) if cad.get("subsection_charts") else ""
+    paras = foot = ""
     if cad.get("subsection_paragraphs"):
-        body += "".join(f'<p style="{PARA}">{esc(p)}</p>'
+        paras = "".join(f'<p style="{PARA}">{esc(p)}</p>'
                         for p in ss.get("paragraphs") or [])
-        body += _foot(foot_parts(ss, True, _trimmed_note(cad)))
+        foot = _foot(foot_parts(ss, True, _trimmed_note(cad)))
+    # A sub-section may print its charts UNDER its paragraph (T3.1 item 8, the
+    # Monthly's Plumbing buckets); otherwise they print above it.
+    body += (paras + figs if ss.get("charts_after_prose") else figs + paras) + foot
     return (f'<h3 style="{heading}">{esc(ss.get("title"))}</h3>' + body) if body else ""
 
 
 def section_html(s: dict, n: int, charts: dict, mode: str,
                  cadence: str = "daily") -> str:
     cad = _cadence(cadence)
+    wrap = bool(cad.get("mobile_tables"))
     period = s.get("period") or cad["period"]
     out = [header_html(s, n)]
     if s.get("empty"):
@@ -304,14 +357,14 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     # TABLES: the section's, each sub-section's, then the lines left over.
     # A TABLE'S STANDING NOTE -- how to read it, how its flags are computed --
     # is printed once, in the glossary (table_notes), never under the table.
-    out.append(tables_html(s) + entries_html(s))
+    out.append(tables_html(s, wrap) + entries_html(s) + points_html(s))
     for ss in s.get("subsections") or []:
         out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
     items = rd.printable_items(s)
     if items:
         out.append(lines_table([i["text"] for i in items],
                                s.get("lines_head") or f"Also this {period}",
-                               [bool(i.get("changed")) for i in items]))
+                               [bool(i.get("changed")) for i in items], wrap))
     # CHARTS: the section's own, then -- on a cadence whose sub-sections do not
     # carry their own (the close, the Weekly) -- its sub-sections'.
     ids = list(s.get("charts_rendered") or [])
@@ -334,9 +387,10 @@ def detail_html(d: dict, cadence: str = "daily") -> str:
     """One detail block: its heading, its tables and lines, its sub-sections,
     its footnote."""
     cad = _cadence(cadence)
+    wrap = bool(cad.get("mobile_tables"))
     period = cad["period"]
-    out = [f'<h3 style="{H3}">{esc(d["title"])}</h3>', tables_html(d),
-           lines_table(d.get("lines") or [], f"This {period}")]
+    out = [f'<h3 style="{H3}">{esc(d["title"])}</h3>', tables_html(d, wrap),
+           lines_table(d.get("lines") or [], f"This {period}", wrap=wrap)]
     for ss in d.get("subsections") or []:
         out.append(subsection_html(ss, period, cad))
     out.append(_foot(foot_parts(d, False, _trimmed_note(cad))))
@@ -353,9 +407,10 @@ def details_html(detail: Optional[list], cadence: str = "daily") -> str:
 def page_header(title: str, stamp: str, minutes: int,
                 changed: Optional[list[str]] = None,
                 changed_head: Optional[str] = None,
-                extra_html: str = "") -> str:
+                extra_html: str = "", wrap: bool = False) -> str:
     """Title, the as-of in ET, the reading time, and what changed (item 7)."""
-    ch = (lines_table(changed, changed_head) if changed and changed_head else "")
+    ch = (lines_table(changed, changed_head, wrap=wrap)
+          if changed and changed_head else "")
     return (f'<h1 style="{H1}">{esc(title)}</h1>'
             f'<p style="{SUB}">{esc(stamp)} &middot; about '
             f'{esc(rd.plural(minutes, "minute"))} to read{extra_html}</p>{ch}')
@@ -396,7 +451,8 @@ def table_notes(ed: Optional[dict]) -> list[dict]:
     return out
 
 
-def glossary_html(entries: list[dict], ed: Optional[dict] = None) -> str:
+def glossary_html(entries: list[dict], ed: Optional[dict] = None,
+                  wrap: bool = False) -> str:
     """The glossary, printed once at the end of an edition, as a table: the
     declared terms, the tables' standing notes, and the standing notes that
     left the body (T2.5 item 3)."""
@@ -407,7 +463,7 @@ def glossary_html(entries: list[dict], ed: Optional[dict] = None) -> str:
         return ""
     rows = [[e.get("term"), e.get("text")] for e in entries]
     return (f'<h2 style="{SECTION}">Glossary</h2>'
-            + _table({"columns": ["Term", "Meaning"], "rows": rows}))
+            + _table({"columns": ["Term", "Meaning"], "rows": rows}, wrap))
 
 
 def _marks(ed: dict, what: str) -> str:
@@ -439,6 +495,39 @@ def edition_minutes(ed: dict) -> int:
     return int(ed.get("reading_minutes") or rd.reading_minutes(ed))
 
 
+def summary_html(ed: dict) -> str:
+    """THE EXECUTIVE SUMMARY (T3.1 item 20, the Monthly's): after the header and
+    before section 1, one paragraph per section under the section's name, with
+    the short path's own reading time -- the summary with section 1. Nothing
+    when the edition carries no summary (every other report)."""
+    summ = ed.get("summary") or []
+    if not summ:
+        return ""
+    mins = ed.get("summary_minutes")
+    out = [f'<h2 style="{SECTION}">Executive summary</h2>']
+    if mins:
+        out.append(f'<p style="{SUB}">About {esc(rd.plural(int(mins), "minute"))} to '
+                   f'read, with section 1 &middot; the short path</p>')
+    for e in summ:
+        out.append(f'<p style="{PARA}"><strong>{esc(e.get("title"))}.</strong> '
+                   f'{esc(e.get("text") or e.get("note") or "")}</p>')
+    return "".join(out)
+
+
+def md_summary(ed: dict) -> list[str]:
+    """As summary_html, for the Markdown."""
+    summ = ed.get("summary") or []
+    if not summ:
+        return []
+    out = ["## Executive summary\n"]
+    if ed.get("summary_minutes"):
+        out.append(f"*About {rd.plural(int(ed['summary_minutes']), 'minute')} to "
+                   f"read, with section 1 · the short path*\n")
+    out += [f"**{e.get('title')}.** {e.get('text') or e.get('note') or ''}\n"
+            for e in summ]
+    return out
+
+
 def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
               charts: Optional[dict] = None, changed_head: Optional[str] = None,
               what: Optional[str] = None) -> str:
@@ -449,16 +538,17 @@ def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
     the footer, whose change-mark line names the prior edition as `what`.
     `charts` defaults to the edition's own."""
     charts = charts if charts is not None else (ed.get("charts") or {})
+    wrap = bool(_cadence(cadence).get("mobile_tables"))
     secs = "".join(section_html(s, n, charts, mode, cadence)
                    for n, s in enumerate(ed["sections"], start=1))
     target = ed.get("reading_target_minutes")
     head = page_header(title, rd.stamp_et(ed.get("as_of")), edition_minutes(ed),
                        ed.get("changed_since") or [], changed_head,
                        extra_html=(f" &middot; target {esc(target)} minutes"
-                                   if target else ""))
-    return (f'<div style="{WRAP}">{head}{secs}'
+                                   if target else ""), wrap=wrap)
+    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{secs}'
             f'{details_html(ed.get("detail"), cadence)}'
-            f'{glossary_html(_glossary_entries(), ed)}'
+            f'{glossary_html(_glossary_entries(), ed, wrap)}'
             + page_footer(ed, ed.get("run_id"), ed.get("archive_path"),
                           _marks(ed, what or EDITION_NAMES.get(cadence, cadence)))
             + "</div>")
@@ -503,9 +593,30 @@ def md_entries(b: dict) -> list[str]:
     return out
 
 
+def md_points(b: dict) -> list[str]:
+    """As points_html: the header in bold, the sentence, the bullets."""
+    out = []
+    for pt in b.get("points") or []:
+        out.append(f"**{pt.get('head')}**\n")
+        if pt.get("sentence"):
+            out.append(f"{pt['sentence']}\n")
+        out += [f"{x}\n" for x in pt.get("more") or []]
+        for x in pt.get("bullets") or []:
+            if isinstance(x, dict):
+                out.append(f"- {x.get('text')}"
+                           + (f"  \n  <sub>{x['source']}</sub>" if x.get("source")
+                              else ""))
+            else:
+                out.append(f"- {x}")
+        if pt.get("bullets"):
+            out.append("")
+    return out
+
+
 def md_block(b: dict) -> list[str]:
-    """A block's table, its reading entries, its further tables, its lines."""
-    out = md_table(b.get("table")) + md_entries(b)
+    """A block's table, its reading entries, its points, its further tables,
+    its lines."""
+    out = md_table(b.get("table")) + md_entries(b) + md_points(b)
     for t in b.get("tables") or []:
         out += md_table(t)
     out += [f"- {x}" for x in b.get("lines") or []]
@@ -538,11 +649,13 @@ def _md_foot(parts: list[str]) -> list[str]:
 def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
             with_charts: bool = True) -> list[str]:
     body = md_block(ss)
-    if with_charts and cad.get("subsection_charts"):
-        body += md_charts(list(ss.get("charts_rendered") or []), charts)
+    figs = (md_charts(list(ss.get("charts_rendered") or []), charts)
+            if with_charts and cad.get("subsection_charts") else [])
+    paras, foot = [], []
     if cad.get("subsection_paragraphs"):
-        body += [f"{p}\n" for p in ss.get("paragraphs") or []]
-        body += _md_foot(foot_parts(ss, True, _trimmed_note(cad)))
+        paras = [f"{p}\n" for p in ss.get("paragraphs") or []]
+        foot = _md_foot(foot_parts(ss, True, _trimmed_note(cad)))
+    body += (paras + figs if ss.get("charts_after_prose") else figs + paras) + foot
     return ([f"{level} {ss.get('title')}\n"] + body) if body else []
 
 
@@ -561,6 +674,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
     if ed.get("changed_since") and changed_head:
         out.append(f"**{changed_head}**\n")
         out += [f"- {x}" for x in ed["changed_since"]] + [""]
+    out += md_summary(ed)
     limit = cad.get("paragraphs")
     for n, s in enumerate(ed["sections"], start=1):
         out.append(f"## {n} · {s['title']}" + (f" — *{s['subtitle']}*"

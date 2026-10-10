@@ -112,8 +112,8 @@ def group_a() -> None:
     check([c["period"] for c in cads.values()] == ["session", "week", "month"],
           "daily, weekly and monthly resolve to session, week and month")
     check(cads["weekly"]["budget"] == {"words": 3500, "charts": 10}
-          and cads["monthly"]["budget"] == {"words": 7000, "charts": 10}
-          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES] == [5, 20, 40],
+          and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
+          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES] == [5, 20, 55],
           "each carries its budget and reading target from the ratified config")
     check(cads["monthly"]["depth_words"]["deep"] == 450
           and cads["weekly"]["depth_words"]["deep"] == 420
@@ -262,7 +262,7 @@ def group_d() -> None:
     check(rd.reading_minutes(mo) == want == rd.reading_minutes(mo, 3),
           f"reading_minutes: 250 words a minute plus 20 seconds a chart, over the "
           f"whole edition ({rd.reading_minutes(mo)})")
-    check(rd.reading_target("monthly") == 40 and rd.reading_target("weekly") == 20,
+    check(rd.reading_target("monthly") == 55 and rd.reading_target("weekly") == 20,
           "reading_target reads the cadence's")
 
 
