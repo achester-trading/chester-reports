@@ -307,6 +307,8 @@ def points_html(b: dict) -> str:
         out.append(f'<p style="{POINT_HEAD}">{esc(pt.get("head"))}</p>')
         if pt.get("sentence"):
             out.append(f'<p style="{PARA}">{esc(pt["sentence"])}</p>')
+        for x in pt.get("more") or []:
+            out.append(f'<p style="{PARA}">{esc(x)}</p>')
         if pt.get("bullets"):
             out.append(f'<ul style="{BULLETS}">'
                        + "".join(_bullet(x) for x in pt["bullets"]) + "</ul>")
@@ -565,6 +567,7 @@ def md_points(b: dict) -> list[str]:
         out.append(f"**{pt.get('head')}**\n")
         if pt.get("sentence"):
             out.append(f"{pt['sentence']}\n")
+        out += [f"{x}\n" for x in pt.get("more") or []]
         for x in pt.get("bullets") or []:
             if isinstance(x, dict):
                 out.append(f"- {x.get('text')}"

@@ -1002,6 +1002,32 @@ def _weekday(day: str) -> str:
 
 AHEAD_COLUMNS = ["Date", "Day", "Event", "Rank (1-5)", "Why it ranks high"]
 
+# THE SCENARIOS' NEW SHAPE (T3.1 item 18, ruled 9 Oct 2026): a summary in
+# narrative form, then what would change our mind in two or three sentences --
+# not a table of variables. The content arrives with scenario set #1 (ruled at
+# Audit #4, item II.2) as each weight's stored `summary` and `change_our_mind`;
+# until a weight carries them its block prints these placeholders, and the
+# signposts stored with it.
+SCENARIO_SUMMARY_PENDING = ("Summary to come: the narrative arrives with scenario "
+                            "set #1, ruled at Audit #4.")
+SCENARIO_MIND_PENDING = "What would change our mind arrives with it."
+
+
+def scenario_point(s: dict) -> dict:
+    """One scenario as a point: the claim and its weight as the header, the
+    summary, then what would change our mind."""
+    brier = _v(s.get("brier"), 4) if s.get("brier") is not None else "pending"
+    head = (f"{s.get('claim')} — p {_v(s.get('probability'), 3)}, Brier {brier}, "
+            f"resolves {s.get('resolve_by') or '—'}")
+    mind = s.get("change_our_mind")
+    if not mind:
+        sp = [f"{x['observable']} by {x['date']}" for x in s.get("signposts") or []]
+        mind = SCENARIO_MIND_PENDING + (
+            f" The signposts stored with this weight: {'; '.join(sp)}." if sp else "")
+    return {"head": head, "sentence": s.get("summary") or SCENARIO_SUMMARY_PENDING,
+            "more": [f"What would change our mind: {mind}"
+                     if s.get("change_our_mind") else mind]}
+
 
 def ahead_section(p: dict, now: str, db_path: Optional[str]) -> dict:
     """Ahead: the look-ahead by period, the scenario weights, the month's
@@ -1029,21 +1055,16 @@ def ahead_section(p: dict, now: str, db_path: Optional[str]) -> dict:
             items.append(item(f"ahead:{c['date']}:{c['title']}",
                               f"{c['date']}: {c['title']}.", 2, c["title"]))
     scen = la.get("scenarios") or []
-    srows = []
+    pts = []
     for n, s in enumerate(scen):
-        mind = "; ".join(f"{sp['observable']} ({sp['date']})"
-                         for sp in s.get("signposts") or [])
-        srows.append([s.get("claim"), _v(s.get("probability"), 3),
-                      _v(s.get("brier"), 4) if s.get("brier") is not None
-                      else "pending", s.get("resolve_by") or "—", mind or "—"])
+        pts.append(scenario_point(s))
         ids.append(f"looking_ahead:scenario:{n}")
         items.append(item(f"ahead:scen:{n}", f"{s.get('claim')}: "
                           f"{_v(s.get('probability'), 3)}.", 1,
                           (s.get("claim"), s.get("probability"), s.get("brier"))))
     subs.append({"title": "Scenarios, and what would change our mind",
-                 "table": {"columns": ["Scenario", "p", "Brier", "Resolves",
-                                       "What would change our mind"], "rows": srows},
-                 "lines": [] if srows else ["No live scenario weight this month."]})
+                 "points": pts,
+                 "lines": [] if pts else ["No live scenario weight this month."]})
     # THE MONTH'S GRADED CALLS (brief 1.3 rule 3: "the Monthly the month's").
     try:
         from daily_cascade import weekly_stack as ws             # noqa: PLC0415
@@ -1212,23 +1233,50 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             "percentile_window")}})
     alt = p.get("alternative_assets") or {}
     arows, alt_nt, adata = [], [], []
+    # ONE BLOCK PER FAMILY, EACH WITH ITS PARAGRAPH (T3.1 item 19): the family's
+    # rows, then a read written from them -- what moved, what the long frame
+    # says, the takeaway. The families are payload.ALT_FAMILIES.
+    fam_subs = []
     for fam, v in sorted((alt.get("families") or {}).items()):
+        name = fam.replace("_", " ")
+        title = f"Themes: {name}"
         if v.get("state") == "not_yet_sourced":
             alt_nt.append(f"{fam}: needs {', '.join(v.get('needs') or [])}")
+            fam_subs.append({"title": title, "family": fam, "not_tracked": [],
+                             "lines": [f"Not yet sourced: needs "
+                                       f"{', '.join(v.get('needs') or [])}."]})
             continue
+        frows, fdata, fnt = [], [], []
         for m in v.get("metrics") or []:
             t = triple(st, m["metric"], now, win) if st and now else None
             if m.get("level") is None or t is None:
                 alt_nt.append(f"{fam}: {m['metric']}")
+                fnt.append(f"{m['metric']}: no observation knowable at this cutoff")
                 continue
             cells = triple_cells(t)
-            arows.append([fam, m["metric"], cells[0],
-                          (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
-                           if isinstance(m.get("delta_20d"), (int, float)) else "—"),
-                          cells[1], cells[2]])
-            adata.append({"family": fam, "series": m["metric"], **{k: t[k] for k in (
+            chg = (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
+                   if isinstance(m.get("delta_20d"), (int, float)) else "—")
+            arows.append([fam, m["metric"], cells[0], chg, cells[1], cells[2]])
+            frows.append([m["metric"], cells[0], chg, cells[1], cells[2]])
+            d = {"family": fam, "series": m["metric"], **{k: t[k] for k in (
                 "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
-                "percentile_window")}})
+                "percentile_window")}}
+            adata.append(d)
+            fdata.append(d)
+        fam_subs.append({
+            "title": title, "family": fam, "phase": f"block:slow:{fam}",
+            "table": {"columns": ["Series", TRIPLE_COLUMNS[0], "20-day change",
+                                  *TRIPLE_COLUMNS[1:]], "rows": frows},
+            "data": {"family": name, "note": v.get("note"), "rows": fdata},
+            "not_tracked": fnt,
+            "lines": [] if frows else ["Nothing stored for this family at this "
+                                       "cutoff."],
+            "prose": ({"words": "60 to 100",
+                       "scope": "what moved in this family over the month, what "
+                                "its long frame says -- each latest beside its "
+                                "long-run average and percentile, naming the "
+                                "window as the table does -- and the takeaway"}
+                      if frows else None)})
     subs = [{"title": "Valuation",
              "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
              "notes": ([f"Long-run average over the store's full history and "
@@ -1240,13 +1288,15 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
              "table": {"columns": ["Base rate", "Level", "Range", "As of or extreme"],
                        "rows": base_rows}, "not_tracked": base_nt},
             {"title": "Tails",
-             "not_tracked": ["the 25 tail scenarios (not yet stored)"]},
-            {"title": "Themes: alternative assets",
-             "table": {"columns": ["Family", "Series", TRIPLE_COLUMNS[0],
-                                   "20-day change", *TRIPLE_COLUMNS[1:]],
-                       "rows": arows},
-             "not_tracked": alt_nt + ["Disruptive Themes (quarterly; folded into "
-                                      "the Quarterly Structural)"]}]
+             "not_tracked": ["the 25 tail scenarios (not yet stored)"]}]
+    if fam_subs:
+        fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
+                                      + ["Disruptive Themes (quarterly; folded into "
+                                         "the Quarterly Structural)"])
+    subs += fam_subs or [{"title": "Themes: alternative assets",
+                          "not_tracked": alt_nt + ["Disruptive Themes (quarterly; "
+                                                   "folded into the Quarterly "
+                                                   "Structural)"]}]
     try:
         src_subs, src_items, src_data = sourced_figures(now, db_path)
     except Exception as exc:                                    # noqa: BLE001

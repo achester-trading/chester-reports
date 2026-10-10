@@ -633,17 +633,17 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
     check("Trailing P/E, total market (Damodaran): no observation" in nt
           and "equity risk premium" in nt,
           "a configured series the store lacks says so; the ERP waits for 6e")
-    alt = subs.get("Themes: alternative assets") or {}
+    alt = subs.get("Themes: metals") or {}
     arow = next((r for r in (alt.get("table") or {}).get("rows") or []
-                 if r[1] == "yfinance.mkt_gld"), None)
+                 if r[0] == "yfinance.mkt_gld"), None)
     g = gld_series()
     gmean = sum(v for _, v in g) / len(g)
-    check(arow and alt["table"]["columns"][2:] == ["Latest (data as of)",
+    check(arow and alt["table"]["columns"][1:] == ["Latest (data as of)",
                                                    "20-day change",
                                                    "Long-run average (window)",
                                                    "Percentile (window)"]
-          and abs(num(arow[4]) - gmean) < 0.006 and num(arow[5]) == 100
-          and "5 years" in arow[5],
+          and abs(num(arow[3]) - gmean) < 0.006 and num(arow[4]) == 100
+          and "5 years" in arow[4],
           "the alternative assets carry the same triple (GLD: full-history "
           "average, the latest at the top of five years)")
     check(any("until the metric lenses (6e)" in x for x in val.get("notes") or [])
@@ -1480,6 +1480,48 @@ def sr_bullet_source_in(html: str) -> bool:
     return f'<br><span style="{sr.BULLET_SOURCE}">Source: Goldman Sachs' in html
 
 
+def t31_scenarios_themes_group(ed: dict, out: dict) -> None:
+    """N9: the scenarios' new shape (item 18) and a paragraph per alternative-
+    asset family (item 19)."""
+    from monthly_macro import stack as ms
+    print(f"\n{LINE}\nN9. T3.1 ITEMS 18-19: SCENARIOS, AND THE THEMES BY FAMILY\n{LINE}")
+    ah = next(s for s in ed["sections"] if s["id"] == "ahead")
+    sc = next(ss for ss in ah["subsections"]
+              if ss["title"] == "Scenarios, and what would change our mind")
+    pts = sc.get("points") or []
+    check(not sc.get("table") and pts
+          and all(p["sentence"] == ms.SCENARIO_SUMMARY_PENDING for p in pts)
+          and all(p["more"][0].startswith(ms.SCENARIO_MIND_PENDING) for p in pts),
+          f"item 18: each scenario prints as its header, a summary and what would "
+          f"change our mind -- the placeholders until scenario set #1 ({len(pts)})")
+    full = ms.scenario_point({"claim": "Soft landing", "probability": 0.55,
+                              "brier": None, "resolve_by": "2026-12-31",
+                              "summary": "Growth slows without breaking.",
+                              "change_our_mind": "Two payroll prints below zero. "
+                                                 "Credit spreads past their 90th."})
+    check(full["head"].startswith("Soft landing — p 0.550, Brier pending")
+          and full["sentence"] == "Growth slows without breaking."
+          and full["more"] == ["What would change our mind: Two payroll prints "
+                               "below zero. Credit spreads past their 90th."],
+          "with the content in place, the summary and the sentences print as stored")
+    check("Summary to come" in out["html_email"] and "What would change our mind"
+          in out["markdown"], "the placeholder prints in the page and the Markdown")
+    sl = next(s for s in ed["sections"] if s["id"] == "slow")
+    fam = [ss for ss in sl["subsections"] if ss["title"].startswith("Themes: ")]
+    names = [ss["title"] for ss in fam]
+    check(names == ["Themes: digital", "Themes: energy", "Themes: metals",
+                    "Themes: real assets"],
+          f"item 19: one block per alternative-asset family ({names})")
+    met = next(ss for ss in fam if ss["title"] == "Themes: metals")
+    check(met.get("paragraphs") and "block:slow:metals" in out["written"]
+          and (met.get("prose") or {}).get("scope", "").startswith("what moved"),
+          "a family with rows carries its paragraph: what moved, the long frame, "
+          "the takeaway")
+    ra = next(ss for ss in fam if ss["title"] == "Themes: real assets")
+    check(not ra.get("prose") and "Not yet sourced" in " ".join(ra.get("lines") or []),
+          "a family not yet sourced says what it needs, and asks for no paragraph")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1765,6 +1807,7 @@ def main() -> int:
     t31_priced_group(ed, out)
     t31_ahead_group(ed)
     t31_narratives_group(ed, out)
+    t31_scenarios_themes_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)
