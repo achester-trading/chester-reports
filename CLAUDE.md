@@ -296,8 +296,8 @@ each stale series with its reason in the verdict line.
 **A writer obeys robots.txt with its wildcards.** `urllib.robotparser` ignores `*`
 inside a path, which is how AAII's `Disallow: /files/*` was read as "no rule" on
 4 Oct; aaii.com also answers any client that names itself with a 403. The AAII
-writer (`altdata/sources/aaii.py`) therefore reads its inbox,
-`~/chester-data/inbox/aaii/`, and fetches only while robots.txt allows it; it
+writer (`altdata/sources/aaii.py`) therefore reads its inbox on the box,
+~/chester-data/inbox/aaii, and fetches only while robots.txt allows it; it
 never passes for a browser. The inbox holds the history (the operator's
 browser-downloaded `sentiment.csv` or `.xls`, told apart by content, loaded once
 with `--history`) and, from 10 Oct 2026, `aaii-weekly.csv`: one row a week from
