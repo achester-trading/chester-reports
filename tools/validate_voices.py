@@ -439,7 +439,10 @@ def main() -> int:
                           source_url="https://down.example/x/old",
                           published_at="2026-09-29",
                           retrieved_at="2026-09-30T11:00:00+00:00"))
-    wk = vb.week_section("2026-10-10", "2026-10-10T12:00:00+00:00", DB)
+    # The real clock here too (T3.2): the fixed 2026-10-10T12:00Z cutoff hid
+    # the scan's own run, stamped after it, from 12:00 UTC on 10 Oct onwards.
+    wk = vb.week_section("2026-10-10", _dt.datetime.now(_dt.timezone.utc).isoformat(),
+                         DB)
     stale = [r for r in wk["table"]["rows"] if r[0].startswith("Stale Voice")]
     check(stale and stale[0][2].startswith("UNREACHABLE")
           and stale[0][1].startswith("last:"),
