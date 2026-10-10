@@ -74,7 +74,7 @@ says about the {period}, with its figure. {body}
 No headings, no bullets, no lists, no bold, no tables -- the section's tables are
 printed ABOVE your paragraph, and every figure lives in them. Your paragraph
 INTERPRETS the tables -- what the figures mean together, what moved with what --
-and never re-lists their rows: cite at most SIX figures in it.
+and never re-lists their rows: cite at most {figure_cap} figures in it{figure_tail}.
 Never write about how this report, its checks or its data work: no sentence about
 the method, what the report tracks, what it can or cannot see, or why something is
 printed. Write about the market.
@@ -128,15 +128,18 @@ or weekday. A level is named with the market it belongs to, one at a time.
 """
 
 
-def figure_faults(text: str) -> list[str]:
+def figure_faults(text: str, cap: Optional[int] = None) -> list[str]:
     """ONE FACT, ONCE (T2.5 item 1): the paragraph after the claim line cites at
-    most six figures -- the tables carry the rest."""
+    most `cap` figures -- the tables carry the rest. The cap is the cadence's
+    `paragraph_figures` (six for the close and the Weekly, 8 for the Monthly,
+    T3.2 item 1); unset, six."""
+    cap = readability.PARAGRAPH_FIGURES if cap is None else int(cap)
     sents = _sentences((text or "").split("\n\n")[0])
     rest = (text or "")[len(sents[0]):] if sents else ""
     n = readability.figure_count(rest)
     return ([f"the paragraph cites {n} figures; at most "
-             f"{readability.PARAGRAPH_FIGURES} -- the tables carry the rest"]
-            if n > readability.PARAGRAPH_FIGURES else [])
+             f"{cap} -- the tables carry the rest"]
+            if n > cap else [])
 
 
 def _sentences(text: str) -> list[str]:
@@ -550,7 +553,9 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
     why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
     sys_prompt = stack_system_prompt(base) + RULES.format(
         title=s["title"], depth=s["depth"], why=why, body=body,
-        report=cad["report"], period=cad["period"], frames=cad["frames"])
+        report=cad["report"], period=cad["period"], frames=cad["frames"],
+        figure_cap=cadence_mod.figure_word(cadence_mod.figure_cap(cad)),
+        figure_tail="")
     if s["id"] not in CADENCE_REPLACES_NOTES.get(cadence, ()):
         sys_prompt += SECTION_NOTES.get(s["id"], "")
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
@@ -630,7 +635,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else [])
-                      + figure_faults(text)
+                      + figure_faults(text, cad.get("paragraph_figures"))
                       # NO SENTENCE TWICE (T2.5 item 4): The read is written
                       # last, over the sections' claims, so it is the one held
                       # to them; what survives the retry is withheld where it

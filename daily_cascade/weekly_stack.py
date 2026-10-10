@@ -272,7 +272,7 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
-                  cadence: str = "weekly") -> dict:
+                  cadence: str = "weekly", liquidity_deltas: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
@@ -313,7 +313,7 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # PLUMBING, MADE PLUMBING (T2.3 item 3): liquidity and its legs, SOFR
     # against IORB (in place of the repo footnote), the spreads beside HY, the
     # week's auctions, copper and gold/copper. Global rates and FX below.
-    pr = wsec.plumbing_rows(st, now, then, cadence)
+    pr = wsec.plumbing_rows(st, now, then, cadence, liquidity_deltas)
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose

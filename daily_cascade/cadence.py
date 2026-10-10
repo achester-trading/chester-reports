@@ -51,6 +51,21 @@ def paragraph_cap(cad: dict, depth: Optional[str]) -> int:
     return int(pw or 120)
 
 
+# The cap as the prompts write it: "cite at most SIX figures".
+FIGURE_WORDS = {1: "ONE", 2: "TWO", 3: "THREE", 4: "FOUR", 5: "FIVE", 6: "SIX",
+                7: "SEVEN", 8: "EIGHT", 9: "NINE", 10: "TEN", 12: "TWELVE"}
+
+
+def figure_cap(cad: dict) -> int:
+    """The most figures one paragraph after the claim line may cite at this
+    cadence (`paragraph_figures`; six where a cadence declares none)."""
+    return int(cad.get("paragraph_figures") or 6)
+
+
+def figure_word(n: int) -> str:
+    return FIGURE_WORDS.get(int(n), str(n))
+
+
 class Period:
     """Every period phrase a section prints, from the one noun. The weekly forms
     are the strings the Weekly has always printed; the others follow them."""

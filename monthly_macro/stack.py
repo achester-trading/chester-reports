@@ -164,6 +164,20 @@ def _v(x: Any, dp: int = 2) -> str:
         return str(x)
 
 
+def _ord(x: Any) -> str:
+    """A percentile as the table prints it: the whole-number ordinal, rounded
+    HALF UP by the one rule the payload's `_ordinal` fields use
+    (numeral_audit.percentile_ordinal), so a table never prints "99th" -- or
+    "99.9" -- where the audit holds "100th" (T3.2 item 2)."""
+    from altdata.numeral_audit import percentile_ordinal        # noqa: PLC0415
+    if x is None:
+        return "—"
+    try:
+        return percentile_ordinal(float(x))
+    except (TypeError, ValueError):
+        return str(x)
+
+
 def _cite(s: Optional[dict]) -> str:
     if not s:
         return "—"
@@ -376,7 +390,7 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                           f"{_move(r)} on the month.", 1 if r is rows[0] else 2,
                           (r.get("end_level"), r.get("change"))))
         trows.append([r["label"], _lvl(r, "end"), _move(r), _ytd_text(ytds[r["id"]]),
-                      _v(r.get("percentile"), 1)])
+                      _ord(r.get("percentile"))])
     table = {"columns": ["Market", f"Close, {m.get('end')}", "Move", "Year to date",
                          "Level, 5y percentile"], "rows": trows}
     # THE LONG FRAME: levels, never signals; a cross counts only after the
@@ -435,7 +449,10 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                      "to": m.get("end"),
                      "moves": [{"market": r["label"], "move": _move(r),
                                 "year_to_date": _ytd_text(ytds.get(r["id"])),
-                                "level_percentile_5y": r.get("percentile")}
+                                "level_percentile_5y": r.get("percentile"),
+                                "level_percentile_5y_ordinal":
+                                    None if r.get("percentile") is None
+                                    else _ord(r.get("percentile"))}
                                for r in rows],
                      "long_frame": lf_data, "levels": levels,
                      "cross_asset_ytd": (ytd or {}).get("data") or []}}
@@ -633,7 +650,7 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     table and a written takeaway; the charts print under their bucket's
     paragraph. The one table stays in the section's data."""
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
-    b = _month_words(ws.plumbing_week(st, now, then, None))
+    b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True))
     names = {name: k for k, name in ws.PLUMB}
     rows = (b.get("table") or {}).get("rows") or []
     moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
@@ -658,6 +675,15 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     for r in allrows:
         b["items"].append(item(f"plumb:row:{r[0]}", str(r[0]), 3, r))
         b["items"][-1]["show"] = False
+    # THE LIQUIDITY BUCKET'S CHANGES, IN THE PAYLOAD (T3.2 item 4): the 10 Oct
+    # dry run withheld Plumbing on "$37bn" and "$11bn" -- bank reserves' and
+    # RRP's month changes, printed in this table as "−$37bn" and "−$11bn" and
+    # written unsigned. Each change now rides as a dollar figure with the signed
+    # form to copy; the sign rule still withholds the bare magnitude.
+    liq = next((s for s in subs if s["bucket"] == "liquidity"), None)
+    deltas = ((b.get("data") or {}).get("plumbing") or {}).get("liquidity") or []
+    if liq is not None and deltas:
+        liq["data"] = {"changes": deltas}
     glob = next((s for s in subs if s["bucket"] == "global"), None)
     if fx and glob is not None:
         glob["not_tracked"] = list(fx.get("not_tracked") or [])
@@ -1165,6 +1191,22 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     return subs, items, data
 
 
+# The registry's delta unit -> the field that carries a 20-day change typed so.
+_CHANGE_FIELD = {"percent": "change_20d_pct", "bps": "change_20d_bp",
+                 "bp": "change_20d_bp"}
+
+def family_change(m: dict) -> dict:
+    """THE 20-DAY CHANGE IN ITS OWN UNIT (T3.2 item 3): a family metric's change
+    in a field whose name carries the registry's delta unit -- percent for a
+    price, bp for a rate or spread -- so the audit types it as what it is. A
+    change in no such unit (raw) adds nothing."""
+    fld = _CHANGE_FIELD.get(str(m.get("delta_unit") or ""))
+    if fld and isinstance(m.get("delta_20d"), (int, float)) \
+            and not isinstance(m.get("delta_20d"), bool):
+        return {fld: m["delta_20d"]}
+    return {}
+
+
 TRIPLE_COLUMNS = ["Latest (data as of)", "Long-run average (window)",
                   "Percentile (window)"]
 
@@ -1196,7 +1238,7 @@ def triple_cells(t: dict, dp: int = 2) -> list[str]:
     return [f"{_v(t['latest'], dp)} ({t['as_of']})",
             (f"{_v(t['mean'], dp)} (full history since {t['mean_since']}, "
              f"n={t['mean_n']:,})" if t.get("mean") is not None else "—"),
-            (f"{_v(t['percentile'], 0)} ({t['percentile_window']})"
+            (f"{_ord(t['percentile'])} ({t['percentile_window']})"
              if t.get("percentile") is not None else "—")]
 
 
@@ -1261,6 +1303,7 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             d = {"family": fam, "series": m["metric"], **{k: t[k] for k in (
                 "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
                 "percentile_window")}}
+            d.update(family_change(m))
             adata.append(d)
             fdata.append(d)
         fam_subs.append({
