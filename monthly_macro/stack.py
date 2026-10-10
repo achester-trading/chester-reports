@@ -755,12 +755,77 @@ def positioning_section(st, now: str, then: str) -> dict:
     return b
 
 
+PM_CHANNEL_NOTE = (
+    "\n\nA POLITICAL OR NON-FED MARKET is read for its MARKET CHANNEL: what a "
+    "change in its odds would move, and through what -- rates, the dollar, a "
+    "sector, credit -- said as the channel, never as a forecast of the event and "
+    "never as our view. A venue's figure is its price (\"Kalshi prices ... at "
+    "62%\"), never \"a 62% chance\".")
+
+
+def _split_rows(rows: list, fomc: bool) -> list:
+    return [r for r in rows if str(r[0]).startswith("FOMC ") == fomc]
+
+
 def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
+    """The Weekly's What's priced over the month, in blocks each with its own
+    read (T3.1, ruled 9 Oct 2026): FOMC pricing and the breakevens apart, each
+    with its chart beside it (item 12); prediction markets as the FOMC's and
+    the rest, political markets read for their market channel (item 13). The
+    section's own call writes the claim line alone."""
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     b = ws.priced_week(st, now, then, cfg, pmb, fed, fed_then)
     # The Monthly's What's priced is deep by the matrix; no trigger deepens it.
     b["deep_reason"] = None
-    return _month_words(b)
+    b = _month_words(b)
+    subs = list(b.get("subsections") or [])
+    rates = next((ss for ss in subs if str(ss.get("title")).startswith("Rates priced")),
+                 None)
+    pm = next((ss for ss in subs if ss.get("title") == "Prediction markets"), None)
+    out = []
+    for ss in subs:
+        if ss is rates:
+            rows = (ss.get("table") or {}).get("rows") or []
+            cols = (ss.get("table") or {}).get("columns") or []
+            fomc, be = _split_rows(rows, True), _split_rows(rows, False)
+            out.append({"title": "FOMC pricing: the fed-funds path", "bucket": "fomc",
+                        "phase": "block:priced:fomc",
+                        "table": {"columns": cols, "rows": fomc},
+                        "not_tracked": list(ss.get("not_tracked") or []),
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "what the fed-funds futures price for the "
+                                            "coming meetings, and how that moved over "
+                                            "the month"} if fomc else None)})
+            out.append({"title": "Breakevens", "bucket": "breakevens",
+                        "phase": "block:priced:breakevens",
+                        "table": {"columns": cols, "rows": be},
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "where the breakevens sit and how they "
+                                            "moved over the month"} if be else None)})
+        elif ss is pm:
+            t = ss.get("table") or {}
+            rows = t.get("rows") or []
+            fomc, rest = _split_rows(rows, True), _split_rows(rows, False)
+            out.append({"title": "Prediction markets: the FOMC", "bucket": "pm_fomc",
+                        "phase": "block:priced:pm_fomc",
+                        "table": {"columns": t.get("columns") or [], "rows": fomc},
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "what the prediction markets price for "
+                                            "the coming FOMC decisions, beside the "
+                                            "futures"} if fomc else None)})
+            out.append({"title": "Prediction markets: the rest", "bucket": "pm_rest",
+                        "phase": "block:priced:pm_rest",
+                        "table": {"columns": t.get("columns") or [], "rows": rest},
+                        "not_tracked": list(ss.get("not_tracked") or []),
+                        "prose": ({"words": "60 to 100",
+                                   "scope": "the other watched markets, each read "
+                                            "for its market channel",
+                                   "note": PM_CHANNEL_NOTE} if rest else None)})
+        else:
+            out.append(ss)
+    b["subsections"] = out
+    b["claim_only"] = True
+    return b
 
 
 # ---------------------------------------------------------------------------

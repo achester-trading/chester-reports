@@ -31,8 +31,9 @@ prose is held to.
         marked and the latest's own                                Plumbing
     M6  every positioning series' current z over two years, ranked
         in one bar chart (T3.1 item 11; was ten small panels)     Positioning
-    M7  what's priced at the month's start against its end:
-        breakevens and the fed-funds implied path                  What's priced
+    M7  breakevens at the month's start against its end          What's priced
+    M10 the fed-funds futures' implied path, month start
+        against month end (T3.1 item 12: each beside its block)   What's priced
     M8  the scenario weights by edition, and their Brier           Ahead
     M9  Book Z (cash, SPY, 60/40) against the paper account's NAV,
         indexed to 100 since the start date                        The book
@@ -41,7 +42,15 @@ The cap is the Monthly's chart budget (10); a fired depth trigger lifts it by
 one, as on every cadence.
 
 T3.1 (ruled 9 Oct 2026): M0 is new and prints first -- daily, then weekly, then
-monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5).
+monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5); M6 is
+one ranked z chart (item 11); M7's two panels are two charts, M7 and M10, each
+beside its block in What's priced (item 12).
+
+THE CAP HOLDS ON WHAT PRINTS. Eleven charts are planned against the cap of ten
+(the brief counted M6's ten panels as ten). Every chart is drawn; if more than
+the cap render, the ones first in DROP_ORDER are set aside, each printing "Chart
+not printed: over the Monthly's cap of 10 charts" in its place. M8 goes first: its
+content arrives with scenario set #1 (Audit #4, item II.2).
 """
 
 from __future__ import annotations
@@ -56,14 +65,17 @@ from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
 
-ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9")
+ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M8", "M9")
+DROP_ORDER = ("M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M7", "M1", "M0")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
          # Under the yields & spreads bucket's paragraph (T3.1 item 8): matched by
          # the sub-section's `bucket` (config monthly_plumbing_buckets.charts).
          "M4": ("plumbing", "yields"), "M5": ("plumbing", "yields"),
-         "M6": ("positioning", None), "M7": ("priced", None),
+         "M6": ("positioning", None),
+         # Beside their blocks in What's priced (T3.1 item 12), by `bucket`.
+         "M7": ("priced", "breakevens"), "M10": ("priced", "fomc"),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
          "M9": ("book", None)}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
@@ -72,12 +84,34 @@ BREAKEVENS = (("fred.breakeven_5y", "5-year"), ("fred.breakeven_10y", "10-year")
               ("fred.breakeven_5y5y", "5y5y forward"))
 
 
-def plan(ed: dict) -> list[str]:
-    """M1-M9 within the cap; a fired trigger lifts the cap by one."""
+def cap_of(ed: dict) -> int:
+    """The Monthly's chart cap (the budget's); a fired trigger lifts it by one."""
     cap = int((ed.get("budget") or {}).get("charts") or 10)
     if any(s.get("depth_reason") for s in ed.get("sections") or []):
         cap += 1
-    return list(ORDER)[:cap]
+    return cap
+
+
+def plan(ed: dict) -> list[str]:
+    """Every chart in ORDER; the cap is held on what renders (hold_cap)."""
+    del ed
+    return list(ORDER)
+
+
+def hold_cap(charts: dict, cap: int) -> list[str]:
+    """Set aside rendered charts, first in DROP_ORDER first, until at most
+    `cap` render. Returns the ids set aside."""
+    out = []
+    for cid in DROP_ORDER:
+        if sum(1 for c in charts.values() if not c.get("unavailable")) <= cap:
+            break
+        c = charts.get(cid)
+        if c and not c.get("unavailable"):
+            charts[cid] = {"id": cid, "title": c.get("title"),
+                           "unavailable": f"not printed: over the Monthly's cap of "
+                                          f"{cap} charts"}
+            out.append(cid)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -390,79 +424,77 @@ def m6(history: list[dict], now: str, name: str, out_dir: Optional[str]) -> dict
 # ---------------------------------------------------------------------------
 # M7: what's priced, month start against month end
 # ---------------------------------------------------------------------------
-def m7(be: dict, path_then: Optional[dict], path_now: Optional[dict],
-       then: str, now: str, name: str, out_dir: Optional[str]) -> dict:
-    """`be`: label -> (value at the month's start, value at its end)."""
+def m7(be: dict, then: str, now: str, name: str, out_dir: Optional[str]) -> dict:
+    """Breakevens at the month's start against its end, beside the breakevens
+    block (T3.1 item 12). `be`: label -> (value at the start, value at the end)."""
     have = {k: v for k, v in be.items() if None not in v}
-    paths = [(lab, p) for lab, p in (("month start", path_then), ("month end", path_now))
-             if p and p.get("tracked") and p.get("meetings")]
-    if not have and not paths:
-        return {"id": "M7", "unavailable": "no breakeven and no implied path stored "
-                                           "at both ends of the month"}
+    if not have:
+        return {"id": "M7", "unavailable": "no breakeven stored at both ends of the "
+                                           "month"}
     try:
-        plt = ch._plt()
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(ch.CHART_W, 3.2))
-        for ax in (a1, a2):
-            ax.tick_params(labelsize=7)
-            for side in ("top", "right"):
-                ax.spines[side].set_visible(False)
-        if have:
-            labs = list(have)
-            xs = range(len(labs))
-            a1.bar([x - 0.18 for x in xs], [have[k][0] for k in labs], width=0.36,
-                   color="white", edgecolor="#0d2b45", hatch="//", label="month start")
-            a1.bar([x + 0.18 for x in xs], [have[k][1] for k in labs], width=0.36,
-                   color="#0d2b45", label="month end")
-            # The values on the bars: a breakeven moves by basis points, which a
-            # bar from zero cannot show.
-            for x, k in zip(xs, labs):
-                for dx, v in ((-0.18, have[k][0]), (0.18, have[k][1])):
-                    a1.annotate(f"{v:.2f}", xy=(x + dx, v), xytext=(0, 2),
-                                textcoords="offset points", ha="center", fontsize=6.5)
-            a1.set_ylim(0, max(max(v) for v in have.values()) * 1.18)
-            a1.set_xticks(list(xs))
-            a1.set_xticklabels(labs, fontsize=7)
-            a1.set_title("Breakevens (%)", fontsize=8, loc="left")
-            a1.legend(fontsize=7, frameon=False, loc="upper center", ncol=2,
-                      bbox_to_anchor=(0.5, -0.12))
-        else:
-            ch._untracked(a1, "Breakevens")
-        if paths:
-            for (lab, p), c in zip(paths, ("#94a3b8", "#0d2b45")):
-                ms = p["meetings"][:6]
-                a2.plot(range(len(ms)), [m["post_pct"] for m in ms], color=c,
-                        marker="o", markersize=3, linewidth=1.0, label=lab)
-            ms = paths[-1][1]["meetings"][:6]
-            a2.set_xticks(range(len(ms)))
-            a2.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6.5)
-            a2.set_title("Fed funds futures: implied rate after each meeting (%)",
-                         fontsize=8, loc="left")
-            a2.legend(fontsize=7, frameon=False)
-        else:
-            # Wrapped to the panel: the shared one-line form runs into its
-            # neighbour at half width.
-            a2.set_xticks([])
-            a2.set_yticks([])
-            a2.set_title("Fed funds implied path", fontsize=8, loc="left")
-            a2.text(0.5, 0.5, "not yet tracked:\nfewer than four meetings\n"
-                    "retrievable", ha="center", va="center", fontsize=7.5,
-                    color="#94a3b8", transform=a2.transAxes)
-        title = ch.span_title("What's priced", 2, "dates",
-                              then, now, "month start against month end")
-        fig.suptitle(title, fontsize=9, x=0.02, ha="left", color="#0d2b45")
-        fig.tight_layout()
+        title = ch.span_title("Breakevens, percent", 2, "dates", then, now,
+                              "month start against month end")
+        fig, ax = ch._base(title)
+        labs = list(have)
+        xs = range(len(labs))
+        ax.bar([x - 0.18 for x in xs], [have[k][0] for k in labs], width=0.36,
+               color="white", edgecolor="#0d2b45", hatch="//", label="month start")
+        ax.bar([x + 0.18 for x in xs], [have[k][1] for k in labs], width=0.36,
+               color="#0d2b45", label="month end")
+        # The values on the bars: a breakeven moves by basis points, which a bar
+        # from zero cannot show.
+        for x, k in zip(xs, labs):
+            for dx, v in ((-0.18, have[k][0]), (0.18, have[k][1])):
+                ax.annotate(f"{v:.2f}", xy=(x + dx, v), xytext=(0, 2),
+                            textcoords="offset points", ha="center", fontsize=6.5)
+        ax.set_ylim(0, max(max(v) for v in have.values()) * 1.18)
+        ax.set_xticks(list(xs))
+        ax.set_xticklabels(labs, fontsize=7)
+        ax.legend(fontsize=7, frameon=False, loc="upper center", ncol=2,
+                  bbox_to_anchor=(0.5, -0.12))
         out = ch._finish(fig, name, out_dir)
         bits = [f"{k} breakeven {a:.2f} to {b:.2f}" for k, (a, b) in have.items()]
-        cap = (f"What's priced, {then[:10]} against {now[:10]}: "
-               + ("; ".join(bits) if bits else "breakevens not stored at both ends")
-               + ("" if len(paths) == 2 else "; the implied path is not tracked at "
-                                             "both ends"))
-        return {"id": "M7", "title": title,
-                "drawn": [], "caption": cap, **out,
-                "breakevens": {k: list(v) for k, v in have.items()},
-                "paths": [lab for lab, _ in paths]}
+        return {"id": "M7", "title": title, "drawn": [],
+                "caption": f"Breakevens, {then[:10]} against {now[:10]}: "
+                           + "; ".join(bits), **out,
+                "breakevens": {k: list(v) for k, v in have.items()}}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "M7", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+def m10(path_then: Optional[dict], path_now: Optional[dict], then: str, now: str,
+        name: str, out_dir: Optional[str]) -> dict:
+    """The fed-funds futures' implied rate after each of the next meetings, at
+    the month's start against its end, beside the FOMC block (T3.1 item 12)."""
+    paths = [(lab, p) for lab, p in (("month start", path_then), ("month end", path_now))
+             if p and p.get("tracked") and p.get("meetings")]
+    if not paths:
+        return {"id": "M10", "unavailable": "the fed funds implied path is not "
+                                            "tracked: fewer than four meetings "
+                                            "retrievable"}
+    try:
+        title = ch.span_title("Fed funds futures: implied rate after each meeting, "
+                              "percent", len(paths), "dates", then, now,
+                              "month start against month end")
+        fig, ax = ch._base(title)
+        for (lab, p), c in zip(paths, ("#94a3b8", "#0d2b45")):
+            ms = p["meetings"][:6]
+            ax.plot(range(len(ms)), [m["post_pct"] for m in ms], color=c,
+                    marker="o", markersize=3, linewidth=1.0, label=lab)
+        ms = paths[-1][1]["meetings"][:6]
+        ax.set_xticks(range(len(ms)))
+        ax.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6.5)
+        ax.legend(fontsize=7, frameon=False)
+        out = ch._finish(fig, name, out_dir)
+        last = paths[-1][1]["meetings"][:6]
+        cap = (f"Fed funds futures, {then[:10]} against {now[:10]}: "
+               + "; ".join(f"after {m['meeting'][:10]} {m['post_pct']:.2f}%"
+                           for m in last[:3])
+               + ("" if len(paths) == 2 else "; the month's start is not tracked"))
+        return {"id": "M10", "title": title, "drawn": [], "caption": cap, **out,
+                "paths": [lab for lab, _ in paths]}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": "M10", "unavailable": f"{type(exc).__name__}: {exc}"}
 
 
 # ---------------------------------------------------------------------------
@@ -641,14 +673,18 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
         run("M6", _m6)
 
         def _m7():
-            from altdata import fed_funds                         # noqa: PLC0415
             be = {}
             for k, lab in BREAKEVENS:
                 a, b = st.latest_as_of(k, then), st.latest_as_of(k, now)
                 be[lab] = ((a or {}).get("value_num"), (b or {}).get("value_num"))
-            return m7(be, fed_funds.path_as_of(then, st), fed_funds.path_as_of(now, st),
-                      then, now, f"{base}_m7", out_dir)
+            return m7(be, then, now, f"{base}_m7", out_dir)
         run("M7", _m7)
+
+        def _m10():
+            from altdata import fed_funds                         # noqa: PLC0415
+            return m10(fed_funds.path_as_of(then, st), fed_funds.path_as_of(now, st),
+                       then, now, f"{base}_m10", out_dir)
+        run("M10", _m10)
 
         def _m9():
             start = benchmark.start_date().isoformat()
@@ -667,6 +703,7 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
     for c in charts.values():
         if c.get("min_px_at_400") is not None:
             c["min_px_at_400"] = float(c["min_px_at_400"])
+    ed["charts_over_cap"] = hold_cap(charts, cap_of(ed))
     place(ed, charts)
     ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                     for k, c in charts.items()}

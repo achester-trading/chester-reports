@@ -690,19 +690,27 @@ def charts_group(cfg: dict) -> None:
     point(DB)
     ed = out["edition"]
     charts = out["charts"]
-    nch = len(mch.ORDER)
     check(ed.get("chart_plan") == list(mch.ORDER) and cfg["budget"]["monthly"]["charts"]
-          == 10 and nch <= 10,
-          f"the plan is {mch.ORDER[0]}-{mch.ORDER[-1]}, inside the Monthly's cap of 10")
-    tiny = mch.plan({"budget": {"charts": 3}, "sections": [{"depth_reason": None}]})
-    lifted = mch.plan({"budget": {"charts": 3},
-                       "sections": [{"depth_reason": "CPI released"}]})
-    check(tiny == list(mch.ORDER[:3]) and len(lifted) == 4,
+          == 10, f"the plan is {', '.join(mch.ORDER)}; the cap of 10 holds on what "
+                 f"prints")
+    check(mch.cap_of({"budget": {"charts": 3}, "sections": [{"depth_reason": None}]})
+          == 3 and mch.cap_of({"budget": {"charts": 3},
+                               "sections": [{"depth_reason": "CPI released"}]}) == 4,
           "the cap is the budget's, and a fired trigger lifts it by one")
+    many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
+    aside = mch.hold_cap(many, 10)
+    check(aside == ["M8"] and "cap of 10" in many["M8"]["unavailable"]
+          and sum(1 for c in many.values() if not c.get("unavailable")) == 10,
+          "eleven planned: with all rendered, M8 is set aside first and says why "
+          "(its content arrives with scenario set #1); ten print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
-    check(not bad and ed["chart_count"] == nch,
-          f"with history stored, all {nch} render ({ed['chart_count']})"
-          + (f" -- unavailable: {bad}" if bad else ""))
+    nch = ed["chart_count"]
+    check(set(bad) == {"M10"} and "not tracked" in bad["M10"]
+          and nch == len(mch.ORDER) - 1 and not ed.get("charts_over_cap"),
+          f"with history stored, all but M10 render ({nch}); the fixture stores no "
+          f"fed funds contracts, and M10 says so"
+          + (f" -- unavailable: {bad}" if set(bad) != {"M10"} else ""))
+    ok_ids = [k for k, c in charts.items() if not c.get("unavailable")]
     ok = [c for c in charts.values() if not c.get("unavailable")]
     check(ok and all(c["png_bytes"] <= dch.MAX_PNG_BYTES and c["png"][:4] == b"\x89PNG"
                      for c in ok),
@@ -778,15 +786,17 @@ def charts_group(cfg: dict) -> None:
                 where[c] = f"{s['id']}/{ss['title']}"
     check(where == {"M0": "tape", "M1": "tape", "M2": "tape", "M3": "mechanics",
                     "M4": "plumbing/Yields & spreads",
-                    "M5": "plumbing/Yields & spreads", "M6": "positioning", "M7": "priced",
+                    "M5": "plumbing/Yields & spreads", "M6": "positioning",
+                    "M7": "priced/Breakevens",
+                    "M10": "priced/FOMC pricing: the fed-funds path",
                     "M8": "ahead/Scenarios, and what would change our mind",
                     "M9": "book"},
           "each prints in its section: the long frame in the tape, the "
           "retrospective in Mechanics, the weights beside Ahead's scenarios")
     em, ar = out["html_email"], out["html_archive"]
-    check(all(f"cid:{k.lower()}@chester" in em for k in charts)
+    check(all(f"cid:{k.lower()}@chester" in em for k in ok_ids)
           and {c for c, _ in out["inline_images"]} == {f"{k.lower()}@chester"
-                                                      for k in charts},
+                                                      for k in ok_ids},
           "the email references each PNG by Content-ID, and carries exactly those "
           "images")
     check(all(Path(c["svg_path"]).name in ar for c in ok) and "cid:" not in ar,
@@ -834,7 +844,7 @@ def charts_group(cfg: dict) -> None:
     finally:
         run_mod.delivery.send_html = saved
     check(sorted(c for c, _ in sent.get("inline_images") or [])
-          == sorted(f"{k.lower()}@chester" for k in charts)
+          == sorted(f"{k.lower()}@chester" for k in ok_ids)
           and all(b[:4] == b"\x89PNG" for _, b in sent["inline_images"]),
           "delivery reads the archived PNGs back and sends them by Content-ID with "
           "the archived HTML")
@@ -842,7 +852,7 @@ def charts_group(cfg: dict) -> None:
     page = att.get(f"monthly_macro_{stamp}.html")
     check(f"monthly_macro_{stamp}.md" in att and page and page[2] == "html"
           and "cid:" not in page[1]
-          and page[1].count("data:image/png;base64,") == len(charts),
+          and page[1].count("data:image/png;base64,") == len(ok_ids),
           "N1: the email attaches the edition's HTML beside the Markdown, every "
           "chart embedded in it, so Safari can lay it out to the phone")
 
@@ -1327,6 +1337,47 @@ def t31_positioning_group(ed: dict, out: dict) -> None:
           "the section's own call writes the claim line alone (here it faulted, F)")
 
 
+def t31_priced_group(ed: dict, out: dict) -> None:
+    """N6: What's priced in blocks, each with its read (T3.1 items 12-13)."""
+    from monthly_macro import prose as prose_mod, stack as ms
+    print(f"\n{LINE}\nN6. T3.1 ITEMS 12-13: WHAT'S PRICED, BLOCK BY BLOCK\n{LINE}")
+    pr = next(s for s in ed["sections"] if s["id"] == "priced")
+    titles = [ss["title"] for ss in pr["subsections"]]
+    check(titles[:4] == ["FOMC pricing: the fed-funds path", "Breakevens",
+                         "Prediction markets: the FOMC", "Prediction markets: the rest"],
+          f"item 12: FOMC pricing and the breakevens are two blocks; item 13: the "
+          f"prediction markets are the FOMC's and the rest ({titles[:4]})")
+    subs = {ss["title"]: ss for ss in pr["subsections"]}
+    be = subs["Breakevens"]
+    check((be.get("table") or {}).get("rows") and be.get("paragraphs")
+          and "block:priced:breakevens" in out["written"]
+          and all(not str(r[0]).startswith("FOMC") for r in be["table"]["rows"]),
+          "the breakevens block carries its rows and its own read")
+    fo = subs["FOMC pricing: the fed-funds path"]
+    check(not (fo.get("table") or {}).get("rows") and fo.get("prose") is None
+          and "fed funds futures" in " ".join(fo.get("not_tracked") or []),
+          "with no rate path stored, the FOMC block asks for no read and says why")
+    rows = [["FOMC 2026-10-28: hold", "90%", "88%", "—", "—"],
+            ["Recession in 2026 (Yes)", "20%", "22%", "—", "—"]]
+    check(ms._split_rows(rows, True) == rows[:1] and ms._split_rows(rows, False)
+          == rows[1:], "a row is the FOMC's when its item names an FOMC meeting")
+    fake = {"month": "September 2026", "sections": [{
+        "id": "priced", "title": "What's priced", "empty": False,
+        "subsections": [{"title": "Prediction markets: the rest",
+                         "phase": "block:priced:pm_rest",
+                         "table": {"columns": ["Item"], "rows": [rows[1][:1]]},
+                         "prose": {"words": "60 to 100", "scope": "x",
+                                   "note": ms.PM_CHANNEL_NOTE}}]}]}
+    plan = prose_mod.block_plan(fake)
+    check(len(plan) == 1 and "MARKET CHANNEL" in plan[0]["system"]
+          and "60 to 100 words" in plan[0]["system"]
+          and plan[0]["slice"]["table"]["rows"] == [rows[1][:1]],
+          "the rest are read for their market channel -- what a change in the odds "
+          "would move, and through what -- over their own rows only")
+    check(pr.get("claim") and not pr.get("paragraphs"),
+          "the section's own call writes the claim line alone")
+
+
 def main() -> int:
     seed(DB, dealer_sessions=21)
     import yaml
@@ -1609,6 +1660,7 @@ def main() -> int:
     t31_misfit_group(ed, out)
     t31_plumbing_group(cfg, ed, out)
     t31_positioning_group(ed, out)
+    t31_priced_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)
