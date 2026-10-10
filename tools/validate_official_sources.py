@@ -1414,11 +1414,12 @@ def group_s() -> None:
           "chester-reports is ours over `*`")
 
     saved = (aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls,
-             os.environ.get(aaii.FILE_VAR))
+             os.environ.get(aaii.FILE_VAR), os.environ.get(aaii.WEEKLY_VAR))
     fetched: list = []
     db = temp_store()
     try:
         os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_aaii.xls")
+        os.environ[aaii.WEEKLY_VAR] = str(Path(_TMP) / "no_such_aaii_weekly.csv")
         aaii.http_get_response = lambda url, *a, **k: fetched.append(url) or (b"", {})
         aaii.http_get_text = lambda url, *a, **k: robots
         r = aaii.pull(db=db)
@@ -1438,7 +1439,8 @@ def group_s() -> None:
               "and the reason says where the operator's file goes")
 
         f = Path(_TMP) / "aaii_sentiment.xls"
-        f.write_bytes(b"not read: rows_from_xls is the fixture")
+        # OLE2's magic bytes, so the content sniff routes it to the xls reader.
+        f.write_bytes(aaii.OLE2_MAGIC + b" not read: rows_from_xls is the fixture")
         os.environ[aaii.FILE_VAR] = str(f)
         aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or robots
         aaii.rows_from_xls = lambda data, when, kind: aaii.rows_from_sheet(
@@ -1456,10 +1458,123 @@ def group_s() -> None:
               f"bound)")
     finally:
         aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls = saved[:3]
-        if saved[3] is None:
-            os.environ.pop(aaii.FILE_VAR, None)
-        else:
-            os.environ[aaii.FILE_VAR] = saved[3]
+        for var, val in ((aaii.FILE_VAR, saved[3]), (aaii.WEEKLY_VAR, saved[4])):
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
+        db.close()
+
+
+# The history CSV as AAII serves it from 10 Oct 2026: an address line, a
+# two-row column header, then the data. Three data rows.
+AAII_HISTORY_CSV = (
+    "AAII Investor Sentiment Survey,,,,,,,,,,,,,\n"
+    "Reported,Bullish,Neutral,Bearish,Total,Bullish,Bull-Bear,Bullish,Bullish,"
+    "Bullish,S&P 500,S&P 500,S&P 500\n"
+    "Date,,,,,8-week Mov Avg,Spread,Average,Average +St. Dev.,"
+    "Average -St. Dev.,Weekly High,Weekly Low,Weekly Close\n"
+    "9-17-26,38.5%,25.0%,36.5%,100.0%,36.1%,2.0%,37.5%,47.6%,27.4%,6720.1,6650.3,6702.4\n"
+    "9-24-26,30.8%,23.1%,46.1%,100.0%,35.0%,-15.3%,37.5%,47.6%,27.4%,6705.0,6588.2,6600.9\n"
+    "10-1-26,34.2%,19.7%,46.1%,100.0%,34.6%,-11.9%,37.5%,47.6%,27.4%,6690.4,6571.0,6655.7\n")
+
+AAII_WEEKLY_CSV = (
+    "week_ending,bullish,neutral,bearish,spread,source_url,retrieved_at,crosscheck\n"
+    # 30 Sep (Wed) is in the history as 1 Oct (Thu): the history's row is kept.
+    "2026-09-30,33.0,20.0,47.0,-14.0,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-01T16:10:00Z,agrees\n"
+    # 7 Oct (Wed) -> 8 Oct (Thu); fractions, read as percents.
+    "2026-10-07,0.401,0.252,0.347,0.054,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-08T16:10:00+00:00,disagrees: article says 40.0\n")
+
+
+def group_t() -> None:
+    """AAII from 10 Oct 2026: the CSV history, the weekly file, the union."""
+    print(f"{LINE}\nT. AAII -- THE CSV HISTORY, THE WEEKLY FILE, THE UNION\n{LINE}")
+    from altdata.sources import aaii
+    at = "2026-10-10T00:00:00.000000+00:00"
+
+    hist = aaii.rows_from_bytes(AAII_HISTORY_CSV.encode("utf-8"), at, "ingest_instant")
+    check([(r["observed_at"], r["value"]) for r in hist]
+          == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9)]
+          and all(r["available_at"] == at and r["availability_kind"] == "ingest_instant"
+                  for r in hist),
+          f"the history CSV (address line, two-row header, three rows) is sniffed as "
+          f"text and read: AAII's text dates to the Reported Date, Bullish minus "
+          f"Bearish in pp, available_at the file's time ({hist})")
+    check([r["value"] for r in aaii.rows_from_bytes(
+              ("﻿" + AAII_HISTORY_CSV).encode("utf-8"), at, "ingest_instant")]
+          == [r["value"] for r in hist],
+          "a byte-order mark does not move the read")
+    try:
+        aaii.rows_from_bytes(b"Reported Date,Up,Down\n9-18-26,1,2\n", at, "ingest_instant")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a CSV with no Bullish/Bearish header raises")
+
+    check(aaii.reported_date(dt.date(2026, 10, 7)) == dt.date(2026, 10, 8)
+          and aaii.reported_date(dt.date(2026, 10, 8)) == dt.date(2026, 10, 8)
+          and aaii.reported_date(dt.date(2026, 10, 9)) == dt.date(2026, 10, 15),
+          "the date rule: the survey's Wednesday maps to the Thursday release on or "
+          "after it -- the next day; a Thursday stays; a Friday goes forward")
+
+    week = aaii.rows_from_weekly(AAII_WEEKLY_CSV.encode("utf-8"))
+    check([(r["observed_at"], r["value"], r["available_at"]) for r in week]
+          == [("2026-10-01", -14.0, "2026-10-01T16:10:00.000000+00:00"),
+              ("2026-10-08", 5.4, "2026-10-08T16:10:00.000000+00:00")]
+          and all(r["availability_kind"] == "ingest_instant" for r in week),
+          f"the weekly file: week_ending to the Thursday, percents and fractions "
+          f"both to pp, available_at each row's own retrieved_at in UTC; the "
+          f"'disagrees' row is still written ({week})")
+    try:
+        aaii.rows_from_weekly(b"week_ending,bullish\n2026-10-08,40\n")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a weekly file missing a declared column raises")
+
+    both = aaii.union(hist, week)
+    check([(r["observed_at"], r["value"]) for r in both]
+          == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9),
+              ("2026-10-08", 5.4)],
+          "the union by date: 1 Oct in both keeps the history's -11.9, the weekly "
+          "file adds 8 Oct")
+
+    saved = (os.environ.get(aaii.FILE_VAR), os.environ.get(aaii.WEEKLY_VAR),
+             aaii.http_get_text)
+    fetched: list = []
+    db = temp_store()
+    try:
+        h = Path(_TMP) / "sentiment(SENTIMENT).csv"
+        h.write_text(AAII_HISTORY_CSV, encoding="utf-8")
+        w = Path(_TMP) / "aaii-weekly.csv"
+        w.write_text(AAII_WEEKLY_CSV, encoding="utf-8")
+        os.environ[aaii.FILE_VAR] = str(h)
+        os.environ[aaii.WEEKLY_VAR] = str(w)
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or ""
+        r = aaii.pull(db=db, history=True)
+        got = db.conn.execute(
+            "SELECT observed_at, value_num, availability_kind FROM observations "
+            "WHERE registry_key = ? ORDER BY observed_at", (aaii.KEY,)).fetchall()
+        check(r["status"] == pub.OK and not fetched
+              and [(g[0][:10], g[1]) for g in got]
+              == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9),
+                  ("2026-10-08", 5.4)],
+              f"a pull with both files writes the union with no network call, "
+              f"whatever the history file is named ({[(g[0][:10], g[1]) for g in got]})")
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_history.csv")
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.OK and not fetched,
+              "with the history gone from the inbox, the weekly file alone still "
+              "writes, and nothing is fetched")
+    finally:
+        aaii.http_get_text = saved[2]
+        for var, val in ((aaii.FILE_VAR, saved[0]), (aaii.WEEKLY_VAR, saved[1])):
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
         db.close()
 
 
@@ -1467,7 +1582,7 @@ def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q, group_r, group_s):
+              group_p, group_n, group_q, group_r, group_s, group_t):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001
