@@ -240,6 +240,10 @@ vocabularies:
   # nowhere to get it. It exists so a gap can be reviewed rather than rediscovered.
   status_extra:
     - not_yet_sourced
+    # `superseded`: a name kept so references resolve, its series now written
+    # under another key, which the entry's `superseded_by` names (the wgc.* gold
+    # names, superseded by imf.ifs.* on 10 Oct 2026).
+    - superseded
   # WHAT A METRIC IS STANDING IN FOR, when it is standing in for something. Declared
   # as a vocabulary so a proxy cannot be introduced without naming its target, and
   # so a reader can ask "what would I rather have here" and get an answer. A metric
@@ -4810,7 +4814,8 @@ metrics:
     mechanism_group: external_position
     native_horizon: monthly
     freq: monthly
-    status_extra: not_yet_sourced
+    status_extra: superseded
+    superseded_by: imf.ifs.gold_reserves_oz.<iso3>
     information_half_life: until_next_release
     invalidated_by: none
     observation_type: observed
@@ -4818,13 +4823,14 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      NOT AVAILABLE. Central-bank gold holdings by country, tonnes (WGC, from IMF IFS). WGC files require a login; declared, never written. IMF IFS is the candidate primary source, pending a ruling.
+      SUPERSEDED (10 Oct 2026) by imf.ifs.gold_reserves_oz.<iso3>: the ruling made IMF IFS -- the WGC's own source -- the primary, written by altdata/sources/imf_ifs.py in ounces (tonnes a display conversion). Kept as a name so references resolve; never written. Was: central-bank gold holdings by country, tonnes (WGC files require a login).
   wgc.cb_net_purchases_t:
     source: wgc
     mechanism_group: external_position
     native_horizon: monthly
     freq: monthly
-    status_extra: not_yet_sourced
+    status_extra: superseded
+    superseded_by: imf.ifs.gold_net_purchases_oz.<iso3>
     information_half_life: until_next_release
     invalidated_by: none
     observation_type: observed
@@ -4832,7 +4838,806 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      NOT AVAILABLE. Central-bank net gold purchases by country, tonnes, monthly (WGC). Login-gated; declared, never written.
+      SUPERSEDED (10 Oct 2026) by imf.ifs.gold_net_purchases_oz.<iso3> and the aggregate imf.ifs.gold_net_purchases_oz.total (altdata/sources/imf_ifs.py). Kept as a name; never written. Was: central-bank net gold purchases by country, tonnes, monthly (WGC, login-gated).
+
+  # -------------------------------------------------------------------------
+  # IMF IFS CENTRAL-BANK GOLD (ruled 10 Oct 2026; altdata/sources/imf_ifs.py,
+  # config/imf_ifs.yaml). The IMF's International Liquidity dataflow (IMF.STA:IL),
+  # RGV_REVS "Gold reserves (volume)", fine troy ounces, monthly; observed_at the
+  # month-end, available_at the dataset's PUBLICATION_DATE. Stored in OUNCES;
+  # tonnes are a display conversion (32,150.7466 oz a tonne). The IMF revises:
+  # a changed value is a second vintage, never an overwrite. Supersedes wgc.*.
+  # -------------------------------------------------------------------------
+  imf.ifs.gold_reserves_oz.usa:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      United States: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.usa:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      United States: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.deu:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Germany: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.deu:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Germany: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.ita:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Italy: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.ita:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Italy: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.fra:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      France: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.fra:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      France: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.chn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      China: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS). China's primary is SAFE (safe.gold_reserves_oz); this is its cross-check, a divergence over 1% flagged.
+  imf.ifs.gold_net_purchases_oz.chn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      China: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.rus:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Russia: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS). Stopped reporting the monthly series (config/imf_ifs.yaml); stored, kept off the freshness roster.
+  imf.ifs.gold_net_purchases_oz.rus:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Russia: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales). Stopped reporting the monthly series (config/imf_ifs.yaml); stored, kept off the freshness roster.
+  imf.ifs.gold_reserves_oz.che:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Switzerland: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.che:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Switzerland: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.ind:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      India: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.ind:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      India: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.jpn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Japan: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.jpn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Japan: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.tur:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Turkiye: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.tur:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Turkiye: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.pol:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Poland: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.pol:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Poland: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.nld:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Netherlands: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.nld:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Netherlands: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.uzb:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Uzbekistan: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.uzb:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Uzbekistan: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.twn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Taiwan Province of China: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.twn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Taiwan Province of China: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.prt:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Portugal: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.prt:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Portugal: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.kaz:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Kazakhstan: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.kaz:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Kazakhstan: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.sau:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Saudi Arabia: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.sau:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Saudi Arabia: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.gbr:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      United Kingdom: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.gbr:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      United Kingdom: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.lbn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Lebanon: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS). Stopped reporting the monthly series (config/imf_ifs.yaml); stored, kept off the freshness roster.
+  imf.ifs.gold_net_purchases_oz.lbn:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Lebanon: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales). Stopped reporting the monthly series (config/imf_ifs.yaml); stored, kept off the freshness roster.
+  imf.ifs.gold_reserves_oz.esp:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Spain: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.esp:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Spain: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.aut:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Austria: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.aut:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Austria: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.tha:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Thailand: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.tha:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Thailand: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.bel:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Belgium: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.bel:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Belgium: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.sgp:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Singapore: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.sgp:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Singapore: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.irq:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Iraq: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.irq:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Iraq: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.cze:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Czechia: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.cze:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Czechia: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_reserves_oz.hun:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Hungary: official gold reserves, volume, fine troy ounces, month-end (IMF IL, RGV_REVS).
+  imf.ifs.gold_net_purchases_oz.hun:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Hungary: official gold net purchases, ounces -- the month-end holding less the month before's, from the same IMF vintage (negative = net sales).
+  imf.ifs.gold_net_purchases_oz.total:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      THE OFFICIAL BID's aggregate (two-bid decomposition): the sum of the month's
+      net gold purchases, ounces, across the configured countries
+      (config/imf_ifs.yaml) that reported both the month and the one before. It
+      grows as late reporters land -- most within two months, the euro members and
+      China in three -- and each growth is a new vintage; read it with
+      imf.ifs.gold_net_purchases_count.total.
+  imf.ifs.gold_net_purchases_count.total:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      How many of the configured countries the month's aggregate net purchases
+      (imf.ifs.gold_net_purchases_oz.total) cover.
 
   # -------------------------------------------------------------------------
   # REFERENCE LIBRARIES (ST-2). Each edition's own vintage is logged under
