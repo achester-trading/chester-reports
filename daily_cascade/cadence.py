@@ -38,6 +38,7 @@ def get(name: str, cfg: Optional[dict] = None) -> dict:
     c["reading_target_minutes"] = (cfg.get("reading_targets_minutes") or {}).get(name)
     c["depth_words"] = dict(cfg.get(c.get("depth_words") or "depth_words") or {})
     c["depth_paragraphs"] = dict(cfg.get("depth_paragraphs") or {})
+    c["figure_budget_parents"] = list(cfg.get("figure_budget_parents") or [])
     return c
 
 
@@ -60,6 +61,12 @@ def figure_cap(cad: dict) -> int:
     """The most figures one paragraph after the claim line may cite at this
     cadence (`paragraph_figures`; six where a cadence declares none)."""
     return int(cad.get("paragraph_figures") or 6)
+
+
+def summary_cap(cad: dict) -> int:
+    """The figures an executive-summary paragraph is handed and may cite
+    (`summary_figures`; three where a cadence declares none, T3.1 item 20)."""
+    return int(cad.get("summary_figures") or 3)
 
 
 def figure_word(n: int) -> str:
