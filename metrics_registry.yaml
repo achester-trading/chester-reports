@@ -270,6 +270,14 @@ vocabularies:
   # measured in. Declared per series in `families` below; a family outside this
   # list fails tools/check_registry.py.
   family: [price, rate, spread, release, quantity, conditions, ratio]
+  # THE RIGHTS CEILING (docs/templates/signal-intake.md item 4; first declared by
+  # AQ-5, 10 Oct 2026): the most a series may ever be used for, whatever its
+  # trigger_eligible says today. Optional; declared, it must be one of these.
+  # Declared with it, on the same entries: `long_window` (the lenses' own-history
+  # window -- `until_the_lenses` until 6e declares it), `added_date`, and
+  # `kill_condition` (the written falsification condition, architecture Session 2)
+  # where a ruling gave one.
+  rights_ceiling: [narrow_flag, composite_input, confidence_modifier, base_rate_only, none]
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -414,6 +422,18 @@ vocabularies:
     # live, because a premium and the yield it is carved out of would otherwise
     # confirm each other by construction.
     - rates_decomposition
+    # FACTOR ATTRIBUTION (AQ-8a). A family's return split by regression into what
+    # the common factors explain and the residual -- the gold residual and the
+    # driver attribution. One group however many families: every row is a cut of
+    # the same four factors, so two families' shares are one lens read twice,
+    # never two witnesses. Separate from the factors' own groups, because a
+    # residual and the real yield it is net of would otherwise confirm each other.
+    - factor_attribution
+    # THE PAPER BID (AQ-8a; two-bid decomposition). Options positioning in the
+    # commodity and crypto ETFs -- net call-put OI and the 25-delta risk reversal
+    # from the captured chains. Its own group, apart from the dealer chain (the
+    # 13's exposure), because it reads the speculative bid in four other funds.
+    - paper_bid
     # HOUSEHOLD ALLOCATION (Z.1 B.101). What households HOLD, which is a
     # positioning stock rather than a sentiment reading or a flow -- SR-12's
     # bond-allocation blend reads it. Its own group so an allocation share and a
@@ -4316,6 +4336,243 @@ metrics:
     trigger_eligible: false
     description: >-
       China official reserve assets, total, month-end.
+  # ---------------------------------------------------------------------------
+  # AQ-8a (change order 10 Oct 2026, section 5): THE GOLD RESIDUAL AND THE
+  # YIELDS-UP/DOLLAR-DOWN SERIES. Written by altdata/attribution.py from
+  # config/attribution.yaml; rights ceiling NARROW FLAG, never trigger-eligible,
+  # no composite weight. The driver attribution and the paper bid are the
+  # driver_attribution_* and paper_bid_* bulk blocks. long_window waits for the
+  # metric lenses (6e): until then percentiles are over the store's own history.
+  # ---------------------------------------------------------------------------
+  calc.gold_residual.residual:
+    source: derived_state
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      THE GOLD RESIDUAL (arch Session 12): what real rates (DFII10) and the
+      trade-weighted dollar (DTWEXBGS) do not explain. Gold's monthly log return
+      less the fit of a rolling 36-month regression on the 10-year real yield's
+      change and the broad dollar's log return, in log-return percent (2.0 = the
+      month's return was two log points above what the window's betas imply).
+      Rolling 36 COMPLETE months (config/attribution.yaml); gold is the
+      COMEX front future (GC=F), GLD for a month the front has no return.
+      Section 5 rules no kill condition for the gold residual.
+  calc.gold_residual.explained_share:
+    source: derived_state
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: fraction
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The gold residual's explained share: the R squared of the rolling 36-month
+      regression of gold's monthly log return on the real yield's change and the
+      broad dollar's log return, 0 to 1. Low means the residual is most of the
+      move -- the paper's 'the real-yield model broke in 2022' read as a number.
+      Rolling 36 COMPLETE months (config/attribution.yaml); gold is the
+      COMEX front future (GC=F), GLD for a month the front has no return.
+      Section 5 rules no kill condition for the gold residual.
+  calc.gold_residual.beta_real_yield:
+    source: derived_state
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The gold residual's beta to the 10-year real yield (DFII10): log return per
+      percentage point of the month's real-yield change, rolling 36 months
+      (-0.08 = gold about 8% lower per +1pp). The falsification test 'the
+      real-yield link dormant not dead' (VIII section 4) reads its sign and size.
+      Rolling 36 COMPLETE months (config/attribution.yaml); gold is the
+      COMEX front future (GC=F), GLD for a month the front has no return.
+      Section 5 rules no kill condition for the gold residual.
+  calc.gold_residual.beta_dollar:
+    source: derived_state
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The gold residual's beta to the broad dollar (DTWEXBGS): gold's monthly log
+      return per unit of the dollar's, rolling 36 months -- an elasticity.
+      Rolling 36 COMPLETE months (config/attribution.yaml); gold is the
+      COMEX front future (GC=F), GLD for a month the front has no return.
+      Section 5 rules no kill condition for the gold residual.
+  calc.yields_up_dollar_down.flag:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      1 in a week the 10-year Treasury yield (DGS10) rose and the broad dollar
+      (DTWEXBGS) fell, 0 otherwise; each move is stored beside it.
+      ONE SERIES under both papers' names: Currencies section 19
+      'yields-up/dollar-down' and the Rates paper's S10/S29 'credibility
+      repricing' (front end down, term premium up, currency down, gold up)
+      describe the same signature. Weeks end Friday; each leg is read on its
+      week's final observation. Narrow flag; no kill condition ruled.
+  calc.yields_up_dollar_down.yield_change_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    delta_unit: raw
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The 10-year yield's change over the week, in basis points (stored as bp,
+      so its own deltas are raw), beside the yields-up/dollar-down flag.
+      ONE SERIES under both papers' names: Currencies section 19
+      'yields-up/dollar-down' and the Rates paper's S10/S29 'credibility
+      repricing' (front end down, term premium up, currency down, gold up)
+      describe the same signature. Weeks end Friday; each leg is read on its
+      week's final observation. Narrow flag; no kill condition ruled.
+  calc.yields_up_dollar_down.dollar_change_pct:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The broad dollar's change over the week, in percent, beside the
+      yields-up/dollar-down flag.
+      ONE SERIES under both papers' names: Currencies section 19
+      'yields-up/dollar-down' and the Rates paper's S10/S29 'credibility
+      repricing' (front end down, term premium up, currency down, gold up)
+      describe the same signature. Weeks end Friday; each leg is read on its
+      week's final observation. Narrow flag; no kill condition ruled.
+  calc.yields_up_dollar_down.recurrence_13w:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      RECURRENCE: yields-up/dollar-down weeks in the trailing 13, written once 13
+      weeks are held. The Currencies paper's disorderly-episode test reads two
+      consecutive quarters of it with auction deterioration.
+      ONE SERIES under both papers' names: Currencies section 19
+      'yields-up/dollar-down' and the Rates paper's S10/S29 'credibility
+      repricing' (front end down, term premium up, currency down, gold up)
+      describe the same signature. Weeks end Friday; each leg is read on its
+      week's final observation. Narrow flag; no kill condition ruled.
+  calc.yields_up_dollar_down.persistence_weeks:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      PERSISTENCE: consecutive yields-up/dollar-down weeks ending this one (0 in
+      an unflagged week), written once the run's start is in the history.
+      ONE SERIES under both papers' names: Currencies section 19
+      'yields-up/dollar-down' and the Rates paper's S10/S29 'credibility
+      repricing' (front end down, term premium up, currency down, gold up)
+      describe the same signature. Weeks end Friday; each leg is read on its
+      week's final observation. Narrow flag; no kill condition ruled.
+  imf.ifs_official_gold_oz:
+    source: imf_ifs
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      NOT YET SOURCED. Official gold holdings by country from the IMF's
+      International Financial Statistics -- the two-bid decomposition's official
+      leg beyond China (AQ-8a; change order 10 Oct 2026, section 5). A ruling on
+      the source is pending; declared, never written. China's own report
+      (safe.gold_reserves_oz) is read in the meantime.
   safe.gold_reserves_oz:
     source: safe_china
     mechanism_group: external_position
@@ -6100,6 +6357,188 @@ bulk_imports:
       "8": macro_sovereign
       "9": macro_consumer_stress
       "10": macro_sentiment
+  # ---------------------------------------------------------------------------
+  # AQ-8a: THE DRIVER ATTRIBUTION (section 5, 10A) and THE PAPER BID (two-bid
+  # decomposition). The driver blocks' members are built from the correlation
+  # layer's universe (config/correlation.yaml, AQ-5) at import, so a family given
+  # a key there is a member here; they carry NO expected_members, because that
+  # universe's deliberate count is the correlation layer's own block and a second
+  # count of the same list could only disagree with it. Where that file is not in
+  # the checkout the four blocks are empty and the attribution says why.
+  # ---------------------------------------------------------------------------
+  driver_attribution_explained:
+    description: >-
+      Each family's monthly return regressed on the common factor set -- the
+      10-year real yield's change (DFII10), the broad dollar's log return
+      (DTWEXBGS), the growth surprise (payrolls) and the inflation surprise
+      (core CPI), both against the naive rule and aligned to the month they
+      printed in -- over a rolling 60 complete months: the R squared, 0 to 1. A
+      lens, never a composite; 'attributing a move to any one driver is
+      guesswork' (III Ch 7), so the share is printed, not asserted.
+    members_from: altdata.attribution.DRIVER_EXPLAINED
+    units: fraction
+    source: derived_state
+    members_are: keys
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    family: ratio
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      Drop a factor whose five-year loading has no stable sign across the regime
+      splits; the residual stays (change order 10 Oct 2026, section 5, driver
+      attribution). The sign-stability check is computed and printed
+      (calc.driver_attribution.<family>.sign_stable.<factor>); nothing acts on it.
+
+  driver_attribution_residual:
+    description: >-
+      Each family's residual this month: its monthly return less the rolling
+      60-month fit on the four common factors, in the return's own units x 100
+      (log-return percent for a price). What the common factors do not explain.
+    members_from: altdata.attribution.DRIVER_RESIDUAL
+    units: percent
+    delta_unit: pp
+    source: derived_state
+    members_are: keys
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    family: ratio
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      Drop a factor whose five-year loading has no stable sign across the regime
+      splits; the residual stays (change order 10 Oct 2026, section 5, driver
+      attribution). The sign-stability check is computed and printed
+      (calc.driver_attribution.<family>.sign_stable.<factor>); nothing acts on it.
+
+  driver_attribution_loadings:
+    description: >-
+      Each family's STANDARDISED loading on each common factor over the rolling
+      60 months: the beta times the factor's standard deviation over the
+      return's, so the four compare. The Monthly prints the largest.
+    members_from: altdata.attribution.DRIVER_LOADINGS
+    units: ratio
+    source: derived_state
+    members_are: keys
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    family: ratio
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      Drop a factor whose five-year loading has no stable sign across the regime
+      splits; the residual stays (change order 10 Oct 2026, section 5, driver
+      attribution). The sign-stability check is computed and printed
+      (calc.driver_attribution.<family>.sign_stable.<factor>); nothing acts on it.
+
+  driver_attribution_sign_stability:
+    description: >-
+      THE KILL CONDITION'S CHECK, per family and factor: 1 when the factor's
+      loading has one sign over the five-year window and in both halves of every
+      regime split that can be tested (real yields rising/falling; core CPI
+      inflation above/below its window median -- session-set splits in
+      config/attribution.yaml), 0 when it does not (the condition met; printed,
+      not acted on). Not written where no split is testable.
+    members_from: altdata.attribution.DRIVER_SIGNS
+    units: boolean
+    source: derived_state
+    members_are: keys
+    mechanism_group: factor_attribution
+    native_horizon: monthly
+    freq: monthly
+    family: ratio
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      Drop a factor whose five-year loading has no stable sign across the regime
+      splits; the residual stays (change order 10 Oct 2026, section 5, driver
+      attribution). The sign-stability check is computed and printed
+      (calc.driver_attribution.<family>.sign_stable.<factor>); nothing acts on it.
+
+  paper_bid_call_put_oi:
+    description: >-
+      THE PAPER BID (two-bid decomposition; arch Session 12; I 4.1, 4.6; II S10):
+      call open interest less put open interest, in contracts, over every expiry
+      after the session's own, from the session's close-nearest captured chain
+      of GLD, SLV, IBIT and USO. observed_at the session, available_at the
+      capture's fetched_at. Accrues from the AQ-8a merge: chains are not
+      retrievable historically.
+    source: derived_state
+    members_from: altdata.paper_bid.PAPER_OI_SERIES
+    members_are: keys
+    expected_members: 4
+    mechanism_group: paper_bid
+    native_horizon: daily
+    freq: daily
+    units: count
+    family: quantity
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      Drop call-put OI if its percentile shows no relationship to forward 20-day
+      returns in either direction after twelve months (change order 10 Oct 2026,
+      section 5, two-bid decomposition).
+
+  paper_bid_risk_reversal:
+    description: >-
+      THE PAPER BID's second reading: the 25-delta risk reversal at 30 days, in
+      vol points -- the 25-delta call's implied vol less the 25-delta put's, each
+      interpolated in Black-Scholes delta from the chain's own IV (the SPY
+      exposure fields' method), linear in days between the expiries either side
+      of 30. Positive = calls bid over puts. GLD, SLV, IBIT and USO. No kill
+      condition ruled on it.
+    source: derived_state
+    members_from: altdata.paper_bid.PAPER_RR_SERIES
+    members_are: keys
+    expected_members: 4
+    mechanism_group: paper_bid
+    native_horizon: daily
+    freq: daily
+    units: percent
+    delta_unit: pp
+    family: ratio
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+
   event_columns:
     description: >-
       The events table's column set, which IS the format. Registered as a block

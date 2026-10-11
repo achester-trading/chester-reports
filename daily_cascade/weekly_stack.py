@@ -272,7 +272,8 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
-                  cadence: str = "weekly", liquidity_deltas: bool = False) -> dict:
+                  cadence: str = "weekly", liquidity_deltas: bool = False,
+                  yudd_line: Optional[bool] = None) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
@@ -316,14 +317,32 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     pr = wsec.plumbing_rows(st, now, then, cadence, liquidity_deltas)
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
+    subs = [{**fx, "paragraph_wanted": False}]
+    nt = list(pr["not_tracked"])
+    pdata = {"series": data, "tier1_releases": rel, "plumbing": pr["data"]}
+    # YIELDS-UP/DOLLAR-DOWN (AQ-8a; Currencies section 19, Rates S10/S29): one
+    # line, the Weekly only, and only when a flagged week became known this week
+    # -- otherwise nothing, not even a "did not fire" line.
+    if (cadence == "weekly") if yudd_line is None else yudd_line:
+        try:
+            from altdata import attribution                      # noqa: PLC0415
+            yl = attribution.yudd_week_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("yields-up/dollar-down line unavailable", exc_info=True)
+            yl = None
+            nt.append(f"the yields-up/dollar-down line: FAULT {type(exc).__name__}")
+        if yl:
+            pdata["yields_up_dollar_down"] = {k: v for k, v in yl.items() if k != "text"}
+            subs.append({"title": "Yields up, dollar down", "lines": [yl["text"]],
+                         "paragraph_wanted": False})
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
-            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
+            "data": pdata,
             "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
-            "subsections": [{**fx, "paragraph_wanted": False}],
-            "not_tracked": pr["not_tracked"]}
+            "subsections": subs,
+            "not_tracked": nt}
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
