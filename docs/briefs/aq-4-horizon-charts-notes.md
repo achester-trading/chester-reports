@@ -75,6 +75,10 @@ D's coin bars (end of the UTC day plus 20 minutes), and nothing later.
   - When `config/correlation.yaml` (AQ-5) is present, the universe is read from
     it, VIX skipped. Until then the tool uses its own copy of the same twenty
     assets.
+  - On main, the own copy carries AQ-5's six (DBA, ETH, SOL, ZEC, VNQI, MCHI) as
+    absent rather than naming keys the registry does not hold yet
+    (`validate_config_refs`). Once AQ-5 merges, its file supplies their keys and
+    they draw.
   - An asset in that file without a family row in `horizon_charts.yaml` is
     refused rather than guessed.
   - PRL, uranium and the crypto light tier are carried as absent, with their

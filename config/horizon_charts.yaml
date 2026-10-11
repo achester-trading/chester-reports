@@ -11,6 +11,9 @@
 # (AQ-5's v1 universe less VIX, which is a volatility index and not an asset with
 # a return). Either way, `assets` below adds what that file does not carry: each
 # asset's family and whether its return is total or price.
+# Six of the twenty (DBA, ETH-USD, SOL-USD, ZEC-USD, VNQI, MCHI) join the price
+# feed on AQ-5's branch, so on main the copy carries them as absent rather than
+# naming keys the registry does not hold; AQ-5's file supplies their keys.
 # ---------------------------------------------------------------------------
 universe_file: config/correlation.yaml
 universe_skip: [vix]          # read by the correlation layer; not a return asset
@@ -21,15 +24,15 @@ universe:
   - {id: copper,   label: "Copper",        key: yfinance.mkt_copper_front, proxy: "HG=F, front month"}
   - {id: oil,      label: "Oil",           key: yfinance.mkt_uso,          proxy: "USO"}
   - {id: natgas,   label: "Natural gas",   key: fred.natgas,               proxy: "Henry Hub spot (FRED DHHNGSP)"}
-  - {id: agri,     label: "Agriculture",   key: yfinance.mkt_dba,          proxy: "DBA"}
+  - {id: agri,     label: "Agriculture", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "DBA"}
   - {id: btc,      label: "Bitcoin",       key: yfinance.mkt_btc_usd,      proxy: "BTC-USD"}
-  - {id: eth,      label: "Ether",         key: yfinance.mkt_eth_usd,      proxy: "ETH-USD"}
-  - {id: sol,      label: "Solana",        key: yfinance.mkt_sol_usd,      proxy: "SOL-USD"}
-  - {id: zec,      label: "Zcash",         key: yfinance.mkt_zec_usd,      proxy: "ZEC-USD"}
+  - {id: eth,      label: "Ether", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "ETH-USD"}
+  - {id: sol,      label: "Solana", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "SOL-USD"}
+  - {id: zec,      label: "Zcash", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "ZEC-USD"}
   - {id: us_re,    label: "US real estate", key: yfinance.mkt_xlre,        proxy: "XLRE"}
-  - {id: intl_re,  label: "International real estate", key: yfinance.mkt_vnqi, proxy: "VNQI"}
+  - {id: intl_re,  label: "International real estate", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "VNQI"}
   - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       proxy: "EEM"}
-  - {id: china,    label: "China",         key: yfinance.mkt_mchi,         proxy: "MCHI"}
+  - {id: china,    label: "China", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "MCHI"}
   - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          proxy: "DX-Y.NYB"}
   - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       proxy: "EUR/USD"}
   - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       invert: true, proxy: "USD/JPY, inverted"}

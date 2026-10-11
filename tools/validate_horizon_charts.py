@@ -74,6 +74,10 @@ FAIL = 0
 LINE = "=" * 78
 TD = Path(gate_mkdtemp("horizon_gate_"))
 AS_OF = "2026-09-30"
+# The keys AQ-5's universe gives the six assets that join the price feed there.
+AQ5_KEYS = {"agri": "yfinance.mkt_dba", "eth": "yfinance.mkt_eth_usd",
+            "sol": "yfinance.mkt_sol_usd", "zec": "yfinance.mkt_zec_usd",
+            "intl_re": "yfinance.mkt_vnqi", "china": "yfinance.mkt_mchi"}
 
 
 def ok(m: str) -> None:
@@ -434,6 +438,17 @@ def main() -> int:
     # on this checkout, so its verdict does not depend on which branch merged first.
     cfg = copy.deepcopy(cfg)
     cfg["universe_file"] = "config/__no_correlation_file_in_the_gate__.yaml"
+    pending = [u["id"] for u in cfg["universe"] if u.get("absent")]
+    print(f"\n{LINE}\n0. THE OWN COPY ON MAIN\n{LINE}")
+    check(sorted(pending) == sorted(AQ5_KEYS) and
+          not any(u.get("key") for u in cfg["universe"] if u["id"] in AQ5_KEYS),
+          f"AQ-5's six are absent in the own copy, naming no unregistered key ({sorted(pending)})")
+    # Seed them as AQ-5's universe will key them, so the arithmetic below covers
+    # a coin and the young series either way.
+    for u in cfg["universe"]:
+        if u["id"] in AQ5_KEYS:
+            u.pop("absent", None)
+            u["key"] = AQ5_KEYS[u["id"]]
     group_a(cfg)
     group_b()
     st = seeded_store("main")
