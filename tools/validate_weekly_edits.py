@@ -521,10 +521,12 @@ def main() -> int:
           and round(hf([100.0, 101.0], "annualised")[0], 2) == 4.06
           and hf([231000.0], "level") == (231000.0, None),
           "1: the forms compute: change, m/m, y/y over twelve prints, annualised, level")
-    check(ws.form_text(29.0, "change", "fred.nfp") == "+29k"
+    # T3.4a: payrolls' change in the one form every report shares -- the integer
+    # +29 thousand stands for, which the audit accepts as the display form.
+    check(ws.form_text(29.0, "change", "fred.nfp") == "+29,000"
           and ws.form_text(0.31, "mom", "fred.cpi") == "+0.3%"
           and ws.form_text(4.2, "level", "fred.u3_rate") == "4.2%",
-          "1: printed as +29k (payrolls in thousands, the scale written), +0.3%, "
+          "1: printed as +29,000 (payrolls in thousands, as the integer), +0.3%, "
           "4.2%")
     wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
     gi = (REPO / ".gitignore").read_text(encoding="utf-8")
