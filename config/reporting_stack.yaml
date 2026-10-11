@@ -209,6 +209,8 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 #   paragraph_figures  the most figures one paragraph after the claim line may
 #                 cite before the guard withholds it; the tables carry the rest
 #                 (T2.5 item 1: six; the Monthly 8 from 10 Oct 2026, T3.2 item 1)
+#   summary_figures  the figures an executive-summary paragraph is handed and may
+#                 cite (T3.1 item 20: three; T3.4 puts them in its frame)
 #   subsection_charts  whether a sub-section's charts print under it (T2.7);
 #                 otherwise they print with the section's own
 #   trim_to_budget  whether the budget step cuts paragraphs, lowest priority
@@ -256,6 +258,7 @@ cadences:
     paragraphs: null
     paragraph_words: depth
     paragraph_figures: 8
+    summary_figures: 3
     subsection_paragraphs: true
     subsection_charts: true
     trim_to_budget: true
@@ -263,6 +266,15 @@ cadences:
     chars_scale: 2.5
     read_chars: 2400
     mobile_tables: true
+
+# THE PARENT SECTIONS (T3.4, 10 Oct 2026): the sections with blocks beneath them
+# whose frames carry at most the cadence's `paragraph_figures` -- their largest
+# moves, each with its display form -- and every other series by name only
+# (daily_cascade/figure_budget.py). Three dry runs cited 9 to 21 figures here
+# against the cap through three retries; the frame now offers no more than the
+# paragraph may cite. Every cadence; a listed section with no sub-sections is not
+# a parent at that cadence.
+figure_budget_parents: [tape, plumbing, positioning, priced, slow]
 
 # THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
 # deep). It follows The book; the old Monthly's record -- the regime, the

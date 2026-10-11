@@ -106,7 +106,22 @@ def _style_guide() -> Path:
 # the tables carry the rest; the executive summary's frame asks for at most three.
 # An ordinal is copied as printed: the tables and the `_ordinal` fields share the
 # one half-up rule (numeral_audit.percentile_ordinal), so the two agree.
-SUMMARY_FIGURES = 3
+# The summary's cap is the cadence's `summary_figures` (T3.4: config, not a literal).
+def summary_figures() -> int:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.summary_cap(cadence_mod.get("monthly"))
+
+
+SUMMARY_FIGURES = summary_figures()
+
+
+def _month_column() -> str:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return str(cadence_mod.get("monthly").get("column") or "The month")
+
+
+# The Monthly's period column head ("The month"): a move is read from it first.
+MONTH_COLUMN = _month_column()
 # A LARGE FIGURE IS COPIED IN ITS DISPLAY FORM (T3.3 item 2): every level and
 # change a pillar or theme hands over in millions or thousands comes with its
 # `_display` string, built by the one scaler, and only that string.
@@ -567,7 +582,10 @@ def parent_note(s: dict) -> str:
     """The parent frame's note, for a section with sub-sections beneath it."""
     if not s.get("subsections"):
         return ""
-    return PARENT_NOTE.format(cap=_cap_word(), n=figure_cap())
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    # T3.4: the frame itself now offers only the cap's worth of figures.
+    return (PARENT_NOTE.format(cap=_cap_word(), n=figure_cap())
+            + (sp.parent_frame_note("monthly") if sp.is_parent(s, "monthly") else ""))
 
 
 # THE POLICY WORDS, MARKET BY MARKET, BEFORE THE WRITER WRITES (T3.3 item 8).
@@ -638,7 +656,8 @@ def stack_plan(ed: dict) -> list[dict]:
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
                     "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
-                    "slice": sp._slice(s, ed)})
+                    # T3.4: a parent's frame is its budget, not its tables.
+                    "slice": sp.section_slice(s, ed, "monthly")})
     return out
 
 
@@ -700,13 +719,25 @@ def block_plan(ed: dict) -> list[dict]:
             out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
                         "kind": "stack", "sid": s["id"], "system": system,
                         "max_chars": hi * 9 + 500,
-                        "slice": {"section": s["title"], "block": ss["title"],
-                                  "month": ed.get("month"),
-                                  "table": ss.get("table"),
-                                  "lines": ss.get("lines"),
-                                  "points": ss.get("points"),
-                                  "data": sp._scrub(ss.get("data") or {})}})
+                        "slice": block_slice(s, ss, ed)})
     return out
+
+
+def block_slice(s: dict, ss: dict, ed: dict) -> dict:
+    """A block's frame (T3.4): its table, lines, points and data while they offer
+    no more figures than the cap -- percentiles as ordinals only -- and past the
+    cap, its rows ranked by absolute change as many as fit, the rest by name only
+    (figure_budget.block_frame: the FOMC prediction markets and liquidity blocks
+    of the dry runs)."""
+    from daily_cascade import figure_budget as fb               # noqa: PLC0415
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    full = fb.scrub_percentiles({"section": s["title"], "block": ss["title"],
+                                 "month": ed.get("month"), "table": ss.get("table"),
+                                 "lines": ss.get("lines"), "points": ss.get("points"),
+                                 "data": sp._scrub(ss.get("data") or {})})
+    if fb.quantified_figures(full) <= figure_cap():
+        return full
+    return fb.block_frame(s, ss, ed.get("month"), figure_cap(), MONTH_COLUMN)
 
 
 # ---------------------------------------------------------------------------
@@ -769,13 +800,18 @@ def summary_plan(ed: dict) -> list[dict]:
             continue
         system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
             report="the Monthly", title=s["title"], period="month",
-            figures=_cap_word(SUMMARY_FIGURES).lower(),
+            figures=_cap_word(summary_figures()).lower(),
             ordinals=ORDINAL_RULE) + tape
+        frame = summary_frame(s, ed)
+        cite = "; ".join(f"{f['series']} {f.get('change') or f.get('level')}"
+                         for f in frame["figures_you_may_cite"]) or "none"
         system += ((policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                   + DISPLAY_RULE + vocab_frame())
+                   + DISPLAY_RULE + vocab_frame()
+                   + SUMMARY_CITE.format(n=_cap_word(len(frame["figures_you_may_cite"]))
+                                         .lower(), figures=cite))
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
-                    "max_chars": 1400, "slice": reader_slice(summary_slice(s)),
+                    "max_chars": 1400, "slice": reader_slice(frame),
                     "audit_extra": summary_audit_extra(s, ed)})
     return out
 
@@ -791,13 +827,40 @@ def summary_plan(ed: dict) -> list[dict]:
 SUMMARISES_ALL = ("read",)
 
 
-def summary_audit_extra(s: dict, ed: dict) -> Optional[dict]:
-    """The other finished sections a summary paragraph may cite, for its audit
-    only; None for a summary of its own section alone."""
+def summary_audit_extra(s: dict, ed: dict) -> dict:
+    """What a summary paragraph is audited against beyond its frame: the
+    section it summarises as it prints (since T3.4 the frame masks the prose's
+    figures, so the section's own slice moves here and the scope is unchanged),
+    and for The read every other finished section too."""
+    own = summary_slice(s)
     if s["id"] not in SUMMARISES_ALL:
-        return None
-    return {"sections_summarised": [summary_slice(x) for x in ed.get("sections") or []
+        return {"section_summarised": own}
+    return {"section_summarised": own,
+            "sections_summarised": [summary_slice(x) for x in ed.get("sections") or []
                                     if x is not s and not x.get("empty")]}
+
+
+# THE SUMMARY'S FRAME HANDS IT ITS FIGURES (T3.4). The prose it summarises is given
+# with its figures masked, and the cadence's `summary_figures` -- the section's
+# top moves, ranked as a parent's are -- are named in the frame and the data.
+SUMMARY_CITE = ("\n\nFIGURES YOU MAY CITE: these {n} -- {figures}. Each exactly as "
+                "printed here; the prose you are given has its figures masked as "
+                "[figure], and no other figure may be written.")
+
+
+def summary_frame(s: dict, ed: dict) -> dict:
+    """The summary's frame: the section's prose with its figures masked and its
+    top moves up to the cadence's summary cap. The read, which summarises the
+    edition and has no table of its own, takes the top moves across every
+    finished section."""
+    from daily_cascade import figure_budget as fb               # noqa: PLC0415
+    frame = fb.summary_frame(s, summary_figures(), MONTH_COLUMN)
+    if s["id"] in SUMMARISES_ALL:
+        pool = [m for x in ed.get("sections") or [] if x is not s
+                and not x.get("empty") for m in fb.section_moves(x, MONTH_COLUMN)]
+        got, _ = fb.take(pool, summary_figures())
+        frame["figures_you_may_cite"] = [fb.cite(m) for m in got]
+    return frame
 
 
 def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:

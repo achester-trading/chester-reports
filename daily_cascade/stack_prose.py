@@ -566,7 +566,56 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
         sys_prompt += SECTION_NOTES.get(s["id"], "")
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
+    if not claim_only and is_parent(s, cadence):
+        sys_prompt += parent_frame_note(cadence)
+        if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES:
+            sys_prompt += TAPE_LEVEL_NOTE
     return sys_prompt
+
+
+# THE PARENT'S FRAME OFFERS ONLY WHAT IT MAY CITE (T3.4). Three dry runs cited 9 to
+# 21 figures in the parent sections through three retries; instruction did not
+# hold. A parent's data is now figure_budget.parent_frame: the cap's worth of its
+# largest moves and every other series by name only. This note tells the writer
+# how to read that frame.
+PARENT_FRAME_NOTE = (
+    "\n\nYOUR FIGURES ARE IN YOUR DATA: `figures_you_may_cite` holds the figures "
+    "this paragraph may cite -- at most {cap} -- each exactly as its table prints "
+    "it; copy them verbatim. Every series under `also_moved` also moved: name it, "
+    "do not quantify it. The blocks beneath this section carry those numbers.")
+# The tape's levels (T3.4b): the close and the Weekly only.
+TAPE_LEVEL_CADENCES = ("daily", "weekly")
+TAPE_LEVEL_NOTE = (
+    "\n\nLEVELS YOU MAY CITE: `levels_you_may_cite` holds the tape's levels, each by "
+    "its label and value exactly as listed, with its status; they count inside the "
+    "same cap as the moves. Say a level held or broke only as its status says.")
+
+
+def is_parent(s: dict, cadence: str = "daily") -> bool:
+    from . import figure_budget                                 # noqa: PLC0415
+    return figure_budget.is_parent(s, cadence_of(cadence).get("figure_budget_parents"))
+
+
+def parent_frame_note(cadence: str = "daily") -> str:
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    return PARENT_FRAME_NOTE.format(
+        cap=cadence_mod.figure_word(cadence_mod.figure_cap(cadence_of(cadence))).lower())
+
+
+def section_slice(s: dict, ed: dict, cadence: str = "daily") -> dict:
+    """What a section's writer is handed: a parent's budgeted frame, or the
+    section's slice."""
+    if is_parent(s, cadence):
+        from . import cadence as cadence_mod                    # noqa: PLC0415
+        from . import figure_budget                             # noqa: PLC0415
+        cad = cadence_of(cadence)
+        # T3.4b: the close's and the Weekly's tape keep their levels, counted
+        # inside the cap; the Monthly's tape is unchanged.
+        lv = (figure_budget.tape_levels(s, ed)
+              if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES else None)
+        return figure_budget.parent_frame(s, ed, cadence_mod.figure_cap(cad),
+                                          cad["period"], cad.get("column"), levels=lv)
+    return _slice(s, ed)
 
 
 def section_max_chars(s: dict, cadence: str = "daily") -> int:
@@ -669,7 +718,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             results[s["id"]] = {"state": "empty", "published": False}
             continue
         paras = DEPTH_PARAGRAPHS.get(s["depth"], "0")
-        res = run(s["id"], _slice(s, ed), section_prompt(s, cadence, base),
+        res = run(s["id"], section_slice(s, ed, cadence), section_prompt(s, cadence, base),
                   section_max_chars(s, cadence))
         results[s["id"]] = res
         if res.get("published"):

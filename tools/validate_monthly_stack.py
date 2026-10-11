@@ -1921,9 +1921,13 @@ def t33_group(ed: dict, out: dict) -> None:
     plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
     rd_extra = (plan.get("summary:read") or {}).get("audit_extra") or {}
     titles = [x.get("section") for x in rd_extra.get("sections_summarised") or []]
+    # T3.4: each summary's frame masks its section's figures, so the section's
+    # own slice travels in audit_extra -- the scope is the same as before.
     check("The tape" in titles and "The read" not in titles
-          and all(x.get("audit_extra") is None for k, x in plan.items()
-                  if k != "summary:read"),
+          and all(set(x.get("audit_extra") or {}) == {"section_summarised"}
+                  and (x["audit_extra"]["section_summarised"] or {}).get("section")
+                  == x["title"].split("Summary: ", 1)[1]
+                  for k, x in plan.items() if k != "summary:read"),
           f"P3 item 3: The read's summary is audited against every finished section "
           f"it summarises ({len(titles)}); each other summary against its own")
     tape_like = {"sections_summarised": [{"section": "The tape", "data": {
