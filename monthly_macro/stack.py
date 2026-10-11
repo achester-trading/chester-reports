@@ -1351,6 +1351,7 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                                 "long-run average and percentile, naming the "
                                 "window as the table does -- and the takeaway"}
                       if frows else None)})
+    seed_sub, seed_data = thesis_seed(now, db_path)
     subs = [{"title": "Valuation",
              "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
              "notes": ([f"Long-run average over the store's full history and "
@@ -1361,6 +1362,7 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             {"title": "Base rates: Top & Bottom",
              "table": {"columns": ["Base rate", "Level", "Range", "As of or extreme"],
                        "rows": base_rows}, "not_tracked": base_nt},
+            seed_sub,
             {"title": "Tails",
              "not_tracked": ["the 25 tail scenarios (not yet stored)"]}]
     if fam_subs:
@@ -1392,7 +1394,35 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             "phase_a": (["top_bottom"] if base_rows else [])
             + [f"alternative_assets:{r[1]}" for r in arows],
             "data": {"valuation": vdata, "base_rates": base_rows,
+                     "theses_seed": seed_data,
                      "alternative_assets": adata, "sourced_figures": src_data}}
+
+
+# THE THESIS REGISTER'S SEED TABLE (AQ-6; change order section 6): the theses the
+# probability ledger holds for the coming quarter, in the ledger's own form, each
+# weight beside its Brier where graded. READ ONLY -- the Monthly prints what the
+# operator seeded and never writes a weight. No chart.
+THESES_TITLE = "Theses: the ledger's seed for the coming quarter"
+
+
+def thesis_seed(now: Optional[str], db_path: Optional[str]) -> tuple[dict, dict]:
+    from altdata import thesis_register as tr                    # noqa: PLC0415
+    if not now:
+        return ({"title": THESES_TITLE, "not_tracked": [
+            "the thesis register: no cutoff for this edition"]}, {})
+    try:
+        t = tr.seed_table(now, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("thesis seed table unavailable", exc_info=True)
+        return ({"title": THESES_TITLE, "notes": [
+            f"FAULT (code, not data) -- {type(exc).__name__}"]}, {})
+    sub = {"title": f"Theses: the ledger's seed for {t['label']}",
+           "lines": [t["line"]]}
+    if t["rows"]:
+        sub["table"] = {"columns": t["columns"], "rows": t["rows"]}
+    return (sub,
+            {"quarter": t["quarter"], "count": t["count"],
+             "weights": t["weights"]})
 
 
 def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
