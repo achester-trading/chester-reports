@@ -211,7 +211,54 @@ def mechanics_section(p: dict) -> dict:
                      "dials": {k: (v or {}).get("state") for k, v in dials.items()}}}
 
 
-def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
+def screen_items(screen: Optional[dict], cadence: str = "daily") -> tuple[list, dict]:
+    """THE STORE-WIDE MOVE SCREEN IN WHAT DOESN'T FIT (Audit #4 Category 1 items 1
+    and 5; altdata/move_screen.py): the top flags by |z|, each "<series> +x.xσ
+    1-day / +x.xσ 5-day · false flag k/N", SR-35's 10-year companion beside its
+    row, the rest counted ("n more past 2.5σ -- in the tables"); the EM line
+    (idiosyncratic or systemic); the contagion lines -- every shock on the close,
+    only one that passed on the Weekly and the Monthly. (items, data)."""
+    if not screen:
+        return [], {}
+    from altdata import move_screen                              # noqa: PLC0415
+    rl = move_screen.report_lines(screen, cadence)
+    items = [item(f"misfit:move:{n}", ln, 1 if n < 2 else 2, ln)
+             for n, ln in enumerate(rl["lines"])]
+    if rl["more"]:
+        items.append(item("misfit:move:more", rl["more"], 3, rl["more"]))
+    em = screen.get("em") or {}
+    line = em.get("line") or move_screen.em_line(em)
+    if line:
+        items.append(item("misfit:em", line, 1, em.get("state")))
+    weekly = cadence != "daily"
+    for c in screen.get("contagion") or []:
+        cl = move_screen.contagion_line(c, weekly=weekly)
+        if cl:
+            items.append(item(f"misfit:contagion:{c['country']}:{c['shock_date']}",
+                              cl, 1, c.get("status")))
+    data = {"move_screen": {"screened": screen.get("screened"),
+                            "flags": [{"series": f.get("label"), "z_1d": f.get("z1"),
+                                       "z_5d": f.get("z5")}
+                                      for f in (screen.get("flags") or [])[:10]],
+                            "em_state": em.get("state")},
+            "_move_screen_reference": rl["reference"]}
+    return items, data
+
+
+def move_screen_detail(screen: Optional[dict], cadence: str = "daily") -> list[dict]:
+    """The reference tier: every flag, in a detail table after section 10."""
+    if not screen or not screen.get("flags"):
+        return []
+    from altdata import move_screen                              # noqa: PLC0415
+    ref = move_screen.report_lines(screen, cadence)["reference"]
+    return [{"title": "Moves past 2.5σ", "table": ref,
+             "notes": [f"{screen.get('screened')} daily series screened against their "
+                       f"own five-year history; {len(screen.get('skipped') or [])} "
+                       f"skipped for want of 500 observations."]}]
+
+
+def misfit_section(p: dict, pmb: Optional[dict] = None,
+                   screen: Optional[dict] = None) -> dict:
     ms = p.get("market_state") or {}
     items = []
     dis = (pmb or {}).get("disagreements") or {}
@@ -246,6 +293,8 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                           + "; ".join(labels.exception(e.get("id")) for e in exc[:4])
                           + ("…" if len(exc) > 4 else "") + ".", 2,
                           sorted(str(e.get("id")) for e in exc)))
+    sitems, sdata = screen_items(screen, "daily")
+    items += sitems
     if not items:
         items.append(item("misfit:none", "No contradiction is open and no "
                           "exception is flagged.", 1, "none"))
@@ -262,7 +311,7 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                      "open_contradictions": [contradiction_data(c) for c in opened],
                      "exceptions": [{"name": labels.exception(e.get("id")),
                                      "kind": e.get("kind"), "_id": e.get("id")}
-                                    for e in exc]}}
+                                    for e in exc], **sdata}}
 
 
 def _z(v) -> Optional[float]:
@@ -744,12 +793,16 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
     cutoff = p.get("as_of") or session.utc_iso()
     with observations.ObservationStore(store_path) as st:
         pmb, fed, fed_prior = venues_and_path(p["session"], cutoff, st)
+        # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the stored result,
+        # else computed in memory; the close never writes it.
+        from altdata import move_screen                          # noqa: PLC0415
+        screen = move_screen.result_for(st, p["session"], cutoff)
         built = {
             "read": {"items": read_items(pmb), "data": {
                 "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
             "mechanics": mechanics_section(p),
-            "misfit": misfit_section(p, pmb),
+            "misfit": misfit_section(p, pmb, screen),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),
             "priced": priced_section(st, cutoff, cfg, pmb, fed, fed_prior),
@@ -757,11 +810,26 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),
         }
+        em_extras(built, screen, p["session"])
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
             "config_version": cfg.get("version"), "as_of": cutoff,
             "prior_session": (prior or {}).get("session"),
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
+
+
+def em_extras(built: dict, screen: Optional[dict], day: str) -> None:
+    """SR-46(c) and the EM calendar on the close: the report-only "EM leg" line
+    in Plumbing & rates, and the quarter's hand-seeded EM events in Ahead."""
+    from altdata import move_screen                              # noqa: PLC0415
+    leg = ((screen or {}).get("em") or {}).get("em_leg_line")
+    if leg and built.get("plumbing") is not None:
+        built["plumbing"]["items"].append(item("plumb:em_leg", leg, 2, leg))
+    for e in move_screen.em_calendar(day):
+        if built.get("ahead") is not None:
+            ln = move_screen.calendar_line(e)
+            built["ahead"]["items"].append(item(f"ahead:em:{e.get('date')}:"
+                                                f"{e.get('country')}", ln, 2, ln))
 
 
 def section_ids(cfg: dict, cadence: str, built: Optional[dict] = None) -> list[str]:

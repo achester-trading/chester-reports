@@ -196,6 +196,21 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # series pages (SOFR; IORB, from 29 Jul 2021).
     SeriesSpec("sofr",             "SOFR",       "Secured overnight financing rate", "3", "%",    "daily"),
     SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
+    # SR-46 (ruled 6 Oct 2026; Audit #4 Category 1 item 5): the EM screen's FRED
+    # currencies, H.10, each LOCAL CURRENCY PER ONE U.S. DOLLAR, daily -- read off
+    # each FRED series page on 11 Oct 2026. MXN and CNY are already pulled
+    # (usd_mxn above, usd_cny in FRED_SERIES).
+    SeriesSpec("usd_brl",          "DEXBZUS",    "BRL/USD exchange rate (reals per dollar)","7","BRL","daily"),
+    SeriesSpec("usd_zar",          "DEXSFUS",    "ZAR/USD exchange rate (rand per dollar)","7","ZAR","daily"),
+    SeriesSpec("usd_inr",          "DEXINUS",    "INR/USD exchange rate (rupees per dollar)","7","INR","daily"),
+    SeriesSpec("usd_krw",          "DEXKOUS",    "KRW/USD exchange rate (won per dollar)","7","KRW","daily"),
+    SeriesSpec("usd_twd",          "DEXTAUS",    "TWD/USD exchange rate (Taiwan dollars per dollar)","7","TWD","daily"),
+    SeriesSpec("usd_thb",          "DEXTHUS",    "THB/USD exchange rate (baht per dollar)","7","THB","daily"),
+    # SR-46(c): the EM spread family. Both PERCENT, daily, read off their FRED
+    # pages 11 Oct 2026. FRED notes that from April 2026 each serves only THREE
+    # YEARS of observations, so a five-year percentile is not computable from it.
+    SeriesSpec("em_corp_oas",      "BAMLEMCBPIOAS","ICE BofA EM Corporate Plus OAS",  "6", "%",    "daily"),
+    SeriesSpec("em_hy_oas",        "BAMLEMHBHYCRPIOAS","ICE BofA High Yield EM Corporate Plus OAS","6","%","daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

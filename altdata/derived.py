@@ -107,6 +107,13 @@ DELTA_UNITS: dict[str, str] = {
     "JPY": "percent",
     "CNY": "percent",
     "MXN": "percent",
+    # SR-46's EM currencies, local currency per dollar (FRED H.10).
+    "BRL": "percent",
+    "ZAR": "percent",
+    "INR": "percent",
+    "KRW": "percent",
+    "TWD": "percent",
+    "THB": "percent",
     # Counts, levels and stocks: moved in their own units.
     "K": "raw",
     "N": "raw",          # a plain count (FRED "Number": IC4WSA, EXHOSLUSM495S)

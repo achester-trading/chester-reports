@@ -332,6 +332,10 @@ vocabularies:
     # P5-B, EL-3: Book Z's reference ledgers. Their own group, because a
     # benchmark is neither a market series nor a position.
     - paper_benchmark
+    # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5). Its own group: a flag
+    # is a statement about how unusual another series' move was, computed from
+    # that series, never independent evidence beside it.
+    - move_screen
     # DECISION GRADES. Its own group, and it must never share one with a market
     # metric: a grade is a measurement of THIS SYSTEM'S OWN OUTPUT, so letting it
     # confirm a market signal would be the system marking its own homework and
@@ -2088,6 +2092,71 @@ metrics:
   # PERCENTAGE POINTS in a macro one. These are macro series; a reader of the
   # Monthly means points.
   # -------------------------------------------------------------------------
+  # THE STORE-WIDE MOVE SCREEN (Audit #4 Category 1 items 1 and 5; SR-46 b-d):
+  # altdata/move_screen.py. Each row is JSON, observed_at the session and
+  # available_at the compute instant, so the false-flag base rates accrue
+  # point-in-time and the scorecard can grade a flag later. Report-only rights.
+  screen.move:
+    source: derived_state
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      One row per series past 2.5 sigma on the session, instrument = the series
+      ("<key>" or "<key>@<instrument>"): its 1-day and 5-day z against its own
+      five-year history of such changes, the change in its unit (log for a price,
+      difference otherwise), and the false-flag base rate k/N.
+  screen.move_summary:
+    source: derived_state
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      The session's screen as a whole: how many series were screened and flagged,
+      the series skipped for want of 500 observations, the prediction-market
+      families too short to pool, and SR-35's 10-year companion.
+  screen.em:
+    source: derived_state
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      SR-46(b, c): the EM basket's dispersion against its co-movement (systemic,
+      idiosyncratic, mixed, quiet), in stress terms, and the EM spread family's
+      levels and percentiles.
+  screen.em_contagion:
+    source: derived_state
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    description: >-
+      SR-46(d): one single-country shock, instrument "<country>:<shock date>",
+      with its five-session window and its status -- watching, passed (to the
+      basket or to EM spreads, and when) or lapsed.
   calc.net_liquidity:
     source: derived_state
     mechanism_group: macro_liquidity
@@ -5863,7 +5932,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 24   # + T5YIE (6d) + SOFR, IORB (T2.3)
+    expected_members: 32   # + T5YIE (6d) + SOFR, IORB (T2.3) + six EM currencies and two EM OAS (SR-46)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -5905,7 +5974,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 65   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5950,7 +6019,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 65   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

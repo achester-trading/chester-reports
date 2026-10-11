@@ -137,6 +137,21 @@ SYMBOLS: dict[str, str] = {
     #   offshore leg of the CNH-CNY gap is therefore not tracked; cfets.cny_fix
     #   stays the onshore fix. An FX rate, not a price of a fund.
     "CNY=X": "mkt_usdcny",
+    #   SR-46 (ruled 6 Oct 2026): the EM screen's two Yahoo currencies (FRED does
+    #   not carry TRY or IDR daily), local currency per dollar, and the matching
+    #   country ETFs, USD-listed.
+    "TRY=X": "mkt_usdtry",
+    "IDR=X": "mkt_usdidr",
+    "EWZ": "mkt_ewz",
+    "EWW": "mkt_eww",
+    "EZA": "mkt_eza",
+    "INDA": "mkt_inda",
+    "EWY": "mkt_ewy",
+    "EWT": "mkt_ewt",
+    "THD": "mkt_thd",
+    "FXI": "mkt_fxi",
+    "TUR": "mkt_tur",
+    "EIDO": "mkt_eido",
     # Crypto
     "BTC-USD": "mkt_btc_usd",
     # THE TAPE SET'S OWN INSTRUMENTS (T2.1, 4 Oct 2026): the 10- and 30-year

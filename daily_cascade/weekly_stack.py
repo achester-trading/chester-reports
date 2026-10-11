@@ -214,9 +214,14 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
 
 
 def misfit_week(wis: dict, pmb: Optional[dict],
-                history: Optional[dict] = None, cadence: str = "weekly") -> dict:
+                history: Optional[dict] = None, cadence: str = "weekly",
+                screen: Optional[dict] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
+    # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
+    # session, whose 5-day change is the week; a single-country shock prints only
+    # once it has passed to the basket or EM spreads (SR-46(d)).
+    sitems, sdata = stack_mod.screen_items(screen, cadence)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
     from altdata import labels                                   # noqa: PLC0415
     opened = [c for c in wis.get("contradictions") or []
@@ -237,6 +242,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                           f"opened {w.this}.", 1, "none"))
     data = dict(base["data"])
     now_open = wis.get("exceptions_open_now") or []
+    data.update(sdata)
     data.update({"open_contradictions": [stack_mod.contradiction_data(c)
                                          for c in opened],
                  "exceptions_opened": [labels.exception(e) for e in
@@ -250,6 +256,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
+    items += sitems
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
                           f"no exception opened {w.this}.", 1, "none"))
@@ -1122,11 +1129,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             log.warning("calendar unavailable", exc_info=True)
             cal = None
         watch = wsec.watching(st, now, opened, pmb, fed)
+        from altdata import move_screen                         # noqa: PLC0415
+        screen = move_screen.result_for(st, ending, now)
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,
             "mechanics": mechanics_week(st, sessions, now, wis, cfg),
-            "misfit": misfit_week(wis, pmb, hist),
+            "misfit": misfit_week(wis, pmb, hist, screen=screen),
             "plumbing": plumbing_week(st, now, then, book),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
@@ -1137,6 +1146,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz),
         }
+        em_week(built, screen, ending)
         extras["rates"] = {name: series(st, k, now, since=(
             dt.date.fromisoformat(now[:10]) - dt.timedelta(days=365)).isoformat())
             for k, name in (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
@@ -1150,12 +1160,37 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                                  (built["narratives"].get("data") or {})
                                  and {"data": (built["narratives"].get("data") or {})
                                       .get("voices") or {}})
+    detail = stack_mod.move_screen_detail(screen, "weekly")
     ed = {"report": "weekly_stack", "session": ending, "week_ending": ending,
+          "detail": detail,
           "changed_since": changed,
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("week_ending"),
           "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly")}
     return ed, extras
+
+
+def em_week(built: dict, screen: Optional[dict], ending: str) -> None:
+    """SR-46(c) and the EM calendar on the Weekly: the EM leg as a table under
+    Plumbing & rates (its items do not print), and the quarter's hand-seeded EM
+    events under Ahead."""
+    from altdata import move_screen                              # noqa: PLC0415
+    sp = [x for x in ((screen or {}).get("em") or {}).get("spreads") or []
+          if x.get("available")]
+    if sp and built.get("plumbing") is not None:
+        rows = [[x["label"], f"{x['level']:.2f}%",
+                 "—" if x.get("change5_bp") is None else _signed(round(x["change5_bp"]), "bp"),
+                 (f"{move_screen._ord(x['pct_full'])} since {x['first']}"
+                  + (f"; {move_screen._ord(x['pct_5y'])} of five years"
+                     if x.get("five_year_complete") else ""))] for x in sp]
+        built["plumbing"].setdefault("subsections", []).append(
+            {"title": "EM leg", "paragraph_wanted": False,
+             "table": {"columns": ["Series", "Level", "Week", "Percentile (window)"],
+                       "rows": rows}})
+    cal = move_screen.em_calendar(ending)
+    if cal and built.get("ahead") is not None:
+        built["ahead"].setdefault("subsections", []).append(
+            {"title": "EM calendar", "lines": [move_screen.calendar_line(e) for e in cal]})
 
 
 def chart_plan(ed: dict) -> list[str]:
@@ -1391,6 +1426,7 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly")
     return (f'<div style="{stack_render.WRAP}">{head}{secs}'
+            f'{stack_render.details_html(ed.get("detail"), "weekly")}'
             f'{stack_render.glossary_html(_glossary(), ed)}'
             + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
                                        ed.get("archive_path"),
