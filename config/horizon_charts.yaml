@@ -1,0 +1,150 @@
+# THE HORIZON BARS, THE QUILT AND THE ROLL-YIELD ROW (AQ-4; change order
+# "Alternative Assets Quarterly", 10 Oct 2026, section 7 and section 3's "the
+# tape"). Read by tools/horizon_charts.py, which reads the store only and never
+# fetches. Nothing here is a ruling the change order did not make; the session-set
+# readings are marked as such.
+
+# ---------------------------------------------------------------------------
+# THE UNIVERSE. When config/correlation.yaml exists (AQ-5) its `universe` is the
+# quarterly set and is read from there: id, label, key, invert, proxy. Until it
+# is on main, the copy below is used -- the same twenty assets, the same keys
+# (AQ-5's v1 universe less VIX, which is a volatility index and not an asset with
+# a return). Either way, `assets` below adds what that file does not carry: each
+# asset's family and whether its return is total or price.
+# ---------------------------------------------------------------------------
+universe_file: config/correlation.yaml
+universe_skip: [vix]          # read by the correlation layer; not a return asset
+
+universe:
+  - {id: gold,     label: "Gold",          key: yfinance.mkt_gld,          proxy: "GLD"}
+  - {id: silver,   label: "Silver",        key: yfinance.mkt_slv,          proxy: "SLV"}
+  - {id: copper,   label: "Copper",        key: yfinance.mkt_copper_front, proxy: "HG=F, front month"}
+  - {id: oil,      label: "Oil",           key: yfinance.mkt_uso,          proxy: "USO"}
+  - {id: natgas,   label: "Natural gas",   key: fred.natgas,               proxy: "Henry Hub spot (FRED DHHNGSP)"}
+  - {id: agri,     label: "Agriculture",   key: yfinance.mkt_dba,          proxy: "DBA"}
+  - {id: btc,      label: "Bitcoin",       key: yfinance.mkt_btc_usd,      proxy: "BTC-USD"}
+  - {id: eth,      label: "Ether",         key: yfinance.mkt_eth_usd,      proxy: "ETH-USD"}
+  - {id: sol,      label: "Solana",        key: yfinance.mkt_sol_usd,      proxy: "SOL-USD"}
+  - {id: zec,      label: "Zcash",         key: yfinance.mkt_zec_usd,      proxy: "ZEC-USD"}
+  - {id: us_re,    label: "US real estate", key: yfinance.mkt_xlre,        proxy: "XLRE"}
+  - {id: intl_re,  label: "International real estate", key: yfinance.mkt_vnqi, proxy: "VNQI"}
+  - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       proxy: "EEM"}
+  - {id: china,    label: "China",         key: yfinance.mkt_mchi,         proxy: "MCHI"}
+  - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          proxy: "DX-Y.NYB"}
+  - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       proxy: "EUR/USD"}
+  - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       invert: true, proxy: "USD/JPY, inverted"}
+  - {id: cny,      label: "Yuan",          key: yfinance.mkt_usdcny,       invert: true, proxy: "USD/CNY, inverted"}
+  - {id: spy,      label: "SPY",           key: yfinance.mkt_spy}
+  - {id: tlt,      label: "TLT",           key: yfinance.mkt_tlt}
+
+# ---------------------------------------------------------------------------
+# THE ASSETS: every universe id needs a row here (the gate holds it), plus the
+# section-7 assets the universe does not key yet and the light chapters' own.
+#
+#   family   one of `families` below; the asset's bar takes the family's hue
+#   fund     true: an ETF whose total return is built from the stored close and
+#            the stored dividends (the price feed keeps the two apart, and the
+#            adjusted close is never stored -- yfinance_source.py). false or
+#            absent: price return, and the footnote says so
+#   absent   no feed yet, with the reason; printed as absent, never as zero
+#   added    an asset outside the quarterly universe, with why it is here
+# ---------------------------------------------------------------------------
+assets:
+  gold:    {family: metals, fund: true}
+  silver:  {family: metals, fund: true}
+  copper:  {family: metals, note: "front future; the roll is in its return"}
+  oil:     {family: energy, fund: true}
+  natgas:  {family: energy, note: "spot, not a holdable instrument"}
+  uranium: {family: energy, label: "Uranium", absent: "no feed; joins when the quarterly universe gives it a key (change order section 7)"}
+  agri:    {family: agriculture, fund: true}
+  btc:     {family: crypto}
+  eth:     {family: crypto}
+  sol:     {family: crypto}
+  zec:     {family: crypto}
+  prl:     {family: crypto, label: "PRL", absent: "no feed; joins when the quarterly universe gives it a key (change order section 2, item 8)"}
+  light_tier: {family: crypto, label: "Crypto light tier", absent: "the light tier is to be proposed (change order section 2, item 8)"}
+  us_re:   {family: real_estate, fund: true}
+  intl_re: {family: real_estate, fund: true}
+  em:      {family: em_china, fund: true}
+  china:   {family: em_china, fund: true}
+  dxy:     {family: currency}
+  eur:     {family: currency}
+  jpy:     {family: currency}
+  cny:     {family: currency}
+  spy:     {family: benchmark, fund: true}
+  tlt:     {family: benchmark, fund: true}
+  # The light chapters' own assets (section 4.8, 4.9): no universe member is a
+  # credit or an international-equity series, and a family frame needs one.
+  hyg:     {family: credit, fund: true, label: "High yield (HYG)", key: yfinance.mkt_hyg, added: "credit's family frame (section 4.8)"}
+  lqd:     {family: credit, fund: true, label: "Investment grade (LQD)", key: yfinance.mkt_lqd, added: "credit's family frame (section 4.8)"}
+  efa:     {family: international, fund: true, label: "Developed ex-US (EFA)", key: yfinance.mkt_efa, added: "international equities' family frame (section 4.9)"}
+
+# ONE FIXED HUE PER FAMILY, never cycled: an asset's colour is its family's on
+# every chart, every edition. `frame: true` draws the family's 20-year long frame.
+families:
+  metals:        {label: "Metals",               hue: "#c99a06", frame: true}
+  energy:        {label: "Energy",               hue: "#eb6834", frame: true}
+  currency:      {label: "Currency",             hue: "#2a78d6", frame: true}
+  em_china:      {label: "EM and China",         hue: "#c43d3d", frame: true}
+  crypto:        {label: "Crypto",               hue: "#7a5cd6", frame: true}
+  real_estate:   {label: "Real estate",          hue: "#1baf7a", frame: true}
+  credit:        {label: "Credit",               hue: "#8a6d3b", frame: true}
+  international: {label: "International equities", hue: "#2f9fb8", frame: true}
+  agriculture:   {label: "Agriculture",          hue: "#6b9e2f", frame: true}
+  benchmark:     {label: "SPY and TLT",          hue: "#52514e", frame: false}
+
+# THE HORIZONS. `annualise` on the 20- and 5-year; the 1-year is the year's return.
+# grace_days (SESSION-SET): a series whose first stored close falls within this
+# many days AFTER the horizon's start counts as covering it (a weekend or a
+# holiday at the start), annualised over its actual span. Later than that it is
+# "since <first stored date>", never a padded bar.
+horizons:
+  - {id: 20y, years: 20, annualise: true}
+  - {id: 5y,  years: 5,  annualise: true}
+  - {id: 1y,  years: 1,  annualise: false}
+grace_days: 7
+# A start value must sit within this many days BEFORE the date it stands for
+# (SESSION-SET): a close older than that is a gap in the series, not its start.
+stale_days: 10
+
+# ---------------------------------------------------------------------------
+# THE RETURNS QUILT: calendar-year total returns over fifteen years, ten classes,
+# ranked within each year; the current year's column is YTD and says so.
+# ---------------------------------------------------------------------------
+quilt:
+  years: 15
+  classes:
+    - {id: us_eq,  label: "US equities (SPY)", short: SPY,       key: yfinance.mkt_spy,  fund: true, hue: "#1f3f7a"}
+    - {id: dm_eq,  label: "Developed ex-US (EFA)", short: EFA,   key: yfinance.mkt_efa,  fund: true, hue: "#2f9fb8"}
+    - {id: em_eq,  label: "EM (EEM)", short: EEM,                key: yfinance.mkt_eem,  fund: true, hue: "#c43d3d"}
+    - {id: lt_tsy, label: "Long Treasuries (TLT)", short: TLT,   key: yfinance.mkt_tlt,  fund: true, hue: "#898781"}
+    - {id: gold,   label: "Gold (GLD)", short: GLD,              key: yfinance.mkt_gld,  fund: true, hue: "#c99a06"}
+    - {id: cmdty,  label: "Broad commodities (DBC)", short: DBC, key: yfinance.mkt_dbc,  fund: true, hue: "#eb6834"}
+    - {id: reits,  label: "REITs (XLRE)", short: XLRE,            key: yfinance.mkt_xlre, fund: true, hue: "#1baf7a"}
+    - {id: btc,    label: "Bitcoin", short: BTC,                 key: yfinance.mkt_btc_usd, hue: "#7a5cd6"}
+    - {id: dollar, label: "Dollar (DXY)", short: DXY,            key: yfinance.mkt_dxy,  hue: "#2a78d6"}
+    - {id: cash,   label: "Cash (3-month bill)", short: Cash,     key: fred.tbill_3m, cash: true, hue: "#b9b6a8"}
+
+# ---------------------------------------------------------------------------
+# THE ROLL-YIELD ROW: front against second, annualised, for every commodity the
+# set holds through futures. The curve series arrive with ST-B3-13 and 6b; until
+# a commodity's two keys are in the store its row prints the hook's message. No
+# contract is fetched here.
+#
+#   roll yield = ln(front / second) x 365 / days between the two expiries
+#   positive: backwardation, a holder rolling forward earns it; negative: contango
+#
+# `days_key` is the stored days between the two expiries when 6b supplies it;
+# without it the contracts' declared spacing in months is used.
+# Gold and silver are not rows: GLD and SLV hold metal, not futures.
+# ---------------------------------------------------------------------------
+roll_yield:
+  hook: "6b"
+  message: "not tracked — the curve arrives with 6b"
+  rows:
+    - {id: wti,      label: "Oil (WTI)",   front: curve.wti.m1,      second: curve.wti.m2,      days_key: curve.wti.m1_m2_days,      spacing_months: 1}
+    - {id: natgas,   label: "Natural gas", front: curve.natgas.m1,   second: curve.natgas.m2,   days_key: curve.natgas.m1_m2_days,   spacing_months: 1}
+    - {id: copper,   label: "Copper",      front: curve.copper.m1,   second: curve.copper.m2,   days_key: curve.copper.m1_m2_days,   spacing_months: 1}
+    - {id: corn,     label: "Corn",        front: curve.corn.m1,     second: curve.corn.m2,     days_key: curve.corn.m1_m2_days,     spacing_months: 2}
+    - {id: wheat,    label: "Wheat",       front: curve.wheat.m1,    second: curve.wheat.m2,    days_key: curve.wheat.m1_m2_days,    spacing_months: 2}
+    - {id: soybeans, label: "Soybeans",    front: curve.soybeans.m1, second: curve.soybeans.m2, days_key: curve.soybeans.m1_m2_days, spacing_months: 2}
