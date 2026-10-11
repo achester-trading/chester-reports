@@ -106,7 +106,10 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # ST-2: the external position and the funding-currency stack
                     "tic", "safe", "mof", "cfets", "cftc",
                     # ST-2: oil stocks and the expectations surveys
-                    "eia", "fedboard", "nyfed_sce")
+                    "eia", "fedboard", "nyfed_sce",
+                    # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
+                    # republishes it (the Quarterly's oil chapter)
+                    "eia_rigs")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -132,7 +135,12 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
-                    "aaii")
+                    "aaii",
+                    # AQ-3 part 1 (11 Oct 2026), the Quarterly's structure rows:
+                    # GLD's archive (inbox; its API host disallows robots), the
+                    # iShares gold, silver and bitcoin trusts' share counts, SHFE
+                    # weekly metal stocks, and USD/CNH's New York close
+                    "spdr_gld", "ishares_trusts", "shfe", "cnh")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

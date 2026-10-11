@@ -1118,6 +1118,97 @@ sources:
       - >-
         Behind config.ENABLED_SOURCES['cftc'], turned on in ST-2.
 
+  # --- AQ-3 part 1 (11 Oct 2026): the Quarterly's structure series -------------
+  eia_rigs:
+    name: US Energy Information Administration -- rotary rigs in operation (Baker Hughes' count, monthly)
+    tier: A0
+    epistemic_role: redistributed_primary
+    domain: [energy]
+    geography: [US]
+    latency: monthly, about six weeks after the month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The workbook is republished in place; Last-Modified stamps the vintage (observed), the write instant without it. Either is an upper bound for the history it carries.
+    license: public, no key (history workbooks)
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/eia_rigs.py
+    status: live
+    caveats:
+      - >-
+        Monthly. rigcount.bakerhughes.com refuses scripted requests (Akamai 403, robots.txt included, 11 Oct 2026), so the weekly count has no free source.
+
+  spdr_gld:
+    name: SPDR Gold Trust (World Gold Trust Services) -- the GLD historical archive
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: the next business day
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Read from the operator's inbox (~/chester-data/inbox/etf/): available_at is the file's modification time (ingest_instant), an upper bound.
+    license: issuer file; redistribution prohibited by its disclaimer -- stored for the operator's own read only
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/spdr_gld.py
+    status: live
+    caveats:
+      - >-
+        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches only while that changes; until then the operator places the archive in the inbox.
+
+  ishares_trusts:
+    name: iShares (BlackRock) -- IAU, SLV and IBIT product pages
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [commodities, crypto]
+    geography: [global]
+    latency: the page's as-of date, the prior business day
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The page carries an as-of date and no publication time; available_at is the write instant (ingest_instant).
+    license: public product pages, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/ishares_trusts.py
+    status: live
+    caveats:
+      - >-
+        Forward-only from the first run: the page serves today's facts, not a history.
+
+  shfe:
+    name: Shanghai Futures Exchange -- weekly warehouse stock report
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [CN]
+    latency: Friday after the close, Beijing
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at is the report date at 16:00 Beijing by rule (reconstructed).
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/shfe.py
+    status: live
+    caveats:
+      - >-
+        Reached intermittently from a US address (connection resets, 11 Oct 2026); a run that reads no page is STALE. Pages before roughly mid-2026 answer 404.
+
+  yahoo_cnh:
+    name: Yahoo Finance -- CNH=X hourly bars (via yfinance), USD/CNH's New York close
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [fx]
+    geography: [CN]
+    latency: the bar's end
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the close bar's end (reconstructed): an hourly bar is final once its hour has passed.
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/cnh.py
+    status: live
+    caveats:
+      - >-
+        Yahoo serves one DAILY bar for CNH=X whatever the period (PB-1, 5 Oct 2026); the hourly bars are served, 730 days back.
+
   # --- Signal-triage order ST-2, step 2 ----------------------------------------
   eia:
     name: US Energy Information Administration -- Weekly Petroleum Status Report history

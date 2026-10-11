@@ -168,6 +168,12 @@ SYMBOLS: dict[str, str] = {
     "HG=F": "mkt_copper_front",
     "JPY=X": "mkt_usdjpy",
     "EURUSD=X": "mkt_eurusd",
+    # AQ-3 part 1 (11 Oct 2026): RBOB gasoline and ULSD (heating oil) front
+    # futures, in DOLLARS PER GALLON, the two product legs of the 3-2-1 crack
+    # (calc.crack_321, altdata/market_features.py) beside CL=F above. Front
+    # month only, like CL=F: the crack is a prompt refining margin, not a curve.
+    "RB=F": "mkt_rb_front",
+    "HO=F": "mkt_ho_front",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
