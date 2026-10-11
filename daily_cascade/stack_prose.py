@@ -568,6 +568,8 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):
         sys_prompt += parent_frame_note(cadence)
+        if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES:
+            sys_prompt += TAPE_LEVEL_NOTE
     return sys_prompt
 
 
@@ -581,6 +583,12 @@ PARENT_FRAME_NOTE = (
     "this paragraph may cite -- at most {cap} -- each exactly as its table prints "
     "it; copy them verbatim. Every series under `also_moved` also moved: name it, "
     "do not quantify it. The blocks beneath this section carry those numbers.")
+# The tape's levels (T3.4b): the close and the Weekly only.
+TAPE_LEVEL_CADENCES = ("daily", "weekly")
+TAPE_LEVEL_NOTE = (
+    "\n\nLEVELS YOU MAY CITE: `levels_you_may_cite` holds the tape's levels, each by "
+    "its label and value exactly as listed, with its status; they count inside the "
+    "same cap as the moves. Say a level held or broke only as its status says.")
 
 
 def is_parent(s: dict, cadence: str = "daily") -> bool:
@@ -601,8 +609,12 @@ def section_slice(s: dict, ed: dict, cadence: str = "daily") -> dict:
         from . import cadence as cadence_mod                    # noqa: PLC0415
         from . import figure_budget                             # noqa: PLC0415
         cad = cadence_of(cadence)
+        # T3.4b: the close's and the Weekly's tape keep their levels, counted
+        # inside the cap; the Monthly's tape is unchanged.
+        lv = (figure_budget.tape_levels(s, ed)
+              if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES else None)
         return figure_budget.parent_frame(s, ed, cadence_mod.figure_cap(cad),
-                                          cad["period"], cad.get("column"))
+                                          cad["period"], cad.get("column"), levels=lv)
     return _slice(s, ed)
 
 

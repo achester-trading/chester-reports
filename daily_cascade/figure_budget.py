@@ -207,18 +207,77 @@ BLOCKS_CARRY = ("The blocks beneath this section carry every other number: name 
 
 
 def parent_frame(s: dict, ed: dict, cap: int, period: str,
-                 column: Optional[str] = None) -> dict:
+                 column: Optional[str] = None,
+                 levels: Optional[list] = None) -> dict:
     """A parent section's frame: its top moves up to `cap` figures, each with its
     display form, and every other series by name only. `column` is the
-    cadence's period column head."""
-    got, names = take(section_moves(s, column), cap)
-    return {"section": s["title"], "depth": s.get("depth"),
-            "depth_reason": s.get("depth_reason"),
-            "session": ed.get("session"), "month": ed.get("month"),
-            "period": period,
-            "figures_you_may_cite": [cite(m, where=True) for m in got],
-            "also_moved": names,
-            "blocks_carry": BLOCKS_CARRY}
+    cadence's period column head. `levels` (the tape's, T3.4b) are offered
+    first and counted inside the same cap."""
+    lv = list(levels or [])[:cap]
+    got, names = take(section_moves(s, column), cap - len(lv))
+    out = {"section": s["title"], "depth": s.get("depth"),
+           "depth_reason": s.get("depth_reason"),
+           "session": ed.get("session"), "month": ed.get("month"),
+           "period": period,
+           "figures_you_may_cite": [cite(m, where=True) for m in got],
+           "also_moved": names,
+           "blocks_carry": BLOCKS_CARRY}
+    if lv:
+        out["levels_you_may_cite"] = lv
+    return out
+
+
+# THE TAPE'S LEVELS (T3.4b, ruled 11 Oct 2026). The daily close's and the Weekly's
+# tape name levels by rule (stack_prose.RULES: "a level is named by its label and
+# value exactly as the data lists it"; "held" or "broke" only with its status), and
+# T3.4 took the level list out of the frame. These come back, at most three, in
+# this order -- the pin level first on an expiry session, then the 50-day, the
+# dealer flip and the wall nearest the last price -- for the tape's first
+# instrument (SPY), each with its status, inside the cadence's cap. The Monthly's
+# tape is unchanged.
+TAPE_LEVELS_MAX = 3
+
+
+def is_expiry_session(day: Optional[str]) -> bool:
+    """The monthly options expiry: the third Friday of the month."""
+    import datetime as dt                                       # noqa: PLC0415
+    try:
+        d = dt.date.fromisoformat(str(day)[:10])
+    except (TypeError, ValueError):
+        return False
+    return d.weekday() == 4 and 15 <= d.day <= 21
+
+
+def tape_levels(s: dict, ed: dict, n: int = TAPE_LEVELS_MAX) -> list[dict]:
+    """The tape's levels you may cite: label, value and status exactly as the
+    level list carries them, with the level's field name beside its value so the
+    label audit ties the figure to its level."""
+    from altdata import levels as levels_mod                    # noqa: PLC0415
+    data = s.get("data") or {}
+    rows = data.get("levels") or []
+    if not rows:
+        return []
+    row = rows[0]
+    status = {x.get("label"): x.get("status")
+              for x in (data.get("level_status") or {}).get(str(row.get("symbol", "")).lower()) or []}
+    order = (["max_pain"] if is_expiry_session(ed.get("session")) else []) \
+        + ["ma_50d", "gamma_flip"]
+    last = row.get("last")
+    walls = [w for w in ("call_wall", "put_wall") if isinstance(row.get(w), (int, float))]
+    if walls and isinstance(last, (int, float)):
+        order.append(min(walls, key=lambda w: abs(row[w] - last)))
+    out = []
+    for f in order:
+        v = row.get(f)
+        if not isinstance(v, (int, float)) or len(out) >= n:
+            continue
+        label = levels_mod.LABEL.get(f, f)
+        if f == "max_pain":
+            label = "max pain (the pin level on this expiry)"
+        out.append({"market": row.get("name") or row.get("symbol"), "symbol": row.get("symbol"),
+                    "level": label, f: v,
+                    "status": status.get(levels_mod.LABEL.get(f, f))})
+    return out
 
 
 def is_parent(s: dict, parents) -> bool:

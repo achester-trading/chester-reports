@@ -23,6 +23,10 @@ here -- no store, no network, no model:
   D  ORDINALS ONLY. No frame carries a raw percentile: a percentile key survives
      only as its `_ordinal`.
   E  THE RETRIES STAY. Three attempts, and the explicit retry line.
+  G  THE TAPE'S LEVELS (T3.4b). The close's and the Weekly's tape frame keeps
+     at most three levels -- the pin level on an expiry session, the 50-day,
+     the dealer flip, the nearest wall -- each as listed with its status,
+     counted inside the cap with the moves; the Monthly's tape is unchanged.
   F  THE CAP IS CONFIG. Changing a cadence's `paragraph_figures` changes the
      frame's budget.
 
@@ -129,7 +133,17 @@ def tape_fixture() -> dict:
                                                    "Year to date", "Twelve months"],
                                        "rows": ytd}}],
             "data": {"moves": [{"market": "S&P 500", "level_percentile_5y": 99.96,
-                                "level_percentile_5y_ordinal": "100th"}]}}
+                                "level_percentile_5y_ordinal": "100th"}],
+                     # The level list's flat rows and statuses (altdata/levels.py).
+                     "levels": [{"symbol": "SPY", "name": "SPY", "last": 5250.0,
+                                 "ma_20d": 5190.4, "ma_50d": 5100.5, "ma_200d": 4900.2,
+                                 "gamma_flip": 5180.0, "call_wall": 5300.0,
+                                 "put_wall": 5000.0, "max_pain": 5225.0}],
+                     "level_status": {"spy": [
+                         {"label": "50-day average", "value": 5100.5, "status": "held"},
+                         {"label": "gamma flip", "value": 5180.0, "status": "held"},
+                         {"label": "call wall", "value": 5300.0, "status": "untested"},
+                         {"label": "max pain", "value": 5225.0, "status": None}]}}}
 
 
 def pm_block_fixture() -> tuple[dict, dict]:
@@ -226,7 +240,8 @@ def group_a() -> dict:
                   f"{cad_name} {s['id']}: the prompt names the frame's figures and the cap")
     # Largest first, relative to level.
     s = tape_fixture()
-    frame = sp.section_slice(s, ed_of([s], "weekly"), "weekly")
+    # On the Monthly: its tape carries no levels (T3.4b), so all its cap is moves.
+    frame = sp.section_slice(s, ed_of([s], "monthly"), "monthly")
     order = [g["series"] for g in frame["figures_you_may_cite"]]
     check(order[:5] == ["Bitcoin", "WTI crude", "High-yield OAS", "Gold", "10-year Treasury"],
           f"ranked largest first relative to the level: Bitcoin +11%, WTI −8%, high yield "
@@ -351,6 +366,44 @@ def group_e() -> None:
           "the explicit retry line is unchanged")
 
 
+def group_g() -> None:
+    print(f"\n{LINE}\nG. THE TAPE KEEPS ITS LEVELS (T3.4b): the close and the Weekly\n{LINE}")
+    for cad_name in ("daily", "weekly"):
+        cap = cadence_mod.figure_cap(cadence_mod.get(cad_name))
+        s = tape_fixture()
+        ed = {**ed_of([s], cad_name), "session": "2026-10-07"}       # a Wednesday
+        f = sp.section_slice(s, ed, cad_name)
+        lv = f.get("levels_you_may_cite") or []
+        moves = f.get("figures_you_may_cite") or []
+        check([x["level"] for x in lv] == ["50-day average", "gamma flip", "call wall"]
+              and [x.get("ma_50d") or x.get("gamma_flip") or x.get("call_wall") for x in lv]
+              == [5100.5, 5180.0, 5300.0],
+              f"{cad_name}: the 50-day, the flip and the nearest wall, exactly as listed "
+              f"({[(x['level'], x.get('status')) for x in lv]})")
+        check(lv[0]["status"] == "held" and lv[2]["status"] == "untested",
+              f"{cad_name}: each level carries its status for the held/broke rule")
+        check(len(lv) <= 3 and len(lv) + len(moves) <= cap
+              and fb.quantified_figures(f) <= cap,
+              f"{cad_name}: {len(lv)} levels and {len(moves)} moves, "
+              f"{fb.quantified_figures(f)} figures inside the cap of {cap}")
+        exp = sp.section_slice(s, {**ed, "session": "2026-10-16"}, cad_name)  # 3rd Friday
+        el = exp.get("levels_you_may_cite") or []
+        check(len(el) == 3 and "pin level" in el[0]["level"] and el[0].get("max_pain") == 5225.0,
+              f"{cad_name}: on an expiry session the pin level comes first, still three")
+        prompt = sp.section_prompt(s, cad_name)
+        check("levels_you_may_cite" in prompt and "count inside the same cap" in prompt,
+              f"{cad_name}: the prompt offers the levels and counts them in the cap")
+    s = tape_fixture()
+    mf = sp.section_slice(s, ed_of([s], "monthly"), "monthly")
+    check("levels_you_may_cite" not in mf
+          and len(mf["figures_you_may_cite"]) == cadence_mod.figure_cap(cadence_mod.get("monthly")),
+          "the Monthly's tape is unchanged: no levels, the cap's worth of moves")
+    check("levels_you_may_cite" not in sp.section_slice(plumbing_fixture(),
+                                                        ed_of([plumbing_fixture()], "weekly"),
+                                                        "weekly"),
+          "only the tape carries levels")
+
+
 def group_f() -> None:
     print(f"\n{LINE}\nF. THE CAP IS CONFIG\n{LINE}")
     from altdata import bars as bars_mod
@@ -375,6 +428,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print("\nFixture parent frames, figures carried: "
           + ", ".join(f"{c} {s} {n}" for (c, s), n in sorted(counts.items())))
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
