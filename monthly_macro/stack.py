@@ -1371,6 +1371,21 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                           "not_tracked": alt_nt + ["Disruptive Themes (quarterly; "
                                                    "folded into the Quarterly "
                                                    "Structural)"]}]
+    # THE EM SCORECARD'S ONE LINE (AQ-9a, 11 Oct 2026): the quarter's three largest
+    # deteriorations by lens, each with its data-as-of, from the stored lenses
+    # (altdata/em_scorecard.py). The table itself is the Quarterly's.
+    em_title = "Emerging markets: the scorecard's quarter"
+    try:
+        from altdata import em_scorecard as em_sc                # noqa: PLC0415
+        em_line = em_sc.monthly_line(st, now) if st is not None and now else None
+        subs.append({"title": em_title, "lines": [em_line], "not_tracked": []}
+                    if em_line else
+                    {"title": em_title, "not_tracked": ["the EM scorecard: no store "
+                                                        "at this cutoff"]})
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("EM scorecard line unavailable", exc_info=True)
+        subs.append({"title": em_title,
+                     "not_tracked": [f"the EM scorecard: FAULT {exc}"]})
     try:
         src_subs, src_items, src_data = sourced_figures(now, db_path)
     except Exception as exc:                                    # noqa: BLE001
