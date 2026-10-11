@@ -21,13 +21,17 @@ It never reads the live store.
                dry run records nothing.
   F TIMER      the unit and timer, second Saturday after quarter-end at 06:00
                ET, shipped disabled (not in DEPLOY_TIMERS).
-  G CHAPTERS   (AQ-2 part 1) metals, oil and energy, currency filled item by
-               item: every item renders or prints its not-yet reason; the
-               falsification config's measurables name registered keys, its
-               statements and the ten questions are the papers' verbatim; each
-               item's figure budget holds at the frame; the tests computed by
-               code; the transmission map; the three chapters end to end with
-               the executive summary.
+  G CHAPTERS   (AQ-2 parts 1 and 2) all eleven chapters filled item by item:
+               every item renders or prints its not-yet reason; every series is
+               registered or absent with its reason; the measurables name
+               registered keys; the tests and the ten questions are the papers'
+               verbatim, and "no owning paper -- not stated" where none owns
+               the chapter; each item's figure budget holds at the frame; the
+               tests computed by code; the template per weight; the hooks to
+               other branches named and degrading; China's quote-only political
+               sub-section; crypto's coin pages in one fixed shape; Thailand's
+               isolation; the transmission map; the eleven chapters end to end
+               with the executive summary.
 
     python tools/validate_quarterly_stack.py
 """
@@ -199,17 +203,24 @@ def group_c(p: dict) -> dict:
             order_ok = False
     check(order_ok, "each chapter prints its lead items, then the reference "
                     "divider, then its reference items")
-    shell = next(c for c in chs if not c["data"].get("filled"))
+    # Since AQ-2 part 2 every chapter is filled; the shell is still the
+    # fallback for a chapter config/quarterly_chapters.yaml does not fill, so it
+    # is built here from a configuration that fills nothing.
+    scfg = stack_mod.config()
+    shell = q.build_chapter(scfg["quarterly_chapters"][-1], scfg,
+                            {"quarter": "2026q3", "now": AS_OF, "db_path": vms.DB,
+                             "store": None, "qcfg": {"families": {}}})
     plain = [x for x in shell["subsections"] if not x.get("divider")
              and not x.get("hook")]
     check(plain and all(x["not_tracked"] == [q.NOT_BUILT] for x in plain),
-          f"every item AQ-2 has not filled yet prints \"{q.NOT_BUILT}\" in the "
-          f"not-yet-tracked form ({len(plain)} in {shell['title']})")
-    check(f"Not yet tracked: {q.NOT_BUILT}." in out["markdown"]
-          and f"Not yet tracked: {q.NOT_BUILT}." in out["html_email"]
+          f"a chapter the config does not fill stays on the shell: every item "
+          f"prints \"{q.NOT_BUILT}\" in the not-yet-tracked form ({len(plain)} in "
+          f"{shell['title']})")
+    check("Not yet tracked: " in out["markdown"]
+          and "Not yet tracked: " in out["html_email"]
           and q.REFERENCE_DIVIDER in out["markdown"],
-          "and the renderer prints it, and the divider, on the page and in the "
-          "Markdown")
+          "and the renderer prints the not-yet-tracked form, and the divider, on "
+          "the page and in the Markdown")
     summ = ed.get("summary") or []
     check(len(summ) == len(chs) == 11 and all(e.get("text") for e in summ)
           and [e["id"] for e in summ] == [c["id"] for c in chs],
@@ -448,7 +459,54 @@ FAM_SERIES = {
     "fred.yield_10y": (4.2, 0.0, 0.02),
     "mof.jgb_10y": (0.8, 0.0008, 0.01),
     "cfets.cny_fix": (7.1, 0.0, 0.001),
+    # AQ-2 part 2: the other eight chapters' daily series. Where the Monthly
+    # gate's fixture seeds a key on its month-ends and the year-start (SPY, XLRE,
+    # XLU, IWM, HY OAS, the GTM-14 proxies), these fill the days around them at
+    # levels that meet them (PART2_SKIP); QQQ, EEM and net liquidity stay as it
+    # seeds them, sparse, and their rows degrade by name.
+    "yfinance.mkt_spy": (88.0, 0.0002, 0.006),
+    "fred.hy_oas": (3.1, 0.0, 0.02),
+    "yfinance.mkt_emxc": (52.0, 0.0002, 0.006),
+    "yfinance.mkt_efa": (74.0, 0.0002, 0.005),
+    "fred.usd_mxn": (17.2, 0.0001, 0.004),
+    "cfets.cgb_10y": (2.5, -0.0003, 0.01),
+    "yfinance.mkt_btc_usd": (42000.0, 0.0012, 0.05),
+    "zec.price_usd": (25.0, 0.0015, 0.06),
+    "crypto.total_market_cap_usd": (1.6e12, 0.0011, 0.04),
+    "zec.btc_ratio": (0.0006, 0.0003, 0.03),
+    "yfinance.mkt_xlre": (93.0, 0.0001, 0.006),
+    "yfinance.mkt_xlu": (88.0, 0.0002, 0.005),
+    "yfinance.mkt_iwm": (88.0, 0.0002, 0.008),
+    "fred.mortgage_30y": (6.8, -0.0001, 0.01),
+    "fred.ccc_oas": (9.0, -0.0002, 0.02),
+    "fred.bb_oas": (2.2, -0.0001, 0.02),
+    "fred.ig_oas": (1.0, -0.0001, 0.02),
+    "yfinance.mkt_hyg": (77.0, 0.0001, 0.003),
+    "yfinance.mkt_lqd": (108.0, 0.0, 0.003),
+    "yfinance.mkt_acwx": (52.0, 0.0002, 0.005),
+    "yfinance.mkt_vwo": (41.0, 0.0002, 0.006),
 }
+PART1_KEYS = ("yfinance.mkt_gold_front", "fred.tips_10y", "fred.dxy",
+              "yfinance.mkt_slv", "yfinance.mkt_copper_front", "fred.brent",
+              "fred.wti", "oil.prompt_spread", "fred.natgas", "fred.breakeven_10y",
+              "yfinance.mkt_dxy", "yfinance.mkt_eurusd", "yfinance.mkt_usdjpy",
+              "yfinance.mkt_usdcny", "fred.yield_2y", "fred.yield_10y",
+              "mof.jgb_10y", "cfets.cny_fix")
+# The Monthly fixture's own dates, left to it for part 2's keys.
+PART2_SKIP = {vms.M_START, vms.M_END, "2025-12-31"}
+# Monthly series for part 2: (start level, monthly step). SAFE's gold at market
+# value against its total reserves gives a gold share near 6% (the "<10%" of the
+# change order's China sub-chapter).
+FAM_MONTHLY = {
+    "safe.official_reserves_total": (3.30e12, 2.0e9),
+    "safe.fx_reserves": (3.20e12, 1.5e9),
+    "safe.gold_reserves_usd": (1.60e11, 1.6e9),
+    "safe.gold_reserves_oz": (7.20e7, 1.0e5),
+    "worldbank.cmo_nonenergy": (110.0, 0.2),
+    "worldbank.cmo_energy": (120.0, -0.3),
+}
+OPERATOR_NOTE = ("The Fourth Plenum's personnel list is the quarter's signal; the "
+                 "property measures are announced, not yet funded.")
 
 
 def seed_aq2(db: str) -> None:
@@ -466,6 +524,8 @@ def seed_aq2(db: str) -> None:
     wk = [d for d in days if d.weekday() < 5]
     for key, (lv, drift, wob) in FAM_SERIES.items():
         for i, d in enumerate(wk):
+            if key not in PART1_KEYS and d.isoformat() in PART2_SKIP:
+                continue
             v = lv * (1 + drift) ** i * (1 + wob * _m.sin(i * 0.7 + len(key)))
             obs.append({"registry_key": key, "instrument": None,
                         "observed_at": d.isoformat(),
@@ -487,9 +547,37 @@ def seed_aq2(db: str) -> None:
             obs.append({"registry_key": key, "instrument": None,
                         "observed_at": m.isoformat(), "available_at": av,
                         "value": v, "source": "synthetic"})
+    for i, m in enumerate(months):
+        av = f"{m.isoformat()}T20:00:00+00:00"
+        for key, (lv, step) in FAM_MONTHLY.items():
+            obs.append({"registry_key": key, "instrument": None,
+                        "observed_at": m.isoformat(), "available_at": av,
+                        "value": lv + step * i, "source": "synthetic"})
+        obs.append({"registry_key": "tic.holdings_by_country",
+                    "instrument": "China, Mainland", "observed_at": m.isoformat(),
+                    "available_at": av, "value": 7.7e11 - 1.0e9 * i,
+                    "source": "synthetic"})
     with observations.ObservationStore(db) as st:
         st.write_many(obs)
     with vmod.VoicesStore(db) as vs:
+        # China's politics: the operator's note (an operator voices row) and one
+        # authoritative release, both quoted -- never characterised.
+        vs.write({"voice": "The operator", "affiliation": "Chester (operator)",
+                  "kind": "independent", "outlet": "Operator's political note",
+                  "source_url": "https://example.org/operator/china-note-3q26",
+                  "title": "China political note, 3Q26", "tier": 1,
+                  "published_at": "2026-09-20",
+                  "retrieved_at": "2026-09-20T12:00:00+00:00",
+                  "view": OPERATOR_NOTE, "directions": [], "origin": "operator",
+                  "source_id": "operator.china_political_note"})
+        vs.write({"voice": "People's Bank of China", "affiliation": "PBOC",
+                  "kind": "official", "outlet": "People's Bank of China",
+                  "source_url": "https://example.org/pboc/rrr-2026-09",
+                  "title": "RRR announcement", "tier": 1,
+                  "published_at": "2026-09-15",
+                  "retrieved_at": "2026-09-15T12:00:00+00:00",
+                  "view": "The PBOC announced a cut in the reserve requirement ratio.",
+                  "directions": [], "source_id": "china.pboc"})
         for i, (name, d) in enumerate((("Fixture Desk A", "bullish"),
                                        ("Fixture Desk B", "bullish"),
                                        ("Fixture Strategist C", "bearish"))):
@@ -512,33 +600,52 @@ def _leaves(m):
     return [(kind, p)]
 
 
+def stack_cfg() -> dict:
+    from daily_cascade import stack as stack_mod
+    return stack_mod.config()
+
+
 def group_g(r: dict) -> None:
     import json as _json
     from altdata import derived
     from daily_cascade import readability as rd
     from monthly_macro import prose as prose_mod, quarterly as q
     from monthly_macro import quarterly_items as qi
-    print(f"\n{LINE}\nG. AQ-2 PART 1 -- THE FIRST THREE DEEP CHAPTERS\n{LINE}")
+    print(f"\n{LINE}\nG. AQ-2 -- THE ELEVEN CHAPTERS\n{LINE}")
     qc = qi.load_config()
     fams = {k: v for k, v in (qc.get("families") or {}).items() if v.get("filled")}
-    check(sorted(fams) == ["currency", "metals", "oil_energy"],
-          "metals, oil and energy, and currency are filled; the other eight stay on "
-          "the shell for part 2")
+    all_ids = [c_["id"] for c_ in stack_cfg()["quarterly_chapters"]]
+    check(sorted(fams) == sorted(all_ids),
+          f"all eleven chapters are filled: part 1's three and part 2's eight "
+          f"({len(fams)})")
     reg = derived.registry_entry
     keys, bad = [], []
     for fid, f in fams.items():
-        for s_ in (f.get("five_lines") or []) + (f.get("structure") or []) + (
-                (f.get("second_half") or {}).get("structure") or []):
-            if s_.get("key"):
-                keys.append(s_["key"])
-            elif not s_.get("absent"):
+        rows_ = ((f.get("five_lines") or []) + (f.get("structure") or [])
+                 + ((f.get("second_half") or {}).get("structure") or []))
+        for p_ in f.get("panels") or []:
+            if p_["kind"] == "series":
+                rows_ += p_.get("rows") or []
+            keys += [x["key"] for x in p_.get("proxies") or []]
+            for coin in p_.get("coins") or []:
+                for fld in (coin.get("fields") or {}).values():
+                    keys += list(fld.get("keys") or [])
+        for s_ in rows_:
+            got = qi.spec_keys(s_)
+            if got:
+                keys += got
+            elif not (s_.get("absent") or (s_.get("hook_key") and s_.get("branch"))):
                 bad.append(f"{fid}: {s_.get('label')} has neither a key nor absent")
         for c in f.get("structure_charts") or []:
-            keys += [x["key"] for x in c["series"]]
+            keys += [x["key"] for x in c["series"] if x.get("key")]
+            bad += [f"{fid}: chart leg {x.get('label')}" for x in c["series"]
+                    if not x.get("key") and not x.get("absent")]
         for qn in f.get("ten_questions") or []:
             keys += list(qn.get("series") or [])
         for a in f.get("analyses") or []:
             keys += list(a.get("series") or [])
+            if not a.get("module"):
+                keys += qi.spec_keys(a)
         for p_ in (f.get("pairs") or {}).get("deep") or []:
             if p_.get("key"):
                 keys.append(p_["key"])
@@ -559,40 +666,64 @@ def group_g(r: dict) -> None:
     check(leaves >= 6 and not lbad,
           f"the falsification measurables reference real registry keys ({leaves} "
           f"rules; a null measurable names its reason) {lbad[:3]}")
-    counts = {fid: len(f["falsification"]) for fid, f in fams.items()}
-    check(counts == {"metals": 7, "oil_energy": 7, "currency": 6},
-          f"the papers' own tests: Metals 7, Energy 7, Currencies 6 ({counts})")
+    counts = {fid: len(f["falsification"]) for fid, f in fams.items()
+              if f.get("paper_file")}
+    check(counts == {"metals": 7, "oil_energy": 7, "currency": 6, "crypto": 7,
+                     "credit": 7, "intl_equities": 4},
+          f"the papers' own tests: Metals 7, Energy 7, Currencies 6, Digital Assets "
+          f"7, Credit 7, International Equities 4 (15.7) ({counts})")
+    nopaper = sorted(fid for fid, f in fams.items() if not f.get("paper_file"))
+    check(nopaper == ["agriculture", "china", "em", "real_estate", "thailand"]
+          and all(fams[x]["falsification"] == [] and not fams[x].get("paper")
+                  and fams[x]["falsification_note"].startswith(qi.NO_PAPER)
+                  and fams[x]["ten_questions"] == []
+                  and fams[x]["questions_note"].startswith(qi.NO_PAPER)
+                  for x in nopaper),
+          f"where no paper owns the chapter ({', '.join(nopaper)}) the tests and the "
+          f"questions say \"{qi.NO_PAPER}\": none is invented")
 
     def norm(t: str) -> str:
-        return " ".join(t.replace("\\$", "$").replace("**", "").split())
+        # Bold and italic markers out (International Equities 15.7 italicises
+        # each scenario's name); the words themselves are compared verbatim.
+        return " ".join(t.replace("\\$", "$").replace("**", "").replace("*", "")
+                        .split())
     miss = []
     for fid, f in fams.items():
-        paper = norm((REPO / f["paper_file"]).read_text(encoding="utf-8"))
+        paper = (norm((REPO / f["paper_file"]).read_text(encoding="utf-8"))
+                 if f.get("paper_file") else "")
         for t in f["falsification"]:
             if norm(t["statement"]) not in paper:
                 miss.append(t["id"])
         for qn in f["ten_questions"]:
             if f"{qn['n']}. {norm(qn['text'])}" not in paper:
                 miss.append(f"{fid} Q{qn['n']}")
-    check(not miss and all(len(f["ten_questions"]) == 10 for f in fams.values()),
-          f"every test's statement and every one of the ten questions is the "
-          f"paper's own wording, verbatim ({miss[:4]})")
+        for t in f.get("related_tests") or []:
+            src = next(x for x in fams.values() if x.get("paper") == t["paper"])
+            if norm(t["statement"]) not in norm(
+                    (REPO / src["paper_file"]).read_text(encoding="utf-8")):
+                miss.append(f"{fid} related")
+    with_q = sorted(fid for fid, f in fams.items() if f["ten_questions"])
+    check(not miss and with_q == ["credit", "crypto", "currency", "metals",
+                                  "oil_energy"]
+          and all(len(fams[x]["ten_questions"]) == 10 for x in with_q)
+          and "no ten questions" in fams["intl_equities"]["questions_note"],
+          f"every test's statement, every related test and every one of the ten "
+          f"questions is the paper's own wording, verbatim; the five papers with an "
+          f"Appendix D carry ten, International Equities says it has none ({miss[:4]})")
     from daily_cascade import cadence
     cap = cadence.figure_cap(cadence.get("quarterly"))
     check(all(0 <= int(v) <= cap for f in fams.values()
               for v in (f.get("figure_budget") or {}).values())
-          and all({"quarter", "supply", "questions"} <= set(f.get("figure_budget") or {})
-                  for f in fams.values()),
-          f"each filled chapter declares a figure budget per written item, none above "
+          and all({"quarter", "supply", "questions", "summary"}
+                  <= set(f.get("figure_budget") or {}) for f in fams.values()),
+          f"each of the eleven declares a figure budget per written item, none above "
           f"the cadence's cap ({cap})")
 
     ed, out = r["ed"], r["out"]
     chs = {c["id"]: c for c in q.chapters(ed)}
-    filled = [chs[f] for f in ("metals", "oil_energy", "currency")]
-    check(all(c["data"].get("filled") for c in filled)
-          and not any(c["data"].get("filled") for k, c in chs.items()
-                      if k not in fams),
-          "the dry run renders the three filled chapters and leaves eight on the shell")
+    filled = [chs[f] for f in all_ids]
+    check(all(c["data"].get("filled") for c in filled),
+          "the dry run renders all eleven chapters filled, item by item")
     empty = []
     for c in filled:
         for ss in c["subsections"]:
@@ -606,7 +737,9 @@ def group_g(r: dict) -> None:
                      f"blank ({empty[:4]})")
     lead_items = [[ss.get("item") for ss in c["subsections"] if ss.get("tier") == "lead"]
                   for c in filled]
-    check(all(x == ["lead_lines", "graded", "theses", "quarter"] for x in lead_items),
+    check(all(x == ["lead_lines", "graded", "theses", "quarter"] for x in lead_items)
+          and all(len([ss for ss in c["subsections"] if ss.get("item") == "quarter"]
+                      [0]["charts_rendered"]) == 3 for c in filled),
           f"the lead page: the confidence and what-changed lines, items 1, 2 and 3 "
           f"(the five lines and its three charts); everything else reference "
           f"({lead_items[0]})")
@@ -720,8 +853,298 @@ def group_g(r: dict) -> None:
           f"cap ({ed['chart_count']} charts against {ed['budget']['charts']})")
     check(len(ed["summary"]) == 11 and all(e.get("text") for e in ed["summary"])
           and "Metals" in out["markdown"] and "Standing dissent" in out["markdown"],
-          "the synthetic-store dry run renders the three filled chapters end to end "
+          "the synthetic-store dry run renders the eleven chapters end to end "
           "with the executive summary")
+    group_g2(r, fams, chs)
+
+
+
+# The configs that can move a decision: a key or a name in any of them is
+# reachable from a trigger. Thailand must appear in none but as pillar 11's
+# relocation record (dial null, weight 0, no metrics).
+TRIGGER_CONFIGS = ("market_state.yaml", "setups.yaml", "risk_limits.yaml",
+                   "claims.yaml", "narratives.yaml", "monthly_themes.yaml",
+                   "naive_expectations.yaml", "tracked_entities.yaml",
+                   "story_queries.yaml")
+THAI_TOKENS = ("thailand", "thb", "dexthus", "thailand_political_calendar")
+PRIVATE_COLUMNS = ("convert", "stage", "defer", "budget", "payment", "remaining",
+                   "tranche")
+
+
+def group_g2(r: dict, fams: dict, chs: dict) -> None:
+    """AQ-2 part 2: the other eight chapters, item by item."""
+    import json as _json
+    import yaml as _yaml
+    from altdata import derived, observations
+    from monthly_macro import quarterly as q
+    from monthly_macro import quarterly_items as qi
+    print(f"\n{LINE}\nG (part 2). EM, CHINA, CRYPTO, REAL ESTATE, CREDIT, INTERNATIONAL "
+          f"EQUITIES, THAILAND, AGRICULTURE\n{LINE}")
+    ed, out = r["ed"], r["out"]
+    by = {cid: {ss.get("item"): ss for ss in c["subsections"]} for cid, c in chs.items()}
+    weights = {c_["id"]: c_.get("weight") for c_ in stack_cfg()["quarterly_chapters"]}
+
+    # -- the template per weight -------------------------------------------
+    bad = []
+    for cid, items in by.items():
+        w = weights[cid]
+        if w == "light" and set(items) & {"supply", "analyses", "stories", "questions"}:
+            bad.append(f"{cid} carries a deep item")
+        if w == "deep" and not {"priced", "structure", "supply", "analyses", "falsify",
+                                "stories", "book", "questions"} <= set(items):
+            bad.append(f"{cid} lacks a deep item")
+        if w == "country" and ("questions" in items or not {"supply", "analyses",
+                                                             "stories"} <= set(items)):
+            bad.append(f"{cid} is not the country template")
+    check(not bad, f"each chapter carries its weight's items: light 1-4, 7, 8, 10; "
+                   f"Thailand all but 11; deep all ({bad[:3]})")
+
+    # -- EM: the frame reads a paper not yet filed ---------------------------
+    em = by["em"]
+    fl = em["frame"]["lines"]
+    check(fl[0] == "frame: Emerging Markets — A Structural Framework, Draft 1, not yet "
+                   "filed" and "dollar-cycle instrument with a commodity overlay" in fl[1]
+          and "(II S15)" in fl[1] and "International Equities, Chapters 10 and 12" in fl[2],
+          "EM's frame item prints the EM paper as not yet filed and carries section "
+          "4.5's frame paragraph as the interim, with its paper citations")
+    check(any("The EM twelve-month set" in x and "not yet — the EM paper" in x
+              for x in em["scenarios"]["lines"]),
+          "EM's twelve-month scenario set is the paper's: \"not yet\", none written here")
+    sc = [row for row in by["china"]["scenarios"]["table"]["rows"]]
+    check([x[2] for x in sc] == ["~20%", "~40%", "~25%", "~15%"]
+          and sc[0][1] == "Reform and discipline" and sc[3][1] == "Rupture",
+          "China's ten-year set is International Equities 10.7's, rewritten here: "
+          "20 / 40 / 25 / 15")
+    nop = [cid for cid in ("em", "china", "real_estate", "thailand", "agriculture")
+           if not any(x.startswith(f"Falsification tests: {qi.NO_PAPER}")
+                      for x in by[cid]["falsify"]["lines"])]
+    nopq = [cid for cid in ("em", "china")
+            if not by[cid]["questions"]["lines"][0].startswith(
+                f"The ten questions: {qi.NO_PAPER}")]
+    check(not nop and not nopq and not by["em"]["falsify"].get("table"),
+          f"where no paper owns the chapter, item 7 (and a deep chapter's item 11) "
+          f"prints \"{qi.NO_PAPER}\" and no test ({nop + nopq})")
+    rel = by["real_estate"]["falsify"]["lines"]
+    check(any(x.startswith("Credit, §21") and "rising foreclosure share" in x
+              for x in rel),
+          "real estate reads the Credit paper's own words beside it, marked as "
+          "another paper's and not graded")
+
+    # -- the hooks named by branch ------------------------------------------
+    def present(mod: str) -> bool:
+        return qi.branch_module({"module": mod}) is not None
+    nt = lambda ss: " ".join(ss.get("not_tracked") or [])          # noqa: E731
+    checks_ = [
+        ("aq-9a-em-scorecard", "altdata.em_scorecard", nt(em["em_scorecard"])),
+        ("c1-move-screen", "altdata.move_screen", nt(em["em_episodes"])),
+        ("imf-ifs-gold", None, nt(by["china"]["structure"])),
+        ("aq-5-correlation-layer", "altdata.correlation",
+         " ".join(row[1] for row in em["analyses"]["table"]["rows"])),
+    ]
+    miss = [b for b, mod, text in checks_
+            if (mod is None or not present(mod)) and f"not yet: {b}" not in text]
+    check(not miss, f"the hooks to other branches are named and degrade to \"not yet: "
+                    f"<branch>\": AQ-9a's scorecard, c1's episode list, IMF IFS gold, "
+                    f"AQ-5's break logic ({miss})")
+    fake = types.ModuleType("fake_em_scorecard")
+    fake.quarterly_block = lambda st, now: {
+        "title": "The EM vulnerability scorecard",
+        "table": {"columns": ["Country", "Current account"], "rows": [["Brazil", "−2.1%"]]},
+        "notes": ["A table of lenses, never a composite."]}
+    sys.modules["fake_em_scorecard"] = fake
+    try:
+        with observations.ObservationStore(vms.DB) as st:
+            got = qi.panel_hook(st, {"id": "x", "n": "4d", "title": "The EM vulnerability "
+                                     "scorecard", "kind": "hook", "module":
+                                     "fake_em_scorecard", "reader": "quarterly_block",
+                                     "branch": "aq-9a-em-scorecard"}, {"now": AS_OF})
+    finally:
+        sys.modules.pop("fake_em_scorecard", None)
+    check(got.get("table", {}).get("rows") == [["Brazil", "−2.1%"]] and got.get("notes")
+          and not got["not_tracked"],
+          "with the branch's module present, the hook prints its block in the chapter")
+
+    # -- China: computed rows and the quote-only rule ------------------------
+    ch = by["china"]
+    srows = {row[0]: row for row in ch["structure"]["table"]["rows"]}
+    gap = srows.get("The fixing gap: spot against the fixing (the band is ±2%)")
+    share = srows.get("Gold's share of official reserves (SAFE, market value)")
+    check(gap and re.match(r"[+−-]?\d+\.\d\d%", gap[1]) and share
+          and 0 < float(share[1].split("%")[0]) < 10,
+          f"China's structure computes the fixing gap against the band and gold's "
+          f"share of reserves from SAFE (under 10%: {share and share[1]})")
+    pol, rpt = ch["china_political"], ch["china_political_reporting"]
+    note_line = [x for x in pol["lines"] if x.startswith("The operator's political note")]
+    check(all(x.get("quote_only") and "prose" not in x and "phase" not in x
+              for x in (pol, rpt))
+          and note_line and f"\"{OPERATOR_NOTE}\"" in note_line[0]
+          and any(row[2] == "authoritative release" and "People's Bank" in row[1]
+                  for row in rpt["table"]["rows"])
+          and any(x.startswith("Rule: QUOTE ONLY") for x in pol["lines"])
+          and any("announced → authorised → funded → implemented" in x
+                  for x in pol["lines"])
+          and any("Article IV" in x for x in pol["not_tracked"]),
+          "China's political sub-section quotes the operator's note verbatim and the "
+          "stored reporting (an authoritative release told from commentary), carries "
+          "the ladder and the Article IV read, and has no prose frame")
+    rule = fams["china"]["words"]["rules"][0]
+    secs = q.summary_secs(ed)
+    csum = next(x for x in secs if x["sid"] == "china")
+    check("Write no political judgment" in rule and rule in qi.banned_note(fams["china"])
+          and rule in csum["system"]
+          and OPERATOR_NOTE not in _json.dumps(csum["slice"], ensure_ascii=False)
+          and not any("china_political" in k for k in out["written"])
+          and not any("china_political" in x["key"]
+                      for x in __import__("monthly_macro.prose", fromlist=["x"])
+                      .block_plan(ed)),
+          "the quote-only rule is a banned behaviour in China's frames; the summary is "
+          "never handed the note, and no model call is made for the political "
+          "sub-section")
+    calc = _yaml.safe_load((REPO / "config" / "china_political_calendar.yaml")
+                           .read_text(encoding="utf-8"))
+    check(calc.get("entries") == [] and calc.get("version") == "template"
+          and any("maintained by hand" in x for x in pol["lines"]),
+          "the China political calendar is a hand-seeded template with no entries, "
+          "and the chapter says so")
+
+    # -- Crypto: the coin pages, the tiers, the plumbing ---------------------
+    cr = by["crypto"]
+    labels = [lab for _, lab in qi.COIN_FIELDS]
+    pages = [cr.get(f"coin_{c}") for c in ("btc", "eth", "sol", "zec", "prl")]
+    check(all(pg and [row[0] for row in pg["table"]["rows"]] == labels for pg in pages)
+          and len(labels) == 12,
+          "five deep-tier coin pages, BTC, ETH, SOL, ZEC, PRL, each the same twelve "
+          "fields in section 4.6's order")
+    btc = {row[0]: row[1] for row in pages[0]["table"]["rows"]}
+    prl = {row[0]: row[1] for row in pages[4]["table"]["rows"]}
+    eth = {row[0]: row[1] for row in pages[1]["table"]["rows"]}
+    check(btc["Bull / base / bear"].startswith("bull: ")
+          and "cases_and_positioning.py" in btc["Bull / base / bear"]
+          and "yfinance.mkt_btc_usd" in btc["Market structure and liquidity by venue"]
+          and "observed" in btc["Source and vintage log"]
+          and prl["Bull / base / bear"].startswith("not yet — ")
+          and eth["Market structure and liquidity by venue"].startswith("not yet — ")
+          and "MW-7" in prl["Measurable falsifiers"]
+          and all(v for v in list(btc.values()) + list(prl.values())),
+          "every field reads a stored series, the vendored case file or the tests -- "
+          "or prints its not-yet reason (BTC from the store; ETH and PRL not yet)")
+    lt = cr["light_tier"]["table"]["rows"]
+    cfg_lt = next(p_ for p_ in fams["crypto"]["panels"] if p_["id"] == "light_tier")
+    check([x[0].split()[0] for x in lt] == ["HYPE", "TAO", "LINK", "AAVE"]
+          and all(x[2] == "pending MW-6 promotion" for x in lt)
+          and all(c_["light_tier_pending_promotion"] is True for c_ in cfg_lt["coins"]),
+          "the light tier HYPE, TAO, LINK, AAVE: light_tier_pending_promotion: true, "
+          "printed \"pending MW-6 promotion\" until the operator's register write")
+    pl = cr["stablecoin_plumbing"]["table"]
+    check([x[0] for x in pl["rows"]] == ["USDT", "USDC", "DAI/USDS", "USDe"]
+          and len(pl["columns"]) == 6
+          and any("Developer activity: a named gap" in x
+                  for x in cr["deck_items"]["not_tracked"])
+          and any("Scan-tier only" in x for x in cr["crypto_scan"]["lines"])
+          and any("MW-7" in x for x in cr["crypto_scan"]["lines"]),
+          "the stablecoin plumbing table by issuer, the deck items with developer "
+          "activity a named gap, and the scanning sub-chapter with MW-7 and the "
+          "scan-only names")
+    fz = {row[0][:30]: row[1] for row in cr["falsify"]["table"]["rows"]}
+    sov = next(v for k, v in fz.items() if k.startswith('"Bitcoin is a store'))
+    vol = next(v for k, v in fz.items() if k.startswith('"Institutional adoption'))
+    check(sov in ("holds", "strained") and vol in ("holds", "strained", "failed")
+          and sum(v.startswith("not measured — ") for v in fz.values()) == 5,
+          f"Digital Assets' seven tests: the store-of-value band and the 70% drawdown "
+          f"computed by code ({sov}; {vol}), five not measured with their reasons")
+    csc = cr["scenarios"]["table"]["rows"]
+    check([x[2] for x in csc] == ["~45%", "~30%", "~25%", "~20%", "~35%", "~30%", "~15%"],
+          "crypto's scenario sets: 2026-29 at 45 / 30 / 25 and the ten-year four")
+
+    # -- Credit, real estate, international equities, agriculture -----------
+    crd = by["credit"]
+    cf = {row[0][:35]: row for row in crd["falsify"]["table"]["rows"]}
+    ls = next(v for k, v in cf.items() if k.startswith('"The credit cycle is a'))
+    bbc = next((row for row in crd["structure"]["table"]["rows"]
+                if row[0].startswith("BB-CCC")), None)
+    check(ls[1] == "holds" and "SLOOS" in ls[2] and bbc and " bp" in bbc[2],
+          f"credit: the lending-standards test holds with no 200 bp widening "
+          f"({ls[2][:60]}...); BB-CCC computed from the two OAS series ({bbc and bbc[2]})")
+    re_rows = {row[0]: row for row in by["real_estate"]["structure"]["table"]["rows"]}
+    msp = re_rows.get("The mortgage spread over the 10-year")
+    check(msp and " bp" in msp[2]
+          and [x[2] for x in by["real_estate"]["scenarios"]["table"]["rows"]]
+          == ["~55%", "~30%", "~15%"],
+          "real estate: the mortgage spread computed; the CRE ten-year families "
+          "55 / 30 / 15")
+    intl = by["intl_equities"]
+    rd_ = intl["return_decomp"]["table"]
+    ir = {row[0]: row for row in intl["structure"]["table"]["rows"]}
+    t10 = next((v for k, v in ir.items() if k.startswith("Trailing ten-year")), None)
+    c3 = next((v for k, v in ir.items() if k.startswith("The three-year rolling")), None)
+    check(len(rd_["rows"]) >= 4 and all(x[4:] == ["not stored"] * 4 for x in rd_["rows"])
+          and any("currency term" in x for x in intl["return_decomp"]["not_tracked"])
+          and t10 and "pp a year" in t10[1] and c3 and "months" in c3[1],
+          f"international equities: GTM-19's decomposition from ETF proxies (price and "
+          f"dividends; currency, multiple, earnings named as lacking), the ten-year US "
+          f"gap and the three-year correlation ({c3 and c3[1][:40]})")
+    ag = by["agriculture"]
+    check(any("thin or poorly understood contracts" in x for x in ag["book"]["lines"])
+          and [x[0] for x in ag["softs"]["table"]["rows"]]
+          == ["Sugar", "Coffee", "Cocoa", "Cotton"]
+          and any(x.startswith("Corn (front month)") for x in ag["quarter"]["not_tracked"])
+          and any("WASDE corn" in x for x in ag["structure"]["not_tracked"]),
+          "agriculture: the WASDE balances wait for AQ-3's writer by name; the softs as "
+          "one table; \"thin or poorly understood contracts\" a no draft by rule")
+
+    # -- Thailand: the isolation ---------------------------------------------
+    th = fams["thailand"]
+    iso = th.get("isolation") or {}
+    own = [s_ for s_ in (th.get("five_lines") or []) + (th.get("structure") or [])
+           if s_.get("namespace") == "thailand"]
+    leak = [s_["label"] for s_ in own if s_.get("key") and not (
+        (derived.registry_entry(s_["key"]) or {}).get("namespace") == "thailand"
+        and (derived.registry_entry(s_["key"]) or {}).get("trigger_eligible") is False)]
+    reg_all = derived._load_registry()
+    reg_leak = [k for k, v in reg_all.items() if (v or {}).get("namespace") == "thailand"
+                and (v or {}).get("trigger_eligible")]
+    cfg_leak = [n for n in TRIGGER_CONFIGS if (REPO / "config" / n).exists() and any(
+        t in (REPO / "config" / n).read_text(encoding="utf-8").lower() for t in THAI_TOKENS)]
+    pil = _yaml.safe_load((REPO / "config" / "pillars.yaml").read_text(encoding="utf-8"))
+    p11 = (pil.get("pillars") or pil).get("11") or {}
+    code_leak = [str(x.relative_to(REPO)) for d in ("altdata", "daily_cascade",
+                                                     "monthly_macro", "register")
+                 for x in (REPO / d).rglob("*.py")
+                 if "thailand_political_calendar" in x.read_text(encoding="utf-8",
+                                                                  errors="replace")]
+    check(iso == {"namespace": "thailand", "trigger_eligible": False, "feeds": [],
+                  "note": iso.get("note")} and own and not leak and not reg_leak
+          and not cfg_leak and p11.get("dial") is None and not p11.get("weight")
+          and not p11.get("metrics") and not code_leak
+          and next(c_ for c_ in stack_cfg()["quarterly_chapters"]
+                   if c_["id"] == "thailand")["correlation_assets"] == [],
+          f"Thailand's isolation: namespace thailand, trigger_eligible false, feeds "
+          f"nothing; no Thai row is a trigger-eligible key, no trigger config names it, "
+          f"pillar 11 has no dial or weight, no code but the chapter reads its calendar "
+          f"({leak or reg_leak or cfg_leak or code_leak})")
+    tb = by["thailand"]
+    cols = [c_.lower() for ss in tb.values() for t_ in ([ss.get("table")]
+                                                       + list(ss.get("tables") or []))
+            if t_ for c_ in t_.get("columns") or []]
+    check(tb["book"]["lines"][0].startswith("No draft, by rule: the Thailand chapter is "
+                                            "isolated")
+          and not any(w in c_ for c_ in cols for w in PRIVATE_COLUMNS)
+          and any(x.startswith("Isolation: namespace: thailand, trigger_eligible: false")
+                  for x in tb["frame"]["lines"])
+          and any("BoT, MoF, NESDC" in x for x in tb["thai_scan"]["lines"]),
+          "Thailand writes no register draft, prints no column of the private core "
+          "(conversion, budget, payments), states its isolation in its frame and "
+          "carries the Thai source hierarchy")
+
+    # -- The executive summary over the eleven -------------------------------
+    check(len(secs) == 11 and [x["sid"] for x in secs] == all_ids_of(chs)
+          and all(qi.banned_note(fams[x["sid"]]) in x["system"] for x in secs),
+          "the executive summary is one frame per chapter over all eleven, each "
+          "carrying its chapter's permitted and banned words and rules")
+
+
+def all_ids_of(chs: dict) -> list[str]:
+    return list(chs)
 
 
 def main() -> int:

@@ -262,31 +262,61 @@ def build_filled(ch: dict, cfg: dict, ctx: dict, fam: dict) -> tuple[list, dict]
     from . import quarterly_items as qi                          # noqa: PLC0415
     st = ctx["store"]
     tpl = {t["id"]: t for t in chapter_items(ch, cfg)}
+    ctx["correlation_assets"] = list(ch.get("correlation_assets") or [])
     hooked = {k: item_subsection(tpl[k], ch, ctx)
               for k in ("graded", "theses", "correlation") if k in tpl}
     states = qi.test_states(st, fam, ctx)
     plain = {k: v["state"].split(" — ")[0] for k, v in states.items()}
     subs = [qi.lead_lines(st, ch, fam, ctx, plain)]
     subs += [hooked[k] for k in ("graded", "theses") if k in hooked]
-    subs += qi.item_quarter(st, ch, fam, ctx)
-    subs.append(qi.item_priced(st, fam, ctx))
-    subs.append(qi.item_structure(st, fam, ctx))
-    for extra in (qi.item_second_half(st, fam, ctx, states), qi.item_pairs(st, fam, ctx)):
-        if extra:
-            subs.append(extra)
-    subs.append(qi.item_supply(ch, fam, ctx))
-    subs.append(qi.item_analyses(st, fam, ctx))
-    subs.append(qi.item_falsify(fam, states))
+    quarter, why = qi.item_quarter(st, ch, fam, ctx)
+    subs.append(quarter)
+    # The reference opens on the frame and the scenario sets (AQ-2 part 2),
+    # then the quarter's why.
+    subs += [x for x in (qi.item_frame(fam), qi.item_scenarios(fam)) if x]
+    subs.append(why)
+    # Only the items the chapter's weight carries (section 4.1's last
+    # paragraph): a light chapter has no 5, 6, 9 or 11; Thailand no 11.
+    if "priced" in tpl:
+        subs.append(qi.item_priced(st, fam, ctx))
+    if "structure" in tpl:
+        subs.append(qi.item_structure(st, fam, ctx))
+        for extra in (qi.item_second_half(st, fam, ctx, states),
+                      qi.item_pairs(st, fam, ctx)):
+            if extra:
+                subs.append(extra)
+    if "supply" in tpl:
+        subs.append(qi.item_supply(ch, fam, ctx))
+    if "analyses" in tpl:
+        subs.append(qi.item_analyses(st, fam, ctx))
+    if "falsify" in tpl:
+        subs.append(qi.item_falsify(fam, states))
     if "correlation" in hooked:
         hooked["correlation"]["tier"] = REFERENCE
         subs.append(hooked["correlation"])
-    subs.append(qi.item_stories(fam, ctx))
-    subs.append(qi.item_book(ch, ctx))
-    qsub, qsecs = qi.question_secs(st, ch, fam, ctx, question_system)
-    subs.append(qsub)
-    ctx.setdefault("question_secs", []).extend(qsecs)
+    if "stories" in tpl:
+        subs.append(qi.item_stories(fam, ctx))
+    if "book" in tpl:
+        subs.append(qi.item_book(ch, ctx, fam))
+    if "questions" in tpl:
+        qsub, qsecs = qi.question_secs(st, ch, fam, ctx, question_system)
+        subs.append(qsub)
+        ctx.setdefault("question_secs", []).extend(qsecs)
+    # The chapter's own panels, each after the item it names (the last item of
+    # that kind already placed); a panel whose anchor this weight lacks follows
+    # the structure item.
+    for p in qi.panel_subsections(st, fam, ctx, states):
+        anchor = p.pop("after")
+        at = max((i for i, x in enumerate(subs) if x["item"] == anchor
+                  or x.get("after_of") == anchor), default=None)
+        if at is None:
+            at = max(i for i, x in enumerate(subs) if x["item"] in (
+                "structure", "quarter_why"))
+        p["after_of"] = anchor
+        subs.insert(at + 1, p)
     for x in subs:
         x.setdefault("not_tracked", [])
+        x.pop("after_of", None)
     return subs, {"falsification": plain,
                   "structure": next((x.get("data", {}).get("percentiles")
                                      for x in subs if x["item"] == "structure"), {})}
@@ -472,6 +502,30 @@ def tier_faults(ed: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 # The executive summary: one paragraph per chapter, built last
 # ---------------------------------------------------------------------------
+def summary_view(ch: dict) -> dict:
+    """The chapter as its summary paragraph reads it: every sub-section but the
+    QUOTE-ONLY ones (China's political environment, decision 4), so no model is
+    handed the operator's political note or the stored political reporting to
+    characterise."""
+    return {**ch, "subsections": [x for x in ch.get("subsections") or []
+                                  if not x.get("quote_only")]}
+
+
+def summary_secs(ed: dict) -> list[dict]:
+    """The executive summary's frames, one per chapter, each carrying its
+    chapter's permitted and banned words and its rules (the China chapter's
+    no-political-judgment rule, Thailand's no-recommendation rule)."""
+    from . import prose as prose_mod                             # noqa: PLC0415
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    qcfg = qi.load_config()
+    secs = prose_mod.summary_plan(ed, [summary_view(c) for c in chapters(ed)])
+    for s in secs:
+        fam = qi.family_config(s["sid"], qcfg)
+        if fam:
+            s["system"] += qi.banned_note(fam)
+    return secs
+
+
 def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
     """One entry per chapter, in chapter order: its paragraph as published, or
     "(summary withheld — audit)" with the reason kept."""
@@ -605,7 +659,7 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     if narrative:
         try:
             sw = prose_mod.write_all(p, model=model, client=client, ed=ed,
-                                     secs=prose_mod.summary_plan(ed, chapters(ed)))
+                                     secs=summary_secs(ed))
         except Exception:                                       # noqa: BLE001
             log.exception("the executive summary faulted; each paragraph prints "
                           "as withheld")

@@ -12,8 +12,12 @@ register, AQ-8a's attribution and paper bid) each name their module and print
 
     lead       the confidence and what-changed lines; 1, 2; 3 (the quarter's
                five lines and its three charts)
-    reference  3 (why: the QTD/YTD table and the driver attribution); 3a; 4 (and
-               oil's second half, currency's pair universe); 5; 6; 7; 8; 9; 10; 11
+    reference  0 (the frame) and 2a (the scenario sets to rewrite); 3 (why: the
+               QTD/YTD table and the driver attribution); 3a; 4 (and oil's second
+               half, currency's pair universe); 5; 6; 7; 8; 9; 10; 11 -- only the
+               items the chapter's weight carries -- and the chapter's own panels
+               (AQ-2 part 2: China's quote-only political sub-section, crypto's
+               coin pages, Thailand's calendar, GTM-19's decomposition, ...)
 
 Everything a builder prints is read from the store as of the edition's cutoff
 over the payload's quarter window, or from a hook's module; the two written
@@ -121,8 +125,16 @@ def fmt_level(v: float, key: str, dp: Optional[int] = None) -> str:
         return f"{v:,.2f}%" if u in ("%", "percent") else f"{v:,.0f} bp"
     if u in ("count", "N"):
         return f"{v:,.0f}"
+    if u == "usd" and abs(v) >= 1e6:
+        # Reserves, holdings and market caps in dollars: $3.25tn, never
+        # 3,248,000,000,000.0.
+        for div, sfx in ((1e12, "tn"), (1e9, "bn"), (1e6, "mn")):
+            if abs(v) >= div:
+                return f"{'−' if v < 0 else ''}${abs(v) / div:,.2f}{sfx}"
     if abs(v) >= 1000:
         return f"{v:,.1f}"
+    if 0 < abs(v) < 0.01:
+        return f"{v:.4g}"
     return f"{v:,.2f}"
 
 
@@ -155,20 +167,150 @@ def ordinal(x: float) -> str:
     return f"{n}{sfx}"
 
 
+# A row computed from two stored series (AQ-2 part 2), each leg a registry key:
+#   diff:      a - b, in a's unit (a spread of two yields prints in percent and
+#              moves in basis points: BB-CCC, the mortgage spread)
+#   share:     100 x a / b (China's gold share of its reserves)
+#   ratio_pct: 100 x (a / b - 1) (the CNY fixing gap against the +/-2% band)
+# b is read as of each of a's days (its latest observation within 40 days), so a
+# monthly leg pairs with a daily one.
+DERIVED_KINDS = ("diff", "share", "ratio_pct")
+
+
+def derived_kind(spec: dict) -> Optional[str]:
+    return next((k for k in DERIVED_KINDS if spec.get(k)), None)
+
+
+def spec_keys(spec: dict) -> list[str]:
+    """Every registry key a row spec reads."""
+    out = [spec["key"]] if spec.get("key") else []
+    for k in DERIVED_KINDS:
+        out += list(spec.get(k) or [])
+    for k in ("rel_return", "corr"):
+        if spec.get(k):
+            out += [spec[k]["a"], spec[k]["b"]]
+    return out
+
+
+def spec_points(st, spec: dict, ctx: dict) -> list[tuple[str, float]]:
+    kind = derived_kind(spec)
+    if kind is None:
+        return rows(st, spec["key"], ctx["now"], spec.get("instrument"), ctx["end"])
+    a_key, b_key = spec[kind]
+    pa = rows(st, a_key, ctx["now"], None, ctx["end"])
+    pb = rows(st, b_key, ctx["now"], None, ctx["end"])
+    out, j, last = [], 0, None
+    for d, va in pa:
+        while j < len(pb) and pb[j][0] <= d:
+            last = pb[j]
+            j += 1
+        if last is None or (dt.date.fromisoformat(d)
+                            - dt.date.fromisoformat(last[0])).days > 40:
+            continue
+        vb = last[1]
+        if kind == "diff":
+            out.append((d, va - vb))
+        elif vb:
+            out.append((d, 100.0 * va / vb if kind == "share"
+                        else 100.0 * (va / vb - 1.0)))
+    return out
+
+
 def quarter_move(st, spec: dict, ctx: dict) -> Optional[dict]:
-    key, inst = spec["key"], spec.get("instrument")
+    kind = derived_kind(spec)
+    key = spec.get("key") or (spec[kind][0] if kind else None)
     dp = spec.get("dp")
-    pts = rows(st, key, ctx["now"], inst, ctx["end"])
+    pts = spec_points(st, spec, ctx)
     a, b = level_on(pts, ctx["end"]), level_on(pts, ctx["start"])
     if not a:
         return None
+    pct_kind = kind in ("share", "ratio_pct")
     out = {"key": key, "label": spec.get("label") or key, "level": a[1],
-           "as_of": a[0], "level_text": fmt_level(a[1], key, dp), "n": len(pts),
-           "values": [v for _, v in pts]}
+           "as_of": a[0], "n": len(pts), "values": [v for _, v in pts],
+           "level_text": (f"{a[1]:+.2f}%" if kind == "ratio_pct" else
+                          f"{a[1]:.2f}%" if kind == "share" else
+                          fmt_level(a[1], key, dp))}
     if b and b[0] != a[0]:
-        out["change"], out["change_display"] = change_text(a[1], b[1], key)
+        if pct_kind:
+            d = a[1] - b[1]
+            out["change"] = d
+            out["change_display"] = _signed(d, f"{abs(d):.2f}", " pp")
+        else:
+            out["change"], out["change_display"] = change_text(a[1], b[1], key)
+            if dp is not None and derived.delta_unit_for(key)[0] not in (
+                    "bps", "percent"):
+                # A raw change at the row's own decimals (ZEC/BTC's 0.000012).
+                d = a[1] - b[1]
+                out["change_display"] = _signed(d, f"{abs(d):.{dp}f}", "")
         out["from"] = b[0]
     return out
+
+
+def _month_closes(pts: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    last: dict[str, tuple[str, float]] = {}
+    for d, v in pts:
+        last[d[:7]] = (d, v)
+    return [last[m] for m in sorted(last)]
+
+
+def computed_value(st, spec: dict, ctx: dict) -> tuple[Optional[str], Optional[str], str]:
+    """(value text, as of, why-not) for a one-figure computed row:
+      rel_return {a, b, years}: a's annualised price return minus b's, in
+                 percentage points a year, over `years` or the common span stored
+      corr {a, b, months, bands?}: the correlation of monthly log returns over
+                 `months`, with the paper's band named where `bands` is given."""
+    if spec.get("rel_return"):
+        p = spec["rel_return"]
+        pa = rows(st, p["a"], ctx["now"], None, ctx["end"])
+        pb = rows(st, p["b"], ctx["now"], None, ctx["end"])
+        if not pa or not pb:
+            return None, None, "a leg is not stored"
+        end = min(pa[-1][0], pb[-1][0])
+        want = (dt.date.fromisoformat(end)
+                - dt.timedelta(days=int(365.25 * float(p["years"])))).isoformat()
+        start = max(want, pa[0][0], pb[0][0])
+        a0, a1 = level_on(pa, start) or pa[0], level_on(pa, end)
+        b0, b1 = level_on(pb, start) or pb[0], level_on(pb, end)
+        yrs = (dt.date.fromisoformat(end) - dt.date.fromisoformat(start)).days / 365.25
+        if yrs < 1 or not (a0 and a1 and b0 and b1) or not a0[1] or not b0[1]:
+            return None, None, f"under a year stored in common ({yrs:.1f})"
+        ann = lambda x0, x1: (x1 / x0) ** (1.0 / yrs) - 1.0      # noqa: E731
+        gap = 100.0 * (ann(a0[1], a1[1]) - ann(b0[1], b1[1]))
+        span = (f"{p['years']} years" if start == want else
+                f"{yrs:.1f} years stored of {p['years']} (from {start})")
+        return f"{gap:+.1f} pp a year, price only, over {span}", end, ""
+    if spec.get("corr"):
+        p = spec["corr"]
+        ma = dict(_month_closes(rows(st, p["a"], ctx["now"], None, ctx["end"])))
+        mb = dict(_month_closes(rows(st, p["b"], ctx["now"], None, ctx["end"])))
+        ka = {d[:7]: v for d, v in ma.items()}
+        kb = {d[:7]: v for d, v in mb.items()}
+        months = sorted(set(ka) & set(kb))
+        xs, ys = [], []
+        for m0, m1 in zip(months, months[1:]):
+            if ka[m0] > 0 and ka[m1] > 0 and kb[m0] > 0 and kb[m1] > 0:
+                xs.append(math.log(ka[m1] / ka[m0]))
+                ys.append(math.log(kb[m1] / kb[m0]))
+        want = int(p["months"])
+        if len(xs) < 12:
+            return None, None, f"{len(xs)} monthly returns stored in common, 12 needed"
+        n = min(want, len(xs))
+        xs, ys = xs[-n:], ys[-n:]
+        mx, my = sum(xs) / n, sum(ys) / n
+        sx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+        sy = math.sqrt(sum((y - my) ** 2 for y in ys))
+        if not sx or not sy:
+            return None, None, "a series did not move over the window"
+        r = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (sx * sy)
+        band = ""
+        for b in p.get("bands") or []:
+            if b["low"] <= r < b["high"]:
+                band = f"; the paper's \"{b['name']}\" band ({b['low']}–{b['high']})"
+        if p.get("bands") and not band:
+            band = "; outside the paper's bands"
+        span = f"{n} months" + ("" if n == want else f" stored of {want}")
+        return f"{r:+.2f} over {span}{band}", months[-1], ""
+    return None, None, "no rule"
 
 
 # ---------------------------------------------------------------------------
@@ -238,11 +380,11 @@ def brier_line(ch: dict, ctx: dict) -> str:
 
 def weakest_link(st, fam: dict, ctx: dict) -> str:
     specs = [s for s in fam.get("structure") or []] + list(fam.get("five_lines") or [])
-    tracked = [s for s in specs if s.get("key")]
+    tracked = [s for s in specs if s.get("key") or derived_kind(s)]
     absent = [s for s in fam.get("structure") or [] if s.get("absent")]
     worst = None
     for s in tracked:
-        pts = rows(st, s["key"], ctx["now"], s.get("instrument"), ctx["end"])
+        pts = spec_points(st, s, ctx)
         last = pts[-1][0] if pts else None
         age = ((dt.date.fromisoformat(ctx["end"]) - dt.date.fromisoformat(last)).days
                if last else 10 ** 6)
@@ -285,6 +427,9 @@ def lead_lines(st, ch: dict, fam: dict, ctx: dict, now_states: dict) -> dict:
 def five_lines(st, fam: dict, ctx: dict) -> tuple[list[str], list[dict], list[str]]:
     lines, moves, nt = [], [], []
     for spec in (fam.get("five_lines") or [])[:5]:
+        if spec.get("absent"):
+            nt.append(f"{spec['label']}: {spec['absent']}")
+            continue
         m = quarter_move(st, spec, ctx)
         if m is None:
             nt.append(f"{spec['label']}: nothing stored by the quarter's end")
@@ -306,6 +451,10 @@ def _chart_series(st, spec: dict, ctx: dict, years: int = 5) -> list[tuple[str, 
 def structure_chart(st, spec: dict, cid: str, ctx: dict) -> dict:
     """One of the chapter's two structure charts, five years to the quarter's
     end, in the house style (daily_cascade.charts)."""
+    gone = [f"{s['label']} ({s['absent']})" for s in spec["series"] if s.get("absent")]
+    if gone:
+        return {"id": cid, "unavailable": f"{spec['title']}: not tracked — "
+                                          + "; ".join(gone)}
     try:
         from daily_cascade import charts as chm  # noqa: PLC0415
         legs = [(s, _chart_series(st, s, ctx)) for s in spec["series"]]
@@ -345,6 +494,10 @@ def structure_chart(st, spec: dict, cid: str, ctx: dict) -> dict:
 
 def long_frame_chart(st, fam: dict, cid: str, ctx: dict) -> dict:
     """The family's long frame, from AQ-4's horizon charts."""
+    if not fam.get("horizon_family"):
+        return {"id": cid, "unavailable": "the family's long frame: "
+                                          + (fam.get("horizon_absent")
+                                             or "no family in the horizon set")}
     hc = module("horizon")
     if hc is None:
         return {"id": cid, "unavailable": f"the family's long frame: {not_yet('horizon')}"}
@@ -452,9 +605,11 @@ def implied_range(sym: str, ctx: dict) -> tuple[Optional[list], Optional[str]]:
             path = got[sym]
             break
     if path is None:
-        return None, (f"{sym}: no chain logged in the week to the quarter's end "
-                      f"(the capture logs GLD, SLV, USO from AQ-8a; FXE and FXY are "
-                      f"not captured)")
+        cap = list((ctx.get("common") or {}).get("chains_captured") or [])
+        why = ("" if sym in cap else f"; {sym} is not in the chain capture, which "
+               f"logs {', '.join(cap) or 'nothing'} from AQ-8a")
+        return None, (f"{sym}: no chain logged in the week to the quarter's end"
+                      + (why or f" (the capture logs {', '.join(cap)} from AQ-8a)"))
     rc = ctx["common"].get("implied_range") or {}
     rws = [r for r in ex.load_chain(path) if r.get("implied_vol") and r.get("strike")
            and (r.get("dte") or 0) >= int(rc.get("min_days") or 7)]
@@ -514,7 +669,21 @@ def structure_rows(st, specs: list[dict], ctx: dict) -> tuple[list, list, dict]:
     rws, nt, pct = [], [], {}
     five = ctx["common"].get("five_year_column") or "until the lenses"
     for s in specs:
-        if s.get("absent") or not s.get("key"):
+        if s.get("hook_key"):
+            # A key another branch registers (named, never imported): read once
+            # the registry on this build holds it; until then "not yet: <branch>".
+            if not derived.registry_entry(s["hook_key"]):
+                nt.append(f"{s['label']}: not yet: {s['branch']}")
+                continue
+            s = {**s, "key": s["hook_key"]}
+        if s.get("rel_return") or s.get("corr"):
+            txt, asof, why = computed_value(st, s, ctx)
+            if txt is None:
+                nt.append(f"{s['label']}: {why}")
+            else:
+                rws.append([s["label"], f"{txt} ({asof})", "—", "—", five])
+            continue
+        if s.get("absent") or not (s.get("key") or derived_kind(s)):
             nt.append(f"{s['label']}: {s.get('absent') or 'no key'}")
             continue
         m = quarter_move(st, s, ctx)
@@ -663,15 +832,57 @@ def banned_note(fam: dict) -> str:
     if w.get("permitted"):
         out += " The chapter's own terms, used as the paper uses them: " + "; ".join(
             w["permitted"]) + "."
+    for r in w.get("rules") or []:
+        out += " " + r
     return out
 
 
 # ---------------------------------------------------------------------------
 # Item 6: the analyses
 # ---------------------------------------------------------------------------
+def branch_module(spec: dict):
+    """A module another branch builds, named by its branch: the module, or None
+    while that branch is not merged under this build."""
+    try:
+        return importlib.import_module(spec["module"])
+    except ImportError:
+        return None
+
+
 def analysis_state(st, a: dict, ctx: dict) -> str:
     if a.get("waits"):
         return f"not yet — {a['waits']}"
+    if a.get("rel_return") or a.get("corr"):
+        txt, asof, why = computed_value(st, a, ctx)
+        return f"{txt} ({asof})" if txt else f"not computed — {why}"
+    if a.get("branch"):
+        m = branch_module(a)
+        if m is None or not hasattr(m, a.get("reader") or ""):
+            return f"not yet: {a['branch']}"
+        try:
+            if a["reader"] == "breaks_between":
+                assets = set(ctx.get("correlation_assets") or [])
+                got = [b for b in m.breaks_between(st, ctx["start"], ctx["now"])
+                       if b["asset"] in assets]
+                esc = m.credit_escalation(got) if hasattr(m, "credit_escalation") else []
+                if not got:
+                    return "no break fired this quarter"
+                return ("; ".join(f"{b['asset']} against {b['benchmark']} "
+                                  f"{b['direction']} ({b['delta']:+.2f}, {b['day']})"
+                                  for b in got)
+                        + (f"; credit-sensitive escalation: {', '.join(esc)}"
+                           if esc else ""))
+            out = getattr(m, a["reader"])(st, ctx["now"])
+            return "; ".join(str(x) for x in (out.get("lines") or [])) or "computed"
+        except Exception as exc:                                # noqa: BLE001
+            return f"FAULT (code, not data) -- {type(exc).__name__}"
+    if derived_kind(a):
+        m = quarter_move(st, {**a, "label": a["title"]}, ctx)
+        if m is None:
+            return "nothing stored at this cutoff"
+        return (f"{m['level_text']} ({m['as_of']})"
+                + (f", {m['change_display']} on the quarter"
+                   if m.get("change_display") else ""))
     if a.get("module"):
         kind = {"altdata.attribution": "attribution", "altdata.paper_bid": "paper_bid",
                 "altdata.correlation": "correlation"}[a["module"]]
@@ -783,30 +994,74 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
                 "evidence": f"{p['series']} {fmt_level(pts[-1][1], p['series'])} "
                             f"against its {p['year']} mean "
                             f"{fmt_level(mean, p['series'])}"}
-    if kind == "correlation_at_most":
-        ra = dict(rows(st, p["a"], ctx["now"], None, end))
-        rb = dict(rows(st, p["b"], ctx["now"], None, end))
-        days = sorted(set(ra) & set(rb))
-        xs, ys = [], []
-        for d0, d1 in zip(days, days[1:]):
-            if ra[d0] and ra[d0] > 0 and ra[d1] > 0:
-                xs.append(math.log(ra[d1] / ra[d0]))
-                ys.append(rb[d1] - rb[d0])
+    if kind in ("correlation_at_most", "correlation_in_band"):
+        r, miss = _daily_corr(st, p, ctx)
+        if r is None:
+            return {"met": None, "missing": miss}
         w = int(p["window"])
-        if len(xs) < w:
-            return {"met": None, "missing": f"{len(xs)} paired sessions of {p['a']} "
-                                            f"and {p['b']}, {w} needed"}
-        xs, ys = xs[-w:], ys[-w:]
-        mx, my = sum(xs) / w, sum(ys) / w
-        sx = math.sqrt(sum((x - mx) ** 2 for x in xs))
-        sy = math.sqrt(sum((y - my) ** 2 for y in ys))
-        if not sx or not sy:
-            return {"met": None, "missing": "a series did not move over the window"}
-        r = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (sx * sy)
+        if kind == "correlation_in_band":
+            # One quarter in the band is strained; failing needs the paper's
+            # longer span, which code does not declare.
+            inside = float(p["low"]) <= r <= float(p["high"])
+            return {"met": False, "strained": inside,
+                    "evidence": f"{w}-session correlation {r:+.2f} against the "
+                                f"{p['low']}–{p['high']} band"}
         return {"met": r <= float(p["at_most"]),
                 "strained": r <= float(p.get("strained_at_most", p["at_most"])),
                 "evidence": f"{w}-session correlation {r:+.2f}"}
+    if kind == "change_above":
+        m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
+        if not m or m.get("change") is None:
+            return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
+        return {"met": m["change"] > float(p["above"]), "strained": False,
+                "evidence": f"{p['series']} {m['change_display']} on the quarter "
+                            f"against {p['above']:+,}"}
+    if kind == "drawdown_at_least":
+        pts = rows(st, p["series"], ctx["now"], None, end)
+        if p.get("lookback_days"):
+            since = (dt.date.fromisoformat(end)
+                     - dt.timedelta(days=int(p["lookback_days"]))).isoformat()
+            pts = [x for x in pts if x[0] >= since]
+        if len(pts) < 20:
+            return {"met": None, "missing": f"{p['series']}: {len(pts)} observations"}
+        peak = max(pts, key=lambda x: x[1])
+        dd = 100.0 * (1.0 - pts[-1][1] / peak[1]) if peak[1] else 0.0
+        return {"met": dd >= float(p["at_least"]),
+                "strained": dd >= float(p.get("strained_at_least", p["at_least"])),
+                "evidence": f"{p['series']} {dd:.1f}% below its peak of {peak[0]} "
+                            f"at {pts[-1][0]}, against {p['at_least']}%"}
+    if kind == "unmeasured":
+        return {"met": None, "missing": p["reason"]}
     return {"met": None, "missing": f"unknown rule {kind}"}
+
+
+def _daily_corr(st, p: dict, ctx: dict) -> tuple[Optional[float], str]:
+    """The correlation of a's daily log returns against b's daily changes (b's
+    log returns where `b_change: log`) over the last `window` paired sessions."""
+    ra = dict(rows(st, p["a"], ctx["now"], None, ctx["end"]))
+    rb = dict(rows(st, p["b"], ctx["now"], None, ctx["end"]))
+    days = sorted(set(ra) & set(rb))
+    xs, ys = [], []
+    log_b = p.get("b_change") == "log"
+    for d0, d1 in zip(days, days[1:]):
+        if ra[d0] and ra[d0] > 0 and ra[d1] > 0:
+            if log_b:
+                if not (rb[d0] and rb[d0] > 0 and rb[d1] > 0):
+                    continue
+                ys.append(math.log(rb[d1] / rb[d0]))
+            else:
+                ys.append(rb[d1] - rb[d0])
+            xs.append(math.log(ra[d1] / ra[d0]))
+    w = int(p["window"])
+    if len(xs) < w:
+        return None, f"{len(xs)} paired sessions of {p['a']} and {p['b']}, {w} needed"
+    xs, ys = xs[-w:], ys[-w:]
+    mx, my = sum(xs) / w, sum(ys) / w
+    sx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+    sy = math.sqrt(sum((y - my) ** 2 for y in ys))
+    if not sx or not sy:
+        return None, "a series did not move over the window"
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (sx * sy), ""
 
 
 def evaluate(st, m: dict, ctx: dict) -> dict:
@@ -850,14 +1105,28 @@ def test_states(st, fam: dict, ctx: dict) -> dict:
     return out
 
 
+NO_PAPER = "no owning paper — not stated"
+
+
 def item_falsify(fam: dict, states: dict) -> dict:
+    out = {"title": "7 · Falsification tests", "item": "falsify", "tier": REFERENCE,
+           "lines": []}
     rws = []
     for t in fam.get("falsification") or []:
         s = states[t["id"]]
         rws.append([t["statement"], s["state"], s["evidence"]])
-    return {"title": "7 · Falsification tests", "item": "falsify", "tier": REFERENCE,
-            "table": {"columns": [f"The {fam.get('paper')} paper's test",
-                                  "This quarter", "Evidence"], "rows": rws}}
+    if rws:
+        out["table"] = {"columns": [f"The {fam.get('paper')} paper's test",
+                                    "This quarter", "Evidence"], "rows": rws}
+    else:
+        # A chapter no paper owns states no tests: none is invented here.
+        out["lines"].append(f"Falsification tests: {fam.get('falsification_note') or NO_PAPER}.")
+    rel = fam.get("related_tests") or []
+    if rel:
+        out["lines"].append("Read beside them, from a paper that does not own this "
+                            "chapter (its own words; not graded here):")
+        out["lines"] += [f"{t['paper']}, {t['section']}: {t['statement']}" for t in rel]
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -886,8 +1155,15 @@ def item_stories(fam: dict, ctx: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Item 10: the book
 # ---------------------------------------------------------------------------
-def item_book(ch: dict, ctx: dict) -> dict:
+def item_book(ch: dict, ctx: dict, fam: Optional[dict] = None) -> dict:
     out = {"title": "10 · The book", "item": "book", "tier": REFERENCE}
+    rule = (fam or {}).get("book_rule") or {}
+    if rule.get("no_draft"):
+        # An isolated chapter writes no draft at all: it feeds nothing.
+        out["lines"] = [f"No draft, by rule: {rule['no_draft']}"]
+        return out
+    if rule.get("line"):
+        out["lines"] = [f"By rule: {rule['line']}"]
     tr = module("thesis")
     if tr is None:
         out["not_tracked"] = [f"the draft slate: {not_yet('thesis')}"]
@@ -908,7 +1184,7 @@ def item_book(ch: dict, ctx: dict) -> dict:
     except Exception:                                           # noqa: BLE001
         got = []
     if not got:
-        out["lines"] = [f"No book line for {q[-1]}Q{q[2:4]} is seeded for this "
+        out["lines"] = out.get("lines", []) + [f"No book line for {q[-1]}Q{q[2:4]} is seeded for this "
                         f"chapter yet."]
         return out
     out["table"] = {"columns": ["Horizon", "Line", "Portfolio role", "Decision or reason"],
@@ -928,6 +1204,8 @@ def question_secs(st, ch: dict, fam: dict, ctx: dict, system_for) -> tuple[dict,
     offering at most the item's figure budget."""
     cap = int((fam.get("figure_budget") or {}).get("questions", 2))
     lines, secs = [], []
+    if not fam.get("ten_questions"):
+        lines.append(f"The ten questions: {fam.get('questions_note') or NO_PAPER}.")
     for q in fam.get("ten_questions") or []:
         moves = []
         for k in q.get("series") or []:
@@ -969,3 +1247,352 @@ def apply_questions(sub: dict, written: dict) -> None:
         else:
             out.append(f"{x['n']}. {x['text']} Answer withheld by the audit.")
     sub["lines"] = out
+
+
+# ---------------------------------------------------------------------------
+# AQ-2 part 2: the frame, the scenario sets, and the chapter's own panels
+# ---------------------------------------------------------------------------
+def item_frame(fam: dict) -> Optional[dict]:
+    """The chapter's frame: the owning paper's, or -- where the paper is not yet
+    filed -- the change order's interim paragraph with its citations, said so."""
+    fr = fam.get("frame")
+    if not fr:
+        return None
+    lines = [fr["status"]]
+    if fr.get("interim"):
+        lines.append(f"The interim frame, from the change order "
+                     f"{fr.get('from') or ''}: {fr['interim']}")
+    if fr.get("citations"):
+        lines.append("Its citations: " + "; ".join(fr["citations"]) + ".")
+    iso = fam.get("isolation")
+    if iso:
+        lines.append(f"Isolation: namespace: {iso['namespace']}, trigger_eligible: "
+                     f"{str(iso['trigger_eligible']).lower()}, feeds "
+                     f"{', '.join(iso.get('feeds') or []) or 'nothing'}. "
+                     f"{iso.get('note') or ''}".strip())
+    return {"title": "0 · The frame", "item": "frame", "tier": REFERENCE,
+            "lines": lines, "not_tracked": list(fr.get("not_tracked") or [])}
+
+
+def item_scenarios(fam: dict) -> Optional[dict]:
+    """The scenario sets the chapter rewrites each quarter: each row with the
+    paper's prior, and this quarter's probability from the thesis register (AQ-6)
+    -- never a weight typed here. A set its paper has not yet supplied says so."""
+    sets = fam.get("scenarios") or []
+    if not sets:
+        return None
+    now_col = ("in item 2, from the ledger" if module("thesis") is not None
+               else not_yet("thesis"))
+    rws, lines = [], []
+    for s in sets:
+        if s.get("pending"):
+            lines.append(f"{s['name']} ({s['horizon']}): not yet — {s['pending']}.")
+            continue
+        for r in s["rows"]:
+            rws.append([f"{s['name']} ({s['horizon']})", r["name"],
+                        r.get("prior") or "—", now_col])
+        lines.append(f"{s['name']}: {s['source']}.")
+    out = {"title": "2a · The scenario sets to rewrite", "item": "scenarios",
+           "tier": REFERENCE, "lines": lines, "not_tracked": []}
+    if rws:
+        out["table"] = {"columns": ["Set", "Scenario", "The paper's prior",
+                                    "This quarter"], "rows": rws}
+    return out
+
+
+def _panel_head(p: dict) -> dict:
+    return {"title": f"{p['n']} · {p['title']}", "item": p["id"],
+            "tier": p.get("tier") or REFERENCE, "panel": p["kind"],
+            "lines": list(p.get("lines") or []), "not_tracked": []}
+
+
+def panel_series(st, p: dict, ctx: dict) -> dict:
+    out = _panel_head(p)
+    rws, nt, pct = structure_rows(st, p.get("rows") or [], ctx)
+    out["not_tracked"] = nt
+    if rws:
+        out["table"] = {"columns": STRUCTURE_COLUMNS, "rows": rws}
+        out["data"] = {"percentiles": pct}
+    elif not out["lines"]:
+        out["lines"] = ["No series of this panel is stored at this cutoff."]
+    return out
+
+
+def panel_matrix(p: dict) -> dict:
+    """A table whose cells are named series not yet stored: printed so the
+    reader sees the shape the chapter will fill, the gap with its reason."""
+    out = _panel_head(p)
+    cols = p["columns"]
+    rws = []
+    for r in p["rows"]:
+        cells = r.get("cells") or {}
+        rws.append([r["name"]] + [cells.get(c, "not tracked") for c in cols])
+    out["table"] = {"columns": [p.get("row_head") or ""] + cols, "rows": rws}
+    out["not_tracked"] = [f"every cell marked not tracked: {p['absent']}"]
+    return out
+
+
+def panel_hook(st, p: dict, ctx: dict) -> dict:
+    """A block another branch builds, named by branch and module and imported
+    only at run time: "not yet: <branch>" until that branch is merged."""
+    out = _panel_head(p)
+    m = branch_module(p)
+    fn = getattr(m, p["reader"], None) if m is not None else None
+    if fn is None:
+        out["not_tracked"] = [f"{p['title']}: not yet: {p['branch']}"]
+        return out
+    try:
+        got = fn(st, ctx["now"]) or {}
+    except Exception as exc:                                    # noqa: BLE001
+        out["notes"] = [f"{p['title']}: FAULT (code, not data) -- "
+                        f"{type(exc).__name__}"]
+        return out
+    for k in ("table", "notes", "data"):
+        if got.get(k):
+            out[k] = got[k]
+    out["lines"] += list(got.get("lines") or [])
+    out["not_tracked"] += list(got.get("not_tracked") or [])
+    if not (out.get("table") or out["lines"] or out.get("notes")):
+        out["lines"].append("The block returned nothing at this cutoff.")
+    return out
+
+
+def load_calendar(path: str) -> dict:
+    import yaml  # noqa: PLC0415
+    with (REPO / path).open(encoding="utf-8") as fp:
+        return yaml.safe_load(fp) or {}
+
+
+def panel_calendar(p: dict, ctx: dict) -> dict:
+    """A hand-seeded calendar (date, body, event, source): the quarter ahead's
+    entries, or the template's own line while nothing is seeded."""
+    out = _panel_head(p)
+    cal = load_calendar(p["path"])
+    end = dt.date.fromisoformat(ctx["end"])
+    ahead = (end + dt.timedelta(days=int(p.get("days_ahead") or 120))).isoformat()
+    got = [e for e in cal.get("entries") or []
+           if ctx["end"] < str(e.get("date"))[:10] <= ahead]
+    if got:
+        out["table"] = {"columns": ["Date", "Body", "Event", "Source"],
+                        "rows": [[str(e["date"])[:10], e["body"], e["event"],
+                                  e["source"]] for e in got]}
+    else:
+        out["lines"].append(f"No entry seeded for the quarter ahead — the calendar "
+                            f"({p['path']}) is maintained by hand.")
+    return out
+
+
+def quarter_voices(ctx: dict) -> list[dict]:
+    """Every stored voices row published in the quarter, knowable at the cutoff."""
+    try:
+        from altdata import voices as vmod  # noqa: PLC0415
+        with vmod.VoicesStore(ctx.get("db_path"), readonly=True) as vs:
+            return vs.rows(as_of=ctx["now"], since=ctx["start"],
+                           until=(dt.date.fromisoformat(ctx["end"])
+                                  + dt.timedelta(days=1)).isoformat())
+    except Exception:                                           # noqa: BLE001
+        return []
+
+
+def panel_political(p: dict, ctx: dict) -> list[dict]:
+    """China's local political environment, QUOTE-ONLY (decision 4): the
+    operator's note and the stored reporting are quoted, attributed and dated;
+    the chapter writes no political judgment of its own, and no model is asked
+    for one -- neither sub-section carries a prose frame. Two sub-sections: the
+    rules, the calendar and the operator's note; then the stored reporting."""
+    out = _panel_head(p)
+    out["quote_only"] = True
+    out["lines"] = [f"Rule: {r}" for r in p.get("rules") or []]
+    cal = panel_calendar({**p, "lines": [], "path": p["calendar"]}, ctx)
+    if cal.get("table"):
+        out["tables"] = [cal["table"]]
+    out["lines"] += cal["lines"]
+    vrows = quarter_voices(ctx)
+    notes = [r for r in vrows if r.get("source_id") == p["note_source_id"]]
+    for r in notes:
+        out["lines"].append(f"The operator's political note, "
+                            f"{str(r['published_at'])[:10]}: \"{r['view']}\" — "
+                            f"{r['voice']} ({r['source_url']})")
+    if not notes:
+        out["not_tracked"].append("the operator's political note: none stored for "
+                                  "this quarter (written by hand, stored as an "
+                                  "operator voices row)")
+    out["not_tracked"] += list(p.get("not_tracked") or [])
+    rpt = {"title": f"{p.get('reporting_n') or p['n']} · The stored reporting, quoted",
+           "item": f"{p['id']}_reporting",
+           "tier": out["tier"], "panel": p["kind"], "quote_only": True,
+           "lines": [], "not_tracked": []}
+    auth = [a.lower() for a in p.get("authoritative") or []]
+    rep = [r for r in vrows if str(r.get("source_id") or "").startswith(
+        p["reporting_prefix"])]
+    if rep:
+        rpt["table"] = {"columns": ["Published", "Outlet", "Class", "As stored",
+                                    "Source"],
+                        "rows": [[str(r["published_at"])[:10], r["outlet"],
+                                  ("authoritative release"
+                                   if any(a in str(r["outlet"]).lower() for a in auth)
+                                   else "commentary"),
+                                  f"\"{r['view']}\"", r["source_url"]] for r in rep]}
+    else:
+        rpt["not_tracked"].append(f"the stored reporting on China's politics: no "
+                                  f"row this quarter ({AQ7})")
+    return [out, rpt]
+
+
+def panel_light_tier(p: dict) -> dict:
+    out = _panel_head(p)
+    out["table"] = {"columns": ["Name", "What it is read for", "State"],
+                    "rows": [[c["name"], c["why"],
+                              "pending MW-6 promotion"
+                              if c.get("light_tier_pending_promotion") else
+                              "promoted (MW-6)"] for c in p["coins"]]}
+    return out
+
+
+def panel_return_decomp(st, p: dict, ctx: dict) -> dict:
+    """GTM-19's return decomposition, built with what the store holds: each
+    proxy fund's quarter in USD split into price and dividends (on their
+    ex-dates, not reinvested); the currency, multiple and earnings terms and the
+    local-currency return wait for the series named."""
+    out = _panel_head(p)
+    rws = []
+    for f in p["proxies"]:
+        pts = rows(st, f["key"], ctx["now"], None, ctx["end"])
+        a, b = level_on(pts, ctx["end"]), level_on(pts, ctx["start"])
+        if not a or not b or not b[1] or a[0] == b[0]:
+            out["not_tracked"].append(f"{f['label']}: no quarter stored")
+            continue
+        divs = sum(v for d, v in rows(st, f["key"] + "_dividend", ctx["now"], None,
+                                      ctx["end"]) if b[0] < d <= a[0])
+        pr, dv = 100.0 * (a[1] / b[1] - 1.0), 100.0 * divs / b[1]
+        rws.append([f["label"], _signed(pr, f"{abs(pr):.1f}", "%"),
+                    _signed(dv, f"{abs(dv):.1f}", "%"),
+                    _signed(pr + dv, f"{abs(pr + dv):.1f}", "%")]
+                   + ["not stored"] * 4)
+    if rws:
+        out["table"] = {"columns": ["Proxy (USD)", "Price", "Dividends", "Total",
+                                    "Currency", "Multiple", "Earnings",
+                                    "Local-currency return"], "rows": rws}
+    out["not_tracked"] += list(p.get("lacks") or [])
+    return out
+
+
+COIN_FIELDS = (
+    ("definition", "Asset definition and token rights"),
+    ("supply", "Supply and holders — the effective float"),
+    ("economics", "Protocol economics and value capture"),
+    ("usage", "Usage and revenue, organic against subsidised"),
+    ("security", "Security, governance and operations"),
+    ("market", "Market structure and liquidity by venue"),
+    ("derivatives", "Derivatives and flows"),
+    ("regulation", "Regulation and custody by jurisdiction"),
+    ("catalysts", "Catalysts"),
+    ("cases", "Bull / base / bear"),
+    ("falsifiers", "Measurable falsifiers"),
+    ("log", "Source and vintage log"),
+)
+
+
+def _cases(case_key: Optional[str]) -> Optional[dict]:
+    if not case_key:
+        return None
+    try:
+        from altdata.report import cases_and_positioning as cp  # noqa: PLC0415
+    except ImportError:
+        return None
+    return (cp.CASES_AND_POSITIONING.get(case_key) or {}).get("cases")
+
+
+def _latest(st, key: str, ctx: dict) -> Optional[dict]:
+    got = [r for r in st.as_of(key, ctx["now"], None)
+           if r.get("value_num") is not None
+           and str(r["observed_at"])[:10] <= ctx["end"]]
+    return max(got, key=lambda r: str(r["observed_at"])) if got else None
+
+
+def coin_page(st, coin: dict, fam: dict, ctx: dict, states: dict) -> dict:
+    """One deep-tier coin in the fixed shape of section 4.6: twelve fields in
+    one order for every coin. Each reads a stored series, the vendored case file
+    or the chapter's tests -- or prints its not-yet reason."""
+    rws, used = [], []
+    tests = {t["id"]: t for t in fam.get("falsification") or []}
+    for fid, label in COIN_FIELDS:
+        spec = (coin.get("fields") or {}).get(fid) or {}
+        if fid == "cases":
+            cs = _cases(coin.get("cases_key"))
+            if cs:
+                txt = " | ".join(f"{name}: " + "; ".join(cs.get(k) or ["—"])
+                                 for name, k in (("bull", "bull"),
+                                                 ("base (range-bound)", "flat"),
+                                                 ("bear", "bear")))
+                txt += " (altdata/report/cases_and_positioning.py, vendored 3 Sep 2026)"
+            else:
+                txt = (f"not yet — {coin['name']} is not in "
+                       f"altdata/report/cases_and_positioning.py")
+        elif fid == "falsifiers":
+            parts = [f"{tests[t]['statement']} [{states.get(t, {}).get('state', 'not measured')}]"
+                     for t in spec.get("tests") or []]
+            parts += list(spec.get("lines") or [])
+            txt = " ".join(parts) or f"not yet — {spec.get('absent') or 'none stated'}"
+        elif fid == "log":
+            txt = "; ".join(used) or "no stored series on this page"
+        elif spec.get("keys"):
+            vals = []
+            for k in spec["keys"]:
+                r = _latest(st, k, ctx)
+                if r is None:
+                    vals.append(f"{k}: nothing stored")
+                    continue
+                d = str(r["observed_at"])[:10]
+                vals.append(f"{k} {fmt_level(float(r['value_num']), k)} ({d})")
+                used.append(f"{k} — {r.get('source') or 'source not recorded'}, "
+                            f"observed {d}, available {str(r.get('available_at'))[:16]}")
+            txt = "; ".join(vals)
+            if spec.get("absent"):
+                txt += f"; the rest not yet — {spec['absent']}"
+        elif spec.get("paper"):
+            txt = f"see {spec['paper']} (not restated)"
+            if spec.get("absent"):
+                txt += f"; not yet — {spec['absent']}"
+        else:
+            txt = f"not yet — {spec.get('absent') or 'no source named'}"
+        rws.append([label, txt])
+    return {"title": f"6a · The coin page: {coin['name']}",
+            "item": f"coin_{coin['id']}", "tier": REFERENCE, "panel": "coin",
+            "lines": [], "not_tracked": [],
+            "table": {"columns": ["Field", coin["name"]], "rows": rws},
+            "data": {"fields": [f for f, _ in COIN_FIELDS]}}
+
+
+def panel_subsections(st, fam: dict, ctx: dict, states: dict) -> list[dict]:
+    """The chapter's own panels (config `panels`), each placed after the
+    template item it names (`after`)."""
+    out = []
+    for p in fam.get("panels") or []:
+        k = p["kind"]
+        if k == "coins":
+            for c in p["coins"]:
+                out.append({**coin_page(st, c, fam, ctx, states), "after": p["after"]})
+            continue
+        if k == "series":
+            sub = panel_series(st, p, ctx)
+        elif k == "matrix":
+            sub = panel_matrix(p)
+        elif k == "hook":
+            sub = panel_hook(st, p, ctx)
+        elif k == "calendar":
+            sub = panel_calendar(p, ctx)
+        elif k == "lines":
+            sub = _panel_head(p)
+        elif k == "political":
+            out += [{**x, "after": p["after"]} for x in panel_political(p, ctx)]
+            continue
+        elif k == "light_tier":
+            sub = panel_light_tier(p)
+        elif k == "return_decomp":
+            sub = panel_return_decomp(st, p, ctx)
+        else:
+            sub = {**_panel_head(p), "notes": [f"unknown panel kind {k}"]}
+        sub["after"] = p["after"]
+        out.append(sub)
+    return out
