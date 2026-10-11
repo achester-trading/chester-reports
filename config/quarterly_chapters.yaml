@@ -296,9 +296,9 @@ families:
     voices_subjects: [usd]
     five_lines:
       - {key: fred.dxy,              label: "The broad dollar (DTWEXBGS)"}
-      - {key: yfinance.mkt_eurusd,   label: "EUR/USD"}
+      - {key: yfinance.mkt_eurusd,   label: "EUR/USD", dp: 4}
       - {key: yfinance.mkt_usdjpy,   label: "USD/JPY"}
-      - {key: yfinance.mkt_usdcny,   label: "USD/CNY"}
+      - {key: yfinance.mkt_usdcny,   label: "USD/CNY", dp: 4}
       - {key: fred.yield_2y,         label: "The US 2-year yield"}
     structure:
       - {key: yfinance.mkt_dxy,      label: "DXY (ICE)"}
@@ -329,7 +329,7 @@ families:
     curve: {waits: "forward points arrive with 6b"}
     analyses:
       - {id: yields_up_dollar_down, title: "Yields-up/dollar-down (the credibility fingerprint)", module: altdata.attribution,
-         reader: attr_triple, key: calc.yields_up_dollar_down.recurrence_13w, kill: "none ruled (section 5)"}
+         reader: attr_triple, module_key: recurrence, kill: "none ruled (section 5)"}
       - {id: two_year_gap, title: "The two-year-spread fair-value gap", waits: "the five other two-year yields are not stored (AQ-3)", kill: "none ruled"}
       - {id: carry_to_vol, title: "Carry-to-vol per pair", waits: "not built (AQ-8)", kill: "none ruled"}
       - {id: dollar_cycles, title: "The dollar-cycles table (GTM-22)", waits: "not built (AQ-8)", kill: "none ruled"}
@@ -359,7 +359,7 @@ families:
         section: "Falsification Tests"
         statement: "\"A disorderly episode is a tail, not the base case\" is falsified by two consecutive quarters in which the yields-up/dollar-down signature dominates, auction metrics deteriorate, and term premium expands together."
         measurable: null
-        not_measured: "waits for AQ-8a (calc.yields_up_dollar_down.recurrence_13w); auction metrics are not a single stored series"
+        not_measured: "waits for AQ-8a (the yields-up/dollar-down recurrence, its YUDD_KEYS[recurrence]); auction metrics are not a single stored series"
       - id: yuan_reserve
         paper: "Currencies"
         section: "Falsification Tests"

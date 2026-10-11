@@ -377,12 +377,14 @@ def transmission_map(cid: str, out_dir: Optional[str], name: str) -> dict:
         ax.set_title("The transmission map", fontsize=9, loc="left", color="#0d2b45")
         for i, (src, dst) in enumerate(TRANSMISSION):
             y = len(TRANSMISSION) - i - 0.5
-            ax.text(0.02, y, src, fontsize=7.5, va="center", ha="left",
+            # The source right-aligned to the arrow's tail, so no label of
+            # any length runs into it.
+            ax.text(0.40, y, src, fontsize=7.5, va="center", ha="right",
                     color="#0d2b45", fontweight="bold",
                     bbox={"boxstyle": "round,pad=0.3", "fc": "#eef2f6", "ec": "#94a3b8"})
-            ax.annotate("", xy=(0.47, y), xytext=(0.36, y),
+            ax.annotate("", xy=(0.50, y), xytext=(0.42, y),
                         arrowprops={"arrowstyle": "->", "color": "#d97706", "lw": 1.2})
-            ax.text(0.49, y, dst, fontsize=7.5, va="center", ha="left", color="#334155")
+            ax.text(0.52, y, dst, fontsize=7.5, va="center", ha="left", color="#334155")
         out = chm._finish(fig, name, out_dir)
         return {"id": cid, "title": "The transmission map",
                 "caption": TRANSMISSION_CAPTION, **out}

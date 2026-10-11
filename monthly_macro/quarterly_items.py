@@ -111,7 +111,11 @@ def units(key: str) -> str:
     return str(derived.registry_entry(key).get("units") or "")
 
 
-def fmt_level(v: float, key: str) -> str:
+def fmt_level(v: float, key: str, dp: Optional[int] = None) -> str:
+    """A level as its table prints it; `dp` fixes the decimals (a currency
+    pair's four)."""
+    if dp is not None:
+        return f"{v:,.{dp}f}"
     u = units(key)
     if u in ("%", "percent", "bps", "bp"):
         return f"{v:,.2f}%" if u in ("%", "percent") else f"{v:,.0f} bp"
@@ -122,6 +126,13 @@ def fmt_level(v: float, key: str) -> str:
     return f"{v:,.2f}"
 
 
+def _signed(v: float, mag: str, unit: str) -> str:
+    """A signed figure, unsigned when it rounds to zero ("0.0%", never "−0.0%")."""
+    if float(mag.replace(",", "")) == 0:
+        return f"{mag}{unit}"
+    return f"{'+' if v > 0 else '−'}{mag}{unit}"
+
+
 def change_text(a: float, b: float, key: str) -> tuple[Optional[float], str]:
     """The change from b to a in the series' delta unit, printed signed."""
     from altdata import numeral_audit as na  # noqa: PLC0415
@@ -129,10 +140,10 @@ def change_text(a: float, b: float, key: str) -> tuple[Optional[float], str]:
     u = units(key)
     if du == "bps":
         bp = (a - b) * (1.0 if u in ("bps", "bp") else 100.0)
-        return bp, f"{'+' if bp > 0 else '−' if bp < 0 else ''}{abs(bp):,.0f} bp"
+        return bp, _signed(bp, f"{abs(bp):,.0f}", " bp")
     if du == "percent" and b:
         p = 100.0 * (a / b - 1.0)
-        return p, f"{'+' if p > 0 else '−' if p < 0 else ''}{abs(p):,.1f}%"
+        return p, _signed(p, f"{abs(p):,.1f}", "%")
     d = a - b
     disp = na.change_display(d, u)
     return d, disp or f"{'+' if d > 0 else '−' if d < 0 else ''}{abs(d):,.2f}"
@@ -146,12 +157,13 @@ def ordinal(x: float) -> str:
 
 def quarter_move(st, spec: dict, ctx: dict) -> Optional[dict]:
     key, inst = spec["key"], spec.get("instrument")
+    dp = spec.get("dp")
     pts = rows(st, key, ctx["now"], inst, ctx["end"])
     a, b = level_on(pts, ctx["end"]), level_on(pts, ctx["start"])
     if not a:
         return None
     out = {"key": key, "label": spec.get("label") or key, "level": a[1],
-           "as_of": a[0], "level_text": fmt_level(a[1], key), "n": len(pts),
+           "as_of": a[0], "level_text": fmt_level(a[1], key, dp), "n": len(pts),
            "values": [v for _, v in pts]}
     if b and b[0] != a[0]:
         out["change"], out["change_display"] = change_text(a[1], b[1], key)
@@ -553,7 +565,7 @@ def item_pairs(st, fam: dict, ctx: dict) -> Optional[dict]:
         if not p.get("key"):
             nt.append(f"{p['pair']}: {p.get('absent')}")
             continue
-        m = quarter_move(st, {"key": p["key"], "label": p["pair"]}, ctx)
+        m = quarter_move(st, {"key": p["key"], "label": p["pair"], "dp": 4}, ctx)
         if m is None:
             nt.append(f"{p['pair']}: nothing stored by the quarter's end")
             continue
@@ -676,9 +688,16 @@ def analysis_state(st, a: dict, ctx: dict) -> str:
                 s = m.two_bid_state(st, ctx["now"])
                 return " ".join(m.two_bid_lines(s)) or "no two-bid state yet"
             if a.get("reader") in ("corr_triple", "attr_triple"):
-                t = m.triple(st, a["key"], ctx["now"])
+                # A key the hook's module owns is named through it (AQ-8a's
+                # YUDD_KEYS), so this config names no key the registry on this
+                # branch does not hold (validate_config_refs).
+                key = a.get("key") or (getattr(m, "YUDD_KEYS", None) or {}).get(
+                    a.get("module_key"))
+                if not key:
+                    return f"not yet — {a['module']} names no {a.get('module_key')}"
+                t = m.triple(st, key, ctx["now"])
                 return (f"{t['latest']:+.2f} ({t['as_of']})" if t else
-                        f"no {a['key']} row stored at this cutoff")
+                        f"no {key} row stored at this cutoff")
         except Exception as exc:                                # noqa: BLE001
             return f"FAULT (code, not data) -- {type(exc).__name__}"
     vals = []
