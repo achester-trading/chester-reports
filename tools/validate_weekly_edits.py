@@ -231,7 +231,7 @@ def main() -> int:
     check(html.count(">Glossary</h2>") == 1 and html.rfind(">Glossary</h2>") >
           html.rfind("&middot; The book"),
           "the glossary prints once, at the end")
-    for t in ("z", "gap z-score", "pending, open, exception", "outside 10–90%",
+    for t in ("z", "gap z-score", "pending, open, exception", "favourite–longshot check",
               "base rate", "Brier"):
         # The glossary is a table (T2.5: nothing prints as a list).
         check(re.search(r">" + re.escape(stack_render.esc(t)) + r"</td>", html),

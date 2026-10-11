@@ -163,7 +163,7 @@ outlooks:
 # The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
 # major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read", subtitle: "the week's five lines, and the week day by day",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
+  - {id: read,        title: "The read", subtitle: "the week's five lines, and the events alongside each session",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
   - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep, monthly: light, monthly_note: "light + the long frame (brief 3.4)"}
   - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)"}
   - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep}
@@ -275,6 +275,43 @@ cadences:
 # paragraph may cite. Every cadence; a listed section with no sub-sections is not
 # a parent at that cadence.
 figure_budget_parents: [tape, plumbing, positioning, priced, slow]
+
+# DESCRIPTIVE, UNVALIDATED (W-1.1 item 1.7, ruled 11 Oct 2026). Every descriptive
+# classification the Weekly prints carries "(descriptive; unvalidated, n=K)" in
+# the glossary and one footnote in each section that prints it. K is the count of
+# scorecard-graded instances: resolved rows in the probability ledger under
+# `graded_source`. No classification is graded yet (graded_source null), so K is 0
+# until the scorecard grades it -- then the source goes here and K counts itself.
+descriptive_classifications:
+  - {id: dealer_flags, label: "the dealer flags (pinned, held, amplified)", sections: [mechanics], graded_source: null}
+  - {id: gamma_regime, label: "the gamma regime", sections: [mechanics], graded_source: null}
+  - {id: gap_states, label: "the gap states (pending, open, exception)", sections: [misfit], graded_source: null}
+  - {id: extremes, label: "the five-year extremes", sections: [misfit], graded_source: null}
+  - {id: favourite_longshot, label: "the favourite–longshot check", sections: [priced], graded_source: null}
+  - {id: story_states, label: "the story states", sections: [narratives], graded_source: null}
+
+# STALE VERSUS LAGGED (W-1.1 item 1.2, ruling 2, 11 Oct 2026). A price series
+# whose last bar is older than the edition's prints "stale since <date>"; a series
+# declared here prints "lag: <period> (<reference>, released <date>)" instead,
+# because a monthly release two months behind is its normal state, not a fault.
+# Session-set list; WASDE and the IMF series join it when the store holds them.
+freshness:
+  expected_lag:
+    tic.flow_net_foreign: monthly
+    tic.flow_total: monthly
+
+# PER-SECTION OVERRIDES (W-1.1 item 1.0c, ruled 11 Oct 2026). A parent with three
+# or more sub-blocks spent all six figures on one of them: the 9 Oct Weekly's
+# Positioning cited six sector returns and had none left for the COT extremes. On
+# the Weekly these sections take a cap of 8 and, with `per_block`, one figure for
+# every sub-block that moved before the rest go to the largest z. The daily close
+# keeps its 6 (no entry). Plumbing's sub-blocks are its buckets
+# (monthly_plumbing_buckets' map, read at the Weekly's cadence too).
+figure_budget_sections:
+  weekly:
+    plumbing: {cap: 8, per_block: true}
+    positioning: {cap: 8, per_block: true}
+    priced: {cap: 8, per_block: true}
 
 # THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
 # deep). It follows The book; the old Monthly's record -- the regime, the
@@ -404,9 +441,12 @@ monthly_reading:
 # number's work. A motive word is refused outright; an intensity word only when
 # its sentence carries no figure.
 style:
+  # W-1.1 item 1.6 (ruled 11 Oct 2026): coincidence, never cause -- "on the back
+  # of", "in response to" and "reacting to" join the list. Quoted text is exempt
+  # (stack_prose.unquoted): a quoted official's "driven by" is attribution.
   motive_phrases: ["because", "due to", "driven by", "on fears", "on hopes",
                    "as investors", "amid concerns", "thanks to", "spooked",
-                   "cheered"]
+                   "cheered", "on the back of", "in response to", "reacting to"]
   # Closers the stack does not use (T2.1 item 8): refused in any section.
   banned_phrases: ["for the system", "what it will test next", "what it tests next",
                    "what next week tests", "what tomorrow tests",

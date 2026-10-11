@@ -250,10 +250,22 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                          f"weekly_tactical_{ending}_payload.json", args.archive_dir)
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
-    out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
-                               prior_dir=getattr(args, "prior_dir", None),
-                               model=args.narrative_model,
-                               narrative=not args.no_narrative)
+    from daily_cascade import consistency  # noqa: PLC0415
+    try:
+        out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
+                                   prior_dir=getattr(args, "prior_dir", None),
+                                   model=args.narrative_model,
+                                   narrative=not args.no_narrative)
+    except consistency.EditionInconsistent as exc:
+        # BEYOND ROUNDING, THE RUN FAILS (W-1.1 item 1.1, ruling 1): two tables
+        # print one fact differently, and no edition goes out saying both.
+        print(f"\nweekly (stacked) -- week ending {ending}")
+        print(f"  run id     : {run_id}")
+        print(f"  FAILED     : the edition is inconsistent -- {exc}")
+        if not args.dry_run:
+            _emit(args, "error", "stacked weekly failed the consistency gate",
+                  {"run_id": run_id, "mismatches": exc.mismatches}, ending)
+        return 5
     ed = out["edition"]
     print(f"\nweekly (stacked) -- week ending {ending}")
     print(f"  run id     : {run_id}")

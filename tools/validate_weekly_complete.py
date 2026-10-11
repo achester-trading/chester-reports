@@ -206,12 +206,18 @@ def main() -> int:
         pr, o, c = rows[i - 1]["close"], byd[r["day"]]["open"], byd[r["day"]]["close"]
         ok &= (abs(r["overnight_pct"] - round(100 * (o / pr - 1), 2)) < 1e-9
                and abs(r["intraday_pct"] - round(100 * (c / o - 1), 2)) < 1e-9)
+    # W-1.1 item 1.1: the legs compound UNROUNDED, and the week is close to close.
     tot = 1.0
     for r in oi["rows"]:
-        tot *= 1 + r["overnight_pct"] / 100
+        i = allc.index(r["day"])
+        tot *= byd[r["day"]]["open"] / rows[i - 1]["close"]
+    first = allc.index(oi["rows"][0]["day"]) if oi["rows"] else 0
+    c2c = round(100 * (rows[allc.index(oi["rows"][-1]["day"])]["close"]
+                       / rows[first - 1]["close"] - 1), 2) if oi["rows"] else None
     check(oi["rows"] and ok and abs(oi["totals"]["overnight_pct"] - round(100 * (tot - 1), 2))
-          < 1e-9, f"overnight and intraday returns from the stored OHLC, the week "
-                  f"compounded ({len(oi['rows'])} sessions, {oi['totals']})")
+          < 1e-9 and oi["totals"]["close_to_close_pct"] == c2c,
+          f"overnight and intraday returns from the stored OHLC, the week compounded "
+          f"unrounded and close to close ({len(oi['rows'])} sessions, {oi['totals']})")
     tsubs = {ss["title"]: ss for ss in sec["tape"]["subsections"]}
     check("SPY overnight against the cash session" in tsubs
           and tsubs["SPY overnight against the cash session"]["table"]["rows"][-1][0]
@@ -246,7 +252,17 @@ def main() -> int:
     cb = prow.get("CCC less BB (stress inside high yield)")
     check(cb and cb[1] == "520 bp" and cb[2] == "+25 bp" and "CCC OAS" in prow
           and "Investment-grade OAS" in prow, f"IG, CCC and CCC less BB ({cb})")
+    # W-1.1 item 1.4: the Weekly prints its auctions in their own table, every
+    # field with its two-year percentile; the plumbing rows keep the Monthly's form.
     auc = [r for r in sec["plumbing"]["table"]["rows"] if "auction" in r[0]]
+    at = next((ss["table"] for ss in sec["plumbing"]["subsections"]
+               if ss.get("title") == "Treasury auctions"), None)
+    check(not auc and at and at["rows"] and at["rows"][0][1].startswith("2.51")
+          and at["rows"][0][4].startswith("14.0%") and at["rows"][0][5] == "not stored",
+          f"the Weekly's auctions in their own table ({(at or {}).get('rows', [])[:1]})")
+    with observations.ObservationStore(db) as st:
+        auc = [r for r in wsec.plumbing_rows(st, vws.AS_OF, ws.week_ago(vws.AS_OF))["rows"]
+               if "auction" in r[0]]
     with observations.ObservationStore(db) as st:
         quiet = wsec.plumbing_rows(st, "2026-08-08T09:00:00+00:00",
                                    "2026-08-01T09:00:00+00:00")

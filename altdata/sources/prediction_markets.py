@@ -82,6 +82,17 @@ def price(bid: Optional[float], ask: Optional[float], last: Optional[float]
     return last, "last"
 
 
+def rules_url(venue: str, series_or_slug: Optional[str],
+              ticker: Optional[str] = None) -> Optional[str]:
+    """The public page that carries a market's resolution rules (W-1.1 item
+    1.5): Kalshi's market page by series, Polymarket's event page by slug."""
+    if not series_or_slug:
+        return None
+    if venue == "kalshi":
+        return f"https://kalshi.com/markets/{str(series_or_slug).lower()}"
+    return f"https://polymarket.com/event/{series_or_slug}"
+
+
 # ---------------------------------------------------------------------------
 # Parsers -- venue JSON to market rows
 # ---------------------------------------------------------------------------
@@ -110,6 +121,10 @@ def parse_kalshi_event(ev: dict, watch_id: str, match: str = "exact") -> list[di
             "close_at": m.get("close_time") or e.get("strike_date"),
             "decision_date": (e.get("strike_date") or "")[:10] or None,
             "criteria": m.get("rules_primary") or None,
+            # W-1.1 item 1.5: where the resolution rule is read in full.
+            "rules_url": rules_url("kalshi", e.get("series_ticker")
+                                   or str(e.get("event_ticker") or "").split("-")[0],
+                                   m.get("ticker")),
         })
     return [r for r in out if r["market_id"] and r["probability"] is not None]
 
@@ -149,6 +164,7 @@ def parse_polymarket_event(ev: dict, watch_id: str, match: str = "exact"
             "criteria": m.get("description") or ev.get("description") or None,
             "clob_token": (json.loads(m.get("clobTokenIds") or "[]") or [None])[i]
             if m.get("clobTokenIds") else None,
+            "rules_url": rules_url("polymarket", ev.get("slug")),
         })
     return [r for r in out if r["market_id"] and r["probability"] is not None]
 
@@ -258,7 +274,7 @@ def collect(cfg: Optional[dict] = None, get: Optional[Callable] = None) -> dict:
 # ---------------------------------------------------------------------------
 META_FIELDS = ("watch_id", "venue", "event_id", "event_title", "question",
                "outcome", "close_at", "decision_date", "criteria", "match",
-               "clob_token")
+               "clob_token", "rules_url")
 # pm.probability's value_text names the basis of its value_num ("mid"/"last");
 # a JSON string because a row holds one number.
 
@@ -281,6 +297,13 @@ def to_observations(rows: list[dict], fetched_at: str, run_id: Optional[str] = N
         if r.get("volume") is not None:
             out.append({**base, "registry_key": "pm.volume", "value": r["volume"]})
         if not backfill:
+            # THE CONTRACT RECORD (W-1.1 item 1.5): the book behind the mid --
+            # bid, ask, last and liquidity -- beside it, at the same instant. The
+            # row's observed_at is the retrieval instant.
+            for f, k in (("bid", "pm.bid"), ("ask", "pm.ask"), ("last", "pm.last"),
+                         ("open_interest", "pm.open_interest")):
+                if r.get(f) is not None:
+                    out.append({**base, "registry_key": k, "value": r[f]})
             meta = {k: r.get(k) for k in META_FIELDS if r.get(k) is not None}
             out.append({**base, "registry_key": "pm.market",
                         "value": json.dumps(meta, sort_keys=True)})

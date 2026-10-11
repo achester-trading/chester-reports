@@ -567,7 +567,7 @@ def _change_cell(by_venue: dict) -> str:
 
 def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
     """Item 9: item · Kalshi · Polymarket · change over the window · note. The
-    note carries a venue's legs-sum flag and odds outside 10-90%. Kalshi's change
+    note carries a venue's legs-sum flag and the favourite–longshot check. Kalshi's change
     is printed first, Polymarket's second, in the columns' order."""
     cols, rows, _ = _pm(pmb, window)
     return {"columns": cols, "rows": rows}
@@ -619,8 +619,9 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
             if max((p or 0) for p in probs.values()) < 0.05:
                 continue
             ch: dict = {}
+            thin = set()
             for r in fomc_rows:
-                if not classify_fomc or r.get(key) is None:
+                if not classify_fomc:
                     continue
                 dd = str(r.get("decision_date") or "")[:10]
                 try:
@@ -630,15 +631,32 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
                     near = False
                 if near and classify_fomc(r.get("question") or "",
                                           r.get("outcome") or "") == side:
-                    ch[r["venue"]] = (ch.get(r["venue"]) or 0) + r[key]
+                    if r.get(key) is not None:
+                        ch[r["venue"]] = (ch.get(r["venue"]) or 0) + r[key]
+                    if r.get("illiquid"):
+                        thin.add(r["venue"])
             note = []
+            cells = {}
             for v in VENUES:
+                cells[v] = _pct(probs.get(v))
                 if v in sums and not lo <= sums[v] <= hi:
-                    note.append(f"{v.title()} legs sum to {round(sums[v] * 100):.0f}%")
+                    # THE RAW SUM AND THE NORMALISED ODDS SIDE BY SIDE (W-1.1
+                    # item 1.5): "legs sum 108%", and each side's price as quoted
+                    # beside its share of the book. Only a book normalises: the
+                    # hold leg and a move leg both quoted.
+                    o = by_v.get(v) or {}
+                    book = (o.get("hold") or 0) > 0 and ((o.get("hike") or 0) > 0
+                                                         or (o.get("cut") or 0) > 0)
+                    note.append(f"{v.title()} legs sum {round(sums[v] * 100):.0f}%")
+                    if book and probs.get(v) is not None and sums[v] > 0:
+                        cells[v] = (f"{_pct(probs[v])} ({_pct(probs[v] / sums[v])} "
+                                    f"normalised)")
+            for v in sorted(thin):
+                note.append(f"{v.title()} illiquid")
             if any(p is not None and not 0.1 <= p <= 0.9 for p in probs.values()):
-                note.append("outside 10–90%")
-            rows.append([f"FOMC {d}: {side}", _pct(probs.get("kalshi")),
-                         _pct(probs.get("polymarket")), _change_cell(ch),
+                note.append("favourite–longshot check: outside 10–90%")
+            rows.append([f"FOMC {d}: {side}", cells.get("kalshi"),
+                         cells.get("polymarket"), _change_cell(ch),
                          "; ".join(dict.fromkeys(note)) or "—"])
             contracts += _contracts(rows[-1][0], ch)
     wcfg = _watch_cfg()
@@ -657,7 +675,7 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
                              _pct(r["probability"]) if v == "kalshi" else "—",
                              _pct(r["probability"]) if v == "polymarket" else "—",
                              _change_cell({v: r.get(key)}),
-                             "outside 10–90%" if r.get("bias_zone") else "—"])
+                             _pm_note([r])])
                 contracts += _contracts(rows[-1][0], {v: r.get(key)})
             continue
         side = w.get("side") or "Yes"
@@ -665,11 +683,24 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
                      _pct((picked.get("kalshi") or {}).get("probability")),
                      _pct((picked.get("polymarket") or {}).get("probability")),
                      _change_cell({v: r.get(key) for v, r in picked.items()}),
-                     "outside 10–90%" if any(r.get("bias_zone")
-                                             for r in picked.values()) else "—"])
+                     _pm_note(list(picked.values()))])
         contracts += _contracts(rows[-1][0], {v: r.get(key)
                                               for v, r in picked.items()})
     return cols, rows, contracts
+
+
+def _pm_note(rs: list[dict]) -> str:
+    """A watched market's note: the favourite-longshot flag and, from W-1.1 item
+    1.5, "illiquid (spread N pts)" where a venue's bid-ask is wider than the
+    config's threshold."""
+    note = []
+    for r in rs:
+        if r.get("illiquid"):
+            note.append(f"{str(r.get('venue')).title()} illiquid "
+                        f"(spread {r.get('spread_points'):.0f} pts)")
+    if any(r.get("bias_zone") for r in rs):
+        note.append("favourite–longshot check: outside 10–90%")
+    return "; ".join(note) or "—"
 
 
 def pm_outages(pmb: Optional[dict]) -> list[str]:

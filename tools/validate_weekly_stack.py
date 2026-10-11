@@ -512,9 +512,12 @@ def main() -> int:
     check(sum(1 for t in vt if t.startswith("Each month's CPI print --")) == 2
           and any("Will CPI rise more than 0.3%?" in t for t in vt),
           "5: the CPI item prints each venue's market by its own title, never paired")
+    # W-1.1 item 1.5: the rule is the favourite-longshot check, a flag.
     check(all("bias zone" not in t for t in vt) and any("outside 10-90%" in t for t in vt)
-          and _st.BIAS_LEGEND.startswith("Outside 10-90%"),
-          "3: the bias zone is in plain words, with a one-line legend")
+          and any("favourite–longshot check" in t for t in vt)
+          and _st.BIAS_LEGEND.startswith("Favourite–longshot check (outside 10-90%)"),
+          "3: the bias zone is in plain words -- the favourite-longshot check -- with "
+          "a one-line legend")
     check(not _sp.policy_word_faults("The CPI market holds near 0.3%, and the low held.")
           and _sp.policy_word_faults("The Fed holds at the October meeting, says the "
                                      "CPI market."),
