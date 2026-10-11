@@ -93,6 +93,12 @@ def _surprise_for(entities: Iterable[str], as_of: Optional[str],
     return out
 
 
+def _unit_word(units) -> str:
+    """The units code as a reader sees it: a plain count (FRED "Number", code
+    N since T3.3) prints no unit word."""
+    return "" if str(units or "") in ("N", "count", "None") else str(units or "")
+
+
 def build(since: str, as_of: Optional[str] = None,
           ahead_days: int = AHEAD_DAYS_DEFAULT,
           store: Optional[Any] = None) -> dict:
@@ -345,7 +351,7 @@ def html(block: dict) -> str:
                 f'<p style="{NOTE}">&nbsp;&nbsp;<code>{_esc(sp["metric"])}</code> '
                 f'actual {_fmt(sp["actual"])} against a naive '
                 f'{_fmt(sp["naive_expectation"])} ({_esc(sp["expectation_method"])})'
-                f' &rarr; <b>{_fmt(sp["surprise"])} {_esc(sp.get("units") or "")}</b>,'
+                f' &rarr; <b>{_fmt(sp["surprise"])} {_esc(_unit_word(sp.get("units")))}</b>,'
                 f' {_fmt(sp["surprise_percentile"], 1)} percentile of its own '
                 f'surprise history. Naive, not a consensus.</p>')
 

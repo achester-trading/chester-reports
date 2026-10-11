@@ -401,7 +401,13 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # thousands, so +29 prints "+29k" -- the model then has nothing to rescale,
         # and "+29" read as 29,000 was withheld by the audit.
         units = str(derived.registry_entry(key).get("units") or "")
-        return f"{v:+,.0f}k" if units == "K" else f"{v:+,.0f}"
+        if units == "K":
+            return f"{v:+,.0f}k"
+        # A plain count (claims, T3.3) of 10,000 or more carries its scale word,
+        # so no paragraph copies a bare "+12,500".
+        from altdata import numeral_audit as na                  # noqa: PLC0415
+        big = na.change_display(v, units) if abs(v) >= 10000 else None
+        return big or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):

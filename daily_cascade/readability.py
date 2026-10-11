@@ -569,12 +569,40 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
     """Item 9: item · Kalshi · Polymarket · change over the window · note. The
     note carries a venue's legs-sum flag and odds outside 10-90%. Kalshi's change
     is printed first, Polymarket's second, in the columns' order."""
+    cols, rows, _ = _pm(pmb, window)
+    return {"columns": cols, "rows": rows}
+
+
+def pm_contracts(pmb: Optional[dict], window: str = "5s") -> list[dict]:
+    """EACH CONTRACT'S CHANGE AS A FIGURE (T3.3 item 5): one entry per row and
+    venue the table prints a change for -- the row's item, the venue, the change
+    in probability points and its signed form with its unit ("−14.0 pts"), the
+    string the table cell prints for that venue. The 10 Oct dry run withheld the
+    FOMC block on 14.0 and the rest on 11.5: week changes the payload carried only
+    inside the table's "a / b pts" cells."""
+    return _pm(pmb, window)[2]
+
+
+def _contracts(item: str, by_venue: dict) -> list[dict]:
+    out = []
+    for v in VENUES:
+        x = by_venue.get(v)
+        if x is None:
+            continue
+        out.append({"item": item, "venue": v.title(),
+                    "change_points": round(float(x), 1),
+                    "change_signed": f"{_pts(x)} pts", "change_unit": "points"})
+    return out
+
+
+def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
     from .stack import _watch_cfg, side_rows                    # noqa: PLC0415
     label = "Week change" if window == "5s" else "Session change"
     cols = ["Item", "Kalshi", "Polymarket", label, "Note"]
     rows: list[list] = []
+    contracts: list[dict] = []
     if not pmb:
-        return {"columns": cols, "rows": rows}
+        return cols, rows, contracts
     lo, hi = pmb.get("legs_sum_band") or [0.95, 1.05]
     key = f"change_{window}_points"
     try:
@@ -612,6 +640,7 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
             rows.append([f"FOMC {d}: {side}", _pct(probs.get("kalshi")),
                          _pct(probs.get("polymarket")), _change_cell(ch),
                          "; ".join(dict.fromkeys(note)) or "—"])
+            contracts += _contracts(rows[-1][0], ch)
     wcfg = _watch_cfg()
     for wid, wrows in (pmb.get("watch") or {}).items():
         if wid == "fomc_decision" or not wrows:
@@ -629,6 +658,7 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
                              _pct(r["probability"]) if v == "polymarket" else "—",
                              _change_cell({v: r.get(key)}),
                              "outside 10–90%" if r.get("bias_zone") else "—"])
+                contracts += _contracts(rows[-1][0], {v: r.get(key)})
             continue
         side = w.get("side") or "Yes"
         rows.append([f"{name} ({side})",
@@ -637,7 +667,9 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
                      _change_cell({v: r.get(key) for v, r in picked.items()}),
                      "outside 10–90%" if any(r.get("bias_zone")
                                              for r in picked.values()) else "—"])
-    return {"columns": cols, "rows": rows}
+        contracts += _contracts(rows[-1][0], {v: r.get(key)
+                                              for v, r in picked.items()})
+    return cols, rows, contracts
 
 
 def pm_outages(pmb: Optional[dict]) -> list[str]:

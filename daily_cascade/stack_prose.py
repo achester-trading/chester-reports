@@ -128,15 +128,21 @@ or weekday. A level is named with the market it belongs to, one at a time.
 """
 
 
+def figures_cited(text: str) -> int:
+    """The figures the paragraph after the claim line cites -- the count the cap
+    is held to, and the N a retry is told (T3.3 item 4)."""
+    sents = _sentences((text or "").split("\n\n")[0])
+    rest = (text or "")[len(sents[0]):] if sents else ""
+    return readability.figure_count(rest)
+
+
 def figure_faults(text: str, cap: Optional[int] = None) -> list[str]:
     """ONE FACT, ONCE (T2.5 item 1): the paragraph after the claim line cites at
     most `cap` figures -- the tables carry the rest. The cap is the cadence's
     `paragraph_figures` (six for the close and the Weekly, 8 for the Monthly,
     T3.2 item 1); unset, six."""
     cap = readability.PARAGRAPH_FIGURES if cap is None else int(cap)
-    sents = _sentences((text or "").split("\n\n")[0])
-    rest = (text or "")[len(sents[0]):] if sents else ""
-    n = readability.figure_count(rest)
+    n = figures_cited(text)
     return ([f"the paragraph cites {n} figures; at most "
              f"{cap} -- the tables carry the rest"]
             if n > cap else [])
