@@ -114,7 +114,7 @@ def _change(x: dict) -> str:
         return _signed(c, "bp")
     if x["unit"] == "%":
         return _signed(c, "%")
-    return f"{c:+,.0f}"
+    return x.get("change_display") or f"{c:+,.0f}"
 
 
 # ---------------------------------------------------------------------------

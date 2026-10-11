@@ -114,10 +114,19 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
         ch = round(100.0 * (lv / pv - 1.0), 2)
     else:
         ch = round(lv - pv, 4)
-    return {"key": key, "level": lv, "prior": pv, "change": ch,
-            "unit": "bp" if du == "bps" else ("%" if du == "percent" else ""),
-            "level_units": units, "observed_at": str(a["observed_at"])[:10],
-            "prior_observed_at": str(b["observed_at"])[:10] if b else None}
+    out = {"key": key, "level": lv, "prior": pv, "change": ch,
+           "unit": "bp" if du == "bps" else ("%" if du == "percent" else ""),
+           "level_units": units, "observed_at": str(a["observed_at"])[:10],
+           "prior_observed_at": str(b["observed_at"])[:10] if b else None}
+    # A RAW change carries its display form (T3.4a): "+42,984" for CFTC
+    # contracts, "+29,000" for payrolls -- what the table prints and the audit
+    # accepts.
+    if ch is not None and du not in ("bps", "percent"):
+        from altdata import numeral_audit as na                  # noqa: PLC0415
+        disp = na.change_display(ch, units)
+        if disp:
+            out["change_display"] = disp
+    return out
 
 
 def series(st, key: str, cutoff: str, instrument: Optional[str] = None,
@@ -400,14 +409,12 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # IN THE SERIES' OWN SCALE, WRITTEN (5 Oct): payrolls are stored in
         # thousands, so +29 prints "+29k" -- the model then has nothing to rescale,
         # and "+29" read as 29,000 was withheld by the audit.
+        # T3.4a: one change form for every report, numeral_audit.change_display
+        # -- "+29,000" for payrolls' +29 thousand, "+12,500" for a plain count,
+        # each accepted by the audit as the payload's own display.
         units = str(derived.registry_entry(key).get("units") or "")
-        if units == "K":
-            return f"{v:+,.0f}k"
-        # A plain count (claims, T3.3) of 10,000 or more carries its scale word,
-        # so no paragraph copies a bare "+12,500".
         from altdata import numeral_audit as na                  # noqa: PLC0415
-        big = na.change_display(v, units) if abs(v) >= 10000 else None
-        return big or f"{v:+,.0f}"
+        return na.change_display(v, units) or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):

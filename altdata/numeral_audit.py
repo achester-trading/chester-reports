@@ -356,11 +356,32 @@ def scaled_display(value: float, units: str) -> Optional[str]:
     return None
 
 
+# PLAIN COUNTS AND SMALL THOUSANDS PRINT AS THE INTEGER (T3.4a, the third box dry
+# run). The bare-delta rule withheld "+29,000" (payrolls, a thousands-unit series)
+# and "+42,984, −77,476" (CFTC contracts, plain counts) in three sections -- each
+# a correct figure in its natural form. A plain count's change is the integer with
+# separators, whatever its size; a thousands-unit change below ±1,000 thousand is
+# the integer it stands for ("+29,000"); levels keep their scale ("159.04
+# million"), and currency and scaled series are unchanged ("+$23.15bn").
+COUNT_UNITS = ("N", "count", "Number", "contracts", "Contracts", "jobs",
+               "persons", "Persons", "shares")
+THOUSAND_UNITS = ("K", "Thousands")
+
+
+def _signed_int(x: float) -> str:
+    return (MINUS if x < 0 else "+") + f"{abs(x):,.0f}"
+
+
 def change_display(value: float, units: str) -> Optional[str]:
-    """A CHANGE in its series' own scale, SIGNED: '+$23.15bn', '−7 thousand',
-    '+29 thousand' (T3.3 item 2). Built by scaled_display, so a change and the
-    level beside it are printed by the one scaler; None where the level would
-    have no display either."""
+    """A CHANGE in its series' own form, SIGNED: '+$23.15bn' and '−7.2 million'
+    from the scaler (T3.3 item 2); '+42,984' for a plain count and '+29,000' for a
+    thousands-unit change below ±1,000 thousand (T3.4a). None where the level
+    would have no display either."""
+    u = str(units)
+    if u in COUNT_UNITS:
+        return _signed_int(float(value))
+    if u in THOUSAND_UNITS and abs(float(value)) < 1000:
+        return _signed_int(float(value) * 1000)
     d = scaled_display(value, units)
     if d is None:
         return None
@@ -384,14 +405,41 @@ _BARE_DELTA = re.compile(
     r"(?![\d.,])", re.I)
 
 
-def bare_deltas(text: Optional[str]) -> list[str]:
-    """Every change of 10,000 or more printed with no unit or scale beside it."""
+_PLAIN_DISPLAY = re.compile(r"^[+−-]?\d{1,3}(?:,\d{3})+$|^[+−-]?\d+$")
+
+
+def accepted_deltas(payload: Any, _depth: int = 0) -> set[float]:
+    """The magnitudes of every plain-integer display form the payload carries
+    (`change_display`, `change_signed`) -- a count's or a small thousands
+    change's own printed form, which the audit accepts (T3.4a)."""
+    out: set[float] = set()
+    if _depth > 12:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if (k in ("change_display", "change_signed") and isinstance(v, str)
+                    and _PLAIN_DISPLAY.match(v.strip())):
+                out.add(abs(float(v.strip().lstrip("+−-").replace(",", ""))))
+            else:
+                out |= accepted_deltas(v, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out |= accepted_deltas(v, _depth + 1)
+    return out
+
+
+def bare_deltas(text: Optional[str], accepted: Any = ()) -> list[str]:
+    """Every change of 10,000 or more printed with no unit or scale beside it --
+    except a figure the payload's own display form prints that way (`accepted`,
+    from accepted_deltas): a plain count or a thousands-unit change."""
     out = []
+    ok = {abs(float(x)) for x in accepted or ()}
     for m in _BARE_DELTA.finditer(text or ""):
         before = (text or "")[max(0, m.start("num") - 2):m.start("num")]
         if "$" in before:
             continue
-        if float(m.group("num").replace(",", "")) >= 10000:
+        n = float(m.group("num").replace(",", ""))
+        if n >= 10000 and n not in ok:
             out.append(m.group(0).strip())
     return out
 
