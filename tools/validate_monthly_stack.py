@@ -1581,11 +1581,13 @@ def t31_summary_group(ed: dict, out: dict) -> None:
           "withheld — audit)\" rather than an unaudited sentence")
     plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
     sl = (plan.get("summary:plumbing") or {}).get("slice") or {}
-    check(sl.get("section") == "Plumbing & rates" and "subsections" in sl
+    check("subsections" in sl and "section" not in sl
+          and "title" not in json.dumps(sl)
           and not any(k in json.dumps(sl) for k in ("month_in_markets",
                                                      "looking_back")),
           "each call sees its finished section -- claim, paragraphs, tables, lines, "
-          "points -- never the raw payload")
+          "points -- never the raw payload, and (T3.4a) without the stack's own "
+          "titles")
     html, md = out["html_email"], out["markdown"]
     check("Executive summary" in html and html.index("Executive summary")
           < html.index("1 &middot; The read") and prose_mod.SUMMARY_WITHHELD in html
@@ -1859,7 +1861,7 @@ def t33_group(ed: dict, out: dict) -> None:
         br = v2.metric_month(st, {"metric": "fred.bank_reserves"}, AS_OF,
                              dt.date(2026, 9, 30))
     check(cl.get("latest_level_display") == "200.5 thousand"
-          and cl.get("change_display") == "−7 thousand",
+          and cl.get("change_display") == "−7,000",
           f"the Fed-path theme's claims row: {cl.get('latest_level_display')}, "
           f"{cl.get('change_display')} (the dry run printed \"200.5 million\" and "
           f"\"−7 million\")")
@@ -1867,9 +1869,9 @@ def t33_group(ed: dict, out: dict) -> None:
     # P2 -- every delta with its display form (item 2).
     check(br.get("latest_level_display") == "$2.95tn"
           and br.get("change_display") == "+$23.15bn"
-          and na.change_display(-7000.0, "N") == "−7 thousand"
-          and na.change_display(29.0, "K") == "+29 thousand"
-          and na.change_display(500.0, "N") is None,
+          and na.change_display(-7000.0, "N") == "−7,000"
+          and na.change_display(29.0, "K") == "+29,000"
+          and na.change_display(500.0, "N") == "+500",
           f"P2 item 2: a change carries change_display, signed, by the scaler that "
           f"builds latest_level_display ({br.get('change_display')} to "
           f"{br.get('latest_level_display')})")
@@ -1903,8 +1905,9 @@ def t33_group(ed: dict, out: dict) -> None:
           f"in the pipeline a paragraph printing a bare delta above 9,999 is "
           f"withheld, after its retries, naming the display form "
           f"({w['state']}, {w['attempts']} attempts)")
+    t34a_group(ed, client)
     found = [(where, d) for where, t in _published_paragraphs(ed)
-             for d in na.bare_deltas(t)]
+             for d in na.bare_deltas(t, na.accepted_deltas(ed))]
     check(not found, f"no published paragraph in the edition carries a bare delta "
                      f"above 9,999 ({len(list(_published_paragraphs(ed)))} "
                      f"paragraphs" + (f"; {found[:3]})" if found else ")"))
@@ -2132,6 +2135,98 @@ def t33_group(ed: dict, out: dict) -> None:
     check("M11" not in mch.ORDER and len(mch.ORDER) == 11,
           f"the plan is eleven charts, M0-M10 ({', '.join(mch.ORDER)}); there is no "
           f"M11")
+
+
+def t34a_group(ed: dict, client) -> None:
+    """T3.4a, the third box dry run's hot-fix: the bare-delta rule's three cases,
+    and the internal-vocabulary frame and retry."""
+    from altdata import numeral_audit as na
+    from monthly_macro import prose as prose_mod
+    print("\n  T3.4a -- counts, small thousands, and the banned list in the frame")
+    # Case 1 -- payrolls, a thousands-unit series: +29 thousand prints "+29,000",
+    # the level keeps its scale, and the audit accepts the display form.
+    pay = {"series": [{"series": "Nonfarm payrolls", "change_display":
+                       na.change_display(29.0, "K"),
+                       "latest_level_display": na.scaled_display(159040.0, "K")}]}
+    check(pay["series"][0]["change_display"] == "+29,000"
+          and pay["series"][0]["latest_level_display"] == "159.04 million"
+          and na.change_display(-1500.0, "K") == "−1.5 million",
+          "T3.4a case 1: payrolls' +29 thousand displays \"+29,000\"; the level "
+          "keeps \"159.04 million\"; at ±1,000 thousand the scale word returns")
+    check(not na.bare_deltas("Payrolls rose +29,000 to 159.04 million.",
+                             na.accepted_deltas(pay))
+          and na.bare_deltas("Payrolls rose +29,000 in September.") == ["+29,000"],
+          "and the audit accepts \"+29,000\" as the payload's display form -- "
+          "and still refuses it where no display form says so")
+    # Case 2 -- CFTC contracts, plain counts: the integer with separators.
+    cf = {"cftc:ES": {"change": 42984.0, "change_display":
+                      na.change_display(42984.0, "count")},
+          "cftc:ZN": {"change": -77476.0, "change_display":
+                      na.change_display(-77476.0, "count")}}
+    txt = ("Speculators added +42,984 contracts in S&P futures and cut "
+           "−77,476 in Treasuries.")
+    check(cf["cftc:ES"]["change_display"] == "+42,984"
+          and cf["cftc:ZN"]["change_display"] == "−77,476"
+          and not na.bare_deltas(txt, na.accepted_deltas(cf)),
+          "T3.4a case 2: CFTC contracts print \"+42,984\" and \"−77,476\" and "
+          "the audit accepts them")
+    from daily_cascade import stack as dstack
+    check(dstack._change({"change": -77476.0, "unit": "",
+                          "change_display": "−77,476"}) == "−77,476",
+          "the stack's change cell prints the same display form")
+    # Case 3 -- currency and scaled series unchanged.
+    check(na.change_display(23154.0, "M") == "+$23.15bn"
+          and na.bare_deltas("Reserves rose +23,154 on the month.",
+                             na.accepted_deltas({"change_display": "+$23.15bn"}))
+          == ["+23,154"],
+          "T3.4a case 3: a currency series keeps \"+$23.15bn\", and its raw "
+          "millions are still refused")
+    calls: list = []
+    probe = [{"key": "probe_cftc", "title": "Probe positioning",
+              "scope": "One paragraph.", "paragraphs": "exactly 1",
+              "slice": {"series": [{"series": "CFTC S&P 500 net",
+                                    "change_display": "+42,984"},
+                                   {"series": "Nonfarm payrolls",
+                                    "change_display": "+29,000"}]}}]
+    w = prose_mod.write_all({}, client=client(calls, {
+        "THE SECTION: Probe positioning": [
+            "Speculators added +42,984 S&P contracts as payrolls rose +29,000."]}),
+        secs=probe)["probe_cftc"]
+    check(w["published"] and w["state"] != "bare_delta",
+          f"in the pipeline those two figures publish ({w['state']})")
+    # The banned list in every frame; the retry names the word and quotes the rule.
+    frames = (prose_mod.stack_plan(ed) + prose_mod.block_plan(ed)
+              + prose_mod.summary_plan(ed))
+    vf = prose_mod.vocab_frame()
+    check("the object" in vf and "tracked series" in vf and "'venues'" in vf
+          and "'extreme:'" in vf and vf in prose_mod.system_prompt("T", "S")
+          and all(vf in x["system"] for x in frames),
+          f"every Monthly frame -- {len(frames)} stack, block and summary frames and "
+          f"the v2 sections' -- lists the banned words and phrases")
+    retry = prose_mod.retry_prompt("SYS", {
+        "reason": "withheld: banned phrase: 'venues'",
+        "vocab_words": prose_mod.vocab_words(["the object"],
+                                             ["banned phrase: 'venues'"])})
+    check('your draft used "the object", "venues"; the rule: "'
+          + prose_mod.VOCAB_RULE + '"' in retry,
+          "the retry names the offending words and quotes the rule")
+    calls2: list = []
+    probe = [{"key": "probe_vocab", "title": "Probe vocab",
+              "scope": "One paragraph.", "paragraphs": "exactly 1",
+              "slice": {"series": [{"series": "S&P 500", "change_pct": 1.2}]}}]
+    w = prose_mod.write_all({}, client=client(calls2, {
+        "THE SECTION: Probe vocab": ["The object says the S&P 500 rose 1.2%."]}),
+        secs=probe)["probe_vocab"]
+    second = [c for c in calls2 if "YOUR PREVIOUS DRAFT" in str(c)]
+    check(not w["published"] and w["vocab_words"] == ["the object"]
+          and second and 'your draft used "the object"' in str(second[0]),
+          "in the pipeline the retry after an internal-vocabulary withhold names "
+          "\"the object\"")
+    rs = prose_mod.reader_slice({"section": "Slow layers", "subsections": [
+        {"title": "Tails", "lines": ["extreme:vix_low the VIX at 12"]}]})
+    check(rs == {"subsections": [{"lines": ["the VIX at 12"]}]},
+          "a summary's slice carries the sections' prose without the stack's "
+          "titles and label prefixes")
 
 
 def main() -> int:

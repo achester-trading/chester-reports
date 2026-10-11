@@ -112,9 +112,11 @@ SUMMARY_FIGURES = 3
 # `_display` string, built by the one scaler, and only that string.
 DISPLAY_RULE = (" A level or change that carries a latest_level_display or "
                 "change_display is written as that string, copied verbatim, sign "
-                "and scale included (\"+$23.15bn\", \"200.5 thousand\") -- never "
-                "as a raw number: a change of 10,000 or more printed without its "
-                "unit or scale withholds the paragraph.")
+                "and scale included (\"+$23.15bn\", \"200.5 thousand\"; a count "
+                "or a small payroll change as its integer, \"+42,984\", "
+                "\"+29,000\") -- never as a raw number: a change of 10,000 or more "
+                "printed without its unit or scale, and not as its display form, "
+                "withholds the paragraph.")
 ORDINAL_RULE = (" A percentile ordinal is copied exactly as it is printed -- from "
                 "the table, or from its _ordinal field -- never re-rounded from a "
                 "decimal: \"the 100th percentile\" stays 100th.")
@@ -135,7 +137,7 @@ def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
     from daily_cascade import narrative as base
     return base.SYSTEM_PROMPT + SECTION_RULES.format(
         title=title, scope=scope, paragraphs=paragraphs, figure_cap=_cap_word(),
-        ordinals=ORDINAL_RULE, display=DISPLAY_RULE)
+        ordinals=ORDINAL_RULE, display=DISPLAY_RULE + vocab_frame())
 
 
 # ---------------------------------------------------------------------------
@@ -428,6 +430,78 @@ def internal_terms(text: Optional[str]) -> list[str]:
     return sorted({m.group(0).lower() for m in _BANNED.finditer(text or "")})
 
 
+# THE BANNED LIST, IN THE FRAME (T3.4a, the third box dry run). summary:read and
+# summary:slow were withheld three times each over "the object", "tracked series"
+# and "extreme:", and stack:priced three times over "venues": the audit named the
+# word, but the frame never listed what is banned, so each retry traded one
+# banned word for another. Every Monthly frame now carries the list -- these
+# words in the reader's form, the stack's banned phrases from
+# config/reporting_stack.yaml -- and a retry names the offending word(s) and
+# quotes the rule (VOCAB_RETRY).
+BANNED_WORDS_READABLE = (
+    "payload", "the object", "state object", "our/the/its growth (inflation, "
+    "rates, liquidity, credit, trend, breadth, volatility, sentiment) dimension",
+    "dimension framework", "vol/macro/gamma/regime dial", "the dials",
+    "scorecard rows", "data rows", "not sourced", "absent_reason",
+    "the system tracks", "our system", "this system", "the system's data / reads "
+    "/ store / records", "tracked series", "in the store", "the store", "the "
+    "registry", "market state", "tier 1 / tier 2 / tier 3", "_ordinal",
+    "_signed", "_display")
+VOCAB_RULE = ("a reader's prose names markets, not the report's plumbing: never "
+              "write a word or phrase that names this report's machinery, its "
+              "labels or its section titles")
+VOCAB_RETRY = 'your draft used {words}; the rule: "{rule}"'
+
+
+def banned_phrases() -> list[str]:
+    """The stack's banned phrases (config/reporting_stack.yaml, style)."""
+    try:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        st = bars_mod.load_config().get("style") or {}
+    except Exception:                                           # noqa: BLE001
+        return []
+    return [str(x) for x in st.get("banned_phrases") or []]
+
+
+def vocab_frame() -> str:
+    return (f" WORDS THAT WITHHOLD THE PARAGRAPH -- {VOCAB_RULE}. Never write: "
+            + "; ".join(BANNED_WORDS_READABLE) + ". Never write these phrases: "
+            + "; ".join(f"'{x}'" for x in banned_phrases())
+            + ". Say \"prediction market\", never \"venue\".")
+
+
+_LABEL = re.compile(r"(?<![\w-])(?:extreme|contradiction|story|scen):[\w.:/-]*")
+
+
+def reader_slice(sl: dict) -> dict:
+    """A summary's prompt slice without the stack's own labels and titles
+    (T3.4a): the section and sub-section titles go, and the label prefixes the
+    stack prints for its own ids ("extreme:...", "contradiction:...") are struck
+    from every string. The figures stay, so the audit's given set is unchanged."""
+    def walk(o, depth=0):
+        if depth > 12:
+            return o
+        if isinstance(o, dict):
+            return {k: walk(v, depth + 1) for k, v in o.items()
+                    if k not in ("section", "title")}
+        if isinstance(o, list):
+            return [walk(v, depth + 1) for v in o]
+        if isinstance(o, str):
+            return " ".join(_LABEL.sub("", o).split())
+        return o
+    return walk(sl)
+
+
+def vocab_words(jargon: list[str], faults: list[str]) -> list[str]:
+    """The offending words: the internal terms, and the tape's banned phrases."""
+    out = list(jargon)
+    for f in faults:
+        m = re.match(r"(?:internal vocabulary: (.+)|banned phrase: '(.+)')$", f)
+        if m:
+            out.append(m.group(1) or m.group(2))
+    return sorted(set(out))
+
+
 # NO BULLET FRAGMENTS IN A NARRATIVE SECTION. The brief asks for prose; a reply
 # that lists is withheld like any other failed audit rather than re-flowed.
 _LIST_LINE = re.compile(r"^\s*(?:[-*•–]\s|\d+[.)]\s|#+\s)", re.M)
@@ -560,7 +634,7 @@ def stack_plan(ed: dict) -> list[dict]:
         system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
                    + parent_note(s)
                    + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                   + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE)
+                   + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + vocab_frame())
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
                     "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
@@ -622,7 +696,7 @@ def block_plan(ed: dict) -> list[dict]:
                 ordinals=ORDINAL_RULE) + tape
             system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
                        + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                       + DISPLAY_RULE)
+                       + DISPLAY_RULE + vocab_frame())
             out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
                         "kind": "stack", "sid": s["id"], "system": system,
                         "max_chars": hi * 9 + 500,
@@ -698,10 +772,10 @@ def summary_plan(ed: dict) -> list[dict]:
             figures=_cap_word(SUMMARY_FIGURES).lower(),
             ordinals=ORDINAL_RULE) + tape
         system += ((policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                   + DISPLAY_RULE)
+                   + DISPLAY_RULE + vocab_frame())
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
-                    "max_chars": 1400, "slice": summary_slice(s),
+                    "max_chars": 1400, "slice": reader_slice(summary_slice(s)),
                     "audit_extra": summary_audit_extra(s, ed)})
     return out
 
@@ -760,6 +834,9 @@ def retry_prompt(system: str, prev: dict) -> str:
     when the draft ran over the cap -- the count and the cap."""
     out = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS WITHHELD BY THE "
            "AUDIT: " + str(prev.get("reason"))[:600])
+    if prev.get("vocab_words"):
+        out += "\n" + VOCAB_RETRY.format(
+            words=", ".join(f'"{w}"' for w in prev["vocab_words"]), rule=VOCAB_RULE)
     if prev.get("figures_over"):
         n, m = prev["figures_over"]
         out += "\n" + CAP_RETRY.format(n=n, m=m)
@@ -824,18 +901,22 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             jargon = internal_terms(r.text) if published else []
             tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
                     if (published and stack) else [])
-            bare = na.bare_deltas(r.text) if published else []
+            # A count's or a small thousands change's own display form is
+            # accepted (T3.4a): "+42,984" contracts, "+29,000" payrolls.
+            accepted = na.accepted_deltas([sec.get("slice"),
+                                           sec.get("audit_extra")])
+            bare = na.bare_deltas(r.text, accepted) if published else []
             # The draft's figure count against the cap, published or not, so the
             # retry can say how far over it ran.
             drafted = r.text or getattr(r, "rejected_text", None) or ""
             cited = sp_mod.figures_cited(drafted) if stack and drafted else None
             over = ((cited, figure_cap()) if cited is not None
                     and cited > figure_cap() else None)
+            vwords = vocab_words(jargon, tape)
             if jargon:
                 published, state = False, "internal_vocabulary"
                 reason = (f"narrative withheld: it writes about the system "
-                          f"({', '.join(jargon)}) -- a reader's prose names markets, "
-                          f"not the report's plumbing")
+                          f"({', '.join(jargon)}) -- {VOCAB_RULE}")
             elif lists:
                 published, state = False, "list_fragments"
                 reason = (f"narrative withheld: the section came back as list "
@@ -860,7 +941,8 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 "model": r.model,
                 "figures_checked": getattr(r, "figures_checked", None),
                 "figures_cited": cited,
-                "figures_over": None if published else over}
+                "figures_over": None if published else over,
+                "vocab_words": None if published else (vwords or None)}
         except Exception as exc:                               # noqa: BLE001
             return {"title": sec["title"], "state": "fault",
                     "published": False, "text": None, "words": 0,

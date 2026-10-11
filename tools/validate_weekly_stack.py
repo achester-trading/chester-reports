@@ -572,10 +572,12 @@ def main() -> int:
             evs.conn.commit()
         rel = ws.tier1_releases(str_, AS_OF, ws.week_ago(AS_OF))
     # Rulings of 5 Oct, item 1: payrolls print as the monthly change, under the
-    # declared label, never the raw series name.
+    # declared label, never the raw series name. T3.4a: in the one change form
+    # every report shares -- +150 thousand prints "+150,000", which the audit
+    # accepts as the display form.
     check(rel and rel[0]["release"] == "Employment Situation"
           and rel[0]["form"] == "change" and rel[0]["actual"] == 150.0
-          and rel[0]["actual_text"] == "+150k"
+          and rel[0]["actual_text"] == "+150,000"
           and rel[0]["label"] == "nonfarm payrolls, monthly change"
           and rel[0]["as_of"] == "2026-09-01",
           f"13: Plumbing lists the week's tier-1 release in its declared form, with "
