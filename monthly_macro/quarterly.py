@@ -226,8 +226,16 @@ def item_subsection(t: dict, ch: dict, ctx: dict) -> dict:
 
 
 def build_chapter(ch: dict, cfg: dict, ctx: dict) -> dict:
-    """One chapter: its lead items, the divider, its reference items."""
-    subs = [item_subsection(t, ch, ctx) for t in chapter_items(ch, cfg)]
+    """One chapter: its lead items, the divider, its reference items. A chapter
+    config/quarterly_chapters.yaml fills (AQ-2) is built item by item by
+    monthly_macro.quarterly_items; every other chapter stays on the shell."""
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    fam = qi.family_config(ch["id"], ctx.get("qcfg"))
+    if fam is not None and ctx.get("store") is not None:
+        subs, data = build_filled(ch, cfg, ctx, fam)
+    else:
+        subs = [item_subsection(t, ch, ctx) for t in chapter_items(ch, cfg)]
+        data = {}
     lead = [x for x in subs if x["tier"] == LEAD]
     ref = [x for x in subs if x["tier"] == REFERENCE]
     ordered = lead + ([{"divider": REFERENCE_DIVIDER, "divider_note": REFERENCE_NOTE,
@@ -239,17 +247,161 @@ def build_chapter(ch: dict, cfg: dict, ctx: dict) -> dict:
             "depth": "deep" if ch.get("weight") != "light" else "medium",
             "depth_reason": None, "items": [], "table": None, "charts": [],
             "data": {"family": ch.get("thesis_family"),
-                     "items": [x["item"] for x in subs]},
+                     "items": [x["item"] for x in subs], "filled": bool(data),
+                     **data},
             "not_tracked": [], "legend": None, "print_items": False,
             "subsections": ordered, "fingerprint": fp, "collapsed": False,
             "claim": None, "paragraphs": [], "trimmed": False, "period": "quarter",
             "phase_a": [], "notes": [], "prose_wanted": False, "empty": False}
 
 
-def build_chapters(ed: dict, cfg: dict, db_path: Optional[str], st=None) -> list[dict]:
-    ctx = {"quarter": edition_quarter(ed), "now": (ed.get("window") or {}).get("now")
-           or ed.get("as_of"), "db_path": db_path, "store": st}
+def build_filled(ch: dict, cfg: dict, ctx: dict, fam: dict) -> tuple[list, dict]:
+    """A filled chapter's sub-sections, in the template's order, each tiered:
+    the lead lines, 1, 2, 3 (lead); then 3 (why), 3a, 4, 4b/4c, 5, 6, 7, 8, 9,
+    10, 11 (reference)."""
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    st = ctx["store"]
+    tpl = {t["id"]: t for t in chapter_items(ch, cfg)}
+    hooked = {k: item_subsection(tpl[k], ch, ctx)
+              for k in ("graded", "theses", "correlation") if k in tpl}
+    states = qi.test_states(st, fam, ctx)
+    plain = {k: v["state"].split(" — ")[0] for k, v in states.items()}
+    subs = [qi.lead_lines(st, ch, fam, ctx, plain)]
+    subs += [hooked[k] for k in ("graded", "theses") if k in hooked]
+    subs += qi.item_quarter(st, ch, fam, ctx)
+    subs.append(qi.item_priced(st, fam, ctx))
+    subs.append(qi.item_structure(st, fam, ctx))
+    for extra in (qi.item_second_half(st, fam, ctx, states), qi.item_pairs(st, fam, ctx)):
+        if extra:
+            subs.append(extra)
+    subs.append(qi.item_supply(ch, fam, ctx))
+    subs.append(qi.item_analyses(st, fam, ctx))
+    subs.append(qi.item_falsify(fam, states))
+    if "correlation" in hooked:
+        hooked["correlation"]["tier"] = REFERENCE
+        subs.append(hooked["correlation"])
+    subs.append(qi.item_stories(fam, ctx))
+    subs.append(qi.item_book(ch, ctx))
+    qsub, qsecs = qi.question_secs(st, ch, fam, ctx, question_system)
+    subs.append(qsub)
+    ctx.setdefault("question_secs", []).extend(qsecs)
+    for x in subs:
+        x.setdefault("not_tracked", [])
+    return subs, {"falsification": plain,
+                  "structure": next((x.get("data", {}).get("percentiles")
+                                     for x in subs if x["item"] == "structure"), {})}
+
+
+QUESTION_RULES = """
+
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are answering ONE of the
+{paper} paper's ten questions, for {report}'s chapter {chapter}.
+
+THE QUESTION: {question}
+
+Answer in ONE sentence of at most 40 words, about the quarter to {end}, from the
+figures given only, each copied exactly as given; cite at most {cap} figures. Where
+the figures do not answer the whole question, say what they show and that the rest
+is not stored. No recommendation. Write about the market, never about this report.
+"""
+
+
+def question_system(q: dict, fam: dict) -> str:
+    from daily_cascade import narrative as base                  # noqa: PLC0415
+    from daily_cascade import stack_prose as sp                  # noqa: PLC0415
+    from . import prose as prose_mod                             # noqa: PLC0415
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    cap = int((fam.get("figure_budget") or {}).get("questions", 2))
+    return (sp.stack_system_prompt(base) + QUESTION_RULES.format(
+        paper=fam.get("paper"), report="the Quarterly", chapter=q.get("chapter", ""),
+        question=q["text"], end=q.get("end", "the quarter's end"),
+        cap=prose_mod._cap_word(cap).lower())
+        + prose_mod.DISPLAY_RULE + prose_mod.vocab_frame() + qi.banned_note(fam))
+
+
+def chapter_context(ed: dict, cfg: dict, db_path: Optional[str], st=None,
+                    out_dir: Optional[str] = None, prior: Optional[dict] = None,
+                    chain_dir: Optional[str] = None) -> dict:
+    """What every item reads: the quarter window (the payload's, through
+    v2.month_bounds), the cutoff, the store, the charts so far."""
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    w = ed.get("window") or {}
+    q = edition_quarter(ed)
+    qcfg = qi.load_config()
+    charts = ed.setdefault("_charts", {})
+    seq = [len(charts)]
+
+    def next_cid() -> str:
+        seq[0] += 1
+        return f"Q{seq[0]}"
+    return {"quarter": q, "next_quarter": next_quarter(q),
+            "now": w.get("now") or ed.get("as_of"), "db_path": db_path, "store": st,
+            "start": str(w.get("then") or "")[:10], "end": str(w.get("last") or "")[:10],
+            "qcfg": qcfg, "common": qcfg.get("common") or {}, "charts": charts,
+            "next_cid": next_cid, "out_dir": out_dir, "prefix": PREFIX + "_" + str(
+                ed.get("report_date")), "chain_dir": chain_dir,
+            "prior_chapters": {s["id"]: s for s in (prior or {}).get("sections") or []
+                               if s.get("chapter")}}
+
+
+def build_chapters(ed: dict, cfg: dict, db_path: Optional[str], st=None,
+                   ctx: Optional[dict] = None) -> list[dict]:
+    ctx = ctx or chapter_context(ed, cfg, db_path, st)
     return [build_chapter(ch, cfg, ctx) for ch in cfg.get("quarterly_chapters") or []]
+
+
+# ---------------------------------------------------------------------------
+# The transmission map (section 3): the front matter's one fixed figure
+# ---------------------------------------------------------------------------
+TRANSMISSION = (
+    ("Energy", "CPI → policy → the discount rate"),
+    ("The dollar and funding", "EM flows, external debt, commodities, crypto leverage"),
+    ("China demand and property", "industrial metals, Asian exporters, EM credit"),
+    ("A liquidity shock", "deleveraging → correlations converge"),
+    ("Fiscal and sovereign risk", "term premium, the FX risk premium, real assets"),
+    ("Stablecoin disruption", "bill demand, collateral, venues"),
+)
+TRANSMISSION_CAPTION = ("The transmission map: six arrows drawn from the papers — "
+                        "hypotheses to be read against the quarter, never causal laws")
+
+
+def transmission_map(cid: str, out_dir: Optional[str], name: str) -> dict:
+    """Six arrows, source to what it moves, in the house style."""
+    try:
+        from daily_cascade import charts as chm                  # noqa: PLC0415
+        plt = chm._plt()
+        fig, ax = plt.subplots(figsize=(chm.CHART_W, 3.6))
+        ax.set_axis_off()
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, len(TRANSMISSION))
+        ax.set_title("The transmission map", fontsize=9, loc="left", color="#0d2b45")
+        for i, (src, dst) in enumerate(TRANSMISSION):
+            y = len(TRANSMISSION) - i - 0.5
+            ax.text(0.02, y, src, fontsize=7.5, va="center", ha="left",
+                    color="#0d2b45", fontweight="bold",
+                    bbox={"boxstyle": "round,pad=0.3", "fc": "#eef2f6", "ec": "#94a3b8"})
+            ax.annotate("", xy=(0.47, y), xytext=(0.36, y),
+                        arrowprops={"arrowstyle": "->", "color": "#d97706", "lw": 1.2})
+            ax.text(0.49, y, dst, fontsize=7.5, va="center", ha="left", color="#334155")
+        out = chm._finish(fig, name, out_dir)
+        return {"id": cid, "title": "The transmission map",
+                "caption": TRANSMISSION_CAPTION, **out}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"the transmission map: "
+                                          f"{type(exc).__name__}: {exc}"}
+
+
+def drawn(charts: dict) -> list[str]:
+    return [k for k, c in charts.items() if not c.get("unavailable")]
+
+
+def hold_cap(ed: dict, charts: dict, cap: int) -> list[str]:
+    """Over the chart cap the last chapters' charts are marked unavailable,
+    named, never silently dropped."""
+    over = drawn(charts)[cap:]
+    for k in over:
+        charts[k] = {"id": k, "unavailable": f"over the edition's chart cap ({cap})"}
+    return over
 
 
 def chapters(ed: dict) -> list[dict]:
@@ -273,11 +425,13 @@ def lead_view(ed: dict) -> dict:
 
 
 def lead_charts(ed: dict) -> int:
+    """The lead page's DRAWN charts (an unavailable one is a line, not a chart)."""
+    ok = {k for k, c in (ed.get("charts") or {}).items() if not c.get("unavailable")}
     n = 0
     for s in lead_view(ed)["sections"]:
-        n += len(s.get("charts_rendered") or [])
+        n += len([c for c in s.get("charts_rendered") or [] if c in ok])
         for ss in s.get("subsections") or []:
-            n += len(ss.get("charts_rendered") or [])
+            n += len([c for c in ss.get("charts_rendered") or [] if c in ok])
     return n
 
 
@@ -385,7 +539,8 @@ def markdown(ed: dict) -> str:
 
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
             model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, prior_dir: Optional[str] = None) -> dict:
+            db_path: Optional[str] = None, prior_dir: Optional[str] = None,
+            chain_dir: Optional[str] = None) -> dict:
     """Build, write, polish, time and render the Quarterly. Archives nothing --
     run.py does. `p` is a payload built with period "quarter"."""
     from altdata import observations                             # noqa: PLC0415
@@ -398,8 +553,20 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     ed = ms.build(p, prior, db_path, book=book, cadence=CADENCE)
     ed["report"] = "alt_asset_quarterly"
     ed["quarter"] = edition_quarter(ed)
+    # THE TRANSMISSION MAP opens the front matter (section 3), counted in the cap.
+    charts: dict = {}
+    ed["_charts"] = charts
+    charts["Q0"] = transmission_map("Q0", archive_dir,
+                                    f"{PREFIX}_{p.get('report_date')}_q0")
+    read = next((s for s in ed["sections"] if s["id"] == "read"), None)
+    if read is not None:
+        read["charts_rendered"] = ["Q0"] + list(read.get("charts_rendered") or [])
     with observations.ObservationStore(db_path) as st:
-        ed["sections"] += build_chapters(ed, cfg, db_path, st)
+        ctx = chapter_context(ed, cfg, db_path, st, out_dir=archive_dir, prior=prior,
+                              chain_dir=chain_dir)
+        ed["sections"] += build_chapters(ed, cfg, db_path, st, ctx)
+    cap = int((ed.get("budget") or {}).get("charts") or 40)
+    ed["charts_over_cap"] = hold_cap(ed, charts, cap)
     # THE FRONT MATTER'S PROSE, by the Monthly's machinery in the Quarterly's
     # voice (prose.voice): the stack's sections and their blocks. The Monthly v2
     # long-form sections are the Monthly's and are not asked for here.
@@ -412,8 +579,23 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
         except Exception:                                       # noqa: BLE001
             log.exception("the front matter's prose faulted; it prints withheld")
     ms.apply_prose(ed, written)
-    ed["chart_count"] = 0
-    ms.polish(ed, {})
+    # ITEM 11: one audited line per answerable question (the stack's writer).
+    from . import quarterly_items as qi                          # noqa: PLC0415
+    qw: dict = {}
+    qsecs = list(ctx.get("question_secs") or [])
+    if narrative and qsecs:
+        try:
+            qw = prose_mod.write_all(p, model=model, client=client, ed=ed, secs=qsecs)
+        except Exception:                                       # noqa: BLE001
+            log.exception("the ten questions faulted; each prints as withheld")
+    for c in chapters(ed):
+        for ss in c.get("subsections") or []:
+            if ss.get("item") == "questions":
+                qi.apply_questions(ss, qw)
+    written.update(qw)
+    ed.pop("_charts", None)
+    ed["chart_count"] = len(drawn(charts))
+    ms.polish(ed, charts)
     rd.finalize(ed, CADENCE)
     rd.withhold_duplicates(ed)
     # THE EXECUTIVE SUMMARY, LAST, FROM THE FINISHED CHAPTERS.
@@ -437,7 +619,9 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
                           if archive_dir else None)
     ed.pop("_retro", None)
     return {"edition": ed, "written": written, "summary_written": sw,
-            "charts": {}, "inline_images": [],
-            "html_email": html(ed, mode="email", charts={}),
-            "html_archive": html(ed, mode="archive", charts={}),
+            "charts": charts,
+            "inline_images": [(sr.cid(k), c["png"]) for k, c in charts.items()
+                              if c.get("png")],
+            "html_email": html(ed, mode="email", charts=charts),
+            "html_archive": html(ed, mode="archive", charts=charts),
             "markdown": markdown(ed)}

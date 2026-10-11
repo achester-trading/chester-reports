@@ -339,7 +339,11 @@ quarterly_template:
   - {id: structure,   n: "4",  title: "Structure",                     tier: reference, in: [deep, light, country]}
   - {id: supply,      n: "5",  title: "Supply and demand",             tier: reference, in: [deep, country]}
   - {id: analyses,    n: "6",  title: "The analyses",                  tier: reference, in: [deep, country]}
-  - {id: falsify,     n: "7",  title: "Falsification tests",           tier: lead,      in: [deep, light, country]}
+  # Item 7 moved to reference by the AQ-2 brief (11 Oct 2026): the lead page is
+  # items 1, 2, 3 and the confidence and what-changed lines. Section 3 had listed
+  # the tests' one-line verdicts on the lead page; the brief governs, and the
+  # operator may move it back with this one key.
+  - {id: falsify,     n: "7",  title: "Falsification tests",           tier: reference, in: [deep, light, country]}
   - {id: correlation, n: "8",  title: "Correlations",                  tier: reference, in: [deep, light, country], hook: correlation_rows}
   - {id: stories,     n: "9",  title: "Emerging stories, and what changed in the world", tier: reference, in: [deep, country]}
   - {id: book,        n: "10", title: "The book",                      tier: reference, in: [deep, light, country]}
