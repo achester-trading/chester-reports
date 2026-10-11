@@ -328,7 +328,15 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
     lines; on a cadence whose sub-sections carry their own charts, those charts;
     on one whose sub-sections keep their own paragraphs, those paragraphs and
     its own footnote (its notes, what it does not track, why anything was
-    withheld) too. Nothing at all when it has nothing to print."""
+    withheld) too. Nothing at all when it has nothing to print.
+
+    A DIVIDER (AQ-1, the Quarterly): a sub-section carrying `divider` is the line
+    between a chapter's lead items and its reference items -- its heading and
+    its one line, nothing else."""
+    if ss.get("divider"):
+        return (f'<h3 style="{heading}">{esc(ss["divider"])}</h3>'
+                + (f'<p style="{FOOT}">{esc(ss["divider_note"])}</p>'
+                   if ss.get("divider_note") else ""))
     wrap = bool(cad.get("mobile_tables"))
     body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
             + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
@@ -407,13 +415,27 @@ def details_html(detail: Optional[list], cadence: str = "daily") -> str:
 def page_header(title: str, stamp: str, minutes: int,
                 changed: Optional[list[str]] = None,
                 changed_head: Optional[str] = None,
-                extra_html: str = "", wrap: bool = False) -> str:
-    """Title, the as-of in ET, the reading time, and what changed (item 7)."""
+                extra_html: str = "", wrap: bool = False,
+                reading: Optional[str] = None) -> str:
+    """Title, the as-of in ET, the reading time, and what changed (item 7).
+    `reading` replaces the one reading time with an edition's own line (AQ-1:
+    the Quarterly's two paths)."""
     ch = (lines_table(changed, changed_head, wrap=wrap)
           if changed and changed_head else "")
+    rt = (esc(reading) if reading else
+          f'about {esc(rd.plural(minutes, "minute"))} to read')
     return (f'<h1 style="{H1}">{esc(title)}</h1>'
-            f'<p style="{SUB}">{esc(stamp)} &middot; about '
-            f'{esc(rd.plural(minutes, "minute"))} to read{extra_html}</p>{ch}')
+            f'<p style="{SUB}">{esc(stamp)} &middot; {rt}{extra_html}</p>{ch}')
+
+
+def reading_line(ed: dict) -> Optional[str]:
+    """THE TWO PATHS' READING TIMES (AQ-1, change order section 3): "the read:
+    n min; the whole edition: m min" where the edition times its read apart
+    (`read_minutes`); None for every other edition."""
+    if ed.get("read_minutes") is None:
+        return None
+    return (f"the read: {int(ed['read_minutes'])} min; the whole edition: "
+            f"{edition_minutes(ed)} min")
 
 
 def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
@@ -478,7 +500,8 @@ def _marks(ed: dict, what: str) -> str:
 
 
 # What the footer's change-mark line calls the prior edition, by cadence.
-EDITION_NAMES = {"daily": "close", "weekly": "Weekly", "monthly": "Monthly"}
+EDITION_NAMES = {"daily": "close", "weekly": "Weekly", "monthly": "Monthly",
+                 "quarterly": "Quarterly"}
 
 
 def _glossary_entries() -> list[dict]:
@@ -545,7 +568,9 @@ def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
     head = page_header(title, rd.stamp_et(ed.get("as_of")), edition_minutes(ed),
                        ed.get("changed_since") or [], changed_head,
                        extra_html=(f" &middot; target {esc(target)} minutes"
-                                   if target else ""), wrap=wrap)
+                                   + (" for the read" if reading_line(ed) else "")
+                                   if target else ""), wrap=wrap,
+                       reading=reading_line(ed))
     return (f'<div style="{WRAP}">{head}{summary_html(ed)}{secs}'
             f'{details_html(ed.get("detail"), cadence)}'
             f'{glossary_html(_glossary_entries(), ed, wrap)}'
@@ -648,6 +673,9 @@ def _md_foot(parts: list[str]) -> list[str]:
 
 def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
             with_charts: bool = True) -> list[str]:
+    if ss.get("divider"):
+        return [f"{level} {ss['divider']}\n"] + (
+            [f"<sub>{ss['divider_note']}</sub>\n"] if ss.get("divider_note") else [])
     body = md_block(ss)
     figs = (md_charts(list(ss.get("charts_rendered") or []), charts)
             if with_charts and cad.get("subsection_charts") else [])
@@ -667,10 +695,13 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
     cad = _cadence(cadence)
     charts = charts if charts is not None else (ed.get("charts") or {})
     target = ed.get("reading_target_minutes")
+    rl = reading_line(ed)
     out = [f"# {title}\n",
-           f"*{rd.stamp_et(ed.get('as_of'))} · about "
-           f"{rd.plural(edition_minutes(ed), 'minute')} to read"
-           + (f" · target {target} minutes" if target else "") + "*\n"]
+           f"*{rd.stamp_et(ed.get('as_of'))} · "
+           + (rl if rl else
+              f"about {rd.plural(edition_minutes(ed), 'minute')} to read")
+           + (f" · target {target} minutes" + (" for the read" if rl else "")
+              if target else "") + "*\n"]
     if ed.get("changed_since") and changed_head:
         out.append(f"**{changed_head}**\n")
         out += [f"- {x}" for x in ed["changed_since"]] + [""]

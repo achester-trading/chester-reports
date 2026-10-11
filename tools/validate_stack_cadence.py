@@ -109,11 +109,15 @@ def group_a() -> None:
     print(f"\n{LINE}\nA. THE CADENCES, FROM CONFIG\n{LINE}")
     from daily_cascade import cadence
     cads = {n: cadence.get(n) for n in cadence.NAMES}
-    check([c["period"] for c in cads.values()] == ["session", "week", "month"],
-          "daily, weekly and monthly resolve to session, week and month")
+    check([c["period"] for c in cads.values()]
+          == ["session", "week", "month", "quarter"],
+          "daily, weekly, monthly and (AQ-1) quarterly resolve to session, week, "
+          "month and quarter")
     check(cads["weekly"]["budget"] == {"words": 3500, "charts": 10}
           and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
-          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES] == [5, 20, 55],
+          and cads["quarterly"]["budget"] == {"words": None, "charts": 40}
+          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES]
+          == [5, 20, 55, 90],
           "each carries its budget and reading target from the ratified config")
     check(cads["monthly"]["depth_words"]["deep"] == 450
           and cads["weekly"]["depth_words"]["deep"] == 420
@@ -135,7 +139,7 @@ def group_a() -> None:
               "the week before the month"),
           "and the monthly ones derive from the noun")
     try:
-        cadence.get("quarterly")
+        cadence.get("annual")
         check(False, "an undeclared cadence is refused")
     except KeyError:
         check(True, "an undeclared cadence is refused (KeyError, a code fault)")
@@ -530,8 +534,9 @@ def group_l() -> None:
     from daily_cascade import cadence as cadence_mod
     from daily_cascade import stack_render as sr
     check([cadence_mod.get(c).get("subsection_charts") for c in cadence_mod.NAMES]
-          == [False, False, True],
-          "config: only the Monthly's sub-sections carry their own charts")
+          == [False, False, True, True],
+          "config: only the Monthly's and the Quarterly's sub-sections carry their "
+          "own charts")
     charts = {"M6": _chart("M6", "CFTC z-scores"), "M1": _chart("M1", "SPY weekly"),
               "M9": {"id": "M9", "unavailable": "no NAV stored"}}
     subs = [{"title": "Futures", "table": {"columns": ["C", "Z"], "rows": [["ES", "1.2"]]},
@@ -592,9 +597,9 @@ def group_m() -> None:
     from daily_cascade import cadence as cadence_mod
     from daily_cascade import stack as stack_mod
     check([cadence_mod.get(c).get("trim_to_budget") for c in cadence_mod.NAMES]
-          == [False, False, True],
+          == [False, False, True, False],
           "config: only the Monthly trims to its budget; the close and the Weekly "
-          "fit by construction")
+          "fit by construction, and the Quarterly's reference is unbudgeted")
     para = "word " * 100
     ed = {"sections": [
         {"id": "a", "claim": "Claim a.", "paragraphs": [para, para], "trimmed": False,

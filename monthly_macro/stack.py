@@ -1531,9 +1531,18 @@ def changed_since(p: dict) -> tuple[list[str], list[str]]:
 # Assembly
 # ---------------------------------------------------------------------------
 def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
-          book: Optional[dict] = None) -> dict:
-    """The edition's data, at Monthly depth, before any prose."""
+          book: Optional[dict] = None, cadence: str = CADENCE) -> dict:
+    """The edition's data, at Monthly depth, before any prose.
+
+    AT `cadence` "quarterly" (AQ-1) the same builders make the Quarterly's front
+    matter: the ten sections at the quarterly column's depth over the payload's
+    quarter window (v2.month_bounds), each phrase in the quarter's words; Slow
+    layers and Reading are the Monthly's and are not built -- the Quarterly's
+    slow layers are its chapters (monthly_macro.quarterly)."""
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
     cfg = stack_mod.config()
+    noun = cadence_mod.get(cadence, cfg)["period"]
+    monthly = cadence == CADENCE
     first, last, then, now = window(p)
     built: dict[str, dict] = {}
     retro = None
@@ -1573,14 +1582,20 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         printed = [(k, "tape") for k in sorted(on_tape)]
         for sid in ("plumbing", "narratives"):
             printed += [(k, sid) for k in built[sid].pop("_printed", None) or []]
-        slow = slow_layers(p, cfg, st, now, db_path)
-    sections = stack_mod.assemble(built, cfg, prior, CADENCE)
+        slow = slow_layers(p, cfg, st, now, db_path) if monthly else None
+    if not monthly:
+        built = {k: period_words(v, noun) for k, v in built.items()}
+    sections = stack_mod.assemble(built, cfg, prior, cadence)
     specs = {s["id"]: s for s in cfg.get("sections") or []}
     for s in sections:
         b = built[s["id"]]
-        s["period"] = "month"
-        s["subtitle"] = specs[s["id"]].get("monthly_subtitle") or s.get("subtitle")
-        s["depth_note"] = specs[s["id"]].get("monthly_note")
+        s["period"] = noun
+        sp = specs[s["id"]]
+        s["subtitle"] = (sp.get(f"{cadence}_subtitle")
+                         or (sp.get("monthly_subtitle") if monthly else None)
+                         or s.get("subtitle"))
+        s["depth_note"] = sp.get(f"{cadence}_note")
+        s["tier"] = sp.get(f"{cadence}_tier")
         s["phase_a"] = list(b.get("phase_a") or [])
         s["notes"] = list(b.get("notes") or [])
         s["prose_wanted"] = b.get("prose_wanted", True)
@@ -1590,6 +1605,10 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         # buckets, Positioning's reads, What's priced's blocks) asks its own call
         # for the claim line alone, so the reads are not said twice.
         s["claim_only"] = bool(b.get("claim_only"))
+    if not monthly:
+        rd.mark_empty(sections, noun)
+        return _edition(p, cfg, sections, prior, cadence, (first, last, then, now),
+                        retro, printed)
     sl = cfg.get("monthly_slow_layers") or {"id": SLOW_ID, "title": "Slow layers",
                                             "monthly": "deep"}
     pr = {x["id"]: x for x in (prior or {}).get("sections") or []}.get(SLOW_ID) or {}
@@ -1628,31 +1647,74 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
     by_id = {x["id"]: x for x in sections + [rsec]}
     ids = stack_mod.section_ids(cfg, CADENCE, by_id)
     sections = [by_id[i] for i in ids] + [x for x in sections if x["id"] not in ids]
-    mech = next(s for s in sections if s["id"] == "mechanics")
+    return _edition(p, cfg, sections, prior, cadence, (first, last, then, now),
+                    retro, printed)
+
+
+def _edition(p: dict, cfg: dict, sections: list, prior: Optional[dict],
+             cadence: str, win: tuple, retro: Optional[dict], printed: list) -> dict:
+    """The edition around its sections: the window, the detail tables, what
+    changed, the cadence's budget and reading target."""
+    first, last, then, now = win
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    noun = cadence_mod.get(cadence, cfg)["period"]
+    mech = next((s for s in sections if s["id"] == "mechanics"), {})
     if retro and retro.get("insufficient") and not mech.get("empty"):
         # BELOW THE THRESHOLD THE SECTION'S CLAIM IS THE COUNT, written by code,
         # and no paragraph is asked for (brief 1.2; T3 item 3).
         mech["claim"] = (f"Insufficient sessions (n={len(retro['sessions'])}) for "
-                         f"the month's dealer retrospective.")
+                         f"the {noun}'s dealer retrospective.")
     claims = {s.get("claim") for s in (p.get("looking_ahead") or {}).get("scenarios")
               or []}
     changed, changed_ids = changed_since(p)
     targets = cfg.get("reading_targets_minutes") or {}
-    ed = {"report": "monthly_stack", "report_date": p.get("report_date"),
+    ed = {"report": f"{cadence}_stack", "cadence": cadence,
+          "report_date": p.get("report_date"),
           "session": last, "month": (p.get("month_in_markets") or {}).get("month"),
           "window": {"first": first, "last": last, "then": then, "now": now},
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("report_date"),
           "sections": sections, "detail": detail_tables(p, claims),
           "changed_since": changed, "changed_since_phase_a": changed_ids,
-          "budget": (cfg.get("budget") or {}).get(CADENCE),
-          "reading_target_minutes": targets.get(CADENCE),
+          "budget": (cfg.get("budget") or {}).get(cadence),
+          "reading_target_minutes": targets.get(cadence),
           "chart_count": 0, "charts": {}, "run_id": p.get("run_id"),
           # Which section's table prints each series' month: the gate holds
           # every series to one.
           "printed_metrics": printed}
     ed["_retro"] = retro
     return ed
+
+
+# THE QUARTER'S WORDS (AQ-1). The front matter's builders are the Monthly's and
+# speak of a month; over the payload's quarter window (v2.month_bounds, period
+# "quarter") the same lines are the quarter's. Applied, in order, to every string
+# the builders return at a cadence other than the Monthly's -- the
+# PERIOD_WORDS pass this module already makes from the week. Threading the
+# cadence's Period through each builder instead is AQ-2's.
+_NOUN_WORDS = (("on the month", "on the {n}"), ("this month", "this {n}"),
+               ("This month", "This {n}"), ("the month's", "the {n}'s"),
+               ("The month's", "The {n}'s"), ("the month", "the {n}"),
+               ("The month", "The {n}"), ("Month or prior", "{N} or prior"),
+               ("month mean", "{n} mean"), ("over the month", "over the {n}"))
+
+
+def period_words(v: Any, noun: str) -> Any:
+    if noun == "month":
+        return v
+    pairs = [(a, b.format(n=noun, N=noun.capitalize())) for a, b in _NOUN_WORDS]
+    if isinstance(v, str):
+        for a, b in pairs:
+            v = v.replace(a, b)
+        return v
+    if isinstance(v, list):
+        return [period_words(x, noun) for x in v]
+    if isinstance(v, tuple):
+        return tuple(period_words(x, noun) for x in v)
+    if isinstance(v, dict):
+        return {k: (period_words(x, noun) if k not in ("fingerprint", "key") else x)
+                for k, x in v.items()}
+    return v
 
 
 # ---------------------------------------------------------------------------

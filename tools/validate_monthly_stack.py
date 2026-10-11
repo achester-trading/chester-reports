@@ -1640,7 +1640,7 @@ def t32_group(ed: dict, out: dict) -> None:
 
     # O1 -- the paragraph figure cap.
     caps = {c: cad_mod.figure_cap(cad_mod.get(c)) for c in cad_mod.NAMES}
-    check(caps == {"daily": 6, "weekly": 6, "monthly": 8}
+    check(caps == {"daily": 6, "weekly": 6, "monthly": 8, "quarterly": 8}
           and prose_mod.figure_cap() == 8,
           f"O1 item 1: the per-paragraph figure cap is the cadence's -- the close "
           f"and the Weekly 6, the Monthly 8 ({caps})")
@@ -2287,9 +2287,10 @@ def main() -> int:
           "record, the register's month, the appendix")
     check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
           and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
-                                                     "monthly": 55},
-          "the Monthly budget (10,000 words, 12 charts; T3.1) and the three "
-          "reading targets (5, 20, 55 minutes) are configuration")
+                                                     "monthly": 55, "quarterly": 90},
+          "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
+          "reading targets (5, 20, 55 minutes; the Quarterly's read 90, AQ-1) are "
+          "configuration")
     check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
               and s["id"] not in ("positioning",)),
           "every non-empty section opens with a claim line (Positioning's call "

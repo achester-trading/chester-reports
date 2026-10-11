@@ -144,7 +144,16 @@ monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the t
                           them (each fact printed once), enforces the 10,000-word
                           budget (T3.1), opens on the executive summary written
                           last from the finished sections, archives the edition
-                          JSON
+                          JSON. At cadence "quarterly" the same build() makes
+                          the Quarterly's front matter
+  quarterly.py            AQ-1: the Alternative Assets Quarterly, the fourth
+                          cadence (`run --cadence quarterly`). The stack's ten
+                          sections over the previous quarter as front matter,
+                          the eleven family chapters (config quarterly_chapters,
+                          the section 4.1 template) as slow layers; every section
+                          and item tiered lead or reference; the read timed apart
+                          from the whole edition; state key alt_asset. Timer
+                          chester-quarterly.timer ships disabled
   dealer.py               Mechanics' dealer retrospective: the month's stored
                           dealer.scorecard_day rows, per-session flags by the
                           Weekly's rule, counts and hit rates; "insufficient
@@ -195,7 +204,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — forty-six code gates (forty-three Python,
+**`make validate` runs every gate** — forty-seven code gates (forty-four Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -244,9 +253,10 @@ they are built (T2.6) -- `state_block.detail_tables()` reads them from the store
 object the payload carries, never recomputing, and `stack_render.details_html()`
 prints them after section 10 and before the glossary.
 
-**One stack, three cadences (T2.6).** The close, the Weekly and the Monthly share
-the section builders, the renderer, the prose and the paragraph guard, each taking
-a `cadence` ("daily", "weekly", "monthly"). What differs is config, under
+**One stack, four cadences (T2.6; AQ-1).** The close, the Weekly, the Monthly and
+the Quarterly share the section builders, the renderer, the prose and the
+paragraph guard, each taking a `cadence` ("daily", "weekly", "monthly",
+"quarterly"). What differs is config, under
 `cadences:` in `config/reporting_stack.yaml` (period noun, column head, depth
 allowances, paragraph rule, prompt frames, guards), read through
 `daily_cascade/cadence.py`, whose `Period` builds every period phrase ("on the
