@@ -167,6 +167,52 @@ families:
       - {n: 8,  text: "Are LME, COMEX, and SHFE copper inventories falling together, or is metal simply relocating?", series: []}
       - {n: 9,  text: "Is Chilean production stabilising?", series: []}
       - {n: 10, text: "Which scenario in Part VII did this quarter's evidence support?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.2; AQ-2 choice 12, added in AQ-3
+    # part 1). The paper's per-metal ranges carry no weight -- they print as
+    # ranges -- and its ten-year families carry the paper's priors.
+    scenarios:
+      - name: "Gold, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges; bull, base and bear carry no probability"
+        rows:
+          - {name: "Bull", prior: "range $5,500–7,000"}
+          - {name: "Base", prior: "range $4,200–5,500"}
+          - {name: "Bear", prior: "range $3,200–4,200"}
+      - name: "Silver, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range $85–120"}
+          - {name: "Base", prior: "range $55–75"}
+          - {name: "Bear", prior: "range $35–55"}
+      - name: "Copper, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges, per tonne; no probability"
+        rows:
+          - {name: "Bull", prior: "range $14,000–17,000/t"}
+          - {name: "Base", prior: "range $11,000–13,500/t"}
+          - {name: "Bear", prior: "range $8,500–11,000/t"}
+      - name: "Gold, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "Deepening", prior: "~30%"}
+          - {name: "Persisting at current intensity", prior: "~40%"}
+          - {name: "Exhausting", prior: "~30%"}
+      - name: "Silver, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "The transition completes", prior: "~35%"}
+          - {name: "Industrial demand disappoints", prior: "~40%"}
+          - {name: "The deficit persists but never binds", prior: "~25%"}
+      - name: "Copper, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "Structural deficit (the bull outcome)", prior: "~40%"}
+          - {name: "Substitution", prior: "~35%"}
+          - {name: "Demand disappointment", prior: "~25%"}
     words:
       permitted: ["official bid", "paper bid", "real yield", "stock-to-flow", "marginal buyer"]
       banned: ["safe haven", "inflation hedge", "store of value"]
@@ -269,6 +315,39 @@ families:
       - {n: 8,  text: "Are interconnection agreements energising faster than they are being withdrawn?", series: []}
       - {n: 9,  text: "Where is the uranium term price, and has the 2028 Russian-waiver deadline moved?", series: []}
       - {n: 10, text: "Which Part VII scenario did this quarter's evidence support — and did the power column change?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.3; AQ-2 choice 12, added in AQ-3
+    # part 1): the twelve-month four with the paper's Brent, HH/TTF and PJM
+    # markers in their names, and the ten-year oil, gas and power families.
+    scenarios:
+      - name: "Twelve months (Energy, §37)"
+        horizon: "12 months"
+        source: "the Energy paper's scenario mapping; the AI-capex bust \"overlaps with any oil path\""
+        rows:
+          - {name: "Managed normalisation (Brent $70–85; HH $3–4, TTF $10–14; PJM at or near cap)", prior: "~40%"}
+          - {name: "Prolonged disruption (Brent $90–115; HH $3–5, TTF $22–35; PJM unchanged)", prior: "~30%"}
+          - {name: "Glut returns (Brent $55–70; HH $2–3, TTF $7–10; PJM unchanged near term)", prior: "~15%"}
+          - {name: "AI-capex bust (Brent neutral; gas bearish; PJM clears below cap)", prior: "~15%"}
+      - name: "Oil, peak demand and the buffer (Energy, §38)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view"
+        rows:
+          - {name: "Plateau with a long tail", prior: "~50%"}
+          - {name: "Later peak", prior: "~30%"}
+          - {name: "Earlier peak", prior: "~20%"}
+      - name: "Gas, the Henry Hub linkage (Energy, §39)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view"
+        rows:
+          - {name: "Partial convergence", prior: "~45%"}
+          - {name: "Full linkage", prior: "~30%"}
+          - {name: "Discount widens", prior: "~25%"}
+      - name: "Power, the firm-capacity settlement (Energy, §40)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view; the nuclear case \"layers on the first scenario rather than replacing it\""
+        rows:
+          - {name: "Sustained scarcity, gas-resolved", prior: "~40%"}
+          - {name: "Nuclear renaissance, late", prior: "~25%"}
+          - {name: "Demand disappoints", prior: "~25%"}
     words:
       permitted: ["buffer", "spare capacity", "backwardation", "contango", "disruption premium"]
       banned: ["peak oil", "energy independence"]
@@ -393,6 +472,54 @@ families:
       - {n: 8,  text: "Is the PBoC leaning with or against the yuan's direction?", series: [cfets.cny_fix, yfinance.mkt_usdcny]}
       - {n: 9,  text: "Is stablecoin supply still growing?", series: []}
       - {n: 10, text: "Which Part IV outcome did this quarter's evidence support?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.4; AQ-2 choice 12, added in AQ-3
+    # part 1): the five-to-ten-year outcomes with the paper's (overlapping)
+    # probabilities, and the per-pair bull / base / bear ranges, which carry none.
+    scenarios:
+      - name: "The dollar, five to ten years (Currencies, Part IV)"
+        horizon: "5–10 years"
+        source: "the Currencies paper's outcomes; Devaluation-1 overlaps the others"
+        rows:
+          - {name: "Devaluation-2: continued slow debasement", prior: "~65–70%"}
+          - {name: "Devaluation-1: material cyclical depreciation (DXY toward 85–90)", prior: "~40% (overlapping)"}
+          - {name: "Fiscal consolidation", prior: "~10–15%"}
+          - {name: "Disorderly episode", prior: "~10–15%"}
+          - {name: "Devaluation-3: loss of reserve status within ten years", prior: "<5%"}
+      - name: "The dollar index, the paper's cases (Currencies, §20)"
+        horizon: "three years"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull (dollar strong)", prior: "range DXY 100–110"}
+          - {name: "Base", prior: "range DXY 92–100"}
+          - {name: "Bear", prior: "range DXY 80–90"}
+      - name: "EUR/USD, the paper's cases (Currencies, §21)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range 1.25–1.30"}
+          - {name: "Base", prior: "range 1.12–1.22"}
+          - {name: "Bear", prior: "range 1.02–1.10"}
+      - name: "USD/JPY, the paper's cases (Currencies, §22)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges, framed for the yen; no probability"
+        rows:
+          - {name: "Bull case for the yen", prior: "range 125–140"}
+          - {name: "Base", prior: "range 140–160"}
+          - {name: "Bear case for the yen", prior: "range 160–175"}
+      - name: "GBP/USD, the paper's cases (Currencies, §23)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range 1.42–1.50"}
+          - {name: "Base", prior: "range 1.28–1.40"}
+          - {name: "Bear", prior: "range 1.15–1.25"}
+      - name: "USD/CNY, the paper's cases (Currencies, §25)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges, framed for the yuan; no probability"
+        rows:
+          - {name: "Upside case for the yuan", prior: "range 6.20–6.40"}
+          - {name: "Base", prior: "range 6.40–6.80"}
+          - {name: "Downside case", prior: "range 7.00–7.40"}
     words:
       permitted: ["Dev-1", "Dev-2", "Dev-3", "the dollar smile", "debasement", "reserve currency"]
       banned: ["dollar collapse", "de-dollarisation is complete"]
