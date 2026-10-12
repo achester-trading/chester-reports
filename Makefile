@@ -74,6 +74,7 @@ PY_VALIDATORS := \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
+	tools/validate_ai_fcf.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 
