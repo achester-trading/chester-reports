@@ -112,21 +112,28 @@ def scanner_module(cands: list[dict]) -> str:
     return name
 
 
+# THE CANDIDATE'S SHAPE (ruled 12 Oct 2026): the register's draft fields (the
+# Alternative Assets order, section 4.1 item 10), the setup (EL-1), the score, the
+# catalyst and an id; decision_id is null until the sitting approves a packet.
+def cand(cid, inst, direction, thesis, setup, score, **kw):
+    return {"candidate_id": cid, "instrument": inst, "direction": direction,
+            "thesis": thesis, "edge": kw.get("edge", "trend"),
+            "horizon": kw.get("horizon", "swing"), "size": kw.get("size"),
+            "invalidation": kw.get("invalidation"),
+            "counter_thesis": kw.get("counter_thesis", "the move fades"),
+            "setup_id": setup, "score": score, "catalyst": kw.get("catalyst"),
+            "catalyst_date": kw.get("catalyst_date"), "decision_id": None}
+
+
 CANDS = [
-    {"decision_id": "d-qqq", "instrument": "QQQ", "direction": "long",
-     "thesis": "trend resumption above the 20-day", "catalyst": "CPI",
-     "catalyst_date": day(2), "invalidation": "close below 640",
-     "horizon": "swing (time stop 2026-10-30)", "size_band": "0.25-0.5% of NAV",
-     "score": 0.61, "setup_id": "B1"},
-    {"decision_id": "d-tlt", "instrument": "TLT", "direction": "short",
-     "thesis": "supply into the refunding", "catalyst": "30-year auction",
-     "catalyst_date": day(3), "invalidation": "the 30-year below 4.6%",
-     "horizon": "swing", "size_band": "0.25% of NAV", "score": 0.83,
-     "setup_id": "C2"},
-    {"decision_id": None, "instrument": "IWM", "direction": "long",
-     "thesis": "no draft", "score": 0.99},
-    {"decision_id": "d-bn", "instrument": "BN", "direction": "long",
-     "thesis": "restricted", "score": 0.95},
+    cand("c-qqq", "QQQ", "long", "trend resumption above the 20-day", "b_breakout",
+         0.61, catalyst="CPI", catalyst_date=day(2), invalidation="close below 640",
+         horizon="swing (time stop 2026-10-30)", size="0.25-0.5% of NAV"),
+    cand("c-tlt", "TLT", "short", "supply into the refunding", "b_reclaim", 0.83,
+         catalyst="30-year auction", catalyst_date=day(3),
+         invalidation="the 30-year below 4.6%", size="0.25% of NAV"),
+    cand("c-iwm", "IWM", "long", "an undeclared setup", "not_a_setup", 0.99),
+    cand("c-bn", "BN", "long", "restricted", "b_breakout", 0.95),
 ]
 
 
@@ -269,26 +276,23 @@ def main() -> int:
           "the hook reads None until the scanner module exists")
     mod = scanner_module(CANDS)
     scan = book_b.scanner_output(W.ENDING, None, module=mod)
-    prior_printed = [{"decision_id": "d-spy", "instrument": "SPY",
-                      "direction": "long"},
-                     {"decision_id": "d-xle", "instrument": "XLE",
-                      "direction": "short"}]
+    prior_printed = [{"candidate_id": "c-spy", "instrument": "SPY",
+                      "direction": "long", "setup_id": "b_breakout",
+                      "decision_id": None},
+                     {"candidate_id": "c-xle", "instrument": "XLE",
+                      "direction": "short", "setup_id": "b_reclaim",
+                      "decision_id": None}]
     rows = [
-        {"id": "d-spy", "created_at": "2026-09-25T20:00:00+00:00", "instrument": "SPY",
+        {"id": "d-spy", "created_at": "2026-09-30T20:00:00+00:00", "instrument": "SPY",
          "direction": "long", "status": "declined", "operator_action": "DECLINE",
-         "abstention_reason": "operator_judgment", "note": None, "superseded_by": None},
+         "abstention_reason": "operator_judgment", "note": None, "superseded_by": None,
+         "setup_id": "b_breakout"},
         {"id": "d-xle", "created_at": "2026-09-25T20:00:00+00:00", "instrument": "XLE",
          "direction": "short", "status": "draft", "operator_action": None,
          "superseded_by": "d-xle2"},
         {"id": "d-xle2", "created_at": "2026-09-30T20:00:00+00:00", "instrument": "XLE",
          "direction": "short", "status": "active", "operator_action": "TAKE",
-         "superseded_by": None},
-        {"id": "d-qqq", "created_at": "2026-10-02T21:00:00+00:00", "instrument": "QQQ",
-         "direction": "long", "status": "draft", "operator_action": None,
-         "superseded_by": None},
-        {"id": "d-tlt", "created_at": "2026-10-02T21:00:00+00:00", "instrument": "TLT",
-         "direction": "short", "status": "draft", "operator_action": None,
-         "superseded_by": None},
+         "superseded_by": None, "setup_id": "b_reclaim"},
         {"id": "d-gld", "created_at": "2026-10-01T15:00:00+00:00", "instrument": "GLD",
          "direction": "long", "status": "declined", "operator_action": "DECLINE",
          "abstention_reason": None, "note": None, "superseded_by": None},
@@ -306,29 +310,38 @@ def main() -> int:
           "one line each: instrument, direction, thesis, catalyst and date, "
           "invalidation, horizon, size band")
     check(not any("IWM" in x or "BN " in x for x in lines)
-          and [c["decision_id"] for c in kept["printed"]] == ["d-tlt", "d-qqq"]
-          and any("without a register draft" in n for n in subs2[0]["notes"])
+          and [c["candidate_id"] for c in kept["printed"]] == ["c-tlt", "c-qqq"]
+          and any("without an id or a declared setup" in n for n in subs2[0]["notes"])
           and any("restricted instrument" in n for n in subs2[0]["notes"]),
-          "a candidate with no register draft, or on a restricted instrument, "
+          "a candidate with an undeclared setup, or on a restricted instrument, "
           "never prints; each is counted")
+    check(all(c["decision_id"] is None for c in kept["printed"])
+          and set(book_b.FIELDS) >= {"candidate_id", "edge", "size", "counter_thesis",
+                                     "setup_id", "score", "catalyst", "catalyst_date"}
+          and all(set(book_b.FIELDS) <= set(c) for c in kept["printed"]),
+          "a candidate carries the register's draft fields, its setup, score, "
+          "catalyst and id; decision_id is null on every one")
     pc = [x for x in lines if x.startswith("Passed over")]
     check(pc == ["Passed over at the sitting: SPY long — operator judgment."],
           f"the prior sitting's pass prints once with its reason; the approved one "
           f"does not ({pc})")
-    check("d-spy" not in {c["decision_id"] for c in kept["printed"]},
+    check("c-spy" not in {c["candidate_id"] for c in kept["printed"]},
           "and it is not carried into this edition's printed list, so it drops")
     flow_next = book_b.sitting_flow("2026-10-09", None, [], kept["printed"], rows=rows)
-    check(not flow_next["passed_candidates"],
-          "next week it does not print again")
+    nxt = {c["candidate_id"]: c["reason"] for c in flow_next["passed_candidates"]}
+    check("c-spy" not in nxt and nxt == {"c-tlt": book_b.NO_REASON,
+                                         "c-qqq": book_b.NO_REASON},
+          f"next week SPY does not print again; this week's candidates, with no "
+          f"register row, are passes with no reason recorded ({nxt})")
 
     # --- D ------------------------------------------------------------------
     print(f"\n{LINE}\nD. THE PRODUCTIVITY LINE\n{LINE}")
-    check(flow["fired"] == 4 and flow["reviewed"] == 3 and flow["drafted"] == 3
+    check(flow["fired"] == 4 and flow["reviewed"] == 3 and flow["drafted"] == 2
           and flow["approved"] == 1,
-          f"fired 4 -> reviewed 3 (SPY, XLE, GLD) -> drafted 3 (a supersession is "
+          f"fired 4 -> reviewed 3 (SPY, XLE, GLD) -> drafted 2 (a supersession is "
           f"not a new packet) -> approved 1 ({flow})")
     ln = book_b.productivity_line(flow)
-    check(ln.startswith("Triggers fired 4 → reviewed 3 → packets drafted 3 → "
+    check(ln.startswith("Triggers fired 4 → reviewed 3 → packets drafted 2 → "
                         "approved 1;")
           and "register decisions (chat rulings on briefs are not book decisions): "
           in ln, f"four counts and the captioned decisions count ({ln})")

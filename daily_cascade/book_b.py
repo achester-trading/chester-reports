@@ -19,20 +19,24 @@ carried in this edition's printed list, so the next edition does not see it).
   as drafts with level, invalidation, time stop, falsifiers and the gate's
   pre-check") is not built. Until a module SCANNER_MODULE exposes
   `candidates(ending, db_path=None) -> list[dict]`, the block prints NO_SCANNER.
-  The renderer is built against this shape, one dict a candidate:
 
-      decision_id    the register draft the scanner wrote (REQUIRED: a candidate
-                     that did not pass the register is not printed -- the
-                     register is where the Brookfield restriction is enforced)
-      instrument, direction, thesis, setup_id
-      catalyst, catalyst_date        the event and its ISO date
-      invalidation   the level or event that kills the thesis
-      horizon        e.g. "swing (time stop 2026-10-30)"
-      size_band      e.g. "0.25-0.5% of NAV"
+  THE CANDIDATE'S SHAPE (ruled 12 Oct 2026, the W-1.3 follow-up): the register's
+  DRAFT fields as the Alternative Assets change order section 4.1 item 10 lists
+  them, plus the setup, the scanner's score, the catalyst and an id:
+
+      candidate_id   the scanner's own id (REQUIRED)
+      instrument, direction, thesis, edge, horizon, size, invalidation,
+      counter_thesis                 the register's draft fields
+      setup_id       a family config/setups.yaml declares (EL-1; REQUIRED)
       score          the scanner's rank score, higher first
+      catalyst, catalyst_date        the event and its ISO date
+      decision_id    NULL on every candidate: it is assigned only when the
+                     sitting approves a packet
 
-  Belt and braces: an instrument the restriction list names is never printed,
-  whatever the scanner wrote, and the count of any so dropped is footnoted.
+  An instrument the restriction list names is never printed, whatever the
+  scanner wrote -- the same check the register makes at write time -- and the
+  count of any so dropped is footnoted. A candidate with no id or no declared
+  setup is not printed either, and counted.
 
 THE PRODUCTIVITY LINE, item 3.6, beside the compliance line: triggers fired ->
 reviewed -> packets drafted -> approved, four counts, from the scanner's output
@@ -68,8 +72,9 @@ PRODUCTIVITY = "Productivity: triggers fired → reviewed → packets drafted �
 DECISIONS_CAPTION = ("register decisions (chat rulings on briefs are not book "
                      "decisions)")
 NO_REASON = "no reason recorded"
-FIELDS = ("decision_id", "instrument", "direction", "thesis", "catalyst",
-          "catalyst_date", "invalidation", "horizon", "size_band", "score")
+FIELDS = ("candidate_id", "instrument", "direction", "thesis", "edge", "horizon",
+          "size", "invalidation", "counter_thesis", "setup_id", "score",
+          "catalyst", "catalyst_date", "decision_id")
 
 
 # ---------------------------------------------------------------------------
@@ -100,13 +105,23 @@ def _restricted(instrument: Any) -> bool:
         return True
 
 
+def _setups() -> tuple:
+    try:
+        from register.store import setup_ids                    # noqa: PLC0415
+        return setup_ids()
+    except Exception:                                           # noqa: BLE001
+        return ()
+
+
 def printable(scan: Optional[list[dict]]) -> tuple[list[dict], dict]:
     """The candidates that may print, ranked by the scanner's score, and the
-    counts of those that may not (no register draft; a restricted instrument)."""
-    keep, drop = [], {"no_register_draft": 0, "restricted": 0}
+    counts of those that may not (no id or no declared setup; a restricted
+    instrument)."""
+    keep, drop = [], {"malformed": 0, "restricted": 0}
+    setups = set(_setups())
     for c in scan or []:
-        if not c.get("decision_id"):
-            drop["no_register_draft"] += 1
+        if not c.get("candidate_id") or c.get("setup_id") not in setups:
+            drop["malformed"] += 1
         elif _restricted(c.get("instrument")):
             drop["restricted"] += 1
         else:
@@ -124,7 +139,7 @@ def candidate_line(n: int, c: dict) -> str:
     return (f"{n}. {c.get('instrument')} {c.get('direction')} — {c.get('thesis')}; "
             f"catalyst: {cat}; invalidation: {c.get('invalidation') or 'none named'}; "
             f"horizon: {c.get('horizon') or 'not stated'}; size band: "
-            f"{c.get('size_band') or 'not stated'}"
+            f"{c.get('size') or 'not stated'}"
             + (f" (scanner score {sc:g})" if isinstance(sc, (int, float)) else "")
             + ".")
 
@@ -151,6 +166,15 @@ def register_rows(db_path: Optional[str] = None) -> list[dict]:
     except Exception:                                           # noqa: BLE001
         log.warning("the register is unreadable", exc_info=True)
         return []
+
+
+def _same(row: dict, c: dict) -> bool:
+    """A register row is the candidate's when instrument and direction agree,
+    and the setup too where the row records one."""
+    return (str(row.get("instrument") or "").upper()
+            == str(c.get("instrument") or "").upper()
+            and row.get("direction") == c.get("direction")
+            and (not row.get("setup_id") or row.get("setup_id") == c.get("setup_id")))
 
 
 def lineage(rows: list[dict], decision_id: str) -> list[dict]:
@@ -199,30 +223,48 @@ def sitting_flow(ending: str, db_path: Optional[str], scan: Optional[list[dict]]
     for r in week:
         if r.get("operator_action") or r.get("status") == "declined":
             reviewed_roots.add(heads.get(r["id"], r["id"]))
-    prior_ids = {c.get("decision_id") for c in prior_printed or [] if c.get("decision_id")}
-    reviewed_roots |= {heads.get(i, i) for i in prior_ids
-                       if outcome(lineage(rows, heads.get(i, i)))["reviewed"]}
     by = {r["id"]: r for r in rows}
-    this_week = {c.get("decision_id") for c in scan or []}
+    # THE PRIOR EDITION'S CANDIDATES. A candidate has no decision_id until the
+    # sitting approves a packet, so each is matched to the register rows written
+    # since its edition by instrument, direction and setup: an approved lineage
+    # is not passed over; a declined one carries its reason; no row at all is a
+    # pass with no reason recorded. A candidate the scanner fires again this week
+    # prints as a candidate, not as a pass.
+    this_week = {c.get("candidate_id") for c in scan or []}
     passed_candidates = []
-    for root in sorted(reviewed_roots):
+    matched_roots = set()
+    unmatched = 0                         # put to the sitting, no register row
+    for c in prior_printed or []:
+        if not c.get("candidate_id") or c["candidate_id"] in this_week:
+            continue
+        roots = sorted({heads.get(r["id"], r["id"]) for r in week
+                        if _same(r, c)})
+        outs = [outcome(lineage(rows, x)) for x in roots]
+        matched_roots |= set(roots)
+        unmatched += 0 if roots else 1
+        if any(o["approved"] for o in outs):
+            continue
+        reason = next((o["reason"] for o in outs if o["reason"]), None)
+        passed_candidates.append({"candidate_id": c["candidate_id"],
+                                  "instrument": c.get("instrument"),
+                                  "direction": c.get("direction"),
+                                  "reason": reason or NO_REASON})
+    reviewed_roots |= matched_roots
+    for root in sorted(reviewed_roots - matched_roots):
         o = outcome(lineage(rows, root))
         if o["approved"]:
             continue
         r0 = by.get(root) or {}
-        row = {"decision_id": root, "instrument": r0.get("instrument"),
-               "direction": r0.get("direction"), "reason": o["reason"] or NO_REASON}
-        if root in prior_ids:
-            if root not in this_week:
-                passed_candidates.append(row)
-        else:
-            passed.append(row)
+        passed.append({"decision_id": root, "instrument": r0.get("instrument"),
+                       "direction": r0.get("direction"),
+                       "reason": o["reason"] or NO_REASON})
     if approved is None:
         approved = sum(1 for r in week if r.get("status") == "active")
     open_n = sum(1 for r in rows if r.get("status") in ("active", "draft")
                  and not r.get("superseded_by"))
     return {"fired": None if scan is None else len(scan),
-            "reviewed": len(reviewed_roots), "drafted": len(drafted),
+            "reviewed": len(reviewed_roots) + unmatched,
+            "drafted": len(drafted),
             "approved": approved, "decisions_open": open_n,
             "passed_over": passed, "passed_candidates": passed_candidates}
 
@@ -249,10 +291,9 @@ def subsections(scan: Optional[list[dict]], flow: dict) -> tuple[list[dict], dic
             ["The scanner fired no candidate this week."]
     lines += [passed_line(c) for c in flow.get("passed_candidates") or []]
     notes = []
-    if drop["no_register_draft"]:
-        notes.append(f"{drop['no_register_draft']} candidate(s) without a register "
-                     f"draft not printed: a candidate prints only after the register "
-                     f"has accepted it.")
+    if drop["malformed"]:
+        notes.append(f"{drop['malformed']} candidate(s) without an id or a declared "
+                     f"setup not printed.")
     if drop["restricted"]:
         notes.append(f"{drop['restricted']} candidate(s) on a restricted instrument "
                      f"not printed.")
