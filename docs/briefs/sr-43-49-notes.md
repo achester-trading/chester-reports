@@ -32,9 +32,16 @@ I ran the gates this branch touches one at a time; all are green:
 | `validate_stack_cadence` | 99/0 |
 | `validate_monthly_stack` | 261/0 |
 | `validate_monthly` | 350/0 (1 skipped) |
-| `validate_config_refs` | 26/0 |
+| `validate_config_refs` | 27/0 (after the fix below) |
+| `check_registry` | OK |
 | `validate_gates` | 31/0 |
 | `check_library` | 0 failures |
+
+**CI's first run, #301, failed `validate_config_refs`.** The twelve
+`fred.oecd_10y_*` ids in `config/rates_anchors.yaml` were not registered. My
+local run had passed only because the YAML was still untracked, and the gate
+reads tracked files. The fix is a `fred_sr43` bulk block in
+`metrics_registry.yaml`, the same way the AQ-3 FRED series are registered.
 
 **One gate updated.** `validate_monthly_stack`'s "each bucket carries a written
 takeaway" check now counts only the buckets. The two SR-43/49 blocks ride after
