@@ -44,6 +44,8 @@ sys.path.insert(0, str(REPO / "tools"))
 from altdata import grader                              # noqa: E402
 from altdata import probability_ledger as pl            # noqa: E402
 import cuts                                             # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from packet_fixture import FALSIFIER, PACKET_CLI, PACKET_FULL  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -257,7 +259,7 @@ def group_e(d: Path) -> None:
                       edge_type="positioning", horizon="swing",
                       invalidation="settled close below 685", status="active",
                       operator_action="TAKE", book="B",
-                      falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis",
+                      falsifiers=[FALSIFIER], counter_thesis="fixture counter-thesis", **PACKET_FULL,
                       decision_time="2026-09-19T00:00:00+00:00")
     reg.close()
     rows = grader.decisions_to_grade(reg_db)
