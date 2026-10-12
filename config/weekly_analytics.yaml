@@ -158,5 +158,17 @@ playbook:
     RUSSELL2000: {channel: equities, sign: "+"}
     VIX: {channel: vol, sign: "+"}
     GOLD: {channel: dollar, sign: "-"}
+  # THE REGIME SWITCH (ruled 12 Oct 2026, W-1.3b Needs you 4): when the stored
+  # fed funds path prices hikes -- the implied rate after the meeting `meetings`
+  # on from the next is at least `min_bp` above the next meeting's -- a cool print
+  # of these classes reads two-sided on these channels: weaker growth is rates
+  # relief as much as growth fear. Otherwise the map stands.
+  regime_switch:
+    classes: [growth_print]
+    outcome: cool
+    channels: [equities, vol]
+    text: "two-sided — rates relief against growth fear"
+    meetings: 4
+    min_bp: 1.0
   # The frame sentence per outcome: at most this many words, no figure.
   sentence_words: 30

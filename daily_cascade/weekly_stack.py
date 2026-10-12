@@ -819,7 +819,7 @@ def analytics_blocks(built: dict, pmb: Optional[dict], fed: Optional[dict],
     slot = (built["ahead"].get("data") or {}).get("playbook")
     z_min = float(ahead.load_config().get("amplifier_z") or 1.5)
     pb = analytics.playbook(slot, (built.get("positioning") or {}).get("data"),
-                            z_min, acfg)
+                            z_min, acfg, fed=fed)
     if pb:
         built["ahead"]["data"]["playbook"] = {**slot, "outcomes": pb["rows"],
                                               "playbook": pb}

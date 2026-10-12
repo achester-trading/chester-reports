@@ -200,3 +200,41 @@ The Makefile carries the new gate. CLAUDE.md reads fifty-five code gates.
 5. **The Monthly's What doesn't fit now tiers its exceptions too,** through the
    shared builder. Keep that, or hold the tiers to the Weekly? Keep / Weekly
    only.
+
+## Follow-up, 12 Oct: two rulings applied
+
+**1. The Book B candidate's shape** (W-1.3a Needs you 3). A candidate carries
+the register's draft fields, as the Alternative Assets change order §4.1 item 10
+lists them:
+
+- instrument, direction, thesis, edge;
+- horizon, size, invalidation, counter-thesis.
+
+It also carries:
+
+- `setup_id`, a family `config/setups.yaml` declares (EL-1);
+- the scanner's `score`;
+- the catalyst and its date;
+- `candidate_id`.
+
+`decision_id` is null on every candidate. It is assigned only when the sitting
+approves a packet.
+
+`daily_cascade/book_b.py` changes accordingly:
+
+- **What prints.** A candidate with an id and a declared setup, on an
+  instrument the restriction list does not name. It is ranked by the scanner's
+  score.
+- **A passed-over candidate.** Last week's printed candidate is matched to the
+  week's register rows by instrument, direction and setup:
+  - an approved lineage is not a pass;
+  - a declined row gives the reason;
+  - no row at all is a pass with "no reason recorded".
+
+`validate_weekly_calendar`'s fixture and checks follow the ruled shape (39/0).
+
+**2. The playbook's regime switch** (W-1.3b Needs you 4). When the stored fed
+funds path prices hikes, a cool growth print's equity and volatility cells read
+"two-sided — rates relief against growth fear". Pricing hikes means the implied
+rate rising from the next meeting over the following four. Otherwise the map
+stands. Both branches are fixtured in `validate_weekly_analytics`.

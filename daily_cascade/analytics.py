@@ -392,8 +392,22 @@ def matrix(events: list[dict], markets: list[dict], fed: Optional[dict],
 _WORD = {"+": "up", "-": "down", "0": "little changed"}
 
 
+def hikes_priced(fed: Optional[dict], meetings: int = 4,
+                 min_bp: float = 1.0) -> Optional[bool]:
+    """Whether the stored fed funds path prices hikes: the implied rate after
+    the meeting `meetings` on from the next stands at least `min_bp` above the
+    rate after the next meeting. None when no path is stored."""
+    ms = [m for m in (fed or {}).get("meetings") or []
+          if isinstance(m.get("post_pct"), (int, float))]
+    if len(ms) < 2:
+        return None
+    last = ms[min(meetings, len(ms) - 1)]
+    return 100.0 * (last["post_pct"] - ms[0]["post_pct"]) >= min_bp
+
+
 def playbook(top: Optional[dict], pos: Optional[dict], z_min: float,
-             cfg: Optional[dict] = None) -> Optional[dict]:
+             cfg: Optional[dict] = None, fed: Optional[dict] = None
+             ) -> Optional[dict]:
     """The top event's playbook: one row per outcome, its transmission across
     the channels and the crowded positions that outcome would force out. A
     position amplifies an outcome when the outcome moves its channel against
@@ -412,10 +426,19 @@ def playbook(top: Optional[dict], pos: Optional[dict], z_min: float,
             continue
         if abs(x["z_2y"]) >= z_min:
             crowded.append((k[5:], x))
+    # THE REGIME SWITCH (ruled 12 Oct 2026): code, from the stored path.
+    rs = pb.get("regime_switch") or {}
+    hikes = hikes_priced(fed, int(rs.get("meetings") or 4),
+                         float(rs.get("min_bp") or 1.0)) if rs else None
+    switched = bool(hikes) and top.get("cls") in (rs.get("classes") or [])
     rows, cells = [], []
     for oc in ("hot", "in-line", "cool"):
-        mv = outs.get(oc) or {}
-        trans = ", ".join(f"{ch} {_WORD.get(str(mv.get(ch)), '—')}"
+        mv = dict(outs.get(oc) or {})
+        if switched and oc == rs.get("outcome"):
+            for ch in rs.get("channels") or []:
+                mv[ch] = "two-sided"
+        trans = ", ".join(f"{ch} {rs.get('text')}" if mv.get(ch) == "two-sided"
+                          else f"{ch} {_WORD.get(str(mv.get(ch)), '—')}"
                           for ch in pb.get("channels") or [])
         amp = []
         for inst, x in crowded:
@@ -423,7 +446,7 @@ def playbook(top: Optional[dict], pos: Optional[dict], z_min: float,
             if not ex:
                 continue
             m = str(mv.get(ex["channel"]) or "0")
-            if m == "0":
+            if m in ("0", "two-sided"):
                 continue
             pnl = (1 if (x.get("level") or 0) > 0 else -1) * \
                 (1 if ex["sign"] == "+" else -1) * (1 if m == "+" else -1)
@@ -435,7 +458,8 @@ def playbook(top: Optional[dict], pos: Optional[dict], z_min: float,
                      "transmission": trans,
                      "amplify": "; ".join(amp) or "no crowded position against it",
                      "read": None})
-    return {"event": top.get("event"), "cls": top.get("cls"), "rows": rows}
+    return {"event": top.get("event"), "cls": top.get("cls"), "rows": rows,
+            "hikes_priced": hikes, "regime_switched": switched}
 
 
 def playbook_table(p: dict) -> dict:

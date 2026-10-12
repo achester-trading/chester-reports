@@ -370,6 +370,37 @@ def main() -> int:
           f"hot forces out the crowded longs in notes and stocks and the crowded VIX "
           f"short; cool forces out none; an uncrowded contract never prints "
           f"({hot['amplify']})")
+    # THE REGIME SWITCH (ruled 12 Oct 2026): a cool growth print reads two-sided
+    # on equities and vol when the fed funds path prices hikes; not otherwise.
+    days = ("2026-10-28", "2026-12-09", "2027-01-27", "2027-03-17", "2027-04-28")
+    rising = {"meetings": [{"meeting": d, "post_pct": 4.00 + 0.10 * i}
+                           for i, d in enumerate(days)]}
+    flat = {"meetings": [{"meeting": d, "post_pct": 4.00 - 0.05 * i}
+                         for i, d in enumerate(days)]}
+    two = "two-sided — rates relief against growth fear"
+    gh = an.playbook({"event": "GDP", "cls": "growth_print"}, pos_fx, 1.5, acfg,
+                     fed=rising)
+    gf = an.playbook({"event": "GDP", "cls": "growth_print"}, pos_fx, 1.5, acfg,
+                     fed=flat)
+    check(an.hikes_priced(rising) is True and an.hikes_priced(flat) is False
+          and an.hikes_priced(None) is None,
+          "the regime read: hikes priced when the implied rate rises from the next "
+          "meeting over the following four")
+    check(gh["rows"][2]["transmission"] == f"yields down, dollar down, equities {two}, "
+          f"vol {two}" and gh["regime_switched"]
+          and gh["rows"][0]["transmission"] == gf["rows"][0]["transmission"],
+          "with hikes priced, a cool growth print's equity and vol cells read "
+          "two-sided; hot is unchanged")
+    check(gf["rows"][2]["transmission"] == "yields down, dollar down, equities down, "
+          "vol up" and not gf["regime_switched"],
+          "without hikes priced, the map stands: equities down, vol up")
+    ch_ = an.playbook({"event": "CPI", "cls": "inflation_print"}, pos_fx, 1.5, acfg,
+                      fed=rising)
+    check(ch_["rows"][2]["transmission"] == cool["transmission"],
+          "the switch is the growth print's only: a cool CPI is unchanged")
+    check("S&P 500 futures" not in gh["rows"][2]["amplify"]
+          and "VIX futures" not in gh["rows"][2]["amplify"],
+          "a two-sided channel amplifies no crowded position")
     cl, n = reads_client()
     an.write_playbook(pb, client=cl)
     tb = an.playbook_table(pb)
