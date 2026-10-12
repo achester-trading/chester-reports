@@ -951,13 +951,75 @@ def analysis_state(st, a: dict, ctx: dict) -> str:
     return "; ".join(vals) if vals else "nothing stored at this cutoff"
 
 
+# THE KILL STATE (AQ-10): every analysis prints one of these beside its
+# reading. "not measured" always carries its reason.
+KILL_STATES = ("holds", "strained", "killed")
+KILL_NONE_RULED = "not measured — no kill condition was ruled (section 5: —)"
+ANALYSIS_COLUMNS = ["Analysis", "State", "Kill condition (as ruled)", "Kill state"]
+
+
+def none_ruled(kill: Optional[str]) -> bool:
+    return str(kill or "").strip().lower().startswith("none ruled")
+
+
+def kill_vocab(text: str) -> str:
+    """A module's own kill-state wording, in the gate's four words. AQ-8a's
+    readers say "stable", "no stable sign (kill condition met; not acted on)",
+    "kill test waits: n of 12 months", "no kill condition ruled ..."."""
+    t = " ".join(str(text or "").split())
+    low = t.lower()
+    if low.split(" — ")[0] in KILL_STATES:
+        return t
+    if "kill condition met" in low:
+        return f"killed — {t}"
+    if low == "stable" or low.startswith("stable "):
+        return f"holds — {t}"
+    return f"not measured — {t}" if t else "not measured — the reader returned nothing"
+
+
+def kill_state(st, a: dict, ctx: dict) -> str:
+    """holds / strained / killed / not measured — <reason>, for one analysis.
+    Computed, never declared: from `kill_measurable` (met = killed, the item 7
+    rule), from `kill_reader` on the analysis's own module, or not measured
+    with the reason. An analysis whose config carries no kill condition at all
+    prints so -- and fails AQ-10's gate."""
+    kill = str(a.get("kill") or "").strip()
+    if not kill:
+        return "not measured — no kill condition in config"
+    if none_ruled(kill):
+        return KILL_NONE_RULED
+    if a.get("kill_measurable"):
+        r = evaluate(st, a["kill_measurable"], ctx)
+        if r.get("met") is None:
+            return f"not measured — {r.get('missing') or 'no reading'}"
+        return ("killed" if r["met"] else "strained" if r.get("strained")
+                else "holds") + (f" — {r['evidence']}" if r.get("evidence") else "")
+    if a.get("kill_reader"):
+        kind = {"altdata.attribution": "attribution", "altdata.paper_bid": "paper_bid",
+                "altdata.correlation": "correlation"}.get(a.get("module") or "")
+        m = module(kind) if kind else branch_module(a) if a.get("module") else None
+        if m is None or not hasattr(m, a["kill_reader"]):
+            return (f"not measured — {not_yet(kind)}" if kind else
+                    f"not measured — not yet: {a.get('branch') or a.get('module')}")
+        try:
+            fn = getattr(m, a["kill_reader"])
+            args = list(a.get("kill_args") or [])
+            got = fn(st, *args, ctx["now"]) if args else fn()
+        except Exception as exc:                                # noqa: BLE001
+            return f"not measured — FAULT (code, not data) -- {type(exc).__name__}"
+        return kill_vocab(got)
+    if a.get("waits"):
+        return f"not measured — the analysis waits: {a['waits']}"
+    return "not measured — the kill condition has no measurable in config yet"
+
+
 def item_analyses(st, fam: dict, ctx: dict) -> dict:
-    rws = [[a["title"], analysis_state(st, a, ctx), a.get("kill") or "—"]
+    rws = [[a["title"], analysis_state(st, a, ctx), a.get("kill") or "—",
+            kill_state(st, a, ctx)]
            for a in fam.get("analyses") or []]
     out = {"title": "6 · The analyses", "item": "analyses", "tier": REFERENCE}
     if rws:
-        out["table"] = {"columns": ["Analysis", "State", "Kill condition (as ruled)"],
-                        "rows": rws}
+        out["table"] = {"columns": list(ANALYSIS_COLUMNS), "rows": rws}
     else:
         out["not_tracked"] = ["no analysis is ruled for this chapter"]
     return out
@@ -1226,9 +1288,10 @@ def item_book(ch: dict, ctx: dict, fam: Optional[dict] = None) -> dict:
         conn = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
         try:
             got = conn.execute(
-                "SELECT horizon_kind, kind, decision_id, reason, portfolio_role FROM "
-                "alt_asset_books WHERE family = ? AND quarter = ? ORDER BY "
-                "horizon_kind", (ch.get("thesis_family"), q)).fetchall()
+                "SELECT horizon_kind, kind, decision_id, reason, portfolio_role, "
+                "cost_json FROM alt_asset_books WHERE family = ? AND quarter = ? "
+                "ORDER BY horizon_kind, written_at",
+                (ch.get("thesis_family"), q)).fetchall()
         finally:
             conn.close()
     except Exception:                                           # noqa: BLE001
@@ -1237,11 +1300,61 @@ def item_book(ch: dict, ctx: dict, fam: Optional[dict] = None) -> dict:
         out["lines"] = out.get("lines", []) + [f"No book line for {q[-1]}Q{q[2:4]} is seeded for this "
                         f"chapter yet."]
         return out
-    out["table"] = {"columns": ["Horizon", "Line", "Portfolio role", "Decision or reason"],
-                    "rows": [[h, "draft" if k == "draft" else "no draft",
-                              role or "—", (did or "")[:8] if k == "draft" else (why or "—")]
-                             for h, k, did, why, role in got]}
+    out["table"] = {"columns": list(BOOK_COLUMNS),
+                    "rows": book_rows(got, rule, ch.get("weight"))}
     return out
+
+
+BOOK_COLUMNS = ["Horizon", "Line", "Portfolio role", "Cost row", "Decision or reason"]
+HORIZONS = ("3m", "12m")
+COST_GAP_NAMES = (("spread", "spread"), ("roll", "roll"), ("borrow", "borrow"),
+                  ("fx_hedge", "FX hedge"))
+
+
+def cost_text(cost: Optional[dict]) -> str:
+    """A draft's cost row in one cell, from the IBKR costs writer's rate card
+    (AQ-6's cost_row): the commission where it is priced, its reason where it
+    is not, and the components the writer does not price, named."""
+    if not cost:
+        return ""
+    gaps = [lab for k, lab in COST_GAP_NAMES if k in cost]
+    tail = f"; {', '.join(gaps)} not priced" if gaps else ""
+    if cost.get("available") and cost.get("commission") is not None:
+        return (f"commission ${float(cost['commission']):,.2f} (rate card"
+                f"{', a floor' if cost.get('is_floor_not_all_in') else ''}){tail}")
+    return f"commission not priced: {cost.get('reason') or 'no reason given'}{tail}"
+
+
+def book_rows(got: list, rule: dict, weight: Optional[str]) -> list[list[str]]:
+    """The book table: one row per stored book line, plus a no-draft line for a
+    horizon with none. A draft on an instrument the chapter's rule does not
+    name as understood (agriculture, section 4.11) prints as a no draft."""
+    import json as _json  # noqa: PLC0415
+    understood = rule.get("understood_instruments")
+    out, seen = [], set()
+    for h, k, did, why, role, cj in got:
+        seen.add(h)
+        try:
+            cost = _json.loads(cj) if cj else None
+        except ValueError:
+            cost = None
+        inst = str((cost or {}).get("instrument") or "")
+        if k == "draft" and understood is not None and inst not in understood:
+            out.append([h, "no draft", "—", "—",
+                        f"thin or poorly understood contract, a no draft by rule "
+                        f"(section 4.11): {inst or 'unnamed instrument'}"])
+            continue
+        if k == "draft":
+            out.append([h, "draft", role or "—", cost_text(cost),
+                        f"{inst or 'unnamed instrument'} · {(did or '')[:8]}"])
+        else:
+            out.append([h, "no draft", "—", "—", why or "—"])
+    if weight == "deep":
+        for h in HORIZONS:
+            if h not in seen:
+                out.append([h, "no draft", "—", "—",
+                            "no book line was written for this horizon"])
+    return sorted(out, key=lambda r: HORIZONS.index(r[0]) if r[0] in HORIZONS else 9)
 
 
 # ---------------------------------------------------------------------------

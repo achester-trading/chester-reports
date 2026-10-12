@@ -146,6 +146,12 @@ CORR_COLUMNS = ["Pair or row", "Latest", "Long-run (median or mean)",
                 "Divergence or percentile", "As of"]
 
 
+def _corr(v) -> str:
+    """A correlation as printed; a window the record lacks prints as a dash, so
+    AQ-10's gate sees it rather than the item faulting."""
+    return f"{v:+.2f}" if isinstance(v, (int, float)) and v == v else "—"
+
+
 def correlation_rows(ch: dict, ctx: dict) -> dict:
     """Item 8: the chapter's named rows and peer pairs from the correlation
     layer (AQ-5), read from the store at the edition's cutoff."""
@@ -158,8 +164,10 @@ def correlation_rows(ch: dict, ctx: dict) -> dict:
     st = ctx.get("store")
     if st is None:
         return {"not_tracked": ["the correlation rows: no store at this cutoff"]}
-    rows, gaps = [], []
+    rows, gaps, keyed, lines = [], [], [], []
+    data: dict = {}
     try:
+        order = [a["id"] for a in co.assets()] if hasattr(co, "assets") else []
         for r in co.peer_table(st, ctx["now"]):
             if r["asset"] not in assets and r["peer"] not in assets:
                 continue
@@ -169,6 +177,12 @@ def correlation_rows(ch: dict, ctx: dict) -> dict:
                 continue
             rows.append([name, f"{r['latest']:+.2f}", f"{r['median']:+.2f} (median)",
                          f"{r['divergence']:+.2f}", r["as_of"]])
+            key = None
+            if hasattr(co, "pair_key") and {r["asset"], r["peer"]} <= set(order):
+                x, y = sorted((r["asset"], r["peer"]), key=order.index)
+                key = co.pair_key(x, y, 60)
+                key = co.stored_key(key) if hasattr(co, "stored_key") else key
+            keyed.append({"row": name, "keys": [key] if key else []})
         for n in co.config().get("named") or []:
             legs = n["a"] if isinstance(n["a"], list) else [n["a"]]
             if not (set(legs) | {n["b"]}) & assets:
@@ -182,15 +196,56 @@ def correlation_rows(ch: dict, ctx: dict) -> dict:
                          else "—",
                          (f"{t['percentile']:.0f}th percentile"
                           if t.get("percentile") is not None else "—"), t["as_of"]])
+            k = co.stored_key(n["key"]) if hasattr(co, "stored_key") else n["key"]
+            keyed.append({"row": n["label"], "keys": [k]})
+        data["rows"] = keyed
+        # THE FORMER REPORT'S 30-DAY AGAINST 120-DAY BREAK, its state over the
+        # quarter for this chapter's assets: fired, or not, always printed.
+        if hasattr(co, "breaks_between"):
+            ba = [x for x in (co.break_assets() if hasattr(co, "break_assets")
+                              else sorted(assets)) if x in assets]
+            if not ba:
+                lines.append("30-day against 120-day break: no asset in this chapter "
+                             "carries the former report's break logic.")
+            else:
+                brk = [b for b in co.breaks_between(st, ctx["start"], ctx["now"])
+                       if b["asset"] in ba]
+                data["breaks"] = brk
+                lines.append(
+                    "30-day against 120-day break this quarter: "
+                    + ("; ".join(f"{co.label(b['asset'])} {b['direction']} "
+                                 f"{'from ' if b['direction'] == 'away' else ''}"
+                                 f"{str(b['benchmark']).upper()} ({b['delta']:+.2f}, "
+                                 f"{b['day']})" for b in brk)
+                       if brk else "none fired for "
+                       + ", ".join(co.label(x) for x in ba)) + ".")
+            data["break_assets"] = ba
+        # THE QUARTER'S SHIFTS for the chapter's pairs: each with its 60-day and
+        # its 252-day, the two windows a flag is read from.
+        if hasattr(co, "shifts_between") and hasattr(co, "pairs"):
+            mine = [p for p in co.pairs() if set(p) & assets]
+            sh = co.shifts_between(st, ctx["start"], ctx["now"], only=mine)
+            data["shifts"] = [co.shift_record(s) if hasattr(co, "shift_record")
+                              else s for s in sh]
+            for s in sh[:5]:
+                lines.append(f"Shift: {co.label(s['pair'][0])}-{co.label(s['pair'][1])} "
+                             f"(60d {_corr(s.get('c60'))} against 252d "
+                             f"{_corr(s.get('c252'))}, {s['rule']}, {s['day']}).")
+            if len(sh) > 5:
+                lines.append(f"And {len(sh) - 5} more shifts this quarter.")
+            if not sh:
+                lines.append("No shift flag fired this quarter on this chapter's "
+                             "pairs.")
     except Exception as exc:                                    # noqa: BLE001
         return {"notes": [f"FAULT (code, not data) -- the correlation layer: "
                           f"{type(exc).__name__}"]}
-    out: dict = {"not_tracked": gaps}
+    out: dict = {"not_tracked": gaps, "data": data}
     if rows:
         out["table"] = {"columns": CORR_COLUMNS, "rows": rows}
     else:
-        out["lines"] = ["No correlation row for this chapter is stored at this "
-                        "cutoff."]
+        lines.insert(0, "No correlation row for this chapter is stored at this "
+                        "cutoff.")
+    out["lines"] = lines
     return out
 
 
@@ -429,10 +484,14 @@ def drawn(charts: dict) -> list[str]:
 
 def hold_cap(ed: dict, charts: dict, cap: int) -> list[str]:
     """Over the chart cap the last chapters' charts are marked unavailable,
-    named, never silently dropped."""
+    named, never silently dropped: the line the page prints in the chart's place
+    carries its caption (AQ-10's stack gate holds this)."""
     over = drawn(charts)[cap:]
     for k in over:
-        charts[k] = {"id": k, "unavailable": f"over the edition's chart cap ({cap})"}
+        c = charts[k]
+        name = c.get("caption") or c.get("title") or k
+        charts[k] = {"id": k, "title": c.get("title"), "caption": c.get("caption"),
+                     "unavailable": f"over the edition's chart cap ({cap}): {name}"}
     return over
 
 

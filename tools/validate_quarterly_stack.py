@@ -800,10 +800,10 @@ def group_g(r: dict) -> None:
           "currency names its pair universe: the deep basket (three stored, six by "
           "name) and the scan tier (fifteen; H.10's legs wait for aq-3-series-1)")
     an = met["analyses"]["table"]["rows"]
-    check(all(len(x) == 3 and x[2] for x in an)
+    check(all(len(x) == 4 and x[2] and x[3] for x in an)
           and any("AQ-8a" in x[1] for x in an) and any("AQ-5" in x[1] for x in an),
-          "item 6: each analysis's state and its kill condition; the hooks name the "
-          "branch they wait for")
+          "item 6: each analysis's state, its kill condition and its kill state "
+          "(AQ-10); the hooks name the branch they wait for")
     pr = met["priced"]
     check(any("6b" in x for x in pr["not_tracked"])
           and any("GLD" in x for x in pr["not_tracked"])
