@@ -67,9 +67,30 @@ CHANGES = [("Initial jobless claims", "Thursday", "a jump would test the equitie
                                                 "side of the tension")]
 
 
+# The précis's WEEK paragraph (W-1.3a item 3.0): inside the 150-250 band, no
+# figure, ending in its Takeaway.
+PRECIS_WEEK = (
+    "The week's tension sat between two markets that usually agree. Equities held "
+    "near their highs and kept their trend, while credit spreads, the extra yield "
+    "investors demand to lend to riskier companies over the government, widened "
+    "alongside them. When spreads widen, lenders are asking to be paid more for "
+    "default risk, which is usually a warning that equity holders have not yet "
+    "heard. On one side, the tape kept its trend through every session and the "
+    "options market's hedging, which damps moves while the index sits above the "
+    "level where dealers switch from selling rallies to chasing them, kept the "
+    "swings small. On the other, the widening came from the lowest-rated borrowers "
+    "first, which is where stress tends to show before it reaches the rest of the "
+    "market. Neither side settled the question by the week's close, and the "
+    "scheduled releases ahead fall on exactly the series that would. Takeaway: the "
+    "equity trend deserves the benefit of the doubt only while credit stops "
+    "widening, so the coming week's releases matter more for spreads than for "
+    "stocks.")
+
+
 def precis_reply(system: str, bad: bool = False) -> str:
     ids = re.findall(r"^RELEVANCE (\w+):", system, re.M)
-    lines = ["TENSION: Equities held near their highs alongside wider credit spreads.",
+    lines = ["WEEK: " + PRECIS_WEEK,
+             "TENSION: Equities held near their highs alongside wider credit spreads.",
              "FOR: The tape kept its trend through the week.",
              "AGAINST: Credit spreads widened"
              + (" by +9.9%" if bad else "") + " alongside it.",
@@ -96,7 +117,7 @@ def client(calls: list):
         if sysp.startswith("You write the PRÉCIS"):
             n["precis"] += 1
             return W.Resp(precis_reply(sysp, bad=n["precis"] == 1))
-        return W.Resp("The week left this section where it was.")
+        return W.Resp(W.OPENER_TEXT)
     return types.SimpleNamespace(messages=types.SimpleNamespace(create=create))
 
 
@@ -262,7 +283,7 @@ def main() -> int:
         "rows": [["A", "v", "NEW", "s", "h"], ["B", "v", "SILENT", "s", "h"],
                  ["C", "v", "SILENT", "s", "h"], ["D", "v", "UNREACHABLE (x)", "s", "h"]]}}]}
     storyline.collapse_voices(ved)
-    check(ved["sections"][0]["collapsed"] == ["Voices: 2 silent, 1 unreachable."]
+    check(ved["sections"][0]["summarised"] == ["Voices: 2 silent, 1 unreachable."]
           and len(ved["sections"][0]["table"]["rows"]) == 1
           and len(ved["detail"][0]["table"]["rows"]) == 3,
           "silent and unreachable voices: one line, the rows in reference")
@@ -287,7 +308,7 @@ def main() -> int:
             "rows": [[lab, "extreme", "", "—"],
                      [labels.exception("extreme:fred.rrp"), "extreme", "", "—"]]}}]}]}
     storyline.collapse_exceptions(eed)
-    check(eed["sections"][0]["collapsed"] == [f"{lab} -- the tape prints it."]
+    check(eed["sections"][0]["summarised"] == [f"{lab} -- the tape prints it."]
           and len(eed["sections"][0]["subsections"][0]["table"]["rows"]) == 1,
           "an extreme the tape already prints: one line; the other stays a row")
 

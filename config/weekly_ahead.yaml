@@ -1,0 +1,98 @@
+# weekly_ahead.yaml -- the Weekly's Ahead as the market-moving calendar (W-1.3a
+# item 3.9; change order of 11 Oct 2026, section 4, amended 12 Oct: "the Ahead
+# should summarise all notable upcoming events which may move markets").
+#
+# ONE RANKED TABLE for the coming week (daily_cascade/ahead.py): what, when (ET),
+# the consensus or modal outcome where one exists, why it matters (the event
+# class's TRANSMISSION CHANNEL, below) and the positioning that would amplify a
+# surprise (the event class's AMPLIFIERS, read from the Positioning section's
+# extremes). Ranked by the class's IMPORTANCE TIER, then by time -- never by the
+# model. The rank-1 event keeps the playbook slot (item 3.5, filled in W-1.3b).
+# Routine data releases and bill auctions go to the reference tables, counted.
+#
+# SESSION-SET (W-1.3a): every tier, channel and amplifier here is the session's
+# proposal for the operator to overrule; none is ruled.
+version: weekly-ahead-v1
+updated: 2026-10-12
+status: proposed
+
+# A positioning row is an AMPLIFIER when its two-year z is at least this far from
+# zero: a crowded position is what a surprise forces to unwind.
+amplifier_z: 1.5
+
+# THE EVENT CLASSES. `tier` 1 (moves every market) to 3 (moves one); `channel`
+# is the one clause "why it matters" prints; `amplifiers` are CFTC contracts
+# (altdata/sources/cftc.py's instrument codes) whose crowding would amplify a
+# surprise; `playbook` marks a class W-1.3b's outcome table can fill.
+classes:
+  fomc_decision:      {tier: 1, playbook: true, channel: "the policy rate itself: front-end yields first, then the dollar and equity multiples", amplifiers: [UST10Y, USD_INDEX, SP500]}
+  inflation_print:    {tier: 1, playbook: true, channel: "the inflation print the rate path is priced on: yields, then the dollar, then equity multiples", amplifiers: [UST10Y, UST30Y, SP500, GOLD]}
+  labour_print:       {tier: 1, playbook: true, channel: "the labour market's read on growth and so on the rate path: front-end yields and cyclical equities", amplifiers: [UST10Y, SP500, RUSSELL2000]}
+  growth_print:       {tier: 1, playbook: true, channel: "growth for the quarter: cyclical equities and the curve's slope", amplifiers: [SP500, RUSSELL2000, UST10Y]}
+  refunding:          {tier: 1, channel: "coupon supply, and so the term premium and the long end", amplifiers: [UST30Y, UST10Y]}
+  opex_quarterly:     {tier: 1, channel: "a quarterly expiry: dealers' hedges roll off at once, so the index's damping can change overnight", amplifiers: [VIX, SP500]}
+  earnings_mega:      {tier: 1, channel: "an index-weight leader: its move is the index's move, and its capital spending is the AI trade's", amplifiers: [NDX100, SP500]}
+  fomc_minutes:       {tier: 2, channel: "how the committee argued its last decision: the rate path beyond the next meeting", amplifiers: [UST10Y, USD_INDEX]}
+  fed_chair:          {tier: 2, channel: "the Chair's words move the rate path between meetings", amplifiers: [UST10Y, USD_INDEX]}
+  inflation_data:     {tier: 2, channel: "an inflation input the CPI and PCE prints will echo", amplifiers: [UST10Y]}
+  labour_data:        {tier: 2, channel: "a weekly or monthly labour input to the growth read", amplifiers: [UST10Y, RUSSELL2000]}
+  growth_data:        {tier: 2, channel: "an activity read on the cycle: cyclical equities and yields", amplifiers: [SP500, RUSSELL2000]}
+  coupon_benchmark:   {tier: 2, channel: "demand for duration at the benchmark: the long end and the term premium", amplifiers: [UST10Y, UST30Y]}
+  opex_monthly:       {tier: 2, channel: "a monthly expiry: dealer hedges against the expiring strikes are released", amplifiers: [VIX]}
+  index_rebalance:    {tier: 2, channel: "mechanical flows into and out of the index's members at the close", amplifiers: [SP500]}
+  earnings_bank:      {tier: 2, channel: "a large bank: credit quality, loan demand and net interest income for the cycle read", amplifiers: [SP500, RUSSELL2000]}
+  earnings_index:     {tier: 2, channel: "an index-weight name: its sector's read-through", amplifiers: [SP500]}
+  em_event:           {tier: 2, channel: "an emerging-market political or policy event: that currency and its local rates", amplifiers: [USD_INDEX]}
+  china_political:    {tier: 2, channel: "the Party and State calendar: China's policy stance, the yuan and commodity demand", amplifiers: [USD_INDEX, WTI]}
+  register_event:     {tier: 2, channel: "a dated event on the claims register", amplifiers: [SP500]}
+  fed_speaker:        {tier: 3, channel: "a committee member's view of the rate path", amplifiers: [UST10Y]}
+  coupon_auction:     {tier: 3, channel: "coupon supply at that maturity", amplifiers: [UST10Y]}
+  earnings_tracked:   {tier: 3, channel: "a name a tracked story turns on", amplifiers: []}
+  prediction_family:  {tier: 3, channel: "a prediction market's resolution: the outcome its traders have priced", amplifiers: []}
+  thailand_political: {tier: 3, channel: "Thailand's policy calendar: the baht and Thai rates", amplifiers: []}
+
+# A RELEASE's class, by its calendar label (config/release_calendar.yaml). A
+# release this map does not name is ROUTINE: it goes to the reference tables,
+# counted, with the bill auctions.
+release_classes:
+  "FOMC statement": fomc_decision
+  "CPI": inflation_print
+  "PCE (personal income and outlays)": inflation_print
+  "Payrolls (employment situation)": labour_print
+  "GDP": growth_print
+  "Treasury quarterly refunding": refunding
+  "FOMC minutes": fomc_minutes
+  "PPI": inflation_data
+  "Jobless claims": labour_data
+  "JOLTS (job openings)": labour_data
+  "ISM": growth_data
+  "Retail sales": growth_data
+  "10-year note auction": coupon_benchmark
+  "30-year bond auction": coupon_benchmark
+
+# THE INDEX-WEIGHT RANKING for earnings (S&P 500, by index weight; hand-seeded,
+# refresh quarterly). Ranks 1-`mega_ranks` are earnings_mega, the rest
+# earnings_index; the hyperscalers are earnings_mega wherever they rank; the
+# banks are earnings_bank. A tracked-universe name in none of these lists is
+# earnings_tracked. The earnings pass (altdata/sources/earnings.py) pulls these
+# symbols beside the story queries' -- the one network read for earnings stays
+# there, never in the Weekly.
+earnings:
+  weights_as_of: 2026-09-30
+  mega_ranks: 10
+  index_weight_rank: [NVDA, MSFT, AAPL, AMZN, META, AVGO, GOOGL, GOOG, TSLA, BRK-B,
+                      JPM, LLY, V, NFLX, XOM, MA, COST, WMT, ORCL, JNJ, HD, PG, ABBV,
+                      BAC, UNH]
+  hyperscalers: [MSFT, AMZN, GOOGL, GOOG, META, ORCL]
+  banks: [JPM, BAC, C, WFC, GS, MS]
+
+# THE HAND-SEEDED CALENDARS (by hand; no session writes an entry). A file not
+# present on this branch reads as no entries, and Ahead says so in its footnote.
+hand_calendars:
+  - {path: config/em_calendar.yaml, class: em_event, who: country}
+  - {path: config/china_political_calendar.yaml, class: china_political, who: body}
+  - {path: config/thailand_political_calendar.yaml, class: thailand_political, who: body}
+
+# THE CLAIMS REGISTER'S DATED EVENTS (config/claims.yaml): a claim whose value is
+# an ISO date inside the coming week prints as an event.
+register_events: [cal.midterm_election_2026]

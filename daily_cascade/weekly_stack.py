@@ -955,7 +955,8 @@ def source_label(src: str) -> str:
 
 
 def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
-               watch: Optional[list] = None) -> dict:
+               watch: Optional[list] = None, pos: Optional[dict] = None,
+               now: Optional[str] = None) -> dict:
     wa = p.get("week_ahead") or {}
     items = []
     # THE WEEK-AHEAD CALENDAR, IN FULL (T2.1 item 11, folded from the old Detail
@@ -1010,21 +1011,54 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
                                                        "ahead:base_rates")]}]
     nt = ["scenario weights with odds and signposts (scenario set #1, Audit #4 "
           "agenda item 2)"]
-    if cal and cal.get("routine_not_listed"):
-        nt.append(f"{cal['routine_not_listed']} routine data releases and bill "
-                  f"auctions not listed")
-    return {"items": items, "print_items": False,
-            "table": (cal or {}).get("table") or {"columns": [], "rows": []},
+    # THE MARKET-MOVING CALENDAR (W-1.3a item 3.9): one ranked table, earnings,
+    # the hand-seeded calendars and the register's dated events folded in; the
+    # routine rows to the reference tables, counted; the top event's playbook
+    # slot (item 3.5, filled in W-1.3b).
+    from . import ahead                                         # noqa: PLC0415
+    try:
+        ah = ahead.build(cal, p, pos, now or p.get("as_of") or session.utc_iso(),
+                         min_outcomes=int((stack_mod.config().get("storyline") or {})
+                                          .get("family_min_outcomes") or 2))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the ranked calendar is unavailable", exc_info=True)
+        ah = None
+    if ah is None:
+        if cal and cal.get("routine_not_listed"):
+            nt.append(f"{cal['routine_not_listed']} routine data releases and bill "
+                      f"auctions not listed")
+        return {"items": items, "print_items": False,
+                "table": (cal or {}).get("table") or {"columns": [], "rows": []},
+                "subsections": subs,
+                "data": {"graded_calls": calls,
+                         "calendar": [{k: r[k] for k in ("date", "time", "event",
+                                                         "tier", "consensus")}
+                                      for r in (cal or {}).get("rows") or []],
+                         "watching": watch or []},
+                "not_tracked": nt}
+    if ah["playbook"]:
+        # The slot: W-1.3b's code-built outcome table fills its lines.
+        subs.append({"title": f"Playbook: {ah['playbook']['event']}",
+                        "lines": [], "playbook": ah["playbook"]})
+    return {"items": items, "print_items": False, "table": ah["table"],
             "subsections": subs,
+            "summarised": list(ah["collapsed"]),
+            "reference": ah["reference"],
+            "notes": ah["notes"],
             "data": {"graded_calls": calls,
-                     "calendar": [{k: r[k] for k in ("date", "time", "event", "tier",
-                                                     "consensus")}
-                                  for r in (cal or {}).get("rows") or []],
+                     "calendar": [{k: r.get(k) for k in
+                                   ("date", "time", "event", "tier", "consensus",
+                                    "rank", "cls", "why", "amplify")}
+                                  for r in ah["rows"]],
+                     "playbook": ah["playbook"],
+                     "routine_count": ah["routine_count"],
                      "watching": watch or []},
             "not_tracked": nt}
 
 
-def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
+def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
+              ending: Optional[str] = None, db_path: Optional[str] = None,
+              prior: Optional[dict] = None) -> dict:
     rg = p.get("register") or {}
     rb = rg.get("rule_breaks") or {}
     items = [item("book:open", f"{rg.get('open_count', 0)} open decision(s), "
@@ -1077,8 +1111,33 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
                       f"What's priced deep on {len(trig['priced'])} of "
                       f"{trig['sessions']} session(s).", 2,
                       (len(trig["plumbing"]), len(trig["priced"]))))
-    return {"items": items, "data": {"attention": attn, "triggers": trig,
-                                     "book_z": bz},
+    # W-1.3a items 3.8 and 3.6: Book B's candidates (the scanner's hook) and the
+    # sitting's productivity line, beside the compliance line above.
+    from . import book_b                                        # noqa: PLC0415
+    ending = ending or p.get("week_ending")
+    try:
+        scan = book_b.scanner_output(ending, db_path)
+        pbook = next((s for s in (prior or {}).get("sections") or []
+                      if s.get("id") == "book"), {})
+        flow = book_b.sitting_flow(ending, db_path, scan,
+                                   (pbook.get("data") or {}).get("candidates_printed"),
+                                   approved=attn["packets_approved"])
+        subs, kept = book_b.subsections(scan, flow)
+        notes = list(subs[0].pop("notes", []))
+    except Exception:                                           # noqa: BLE001
+        # The section prints without the two blocks rather than not at all.
+        log.warning("Book B's candidates and productivity are unavailable",
+                    exc_info=True)
+        scan, flow, kept = None, {}, {"printed": []}
+        subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
+                 "candidates": []}]
+        notes = ["The candidates and the productivity line could not be read."]
+    return {"items": items, "subsections": subs, "notes": notes,
+            "data": {"attention": attn, "triggers": trig, "book_z": bz,
+                     "flow": {k: v for k, v in flow.items()},
+                     "candidates": subs[0]["candidates"],
+                     "candidates_printed": kept["printed"],
+                     "scanner": "absent" if scan is None else "present"},
             "table": {"columns": ["Count", "This week", "Budget"],
                       "rows": [["Packets approved", attn["packets_approved"],
                                 attn["packets_budget"]],
@@ -1276,9 +1335,10 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "narratives": narratives_week_section(p.get("narratives") or {},
                                                   p.get("weekend_developments") or {},
                                                   _voices_week(ending, now, st)),
-            "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch),
+            "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch,
+                                pos=pos.get("data"), now=now),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
-                              trig, bz),
+                              trig, bz, ending=ending, db_path=db_path, prior=prior),
         }
         try:
             annotate_moves(built, st, now, cfg=cfg)
@@ -1294,6 +1354,12 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    # W-1.3a: the keys assemble does not carry -- a section's one-line summaries
+    # (W-1.2 item 2.6), its reference rows and its notes.
+    for s in sections:
+        for k in ("summarised", "reference", "notes"):
+            if (built.get(s["id"]) or {}).get(k):
+                s[k] = list(built[s["id"]][k])
     tag_facts(sections, tt.get("row_ids") or [], oi.get("rows") or [],
               wbd.get("data") or [], book)
     # "UNVALIDATED" (W-1.1 item 1.7): a footnote in each section that prints a
@@ -1486,6 +1552,12 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     book_terms(ed, ending)
     from . import storyline                                     # noqa: PLC0415
     storyline.layout(ed, stack_mod.config())
+    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
+    # glossary carries the config's version.
+    ta = wsec.technical_appendix(stack_mod.config())
+    if ta:
+        ed.setdefault("detail", []).append(ta)
+    ed["definitions_version"] = wsec.definitions_version()
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir
@@ -1638,7 +1710,7 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     return (f'<div style="{stack_render.WRAP}">{head}{precis.precis_html(ed)}'
             f'{precis.terms_box_html()}{secs}'
             f'{stack_render.details_html(ed.get("detail"), "weekly")}'
-            f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed)}'
+            f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed, stamp=ed.get("definitions_version"))}'
             + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
                                        ed.get("archive_path"),
                                        stack_render._marks(ed, "Weekly"))

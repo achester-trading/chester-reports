@@ -583,16 +583,23 @@ def _et(iso: str) -> Optional[str]:
 
 
 def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
-                  cal: Optional[dict] = None) -> dict:
+                  cal: Optional[dict] = None, classes: Optional[dict] = None) -> dict:
     """The coming week, Monday to Friday after `ending`, one row per event:
-    day, time ET, event, importance, consensus or prior."""
+    day, time ET, event, importance, consensus or prior -- and (W-1.3a item 3.9)
+    each row's event class from config/weekly_ahead.yaml's `release_classes`.
+    A release no class names and every bill auction is ROUTINE: kept apart, for
+    the reference tables, and counted. Scheduled earnings rows are kept with
+    their symbol, session and consensus EPS."""
     from altdata import events                                  # noqa: PLC0415
     cal = cal or load_calendar()
+    if classes is None:
+        from . import ahead                                     # noqa: PLC0415
+        classes = ahead.load_config().get("release_classes") or {}
     end = dt.date.fromisoformat(ending[:10])
     mon = end + dt.timedelta(days=(7 - end.weekday()) % 7 or 7)
     sat = mon + dt.timedelta(days=5)
     rows: list[dict] = []
-    skipped = 0
+    routine: list[dict] = []
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT type, source, observed_at, title, payload FROM events WHERE "
@@ -610,12 +617,16 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
                          "event": (f"{p.get('speaker')}: {t.split(' -- ')[-1]}"
                                    if kind != "FOMC Meetings" else "FOMC meeting"),
                          "tier": 1 if kind == "FOMC Meetings" else (2 if chair else 3),
-                         "consensus": "—"})
+                         "consensus": "—",
+                         "cls": ("fomc_decision" if kind == "FOMC Meetings" else
+                                 "fed_chair" if chair else "fed_speaker")})
             continue
         if src == "treasury_upcoming":
             inst = canonical_auction(str(p.get("instrument") or ""))
             if inst.split(":")[0] not in ("Note", "Bond", "TIPS"):
-                skipped += 1
+                routine.append({"date": d, "time": "11:30",
+                                "event": f"{inst.split(':')[-1]} "
+                                         f"{inst.split(':')[0].lower()} auction"})
                 continue
             m = match_release(inst, cal)
             hy = st.latest_as_of("auction.high_yield", now, inst)
@@ -625,10 +636,12 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
                      + (f", bid-to-cover {bc['value_num']:.2f}" if bc else "")
                      + f" ({str(hy['observed_at'])[:10]}); tail not stored"
                      if hy else "no prior auction stored")
+            label = (m or {}).get("label") or \
+                f"{inst.split(':')[1]} {inst.split(':')[0].lower()} auction"
             rows.append({"date": d, "time": (m or {}).get("time") or "13:00",
-                         "event": (m or {}).get("label") or
-                         f"{inst.split(':')[1]} {inst.split(':')[0].lower()} auction",
-                         "tier": (m or {}).get("tier") or 3, "consensus": prior})
+                         "event": label, "tier": (m or {}).get("tier") or 3,
+                         "consensus": prior,
+                         "cls": classes.get(label) or "coupon_auction"})
             continue
         if typ == "session_event":
             if not re.search(r"OPEX|expir", t, re.I):
@@ -638,27 +651,35 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             rows.append({"date": d, "time": "16:00",
                          "event": ("Quarterly" if q else "Monthly") + " option expiry",
                          "tier": ex.get("quarterly_tier" if q else "monthly_tier", 2),
-                         "consensus": "—"})
+                         "consensus": "—",
+                         "cls": "opex_quarterly" if q else "opex_monthly"})
             continue
-        if typ == "earnings":
-            rows.append({"date": d, "time": "time not stated",
-                         "event": f"{p.get('symbol') or t.split()[0]} earnings",
-                         "tier": 3, "consensus": "no consensus stored"})
+        if typ == "earnings" or p.get("kind") == "earnings":
+            sym = p.get("symbol") or t.split()[0]
+            rows.append({"date": d, "time": earnings_session(obs),
+                         "event": f"{sym} earnings", "tier": 3,
+                         "consensus": "no consensus stored", "symbol": sym,
+                         "eps_estimate": p.get("eps_estimate"), "cls": "earnings"})
             continue
         name = p.get("release_name") or t.split(" -- ")[0]
         m = match_release(name, cal) or match_release(t, cal)
-        if not m or not m.get("label"):
-            skipped += 1
+        cls = classes.get((m or {}).get("label") or "")
+        if not m or not m.get("label") or not cls:
+            routine.append({"date": d, "time": (m or {}).get("time") or
+                            "time not stated",
+                            "event": (m or {}).get("label") or name})
             continue
         rows.append({"date": d, "time": m.get("time") or "time not stated",
                      "event": m["label"], "tier": m.get("tier") or 3,
-                     "consensus": "no consensus stored"})
+                     "consensus": "no consensus stored", "cls": cls})
     for r in (pmb or {}).get("markets") or []:
         ca = str(r.get("close_at") or "")
         if mon.isoformat() <= ca[:10] < sat.isoformat():
             rows.append({"date": ca[:10], "time": _et(ca) or "time not stated",
                          "event": f"Prediction market resolves: {r.get('question')}",
-                         "tier": 3, "consensus": f"last {round(100 * (r.get('probability') or 0))}%"})
+                         "tier": 3, "consensus": f"last {round(100 * (r.get('probability') or 0))}%",
+                         "cls": "prediction_family",
+                         "probability": r.get("probability")})
     seen, out = set(), []
     for r in sorted(rows, key=lambda r: (r["date"], r["time"], r["tier"], r["event"])):
         k = (r["date"], r["event"])
@@ -666,12 +687,33 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             continue
         seen.add(k)
         out.append(r)
+    rseen, rout = set(), []
+    for r in sorted(routine, key=lambda r: (r["date"], r["time"], r["event"])):
+        if (r["date"], r["event"]) not in rseen:
+            rseen.add((r["date"], r["event"]))
+            rout.append(r)
     return {"table": {"columns": ["Day", "Time (ET)", "Event", "Importance",
                                   "Consensus / prior"],
                       "rows": [[_day(r["date"]), r["time"], r["event"],
                                 r["tier"], r["consensus"]] for r in out]},
             "rows": out, "window": [mon.isoformat(), (sat - dt.timedelta(days=1)).isoformat()],
-            "routine_not_listed": skipped}
+            "routine": rout, "routine_not_listed": len(rout)}
+
+
+def earnings_session(observed_at: Any) -> str:
+    """Pre- or post-market from a stored earnings timestamp. The calendar route
+    stores a bare date at 13:30Z (altdata/sources/earnings._iso), which says
+    nothing about the session: "session not stated"."""
+    s = str(observed_at or "")
+    if len(s) <= 10 or "T13:30:00" in s:
+        return "session not stated"
+    try:
+        et = session.to_eastern(dt.datetime.fromisoformat(s.replace("Z", "+00:00")))
+    except (ValueError, TypeError):
+        return "session not stated"
+    hm = et.hour * 60 + et.minute
+    return ("pre-market" if hm < 9 * 60 + 30 else "post-market" if hm >= 16 * 60
+            else "during the session")
 
 
 def transition_expiry(st, now: str, limits: Optional[dict] = None) -> Optional[dict]:
@@ -773,8 +815,58 @@ def states_legend(states: list[str]) -> Optional[str]:
 # ===========================================================================
 # W-1.1 item 1.7 -- "UNVALIDATED" TAGS (ruled 11 Oct 2026)
 # ===========================================================================
+def validated_min_n() -> int:
+    """W-1.3a item 3.7: graded at least this often, a classification or signal
+    is validated (config `validated_min_n`, 30)."""
+    try:
+        from . import stack as stack_mod                        # noqa: PLC0415
+        return int(stack_mod.config().get("validated_min_n") or 30)
+    except Exception:                                           # noqa: BLE001
+        return 30
+
+
 def unvalidated_tag(n: int) -> str:
+    """The tag a descriptive classification carries; at n >= the validated
+    minimum it is a validated signal and says so instead (W-1.3a item 3.7)."""
+    if n >= validated_min_n():
+        return f"(validated, n={n})"
     return f"(descriptive; unvalidated, n={n})"
+
+
+def definitions_version(repo: Optional[Path] = None) -> str:
+    """W-1.3a item 3.7: the glossary's stamp -- the short hash of the last commit
+    that touched config/, at render. A run outside a git checkout says so."""
+    import subprocess                                           # noqa: PLC0415
+    root = str(repo or REPO)
+    for args in (["git", "log", "-1", "--format=%h", "--", "config"],
+                 ["git", "rev-parse", "--short", "HEAD"]):
+        try:
+            out = subprocess.run(args, cwd=root, capture_output=True, text=True,
+                                 timeout=10).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        if re.fullmatch(r"[0-9a-f]{6,40}", out or ""):
+            return out
+    return "unavailable (no git checkout)"
+
+
+def technical_appendix(cfg: dict) -> Optional[dict]:
+    """W-1.3a item 3.7: the reference tier's formulas, units and sign
+    conventions, the GEX/DEX universe and the expiry coverage."""
+    ta = cfg.get("technical_appendix") or {}
+    rows = [[r.get("quantity"), r.get("formula"), r.get("units"), r.get("sign")]
+            for r in ta.get("rows") or []]
+    dealers = [t.get("dealer") for t in cfg.get("tape") or [] if t.get("dealer")]
+    if dealers:
+        rows.append(["GEX/DEX universe", ", ".join(dealers) + " (the tape's dealer "
+                     "symbols), from their captured chains", "—", "—"])
+    if ta.get("expiry_coverage"):
+        rows.append(["Expiry coverage", ta["expiry_coverage"], "—", "—"])
+    if not rows:
+        return None
+    return {"title": "Technical appendix",
+            "table": {"columns": ["Quantity", "Formula", "Units", "Sign convention"],
+                      "rows": rows}}
 
 
 def graded_count(source: Optional[str], db_path: Optional[str] = None) -> int:
@@ -815,10 +907,14 @@ def unvalidated_notes(sections: list[dict], classes: list[dict]) -> None:
 
 def unvalidated_glossary(classes: list[dict]) -> list[dict]:
     return [{"term": c["label"].removeprefix("the "),
-             "text": (f"a descriptive classification, computed by a declared rule "
-                      f"and not yet graded against what followed "
-                      f"{unvalidated_tag(c['n'])}; n counts the scorecard's graded "
-                      f"instances.")}
+             "text": ((f"a validated signal: computed by a declared rule and graded "
+                       f"against what followed {unvalidated_tag(c['n'])}; n counts "
+                       f"the scorecard's graded instances.")
+                      if c["n"] >= validated_min_n() else
+                      (f"a descriptive classification, computed by a declared rule "
+                       f"and not yet graded against what followed "
+                       f"{unvalidated_tag(c['n'])}; n counts the scorecard's graded "
+                       f"instances."))}
             for c in classes]
 
 

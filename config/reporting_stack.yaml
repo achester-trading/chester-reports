@@ -252,6 +252,17 @@ cadences:
     frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
     chars_scale: 2.5
     read_chars: 2400
+    # THE SECTION OPENER (W-1.3a item 3.0, change order amended 12 Oct 2026):
+    # every section's commentary prints FIRST, before any table or chart, as one
+    # paragraph -- the précis's relevance sentence, then the writer's claim and
+    # body -- ending in exactly one sentence that begins "Takeaway". The bands are
+    # the words the WRITER's text (claim line, body and Takeaway) may run to; the
+    # relevance sentence is the précis's and is not counted. A kept paragraph's
+    # guard is the band's top, so the guard never cuts a Takeaway off.
+    opener:
+      deep: [120, 220]
+      medium: [80, 150]
+      precis: [150, 250]
   monthly:
     report: "the Monthly"
     period: month
@@ -284,6 +295,10 @@ figure_budget_parents: [tape, plumbing, positioning, priced, slow]
 # scorecard-graded instances: resolved rows in the probability ledger under
 # `graded_source`. No classification is graded yet (graded_source null), so K is 0
 # until the scorecard grades it -- then the source goes here and K counts itself.
+# THE VALIDATED TAG (W-1.3a item 3.7): a classification or signal the scorecard
+# has graded at least this many times prints "(validated, n=K)" in place of the
+# unvalidated tag. None reaches it today.
+validated_min_n: 30
 descriptive_classifications:
   - {id: dealer_flags, label: "the dealer flags (pinned, held, amplified)", sections: [mechanics], graded_source: null}
   - {id: gamma_regime, label: "the gamma regime", sections: [mechanics], graded_source: null}
@@ -491,6 +506,26 @@ dealer_flags:
   # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
+
+# THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
+# and sign conventions, printed after the Weekly's detail tables. The GEX/DEX
+# universe is the tape's `dealer` symbols, read from the tape set above, never
+# retyped here. Session-set; every row restates a convention the code already
+# holds; no module path prints (the id rule).
+technical_appendix:
+  rows:
+    - {quantity: "Move z-score", formula: "(the change - the mean change) / the standard deviation of changes over the series' window", units: "standard deviations", sign: "+ is a rise; the size is how unusual the move is"}
+    - {quantity: "Percentile", formula: "share of the window's observations at or below the level", units: "percentile (0-100)", sign: "high is near the window's top"}
+    - {quantity: "Basis point", formula: "0.01 percentage point; yields and spreads move in it", units: "bp", sign: "+ is higher"}
+    - {quantity: "Credit spread (OAS)", formula: "ICE BofA option-adjusted spread over Treasuries, via FRED (BAMLH0A0HYM2, BAMLC0A0CM, BAMLH0A3HYC)", units: "bp", sign: "+ is wider: lenders asking more"}
+    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot, stored as shares per 1% move", units: "shares per 1% move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
+    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100", units: "shares", sign: "+ the option book is long delta, so the hedge held is short stock"}
+    - {quantity: "Flip", formula: "the spot level at which net GEX changes sign", units: "index points", sign: "above it, dealer hedging damps; below it, amplifies"}
+    - {quantity: "Net liquidity", formula: "Fed balance sheet - reverse repo - Treasury General Account, each leg in dollars (WALCL x 1e6, RRPONTSYD x 1e9, WTREGEN x 1e6)", units: "$", sign: "+ is more liquidity"}
+    - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
+    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, first expiry on or after the event", units: "% of spot", sign: "either direction"}
+    - {quantity: "Brier score", formula: "the mean of (probability - outcome) squared", units: "0 to 1", sign: "lower is better; 0.25 is a coin"}
+  expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"
 
 # W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
 storyline:

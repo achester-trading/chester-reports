@@ -114,7 +114,7 @@ def collapse_voices(ed: dict) -> None:
     n_s = sum(1 for r in quiet if str(r[i]).startswith("SILENT"))
     n_u = len(quiet) - n_s
     t["rows"] = [r for r in t["rows"] if r not in quiet]
-    s.setdefault("collapsed", []).append(
+    s.setdefault("summarised", []).append(
         f"Voices: {n_s} silent, {n_u} unreachable.")
     _detail(ed, "Voices: silent and unreachable this week",
             {"columns": cols, "rows": quiet})
@@ -130,7 +130,9 @@ def collapse_families(ed: dict, cfg: dict) -> None:
     if "Event" not in cols:
         return
     ei = cols.index("Event")
-    ci = len(cols) - 1
+    # The consensus column by name (W-1.3a's ranked table carries two after it).
+    ci = next((i for i, c in enumerate(cols) if str(c).startswith("Consensus")),
+              len(cols) - 1)
     groups: dict = {}
     for r in t.get("rows") or []:
         ev = str(r[ei])
@@ -163,7 +165,7 @@ def collapse_families(ed: dict, cfg: dict) -> None:
         row[ci] = str(modal[ci]).replace("last ", "modal outcome, last ")
         keep.append(row)
         full += rows
-        s.setdefault("collapsed", []).append(
+        s.setdefault("summarised", []).append(
             f"{r[0]}: {len(rows)} prediction-market outcomes resolve; the modal one, "
             f"{q}, {str(modal[ci]).replace('last ', 'last at ')}.")
     t["rows"] = keep
@@ -200,7 +202,7 @@ def collapse_exceptions(ed: dict) -> None:
             continue
         t["rows"] = [r for r in t["rows"] if r not in moved]
         for r in moved:
-            s.setdefault("collapsed", []).append(f"{r[0]} -- the tape prints it.")
+            s.setdefault("summarised", []).append(f"{r[0]} -- the tape prints it.")
         _detail(ed, "Exceptions the tape already prints",
                 {"columns": t.get("columns"), "rows": moved})
 
@@ -233,8 +235,17 @@ def move_daily_tables(ed: dict) -> None:
     mech["subsections"] = subs
 
 
+def move_reference(ed: dict) -> None:
+    """A section's own reference rows (W-1.3a: Ahead's routine releases and every
+    outcome of a collapsed family) go to the reference tables."""
+    for s in ed.get("sections") or []:
+        for r in s.pop("reference", None) or []:
+            _detail(ed, r["title"], r["table"], r.get("note"))
+
+
 def layout(ed: dict, cfg: dict) -> None:
-    for step in (lambda: contradiction_status(ed, cfg), lambda: collapse_voices(ed),
+    for step in (lambda: move_reference(ed),
+                 lambda: contradiction_status(ed, cfg), lambda: collapse_voices(ed),
                  lambda: collapse_families(ed, cfg), lambda: collapse_exceptions(ed),
                  lambda: move_daily_tables(ed)):
         try:

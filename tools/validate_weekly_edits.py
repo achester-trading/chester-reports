@@ -454,8 +454,11 @@ def main() -> int:
     check(ex and ex[0]["tier"] == 2, "a monthly expiry, importance 2")
     check(any(r["event"] == "JPM earnings" for r in rows), "earnings from the universe")
     check("H.15" not in json.dumps(rows) and "Bill" not in json.dumps(rows)
-          and any("routine data releases" in n for n in sec["ahead"]["not_tracked"]),
-          "routine releases and bill auctions are counted, not listed")
+          and any("routine data release" in n for n in sec["ahead"].get("notes") or [])
+          and any(d["title"].startswith("Routine releases and bill auctions")
+                  for d in ed.get("detail") or []),
+          "routine releases and bill auctions are counted, not listed -- their rows "
+          "in the reference tables (W-1.3a item 3.9)")
     check(wsec.canonical_auction("Bond:29-Year 10-Month") == "Bond:30-Year",
           "a reopening is named by the security it reopens")
 
