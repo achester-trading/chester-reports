@@ -424,9 +424,24 @@ def lead_lines(st, ch: dict, fam: dict, ctx: dict, now_states: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Item 3: the quarter
 # ---------------------------------------------------------------------------
+def resolve_hook(spec: dict) -> tuple[Optional[dict], Optional[str]]:
+    """A row naming a key another branch registers (`hook_key` + `branch`): the
+    row read as that key once the registry on this build holds it; until then
+    None and "not yet: <branch>". Any other row passes through."""
+    if not spec.get("hook_key"):
+        return spec, None
+    if not derived.registry_entry(spec["hook_key"]):
+        return None, f"not yet: {spec['branch']}"
+    return {**spec, "key": spec["hook_key"]}, None
+
+
 def five_lines(st, fam: dict, ctx: dict) -> tuple[list[str], list[dict], list[str]]:
     lines, moves, nt = [], [], []
-    for spec in (fam.get("five_lines") or [])[:5]:
+    for raw in (fam.get("five_lines") or [])[:5]:
+        spec, why = resolve_hook(raw)
+        if spec is None:
+            nt.append(f"{raw['label']}: {why}")
+            continue
         if spec.get("absent"):
             nt.append(f"{spec['label']}: {spec['absent']}")
             continue
@@ -451,7 +466,11 @@ def _chart_series(st, spec: dict, ctx: dict, years: int = 5) -> list[tuple[str, 
 def structure_chart(st, spec: dict, cid: str, ctx: dict) -> dict:
     """One of the chapter's two structure charts, five years to the quarter's
     end, in the house style (daily_cascade.charts)."""
+    resolved = [resolve_hook(s) for s in spec["series"]]
     gone = [f"{s['label']} ({s['absent']})" for s in spec["series"] if s.get("absent")]
+    gone += [f"{s['label']} ({why})" for s, (r, why) in zip(spec["series"], resolved)
+             if r is None]
+    spec = {**spec, "series": [r for r, _ in resolved if r is not None]}
     if gone:
         return {"id": cid, "unavailable": f"{spec['title']}: not tracked — "
                                           + "; ".join(gone)}
@@ -668,14 +687,13 @@ STRUCTURE_COLUMNS = ["Series", "Latest (as of)", "Change on the quarter",
 def structure_rows(st, specs: list[dict], ctx: dict) -> tuple[list, list, dict]:
     rws, nt, pct = [], [], {}
     five = ctx["common"].get("five_year_column") or "until the lenses"
-    for s in specs:
-        if s.get("hook_key"):
-            # A key another branch registers (named, never imported): read once
-            # the registry on this build holds it; until then "not yet: <branch>".
-            if not derived.registry_entry(s["hook_key"]):
-                nt.append(f"{s['label']}: not yet: {s['branch']}")
-                continue
-            s = {**s, "key": s["hook_key"]}
+    for raw in specs:
+        # A key another branch registers (named, never imported): read once the
+        # registry on this build holds it; until then "not yet: <branch>".
+        s, why = resolve_hook(raw)
+        if s is None:
+            nt.append(f"{raw['label']}: {why}")
+            continue
         if s.get("rel_return") or s.get("corr"):
             txt, asof, why = computed_value(st, s, ctx)
             if txt is None:
@@ -730,9 +748,10 @@ def item_pairs(st, fam: dict, ctx: dict) -> Optional[dict]:
     if not pr:
         return None
     deep, nt = [], []
-    for p in pr.get("deep") or []:
-        if not p.get("key"):
-            nt.append(f"{p['pair']}: {p.get('absent')}")
+    for raw in pr.get("deep") or []:
+        p, why = resolve_hook(raw)
+        if p is None or not p.get("key"):
+            nt.append(f"{raw['pair']}: {why or raw.get('absent')}")
             continue
         m = quarter_move(st, {"key": p["key"], "label": p["pair"], "dp": 4}, ctx)
         if m is None:
@@ -744,8 +763,20 @@ def item_pairs(st, fam: dict, ctx: dict) -> Optional[dict]:
                      m.get("change_display") or "—",
                      f"{ordinal(pc)} (n={m['n']:,})" if pc is not None else "—",
                      f"{lo:,.4g} to {hi:,.4g}"])
-    scan = [[p["pair"], "not tracked", p.get("absent") or "—"]
-            for p in pr.get("scan") or []]
+    scan = []
+    for raw in pr.get("scan") or []:
+        # The scan tier is one line a pair: the latest level and the quarter's
+        # change where the key is stored, else "not tracked" and why.
+        p, why = resolve_hook(raw)
+        m = (quarter_move(st, {"key": p["key"], "label": p["pair"], "dp": 4}, ctx)
+             if p is not None and p.get("key") else None)
+        if m is None:
+            scan.append([raw["pair"], "not tracked",
+                         why or raw.get("absent")
+                         or "nothing stored by the quarter's end"])
+        else:
+            scan.append([raw["pair"], f"{m['level_text']} ({m['as_of']})",
+                         m.get("change_display") or "—"])
     out = {"title": "4c · The pair universe", "item": "pairs", "tier": REFERENCE,
            "not_tracked": nt,
            "lines": ["The deep basket, a pair each; the scan tier from FRED's H.10 "
@@ -755,7 +786,8 @@ def item_pairs(st, fam: dict, ctx: dict) -> Optional[dict]:
                                     "Change on the quarter",
                                     "Percentile, full history",
                                     "Stored envelope"], "rows": deep}
-    out["tables"] = [{"columns": ["Pair (scan tier)", "State", "Why"], "rows": scan}]
+    out["tables"] = [{"columns": ["Pair (scan tier)", "Latest (as of), or not tracked",
+                                    "Change on the quarter, or why"], "rows": scan}]
     return out
 
 
@@ -1013,9 +1045,27 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
         m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
         if not m or m.get("change") is None:
             return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
+        tag = f" ({p['label']})" if p.get("label") else ""
         return {"met": m["change"] > float(p["above"]), "strained": False,
-                "evidence": f"{p['series']} {m['change_display']} on the quarter "
-                            f"against {p['above']:+,}"}
+                "evidence": f"{p['series']}{tag} {m['change_display']} on the "
+                            f"quarter against {p['above']:+,}"}
+    if kind == "not_tightened":
+        # SLOOS: the net percentage of banks tightening, quarterly. The leg is met
+        # (no tightening) when no print in the last `quarters` is above zero. The
+        # series is another branch's key: until it is registered, "not yet".
+        key = p["hook_series"]
+        if not derived.registry_entry(key):
+            return {"met": None, "missing": f"{key}: not yet: {p['branch']}"}
+        since = (dt.date.fromisoformat(end)
+                 - dt.timedelta(days=92 * int(p["quarters"]))).isoformat()
+        got = [(d, v) for d, v in rows(st, key, ctx["now"], None, end) if d > since]
+        if len(got) < int(p["quarters"]):
+            return {"met": None, "missing": f"{key}: {len(got)} of {p['quarters']} "
+                                            f"quarterly prints stored"}
+        got = got[-int(p["quarters"]):]
+        return {"met": all(v <= 0 for _, v in got), "strained": False,
+                "evidence": f"{key} net tightening "
+                            + ", ".join(f"{v:+.1f} ({d[:7]})" for d, v in got)}
     if kind == "drawdown_at_least":
         pts = rows(st, p["series"], ctx["now"], None, end)
         if p.get("lookback_days"):

@@ -80,10 +80,16 @@ families:
       - {key: fred.tips_10y,           label: "The 10-year real yield (DFII10)"}
       - {key: fred.dxy,                label: "The broad dollar (DTWEXBGS)"}
       - {key: cftc.noncomm_net, instrument: GOLD, label: "Gold futures, non-commercial net (CFTC legacy)"}
-      - {label: "Gold ETF holdings (GLD/IAU tonnage)", absent: "share counts are not stored yet (AQ-3)"}
-      - {label: "COMEX managed money, silver and copper (disaggregated COT)", absent: "the CFTC writer stores legacy non-commercial for gold only (AQ-3 extends it)"}
+      - {hook_key: etf.gld_tonnes, branch: aq-3-series-1, label: "Gold ETF holdings: GLD, tonnes"}
+      - {hook_key: etf.iau_tonnes, branch: aq-3-series-1, label: "Gold ETF holdings: IAU, tonnes"}
+      - {hook_key: etf.slv_tonnes, branch: aq-3-series-1, label: "Silver ETF holdings: SLV, tonnes"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: GOLD, branch: aq-3-series-1, label: "Gold futures, managed money net, % of open interest (CFTC disaggregated)"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: SILVER, branch: aq-3-series-1, label: "Silver futures, managed money net, % of open interest (CFTC disaggregated)"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: COPPER, branch: aq-3-series-1, label: "Copper futures, managed money net, % of open interest (CFTC disaggregated)"}
       - {label: "Copper TC/RCs", absent: "no free source stored (AQ-3)"}
-      - {label: "LME, COMEX and SHFE copper inventories", absent: "exchange inventories are not stored (AQ-3)"}
+      - {hook_key: shfe.stocks_t, instrument: COPPER, branch: aq-3-series-1, label: "SHFE copper stocks, tonnes (weekly)"}
+      - {hook_key: shfe.warrants_t, instrument: COPPER, branch: aq-3-series-1, label: "SHFE copper on warrant, tonnes (weekly)"}
+      - {label: "LME and COMEX copper inventories", absent: "no free source (AQ-3 part 1: CME prohibits scripted access; LME is licensed)"}
       - {label: "COMEX and LBMA silver inventories", absent: "exchange inventories are not stored (AQ-3)"}
       - {label: "Lease rates and EFP", absent: "no free source stored (AQ-3)"}
       - {label: "SGE and Yangshan premiums", absent: "no free source stored (AQ-3)"}
@@ -243,9 +249,15 @@ families:
       - {label: "The SPR beside commercial stocks", absent: "the SPR is not stored (AQ-3)"}
       - {label: "Brent M1-M6 and M1-M12", absent: "the futures curve arrives with 6b"}
       - {label: "Gulf exports and reachability-adjusted spare capacity", absent: "not stored (AQ-3; a named Gap)"}
-      - {label: "Rig count, frac spreads, DUCs", absent: "not stored (AQ-3)"}
+      - {hook_key: eia.rigs_oil, branch: aq-3-series-1, label: "Oil rigs (Baker Hughes via the EIA, monthly)"}
+      - {hook_key: eia.rigs_gas, branch: aq-3-series-1, label: "Gas rigs (Baker Hughes via the EIA, monthly)"}
+      - {hook_key: eia.rigs_total, branch: aq-3-series-1, label: "Total rigs (Baker Hughes via the EIA, monthly)"}
+      - {label: "Frac spreads, DUCs", absent: "frac spreads have no free source (AQ-3 part 1); DUCs not checked"}
       - {label: "OPEC+ output against quota", absent: "arrives with the quarterly scan (AQ-7)"}
-      - {label: "Refinery utilisation and cracks", absent: "not stored (AQ-3)"}
+      - {hook_key: calc.crack_321, branch: aq-3-series-1, label: "The 3-2-1 crack (CL, RB, HO), $/bbl"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: WTI, branch: aq-3-series-1, label: "WTI futures, managed money net, % of open interest"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: NATGAS, branch: aq-3-series-1, label: "Natural gas futures, managed money net, % of open interest"}
+      - {label: "Refinery utilisation", absent: "not stored (not in AQ-3 part 1)"}
       - {label: "OVX and crude skew", absent: "OVXCLS is not in the FRED pull (AQ-3)"}
     structure_charts:
       - {id: brent_stocks, title: "Brent against US commercial crude stocks", kind: twin,
@@ -395,11 +407,20 @@ families:
       - {key: mof.jgb_10y,           label: "The 10-year JGB yield"}
       - {label: "The EM dollar index", absent: "not stored (AQ-3)"}
       - {label: "The DXY-weighted two-year spread", absent: "the five other two-year yields are not stored (AQ-3)"}
-      - {label: "COT for EUR, GBP, CHF, AUD, CAD (TFF, leveraged funds against asset managers)", absent: "the CFTC writer stores legacy non-commercial for the dollar index and the yen only (AQ-3)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: GBP, branch: aq-3-series-1, label: "GBP futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: GBP, branch: aq-3-series-1, label: "GBP futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: CHF, branch: aq-3-series-1, label: "CHF futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: CHF, branch: aq-3-series-1, label: "CHF futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: AUD, branch: aq-3-series-1, label: "AUD futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: AUD, branch: aq-3-series-1, label: "AUD futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: CAD, branch: aq-3-series-1, label: "CAD futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: CAD, branch: aq-3-series-1, label: "CAD futures, asset managers net, % of open interest (CFTC TFF)"}
       - {label: "The three-month cross-currency basis", absent: "not stored (AQ-3)"}
       - {label: "Risk reversals", absent: "FXE and FXY chains are not captured"}
       - {label: "Intervention footprints (MoF monthly, SNB sight deposits)", absent: "not stored (AQ-3)"}
-      - {label: "CNH-CNY", absent: "USD/CNH is not in the price feed (AQ-3)"}
+      - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
       - {label: "Stablecoin supply", absent: "not stored (AQ-3)"}
     structure_charts:
       - {id: dollar_pair, title: "DXY against the broad dollar", kind: twin,
@@ -531,29 +552,29 @@ families:
       deep:
         - {pair: "EUR/USD", key: yfinance.mkt_eurusd}
         - {pair: "USD/JPY", key: yfinance.mkt_usdjpy}
-        - {pair: "GBP/USD", absent: "not in the price feed (AQ-3)"}
-        - {pair: "USD/CHF", absent: "not in the price feed (AQ-3)"}
-        - {pair: "AUD/USD", absent: "not in the price feed (AQ-3)"}
-        - {pair: "USD/CAD", absent: "not in the price feed (AQ-3)"}
+        - {pair: "GBP/USD", hook_key: fred.usd_gbp, branch: aq-3-series-1}
+        - {pair: "USD/CHF", hook_key: fred.usd_chf, branch: aq-3-series-1}
+        - {pair: "AUD/USD", hook_key: fred.usd_aud, branch: aq-3-series-1}
+        - {pair: "USD/CAD", hook_key: fred.usd_cad, branch: aq-3-series-1}
         - {pair: "USD/CNY", key: yfinance.mkt_usdcny}
-        - {pair: "USD/CNH", absent: "not in the price feed (AQ-3); kept separate from USD/CNY"}
-        - {pair: "USD/THB", absent: "not in the price feed (AQ-3, AQ-12)"}
+        - {pair: "USD/CNH", hook_key: cnh.usdcnh, branch: aq-3-series-1}
+        - {pair: "USD/THB", absent: "stored as fred.usd_thb under namespace: thailand; read here only on the operator's ruling (AQ-3 part 1, Needs you 2)"}
       scan:
-        - {pair: "USD/NZD", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/SEK", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/NOK", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/MXN", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/BRL", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/ZAR", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/KRW", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/TWD", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/INR", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/SGD", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "USD/HKD", absent: "FRED H.10 not yet pulled (AQ-3)"}
-        - {pair: "EUR/JPY", absent: "a cross of two H.10 legs not yet pulled (AQ-3)"}
-        - {pair: "AUD/JPY", absent: "a cross of two H.10 legs not yet pulled (AQ-3)"}
-        - {pair: "EUR/CHF", absent: "a cross of two H.10 legs not yet pulled (AQ-3)"}
-        - {pair: "EUR/GBP", absent: "a cross of two H.10 legs not yet pulled (AQ-3)"}
+        - {pair: "USD/NZD", hook_key: fred.usd_nzd, branch: aq-3-series-1}
+        - {pair: "USD/SEK", hook_key: fred.usd_sek, branch: aq-3-series-1}
+        - {pair: "USD/NOK", hook_key: fred.usd_nok, branch: aq-3-series-1}
+        - {pair: "USD/MXN", key: fred.usd_mxn}
+        - {pair: "USD/BRL", hook_key: fred.usd_brl, branch: aq-3-series-1}
+        - {pair: "USD/ZAR", hook_key: fred.usd_zar, branch: aq-3-series-1}
+        - {pair: "USD/KRW", hook_key: fred.usd_krw, branch: aq-3-series-1}
+        - {pair: "USD/TWD", hook_key: fred.usd_twd, branch: aq-3-series-1}
+        - {pair: "USD/INR", hook_key: fred.usd_inr, branch: aq-3-series-1}
+        - {pair: "USD/SGD", hook_key: fred.usd_sgd, branch: aq-3-series-1}
+        - {pair: "USD/HKD", hook_key: fred.usd_hkd, branch: aq-3-series-1}
+        - {pair: "EUR/JPY", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "AUD/JPY", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "EUR/CHF", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "EUR/GBP", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
 
   # =========================================================================
   # AQ-2 PART 2 -- the other eight chapters (sections 4.5-4.11).
@@ -620,9 +641,15 @@ families:
       - {key: yfinance.mkt_eem,     label: "EM equity (EEM)"}
       - {key: yfinance.mkt_emxc,    label: "EM ex-China equity (EMXC)"}
       - {key: fred.usd_mxn,         label: "USD/MXN"}
-      - {label: "EM hard-currency spreads (ICE BofA EM corporate and sovereign OAS)", absent: "the ICE BofA EM indices are not in the FRED pull (AQ-3)"}
+      - {hook_key: fred.em_corp_oas, branch: c1-move-screen, label: "EM corporate OAS (ICE BofA, BAMLEMCBPIOAS)"}
+      - {hook_key: fred.em_hy_oas, branch: c1-move-screen, label: "EM high-yield corporate OAS (ICE BofA, BAMLEMHBHYCRPIOAS)"}
       - {label: "EM local-currency spreads", absent: "not stored (AQ-3)"}
-      - {label: "The EM FX basket", absent: "the EM pairs beyond MXN and CNY are not pulled (AQ-3, FRED H.10)"}
+      - {hook_key: fred.usd_brl, branch: aq-3-series-1, label: "The EM FX basket: USD/BRL"}
+      - {hook_key: fred.usd_zar, branch: aq-3-series-1, label: "The EM FX basket: USD/ZAR"}
+      - {hook_key: fred.usd_krw, branch: aq-3-series-1, label: "The EM FX basket: USD/KRW"}
+      - {hook_key: fred.usd_twd, branch: aq-3-series-1, label: "The EM FX basket: USD/TWD"}
+      - {hook_key: fred.usd_inr, branch: aq-3-series-1, label: "The EM FX basket: USD/INR"}
+      - {hook_key: fred.usd_myr, branch: aq-3-series-1, label: "The EM FX basket: USD/MYR"}
       - {label: "The EM dollar index", absent: "FRED's emerging-market dollar index is not in the pull (AQ-3)"}
       - {label: "EM portfolio flows (the IIF Capital Flows Tracker, by region)", absent: "no writer (AQ-3)"}
       - {label: "The funding channel (the three-month cross-currency basis)", absent: "not stored (AQ-3)"}
@@ -699,7 +726,9 @@ families:
       - {key: yfinance.mkt_usdcny, label: "USD/CNY", dp: 4}
       - {key: cfets.cny_fix,       label: "The PBoC's CNY fixing", dp: 4}
       - {ratio_pct: [yfinance.mkt_usdcny, cfets.cny_fix], label: "The fixing gap: spot against the fixing (the band is ±2%)"}
-      - {label: "USD/CNH, and CNH-CNY", absent: "USD/CNH is not in the price feed (AQ-3); kept separate from USD/CNY"}
+      - {hook_key: cnh.usdcnh, branch: aq-3-series-1, label: "USD/CNH (the New York close; kept separate from USD/CNY)", dp: 4}
+      - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
+      - {hook_key: calc.cny_band_position, branch: aq-3-series-1, label: "USD/CNY's position in the ±2% band (−1 to +1)", dp: 2}
       - {key: cfets.cgb_10y,       label: "The 10-year CGB yield"}
       - {diff: [fred.yield_10y, cfets.cgb_10y], label: "The UST-CGB 10-year spread"}
       - {key: safe.official_reserves_total, label: "Official reserve assets, total (SAFE)"}
@@ -843,7 +872,8 @@ families:
       - {label: "BTC long-term-holder supply (SR-29)", absent: "not stored"}
       - {label: "ETH burn against issuance", absent: "not stored (AQ-3)"}
       - {label: "RWA tokenised value and holder count", absent: "not stored (AQ-3)"}
-      - {label: "ETF flows read against float (S-2), from share counts", absent: "share counts are not stored (AQ-3)"}
+      - {hook_key: etf.ibit_shares, branch: aq-3-series-1, label: "IBIT shares outstanding (S-2's share count)"}
+      - {label: "ETF flows read against float (S-2)", absent: "the float is not stored; the share count is (IBIT, above)"}
       - {label: "Exchange balances", absent: "not stored"}
       - {label: "OI-weighted funding (S-3; crowded at z > +2 with OI/mcap at a 90-day high)", absent: "not stored"}
       - {label: "The DVOL regime (S-4, DS-41)", absent: "not stored"}
@@ -1191,7 +1221,9 @@ families:
       - {key: yfinance.mkt_hyg,  label: "High yield (HYG)"}
       - {key: yfinance.mkt_lqd,  label: "Investment grade (LQD)"}
     structure:
-      - {label: "SLOOS C&I net tightening", absent: "SLOOS is not in the FRED pull (AQ-3)"}
+      - {hook_key: fred.sloos_ci_large, branch: aq-3-series-2, label: "SLOOS: C&I net tightening, large and medium firms (DRTSCILM)"}
+      - {hook_key: fred.sloos_ci_small, branch: aq-3-series-2, label: "SLOOS: C&I net tightening, small firms (DRTSCIS)"}
+      - {hook_key: fred.sloos_cre_nonres, branch: aq-3-series-2, label: "SLOOS: CRE net tightening, nonfarm nonresidential (SUBLPDRCSN)"}
       - {diff: [fred.ccc_oas, fred.bb_oas], label: "BB-CCC: the CCC OAS less the BB OAS"}
       - {label: "The dual-track default rate and the LME count", absent: "PitchBook LCD is paid; not stored"}
       - {label: "The loan distress ratio", absent: "PitchBook LCD is paid; not stored"}
@@ -1229,9 +1261,10 @@ families:
           excepted.
         measurable:
           all:
-            - {change_above: {series: fred.hy_oas, above: 200}}
-            - {unmeasured: {reason: "SLOOS and dispersion are not stored (AQ-3)"}}
-        session_set: "the widening read as the HY OAS change over the quarter; with no widening of 200 bp the test holds whatever SLOOS did"
+            - {change_above: {series: fred.hy_oas, above: 200, label: "proxy until SLOOS"}}
+            - {not_tightened: {hook_series: fred.sloos_ci_large, branch: aq-3-series-2, quarters: 4}}
+            - {unmeasured: {reason: "dispersion is not stored (AQ-3)"}}
+        session_set: "SLOOS is the lending-standards leg (operator's ruling, 11 Oct 2026): the C&I large-and-medium net tightening, tightened meaning a print above zero in the prior four quarters. The widening is the HY OAS change over the quarter, labelled a proxy until SLOOS is stored; with no widening of 200 bp the test holds whatever SLOOS did"
       - id: dispersion_signal
         paper: "Credit"
         section: "Falsification Tests"
@@ -1466,13 +1499,13 @@ families:
                   "Currencies, §31 (the baht case)", "Portfolio Construction (the THB liability as a permanent EM-FX position)",
                   "International Equities, Chapter 12"]
     five_lines:
-      - {label: "USD/THB", absent: "FRED DEXTHUS is not in the pull (AQ-3, AQ-12)", namespace: thailand}
+      - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB (FRED DEXTHUS)", namespace: thailand}
       - {key: fred.dxy,           label: "The broad dollar (the baht's broad direction)"}
       - {key: yfinance.mkt_usdcny, label: "USD/CNY (a neighbour)", dp: 4}
       - {key: yfinance.mkt_usdjpy, label: "USD/JPY (a neighbour)"}
       - {label: "The BoT policy rate", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
     structure:
-      - {label: "USD/THB, with its five-year percentile", absent: "FRED DEXTHUS is not in the pull (AQ-3, AQ-12)", namespace: thailand}
+      - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB, with its percentile", namespace: thailand}
       - {label: "The BoT policy rate and its stated path", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {label: "Thai CPI", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {label: "The current account", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
@@ -1484,7 +1517,7 @@ families:
       - {key: yfinance.mkt_usdjpy, label: "USD/JPY (shared; read, never fed)"}
     structure_charts:
       - {id: thb_dollar, title: "USD/THB against the broad dollar", kind: twin,
-         series: [{label: "USD/THB", absent: "FRED DEXTHUS is not in the pull (AQ-3, AQ-12)"},
+         series: [{hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB"},
                   {key: fred.dxy, label: "Broad dollar"}]}
       - {id: neighbours, title: "The baht's neighbours: USD/CNY and USD/JPY", kind: twin,
          series: [{key: yfinance.mkt_usdcny, label: "USD/CNY"},

@@ -639,7 +639,8 @@ def group_g(r: dict) -> None:
         for c in f.get("structure_charts") or []:
             keys += [x["key"] for x in c["series"] if x.get("key")]
             bad += [f"{fid}: chart leg {x.get('label')}" for x in c["series"]
-                    if not x.get("key") and not x.get("absent")]
+                    if not x.get("key") and not x.get("absent")
+                    and not (x.get("hook_key") and x.get("branch"))]
         for qn in f.get("ten_questions") or []:
             keys += list(qn.get("series") or [])
         for a in f.get("analyses") or []:
@@ -797,7 +798,7 @@ def group_g(r: dict) -> None:
           and len(pairs["tables"][0]["rows"]) == 15
           and any("USD/CNH" in x for x in pairs["not_tracked"]),
           "currency names its pair universe: the deep basket (three stored, six by "
-          "name) and the scan tier (fifteen, from H.10, not yet pulled)")
+          "name) and the scan tier (fifteen; H.10's legs wait for aq-3-series-1)")
     an = met["analyses"]["table"]["rows"]
     check(all(len(x) == 3 and x[2] for x in an)
           and any("AQ-8a" in x[1] for x in an) and any("AQ-5" in x[1] for x in an),
@@ -1065,6 +1066,45 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
     check(ls[1] == "holds" and "SLOOS" in ls[2] and bbc and " bp" in bbc[2],
           f"credit: the lending-standards test holds with no 200 bp widening "
           f"({ls[2][:60]}...); BB-CCC computed from the two OAS series ({bbc and bbc[2]})")
+    # SLOOS is the lending-standards leg (the operator's ruling on part 2's
+    # choice 6); the HY OAS reading is labelled a proxy until it is stored.
+    crd_nt = " ".join(crd["structure"].get("not_tracked") or [])
+    check("proxy until SLOOS" in ls[2]
+          and crd_nt.count("not yet: aq-3-series-2") == 3,
+          "credit: SLOOS (C&I large and small, CRE) is the lending-standards "
+          "measurable, named \"not yet: aq-3-series-2\" until registered; the HY "
+          "OAS reading is labelled \"proxy until SLOOS\"")
+    from monthly_macro import quarterly_items as qi_
+    real_reg, real_rows = qi_.derived.registry_entry, qi_.rows
+    try:
+        qi_.derived.registry_entry = lambda k: ({"key": k} if k.startswith(
+            "fred.sloos") else real_reg(k))
+        qi_.rows = lambda st_, k, now, inst=None, end=None: [
+            ("2025-10-01", -2.0), ("2026-01-01", 0.0), ("2026-04-01", -1.5),
+            ("2026-07-01", 3.1 if k.endswith("small") else -0.4)]
+        ctx_ = {"end": "2026-09-30", "now": "2026-10-11T00:00:00+00:00"}
+        eased = qi_._leaf(None, "not_tightened", {"hook_series": "fred.sloos_ci_large",
+                                                  "branch": "x", "quarters": 4}, ctx_)
+        tight = qi_._leaf(None, "not_tightened", {"hook_series": "fred.sloos_ci_small",
+                                                  "branch": "x", "quarters": 4}, ctx_)
+        hooked, _ = qi_.resolve_hook({"hook_key": "fred.sloos_ci_large",
+                                      "branch": "x", "label": "y"})
+    finally:
+        qi_.derived.registry_entry, qi_.rows = real_reg, real_rows
+    unhooked, why = qi_.resolve_hook({"hook_key": "nobody.key", "branch": "b-1",
+                                      "label": "y"})
+    check(eased["met"] is True and tight["met"] is False
+          and hooked and hooked["key"] == "fred.sloos_ci_large"
+          and unhooked is None and why == "not yet: b-1",
+          "a hook reads its key once registered and says \"not yet: <branch>\" "
+          "before; SLOOS with no print above zero in four quarters is \"not "
+          "tightened\", one print above zero is tightened")
+    cur_ = {ss.get("item"): ss for ss in chs["currency"]["subsections"]}
+    cnt = " ".join(cur_["structure"].get("not_tracked") or [])
+    check("CNH-CNY, bp: not yet: aq-3-series-1" in cnt
+          and "TFF" in cnt and cnt.count("not yet: aq-3-series-1") >= 11,
+          "the rows AQ-3 part 1's writers fill name aq-3-series-1 until it merges "
+          "(CNH-CNY, the TFF positioning)")
     re_rows = {row[0]: row for row in by["real_estate"]["structure"]["table"]["rows"]}
     msp = re_rows.get("The mortgage spread over the 10-year")
     check(msp and " bp" in msp[2]
