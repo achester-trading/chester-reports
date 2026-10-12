@@ -691,7 +691,13 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     b["data"]["buckets"] = {s["bucket"]: len(s["table"]["rows"]) for s in subs}
     b["data"]["other_rows"] = [r[0] for r in other]
     b["table"] = None
-    b["subsections"] = subs
+    # SR-43 / SR-49 (batch 4, placement: Plumbing & rates, Weekly and Monthly):
+    # the anchors-and-shape lines and the four voices ride after the buckets,
+    # code-written and tagged, with no paragraph of their own.
+    keep = [ss for ss in b.get("subsections") or []
+            if str(ss.get("title", "")).startswith(("The 10-year's anchors",
+                                                    "The 10-year top"))]
+    b["subsections"] = subs + keep
     b["claim_only"] = True
     return b
 

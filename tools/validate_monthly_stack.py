@@ -1327,7 +1327,9 @@ def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
     finally:
         derived.registry_entry = saved
     check(fam == "global", "and by the registry's family first, where it declares one")
-    sub_n = [ss for ss in pl["subsections"] if (ss.get("table") or {}).get("rows")]
+    # The buckets only: SR-43/49's code-written blocks ride after them unwritten.
+    sub_n = [ss for ss in pl["subsections"] if ss.get("bucket")
+             and (ss.get("table") or {}).get("rows")]
     check(sub_n and all(ss.get("paragraphs") for ss in sub_n)
           and all(f"block:plumbing:{ss['bucket']}" in out["written"] for ss in sub_n),
           f"each bucket with rows carries one written takeaway through the section "
