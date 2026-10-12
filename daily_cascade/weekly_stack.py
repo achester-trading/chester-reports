@@ -325,14 +325,46 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     pr = wsec.plumbing_rows(st, now, then, cadence, liquidity_deltas)
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
+    subs = [{**fx, "paragraph_wanted": False}]
+    # SR-36: the basis-unwind watch, one code-written line (report-only).
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        subs.append({"title": "Treasury basis proxy: the unwind watch",
+                     "lines": [basis_proxy.plumbing_line(bp)],
+                     "paragraph_wanted": False})
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
-            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
+            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"],
+                     **({"basis_unwind_watch": basis_proxy_data(bp)} if bp else {})},
             "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
-            "subsections": [{**fx, "paragraph_wanted": False}],
+            "subsections": subs,
             "not_tracked": pr["not_tracked"]}
+
+
+def basis_proxy_read(st, now: str) -> Optional[dict]:
+    """SR-36's read as of the Weekly's cutoff, or None (nothing stored, or a
+    fault -- the proxy is report-only and never costs a section)."""
+    try:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        return basis_proxy.read(st, cutoff=now)
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+def basis_proxy_data(r: dict) -> dict:
+    """What the section's data carries of the read: the printed figures, as
+    printed, and the labels."""
+    w = r["watch"]
+    return {"as_of": r["day"], "ten_year_net_short_oi_pct": round(r["ten_year_short_oi"], 1)
+            if r.get("ten_year_short_oi") is not None else None,
+            "six_contract_net_short_oi_pct": round(r["lev_short_oi"], 1)
+            if r.get("lev_short_oi") is not None else None,
+            "ten_year_tier": r.get("ten_year_tier"), "aggregate_tier": r.get("aggregate_tier"),
+            "oi_change": r.get("oi_change"), "unwind_watch": "on" if w["on"] else "off",
+            "cosignals_on": w["cosignals_on"], "absent": w["absent"]}
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
@@ -549,9 +581,16 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
             cf.append([name[0].upper() + name[1:], f"{x['level']:,.0f}", _change(x),
                        "—" if x.get("z_2y") is None else f"{x['z_2y']:+.1f}",
                        x["observed_at"]])
+    # SR-36: the Treasury basis proxy, one code-written line under the CFTC table
+    # (report-only; "(descriptive; unvalidated, n=0)").
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        data["basis_proxy"] = basis_proxy_data(bp)
     out.append({"title": "Speculative positioning (CFTC)",
                 "table": {"columns": ["Contract", "Net speculative contracts",
                                       "Change", "z, two years", "As of"], "rows": cf},
+                **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",

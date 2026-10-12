@@ -167,6 +167,27 @@ def style_faults(text: str, cfg: dict) -> list[str]:
         for w in st.get("intensity_words") or []:
             if re.search(rf"\b{re.escape(w)}\b", s, re.I) and not re.search(r"\d", s):
                 out.append(f"'{w}' with no figure in its sentence")
+    return out + basis_faults(text)
+
+
+# THE BASIS PROXY'S FENCE (SR-36): the leveraged short in Treasury futures is the
+# basis trade's futures leg, never a directional short. The rejected readings --
+# "hedge funds are short bonds", a bet on yields, a squeeze -- withhold the
+# paragraph wherever they appear (config/basis_proxy.yaml `banned_patterns`).
+def basis_faults(text: str) -> list[str]:
+    try:
+        from altdata import basis_proxy                         # noqa: PLC0415
+        pats = basis_proxy.load_config().get("banned_patterns") or []
+    except Exception:                                           # noqa: BLE001
+        return []
+    out = []
+    for s in _sentences(text):
+        for p in pats:
+            if re.search(p, s, re.I):
+                out.append(f"directional reading of the basis trade: '{s[:120]}' -- "
+                           f"the leveraged short is the basis trade's futures leg; "
+                           f"read it only as fragility")
+                break
     return out
 
 
@@ -431,12 +452,16 @@ def stack_system_prompt(base) -> str:
 
 
 # What one section's prose must do beyond the shared rules.
+from altdata.basis_proxy import BASIS_NOTE                      # noqa: E402
+
 SECTION_NOTES = {
     "positioning": (
         "\n\nPOSITIONING & FLOWS: the claim line states the leadership; the "
         "paragraph reads the sources together -- futures positioning (CFTC), "
         "retail, short interest, foreign flows -- for what they say jointly. A "
-        "source with no figure in the data gets no mention."),
+        "source with no figure in the data gets no mention." + BASIS_NOTE),
+    # SR-36: the basis-unwind watch prints in Plumbing too.
+    "plumbing": BASIS_NOTE,
     "book": (
         "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
         "comparison between them is written as an EXCESS ('an excess of +0.8 "

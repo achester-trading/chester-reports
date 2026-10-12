@@ -29,8 +29,9 @@ series above are untouched. Beside them, from the same Socrata host, no key:
   72hh-3qpy  Disaggregated, futures only -- GOLD, SILVER, COPPER, WTI, NATGAS:
              producer/merchant, swap dealer, managed money, other reportables
   gpe5-46if  Traders in Financial Futures, futures only -- the six currency
-             futures EUR, JPY, GBP, CHF, CAD, AUD: dealer, asset manager,
-             leveraged funds, other reportables
+             futures EUR, JPY, GBP, CHF, CAD, AUD and (SR-36) the six Treasury
+             futures TU, FV, TY, TN, US, WN: dealer, asset manager, leveraged
+             funds, other reportables
 Each category is stored long, short and net (contracts), and each of the three
 ALSO as a share of the record's open interest, in percent (`_oi` keys) --
 positions scaled to OI, the standard's rule, so a category's weight compares
@@ -92,7 +93,15 @@ TFF_URL = "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
 DISAGG_CONTRACTS = {"088691": "GOLD", "084691": "SILVER", "085692": "COPPER",
                     "067651": "WTI", "023651": "NATGAS"}
 TFF_CONTRACTS = {"099741": "EUR", "097741": "JPY", "096742": "GBP",
-                 "092741": "CHF", "090741": "CAD", "232741": "AUD"}
+                 "092741": "CHF", "090741": "CAD", "232741": "AUD",
+                 # SR-36 (ST-B3-12, 11 Oct 2026): the six CBOT Treasury futures
+                 # for the basis-trade proxy (altdata/basis_proxy.py), codes read
+                 # from gpe5-46if that day. Instrument = the CME ticker. 020604
+                 # is the Ultra bond, named "LONG-TERM U.S. TREASURY BONDS" from
+                 # its first report (2 Mar 2010) to 7 Jun 2016; 043607, the
+                 # Ultra 10-year, starts 8 Mar 2016.
+                 "042601": "TU", "044601": "FV", "043602": "TY",
+                 "043607": "TN", "020601": "US", "020604": "WN"}
 # category -> (long column, short column), the dataset's own names. The
 # disaggregated swap-short column is spelled with two underscores at source.
 DISAGG_CATEGORIES = {

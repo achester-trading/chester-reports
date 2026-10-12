@@ -72,6 +72,7 @@ PY_VALIDATORS := \
 	tools/validate_figure_budget.py \
 	tools/validate_exposure_edges.py \
 	tools/validate_aq3_series.py \
+	tools/validate_basis_proxy.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 

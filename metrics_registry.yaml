@@ -6157,7 +6157,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_dealer_long_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6171,7 +6171,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_dealer_short:
     source: cftc
     mechanism_group: futures_positioning
@@ -6184,7 +6184,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_dealer_short_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6198,7 +6198,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_dealer_net:
     source: cftc
     mechanism_group: futures_positioning
@@ -6211,7 +6211,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_dealer_net_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6225,7 +6225,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): dealer/intermediary, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_asset_mgr_long:
     source: cftc
     mechanism_group: futures_positioning
@@ -6238,7 +6238,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_asset_mgr_long_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6252,7 +6252,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_asset_mgr_short:
     source: cftc
     mechanism_group: futures_positioning
@@ -6265,7 +6265,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_asset_mgr_short_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6279,7 +6279,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_asset_mgr_net:
     source: cftc
     mechanism_group: futures_positioning
@@ -6292,7 +6292,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_asset_mgr_net_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6306,7 +6306,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): asset manager/institutional, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_lev_money_long:
     source: cftc
     mechanism_group: futures_positioning
@@ -6319,7 +6319,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_lev_money_long_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6333,7 +6333,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_lev_money_short:
     source: cftc
     mechanism_group: futures_positioning
@@ -6346,7 +6346,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_lev_money_short_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6360,7 +6360,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_lev_money_net:
     source: cftc
     mechanism_group: futures_positioning
@@ -6373,7 +6373,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_lev_money_net_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6387,7 +6387,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): leveraged funds, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_other_rept_long:
     source: cftc
     mechanism_group: futures_positioning
@@ -6400,7 +6400,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_other_rept_long_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6414,7 +6414,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_other_rept_short:
     source: cftc
     mechanism_group: futures_positioning
@@ -6427,7 +6427,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_other_rept_short_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6441,7 +6441,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_other_rept_net:
     source: cftc
     mechanism_group: futures_positioning
@@ -6454,7 +6454,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
   cftc.tff_other_rept_net_oi:
     source: cftc
     mechanism_group: futures_positioning
@@ -6468,7 +6468,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): other reportables, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
   cftc.tff_open_interest:
     source: cftc
     mechanism_group: futures_positioning
@@ -6481,7 +6481,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): open interest, all, contracts -- the denominator of the _oi shares.
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD and, from SR-36, the Treasury futures TU, FV, TY, TN, US, WN; instrument = contract): open interest, all, contracts -- the denominator of the _oi shares.
   eia.rigs_oil:
     source: eia_rigs
     mechanism_group: commodity_supply
