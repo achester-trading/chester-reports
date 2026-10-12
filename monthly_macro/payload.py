@@ -487,8 +487,14 @@ def register_month_block(as_of: Optional[str] = None) -> dict:
     try:
         from altdata import benchmark
         ln = benchmark.line(as_of=as_of)
+        # EL-3 (12 Oct 2026): the book against Book Z over one window, the
+        # Weekly's line (T2 ruling 1), so the stacked Monthly prints the same
+        # figure beside the books rather than the benchmarks alone.
+        bl = benchmark.book_line(as_of=as_of)
         out["books_vs_benchmark"] = {
             "line": ln.get("text"), "absent_reason": ln.get("absent_reason"),
+            "book_line": bl.get("text"),
+            "book_line_absent_reason": bl.get("absent_reason"),
             "books": {b: "not yet sourced" for b in ("A", "B", "C", "D")}}
     except Exception as exc:                                   # noqa: BLE001
         out["books_vs_benchmark"] = {"fault": f"{type(exc).__name__}: {exc}"}
