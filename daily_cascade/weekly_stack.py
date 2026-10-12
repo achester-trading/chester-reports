@@ -1134,18 +1134,51 @@ def graded_calls(cutoff: str, db_path: Optional[str] = None) -> dict:
         rows = led.all_rows()
     done = [r for r in rows if r.get("resolved_at") and since <= str(r["resolved_at"])
             <= cutoff and r.get("brier") is not None]
+    # THE BOOK B CANDIDATES (decision 6) are reported on their own line, never
+    # pooled with any other source: a scanner's forecast is not a decision.
+    cand_src = ("book_b_candidate", "dryrun.book_b_candidate")
+    cands = [r for r in done if r["source"] in cand_src]
+    done = [r for r in done if r["source"] not in cand_src]
     by: dict[str, list] = {}
     for r in done:
         by.setdefault(r["source"], []).append(r["brier"])
+    cand_by: dict[str, list] = {}
+    for r in cands:
+        cand_by.setdefault(r["source"], []).append(int(r["outcome"]))
+    candidates = [{"source": s, "n": len(o), "hits": sum(o),
+                   "open": sum(1 for r in rows if r["source"] == s
+                               and r.get("outcome") is None)}
+                  for s, o in sorted(cand_by.items())]
     table = []
     for src, bs in sorted(by.items()):
         m = sum(bs) / len(bs)
         table.append({"source": src, "n": len(bs), "mean_brier": round(m, 4),
                       "vs_coin": round(m - pl.COIN_BRIER, 4),
                       "base_rate": src == "daily_close_outlook"})
-    open_n = sum(1 for r in rows if r.get("outcome") is None)
+    open_n = sum(1 for r in rows if r.get("outcome") is None
+                 and r["source"] not in cand_src)
     return {"since": since[:10], "rows": table, "resolved": len(done),
-            "unresolved": open_n, "coin_brier": pl.COIN_BRIER}
+            "unresolved": open_n, "coin_brier": pl.COIN_BRIER,
+            "candidates": candidates,
+            "candidates_open": sum(1 for r in rows if r["source"] in cand_src
+                                   and r.get("outcome") is None)}
+
+
+def candidates_line(calls: dict) -> str:
+    """The Book B candidates' forecasts, on their own line (decision 6)."""
+    rows = calls.get("candidates") or []
+    live = [r for r in rows if not r["source"].startswith("dryrun.")]
+    dry = [r for r in rows if r["source"].startswith("dryrun.")]
+
+    def part(r):
+        return (f"n={r['n']}, +1R first in {r['hits']} "
+                f"({100.0 * r['hits'] / r['n']:.0f}%)" if r["n"] else "none resolved")
+    txt = ("Book B candidates (the scanner's, taken or not; never pooled with the "
+           "operator's decisions), last four weeks: "
+           + ("; ".join(part(r) for r in live) if live else "none resolved"))
+    if dry:
+        txt += "; dry runs " + "; ".join(part(r) for r in dry)
+    return txt + f"; {calls.get('candidates_open', 0)} open."
 
 
 def read_attention_log(path: Optional[Path] = None) -> list[dict]:
@@ -1268,6 +1301,9 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
         "; ".join(f"n={r['n']}, Brier {r['mean_brier']:.3f} against a coin's "
                   f"{calls['coin_brier']:.2f}" for r in base) if base
         else "none resolved") + ".", 1, [(r["n"], r["mean_brier"]) for r in base]))
+    items.append(item("ahead:candidates", candidates_line(calls), 1,
+                      [(r["source"], r["n"], r["hits"])
+                       for r in calls.get("candidates") or []]))
     calls_table = {"columns": ["Source", "Resolved (4 wk)", "Mean Brier",
                                "Against a coin"],
                    "rows": [[source_label(r["source"]),
@@ -1279,9 +1315,11 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
              "lines": watch or ["No contradiction is open and no count is running."]},
             # The lines only when the table is empty: one fact, once (T2.5).
             {"title": "Graded calls, last four weeks", "table": calls_table,
-             "lines": [] if calls_table["rows"] else
-             [i["text"] for i in items if i["key"] in ("ahead:calls",
-                                                       "ahead:base_rates")]}]
+             "lines": ([] if calls_table["rows"] else
+                       [i["text"] for i in items if i["key"] in ("ahead:calls",
+                                                                 "ahead:base_rates")])
+             # The candidates' line always, on its own (decision 6).
+             + [i["text"] for i in items if i["key"] == "ahead:candidates"]}]
     nt = ["scenario weights with odds and signposts (scenario set #1, Audit #4 "
           "agenda item 2)"]
     # THE MARKET-MOVING CALENDAR (W-1.3a item 3.9): one ranked table, earnings,
@@ -1329,9 +1367,39 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
             "not_tracked": nt}
 
 
+def scanner_calendar(p: dict) -> list[dict]:
+    """The week ahead for the scanner's catalysts: earnings by symbol, and the
+    tracked releases with the tier-1 ones marked."""
+    wa = p.get("week_ahead") or {}
+    tier1 = (((stack_mod.config().get("triggers") or {}).get("plumbing") or {})
+             .get("tier1_events") or [])
+    out = [{"date": r.get("date"), "event": f"{r.get('symbol')} earnings",
+            "symbol": r.get("symbol")}
+           for r in (wa.get("earnings") or {}).get("rows") or [] if r.get("symbol")]
+    for r in (wa.get("releases") or {}).get("rows") or []:
+        name = str(r.get("release_name") or "")
+        if name and r.get("date"):
+            out.append({"date": r["date"], "event": name, "symbol": None,
+                        "tier1": any(k.lower() in name.lower() for k in tier1)})
+    return out
+
+
+def chain_walls(book: Optional[dict]) -> dict:
+    """symbol -> [(label, level)]: the walls the chain store names, for the
+    scanner's reclaim levels."""
+    out: dict[str, list] = {}
+    for i in (book or {}).get("instruments") or []:
+        for lv in i.get("levels") or []:
+            if lv.get("type") in ("call_wall", "put_wall") and lv.get("value"):
+                out.setdefault(str(i.get("symbol")), []).append(
+                    (f"the {lv['label']}", lv["value"]))
+    return out
+
+
 def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
               ending: Optional[str] = None, db_path: Optional[str] = None,
-              prior: Optional[dict] = None) -> dict:
+              prior: Optional[dict] = None, walls: Optional[dict] = None,
+              dry_run: bool = False) -> dict:
     rg = p.get("register") or {}
     rb = rg.get("rule_breaks") or {}
     items = [item("book:open", f"{rg.get('open_count', 0)} open decision(s), "
@@ -1388,29 +1456,54 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
     # sitting's productivity line, beside the compliance line above.
     from . import book_b                                        # noqa: PLC0415
     ending = ending or p.get("week_ending")
+    now = p.get("as_of") or session.utc_iso()
+    run, ledger = None, {}
     try:
-        scan = book_b.scanner_output(ending, db_path)
+        # THE BOOK B SCANNER (brief of 12 Oct 2026), over Friday's close: the
+        # week ahead's calendar for each candidate's catalyst, the chain's walls
+        # for the reclaim levels.
+        run = book_b.scanner_run(ending, db_path, cutoff=now,
+                                 calendar=scanner_calendar(p), walls=walls,
+                                 sessions=p.get("sessions_in_week") or None)
+        scan = None if run is None else run["candidates"]
         pbook = next((s for s in (prior or {}).get("sections") or []
                       if s.get("id") == "book"), {})
         flow = book_b.sitting_flow(ending, db_path, scan,
                                    (pbook.get("data") or {}).get("candidates_printed"),
                                    approved=attn["packets_approved"])
-        subs, kept = book_b.subsections(scan, flow)
+        subs, kept = book_b.subsections(scan, flow, run)
         notes = list(subs[0].pop("notes", []))
     except Exception:                                           # noqa: BLE001
         # The section prints without the two blocks rather than not at all.
         log.warning("Book B's candidates and productivity are unavailable",
                     exc_info=True)
-        scan, flow, kept = None, {}, {"printed": []}
+        scan, flow, kept = None, {}, {"printed": [], "reference": []}
         subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
                  "candidates": []}]
         notes = ["The candidates and the productivity line could not be read."]
+    # GRADING FROM DAY ONE (decision 6): every candidate, taken or not, a ledger
+    # forecast under its setup and id -- a dry run under its own namespace --
+    # and the open ones the stored closes now decide, resolved.
+    if scan is not None:
+        try:
+            from altdata import book_b_scanner as bbs           # noqa: PLC0415
+            ledger["graded"] = len(bbs.grade(db_path, ending, now, dry_run))
+            ledger["recorded"] = len(bbs.record_forecasts(scan, ending, now, db_path,
+                                                          dry_run))
+            ledger["source"] = bbs.source_name(dry_run)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("the candidates' forecasts were not written", exc_info=True)
+            ledger["error"] = f"{type(exc).__name__}: {exc}"
     return {"items": items, "subsections": subs, "notes": notes,
+            "reference": kept.get("reference") or [],
             "data": {"attention": attn, "triggers": trig, "book_z": bz,
                      "flow": {k: v for k, v in flow.items()},
                      "candidates": subs[0]["candidates"],
                      "candidates_printed": kept["printed"],
-                     "scanner": "absent" if scan is None else "present"},
+                     "scanner": "absent" if scan is None else "present",
+                     "scanner_ledger": ledger,
+                     "scanner_refused": len((run or {}).get("refused") or []),
+                     "scanner_hooks": (run or {}).get("hooks")},
             "table": {"columns": ["Count", "This week", "Budget"],
                       "rows": [["Packets approved", attn["packets_approved"],
                                 attn["packets_budget"]],
@@ -1547,7 +1640,8 @@ def annotate_moves(built: dict, st, now: str, days: int = 7,
 # Assembly
 # ---------------------------------------------------------------------------
 def build(p: dict, book: dict, prior: Optional[dict] = None,
-          db_path: Optional[str] = None, log_path: Optional[Path] = None) -> tuple:
+          db_path: Optional[str] = None, log_path: Optional[Path] = None,
+          dry_run: bool = False) -> tuple:
     cfg = stack_mod.config()
     ending = p["week_ending"]
     now = p.get("as_of") or session.utc_iso()
@@ -1613,7 +1707,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch,
                                 pos=pos.get("data"), now=now),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
-                              trig, bz, ending=ending, db_path=db_path, prior=prior),
+                              trig, bz, ending=ending, db_path=db_path, prior=prior,
+                              walls=chain_walls(book), dry_run=dry_run),
         }
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.
@@ -1816,7 +1911,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             daily, _ = levels_mod.daily_bars(levels_mod.tape_spec("spy"), ending,
                                              None, _db)
     prior = load_prior(p.get("previous_week_ending") or "", prior_dir or archive_dir)
-    ed, extras = build(p, book, prior, db_path, log_path)
+    ed, extras = build(p, book, prior, db_path, log_path, dry_run=dry_run)
     # THE CONSISTENCY GATE (W-1.1 item 1.1, ruling 1): within rounding, every
     # place prints the canonical figure and the difference is logged; beyond it,
     # EditionInconsistent fails the run. Before the prose, so every frame copies
