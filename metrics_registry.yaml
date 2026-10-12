@@ -6533,7 +6533,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      SPDR Gold Trust (GLD): troy ounces of gold held by the trust. The issuer's own figure through the last archive in the inbox; AFTER it an APPROXIMATION -- the daily workbook's shares x the archive's latest ounces per share, decayed daily at the expense ratio (altdata.config.GLD_EXPENSE_RATIO) -- re-anchored to the exact figures, as a revision, whenever a newer archive appears.
+      SPDR Gold Trust (GLD): troy ounces of gold held by the trust. The issuer's own figure through the last archive in the inbox; AFTER it an APPROXIMATION -- the daily workbook's shares x the archive's latest ounces per share, decayed daily by the Sponsor's fee, paid in gold (altdata.config.GLD_EXPENSE_RATIO) -- re-anchored to the exact figures, as a revision, whenever a newer archive appears.
   etf.gld_tonnes:
     source: spdr_gld
     mechanism_group: commodity_holdings
