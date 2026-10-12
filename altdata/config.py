@@ -241,9 +241,47 @@ FRED_THAILAND_SERIES: list[SeriesSpec] = [
     SeriesSpec("usd_thb", "DEXTHUS", "THB per USD (H.10)",                 "7", "THB", "daily"),
 ]
 
+# SLOOS (AQ-3 part 2, 11 Oct 2026; the credit chapter's lending-standards
+# measurable, the operator's ruling on AQ-2 part 2's choice 6). The Fed's Senior
+# Loan Officer Opinion Survey: the NET PERCENTAGE of domestic banks tightening
+# standards, quarterly (observed_at = the survey quarter's first day). A net
+# share of banks, not a rate: its own block (fred_sloos) moves it in percentage
+# points, where "%" alone would print a ten-point swing as 1,000 bp. Read off
+# FRED 11 Oct 2026, last print 2026-07-01. The CRE split exists from 2013Q4 only.
+FRED_SLOOS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("sloos_ci_large", "DRTSCILM", "SLOOS: net % of banks tightening C&I standards, large and middle-market firms", "6", "%", "quarterly"),
+    SeriesSpec("sloos_ci_small", "DRTSCIS", "SLOOS: net % of banks tightening C&I standards, small firms", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_construction", "SUBLPDRCSC", "SLOOS: net % tightening CRE, construction and land development", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_nonres", "SUBLPDRCSN", "SLOOS: net % tightening CRE, nonfarm nonresidential", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_multifamily", "SUBLPDRCSM", "SLOOS: net % tightening CRE, multifamily", "6", "%", "quarterly"),
+]
+
+# THE REAL-ESTATE AND GLOBAL-RATES LEGS (AQ-3 part 2). Each read off FRED on 11
+# Oct 2026 with its unit checked against the series page (Gotcha 2):
+#   DRCRELEXFACBS  CRE loan delinquency (ex farmland), all banks, %, quarterly,
+#                  last 2026-04-01 -- the real-estate chapter's headline row
+#   CSUSHPINSA     Case-Shiller US national, index Jan 2000 = 100, NSA, monthly
+#   DFF            effective fed funds, daily -- the US leg of the hedging cost
+#   ECBDFR         ECB deposit facility rate, daily -- the euro leg
+#   IRSTCI01JPM156N  Japan's call rate, monthly (OECD) -- the yen leg; FRED
+#                  carries no daily BoJ rate, so the JGB hedge is monthly-stepped
+#   IRLTLT01GBM156N  UK 10-year gilt, monthly average (OECD). The Bank of
+#                  England's own database is disallowed to robots
+#                  (/boeapps/database/_iadb-FromShowColumns.asp), so the gilt
+#                  is this monthly series and not a daily one
+FRED_AQ3_SERIES: list[SeriesSpec] = [
+    SeriesSpec("cre_delinq", "DRCRELEXFACBS", "CRE loan delinquency rate (ex farmland), all banks", "6", "%", "quarterly"),
+    SeriesSpec("case_shiller_national", "CSUSHPINSA", "S&P CoreLogic Case-Shiller US national home price index, NSA", "2", "idx", "monthly"),
+    SeriesSpec("effr_daily", "DFF", "Effective federal funds rate, daily", "3", "%", "daily"),
+    SeriesSpec("ecb_dfr", "ECBDFR", "ECB deposit facility rate", "7", "%", "daily"),
+    SeriesSpec("jp_call_rate", "IRSTCI01JPM156N", "Japan call money rate, monthly (OECD)", "7", "%", "monthly"),
+    SeriesSpec("gilt_10y", "IRLTLT01GBM156N", "UK 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
-                                      + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES)
+                                      + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
+                                      + FRED_SLOOS_SERIES + FRED_AQ3_SERIES)
 
 
 # Quick lookup by key

@@ -109,7 +109,14 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     "eia", "fedboard", "nyfed_sce",
                     # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
                     # republishes it (the Quarterly's oil chapter)
-                    "eia_rigs")
+                    "eia_rigs",
+                    # AQ-3 part 2: the daily Bund (Bundesbank), the monthly
+                    # Bund/OAT/BTP (the ECB data portal), and China's 70-city
+                    # prices, starts and sales (the NBS English releases)
+                    "bundesbank", "ecb_irs", "nbs",
+                    # AQ-3 part 2, THAILAND (namespace thailand, never a trigger):
+                    # the BoT policy rate, TPSO's CPI, MOTS's arrivals, NESDC's GDP
+                    "bot", "tpso", "mots", "nesdc")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -140,7 +147,9 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # GLD's archive (inbox; its API host disallows robots), the
                     # iShares gold, silver and bitcoin trusts' share counts, SHFE
                     # weekly metal stocks, and USD/CNH's New York close
-                    "spdr_gld", "ishares_trusts", "shfe", "cnh")
+                    "spdr_gld", "ishares_trusts", "shfe", "cnh",
+                    # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
+                    "thai_set")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

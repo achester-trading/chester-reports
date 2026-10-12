@@ -900,6 +900,7 @@ def group_n() -> None:
         # fetch_frames: fundamentals.py reads yfinance, not the HTTP helpers, and
         # an outage test that left it live reached the network and wrote rows.
         for attr in ("http_get_response", "http_get_json", "http_get_text",
+                     "http_post_json",
                      "fetch_frames"):
             if hasattr(mod, attr):
                 saved[(mod, attr)] = getattr(mod, attr)

@@ -6809,6 +6809,496 @@ metrics:
     description: >-
       USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore.
 
+
+  # -------------------------------------------------------------------------
+  # AQ-3 PART 2 (11 Oct 2026) -- the remaining structure series. Writers:
+  # bundesbank.py, ecb_irs.py, nbs.py; computed: altdata/market_features.py
+  # aq3b_rows. FRED's SLOOS and real-estate/rates legs are bulk blocks below.
+  # -------------------------------------------------------------------------
+  bbk.bund_10y:
+    source: bundesbank
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      The 10-year Bund yield, PERCENT, daily: the Bundesbank's term-structure estimate (Svensson method) for listed Federal securities at 10.0 years' residual maturity (BBSIS.D.I.ZST.ZI.EUR.S1311.B.A604.R10XX.R.A.A._Z._Z.A). A fitted zero-coupon yield, a few bp from the on-the-run benchmark's quote. available_at the next weekday 12:00 Frankfurt (reconstructed).
+  ecb.irs_10y_de:
+    source: ecb
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Germany (Bund) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.DE.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
+  ecb.irs_10y_fr:
+    source: ecb
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      France (OAT) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.FR.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
+  ecb.irs_10y_it:
+    source: ecb
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    trigger_eligible: false
+    description: >-
+      Italy (BTP) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.IT.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
+  nbs.city70_new_mm_down:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      A COUNT OF CITIES, of the 70, whose NEW-HOME index fell on the month (M/M index < 100), NBS Table I. Computed from the 70 rows: the English edition prints no aggregate. observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.city70_new_mm_up:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      A count of cities, of the 70, whose new-home index rose on the month (> 100); = 100 counts as neither. observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.city70_new_yy_down:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      A count of cities, of the 70, whose new-home index is below a year earlier (Y/Y index < 100). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.city70_new_mm_avg:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The UNWEIGHTED mean of the 70 cities' new-home M/M indices less 100, percent -- computed here, NOT the NBS's own aggregate (not published in English). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.city70_new_yy_avg:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      The unweighted mean of the 70 cities' new-home Y/Y indices less 100, percent -- computed here, not an NBS aggregate. observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_starts_ytd:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      China: floor space of buildings newly started, YEAR TO DATE, 10,000 sq m (NBS, Table 1 'Real Estate Development and Sales'). A count of area, moved in its own units. observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_starts_ytd_yoy:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      China: floor space newly started, year to date, growth y/y, percent (NBS). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_sold_area_ytd:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      China: floor space of newly built commercial buildings sold, year to date, 10,000 sq m (NBS). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_sold_area_ytd_yoy:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      China: new commercial floor space sold, year to date, growth y/y, percent (NBS). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_sales_ytd:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      China: sales of newly built commercial buildings, year to date, 100 MILLION YUAN (NBS). An amount, moved in its own units. observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  nbs.re_sales_ytd_yoy:
+    source: nbs
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      China: sales of new commercial buildings, year to date, growth y/y, percent (NBS). observed_at = the reference month's first day; available_at the release date at 09:30/10:00 Beijing (reconstructed).
+  calc.xlre_spy:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      XLRE / SPY, the price ratio of the two closes. Computed from stored series; available_at the latest input's.
+  calc.vnq_spy:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      VNQ / SPY, the price ratio of the two closes. Computed from stored series; available_at the latest input's.
+  calc.efa_spy:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      EFA / SPY, the price ratio of the two closes. Computed from stored series; available_at the latest input's.
+  calc.vea_spy:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      VEA / SPY, the price ratio of the two closes. Computed from stored series; available_at the latest input's.
+  calc.hefa_efa:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      HEFA / EFA, the price ratio of the two closes. Computed from stored series; available_at the latest input's.
+  calc.mortgage_spread_10y_bp:
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 30-year mortgage rate (Freddie Mac PMMS, weekly) less the 10-year Treasury on the survey date, basis points. Computed from stored series; available_at the latest input's.
+  calc.us_jgb_10y_bp:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury less the 10-year JGB (MoF), basis points. Computed from stored series; available_at the latest input's.
+  calc.oat_bund_bp:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year OAT less the 10-year Bund (ECB IRS, monthly), bp. Computed from stored series; available_at the latest input's.
+  calc.btp_bund_bp:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year BTP less the 10-year Bund (ECB IRS, monthly), bp. Computed from stored series; available_at the latest input's.
+  calc.bund_hedged_yield:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      APPROXIMATION. The 10-year Bund hedged into dollars for a US investor: the Bund yield less the hedging cost, taken as the policy-rate differential (EFFR less the ECB deposit rate) -- covered interest parity on policy rates, not on the 3-month FX forward points or the basis. Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
+  calc.bund_hedged_spread_bp:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      APPROXIMATION. calc.bund_hedged_yield less the 10-year Treasury, bp. Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
+  calc.jgb_hedged_yield:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      APPROXIMATION. The 10-year JGB hedged into dollars: the JGB yield less (EFFR less Japan's call rate, monthly, carried forward). Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
+  calc.jgb_hedged_spread_bp:
+    source: derived_state
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      APPROXIMATION. calc.jgb_hedged_yield less the 10-year Treasury, bp. Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
+
+
+  # -------------------------------------------------------------------------
+  # AQ-3 PART 2 (11 Oct 2026) -- THAILAND, isolated (namespace thailand,
+  # trigger_eligible false; change order section 4.10). Writers: bot.py,
+  # tpso.py, mots.py, nesdc.py, thai_set.py.
+  # -------------------------------------------------------------------------
+  thai.bot_policy_rate:
+    source: bot
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    namespace: thailand
+    trigger_eligible: false
+    description: >-
+      The Bank of Thailand's policy rate, PERCENT, one row per MPC decision (observed_at = the decision date; the 1-day bilateral repo rate since 2008, the 14-day RP before 2007). From the BoT's MPC table, keyless; the BoT API adds a decision the table has not caught (only with BOT_API_KEY). ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.cpi:
+    source: tpso
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    namespace: thailand
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      Thai headline CPI, whole kingdom, INDEX 2023 = 100 (TPSO, Ministry of Commerce; from January 1976). observed_at = the month's first day; available_at the 10th of the next month 10:30 Bangkok by rule (reconstructed, an upper bound). ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.cpi_yoy:
+    source: tpso
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    namespace: thailand
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Thai headline CPI, change on a year earlier, PERCENT, as TPSO computes it. ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.tourist_arrivals:
+    source: mots
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    namespace: thailand
+    trigger_eligible: false
+    description: >-
+      International tourist arrivals to Thailand, PERSONS a month, the Grand Total line of MOTS's monthly workbook (preliminary, 'p'). observed_at = the month's first day. ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.gdp_real_sa:
+    source: nesdc
+    mechanism_group: macro_global_fx
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    namespace: thailand
+    trigger_eligible: false
+    description: >-
+      Thailand's real GDP, chain volume measures (reference year 2002), seasonally adjusted, MILLION BAHT a quarter (NESDC, the SA chain-volume table of the QGDP CSV release; from 1993 Q1). observed_at = the quarter's first day. An amount, moved in its own units. ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.gdp_real_sa_qoq:
+    source: nesdc
+    mechanism_group: macro_global_fx
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    namespace: thailand
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Thailand's real GDP (SA), change on the previous quarter, PERCENT, not annualised -- computed from thai.gdp_real_sa. ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+  thai.set_index:
+    source: yahoo_set
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    namespace: thailand
+    delta_unit: percent
+    trigger_eligible: false
+    description: >-
+      The SET index close, POINTS (Yahoo ^SET.BK via yfinance). FORWARD-ONLY: Yahoo serves one bar for the symbol whatever the period, so the series grows a close a session from the first pull. available_at 17:00 Bangkok on the session date (reconstructed). ISOLATED: namespace thailand, never trigger_eligible -- the Thailand chapter informs a private decision and nothing in the trading system.
+
 bulk_imports:
 
   fred_macro:
@@ -6928,6 +7418,65 @@ bulk_imports:
     mechanism_group_map:
       "7": macro_global_fx
 
+  fred_sloos:
+    description: >-
+      SLOOS (AQ-3 part 2, 11 Oct 2026): the Fed's Senior Loan Officer Opinion
+      Survey, the NET PERCENTAGE of domestic banks tightening standards --
+      C&I to large and middle-market firms (DRTSCILM) and to small firms
+      (DRTSCIS); CRE construction and land development (SUBLPDRCSC), nonfarm
+      nonresidential (SUBLPDRCSN), multifamily (SUBLPDRCSM; the CRE split from
+      2013Q4). Quarterly, observed_at the survey quarter's first day. The credit
+      chapter's lending-standards measurable (the operator's ruling on AQ-2 part
+      2's choice 6). A net share of banks moves in PERCENTAGE POINTS: "%" alone
+      would print a ten-point swing as 1,000 bp.
+    source: fred
+    members_from: altdata.config.FRED_SLOOS_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 5
+    units: from_member
+    delta_unit: pp
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "6": macro_valuation_credit
+
+  fred_aq3:
+    description: >-
+      The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
+      read off FRED with its unit checked against the series page: CRE loan
+      delinquency (DRCRELEXFACBS, %, quarterly -- the real-estate chapter's
+      headline row); Case-Shiller US national (CSUSHPINSA, index, monthly); the
+      policy rates of the hedged-yield approximation -- effective fed funds daily
+      (DFF), the ECB deposit rate (ECBDFR), Japan's call rate monthly
+      (IRSTCI01JPM156N); and the UK 10-year gilt, monthly average
+      (IRLTLT01GBM156N; the Bank of England's database disallows robots).
+    source: fred
+    members_from: altdata.config.FRED_AQ3_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 6
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+      "3": macro_liquidity
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+
   fred_thailand:
     description: >-
       USD/THB, H.10 (DEXTHUS, baht per dollar; AQ-3 part 1). ISOLATED: the
@@ -6972,7 +7521,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 55   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3)
+    expected_members: 58   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -7017,7 +7566,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 55   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3)
+    expected_members: 58   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

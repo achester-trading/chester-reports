@@ -1209,6 +1209,152 @@ sources:
       - >-
         Yahoo serves one DAILY bar for CNH=X whatever the period (PB-1, 5 Oct 2026); the hourly bars are served, 730 days back.
 
+  # --- AQ-3 part 2 (11 Oct 2026): the remaining structure series --------------
+  bundesbank:
+    name: Deutsche Bundesbank -- time-series API (SDMX), the daily term structure of Federal securities
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE]
+    latency: the next business morning, Frankfurt
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at is the next weekday 12:00 Frankfurt by rule (reconstructed), never after the write instant.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/bundesbank.py
+    status: live
+    caveats:
+      - >-
+        The 10-year point is the Svensson-fitted zero-coupon yield, not the benchmark bond's quoted yield. CSV is served only to an Accept header naming it.
+
+  ecb:
+    name: European Central Bank data portal -- IRS, long-term interest rates for convergence purposes
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE, FR, IT]
+    latency: monthly, about six weeks after the month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified stamps the vintage (observed); the write instant without it. Either is an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/ecb_irs.py
+    status: live
+    caveats:
+      - >-
+        Monthly averages. A daily OAT or BTP is not published keyless (Banque de France's Webstat API needs a registered key).
+
+  nbs:
+    name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro, real_estate]
+    geography: [CN]
+    latency: mid-month, 09:30-10:00 Beijing
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the release date (from the release URL) at its stated hour, Beijing (reconstructed).
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/nbs.py
+    status: live
+    caveats:
+      - >-
+        Forward from the first run: the index lists about thirty releases across its two pages; the query database that holds history (data.stats.gov.cn) answers 403. The English 70-city edition prints no aggregate, so the counts and means are computed here.
+
+  # --- AQ-3 part 2: Thailand (isolated, namespace thailand) -------------------
+  bot:
+    name: Bank of Thailand -- MPC decisions table (keyless) and the policy-rate API (key)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [TH]
+    latency: 14:05 Bangkok on the meeting date
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each decision stamped 14:05 Bangkok on its date (the BoT's stated release time), reconstructed.
+    license: public; the API needs a free personal key (BOT_API_KEY, the operator's .env) and is optional
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/bot.py
+    status: live
+    caveats:
+      - >-
+        The table's link changes with each meeting and is found on the page. Without a key the API leg is skipped and logged as "no key".
+
+  tpso:
+    name: Trade Policy and Strategy Office (Thailand, Ministry of Commerce) -- CPI index service
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: the first week of the next month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at the 10th of the next month 10:30 Bangkok by rule (reconstructed, an upper bound).
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/tpso.py
+    status: live
+    caveats:
+      - >-
+        A POST query (index.tpso.go.th/api/cpig/filter); years in the Buddhist Era. FRED carries Thai CPI only annually.
+
+  mots:
+    name: Ministry of Tourism and Sports (Thailand) -- international tourist arrivals workbook
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about the first of the next month (preliminary)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The workbook's Last-Modified (observed), else the write instant.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/mots.py
+    status: live
+    caveats:
+      - >-
+        robots.txt disallows /web-api/ and paths containing "api"; the writer reads only /news/category/ pages and /images/ files. History starts with the first release read (this year and the prior year's same months).
+
+  nesdc:
+    name: NESDC (Thailand) -- quarterly national accounts, CSV tables
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about seven weeks after the quarter
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The zip's Last-Modified (observed), an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/nesdc.py
+    status: live
+    caveats:
+      - >-
+        The download link redirects through a cookie-setting hop; the file is a zip of CSVs read by content.
+
+  yahoo_set:
+    name: Yahoo Finance -- ^SET.BK (via yfinance), the SET index close
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [equities]
+    geography: [TH]
+    latency: the session's close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      17:00 Bangkok on the session date (reconstructed).
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/thai_set.py
+    status: live
+    caveats:
+      - >-
+        One bar whatever the period (11 Oct 2026): forward-only. Yahoo's query hosts' robots.txt is Disallow: / for every agent, as for the whole yfinance basket -- named for the operator's ruling.
+
   # --- Signal-triage order ST-2, step 2 ----------------------------------------
   eia:
     name: US Energy Information Administration -- Weekly Petroleum Status Report history
