@@ -29,6 +29,9 @@ network, no box:
      companion beside the 10-year, "n more past 2.5σ -- in the tables", and the
      reference tier lists every flag; the EM calendar template is empty and
      prints nothing, a seeded entry prints in its quarter.
+  H  THE QUARTERLY'S HOOK. quarter_episodes(st, now): a member's shock is one
+     episode (its 5-day run collapsed), idiosyncratic with contagion passed;
+     the spread's widening is one contagion event; oldest first; [] before it.
 
     python tools/validate_move_screen.py
 """
@@ -56,6 +59,8 @@ PASS = 0
 FAIL = 0
 LINE = "=" * 78
 DAY = "2026-10-09"
+QEND = "2026-09-30"        # group H: the quarter ending here
+QSHOCK = "2026-08-12"
 CUT = "2026-10-09T22:00:00+00:00"
 
 
@@ -353,6 +358,68 @@ def group_g(res: dict) -> None:
           "a seeded entry prints in its quarter; next quarter's does not")
 
 
+def group_h() -> None:
+    """H: the Quarterly's hook. A three-country basket that alternates (z = +/-1
+    every session, never systemic), Brazil's ETF falls 8% mid-quarter, and the EM
+    corporate spread widens 30 bp two sessions later: one member episode
+    (idiosyncratic, contagion passed) and one spread event, oldest first; a
+    quarter that ends before the shock has none."""
+    print("\n-- H  the quarter's EM episodes (the Quarterly's hook)")
+    td = gate_mkdtemp("validate_move_screen_q_")
+    path = str(Path(td) / "store.db")
+    days = bdays(QEND, 3)
+    shock = days.index(QSHOCK)
+    st = observations.ObservationStore(path)
+    try:
+        for n, (key, kind) in enumerate([
+                ("fred.usd_brl", "fx"), ("yfinance.mkt_ewz", "etf"),
+                ("fred.usd_mxn", "fx"), ("yfinance.mkt_eww", "etf"),
+                ("fred.usd_zar", "fx"), ("yfinance.mkt_eza", "etf")]):
+            v, vals = 10.0 + n, []
+            for i, _ in enumerate(days):
+                v *= math.exp(0.01 if i % 2 else -0.01)
+                if key == "yfinance.mkt_ewz" and i == shock:
+                    v *= math.exp(-0.08)
+                vals.append(v)
+            st.write_many(rows(key, None, days, vals))
+        v, oas = 2.0, []
+        for i, _ in enumerate(days):
+            v += 0.01 if i % 2 else -0.01
+            if i == shock + 2:
+                v += 0.30
+            oas.append(round(v, 4))
+        st.write_many(rows("fred.em_corp_oas", None, days, oas))
+    finally:
+        st.close()
+    st = observations.ObservationStore(path)
+    try:
+        eps = ms.quarter_episodes(st, f"{QEND}T23:00:00+00:00")
+        before = ms.quarter_episodes(st, days[shock - 10])
+    finally:
+        st.close()
+    keys = {"date", "series", "horizon", "z", "false_flag", "classification",
+            "contagion_passed"}
+    check(all(keys <= set(e) for e in eps),
+          "every episode carries date, series, horizon, z, false_flag, "
+          "classification, contagion_passed")
+    mem = [e for e in eps if e["kind"] == "member"]
+    spr = [e for e in eps if e["kind"] == "spread"]
+    check(len(mem) == 1 and mem[0]["series"] == "yfinance.mkt_ewz"
+          and mem[0]["date"] == QSHOCK and mem[0]["horizon"] in (1, 5)
+          and mem[0]["z"] < -2.5,
+          f"one member episode: EWZ on {QSHOCK}, its peak z past -2.5 "
+          f"(the 5-day run after it is the same episode) -- {mem}")
+    check(mem and mem[0]["classification"] == "idiosyncratic"
+          and mem[0]["contagion_passed"] is True,
+          "the shock is idiosyncratic and its contagion passed")
+    check(len(spr) == 1 and spr[0]["series"] == "fred.em_corp_oas"
+          and spr[0]["date"] == days[shock + 2] and spr[0]["contagion_passed"]
+          and spr[0]["false_flag"] is None,
+          f"one EM-spread contagion event, on the widening session -- {spr}")
+    check([e["date"] for e in eps] == sorted(e["date"] for e in eps),
+          "episodes are oldest first")
+    check(before == [], "a quarter ending before the shock has no episodes")
+
 def main() -> int:
     print(f"{LINE}\nTHE STORE-WIDE MOVE SCREEN AND THE EM SCREEN\n{LINE}")
     td = gate_mkdtemp("validate_move_screen_")
@@ -365,6 +432,7 @@ def main() -> int:
     group_e()
     group_f()
     group_g(res)
+    group_h()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

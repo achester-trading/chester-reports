@@ -10,7 +10,7 @@ The gates this branch touches were run one at a time, all green:
 
 | Gate | Result |
 |---|---|
-| `validate_move_screen` (new) | 39/0 |
+| `validate_move_screen` (new) | 45/0 (39 before the Quarterly's hook) |
 | `validate_prices` | 81/0 |
 | `check_registry` | OK |
 | `validate_register` | 171/0 |
@@ -163,7 +163,36 @@ read-only.
   also prints the prediction-market families too short to pool, and the
   stored summary carries the list every session.
 
+**The Quarterly's hook (follow-up).** `altdata.move_screen.quarter_episodes(st,
+now)` returns the quarter's EM episodes, oldest first, or `[]` when there are
+none. Session B's AQ-2 part 2 calls it by that name. Each row carries `date`,
+`series`, `horizon`, `z`, `false_flag`, `classification` and `contagion_passed`,
+plus `country` and `kind`. There are two kinds:
+
+- **`member`:** a basket member's store-wide screen flag. It is read from the
+  stored session result where one exists, otherwise recomputed from the store
+  as of `now`.
+- **`spread`:** the session an idiosyncratic shock passed to EM spreads, with
+  the spread that widened most and its 5-day z.
+
+Gate group H is its fixture.
+
 ## Choices made for the operator to overrule
+
+- **The Quarterly's hook.**
+  - "The quarter ending at `now`" is the three calendar months before it, not
+    the calendar quarter that contains it. The two agree when `now` falls on a
+    quarter end.
+  - A member's run of consecutive flagged observations is one episode, because
+    a shock's 5-day z stays past 2.5σ for several sessions. It is dated at the
+    run's first observation and carries the run's largest |z| and its horizon.
+  - The systemic, idiosyncratic or mixed state is under the key
+    `classification`.
+  - `contagion_passed` is True only for an idiosyncratic shock that passed.
+  - There is one spread event per episode, and its `false_flag` is None,
+    because the contagion rule has no base rate.
+  - A bare date for `now` reads the store without a cutoff. A timestamp is the
+    point-in-time cutoff.
 
 - **The false-flag definition, for you to confirm.**
   - A past print is a change on the same horizon past 2.5σ. It is identified

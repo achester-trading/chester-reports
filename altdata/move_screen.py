@@ -564,6 +564,130 @@ def contagion_line(s: dict, weekly: bool = False) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# The Quarterly's hook (AQ-2): the quarter's EM episodes
+# ---------------------------------------------------------------------------
+def _quarter_start(day: str) -> str:
+    """Three calendar months before `day` (exclusive bound), the day clamped to
+    the month's length: the quarter ending at `day`."""
+    d = dt.date.fromisoformat(day)
+    y, m = (d.year, d.month - 3) if d.month > 3 else (d.year - 1, d.month + 9)
+    for dd in range(d.day, 27, -1):
+        try:
+            return dt.date(y, m, dd).isoformat()
+        except ValueError:
+            continue
+    return dt.date(y, m, min(d.day, 28)).isoformat()
+
+
+def quarter_episodes(st, now, cfg: Optional[dict] = None) -> list[dict]:
+    """The EM basket's episodes past sigma in the quarter ending at `now`, oldest
+    first; [] when none. The Quarterly calls this by name (AQ-2 part 2 config).
+
+    Two kinds of row, each {date, series, horizon, z, false_flag,
+    classification, contagion_passed} (plus `country`, `kind`):
+      member  -- a basket member's store-wide screen flag (|z| >= sigma on its
+                 lead horizon), from the stored session result where one exists,
+                 else recomputed from the store as of `now`. `date` is the
+                 member's own observation date, so a weekly-posted FRED
+                 currency is counted once, not on each session that reads it.
+                 `classification` is the basket's state that session (systemic,
+                 idiosyncratic, mixed); `contagion_passed` is True only for an
+                 idiosyncratic shock that passed to the basket or to EM spreads
+                 inside its window.
+      spread  -- an EM-spread contagion event: the session a single-country
+                 shock passed to EM spreads, the spread that widened most, its
+                 5-day z. `false_flag` is None (the contagion rule has no base
+                 rate); `contagion_passed` is True.
+    """
+    cfg = cfg or load_config()
+    now_s = now.isoformat() if hasattr(now, "isoformat") else str(now)
+    day = now_s[:10]
+    cutoff = now_s if "T" in now_s else None
+    start = _quarter_start(day)
+    e = cfg.get("em") or {}
+    w = int(e.get("contagion_sessions") or 5)
+    th = float(e.get("spread_sigma") or 2.0)
+    members = {m["key"]: m for m in e.get("members") or []}
+    days = [d for d in sessions_back(day, 70) if d > start]
+
+    hits: dict[str, dict] = {}          # series -> {date: flag row}
+    per_day = []
+    for d in days:
+        stored = read(st, d, cutoff)
+        if stored is not None:
+            em = stored.get("em") or {}
+            flags = [{**f, "country": members[f["series"]]["country"]}
+                     for f in stored.get("flags") or [] if f.get("series") in members]
+            spreads = em.get("spreads") or []
+            state, countries = em.get("state"), em.get("countries_flagged") or []
+        else:
+            moves = em_member_moves(st, d, cutoff, cfg)
+            c = classify(moves, cfg)
+            flags = [{"series": m["key"], "day": m["as_of"], "country": m["country"],
+                      "z1": m.get("z1"), "z5": m.get("z5"),
+                      "false_flag": m.get("false_flag")}
+                     for m in moves if m.get("available") and m.get("flagged")]
+            spreads = em_spreads(st, d, cutoff, cfg)
+            state, countries = c.get("state"), c.get("countries_flagged") or []
+        wide = [s for s in spreads
+                if s.get("available") and (s.get("z5") or 0) >= th]
+        per_day.append({"day": d, "state": state, "countries_flagged": countries,
+                        "spread_widening": bool(wide), "widest": max(
+                            wide, key=lambda s: s["z5"]) if wide else None})
+        for f in flags:
+            date = str(f.get("day") or d)[:10]
+            if date > start:
+                hits.setdefault(f["series"], {}).setdefault(
+                    date, {**f, "_session": d, "_state": state})
+
+    # One episode per run of consecutive flagged observations of a series (a
+    # shock's 5-day z stays past sigma for the sessions after it): dated at the
+    # run's first observation, carrying the run's largest |z|.
+    states = contagion_states(per_day, w)
+    passed = {(s["country"], s["shock_date"]): s for s in states
+              if s["status"] == "passed"}
+    out, starts = [], set()
+    for series, by_date in hits.items():
+        obs = [d for d, _ in daily_points(st.as_of(series, cutoff)) if start < d <= day]
+        pos = {d: i for i, d in enumerate(obs)}
+        run: list[dict] = []
+        for date in sorted(by_date) + [None]:
+            f = by_date.get(date) if date else None
+            if run and (f is None or pos.get(date, -9) - pos.get(run[-1]["_date"], -9) != 1):
+                first = run[0]
+                peak = max(((abs(r.get(f"z{h}") or 0), h, r) for r in run for h in (1, 5)),
+                           key=lambda t: t[0])
+                ep_state = first["_state"]
+                starts.add((first["country"], first["_session"]))
+                out.append({
+                    "date": first["_date"], "series": series, "horizon": peak[1],
+                    "z": peak[2].get(f"z{peak[1]}"),
+                    "false_flag": peak[2].get("false_flag"),
+                    "classification": ep_state,
+                    "contagion_passed": (ep_state == "idiosyncratic" and
+                                         (first["country"], first["_session"]) in passed),
+                    "country": first["country"], "kind": "member"})
+                run = []
+            if f is not None:
+                run.append({**f, "_date": date})
+    by_day = {p["day"]: p for p in per_day}
+    # One contagion event per episode: the sessions after a shock that its own
+    # 5-day run keeps idiosyncratic are not new shocks.
+    for key, s in passed.items():
+        if s["passed_to"] != "EM spreads" or key not in starts:
+            continue
+        p = by_day.get(s["passed_on"]) or {}
+        top = p.get("widest") or {}
+        out.append({"date": s["passed_on"], "series": top.get("key"), "horizon": 5,
+                    "z": top.get("z5"), "false_flag": None,
+                    "classification": p.get("state"), "contagion_passed": True,
+                    "country": s["country"], "kind": "spread",
+                    "shock_date": s["shock_date"]})
+    out.sort(key=lambda r: (r["date"], r["kind"], str(r["series"])))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # The EM calendar (by hand)
 # ---------------------------------------------------------------------------
 def em_calendar(day: str, path: Optional[Path] = None) -> list[dict]:
