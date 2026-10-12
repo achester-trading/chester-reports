@@ -43,6 +43,18 @@ local run had passed only because the YAML was still untracked, and the gate
 reads tracked files. The fix is a `fred_sr43` bulk block in
 `metrics_registry.yaml`, the same way the AQ-3 FRED series are registered.
 
+**CI's second run, #302, was cancelled.** `validate_session_calendar.sh` hit
+the 10-minute job limit. The base has the same fault: `sr-36-basis-proxy`'s
+last run, #289, was cancelled the same way. `aq-3-series-2` fixed it after
+SR-36 branched:
+
+- `01bbfa6`: the gate's stub runs only `-m altdata.session`, not every writer
+  live;
+- `242a3ad`: the job gets 20 minutes, a stopgap.
+
+Both are cherry-picked here (`5a79969`, `72126ff`). `sr-36-basis-proxy`
+itself still lacks them.
+
 **One gate updated.** `validate_monthly_stack`'s "each bucket carries a written
 takeaway" check now counts only the buckets. The two SR-43/49 blocks ride after
 them with no paragraph of their own.
@@ -175,3 +187,7 @@ The Monthly carries both blocks after its six buckets.
    no, or name the changes.
 5. **Sarmaya's "Fed blinks"** reads "outside these measures". Leave it, or point
    it at the fed funds path in What's priced? Leave / point it.
+6. **`sr-36-basis-proxy` lacks `aq-3-series-2`'s session-calendar fix**
+   (`01bbfa6`, `242a3ad`), so its CI is cancelled at the 10-minute limit. I
+   cherry-picked both here and left SR-36's branch untouched. Rebase SR-36 on
+   `aq-3-series-2`, or let the merge order carry the fix? Rebase / merge order.
