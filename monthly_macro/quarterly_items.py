@@ -1197,6 +1197,9 @@ def item_stories(fam: dict, ctx: dict) -> dict:
                                             for d in r["family_directions"]),
                                   r.get("title") or r.get("view") or "—",
                                   r.get("source_url") or "—"] for r in vrows[-12:]]}
+        # The scan's stories are stored (AQ-7): the not-yet line is for a
+        # quarter with none.
+        out["not_tracked"] = []
     else:
         out["lines"].append("No stored voice on this family this quarter.")
     return out
