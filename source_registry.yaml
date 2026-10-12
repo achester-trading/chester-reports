@@ -1138,7 +1138,7 @@ sources:
         Monthly. rigcount.bakerhughes.com refuses scripted requests (Akamai 403, robots.txt included, 11 Oct 2026), so the weekly count has no free source.
 
   spdr_gld:
-    name: SPDR Gold Trust (World Gold Trust Services) -- the GLD historical archive
+    name: SPDR Gold Trust -- the GLD historical archive (one-time, the anchor) and State Street's daily NAV-history workbook
     tier: A1
     epistemic_role: primary_fact
     domain: [commodities]
@@ -1146,14 +1146,16 @@ sources:
     latency: the next business day
     timestamp_reliability: medium
     timestamp_notes: >-
-      Read from the operator's inbox (~/chester-data/inbox/etf/): available_at is the file's modification time (ingest_instant), an upper bound.
+      The archive is read from the operator's inbox (~/chester-data/inbox/etf/, swept from Drive chester-vendor-checks/etf/): available_at is the file's modification time (ingest_instant), an upper bound. The daily workbook (www.ssga.com navhist-us-en-gld.xlsx) is available at its Last-Modified (observed).
     license: issuer file; redistribution prohibited by its disclaimer -- stored for the operator's own read only
     allowed_reports: [monthly_macro, alt_asset]
     implemented_by: altdata/sources/spdr_gld.py
     status: live
     caveats:
       - >-
-        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches only while that changes; until then the operator places the archive in the inbox.
+        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches the archive only while that changes; the operator drops it once in Drive and the rclone sweep brings it to the inbox.
+      - >-
+        www.ssga.com's robots.txt has no rule matching the daily workbook's path (12 Oct 2026; nearest "Disallow: /fd"), read each run. The workbook carries shares, NAV and total net assets but NOT gold in ounces: ounces and tonnes after the archive's last date are an APPROXIMATION (shares x ounces per share, decayed at the expense ratio), re-anchored by each newer archive.
 
   ishares_trusts:
     name: iShares (BlackRock) -- IAU, SLV and IBIT product pages

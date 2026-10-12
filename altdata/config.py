@@ -269,6 +269,10 @@ FRED_SLOOS_SERIES: list[SeriesSpec] = [
 #                  England's own database is disallowed to robots
 #                  (/boeapps/database/_iadb-FromShowColumns.asp), so the gilt
 #                  is this monthly series and not a daily one
+#   DTWEXEMEGS     the Fed's nominal EMERGING-MARKET dollar index, index Jan
+#                  2006 = 100, daily, NSA (read off FRED 12 Oct 2026, last print
+#                  129.7052) -- the EM paper's request (AQ-14 Needs you 4, ruled
+#                  yes); the EM chapter's structure row reads fred.dxy_em
 FRED_AQ3_SERIES: list[SeriesSpec] = [
     SeriesSpec("cre_delinq", "DRCRELEXFACBS", "CRE loan delinquency rate (ex farmland), all banks", "6", "%", "quarterly"),
     SeriesSpec("case_shiller_national", "CSUSHPINSA", "S&P CoreLogic Case-Shiller US national home price index, NSA", "2", "idx", "monthly"),
@@ -276,7 +280,21 @@ FRED_AQ3_SERIES: list[SeriesSpec] = [
     SeriesSpec("ecb_dfr", "ECBDFR", "ECB deposit facility rate", "7", "%", "daily"),
     SeriesSpec("jp_call_rate", "IRSTCI01JPM156N", "Japan call money rate, monthly (OECD)", "7", "%", "monthly"),
     SeriesSpec("gilt_10y", "IRLTLT01GBM156N", "UK 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    SeriesSpec("dxy_em", "DTWEXEMEGS", "Nominal Emerging Market Economies US Dollar Index (DTWEXEMEGS, FRB; Jan 2006=100)", "7", "idx", "daily"),
 ]
+
+# THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
+# ounces between two archives are shares x the last archive's ounces per share,
+# decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
+# share's gold falls by the fee and nothing else (altdata/sources/spdr_gld.py).
+# Re-read the ratio off the fund page when the trust changes its fee.
+GLD_EXPENSE_RATIO = {
+    "ratio": 0.0040,
+    "source": ("State Street Global Advisors, the SPDR Gold Shares (GLD) fund page, "
+               "ssga.com/us/en/intermediary/etfs/spdr-gold-shares-gld: Expense "
+               "Ratio 0.40%"),
+    "read": "2026-10-12",
+}
 
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES

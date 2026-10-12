@@ -6528,12 +6528,12 @@ metrics:
     freq: daily
     information_half_life: until_next_release
     invalidated_by: none
-    observation_type: observed
-    revision_policy: never
+    observation_type: calculated
+    revision_policy: revised
     units: count
     trigger_eligible: false
     description: >-
-      SPDR Gold Trust (GLD): troy ounces of gold held by the trust, as the issuer reports.
+      SPDR Gold Trust (GLD): troy ounces of gold held by the trust. The issuer's own figure through the last archive in the inbox; AFTER it an APPROXIMATION -- the daily workbook's shares x the archive's latest ounces per share, decayed daily at the expense ratio (altdata.config.GLD_EXPENSE_RATIO) -- re-anchored to the exact figures, as a revision, whenever a newer archive appears.
   etf.gld_tonnes:
     source: spdr_gld
     mechanism_group: commodity_holdings
@@ -6541,12 +6541,12 @@ metrics:
     freq: daily
     information_half_life: until_next_release
     invalidated_by: none
-    observation_type: observed
-    revision_policy: never
+    observation_type: calculated
+    revision_policy: revised
     units: count
     trigger_eligible: false
     description: >-
-      SPDR Gold Trust (GLD): TONNES of gold held, the issuer's own figure (1 t = 32,150.7465 oz).
+      SPDR Gold Trust (GLD): TONNES of gold held. The archive's own column through its last date; AFTER it an APPROXIMATION, etf.gld_oz / 32,150.7466, re-anchored to the archive's exact figures whenever a newer archive appears.
   etf.gld_shares:
     source: spdr_gld
     mechanism_group: commodity_holdings
@@ -6559,7 +6559,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      SPDR Gold Trust (GLD): shares outstanding = total ounces / ounces per share, both the trust's own columns.
+      SPDR Gold Trust (GLD): shares outstanding -- State Street's daily NAV-history workbook's own Shares Outstanding (the primary series, section 10A); for a day the workbook lacks, the archive's total ounces / ounces per share.
   etf.gld_share_flow:
     source: spdr_gld
     mechanism_group: commodity_holdings
@@ -7456,12 +7456,14 @@ bulk_imports:
       policy rates of the hedged-yield approximation -- effective fed funds daily
       (DFF), the ECB deposit rate (ECBDFR), Japan's call rate monthly
       (IRSTCI01JPM156N); and the UK 10-year gilt, monthly average
-      (IRLTLT01GBM156N; the Bank of England's database disallows robots).
+      (IRLTLT01GBM156N; the Bank of England's database disallows robots); and
+      the Fed's nominal emerging-market dollar index (DTWEXEMEGS, index Jan
+      2006 = 100, daily -- the EM paper's request, 12 Oct 2026).
     source: fred
     members_from: altdata.config.FRED_AQ3_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 6
+    expected_members: 7
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release

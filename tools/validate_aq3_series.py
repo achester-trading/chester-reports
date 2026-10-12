@@ -25,6 +25,11 @@ the session clock is pinned to 11 Oct 2026.
                  per share; the flow a share-count change; holiday rows skipped;
                  with no inbox file a disallowing robots.txt fetches nothing and
                  the run is STALE with the reason
+  D2 GLD DAILY   State Street's NAV-history workbook read by its header in any
+                 sheet; www.ssga.com's robots.txt read each run, fetched when it
+                 allows and not when it disallows; shares the workbook's own; the
+                 forward ounces decayed at the expense ratio (the arithmetic
+                 fixtured); a newer archive re-anchors as a revision
   E  ISHARES     IAU, SLV, IBIT read by key-fact name from the page; the first
                  run writes no flow, the next the share-count change
   F  SHFE        the weekly page read by content (title date, each metal's block
@@ -421,14 +426,18 @@ def group_d() -> None:
     (inbox / "notes.txt").write_text("hello", encoding="utf-8")
     saved_dir = spdr_gld.INBOX_DIR
     spdr_gld.INBOX_DIR = str(inbox)
+    saved_nav = spdr_gld.navhist
+    spdr_gld.navhist = lambda: (None, "fixture: the daily workbook is offline")
     db = temp_store()
     try:
         r = spdr_gld.pull(db=db)
         check(r["status"] == "OK" and count(db, "etf.gld_shares") == 3
               and count(db, "etf.gld_share_flow") == 2,
               "the inbox file that reads as the archive is used, whatever its name; "
-              "the misnamed non-archive beside it is ignored")
+              "the misnamed non-archive beside it is ignored (the daily workbook "
+              "offline: the archive alone)")
     finally:
+        spdr_gld.navhist = saved_nav
         db.close()
     for p in inbox.iterdir():
         p.unlink()
@@ -667,6 +676,188 @@ def group_h() -> None:
 
 
 # ---------------------------------------------------------------------------
+# D2. GLD -- the daily workbook, the forward approximation, the re-anchor
+# ---------------------------------------------------------------------------
+NAV_HEAD = ["Date", "NAV", "Shares Outstanding", "Total Net Assets"]
+NAV_SHARES = {"28-Sep-2026": 10_000_000, "30-Sep-2026": 10_100_000,
+              "01-Oct-2026": 10_000_000, "02-Oct-2026": 10_150_000,
+              "05-Oct-2026": 10_150_000, "08-Oct-2026": 10_250_000,
+              "09-Oct-2026": 10_300_000}
+SSGA_ALLOWS = ("User-agent: *\nDisallow: /weblogic/strategyDetailsPublic\n"
+               "Disallow: /fd\nDisallow: /search-results\n")
+SSGA_DISALLOWS = SSGA_ALLOWS + "Disallow: /us/en/intermediary/library-content/\n"
+
+
+def gld_navhist(sheet: str = "navhist") -> bytes:
+    """State Street's NAV-history workbook in its shape: a fund-name preamble,
+    the header, rows NEWEST FIRST, a disclaimer line beneath."""
+    rows = [["Fund Name:", "SPDR Gold Shares"], ["Ticker Symbol:", "GLD"], [],
+            NAV_HEAD]
+    for d in sorted(NAV_SHARES, key=lambda x: dt.datetime.strptime(x, "%d-%b-%Y"),
+                    reverse=True):
+        rows.append([d, 380.0, float(NAV_SHARES[d]), 380.0 * NAV_SHARES[d]])
+    rows.append(["The information contained above is for illustrative purposes."])
+    return _xlsx({sheet: rows})
+
+
+def gld_archive_b() -> bytes:
+    """A NEWER archive, through 9 Oct: the exact ounces the approximation stood
+    in for."""
+    rows = [GLD_HEAD,
+            ["28-Sep-2026", 370.0, 0.0917, 1, 1, 1, 0, 1, 917000.0, 28.52, 1],
+            ["30-Sep-2026", 371.0, 0.0917, 1, 1, 1, 0, 1, 926170.0, 28.81, 1],
+            ["01-Oct-2026", 372.0, 0.0916, 1, 1, 1, 0, 1, 915084.0, 28.46, 1],
+            ["02-Oct-2026", 372.0, 0.0916, 1, 1, 1, 0, 1, 929740.0, 28.92, 1],
+            ["05-Oct-2026", 372.0, 0.0916, 1, 1, 1, 0, 1, 929700.0, 28.92, 1],
+            ["08-Oct-2026", 372.0, 0.0916, 1, 1, 1, 0, 1, 938860.0, 29.20, 1],
+            ["09-Oct-2026", 372.0, 0.0916, 1, 1, 1, 0, 1, 943440.0, 29.34, 1]]
+    return _xlsx({"US GLD Historical Archive": rows})
+
+
+def group_d2() -> None:
+    print(f"\n{LINE}\nD2. GLD -- THE DAILY WORKBOOK, THE APPROXIMATION, THE RE-ANCHOR\n{LINE}")
+    pts = spdr_gld.navhist_points(gld_navhist("Sheet9"))
+    check(pts[0] == ("2026-09-28", 10_000_000) and pts[-1] == ("2026-10-09", 10_300_000)
+          and len(pts) == 7,
+          "the workbook is read by its header (Date, Shares Outstanding) in any sheet, "
+          "past the fund-name preamble and the disclaimer, oldest first")
+    try:
+        spdr_gld.navhist_points(_xlsx({"navhist": [["Date", "NAV"], ["09-Oct-2026", 1]]}))
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a workbook without Shares Outstanding is refused, whatever its name")
+
+    # -- the robots verdict, both ways --------------------------------------
+    saved = (spdr_gld.http_get_text, spdr_gld.http_get_response)
+    fetched: list = []
+
+    def resp(url, **k):
+        fetched.append(url)
+        return gld_navhist(), {"last-modified": "Fri, 09 Oct 2026 22:13:48 GMT"}
+    try:
+        spdr_gld.http_get_response = resp
+        spdr_gld.http_get_text = lambda url, **k: SSGA_ALLOWS
+        got, why = spdr_gld.navhist()
+        check(got and fetched == [spdr_gld.NAVHIST_URL] and why is None
+              and got[1].startswith("2026-10-09T22:13:48") and got[2] == "observed",
+              "www.ssga.com's robots.txt (no rule matching the path; nearest "
+              "Disallow: /fd) lets the workbook be fetched; it is available at its "
+              "Last-Modified (observed)")
+        fetched.clear()
+        spdr_gld.http_get_text = lambda url, **k: SSGA_DISALLOWS
+        got, why = spdr_gld.navhist()
+        check(got is None and not fetched and "disallows" in why
+              and "/us/en/intermediary/library-content/" in why,
+              f"a robots.txt that disallows the path fetches nothing and says which "
+              f"rule ({why[:70]}...)")
+    finally:
+        spdr_gld.http_get_text, spdr_gld.http_get_response = saved
+
+    # -- the decay arithmetic ----------------------------------------------
+    er = config.GLD_EXPENSE_RATIO
+    ops8 = spdr_gld.ounces_per_share(0.0916, "2026-10-01", "2026-10-09", 0.004)
+    ops365 = spdr_gld.ounces_per_share(0.0916, "2026-10-01", "2027-10-01", 0.004)
+    check(er["ratio"] == 0.0040 and "ssga.com" in er["source"] and er["read"]
+          and abs(ops8 - 0.0916 * (1 - 0.004 / 365) ** 8) < 1e-15
+          and abs(ops365 / 0.0916 - 0.9960079) < 1e-6
+          and spdr_gld.ounces_per_share(0.0916, "2026-10-01", "2026-10-01") == 0.0916,
+          f"ounces per share decay at the expense ratio ({er['ratio']:.2%}, from the "
+          f"fund page) a calendar day at a time: 8 days x(1 - 0.004/365)^8, a year "
+          f"{ops365 / 0.0916:.6f} of the anchor; none on the anchor's own day")
+    arch = (spdr_gld.archive_points(gld_archive()), "2026-10-02T00:00:00+00:00",
+            "ingest_instant")
+    nav = (spdr_gld.navhist_points(gld_navhist()), "2026-10-09T22:13:48+00:00",
+           "observed")
+    rows = spdr_gld.combine(arch, nav, ratio=0.004)
+    by = {(r["registry_key"], r["observed_at"]): r for r in rows}
+    oz9 = 10_300_000 * 0.0916 * (1 - 0.004 / 365) ** 8
+    check(by[("etf.gld_oz", "2026-10-01")]["value"] == 915084.0
+          and by[("etf.gld_tonnes", "2026-10-01")]["value"] == 28.46
+          and abs(by[("etf.gld_oz", "2026-10-09")]["value"] - oz9) < 0.001
+          and abs(by[("etf.gld_tonnes", "2026-10-09")]["value"]
+                  - oz9 / 32150.7466) < 0.0001
+          and by[("etf.gld_oz", "2026-10-09")]["available_at"] == nav[1]
+          and ("etf.gld_oz", "2026-09-29") not in by,
+          f"through the archive's last day the ounces and tonnes are its own; after "
+          f"it, shares x the anchor's ounces per share decayed (9 Oct: "
+          f"{oz9:,.1f} oz, {oz9 / 32150.7466:.4f} t), available when both sources are")
+    check(by[("etf.gld_shares", "2026-10-01")]["value"] == 10_000_000
+          and by[("etf.gld_share_flow", "2026-10-01")]["value"] == -100_000
+          and by[("etf.gld_share_flow", "2026-10-02")]["value"] == 150_000
+          and by[("etf.gld_shares", "2026-10-01")]["availability_kind"] == "observed",
+          "shares are the workbook's own count wherever it has the day (1 Oct: "
+          "10,000,000, not the archive's derived 9,990,000), and the flow is that "
+          "count's change")
+    only = spdr_gld.combine(None, nav)
+    check(not any(r["registry_key"] in ("etf.gld_oz", "etf.gld_tonnes") for r in only)
+          and sum(r["registry_key"] == "etf.gld_shares" for r in only) == 7,
+          "with no archive yet: shares and flows only -- no ounces without an anchor")
+
+    # -- the pull, then the re-anchor --------------------------------------
+    inbox = Path(_TMP) / "inbox_etf_d2"
+    inbox.mkdir()
+    a = inbox / "historical-archive.xlsx"
+    a.write_bytes(gld_archive())
+    os.utime(a, (1_791_000_000, 1_791_000_000))
+    saved_dir, saved_nav = spdr_gld.INBOX_DIR, spdr_gld.navhist
+    spdr_gld.INBOX_DIR = str(inbox)
+    spdr_gld.navhist = lambda: (nav, None)
+    db = temp_store()
+    try:
+        r1 = spdr_gld.pull(db=db)
+        approx = {x["observed_at"][:10]: x["value_num"] for x in db.as_of("etf.gld_oz")}
+        check(r1["status"] == "OK" and len(approx) == 7
+              and abs(approx["2026-10-09"] - round(oz9, 3)) < 1e-6,
+              "the pull writes the archive's exact ounces and the approximation past "
+              "it (four days)")
+        b = inbox / "download (1).xlsx"
+        b.write_bytes(gld_archive_b())
+        # Its mtime (8 Oct 22:53, Drive's upload time, which rclone keeps) is
+        # EARLIER than the workbook's Last-Modified the approximation carries (9
+        # Oct 22:13): the sweep-and-run race. The re-anchor must still win.
+        os.utime(b, (1_791_500_000, 1_791_500_000))
+        r2 = spdr_gld.pull(db=db)
+        vint = db.conn.execute("SELECT COUNT(*) FROM observations WHERE registry_key="
+                               "'etf.gld_oz' AND observed_at LIKE '2026-10-09%'"
+                               ).fetchone()[0]
+        now = {x["observed_at"][:10]: x["value_num"] for x in db.as_of("etf.gld_oz")}
+        shares_v = db.conn.execute("SELECT COUNT(*) FROM observations WHERE "
+                                   "registry_key='etf.gld_shares'").fetchone()[0]
+        check(r2["status"] == "OK" and vint == 2 and now["2026-10-09"] == 943440.0
+              and now["2026-10-01"] == 915084.0 and shares_v == 7,
+              f"a newer archive in the inbox re-anchors: 9 Oct's approximation "
+              f"({approx['2026-10-09']:,.1f}) is revised to the archive's exact "
+              f"943,440 oz as a new vintage -- even when the file is older than the "
+              f"workbook read beside it; unchanged days and the shares are not "
+              f"rewritten")
+    finally:
+        spdr_gld.INBOX_DIR, spdr_gld.navhist = saved_dir, saved_nav
+        db.close()
+
+    # -- the two sources together, robots both ways ------------------------
+    for p in inbox.iterdir():
+        p.unlink()
+    saved = (spdr_gld.http_get_text, spdr_gld.http_get_response)
+    spdr_gld.INBOX_DIR = str(inbox)
+    fetched.clear()
+    spdr_gld.http_get_text = lambda url, **k: (SSGA_ALLOWS if "ssga" in url
+                                               else "User-agent: *\nDisallow: /\n")
+    spdr_gld.http_get_response = resp
+    db = temp_store()
+    try:
+        r = spdr_gld.pull(db=db)
+        check(r["status"] == "OK" and fetched == [spdr_gld.NAVHIST_URL]
+              and count(db, "etf.gld_shares") == 7 and count(db, "etf.gld_oz") == 0
+              and "etf.gld_oz" in r["keys_without_rows"],
+              "with no archive and the API disallowed, the workbook still writes the "
+              "shares and the flow; ounces wait for the archive, named in the summary")
+    finally:
+        spdr_gld.http_get_text, spdr_gld.http_get_response = saved
+        spdr_gld.INBOX_DIR = saved_dir
+        db.close()
+
+
 # I. STALE, not empty
 # ---------------------------------------------------------------------------
 def group_i() -> None:
@@ -831,12 +1022,14 @@ def group_k() -> None:
           and all(derived.delta_unit_for(f"fred.{k}")[0] == "pp" for k in sl)
           and {s.fred_id for s in ax.values()} == {"DRCRELEXFACBS", "CSUSHPINSA",
                                                    "DFF", "ECBDFR", "IRSTCI01JPM156N",
-                                                   "IRLTLT01GBM156N"}
+                                                   "IRLTLT01GBM156N", "DTWEXEMEGS"}
+          and derived.delta_unit_for("fred.dxy_em")[0] == "percent"
           and {s.fred_id for s in list(sl.values()) + list(ax.values())} <= pulled
           and all(derived.registry_entry(f"fred.{k}") for k in list(sl) + list(ax)),
           "SLOOS (C&I large and small, the three CRE lines) moves in percentage "
           "points, not bp; the CRE delinquency, Case-Shiller, the policy rates and "
-          "the monthly gilt are in the one FRED pull and registered")
+          "the monthly gilt and the EM dollar index (DTWEXEMEGS, moving in percent) "
+          "are in the one FRED pull and registered")
 
 
 def _cell(x) -> str:
@@ -1244,7 +1437,7 @@ def group_p() -> None:
 def main() -> int:
     print(f"{LINE}\nAQ-3 part 1 -- the Quarterly's series writers (fixtures, no "
           f"network)\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
+    for g in (group_a, group_b, group_c, group_d, group_d2, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m,
               group_n, group_o, group_p):
         g()
