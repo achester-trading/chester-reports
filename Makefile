@@ -59,6 +59,7 @@ PY_VALIDATORS := \
 	tools/validate_narratives.py \
 	tools/validate_config_refs.py \
 	tools/validate_enforce.py \
+	tools/validate_rollup.py \
 	tools/validate_benchmark.py \
 	tools/validate_stack.py \
 	tools/validate_prediction_markets.py \

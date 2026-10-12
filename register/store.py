@@ -704,7 +704,12 @@ class Register:
                     # Item 4a (2 Oct 2026): why a declined packet was not taken.
                     "abstention_reason TEXT",
                     # EL-1, 12 Oct 2026: the decision object and the outcome slot.
-                    *EL1_PACKET_COLUMNS):
+                    *EL1_PACKET_COLUMNS,
+                    # EL-2, 12 Oct 2026: dollars at risk, entry to invalidation
+                    # x size (an options expression's defined maximum loss).
+                    # The Doctrine's heat (§4.5) is the sum of these across
+                    # Books B-D; NULL on an earlier row is "not recorded".
+                    "risk_usd REAL"):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -803,6 +808,7 @@ class Register:
                quantity: Optional[float] = None,
                notional_usd: Optional[float] = None,
                vega_usd: Optional[float] = None,
+               risk_usd: Optional[float] = None,
                time_stop: Optional[str] = None,
                close_reason: Optional[str] = None,
                gate_outcome: Optional[str] = None,
@@ -1058,10 +1064,10 @@ class Register:
             " exit_price, exit_time, exit_currency, exit_fx_to_usd,"
             " abstention_reason, mechanism, falsifier_date, expected_return,"
             " expected_downside, entry_condition, risk_budget, benchmark,"
-            " red_team, red_team_review_minutes)"
+            " red_team, red_team_review_minutes, risk_usd)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
             "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -1079,7 +1085,8 @@ class Register:
              _clean(entry_condition), _clean(risk_budget), _clean(benchmark),
              _clean(red_team),
              (int(red_team_review_minutes)
-              if red_team_review_minutes not in (None, "") else None)))
+              if red_team_review_minutes not in (None, "") else None),
+             (float(risk_usd) if risk_usd is not None else None)))
         self.conn.commit()
         return did
 
