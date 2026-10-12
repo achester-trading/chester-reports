@@ -51,7 +51,6 @@ import os
 import re
 import sqlite3
 import sys
-import tempfile
 import types
 from pathlib import Path
 from typing import Optional
@@ -64,6 +63,7 @@ sys.path.insert(0, str(REPO))
 # The Quarterly stack gate's fixture (and through it the Monthly's): importing it
 # points every store at its own temporary directory before anything opens one.
 import validate_quarterly_stack as vqs                         # noqa: E402
+import gate_tmp                                                # noqa: E402
 
 vms = vqs.vms
 
@@ -547,7 +547,7 @@ def gate_2(r: dict) -> None:
                                      "\"not yet\"; its theses() rows pass the ledger rule")
         skip("aq-6-thesis-register", "AQ-6's family list is the gate's")
         return
-    db = str(Path(tempfile.mkdtemp(prefix="aq10-tr-")) / "empty.db")
+    db = str(Path(gate_tmp.mkdtemp("aq10_tr_")) / "empty.db")
     sqlite3.connect(db).close()
     t = tr.seed_table("2026-12-01T12:00:00+00:00", db, quarter="2027q1")
     check(not seed_line_faults(t), f"AQ-6's seed_table on an empty ledger: "
@@ -1028,7 +1028,7 @@ def books_db(rows: list[tuple]) -> str:
     """A ledger database holding AQ-6's alt_asset_books (its documented schema,
     less the triggers) with these rows: (family, horizon, kind, decision_id,
     reason, role, cost)."""
-    p = str(Path(tempfile.mkdtemp(prefix="aq10-books-")) / "ledger.db")
+    p = str(Path(gate_tmp.mkdtemp("aq10_books_")) / "ledger.db")
     con = sqlite3.connect(p)
     con.execute(BOOKS_SCHEMA)
     for i, (fam, h, kind, did, why, role, cost) in enumerate(rows):
