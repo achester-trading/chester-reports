@@ -167,13 +167,21 @@ def _table(t: Optional[dict], wrap: bool = False) -> str:
     out = []
     tbl = (TBL_FIXED if wrap and len(t.get("columns") or []) > rd.MAX_TABLE_COLUMNS
            else TBL)
-    for part in _split(t):
+    parts = _split(t)
+    # A CELL'S LINK (W-1.2 item 2.4): `cell_links` [[row, column, href], ...] on
+    # the table, applied where the table prints whole -- "resolved by Plumbing"
+    # links to the section that holds the evidence.
+    links = ({(int(r), int(c)): h for r, c, h in t.get("cell_links") or []}
+             if len(parts) == 1 else {})
+    for part in parts:
         head = "".join(f'<th style="{THL if n == 0 else TH}">{esc(c)}</th>'
                        for n, c in enumerate(part["columns"]))
         zebra = f' style="{ZEBRA}"'
         body = "".join(
             f'<tr{zebra if k % 2 else ""}>'
-            + "".join(_cell(v, n, wrap) for n, v in enumerate(r)) + "</tr>"
+            + "".join((f'<td style="{TDL_WRAP if wrap else TDL}">{_a(v, links[(k, n)])}'
+                       f'</td>') if (k, n) in links else _cell(v, n, wrap)
+                      for n, v in enumerate(r)) + "</tr>"
             for k, r in enumerate(part["rows"]))
         out.append(f'<div style="{SCROLL}"><table style="{tbl}"><tr>{head}</tr>'
                    f'{body}</table></div>')
@@ -193,7 +201,8 @@ def lines_table(lines: list[str], head: str = "Readings",
 def header_html(s: dict, n: int) -> str:
     sub = (f' <span style="{SUBTITLE}">&mdash; {esc(s["subtitle"])}</span>'
            if s.get("subtitle") else "")
-    return f'<h2 style="{SECTION}">{n} &middot; {esc(s["title"])}{sub}</h2>'
+    anchor = f' id="sec-{esc(s["id"])}"' if s.get("id") else ""
+    return f'<h2 style="{SECTION}"{anchor}>{n} &middot; {esc(s["title"])}{sub}</h2>'
 
 
 def _foot(parts: list[str]) -> str:
@@ -352,6 +361,11 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     out = [header_html(s, n)]
     if s.get("empty"):
         return "".join(out) + footnote(s, cadence)
+    # THE RELEVANCE SENTENCE (W-1.2 item 2.3): the précis's one sentence tying
+    # the section to the week's tension, at the head of its commentary.
+    if s.get("relevance") and s.get("claim"):
+        out.append(f'<p style="{PARA}" class="relevance"><i>'
+                   f'{esc(s["relevance"])}</i></p>')
     if s.get("claim"):
         out.append(f'<p style="{CLAIM}">{esc(s["claim"])}</p>')
     # TABLES: the section's, each sub-section's, then the lines left over.
@@ -360,6 +374,12 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     out.append(tables_html(s, wrap) + entries_html(s) + points_html(s))
     for ss in s.get("subsections") or []:
         out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
+    # COLLAPSED BY DEFAULT (W-1.2 item 2.6): one line each in the read path, the
+    # rows in the reference tables after the last section.
+    if s.get("collapsed"):
+        out.append(lines_table(list(s["collapsed"]),
+                               "Summarised; the rows are in the reference tables",
+                               wrap=wrap))
     items = rd.printable_items(s)
     if items:
         out.append(lines_table([i["text"] for i in items],
@@ -379,6 +399,9 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     paras = s.get("paragraphs") or []
     for p in (paras[:limit] if limit else paras):
         out.append(f'<p style="{PARA}">{esc(p)}</p>')
+    # A CODE-AND-FRAME CLOSING LINE (W-1.2 item 2.5: the book's terms).
+    for ln in s.get("closing_lines") or []:
+        out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
     out.append(footnote(s, cadence))
     return "".join(out)
 

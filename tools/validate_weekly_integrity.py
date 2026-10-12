@@ -86,10 +86,12 @@ def group_a() -> None:
                                  None, prior=2650.0)]}
     t = wsec.tape_table(book)
     rows = {r[0]: r for r in t["table"]["rows"]}
-    check(rows["SPY"][1] == "671.20", "a current row prints its price bare")
-    check(rows["Bitcoin"][1] == "64,000.00 (stale since 2026-10-07)",
+    # W-1.2 item 2.8: the price carries its unit ("$671.20").
+    check(rows["SPY"][1] == "$671.20",
+          "a current row prints its price, with its unit and no stale mark")
+    check(rows["Bitcoin"][1] == "$64,000.00 (stale since 2026-10-07)",
           f"Bitcoin, two days behind the edition: '{rows['Bitcoin'][1]}'")
-    check(rows["Gold (front future)"][1] == "2,650.00 (stale since 2026-10-08)"
+    check(rows["Gold (front future)"][1] == "$2,650.00 (stale since 2026-10-08)"
           and rows["Gold (front future)"][3] == "—",
           "no bar for the session: the last close, stale, and no move")
     check(wsec.edition_session("2026-10-11T09:00:00+00:00") == DAY,

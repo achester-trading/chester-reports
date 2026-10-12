@@ -30,16 +30,18 @@ tape:
 # `daily` is the store series the daily frames, moving averages, 52-week levels
 # and the Weekly's candles read (T2.1: the bars table holds intraday only).
 # `fallback` is read ONLY when the instrument's own series is empty, and the
-# tape then names it ("DXY (proxy: UUP)") -- never silently.
-  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy}
-  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq}
-  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm}
+# tape then names it ("DXY (proxy: UUP)") -- never silently. `unit` (W-1.2
+# item 2.8): what a price prints with in the tape's Last column -- "$" before
+# it, any other word after ("98.10 index"); a yield prints its %.
+  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy, unit: "$"}
+  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq, unit: "$"}
+  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm, unit: "$"}
   - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, daily: yfinance.mkt_tnx, fallback: {daily: fred.yield_10y, label: "FRED DGS10"}, aliases: ["10-year yield", "10-year", "ten-year"]}
   - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, daily: yfinance.mkt_tyx, fallback: {daily: fred.yield_30y, label: "FRED DGS30"}, aliases: ["30-year yield", "30-year", "long bond"]}
-  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"]}
-  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"]}
-  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"]}
-  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"]}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"], unit: index}
+  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"], unit: "$"}
+  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"], unit: "$"}
+  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"], unit: "$"}
 
 # INTRADAY-ONLY INSTRUMENTS (T2.3, ruled 4 Oct 2026, item 2): pulled into the
 # 5-minute bars table beside the tape set, never printed in the tape's tables.
@@ -489,3 +491,20 @@ dealer_flags:
   # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
+
+# W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
+storyline:
+  # Item 2.4: an open contradiction's status line. "resolved by <section>" when
+  # the named section prints every listed row -- the decomposition that answers
+  # the gap (the 9 Oct HY tension: Plumbing's CCC against investment grade) --
+  # and its commentary published; "stale" when the gap has been open at least
+  # `stale_sessions` sessions and is no longer widening; otherwise "carried --
+  # resolves when <what would close it>". Session-set.
+  stale_sessions: 20
+  contradiction_resolution:
+    equities_vs_credit: {section: plumbing, rows: ["CCC OAS", "Investment-grade OAS", "High-yield OAS"]}
+    long_bond_vs_hy: {section: plumbing, rows: ["30-year", "CCC OAS", "High-yield OAS"]}
+    implied_vs_realized_vol: {section: mechanics, rows: ["VIX", "SPY 20-day realized against the VIX"]}
+  # Item 2.6: a family of prediction-market resolutions in Ahead collapses to one
+  # row (its modal outcome) when it has at least this many outcomes.
+  family_min_outcomes: 2

@@ -493,6 +493,8 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
         fig, axes = _panel_grid(2, 2, 2.2)
         cols = ("#2563eb", "#0d2b45", "#7c3aed")
         drawn = {}
+        titles: list[str] = []
+        spans: list[str] = []
         for ax, since, span in ((axes[0, 0], y1, "one year"), (axes[0, 1], y10, "ten years")):
             pts_all = []
             for (lab, pts), c in zip(yields.items(), cols):
@@ -502,9 +504,11 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
                             label=lab)
                     pts_all = pp if len(pp) > len(pts_all) else pts_all
             if pts_all:
-                ax.set_title(span_title("Treasury yields (%)", len(pts_all), "days",
-                                        pts_all[0][0], pts_all[-1][0], span),
-                             fontsize=7.5, loc="left")
+                # ONE-LINE TITLES (W-1.2 item 2.8): the span goes to the caption.
+                ax.set_title(f"Treasury yields (%), {span}", fontsize=7.5, loc="left")
+                titles.append(f"Treasury yields (%), {span}")
+                spans.append(span_title(f"Treasury yields, {span}", len(pts_all),
+                                        "days", pts_all[0][0], pts_all[-1][0], span))
                 _dated_ticks(ax, [d for d, _ in pts_all])
                 ax.legend(fontsize=6, frameon=False)
                 drawn[f"yields_{span}"] = len(pts_all)
@@ -522,8 +526,10 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
                 if band:
                     ax.axhspan(band[0], band[1], color="#d97706", alpha=alpha,
                                label=f"{yrs}-year 10th-90th percentile")
-            ax.set_title(span_title("High-yield OAS (%)", len(pp), "days", pp[0][0],
-                                    pp[-1][0], span), fontsize=7.5, loc="left")
+            ax.set_title(f"High-yield OAS (%), {span}", fontsize=7.5, loc="left")
+            titles.append(f"High-yield OAS (%), {span}")
+            spans.append(span_title(f"High-yield OAS, {span}", len(pp), "days",
+                                    pp[0][0], pp[-1][0], span))
             _dated_ticks(ax, [d for d, _ in pp])
             ax.legend(fontsize=6, frameon=False)
             drawn[f"hy_{span}"] = len(pp)
@@ -531,16 +537,21 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
         out = _finish(fig, name, out_dir)
         last = "; ".join(f"{k} {v[-1][1]:.2f}% ({v[-1][0]})" for k, v in yields.items() if v)
         cap = ("Treasury yields and high-yield OAS, one year and ten years; " + last
-               + (f"; HY OAS {hy[-1][1]:.2f}% ({hy[-1][0]})" if hy else ""))
-        return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn}
+               + (f"; HY OAS {hy[-1][1]:.2f}% ({hy[-1][0]})" if hy else "")
+               + ("; spans: " + "; ".join(spans) if spans else ""))
+        return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn,
+                "titles": titles}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W3", "unavailable": f"{type(exc).__name__}: {exc}"}
 
 
 def z_panel(cid: str, series: dict, title: str, name: str,
-            out_dir: Optional[str], ncols: int = 2, min_points: int = 20) -> dict:
+            out_dir: Optional[str], ncols: int = 2, min_points: int = 20,
+            subtitle: Optional[str] = None) -> dict:
     """Items 13 and 16: one small panel per series, its z-score over the window,
-    the +-1 and +-2 lines; an empty series prints 'not yet tracked'."""
+    the +-1 and +-2 lines; an empty series prints 'not yet tracked'. W-1.2 item
+    2.8: `title` is one line; `subtitle` (the span) and each panel's latest z go
+    to the caption, and each panel is titled by its series alone."""
     try:
         keys = list(series)
         nrows = math.ceil(len(keys) / ncols)
@@ -562,18 +573,19 @@ def z_panel(cid: str, series: dict, title: str, name: str,
             for y, c in ((0, "#94a3b8"), (1, "#d97706"), (-1, "#d97706"),
                          (2, "#b3261e"), (-2, "#b3261e")):
                 ax.axhline(y, color=c, linewidth=0.5, linestyle="--" if y else "-")
-            ax.set_title(f"{k}: z {z[-1][1]:+.1f} ({z[-1][0]})", fontsize=7, loc="left")
+            ax.set_title(k, fontsize=7, loc="left")
             _dated_ticks(ax, [d for d, _ in z], 2)
             stats[k] = {"z": round(z[-1][1], 2), "as_of": z[-1][0], "n": len(z)}
         for ax in list(axes.flat)[len(keys):]:
             ax.axis("off")
         fig.tight_layout(rect=(0, 0, 1, 0.96))
         out = _finish(fig, name, out_dir)
-        cap = (f"{title}. " + "; ".join(f"{k} z {v['z']:+.1f} ({v['as_of']})"
-                                        for k, v in stats.items())
+        cap = (f"{title}" + (f", {subtitle}" if subtitle else "") + ". "
+               + "; ".join(f"{k} z {v['z']:+.1f} ({v['as_of']})"
+                           for k, v in stats.items())
                + (f"; not yet tracked: {', '.join(untracked)}" if untracked else ""))
         return {"id": cid, "drawn": [], "caption": cap, **out, "stats": stats,
-                "not_drawn": untracked}
+                "not_drawn": untracked, "titles": [title] + keys}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
 
@@ -711,6 +723,13 @@ def _candles_at(ax, x: int, b: dict) -> None:
                        edge=col, face="white" if up else col))
 
 
+W8_TITLE = "Six markets and their moving averages"
+# THE SMALL MULTIPLES' TITLES (W-1.2 item 2.8): one line each, the subtitle in
+# the caption. The gate holds every recorded title to these lengths.
+MAX_TITLE_CHARS = 60
+MAX_PANEL_TITLE_CHARS = 40
+
+
 def w8(panels: dict, name: str, out_dir: Optional[str],
        yields: tuple = ("10-year yield", "30-year yield"), n: int = 126) -> dict:
     """Item 15: 2x3, 126 sessions each with the 20-, 50- and 200-day averages;
@@ -743,24 +762,30 @@ def w8(panels: dict, name: str, out_dir: Optional[str],
             if lab in yields and ylo is not None:
                 ax.set_ylim(ylo - 0.05, yhi + 0.05)
             d0, d1 = str(show[0]["observed_at"])[:10], str(show[-1]["observed_at"])[:10]
-            ax.set_title(f"{lab}, {len(show)} sessions, {d0} to {d1}", fontsize=7,
-                         loc="left")
+            # ONE-LINE TITLES (W-1.2 item 2.8): the panel is named; its span is
+            # in the caption.
+            ax.set_title(lab, fontsize=7, loc="left")
             _dated_ticks(ax, [str(r["observed_at"])[:10] for r in show], 2)
-            stats[lab] = {"last": show[-1]["close"], "as_of": d1, "n": len(show)}
+            stats[lab] = {"last": show[-1]["close"], "as_of": d1, "n": len(show),
+                          "from": d0}
         handles = axes[0, 0].get_legend_handles_labels()[0]
         if handles:
             axes[0, 0].legend(fontsize=5.5, frameon=False)
-        fig.suptitle("Bitcoin, gold, the dollar, oil and the long yields: 126 sessions "
-                     "(six months) with the 20-, 50- and 200-day averages",
-                     fontsize=8.5, x=0.02, ha="left", color="#0d2b45")
+        title = W8_TITLE
+        fig.suptitle(title, fontsize=8.5, x=0.02, ha="left", color="#0d2b45")
         fig.tight_layout(rect=(0, 0, 1, 0.95))
         out = _finish(fig, name, out_dir)
-        cap = ("Six markets over 126 sessions with their 20-, 50- and 200-day "
-               "averages; " + "; ".join(f"{k} {v['last']:,.2f} ({v['as_of']})"
-                                        for k, v in stats.items()))
-        return {"id": "W8", "drawn": [], "caption": cap, **out, "stats": stats}
+        cap = ("Bitcoin, gold, the dollar, oil and the long yields over 126 sessions "
+               "(six months), with their 20-, 50- and 200-day averages; "
+               + "; ".join(f"{k} {v['last']:,.2f} ({v['as_of']}; {v['n']} sessions "
+                           f"from {v['from']})" for k, v in stats.items()))
+        return {"id": "W8", "drawn": [], "caption": cap, **out, "stats": stats,
+                "titles": [title] + list(panels)}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W8", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+W10_TITLES = ("Prediction-market odds (%)", "Fed funds implied path (%)")
 
 
 def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
@@ -784,9 +809,10 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
                         linewidth=0.9, label=lab)
                 drawn += 1
         if drawn:
-            a1.set_title(span_title("Prediction-market odds (%)", len(alld), "days",
-                                    alld[0], alld[-1], "ninety days"),
-                         fontsize=7.5, loc="left")
+            # ONE-LINE TITLES (W-1.2 item 2.8); the span is in the caption.
+            a1.set_title(W10_TITLES[0], fontsize=7.5, loc="left")
+            w10_span = span_title("prediction-market odds", len(alld), "days",
+                                  alld[0], alld[-1], "ninety days")
             a1.legend(fontsize=5.5, frameon=False)
             _dated_ticks(a1, alld, 3)
         else:
@@ -803,18 +829,19 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
             ms = paths[0][1]["meetings"][:6]
             a2.set_xticks(range(len(ms)))
             a2.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6)
-            a2.set_title("Fed funds futures: implied rate after each meeting (%)",
-                         fontsize=7.5, loc="left")
+            a2.set_title(W10_TITLES[1], fontsize=7.5, loc="left")
             a2.legend(fontsize=5.5, frameon=False)
         else:
             _untracked(a2, "Fed funds implied path",
                        "not yet tracked: fewer than four meetings retrievable")
         fig.tight_layout()
         out = _finish(fig, name, out_dir)
-        cap = ("Prediction-market odds over ninety days, and the fed-funds implied "
-               "path today, a week ago and a month ago"
+        cap = ("Prediction-market odds over ninety days, and the fed-funds futures' "
+               "implied rate after each meeting today, a week ago and a month ago"
+               + (f"; {w10_span}" if drawn else "")
                + ("" if paths else "; the futures path is not yet tracked"))
         return {"id": "W10", "drawn": [], "caption": cap, **out,
-                "markets": list(odds), "paths": [pp[0] for pp in paths]}
+                "markets": list(odds), "paths": [pp[0] for pp in paths],
+                "titles": list(W10_TITLES)}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W10", "unavailable": f"{type(exc).__name__}: {exc}"}
