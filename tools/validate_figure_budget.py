@@ -295,22 +295,25 @@ def group_b() -> None:
     ed = ed_of([sec], "monthly")
     frame = prose.block_slice(sec, ss, ed)
     n = fb.quantified_figures(frame)
-    kept = [r["series"] for r in frame["rows"]]
+    kept = [r["series"] for r in frame["figures_you_may_cite"]]
+    named = frame[fb.IN_TABLES]
     check(n <= cap, f"the FOMC prediction-market block: {n} figures, cap {cap} "
                     f"({len(ss['table']['rows'])} contracts)")
     check(kept[:2] == ["FOMC December: outcome F", "FOMC December: outcome K"],
           f"its rows by absolute change: +22, +15 first ({kept})")
-    check(set(kept) | set(frame["also_moved"]) == {r[0] for r in ss["table"]["rows"]}
-          and not set(kept) & set(frame["also_moved"]),
-          f"the rest by name only ({len(frame['also_moved'])})")
-    check(all("change_signed" in r and "change" not in r for r in frame["rows"]),
+    check(set(kept) | set(named) == {r[0] for r in ss["table"]["rows"]}
+          and not set(kept) & set(named),
+          f"the rest by name only, under '{fb.IN_TABLES}' ({len(named)})")
+    check(all("change_signed" in r and "change" not in r
+              for r in frame["figures_you_may_cite"]),
           "a kept row carries its data's signed form, never the raw change")
     pl = plumbing_fixture()
     liq = next(x for x in pl["subsections"] if x["title"] == "Liquidity")
     lf = prose.block_slice(pl, liq, ed_of([pl], "monthly"))
     check(fb.quantified_figures(lf) <= cap,
           f"the liquidity block: {fb.quantified_figures(lf)} figures, cap {cap}")
-    check(lf.get("rows") and lf["rows"][0]["series"].startswith("Net liquidity"),
+    check(lf.get("figures_you_may_cite")
+          and lf["figures_you_may_cite"][0]["series"].startswith("Net liquidity"),
           "its largest absolute change first (net liquidity, −$100bn)")
     small = next(x for x in pl["subsections"] if x["title"] == "Global rates")
     sf = prose.block_slice(pl, small, ed_of([pl], "monthly"))

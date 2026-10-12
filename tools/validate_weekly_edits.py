@@ -523,10 +523,11 @@ def main() -> int:
           "1: the forms compute: change, m/m, y/y over twelve prints, annualised, level")
     # T3.4a: payrolls' change in the one form every report shares -- the integer
     # +29 thousand stands for, which the audit accepts as the display form.
-    check(ws.form_text(29.0, "change", "fred.nfp") == "+29,000"
+    check(ws.form_text(29.0, "change", "fred.nfp") == "+29,000 jobs"
           and ws.form_text(0.31, "mom", "fred.cpi") == "+0.3%"
           and ws.form_text(4.2, "level", "fred.u3_rate") == "4.2%",
-          "1: printed as +29,000 (payrolls in thousands, as the integer), +0.3%, "
+          "1: printed as +29,000 jobs (payrolls in thousands, the integer with "
+          "its noun, T3.5), +0.3%, "
           "4.2%")
     wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
     gi = (REPO / ".gitignore").read_text(encoding="utf-8")

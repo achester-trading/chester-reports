@@ -124,7 +124,7 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
     # accepts.
     if ch is not None and du not in ("bps", "percent"):
         from altdata import numeral_audit as na                  # noqa: PLC0415
-        disp = na.change_display(ch, units)
+        disp = na.change_display(ch, units, key)
         if disp:
             out["change_display"] = disp
     return out
@@ -454,7 +454,7 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # each accepted by the audit as the payload's own display.
         units = str(derived.registry_entry(key).get("units") or "")
         from altdata import numeral_audit as na                  # noqa: PLC0415
-        return na.change_display(v, units) or f"{v:+,.0f}"
+        return na.change_display(v, units, key) or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):

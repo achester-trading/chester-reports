@@ -58,7 +58,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from altdata import observations, session
+from altdata import labels, observations, session
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -1329,11 +1329,24 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             cells = triple_cells(t)
             chg = (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
                    if isinstance(m.get("delta_20d"), (int, float)) else "—")
-            arows.append([fam, m["metric"], cells[0], chg, cells[1], cells[2]])
-            frows.append([m["metric"], cells[0], chg, cells[1], cells[2]])
-            d = {"family": fam, "series": m["metric"], **{k: t[k] for k in (
+            # THE ROW'S NAME IS ITS LABEL, NEVER THE STORE KEY (T3.5 (d)): the
+            # key printed as a name withheld every paragraph that named it.
+            lab = labels.metric(m["metric"])
+            if lab == labels.plain(m["metric"]):
+                # No configured label (an unregistered series, zec.price): the
+                # key in words, never with its dot.
+                lab = str(m["metric"]).replace(".", " ").replace("_", " ")
+            lab = lab[:1].upper() + lab[1:]
+            arows.append([fam, lab, cells[0], chg, cells[1], cells[2]])
+            frows.append([lab, cells[0], chg, cells[1], cells[2]])
+            d = {"family": fam, "series": lab, **{k: t[k] for k in (
                 "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
                 "percentile_window")}}
+            # THE ORDINAL THE TABLE PRINTS, AS ITS OWN FIELD (T3.5 (c)): the
+            # frame scrubs the raw percentile, so without this the audit held
+            # no ordinal for "86th" while the table printed it.
+            if t.get("percentile") is not None:
+                d["percentile_ordinal"] = _ord(t["percentile"])
             d.update(family_change(m))
             adata.append(d)
             fdata.append(d)

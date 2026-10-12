@@ -233,20 +233,28 @@ def tail_faults(text: str, tails: Optional[list] = None) -> list[str]:
 # QUOTED TEXT IS ATTRIBUTION (W-1.1 item 1.6): a quoted official's "driven by" is
 # the official's word, not our inference, so the motive check reads the prose
 # with its quotations struck.
-_QUOTED = re.compile(r"\"[^\"]*\"|“[^”]*”")
+# T3.5 (e): single quotation marks too -- curly, guillemets, and straight ones
+# that open after a space and close before one (an apostrophe in "Lane's" is
+# not a quotation).
+_QUOTED = re.compile(r"\"[^\"]*\"|“[^”]*”|‘[^’]*’|«[^»]*»"
+                     r"|(?<![\w'])'[^'\n]+'(?![\w'])")
 
 
 def unquoted(text: str) -> str:
     return _QUOTED.sub(" ", text or "")
 
 
-def style_faults(text: str, cfg: dict) -> list[str]:
+def style_faults(text: str, cfg: dict, attributed: bool = False) -> list[str]:
+    """The style list. `attributed` (T3.5 (e)): the text is a sourced voice's
+    own view, printed under its name, outlet and URL -- the voices block -- so a
+    motive phrase in it is the voice's claim, not ours, quoted or paraphrased;
+    every other rule holds."""
     from monthly_macro.prose import internal_terms              # noqa: PLC0415
     st = cfg.get("style") or {}
     out = [f"internal vocabulary: {t}" for t in internal_terms(text)]
     low = (text or "").lower()
     own = unquoted(text).lower()
-    for ph in st.get("motive_phrases") or []:
+    for ph in ([] if attributed else st.get("motive_phrases") or []):
         if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", own):
             out.append(f"motive: '{ph}'")
     for ph in st.get("banned_phrases") or []:

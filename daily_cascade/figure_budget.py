@@ -69,7 +69,8 @@ NAME_KEYS = frozenset({"section", "block", "series", "name", "title", "also_move
                        IN_TABLES, "ranking", "sub_block", "family", "outcomes",
                        "event", "date", "connector_rule", "flagged_sessions",
                        "depth", "depth_reason", "session", "month", "from", "to",
-                       "as_of", "note", "blocks_carry", "where", "period"})
+                       "as_of", "note", "blocks_carry", "where", "period",
+                       "columns"})
 _NUM = re.compile(r"(?P<sign>[+\-−±])?\s?(?P<dollar>\$)?(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
                   r"(?P<unit>%|bp\b|bps\b|pts\b|points\b|tn\b|bn\b|mn\b|m\b|k\b|x\b)?")
 _SCALE = {"tn": 1e12, "bn": 1e9, "mn": 1e6, "m": 1e6, "k": 1e3}
@@ -384,12 +385,16 @@ def block_frame(s: dict, ss: dict, month: Optional[str], cap: int,
     `_display`, `_ordinal`), never a raw number beside them."""
     t = ss.get("table") or {}
     cols = list(t.get("columns") or [])
-    moves = table_moves(t, str(ss.get("title") or ""), column)
+    moves = table_moves(t, str(ss.get("title") or ""), column,
+                        (s.get("data") or {}).get("_move_z"))
     by_name = {str(r[1] if cols and str(cols[0]).lower() == "rank" else r[0]): list(r)
                for r in t.get("rows") or [] if r}
     entries = _data_entries(ss.get("data"))
     rows, used, kept = [], 0, set()
-    for m in ranked(moves, "absolute"):
+    # T3.5: by z where the section carries one (the Weekly parents' T3.4c rule),
+    # else by absolute change as before.
+    by = "z" if any(m.get("z") is not None for m in moves) else "absolute"
+    for m in ranked(moves, by):
         if m.get("change") is None:
             continue
         row = by_name.get(m["name"]) or []
@@ -405,13 +410,30 @@ def block_frame(s: dict, ss: dict, month: Optional[str], cap: int,
         used += n
         kept.add(m["name"])
     named = [m["name"] for m in moves if m["name"] not in kept and m["name"]]
+    # THE WEEKLY PARENTS' TREATMENT, FOR THE MONTHLY'S BLOCKS (T3.5 (b); W-1.1
+    # item 1.0): the rows the paragraph may cite under `figures_you_may_cite`;
+    # the table with every other row's figures masked, so the writer sees the
+    # block as the reader does and has no other figure to copy; those rows' names
+    # under IN_TABLES. The column heads travel too -- "20-day change" is how the
+    # writer names a column, and its "20" is the table's own.
+    name_i = 1 if cols and str(cols[0]).strip().lower() == "rank" else 0
+    masked = [[c if i == name_i or str(r[name_i] if len(r) > name_i else "") in kept
+               or not readability.figures(str(c)) else MASKED
+               for i, c in enumerate(r)] for r in (t.get("rows") or []) if r]
     return {"section": s["title"], "block": ss.get("title"), "month": month,
-            "rows": rows, "also_moved": named,
-            "note": ("The table above prints every row; cite only these rows' "
-                     "figures and name the others without a number.")
-            if named else None,
+            "columns": cols,
+            "table": {"columns": cols, "rows": masked},
+            "figures_you_may_cite": rows, IN_TABLES: named,
+            "note": BLOCK_NOTE if named else None,
             "lines": [ln for ln in ss.get("lines") or []
                       if not readability.figures(str(ln))] or None}
+
+
+MASKED = "[in the table]"
+BLOCK_NOTE = ("The table above prints every row. Cite only the figures under "
+              "figures_you_may_cite, exactly as printed there; the rows marked "
+              f"'{MASKED}' are for the reader, never for this paragraph: do not "
+              "list them, quantify them, or say they also moved.")
 
 
 def _data_entries(data) -> dict:
@@ -471,6 +493,18 @@ def quantified_figures(frame) -> int:
         if key in NAME_KEYS:
             return
         if isinstance(o, dict):
+            if isinstance(o.get("rows"), list) and "columns" in o:
+                # A TABLE's name column is a name (T3.5): "CPI above 3% in
+                # October" offers no figure, as it would not under "series".
+                cols = list(o.get("columns") or [])
+                ni = 1 if cols and str(cols[0]).strip().lower() == "rank" else 0
+                for k, v in o.items():
+                    if k != "rows":
+                        walk(v, k)
+                for r in o["rows"]:
+                    walk([c for i, c in enumerate(r or []) if i != ni]
+                         if isinstance(r, (list, tuple)) else r, "rows")
+                return
             for k, v in o.items():
                 walk(v, k)
         elif isinstance(o, list):

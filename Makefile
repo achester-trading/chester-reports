@@ -73,6 +73,7 @@ PY_VALIDATORS := \
 	tools/validate_no_filler.py \
 	tools/validate_edition_consistency.py \
 	tools/validate_weekly_integrity.py \
+	tools/validate_monthly_frames.py \
 	tools/validate_exposure_edges.py \
 	tools/check_library.py \
 	tools/validate_gates.py

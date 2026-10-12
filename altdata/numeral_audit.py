@@ -186,6 +186,13 @@ def with_ordinals(payload: Any, _depth: int = 0) -> Any:
     return payload
 
 
+# A percentile ordinal as a table cell prints it: the cell's opening ordinal,
+# before its window in brackets or the word "percentile" -- never an ordinal in
+# running text ("the 2nd session").
+_PRINTED_ORDINAL = re.compile(
+    r"(?:^|(?<=\s))\d{1,3}(?:st|nd|rd|th)(?=\s*(?:\(|percentile\b|$))", re.I)
+
+
 def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
     """Every percentile ordinal the payload carries or implies, lower-cased.
 
@@ -195,6 +202,13 @@ def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
     """
     out: set[str] = set()
     if _depth > 16:
+        return out
+    if isinstance(payload, str):
+        # THE ORDINAL A TABLE PRINTS (T3.5 (c)): ORDINAL_RULE tells the writer to
+        # copy an ordinal "from the table, or from its _ordinal field", and the
+        # tables print "86th (5 years, n=59)" -- built by the same half-up rule
+        # (monthly_macro.stack._ord). The audit now holds what the rule allows.
+        out |= {m.group(0).lower() for m in _PRINTED_ORDINAL.finditer(payload)}
         return out
     if isinstance(payload, dict):
         for k, v in payload.items():
@@ -372,20 +386,68 @@ def _signed_int(x: float) -> str:
     return (MINUS if x < 0 else "+") + f"{abs(x):,.0f}"
 
 
-def change_display(value: float, units: str) -> Optional[str]:
+# THE INTEGER CARRIES ITS NOUN (T3.5 (a), Monthly dry run #4). The integer form
+# "+29,000" was accepted by the audit only where the frame still carried the
+# display under `change_display`; a frame that handed it on under another key (a
+# parent's or a summary's figures_you_may_cite) left the integer bare, and the
+# rule withheld it -- payrolls twice, CFTC once. The display now carries its
+# noun ("+29,000 jobs", "+125,623 contracts"), the bare-delta rule accepts a
+# figure followed by one of these nouns, and the two cannot disagree: the form
+# the writer is told to copy is the form the gate passes. A series with no noun
+# here keeps the plain integer, accepted as before.
+DISPLAY_NOUNS = {
+    "fred.nfp": "jobs", "fred.claims_4wk": "claims", "fred.lt_unemp": "people",
+    "fred.job_openings": "openings", "fred.hires_total": "hires",
+    "fred.layoffs": "layoffs", "fred.housing_starts": "starts",
+    "fred.housing_starts_sf": "starts", "fred.housing_permits": "permits",
+    "fred.existing_homes": "homes", "fred.new_homes": "homes",
+    "cftc.": "contracts", "pm.volume": "contracts", "pm.open_interest": "contracts",
+    "exposure.oi_": "contracts", "eia.": "barrels",
+    "manual.global_visible_stocks_bbl": "barrels",
+}
+UNIT_NOUNS = {"shares": "shares", "contracts": "contracts", "Contracts": "contracts",
+              "jobs": "jobs", "persons": "people", "Persons": "people"}
+_DERIVED_PREFIXES = ("calc.naive_expectation.", "calc.surprise_vs_naive.")
+
+
+def display_noun(key: Optional[str], units: str = "") -> Optional[str]:
+    """The noun a count's or a small thousands change prints with: the series'
+    own (DISPLAY_NOUNS, by key or key prefix; a derived naive-expectation or
+    surprise series takes its source's), else the unit's (UNIT_NOUNS)."""
+    k = str(key or "")
+    for pre in _DERIVED_PREFIXES:
+        if k.startswith(pre):
+            k = "fred." + k[len(pre):]
+    if k in DISPLAY_NOUNS:
+        return DISPLAY_NOUNS[k]
+    for pre, noun in DISPLAY_NOUNS.items():
+        if pre.endswith((".", "_")) and k.startswith(pre):
+            return noun
+    return UNIT_NOUNS.get(str(units))
+
+
+def change_display(value: float, units: str, key: Optional[str] = None) -> Optional[str]:
     """A CHANGE in its series' own form, SIGNED: '+$23.15bn' and '−7.2 million'
     from the scaler (T3.3 item 2); '+42,984' for a plain count and '+29,000' for a
-    thousands-unit change below ±1,000 thousand (T3.4a). None where the level
-    would have no display either."""
+    thousands-unit change below ±1,000 thousand (T3.4a) -- and, given the series'
+    key, the integer with its noun: '+29,000 jobs', '+42,984 contracts' (T3.5).
+    None where the level would have no display either."""
     u = str(units)
+    noun = display_noun(key, u)
+    tail = f" {noun}" if noun else ""
     if u in COUNT_UNITS:
-        return _signed_int(float(value))
+        return _signed_int(float(value)) + tail
     if u in THOUSAND_UNITS and abs(float(value)) < 1000:
-        return _signed_int(float(value) * 1000)
+        return _signed_int(float(value) * 1000) + tail
     d = scaled_display(value, units)
     if d is None:
         return None
     return d if d.startswith(MINUS) or float(value) == 0 else "+" + d
+
+
+def _noun_words() -> str:
+    return "|".join(sorted({*DISPLAY_NOUNS.values(), *UNIT_NOUNS.values()},
+                           key=len, reverse=True))
 
 
 # NO BARE DELTA ABOVE 9,999 (T3.3 item 2). The Systemic Liquidity pillar printed
@@ -393,16 +455,20 @@ def change_display(value: float, units: str) -> Optional[str]:
 # the number beside the display form. A change that large means nothing without
 # its scale, so a published paragraph may not carry one: a signed figure, or one
 # after a change verb, of 10,000 or more with no currency sign, scale word,
-# percent, basis points or points beside it is withheld, naming the display to
-# copy instead.
+# percent, basis points, points or a count's noun (T3.5: "jobs", "contracts")
+# beside it is withheld, naming the display to copy instead.
 _BARE_DELTA = re.compile(
     r"(?P<lead>(?:\b(?:rose|rising|fell|falling|added|adding|gained|lost|dropped|"
     r"declined|increased|decreased|climbed|slipped|shed|jumped|grew|shrank|"
     r"up|down|by)\s+)|[+−-])"
     r"(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{5,}(?:\.\d+)?)"
     r"(?!\s?(?:%|percent|per\s?cent|bps?\b|basis|pts\b|points?\b|"
-    r"trillion|billion|million|thousand|tn\b|bn\b|mm\b|k\b))"
-    r"(?![\d.,])", re.I)
+    r"trillion|billion|million|thousand|tn\b|bn\b|mm\b|k\b|"
+    r"(?:" + _noun_words() + r")\b))"
+    # Not followed by more of a number -- a full stop or a clause's comma is not
+    # one (T3.5: "+29,000." at a sentence's end, and "+29,000, the ...", passed
+    # unseen).
+    r"(?!\d|[.,]\d)", re.I)
 
 
 _PLAIN_DISPLAY = re.compile(r"^[+−-]?\d{1,3}(?:,\d{3})+$|^[+−-]?\d+$")

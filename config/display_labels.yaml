@@ -59,6 +59,14 @@ metrics:
   pm.implied: "prediction-market odds"
   yfinance.mkt_spy: "SPY"
   yfinance.mkt_vix: "the VIX"
+  # The Monthly's theme families (T3.5): their tables printed the store key
+  # ("yfinance.mkt_gld") as the row name, and every paragraph naming it was
+  # withheld for an internal id.
+  yfinance.mkt_gld: "the gold fund (GLD)"
+  yfinance.mkt_slv: "the silver fund (SLV)"
+  yfinance.mkt_uso: "the oil fund (USO)"
+  yfinance.mkt_btc_usd: "bitcoin (BTC-USD)"
+  zec.shielded_value_share: "Zcash's shielded share of supply"
 
 # -----------------------------------------------------------------------------
 # PLAIN LANGUAGE (T2.2, ruled 4 Oct 2026, item 2). The prose may describe these

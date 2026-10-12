@@ -42,7 +42,9 @@ def view_faults(text: str) -> list[str]:
         pm_cfg = pm.load_config()
     except Exception:                                           # noqa: BLE001
         pm_cfg = None
-    return (stack_prose.style_faults(text, stack_mod.config())
+    # T3.5 (e): a view is the voice's own claim, printed under its source --
+    # attributed, so its motive words are the voice's (W-1.1 item 1.6's exemption).
+    return (stack_prose.style_faults(text, stack_mod.config(), attributed=True)
             + stack_prose.policy_word_faults(text, pm_cfg))
 
 
