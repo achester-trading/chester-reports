@@ -146,7 +146,10 @@ def group_b() -> None:
                          None, {}, dates={**dates, "contradiction:equities_vs_credit":
                                           {"exception_since": "2026-10-05"}})
     et = mis["subsections"][0]["table"]
-    check(et["columns"][-1] == "Exception since" and et["rows"][0][-1] == "2026-10-05",
+    # W-1.3b item 3.2: the tiered table keeps the column, with "opened this week"
+    # beside the date rather than in a column of its own.
+    i_s = et["columns"].index("Exception since")
+    check(str(et["rows"][0][i_s]).startswith("2026-10-05"),
           "the exceptions table prints each exception's own date")
     check("only of a gap's age" in sp.section_prompt(
         {"id": "misfit", "title": "What doesn't fit", "depth": "deep"}, "weekly"),

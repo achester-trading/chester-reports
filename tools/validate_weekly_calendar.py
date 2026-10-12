@@ -12,7 +12,7 @@ network, no box, no register write (the register rows are dicts in memory).
      consensus EPS and the implied move where a chain is captured ("not
      captured" otherwise), classed mega / bank / tracked by config. Routine
      releases and bill auctions go to the reference tables, counted. The
-     rank-1 event keeps the playbook slot.
+     top playbook-class event keeps the playbook slot.
   B  AHEAD'S OTHER SOURCES. A family of prediction-market resolutions collapses
      to its modal outcome; the hand-seeded calendars and the claims register's
      dated events print when in the window; a calendar file not present is
@@ -200,10 +200,11 @@ def main() -> int:
           f"routine releases and bill auctions: in the reference tables, counted "
           f"({len(rows_rt)})")
     pb = (ah.get("data") or {}).get("playbook") or {}
+    # W-1.3b fills the slot (item 3.5): its outcome rows, tested in
+    # validate_weekly_analytics.
     check(pb.get("event") == cal[0]["event"] and pb.get("playbook_class") is True
-          and pb.get("outcomes") is None
           and any(ss.get("playbook") for ss in ah.get("subsections") or []),
-          f"the rank-1 event keeps the playbook slot, unfilled until W-1.3b ({pb.get('event')})")
+          f"the top playbook-class event keeps the playbook slot ({pb.get('event')})")
     check("Positioning that would amplify a surprise" in html and "post-market" in html,
           "the ranked table prints in the edition")
 
