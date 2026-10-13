@@ -247,6 +247,16 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
         days = [str((i.get("frame") or {}).get("as_of") or "")
                 for i in book.get("instruments") or [] if not i.get("continuous")]
         edition_day = max([d for d in days if d], default=None)
+    # EVERY ROW CARRIES ITS UNIT (W-1.2 item 2.8): a price prints with the tape
+    # config's `unit` -- "$668.40", "98.10 index"; a yield with its %.
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    units = {t["id"]: t.get("unit") for t in bars_mod.tape()}
+
+    def price(v: float, iid: str) -> str:
+        u = units.get(iid)
+        if u == "$":
+            return f"${v:,.2f}"
+        return f"{v:,.2f} {u}" if u else f"{v:,.2f}"
     # THE MOBILE RULE (T2.3 item 8): no table wider than six columns -- the
     # returns table (6) and the levels table (5) are split below.
     for i in book.get("instruments") or []:
@@ -263,7 +273,7 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
             pc = next((x for x in i.get("levels") or [] if x["type"] == "prior_close"),
                       None)
             if pc and pc.get("as_of"):
-                fmt0 = (lambda v: f"{v:,.3f}%") if y else (lambda v: f"{v:,.2f}")
+                fmt0 = (lambda v: f"{v:,.3f}%") if y else (lambda v, _i=i["id"]: price(v, _i))
                 rows.append([i["label"], f"{fmt0(pc['value'])} (stale since "
                              f"{str(pc['as_of'])[:10]})", "—", "—", "—", "—",
                              "—", "—", "—", "—"])
@@ -277,7 +287,7 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
                 return "—"
             v = (last - level) * 100.0 if y else 100.0 * (last / level - 1.0)
             return _signed(round(v) if y else round(v, 2), unit)
-        fmt = (lambda v: f"{v:,.3f}%") if y else (lambda v: f"{v:,.2f}")
+        fmt = (lambda v: f"{v:,.3f}%") if y else (lambda v, _i=i["id"]: price(v, _i))
         hl = (f"{fmt(lv['week_high'])} / {fmt(lv['week_low'])}"
               if lv.get("week_high") is not None else "—")
         h52 = (f"{fmt(lv['high_52w'])} ({dist(lv['high_52w'])})"

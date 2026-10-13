@@ -266,7 +266,11 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                                          for c in opened],
                  "exceptions_opened": [labels.exception(e) for e in
                                        wis.get("exceptions_opened") or []],
-                 "exceptions_open_now": [labels.exception(e) for e in now_open]})
+                 "exceptions_open_now": [labels.exception(e) for e in now_open],
+                 # W-1.2 item 2.6: the ids beside the labels, for the collapse
+                 # of an extreme the tape already prints (never in a frame).
+                 "_exception_ids": list(now_open),
+                 "_contradiction_rows": [dict(c) for c in opened]})
     # THE GAP TABLE (T2.2 item 5): each open gap with what each side is saying,
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
@@ -541,7 +545,9 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
         if x:
             from altdata.numeral_audit import scaled_display    # noqa: PLC0415
             disp = scaled_display(x["level"], x.get("level_units") or "usd") \
-                or f"{x['level']:,.0f}"
+                or (f"${x['level']:,.0f}"         # W-1.2 item 2.8: its unit
+                    if (x.get("level_units") or "usd") == "usd"
+                    else f"{x['level']:,.0f}")
             data[k] = {**x, "level_display": disp}
             items.append(item(f"pos:{k}", f"{name}: {disp} for "
                               f"{x['observed_at'][:7]} (TIC, monthly).", 4,
@@ -604,14 +610,15 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     for sym in ("SPY", "QQQ", "IWM", "NVDA", "TSLA"):
         r = data.get(f"rtat:{sym}")
         if r:
-            rs.append([f"{sym} retail sentiment (RTAT10, {w.mean})",
+            # W-1.2 item 2.8: each row names its unit.
+            rs.append([f"{sym} retail sentiment (RTAT10 score, {w.mean})",
                        f"{r['week_mean']:+.2f}",
                        "—" if r.get("prior_week_mean") is None
                        else f"{r['prior_week_mean']:+.2f}", f"n={r['n']}"])
     for sym in ("SPY", "QQQ", "NVDA", "TSLA"):
         x = data.get(f"ape:{sym}")
         if x:
-            rs.append([f"{sym} WallStreetBets mentions", f"{x['level']:,.0f}",
+            rs.append([f"{sym} WallStreetBets mentions (count)", f"{x['level']:,.0f}",
                        _change(x), x["observed_at"]])
     aaii = change_over(st, "aaii.bull_bear_spread", now, then)
     if aaii:
@@ -1479,6 +1486,13 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],
                           cadence="weekly")
+        storyline_pass(ed, prior, ending, client=client, model=model,
+                       db_path=db_path, dry_run=dry_run)
+    else:
+        ed["precis"] = {"state": "skipped", "published": False}
+    book_terms(ed, ending)
+    from . import storyline                                     # noqa: PLC0415
+    storyline.layout(ed, stack_mod.config())
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir
@@ -1515,10 +1529,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
         c4 = [v for v in cd["cftc"].values() if v]
         d0 = min((v[0][0] for v in c4), default=now[:10])
         charts["W4"] = charts_mod.z_panel(
-            "W4", cd["cftc"], charts_mod.span_title(
-                "Speculative positioning, CFTC net contracts as z-scores",
-                max((len(v) for v in c4), default=0), "weekly reports", d0, now,
-                "two years"), f"{base}_w4", out_dir, min_points=20)
+            "W4", cd["cftc"], "Speculative positioning (CFTC), z-scores",
+            f"{base}_w4", out_dir, min_points=20,
+            subtitle=charts_mod.span_title(
+                "net contracts", max((len(v) for v in c4), default=0),
+                "weekly reports", d0, now, "two years"))
     if "W5" in plan:
         charts["W5"] = charts_mod.bars_chart(
             "W5", extras["leadership"], f"Leadership: the week's sector and "
@@ -1527,10 +1542,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
         g = [v for v in cd["gauges"].values() if v]
         d0 = min((v[0][0] for v in g), default=now[:10])
         charts["W9"] = charts_mod.z_panel(
-            "W9", cd["gauges"], charts_mod.span_title(
-                "Positioning and sentiment gauges as z-scores",
-                max((len(v) for v in g), default=0), "observations", d0, now,
-                "two years"), f"{base}_w9", out_dir, ncols=3, min_points=20)
+            "W9", cd["gauges"], "Positioning and sentiment gauges, z-scores",
+            f"{base}_w9", out_dir, ncols=3, min_points=20,
+            subtitle=charts_mod.span_title(
+                "each gauge", max((len(v) for v in g), default=0), "observations",
+                d0, now, "two years"))
     if "W10" in plan:
         charts["W10"] = charts_mod.w10(cd["odds"], *cd["paths"], f"{base}_w10",
                                        out_dir)
@@ -1579,6 +1595,46 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "pdf": pdf, "pdf_detail": pdf_detail}
 
 
+def storyline_pass(ed: dict, prior: Optional[dict], ending: str, *, client=None,
+                   model: Optional[str] = None, db_path: Optional[str] = None,
+                   dry_run: bool = False) -> None:
+    """W-1.2 items 2.1-2.3: grade last week's stance, write the précis over the
+    ten finished commentaries, and record this week's stance at publication --
+    a dry run under its own namespace in the ledger, never the live source."""
+    from . import precis                                        # noqa: PLC0415
+    base_close = None
+    try:
+        with observations.ObservationStore(db_path) as st:
+            ed["stances_graded"] = precis.grade_stances(db_path, ending, st, dry_run)
+            base_close = precis.spy_close(st, ending, ed.get("as_of"))
+    except Exception:                                           # noqa: BLE001
+        log.warning("stance grading unavailable", exc_info=True)
+    res = precis.write(ed, prior, client=client, model=model)
+    precis.apply(ed, res, precis.graded_n(db_path, dry_run))
+    try:
+        ed["precis"]["stance_id"] = precis.record_stance(
+            res, ending, ed.get("as_of"), db_path, dry_run, base_close)
+        ed["precis"]["stance_source"] = precis.source_name(dry_run)
+    except Exception as exc:                                    # noqa: BLE001
+        ed["precis"]["stance_error"] = f"{type(exc).__name__}: {exc}"
+
+
+def book_terms(ed: dict, ending: str) -> None:
+    """W-1.2 item 2.5: section 10 ends with the book's terms."""
+    from . import precis                                        # noqa: PLC0415
+    book = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if book is None or book.get("empty"):
+        return
+    try:
+        from daily_cascade import payload as close_payload      # noqa: PLC0415
+        enf = close_payload.enforcement_block(ending, ed.get("as_of"))
+    except Exception:                                           # noqa: BLE001
+        enf = None
+    line = precis.terms_line(ed, enf)
+    if line:
+        book["closing_lines"] = [line]
+
+
 def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     """The Weekly (T2.5 item 7): the title and week, the as-of in ET, the
     reading time and what changed since the last Weekly in the header; the ten
@@ -1594,7 +1650,12 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly")
-    return (f'<div style="{stack_render.WRAP}">{head}{secs}'
+    # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
+    # then the ten sections; the reference tables after the last section.
+    from . import precis                                        # noqa: PLC0415
+    return (f'<div style="{stack_render.WRAP}">{head}{precis.precis_html(ed)}'
+            f'{precis.terms_box_html()}{secs}'
+            f'{stack_render.details_html(ed.get("detail"), "weekly")}'
             f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed)}'
             + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
                                        ed.get("archive_path"),
