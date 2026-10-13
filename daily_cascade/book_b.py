@@ -3,22 +3,27 @@ THE BOOK, SECTION 10: Book B's candidates and the sitting's productivity
 (W-1.3a items 3.8 and 3.6; change order of 11 Oct 2026, section 4, amended 12 Oct).
 
     from daily_cascade import book_b
-    scan = book_b.scanner_output(ending, db_path)    # None until the scanner merges
+    run = book_b.scanner_run(ending, db_path, cutoff=now, calendar=cal, walls=w)
+    scan = None if run is None else run["candidates"]
     flow = book_b.sitting_flow(ending, db_path, scan, prior_printed)
-    subs = book_b.subsections(scan, flow)
+    subs, kept = book_b.subsections(scan, flow, run)
 
 CANDIDATES FOR THE SITTING (PAPER), item 3.8. Book B's candidates print as a
 ranked list, one line each: the instrument, the direction, the thesis in a clause,
-the catalyst and its date, the invalidation, the horizon and the size band. RANKED
-BY THE SCANNER'S OWN SCORE; the Weekly adds no score of its own. A candidate the
+the catalyst and its date, the invalidation, the horizon and the size band, and
+beside them the scanner's own terms -- the pivot's parameters, R, the time stop,
+"against the tape", a crowding WARNING, the entry timing, the counter-thesis.
+RANKED BY THE SCANNER'S OWN SCORE; the Weekly adds no score of its own. The top
+ten print; every candidate below them goes to the reference tier. A candidate the
 prior sitting passed over prints once more with its reason, then drops (it is not
 carried in this edition's printed list, so the next edition does not see it).
 
-  THE HOOK -- ACTIVATES WHEN THE SCANNER MERGES. The Book B scanner (Audit #4
-  agenda item 3: "reads Friday's close, writes Book B candidates to the register
-  as drafts with level, invalidation, time stop, falsifiers and the gate's
-  pre-check") is not built. Until a module SCANNER_MODULE exposes
-  `candidates(ending, db_path=None) -> list[dict]`, the block prints NO_SCANNER.
+  THE HOOK. The Book B scanner (altdata/book_b_scanner.py; the brief of 12 Oct
+  2026) runs inside the Weekly's build over Friday's close. `scanner_run` reads
+  its whole result (the ranked candidates, the refused, the parameters as set);
+  `scanner_output` the candidates alone, through the module's
+  `candidates(ending, db_path=None) -> list[dict]`. A scanner that fails is
+  logged, and the block prints NO_SCANNER.
 
   THE CANDIDATE'S SHAPE (ruled 12 Oct 2026, the W-1.3 follow-up): the register's
   DRAFT fields as the Alternative Assets change order section 4.1 item 10 lists
@@ -66,7 +71,8 @@ from typing import Any, Optional
 log = logging.getLogger(__name__)
 
 SCANNER_MODULE = "altdata.book_b_scanner"
-NO_SCANNER = "no scanner yet — the first candidates arrive with Book B"
+NO_SCANNER = "the Book B scanner could not be read this week — no candidates"
+REFERENCE_TITLE = "Book B candidates below the top ten (paper)"
 HEADING = "Candidates for the sitting (paper)"
 PRODUCTIVITY = "Productivity: triggers fired → reviewed → packets drafted → approved"
 DECISIONS_CAPTION = ("register decisions (chat rulings on briefs are not book "
@@ -80,20 +86,32 @@ FIELDS = ("candidate_id", "instrument", "direction", "thesis", "edge", "horizon"
 # ---------------------------------------------------------------------------
 # The scanner's output
 # ---------------------------------------------------------------------------
-def scanner_output(ending: str, db_path: Optional[str] = None,
-                   module: str = SCANNER_MODULE) -> Optional[list[dict]]:
-    """The scanner's candidates for the week ending `ending`, or None while no
-    scanner exists. A scanner that exists and fails is logged and read as
-    None too: the edition prints, and says no candidates were read."""
+def scanner_run(ending: str, db_path: Optional[str] = None,
+                module: str = SCANNER_MODULE, **kw) -> Optional[dict]:
+    """The scanner's whole result for the week ending `ending` -- `candidates`
+    ranked, and where the module gives them the refused, the reference tier and
+    the parameters line -- or None when the scanner cannot be imported or
+    fails (logged): the edition prints, and says no candidates were read."""
     try:
         mod = importlib.import_module(module)
     except ImportError:
         return None
     try:
-        return list(mod.candidates(ending, db_path=db_path) or [])
+        if hasattr(mod, "scan"):
+            res = dict(mod.scan(ending, db_path, **kw))
+            res["candidates"] = list(res.get("candidates") or [])
+            return res
+        return {"candidates": list(mod.candidates(ending, db_path=db_path) or [])}
     except Exception:                                           # noqa: BLE001
         log.warning("the Book B scanner failed", exc_info=True)
         return None
+
+
+def scanner_output(ending: str, db_path: Optional[str] = None,
+                   module: str = SCANNER_MODULE, **kw) -> Optional[list[dict]]:
+    """The scanner's candidates alone, or None (see scanner_run)."""
+    run = scanner_run(ending, db_path, module, **kw)
+    return None if run is None else run["candidates"]
 
 
 def _restricted(instrument: Any) -> bool:
@@ -136,10 +154,27 @@ def candidate_line(n: int, c: dict) -> str:
     if c.get("catalyst_date"):
         cat += f" ({c['catalyst_date']})"
     sc = c.get("score")
+    # The scanner's own terms, where it gives them (the brief's section 3).
+    extra = []
+    if c.get("warnings"):
+        extra += [f"WARNING: {w}" for w in c["warnings"]]
+    if c.get("against_tape"):
+        extra.append(f"against the tape: a {c.get('time_stop')}-session time stop, "
+                     f"no add")
+    if c.get("entry_timing"):
+        extra.append(f"entry timing: {c['entry_timing']}")
+    if isinstance(c.get("expected_r"), (int, float)):
+        extra.append(f"expected {c['expected_r']:.1f}R (the measured move against "
+                     f"the invalidation distance)")
+    if c.get("parameters"):
+        extra.append(f"parameters: {c['parameters']}")
+    if c.get("counter_thesis") and c.get("parameters"):
+        extra.append(f"counter-thesis: {c['counter_thesis']}")
     return (f"{n}. {c.get('instrument')} {c.get('direction')} — {c.get('thesis')}; "
             f"catalyst: {cat}; invalidation: {c.get('invalidation') or 'none named'}; "
             f"horizon: {c.get('horizon') or 'not stated'}; size band: "
             f"{c.get('size') or 'not stated'}"
+            + "".join(f"; {x}" for x in extra)
             + (f" (scanner score {sc:g})" if isinstance(sc, (int, float)) else "")
             + ".")
 
@@ -280,10 +315,26 @@ def productivity_line(flow: dict) -> str:
             f"{DECISIONS_CAPTION}: {flow['decisions_open']} open.")
 
 
-def subsections(scan: Optional[list[dict]], flow: dict) -> tuple[list[dict], dict]:
+def reference_rows(rest: list[dict], start: int) -> dict:
+    """Every candidate below the top ten, one row each (six columns)."""
+    return {"columns": ["Rank", "Instrument", "Direction", "Setup", "Invalidation",
+                        "Score"],
+            "rows": [[n, c.get("instrument"), c.get("direction"),
+                      str(c.get("pivot") or c.get("setup_id") or "").replace("_", " "),
+                      c.get("invalidation"),
+                      f"{c['score']:.2f}" if isinstance(c.get("score"), (int, float))
+                      else "—"]
+                     for n, c in enumerate(rest, start=start)]}
+
+
+def subsections(scan: Optional[list[dict]], flow: dict,
+                run: Optional[dict] = None, top: int = 10
+                ) -> tuple[list[dict], dict]:
     """The candidates block and the productivity block, and what the edition
-    archives for the next week (the candidates it printed)."""
+    archives for the next week (the candidates it printed). The top `top`
+    print; the rest go to the reference tier (`kept["reference"]`)."""
     keep, drop = printable(scan)
+    keep, rest = keep[:top], keep[top:]
     if scan is None:
         lines = [NO_SCANNER]
     else:
@@ -297,9 +348,21 @@ def subsections(scan: Optional[list[dict]], flow: dict) -> tuple[list[dict], dic
     if drop["restricted"]:
         notes.append(f"{drop['restricted']} candidate(s) on a restricted instrument "
                      f"not printed.")
-    if scan is None:
-        notes.append("The candidates block activates when the Book B scanner "
-                     "merges; until then nothing fires.")
+    if rest:
+        notes.append(f"{len(rest)} more candidate(s) below the top {top} in the "
+                     f"reference tables.")
+    refused = (run or {}).get("refused") or []
+    if refused:
+        why: dict[str, int] = {}
+        for r in refused:
+            k = str(r.get("refused") or "")
+            if "confirmation" in k:
+                k = f"a {r.get('direction')} short of the confirmations it needs"
+            why[k] = why.get(k, 0) + 1
+        notes.append(f"{len(refused)} pivot(s) refused at the gates: "
+                     + "; ".join(f"{v} — {k}" for k, v in sorted(why.items())) + ".")
+    if (run or {}).get("parameters"):
+        notes.append(run["parameters"])
     notes.append("Paper candidates for the sitting: nothing here is an order.")
     cand = {"title": HEADING, "lines": lines, "notes": notes,
             "candidates": [{k: c.get(k) for k in FIELDS} for c in keep]}
@@ -308,4 +371,6 @@ def subsections(scan: Optional[list[dict]], flow: dict) -> tuple[list[dict], dic
                        "rows": [[r["instrument"], r["direction"], r["reason"]]
                                 for r in flow["passed_over"]]}
                       if flow["passed_over"] else None)}
-    return [cand, prod], {"printed": cand["candidates"]}
+    ref = ([{"title": REFERENCE_TITLE, "table": reference_rows(rest, top + 1)}]
+           if rest else [])
+    return [cand, prod], {"printed": cand["candidates"], "reference": ref}

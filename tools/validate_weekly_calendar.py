@@ -18,9 +18,11 @@ network, no box, no register write (the register rows are dicts in memory).
      dated events print when in the window; a calendar file not present is
      named; an index rebalance prints; an amplifier is a contract at |z| >= the
      threshold, read from the Positioning section's own rows.
-  C  CANDIDATES FOR THE SITTING (PAPER) (3.8). With no scanner the block prints
-     "no scanner yet"; against a fixture of the scanner's documented shape, the
-     list is ranked by the scanner's score, one line each with every field; a
+  C  CANDIDATES FOR THE SITTING (PAPER) (3.8). The Book B scanner runs inside
+     the build and the block prints its result (its forecasts, in a dry run,
+     in the dry-run namespace); against the scanner's own candidates over a
+     synthetic store, the list is ranked by its score, one line each with every
+     field; a
      candidate with no register draft or on a restricted instrument never
      prints; a candidate the prior sitting passed over prints once with its
      reason and is not carried forward.
@@ -125,16 +127,26 @@ def cand(cid, inst, direction, thesis, setup, score, **kw):
             "catalyst_date": kw.get("catalyst_date"), "decision_id": None}
 
 
-CANDS = [
-    cand("c-qqq", "QQQ", "long", "trend resumption above the 20-day", "b_breakout",
-         0.61, catalyst="CPI", catalyst_date=day(2), invalidation="close below 640",
-         horizon="swing (time stop 2026-10-30)", size="0.25-0.5% of NAV"),
-    cand("c-tlt", "TLT", "short", "supply into the refunding", "b_reclaim", 0.83,
-         catalyst="30-year auction", catalyst_date=day(3),
-         invalidation="the 30-year below 4.6%", size="0.25% of NAV"),
+# THE FIXTURE COMES FROM THE SCANNER (Book B scanner brief, 12 Oct 2026): its
+# candidates over the scanner gate's synthetic store, plus two rows the scanner
+# never writes, to hold the block's own guards -- an undeclared setup, and a
+# restricted instrument.
+ADVERSARIAL = [
     cand("c-iwm", "IWM", "long", "an undeclared setup", "not_a_setup", 0.99),
     cand("c-bn", "BN", "long", "restricted", "b_breakout", 0.95),
 ]
+
+
+def scanner_candidates(td: str) -> list[dict]:
+    """The scanner's candidates over the scanner gate's synthetic store."""
+    import validate_book_b_scanner as S
+    from altdata import book_b_scanner as bbs
+    db = str(Path(td) / "scanner.db")
+    S.seed_store(db)
+    cal = [{"date": day(2), "event": "Consumer Price Index", "symbol": None,
+            "tier1": True}]
+    return bbs.candidates(S.ENDING, db, cutoff=S.ENDING + "T23:00:00+00:00",
+                          regime=S.ECP, calendar=cal)
 
 
 def main() -> int:
@@ -268,13 +280,22 @@ def main() -> int:
     bk = sec["book"]
     subs = {ss["title"]: ss for ss in bk.get("subsections") or []}
     cb = subs.get(book_b.HEADING) or {}
-    check(cb.get("lines") == [book_b.NO_SCANNER] and book_b.HEADING in html
-          and book_b.NO_SCANNER in html,
-          "with no scanner the block prints 'no scanner yet — the first candidates "
-          "arrive with Book B'")
-    check(book_b.scanner_output(W.ENDING, db) is None,
-          "the hook reads None until the scanner module exists")
-    mod = scanner_module(CANDS)
+    bdata = bk.get("data") or {}
+    check(bdata.get("scanner") == "present" and book_b.HEADING in html
+          and cb.get("lines") and cb["lines"] != [book_b.NO_SCANNER]
+          and "activates when" not in html,
+          f"the scanner runs inside the Weekly's build and the block prints its "
+          f"result; the 'activates when' line is gone "
+          f"({(cb.get('lines') or [''])[0][:60]})")
+    check(isinstance(book_b.scanner_output(W.ENDING, db), list),
+          "the hook reads the scanner by name (a list, never None, now it exists)")
+    led = bdata.get("scanner_ledger") or {}
+    check(led.get("source") == "dryrun.book_b_candidate" and "error" not in led,
+          f"a dry-run Weekly writes the candidates' forecasts to the dry-run "
+          f"namespace ({led})")
+    real = scanner_candidates(td)
+    order = [c["candidate_id"] for c in sorted(real, key=lambda c: -c["score"])]
+    mod = scanner_module(real + ADVERSARIAL)
     scan = book_b.scanner_output(W.ENDING, None, module=mod)
     prior_printed = [{"candidate_id": "c-spy", "instrument": "SPY",
                       "direction": "long", "setup_id": "b_breakout",
@@ -300,17 +321,19 @@ def main() -> int:
     flow = book_b.sitting_flow(W.ENDING, None, scan, prior_printed, rows=rows)
     subs2, kept = book_b.subsections(scan, flow)
     lines = subs2[0]["lines"]
-    check(lines[0].startswith("1. TLT short — supply into the refunding")
-          and lines[1].startswith("2. QQQ long"),
-          "ranked by the scanner's own score, highest first")
-    check(all(k in lines[1] for k in ("catalyst: CPI (2026-10-07)",
-                                      "invalidation: close below 640",
-                                      "horizon: swing (time stop 2026-10-30)",
-                                      "size band: 0.25-0.5% of NAV")),
+    top = sorted(real, key=lambda c: -c["score"])[0]
+    check(len(real) >= 5 and lines[0].startswith(
+        f"1. {top['instrument']} {top['direction']} — ")
+          and [c["candidate_id"] for c in kept["printed"]] == order,
+          f"ranked by the scanner's own score, highest first ({len(real)} candidates)")
+    cl = [x for x in lines if x[:1].isdigit()]
+    check(cl and all(k in x for x in cl for k in (
+        f"catalyst: Consumer Price Index ({day(2)})", "; invalidation: ",
+        "horizon: one to six weeks; time stop ", "; size band: ",
+        "% of capital at risk")),
           "one line each: instrument, direction, thesis, catalyst and date, "
           "invalidation, horizon, size band")
-    check(not any("IWM" in x or "BN " in x for x in lines)
-          and [c["candidate_id"] for c in kept["printed"]] == ["c-tlt", "c-qqq"]
+    check(not any("undeclared" in x or "BN " in x for x in lines)
           and any("without an id or a declared setup" in n for n in subs2[0]["notes"])
           and any("restricted instrument" in n for n in subs2[0]["notes"]),
           "a candidate with an undeclared setup, or on a restricted instrument, "
@@ -329,19 +352,20 @@ def main() -> int:
           "and it is not carried into this edition's printed list, so it drops")
     flow_next = book_b.sitting_flow("2026-10-09", None, [], kept["printed"], rows=rows)
     nxt = {c["candidate_id"]: c["reason"] for c in flow_next["passed_candidates"]}
-    check("c-spy" not in nxt and nxt == {"c-tlt": book_b.NO_REASON,
-                                         "c-qqq": book_b.NO_REASON},
+    check("c-spy" not in nxt and nxt == {c: book_b.NO_REASON for c in order},
           f"next week SPY does not print again; this week's candidates, with no "
-          f"register row, are passes with no reason recorded ({nxt})")
+          f"register row, are passes with no reason recorded ({len(nxt)})")
 
     # --- D ------------------------------------------------------------------
     print(f"\n{LINE}\nD. THE PRODUCTIVITY LINE\n{LINE}")
-    check(flow["fired"] == 4 and flow["reviewed"] == 3 and flow["drafted"] == 2
+    fired = len(real) + len(ADVERSARIAL)
+    check(flow["fired"] == fired and flow["reviewed"] == 3 and flow["drafted"] == 2
           and flow["approved"] == 1,
-          f"fired 4 -> reviewed 3 (SPY, XLE, GLD) -> drafted 2 (a supersession is "
-          f"not a new packet) -> approved 1 ({flow})")
+          f"fired {fired} -> reviewed 3 (SPY, XLE, GLD) -> drafted 2 (a supersession "
+          f"is not a new packet) -> approved 1 ({flow['fired']}, {flow['reviewed']}, "
+          f"{flow['drafted']}, {flow['approved']})")
     ln = book_b.productivity_line(flow)
-    check(ln.startswith("Triggers fired 4 → reviewed 3 → packets drafted 2 → "
+    check(ln.startswith(f"Triggers fired {fired} → reviewed 3 → packets drafted 2 → "
                         "approved 1;")
           and "register decisions (chat rulings on briefs are not book decisions): "
           in ln, f"four counts and the captioned decisions count ({ln})")
@@ -350,9 +374,10 @@ def main() -> int:
           "a passed-over row for a reviewed signal with no packet, 'no reason "
           "recorded' where the register carries none")
     pl = (subs.get(book_b.PRODUCTIVITY) or {}).get("lines") or [""]
-    check(pl[0].startswith("Triggers fired — → reviewed") and
+    import re as _re
+    check(_re.match(r"Triggers fired \d+ → reviewed", pl[0]) and
           "chat rulings on briefs are not book decisions" in html,
-          "in the edition, with no scanner the fired count is a dash")
+          f"in the edition, the fired count is the scanner's ({pl[0][:40]})")
 
     # --- E ------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE GLOSSARY AND THE APPENDIX\n{LINE}")
