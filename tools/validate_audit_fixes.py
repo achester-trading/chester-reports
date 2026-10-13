@@ -52,6 +52,10 @@ from daily_cascade import direction  # noqa: E402
 from daily_cascade import figure_budget as fb  # noqa: E402
 from daily_cascade import readability  # noqa: E402
 from daily_cascade import stack_prose as sp  # noqa: E402
+try:
+    from daily_cascade import opener  # noqa: E402  (W-1.3a)
+except ImportError:                                         # before W-1.3a merges
+    opener = None
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -81,6 +85,32 @@ class Reply:
 
     def withheld_note(self):
         return None
+
+
+# THE OPENER'S SHAPE (W-1.3a item 3.0) holds every Weekly section to a word band
+# and a closing Takeaway. These checks are about other faults, so each draft is
+# brought into shape with sentences that carry no figure and no directional word,
+# and closes on a Takeaway -- neither rule is loosened to let a draft through.
+_PAD = ("The section's tables carry the levels and the dates behind each figure "
+        "cited here, so the paragraph names only what the story needs. The desk "
+        "reads the week through the funding markets first and the curve second, "
+        "and holds each reading against the prior week's record before anything is "
+        "said about it. ")
+_TAKEAWAY = ("Takeaway: the week's record leaves the standing read intact, and the "
+             "coming auctions are its test.")
+
+
+def shaped(text: str, depth: str) -> str:
+    """`text` in the opener's band at `depth`, ending on one Takeaway; unchanged
+    on a branch without the opener."""
+    if opener is None:
+        return text
+    from daily_cascade import cadence as cad_mod
+    lo = (opener.band(cad_mod.get("weekly"), depth) or (0, 0))[0]
+    body = text.rstrip() + " "
+    while opener.words(body + _TAKEAWAY) < lo:
+        body += _PAD
+    return body + _TAKEAWAY
 
 
 def run_write(sections: list, drafts: list, cadence: str = "weekly") -> tuple:
@@ -202,7 +232,7 @@ def group_b() -> None:
           f"one group it comments ({sp.figures_cited(b['paragraph'], groups)} of {cap})")
     check(readability.figures("60-40 and 60/40") == [],
           "'60-40' is the benchmark's name, never two figures")
-    ed2, seen = run_write([book_section()], [b["paragraph"]])
+    ed2, seen = run_write([book_section()], [shaped(b["paragraph"], "medium")])
     check(ed2["prose"]["book"]["published"],
           f"through the pipeline, the run-5 book paragraph publishes "
           f"({ed2['prose']['book'].get('reason')})")
@@ -240,7 +270,8 @@ def group_c() -> None:
     check(not direction.faults("The curve fell to 10 bp.", mv),
           "a figure after 'to' is a level, not a change, and is not read")
     ed, seen = run_write([plumbing_section()],
-                         [d["plumbing_paragraph"], d["firmed_paragraph"]])
+                         [shaped(d["plumbing_paragraph"], "deep"),
+                          shaped(d["firmed_paragraph"], "deep")])
     pr = ed["prose"]["plumbing"]
     check(pr.get("attempts") == 2 and pr.get("published")
           and d["expected_fault"] in (seen[1] if len(seen) > 1 else ""),
@@ -272,8 +303,8 @@ def group_d() -> None:
     r2 = na.audit("The 2-year fell 11 bp.", na.with_signed({"week_change_bp": -11}))
     check(r2.passed, "the numeral audit accepts the size after a falling verb")
     ed, _ = run_write([plumbing_section()],
-                      ["Plumbing turned on the long end. The 2-year fell -11 bp against a steady "
-                       "long end."])
+                      [shaped("Plumbing turned on the long end. The 2-year fell -11 bp "
+                              "against a steady long end.", "deep")])
     pr = ed["prose"]["plumbing"]
     para = " ".join(next(s for s in ed["sections"] if s["id"] == "plumbing")
                     .get("paragraphs") or [])

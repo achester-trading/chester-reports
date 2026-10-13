@@ -44,7 +44,12 @@ def get(name: str, cfg: Optional[dict] = None) -> dict:
 
 def paragraph_cap(cad: dict, depth: Optional[str]) -> int:
     """Words one kept paragraph may run to at `depth`: the cadence's number, or
-    the section's allowance when the cadence says "depth"."""
+    the section's allowance when the cadence says "depth". On a cadence with
+    an opener (W-1.3a item 3.0), the top of the depth's band: the guard must
+    never cut the Takeaway off an in-band paragraph."""
+    band = (cad.get("opener") or {}).get(depth or "")
+    if band:
+        return int(band[1])
     pw = cad.get("paragraph_words")
     if pw == "depth":
         return int(cad["depth_words"].get(depth or "") or

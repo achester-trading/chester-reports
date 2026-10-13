@@ -201,7 +201,40 @@ class Resp:
         self.stop_reason = "end_turn"
 
 
-def client(calls: list, text: str = "The week left this section where it was."):
+# THE OPENER SHAPE (W-1.3a item 3.0): the scripted writer's reply is one
+# paragraph inside every Weekly band (deep 120-220, medium 80-150) ending in its
+# Takeaway, so the fixture's commentaries publish as a model's would.
+OPENER_TEXT = ("The week left this section where it was. A reader new to the system can take "
+        "the readings here as the plain record of where each market sat when the week "
+        "closed, set beside where it sat a week earlier, so that a change shows up as a "
+        "difference between two columns rather than as a judgement. Nothing in the week "
+        "went far enough to alter how the readings fit together, and the relationships "
+        "that held at the start of the week held at its end. The quiet was broad rather "
+        "than confined to one corner of the market, and no single reading stood apart "
+        "from the rest. Takeaway: with nothing pulling the readings apart, the coming "
+        "week starts from the same footing, and a change would have to come from a "
+        "scheduled event rather than from drift.")
+
+
+def opener_text(tag: str) -> str:
+    """An opener-shaped paragraph worded for one section (`tag`), so no two
+    sections -- and not The read -- share a sentence the duplicate guard would
+    withhold. Inside every Weekly band, no figure, ending in its Takeaway."""
+    return (f"A reader new to the system can take the {tag} readings as the plain "
+            f"record of where each market sat when the week closed, set beside "
+            f"where it sat a week earlier, so that a change shows up as a "
+            f"difference between two columns rather than as a judgement. Nothing "
+            f"in the {tag} readings went far enough to alter how they fit together, "
+            f"and the relationships that held at the start of the week in the {tag} "
+            f"readings held at its end. The quiet in the {tag} readings was broad "
+            f"rather than confined to one corner of the market, and no single one "
+            f"of them stood apart from the rest. Takeaway: with nothing pulling the "
+            f"{tag} readings apart, the coming week starts from the same footing, "
+            f"and a change would have to come from a scheduled event rather than "
+            f"from drift.")
+
+
+def client(calls: list, text: str = OPENER_TEXT):
     def create(**k):
         calls.append(k["system"])
         return Resp(text)

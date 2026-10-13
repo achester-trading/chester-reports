@@ -83,7 +83,7 @@ no view; move away from it only as far as the commentaries justify. It must sit 
 the side of your equities verdict (above 0.50 for "up", below for "down").
 
 Reply in EXACTLY this form, one item per line, nothing else:
-TENSION: <the one tension of the week, one or two sentences>
+{week}TENSION: <the one tension of the week, one or two sentences>
 FOR: <the evidence on one side, one or two sentences>
 AGAINST: <the evidence on the other side, one or two sentences>
 VERDICT equities: <up|down|chop|transition>
@@ -103,6 +103,14 @@ Verdict directions: {directions}. "chop" is range-bound without a direction;
 within the coming week. Prose only in the free-text fields: no bullets, no
 headings, no bold. Coincidence, never cause: write "alongside", never "because"
 or "driven by". Never write about this report, its sections or its checks."""
+# THE PRÉCIS'S OPENER (W-1.3a item 3.0): the week in one paragraph, in the
+# sections' shape, ending in its Takeaway. Printed first; the tension and its two
+# sides stay in the reply for the record and the next week's outlook.
+WEEK_LINE = ("WEEK: <the week in ONE paragraph of {lo} to {hi} words, on one line: "
+             "the tension and the evidence on each side, each system term explained "
+             "in plain words where it first appears, ending with exactly one "
+             "sentence that begins \"Takeaway:\" and states the implication for "
+             "the coming week -- never a restatement, and with no figure>\n")
 OUTLOOK_LINE = ("OUTLOOK: <what changed in the outlook since the previous précis -- "
                 "the view, not the data; one or two sentences>\n")
 RELEVANCE_LINE = "RELEVANCE {sid}: <one sentence tying {title} to the tension, no figures>"
@@ -159,7 +167,9 @@ def frame(ed: dict, prior: Optional[dict]) -> dict:
 def system_prompt(fr: dict) -> str:
     rel = "\n".join(RELEVANCE_LINE.format(sid=c["id"], title=c["section"])
                     for c in present(fr["commentaries"]))
+    b = week_band()
     return SYSTEM.format(
+        week=WEEK_LINE.format(lo=b[0], hi=b[1]) if b else "",
         outlook=OUTLOOK_LINE if fr.get("previous_precis") else "",
         relevance=rel,
         directions="; ".join(f"{a} -- {why}" for a, _, why in VERDICT_ASSETS))
@@ -172,7 +182,7 @@ def parse(text: str) -> dict:
     out: dict[str, Any] = {"verdicts": {}, "change": [], "relevance": {}}
     for raw in (text or "").splitlines():
         line = raw.strip()
-        m = re.match(r"^(TENSION|FOR|AGAINST|CONFIDENCE|OUTLOOK):\s*(.+)$", line)
+        m = re.match(r"^(WEEK|TENSION|FOR|AGAINST|CONFIDENCE|OUTLOOK):\s*(.+)$", line)
         if m:
             out[m.group(1).lower()] = m.group(2).strip()
             continue
@@ -199,8 +209,18 @@ def parse(text: str) -> dict:
     return out
 
 
+def week_band() -> Optional[tuple[int, int]]:
+    """The précis paragraph's band (config `cadences.weekly.opener.precis`)."""
+    from . import cadence as cadence_mod, opener                # noqa: PLC0415
+    try:
+        return opener.precis_band(cadence_mod.get("weekly"))
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
 def prose_fields(p: dict) -> list[str]:
-    return ([p.get(k) for k in ("tension", "for", "against", "confidence", "outlook")]
+    return ([p.get(k) for k in ("week", "tension", "for", "against", "confidence",
+                                "outlook")]
             + [c["what"] for c in p.get("change") or []]
             + [c["series"] for c in p.get("change") or []])
 
@@ -211,6 +231,13 @@ def audit(p: dict, fr: dict) -> list[str]:
     for k in ("tension", "for", "against", "confidence"):
         if not p.get(k):
             faults.append(f"no {k.upper()} line")
+    if week_band():
+        from . import cadence as cadence_mod, opener            # noqa: PLC0415
+        if not p.get("week"):
+            faults.append("no WEEK paragraph")
+        else:
+            faults += opener.faults(p["week"], cadence_mod.get("weekly"), "precis",
+                                    "the WEEK paragraph")
     if fr.get("previous_precis") and not p.get("outlook"):
         faults.append("no OUTLOOK line though a previous précis exists")
     for a, _, _ in VERDICT_ASSETS:
@@ -472,9 +499,19 @@ def precis_html(ed: dict) -> str:
         out.append(f'<p style="{PARA}">{esc(WITHHELD)}</p>')
         return "".join(out)
     p = pr["parsed"]
-    out.append(f'<p style="{CLAIM}">{esc(p["tension"])}</p>')
-    out.append(f'<p style="{PARA}">On one side: {esc(p["for"])} On the other: '
-               f'{esc(p["against"])}</p>')
+    if p.get("week"):
+        # W-1.3a item 3.0: the week in one paragraph, its Takeaway in bold.
+        from . import opener                                    # noqa: PLC0415
+        tk = opener.takeaway(p["week"])
+        body = p["week"][: len(p["week"]) - len(tk)].rstrip()             if tk and p["week"].endswith(tk) else p["week"]
+        tail = (f' <span class="takeaway"><b>{opener.TAKEAWAY}:</b> '
+                f'{esc(opener._TAKEAWAY_HEAD.sub("", tk).strip())}</span>'
+                if tk else "")
+        out.append(f'<p style="{PARA}" class="opener precis">{esc(body)}{tail}</p>')
+    else:
+        out.append(f'<p style="{CLAIM}">{esc(p["tension"])}</p>')
+        out.append(f'<p style="{PARA}">On one side: {esc(p["for"])} On the other: '
+                   f'{esc(p["against"])}</p>')
     out.append(f'<h3 style="{H3}">Verdicts, the coming week</h3><ul>'
                + "".join(f'<li style="{PARA}">{esc(lab)}: {esc(p["verdicts"][a])}</li>'
                          for a, lab, _ in VERDICT_ASSETS) + "</ul>")

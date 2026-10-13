@@ -49,7 +49,10 @@ from pathlib import Path
 from altdata import levels as levels_mod
 
 from . import direction, readability
+from . import opener as opener_mod
 
+# The read's depth on every cadence (config `sections`): its opener band.
+READ_DEPTH = "deep"
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
                     "line": "0"}
 # Runaway guards, not style rules: a one-sentence section is cut to its first
@@ -710,7 +713,13 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
     # ONE PARAGRAPH (T2.5 item 2): a section that carries prose writes its
     # claim line and one paragraph over ALL its tables -- the sub-sections
     # no longer take paragraphs of their own.
-    body = (f"Then write ONE paragraph of at most "
+    # THE OPENER (W-1.3a item 3.0): on a cadence that carries one, the claim
+    # and the body are one paragraph in a word band, read before the tables.
+    opens = (not claim_only and paras != "0"
+             and opener_mod.band(cad, s["depth"]) is not None)
+    body = ("Then continue the SAME paragraph in the opener shape below."
+            if opens else
+            f"Then write ONE paragraph of at most "
             f"{cadence_mod.paragraph_cap(cad, s['depth'])} words."
             if paras != "0" else "Write ONLY that one sentence.")
     why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
@@ -739,6 +748,11 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
     # the banned list: the book's comparisons are written as an excess.
     if s.get("id") == "book":
         sys_prompt += EXCESS_FRAME
+    if opens:
+        # The tables print BELOW the opener; the shared rule says above.
+        sys_prompt = sys_prompt.replace("printed ABOVE your paragraph",
+                                        "printed BELOW your paragraph")
+        sys_prompt += opener_mod.frame_note(cad, s["depth"])
     return sys_prompt
 
 
@@ -855,7 +869,10 @@ def read_prompt(cadence: str = "daily", base=None) -> str:
             cap=read_figure_cap(cadence), filler=FILLER_RULE)
     # W-1.1 items 1.0e and 1.6: the comparison vocabulary and the connectors, in
     # the frame rather than first heard in a retry.
-    return sp + EXCESS_FRAME + COINCIDENCE_FRAME
+    sp += EXCESS_FRAME + COINCIDENCE_FRAME
+    # W-1.3a item 3.0: on a cadence with an opener The read takes the shape too,
+    # at its depth's band (its claim line stays under 90 characters).
+    return sp + opener_mod.frame_note(cadence_of(cadence), READ_DEPTH)
 
 
 def read_figure_cap(cadence: str = "daily") -> int:
@@ -902,6 +919,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     lstatus = (tape.get("data") or {}).get("level_status") or {}
     lrows = (tape.get("data") or {}).get("levels") or []
     results: dict[str, dict] = {}
+    depth_of = {s["id"]: (READ_DEPTH if s["id"] == "read" else s.get("depth"))
+                for s in ed["sections"]}
 
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
         """One audited attempt; if the audit withholds it, ONE retry with the
@@ -948,6 +967,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                       _groups(sid, ed, cadence))
                       + filler_faults(text, filler_names(payload))
                       + tail_faults(text, stored_tails(ed))
+                      # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
+                      # Takeaway, last, carrying no figure.
+                      + opener_mod.faults(text, cad, depth_of.get(sid))
                       # THE DIRECTION AUDIT (W-1.1a item 3) and the stance and
                       # level-word rules (item 4).
                       + direction.faults(text, direction.edition_moves(

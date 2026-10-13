@@ -361,6 +361,8 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     out = [header_html(s, n)]
     if s.get("empty"):
         return "".join(out) + footnote(s, cadence)
+    if cad.get("opener"):
+        return opener_section_html(s, out, charts, mode, cad, period, wrap)
     # THE RELEVANCE SENTENCE (W-1.2 item 2.3): the précis's one sentence tying
     # the section to the week's tension, at the head of its commentary.
     if s.get("relevance") and s.get("claim"):
@@ -376,8 +378,8 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
         out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
     # COLLAPSED BY DEFAULT (W-1.2 item 2.6): one line each in the read path, the
     # rows in the reference tables after the last section.
-    if s.get("collapsed"):
-        out.append(lines_table(list(s["collapsed"]),
+    if s.get("summarised"):
+        out.append(lines_table(list(s["summarised"]),
                                "Summarised; the rows are in the reference tables",
                                wrap=wrap))
     items = rd.printable_items(s)
@@ -403,6 +405,67 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
     out.append(footnote(s, cadence))
+    return "".join(out)
+
+
+OPENER = PARA + ";margin:6px 0 12px 0"
+
+
+def opener_html(s: dict) -> str:
+    """W-1.3a item 3.0: the section's commentary as ONE paragraph -- the
+    relevance sentence, the claim in bold, the body, and the Takeaway with its
+    word in bold -- or, when it was withheld, the withholding line in its place."""
+    from . import opener                                        # noqa: PLC0415
+    c = opener.commentary(s)
+    if c is None:
+        w = opener.withheld_line(s)
+        return (f'<p style="{OPENER}" class="opener withheld"><i>{esc(w)}</i></p>'
+                if w else "")
+    parts = []
+    if c["relevance"]:
+        parts.append(f'<span class="relevance">{esc(c["relevance"])}</span>')
+    if c["claim"]:
+        parts.append(f'<b class="claim">{esc(c["claim"])}</b>')
+    if c["body"]:
+        parts.append(esc(c["body"]))
+    if c["takeaway"]:
+        parts.append(f'<span class="takeaway"><b>{opener.TAKEAWAY}:</b> '
+                     f'{esc(c["takeaway"])}</span>')
+    return f'<p style="{OPENER}" class="opener">' + " ".join(parts) + "</p>"
+
+
+def opener_section_html(s: dict, out: list, charts: dict, mode: str, cad: dict,
+                        period: str, wrap: bool) -> str:
+    """A section on a cadence with an opener: the commentary first, then the
+    tables, the sub-sections, the collapsed lines, the items and the charts;
+    the code-written closing lines; the footnote (whose withheld note has moved
+    up to where the paragraph would be)."""
+    limit = cad.get("paragraphs")
+    out.append(opener_html({**s, "paragraphs": (s.get("paragraphs") or [])[:limit]}
+                           if limit else s))
+    out.append(tables_html(s, wrap) + entries_html(s) + points_html(s))
+    for ss in s.get("subsections") or []:
+        out.append(subsection_html(ss, period, cad, charts=charts, mode=mode))
+    if s.get("summarised"):
+        out.append(lines_table(list(s["summarised"]),
+                               "Summarised; the rows are in the reference tables",
+                               wrap=wrap))
+    items = rd.printable_items(s)
+    if items:
+        out.append(lines_table([i["text"] for i in items],
+                               s.get("lines_head") or f"Also this {period}",
+                               [bool(i.get("changed")) for i in items], wrap))
+    ids = list(s.get("charts_rendered") or [])
+    if not cad.get("subsection_charts"):
+        for ss in s.get("subsections") or []:
+            ids += list(ss.get("charts_rendered") or [])
+    for c in ids:
+        if c in (charts or {}):
+            out.append(_chart_html(charts[c], mode))
+    for ln in s.get("closing_lines") or []:
+        out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
+    out.append(_foot(foot_parts({**s, "withheld": None}, not cad.get(
+        "subsection_paragraphs"), _trimmed_note(cad))))
     return "".join(out)
 
 
@@ -475,7 +538,7 @@ def table_notes(ed: Optional[dict]) -> list[dict]:
 
 
 def glossary_html(entries: list[dict], ed: Optional[dict] = None,
-                  wrap: bool = False) -> str:
+                  wrap: bool = False, stamp: Optional[str] = None) -> str:
     """The glossary, printed once at the end of an edition, as a table: the
     declared terms, the tables' standing notes, and the standing notes that
     left the body (T2.5 item 3)."""
@@ -485,7 +548,12 @@ def glossary_html(entries: list[dict], ed: Optional[dict] = None,
     if not entries:
         return ""
     rows = [[e.get("term"), e.get("text")] for e in entries]
-    return (f'<h2 style="{SECTION}">Glossary</h2>'
+    # THE DEFINITIONS-VERSION STAMP (W-1.3a item 3.7): which config the terms
+    # were rendered from.
+    st = (f'<p style="{FOOT}" class="definitions-version">Definitions version '
+          f'{esc(stamp)} (the config\'s git short hash at render).</p>'
+          if stamp else "")
+    return (f'<h2 style="{SECTION}">Glossary</h2>' + st
             + _table({"columns": ["Term", "Meaning"], "rows": rows}, wrap))
 
 

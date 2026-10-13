@@ -119,10 +119,14 @@ def group_a() -> None:
           and cads["weekly"]["depth_words"]["deep"] == 420
           and cads["daily"]["depth_words"]["deep"] == 150,
           "each reads its own depth allowances")
-    check(cadence.paragraph_cap(cads["weekly"], "deep") == 120
+    # W-1.3a item 3.0: the Weekly's kept paragraph is its opener band's top.
+    check(cadence.paragraph_cap(cads["weekly"], "deep") == 220
+          and cadence.paragraph_cap(cads["weekly"], "medium") == 150
+          and cadence.paragraph_cap(cads["daily"], "deep") == 120
           and cadence.paragraph_cap(cads["monthly"], "deep") == 450
           and cadence.paragraph_cap(cads["monthly"], "medium") == 220,
-          "the Weekly's paragraph is 120 words; the Monthly's is its depth allowance")
+          "the Weekly's paragraph is its opener band's top (220 deep, 150 medium); "
+          "the close's 120; the Monthly's is its depth allowance")
     w, m = cadence.Period.of("weekly"), cadence.Period.of("monthly")
     check((w.on, w.This, w.end, w.col, w.or_prior, w.mean, w.since_report)
           == ("on the week", "This week", "at the week's end", "Week",
@@ -236,9 +240,9 @@ def group_d() -> None:
                             subs=[{"title": "s", "paragraph": "gone"}])]}
     rd.finalize(wk, "weekly")
     s = wk["sections"][0]
-    check(len(s["paragraphs"]) == 1 and stack_mod.words(s["paragraphs"][0]) <= 120
+    check(len(s["paragraphs"]) == 1 and stack_mod.words(s["paragraphs"][0]) <= 220
           and s["trimmed"] and "paragraph" not in s["subsections"][0],
-          "the Weekly keeps one paragraph cut to 120 words at a sentence, and "
+          "the Weekly keeps one paragraph cut to its band's top at a sentence, and "
           "drops a sub-section's")
     mo = {"sections": [_sec(paragraphs=[long, "A second paragraph."],
                             subs=[{"title": "s", "paragraphs": [long, "Kept."]}])],
@@ -286,7 +290,8 @@ def group_e() -> None:
               f"section_prompt at '{cad}' names {rep}")
         check(f"says about the {per}" in p, f"and writes about the {per}")
     check("at most 450 words" in sp.section_prompt(s, "monthly")
-          and "at most 120 words" in sp.section_prompt(s, "weekly"),
+          and "120 to 220 words" in sp.section_prompt(s, "weekly")
+          and "at most 120 words" in sp.section_prompt(s, "daily"),
           "the paragraph allowance is the cadence's")
     check("Write ONLY that one sentence." in sp.section_prompt(s, "monthly",
                                                                claim_only=True),
@@ -334,7 +339,9 @@ def group_e() -> None:
         if "THE SECTION: Plumbing" in k["system"] and len(
                 [x for x in seq if "THE SECTION: Plumbing" in x]) == 1:
             return _Resp("Yields rose because of supply.")
-        return _Resp("The curve held its shape.")
+        # W-1.3a item 3.0: the Weekly's opener shape, inside every band.
+        import validate_weekly_stack as vws                     # noqa: PLC0415
+        return _Resp("The curve held its shape. " + vws.opener_text("curve"))
     ed2 = {"session": "2026-10-02", "sections": [dict(x) for x in ed["sections"]]}
     for x in ed2["sections"]:
         x.pop("withheld", None)
