@@ -59,6 +59,7 @@ PY_VALIDATORS := \
 	tools/validate_config_refs.py \
 	tools/validate_enforce.py \
 	tools/validate_benchmark.py \
+	tools/validate_crypto_basket.py \
 	tools/validate_stack.py \
 	tools/validate_prediction_markets.py \
 	tools/validate_weekly_stack.py \

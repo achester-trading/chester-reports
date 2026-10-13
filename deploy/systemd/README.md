@@ -1099,3 +1099,14 @@ is neither confirmed nor excluded.
 connection (`ssh -o BatchMode=yes vps 'bash -s' < scripts/deploy_remote.sh`),
 with the same printed sections and the same exit codes. `tools/validate_deploy.py`
 group H holds the one-connection shape.
+
+## The crypto basket writers (12 Oct 2026)
+
+`chester-crypto-basket.timer` runs `scripts/run_crypto_basket.sh` every day at
+17:25 ET: the twelve basket names' Yahoo closes and volume
+(`yfinance.crypto_<sym>`, `_volume`), DefiLlama's `llama.*` family
+(`python -m altdata.sources.llama pull`) and the derived series
+(`python -m altdata.crypto_basket derive`). No key. It is in `DEPLOY_TIMERS`, so
+the self-deploy enables it after the merge. Backfill first, once, by hand —
+the commands are in `docs/briefs/crypto-basket-notes.md`. The quarterly odds
+restatement is not a timer; it runs inside the Quarterly's own run.
