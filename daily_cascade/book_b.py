@@ -37,6 +37,10 @@ carried in this edition's printed list, so the next edition does not see it).
       catalyst, catalyst_date        the event and its ISO date
       decision_id    NULL on every candidate: it is assigned only when the
                      sitting approves a packet
+      risk_usd       the dollars from entry to invalidation at the printed size,
+                     on the paper capital (config/risk_limits.yaml), computed by
+                     the scanner so the order gate (EL-2/3) never delays a
+                     taken candidate for a missing input (follow-up 5, 13 Oct)
 
   An instrument the restriction list names is never printed, whatever the
   scanner wrote -- the same check the register makes at write time -- and the
@@ -80,7 +84,7 @@ DECISIONS_CAPTION = ("register decisions (chat rulings on briefs are not book "
 NO_REASON = "no reason recorded"
 FIELDS = ("candidate_id", "instrument", "direction", "thesis", "edge", "horizon",
           "size", "invalidation", "counter_thesis", "setup_id", "score",
-          "catalyst", "catalyst_date", "decision_id")
+          "catalyst", "catalyst_date", "decision_id", "risk_usd")
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +166,12 @@ def candidate_line(n: int, c: dict) -> str:
         extra.append(f"against the tape: a {c.get('time_stop')}-session time stop, "
                      f"no add")
     if c.get("entry_timing"):
-        extra.append(f"entry timing: {c['entry_timing']}")
+        # The regime card's words, beside the dial state they were read under
+        # (Doctrine 5.2; scanner follow-up 2).
+        st = c.get("entry_timing_state")
+        extra.append(f"entry timing — the regime card"
+                     + (f", Gamma {st}" if st else "")
+                     + f": “{c['entry_timing']}”")
     if isinstance(c.get("expected_r"), (int, float)):
         extra.append(f"expected {c['expected_r']:.1f}R (the measured move against "
                      f"the invalidation distance)")

@@ -1,9 +1,10 @@
 """
 yfinance market-data fetcher.
 
-Daily closes for a fixed basket of 28 market symbols, plus the dividend and
-split events beside them. No API key: yfinance reads Yahoo Finance's public
-endpoints.
+Daily closes for a fixed basket of market symbols (`SYMBOLS`), plus the dividend
+and split events beside them, the daily open/high/low for the tape set, and the
+daily volume wherever the source reports one (`VOLUME_UNITS`). No API key:
+yfinance reads Yahoo Finance's public endpoints.
 
 Failure philosophy, unchanged: one bad symbol never kills the run. Each symbol is
 fetched independently and failures collect into the summary dict, the same way
@@ -196,7 +197,47 @@ SYMBOLS: dict[str, str] = {
     # is a ceiling neither series ever exercises, and their `_dividend`/`_split`
     # companions stay empty rather than absent for a reason nobody recorded.
     "^GSPC": "mkt_gspc",
+    # THE EARNINGS UNIVERSE'S NAMES (Book B scanner follow-up 4, ruled 13 Oct
+    # 2026). The scanner's universe is decision 1's: the basket plus the 29
+    # earnings names (altdata.sources.earnings.universe()); NVDA is above. A name
+    # added here needs tools/backfill_prices.py before its history reads, and the
+    # restriction list is applied by every reader at write time, never here.
+    "AAPL": "mkt_aapl",
+    "ABBV": "mkt_abbv",
+    "AMZN": "mkt_amzn",
+    "AVGO": "mkt_avgo",
+    "BAC": "mkt_bac",
+    "BRK-B": "mkt_brk_b",
+    "C": "mkt_c",
+    "COST": "mkt_cost",
+    "GOOG": "mkt_goog",
+    "GOOGL": "mkt_googl",
+    "GS": "mkt_gs",
+    "HD": "mkt_hd",
+    "JNJ": "mkt_jnj",
+    "JPM": "mkt_jpm",
+    "LLY": "mkt_lly",
+    "MA": "mkt_ma",
+    "META": "mkt_meta",
+    "MS": "mkt_ms",
+    "MSFT": "mkt_msft",
+    "NFLX": "mkt_nflx",
+    "ORCL": "mkt_orcl",
+    "PG": "mkt_pg",
+    "TSLA": "mkt_tsla",
+    "UNH": "mkt_unh",
+    "V": "mkt_v",
+    "WFC": "mkt_wfc",
+    "WMT": "mkt_wmt",
+    "XOM": "mkt_xom",
 }
+
+# The earnings names above, as a set, so a gate can hold the basket to the
+# earnings universe without reading the story queries.
+EARNINGS_SYMBOLS: frozenset[str] = frozenset({
+    "AAPL", "ABBV", "AMZN", "AVGO", "BAC", "BRK-B", "C", "COST", "GOOG", "GOOGL",
+    "GS", "HD", "JNJ", "JPM", "LLY", "MA", "META", "MS", "MSFT", "NFLX", "NVDA",
+    "ORCL", "PG", "TSLA", "UNH", "V", "WFC", "WMT", "XOM"})
 
 # The eleven sectors, in the order the breadth reading uses them. Named here
 # because it is a property of this basket, and regime's config points at it.
@@ -229,6 +270,60 @@ OHLC_SYMBOLS: frozenset[str] = frozenset({"SPY", "QQQ", "IWM", "^TNX", "^TYX",
 OHLC_SUFFIXES = ("_open", "_high", "_low")
 # symbol -> store key, for the registry's market_ohlc block.
 OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
+
+
+# DAILY VOLUME (Book B scanner follow-up 1, ruled 13 Oct 2026): stored beside the
+# close as `yfinance.<key>_volume` for every symbol whose source reports one, so
+# the scanner's breakout and reclaim legs read a stored volume rather than
+# "volume not stored". THE UNIT IS THE SOURCE'S, AND IT DIFFERS BY KIND, so it is
+# declared per symbol (the net-liquidity trap, CLAUDE.md, is a unit read off a
+# neighbouring line):
+#   shares     an ETF or a stock
+#   count      a future: front-month contracts traded, NOT a notional (a gold
+#              contract is 100 oz, WTI 1,000 bbl); close x contracts is no
+#              dollar volume
+#   usd        Yahoo quotes crypto volume in dollars, not coins
+# NO VOLUME, by declaration: an index level (^VIX, ^TNX, ^GSPC ...), a currency
+# pair (=X) and the dollar index. Yahoo reports 0 for them; a 0 is not stored for
+# any symbol, because 0 is the source saying it has none, not a session in which
+# nothing traded.
+VOLUME_FUTURES: frozenset[str] = frozenset({"GC=F", "CL=F", "HG=F"})
+VOLUME_USD: frozenset[str] = frozenset({"BTC-USD"})
+
+
+def _has_volume(symbol: str) -> bool:
+    return not (symbol.startswith("^") or symbol.endswith("=X")
+                or symbol == "DX-Y.NYB")
+
+
+VOLUME_UNITS: dict[str, str] = {
+    s: ("count" if s in VOLUME_FUTURES else "usd" if s in VOLUME_USD else "shares")
+    for s in SYMBOLS if _has_volume(s)}
+VOLUME_SUFFIX = "_volume"
+# symbol -> store key, one block per unit in the registry (market_volume_*).
+VOLUME_SHARE_KEYS: dict[str, str] = {s: SYMBOLS[s] for s, u in
+                                     sorted(VOLUME_UNITS.items()) if u == "shares"}
+VOLUME_CONTRACT_KEYS: dict[str, str] = {s: SYMBOLS[s] for s, u in
+                                        sorted(VOLUME_UNITS.items()) if u == "count"}
+VOLUME_USD_KEYS: dict[str, str] = {s: SYMBOLS[s] for s, u in
+                                   sorted(VOLUME_UNITS.items()) if u == "usd"}
+
+
+def volume_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
+    """[("_volume", [(day, volume)])] on the days the close was kept, positive
+    volumes only; [] for a symbol whose source reports none."""
+    if symbol not in VOLUME_UNITS:
+        return []
+    keep = set(keep_days)
+    return [(VOLUME_SUFFIX, [(d, v) for d, v in parsed.get("volumes") or []
+                             if d in keep and v > 0])]
+
+
+def companion_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
+    """Every per-session companion written beside a close: the tape set's
+    open/high/low and the volume."""
+    return ohlc_series(symbol, parsed, keep_days) + volume_series(symbol, parsed,
+                                                                  keep_days)
 
 
 def ohlc_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
@@ -344,7 +439,7 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     closes: list[tuple[str, float]] = []
     dividends: list[tuple[str, float]] = []
     splits: list[tuple[str, float]] = []
-    ohlc: dict[str, list] = {"opens": [], "highs": [], "lows": []}
+    ohlc: dict[str, list] = {"opens": [], "highs": [], "lows": [], "volumes": []}
     for r in rows:
         day = str(r.get("Date") or r.get("date") or "")[:10]
         if not day:
@@ -352,7 +447,8 @@ def parse_rows(rows: Iterable[dict]) -> dict:
         close = _f(r.get("Close"))
         if close is not None:
             closes.append((day, close))
-        for col, k in (("Open", "opens"), ("High", "highs"), ("Low", "lows")):
+        for col, k in (("Open", "opens"), ("High", "highs"), ("Low", "lows"),
+                       ("Volume", "volumes")):
             v = _f(r.get(col))
             if v is not None:
                 ohlc[k].append((day, v))
@@ -388,7 +484,8 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     rows = []
     for idx, row in df.iterrows():
         d = {"Date": idx.date().isoformat()}
-        for col in ("Open", "High", "Low", "Close", "Dividends", "Stock Splits"):
+        for col in ("Open", "High", "Low", "Close", "Volume", "Dividends",
+                    "Stock Splits"):
             if col in df.columns:
                 d[col] = row.get(col)
         rows.append(d)
@@ -438,8 +535,8 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                         for d, v in closes]
                 for suffix, events in ((DIVIDEND_SUFFIX, parsed["dividends"]),
                                        (SPLIT_SUFFIX, parsed["splits"]),
-                                       *ohlc_series(symbol, parsed,
-                                                    [d for d, _ in closes])):
+                                       *companion_series(symbol, parsed,
+                                                         [d for d, _ in closes])):
                     rows += [{"registry_key": f"yfinance.{key}{suffix}",
                               "instrument": None, "observed_at": d,
                               "available_at": now, "value": v,

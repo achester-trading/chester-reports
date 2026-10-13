@@ -18,8 +18,10 @@ rows go to the dry-run namespace only.
      counter-thesis; a T&B top signal raises the long bar to two.
   D  THE SHORT SIDE. XLY's breakdown, with relative strength and a consumer
      tell behind it, is refused in Expansion-Calm-Positive and accepted in
-     Overheat with two confirmations; negative gamma marks "entry timing:
-     wait"; the Volatility dial's multiplier is printed in the size.
+     Overheat with two confirmations; the Gamma dial's timing is the regime
+     card's words (Doctrine 5.2): negative trusts breakouts, positive waits for
+     the retest, the flip zone opens no new entries; the Volatility dial's
+     multiplier is printed in the size.
   E  SCORE AND RANK. The score is the weighted mean of its five components;
      the list is ranked by it; the block prints the top N and the rest go to
      the reference tier, one row each.
@@ -29,6 +31,11 @@ rows go to the dry-run namespace only.
      reports the candidates on their own line, never pooled.
   G  THE BLOCK. W-1.3a's section-10 block prints the scanner's candidates in
      its ruled shape; the "activates when the scanner merges" line is gone.
+  H  THE FOLLOW-UPS (ruled 13 Oct 2026). A VIX of 17 is the object's `normal`
+     and the Doctrine's Normal: no short opens and no 0.75 applies; every
+     candidate carries risk_usd from its size and the paper capital; the volume
+     legs read the stored daily volume, by its unit; the earnings names enter
+     the universe where their closes are stored.
 
     python tools/validate_book_b_scanner.py
 """
@@ -168,6 +175,124 @@ ECP = {"macro": "Expansion", "vol": "Calm", "gamma": "Positive"}
 OVERHEAT = {"macro": "Overheat", "vol": "Calm", "gamma": "Negative"}
 
 
+def vol_state_at(vix: float) -> str:
+    """The object's Volatility state at a VIX level, by its own level bands
+    (config/market_state.yaml: the first band whose min_level the level meets)."""
+    import yaml                                                 # noqa: PLC0415
+    ms = yaml.safe_load((REPO / "config" / "market_state.yaml").read_text(
+        encoding="utf-8"))
+    for b in ms["dials"]["vol"]["level_bands"]:
+        if vix >= float(b.get("min_level", 0)):
+            return str(b["state"])
+    raise AssertionError("no band")
+
+
+def group_h(cfg: dict, res: dict, db: str, cut: str) -> None:
+    import json                                                 # noqa: PLC0415
+    import regime                                               # noqa: PLC0415
+    from altdata import book_b_scanner as bbs                   # noqa: PLC0415
+    from altdata import observations                            # noqa: PLC0415
+    from altdata.sources import yfinance_source as yf           # noqa: PLC0415
+    from daily_cascade import book_b                            # noqa: PLC0415
+    print(f"\n{LINE}\nH. THE FOLLOW-UPS (ruled 13 Oct 2026)\n{LINE}")
+
+    # 3. A VIX OF 17. The object's state from its own bands, stored as fifteen
+    # sessions of an Expansion object, read back through the scanner's reader.
+    st17 = vol_state_at(17.0)
+    rdb = str(Path(gate_tmp.mkdtemp("bbs_vix17_")) / "obs.db")
+    with observations.ObservationStore(rdb) as st:
+        for d in sessions()[-15:]:
+            obj = {"object": "market_state", "session": d,
+                   "computed_at": f"{d}T20:50:00+00:00",
+                   "dials": {"macro": {"state": "expansion"},
+                             "vol": {"state": st17, "level": 17.0},
+                             "gamma": {"state": "positive"}},
+                   "dimensions": {}, "contradictions": []}
+            st.write(regime.STORE_KEY, None, d, obj["computed_at"], json.dumps(obj),
+                     source="derived_state")
+        reg17 = bbs.regime_read(st, cut, cfg)
+    check(st17 == "normal" and reg17["vol"] == "Normal" and reg17["macro"] == "Expansion",
+          f"a VIX of 17 is the object's `{st17}` and reads as the Doctrine's Normal, "
+          f"not Rising ({reg17})")
+    ok, why = bbs.short_permitted(reg17, cfg)
+    m, mwhy = bbs.multiplier(reg17, cfg)
+    r17 = bbs.scan(ENDING, db, cutoff=cut, regime=reg17, cfg=cfg)
+    xly17 = {(c["instrument"], c["direction"]): c for c in r17["refused"]}.get(
+        ("XLY", "short"))
+    check(not ok and xly17 and xly17["refused"].startswith(
+        "no short in Expansion, Normal, Positive")
+          and not any(c["direction"] == "short" for c in r17["candidates"]),
+          f"a VIX of 17 opens no shorts: XLY's breakdown is refused "
+          f"({xly17 and xly17['refused']})")
+    # (The store carries C's top signal by now, so the long bar is two: the
+    # check reads whichever long stands, its size the standard tier.)
+    x17 = next((c for c in r17["candidates"] if c["direction"] == "long"), None)
+    check(m == 1.0 and x17 and x17["size"].startswith("0.75% of capital at risk "
+                                                      "(0.75% × 1: Volatility Normal 1)"),
+          f"and no 0.75 multiplier: the size is the standard tier "
+          f"({x17 and x17['size'][:70]})")
+    check(bbs.short_permitted({"macro": "Expansion", "vol": "Rising"}, cfg)[0]
+          and bbs.multiplier({"vol": "Rising"}, cfg)[0] == 0.75,
+          "shorts open and the 0.75 applies at the dial's Rising or worse")
+
+    # 5. RISK_USD BY CODE.
+    cap = 300000.0
+    allc = res["candidates"] + r17["candidates"]
+    check(allc and all(isinstance(c.get("risk_usd"), float) and c["risk_usd"] > 0
+                       and abs(c["risk_usd"] - round(cap * float(
+                           c["size"].split("%")[0]) / 100, 2)) < 0.01 for c in allc),
+          f"every candidate carries risk_usd = its size x the paper capital "
+          f"({x17 and x17['instrument']}: {x17 and x17['risk_usd']} = 0.75% of "
+          f"${cap:,.0f})")
+    check(x17 and x17["risk_usd"] == 2250.0
+          and "= $2,250 of the $300,000 paper capital" in x17["size"]
+          and "risk_usd" in book_b.FIELDS,
+          "the size prints the dollars, and risk_usd is archived with the ruled "
+          "fields, so the order gate never delays a taken candidate for it")
+
+    # 1. VOLUME, BY ITS UNIT.
+    xlk = next(c for c in res["candidates"] if c["instrument"] == "XLK")
+    check("3.0× volume" in xlk["thesis"] and "volume not stored" not in xlk["thesis"],
+          "the breakout's volume leg reads the stored daily volume")
+    inst = {"days": ["d1"], "close": [100.0], "volume": {"d1": 1000.0}}
+    check(bbs.dollar_volume({**inst, "vol_unit": "shares"}, 0) == 100000.0
+          and bbs.dollar_volume({**inst, "vol_unit": "usd"}, 0) == 1000.0
+          and bbs.dollar_volume({**inst, "vol_unit": "count"}, 0) is None,
+          "dollar volume: shares x close; crypto's dollars as quoted; futures "
+          "contracts give none (the multiplier is not stored)")
+    check(bbs._volume_unit("GC=F") == "count"                   # noqa: SLF001
+          and bbs._volume_unit("BTC-USD") == "usd"              # noqa: SLF001
+          and bbs._volume_unit("AAPL") == "shares",             # noqa: SLF001
+          "the unit is the source's declaration (yfinance_source.VOLUME_UNITS)")
+
+    # 4. THE EARNINGS NAMES.
+    edb = str(Path(gate_tmp.mkdtemp("bbs_earn_")) / "obs.db")
+    days = sessions()
+    with observations.ObservationStore(edb) as st:
+        rows = []
+        for sym in ("AAPL", "BRK-B"):
+            k = "yfinance." + yf.SYMBOLS[sym]
+            for i, d in enumerate(days):
+                for comp, v in (("", 100 + 0.1 * i), ("_volume", 1e6)):
+                    rows.append({"registry_key": k + comp, "instrument": None,
+                                 "observed_at": d,
+                                 "available_at": d + "T20:20:00+00:00",
+                                 "value": v, "source": "yfinance"})
+        st.write_many(rows)
+        insts, skipped = bbs.load_universe(st, ENDING, cut, cfg)
+    got = {i["symbol"]: i for i in insts}
+    check(set(got) == {"AAPL", "BRK-B"} and got["BRK-B"]["key"] == "yfinance.mkt_brk_b"
+          and got["AAPL"]["vol_source"] == "stored"
+          and got["AAPL"]["vol_unit"] == "shares",
+          "an earnings name with stored closes enters the universe like the rest, "
+          "BRK-B by its yfinance ticker")
+    check("AAPL" not in skipped["earnings_not_stored"]
+          and "MSFT" in skipped["earnings_not_stored"]
+          and yf.EARNINGS_SYMBOLS <= set(yf.SYMBOLS),
+          "'not stored' lists only the names without closes; all 29 are in the "
+          "basket (the backfill is printed in the notes)")
+
+
 def main() -> int:
     from altdata import book_b_scanner as bbs
     from daily_cascade import book_b, weekly_stack
@@ -296,9 +421,19 @@ def main() -> int:
           == {"relative strength", "a Weekly tell"},
           f"Overheat: accepted with two confirmations, relative strength and a "
           f"consumer tell ({xly and xly['thesis']})")
-    check(xly and xly["entry_timing"] == "wait for positive gamma or a session close "
-          "above the flip" and "entry timing: wait" in book_b.candidate_line(1, xly),
-          "negative gamma marks 'entry timing: wait' on the candidate")
+    card = cfg["regime"]["timing"]
+    check(xly and xly["entry_timing"] == "Breakouts trusted; pyramiding permitted on "
+          "confirmation" and xly["entry_timing_state"] == "Negative"
+          and "entry timing — the regime card, Gamma Negative: “Breakouts trusted; "
+          "pyramiding permitted on confirmation”" in book_b.candidate_line(1, xly),
+          "negative gamma: the card's words, breakouts trusted, pyramiding on "
+          "confirmation (Doctrine 5.2)")
+    check(xlk and xlk["entry_timing"] == "Breakouts distrusted — wait for the retest; "
+          "adds on confirmation only" and "Gamma Positive" in book_b.candidate_line(1, xlk),
+          "positive gamma: breakouts distrusted, wait for the retest")
+    check(card.get("Flip-zone") == "No new entries" and set(card) ==
+          {"Positive", "Flip-zone", "Negative"},
+          "the flip zone: no new entries; the three states, as the card has them")
     one_conf = dict(OVERHEAT)
     check(bbs.short_permitted({"macro": "Expansion", "vol": "Rising"}, cfg)[0]
           and not bbs.short_permitted({"macro": "Transition", "vol": "Calm"}, cfg)[0]
@@ -439,6 +574,8 @@ def main() -> int:
     check(any("pivot(s) refused at the gates" in n for n in blk["notes"])
           and any(n.startswith("Pivots as set:") for n in blk["notes"]),
           "the refused are counted and the parameters line is the block's note")
+
+    group_h(cfg, res, db, cut)
 
     print(f"\n{LINE}\nRESULT: {PASS} passed, {FAIL} failed\n{LINE}")
     return 0 if FAIL == 0 else 1

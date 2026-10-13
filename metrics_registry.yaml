@@ -5968,7 +5968,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 81   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -5999,6 +5999,67 @@ bulk_imports:
     revision_policy: split_only
     trigger_eligible: false
     mechanism_group: market_close
+  market_volume_shares:
+    description: >-
+      Book B scanner follow-up 1 (ruled 13 Oct 2026): the daily volume beside the
+      close, keyed yfinance.mkt_<sym>_volume, for every ETF and stock in the
+      basket, in SHARES as Yahoo reports them. Read by the scanner's breakout and
+      reclaim volume legs (the session against its 20-session average) and its
+      dollar-ADV liquidity score. A zero is not stored: it is the source having
+      none. Index levels, currency pairs and the dollar index carry no volume
+      and have no member here (yfinance_source.VOLUME_UNITS).
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 65
+    key_prefix: yfinance.
+    units: shares
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_contracts:
+    description: >-
+      The same, for the three front futures (GC=F, CL=F, HG=F): front-month
+      CONTRACTS traded, a count and not a notional (a gold contract is 100 oz,
+      WTI 1,000 bbl), so the scanner reads it for the volume leg's ratio and
+      never multiplies it by the close.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 3
+    key_prefix: yfinance.
+    units: count
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_usd:
+    description: >-
+      The same, for BTC-USD: Yahoo quotes crypto volume in DOLLARS, not coins, so
+      it is already a dollar volume and the scanner reads it as one.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_USD_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 1
+    key_prefix: yfinance.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
   market_actions:
     description: >-
       Dividend and split events for the same basket, keyed
@@ -6013,7 +6074,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 81   # the market_closes basket: 53 + the 28 earnings names (scanner follow-up 4)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
