@@ -93,8 +93,13 @@ def load(st: observations.ObservationStore, as_of: Optional[str]) -> list[dict]:
         hist = sorted(st.as_of("pm.probability", as_of, inst),
                       key=lambda r: str(r["available_at"]))
         vol = st.latest_as_of("pm.volume", as_of, inst)
+        # THE CONTRACT RECORD (W-1.1 item 1.5): the book at the latest pull.
+        book = {}
+        for k in ("bid", "ask", "last", "open_interest"):
+            r = st.latest_as_of(f"pm.{k}", as_of, inst)
+            book[k] = r.get("value_num") if r else None
         out.append({"instrument": inst, **meta, "history": hist,
-                    "volume": vol.get("value_num") if vol else None})
+                    "volume": vol.get("value_num") if vol else None, "book": book})
     return out
 
 
@@ -119,6 +124,21 @@ def forms(mk: dict, day: dt.date, cfg: dict, as_of: Optional[str] = None) -> dic
         out[f"change_{n}s_points"] = derived.probability_points(p, past)
     lo, hi = (cfg.get("rules") or {}).get("bias_zone") or [0.1, 0.9]
     out["bias_zone"] = p is not None and (p < lo or p > hi)
+    # THE CONTRACT RECORD (W-1.1 item 1.5): bid, ask, last, liquidity, the
+    # retrieval instant and the rules link; a spread wider than the config's
+    # threshold marks the contract illiquid. A pull that stored no book (older
+    # rows, the backfill) leaves these None -- never guessed.
+    book = mk.get("book") or {}
+    bid, ask = book.get("bid"), book.get("ask")
+    out.update({"bid": bid, "ask": ask, "last": book.get("last"),
+                "liquidity": book.get("open_interest"),
+                "retrieved_at": str(last["available_at"]) if last else None,
+                "rules_url": mk.get("rules_url"), "criteria": mk.get("criteria")})
+    th = float((cfg.get("rules") or {}).get("illiquid_spread_points") or 10)
+    spread = (round((ask - bid) * 100.0, 1) if bid is not None and ask is not None
+              else None)
+    out["spread_points"] = spread
+    out["illiquid"] = spread is not None and spread > th
     out["stale"] = out["as_of"] is not None and out["as_of"] < day.isoformat()
     return out
 

@@ -259,9 +259,14 @@ def main() -> int:
     check(sec_calls and all("ONE paragraph" in c or "ONLY that one sentence" in c
                             for c in sec_calls)
           and not any("[A]" in c for c in sec_calls)
-          and all("at most SIX figures" in c for c in sec_calls),
-          f"every section's prompt asks for one paragraph, at most six figures, "
-          f"no sub-section tags ({len(sec_calls)} calls)")
+          # W-1.1 item 1.0c: Plumbing, Positioning and What's priced take eight
+          # on the Weekly (config figure_budget_sections); the rest six.
+          and all(("at most EIGHT figures" if re.search(
+              r"THE SECTION: (?:Plumbing|Positioning|What's priced)", c)
+              else "at most SIX figures") in c for c in sec_calls),
+          f"every section's prompt asks for one paragraph, at most six figures (eight "
+          f"for the three sections with sub-blocks), no sub-section tags "
+          f"({len(sec_calls)} calls)")
 
     # --- C. NO METHOD -------------------------------------------------------------
     print(f"\n{LINE}\nC. NO SENTENCES ABOUT THE METHOD (item 3)\n{LINE}")
@@ -449,8 +454,9 @@ def main() -> int:
     hold = next((r for r in t["rows"] if r[0].endswith("hold")), None)
     check(t["columns"] == ["Item", "Kalshi", "Polymarket", "Week change", "Note"],
           "columns: item · Kalshi · Polymarket · week change · note")
-    check(hold and hold[1] == "82%" and hold[2] == "84%"
-          and "Kalshi legs sum to 108%" in hold[4],
+    # W-1.1 item 1.5: the raw legs sum and the normalised odds side by side.
+    check(hold and hold[1] == "82% (76% normalised)" and hold[2] == "84%"
+          and "Kalshi legs sum 108%" in hold[4],
           f"each side by venue, the legs-sum flag in the note ({hold})")
     cut = next((r for r in t["rows"] if r[0].endswith("cut")), None)
     check(cut and "outside 10–90%" in cut[4], f"odds outside 10–90% noted ({cut})")

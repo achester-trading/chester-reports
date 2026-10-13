@@ -117,6 +117,7 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
     out = {"key": key, "level": lv, "prior": pv, "change": ch,
            "unit": "bp" if du == "bps" else ("%" if du == "percent" else ""),
            "level_units": units, "observed_at": str(a["observed_at"])[:10],
+           "available_at": str(a.get("available_at") or "")[:10] or None,
            "prior_observed_at": str(b["observed_at"])[:10] if b else None}
     # A RAW change carries its display form (T3.4a): "+42,984" for CFTC
     # contracts, "+29,000" for payrolls -- what the table prints and the audit
@@ -202,7 +203,7 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     if dw["table"]["rows"]:
         subs.append({"title": "Ranges and flags", "table": dw["ranges_table"],
                      "paragraph_wanted": False})
-    vol = wsec.volatility(st, cutoff, wis)
+    vol = wsec.volatility(st, cutoff, wis, week_ago(cutoff))
     subs.append({**vol, "paragraph_wanted": True})
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
@@ -213,8 +214,22 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                      "dial_changes": wis.get("dial_changes") or []}}
 
 
+def stored_objects(st, now: str) -> list[tuple[str, dict]]:
+    """Every stored market-state object knowable at `now`, one per session (its
+    latest revision), oldest first -- what the three dates are read from."""
+    import regime                                               # noqa: PLC0415
+    by: dict[str, dict] = {}
+    for r in st.as_of(regime.STORE_KEY, now):
+        try:
+            by[str(r["observed_at"])[:10]] = json.loads(r["value_text"])
+        except (TypeError, ValueError):
+            continue
+    return sorted(by.items())
+
+
 def misfit_week(wis: dict, pmb: Optional[dict],
-                history: Optional[dict] = None, cadence: str = "weekly") -> dict:
+                history: Optional[dict] = None, cadence: str = "weekly",
+                dates: Optional[dict] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
@@ -237,6 +252,16 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                           f"opened {w.this}.", 1, "none"))
     data = dict(base["data"])
     now_open = wis.get("exceptions_open_now") or []
+    # THE EXTREMES WITH THEIR PERCENTILE (W-1.1 item 1.0a): What doesn't fit's
+    # frame ranks an extreme by its percentile's distance from the median.
+    from altdata.numeral_audit import ordinal_suffix              # noqa: PLC0415
+    side = wis.get("exceptions_side") or {}
+    data["extremes"] = [
+        {"name": labels.exception(e), "percentile": side[e]["percentile"],
+         "percentile_ordinal": (f"{int(round(side[e]['percentile']))}"
+                                f"{ordinal_suffix(int(round(side[e]['percentile'])))}"),
+         "side": "the low tail" if side[e].get("side") == "low" else "the high tail"}
+        for e in now_open if (side.get(e) or {}).get("percentile") is not None]
     data.update({"open_contradictions": [stack_mod.contradiction_data(c)
                                          for c in opened],
                  "exceptions_opened": [labels.exception(e) for e in
@@ -246,17 +271,21 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
     # market disagreements and the week's openings.
-    gaps = wsec.gap_table(opened, history or {})
+    gaps = wsec.gap_table(opened, history or {}, dates)
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
                           f"no exception opened {w.this}.", 1, "none"))
-    exc_table = {"columns": [f"Open {w.end}", "What it is", f"Opened {w.this}"],
+    # EXCEPTION SINCE (W-1.1 item 1.3): the date it became an exception, beside
+    # "opened this week" -- the status's age, never the gap's.
+    exc_table = {"columns": [f"Open {w.end}", "What it is", f"Opened {w.this}",
+                             "Exception since"],
                  "rows": [[labels.exception(e),
                            labels.exception_kind(e.split(":", 1)[0]),
-                           "yes" if e in (wis.get("exceptions_opened") or []) else ""]
+                           "yes" if e in (wis.get("exceptions_opened") or []) else "",
+                           ((dates or {}).get(e) or {}).get("exception_since") or "—"]
                           for e in now_open]}
     return {"items": items, "not_tracked": base.get("not_tracked") or [],
             "data": data, "table": gaps["table"] if opened else None,
@@ -281,7 +310,8 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
-                  cadence: str = "weekly", liquidity_deltas: bool = False) -> dict:
+                  cadence: str = "weekly", liquidity_deltas: bool = False,
+                  auction_block: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
@@ -322,16 +352,26 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # PLUMBING, MADE PLUMBING (T2.3 item 3): liquidity and its legs, SOFR
     # against IORB (in place of the repo footnote), the spreads beside HY, the
     # week's auctions, copper and gold/copper. Global rates and FX below.
-    pr = wsec.plumbing_rows(st, now, then, cadence, liquidity_deltas)
+    pr = wsec.plumbing_rows(st, now, then, cadence, liquidity_deltas,
+                            auctions_in_table=not auction_block)
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
+    subs = [{**fx, "paragraph_wanted": False}]
+    if auction_block:
+        # THE AUCTIONS' OWN TABLE (W-1.1 item 1.4): every field with its
+        # two-year percentile; the data carries the stored tail, or None.
+        recs = wsec.auction_records(st, now, then)
+        pr["data"]["auction_records"] = recs
+        if recs:
+            subs.append({"title": "Treasury auctions", "table": wsec.auction_table(recs),
+                         "table_note": wsec.AUCTION_NOTE, "paragraph_wanted": False})
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
             "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
             "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
-            "subsections": [{**fx, "paragraph_wanted": False}],
+            "subsections": subs,
             "not_tracked": pr["not_tracked"]}
 
 
@@ -585,12 +625,16 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 "table": {"columns": ["Series", w.This, "Prior or change",
                                       "As of"], "rows": rs},
                 "not_tracked": [] if aaii else ["the AAII bull-bear spread"]})
+    # A DECLARED LAG, NOT A STALE ROW (W-1.1 item 1.2): "lag: monthly (July,
+    # released 2026-09-18)".
     tic = [[("Net foreign purchases of US long-term securities"
              if k == "tic.flow_net_foreign" else "Total net TIC flows"),
-            data[k]["level_display"], data[k]["observed_at"][:7]]
+            data[k]["level_display"],
+            wsec.lag_label(k, data[k]["observed_at"], data[k].get("available_at"))
+            or data[k]["observed_at"][:7]]
            for k in ("tic.flow_net_foreign", "tic.flow_total") if data.get(k)]
     out.append({"title": "Foreign flows (TIC)",
-                "table": {"columns": ["Series", "Level", "Month"], "rows": tic}})
+                "table": {"columns": ["Series", "Level", "Period"], "rows": tic}})
     return out
 
 
@@ -1064,9 +1108,100 @@ def read_week(pmb: Optional[dict], wbd: Optional[dict] = None) -> dict:
         items.append(item(f"read:attr:{n}", line, 2, line))
     return {"items": items[:4] + [i for i in items if i["key"].startswith("read:attr")],
             "table": wbd.get("table"),
+            # COINCIDENCE, NOT CAUSATION (W-1.1 item 1.6): the daily table is
+            # headed as what happened alongside each session, never why.
+            "table_note": ("Events alongside the session: what coincided with each "
+                           "day's move, not what caused it.") if wbd.get("table") else None,
             "data": {"five_session_moves": [i["text"] for i in items
                                             if i["key"].startswith("read:pm5")],
                      "week_by_day": wbd.get("data") or []}}
+
+
+# ---------------------------------------------------------------------------
+# The z of each row's move (W-1.1 item 1.0b)
+# ---------------------------------------------------------------------------
+# PLUMBING'S FIXED ROWS: the printed name -> (registry key, instrument).
+PLUMB_ROW_KEYS = {
+    "Net liquidity (Fed balance sheet less TGA and RRP)": ("calc.net_liquidity", None),
+    "Bank reserves (H.4.1)": ("fred.bank_reserves", None),
+    "Treasury General Account (H.4.1)": ("fred.tga", None),
+    "Reverse repo (RRP)": ("fred.rrp", None),
+    "SOFR": ("fred.sofr", None), "IORB": ("fred.iorb", None),
+    "Investment-grade OAS": ("fred.ig_oas", None), "CCC OAS": ("fred.ccc_oas", None),
+    "Copper, front future ($/lb; a growth gauge)": ("yfinance.mkt_copper_front", None),
+    "USD/JPY (yen per dollar)": ("yfinance.mkt_usdjpy", None),
+    "EUR/USD (dollars per euro)": ("yfinance.mkt_eurusd", None),
+    "USD/CNY (yuan per dollar)": ("yfinance.mkt_usdcny", None),
+    "Japan 10-year (JGB)": ("mof.jgb_10y", None),
+    "Japan 30-year (JGB)": ("mof.jgb_30y", None),
+    "VIX": ("yfinance.mkt_vix", None),
+    "SPY 20-day realized against the VIX": ("calc.vol_spy_realized_20d", None),
+    "MOVE (Treasury volatility)": ("yfinance.mkt_move", None),
+    "SKEW (tail-risk pricing)": ("yfinance.mkt_skew", None),
+}
+Z_SECTIONS = ("tape", "plumbing", "positioning", "priced", "mechanics")
+
+
+def row_keys(built: dict) -> dict:
+    """{printed row name: (registry key, instrument)} for every row whose series
+    the Weekly can name: Plumbing's, the tape set's, the CFTC contracts, the
+    sectors, What's priced's series, the tier-1 releases' headlines."""
+    from altdata import labels                                   # noqa: PLC0415
+    from altdata.sources.yfinance_source import SECTOR_KEYS      # noqa: PLC0415
+    out: dict = {n: (k, None) for k, n in PLUMB + WEEK_PRICED}
+    out.update(PLUMB_ROW_KEYS)
+    for t in bars_mod.tape():
+        if t.get("daily"):
+            out[t["label"]] = (t["daily"], None)
+    for inst, name in CFTC_CONTRACTS:
+        out[name[0].upper() + name[1:]] = ("cftc.noncomm_net", inst)
+    for k in SECTOR_KEYS:
+        out[labels.sector(k.replace("mkt_", "").upper())] = (f"yfinance.{k}", None)
+    for r in ((built.get("plumbing") or {}).get("data") or {}).get("tier1_releases") or []:
+        out[f"{r['release']}: {r['label']}"] = (r["series"], None)
+    return out
+
+
+def annotate_moves(built: dict, st, now: str, days: int = 7,
+                   cfg: Optional[dict] = None) -> None:
+    """Each budgeted section's `_move_z` -- {row name: {z, n, reason}} -- and
+    Plumbing's `_row_block` (its bucket, config monthly_plumbing_buckets), in
+    the section's data, where figure_budget reads them. The z is of the row's
+    change over `days` against the series' own trailing-year changes of that
+    length (derived.period_change_z), in the unit the row prints: a percent
+    change for a price, a difference for a rate, a spread or a count."""
+    from . import figure_budget as fb                           # noqa: PLC0415
+    keys = row_keys(built)
+    since = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=days + 400)).isoformat()
+    cache: dict = {}
+    bcfg = (cfg or stack_mod.config()).get("monthly_plumbing_buckets") or {}
+    for sid in Z_SECTIONS:
+        b = built.get(sid)
+        if not b:
+            continue
+        zmap, blocks = {}, {}
+        tables = [(sid, b.get("table"))] + [(ss.get("title"), ss.get("table"))
+                                            for ss in b.get("subsections") or []]
+        for where, t in tables:
+            for m in fb.table_moves(t, str(where or ""), "Week"):
+                name = m["name"]
+                if sid == "plumbing":
+                    from monthly_macro.stack import bucket_of    # noqa: PLC0415
+                    blocks[name.strip().lower()] = bucket_of(
+                        name, (keys.get(name) or (None,))[0], bcfg)
+                if m.get("kind") != "move" or name not in keys:
+                    continue
+                key, inst = keys[name]
+                unit = (fb.parse_figure(m["change"]) or (0, ""))[1]
+                unit = unit if unit in ("%", "bp") else ""
+                if (key, inst) not in cache:
+                    cache[(key, inst)] = series(st, key, now, inst, since)
+                lu = str(derived.registry_entry(key).get("units") or "")
+                zmap[name.strip().lower()] = derived.period_change_z(
+                    cache[(key, inst)], now[:10], unit, lu, days)
+        b.setdefault("data", {})["_move_z"] = zmap
+        if blocks:
+            b["data"]["_row_block"] = blocks
 
 
 # ---------------------------------------------------------------------------
@@ -1104,7 +1239,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         rel = tier1_releases(st, now, then)
         wbd = wsec.week_by_day(st, sessions, ending, now, then, rel, str(st.path))
         tape = stack_mod.tape_section(book)
-        tt = wsec.tape_table(book)
+        tt = wsec.tape_table(book, ending)
         oi = wsec.overnight_intraday(st, sessions, ending, now)
         tape.update({"table": tt["table"], "print_items": False,
                      "subsections": [
@@ -1126,8 +1261,9 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "read": read_week(pmb, wbd),
             "tape": tape,
             "mechanics": mechanics_week(st, sessions, now, wis, cfg),
-            "misfit": misfit_week(wis, pmb, hist),
-            "plumbing": plumbing_week(st, now, then, book),
+            "misfit": misfit_week(wis, pmb, hist,
+                                  dates=wsec.state_dates(stored_objects(st, now))),
+            "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": narratives_week_section(p.get("narratives") or {},
@@ -1137,6 +1273,11 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz),
         }
+        try:
+            annotate_moves(built, st, now, cfg=cfg)
+        except Exception:                                       # noqa: BLE001
+            # The ranking falls back to relative-to-level; the edition prints.
+            log.warning("move z unavailable", exc_info=True)
         extras["rates"] = {name: series(st, k, now, since=(
             dt.date.fromisoformat(now[:10]) - dt.timedelta(days=365)).isoformat())
             for k, name in (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
@@ -1146,6 +1287,12 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    tag_facts(sections, tt.get("row_ids") or [], oi.get("rows") or [],
+              wbd.get("data") or [], book)
+    # "UNVALIDATED" (W-1.1 item 1.7): a footnote in each section that prints a
+    # descriptive classification; the glossary carries one entry each.
+    classes = wsec.classifications(cfg, db_path)
+    wsec.unvalidated_notes(sections, classes)
     changed = wsec.changed_since({}, wis, p, trig,
                                  (built["narratives"].get("data") or {})
                                  and {"data": (built["narratives"].get("data") or {})
@@ -1154,8 +1301,41 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
           "changed_since": changed,
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("week_ending"),
-          "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly")}
+          "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly"),
+          "glossary_extra": wsec.unvalidated_glossary(classes)}
     return ed, extras
+
+
+def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: list,
+              book: Optional[dict] = None) -> None:
+    """THE FACTS PRINTED TWICE (W-1.1 item 1.1), tagged for the consistency gate
+    (daily_cascade/consistency.py): each instrument's week and session move in
+    the tape (canonical), SPY's week and sessions in the overnight split, SPY's
+    and the 10-year's sessions in the week by day, and the 10-year's and
+    30-year's week in Plumbing."""
+    from . import consistency as cons                           # noqa: PLC0415
+    by = {s["id"]: s for s in sections}
+    tape = by.get("tape") or {}
+    for r, (iid, as_of) in enumerate(tape_ids):
+        cons.tag(tape.get("table"), r, 3, cons.fact_key(iid, as_of, "week"), True)
+        cons.tag(tape.get("table"), r, 2, cons.fact_key(iid, as_of, "session"), True)
+    ov = next((ss.get("table") for ss in tape.get("subsections") or []
+               if str(ss.get("title", "")).startswith("SPY overnight")), None)
+    if ov is not None and oi_rows:
+        for r, x in enumerate(oi_rows):
+            cons.tag(ov, r, 3, cons.fact_key("spy", x["day"], "session"))
+        cons.tag(ov, len(oi_rows), 3, cons.fact_key("spy", oi_rows[-1]["day"], "week"))
+    read = by.get("read") or {}
+    for r, x in enumerate(wbd_rows):
+        cons.tag(read.get("table"), r, 1, cons.fact_key("spy", x.get("day"), "session"))
+        cons.tag(read.get("table"), r, 2, cons.fact_key("y10", x.get("day"), "session"))
+    pl = by.get("plumbing") or {}
+    frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
+    for r, row in enumerate(((pl.get("table") or {}).get("rows") or [])):
+        iid = {"10-year": "y10", "30-year": "y30"}.get(str(row[0]))
+        if iid and frames.get(iid, {}).get("wtd_change_bps") is not None:
+            cons.tag(pl["table"], r, 2,
+                     cons.fact_key(iid, frames[iid].get("as_of"), "week"))
 
 
 def chart_plan(ed: dict) -> list[str]:
@@ -1283,6 +1463,12 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
                                              None, _db)
     prior = load_prior(p.get("previous_week_ending") or "", prior_dir or archive_dir)
     ed, extras = build(p, book, prior, db_path, log_path)
+    # THE CONSISTENCY GATE (W-1.1 item 1.1, ruling 1): within rounding, every
+    # place prints the canonical figure and the difference is logged; beyond it,
+    # EditionInconsistent fails the run. Before the prose, so every frame copies
+    # the canonical figure.
+    from . import consistency                                   # noqa: PLC0415
+    consistency.reconcile(ed)
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],
                           cadence="weekly")
@@ -1391,7 +1577,7 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly")
     return (f'<div style="{stack_render.WRAP}">{head}{secs}'
-            f'{stack_render.glossary_html(_glossary(), ed)}'
+            f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed)}'
             + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
                                        ed.get("archive_path"),
                                        stack_render._marks(ed, "Weekly"))
