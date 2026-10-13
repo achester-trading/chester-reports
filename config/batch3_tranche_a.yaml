@@ -1,0 +1,71 @@
+# batch3_tranche_a.yaml -- signal-triage batch 3, Tranche A (change order
+# docs/change-order-signal-triage-batch-3-2026-10-02.md, ruled 6 Oct 2026):
+# ST-B3-16 (SR-32's early line), ST-B3-03 (SR-30), ST-B3-04 (SR-33), ST-B3-05
+# (SR-34) and ST-B3-02 (SR-6 by tenor). Read by altdata/batch3.py; printed by
+# daily_cascade/batch3_block.py. Narrow flags and modifier lines only: nothing
+# here enters the market-state object, a composite, a trigger or a decision.
+version: batch3-tranche-a-v1
+updated: 2026-10-13
+
+# ---------------------------------------------------------------------------
+# ST-B3-16 -- the 30y JGB line (SR-32's early line; decision 3, option C)
+# ---------------------------------------------------------------------------
+jgb_line:
+  key: mof.jgb_30y                # the MoF's daily constant-maturity 30-year
+  approach_pct: 4.40              # below: nothing prints
+  flag_pct: 4.50                  # at or above: the line and the mechanism
+  # The entry's one-line mechanism, verbatim (SR-32, §2 Rights).
+  mechanism: "above ~4.5% unrealised losses on lifers' bond and hedge books dominate the solvency benefit of higher yields"
+
+# ---------------------------------------------------------------------------
+# ST-B3-03 -- SR-30, EU sovereign stress (decision 2, option A)
+# ---------------------------------------------------------------------------
+eu_stress:
+  # TIERS ON THE OAT-BUND SPREAD (the entry's measure). BTP-Bund prints its
+  # level and percentiles beside it, untiered.
+  watch_bp: 150                   # post-2012 territory (ruled)
+  # THE CRISIS LINE, SET FROM THE STORED SERIES' NOVEMBER 2011 PEAK, as decision
+  # 2 rules. The stored series is the ECB's monthly average (IRS, the
+  # convergence 10-year: FR less DE), because no free official source publishes
+  # a daily OAT or BTP keyless (docs/briefs/b3-tranche-a-notes.md). Its November
+  # 2011 value is 154.0 bp, its full-history peak; the ~190 bp of the entry is
+  # the DAILY close peak of 15-17 Nov 2011, which a monthly average cannot reach.
+  # Recomputed from the store by altdata.batch3.crisis_level_from_store and
+  # verified at Audit #4 (14-15 Oct).
+  crisis_bp: 154.0
+  crisis_source: "ECB IRS monthly 10-year, FR less DE, November 2011 (the series' peak), fetched 13 Oct 2026"
+  windows_years: [5, 20]          # the dual percentile (entry's measure)
+  unvalidated: "(descriptive; unvalidated, n=0)"   # until ST-B3-09's ledger
+  transmission_label: "EUR/CHF (francs per euro)"
+
+# ---------------------------------------------------------------------------
+# ST-B3-04 -- SR-33, Treasury buybacks
+# ---------------------------------------------------------------------------
+buybacks:
+  # The long-end sectors (the entry: 10-20y and 20-30y, and the TIPS 10-30y).
+  long_end_buckets: ["10Y to 20Y", "20Y to 30Y", "10Y to 30Y"]
+  thirty_year_key: fred.yield_30y # the stored 30-year (DGS30), for the next
+                                  # session's change after each operation
+  tga_key: fred.tga               # MILLIONS (CLAUDE.md, the net-liquidity trap)
+  # The modifier on the long-end supply read, in the Monthly's lever table:
+  # a bought/max ratio below `soft_ratio` reads as soft take-up.
+  soft_ratio: 0.9
+
+# ---------------------------------------------------------------------------
+# ST-B3-05 -- SR-34, Japan intervention funding and FIMA (decision 4: tic.*)
+# ---------------------------------------------------------------------------
+japan_reserves:
+  lag_line: "fast tells ahead of TIC, whose rows lag by about a month and a half"
+
+# ---------------------------------------------------------------------------
+# ST-B3-02 -- SR-6 by tenor (the metric-lenses brief: the rate family)
+# ---------------------------------------------------------------------------
+# Per tenor: the nominal, the real yield at that tenor or the nearest (labelled),
+# and ACM's risk-neutral yield and term premium where ACM publishes the tenor.
+# breakeven = nominal - real; expected short rate = ACM's risk-neutral yield.
+tenor_lens:
+  - {tenor: 2y, nominal: fred.yield_2y, real: fred.tips_5y, real_label: "nearest: the 5-year TIPS", rny: acm.risk_neutral_yield_2y, tp: acm.term_premium_2y}
+  - {tenor: 5y, nominal: fred.yield_5y, real: fred.tips_5y, rny: acm.risk_neutral_yield_5y, tp: acm.term_premium_5y}
+  - {tenor: 10y, nominal: fred.yield_10y, real: fred.tips_10y, rny: acm.risk_neutral_yield_10y, tp: acm.term_premium_10y}
+  - {tenor: 30y, nominal: fred.yield_30y, real: fred.tips_30y, rny: null, tp: null}
+tenor_not_published: "not published at this tenor"

@@ -764,6 +764,10 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),
         }
+        # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
+        # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
+        from . import batch3_block                              # noqa: PLC0415
+        built["tape"]["items"] += batch3_block.tape_items(st, cutoff)
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
             "config_version": cfg.get("version"), "as_of": cutoff,

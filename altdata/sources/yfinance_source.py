@@ -168,6 +168,10 @@ SYMBOLS: dict[str, str] = {
     "HG=F": "mkt_copper_front",
     "JPY=X": "mkt_usdjpy",
     "EURUSD=X": "mkt_eurusd",
+    # Signal-triage batch 3, ST-B3-03 (SR-30, 13 Oct 2026): EUR/CHF, francs per
+    # euro, the transmission tell beside the OAT-Bund spread. yfinance is the
+    # operator-sanctioned exception to the robots rule (ruled 11 Oct 2026).
+    "EURCHF=X": "mkt_eurchf",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
@@ -218,7 +222,7 @@ SPLIT_SUFFIX = "_split"
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
-                                                "EURUSD=X"})
+                                                "EURUSD=X", "EURCHF=X"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside

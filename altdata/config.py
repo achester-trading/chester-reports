@@ -196,6 +196,12 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # series pages (SOFR; IORB, from 29 Jul 2021).
     SeriesSpec("sofr",             "SOFR",       "Secured overnight financing rate", "3", "%",    "daily"),
     SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
+    # Signal-triage batch 3, ST-B3-02 (SR-6 by tenor, 13 Oct 2026): the 5-year
+    # real yield, for the 5-year's split (and the 2-year's, as the nearest TIPS
+    # tenor). Percent, daily -- read off FRED's series page that day ("Market
+    # Yield on U.S. Treasury Securities at 5-Year Constant Maturity, Quoted on
+    # an Investment Basis, Inflation-Indexed").
+    SeriesSpec("tips_5y",          "DFII5",      "5-year TIPS real yield",          "2",  "%",    "daily"),
 ]
 
 # Everything the FRED pull fetches and the freshness roster watches.

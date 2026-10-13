@@ -3390,6 +3390,130 @@ metrics:
     trigger_eligible: false
     description: >-
       ACM 10-year risk-neutral yield (the expected short-rate path), percent. Fitted yield = risk-neutral yield + term premium.
+  # ------------------------------------------------------------------------
+  # SIGNAL-TRIAGE BATCH 3, TRANCHE A (13 Oct 2026; change order
+  # docs/change-order-signal-triage-batch-3-2026-10-02.md). Each series below
+  # also carries its `families` line and its `long_windows` line (the metric-
+  # lenses brief's dual percentile); available_at is stated per series and the
+  # retrieval instant is the observation's ingested_at.
+  # ------------------------------------------------------------------------
+  acm.risk_neutral_yield_2y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 2-year risk-neutral yield (the expected short-rate path), percent; SR-6 by tenor (ST-B3-02). available_at: the write instant (the file sends no Last-Modified).
+  acm.risk_neutral_yield_5y:
+    source: nyfed_acm
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    description: >-
+      ACM 5-year risk-neutral yield, percent; SR-6 by tenor (ST-B3-02). available_at: the write instant.
+  treasury.buyback_max:
+    source: treasury_buybacks
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: monthly           # operations come one or two a week, with gaps between schedules: a month's allowance
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A Treasury buyback operation's announced maximum, par DOLLARS; instrument = '<operation type> | <security type> | <maturity bucket>', observed_at = the operation date. SR-33 (ST-B3-04). available_at is the write instant (ingest_instant; Fiscal Data serves no publication time), late but never early; the retrieval instant is the row's ingested_at.
+  treasury.buyback_accepted:
+    source: treasury_buybacks
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: monthly           # operations come one or two a week, with gaps between schedules: a month's allowance
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The par DOLLARS Treasury bought in the operation; bought/max is computed at read (altdata/batch3.py), never stored. available_at is the write instant (ingest_instant; Fiscal Data serves no publication time), late but never early; the retrieval instant is the row's ingested_at.
+  treasury.buyback_offered:
+    source: treasury_buybacks
+    mechanism_group: treasury_supply
+    native_horizon: daily
+    freq: monthly           # operations come one or two a week, with gaps between schedules: a month's allowance
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The par DOLLARS dealers offered in the operation. available_at is the write instant (ingest_instant; Fiscal Data serves no publication time), late but never early; the retrieval instant is the row's ingested_at.
+  tic.jp_reserves_total:
+    source: mof_reserves
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Japan's official reserve assets, month-end, DOLLARS (the MoF file's US$ millions x1e6); tic.* by ruling (SR-34, decision 4). available_at: the file's Last-Modified (observed), about the 7th of the next month.
+  tic.jp_reserves_fx_securities:
+    source: mof_reserves
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Japan's foreign-currency reserves held in securities (line I.A.1(1)(a)), month-end, DOLLARS; the line intervention draws on. available_at: Last-Modified (observed).
+  tic.fima_repo:
+    source: frb_h41
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      H.4.1 'Repurchase agreements - Foreign official' (the FIMA repo facility's usage), Wednesday level, DOLLARS (the package's millions x1e6). available_at: Last-Modified where sent, else the write instant; published Thursdays 16:30 ET.
+  tic.fima_repo_weekavg:
+    source: frb_h41
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The same line, week average, DOLLARS. available_at: as tic.fima_repo (Last-Modified where sent, else the write instant).
   acm.fitted_yield_10y:
     source: nyfed_acm
     mechanism_group: rates_decomposition
@@ -5921,7 +6045,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 24   # + T5YIE (6d) + SOFR, IORB (T2.3)
+    expected_members: 25   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -5963,7 +6087,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 54   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + EURCHF=X (batch 3, ST-B3-03)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6008,7 +6132,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 54   # the market_closes basket (+ EURCHF=X, batch 3)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6271,6 +6395,18 @@ bulk_imports:
 # with its family. Units stay on the series' own entry or bulk block; the T2.3
 # gate holds each listed key to a resolvable unit and a declared family.
 families:
+  # Batch 3, Tranche A (13 Oct 2026).
+  fred.tips_5y: rate
+  acm.risk_neutral_yield_2y: rate
+  acm.risk_neutral_yield_5y: rate
+  yfinance.mkt_eurchf: price
+  treasury.buyback_max: quantity
+  treasury.buyback_accepted: quantity
+  treasury.buyback_offered: quantity
+  tic.jp_reserves_total: quantity
+  tic.jp_reserves_fx_securities: quantity
+  tic.fima_repo: quantity
+  tic.fima_repo_weekavg: quantity
   fred.sofr: rate
   fred.iorb: rate
   yfinance.mkt_copper_front: price
@@ -6296,6 +6432,28 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+
+# THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
+# percentile AND a long one). `full` is the series' whole stored history; a
+# number of years is a fixed window where the entry names one (SR-30: twenty).
+# Declared for the series batch 3's Tranche A adds and reads; the gate
+# (tools/validate_batch3_a.py) holds each new key to a line here.
+long_windows:
+  fred.tips_5y: full
+  acm.risk_neutral_yield_2y: full
+  acm.risk_neutral_yield_5y: full
+  yfinance.mkt_eurchf: full
+  treasury.buyback_max: full
+  treasury.buyback_accepted: full
+  treasury.buyback_offered: full
+  tic.jp_reserves_total: full
+  tic.jp_reserves_fx_securities: full
+  tic.fima_repo: full
+  tic.fima_repo_weekavg: full
+  # SR-30's legs (written by aq-3-series-2's ECB and Bundesbank writers, read
+  # here by name): the spread's long window is the entry's twenty years.
+  sr30.oat_bund: 20y
+  sr30.btp_bund: 20y
 
 non_metrics:
   provenance:

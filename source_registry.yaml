@@ -1139,6 +1139,56 @@ sources:
       - >-
         The NYMEX futures files (RCLC1/RCLC2) end 2024-04-05, so no prompt spread (G-11).
 
+  treasury_buybacks:
+    name: US Treasury Fiscal Data -- Treasury Securities Buybacks (operations)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [treasury_supply, rates]
+    geography: [US]
+    latency: same day, after the operation's 14:00 ET close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No publication timestamp per row; available_at is the write instant
+      (ingest_instant), an upper bound. The API host answers robots.txt 404 (no
+      rules); fiscaldata.treasury.gov is Allow: / (checked 13 Oct 2026).
+      TreasuryDirect's results pages are robots-disallowed and not read.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/treasury_buybacks.py
+    status: live
+
+  mof_reserves:
+    name: Japan Ministry of Finance -- International Reserves/Foreign Currency Liquidity
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, fx]
+    geography: [global]
+    latency: monthly, about the 7th, 08:50 JST
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified of historical.csv (observed). www.mof.go.jp answers robots.txt
+      404 (no rules; checked 13 Oct 2026). Revised in place.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/mof_reserves.py
+    status: live
+
+  frb_h41:
+    name: Federal Reserve Board -- H.4.1 (Data Download Program package), the FIMA repo line
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, rates]
+    geography: [US, global]
+    latency: weekly, Thursdays 16:30 ET (Wednesday levels)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified where sent (observed), else the write instant.
+      federalreserve.gov answers robots.txt 404 (no rules; checked 13 Oct 2026).
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/fedboard.py
+    status: live
+
   frb_cie:
     name: Federal Reserve Board -- Index of Common Inflation Expectations
     tier: A0

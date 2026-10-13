@@ -62,6 +62,10 @@
 | 27 | X/R | TIC Major Foreign Holders, 12m change (research note) | Adopt holder panel with mechanism tags; reject "China dumping" | Absorber-fragility modifier (after gate) | ST-2, ST-4 | ADOPTED — gate pending |
 | 28 | R | Fed Board speaker and event calendar (operator, 28 Sep) | Adopt calendar feed; no rights | None (calendar data, REPORT_OK) | Next events session (≈1–1.5 h) | ADOPTED — pending build |
 | 29 | D | Bitcoin long-term-holder supply (Carney/River, blockhorizon data, 26 Sep) | Adopt by-hand scorecard; reject supply-crunch reading | None (scorecard) | By hand, monthly (≈5 min); ≈0 h build | ADOPTED — scorecard, no rights |
+| 30 | X/R | EU sovereign stress, OAT–Bund (EWI chart, 2 Oct) | Adopt; two-tier flag on the weekly close (decision 2) | Narrow flag | ST-B3-03 (Tranche A), ledger ST-B3-09 | ADOPTED — built, branch b3-tranche-a; gate pending |
+| 32 | X | Japan slow-money repatriation (Reuters, Normandie, Daiwa) | Stub: early line built; family in Tranche B | Narrow flag (early line) | ST-B3-16 (A); ST-B3-07/08/11 (B) | STUB — early line built; family in Tranche B |
+| 33 | R | Treasury long-end buybacks (Bloomberg 10 Sep; CNBC 20–24 Aug) | Adopt events block + lever modifier | Modifier | ST-B3-04 (Tranche A) | ADOPTED — built, branch b3-tranche-a |
+| 34 | X | Japan intervention funding and FIMA (Japan Times, CNBC, PIIE, Setser) | Adopt into `tic.*` (decision 4) | Narrow flag | ST-B3-05 (Tranche A) | ADOPTED — built, branch b3-tranche-a |
 
 ---
 
@@ -160,6 +164,12 @@
 **Data.** DGS2/DGS10/T10YIE/T5YIFR (held); **DFII10 (new — not among the 59)**; THREEFYTP10 (new); ACM CSV (NY Fed, new source); SF Fed Treasury Yield Premiums (per publication, new source); DKW (Fed Board Excel, new source); SPY, TLT (yfinance). *Lives in:* `fred.tips_10y`, `fred.term_premium_kw`, `acm.*`, `sffed.*`, `dkw.*`; `calc.attr_*`, `calc.corr_spy_tlt_60d`; `rates.driver`.
 
 **Validation gate.** Run the four models side by side over Feb–Sep 2026; where they disagree on sign, the curve decomposition arbitrates. Calibrate forward equity returns and stock-bond correlation on the bear-flattening set (1994, Q4 2018, 2022) vs. the bear-steepening set (2013, Aug–Oct 2023), plus SR-17's four DKW episodes. Offline ledger (ST-3); cell thresholds then declared in config.
+
+**Amendment (batch 3, §3; ruled 6 Oct 2026; filed 13 Oct 2026).** From the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim:
+
+- **SR-6 (10y yield-move attribution):** extend to a driver-by-tenor lens — 2y, 5y, 10y, 30y — per the metric-lenses brief. Reference reads: Apollo's Sep 2026 split (front end inflation, belly hyperscaler issuance, long end fiscal); September's rise essentially all real yields with breakevens flat; SF Fed decomposition 10y 5.25 = 3.85 expected short rate + 1.4 term premium; roughly two-thirds of the rise since March 2022 attributed to term premium.
+
+*Built: ST-B3-02, branch b3-tranche-a (13 Oct 2026).* The driver-by-tenor lens (`altdata/batch3.py` `tenor_lens`; printed by `daily_cascade/batch3_block.py`): for the 2y, 5y, 10y and 30y, the week's and the month's move split into real yield and breakeven (DFII5 / DFII10 / DFII30; the 2y reads the 5y TIPS, labelled as the nearest), and ACM's expected short rate against its term premium at the 2y, 5y and 10y ("not published at this tenor" at the 30y). Descriptive: which tenor moved most and which leg was larger; nothing causal. The register status above is unchanged.
 
 ### SR-7 S&P returns during Fed hiking cycles (Macrobond, five cycles since 1994) — Thread E
 
@@ -537,6 +547,46 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** None.
 
 **Validation.** None (scorecard).
+
+### SR-30 EU sovereign stress — OAT–Bund (Elliott Wave International chart, 2 Oct 2026) — Threads X and R
+
+**Register status.** ADOPTED — built, branch b3-tranche-a; gate pending (ST-B3-09) · **Built in.** ST-B3-03 (Tranche A) · *Filed 13 Oct 2026 from §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim below; numbering per decision 1.*
+
+- **Source:** Elliott Wave International chart, OAT–Bund 10y weekly close, posted 2 Oct 2026. Levels verified on the wires.
+- **Claim:** A France-specific fiscal premium — the 2027 budget (€43bn austerity package, €340bn net medium/long issuance planned) was shown and the market widened anyway; the spread (147–149bp on 2 Oct, widest since 2012) is now wider than Italy's and Greece's; Bunds are not catching a safety bid (10y Bund ~3.6%, near the highest since 2009); EUR/CHF is transmitting it. The 2011–12 analog fails on two counts: this is the core, not the periphery, and the move is a premium on top of a hot-inflation eurozone rather than a flight to quality.
+- **Measure:** OAT–Bund 10y and BTP–Bund 10y, weekly close; EUR/CHF as the transmission tell. Dual percentile: five-year plus a 20-year window.
+- **Rights:** narrow flag in plumbing & rates; input to Factor IV and to the debt-cycle lens in Debt Cycles, Regimes & Environments. Two-tier threshold, both on the weekly close (ruled 6 Oct 2026): 150bp is the watch line (post-2012 territory); ~190bp is the crisis line (the Nov 2011 peak, exact level verified and set at filing) and is the tier that earns a sentence in the Monthly's "what doesn't fit". The parliamentary-fracture angle is routed to Internal Order (Factor VI); no new tail scenario.
+- **Gate:** calibration ledger over 2010–12 and 2024–26 before any panel.
+
+*Built: ST-B3-03, branch b3-tranche-a (13 Oct 2026).* OAT–Bund and BTP–Bund from the ECB's monthly convergence 10-year yields (the legs are written by `aq-3-series-2`'s ECB writer and read here by name), with five- and twenty-year percentiles; the two tiers on OAT–Bund, watch 150 bp and crisis **154.0 bp — the stored (monthly-average) series' November 2011 peak**, which is what decision 2's "~190bp" becomes on the only free official series (the ~190 bp is the daily close peak, which a monthly average cannot reach); EUR/CHF daily (yfinance) as the transmission tell. No free official source publishes a daily OAT or BTP keyless (Banque de France's Webstat API needs a key; the Banca d'Italia's statistics host answers a protected-resource page), so the weekly close of the measure is not available and the monthly average is stored and said so. Printed: a narrow flag in Plumbing & rates (Weekly and Monthly); the crisis tier's one sentence in the Monthly's "what doesn't fit"; "(descriptive; unvalidated, n=0)" until ST-B3-09's ledger exists.
+
+### SR-32 Japan slow-money repatriation (new family `jp.slowmoney`) — Thread X — STUB
+
+**Register status.** STUB — early line built; family in Tranche B · **Built in.** ST-B3-16 (Tranche A); ST-B3-07, ST-B3-08, ST-B3-11 (Tranche B) · *A stub until the family is built; the entry's full text is §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md).*
+
+- *13 Oct 2026 — early line built — ST-B3-16; family in Tranche B.* The 30y JGB daily (`mof.jgb_30y`), an approach line at 4.40% and the 4.5% flag, computed from the stored close: nothing below 4.40%; one line at 4.40–4.50%; at or above 4.5% the line and the entry's mechanism, verbatim — "above ~4.5% unrealised losses on lifers' bond and hedge books dominate the solvency benefit of higher yields". Printed on the close's tape and in the Weekly's Plumbing & rates. Branch b3-tranche-a (decision 3, option C).
+
+### SR-33 Treasury long-end buybacks as a yield-management lever (Bloomberg 10 Sep 2026; CNBC 20–24 Aug 2026) — Thread R
+
+**Register status.** ADOPTED — built, branch b3-tranche-a · **Built in.** ST-B3-04 (Tranche A) · *Filed 13 Oct 2026 from §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim below.*
+
+- **Sources:** Bloomberg 10 Sep 2026; CNBC 20–24 Aug 2026.
+- **Claim:** buybacks doubled to ≥$4bn per operation from 9 Sep (10–20y and 20–30y sectors, four operations a quarter); the first expanded operation bought $5.19bn of a $6bn maximum, read as disappointing, and yields extended higher after it. The TGA (~$950bn) has been floated as firepower; Bessent calls the construct a "Treasury Twist". The lasting cost named by strategists is a risk premium for a Treasury that steps away from "regular and predictable".
+- **Measures:** bought/max ratio per operation; the 30y's next-session change; TGA level; operation schedule on the events calendar (current schedule runs to 4 Nov).
+- **Rights:** events block plus a modifier on the long-end supply read in the Rate and Liquidity Machine lever table.
+
+*Built: ST-B3-04, branch b3-tranche-a (13 Oct 2026).* Each operation from Fiscal Data's Treasury Securities Buybacks dataset (`treasury.buyback_max`, `_accepted`, `_offered`; history from March 2000; TreasuryDirect's results pages are robots-disallowed and not read); bought/max and the stored 30-year's (DGS30) next-session change computed at read; the TGA from the stored series; the tentative schedule through 5 Nov 2026 in `config/release_calendar.yaml`. Printed: the operations block in Plumbing & rates and a modifier line on the long-end supply row of the Monthly's Rate and Liquidity Machine lever table. The first expanded operation is 10 Sep 2026, 10–20y: $5.187bn of a $6bn maximum.
+
+### SR-34 Japan intervention funding and FIMA (Japan Times 7 Sep 2026; CNBC 3 Aug 2026; PIIE Aug 2026; Setser, Aug 2026) — Thread X
+
+**Register status.** ADOPTED — built, branch b3-tranche-a · **Built in.** ST-B3-05 (Tranche A) · *Filed 13 Oct 2026 from §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim below; placed in `tic.*` by decision 4.*
+
+- **Sources:** Japan Times 7 Sep 2026; CNBC 3 Aug 2026; PIIE Aug 2026; Setser (X, Aug 2026).
+- **Claim:** Japan's reserves fell $79.6bn in August to $1.208tn (lowest since Oct 2022), the largest monthly decline on record, against ¥15.4tn of yen-buying (30 Jul–26 Aug) that included the first joint operation with the US since 2011; the ministry acknowledged intervention drove the fall in foreign-securities holdings. The US sold euros rather than dollars, and Bessent wants the Fed's FIMA repo facility ($60bn/day per counterparty) upsized so Japan can raise dollars against Treasuries instead of selling them. Setser: the norm for central-bank swaps is lender-of-last-resort funding, not intervention. PIIE: routine FIMA use as financial diplomacy would cost Fed credibility and be resisted by the FOMC.
+- **Measures:** MoF monthly reserves, foreign-securities line (published ~5th of the month); FIMA usage from the Fed's weekly H.4.1; both placed in the `tic.*` family as the fast tells ahead of TIC (ruled 6 Oct 2026: official-sector holdings stay one family; private Japanese flow is `jp.slowmoney`).
+- **Rights:** narrow flag in plumbing & rates; the policy change itself is filed under Factor V (§4.1).
+
+*Built: ST-B3-05, branch b3-tranche-a (13 Oct 2026).* `tic.jp_reserves_total` and `tic.jp_reserves_fx_securities` from the ministry's `historical.csv` (monthly from April 2000; August 2026: total −$79.6bn to $1,207.5bn, securities −$87.8bn); `tic.fima_repo` and `tic.fima_repo_weekavg` from the H.4.1 package through `altdata/sources/fedboard.py`. Printed: a narrow flag in Plumbing & rates, each figure with its as-of; the TIC rows' lag line unchanged.
 
 ---
 

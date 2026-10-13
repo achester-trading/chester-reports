@@ -1,0 +1,59 @@
+{
+  "_about": "Signal-triage batch 3, Tranche A fixtures (13 Oct 2026). Read by tools/validate_batch3_a.py into a temporary store of its own; no live-store read. Values from the change order (docs/change-order-signal-triage-batch-3-2026-10-02.md) and the sources verified on 13 Oct 2026, as noted per fixture.",
+  "jgb_line": {
+    "_about": "ST-B3-16: one session in each state. 4.18 was the 30 Sep close the entry quotes.",
+    "below": {"day": "2026-09-30", "level": 4.18},
+    "approaching": {"day": "2026-10-08", "level": 4.45},
+    "flagged": {"day": "2026-10-09", "level": 4.52}
+  },
+  "eu_stress": {
+    "_about": "ST-B3-03: monthly legs (the ECB's convergence 10-year), France, Italy, Germany. A flat 40 bp OAT-Bund history 2006-2026 with November 2011 at the stored peak (154.0 bp, the real series' value) and three ending months: 149 bp, 150 bp, the crisis level.",
+    "de_level": 2.50,
+    "history_oat_bp": 40.0,
+    "history_btp_bp": 120.0,
+    "nov_2011_oat_bp": 154.0,
+    "nov_2011_btp_bp": 518.7,
+    "cases": [
+      {"name": "149 bp: below the 150 bp watch line", "oat_bp": 149.0, "tier": "none"},
+      {"name": "150 bp: the watch tier", "oat_bp": 150.0, "tier": "watch"},
+      {"name": "the crisis level", "oat_bp": 154.0, "tier": "crisis"},
+      {"name": "well below 150", "oat_bp": 96.7, "tier": "none"}
+    ],
+    "eurchf": [["2026-10-02", 0.9310], ["2026-10-09", 0.9250]]
+  },
+  "buybacks": {
+    "_about": "ST-B3-04: the first expanded long-end operation, 10 Sep 2026 (Fiscal Data: 10Y to 20Y, $6bn maximum, $5.187bn accepted; the entry rounds to $5.19bn), with the 30-year on the day and the next session.",
+    "operation": {"date": "2026-09-10", "instrument": "Liquidity Support | Nominal Coupons | 10Y to 20Y", "max": 6000000000.0, "accepted": 5190000000.0, "offered": 14500000000.0},
+    "y30": [["2026-09-09", 4.71], ["2026-09-10", 4.73], ["2026-09-11", 4.78]],
+    "next_session_bp": 5.0,
+    "tga_millions": 950000.0,
+    "tga_day": "2026-09-10"
+  },
+  "japan_funding": {
+    "_about": "ST-B3-05: August 2026's $79.6bn fall (MoF historical.csv, US$ millions); a week with FIMA usage above zero.",
+    "reserves_total_musd": [["2026-07-31", 1287099], ["2026-08-31", 1207524]],
+    "reserves_securities_musd": [["2026-07-31", 927332], ["2026-08-31", 839559]],
+    "fima_musd": [["2026-08-26", 0], ["2026-09-02", 5000]],
+    "fima_weekavg_musd": [["2026-08-26", 0], ["2026-09-02", 2143]]
+  },
+  "tenor_lens": {
+    "_about": "ST-B3-02: a week in which the long end's move is term premium and the front end's is real yield. Percent levels, Friday 2 Oct and Friday 9 Oct 2026.",
+    "from": "2026-10-02",
+    "to": "2026-10-09",
+    "levels": {
+      "fred.yield_2y": [3.90, 4.02],
+      "fred.yield_5y": [4.10, 4.18],
+      "fred.yield_10y": [4.60, 4.75],
+      "fred.yield_30y": [4.95, 5.12],
+      "fred.tips_5y": [1.80, 1.90],
+      "fred.tips_10y": [2.10, 2.16],
+      "fred.tips_30y": [2.40, 2.46],
+      "acm.risk_neutral_yield_2y": [3.70, 3.80],
+      "acm.term_premium_2y": [0.10, 0.12],
+      "acm.risk_neutral_yield_5y": [3.60, 3.63],
+      "acm.term_premium_5y": [0.40, 0.45],
+      "acm.risk_neutral_yield_10y": [3.65, 3.67],
+      "acm.term_premium_10y": [0.90, 1.03]
+    }
+  }
+}

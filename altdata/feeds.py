@@ -106,7 +106,11 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # ST-2: the external position and the funding-currency stack
                     "tic", "safe", "mof", "cfets", "cftc",
                     # ST-2: oil stocks and the expectations surveys
-                    "eia", "fedboard", "nyfed_sce")
+                    "eia", "fedboard", "nyfed_sce",
+                    # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
+                    # buyback operations (SR-33), Japan's reserves and the Fed's
+                    # FIMA repo line (SR-34, both in tic.*)
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that

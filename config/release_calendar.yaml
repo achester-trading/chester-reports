@@ -99,3 +99,39 @@ earnings_seasons:
   - {from: [4, 10], to: [5, 31]}
   - {from: [7, 10], to: [8, 31]}
   - {from: [10, 10], to: [11, 30]}
+
+# ---------------------------------------------------------------------------
+# EVENTS THE EVENTS TABLE DOES NOT CARRY (signal-triage batch 3, §5 "events for
+# ahead", Tranche A, 13 Oct 2026). Read by daily_cascade/calendar_config.py into
+# the Weekly's day-by-day calendar beside the stored events; a row the stored
+# events already print (same day, same label) prints once. Times are US Eastern
+# unless a row says otherwise. The EM / China / Thailand seeds are the
+# operator's and are not here.
+# ---------------------------------------------------------------------------
+scheduled:
+  # Treasury's tentative buyback schedule, August 2026 refunding quarter
+  # (published 9 Sep 2026; home.treasury.gov Tentative-Buyback-ScheduleQ32026.pdf),
+  # operations from 13 Oct. 13:40-14:00 ET. SR-33.
+  - {date: 2026-10-15, time: "13:40", tier: 3, label: "Treasury buyback: nominal coupons, 10 to 20 years (maximum at least $4bn)"}
+  - {date: 2026-10-21, time: "13:40", tier: 3, label: "Treasury buyback: TIPS, 1 to 10 years (maximum $750m)"}
+  - {date: 2026-10-27, time: "13:40", tier: 3, label: "Treasury buyback: nominal coupons, 20 to 30 years (maximum at least $4bn)"}
+  - {date: 2026-11-04, time: "13:40", tier: 3, label: "Treasury buyback: nominal coupons, 10 to 20 years (maximum at least $4bn)"}
+  - {date: 2026-11-05, time: "13:40", tier: 3, label: "Treasury buyback: nominal coupons, 1 month to 2 years (maximum $4bn)"}
+  # The Bank of Japan's October meeting, with the Outlook Report (SR-32/SR-34).
+  - {date: 2026-10-30, time: "about 12:00 JST", tier: 2, label: "Bank of Japan decision and Outlook Report", why: "the yen's funding rate and the JGB curve"}
+  # JGB long-end auctions (MoF auction calendars, 2610e/2611e/2612e, fetched 13
+  # Oct 2026); results at 12:35 JST, the evening before in New York. SR-32.
+  - {date: 2026-10-20, time: "12:35 JST", tier: 3, label: "JGB 20-year auction"}
+  - {date: 2026-11-10, time: "12:35 JST", tier: 3, label: "JGB 30-year auction"}
+  - {date: 2026-11-18, time: "12:35 JST", tier: 3, label: "JGB 20-year auction"}
+  - {date: 2026-11-25, time: "12:35 JST", tier: 3, label: "JGB 40-year auction"}
+  - {date: 2026-12-08, time: "12:35 JST", tier: 3, label: "JGB 30-year auction"}
+  - {date: 2026-12-17, time: "12:35 JST", tier: 3, label: "JGB 20-year auction"}
+
+recurring:
+  # weekday: Monday..Friday; a session the calendar closes is skipped.
+  - {weekday: Wednesday, time: "10:30", tier: 3, label: "EIA Weekly Petroleum Status Report"}
+  - {weekday: Thursday, time: "16:30", tier: 3, label: "Fed balance sheet (H.4.1)"}
+  - {weekday: Friday, time: "15:30", tier: 3, label: "CFTC Traders in Financial Futures (Tuesday positions)"}
+  # monthly_day: the first weekday on or after that day of the month.
+  - {monthly_day: 7, time: "08:50 JST", tier: 3, label: "Japan's international reserves (MoF)", note: "about the 7th; the evening before in New York"}
