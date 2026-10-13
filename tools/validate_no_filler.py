@@ -18,6 +18,10 @@ a paragraph that uses it, and the retry names the offending sentence.
      carries that reason.
   D  NO FALSE ALARM. Ordinary market prose -- "moved", "the move", a level list
      with figures -- passes.
+  E  THE BARE FIGURE (W-1.1a item 5). A sentence of six words or fewer with
+     exactly one figure and no comparison word (against, than, while, as, from)
+     is filler: "Real Estate added +1.96%." The same figure with something to
+     read it against passes.
 
     python tools/validate_no_filler.py
 """
@@ -133,12 +137,25 @@ def group_d() -> None:
         check(not sp.filler_faults(text, NAMES), f"passes: '{text[:60]}'")
 
 
+def group_e() -> None:
+    print(f"\n{LINE}\nE. THE BARE FIGURE (W-1.1a item 5)\n{LINE}")
+    bad = "Real Estate added +1.96%."
+    f = sp.filler_faults(bad, NAMES)
+    check(f and bad in f[0], f"withheld, sentence quoted: '{bad}'")
+    for ok in ("Real Estate added 1.96%, the fourth defensive sector to lead.",
+               "Real Estate added 1.96% against a flat index.",
+               "The 10-year rose more than the 2-year.",
+               "Gold rose +2.1% and silver +3.0%."):
+        check(not sp.filler_faults(ok, NAMES), f"passes: '{ok[:60]}'")
+
+
 def main() -> int:
     print(f"{LINE}\nTHE FILLER AUDIT (W-1.1 item 1.0d)\n{LINE}")
     group_a()
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 
