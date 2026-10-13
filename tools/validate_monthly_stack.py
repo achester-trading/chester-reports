@@ -1543,11 +1543,18 @@ def t31_scenarios_themes_group(ed: dict, out: dict) -> None:
     check("Summary to come" in out["html_email"] and "What would change our mind"
           in out["markdown"], "the placeholder prints in the page and the Markdown")
     sl = next(s for s in ed["sections"] if s["id"] == "slow")
-    fam = [ss for ss in sl["subsections"] if ss["title"].startswith("Themes: ")]
+    # A FAMILY BLOCK carries its family; the crypto basket (12 Oct 2026) is a
+    # block inside Themes: digital, not a fifth family.
+    fam = [ss for ss in sl["subsections"] if ss["title"].startswith("Themes: ")
+           and ss.get("family")]
     names = [ss["title"] for ss in fam]
     check(names == ["Themes: digital", "Themes: energy", "Themes: metals",
                     "Themes: real assets"],
           f"item 19: one block per alternative-asset family ({names})")
+    allt = [ss["title"] for ss in sl["subsections"]]
+    check(allt[allt.index("Themes: digital") + 1]
+          == "Themes: digital — the crypto basket",
+          "and the crypto basket's block follows Themes: digital")
     met = next(ss for ss in fam if ss["title"] == "Themes: metals")
     check(met.get("paragraphs") and "block:slow:metals" in out["written"]
           and (met.get("prose") or {}).get("scope", "").startswith("what moved"),
