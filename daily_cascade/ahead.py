@@ -312,7 +312,10 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
              "rows": [[f"{_day(r['date'])}, {r.get('time')}", r["event"], r["tier"],
                        r.get("consensus") or "—", r["why"], r["amplify"]]
                       for r in rows]}
-    top = rows[0] if rows else None
+    # THE PLAYBOOK SLOT (item 3.5): the highest-ranked event whose class has an
+    # outcome map (config `playbook: true`); the rank-1 event when none does.
+    top = next((r for r in rows if (classes.get(r.get("cls") or "") or {})
+                .get("playbook")), rows[0] if rows else None)
     playbook = ({"event": top["event"], "cls": top.get("cls"), "date": top["date"],
                  "time": top.get("time"), "tier": top["tier"],
                  "playbook_class": bool((classes.get(top.get("cls") or "") or {})

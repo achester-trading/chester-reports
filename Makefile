@@ -78,6 +78,7 @@ PY_VALIDATORS := \
 	tools/validate_weekly_storyline.py \
 	tools/validate_weekly_opener.py \
 	tools/validate_weekly_calendar.py \
+	tools/validate_weekly_analytics.py \
 	tools/validate_exposure_edges.py \
 	tools/check_library.py \
 	tools/validate_gates.py
