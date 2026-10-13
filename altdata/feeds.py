@@ -143,6 +143,9 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "fundamentals",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
                     "aaii",
+                    # SR-38 (13 Oct 2026): S&P DJI's EPS workbook, from the
+                    # operator's monthly drop (inbox only)
+                    "spdji",
                     # AQ-3 part 1 (11 Oct 2026), the Quarterly's structure rows:
                     # GLD's archive (inbox; its API host disallows robots), the
                     # iShares gold, silver and bitcoin trusts' share counts, SHFE

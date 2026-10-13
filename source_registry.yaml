@@ -1541,6 +1541,33 @@ sources:
     implemented_by: altdata/sources/shiller.py
     status: live
 
+  spdji:
+    name: S&P Dow Jones Indices -- S&P 500 earnings and estimates (sp-500-eps-est.xlsx)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [valuation]
+    geography: [US]
+    latency: monthly, by the operator's drop
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the workbook's own "as of" cell, at the end of that day in
+      New York (observed, as ruled 13 Oct 2026); retrieved_at, the drop time, is
+      the inbox file's modification time and is stored in spdji.eps_drop.
+    license: >-
+      S&P DJI's public workbook; its host refuses any non-browser client, and a
+      writer never passes for a browser. The operator downloads it in a browser
+      and drops it into Drive (chester-vendor-checks/spdji); the nightly sweep
+      copies it to ~/chester-data/inbox/spdji. Nothing is fetched.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/spdji.py
+    status: built
+    caveats:
+      - >-
+        THE LAYOUT IS DECLARED, NOT SEEN (config/spdji_eps.yaml): written from the
+        workbook's documented layout without a file in hand. A label the drop
+        does not carry fails the read naming the sheet and cell; the first real
+        drop is the acceptance.
+
   worldbank_cmo:
     name: World Bank -- Commodity Price Data (Pink Sheet)
     tier: A1

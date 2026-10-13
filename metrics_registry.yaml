@@ -1261,6 +1261,45 @@ metrics:
     trigger_eligible: false
     description: >-
       Consensus forward EPS for one name, read nightly. REVISED by construction -- a consensus is restated whenever an analyst moves, which is the whole point of logging it daily. NOT SERVED FOR ETFs: no analyst covers a wrapper, so the sector funds and SPY/QQQ/IWM carry no forward estimate and an index-level forward multiple needs a holdings-weighted build this does not do.
+  spdji.op_eps_est_q:
+    source: spdji
+    mechanism_group: consensus_estimate
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      S&P DJI's bottom-up operating EPS estimate for the S&P 500, one quarter per row (instrument = the quarter, "2027Q2"), from the estimates block of sp-500-eps-est.xlsx. One vintage per monthly drop, observed on the workbook's own "as of" date and available at the end of that day in New York; a later drop's estimate for the same quarter is a new row on its own date, never a restatement of this one. Revisions are read across drops (altdata/return_attribution.py). Inbox only: the host refuses non-browser clients.
+  spdji.fwd12m_op_eps:
+    source: spdji
+    mechanism_group: consensus_estimate
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The S&P 500's forward twelve-month bottom-up operating EPS: the sum of the first four estimated quarters ending after the workbook's "as of" date, one row per drop. The quarters summed are in that drop's spdji.eps_drop record.
+  spdji.eps_drop:
+    source: spdji
+    mechanism_group: consensus_estimate
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      One record per drop of sp-500-eps-est.xlsx: file, sha256, as_of (the workbook's cell), retrieved_at (the drop time, the inbox file's modification time carried over from Drive by rclone copyto), the forward quarters and the layout version. Its available_at is retrieved_at: the store has no retrieved_at column, so the drop time lives here.
   index.forward_pe:
     source: yfinance
     mechanism_group: consensus_estimate

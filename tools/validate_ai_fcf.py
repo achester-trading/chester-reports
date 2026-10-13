@@ -15,7 +15,8 @@ line and EY minus the bill. On a synthetic store of its own; no network, no box.
   B  THE ATTRIBUTION (SR-38). ln(P1/P0) = ln(E1/E0) + ln(M1/M0) over twelve
      months of the stored S&P price and trailing earnings: +10% price on +20%
      earnings is a multiple of -8.3%; EY minus the bill at the index's last
-     close; the forward split, EY minus Baa and the AI share named absent.
+     close; the forward split "awaiting the first drop" (group F has the
+     drops); EY minus Baa and the AI share named absent.
   C  THE REVISION LINE (SR-38). The AI names' stored forward EPS, 4- and
      13-week changes and their median, labelled as the names' and not the
      index's; a name without the history is counted, not guessed.
@@ -187,11 +188,14 @@ def main() -> int:
     check(ey and abs(ey["ey_pct"] - 4.8) < 1e-9 and abs(ey["gap_pp"] - 0.8) < 1e-9
           and "Trailing earnings yield 4.80%" in al[1] and "+0.80 percentage points" in al[1],
           "EY minus the bill: 240 / 5000 = 4.80% less the bill's 4.00%, +0.80 pp")
-    check(all(TAG in x for x in al) and "Trailing, not forward" in al[2]
-          and "403" in al[2] and "no Baa yield is stored" in al[2]
-          and "index weights are not stored" in al[2],
-          "every line tagged; the forward split, EY minus Baa and the AI share named "
-          "absent, each with its reason")
+    check(all(TAG in x for x in al)
+          and al[2].startswith("The forward split: awaiting the first drop of S&P "
+                               "DJI's EPS workbook")
+          and "Trailing, not forward" in al[3]
+          and "no Baa yield is stored" in al[3]
+          and "index weights are not stored" in al[3],
+          "every line tagged; the forward split awaits the first drop; EY minus Baa "
+          "and the AI share named absent, each with its reason")
     with observations.ObservationStore(db) as st:
         a0 = ra.attribution(st, "2026-01-15T00:00:00+00:00")
     check(a0["split"] is None and "do not span 12 months" in ra.attribution_lines(a0)[0],

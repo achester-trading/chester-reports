@@ -21,22 +21,31 @@ THE SPLIT. Price = earnings x multiple, exact in logs:
 
 over the 12 months to the latest month the earnings are stored for. TRAILING
 earnings (Shiller's monthly S&P Composite file: the month's average price and the
-trailing twelve-month earnings), LABELLED trailing: the entry's forward split
-needs S&P DJI's forward operating EPS, which no writer can read (the site
-refuses every non-browser client; a writer never passes for a browser), so it is
-named absent rather than substituted. Earnings's share of the return is
-ln(E1/E0) / ln(P1/P0), printed only when the return is large enough to divide
-by.
+trailing twelve-month earnings), LABELLED trailing. Earnings's share of the
+return is ln(E1/E0) / ln(P1/P0), printed only when the return is large enough to
+divide by.
+
+THE FORWARD SPLIT (13 Oct 2026). S&P DJI's forward twelve-month bottom-up
+operating EPS, from the operator's monthly drop of sp-500-eps-est.xlsx
+(altdata/sources/spdji.py; the host refuses non-browser clients, so nothing is
+fetched). The same identity over the stored drops: the latest drop against the
+one nearest twelve months before it -- or, until a drop that old is stored, the
+earliest, with its span printed. One drop prints the forward EPS and the forward
+P/E and says the split needs a second; none prints "awaiting the first drop".
 
 EY MINUS THE BILL. The trailing earnings yield at the S&P 500's last close
 (yfinance ^GSPC) against its latest stored trailing earnings, less the 3-month
 bill (FRED DTB3), in percentage points. EY minus Baa needs a Baa yield, which is
 not stored: named absent.
 
-THE REVISION LINE. The index's forward estimate is the absent S&P DJI series. The
-nine AI names' own consensus is logged nightly (yf.forward_eps), so the line
-prints their 4- and 13-week changes and the median -- labelled as the names', not
-the index's -- and says how much history each window has.
+THE REVISION LINES. The INDEX's line (13 Oct 2026) reads S&P DJI's drops: the
+latest drop's four forward quarters against the SAME four quarters in the drop
+nearest one and three months before -- a revision, not the roll of the window
+onto a later quarter -- and prints "awaiting the first drop" before one exists,
+"revisions need a second" with one. The nine AI names' own consensus is logged
+nightly (yf.forward_eps) and still prints beside it, labelled as the names':
+their 4- and 13-week changes and the median, with how much history each window
+has.
 
 Report-only (batch 4): the revision line is a narrow-flag candidate after a
 quarter of history; nothing here is a trigger or a book rule.
@@ -100,7 +109,140 @@ def attribution(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) ->
                      "bill_day": bill[-1][0], "gap_pp": ey - bill[-1][1]}
     else:
         out["ey_reason"] = "the index close, the trailing earnings or the bill is not stored"
+    out["forward"] = forward(st, cutoff, cfg)
     return out
+
+
+# ---------------------------------------------------------------------------
+# THE FORWARD SERIES -- S&P DJI's drops (altdata/sources/spdji.py)
+# ---------------------------------------------------------------------------
+def _awaiting() -> str:
+    from .sources import spdji                                  # noqa: PLC0415
+    return spdji.AWAITING
+
+
+def forward(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
+    """The forward split from the stored drops, or why it is not read."""
+    cfg = cfg or load_config()
+    f = cfg.get("forward") or {}
+    drops = _pts(st, f.get("forward_key") or "spdji.fwd12m_op_eps", cutoff)
+    if not drops:
+        return {"state": "awaiting", "reason": _awaiting()}
+    idx = _pts(st, (cfg.get("attribution") or {}).get("index_key")
+               or "yfinance.mkt_gspc", cutoff)
+
+    def close_on(day: str) -> Optional[tuple[str, float]]:
+        got = [x for x in idx if x[0] <= day]
+        return got[-1] if got else None
+    end_day, e1 = drops[-1]
+    out: dict[str, Any] = {"state": "one_drop", "drops": len(drops), "end": end_day,
+                           "eps_end": e1}
+    p1 = close_on(end_day)
+    if p1 and e1 > 0:
+        out.update({"index_end": p1[1], "index_end_day": p1[0], "pe_end": p1[1] / e1})
+    if len(drops) < 2:
+        return out
+    # The start: the drop nearest twelve months before the latest; until one is
+    # that old, the earliest, and the line prints the span it covers.
+    months = int(f.get("months") or 12)
+    target = _months_back(end_day[:8] + "01", months)
+    older = drops[:-1]
+    full = any(d[0][:7] <= target[:7] for d in older)
+    start = (min(older, key=lambda d: abs((dt.date.fromisoformat(d[0])
+                                           - dt.date.fromisoformat(target)).days))
+             if full else older[0])
+    p0 = close_on(start[0])
+    out.update({"state": "split" if (p0 and p1) else "no_index", "start": start[0],
+                "eps_start": start[1], "full_year": full,
+                "span_days": (dt.date.fromisoformat(end_day)
+                              - dt.date.fromisoformat(start[0])).days})
+    if p0 and p1 and start[1] > 0 and e1 > 0:
+        lp, le = math.log(p1[1] / p0[1]), math.log(e1 / start[1])
+        out.update({"price_pct": 100 * (math.exp(lp) - 1),
+                    "earnings_pct": 100 * (math.exp(le) - 1),
+                    "multiple_pct": 100 * (math.exp(lp - le) - 1),
+                    "pe_start": p0[1] / start[1]})
+    else:
+        out["state"] = "no_index"
+    return out
+
+
+def forward_line(fw: dict, tag: str) -> str:
+    if fw["state"] == "awaiting":
+        return f"The forward split: {fw['reason']} {tag}."
+    head = (f"S&P 500 forward twelve-month operating EPS (S&P DJI, bottom-up, as of "
+            f"{fw['end']}): ${fw['eps_end']:.2f}")
+    if fw.get("pe_end"):
+        head += (f", a forward P/E of {fw['pe_end']:.1f} at the "
+                 f"{fw['index_end_day']} close")
+    if fw["state"] == "one_drop":
+        return f"{head}; the forward split needs a second drop {tag}."
+    if fw["state"] == "no_index":
+        return (f"{head}; the forward split is not read: no S&P 500 close is stored "
+                f"on or before {fw['start']} {tag}.")
+    span = ("12 months" if fw["full_year"] else
+            f"{fw['span_days']} days (the stored drops' span, not yet twelve months)")
+    return (f"{head}. Over {span} from the {fw['start']} drop: price "
+            f"{fw['price_pct']:+.1f}%, of which forward earnings "
+            f"{fw['earnings_pct']:+.1f}% and the forward multiple "
+            f"{fw['multiple_pct']:+.1f}% (forward P/E {fw['pe_start']:.1f} to "
+            f"{fw['pe_end']:.1f}) {tag}.")
+
+
+def index_revisions(st, cutoff: Optional[str] = None,
+                    cfg: Optional[dict] = None) -> dict:
+    """The latest drop's four forward quarters against the same four quarters in
+    an earlier drop, per window -- a revision, never the window's roll."""
+    import json as _json                                        # noqa: PLC0415
+    cfg = cfg or load_config()
+    f = cfg.get("forward") or {}
+    recs = [(str(r["observed_at"])[:10], r.get("value_text"))
+            for r in st.as_of(f.get("drop_key") or "spdji.eps_drop", cutoff)]
+    recs = [x for x in recs if x[1]]
+    if not recs:
+        return {"state": "awaiting", "reason": _awaiting(), "windows": {}}
+    end_day, rec = recs[-1]
+    four = _json.loads(rec).get("forward_quarters") or []
+    qkey = f.get("quarter_key") or "spdji.op_eps_est_q"
+    by_q = {q: dict(_pts(st, qkey, cutoff, q)) for q in four}
+    now = [by_q[q].get(end_day) for q in four]
+    level = sum(now) if four and all(v is not None for v in now) else None
+    out: dict[str, Any] = {"state": "one_drop" if len(recs) < 2 else "read",
+                           "end": end_day, "quarters": four, "windows": {},
+                           "level": level}
+    if len(recs) < 2:
+        return out
+    days = [d for d, _ in recs[:-1]]
+    for lab, n in (f.get("revision_windows_days")
+                   or {"1-month": 28, "3-month": 91}).items():
+        ref = (dt.date.fromisoformat(end_day) - dt.timedelta(days=int(n))).isoformat()
+        base = [d for d in days if d <= ref]
+        if not base:
+            out["windows"][lab] = {"pct": None, "why": "no drop that old"}
+            continue
+        then = [by_q[q].get(base[-1]) for q in four]
+        if level is None or any(v is None for v in then) or not sum(then):
+            out["windows"][lab] = {"pct": None, "since": base[-1],
+                                   "why": f"the {base[-1]} drop lacks one of the "
+                                          f"four quarters"}
+            continue
+        out["windows"][lab] = {"pct": 100.0 * (level / sum(then) - 1),
+                               "since": base[-1]}
+    return out
+
+
+def index_revision_line(ix: dict, tag: str) -> str:
+    if ix["state"] == "awaiting":
+        return f"S&P 500 forward-EPS revisions: {ix['reason']} {tag}."
+    qs = f"{ix['quarters'][0]} to {ix['quarters'][-1]}" if ix["quarters"] else "—"
+    head = (f"S&P 500 forward-EPS revisions (S&P DJI, bottom-up, the four quarters "
+            f"{qs}, as of {ix['end']})")
+    if ix["state"] == "one_drop":
+        return f"{head}: the first drop; revisions need a second {tag}."
+    parts = [f"{lab} {w['pct']:+.1f}% (since the {w['since']} drop)"
+             if w.get("pct") is not None else f"{lab} not read ({w['why']})"
+             for lab, w in ix["windows"].items()]
+    return f"{head}: " + "; ".join(parts) + f" {tag}."
 
 
 def _month_name(m: str) -> str:
@@ -130,10 +272,14 @@ def attribution_lines(a: dict) -> list[str]:
                    f"percentage points {tag}.")
     else:
         out.append(f"Earnings yield less the bill is not read: {a.get('ey_reason')}.")
+    fw = a.get("forward") or {"state": "awaiting", "reason": _awaiting()}
+    out.append(forward_line(fw, tag))
     ab = a.get("absent") or {}
-    out.append("Trailing, not forward. Not available: "
-               + "; ".join(ab[k] for k in ("forward_eps", "ey_minus_baa", "ai_share")
-                           if ab.get(k)) + ".")
+    out.append(("Trailing, not forward. " if fw["state"] == "awaiting" else
+                "The twelve-month split above is trailing. ")
+               + "Not available: "
+               + "; ".join(ab[k] for k in ("ey_minus_baa", "ai_share") if ab.get(k))
+               + ".")
     return tagged(out, tag)
 
 
@@ -162,8 +308,7 @@ def revisions(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) -> d
     have = {lab: sum(1 for n in names if n.get(lab) is not None) for lab in wins}
     return {"names": names, "median": med, "covered": have, "of": len(names),
             "windows": list(wins), "tag": cfg.get("tag") or "",
-            "absent": ((cfg.get("attribution") or {}).get("absent") or {})
-            .get("forward_eps")}
+            "index": index_revisions(st, cutoff, cfg)}
 
 
 def revision_line(v: dict) -> str:
@@ -196,17 +341,30 @@ def data(a: dict, v: Optional[dict] = None) -> dict:
            "multiple_pct": None if not s else round(s["multiple_pct"], 1),
            "ey_minus_bill_pp": None if not y else round(y["gap_pp"], 2),
            "tag": a["tag"]}
+    fw = a.get("forward") or {}
+    out["forward_eps"] = None if fw.get("eps_end") is None else round(fw["eps_end"], 2)
+    out["forward_pe"] = None if fw.get("pe_end") is None else round(fw["pe_end"], 1)
+    if fw.get("state") == "split":
+        out["forward_split"] = {k: round(fw[k], 1) for k in
+                                ("price_pct", "earnings_pct", "multiple_pct")}
     if v:
         out["revision_median"] = {k: None if m is None else round(m, 1)
                                   for k, m in v["median"].items()}
+        out["index_revision"] = index_revision_data(v)
     return out
+
+
+def index_revision_data(v: dict) -> dict:
+    return {lab: None if w.get("pct") is None else round(w["pct"], 1)
+            for lab, w in ((v.get("index") or {}).get("windows") or {}).items()}
 
 
 def _main() -> int:
     from . import observations                                  # noqa: PLC0415
     with observations.ObservationStore() as st:
         a, v = attribution(st), revisions(st)
-    for ln in attribution_lines(a) + [revision_line(v)]:
+    for ln in attribution_lines(a) + [index_revision_line(v["index"], v["tag"]),
+                                      revision_line(v)]:
         print(ln.encode("ascii", "replace").decode())
     return 0
 

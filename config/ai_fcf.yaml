@@ -45,9 +45,18 @@ attribution:
   bill_key: fred.tbill_3m
   # Sources the entry names that the store does not hold, each with its reason.
   absent:
-    forward_eps: "S&P Dow Jones Indices' EPS-estimates spreadsheet (forward operating EPS): the site answers any non-browser client with a 403, and a writer never passes for a browser"
     ey_minus_baa: "EY minus Baa: no Baa yield is stored (the GTM valuation quad is not built here)"
     ai_share: "the AI complex's share of the index return: index weights are not stored, and eight of the nine names' closes are not in the price basket"
+
+# THE FORWARD SERIES (13 Oct 2026): S&P DJI's sp-500-eps-est.xlsx, read from the
+# operator's monthly drop (altdata/sources/spdji.py) -- the forward split and the
+# index's revision line, "awaiting the first drop" until one is stored.
+forward:
+  forward_key: spdji.fwd12m_op_eps
+  quarter_key: spdji.op_eps_est_q
+  drop_key: spdji.eps_drop
+  months: 12
+  revision_windows_days: {"1-month": 28, "3-month": 91}
 
 revision:
   # The index's forward-EPS revision line needs the S&P DJI forward estimate
