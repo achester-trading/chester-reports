@@ -72,6 +72,7 @@ PY_VALIDATORS := \
 	tools/validate_figure_budget.py \
 	tools/validate_no_filler.py \
 	tools/validate_edition_consistency.py \
+	tools/validate_audit_fixes.py \
 	tools/validate_weekly_integrity.py \
 	tools/validate_monthly_frames.py \
 	tools/validate_weekly_storyline.py \

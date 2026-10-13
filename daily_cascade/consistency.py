@@ -124,6 +124,108 @@ def reconcile(ed: dict, fix: bool = True, fail: bool = True) -> list[dict]:
     return log
 
 
+# ONE INSTRUMENT, SEVERAL SERIES IDS (W-1.1a item 6, the Weekly dry run of 12
+# Oct). The tape printed the 10-year at 5.244% (the 5-minute feed's ^TNX, 9 Oct)
+# and Plumbing's chart caption 5.28% (FRED's DGS10, 7 Oct): one instrument, two
+# series, two dates, and nothing told the reader which was which. Each instrument
+# names the series ids that print it. At ONE date the figures must agree within
+# the gate's tolerance (one unit in the coarser figure's last decimal), else the
+# run fails; at DIFFERENT dates they are not compared, and a chart caption must
+# carry its source and date ("10-year 5.28% (FRED, 7 Oct)").
+ALIASES: dict[str, tuple[str, ...]] = {
+    "y2": ("y2", "fred.yield_2y"),
+    "y10": ("y10", "yfinance.mkt_tnx", "fred.yield_10y"),
+    "y30": ("y30", "yfinance.mkt_tyx", "fred.yield_30y"),
+    "hy_oas": ("hy_oas", "fred.hy_oas"),
+}
+
+
+# THE TOLERANCE BETWEEN TWO SERIES OF ONE INSTRUMENT, in the level's own unit
+# (percentage points). Two series of one instrument are two measurements -- the
+# CBOE's ^TNX at its close, FRED's constant-maturity DGS10 from the Fed's H.15 --
+# and on one date they differ by a basis point or two without either being
+# wrong; one unit of the printed precision would fail the run on that. Three
+# basis points is the line: a 4 bp gap fails (the W-1.1a fixture).
+ALIAS_TOLERANCE: dict[str, float] = {"y2": 0.03, "y10": 0.03, "y30": 0.03,
+                                     "hy_oas": 0.03}
+
+
+def instrument_of(series: str) -> Optional[str]:
+    s = str(series or "")
+    return next((i for i, ids in ALIASES.items() if s in ids), None)
+
+
+def level_cells(ed: dict, charts: Optional[dict] = None) -> list[dict]:
+    """Every level the edition prints for an aliased instrument: the tables'
+    tagged `level` facts and the charts' declared `levels`."""
+    out = []
+    for key, cells in collect(ed).items():
+        series, as_of, measure = (key.split("|") + ["", ""])[:3]
+        inst = instrument_of(series)
+        if measure != "level" or not inst:
+            continue
+        for c in cells:
+            out.append({"instrument": inst, "series": series, "as_of": as_of,
+                        "value": c["value"], "printed": c["printed"],
+                        "where": c["where"], "caption": None})
+    for cid, ch in (charts or {}).items():
+        for lv in ch.get("levels") or []:
+            inst = instrument_of(lv.get("series"))
+            if not inst:
+                continue
+            out.append({"instrument": inst, "series": lv["series"],
+                        "as_of": str(lv.get("as_of") or "")[:10],
+                        "value": float(lv["value"]), "printed": str(lv["printed"]),
+                        "where": f"chart {cid}", "caption": ch.get("caption") or "",
+                        "source": lv.get("source")})
+    return out
+
+
+def reconcile_aliases(ed: dict, charts: Optional[dict] = None,
+                      fail: bool = True) -> list[dict]:
+    """Compare one instrument's levels across its series ids: at one date
+    within tolerance, else EditionInconsistent (when `fail`); at different dates
+    not compared, and a chart's caption must name its source and date. The log
+    is added to `ed["consistency"]`."""
+    log, bad = [], []
+    cells = level_cells(ed, charts)
+    for inst in sorted({c["instrument"] for c in cells}):
+        mine = [c for c in cells if c["instrument"] == inst]
+        for c in mine:
+            if c["caption"] is not None and c["as_of"] and not (
+                    c.get("source") and f"({c['source']}, " in c["caption"]):
+                e = {"key": f"{inst}|{c['as_of']}|level", "verdict": "undated",
+                     "cells": [{"where": c["where"], "printed": c["printed"]}],
+                     "note": "a chart caption must carry its source and date"}
+                log.append(e)
+                bad.append(e)
+        for day in sorted({c["as_of"] for c in mine}):
+            same = [c for c in mine if c["as_of"] == day]
+            if len({c["series"] for c in same}) < 2:
+                continue
+            tol = max(10.0 ** -min(_decimals(c["printed"]) for c in same),
+                      ALIAS_TOLERANCE.get(inst, 0.0))
+            spread = max(c["value"] for c in same) - min(c["value"] for c in same)
+            verdict = "rounding" if spread <= tol + 1e-9 else "beyond"
+            if spread == 0:
+                continue
+            e = {"key": f"{inst}|{day}|level", "verdict": verdict,
+                 "cells": [{"where": c["where"], "printed": c["printed"]} for c in same]}
+            log.append(e)
+            if verdict == "beyond":
+                bad.append(e)
+        days = sorted({c["as_of"] for c in mine})
+        if len(days) > 1:
+            log.append({"key": f"{inst}|level", "verdict": "different dates",
+                        "note": "not compared; each prints its own date",
+                        "cells": [{"where": c["where"], "printed": c["printed"],
+                                   "as_of": c["as_of"]} for c in mine]})
+    ed["consistency"] = list(ed.get("consistency") or []) + log
+    if bad and fail:
+        raise EditionInconsistent(bad)
+    return log
+
+
 def check(ed: dict) -> list[dict]:
     """Report-only: the log, nothing rewritten, nothing raised."""
     return reconcile(ed, fix=False, fail=False)
