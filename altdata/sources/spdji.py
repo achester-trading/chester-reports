@@ -26,8 +26,10 @@ WHAT IT WRITES -- one vintage per drop, every row observed on the workbook's own
   spdji.eps_drop        the drop's record (text): file, sha256, as_of,
                         retrieved_at, the four quarters, the layout version
 
-THE CLOCKS. available_at is the workbook's own "as of" cell, at the end of that
-day in New York (availability_kind `observed`: the source's own date, as ruled).
+THE CLOCKS. available_at is the workbook's own "as of" date PLUS ONE BUSINESS
+DAY (the next NYSE session), at the end of that day in New York, with
+availability_kind `reconstructed` (ruled 13 Oct 2026): S&P DJI posts the
+workbook a day or more after its as-of close, so the rule is stated, not read.
 retrieved_at -- the drop time -- is the inbox file's modification time, which the
 sweep's `rclone copyto` carries over from Drive, i.e. when the file was dropped.
 The store has no retrieved_at column, so it is recorded in spdji.eps_drop, whose
@@ -44,6 +46,11 @@ documented layout without a file in hand. Every label is required; a missing
 label, or a cell that is not what its label says, raises LayoutError naming the
 sheet and the cell or range -- the writer goes STALE with that reason. It never
 guesses a column. The first real drop is the acceptance.
+
+BEFORE THE FIRST DROP IT IS PENDING (ruled 13 Oct 2026): no file and no drop
+stored is a clean, empty run (_publication.PENDING), and the 08:30 heartbeat
+lists the three keys under pending, "no file yet". Once a drop is stored, a
+missing file is STALE again.
 
 The xlsx is read with the standard library (zipfile and ElementTree): xlrd 2.x
 reads only .xls, and a reader this small is not worth a dependency on the box.
@@ -317,21 +324,34 @@ def parse(data: bytes, lay: Optional[dict] = None) -> dict:
             "layout_version": lay.get("version")}
 
 
-def available_at(as_of: str) -> str:
-    """The end of the as-of day in New York, as UTC."""
+def posted_on(as_of: str) -> dt.date:
+    """The as-of date plus one business day: the next NYSE session after it."""
+    from altdata import session                                # noqa: PLC0415
     d = dt.date.fromisoformat(as_of)
-    return (dt.datetime.combine(d, dt.time(23, 59, 59), NY)
+    for _ in range(10):
+        d += dt.timedelta(days=1)
+        if session.is_trading_session(d):
+            return d
+    raise RuntimeError(f"no business day in the 10 days after {as_of}")
+
+
+def available_at(as_of: str) -> str:
+    """The end of the as-of date PLUS ONE BUSINESS DAY in New York, as UTC
+    (ruled 13 Oct 2026): S&P DJI posts the workbook a day or more after its
+    as-of close, so the as-of evening would see a figure not yet public."""
+    return (dt.datetime.combine(posted_on(as_of), dt.time(23, 59, 59), NY)
             .astimezone(dt.timezone.utc).isoformat(timespec="microseconds"))
 
 
 def rows(parsed: dict, retrieved_at: str, file_name: str, sha256: str) -> list[dict]:
     av, day = available_at(parsed["as_of"]), parsed["as_of"]
     out = [{"registry_key": QUARTER_KEY, "instrument": q, "observed_at": day,
-            "available_at": av, "value": eps, "availability_kind": "observed"}
+            "available_at": av, "value": eps,
+            "availability_kind": "reconstructed"}
            for q, _, eps in parsed["quarters"]]
     out.append({"registry_key": FORWARD_KEY, "instrument": None, "observed_at": day,
                 "available_at": av, "value": round(parsed["forward"]["eps"], 6),
-                "availability_kind": "observed"})
+                "availability_kind": "reconstructed"})
     out.append({"registry_key": DROP_KEY, "instrument": None, "observed_at": day,
                 "available_at": retrieved_at, "availability_kind": "ingest_instant",
                 "value": json.dumps({"file": file_name, "sha256": sha256,
@@ -362,7 +382,29 @@ def _produce() -> list[dict]:
     return read_drop(p)
 
 
+def ever_dropped(db=None) -> bool:
+    """Is any drop stored? A store that cannot be read answers True, so the
+    writer falls back to STALE rather than hiding a fault as pending."""
+    from altdata import observations                           # noqa: PLC0415
+    own = db is None
+    try:
+        store = db or observations.ObservationStore()
+        try:
+            return pub.newest_observed(store, [DROP_KEY])[DROP_KEY] is not None
+        finally:
+            if own:
+                store.close()
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("%s: could not read the store for its drops: %s", SOURCE, exc)
+        return True
+
+
 def pull(run_id: Optional[str] = None, db=None) -> dict:
+    """PENDING before the first drop (ruled 13 Oct 2026): no file and nothing
+    stored is a clean, empty run, "no file yet". After a drop, a missing file or
+    a layout fault is STALE, as before."""
+    if not inbox_path().is_file() and not ever_dropped(db):
+        return pub.pending(SOURCE, AWAITING, run_id=run_id)
     return pub.run(SOURCE, KEYS, _produce, run_id=run_id, db=db)
 
 

@@ -291,6 +291,12 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 # own cadence x the multiple) has passed since its first attempt, after which it
 # is STALE ("no row in N sessions of clean pulls"). A family that records no
 # outcomes (prices, FRED, the loggers) keeps the rule above.
+#
+# NEVER YET DROPPED IS PENDING (13 Oct 2026, ruled for SR-38). An inbox writer
+# whose file has never arrived returns PENDING, not STALE (_publication.PENDING),
+# and its keys are recorded as `awaiting`: listed pending ("no file yet"), with
+# no allowance running, until the first drop writes them. AAII keeps its STALE
+# precedent; this is the rule for a source never yet dropped.
 ATTEMPTED_FILE = "feeds_attempted.json"
 
 
@@ -316,7 +322,8 @@ def read_attempted() -> Optional[dict]:
 
 
 def read_attempt_outcomes() -> dict:
-    """{family: {"first": {key: iso}, "failed": {key: reason}, "outcomes": bool}}
+    """{family: {"first": {key: iso}, "failed": {key: reason},
+    "awaiting": {key: reason}, "outcomes": bool}}
     for the families that record outcomes; {} when nothing is recorded."""
     import json
     try:
@@ -325,6 +332,7 @@ def read_attempt_outcomes() -> dict:
         return {}
     return {k: {"first": dict((v or {}).get("first") or {}),
                 "failed": dict((v or {}).get("failed") or {}),
+                "awaiting": dict((v or {}).get("awaiting") or {}),
                 "outcomes": bool((v or {}).get("outcomes"))}
             for k, v in d.items() if isinstance(v, dict)}
 
@@ -334,7 +342,7 @@ def writer_failures(mods: list, out: dict) -> dict:
     failed: dict[str, str] = {}
     for name, mod in mods:
         r = out.get(name) or {}
-        if r.get("status") == "OK":
+        if r.get("status") in ("OK", "PENDING"):
             continue
         why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
         for k in _keys([(name, mod)]):
@@ -342,8 +350,24 @@ def writer_failures(mods: list, out: dict) -> dict:
     return failed
 
 
+def writer_awaiting(mods: list, out: dict) -> dict:
+    """{key: reason} for every key of a writer whose pull returned PENDING: a
+    source never yet dropped (13 Oct 2026). Its keys stay pending, with no
+    allowance running, until the first drop writes them."""
+    awaiting: dict[str, str] = {}
+    for name, mod in mods:
+        r = out.get(name) or {}
+        if r.get("status") != "PENDING":
+            continue
+        why = f"{name}: {r.get('reason') or 'never yet dropped'}"
+        for k in _keys([(name, mod)]):
+            awaiting[k] = why[:160]
+    return awaiting
+
+
 def record_attempted(family: str, keys: list[str], merge: bool = False,
-                     failed: Optional[dict] = None) -> None:
+                     failed: Optional[dict] = None,
+                     awaiting: Optional[dict] = None) -> None:
     """Merge one family's attempted keys into the file. Never raises: a pull that
     wrote its rows must not fail on its bookkeeping.
 
@@ -375,7 +399,12 @@ def record_attempted(family: str, keys: list[str], merge: bool = False,
             for k in keys:
                 old.pop(k, None)
             old.update(failed)
-            entry.update({"outcomes": True, "first": first, "failed": old})
+            wait = dict(was.get("awaiting") or {}) if merge else {}
+            for k in keys:
+                wait.pop(k, None)
+            wait.update(awaiting or {})
+            entry.update({"outcomes": True, "first": first, "failed": old,
+                          "awaiting": wait})
         cur[family] = entry
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
@@ -444,7 +473,8 @@ def pull_official(run_id: Optional[str] = None,
     mods = _official_modules() if names is None else _writer_modules(names)
     out = _pull_writers(mods, run_id)
     record_attempted("official", _keys(mods), merge=names is not None,
-                     failed=writer_failures(mods, out))
+                     failed=writer_failures(mods, out),
+                     awaiting=writer_awaiting(mods, out))
     return out
 
 
@@ -452,12 +482,14 @@ def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
     mods = _writer_modules(EXTERNAL_WRITERS)
     out = _pull_writers(mods, run_id)
-    record_attempted("external", _keys(mods), failed=writer_failures(mods, out))
+    record_attempted("external", _keys(mods), failed=writer_failures(mods, out),
+                     awaiting=writer_awaiting(mods, out))
     return out
 
 
 def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
-    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": []}
+    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": [],
+                           "pending": []}
     for name, mod in mods:
         out["ran"].append(name)
         out["total"] += 1
@@ -474,7 +506,9 @@ def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
                  "written": 0}
         out[name] = r
         out["written"] += int(r.get("written") or 0)
-        if r.get("status") != "OK":
+        if r.get("status") == "PENDING":
+            out["pending"].append(name)
+        elif r.get("status") != "OK":
             out["stale"].append(name)
     return out
 
@@ -689,6 +723,12 @@ def freshness(as_of: Optional[str] = None,
                         elif k in oc["failed"]:
                             stale.append(k)
                             detail[k] = f"never written; the writer failed ({oc['failed'][k]})"
+                        elif k in oc.get("awaiting", {}):
+                            # NEVER YET DROPPED (13 Oct 2026): a clean, empty
+                            # run. Pending, with no allowance running, until the
+                            # first drop writes the key.
+                            pending.append(k)
+                            pdetail[k] = f"no file yet ({oc['awaiting'][k]})"
                         else:
                             # THE WRITER RAN CLEANLY: the source has not
                             # published it. Pending while its next release is

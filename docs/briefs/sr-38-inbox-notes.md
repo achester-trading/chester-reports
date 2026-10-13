@@ -19,7 +19,7 @@ Branch `sr-38-inbox`, from `origin/sr-37-38-ai-fcf` at `2e8cfb4`. It answers SR-
 | `spdji.eps_drop` | the drop's record: file, sha256, as_of, `retrieved_at`, the four quarters, the layout version |
 
 **The clocks.**
-- **`available_at`** is the as-of cell, taken as the end of that day in New York, with availability kind `observed` (the source's own date, as ruled).
+- **`available_at`** was first the as-of cell at the end of that day in New York, kind `observed`. **Since the 13 Oct ruling** it is the as-of date plus one business day, kind `reconstructed` (see below).
 - **`retrieved_at`** is the drop time: the inbox file's modification time, which `rclone copyto` carries over from Drive.
 - **The store has no `retrieved_at` column,** so `retrieved_at` is kept in `spdji.eps_drop`. That record's own `available_at` is the drop time. `ingested_at` stays the write instant.
 
@@ -123,6 +123,52 @@ It either prints the as-of date, the quarters and the forward four, or names the
 ## Needs you
 
 1. **Merge order:** SR-37/38, then this branch, inside the windows. yes / no
-2. **The heartbeat before the first drop.** Until a file is dropped, the writer is STALE ("awaiting the first drop", the AAII precedent), so the 08:30 heartbeat names the three `spdji.*` keys stale. Accept it until the first drop, or make "no file yet" a clean empty run (PENDING)? accept / pending
-3. **`available_at` = the as-of date** (ruled). Keep it, or add a declared one-business-day latency for posting (`reconstructed`)? keep / latency
+2. **The heartbeat before the first drop.** Until a file is dropped, the writer is STALE ("awaiting the first drop", the AAII precedent), so the 08:30 heartbeat names the three `spdji.*` keys stale. Accept it until the first drop, or make "no file yet" a clean empty run (PENDING)? **Ruled 13 Oct: pending** (see the rulings below).
+3. **`available_at` = the as-of date** (ruled). Keep it, or add a declared one-business-day latency for posting (`reconstructed`)? **Ruled 13 Oct: latency** (see the rulings below).
 4. **The layout's labels** (`config/spdji_eps.yaml`) are written from the workbook's documented layout, not from a file. The first drop's `--check` confirms or corrects them. ok
+
+## The 13 Oct rulings (Needs you 2 and 3)
+
+Both rulings are on the same branch, in a follow-up commit. **Needs you 2 is ruled "pending"** and **Needs you 3 is ruled "latency"**.
+
+**1. Before the first drop, the three `spdji.*` series are PENDING, not STALE.**
+
+- **A new writer status.** `altdata/sources/_publication.py` gains `PENDING` and `pending()`: a clean, empty run that writes nothing.
+- **When the reader uses it.** `spdji.pull` returns it only when there is no file *and* no drop is stored (`ever_dropped`).
+- **What stays STALE:**
+  - a file that was dropped and later went missing;
+  - a layout fault;
+  - an unreadable store, which reads as "dropped", so a fault is never hidden as pending.
+- **The heartbeat.** `altdata/feeds.py` records such a writer's keys as `awaiting`, beside `failed`, in `feeds_attempted.json`.
+  - The freshness roster lists them under pending as "no file yet (spdji: awaiting the first drop …)".
+  - No staleness allowance runs, so they stay pending until the first drop writes them.
+  - The external pull's summary counts the writer under `pending`, not `stale`.
+- **AAII is unchanged.** Its no-file run is still STALE, which the gate checks. The new rule covers only a source never yet dropped.
+
+**2. `available_at` is the as-of date plus one business day, flagged `reconstructed`.**
+
+- **The rule.** `spdji.posted_on` takes the next NYSE session after the as-of date (`session.is_trading_session`). The row is available at the end of that day in New York.
+  - A Friday as-of is available Monday.
+  - Over Thanksgiving and Christmas, it is the next session.
+- **The flag.** The quarterly and forward rows carry `availability_kind: reconstructed`. That is permitted because both series have `revision_policy: never`.
+- **The registry.** Both entries in `metrics_registry.yaml` state the rule.
+- **`retrieved_at` is unchanged.** It is still the drop time, in `spdji.eps_drop`, whose own `available_at` is that drop time.
+- **What a backtest sees.** A cutoff on the as-of evening no longer sees that drop; one at the end of the next business day does.
+
+**Fixtures** (`tools/validate_sr38_inbox.py`, now 53/0):
+
+- **Group C.**
+  - The clock: 30 Sep (a Wednesday) becomes `2026-10-02T03:59:59Z`. 9 Oct (a Friday) becomes Monday 12 Oct. 25 Nov becomes 27 Nov, and 24 Dec becomes 28 Dec.
+  - The kind is `reconstructed`.
+  - With no file and an empty store, the writer is PENDING and writes nothing. With a drop stored and then no file, it is STALE.
+- **Group D.** The as-of evening sees one drop, and the next business day's evening sees two.
+- **Group F (new).** The external pull and the freshness roster before the first drop:
+  - the three keys are pending, "no file yet", none stale, and the verdict names them pending;
+  - they are still pending when the first attempt is backdated by more than a year;
+  - a layout fault is stale and names cell C12;
+  - the first drop makes all three fresh;
+  - a STALE writer (AAII's case) is failed and never awaiting.
+
+**Changed:** `altdata/sources/_publication.py`, `altdata/feeds.py`, `altdata/sources/spdji.py`, `metrics_registry.yaml`, `tools/validate_sr38_inbox.py`, and `tools/validate_official_sources.py`. That gate's generic outage check now expects PENDING from spdji, the never-dropped case; it is still 251/0. The gate count is unchanged.
+
+**Gates re-run:** sr38_inbox 53, official_sources 251, feeds_scheduled 19, ai_fcf 27, prices 81 (the `reconstructed` policy), gates 31, aq3_series 73, weekly_stack 68, backup 64, check_registry OK.

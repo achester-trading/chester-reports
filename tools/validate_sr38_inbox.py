@@ -18,16 +18,23 @@ The first real drop is the acceptance.
      header split over two rows, no markers, no basis, an EPS cell that is not a
      number, fewer than four forward quarters, not an xlsx.
   C  THE ROWS AND THE CLOCKS. Every row observed on the as-of date; available_at
-     the end of that day in New York (`observed`); the drop record carries
-     retrieved_at, the file's modification time, as its available_at. The
-     writer writes through the publication runner; with no file it is STALE
-     with "awaiting the first drop".
+     the as-of date plus one business day (the next NYSE session, over a
+     weekend and a holiday), at the end of that day in New York, kind
+     `reconstructed` (ruled 13 Oct 2026); the drop record carries retrieved_at,
+     the file's modification time, as its available_at. The writer writes
+     through the publication runner. With no file and no drop stored it is
+     PENDING, a clean empty run; once a drop is stored, a missing file is STALE.
   D  THE PRINTED LINES. Before a drop, "awaiting the first drop" in the
      Monthly's attribution and the Weekly's revision block; one drop, the
      forward EPS and P/E and "needs a second"; two drops, the forward split
      over their span and the index revision on the SAME four quarters.
   E  WIRING. A registered external writer; its keys and source registered;
      the module fetches nothing; the sweep brings the file in.
+  F  THE HEARTBEAT BEFORE THE FIRST DROP (ruled 13 Oct 2026). Through the
+     external pull and the freshness roster: the three keys are pending, "no
+     file yet", not stale, and stay pending past any allowance; a layout fault
+     is still stale; the first drop makes them fresh. AAII's STALE precedent
+     is untouched.
 
     python tools/validate_sr38_inbox.py
 """
@@ -284,12 +291,19 @@ def group_c() -> None:
     check(set(by) == set(spdji.KEYS) and len(by[spdji.QUARTER_KEY]) == 6,
           "one row a quarter, the forward sum, and the drop record")
     av = spdji.available_at("2026-09-30")
-    check(av == "2026-10-01T03:59:59.000000+00:00"
+    check(av == "2026-10-02T03:59:59.000000+00:00"
           and all(r["observed_at"] == "2026-09-30" and r["available_at"] == av
-                  and r["availability_kind"] == "observed"
+                  and r["availability_kind"] == "reconstructed"
                   for r in by[spdji.QUARTER_KEY] + by[spdji.FORWARD_KEY]),
-          f"every figure observed on the as-of date, available at the end of it in "
-          f"New York ({av}), kind observed")
+          f"every figure observed on the as-of date (Wed 30 Sep), available at the "
+          f"end of the next business day in New York ({av}), kind reconstructed")
+    check(spdji.posted_on("2026-10-09") == dt.date(2026, 10, 12)
+          and spdji.posted_on("2026-11-25") == dt.date(2026, 11, 27)
+          and spdji.posted_on("2026-12-24") == dt.date(2026, 12, 28),
+          "plus one BUSINESS day: a Friday as-of is Monday's; over Thanksgiving "
+          "and Christmas, the next session")
+    check(spdji.available_at("2026-10-09") == "2026-10-13T03:59:59.000000+00:00",
+          "a Friday as-of is available at the end of Monday in New York")
     rec = by[spdji.DROP_KEY][0]
     meta = json.loads(rec["value"])
     check(rec["available_at"] == meta["retrieved_at"]
@@ -299,6 +313,17 @@ def group_c() -> None:
           and meta["forward_quarters"] == ["2026Q4", "2027Q1", "2027Q2", "2027Q3"],
           "the drop record: retrieved_at is the file's modification time (the drop), "
           "and its own available_at")
+    os.environ[spdji.FILE_VAR] = str(Path(_TMP) / "absent.xlsx")
+    empty = store("c_empty")
+    try:
+        w = spdji.pull(run_id="gate0", db=empty)
+        n = empty.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+        check(w.get("status") == "PENDING" and w.get("written") == 0
+              and "awaiting the first drop" in (w.get("reason") or "") and n == 0,
+              f"no file and no drop stored: PENDING, a clean empty run that writes "
+              f"nothing ({w.get('status')})")
+    finally:
+        empty.close()
     os.environ[spdji.FILE_VAR] = str(p)
     db = store("c")
     try:
@@ -310,9 +335,10 @@ def group_c() -> None:
         check(again.get("written") == 0, "the same drop read twice writes nothing")
         os.environ[spdji.FILE_VAR] = str(Path(_TMP) / "absent.xlsx")
         none = spdji.pull(run_id="gate3", db=db)
-        check(none.get("status") != "OK"
+        check(none.get("status") == "STALE"
               and "awaiting the first drop" in json.dumps(none),
-              f"no file: STALE, 'awaiting the first drop' ({none.get('status')})")
+              f"a drop stored, then no file: STALE, not pending "
+              f"({none.get('status')})")
         bad = drop_file("c_bad", synthetic_workbook(cells={"C12": "n/a"}),
                         "2026-10-03T14:05:00+00:00")
         os.environ[spdji.FILE_VAR] = str(bad)
@@ -416,6 +442,12 @@ def group_d() -> None:
         check(old["forward"]["state"] == "one_drop"
               and old["forward"]["end"] == "2026-08-31",
               "as of a cutoff before the second drop's as-of day, one drop is seen")
+        eve = ra.attribution(db, "2026-10-01T03:30:00+00:00")
+        nxt = ra.attribution(db, "2026-10-02T04:30:00+00:00")
+        check(eve["forward"]["state"] == "one_drop"
+              and nxt["forward"]["state"] == "split",
+              "the as-of evening does not see the 30 Sep drop; the evening of the "
+              "next business day does")
     finally:
         db.close()
 
@@ -451,9 +483,88 @@ def group_e() -> None:
           "the layout is declared in config/spdji_eps.yaml")
 
 
+def group_f() -> None:
+    head("F. THE HEARTBEAT BEFORE THE FIRST DROP")
+    from altdata import feeds
+    names = ("CHESTER_STATE_DIR", spdji.FILE_VAR)
+    saved = (feeds.EXTERNAL_WRITERS, {k: os.environ.get(k) for k in names},
+             observations.DEFAULT_DB)
+    sd = Path(_TMP) / "f_state"
+    sd.mkdir(exist_ok=True)
+    # The store's default path is read at import, so the writer's store is set
+    # there: the writer and the roster both open the default.
+    observations.DEFAULT_DB = os.path.join(_TMP, "f.sqlite")
+    os.environ["CHESTER_STATE_DIR"] = str(sd)
+    os.environ[spdji.FILE_VAR] = str(Path(_TMP) / "absent.xlsx")
+    feeds.EXTERNAL_WRITERS = ("spdji",)
+
+    def roster() -> dict:
+        db = observations.ObservationStore()
+        try:
+            return feeds.freshness(as_of="2026-10-13T12:30:00+00:00",
+                                   store=db)["feeds"]["external"]
+        finally:
+            db.close()
+
+    try:
+        out = feeds.pull_external(run_id="gate_f")
+        check(out["pending"] == ["spdji"] and out["stale"] == [],
+              "the external pull counts the never-dropped writer pending, not stale")
+        f = roster()
+        check(sorted(f["pending_keys"]) == sorted(spdji.KEYS)
+              and not f["stale_keys"] and f["ok"]
+              and all(f["pending_detail"][k].startswith(
+                  "no file yet (spdji: awaiting the first drop") for k in spdji.KEYS),
+              f"the 08:30 heartbeat lists the three keys under pending, 'no file "
+              f"yet', and none stale (stale {f['stale_keys']})")
+        lines = [ln for ln in feeds.named_keys({"feeds": {"external": f}})
+                 if "spdji." in ln]
+        check(len(lines) == 3 and all(ln.startswith("pending external spdji.")
+                                      for ln in lines),
+              "and the verdict names them as pending")
+        att = sd / feeds.ATTEMPTED_FILE
+        d = json.loads(att.read_text(encoding="utf-8"))
+        d["external"]["first"] = {k: "2025-01-02T00:00:00+00:00" for k in spdji.KEYS}
+        att.write_text(json.dumps(d), encoding="utf-8")
+        f = roster()
+        check(sorted(f["pending_keys"]) == sorted(spdji.KEYS) and not f["stale_keys"],
+              "no allowance runs: first tried over a year ago, still pending until "
+              "the first drop")
+        bad = drop_file("f_bad", synthetic_workbook(cells={"C12": "n/a"}),
+                        "2026-10-03T14:05:00+00:00")
+        os.environ[spdji.FILE_VAR] = str(bad)
+        out = feeds.pull_external(run_id="gate_f2")
+        f = roster()
+        check(out["stale"] == ["spdji"]
+              and sorted(f["stale_keys"]) == sorted(spdji.KEYS)
+              and "cell C12" in f["stale_detail"][spdji.FORWARD_KEY],
+              "a file that will not parse is a fault: stale, naming the cell")
+        good = drop_file("f_good", synthetic_workbook(),
+                         "2026-10-03T14:05:00+00:00")
+        os.environ[spdji.FILE_VAR] = str(good)
+        out = feeds.pull_external(run_id="gate_f3")
+        f = roster()
+        check(out["stale"] == [] and out["pending"] == []
+              and not f["pending_keys"] and not f["stale_keys"]
+              and f["fresh"] == len(spdji.KEYS),
+              f"the first drop: the three keys are fresh ({f['fresh']})")
+        st = {"aaii": {"status": "STALE", "reason": "no file"}}
+        check(feeds.writer_awaiting([("aaii", None)], st) == {}
+              and feeds.writer_failures([("aaii", None)], st),
+              "AAII's precedent is untouched: a STALE writer is failed, never awaiting")
+    finally:
+        feeds.EXTERNAL_WRITERS = saved[0]
+        observations.DEFAULT_DB = saved[2]
+        for k, v in saved[1].items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 def main() -> int:
     print(f"{LINE}\nSR-38: S&P DJI'S EPS WORKBOOK, FROM THE INBOX (SYNTHETIC FIXTURE)\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
