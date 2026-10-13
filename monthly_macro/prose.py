@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from altdata import observations, session
+from daily_cascade import readability
 
 from .narrative import TEMPLATE_PATH
 
@@ -898,10 +899,26 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
            # T3.5 (b): the Weekly's filler ban (W-1.1 item 1.0d), on every
            # Monthly frame -- section, block and summary.
            + sp.filler_faults(text, sp.filler_names(sec.get("slice"))))
+    # THE DIRECTION AUDIT AND THE STANCE CHECK (W-1.1b), as stack_prose.write
+    # runs them for the Weekly and the close: a direction word is held to the
+    # sign of the change the section prints in its month column, and "bullish on
+    # inflation" is refused. Withheld on the same messages.
+    out += direction_faults(text, sec, ed) + readability.stance_faults(text)
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])
     return out
+
+
+def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
+    """daily_cascade.direction's audit over one Monthly frame: the moves its
+    section prints (a block's and a summary's are its parent section's), read
+    from the month column -- every section's for a frame over the whole edition."""
+    from daily_cascade import direction                         # noqa: PLC0415
+    if not ed:
+        return []
+    return direction.faults(text, direction.edition_moves(
+        ed, sec.get("sid"), MONTH_COLUMN))
 
 
 # Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
@@ -1015,7 +1032,10 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             lists = list_lines(r.text) if published else []
             jargon = internal_terms(r.text) if published else []
             tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
-                    if (published and stack) else [])
+                    if (published and stack) else
+                    # A v2 section has no edition to hold directions to; the
+                    # stance check needs none.
+                    readability.stance_faults(r.text) if published else [])
             # A count's or a small thousands change's own display form is
             # accepted (T3.4a): "+42,984" contracts, "+29,000" payrolls.
             accepted = na.accepted_deltas([sec.get("slice"),
@@ -1045,10 +1065,16 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 reason = (f"withheld: a change of 10,000 or more printed without its "
                           f"unit or scale ({', '.join(bare[:3])}) -- copy its "
                           f"change_display or latest_level_display verbatim")
+            # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1b, the Weekly's W-1.1a
+            # item 4): "fell -3 bp" prints "fell 3 bp", after every audit, and
+            # the rewrite is counted.
+            text, n_unsigned = (readability.unsign_after_verbs(r.text)
+                                if published else (None, 0))
             return {
                 "title": sec["title"], "state": state, "published": published,
-                "text": r.text if published else None, "reason": reason,
-                "words": words(r.text) if published else 0,
+                "text": text, "reason": reason,
+                "unsigned_rewrites": n_unsigned,
+                "words": words(text) if published else 0,
                 # Kept for inspection, never printed: the operator can see what a
                 # withheld section said and why the audit stopped it.
                 "rejected_text": None if published else (

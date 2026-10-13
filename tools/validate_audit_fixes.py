@@ -32,6 +32,11 @@ no network, no model:
      the run-5 10-year figures (5.244% on 9 Oct, 5.28% on 7 Oct) pass as
      different dates, the same date with a 4 bp gap fails, and a chart caption
      without its source fails.
+  G  THE MONTHLY'S PROSE PATH (W-1.1b). monthly_macro/prose.py runs the
+     direction audit, the stance check and the sign rewrite as stack_prose.write
+     does: a Monthly paragraph saying "the dollar softened" against DXY +0.27%
+     is withheld on the Weekly's message and retried; "bullish on inflation" is
+     withheld, in a stack frame and a v2 section; "fell -3 bp" prints "fell 3 bp".
 
     python tools/validate_audit_fixes.py
 """
@@ -379,9 +384,103 @@ def group_f() -> None:
     check("(FRED, {v[-1][0]})" in src, "W3's caption names FRED beside each yield's date")
 
 
+# ---------------------------------------------------------------------------
+# G. THE MONTHLY'S PROSE PATH (W-1.1b)
+# ---------------------------------------------------------------------------
+def run_monthly(sections: list, drafts: list, kind: str = "stack") -> tuple:
+    """monthly_macro.prose.write_all over one frame of the first section, with
+    the model replaced by `drafts` in order; no store, no network, no model."""
+    from daily_cascade import narrative as base
+    from monthly_macro import prose as mp
+    seen: list = []
+    real, real_states = base.generate, mp._market_states
+
+    def fake(payload, **kw):
+        seen.append(kw.get("system_prompt") or "")
+        return Reply(drafts[min(len(seen) - 1, len(drafts) - 1)])
+    base.generate, mp._market_states = fake, (lambda p: None)
+    try:
+        ed = {"month": "September 2026", "sections": sections}
+        s = sections[0]
+        sec = {"key": f"stack:{s['id']}", "title": s["title"], "kind": kind,
+               "sid": s["id"], "system": "fixture frame", "slice": {},
+               "max_chars": 4000, "scope": "", "paragraphs": "2"}
+        out = mp.write_all({}, client=object(), ed=ed, secs=[sec])
+    finally:
+        base.generate, mp._market_states = real, real_states
+    return out[sec["key"]], seen
+
+
+def monthly_plumbing() -> dict:
+    from monthly_macro import prose as mp
+    mv = FIX["direction"]["moves"]
+    rows = [[n, "—", v[1], DAY] for n, v in mv.items()]
+    return {"id": "plumbing", "title": "Plumbing & rates", "depth": "deep", "items": [],
+            "table": {"columns": ["Series", "Level", mp.MONTH_COLUMN, "As of"],
+                      "rows": rows},
+            "subsections": [], "data": {}}
+
+
+def group_g() -> None:
+    print(f"\n{LINE}\nG. THE MONTHLY'S PROSE PATH (W-1.1b)\n{LINE}")
+    from monthly_macro import prose as mp
+    d, r = FIX["direction"], FIX["readability"]
+    sec = monthly_plumbing()
+    moves = direction.edition_moves({"sections": [sec]}, "plumbing", mp.MONTH_COLUMN)
+    check(moves.get("DXY", (None,))[0] == 0.27 and len(moves) == 4,
+          f"the Monthly's moves are read from its month column "
+          f"({mp.MONTH_COLUMN!r}: {sorted(moves)})")
+    # 1. A paragraph that fails the direction audit: withheld on the Weekly's
+    # message, retried with it, and the corrected draft prints.
+    res, seen = run_monthly([sec], [d["plumbing_paragraph"], d["firmed_paragraph"]])
+    check(res.get("attempts") == 2 and res.get("published")
+          and d["expected_fault"] in (seen[1] if len(seen) > 1 else ""),
+          f"a Monthly paragraph saying 'the dollar softened' against DXY +0.27% is "
+          f"withheld on the same message, and the retry hears it "
+          f"({res.get('attempts')} attempts)")
+    res, _ = run_monthly([sec], [d["plumbing_paragraph"]])
+    check(not res.get("published") and res.get("state") == "tape_rules"
+          and res.get("attempts") == mp.ATTEMPTS and res.get("text") is None
+          and d["expected_fault"] in str(res.get("reason")),
+          f"a draft that fails every attempt is withheld, nothing printed "
+          f"({res.get('attempts')} attempts)")
+    # 2. "Bullish on inflation", in a stack frame and in a v2 section.
+    stance_para = r["stance"] + " The dollar firmed against the euro."
+    res, seen = run_monthly([sec], [stance_para, "Desks expect inflation to stay "
+                                                 "above target as the curve repriced."])
+    check(res.get("attempts") == 2 and res.get("published")
+          and "bullish on inflation" in (seen[1] if len(seen) > 1 else "")
+          and "stay above target" in str(res.get("text")),
+          "'bullish on inflation' is withheld and the retry writes what is expected")
+    res, _ = run_monthly([sec], [stance_para], kind="v2")
+    check(not res.get("published")
+          and "'bullish on inflation' -- a stance on a macro variable"
+          in str(res.get("reason")),
+          "a v2 section is held to the stance check too")
+    # 3. "fell -3 bp" prints "fell 3 bp", after the audits, counted.
+    three = {"2-year": (-3, "-3 bp", "bp"), "Real Estate": (3.36, "+3.36%", "%"),
+             "CCC OAS": (37, "+37 bp", "bp")}
+    sec3 = {**sec, "table": {"columns": ["Series", "Level", mp.MONTH_COLUMN, "As of"],
+                             "rows": [[n, "—", v[1], DAY] for n, v in three.items()]}}
+    res, _ = run_monthly([sec3], [r["signed_after_verbs"]])
+    check(res.get("published") and res.get("text") == r["unsigned"]
+          and res.get("unsigned_rewrites") == r["rewrites"],
+          f"'fell -3 bp' prints 'fell 3 bp' and the rewrites are counted "
+          f"({res.get('unsigned_rewrites')}): {str(res.get('text'))[:50]}")
+    res, _ = run_monthly([sec3], [r["signed_after_verbs"]], kind="v2")
+    check(res.get("published") and res.get("text") == r["unsigned"],
+          "a v2 section's signs are rewritten the same way")
+    # Every Monthly frame that has a section is held to its moves: a block's and
+    # a summary's are their parent section's.
+    blk = {"sid": "plumbing", "key": "block:plumbing:x"}
+    check(mp.direction_faults("The dollar softened.", blk, {"sections": [sec]})
+          and not mp.direction_faults("The dollar softened.", blk, {}),
+          "a block frame reads its parent section's moves; no edition, no audit")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
