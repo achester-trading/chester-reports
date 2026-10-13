@@ -219,3 +219,56 @@ The backfill adds the reconstructed vintages behind them.
 4. **EDGAR's 27 new names:** accept the wider filings scan / hold EDGAR at the
    old list (a second list, which `edgar.universe()`'s docstring argues
    against).
+
+## Second rulings (13 Oct 2026, evening)
+
+Two rulings on this branch's needs-you list, built in one commit on top of
+`d69ea1d`.
+
+**1. The Volatility dial: `elevated` is Rising.** The object's `elevated` (VIX
+20–30) now maps to the Doctrine's Rising, at 0.75, and shorts open there.
+`normal` stays Normal. The Doctrine's "and climbing" leg is deferred to
+Doctrine #2, a config v1.13 bump to the object. Until then, Rising is read on
+the level alone.
+
+- `config/book_b_scanner.yaml`: `vol_map` `elevated: Rising`, with the ruling
+  in the comment.
+- Fixtures, in `validate_book_b_scanner` group H:
+  - VIX 17 is `normal`, reads Normal, opens no shorts and takes no 0.75
+    (unchanged, still passing);
+  - VIX 24 is `elevated`, reads Rising, and XLY's breakdown stands as a short
+    at "0.56% of capital at risk (0.75% × 0.75: Volatility Rising 0.75)".
+
+**One reading to confirm.** The ruling says "anything above `elevated` stays
+Stressed (0.5)". The object has one state above `elevated`, `crisis` (VIX 30 and
+over), and it maps to **Crisis**, not Stressed: the card's 0.0, which closes
+Book B. "Stays" reads as no change, so I left `crisis → Crisis` as built, and
+the gate holds it. If you meant `crisis → Stressed` (Book B open at 0.5 above
+VIX 30), it is a one-word change to `vol_map`. Say so and I will make it.
+
+**2. The flip zone refuses at the gate, and is still graded.**
+
+- `config/book_b_scanner.yaml` gains `regime.refuse_timing: [Flip-zone]`.
+- `altdata/book_b_scanner.timing_refusal()` runs after `gate()`. So only a
+  candidate that passes every other gate is refused here, with the card's
+  words: "the Gamma dial's Flip-zone: “No new entries” (the regime card,
+  Doctrine 5.2)".
+- The refused entry carries `graded: True` and its score.
+- `book_b_scanner.graded(run)` is the standing candidates plus those refusals.
+  The Weekly's ledger write (`weekly_stack`) now records `graded(run)`, so each
+  such refusal is a forecast, resolved like any other.
+- The Book B block's refusal note prints the reason, card's words included.
+- Fixture: under Expansion, Calm, Flip-zone, no candidate stands. GLD, the long
+  that passes every other gate, is refused with the card's words. It is written
+  to the ledger, and resolves 1 when the next week's closes cross +1R.
+
+**Gates run:**
+
+| Gate | Result |
+|---|---|
+| `validate_book_b_scanner` | 62/0 |
+| `validate_weekly_calendar` | 40/0 |
+| `validate_weekly_stack`, `validate_weekly`, `validate_weekly_complete`, `validate_config_refs`, `validate_gates` | pass |
+
+Needs you 1 and 2 above are answered by these rulings. Needs you 3 (the
+backfills) and 4 (EDGAR) stand.

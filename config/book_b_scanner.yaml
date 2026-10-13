@@ -175,10 +175,12 @@ regime:
   # mid-twenties to thirties, Crisis above). The object's bands are 14 / 20 / 30.
   # RULED 13 Oct 2026 (scanner follow-up 3): the object's `normal` (VIX 14-20) is
   # the Doctrine's Normal, not Rising -- an ordinary VIX opens no shorts and
-  # takes no 0.75. The object's level bands carry no "climbing" leg, so no
-  # object state reads as Rising today; Rising stays in the lists below for the
-  # day one does.
-  vol_map: {subdued: Calm, normal: Normal, elevated: Stressed, crisis: Crisis}
+  # takes no 0.75. RULED 13 Oct 2026 (second ruling): the object's `elevated`
+  # (VIX 20-30) is the Doctrine's Rising -- shorts open there, at 0.75. The
+  # Doctrine's "and climbing" leg is deferred to Doctrine #2 (a config v1.13
+  # bump to the object); until then Rising is read on the level alone.
+  # `crisis` (VIX 30 and over) keeps its map to Crisis, which closes Book B.
+  vol_map: {subdued: Calm, normal: Normal, elevated: Rising, crisis: Crisis}
   gamma_map: {positive: Positive, flat: Flip-zone, negative: Negative}
   # Shorts only in these (Doctrine 4.2), or a Volatility dial at Rising or worse.
   short_macro: [Overheat, Tightening, Contraction]
@@ -196,6 +198,10 @@ regime:
     Positive: "Breakouts distrusted — wait for the retest; adds on confirmation only"
     Flip-zone: "No new entries"
     Negative: "Breakouts trusted; pyramiding permitted on confirmation"
+  # THE FLIP ZONE REFUSES AT THE GATE (ruled 13 Oct 2026): a candidate that
+  # passes every other gate under these timing states goes to the refused list
+  # with the card's words, and is still written to the ledger and graded.
+  refuse_timing: [Flip-zone]
   # Regime alignment, the score's fourth component, by Doctrine regime and
   # direction (the Macro card's Book B column). Session-set.
   alignment:

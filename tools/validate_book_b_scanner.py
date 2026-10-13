@@ -235,6 +235,71 @@ def group_h(cfg: dict, res: dict, db: str, cut: str) -> None:
           and bbs.multiplier({"vol": "Rising"}, cfg)[0] == 0.75,
           "shorts open and the 0.75 applies at the dial's Rising or worse")
 
+    # SECOND RULING, 1: A VIX OF 24. The object's `elevated` is the Doctrine's
+    # Rising: shorts open, at 0.75. Read back the same way as the 17.
+    st24 = vol_state_at(24.0)
+    rdb24 = str(Path(gate_tmp.mkdtemp("bbs_vix24_")) / "obs.db")
+    with observations.ObservationStore(rdb24) as st:
+        for d in sessions()[-15:]:
+            obj = {"object": "market_state", "session": d,
+                   "computed_at": f"{d}T20:50:00+00:00",
+                   "dials": {"macro": {"state": "expansion"},
+                             "vol": {"state": st24, "level": 24.0},
+                             "gamma": {"state": "positive"}},
+                   "dimensions": {}, "contradictions": []}
+            st.write(regime.STORE_KEY, None, d, obj["computed_at"], json.dumps(obj),
+                     source="derived_state")
+        reg24 = bbs.regime_read(st, cut, cfg)
+    check(st24 == "elevated" and reg24["vol"] == "Rising"
+          and cfg["regime"]["vol_map"].get("crisis") == "Crisis",
+          f"a VIX of 24 is the object's `{st24}` and reads as the Doctrine's Rising; "
+          f"`crisis` stays Crisis ({reg24})")
+    r24 = bbs.scan(ENDING, db, cutoff=cut, regime=reg24, cfg=cfg)
+    xly24 = {(c["instrument"], c["direction"]): c for c in r24["candidates"]}.get(
+        ("XLY", "short"))
+    check(bbs.short_permitted(reg24, cfg)[0] and xly24
+          and xly24["size"].startswith("0.56% of capital at risk "
+                                       "(0.75% × 0.75: Volatility Rising 0.75)"),
+          f"a VIX of 24 opens shorts at 0.75: XLY's breakdown stands "
+          f"({xly24 and xly24['size'][:70]})")
+
+    # SECOND RULING, 2: THE FLIP ZONE REFUSES AT THE GATE, AND IS GRADED.
+    import shutil                                               # noqa: PLC0415
+    from altdata import probability_ledger as pl                # noqa: PLC0415
+    flip = {"macro": "Expansion", "vol": "Calm", "gamma": "Flip-zone"}
+    rf = bbs.scan(ENDING, db, cutoff=cut, regime=flip, cfg=cfg)
+    fr = [r for r in rf["refused"] if r.get("graded")]
+    # (By now the store carries C's top signal, so a long needs two; GLD is
+    # the long that passes every other gate.)
+    xf = next((r for r in fr if r["instrument"] == "GLD"), None)
+    check(not rf["candidates"] and xf and xf["refused"]
+          == "the Gamma dial's Flip-zone: “No new entries” (the regime card, "
+             "Doctrine 5.2)" and xf["score"] is not None,
+          f"the flip zone: no candidate stands; GLD goes to the refused list with "
+          f"the card's words ({xf and xf['refused']})")
+    subs, _ = book_b.subsections(rf["candidates"], book_b.sitting_flow(
+        ENDING, None, rf["candidates"], [], rows=[]), rf)
+    check(any("No new entries" in n for n in subs[0]["notes"]),
+          "the block's refusal note carries the card's words")
+    fdb = str(Path(gate_tmp.mkdtemp("bbs_flip_")) / "store.db")
+    shutil.copyfile(db, fdb)
+    # The next week's closes: GLD rises through +1R.
+    with observations.ObservationStore(fdb) as st:
+        st.write_many([{"registry_key": xf["key"], "instrument": None,
+                        "observed_at": d, "available_at": d + "T20:20:00+00:00",
+                        "value": xf["entry"] + 1.2 * xf["risk"], "source": "yfinance"}
+                       for d in ("2026-10-12", "2026-10-13")])
+    fid = bbs.record_forecasts(bbs.graded(rf), ENDING, ENDING + "T23:30:00+00:00",
+                               fdb, dry_run=False)
+    fg = bbs.grade(fdb, "2026-10-16", None, dry_run=False)
+    with pl.ProbabilityLedger(fdb) as led:
+        live = [r for r in led.all_rows() if r["source"] == bbs.source_name(False)]
+    check(len(fid) == len(fr) >= 1 and len(live) == len(fr)
+          and any("GLD long" in r["claim"] for r in live)
+          and any("GLD long" in g["claim"] and g["outcome"] == 1 for g in fg),
+          f"and it is still written to the ledger and graded: GLD's +1R first "
+          f"resolves 1 ({len(fid)} written, {len(fg)} graded)")
+
     # 5. RISK_USD BY CODE.
     cap = 300000.0
     allc = res["candidates"] + r17["candidates"]

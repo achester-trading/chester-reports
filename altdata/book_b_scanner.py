@@ -863,6 +863,26 @@ def gate(c: dict, ctx: dict, cfg: dict) -> Optional[str]:
     return None
 
 
+def timing_refusal(c: dict, cfg: dict) -> Optional[str]:
+    """The card's timing as a gate (ruled 13 Oct 2026): None when the Gamma
+    dial's state allows an entry; else the refusal, in the card's words. Read
+    after gate(), so only a candidate that would otherwise stand is refused
+    here -- and that one is still written to the ledger and graded."""
+    rg = cfg.get("regime") or {}
+    st = c.get("entry_timing_state")
+    if st and st in (rg.get("refuse_timing") or []):
+        return (f"the Gamma dial's {st}: “{c.get('entry_timing')}” "
+                f"(the regime card, Doctrine 5.2)")
+    return None
+
+
+def graded(res: dict) -> list[dict]:
+    """Every candidate the ledger grades: the standing ones and those refused
+    on the card's timing alone."""
+    return list(res.get("candidates") or []) + [
+        r for r in res.get("refused") or [] if r.get("graded")]
+
+
 # ---------------------------------------------------------------------------
 # The run
 # ---------------------------------------------------------------------------
@@ -922,6 +942,10 @@ def scan(ending: str, db_path: Optional[str] = None, *, cutoff: Optional[str] = 
                 refused.append({**c, "refused": why})
                 continue
             c["score"] = score(c["components"], cfg)
+            why = timing_refusal(c, cfg)
+            if why:
+                refused.append({**c, "refused": why, "graded": True})
+                continue
             cands.append(c)
     cands.sort(key=lambda c: (-c["score"], c["instrument"], c["direction"]))
     for n, c in enumerate(cands, start=1):
