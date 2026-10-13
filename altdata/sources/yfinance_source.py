@@ -220,6 +220,30 @@ SPLIT_SUFFIX = "_split"
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
                                                 "EURUSD=X"})
 
+
+# THE CRYPTO BASKET (the crypto basket brief, 12 Oct 2026; config/crypto_basket.yaml).
+# Twelve long-shot names, each read at the Yahoo symbol the config RESOLVED -- not
+# the bare `-USD` pair, which is a different coin for SKY, AERO and PRL and absent
+# for TAO, MORPHO, UNI and VVV. A SEPARATE BASKET, not members of SYMBOLS: nothing
+# that walks the market basket (the tape, breadth, betas, the routine pull) takes
+# them on; `pull_crypto_basket()` is their only writer. Keys are
+# `yfinance.crypto_<sym>`. They trade every day, so they are continuous.
+def _crypto_basket() -> dict[str, str]:
+    try:
+        import yaml  # noqa: PLC0415
+        from pathlib import Path  # noqa: PLC0415
+        p = Path(__file__).resolve().parents[2] / "config" / "crypto_basket.yaml"
+        names = (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("names") or {}
+    except Exception:                                         # noqa: BLE001
+        return {}
+    return {n["yahoo"]: f"crypto_{sym.lower()}" for sym, n in names.items()
+            if n.get("yahoo")}
+
+
+CRYPTO_BASKET: dict[str, str] = _crypto_basket()
+CRYPTO_BASKET_KEYS: list[str] = list(CRYPTO_BASKET.values())
+CONTINUOUS_SYMBOLS = CONTINUOUS_SYMBOLS | frozenset(CRYPTO_BASKET)
+
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside
 # it as `yfinance.<key>_open` / `_high` / `_low`, so the tape's daily frames and
@@ -239,6 +263,21 @@ def ohlc_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
     keep = set(keep_days)
     return [(suf, [(d, v) for d, v in parsed.get(suf.strip("_") + "s") or []
                    if d in keep]) for suf in OHLC_SUFFIXES]
+
+
+# THE CRYPTO BASKET'S DAILY VOLUME (12 Oct 2026), for MW-7's turnover test:
+# volume over market cap. Yahoo quotes a crypto pair's volume in the pair's
+# currency, USD here. Stored only for the basket -- the market basket's volume is
+# shares, which nothing reads.
+VOLUME_SUFFIX = "_volume"
+
+
+def volume_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
+    if symbol not in CRYPTO_BASKET:
+        return []
+    keep = set(keep_days)
+    return [(VOLUME_SUFFIX, [(d, v) for d, v in parsed.get("volumes") or []
+                             if d in keep])]
 
 
 def is_session_date(day: str) -> bool:
@@ -345,6 +384,7 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     dividends: list[tuple[str, float]] = []
     splits: list[tuple[str, float]] = []
     ohlc: dict[str, list] = {"opens": [], "highs": [], "lows": []}
+    volumes: list[tuple[str, float]] = []
     for r in rows:
         day = str(r.get("Date") or r.get("date") or "")[:10]
         if not day:
@@ -356,6 +396,9 @@ def parse_rows(rows: Iterable[dict]) -> dict:
             v = _f(r.get(col))
             if v is not None:
                 ohlc[k].append((day, v))
+        vol = _f(r.get("Volume"))
+        if vol is not None:
+            volumes.append((day, vol))
         div = _f(r.get("Dividends"))
         if div:                                   # non-zero and not None
             dividends.append((day, div))
@@ -367,7 +410,16 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     dividends.sort()
     splits.sort()
     return {"closes": closes, "dividends": dividends, "splits": splits,
+            "volumes": sorted(volumes),
             **{k: sorted(v) for k, v in ohlc.items()}}
+
+
+def pull_crypto_basket(period: Optional[str] = None,
+                       run_id: Optional[str] = None) -> dict:
+    """The crypto basket's daily closes (CRYPTO_BASKET) into the observation
+    store only -- the CSV store is the Monthly's FRED-era copy and carries no
+    crypto. `period="max"` is the backfill."""
+    return pull(store=None, symbols=CRYPTO_BASKET, period=period, run_id=run_id)
 
 
 def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
@@ -388,7 +440,8 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     rows = []
     for idx, row in df.iterrows():
         d = {"Date": idx.date().isoformat()}
-        for col in ("Open", "High", "Low", "Close", "Dividends", "Stock Splits"):
+        for col in ("Open", "High", "Low", "Close", "Volume", "Dividends",
+                    "Stock Splits"):
             if col in df.columns:
                 d[col] = row.get(col)
         rows.append(d)
@@ -439,7 +492,9 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
                 for suffix, events in ((DIVIDEND_SUFFIX, parsed["dividends"]),
                                        (SPLIT_SUFFIX, parsed["splits"]),
                                        *ohlc_series(symbol, parsed,
-                                                    [d for d, _ in closes])):
+                                                    [d for d, _ in closes]),
+                                       *volume_series(symbol, parsed,
+                                                      [d for d, _ in closes])):
                     rows += [{"registry_key": f"yfinance.{key}{suffix}",
                               "instrument": None, "observed_at": d,
                               "available_at": now, "value": v,

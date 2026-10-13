@@ -395,8 +395,12 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"},
-          f"the exemption is a declared set (BTC-USD and the three FX pairs), not "
+    # The crypto basket (12 Oct 2026) adds exactly the twelve Yahoo symbols its
+    # config resolved -- declared there, reviewed in that file's diff.
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"}
+          | set(yf_src.CRYPTO_BASKET) and len(yf_src.CRYPTO_BASKET) == 12,
+          f"the exemption is a declared set (BTC-USD, the three FX pairs and the "
+          f"twelve crypto-basket symbols config/crypto_basket.yaml resolved), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
