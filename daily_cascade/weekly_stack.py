@@ -1273,6 +1273,22 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz),
         }
+        # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
+        # sections, and ONE read-path line in What doesn't fit only when
+        # something happened to a basket name -- silence otherwise.
+        try:
+            from altdata import crypto_basket                   # noqa: PLC0415
+            cb = crypto_basket.weekly_block(st, ending[:10], now)
+        except Exception:                                       # noqa: BLE001
+            log.warning("crypto basket unavailable", exc_info=True)
+            cb = None
+        if cb:
+            built["misfit"].setdefault("data", {})["crypto_basket_events"] = [
+                {k: e.get(k) for k in ("kind", "name", "date", "text", "z")}
+                for e in cb["events"]]
+            if cb["line"]:
+                built["misfit"]["items"].append(
+                    item("misfit:crypto_basket", cb["line"], 2, cb["line"]))
         try:
             annotate_moves(built, st, now, cfg=cfg)
         except Exception:                                       # noqa: BLE001
@@ -1303,6 +1319,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
           "prior_session": (prior or {}).get("week_ending"),
           "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly"),
           "glossary_extra": wsec.unvalidated_glossary(classes)}
+    if cb:
+        ed["detail"] = list(ed.get("detail") or []) + [cb["detail"]]
     return ed, extras
 
 

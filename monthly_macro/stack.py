@@ -1364,6 +1364,21 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                                 "long-run average and percentile, naming the "
                                 "window as the table does -- and the takeaway"}
                       if frows else None)})
+    # THE CRYPTO BASKET (12 Oct 2026): Themes: digital gains the basket block,
+    # right after the classics' rows, which are unchanged -- the twelve names at
+    # the month's resolution with dilution, and a status line per name from its
+    # falsifier (altdata/crypto_basket.py). Read from the store; nothing computed
+    # here.
+    if st is not None and now:
+        try:
+            from altdata import crypto_basket as cbk             # noqa: PLC0415
+            blk = cbk.monthly_block(st, now)
+            at = next((i for i, s in enumerate(fam_subs)
+                       if s.get("family") == "digital"), len(fam_subs) - 1)
+            fam_subs.insert(at + 1, blk)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("crypto basket unavailable", exc_info=True)
+            alt_nt.append(f"the crypto basket: FAULT {type(exc).__name__}")
     subs = [{"title": "Valuation",
              "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
              "notes": ([f"Long-run average over the store's full history and "
