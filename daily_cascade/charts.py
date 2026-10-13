@@ -529,9 +529,12 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
             drawn[f"hy_{span}"] = len(pp)
         fig.tight_layout()
         out = _finish(fig, name, out_dir)
-        last = "; ".join(f"{k} {v[-1][1]:.2f}% ({v[-1][0]})" for k, v in yields.items() if v)
+        # SOURCE AND DATE ON EVERY LEVEL (W-1.1a item 6): the tape prints the
+        # 5-minute feed's yield and this chart FRED's, often a day or two apart.
+        last = "; ".join(f"{k} {v[-1][1]:.2f}% (FRED, {v[-1][0]})"
+                         for k, v in yields.items() if v)
         cap = ("Treasury yields and high-yield OAS, one year and ten years; " + last
-               + (f"; HY OAS {hy[-1][1]:.2f}% ({hy[-1][0]})" if hy else ""))
+               + (f"; HY OAS {hy[-1][1]:.2f}% (FRED, {hy[-1][0]})" if hy else ""))
         return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W3", "unavailable": f"{type(exc).__name__}: {exc}"}
