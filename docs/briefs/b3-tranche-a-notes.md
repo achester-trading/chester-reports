@@ -231,3 +231,63 @@ The EM, China and Thailand seeds are left out; they are the operator's.
      the two new columns.
 5. **Audit #4 (14–15 Oct)** verifies the crisis level and places the register
    numbers. The register entries here use decision 1's numbering, as ruled.
+
+## Rulings of 13 Oct 2026 (evening): SR-30
+
+Two rulings on Needs you 1 and 2, built in one commit on top of `087e29d`.
+
+**3. The watch case is 151 bp.** The fixture's watch case is now 151 bp. The
+cases read, by the tier rule as set:
+
+| Case | Tier |
+|---|---|
+| 149 bp | below the 150 line |
+| 151 bp | watch |
+| 154.0 bp (the stored November 2011 peak) | crisis |
+| 96.7 bp | none |
+
+**4. The block prints its series' own label, and no tiers.**
+
+- The rows read "OAT-Bund, ECB monthly average" and "BTP-Bund, ECB monthly
+  average".
+- The table carries level, change, both percentiles and the as-of. It has no
+  Tier column and no watch or crisis line.
+- The Monthly's crisis sentence does not print.
+- The table note says why: the tiers sit on a daily weekly close, which no free
+  official source publishes yet. The "(descriptive; unvalidated, n=0)" tag
+  stays in the note.
+- The lines stay in config for the daily series: watch 150, crisis 154.0. A new
+  switch, `eu_stress.tiers_live: false`, turns them on. Wiring them is after
+  Audit #4, once a Banque de France Webstat key is on the box. At that point
+  the crisis line has to be reset on the daily series.
+
+Built in:
+
+- `config/batch3_tranche_a.yaml`: `tiers_live` and `series_labels`.
+- `altdata/batch3.eu_stress`: the labels from config, and `tier` reads
+  `untiered` while `tiers_live` is off.
+- `daily_cascade/batch3_block.eu_subsection`: the Tier column, the flag line
+  and the note's tier text, only when live.
+- The SR-30 entry in `docs/signal-triage-register.md` carries a one-line
+  amendment saying the same.
+
+**Gate.** `validate_batch3_a` group B now checks, on every case:
+
+- the tier rule as set (`batch3.tier_of`);
+- that nothing tier-shaped prints;
+- that the crisis sentence is absent.
+
+On the 151 bp case it checks the label, the six columns and the note. With
+`tiers_live` switched on in the gate's own config, it also checks that 151 bp
+prints WATCH and that the crisis case prints its sentence, so the wiring is
+ready for the daily series.
+
+| Gate | Result |
+|---|---|
+| `validate_batch3_a` | 60/0 |
+| `validate_monthly_stack`, `validate_stack_cadence`, `validate_weekly_stack` | pass |
+| `validate_no_filler` | 14/0 |
+| `validate_readability`, `validate_numeral_audit`, `validate_config_refs` | pass |
+
+Needs you 1 and 2 above are answered by these rulings. Needs you 3 (AQ-3's
+duplicate spread), 4 (the backfills) and 5 (Audit #4) stand.

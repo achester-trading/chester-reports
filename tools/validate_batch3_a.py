@@ -10,8 +10,10 @@ of its own -- no live store, no network, no model:
      prints; 4.40-4.50% one line; at or above 4.5% the line and the entry's
      mechanism, verbatim -- on the close's tape and in Plumbing & rates.
   B  ST-B3-03  SR-30. OAT-Bund and BTP-Bund from the stored monthly legs with
-     five- and twenty-year percentiles (their n); 149 bp is below the 150 bp
-     watch line, 150 bp is the watch tier, the stored November 2011 peak is the
+     five- and twenty-year percentiles (their n), under the series' own label,
+     printing no tier on the monthly series (ruled 13 Oct 2026). The tier rule
+     as set for the daily series: 149 bp is below the 150 bp
+     watch line, 151 bp is the watch tier, the stored November 2011 peak is the
      crisis tier, recomputed from the store; the crisis tier and only it earns
      the Monthly's "what doesn't fit" sentence; "(descriptive; unvalidated,
      n=0)"; EUR/CHF beside it; the legs absent print their reason.
@@ -161,17 +163,28 @@ def group_b() -> None:
             mis = blk.misfit_items(st, cut)
             peak = batch3.crisis_level_from_store(st, cut)
         oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
-        check(abs(oat["bp"] - case["oat_bp"]) < 0.05 and e["tier"] == case["tier"]
-              and (bool(mis) == (case["tier"] == "crisis")),
-              f"{case['name']}: tier {e['tier']}; the Monthly's sentence "
-              f"{'prints' if mis else 'does not print'}")
+        rule = batch3.tier_of(oat["bp"], CFG)
+        printed = " ".join([str(x) for r in (sub["table"] or {}).get("rows", [])
+                            for x in r] + sub["lines"]
+                           + (sub["table"] or {}).get("columns", []))
+        check(abs(oat["bp"] - case["oat_bp"]) < 0.05 and rule == case["tier"],
+              f"{case['name']}: the tier rule as set for the daily series reads "
+              f"{rule}")
+        check(e["tier"] == "untiered" and not mis and "WATCH" not in printed
+              and "CRISIS" not in printed and "tier" not in printed.lower(),
+              f"{case['name']}: on the monthly series no tier prints, and the "
+              f"Monthly's crisis sentence does not print (ruled 13 Oct 2026)")
         if case["tier"] == "crisis":
             check(peak == CFG["eu_stress"]["crisis_bp"] == 154.0,
                   f"the crisis level is recomputed from the stored November 2011 "
                   f"peak: {peak} bp = config {CFG['eu_stress']['crisis_bp']}")
+            live = {**CFG, "eu_stress": {**CFG["eu_stress"], "tiers_live": True}}
+            with open_store(db) as st:
+                mis = blk.misfit_items(st, cut, live)
             check(mis and "(descriptive; unvalidated, n=0)" in mis[0]["text"]
                   and "crisis tier" in mis[0]["text"],
-                  f"one sentence at the crisis tier ({mis and mis[0]['text'][:90]}...)")
+                  f"wired live, one sentence at the crisis tier "
+                  f"({mis and mis[0]['text'][:90]}...)")
         if case["tier"] == "watch":
             pc = oat["percentiles"]
             check(set(pc) == {5, 20} and pc[5]["n"] == 60 and pc[20]["n"] == 240
@@ -179,19 +192,30 @@ def group_b() -> None:
                   f"dual percentiles over five and twenty years, each with its n "
                   f"({pc[5]['n']}, {pc[20]['n']})")
             row = sub["table"]["rows"][0]
-            check(row[0] == "OAT–Bund" and row[1] == "150.0 bp" and "WATCH" in row[5]
-                  and "(n=60)" in row[3] and "(n=240)" in row[4] and row[6] == "2026-09-01",
-                  f"the narrow flag: spread, both percentiles, the tier, the as-of ({row})")
+            check(row[0] == "OAT-Bund, ECB monthly average" and row[1] == "151.0 bp"
+                  and "(n=60)" in row[3] and "(n=240)" in row[4] and row[5] == "2026-09-01"
+                  and len(row) == len(sub["table"]["columns"]) == 6,
+                  f"the series' own label, the spread, both percentiles, the as-of; "
+                  f"no tier column ({row})")
             btp = sub["table"]["rows"][1]
-            check(btp[0] == "BTP–Bund" and btp[5] == "untiered",
-                  "BTP–Bund prints untiered beside it")
+            check(btp[0] == "BTP-Bund, ECB monthly average" and len(btp) == 6,
+                  "BTP-Bund under its own label beside it")
             chf = sub["table"]["rows"][2]
             check(chf[0].startswith("EUR/CHF") and chf[1] == "0.9250"
-                  and chf[2] == "-0.64%",
+                  and chf[2] == "-0.64%" and len(chf) == 6,
                   f"EUR/CHF daily, the transmission tell, with its week ({chf[1]}, {chf[2]})")
-            check(sub["lines"][0].startswith("OAT–Bund at the watch tier")
-                  and "(descriptive; unvalidated, n=0)" in sub["lines"][0],
-                  "the watch tier's line, labelled unvalidated")
+            check(not sub["lines"] and "(descriptive; unvalidated, n=0)" in sub["table_note"]
+                  and "No tier prints" in sub["table_note"],
+                  "no flag line; the note says why no tier prints, and keeps the "
+                  "unvalidated tag")
+            live = {**CFG, "eu_stress": {**CFG["eu_stress"], "tiers_live": True}}
+            with open_store(db) as st:
+                wl = blk.eu_subsection(st, cut, live)
+            check(wl["table"]["rows"][0][5] == "WATCH (≥ 150 bp)"
+                  and wl["lines"][0].startswith("OAT–Bund at the watch tier")
+                  and "(descriptive; unvalidated, n=0)" in wl["lines"][0],
+                  "wired live on a daily series, 151 bp prints the watch tier, "
+                  "labelled unvalidated")
     db = store([])
     with open_store(db) as st:
         sub = blk.eu_subsection(st, cut)

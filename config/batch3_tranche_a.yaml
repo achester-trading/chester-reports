@@ -34,6 +34,15 @@ eu_stress:
   # verified at Audit #4 (14-15 Oct).
   crisis_bp: 154.0
   crisis_source: "ECB IRS monthly 10-year, FR less DE, November 2011 (the series' peak), fetched 13 Oct 2026"
+  # RULED 13 Oct 2026: THE TIERS SIT ON THE DAILY WEEKLY CLOSE. No tier prints
+  # on the monthly-average series; the block prints the series under its own
+  # label, levels and percentiles only. The lines above stay as set for the
+  # daily series, to be wired after Audit #4 once a Banque de France Webstat
+  # key is in the box's environment file. `tiers_live` turns them on then.
+  tiers_live: false
+  series_labels:
+    oat_bund: "OAT-Bund, ECB monthly average"
+    btp_bund: "BTP-Bund, ECB monthly average"
   windows_years: [5, 20]          # the dual percentile (entry's measure)
   unvalidated: "(descriptive; unvalidated, n=0)"   # until ST-B3-09's ledger
   transmission_label: "EUR/CHF (francs per euro)"

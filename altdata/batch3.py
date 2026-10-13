@@ -168,8 +168,13 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
     cfg = cfg or config()
     c = cfg.get("eu_stress") or {}
     years = tuple(int(y) for y in c.get("windows_years") or (5, 20))
+    # The tiers sit on the daily weekly close (ruled 13 Oct 2026): on the
+    # monthly series every pair is untiered, and the label says which series.
+    live = bool(c.get("tiers_live"))
+    labels = c.get("series_labels") or {}
     pairs = []
     for pid, label, leg in EU_PAIRS:
+        label = labels.get(pid) or label
         ser = spread_series(st, cutoff, leg)
         if not ser:
             pairs.append({"id": pid, "label": label, "absent": True,
@@ -181,7 +186,8 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
                       "change_bp": None if not prior else round(bp - prior[1], 1),
                       "prior_as_of": prior[0] if prior else None,
                       "percentiles": dual_percentiles(ser, years),
-                      "tier": tier_of(bp, cfg) if pid == "oat_bund" else None,
+                      "tier": tier_of(bp, cfg) if pid == "oat_bund" and live
+                      else None,
                       "cadence": "monthly average (ECB)"})
     chf = _pts(st, EURCHF_KEY, cutoff)
     tell = None
@@ -192,7 +198,9 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
         tell = {"level": v, "as_of": d, "since": wk[0] if wk else None,
                 "week_change_pct": None if not wk else round((v / wk[1] - 1) * 100, 2)}
     oat = next((p for p in pairs if p["id"] == "oat_bund"), {})
-    return {"pairs": pairs, "eurchf": tell, "tier": oat.get("tier", "absent"),
+    return {"pairs": pairs, "eurchf": tell, "tiers_live": live,
+            "tier": (oat.get("tier", "absent") if live
+                     else "absent" if not oat or oat.get("absent") else "untiered"),
             "watch_bp": float(c.get("watch_bp", 150)),
             "crisis_bp": float(c.get("crisis_bp", 190)),
             "unvalidated": c.get("unvalidated")}

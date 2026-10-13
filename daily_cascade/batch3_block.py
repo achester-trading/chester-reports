@@ -88,6 +88,7 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
                   cadence: str = "weekly") -> dict:
     # EUR/CHF's change over the edition's own period (a Monthly prints no week).
     e = batch3.eu_stress(st, now, cfg, 30 if cadence == "monthly" else 7)
+    live = e.get("tiers_live")
     rows, lines = [], []
     for p in e["pairs"]:
         if p.get("absent"):
@@ -96,17 +97,17 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
         pc = p["percentiles"]
         rows.append([p["label"], f"{p['bp']:.1f} bp", _bp(p["change_bp"]),
                      f"{_ord(pc.get(5, {}).get('pct'))} (n={pc.get(5, {}).get('n')})",
-                     f"{_ord(pc.get(20, {}).get('pct'))} (n={pc.get(20, {}).get('n')})",
-                     {"watch": "WATCH (≥ 150 bp)", "crisis": "CRISIS",
-                      "none": "below the watch line"}.get(p.get("tier"), "—")
-                     if p.get("tier") else "untiered",
-                     p["as_of"]])
+                     f"{_ord(pc.get(20, {}).get('pct'))} (n={pc.get(20, {}).get('n')})"]
+                    + ([{"watch": f"WATCH (≥ {e['watch_bp']:.0f} bp)", "crisis": "CRISIS",
+                         "none": "below the watch line"}.get(p.get("tier"), "—")
+                        if p.get("tier") else "untiered"] if live else [])
+                    + [p["as_of"]])
     if e.get("eurchf"):
         x = e["eurchf"]
         rows.append(["EUR/CHF (francs per euro), the transmission tell",
                      f"{x['level']:.4f}",
                      "—" if x["week_change_pct"] is None else f"{x['week_change_pct']:+.2f}%",
-                     "—", "—", "—", x["as_of"]])
+                     "—", "—"] + (["—"] if live else []) + [x["as_of"]])
     else:
         lines.append("EUR/CHF: not yet stored (the price feed adds EURCHF=X from the "
                      "next run).")
@@ -115,17 +116,20 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
             "crisis": f"OAT–Bund at the crisis tier (≥ {e['crisis_bp']:.0f} bp)"}.get(tier)
     if flag:
         lines.insert(0, f"{flag} {e['unvalidated']}.")
+    tiers = (f"Tiers on OAT–Bund only: watch {e['watch_bp']:.0f} bp, crisis "
+             f"{e['crisis_bp']:.0f} bp." if live else
+             "No tier prints: the tiers sit on a daily weekly close, which no free "
+             "official source publishes yet.")
     return {"title": TITLE_EU,
             "table": {"columns": ["Spread", "Level", "Change on the prior period",
-                                  "5-year percentile", "20-year percentile", "Tier",
-                                  "As of"], "rows": rows} if rows else None,
+                                  "5-year percentile", "20-year percentile"]
+                      + (["Tier"] if live else []) + ["As of"],
+                      "rows": rows} if rows else None,
             "lines": lines, "paragraph_wanted": False,
             "table_note": (f"Spreads are the ECB's monthly-average 10-year yields (the "
                            f"convergence series), France or Italy less Germany: no free "
-                           f"official source publishes a daily OAT or BTP. Tiers on "
-                           f"OAT–Bund only: watch {e['watch_bp']:.0f} bp, crisis "
-                           f"{e['crisis_bp']:.0f} bp (the stored series' November 2011 "
-                           f"peak). {e['unvalidated']}"),
+                           f"official source publishes a daily OAT or BTP. {tiers} "
+                           f"{e['unvalidated']}"),
             "data": {"eu_stress": e}}
 
 

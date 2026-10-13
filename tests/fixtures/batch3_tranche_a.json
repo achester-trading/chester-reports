@@ -7,7 +7,7 @@
     "flagged": {"day": "2026-10-09", "level": 4.52}
   },
   "eu_stress": {
-    "_about": "ST-B3-03: monthly legs (the ECB's convergence 10-year), France, Italy, Germany. A flat 40 bp OAT-Bund history 2006-2026 with November 2011 at the stored peak (154.0 bp, the real series' value) and three ending months: 149 bp, 150 bp, the crisis level.",
+    "_about": "ST-B3-03: monthly legs (the ECB's convergence 10-year), France, Italy, Germany. A flat 40 bp OAT-Bund history 2006-2026 with November 2011 at the stored peak (154.0 bp, the real series' value) and four ending months: 149 bp, 151 bp, the crisis level, 96.7 bp. Each case's tier is the rule as set for the daily series (ruled 13 Oct 2026: 151 bp is the watch case, 149 below the 150 line); the printed block carries no tier on this monthly series.",
     "de_level": 2.50,
     "history_oat_bp": 40.0,
     "history_btp_bp": 120.0,
@@ -15,7 +15,7 @@
     "nov_2011_btp_bp": 518.7,
     "cases": [
       {"name": "149 bp: below the 150 bp watch line", "oat_bp": 149.0, "tier": "none"},
-      {"name": "150 bp: the watch tier", "oat_bp": 150.0, "tier": "watch"},
+      {"name": "151 bp: the watch tier", "oat_bp": 151.0, "tier": "watch"},
       {"name": "the crisis level", "oat_bp": 154.0, "tier": "crisis"},
       {"name": "well below 150", "oat_bp": 96.7, "tier": "none"}
     ],
