@@ -244,6 +244,25 @@ def main() -> int:
         if not known:
             f.add("family names a registered series", f"{key}: not registered")
 
+    # --- SERIES KINDS AND QUOTE CONVENTIONS (W-1.1a items 1 and 3) ----------
+    # Each kind is in the vocabulary, and each key resolves, as a family's does.
+    def registered(key: str) -> bool:
+        return key in entries or any(
+            key.startswith(str((b or {}).get("key_prefix") or "\0"))
+            for b in bulk.values())
+    kind_vocab = set(mvocab.get("series_kind") or [])
+    for key, kind in (metrics.get("series_kinds") or {}).items():
+        if kind not in kind_vocab:
+            f.add("series_kind vocabulary", f"{key}: {kind!r}")
+        if not registered(key):
+            f.add("series_kind names a registered series", f"{key}: not registered")
+    for key, qc in (metrics.get("quote_conventions") or {}).items():
+        qc = qc or {}
+        if not registered(key):
+            f.add("quote_convention names a registered series", f"{key}: not registered")
+        if qc.get("rises") not in ("base", "quote") or not qc.get("base")                 or not qc.get("quote"):
+            f.add("quote_convention complete", f"{key}: base, quote and rises")
+
     # --- 2/3/4: per-metric declarations ----------------------------------
     for mid, m in entries.items():
         m = m or {}

@@ -69,6 +69,7 @@ NAME_KEYS = frozenset({"section", "block", "series", "name", "title", "also_move
                        IN_TABLES, "ranking", "sub_block", "family", "outcomes",
                        "event", "date", "connector_rule", "flagged_sessions",
                        "depth", "depth_reason", "session", "month", "from", "to",
+                       "series_kind", "direction", "cap_note", "groups",
                        "as_of", "note", "blocks_carry", "where", "period",
                        "columns"})
 _NUM = re.compile(r"(?P<sign>[+\-−±])?\s?(?P<dollar>\$)?(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
@@ -130,6 +131,10 @@ def table_moves(table: Optional[dict], where: str,
     if cols and str(cols[name_i]).strip().lower() in ("session", "date", "day"):
         return out
     lvl = _col(cols, LEVEL_HEAD, (name_i,))
+    # THE ROW'S DATE TRAVELS WITH ITS FIGURE (W-1.1a item 6): the 12 Oct dry
+    # run joined the 2s10s as of 7 Oct with the 10-year as of 9 Oct in one clause.
+    asof_i = next((i for i, c in enumerate(cols)
+                   if str(c).strip().lower() == "as of"), None)
     chg = next((i for i, c in enumerate(cols) if prefer and i != name_i
                 and str(c).strip().lower() == prefer.strip().lower()), None)
     if chg is None:
@@ -164,7 +169,9 @@ def table_moves(table: Optional[dict], where: str,
                     "absolute": abs(c[0]), "moved": c[0] != 0,
                     "z": (abs(zz["z"]) if isinstance(zz.get("z"), (int, float))
                           else None),
-                    "z_reason": zz.get("reason")})
+                    "z_reason": zz.get("reason"),
+                    "as_of": (r[asof_i] if asof_i is not None and len(r) > asof_i
+                              and r[asof_i] not in (None, "", "—") else None)})
     return out
 
 
@@ -214,6 +221,8 @@ def cite(m: dict, where: bool = False) -> dict:
            ("level" if m.get("kind") == "level" else "change"): m["change"]}
     if where:
         out["where"] = m["where"]
+    if m.get("as_of"):
+        out["as_of"] = m["as_of"]
     return out
 
 
@@ -547,7 +556,10 @@ def _cands_take(cands: list[dict], cap: int) -> tuple[list, list]:
     as fit `cap` figures; the names of the rest."""
     got, used, rest = [], 0, []
     for c in cands:
-        n = quantified_figures(c["cite"])
+        # A GROUP COUNTS AS ONE (W-1.1a item 2): the Book Z line's figures are
+        # one comparison, printed and cited together.
+        n = (1 if quantified_figures(c["cite"]) else 0) if c.get("group") \
+            else quantified_figures(c["cite"])
         if n and used + n <= cap:
             got.append(c["cite"])
             used += n
@@ -593,7 +605,12 @@ def mechanics_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
     vcols, vrows = _rows((vol or {}).get("table"))
     for r in vrows:
         if str(r[0]).startswith("Daily move priced"):
-            cands.append({"cite": {"series": r[0], "priced": r[1], "realized": r[2]},
+            # EACH FIGURE UNDER A KEY THAT NAMES ITS UNIT (W-1.1a item 1): the
+            # key `priced` typed 0.93% as a price, and the 12 Oct dry run
+            # withheld Mechanics and The read over it.
+            cands.append({"cite": {"series": r[0], "implied_daily_move_pct": r[1],
+                                   "realized_daily_move_pct": r[2],
+                                   "series_kind": "implied_move"},
                           "name": r[0]})
     rng = next((ss for ss in s.get("subsections") or []
                 if ss.get("title") == "Ranges and flags"), None)
@@ -694,6 +711,27 @@ def contract_family(question: str) -> str:
     return re.sub(r"\s+", " ", _STRIKE.sub("#", str(question or ""))).strip()
 
 
+# "19% of a 25 bp hike": the probability, the increment and the direction.
+_PRICED = re.compile(r"(?P<p>\d+(?:\.\d+)?)%\s+of\s+an?\s+(?P<bp>\d+)\s?bp\s+(?P<dir>\w+)")
+
+
+def fomc_cite(row: list) -> dict:
+    """The next meeting's pricing as Ahead may cite it (W-1.1a item 1): the
+    implied rate a percent, the move's probability a percent-probability, its
+    increment in bp -- each under a key that names its unit, never `level` or
+    `priced`, which the audit types as prices."""
+    out = {"series": row[0], "implied_rate_pct": row[1], "series_kind": "rate",
+           "where": "What's priced"}
+    m = _PRICED.search(str(row[2] if len(row) > 2 else ""))
+    if m:
+        out.update({"move_probability_pct": f"{m.group('p')}%",
+                    "move_increment_bp": f"{m.group('bp')} bp",
+                    "direction": m.group("dir")})
+    elif len(row) > 2:
+        out["pricing_display"] = row[2]
+    return out
+
+
 def ahead_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
     """Ahead's frame (see above)."""
     data = s.get("data") or {}
@@ -704,9 +742,7 @@ def ahead_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
         fomc = next((r for r in rows if str(r[0]).startswith("FOMC ")
                      and "implied rate" in str(r[0])), None)
         if fomc:
-            cands.append({"cite": {"series": fomc[0], "level": fomc[1],
-                                   "priced": fomc[2], "where": "What's priced"},
-                          "name": fomc[0]})
+            cands.append({"cite": fomc_cite(fomc), "name": fomc[0]})
             break
     gc = (data.get("graded_calls") or {}).get("rows") or []
     for r in sorted(gc, key=lambda r: -(r.get("n") or 0))[:1]:
@@ -750,6 +786,69 @@ def ahead_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
                   tier1_events_without_a_figure=named_only,
                   watching=[w for w in data.get("watching") or []
                             if not readability.figures(str(w))])
+
+
+# THE BOOK'S FRAME (W-1.1a item 2, the Weekly dry run of 12 Oct). The book was
+# the one prose section the second pass left on its whole slice, and its
+# paragraph cited nine figures against six -- eight of them the Book Z line's.
+# The line is one comparison (the book, cash, SPY and 60-40 over one window, and
+# the excess against each), so it is offered and counted as ONE group; the
+# register's counts and the attention table follow, each a figure, inside the
+# section's cap (section_cap, never a literal). The frame states the cap.
+BOOK_GROUP = "the book against Book Z"
+BOOK_CAP_NOTE = ("Cite at most {cap} figures. The Book Z line is one group and "
+                 "counts as one, however many of its figures you copy; the "
+                 "tables carry the rest.")
+
+
+def book_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
+    """The book's frame (see above)."""
+    data = s.get("data") or {}
+    cands: list[dict] = []
+    if data.get("book_z"):
+        cands.append({"cite": {"series": BOOK_GROUP, "book_z_line": data["book_z"]},
+                      "name": BOOK_GROUP, "group": True})
+    for it in s.get("items") or []:
+        if it.get("key") == "book:z" or it.get("show") is False:
+            continue
+        if readability.figures(it.get("text")):
+            cands.append({"cite": {"series": str(it.get("key", "")).split(":", 1)[-1],
+                                   "line": it["text"]},
+                          "name": it["text"]})
+    cols, rows = _rows(s.get("table"))
+    for r in rows:
+        cands.append({"cite": {"series": r[0], **{str(c).lower().replace(" ", "_"): v
+                                                  for c, v in zip(cols[1:], r[1:])}},
+                      "name": r[0]})
+    got, names = _cands_take(cands, cap)
+    return _frame(s, ed, period, got, names, cap_note=BOOK_CAP_NOTE.format(cap=cap),
+                  groups=[BOOK_GROUP] if data.get("book_z") else None)
+
+
+def book_groups(ed: dict) -> list[set]:
+    """The figure groups the book's paragraph may cite as one: the Book Z
+    line's figures, normalised as figure_faults reads them."""
+    bk = next((x for x in ed.get("sections") or [] if x.get("id") == "book"), {})
+    bz = (bk.get("data") or {}).get("book_z")
+    return [{norm_figure(f) for f in readability.figures(bz)}] if bz else []
+
+
+def norm_figure(f: str) -> str:
+    """A cited figure as a group member: no sign, no unit, no separator --
+    "+0.33 pts" and "0.33" are one figure."""
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", str(f))
+    return m.group(0).replace(",", "") if m else str(f)
+
+
+def frame_figures(frame: dict) -> int:
+    """A frame's figures with each group counted as one -- what the gate holds
+    a grouped frame to."""
+    groups = set(frame.get("groups") or [])
+    cites = frame.get("figures_you_may_cite") or []
+    rest = {k: v for k, v in frame.items() if k != "figures_you_may_cite"}
+    return (quantified_figures(rest)
+            + sum(1 if c.get("series") in groups and quantified_figures(c)
+                  else quantified_figures(c) for c in cites))
 
 
 # The sections the read draws its figures from, in the edition's order.
@@ -803,4 +902,4 @@ def read_frame(ed: dict, cap: int, period: str) -> dict:
 
 
 FRAMES = {"mechanics": mechanics_frame, "misfit": misfit_frame,
-          "ahead": ahead_frame}
+          "ahead": ahead_frame, "book": book_frame}

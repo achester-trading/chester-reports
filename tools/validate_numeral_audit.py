@@ -590,10 +590,18 @@ def group_j() -> None:
           and f"{M}6.75%" in seen.get("prompt", ""),
           "generate() hands the model the signed form beside the move")
     check(good.published, f"gold's {M}6.75%, copied, publishes ({good.state})")
-    bad_ = nv.generate(raw, client=Client("Gold fell 6.75% over September."), **kw)
+    bad_ = nv.generate(raw, client=Client("Gold's move was 6.75% over September."),
+                       **kw)
     check(not bad_.published and "change_pct_signed" in (bad_.reason or ""),
-          f"an unsigned 6.75% is WITHHELD, and the reason names the field to copy "
-          f"({(bad_.reason or '')[:90]})")
+          f"an unsigned 6.75% with no verb to carry its sign is WITHHELD, and the "
+          f"reason names the field to copy ({(bad_.reason or '')[:90]})")
+    # THE VERB CARRIES THE SIGN (W-1.1a item 4): "fell 6.75%" is the move as
+    # written after a falling verb; "rose 6.75%" for a fall is still withheld.
+    verb = nv.generate(raw, client=Client("Gold fell 6.75% over September."), **kw)
+    rose = nv.generate(raw, client=Client("Gold rose 6.75% over September."), **kw)
+    check(verb.published and not rose.published,
+          f"'fell 6.75%' for −6.75 publishes; 'rose 6.75%' is withheld "
+          f"({verb.state}; {rose.state})")
     check("_signed" in nv.SYSTEM_PROMPT and "verbatim" in nv.SYSTEM_PROMPT,
           "and the brief tells the model to copy the _signed field verbatim")
 

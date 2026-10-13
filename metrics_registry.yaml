@@ -270,6 +270,11 @@ vocabularies:
   # measured in. Declared per series in `families` below; a family outside this
   # list fails tools/check_registry.py.
   family: [price, rate, spread, release, quantity, conditions, ratio]
+  # W-1.1a item 1 (12 Oct 2026): what a series' figure IS, for the numeral
+  # audit's unit equivalence -- a yield, rate, spread, probability, implied move
+  # or volatility may be written as a percent where its payload field types it
+  # as a price. See the `series_kinds` block.
+  series_kind: [yield, rate, spread, probability, implied_move, volatility, price]
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -6296,6 +6301,85 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+
+# SERIES KINDS (W-1.1a item 1, the Weekly dry run of 12 Oct 2026). The numeral
+# audit types a payload figure by its FIELD's name, and a yield stored under
+# `level` or a probability under `priced` typed as a price, so "the 10-year at
+# 4.05%" was withheld as a unit mismatch. A row whose registry key is listed here
+# carries this kind, and altdata/numeral_audit.py's KIND_UNITS says which unit
+# words that kind may be written in: percent for all six non-price kinds, bp for
+# a change in a yield, rate or spread, pts for a change in a probability. A price
+# stays strict. check_registry holds every kind to the vocabulary and every key
+# to a registered series.
+series_kinds:
+  fred.yield_2y: yield
+  fred.yield_5y: yield
+  fred.yield_10y: yield
+  fred.yield_30y: yield
+  fred.tbill_3m: yield
+  fred.tips_10y: yield
+  fred.tips_30y: yield
+  fred.breakeven_5y: yield
+  fred.breakeven_10y: yield
+  fred.breakeven_5y5y: yield
+  fred.mortgage_30y: yield
+  yfinance.mkt_tnx: yield
+  yfinance.mkt_tyx: yield
+  mof.jgb_10y: yield
+  mof.jgb_30y: yield
+  fred.sofr: rate
+  fred.iorb: rate
+  fred.fed_funds: rate
+  calc.yield_curve_2s10s: spread
+  acm.term_premium_10y: spread
+  fred.ig_oas: spread
+  fred.hy_oas: spread
+  fred.ccc_oas: spread
+  fred.bb_oas: spread
+  pm.probability: probability
+  fred.vix: volatility
+  yfinance.mkt_vix: volatility
+  yfinance.mkt_vix3m: volatility
+  yfinance.mkt_move: volatility
+  chain.spy_atm_iv_30d: volatility
+  calc.vol_spy_realized_20d: volatility
+  yfinance.mkt_spy: price
+  yfinance.mkt_dxy: price
+  yfinance.mkt_eurusd: price
+  yfinance.mkt_usdjpy: price
+  yfinance.mkt_usdcny: price
+
+# QUOTE CONVENTIONS (W-1.1a item 3): for an FX pair, which currency strengthens
+# when the pair's quote rises. EUR/USD is dollars per euro, so EUR/USD up is the
+# euro firmer and the dollar softer; USD/JPY is yen per dollar, so USD/JPY up is
+# the dollar firmer and the yen weaker. The direction audit
+# (daily_cascade/direction.py) reads a sentence about "the dollar" against the
+# pair through this, and `aliases` are the names the tables and the prose use.
+quote_conventions:
+  yfinance.mkt_eurusd:
+    pair: EUR/USD
+    base: euro
+    quote: dollar
+    rises: base
+    aliases: ["EUR/USD", "EUR/USD (dollars per euro)", "euro-dollar"]
+  yfinance.mkt_usdjpy:
+    pair: USD/JPY
+    base: dollar
+    quote: yen
+    rises: base
+    aliases: ["USD/JPY", "USD/JPY (yen per dollar)", "dollar-yen"]
+  yfinance.mkt_usdcny:
+    pair: USD/CNY
+    base: dollar
+    quote: yuan
+    rises: base
+    aliases: ["USD/CNY", "USD/CNY (yuan per dollar)"]
+  yfinance.mkt_dxy:
+    pair: DXY
+    base: dollar
+    quote: basket
+    rises: base
+    aliases: ["DXY", "the dollar index", "dollar index"]
 
 non_metrics:
   provenance:
