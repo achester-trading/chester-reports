@@ -171,23 +171,37 @@ confirmations:
 # ---------------------------------------------------------------------------
 regime:
   # The object's Volatility dial in the Doctrine's words (section 5.1: Calm below
-  # roughly 15, Rising mid-teens to low twenties, Stressed mid-twenties to
-  # thirties, Crisis above). The object's bands are 14 / 20 / 30. Session-set.
-  vol_map: {subdued: Calm, normal: Rising, elevated: Stressed, crisis: Crisis}
+  # roughly 15, Rising mid-teens to low twenties AND CLIMBING, Stressed
+  # mid-twenties to thirties, Crisis above). The object's bands are 14 / 20 / 30.
+  # RULED 13 Oct 2026 (scanner follow-up 3): the object's `normal` (VIX 14-20) is
+  # the Doctrine's Normal, not Rising -- an ordinary VIX opens no shorts and
+  # takes no 0.75. RULED 13 Oct 2026 (second ruling): the object's `elevated`
+  # (VIX 20-30) is the Doctrine's Rising -- shorts open there, at 0.75. The
+  # Doctrine's "and climbing" leg is deferred to Doctrine #2 (a config v1.13
+  # bump to the object); until then Rising is read on the level alone.
+  # `crisis` (VIX 30 and over) keeps its map to Crisis, which closes Book B.
+  vol_map: {subdued: Calm, normal: Normal, elevated: Rising, crisis: Crisis}
   gamma_map: {positive: Positive, flat: Flip-zone, negative: Negative}
   # Shorts only in these (Doctrine 4.2), or a Volatility dial at Rising or worse.
   short_macro: [Overheat, Tightening, Contraction]
   short_vol: [Rising, Stressed, Crisis]
   # The size multiplier, Volatility dial (section 5.2's card); Transition halves
   # Book B (the Macro card). Phase 1 caps the product at 1.0.
-  vol_multiplier: {Calm: 1.0, Rising: 0.75, Stressed: 0.5, Crisis: 0.0}
+  vol_multiplier: {Calm: 1.0, Normal: 1.0, Rising: 0.75, Stressed: 0.5, Crisis: 0.0}
   transition_multiplier: 0.5
-  # ENTRY TIMING from the Gamma dial (the brief's section 3.5 and the operator's
-  # paste of 12 Oct). Negative gamma marks the candidate "wait"; the flip zone
-  # opens no new entries (the card). (Needs you 2: the card reads the other way.)
+  # ENTRY TIMING from the Gamma dial: THE REGIME CARD'S WORDS, verbatim (Doctrine
+  # section 5.2, the Gamma dial's "Book B timing" column; ruled 13 Oct 2026,
+  # scanner follow-up 2 -- the brief's "negative gamma: wait" read the card
+  # backwards). Dealers short gamma amplify a move, so a breakout is trusted;
+  # dealers long gamma dampen it, so a breakout is distrusted until it retests.
   timing:
-    Negative: "wait for positive gamma or a session close above the flip"
-    Flip-zone: "no new entries until the flip zone resolves"
+    Positive: "Breakouts distrusted — wait for the retest; adds on confirmation only"
+    Flip-zone: "No new entries"
+    Negative: "Breakouts trusted; pyramiding permitted on confirmation"
+  # THE FLIP ZONE REFUSES AT THE GATE (ruled 13 Oct 2026): a candidate that
+  # passes every other gate under these timing states goes to the refused list
+  # with the card's words, and is still written to the ledger and graded.
+  refuse_timing: [Flip-zone]
   # Regime alignment, the score's fourth component, by Doctrine regime and
   # direction (the Macro card's Book B column). Session-set.
   alignment:

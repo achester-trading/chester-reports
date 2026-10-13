@@ -139,6 +139,24 @@ def _session_volume_5m(bst, tape_id: str, ending: str, cutoff: Optional[str],
     return {d: sum(v) for d, v in by.items() if len(v) >= min_bars}
 
 
+def _volume_unit(symbol: str) -> Optional[str]:
+    """The stored volume's unit (yfinance_source.VOLUME_UNITS): shares, count
+    (futures contracts) or usd (crypto)."""
+    from .sources import yfinance_source as yf                  # noqa: PLC0415
+    return yf.VOLUME_UNITS.get(symbol, "shares")
+
+
+def dollar_volume(inst: dict, j: int) -> Optional[float]:
+    """Session j's traded dollars, where the stored unit gives one: shares x the
+    close, or a volume already quoted in dollars. A futures volume is contracts,
+    and contracts x the close misses the contract's multiplier, so it gives none."""
+    v = inst["volume"].get(inst["days"][j])
+    if v is None:
+        return None
+    unit = inst.get("vol_unit") or "shares"
+    return v if unit == "usd" else None if unit == "count" else inst["close"][j] * v
+
+
 def load_universe(st, ending: str, cutoff: Optional[str], cfg: dict,
                   bst=None) -> tuple[list[dict], dict]:
     u = cfg.get("universe") or {}
@@ -174,15 +192,18 @@ def load_universe(st, ending: str, cutoff: Optional[str], cfg: dict,
         lo = dict(_pts(st, key + "_low", cutoff, ending))
         vol = dict(_pts(st, key + "_volume", cutoff, ending))
         vsrc = "stored" if vol else None
+        vunit = _volume_unit(sym) if vol else None
         if not vol and bst is not None and key in tape:
             vol = _session_volume_5m(bst, tape[key], ending, cutoff,
                                      int(vcfg.get("min_5m_bars") or 70))
             vsrc = "5-minute bars" if vol else None
+            vunit = "shares" if vol else None
         out.append({"symbol": sym, "key": key, "days": days,
                     "close": [v for _, v in closes],
                     "high": [hi.get(d, c) for d, c in closes],
                     "low": [lo.get(d, c) for d, c in closes],
-                    "has_range": bool(hi and lo), "volume": vol, "vol_source": vsrc})
+                    "has_range": bool(hi and lo), "volume": vol, "vol_source": vsrc,
+                    "vol_unit": vunit})
     have = {i["symbol"] for i in out} | set(skipped["short_history"])
     skipped["earnings_not_stored"] = sorted(s for s in earnings_names()
                                             if s not in have)
@@ -712,11 +733,12 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     mult, mwhy = multiplier(ctx["regime"], cfg)
     risk_pct = float(dc.get("risk_pct") or 0.75) * mult
     cap = ctx["capital"]
-    notional = (cap * risk_pct / 100.0) / (risk / entry) if risk > 0 else None
+    risk_usd = round(cap * risk_pct / 100.0, 2)
+    notional = risk_usd / (risk / entry) if risk > 0 else None
     # Liquidity: dollar ADV over 20 sessions against the position's notional.
     sc = cfg.get("score") or {}
-    vols = [(inst["close"][j] * inst["volume"][inst["days"][j]])
-            for j in range(max(0, E - 19), E + 1) if inst["days"][j] in inst["volume"]]
+    vols = [x for x in (dollar_volume(inst, j) for j in range(max(0, E - 19), E + 1))
+            if x is not None]
     adv = mean(vols) if len(vols) >= 10 else None
     share = float(sc.get("max_adv_share") or 0.01)
     if adv and notional:
@@ -779,8 +801,10 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
                         + [f"not read: {x['text']}" for x in unread]) or "none recorded"
     ts = int((cfg.get("trend") or {}).get("against_tape_time_stop") or 5) if against \
         else int(dc.get("time_stop_sessions") or 15)
-    timing = ((cfg.get("regime") or {}).get("timing") or {}).get(
-        ctx["regime"].get("gamma") or "")
+    # THE CARD'S WORDS (Doctrine 5.2, the Gamma dial's Book B timing column),
+    # with the state they were read under.
+    gamma = ctx["regime"].get("gamma") or ""
+    timing = ((cfg.get("regime") or {}).get("timing") or {}).get(gamma)
     cat, cat_date = _catalyst(inst["symbol"], ctx["calendar"], ending)
     # Doctrine/brief: the base low (breakout), the reclaimed level (reclaim),
     # the breakdown low (failed breakdown); mirrored for a short.
@@ -796,7 +820,13 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         "thesis": thesis, "edge": dc.get("edge") or "trend and momentum",
         "horizon": f"{dc.get('horizon') or 'one to six weeks'}; time stop {ts} sessions",
         "size": (f"{risk_pct:.2f}% of capital at risk ({float(dc.get('risk_pct') or 0.75):g}%"
-                 f" × {mult:g}: {mwhy})"),
+                 f" × {mult:g}: {mwhy}) = ${risk_usd:,.0f} of the ${cap:,.0f} paper "
+                 f"capital"),
+        # THE DOLLARS AT RISK, BY CODE (scanner follow-up 5, ruled with EL-2/3):
+        # entry to invalidation at the printed size, on the paper capital in
+        # config/risk_limits.yaml -- so a candidate the sitting takes is never
+        # delayed at the order gate for a missing risk_usd.
+        "risk_usd": risk_usd,
         "invalidation": inv_txt, "counter_thesis": counter,
         "setup_id": ctx["setups"].get(setup), "score": None,
         "catalyst": cat, "catalyst_date": cat_date, "decision_id": None,
@@ -805,6 +835,7 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         "expected_r": None if r_mult is None else round(r_mult, 2),
         "against_tape": against, "time_stop": ts, "no_add": against,
         "trend": tr["state"], "warnings": warns, "entry_timing": timing,
+        "entry_timing_state": gamma or None,
         "parameters": params, "confirmations": confs, "components": comp,
         "met": len(met), "risk": risk, "key": inst["key"], "pivot_day":
         inst["days"][pv["t"]]}
@@ -830,6 +861,26 @@ def gate(c: dict, ctx: dict, cfg: dict) -> Optional[str]:
     if c["met"] < need:
         return f"{c['met']} confirmation(s) of the {need} a {c['direction']} needs"
     return None
+
+
+def timing_refusal(c: dict, cfg: dict) -> Optional[str]:
+    """The card's timing as a gate (ruled 13 Oct 2026): None when the Gamma
+    dial's state allows an entry; else the refusal, in the card's words. Read
+    after gate(), so only a candidate that would otherwise stand is refused
+    here -- and that one is still written to the ledger and graded."""
+    rg = cfg.get("regime") or {}
+    st = c.get("entry_timing_state")
+    if st and st in (rg.get("refuse_timing") or []):
+        return (f"the Gamma dial's {st}: “{c.get('entry_timing')}” "
+                f"(the regime card, Doctrine 5.2)")
+    return None
+
+
+def graded(res: dict) -> list[dict]:
+    """Every candidate the ledger grades: the standing ones and those refused
+    on the card's timing alone."""
+    return list(res.get("candidates") or []) + [
+        r for r in res.get("refused") or [] if r.get("graded")]
 
 
 # ---------------------------------------------------------------------------
@@ -891,6 +942,10 @@ def scan(ending: str, db_path: Optional[str] = None, *, cutoff: Optional[str] = 
                 refused.append({**c, "refused": why})
                 continue
             c["score"] = score(c["components"], cfg)
+            why = timing_refusal(c, cfg)
+            if why:
+                refused.append({**c, "refused": why, "graded": True})
+                continue
             cands.append(c)
     cands.sort(key=lambda c: (-c["score"], c["instrument"], c["direction"]))
     for n, c in enumerate(cands, start=1):

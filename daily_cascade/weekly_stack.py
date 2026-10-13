@@ -1488,8 +1488,10 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
         try:
             from altdata import book_b_scanner as bbs           # noqa: PLC0415
             ledger["graded"] = len(bbs.grade(db_path, ending, now, dry_run))
-            ledger["recorded"] = len(bbs.record_forecasts(scan, ending, now, db_path,
-                                                          dry_run))
+            # The standing candidates and the flip zone's refusals (ruled 13 Oct
+            # 2026: refused at the gate, still graded).
+            ledger["recorded"] = len(bbs.record_forecasts(bbs.graded(run), ending,
+                                                          now, db_path, dry_run))
             ledger["source"] = bbs.source_name(dry_run)
         except Exception as exc:                                # noqa: BLE001
             log.warning("the candidates' forecasts were not written", exc_info=True)
