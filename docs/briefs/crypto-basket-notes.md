@@ -199,3 +199,65 @@ pages = crypto_basket.quarterly_pages(st, "<quarter>", {r["name"]: r for r in ro
 6. **MW-7 for the basket:** §4.6 refreshes the roster on executable depth and turnover, with no numeric bar. Turnover prints; depth is not measured (no free order-book source). Set bars, or leave the call to you each quarter? bars / by hand
 7. **The Monthly's two dead digital keys** (`zec.price`, `crypto.cap_share`): fix them (a classics change), or leave them as ruled? fix / leave
 8. **Merge order, inside windows:** this branch on its own. Its Quarterly and restatement wiring follow the AQ merges, and its Weekly table moves to the reference tier when W-1.3 merges. yes / no
+
+## Part 1 of the 13 Oct brief: the digital keys, and the ZEC logger off CoinGecko
+
+Ruled 13 Oct 2026: Needs you 1 yes (the same reading for the ZEC logger), Needs you 7 fix.
+
+### 1. The two dead digital keys: fixed
+
+- `monthly_macro/payload.py` `ALT_FAMILIES["digital"]` now reads `zec.price_usd` and `zec.crypto_cap_share`. It used to read `zec.price` and `crypto.cap_share`, which no writer has ever written.
+- Both keys gain display labels: "Zcash (ZEC-USD)" and "Zcash's share of crypto market cap".
+- `validate_monthly_frames` group D now reads its key list from `ALT_FAMILIES` instead of a copy, so a key added there needs a label.
+- **The fixture** is `validate_crypto_basket` group H:
+  - it seeds the four digital series;
+  - the Monthly's *Themes: digital* table prints both rows by label;
+  - the ZEC price row carries a level, and the cap-share row prints as below.
+
+### 2. The ZEC logger's CoinGecko reads: withdrawn
+
+**`zec.market_cap_usd` comes from DefiLlama's coin service** (`coins.llama.fi/mcaps`, `coingecko:zcash`), the basket's reading.
+- It is forward-only: the service has no history.
+- The day is the service's own timestamp's UTC day.
+- The CoinGecko rows from 6 to 12 Oct stay in the store with source `coingecko`.
+- `zec.cap_probe` now stores the coin-service read, plus `total: not_sourced` and the reason.
+
+**`crypto.total_market_cap_usd`: no free source permits stored vintages, so the series stops.** The candidates and their terms, read 13 Oct 2026:
+
+| Source | Total served free? | Terms on storing | Verdict |
+|---|---|---|---|
+| CoinGecko (`/global`) | yes, keyless in practice | coingecko.com/en/api_terms §6.1: "We do not encourage caching or storage of Data", refresh at least every 24 hours, delete on termination. §6.2: not allowed to "store, derive from" the data. No keyless plan is provided for. | no |
+| CoinPaprika (`/v1/global`) | yes, keyless | coinpaprika.com/api-terms-of-use: §3.6, the free plan is non-commercial; §3.7.1, no "derivative works" or further distribution outside the licence; §3.9, "Powered by Coinpaprika" attribution. Silent on storage. | no: storage isn't permitted, and a cap share is a derivative work |
+| CoinLore (`/api/global/`) | yes, keyless | coinlore.com/terms-of-use §4: no "data mining, or scraping tools"; §6: "copying, redistributing, or commercial use of content is prohibited without our express written consent" | no |
+| DefiLlama | **no total.** Its free endpoint list (api-docs.defillama.com/llms-free.txt) carries market cap for stablecoins only | (personal, non-commercial; no republishing) | not served |
+| CoinMarketCap | yes, but only with a key (free signup) | its terms page didn't load (404), so not read | not keyless; a key is a secret and yours to rule on |
+
+**What stops, and what replaces it.**
+- **Nothing writes the two series now.** `crypto.total_market_cap_usd` and `zec.crypto_cap_share` stop at their last stored values (CoinGecko, to 12 Oct 2026, per the box's history). Those values stay in the store, dated.
+- **The Monthly prints the cap share as "not sourced — <reason>; last stored <date>"**, with no figure, and never reads the last value as current. This is `ALT_FAMILIES["digital"]["not_sourced"]` in `monthly_macro/payload.py`, printed by `monthly_macro/stack.py`.
+- **Both series leave the logger's heartbeat roster** (`shielded.keys()`). A watched series nobody writes would be a red heartbeat for a ruling, not a fault.
+- **Registry updates:**
+  - `coingecko` is `status: retired`, with its terms quoted;
+  - `zec.market_cap_usd` and `zec.cap_probe` are sourced `defillama`;
+  - the two stopped series say so.
+
+**Forward-only, said in the row.** The `zec.market_cap_usd` registry entry says it is forward-only. The logger has no backfill path for it.
+
+**Gates.**
+
+| Gate | Result |
+|---|---|
+| validate_crypto_basket | 93/0 (group H added: 17 checks; the gate refuses the network, and fixtures are `tests/fixtures/llama/coins_zcash_*.json`, synthetic values in the service's format) |
+| validate_monthly_stack | 262/0 |
+| validate_monthly | 350/0 |
+| validate_monthly_frames | 32/0 |
+| validate_readability | 63/0 |
+| validate_figure_budget | 110/0 |
+| validate_feeds_scheduled | 19/0 |
+| validate_deploy | 118/0 |
+| check_registry | OK |
+
+**Needs you (Part 1).**
+
+9. **The total crypto cap:** leave it stopped, or accept a CoinMarketCap free key (a secret in `.env`, terms read by you first) to restart it? stopped / CMC key
+10. **The cap share's stored week** (6 to 12 Oct, CoinGecko vintages): keep it in the store as history, or delete it as stored against the terms? keep / delete (a delete is a store write on the box: yours)

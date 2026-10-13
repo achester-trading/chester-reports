@@ -1669,14 +1669,15 @@ metrics:
     units: fraction
     trigger_eligible: false
     description: >-
-      ZEC's market capitalisation divided by the total, both from CoinGecko. First
-      read 0.938 percent. FORWARD-ONLY: no history of the total is served, so this
-      series starts the day it was first logged and cannot be backfilled.
-      zec.btc_ratio KEEPS ITS OWN NAME and is a different number -- a relative price,
-      not a share of a market -- and now that both exist, having built the second is
-      no reason to conflate it with the first.
+      ZEC's market capitalisation divided by the total, both from CoinGecko, from
+      6 Oct to 12 Oct 2026. NOT SOURCED FROM 13 OCT 2026: the total has no free
+      source whose terms permit stored vintages (crypto.total_market_cap_usd), so
+      nothing writes this series; its stored history stays, dated, and the Monthly
+      prints it as "not sourced -- <reason>" rather than reading its last value as
+      current. zec.btc_ratio is a different number -- a relative price, not a share
+      of a market.
   zec.market_cap_usd:
-    source: coingecko
+    source: defillama
     mechanism_group: privacy_chain
     native_horizon: daily
     information_half_life: session
@@ -1686,9 +1687,12 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      ZEC's market capitalisation in USD, from CoinGecko. FORWARD-ONLY: the free tier
-      serves the current value and no history, so this series starts the day it was
-      first logged.
+      ZEC's market capitalisation in USD. From DefiLlama's coin service
+      (coins.llama.fi/mcaps, coingecko:zcash) from 13 Oct 2026, the same reading as
+      the crypto basket's caps; read keylessly from CoinGecko 6 to 12 Oct, rows
+      which stay with source coingecko. FORWARD-ONLY: the coin service serves the
+      current value and no history, so this series grows from the day it is read;
+      the day is the service's own timestamp's UTC day.
   crypto.total_market_cap_usd:
     source: coingecko
     mechanism_group: privacy_chain
@@ -1700,11 +1704,15 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Total crypto market capitalisation in USD, from CoinGecko's /global endpoint --
-      the denominator zec.crypto_cap_share needed. FORWARD-ONLY for the same reason,
-      which is the whole argument for logging it tonight rather than later.
+      Total crypto market capitalisation in USD, from CoinGecko's /global endpoint,
+      6 to 12 Oct 2026. STOPPED 13 OCT 2026 at its last stored value, which stays in
+      the store dated: CoinGecko's terms discourage storing data and provide for no
+      keyless plan, and no free source whose terms permit stored vintages serves the
+      total (CoinPaprika's free plan is non-commercial and bars derivative works;
+      CoinLore bars copying and data mining; DefiLlama serves no total). The
+      verdict and the terms are in docs/briefs/crypto-basket-notes.md.
   zec.cap_probe:
-    source: coingecko
+    source: defillama
     mechanism_group: privacy_chain
     native_horizon: daily
     information_half_life: permanent
@@ -1714,10 +1722,10 @@ metrics:
     units: label
     trigger_eligible: false
     description: >-
-      The stored CoinGecko probe. States: available, partial, http_error, error, plus a
-      `needs_key` flag set when a 401 or 403 says the endpoint has stopped being
-      anonymous -- the condition the ruling asked to be told about rather than worked
-      around.
+      The stored capitalisation read, nightly. From 13 Oct 2026 it is DefiLlama's
+      coin service for ZEC (states: available, partial, error) and carries `total:
+      not_sourced` with the reason; until then it was the CoinGecko probe, whose
+      rows keep source coingecko.
   zec.pool_value:
     source: zcashexplorer
     mechanism_group: privacy_chain

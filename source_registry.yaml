@@ -367,11 +367,19 @@ sources:
       The endpoints serve a CURRENT value with no as-of timestamp and no history, so
       observed_at is the session on which it was read and available_at is the read
       instant. The series is forward-only by construction.
-    license: public API within its free rate limit, NO KEY -- probed and confirmed
+    license: >-
+      coingecko.com/en/api_terms: no keyless plan is provided for; "We do not
+      encourage caching or storage of Data"; a 24-hour refresh and deletion on
+      termination. A store of vintages contradicts these (ruled 13 Oct 2026).
     allowed_reports: [daily_cascade]
     implemented_by: altdata/loggers/shielded.py
-    status: active
+    status: retired
     caveats:
+      - >-
+        RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
+        defillama, and the total crypto cap and ZEC's share of it stopped at their
+        last stored values (rows 6-12 Oct 2026 keep this source), because no free
+        source whose terms permit stored vintages serves the total.
       - >-
         FORWARD-ONLY AND NOT BACKFILLABLE. The free tier serves no history of the
         total capitalisation, so every night not logged is a night of this series that

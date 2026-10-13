@@ -664,6 +664,110 @@ def group_g() -> None:
           "the basket module reads the store only; the writers fetch")
 
 
+def group_h() -> None:
+    """13 Oct 2026: the digital block's registered keys, and the ZEC logger's
+    CoinGecko reads withdrawn."""
+    head("H. THEMES: DIGITAL -- REGISTERED KEYS; THE ZEC LOGGER OFF COINGECKO")
+    from monthly_macro import payload as pl, stack as mstack
+    from altdata.loggers import shielded
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    mets = reg.get("metrics") or reg
+    dig = pl.ALT_FAMILIES["digital"]["metrics"]
+    check("zec.price_usd" in dig and "zec.crypto_cap_share" in dig
+          and "zec.price" not in dig and "crypto.cap_share" not in dig,
+          f"the digital block reads the registered keys ({dig})")
+    check(all(k in mets for k in dig if k.startswith("zec.")),
+          "every ZEC key the digital block reads is a registered metric")
+    db = observations.ObservationStore(os.path.join(_TMP, "digital.sqlite"))
+    try:
+        span = days("2025-06-01", 480)
+        seed(db, "yfinance.mkt_btc_usd", alternating("2025-06-01", 480, 60000.0))
+        seed(db, "zec.price_usd", alternating("2025-06-01", 480, 40.0))
+        seed(db, "zec.shielded_value_share", [(d, 0.30) for d in span])
+        # The share's real stored history: CoinGecko, 6 to 12 Oct 2026.
+        seed(db, "zec.crypto_cap_share",
+             [(d, 0.0094) for d in days("2026-10-06", 7)])
+        now = "2026-10-13T23:00:00+00:00"
+        alt = pl.alternative_assets_block(now, store=db)
+        rows = {m["metric"]: m for m in alt["families"]["digital"]["metrics"]}
+        check(rows["zec.price_usd"]["level"] is not None,
+              "zec.price_usd has a level at the cutoff")
+        cs = rows["zec.crypto_cap_share"]
+        check(cs["level"] is None and cs.get("not_sourced")
+              and cs.get("last_stored") == "2026-10-12",
+              f"the cap share is not sourced, its last stored value dated "
+              f"({cs.get('last_stored')}), never read as current")
+        cfg_stack = __import__("daily_cascade.stack", fromlist=["config"]).config()
+        sl = mstack.slow_layers({"alternative_assets": alt}, cfg_stack, db, now,
+                                os.path.join(_TMP, "digital.sqlite"))
+        sub = next(s for s in sl["subsections"] if s["title"] == "Themes: digital")
+        names = [r[0] for r in sub["table"]["rows"]]
+        check("Zcash (ZEC-USD)" in names
+              and "Zcash's share of crypto market cap" in names,
+              f"both rows print in the Monthly's Themes: digital ({names})")
+        cap_row = next(r for r in sub["table"]["rows"]
+                       if r[0] == "Zcash's share of crypto market cap")
+        check(cap_row[1].startswith("not sourced — ")
+              and "last stored 2026-10-12" in cap_row[1]
+              and "0.94" not in " ".join(cap_row),
+              f"the cap share prints 'not sourced — <reason>', dated, no figure "
+              f"({cap_row[1][:60]}...)")
+        price_row = next(r for r in sub["table"]["rows"] if r[0] == "Zcash (ZEC-USD)")
+        check(re.search(r"\d", price_row[1]) is not None,
+              f"the ZEC price row prints a level ({price_row[1]})")
+        check(all("zec_price" not in r[0] and "." not in r[0]
+                  for r in sub["table"]["rows"]),
+              "no row is named by its store key")
+
+        # THE LOGGER: ZEC's cap from DefiLlama's coin service; nothing else.
+        calls = []
+
+        def fetch(url, params=None):
+            calls.append(url)
+            return fx("coins_zcash_prices")
+
+        def post(url, body):
+            calls.append(url)
+            return fx("coins_zcash_mcaps")
+        cap = shielded.probe_cap(store=db, fetch=fetch, post=post)
+        check(cap["state"] == "available" and cap["day"] == "2026-10-13"
+              and all("coins.llama.fi" in u for u in calls),
+              f"ZEC's cap is read from the coin service only ({calls}), on the "
+              f"service's own day")
+        wrote = shielded.cap_rows(cap, "gate")
+        check([r["registry_key"] for r in wrote] == ["zec.market_cap_usd"]
+              and wrote[0]["source"] == "defillama"
+              and wrote[0]["observed_at"] == "2026-10-13",
+              "the cap read writes zec.market_cap_usd only, sourced defillama")
+        check(cap["total"]["state"] == "not_sourced"
+              and cap["total"]["reason"] == shielded.CAP_SHARE_NOT_SOURCED,
+              "the stored probe says the total is not sourced, with the reason")
+        probe = db.as_of("zec.cap_probe", "2099-01-01T00:00:00+00:00")
+        check(probe and json.loads(probe[-1]["value_text"] or "{}").get("source")
+              == "defillama", "the probe row is stored and names defillama")
+
+        def broken(*a, **k):
+            raise RuntimeError("down")
+        bad = shielded.probe_cap(store=db, fetch=broken, post=broken)
+        check(bad["state"] == "error" and shielded.cap_rows(bad) == [],
+              "a failed read writes nothing rather than a stale cap")
+    finally:
+        db.close()
+    src = (REPO / "altdata" / "loggers" / "shielded.py").read_text(encoding="utf-8")
+    check("api.coingecko.com" not in src,
+          "the ZEC logger reads no CoinGecko endpoint")
+    keys = shielded.keys()
+    check("crypto.total_market_cap_usd" not in keys
+          and "zec.crypto_cap_share" not in keys and "zec.market_cap_usd" in keys,
+          "the heartbeat roster drops the two series nothing writes, keeps ZEC's cap")
+    check(mets["zec.market_cap_usd"]["source"] == "defillama"
+          and "STOPPED 13 OCT 2026" in mets["crypto.total_market_cap_usd"]["description"],
+          "the registry says where ZEC's cap comes from and that the total stopped")
+    srcs = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    check(srcs["sources"]["coingecko"]["status"] == "retired",
+          "CoinGecko is a retired source")
+
+
 def main() -> int:
     cfg = group_a()
     group_b()
@@ -672,6 +776,7 @@ def main() -> int:
     group_e(cfg)
     group_f(cfg)
     group_g()
+    group_h()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
