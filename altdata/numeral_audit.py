@@ -725,6 +725,76 @@ COMPATIBLE: dict[str, tuple[str, ...]] = {
     TYPE_PRICE: (TYPE_Z,),
 }
 
+# THE SERIES-KIND EQUIVALENCE (W-1.1a item 1, the Weekly dry run of 12 Oct). A
+# value the payload types as a price -- because its field is named `level`,
+# `priced` or `mark` -- may be a yield, a rate, a probability, an implied move, a
+# volatility or a spread, and those are written as percents: "the 10-year at
+# 4.05%", "19% of a 25 bp hike". Where the value's row declares its SERIES KIND
+# (a `series_kind` field, or a registry `key` whose kind metrics_registry.yaml's
+# `series_kinds` block declares), the unit word may be the one that kind is
+# written in: percent for all six, basis points for a change in a yield, rate or
+# spread, points for a change in a probability. A price stays strict: "SPY at
+# 0.93%" against a price of 0.93 still fails, and the message names the kind
+# it used.
+KIND_UNITS: dict[str, tuple[str, ...]] = {
+    "yield": (TYPE_PERCENT, TYPE_BP),
+    "rate": (TYPE_PERCENT, TYPE_BP),
+    "spread": (TYPE_PERCENT, TYPE_BP),
+    "probability": (TYPE_PERCENT, TYPE_PRICE),
+    "implied_move": (TYPE_PERCENT,),
+    "volatility": (TYPE_PERCENT,),
+}
+_KIND_KEYS = ("key", "metric_id", "registry_key")
+_REGISTRY_KINDS: Optional[dict] = None
+
+
+def registry_kinds() -> dict:
+    """{metric id: series kind} from metrics_registry.yaml's `series_kinds`."""
+    global _REGISTRY_KINDS
+    if _REGISTRY_KINDS is None:
+        try:
+            import yaml                                         # noqa: PLC0415
+            path = Path(__file__).resolve().parent.parent / "metrics_registry.yaml"
+            reg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            _REGISTRY_KINDS = {str(k): str(v) for k, v in
+                               (reg.get("series_kinds") or {}).items()}
+        except Exception:                                       # noqa: BLE001
+            _REGISTRY_KINDS = {}
+    return _REGISTRY_KINDS
+
+
+def series_kind_of(d: dict, inherited: Optional[str] = None) -> Optional[str]:
+    """A row's declared series kind: its own `series_kind`, else its registry
+    key's, else its parent's."""
+    k = d.get("series_kind")
+    if isinstance(k, str) and k:
+        return k
+    for f in _KIND_KEYS:
+        v = d.get(f)
+        if isinstance(v, str) and v in registry_kinds():
+            return registry_kinds()[v]
+    return inherited
+
+
+def kinds_of(value, key: str = "", kind: Optional[str] = None
+             ) -> list[tuple[float, str, Optional[str]]]:
+    """Every numeric leaf as (value, type, series kind) -- types_of() with the
+    series kind of the row each value sits in."""
+    if isinstance(value, dict):
+        here = series_kind_of(value, kind)
+        out: list[tuple[float, str, Optional[str]]] = []
+        for k, v in value.items():
+            if k == "series_kind":
+                continue
+            out.extend(kinds_of(v, k, here))
+        return out
+    if isinstance(value, (list, tuple, set)):
+        out = []
+        for v in value:
+            out.extend(kinds_of(v, key, kind))
+        return out
+    return [(v, t, kind) for v, t in types_of(value, key)]
+
 
 def type_of_key(key: str) -> str:
     """The type a field name declares. TYPE_ANY when it declares nothing.
@@ -827,6 +897,22 @@ def cell_types(text: str) -> list[tuple[float, str]]:
     return out
 
 
+def string_types(text: str, key: str = "") -> list[tuple[float, str]]:
+    """The figures in one payload string: each typed by the unit written beside
+    it (a cell's rule), else by the string's field."""
+    base = type_of_key(key)
+    out: list[tuple[float, str]] = []
+    for d in _ISO_DATE.findall(text):
+        out += [(v, base) for v in payload_numbers(d)]
+    rest = _ISO_DATE.sub(" ", text)
+    for m in _CELL_FIGURE.finditer(rest):
+        kind = _cell_kind(m)
+        if kind == TYPE_COUNT and not m.group("unit"):
+            kind = base
+        out += [(v, kind) for v in payload_numbers(m.group(0).strip())]
+    return out
+
+
 def types_of(value, key: str = "") -> list[tuple[float, str]]:
     """Every numeric leaf as (value, type). The typed form of payload_numbers()."""
     out: list[tuple[float, str]] = []
@@ -840,7 +926,12 @@ def types_of(value, key: str = "") -> list[tuple[float, str]]:
         # A numeral inside a string is a payload figure (see payload_numbers), and
         # its type is the string's field -- a level quoted inside an invalidation
         # rule is still a level.
-        return [(v, type_of_key(key)) for v in payload_numbers(value)]
+        # A UNIT WRITTEN BESIDE IT WINS (W-1.1a item 1). "0.93% priced" under
+        # the key `priced` is a percent, and "19% of a 25 bp hike" a percent and
+        # a basis-point figure: the field's name typed all three as prices and
+        # the 12 Oct dry run withheld Mechanics and Ahead over it. A figure with
+        # no unit beside it keeps its field's type, as before.
+        return string_types(value, key)
     if isinstance(value, dict):
         for k, v in value.items():
             out.extend(types_of(v, k))
@@ -915,6 +1006,9 @@ class Figure:
     # Filled when a large figure matches nothing but is near a `_display` form
     # the payload carries: names the field the writer should have copied.
     scale_error: str = ""
+    # The series kind whose unit let a price-typed value be written as a
+    # percent, bp or pts (W-1.1a item 1); empty when no equivalence was used.
+    series_kind: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -1260,6 +1354,26 @@ def label_bindings(text: str, figures: list["Figure"]) -> list[tuple["Figure", s
     return out
 
 
+_DOWN: Optional[set] = None
+
+
+def _down_verb_before(text: str, pos: int) -> bool:
+    """Is the word before position `pos` (allowing "by") a falling verb of the
+    direction lexicon (config/direction_lexicon.yaml)?"""
+    global _DOWN
+    if _DOWN is None:
+        try:
+            import yaml                                         # noqa: PLC0415
+            lex = yaml.safe_load((Path(__file__).resolve().parent.parent / "config"
+                                  / "direction_lexicon.yaml").read_text(
+                                      encoding="utf-8")) or {}
+            _DOWN = {str(w).lower() for w in lex.get("down") or []}
+        except Exception:                                       # noqa: BLE001
+            _DOWN = set()
+    m = re.search(r"([A-Za-z]+)\s+(?:by\s+)?$", text[:pos])
+    return bool(m) and m.group(1).lower() in _DOWN
+
+
 def audit(text: str, payload: Any, *,
           extra_values: Optional[Iterable[float]] = None) -> AuditResult:
     """Does every numeral in `text` correspond to a value in `payload`?
@@ -1293,6 +1407,7 @@ def audit(text: str, payload: Any, *,
         (names if _is_day_name(f, masked, days) else figures).append(f)
     values = payload_numbers(payload)
     typed = types_of(payload)
+    series_typed = kinds_of(payload)
     if extra_values:
         values.extend(float(v) for v in extra_values)
         # A DECLARED UNIT CONSTANT IS TYPELESS. The 1 in "per 1% decline" belongs to
@@ -1348,6 +1463,12 @@ def audit(text: str, payload: Any, *,
             if f.value > 0:
                 neg = next(((v, fld, disp) for v, fld, disp in signed
                              if f.low <= -v < f.high), None)
+                # THE VERB CARRIES THE SIGN (W-1.1a item 4): "fell 3 bp" for
+                # -3 is the move as written after a falling verb, not a dropped
+                # sign. The direction audit holds the verb to the sign.
+                if neg and _down_verb_before(masked, f.position):
+                    matched.append((f, -neg[0]))
+                    continue
                 if neg:
                     f.sign_error = (f"the payload's value is negative -- copy "
                                     f"`{neg[1]}` verbatim: {neg[2]}")
@@ -1371,9 +1492,21 @@ def audit(text: str, payload: Any, *,
             allowed = {f.unit_type, TYPE_ANY} | set(
                 COMPATIBLE.get(f.unit_type, ()))
             if kinds and not (kinds & allowed):
+                # THE SERIES-KIND EQUIVALENCE (W-1.1a item 1): a price-typed
+                # value in a row whose kind is written in this unit.
+                skinds = {sk for v, t, sk in series_typed
+                          if t == TYPE_PRICE
+                          and (f.low <= v < f.high or abs(v - f.value) <= 1e-9)}
+                ok = sorted(sk for sk in skinds if sk
+                            and f.unit_type in KIND_UNITS.get(sk, ()))
+                if ok:
+                    f.series_kind = ok[0]
+                    matched.append((f, hit))
+                    continue
+                named = ", ".join(sorted(sk for sk in skinds if sk)) or "none declared"
                 f.type_conflict = (
                     f"written as {f.unit_type} but the payload carries this value "
-                    f"as {sorted(kinds)}")
+                    f"as {sorted(kinds)}; series kind: {named}")
                 unmatched.append(f)
                 continue
         matched.append((f, hit))

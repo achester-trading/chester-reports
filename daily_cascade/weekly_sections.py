@@ -1020,6 +1020,26 @@ AUCTION_NOTE = ("Each figure's percentile is among the same security's auctions 
                 "needs the when-issued yield, which no free source publishes.")
 
 
+def aligned_legs(st, k1: str, k2: str, now: str, then: str
+                 ) -> tuple[tuple, tuple, Optional[str]]:
+    """((leg1, leg2) now, (leg1, leg2) at `then`, the date both share now): each
+    pair read on the latest date both legs have on or before the cutoff --
+    never one leg's Friday against the other's Wednesday."""
+    def at(cut):
+        a = {str(r["observed_at"])[:10]: r["value_num"] for r in st.as_of(k1, cut)
+             if r.get("value_num") is not None}
+        b = {str(r["observed_at"])[:10]: r["value_num"] for r in st.as_of(k2, cut)
+             if r.get("value_num") is not None}
+        common = sorted(set(a) & set(b))
+        if not common:
+            return (None, None), None
+        d = common[-1]
+        return (a[d], b[d]), d
+    cur, day = at(now)
+    prior, _ = at(then)
+    return cur, prior, day
+
+
 def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                   liquidity_deltas: bool = False,
                   auctions_in_table: bool = True) -> dict:
@@ -1047,6 +1067,14 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         b = st.latest_as_of(key, then, inst)
         return (a.get("value_num") if a else None, b.get("value_num") if b else None,
                 str(a["observed_at"])[:10] if a else None)
+
+    def pair(k1, k2):
+        """BOTH LEGS AT ONE AS-OF (W-1.1a item 6): a derived series -- SOFR less
+        IORB, CCC less BB, gold over copper -- takes each leg on the latest date
+        both legs have, now and at the period's start, and prints that date. The
+        12 Oct dry run's CCC and BB, SOFR and IORB could each sit on their own
+        latest day."""
+        return aligned_legs(st, k1, k2, now, then)
     nl, nlp, nla = two("calc.net_liquidity")
     if nl is not None:
         rows.append(["Net liquidity (Fed balance sheet less TGA and RRP)", _bn(nl),
@@ -1071,6 +1099,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         delta(name, v, None if pv is None else v - pv, scale, asof)
     so, sop, soa = two("fred.sofr")
     io, iop, ioa = two("fred.iorb")
+    (so2, io2), (sop2, iop2), sio_asof = pair("fred.sofr", "fred.iorb")
     if so is not None and io is not None:
         sp = round((so - io) * 100)
         spp = round((sop - iop) * 100) if None not in (sop, iop) else None
@@ -1078,9 +1107,12 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                                                    round((so - sop) * 100), "bp"), soa])
         rows.append(["IORB", f"{io:.2f}%", _signed(None if iop is None else
                                                    round((io - iop) * 100), "bp"), ioa])
+        if so2 is not None and io2 is not None:
+            sp = round((so2 - io2) * 100)
+            spp = (round((sop2 - iop2) * 100) if None not in (sop2, iop2) else None)
         rows.append(["SOFR less IORB (funding pressure when above zero)",
                      f"{sp:+d} bp", _signed(None if spp is None else sp - spp, "bp"),
-                     soa])
+                     sio_asof or soa])
         data["sofr_iorb_bp"] = sp
     else:
         nt.append("SOFR and IORB (the FRED pull adds them from the next run)")
@@ -1090,8 +1122,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         if v is not None:
             rows.append([name, f"{v:.2f}%", _signed(None if pv is None else
                                                     round((v - pv) * 100), "bp"), asof])
-    ccc, cccp, ccca = two("fred.ccc_oas")
-    bb, bbp, _ = two("fred.bb_oas")
+    (ccc, bb), (cccp, bbp), ccca = pair("fred.ccc_oas", "fred.bb_oas")
     if None not in (ccc, bb):
         gap = round((ccc - bb) * 100)
         gp = round((cccp - bbp) * 100) if None not in (cccp, bbp) else None
@@ -1104,12 +1135,14 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         # as a count in the audit, while the prose wrote "$6.710 per pound".
         rows.append(["Copper, front future ($/lb; a growth gauge)", f"${cu:,.3f}",
                      _signed(_ret(cu, cup), "%") if cup else "no prior", cua])
-        if au is not None:
-            r = au / cu
-            rp = (aup / cup) if None not in (aup, cup) else None
+        (au2, cu2), (aup2, cup2), gc_asof = pair("yfinance.mkt_gold_front",
+                                                 "yfinance.mkt_copper_front")
+        if au2 is not None and cu2:
+            r = au2 / cu2
+            rp = (aup2 / cup2) if None not in (aup2, cup2) and cup2 else None
             rows.append(["Gold over copper (rises when growth fears rise)",
                          f"{r:,.0f}", _signed(_ret(r, rp), "%") if rp else "no prior",
-                         cua])
+                         gc_asof])
             data["gold_copper"] = round(r, 1)
     else:
         nt.append("copper (the price feed adds HG=F from the next run)")

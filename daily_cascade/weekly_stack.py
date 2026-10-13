@@ -1326,6 +1326,10 @@ def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: lis
     for r, (iid, as_of) in enumerate(tape_ids):
         cons.tag(tape.get("table"), r, 3, cons.fact_key(iid, as_of, "week"), True)
         cons.tag(tape.get("table"), r, 2, cons.fact_key(iid, as_of, "session"), True)
+        # THE LEVEL TOO (W-1.1a item 6), for the alias check against the charts'
+        # FRED series of the same instrument.
+        if as_of:
+            cons.tag(tape.get("table"), r, 1, cons.fact_key(iid, as_of, "level"), True)
     ov = next((ss.get("table") for ss in tape.get("subsections") or []
                if str(ss.get("title", "")).startswith("SPY overnight")), None)
     if ov is not None and oi_rows:
@@ -1382,6 +1386,11 @@ W9_GAUGES = (("SPY put/call, volume (SPY chain, own capture)",
              ("SKEW", "yfinance.mkt_skew", None))
 
 
+# W3's yields: (store key, label).
+W3_YIELDS = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
+             ("fred.yield_30y", "30-year"))
+
+
 def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
                pmb: Optional[dict] = None) -> dict:
     """Everything W3, W4, W7-W10 draw, read from the store at edition time."""
@@ -1389,9 +1398,7 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     end = dt.date.fromisoformat(now[:10])
     since = lambda days: (end - dt.timedelta(days=days)).isoformat()  # noqa: E731
     out["yields10"] = {name: series(st, k, now, since=since(3653))
-                       for k, name in (("fred.yield_2y", "2-year"),
-                                       ("fred.yield_10y", "10-year"),
-                                       ("fred.yield_30y", "30-year"))}
+                       for k, name in W3_YIELDS}
     out["hy20"] = series(st, "fred.hy_oas", now, since=since(7305))
     out["cftc"] = {name: series(st, "cftc.noncomm_net", now, inst, since(730))
                    for inst, name in CFTC_CONTRACTS}
@@ -1511,6 +1518,13 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W3" in plan:
         charts["W3"] = charts_mod.w3_panel(cd["yields10"], cd["hy20"], f"{base}_w3",
                                            out_dir, now)
+        # W3's last points as levels, for the alias check (W-1.1a item 6).
+        if not charts["W3"].get("unavailable"):
+            charts["W3"]["levels"] = [
+                {"series": key, "as_of": pts[-1][0], "value": round(pts[-1][1], 2),
+                 "printed": f"{pts[-1][1]:.2f}%", "source": "FRED"}
+                for key, pts in ((k, cd["yields10"].get(n) or []) for k, n in W3_YIELDS)
+                if pts]
     if "W4" in plan:
         c4 = [v for v in cd["cftc"].values() if v]
         d0 = min((v[0][0] for v in c4), default=now[:10])
@@ -1544,6 +1558,10 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "W6", extras["contradictions"], charts_mod.span_title(
                 "Open contradictions: gap z-score", n6, "sessions", d0, now,
                 "since each opened"), f"{base}_w6", out_dir, min_points=5)
+    # ONE INSTRUMENT, SEVERAL SERIES (W-1.1a item 6): the tape's levels against
+    # the charts' FRED levels of the same instrument, before anything prints.
+    from . import consistency as cons_mod                       # noqa: PLC0415
+    cons_mod.reconcile_aliases(ed, charts)
     for cid, c in charts.items():
         sid, sub = PLACE[cid]
         s = next(x for x in ed["sections"] if x["id"] == sid)

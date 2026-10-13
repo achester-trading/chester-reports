@@ -1734,8 +1734,12 @@ def t32_group(ed: dict, out: dict) -> None:
     ok = [na.audit(t, na.with_signed(sl)).passed for t in (
         "The hold rose +35.5 points.", "The shutdown rose +2.0 points.",
         "WTI fell −6.03%.")]
+    # A dropped sign with no verb to carry it (W-1.1a item 4: after a falling
+    # verb the size is written unsigned, "WTI fell 6.03%").
     no = [na.audit(t, na.with_signed(sl)).passed for t in (
-        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.", "WTI fell 6.03%.")]
+        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.",
+        "WTI's move was 6.03%.")]
+    ok.append(na.audit("WTI fell 6.03%.", na.with_signed(sl)).passed)
     check(all(ok) and not any(no),
           f"the figures the 10 Oct run withheld now pass in their true unit, and the "
           f"audit is no looser: a wrong unit word or a dropped sign still fails "
@@ -1777,7 +1781,7 @@ def t32_group(ed: dict, out: dict) -> None:
     if neg:
         sl = na.with_signed(liq["data"])
         mag = neg["change_dollars_signed"].lstrip("−")
-        r_bad = na.audit(f"It fell {mag}.", sl)
+        r_bad = na.audit(f"Its change was {mag}.", sl)
         r_ok = na.audit(f"It moved {neg['change_dollars_signed']}.", sl)
         check(not r_bad.passed and "change_dollars_signed" in r_bad.reason()
               and r_ok.passed,
@@ -2014,8 +2018,10 @@ def t33_group(ed: dict, out: dict) -> None:
     check(na.audit("Kalshi's hold moved −14.0 pts.", sl_f).passed
           and na.audit("The core CPI market moved −11.5 pts on Polymarket.",
                        sl_r).passed
-          and not na.audit("Kalshi's hold fell 14.0 points.", sl_f).passed
-          and not na.audit("The core CPI market fell 11.5 points.", sl_r).passed,
+          and not na.audit("Kalshi's hold moved 14.0 points.", sl_f).passed
+          and not na.audit("The core CPI market moved 11.5 points.", sl_r).passed
+          # W-1.1a item 4: a falling verb carries the sign.
+          and na.audit("Kalshi's hold fell 14.0 points.", sl_f).passed,
           "the dry run's 14.0 and 11.5 now pass as copied, signed; dropping the sign "
           "still fails")
     cases = ("+35.5 / +38.0 pts", "−35.0 / −37.4 pts", "−14.0 / — pts",

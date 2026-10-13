@@ -736,9 +736,13 @@ def group_i() -> None:
     ac = af["figures_you_may_cite"]
     check(fb.quantified_figures(af) <= sp.section_figure_cap("ahead", "weekly"),
           f"Ahead: {fb.quantified_figures(af)} figures (the 9 Oct run cited 7)")
-    check(ac[0]["series"].startswith("FOMC 2026-10-28") and ac[0]["priced"]
-          == "61% of a 25 bp cut",
-          "the next FOMC meeting and its pricing first, exactly as What's priced prints it")
+    check(ac[0]["series"].startswith("FOMC 2026-10-28")
+          and ac[0].get("implied_rate_pct") == "3.88%"
+          and ac[0].get("move_probability_pct") == "61%"
+          and ac[0].get("move_increment_bp") == "25 bp"
+          and ac[0].get("direction") == "cut",
+          "the next FOMC meeting and its pricing first, each figure under a key that "
+          "names its unit (W-1.1a item 1)")
     fams = af.get("contract_families") or []
     cpi = [c for c in ac if "Prediction market resolves" in c["series"]]
     check(fams and all(f["outcomes"] == 6 for f in fams)
