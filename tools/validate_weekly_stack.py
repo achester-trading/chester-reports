@@ -90,8 +90,11 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
     # Rates and breakevens: last week and this week.
     for key, a, b in (("fred.breakeven_10y", 2.30, 2.30 + breakeven_jump),
                       ("fred.breakeven_5y", 2.20, 2.21),
-                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.06),
-                      ("fred.yield_30y", 4.50, 4.53), ("fred.hy_oas", 3.00, 3.10)):
+                      # The 10- and 30-year end the week where the tape's bars
+                      # do (4.289%, 4.789%): one instrument on one date prints
+                      # one level (W-1.1a item 6, the alias check).
+                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.289),
+                      ("fred.yield_30y", 4.50, 4.789), ("fred.hy_oas", 3.00, 3.10)):
         put(key, None, "2026-09-25", a)
         put(key, None, ENDING, b)
     for i, d in enumerate(days[-260:]):           # a year of rates for W3
