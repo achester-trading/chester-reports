@@ -657,7 +657,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           "a configured series the store lacks says so; the ERP waits for 6e")
     alt = subs.get("Themes: metals") or {}
     arow = next((r for r in (alt.get("table") or {}).get("rows") or []
-                 if r[0] == "yfinance.mkt_gld"), None)
+                 if r[0] == "The gold fund (GLD)"), None)
     g = gld_series()
     gmean = sum(v for _, v in g) / len(g)
     check(arow and alt["table"]["columns"][1:] == ["Latest (data as of)",
@@ -1861,7 +1861,7 @@ def t33_group(ed: dict, out: dict) -> None:
         br = v2.metric_month(st, {"metric": "fred.bank_reserves"}, AS_OF,
                              dt.date(2026, 9, 30))
     check(cl.get("latest_level_display") == "200.5 thousand"
-          and cl.get("change_display") == "−7,000",
+          and cl.get("change_display") == "−7,000 claims",
           f"the Fed-path theme's claims row: {cl.get('latest_level_display')}, "
           f"{cl.get('change_display')} (the dry run printed \"200.5 million\" and "
           f"\"−7 million\")")
