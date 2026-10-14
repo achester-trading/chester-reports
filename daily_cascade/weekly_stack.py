@@ -205,13 +205,67 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                      "paragraph_wanted": False})
     vol = wsec.volatility(st, cutoff, wis, week_ago(cutoff))
     subs.append({**vol, "paragraph_wanted": True})
+    # SR-38 (batch 4; placement: the revision line weekly in Mechanics),
+    # report-only and tagged.
+    rv, rv_data = ai_revisions_block(st, cutoff)
+    if rv:
+        subs.append(rv)
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
             "table_note": dw["table_note"] if dw["table"]["rows"] else None,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
                      "volatility": vol.get("data"),
-                     "dial_changes": wis.get("dial_changes") or []}}
+                     "dial_changes": wis.get("dial_changes") or [],
+                     **({"ai_revisions": rv_data} if rv_data else {})}}
+
+
+AI_REVISIONS_TITLE = "Forward-EPS revisions: the AI names"
+AI_FCF_TITLE = "The AI FCF transfer: hyperscalers and semiconductors (trailing)"
+ATTRIBUTION_TITLE = "The S&P 500's return: earnings against the multiple (trailing)"
+
+
+def ai_revisions_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's revision line, or (None, None) on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        v = ra.revisions(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the forward-EPS revision line is unavailable", exc_info=True)
+        return None, None
+    # The INDEX's line first (S&P DJI's drops, 13 Oct 2026), then the names'.
+    return ({"title": AI_REVISIONS_TITLE,
+             "lines": [ra.index_revision_line(v["index"], v["tag"]),
+                       ra.revision_line(v)],
+             "table": ra.revision_table(v), "paragraph_wanted": False},
+            {"median": v["median"], "covered": v["covered"], "tag": v["tag"],
+             "index_revision": ra.index_revision_data(v)})
+
+
+def ai_fcf_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-37's panel (the Monthly's Mechanics), or (None, None) on a fault."""
+    try:
+        from altdata import ai_fcf                              # noqa: PLC0415
+        r = ai_fcf.read(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the AI FCF panel is unavailable", exc_info=True)
+        return None, None
+    return ({"title": AI_FCF_TITLE, "lines": ai_fcf.lines(r), "table": ai_fcf.table(r),
+             "paragraph_wanted": False}, ai_fcf.data(r))
+
+
+def attribution_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's attribution and EY minus the bill (the Monthly's What's priced),
+    or (None, None) on a fault."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        a = ra.attribution(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the return attribution is unavailable", exc_info=True)
+        return None, None
+    return ({"title": ATTRIBUTION_TITLE, "lines": ra.attribution_lines(a),
+             "paragraph_wanted": False}, ra.data(a))
 
 
 def stored_objects(st, now: str) -> list[tuple[str, dict]]:
@@ -227,9 +281,64 @@ def stored_objects(st, now: str) -> list[tuple[str, dict]]:
     return sorted(by.items())
 
 
+def exception_labels(st, eid: str, now: str, cfg: Optional[dict] = None) -> list[str]:
+    """W-1.3b item 3.2: a series exception's level / change / extreme labels,
+    from its own stored history over the config's window."""
+    from . import analytics                                     # noqa: PLC0415
+    kind, _, key = str(eid).partition(":")
+    if st is None or kind == "contradiction" or "." not in key:
+        return []
+    cfg = cfg if cfg is not None else analytics.load_config()
+    days = int((((cfg.get("exceptions") or {}).get("labels") or {})
+                .get("window_days")) or 1825)
+    since = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=days)).isoformat()
+    try:
+        return analytics.series_labels(series(st, key, now, since=since), cfg)
+    except Exception:                                           # noqa: BLE001
+        return []
+
+
+def exception_subsections(now_open: list, wis: dict, dates: Optional[dict],
+                          st, now: Optional[str], w) -> tuple[list, list]:
+    """W-1.3b item 3.2: the open exceptions as one table per tier, in the tiers'
+    order -- potential leading indicator, contemporaneous contradiction, extreme
+    without a trade -- each row with its labels and its descriptive resolution
+    path, catalyst and invalidation. Returns (sub-sections, row data)."""
+    from altdata import labels                                   # noqa: PLC0415
+    from . import analytics                                     # noqa: PLC0415
+    cfg = analytics.load_config()
+    opened = set(wis.get("exceptions_opened") or [])
+    by_tier: dict = {}
+    data = []
+    for e in now_open:
+        tier = analytics.exception_tier(e, cfg)
+        name = labels.exception(e)
+        labs = exception_labels(st, e, now or session.utc_iso(), cfg)
+        f = analytics.exception_fields(name, tier, cfg)
+        since = ((dates or {}).get(e) or {}).get("exception_since") or "—"
+        if e in opened:
+            since = f"{since} (opened {w.this})"
+        by_tier.setdefault(tier, []).append(
+            [name, ", ".join(labs) or "—", since, f["resolution"], f["catalyst"],
+             f["invalidation"]])
+        data.append({"id": e, "name": name, "tier": tier, "labels": labs, **f})
+    subs = []
+    for tr in analytics.tier_order(cfg):
+        rows = by_tier.get(tr["id"])
+        if rows:
+            subs.append({"title": f"Exceptions open {w.end}: {tr['title'].lower()}",
+                         "tier": tr["id"],
+                         "table": {"columns": ["Exception", "Labels",
+                                               "Exception since", "Resolution path",
+                                               "Catalyst", "Invalidation"],
+                                   "rows": rows}})
+    return subs, data
+
+
 def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
-                dates: Optional[dict] = None) -> dict:
+                dates: Optional[dict] = None, st=None,
+                now: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
@@ -266,7 +375,11 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                                          for c in opened],
                  "exceptions_opened": [labels.exception(e) for e in
                                        wis.get("exceptions_opened") or []],
-                 "exceptions_open_now": [labels.exception(e) for e in now_open]})
+                 "exceptions_open_now": [labels.exception(e) for e in now_open],
+                 # W-1.2 item 2.6: the ids beside the labels, for the collapse
+                 # of an extreme the tape already prints (never in a frame).
+                 "_exception_ids": list(now_open),
+                 "_contradiction_rows": [dict(c) for c in opened]})
     # THE GAP TABLE (T2.2 item 5): each open gap with what each side is saying,
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
@@ -278,22 +391,22 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
                           f"no exception opened {w.this}.", 1, "none"))
-    # EXCEPTION SINCE (W-1.1 item 1.3): the date it became an exception, beside
-    # "opened this week" -- the status's age, never the gap's.
-    exc_table = {"columns": [f"Open {w.end}", "What it is", f"Opened {w.this}",
-                             "Exception since"],
-                 "rows": [[labels.exception(e),
-                           labels.exception_kind(e.split(":", 1)[0]),
-                           "yes" if e in (wis.get("exceptions_opened") or []) else "",
-                           ((dates or {}).get(e) or {}).get("exception_since") or "—"]
-                          for e in now_open]}
+    # EXCEPTION SINCE (W-1.1 item 1.3): the date it became an exception, with
+    # "opened this week" beside it -- the status's age, never the gap's. THE
+    # THREE TIERS (W-1.3b item 3.2) are the tables' grouping and order.
+    subs, exc = exception_subsections(now_open, wis, dates, st, now, w)
+    data["exceptions"] = exc
     return {"items": items, "not_tracked": base.get("not_tracked") or [],
             "data": data, "table": gaps["table"] if opened else None,
             # The gap table's how-to-read note is the glossary's "gap z-score"
             # entry already (T2.5 item 3): not printed twice.
             "table_note": None,
-            "subsections": ([{"title": f"Exceptions open {w.end}",
-                              "table": exc_table}] if now_open else [])}
+            "notes": ([("Exception labels: level -- in its five-year top or bottom "
+                        "decile; change -- its seven-day change at a z of 2 or more; "
+                        "extreme -- at its five-year bound. Resolution path, "
+                        "catalyst and invalidation are descriptive, not forecasts.")]
+                      if now_open else []),
+            "subsections": subs}
 
 
 PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
@@ -311,6 +424,7 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                   cadence: str = "weekly", liquidity_deltas: bool = False,
+                  yudd_line: Optional[bool] = None,
                   auction_block: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
@@ -357,6 +471,23 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
     subs = [{**fx, "paragraph_wanted": False}]
+    nt = list(pr["not_tracked"])
+    pdata = {"series": data, "tier1_releases": rel, "plumbing": pr["data"]}
+    # YIELDS-UP/DOLLAR-DOWN (AQ-8a; Currencies section 19, Rates S10/S29): one
+    # line, the Weekly only, and only when a flagged week became known this week
+    # -- otherwise nothing, not even a "did not fire" line.
+    if (cadence == "weekly") if yudd_line is None else yudd_line:
+        try:
+            from altdata import attribution                      # noqa: PLC0415
+            yl = attribution.yudd_week_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("yields-up/dollar-down line unavailable", exc_info=True)
+            yl = None
+            nt.append(f"the yields-up/dollar-down line: FAULT {type(exc).__name__}")
+        if yl:
+            pdata["yields_up_dollar_down"] = {k: v for k, v in yl.items() if k != "text"}
+            subs.append({"title": "Yields up, dollar down", "lines": [yl["text"]],
+                         "paragraph_wanted": False})
     if auction_block:
         # THE AUCTIONS' OWN TABLE (W-1.1 item 1.4): every field with its
         # two-year percentile; the data carries the stored tail, or None.
@@ -365,6 +496,29 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
         if recs:
             subs.append({"title": "Treasury auctions", "table": wsec.auction_table(recs),
                          "table_note": wsec.AUCTION_NOTE, "paragraph_wanted": False})
+    # SR-36: the basis-unwind watch, one code-written line (report-only).
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        subs.append({"title": "Treasury basis proxy: the unwind watch",
+                     "lines": [basis_proxy.plumbing_line(bp)],
+                     "paragraph_wanted": False})
+        pdata["basis_unwind_watch"] = basis_proxy_data(bp)
+    # SR-43 and SR-49: the 10-year's anchors, the selloff's shape and what moved,
+    # and the four voices adjudicated by those measures (report-only).
+    rr = rates_read(st, now)
+    if rr:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        subs.append({"title": "The 10-year's anchors and the selloff's shape",
+                     "lines": [rates_anchors.line(rr["anchors"]),
+                               rates_shape.shape_line(rr["shape"])],
+                     "paragraph_wanted": False})
+        subs.append({"title": "The 10-year top: four voices, read against the measures",
+                     "table": rates_shape.voices_table(rr["shape"]),
+                     "lines": [f"Verdicts by declared rule, not opinion "
+                               f"{rr['anchors'].get('tag') or ''}".rstrip() + "."],
+                     "paragraph_wanted": False})
+        pdata["rates_anchors"] = rates_data(rr)
     # SIGNAL-TRIAGE BATCH 3, TRANCHE A (13 Oct 2026): the 30y JGB line, SR-30's
     # narrow flag, SR-33's operations, SR-34's fast tells and SR-6 by tenor.
     from . import batch3_block                                  # noqa: PLC0415
@@ -372,11 +526,61 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
-            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
+            "data": pdata,
             "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
             "subsections": subs,
-            "not_tracked": pr["not_tracked"]}
+            "not_tracked": nt}
+
+
+def basis_proxy_read(st, now: str) -> Optional[dict]:
+    """SR-36's read as of the Weekly's cutoff, or None (nothing stored, or a
+    fault -- the proxy is report-only and never costs a section)."""
+    try:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        return basis_proxy.read(st, cutoff=now)
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+def rates_read(st, now: str) -> Optional[dict]:
+    """SR-43 and SR-49 as of the cutoff, or None on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        a = rates_anchors.read(st, now)
+        return {"anchors": a, "shape": rates_shape.read(st, now, anchors=a)}
+    except Exception:                                           # noqa: BLE001
+        log.warning("the rates anchors are unavailable", exc_info=True)
+        return None
+
+
+def rates_data(rr: dict) -> dict:
+    """The printed figures, for the section's frame (each as printed)."""
+    a, s = rr["anchors"], rr["shape"]
+    inf, fis = a["inflation"], a["fiscal"]
+    lt = s["selloffs"].get("latest") or {}
+    return {"inflation_anchor_pct": inf.get("anchor_pct"),
+            "inflation_gap_bp": inf.get("gap_bp"),
+            "inflation_residual_bp": inf.get("residual_bp"),
+            "twin_deficit_fitted_pct": fis.get("us_fitted_pct"),
+            "twin_deficit_gap_bp": fis.get("gap_bp"),
+            "shape": s["shape"].get("state"), "latest_selloff": lt.get("label"),
+            "voices": [{k: v[k] for k in ("voice", "verdict")} for v in s["voices"]],
+            "tag": a.get("tag")}
+
+
+def basis_proxy_data(r: dict) -> dict:
+    """What the section's data carries of the read: the printed figures, as
+    printed, and the labels."""
+    w = r["watch"]
+    return {"as_of": r["day"], "ten_year_net_short_oi_pct": round(r["ten_year_short_oi"], 1)
+            if r.get("ten_year_short_oi") is not None else None,
+            "six_contract_net_short_oi_pct": round(r["lev_short_oi"], 1)
+            if r.get("lev_short_oi") is not None else None,
+            "ten_year_tier": r.get("ten_year_tier"), "aggregate_tier": r.get("aggregate_tier"),
+            "oi_change": r.get("oi_change"), "unwind_watch": "on" if w["on"] else "off",
+            "cosignals_on": w["cosignals_on"], "absent": w["absent"]}
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
@@ -500,8 +704,17 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
         z = derived.z_of(hist, x["level"]) if len(hist) > 20 else None
         pct = derived.percentile_of(hist, x["level"]) if len(hist) > 20 else None
         cftc[name] = series(st, "cftc.noncomm_net", now, inst, two_years)
+        # W-1.3b item 3.3: the positioning-change score -- the four-week change
+        # as a z against two years' four-week changes, beside the level z.
+        from . import analytics                                 # noqa: PLC0415
+        cz = analytics.change_z(cftc[name], int(analytics.load_config()
+                                                .get("positioning", {})
+                                                .get("change_weeks") or 4))
         data[f"cftc:{inst}"] = {**x, "z_2y": None if z is None else round(z, 1),
-                                "percentile_2y": pct}
+                                "percentile_2y": pct,
+                                "change_4w": None if not cz else cz[0],
+                                "change_z_4w": (None if not cz or cz[1] is None
+                                                else round(cz[1], 1))}
         items.append(item(f"pos:cftc:{inst}", f"Speculators' net {name}: "
                           f"{x['level']:,.0f} contracts ({_change(x)} {w.since_report}, "
                           f"as of {x['observed_at']})"
@@ -545,7 +758,9 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
         if x:
             from altdata.numeral_audit import scaled_display    # noqa: PLC0415
             disp = scaled_display(x["level"], x.get("level_units") or "usd") \
-                or f"{x['level']:,.0f}"
+                or (f"${x['level']:,.0f}"         # W-1.2 item 2.8: its unit
+                    if (x.get("level_units") or "usd") == "usd"
+                    else f"{x['level']:,.0f}")
             data[k] = {**x, "level_display": disp}
             items.append(item(f"pos:{k}", f"{name}: {disp} for "
                               f"{x['observed_at'][:7]} (TIC, monthly).", 4,
@@ -567,6 +782,24 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     else:
         nt.append(f"{w.poss} sector and style-pair returns (no closes stored)")
     subs = positioning_subsections(st, now, then, data, lead, rows, cadence)
+    # THE CORRELATION LAYER'S ONE LINE (AQ-5, change order 10 Oct 2026, section
+    # 9): the Weekly only, and only in a week a 30-vs-120-day break or a shift
+    # on a NAMED ROW fired (config/correlation.yaml weekly.shift_pairs, ruled 10
+    # Oct) -- otherwise nothing, not even a "no breaks" line. All-pairs shifts
+    # are the Monthly's top five, in its slow layers.
+    if cadence == "weekly":
+        try:
+            from altdata import correlation                      # noqa: PLC0415
+            cl = correlation.weekly_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("correlation line unavailable", exc_info=True)
+            cl = None
+            nt.append(f"the correlation layer's line: FAULT {type(exc).__name__}")
+        if cl:
+            data["correlations"] = {k: cl[k] for k in
+                                    ("breaks", "shifts", "credit_sensitive_away")}
+            subs.append({"title": "Cross-asset correlations", "lines": [cl["text"]],
+                         "paragraph_wanted": False})
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
 
@@ -592,30 +825,54 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
         if x:
             cf.append([name[0].upper() + name[1:], f"{x['level']:,.0f}", _change(x),
                        "—" if x.get("z_2y") is None else f"{x['z_2y']:+.1f}",
+                       "—" if x.get("change_z_4w") is None
+                       else f"{x['change_z_4w']:+.1f}",
                        x["observed_at"]])
+    # SR-36: the Treasury basis proxy, one code-written line under the CFTC table
+    # (report-only; "(descriptive; unvalidated, n=0)").
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        data["basis_proxy"] = basis_proxy_data(bp)
     out.append({"title": "Speculative positioning (CFTC)",
                 "table": {"columns": ["Contract", "Net speculative contracts",
-                                      "Change", "z, two years", "As of"], "rows": cf},
+                                      "Change", "Level z, two years",
+                                      "Four-week change z", "As of"], "rows": cf},
+                **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",
            _change(data[f"finra:{sym}"]), data[f"finra:{sym}"]["observed_at"]]
           for sym in ("SPY", "QQQ", "IWM") if data.get(f"finra:{sym}")]
+    # W-1.3b item 3.3: the section 10A standard -- TFF categories as a percent of
+    # open interest -- and the ETF share counts, each with its level z and its
+    # four-week change z. The Weekly's (the change order's scope); the Monthly's
+    # Positioning keeps its five read blocks.
+    if cadence == "weekly":
+        out += positioning_10a(st, now, data, cadence)
     out.append({"title": "Short interest",
                 "table": {"columns": ["Series", "Level", "Change", "Settlement"],
                           "rows": si}})
     rs = []
+    from . import analytics as _an                              # noqa: PLC0415
+    min_n = int((_an.load_config().get("positioning") or {}).get("sentiment_min_n") or 4)
     for sym in ("SPY", "QQQ", "IWM", "NVDA", "TSLA"):
         r = data.get(f"rtat:{sym}")
         if r:
-            rs.append([f"{sym} retail sentiment (RTAT10, {w.mean})",
-                       f"{r['week_mean']:+.2f}",
+            # W-1.3b item 3.3: below the sample threshold the row says so and
+            # stays out of any composite.
+            from . import analytics                             # noqa: PLC0415
+            thin = analytics.thin_cell(int(r.get("n") or 0), min_n)
+            r["thin"] = bool(thin)
+            # W-1.2 item 2.8: each row names its unit.
+            rs.append([f"{sym} retail sentiment (RTAT10 score, {w.mean})",
+                       thin or f"{r['week_mean']:+.2f}",
                        "—" if r.get("prior_week_mean") is None
                        else f"{r['prior_week_mean']:+.2f}", f"n={r['n']}"])
     for sym in ("SPY", "QQQ", "NVDA", "TSLA"):
         x = data.get(f"ape:{sym}")
         if x:
-            rs.append([f"{sym} WallStreetBets mentions", f"{x['level']:,.0f}",
+            rs.append([f"{sym} WallStreetBets mentions (count)", f"{x['level']:,.0f}",
                        _change(x), x["observed_at"]])
     aaii = change_over(st, "aaii.bull_bear_spread", now, then)
     if aaii:
@@ -625,6 +882,9 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                    f"weekly; as of {aaii['observed_at']})", f"{aaii['level']:+.1f}",
                    "—" if aaii.get("prior") is None
                    else f"{aaii['level'] - aaii['prior']:+.1f}", aaii["observed_at"]])
+    data["sentiment_composite_members"] = [
+        k for k, v in data.items() if k.startswith("rtat:")
+        and v in _an.composite_members([v], min_n)]
     out.append({"title": "Retail sentiment",
                 "table": {"columns": ["Series", w.This, "Prior or change",
                                       "As of"], "rows": rs},
@@ -640,6 +900,127 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     out.append({"title": "Foreign flows (TIC)",
                 "table": {"columns": ["Series", "Level", "Period"], "rows": tic}})
     return out
+
+
+def positioning_10a(st, now: str, data: dict, cadence: str = "weekly") -> list[dict]:
+    """W-1.3b item 3.3: the TFF categories (leveraged funds, asset managers,
+    dealers) for the financial futures the store holds, as a percent of open
+    interest, and the ETF share counts; each with its level z and its four-week
+    change z against two years. Series the store does not hold yet are named."""
+    from . import analytics                                     # noqa: PLC0415
+    cfg = analytics.load_config().get("positioning") or {}
+    weeks = int(cfg.get("change_weeks") or 4)
+    since = (dt.date.fromisoformat(now[:10])
+             - dt.timedelta(days=int(cfg.get("z_window_days") or 730))).isoformat()
+    tff = cfg.get("tff") or {}
+    rows, tdata = [], []
+    for c in tff.get("contracts") or []:
+        for cat in tff.get("categories") or []:
+            pts = series(st, f"cftc.tff_{cat['id']}_net_oi", now, c, since)
+            if not pts:
+                continue
+            lvl = pts[-1][1]
+            lz = analytics._z([v for _, v in pts[:-1]], lvl)
+            cz = analytics.change_z(pts, weeks)
+            czz = None if not cz else cz[1]
+            rows.append([f"{c} futures", cat["label"], f"{lvl:+.1f}%",
+                         analytics.zfmt(lz), analytics.zfmt(czz), pts[-1][0]])
+            tdata.append({"contract": c, "category": cat["id"], "net_oi_pct": lvl,
+                          "level_z": lz, "change_z_4w": czz, "as_of": pts[-1][0]})
+    data["tff"] = tdata
+    out = [{"title": "Futures positioning by trader type (CFTC TFF, % of open interest)",
+            "table": {"columns": ["Contract", "Trader type", "Net, % of open interest",
+                                  "Level z, two years", "Four-week change z", "As of"],
+                      "rows": rows},
+            "not_tracked": [] if rows else
+            ["the CFTC TFF categories (leveraged funds, asset managers, dealers) "
+             "as a percent of open interest: not stored yet"]}]
+    erows, edata, missing = [], [], []
+    for e in cfg.get("etf_shares") or []:
+        pts = series(st, e["key"], now, None, since)
+        if not pts:
+            missing.append(e["label"])
+            continue
+        lvl = pts[-1][1]
+        cz = analytics.change_z(pts, weeks)
+        erows.append([e["label"], f"{lvl / 1e6:,.1f}m shares",
+                      "—" if not cz else f"{cz[0] / 1e6:+,.1f}m shares",
+                      analytics.zfmt(analytics._z([v for _, v in pts[:-1]], lvl)),
+                      analytics.zfmt(None if not cz else cz[1]), pts[-1][0]])
+        edata.append({"key": e["key"], "shares": lvl,
+                      "change_4w": None if not cz else cz[0],
+                      "change_z_4w": None if not cz else cz[1]})
+    data["etf_shares"] = edata
+    out.append({"title": "ETF share counts",
+                "table": {"columns": ["Fund", "Shares", "Four-week change",
+                                      "Level z, two years", "Four-week change z",
+                                      "As of"], "rows": erows},
+                "not_tracked": ([f"share counts not stored yet: {', '.join(missing)}"]
+                                if missing else [])})
+    return out
+
+
+def analytics_blocks(built: dict, pmb: Optional[dict], fed: Optional[dict],
+                     cfg: dict) -> None:
+    """W-1.3b items 3.4 and 3.5, over the built sections: the event x venue
+    matrix in What's priced for Ahead's tier-1 events, and the code-built
+    playbook in the top event's slot (its frame sentences are written after
+    the prose, in playbook_pass)."""
+    from altdata import prediction_markets as pmk               # noqa: PLC0415
+    from . import ahead, analytics                              # noqa: PLC0415
+    acfg = analytics.load_config()
+    cal = (built["ahead"].get("data") or {}).get("calendar") or []
+    top = [r for r in cal if r.get("tier") == 1]
+    markets = (pmb or {}).get("markets") or []
+    th = float((((cfg.get("prediction_markets") or {}).get("disagreement_points")
+                 or {}).get("venue_vs_fed_funds_implied")) or 15)
+    mx = analytics.matrix(top, markets, fed, pmk.fomc_venue_odds(markets), th, acfg)
+    pr = built["priced"]
+    pr.setdefault("data", {})["matrix"] = mx["data"]
+    # The matrix sits in the prediction-market block, as its second table: the
+    # section keeps its three sub-chapters.
+    pm = next((ss for ss in pr.get("subsections") or []
+               if ss.get("title") == "Prediction markets"), None)
+    if pm is None:
+        pm = {"title": "Prediction markets"}
+        pr.setdefault("subsections", []).append(pm)
+    if mx["table"]["rows"]:
+        pm.setdefault("tables", []).append(mx["table"])
+    else:
+        pr.setdefault("notes", []).append(
+            "No tier-1 event of a priced class is scheduled in the coming week, so "
+            "there is no matrix of the markets' prices.")
+    slot = (built["ahead"].get("data") or {}).get("playbook")
+    z_min = float(ahead.load_config().get("amplifier_z") or 1.5)
+    pb = analytics.playbook(slot, (built.get("positioning") or {}).get("data"),
+                            z_min, acfg, fed=fed)
+    if pb:
+        built["ahead"]["data"]["playbook"] = {**slot, "outcomes": pb["rows"],
+                                              "playbook": pb}
+        for ss in built["ahead"].get("subsections") or []:
+            if ss.get("playbook"):
+                ss["table"] = analytics.playbook_table(pb)
+                ss["playbook"] = pb
+
+
+def playbook_pass(ed: dict, *, client=None, model: Optional[str] = None) -> None:
+    """W-1.3b item 3.5: one audited call for the playbook's three frame
+    sentences, after the sections' prose; the code-built cells stand either way."""
+    from . import analytics                                     # noqa: PLC0415
+    ah = next((s for s in ed["sections"] if s["id"] == "ahead"), None)
+    if not ah:
+        return
+    for ss in ah.get("subsections") or []:
+        pb = ss.get("playbook")
+        if not isinstance(pb, dict) or not pb.get("rows"):
+            continue
+        analytics.write_playbook(pb, client=client, model=model)
+        ss["table"] = analytics.playbook_table(pb)
+        if not str(pb.get("read_state") or "").startswith("published"):
+            ss.setdefault("not_tracked", []).append(
+                "the playbook's read sentences (" + str(pb.get("read_state")) + ")")
+        (ah.setdefault("data", {}).setdefault("playbook", {}))["read_state"] = \
+            pb.get("read_state")
 
 
 def window(x: dict) -> str:
@@ -756,8 +1137,56 @@ def priced_subsections(b: dict, series: dict, fed: Optional[dict],
         [{**earnings, "paragraph_wanted": False}] if earnings else [])
 
 
+def story_statuses(stories: list[dict], st, now: str,
+                   db_path: Optional[str] = None) -> dict:
+    """W-1.3b item 3.1: each story's status and its reason, by the config's
+    rules -- a drafted packet on a linked name, the story's variable at its
+    implied level, a catalyst (declared, or a linked name's earnings) within
+    the window, else a long-term theme."""
+    from . import analytics, book_b                             # noqa: PLC0415
+    from altdata import narratives as nmod                      # noqa: PLC0415
+    acfg = analytics.load_config()
+    try:
+        ncfg = (nmod.load_config().get("narratives") or {})
+    except Exception:                                           # noqa: BLE001
+        ncfg = {}
+    reg = book_b.register_rows(db_path)
+    win = int(((acfg.get("narratives") or {}).get("catalyst_window_days")) or 30)
+    earn: dict = {}
+    if st is not None:
+        try:
+            from altdata import events as ev_mod                # noqa: PLC0415
+            end = (dt.date.fromisoformat(now[:10]) + dt.timedelta(days=win)).isoformat()
+            with ev_mod.EventStore(str(st.path)) as ev:
+                for (payload, obs) in ev.conn.execute(
+                        "SELECT payload, observed_at FROM events WHERE type = "
+                        "'scheduled' AND observed_at >= ? AND observed_at <= ? "
+                        "AND available_at <= ?", (now[:10], end, now)):
+                    pl = json.loads(payload or "{}")
+                    if pl.get("kind") == "earnings" and pl.get("symbol"):
+                        earn.setdefault(str(pl["symbol"]).upper(), str(obs)[:10])
+        except Exception:                                       # noqa: BLE001
+            log.warning("earnings dates for the story status unavailable",
+                        exc_info=True)
+
+    def latest(key, inst=None):
+        if st is None:
+            return None
+        r = st.latest_as_of(key, now, inst) if inst else st.latest_as_of(key, now)
+        return None if not r else r.get("value_num")
+    out = {}
+    for s in stories:
+        sid = str(s.get("id"))
+        spec = {**(ncfg.get(sid) or {}), **s}
+        out[sid] = analytics.story_status(sid, spec, acfg, now=now, latest=latest,
+                                          earnings_dates=earn, register_rows=reg)
+    return out
+
+
 def narratives_week_section(nb: dict, wd: Optional[dict] = None,
-                            voices: Optional[dict] = None) -> dict:
+                            voices: Optional[dict] = None, st=None,
+                            now: Optional[str] = None,
+                            db_path: Optional[str] = None) -> dict:
     """Section 8. Phase B (4 Oct 2026) makes it the synthesis: for each story,
     the week's sourced items for and against and who dissented; the voices table
     with weekly status; one consensus-against-contrarian line -- all from
@@ -796,14 +1225,20 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
     week = {}
     for d in ((voices or {}).get("data") or {}).get("stories") or []:
         week[str(d.get("name"))] = d
+    # W-1.3b item 3.1: counted by CLUSTER, never by item; the status from a
+    # fixed vocabulary by rule; the steelman row from the scan's stored search.
+    from . import analytics                                     # noqa: PLC0415
+    status = story_statuses(stories, st, now or session.utc_iso(), db_path) \
+        if stories else {}
     srows = []
     for s in stories:
         title = labels.story(s.get("id")).get("title") or s.get("name")
         w = week.get(str(s.get("name"))) or {}
-        srows.append([title, s.get("state"),
-                      f"{w.get('for', 0)} / {w.get('against', 0)}",
-                      f"{int(s.get('evidence_for') or 0)} / "
-                      f"{int(s.get('evidence_against') or 0)}",
+        cl = w.get("clusters") or {"for": 0, "against": 0}
+        stt = status.get(str(s.get("id"))) or ("long-term theme", "")
+        srows.append([title, s.get("state"), f"{stt[0]} ({stt[1]})",
+                      analytics.count_text(cl),
+                      w.get("steelman") or "no counter-case queries declared",
                       ", ".join(w.get("dissent") or []) or "—"])
     nt = []
     for it in items:
@@ -814,19 +1249,34 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
         if k == "voices:unreachable":
             it["show"] = False
             nt.append(it["text"].rstrip("."))
+    unreach = (voices or {}).get("unreachable") or []
+    subs = ([{"title": "Stories",
+              "table": {"columns": ["Story", "State", "Status",
+                                    "This week, by event cluster",
+                                    "Steelman (the counter-case)", "Dissent"],
+                        "rows": srows}}] if srows else [])
+    if unreach:
+        subs.append({"title": "Sources the scan could not read",
+                     "table": {"columns": ["Source", "Why", "Last scanned cleanly",
+                                           "Active theses that depend on it"],
+                               "rows": unreach}})
+        nt = [x for x in nt if "unreachable" not in x.lower()]
+    led = (voices or {}).get("ledger") or {}
     out = {"items": items,
-           "subsections": ([{"title": "Stories",
-                             "table": {"columns": ["Story", "State",
-                                                   "This week, for / against",
-                                                   "To date, for / against",
-                                                   "Dissent"], "rows": srows}}]
-                           if srows else []),
+           "subsections": subs,
+           "reference": ([{"title": "The narrative ledger, this week: every item "
+                                    "with its class, cluster and excerpt",
+                           "table": led}] if led.get("rows") else []),
            "not_tracked": nt,
            "legend": wsec.states_legend([str(s.get("state")) for s in stories]),
            "data": {"stories": [{"title": labels.story(s.get("id")).get("title")
                                  or s.get("name"),
                                  "statement": labels.story(s.get("id")).get("statement"),
                                  "state": s.get("state"),
+                                 "status": (status.get(str(s.get("id")))
+                                            or ("long-term theme", ""))[0],
+                                 "clusters": (week.get(str(s.get("name"))) or {})
+                                 .get("clusters"),
                                  "evidence_for": s.get("evidence_for"),
                                  "evidence_against": s.get("evidence_against"),
                                  "last_changed": s.get("last_changed")}
@@ -858,18 +1308,51 @@ def graded_calls(cutoff: str, db_path: Optional[str] = None) -> dict:
         rows = led.all_rows()
     done = [r for r in rows if r.get("resolved_at") and since <= str(r["resolved_at"])
             <= cutoff and r.get("brier") is not None]
+    # THE BOOK B CANDIDATES (decision 6) are reported on their own line, never
+    # pooled with any other source: a scanner's forecast is not a decision.
+    cand_src = ("book_b_candidate", "dryrun.book_b_candidate")
+    cands = [r for r in done if r["source"] in cand_src]
+    done = [r for r in done if r["source"] not in cand_src]
     by: dict[str, list] = {}
     for r in done:
         by.setdefault(r["source"], []).append(r["brier"])
+    cand_by: dict[str, list] = {}
+    for r in cands:
+        cand_by.setdefault(r["source"], []).append(int(r["outcome"]))
+    candidates = [{"source": s, "n": len(o), "hits": sum(o),
+                   "open": sum(1 for r in rows if r["source"] == s
+                               and r.get("outcome") is None)}
+                  for s, o in sorted(cand_by.items())]
     table = []
     for src, bs in sorted(by.items()):
         m = sum(bs) / len(bs)
         table.append({"source": src, "n": len(bs), "mean_brier": round(m, 4),
                       "vs_coin": round(m - pl.COIN_BRIER, 4),
                       "base_rate": src == "daily_close_outlook"})
-    open_n = sum(1 for r in rows if r.get("outcome") is None)
+    open_n = sum(1 for r in rows if r.get("outcome") is None
+                 and r["source"] not in cand_src)
     return {"since": since[:10], "rows": table, "resolved": len(done),
-            "unresolved": open_n, "coin_brier": pl.COIN_BRIER}
+            "unresolved": open_n, "coin_brier": pl.COIN_BRIER,
+            "candidates": candidates,
+            "candidates_open": sum(1 for r in rows if r["source"] in cand_src
+                                   and r.get("outcome") is None)}
+
+
+def candidates_line(calls: dict) -> str:
+    """The Book B candidates' forecasts, on their own line (decision 6)."""
+    rows = calls.get("candidates") or []
+    live = [r for r in rows if not r["source"].startswith("dryrun.")]
+    dry = [r for r in rows if r["source"].startswith("dryrun.")]
+
+    def part(r):
+        return (f"n={r['n']}, +1R first in {r['hits']} "
+                f"({100.0 * r['hits'] / r['n']:.0f}%)" if r["n"] else "none resolved")
+    txt = ("Book B candidates (the scanner's, taken or not; never pooled with the "
+           "operator's decisions), last four weeks: "
+           + ("; ".join(part(r) for r in live) if live else "none resolved"))
+    if dry:
+        txt += "; dry runs " + "; ".join(part(r) for r in dry)
+    return txt + f"; {calls.get('candidates_open', 0)} open."
 
 
 def read_attention_log(path: Optional[Path] = None) -> list[dict]:
@@ -952,7 +1435,8 @@ def source_label(src: str) -> str:
 
 
 def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
-               watch: Optional[list] = None) -> dict:
+               watch: Optional[list] = None, pos: Optional[dict] = None,
+               now: Optional[str] = None) -> dict:
     wa = p.get("week_ahead") or {}
     items = []
     # THE WEEK-AHEAD CALENDAR, IN FULL (T2.1 item 11, folded from the old Detail
@@ -991,6 +1475,9 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
         "; ".join(f"n={r['n']}, Brier {r['mean_brier']:.3f} against a coin's "
                   f"{calls['coin_brier']:.2f}" for r in base) if base
         else "none resolved") + ".", 1, [(r["n"], r["mean_brier"]) for r in base]))
+    items.append(item("ahead:candidates", candidates_line(calls), 1,
+                      [(r["source"], r["n"], r["hits"])
+                       for r in calls.get("candidates") or []]))
     calls_table = {"columns": ["Source", "Resolved (4 wk)", "Mean Brier",
                                "Against a coin"],
                    "rows": [[source_label(r["source"]),
@@ -1002,26 +1489,91 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
              "lines": watch or ["No contradiction is open and no count is running."]},
             # The lines only when the table is empty: one fact, once (T2.5).
             {"title": "Graded calls, last four weeks", "table": calls_table,
-             "lines": [] if calls_table["rows"] else
-             [i["text"] for i in items if i["key"] in ("ahead:calls",
-                                                       "ahead:base_rates")]}]
+             "lines": ([] if calls_table["rows"] else
+                       [i["text"] for i in items if i["key"] in ("ahead:calls",
+                                                                 "ahead:base_rates")])
+             # The candidates' line always, on its own (decision 6).
+             + [i["text"] for i in items if i["key"] == "ahead:candidates"]}]
     nt = ["scenario weights with odds and signposts (scenario set #1, Audit #4 "
           "agenda item 2)"]
-    if cal and cal.get("routine_not_listed"):
-        nt.append(f"{cal['routine_not_listed']} routine data releases and bill "
-                  f"auctions not listed")
-    return {"items": items, "print_items": False,
-            "table": (cal or {}).get("table") or {"columns": [], "rows": []},
+    # THE MARKET-MOVING CALENDAR (W-1.3a item 3.9): one ranked table, earnings,
+    # the hand-seeded calendars and the register's dated events folded in; the
+    # routine rows to the reference tables, counted; the top event's playbook
+    # slot (item 3.5, filled in W-1.3b).
+    from . import ahead                                         # noqa: PLC0415
+    try:
+        ah = ahead.build(cal, p, pos, now or p.get("as_of") or session.utc_iso(),
+                         min_outcomes=int((stack_mod.config().get("storyline") or {})
+                                          .get("family_min_outcomes") or 2))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the ranked calendar is unavailable", exc_info=True)
+        ah = None
+    if ah is None:
+        if cal and cal.get("routine_not_listed"):
+            nt.append(f"{cal['routine_not_listed']} routine data releases and bill "
+                      f"auctions not listed")
+        return {"items": items, "print_items": False,
+                "table": (cal or {}).get("table") or {"columns": [], "rows": []},
+                "subsections": subs,
+                "data": {"graded_calls": calls,
+                         "calendar": [{k: r[k] for k in ("date", "time", "event",
+                                                         "tier", "consensus")}
+                                      for r in (cal or {}).get("rows") or []],
+                         "watching": watch or []},
+                "not_tracked": nt}
+    if ah["playbook"]:
+        # The slot: W-1.3b's code-built outcome table fills its lines.
+        subs.append({"title": f"Playbook: {ah['playbook']['event']}",
+                        "lines": [], "playbook": ah["playbook"]})
+    return {"items": items, "print_items": False, "table": ah["table"],
             "subsections": subs,
+            "summarised": list(ah["collapsed"]),
+            "reference": ah["reference"],
+            "notes": ah["notes"],
             "data": {"graded_calls": calls,
-                     "calendar": [{k: r[k] for k in ("date", "time", "event", "tier",
-                                                     "consensus")}
-                                  for r in (cal or {}).get("rows") or []],
+                     "calendar": [{k: r.get(k) for k in
+                                   ("date", "time", "event", "tier", "consensus",
+                                    "rank", "cls", "why", "amplify")}
+                                  for r in ah["rows"]],
+                     "playbook": ah["playbook"],
+                     "routine_count": ah["routine_count"],
                      "watching": watch or []},
             "not_tracked": nt}
 
 
-def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
+def scanner_calendar(p: dict) -> list[dict]:
+    """The week ahead for the scanner's catalysts: earnings by symbol, and the
+    tracked releases with the tier-1 ones marked."""
+    wa = p.get("week_ahead") or {}
+    tier1 = (((stack_mod.config().get("triggers") or {}).get("plumbing") or {})
+             .get("tier1_events") or [])
+    out = [{"date": r.get("date"), "event": f"{r.get('symbol')} earnings",
+            "symbol": r.get("symbol")}
+           for r in (wa.get("earnings") or {}).get("rows") or [] if r.get("symbol")]
+    for r in (wa.get("releases") or {}).get("rows") or []:
+        name = str(r.get("release_name") or "")
+        if name and r.get("date"):
+            out.append({"date": r["date"], "event": name, "symbol": None,
+                        "tier1": any(k.lower() in name.lower() for k in tier1)})
+    return out
+
+
+def chain_walls(book: Optional[dict]) -> dict:
+    """symbol -> [(label, level)]: the walls the chain store names, for the
+    scanner's reclaim levels."""
+    out: dict[str, list] = {}
+    for i in (book or {}).get("instruments") or []:
+        for lv in i.get("levels") or []:
+            if lv.get("type") in ("call_wall", "put_wall") and lv.get("value"):
+                out.setdefault(str(i.get("symbol")), []).append(
+                    (f"the {lv['label']}", lv["value"]))
+    return out
+
+
+def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
+              ending: Optional[str] = None, db_path: Optional[str] = None,
+              prior: Optional[dict] = None, walls: Optional[dict] = None,
+              dry_run: bool = False) -> dict:
     rg = p.get("register") or {}
     rb = rg.get("rule_breaks") or {}
     items = [item("book:open", f"{rg.get('open_count', 0)} open decision(s), "
@@ -1074,8 +1626,60 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str]) -> dict:
                       f"What's priced deep on {len(trig['priced'])} of "
                       f"{trig['sessions']} session(s).", 2,
                       (len(trig["plumbing"]), len(trig["priced"]))))
-    return {"items": items, "data": {"attention": attn, "triggers": trig,
-                                     "book_z": bz},
+    # W-1.3a items 3.8 and 3.6: Book B's candidates (the scanner's hook) and the
+    # sitting's productivity line, beside the compliance line above.
+    from . import book_b                                        # noqa: PLC0415
+    ending = ending or p.get("week_ending")
+    now = p.get("as_of") or session.utc_iso()
+    run, ledger = None, {}
+    try:
+        # THE BOOK B SCANNER (brief of 12 Oct 2026), over Friday's close: the
+        # week ahead's calendar for each candidate's catalyst, the chain's walls
+        # for the reclaim levels.
+        run = book_b.scanner_run(ending, db_path, cutoff=now,
+                                 calendar=scanner_calendar(p), walls=walls,
+                                 sessions=p.get("sessions_in_week") or None)
+        scan = None if run is None else run["candidates"]
+        pbook = next((s for s in (prior or {}).get("sections") or []
+                      if s.get("id") == "book"), {})
+        flow = book_b.sitting_flow(ending, db_path, scan,
+                                   (pbook.get("data") or {}).get("candidates_printed"),
+                                   approved=attn["packets_approved"])
+        subs, kept = book_b.subsections(scan, flow, run)
+        notes = list(subs[0].pop("notes", []))
+    except Exception:                                           # noqa: BLE001
+        # The section prints without the two blocks rather than not at all.
+        log.warning("Book B's candidates and productivity are unavailable",
+                    exc_info=True)
+        scan, flow, kept = None, {}, {"printed": [], "reference": []}
+        subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
+                 "candidates": []}]
+        notes = ["The candidates and the productivity line could not be read."]
+    # GRADING FROM DAY ONE (decision 6): every candidate, taken or not, a ledger
+    # forecast under its setup and id -- a dry run under its own namespace --
+    # and the open ones the stored closes now decide, resolved.
+    if scan is not None:
+        try:
+            from altdata import book_b_scanner as bbs           # noqa: PLC0415
+            ledger["graded"] = len(bbs.grade(db_path, ending, now, dry_run))
+            # The standing candidates and the flip zone's refusals (ruled 13 Oct
+            # 2026: refused at the gate, still graded).
+            ledger["recorded"] = len(bbs.record_forecasts(bbs.graded(run), ending,
+                                                          now, db_path, dry_run))
+            ledger["source"] = bbs.source_name(dry_run)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("the candidates' forecasts were not written", exc_info=True)
+            ledger["error"] = f"{type(exc).__name__}: {exc}"
+    return {"items": items, "subsections": subs, "notes": notes,
+            "reference": kept.get("reference") or [],
+            "data": {"attention": attn, "triggers": trig, "book_z": bz,
+                     "flow": {k: v for k, v in flow.items()},
+                     "candidates": subs[0]["candidates"],
+                     "candidates_printed": kept["printed"],
+                     "scanner": "absent" if scan is None else "present",
+                     "scanner_ledger": ledger,
+                     "scanner_refused": len((run or {}).get("refused") or []),
+                     "scanner_hooks": (run or {}).get("hooks")},
             "table": {"columns": ["Count", "This week", "Budget"],
                       "rows": [["Packets approved", attn["packets_approved"],
                                 attn["packets_budget"]],
@@ -1212,7 +1816,8 @@ def annotate_moves(built: dict, st, now: str, days: int = 7,
 # Assembly
 # ---------------------------------------------------------------------------
 def build(p: dict, book: dict, prior: Optional[dict] = None,
-          db_path: Optional[str] = None, log_path: Optional[Path] = None) -> tuple:
+          db_path: Optional[str] = None, log_path: Optional[Path] = None,
+          dry_run: bool = False) -> tuple:
     cfg = stack_mod.config()
     ending = p["week_ending"]
     now = p.get("as_of") or session.utc_iso()
@@ -1266,17 +1871,27 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "tape": tape,
             "mechanics": mechanics_week(st, sessions, now, wis, cfg),
             "misfit": misfit_week(wis, pmb, hist,
-                                  dates=wsec.state_dates(stored_objects(st, now))),
+                                  dates=wsec.state_dates(stored_objects(st, now)),
+                                  st=st, now=now),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": narratives_week_section(p.get("narratives") or {},
                                                   p.get("weekend_developments") or {},
-                                                  _voices_week(ending, now, st)),
-            "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch),
+                                                  _voices_week(ending, now, st),
+                                                  st=st, now=now, db_path=db_path),
+            "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch,
+                                pos=pos.get("data"), now=now),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
-                              trig, bz),
+                              trig, bz, ending=ending, db_path=db_path, prior=prior,
+                              walls=chain_walls(book), dry_run=dry_run),
         }
+        # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
+        # Ahead's top events, and the top event's playbook.
+        try:
+            analytics_blocks(built, pmb, fed, cfg)
+        except Exception:                                       # noqa: BLE001
+            log.warning("the matrix and the playbook are unavailable", exc_info=True)
         try:
             annotate_moves(built, st, now, cfg=cfg)
         except Exception:                                       # noqa: BLE001
@@ -1291,6 +1906,12 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    # W-1.3a: the keys assemble does not carry -- a section's one-line summaries
+    # (W-1.2 item 2.6), its reference rows and its notes.
+    for s in sections:
+        for k in ("summarised", "reference", "notes"):
+            if (built.get(s["id"]) or {}).get(k):
+                s[k] = list(built[s["id"]][k])
     tag_facts(sections, tt.get("row_ids") or [], oi.get("rows") or [],
               wbd.get("data") or [], book)
     # "UNVALIDATED" (W-1.1 item 1.7): a footnote in each section that prints a
@@ -1323,6 +1944,10 @@ def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: lis
     for r, (iid, as_of) in enumerate(tape_ids):
         cons.tag(tape.get("table"), r, 3, cons.fact_key(iid, as_of, "week"), True)
         cons.tag(tape.get("table"), r, 2, cons.fact_key(iid, as_of, "session"), True)
+        # THE LEVEL TOO (W-1.1a item 6), for the alias check against the charts'
+        # FRED series of the same instrument.
+        if as_of:
+            cons.tag(tape.get("table"), r, 1, cons.fact_key(iid, as_of, "level"), True)
     ov = next((ss.get("table") for ss in tape.get("subsections") or []
                if str(ss.get("title", "")).startswith("SPY overnight")), None)
     if ov is not None and oi_rows:
@@ -1379,6 +2004,11 @@ W9_GAUGES = (("SPY put/call, volume (SPY chain, own capture)",
              ("SKEW", "yfinance.mkt_skew", None))
 
 
+# W3's yields: (store key, label).
+W3_YIELDS = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
+             ("fred.yield_30y", "30-year"))
+
+
 def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
                pmb: Optional[dict] = None) -> dict:
     """Everything W3, W4, W7-W10 draw, read from the store at edition time."""
@@ -1386,9 +2016,7 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     end = dt.date.fromisoformat(now[:10])
     since = lambda days: (end - dt.timedelta(days=days)).isoformat()  # noqa: E731
     out["yields10"] = {name: series(st, k, now, since=since(3653))
-                       for k, name in (("fred.yield_2y", "2-year"),
-                                       ("fred.yield_10y", "10-year"),
-                                       ("fred.yield_30y", "30-year"))}
+                       for k, name in W3_YIELDS}
     out["hy20"] = series(st, "fred.hy_oas", now, since=since(7305))
     out["cftc"] = {name: series(st, "cftc.noncomm_net", now, inst, since(730))
                    for inst, name in CFTC_CONTRACTS}
@@ -1466,7 +2094,7 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             daily, _ = levels_mod.daily_bars(levels_mod.tape_spec("spy"), ending,
                                              None, _db)
     prior = load_prior(p.get("previous_week_ending") or "", prior_dir or archive_dir)
-    ed, extras = build(p, book, prior, db_path, log_path)
+    ed, extras = build(p, book, prior, db_path, log_path, dry_run=dry_run)
     # THE CONSISTENCY GATE (W-1.1 item 1.1, ruling 1): within rounding, every
     # place prints the canonical figure and the difference is logged; beyond it,
     # EditionInconsistent fails the run. Before the prose, so every frame copies
@@ -1476,6 +2104,20 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if narrative:
         stack_prose.write(ed, client=client, model=model, outlooks=[],
                           cadence="weekly")
+        storyline_pass(ed, prior, ending, client=client, model=model,
+                       db_path=db_path, dry_run=dry_run)
+        playbook_pass(ed, client=client, model=model)
+    else:
+        ed["precis"] = {"state": "skipped", "published": False}
+    book_terms(ed, ending)
+    from . import storyline                                     # noqa: PLC0415
+    storyline.layout(ed, stack_mod.config())
+    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
+    # glossary carries the config's version.
+    ta = wsec.technical_appendix(stack_mod.config())
+    if ta:
+        ed.setdefault("detail", []).append(ta)
+    ed["definitions_version"] = wsec.definitions_version()
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir
@@ -1501,14 +2143,22 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W3" in plan:
         charts["W3"] = charts_mod.w3_panel(cd["yields10"], cd["hy20"], f"{base}_w3",
                                            out_dir, now)
+        # W3's last points as levels, for the alias check (W-1.1a item 6).
+        if not charts["W3"].get("unavailable"):
+            charts["W3"]["levels"] = [
+                {"series": key, "as_of": pts[-1][0], "value": round(pts[-1][1], 2),
+                 "printed": f"{pts[-1][1]:.2f}%", "source": "FRED"}
+                for key, pts in ((k, cd["yields10"].get(n) or []) for k, n in W3_YIELDS)
+                if pts]
     if "W4" in plan:
         c4 = [v for v in cd["cftc"].values() if v]
         d0 = min((v[0][0] for v in c4), default=now[:10])
         charts["W4"] = charts_mod.z_panel(
-            "W4", cd["cftc"], charts_mod.span_title(
-                "Speculative positioning, CFTC net contracts as z-scores",
-                max((len(v) for v in c4), default=0), "weekly reports", d0, now,
-                "two years"), f"{base}_w4", out_dir, min_points=20)
+            "W4", cd["cftc"], "Speculative positioning (CFTC), z-scores",
+            f"{base}_w4", out_dir, min_points=20,
+            subtitle=charts_mod.span_title(
+                "net contracts", max((len(v) for v in c4), default=0),
+                "weekly reports", d0, now, "two years"))
     if "W5" in plan:
         charts["W5"] = charts_mod.bars_chart(
             "W5", extras["leadership"], f"Leadership: the week's sector and "
@@ -1517,10 +2167,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
         g = [v for v in cd["gauges"].values() if v]
         d0 = min((v[0][0] for v in g), default=now[:10])
         charts["W9"] = charts_mod.z_panel(
-            "W9", cd["gauges"], charts_mod.span_title(
-                "Positioning and sentiment gauges as z-scores",
-                max((len(v) for v in g), default=0), "observations", d0, now,
-                "two years"), f"{base}_w9", out_dir, ncols=3, min_points=20)
+            "W9", cd["gauges"], "Positioning and sentiment gauges, z-scores",
+            f"{base}_w9", out_dir, ncols=3, min_points=20,
+            subtitle=charts_mod.span_title(
+                "each gauge", max((len(v) for v in g), default=0), "observations",
+                d0, now, "two years"))
     if "W10" in plan:
         charts["W10"] = charts_mod.w10(cd["odds"], *cd["paths"], f"{base}_w10",
                                        out_dir)
@@ -1532,6 +2183,10 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "W6", extras["contradictions"], charts_mod.span_title(
                 "Open contradictions: gap z-score", n6, "sessions", d0, now,
                 "since each opened"), f"{base}_w6", out_dir, min_points=5)
+    # ONE INSTRUMENT, SEVERAL SERIES (W-1.1a item 6): the tape's levels against
+    # the charts' FRED levels of the same instrument, before anything prints.
+    from . import consistency as cons_mod                       # noqa: PLC0415
+    cons_mod.reconcile_aliases(ed, charts)
     for cid, c in charts.items():
         sid, sub = PLACE[cid]
         s = next(x for x in ed["sections"] if x["id"] == sid)
@@ -1565,6 +2220,46 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "pdf": pdf, "pdf_detail": pdf_detail}
 
 
+def storyline_pass(ed: dict, prior: Optional[dict], ending: str, *, client=None,
+                   model: Optional[str] = None, db_path: Optional[str] = None,
+                   dry_run: bool = False) -> None:
+    """W-1.2 items 2.1-2.3: grade last week's stance, write the précis over the
+    ten finished commentaries, and record this week's stance at publication --
+    a dry run under its own namespace in the ledger, never the live source."""
+    from . import precis                                        # noqa: PLC0415
+    base_close = None
+    try:
+        with observations.ObservationStore(db_path) as st:
+            ed["stances_graded"] = precis.grade_stances(db_path, ending, st, dry_run)
+            base_close = precis.spy_close(st, ending, ed.get("as_of"))
+    except Exception:                                           # noqa: BLE001
+        log.warning("stance grading unavailable", exc_info=True)
+    res = precis.write(ed, prior, client=client, model=model)
+    precis.apply(ed, res, precis.graded_n(db_path, dry_run))
+    try:
+        ed["precis"]["stance_id"] = precis.record_stance(
+            res, ending, ed.get("as_of"), db_path, dry_run, base_close)
+        ed["precis"]["stance_source"] = precis.source_name(dry_run)
+    except Exception as exc:                                    # noqa: BLE001
+        ed["precis"]["stance_error"] = f"{type(exc).__name__}: {exc}"
+
+
+def book_terms(ed: dict, ending: str) -> None:
+    """W-1.2 item 2.5: section 10 ends with the book's terms."""
+    from . import precis                                        # noqa: PLC0415
+    book = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if book is None or book.get("empty"):
+        return
+    try:
+        from daily_cascade import payload as close_payload      # noqa: PLC0415
+        enf = close_payload.enforcement_block(ending, ed.get("as_of"))
+    except Exception:                                           # noqa: BLE001
+        enf = None
+    line = precis.terms_line(ed, enf)
+    if line:
+        book["closing_lines"] = [line]
+
+
 def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     """The Weekly (T2.5 item 7): the title and week, the as-of in ET, the
     reading time and what changed since the last Weekly in the header; the ten
@@ -1580,8 +2275,13 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly")
-    return (f'<div style="{stack_render.WRAP}">{head}{secs}'
-            f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed)}'
+    # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
+    # then the ten sections; the reference tables after the last section.
+    from . import precis                                        # noqa: PLC0415
+    return (f'<div style="{stack_render.WRAP}">{head}{precis.precis_html(ed)}'
+            f'{precis.terms_box_html()}{secs}'
+            f'{stack_render.details_html(ed.get("detail"), "weekly")}'
+            f'{stack_render.glossary_html(_glossary() + list(ed.get("glossary_extra") or []), ed, stamp=ed.get("definitions_version"))}'
             + stack_render.page_footer(ed, ed.get("run_id") or p.get("run_id"),
                                        ed.get("archive_path"),
                                        stack_render._marks(ed, "Weekly"))

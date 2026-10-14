@@ -29,7 +29,9 @@ def _open(d: dt.date) -> bool:
 def _row(d: dt.date, r: dict) -> dict:
     return {"date": d.isoformat(), "time": str(r.get("time") or "time not stated"),
             "event": str(r["label"]), "tier": int(r.get("tier") or 3),
-            "consensus": str(r.get("note") or "—")}
+            "consensus": str(r.get("note") or "—"),
+            # The Ahead class: its tier and its channel (config/weekly_ahead.yaml).
+            **({"cls": str(r["cls"])} if r.get("cls") else {})}
 
 
 def rows(cal: dict, monday: Any, saturday: Any) -> list[dict]:

@@ -486,7 +486,12 @@ def group_g() -> None:
     check(blk.TITLE_TENOR in mt and blk.TITLE_LEVERS in mt and blk.TITLE_EU in mt,
           "the Monthly's Plumbing (bucketed) carries them and the lever table")
     del mo
-    lines = [x for s in wk["subsections"] for x in s.get("lines") or []]
+    # Batch 3's own sub-sections: another branch's blocks in the same section
+    # answer to their own gates (Friday stitching, 13 Oct).
+    ours = (blk.TITLE_JGB, blk.TITLE_EU, blk.TITLE_BUYBACKS, blk.TITLE_JAPAN,
+            blk.TITLE_TENOR)
+    lines = [x for s in wk["subsections"] if s.get("title") in ours
+             for x in s.get("lines") or []]
     bad = [x for x in lines if sp.filler_faults(x)]
     check(lines and not bad, f"no printed line is filler ({len(lines)} lines; {bad[:1]})")
     causal = [x for x in lines if re.search(r"\b(because|drove|driven by|due to|caused|"

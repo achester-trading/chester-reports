@@ -263,6 +263,9 @@ def reading_target(cadence: str) -> Optional[int]:
 # "S&P 500", "2s10s", "Nasdaq-100", a date. Each is removed before counting.
 _NOT_FIGURES = [
     re.compile(r"S&P\s?500|Russell\s?2000|Nasdaq-100|Dow\s?30", re.I),
+    # The 60-40 benchmark is a name (W-1.1a): it counted as two figures, "60"
+    # and "40", in every Book Z sentence.
+    re.compile(r"\b60[-/]40\b"),
     re.compile(r"\b\d+(?:[.,]\d+)?\s?-\s?(?:year|month|week|day|session|minute|hour|"
                r"quarter)s?(?:-[a-z]+)?\b", re.I),
     re.compile(r"\b\d+s\d+s\b", re.I),
@@ -296,6 +299,68 @@ def figures(text: Optional[str]) -> list[str]:
 
 def figure_count(text: Optional[str]) -> int:
     return len(figures(text))
+
+
+# ---------------------------------------------------------------------------
+# 1b. The verb carries the sign; no stance on a macro variable (W-1.1a item 4)
+# ---------------------------------------------------------------------------
+# The 12 Oct dry run wrote "fell -3 bp", "rose +3.36%", "widened +37 bp" through
+# the edition: the verb and the sign say the same thing twice. After every audit,
+# a signed figure that follows a lexicon verb (config/direction_lexicon.yaml)
+# AGREEING with its sign prints unsigned, and the rewrite is counted. A verb that
+# disagrees is left for the direction audit, which has already withheld it.
+def _lexicon_verbs() -> dict[str, int]:
+    from .direction import lexicon                              # noqa: PLC0415
+    lex = lexicon()
+    out = {str(w).lower(): 1 for w in lex.get("up") or []}
+    out.update({str(w).lower(): -1 for w in lex.get("down") or []})
+    # "up" and "down" are adverbs here, not verbs: "down -0.43%" is left alone
+    # only where it disagrees, as for any word.
+    return out
+
+
+_SIGNED_AFTER = re.compile(r"\b(?P<verb>[A-Za-z]+)(?P<gap>\s+(?:by\s+)?)"
+                           r"(?P<sign>[+\-−])(?P<num>\d)")
+
+
+def unsign_after_verbs(text: Optional[str]) -> tuple[Optional[str], int]:
+    """("fell 3 bp", 1) from "fell -3 bp": the sign dropped after an agreeing
+    lexicon verb, and the number of rewrites."""
+    if not text:
+        return text, 0
+    verbs = _lexicon_verbs()
+    n = 0
+
+    def sub(m: re.Match) -> str:
+        nonlocal n
+        d = verbs.get(m.group("verb").lower())
+        sign = 1 if m.group("sign") == "+" else -1
+        if d is None or d != sign:
+            return m.group(0)
+        n += 1
+        return f"{m.group('verb')}{m.group('gap')}{m.group('num')}"
+    out = _SIGNED_AFTER.sub(sub, text)
+    return out, n
+
+
+# "Bullish on inflation" is a position in a market, said of a macro variable: the
+# reader cannot tell whether it means more inflation is expected or that it is
+# welcome. The frame says "expects inflation to stay above target".
+_STANCE = re.compile(r"\b(bullish|bearish)\s+(?:on|about|for|over)\s+(?:the\s+)?"
+                     r"(inflation|growth|rates|interest rates|yields|the economy|"
+                     r"the labor market|the labour market|employment|GDP)\b", re.I)
+_MARKED = re.compile(r"\bmarked\s+(?:broke|broken|held|holding)\b", re.I)
+
+
+def stance_faults(text: Optional[str]) -> list[str]:
+    """'bullish'/'bearish' paired with a macro variable, and a level "marked
+    broke" -- each quoted, so the retry names it."""
+    out = [f"'{m.group(0)}' -- a stance on a macro variable; write what is "
+           f"expected (\"expects inflation to stay above target\")"
+           for m in _STANCE.finditer(text or "")]
+    out += [f"'{m.group(0)}' -- a level is \"broken\" or \"held\", never "
+            f"\"marked broke\"" for m in _MARKED.finditer(text or "")]
+    return out
 
 
 def _figure_core(f: str) -> str:

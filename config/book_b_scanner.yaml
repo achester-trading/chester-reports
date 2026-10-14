@@ -1,0 +1,251 @@
+# book_b_scanner.yaml -- the Book B scanner (the Weekly's candidate list).
+# Brief: docs/briefs/book-b-scanner-brief-2026-10-12.md (ruled 12 Oct 2026, all
+# eight decisions yes). Read by altdata/book_b_scanner.py, inside the Weekly's
+# build over Friday's close and nowhere else (decision 7).
+#
+# WHAT THE DOCTRINE FIXES (section 4.2 and the regime card, section 5.2) is
+# written here as the Doctrine states it. EVERY OTHER VALUE IS SESSION-SET, from
+# the Technical Indicators paper where it speaks (its chapter is cited beside
+# the value) and by the session where it does not. The values are printed beside
+# every candidate (decision 2), so a reader sees the rule a candidate passed.
+version: book-b-scanner-v1
+updated: 2026-10-13
+
+# ---------------------------------------------------------------------------
+# 1. THE UNIVERSE (decision 1): every instrument in the store with daily bars and
+# at least `min_sessions` closes -- the price basket and the earnings universe's
+# names. Nothing is fetched. Index levels that cannot be held are excluded.
+# ---------------------------------------------------------------------------
+universe:
+  min_sessions: 120
+  price_namespace: yfinance   # the basket's closes: <namespace>.<prefix><symbol>
+  price_prefix: mkt_
+  # Store series beside a close that are not instruments of their own.
+  companion_suffixes: [_open, _high, _low, _dividend, _split, _volume]
+  # Indices and yields: a level, not an instrument Book B can hold.
+  exclude: ["^VIX", "^VIX3M", "^VVIX", "^SKEW", "^MOVE", "^TNX", "^TYX", "^GSPC"]
+  # The Alternative Asset instruments: the correlation layer's break flag is
+  # read for these (confirmation family `correlation_break`).
+  alt_assets: [GLD, SLV, USO, "GC=F", "CL=F", "HG=F", "BTC-USD", "ETH-USD",
+               "SOL-USD", "ZEC-USD", DBA, VNQI, XLRE, EEM, MCHI, "DX-Y.NYB",
+               "EURUSD=X", "JPY=X", "CNY=X", UUP]
+
+# ---------------------------------------------------------------------------
+# 2. THE PRIMARY TREND (Technical Indicators paper, chapter 3 and the appendix's
+# "Slow MA state" row: price against a slow average as a blunt, consistent
+# filter; the 50-day as the Doctrine's tape uses it; higher highs and higher
+# lows over the look-back). Four conditions, each read for the candidate's
+# direction; `up` when at least `min_agree` hold for a long, `down` for a short.
+# ---------------------------------------------------------------------------
+trend:
+  fast_ma: 50                 # the Doctrine's tape
+  slow_ma: 200                # the paper's slow MA (chapter 3)
+  lookback: 60                # higher highs / higher lows; chapter 2's swing backdrop
+  min_agree: 3                # of four: close v fast, close v slow, fast v slow, HH+HL
+  # Against the primary trend (Doctrine 4.2, "Fighting the tape"): ordinary
+  # tier, a five-session time stop, no add.
+  against_tape_time_stop: 5
+
+# ---------------------------------------------------------------------------
+# 3. THE THREE PIVOTAL POINTS (decision 2). A pivot counts when it fired in the
+# last `fire_sessions` sessions to Friday's close and the close still holds it.
+# ---------------------------------------------------------------------------
+pivots:
+  fire_sessions: 5            # the week's price action (Doctrine 4.2)
+  base:
+    min_sessions: 20          # N, shortest: chapter 2's tactical window (20 days)
+    max_sessions: 60          # N, longest: chapter 2's swing backdrop (60 days)
+    max_range_pct: 10.0       # R: (base high - base low) / close, session-set;
+                              # chapter 2's compression, stated as a share of price
+  volume:
+    multiple: 1.5             # V: the pivot session against its 20-session
+                              # average; chapter 5 reads volume as mild evidence
+    average_sessions: 20
+    # WHERE NO VOLUME IS STORED the pivot still fires, and the candidate prints
+    # "volume not stored -- the volume leg unconfirmed", carried into the
+    # counter-thesis. `strict` would refuse it instead. (Needs you 1.)
+    when_absent: unconfirmed  # unconfirmed | strict
+    # Session volume from the tape set's 5-minute bars, where no daily volume
+    # series is stored: a session counts with at least this many bars (of 78).
+    min_5m_bars: 70
+  reclaim:
+    window_sessions: 10       # L: the level lost within the last two weeks
+    held_sessions: 5          # the level held this many closes before it was
+                              # lost -- a level price chops across daily was
+                              # never held, and is not reclaimed (session-set)
+    levels: [base_high, fast_ma, chain_wall]   # a base high, the 50-day, a wall
+  failed_breakdown:
+    window_sessions: 5        # F: a close back above the base low within a week
+  # INVALIDATION AVOIDS THE OBVIOUS LINE (chapter 6, "Zone discipline"; chapter
+  # 8: "invalidations avoid the obvious line by a stated buffer"): a quarter of
+  # the average true range beyond the level. Without a stored high and low the
+  # range is the average absolute close-to-close change, and says so.
+  invalidation_buffer_atr: 0.25
+  atr_sessions: 14
+
+# The setup each pivot is graded under (EL-1's config/setups.yaml). A short is
+# the same pivot mirrored -- a breakdown from a base, a loss of a regained level,
+# a failed breakout -- and is graded under the same family, the ledger reporting
+# long and short separately by direction (Doctrine 4.2).
+setups:
+  breakout: b_breakout
+  reclaim: b_reclaim
+  failed_breakdown: b_failed_breakdown
+
+# ---------------------------------------------------------------------------
+# 4. CONFIRMATIONS (decision 3), from families other than price.
+# ---------------------------------------------------------------------------
+confirmations:
+  long_needs: 1               # Doctrine 4.2
+  long_needs_after_top: 2     # a Top & Bottom top signal raises the long bar
+  short_needs: 2              # one more than a long, plus the regime permission
+  relative_strength:
+    benchmark: yfinance.mkt_spy
+    sessions: 60              # the instrument / SPY ratio, percentile in 60
+    long_min_pct: 80
+    short_max_pct: 20
+  positioning:
+    # The section 10A rows: speculative net (CFTC) and leveraged funds (TFF), as
+    # a two-year level z. Crowded the OTHER way confirms; crowded the SAME way is
+    # a WARNING on the candidate (decision 3). `sign` -1 where the instrument is
+    # the contract's inverse (USD/JPY against yen futures).
+    crowded_z: 1.5
+    window_days: 730
+    map:
+      SPY: {key: cftc.noncomm_net, contract: SP500}
+      RSP: {key: cftc.noncomm_net, contract: SP500}
+      DIA: {key: cftc.noncomm_net, contract: SP500}
+      QQQ: {key: cftc.noncomm_net, contract: NDX100}
+      IWM: {key: cftc.noncomm_net, contract: RUSSELL2000}
+      IEF: {key: cftc.noncomm_net, contract: UST10Y}
+      TLT: {key: cftc.noncomm_net, contract: UST30Y}
+      GLD: {key: cftc.noncomm_net, contract: GOLD}
+      "GC=F": {key: cftc.noncomm_net, contract: GOLD}
+      USO: {key: cftc.noncomm_net, contract: WTI}
+      "CL=F": {key: cftc.noncomm_net, contract: WTI}
+      UUP: {key: cftc.noncomm_net, contract: USD_INDEX}
+      "DX-Y.NYB": {key: cftc.noncomm_net, contract: USD_INDEX}
+      # The currencies read the TFF leveraged-funds row (cftc.tff_<category>_net_oi,
+      # the section 10A standard; AQ-3's writer), named by its category.
+      "JPY=X": {tff: lev_money, contract: JPY, sign: -1}
+      "EURUSD=X": {tff: lev_money, contract: EUR}
+  tells:
+    # The style-regime pair (SR-1): the growth/value ratio below its 40-week
+    # (200-session) average, or more than 8% off its 52-week high, names the
+    # value side; above the average and within 8% of the high, the growth side.
+    style_pairs:
+      - {growth: IVW, value: IVE}
+      - {growth: IWF, value: IWD}
+    style_average_sessions: 200
+    style_off_high_pct: 8.0
+    # XLY/XLP (SR-5) and the consumer RS tell (SR-5: discretionary against SPY;
+    # the equal-weight discretionary fund and the homebuilders are not stored).
+    # A ratio above its 50-session average and higher than 20 sessions ago names
+    # the numerator long and the denominator short; the mirror names the reverse.
+    consumer_ratios:
+      - {label: "XLY/XLP", num: XLY, den: XLP}
+      # The benchmark is not the tell's subject: only XLY is named.
+      - {label: "the consumer RS tell (XLY against SPY)", num: XLY, den: SPY, name_den: false}
+    ratio_average_sessions: 50
+    ratio_change_sessions: 20
+    # The move screen's 2.5-sigma print (c1-move-screen, read by name): a flag
+    # on the instrument's close in the candidate's direction in the week.
+    move_screen_module: altdata.move_screen
+    move_sigma: 2.5
+  top_bottom:
+    # The Top & Bottom report is not built. Its hook reads these store keys by
+    # name and counts nothing until a writer stores them:
+    #   tb.signal   value_text JSON {"signal": "top" | "bottom" | null}
+    #   tb.overlay  per instrument, value_num > 0 bullish, < 0 bearish
+    signal_key: tb.signal
+    overlay_key: tb.overlay
+  correlation_break:
+    # The correlation layer (aq-5, read by name): the 30-against-120-day break
+    # against SPY, |delta| >= the layer's threshold, in the week. An Alt Asset
+    # instrument trading on its own driver confirms either direction.
+    module: altdata.correlation
+    benchmark: spy
+
+# ---------------------------------------------------------------------------
+# 5. REGIME GATES (the Doctrine, read from the dials; no dial is recomputed).
+# ---------------------------------------------------------------------------
+regime:
+  # The object's Volatility dial in the Doctrine's words (section 5.1: Calm below
+  # roughly 15, Rising mid-teens to low twenties AND CLIMBING, Stressed
+  # mid-twenties to thirties, Crisis above). The object's bands are 14 / 20 / 30.
+  # RULED 13 Oct 2026 (scanner follow-up 3): the object's `normal` (VIX 14-20) is
+  # the Doctrine's Normal, not Rising -- an ordinary VIX opens no shorts and
+  # takes no 0.75. RULED 13 Oct 2026 (second ruling): the object's `elevated`
+  # (VIX 20-30) is the Doctrine's Rising -- shorts open there, at 0.75. The
+  # Doctrine's "and climbing" leg is deferred to Doctrine #2 (a config v1.13
+  # bump to the object); until then Rising is read on the level alone.
+  # `crisis` (VIX 30 and over) keeps its map to Crisis, which closes Book B.
+  vol_map: {subdued: Calm, normal: Normal, elevated: Rising, crisis: Crisis}
+  gamma_map: {positive: Positive, flat: Flip-zone, negative: Negative}
+  # Shorts only in these (Doctrine 4.2), or a Volatility dial at Rising or worse.
+  short_macro: [Overheat, Tightening, Contraction]
+  short_vol: [Rising, Stressed, Crisis]
+  # The size multiplier, Volatility dial (section 5.2's card); Transition halves
+  # Book B (the Macro card). Phase 1 caps the product at 1.0.
+  vol_multiplier: {Calm: 1.0, Normal: 1.0, Rising: 0.75, Stressed: 0.5, Crisis: 0.0}
+  transition_multiplier: 0.5
+  # ENTRY TIMING from the Gamma dial: THE REGIME CARD'S WORDS, verbatim (Doctrine
+  # section 5.2, the Gamma dial's "Book B timing" column; ruled 13 Oct 2026,
+  # scanner follow-up 2 -- the brief's "negative gamma: wait" read the card
+  # backwards). Dealers short gamma amplify a move, so a breakout is trusted;
+  # dealers long gamma dampen it, so a breakout is distrusted until it retests.
+  timing:
+    Positive: "Breakouts distrusted — wait for the retest; adds on confirmation only"
+    Flip-zone: "No new entries"
+    Negative: "Breakouts trusted; pyramiding permitted on confirmation"
+  # THE FLIP ZONE REFUSES AT THE GATE (ruled 13 Oct 2026): a candidate that
+  # passes every other gate under these timing states goes to the refused list
+  # with the card's words, and is still written to the ledger and graded.
+  refuse_timing: [Flip-zone]
+  # Regime alignment, the score's fourth component, by Doctrine regime and
+  # direction (the Macro card's Book B column). Session-set.
+  alignment:
+    Expansion: {long: 1.0, short: 0.0}
+    Overheat: {long: 0.5, short: 0.5}
+    Tightening: {long: 0.5, short: 1.0}
+    Contraction: {long: 0.0, short: 1.0}
+    Transition: {long: 0.5, short: 0.5}
+
+# ---------------------------------------------------------------------------
+# 6. SCORE AND RANK (decision 4): a weighted sum, equal weights to start. Each
+# component is on [0, 1]; the score is the weighted mean.
+# ---------------------------------------------------------------------------
+score:
+  weights:
+    trend: 1.0                # the share of the four trend conditions agreeing
+    base: 1.0                 # tightness x duration
+    confirmations: 1.0        # confirmations met / `full_confirmations`
+    regime: 1.0               # the alignment above
+    liquidity: 1.0            # dollar ADV against the position
+  full_confirmations: 3
+  # Liquidity: the position's notional at the printed risk, against the
+  # 20-session dollar ADV; full marks at or below `max_adv_share` of ADV.
+  max_adv_share: 0.01
+  liquidity_when_absent: 0.5  # no stored volume: neither credited nor zeroed
+  print_top: 10               # the rest go to the reference tier
+
+# ---------------------------------------------------------------------------
+# 7. THE DRAFT (decision 5 and Doctrine 4.2).
+# ---------------------------------------------------------------------------
+draft:
+  risk_pct: 0.75              # standard tier (Doctrine 4.2: $2,250 on $300,000)
+  horizon: "one to six weeks"
+  time_stop_sessions: 15      # decision 5
+  edge: "trend and momentum after a pivotal point (Doctrine 4.2)"
+
+# ---------------------------------------------------------------------------
+# 8. GRADING (decision 6): every candidate, taken or not, a ledger forecast.
+# ---------------------------------------------------------------------------
+grading:
+  source: book_b_candidate    # a dry run writes "dryrun.book_b_candidate"
+  horizon_days: 42            # six weeks
+  # THE PROBABILITY written beside the claim. No setup has a stored base rate
+  # yet (setups.yaml: "base_rate: not yet"), so the forecast is the symmetric
+  # barrier's: +1R before -1R is a coin for a driftless path. The ledger is
+  # read for the hit rate by setup until a base rate is cited. (Needs you 3.)
+  probability: 0.5

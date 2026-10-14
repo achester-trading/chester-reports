@@ -218,12 +218,13 @@ def main() -> int:
           < 1e-9 and oi["totals"]["close_to_close_pct"] == c2c,
           f"overnight and intraday returns from the stored OHLC, the week compounded "
           f"unrounded and close to close ({len(oi['rows'])} sessions, {oi['totals']})")
-    tsubs = {ss["title"]: ss for ss in sec["tape"]["subsections"]}
+    # W-1.2 item 2.7: the daily session tables print in Mechanics only.
+    tsubs = {ss["title"]: ss for ss in sec["mechanics"]["subsections"]}
     check("SPY overnight against the cash session" in tsubs
           and tsubs["SPY overnight against the cash session"]["table"]["rows"][-1][0]
           == "The week" and tsubs["SPY overnight against the cash session"]["table"]
-          ["rows"][-1][3] != "—", "the tape carries the table with the week's totals, "
-          "close to close included")
+          ["rows"][-1][3] != "—", "Mechanics carries the overnight table with the "
+          "week's totals, close to close included")
     book = {"instruments": [{"id": "spy", "ohlc": {"open": 701.0},
                              "frame": {"last": 700.0},
                              "levels": [{"type": "prior_close", "value": 697.0}]}]}
