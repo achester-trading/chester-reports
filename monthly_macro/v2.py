@@ -492,8 +492,11 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
               " WHERE type = 'scheduled' AND available_at <= ? GROUP BY source",
         (cutoff,))}
     scen, refused = [], []
+    # The thesis register's weights (source alt_asset:*) print in the slow
+    # layers' seed table, not here: each fact once (AQ-6).
     for r in _q(conn, "SELECT * FROM probabilities WHERE emitted_at <= ?"
                       " AND (resolved_at IS NULL OR resolved_at > ?)"
+                      " AND source NOT LIKE 'alt_asset:%'"
                       " ORDER BY probability DESC", (cutoff, cutoff)):
         sp = _signposts(r)
         row = {"claim": r.get("claim"), "probability": r.get("probability"),
@@ -549,16 +552,37 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
 # ---------------------------------------------------------------------------
 # THE MONTH IN MARKETS -- the opening scorecard (Ari's revision, 1 Oct)
 # ---------------------------------------------------------------------------
+def _quarter_start(d: dt.date) -> dt.date:
+    return d.replace(month=3 * ((d.month - 1) // 3) + 1, day=1)
+
+
 def month_bounds(p: dict) -> tuple[dt.date, dt.date]:
     """(start, end): the previous calendar month's two month-ends.
 
     The 1 Oct edition covers September: the close on or before 31 Aug against
     the close on or before 30 Sep.
+
+    THE QUARTERLY'S WINDOW (AQ-1): a payload built with period "quarter" covers
+    the previous calendar quarter -- the 9 Jan 2027 edition reads the close on or
+    before 30 Sep against the close on or before 31 Dec -- so every builder that
+    reads this window (the scorecard, the themes, the stack's store reads)
+    covers the quarter, and nothing labelled the quarter reads a month.
     """
     day = dt.date.fromisoformat(str(p.get("report_date") or p.get("as_of"))[:10])
+    if p.get("period") == "quarter":
+        end = _quarter_start(day) - dt.timedelta(days=1)
+        start = _quarter_start(end) - dt.timedelta(days=1)
+        return start, end
     end = day.replace(day=1) - dt.timedelta(days=1)
     start = end.replace(day=1) - dt.timedelta(days=1)
     return start, end
+
+
+def period_label(p: dict, end: dt.date) -> str:
+    """"September 2026" for a month; "4Q26" for a quarter (AQ-1)."""
+    if p.get("period") == "quarter":
+        return f"{(end.month - 1) // 3 + 1}Q{str(end.year)[2:]}"
+    return end.strftime("%B %Y")
 
 
 def _level_on(rows: list[dict], day: dt.date) -> Optional[dict]:
@@ -619,7 +643,7 @@ def month_in_markets(p: dict) -> dict:
     return {"state": "ok" if rows else "empty",
             "reason": (None if rows else
                        "no scorecard series has observations at both month-ends"),
-            "month": end.strftime("%B %Y"), "start": start.isoformat(),
+            "month": period_label(p, end), "start": start.isoformat(),
             "end": end.isoformat(), "rows": rows, "missing": missing,
             "prose": "written per section by monthly_macro.prose"}
 

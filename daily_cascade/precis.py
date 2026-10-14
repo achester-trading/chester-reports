@@ -106,14 +106,29 @@ or "driven by". Never write about this report, its sections or its checks."""
 # THE PRÉCIS'S OPENER (W-1.3a item 3.0): the week in one paragraph, in the
 # sections' shape, ending in its Takeaway. Printed first; the tension and its two
 # sides stay in the reply for the record and the next week's outlook.
-WEEK_LINE = ("WEEK: <the week in ONE paragraph of {lo} to {hi} words, on one line: "
-             "the tension and the evidence on each side, each system term explained "
-             "in plain words where it first appears, ending with exactly one "
-             "sentence that begins \"Takeaway:\" and states the implication for "
-             "the coming week -- never a restatement, and with no figure>\n")
+# THE TENSION FIRST (W-1.3c item 8). Dry run #6's WEEK paragraph opened on SPY's
+# figures -- "SPY rose 1.16% this week and broke its gamma flip at 775.54 ..." --
+# and reached the tension three sentences later. The first sentence now states
+# the tension in words (the audit allows it one figure at most); the two or three
+# figures that carry it follow.
+WEEK_LINE = ("WEEK: <the week in ONE paragraph of {lo} to {hi} words, on one line. "
+             "Its FIRST sentence states the week's tension in words -- what is "
+             "pulling against what -- with at most one figure; then the two or "
+             "three figures that carry it, the evidence on each side; each system "
+             "term the terms box does not cover explained in plain words where it "
+             "first appears; ending with exactly one sentence that begins "
+             "\"Takeaway:\" and states the implication for the coming week -- "
+             "never a restatement, and with no figure>\n")
+WEEK_FIRST_FIGURES = 1
 OUTLOOK_LINE = ("OUTLOOK: <what changed in the outlook since the previous précis -- "
                 "the view, not the data; one or two sentences>\n")
-RELEVANCE_LINE = "RELEVANCE {sid}: <one sentence tying {title} to the tension, no figures>"
+# THE FINDING FIRST (W-1.3c item 5). The relevance sentence prints first in each
+# section's opener, and dry run #6 wrote all of them with the section as subject:
+# "The read frames...", "The tape shows...", "Mechanics locates...". It is now
+# asked for as the finding, and opener.self_subject withholds the old form.
+RELEVANCE_LINE = ("RELEVANCE {sid}: <one sentence: what {title} found, as it bears on "
+                  "the tension -- a claim about markets, never with the section or "
+                  "the report as its subject; no figures>")
 
 
 def _norm(f: str) -> str:
@@ -238,6 +253,14 @@ def audit(p: dict, fr: dict) -> list[str]:
         else:
             faults += opener.faults(p["week"], cadence_mod.get("weekly"), "precis",
                                     "the WEEK paragraph")
+            # W-1.3c item 8: the tension first, in words.
+            first = (opener.sentences(p["week"]) or [""])[0]
+            n1 = len(_figs(first))
+            if n1 > WEEK_FIRST_FIGURES:
+                faults.append(f"the WEEK paragraph's first sentence carries {n1} "
+                              f"figures (at most {WEEK_FIRST_FIGURES}): state the "
+                              f"tension in words first: '{first[:90]}'")
+            faults += opener.finding_faults(p["week"], "the WEEK paragraph")
     if fr.get("previous_precis") and not p.get("outlook"):
         faults.append("no OUTLOOK line though a previous précis exists")
     for a, _, _ in VERDICT_ASSETS:
@@ -270,9 +293,13 @@ def audit(p: dict, fr: dict) -> list[str]:
     missing = [s for s in want if not p["relevance"].get(s)]
     if missing:
         faults.append("no RELEVANCE sentence for: " + ", ".join(missing))
+    from . import opener as opener_mod                          # noqa: PLC0415
     for sid, t in p["relevance"].items():
         if _figs(t):
             faults.append(f"the RELEVANCE sentence for {sid} carries a figure")
+        # W-1.3c items 5 and 2: the section's first printed sentence.
+        faults += opener_mod.finding_faults(t, f"the RELEVANCE sentence for {sid}")
+        faults += opener_mod.terms_faults(t)
     try:
         from altdata import bars as bars_mod                    # noqa: PLC0415
         from . import stack_prose as sp_mod                     # noqa: PLC0415
@@ -303,10 +330,14 @@ def _call(fr: dict, system: str, client, model: Optional[str]) -> str:
                    if getattr(b, "type", "") == "text").strip()
 
 
+ATTEMPTS = 3
+
+
 def write(ed: dict, prior: Optional[dict] = None, *, client=None,
           model: Optional[str] = None) -> dict:
-    """The précis over the finished edition: one audited attempt and one retry
-    with the faults fed back. Never raises."""
+    """The précis over the finished edition: up to three audited attempts, each
+    retry told the whole withhold message and the rule behind each fault
+    (W-1.3c item 6). Never raises."""
     fr = frame(ed, prior)
     if client is None:
         from . import narrative as base                         # noqa: PLC0415
@@ -316,7 +347,7 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
                     "frame": fr}
     system = system_prompt(fr)
     reasons = []
-    for attempt in (1, 2):
+    for attempt in range(1, ATTEMPTS + 1):
         try:
             text = _call(fr, system, client, model)
         except Exception as exc:                                # noqa: BLE001
@@ -330,13 +361,13 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
             return {"state": "published", "published": True, "parsed": p,
                     "text": text, "frame": fr, "attempts": attempt,
                     "first_reason": reasons[0] if reasons else None}
-        reasons.append("withheld: " + "; ".join(faults[:6]))
-        system = (system_prompt(fr) + "\n\nYOUR PREVIOUS DRAFT WAS WITHHELD BY THE "
-                  "AUDIT: " + reasons[-1][:900] + "\nWrite it again, fixing exactly "
-                  "that and changing nothing else.")
+        reasons.append("withheld: " + "; ".join(faults))
+        from . import opener                                    # noqa: PLC0415
+        system = system_prompt(fr) + opener.retry_note(reasons[-1], attempt + 1,
+                                                       ATTEMPTS)
     return {"state": "audit_failed", "published": False, "frame": fr,
-            "reason": reasons[-1], "first_reason": reasons[0], "attempts": 2,
-            "rejected_text": text}
+            "reason": reasons[-1], "first_reason": reasons[0], "attempts": ATTEMPTS,
+            "rejected_text": text, "reasons": reasons}
 
 
 # ---------------------------------------------------------------------------
@@ -465,7 +496,7 @@ def terms_line(ed: dict, enforcement: Optional[dict]) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
-# The terms box (item 2.6), page 2, verbatim
+# The terms box (item 2.6), after the précis, verbatim
 # ---------------------------------------------------------------------------
 TERMS_BOX = (
     "A contradiction is two markets that normally move together but have diverged; "
@@ -486,6 +517,30 @@ TERMS_BOX = (
     "perfect, 0.25 is a coin flip. Every classification in this edition is "
     "descriptive and unvalidated until the scorecard has graded it; n is the count "
     "graded so far.")
+
+
+# The terms the box defines, as the opener frame names them (W-1.3c item 2):
+# the writer is told not to define any of them again.
+TERM_NAMES = ("a contradiction", "the z-score", "an exception", "the narrative "
+              "ledger", "voices", "dealer gamma", "the flip level", "walls",
+              "the regime", "the Doctrine", "Book A", "packets", "the sitting",
+              "the Brier score")
+
+
+def subject_claim(ed: dict) -> Optional[str]:
+    """W-1.3c item 3: what the email subject carries on an edition with a précis
+    -- the précis's Takeaway without its label, else the stance line; never an
+    opener sentence. None when neither exists."""
+    pr = ed.get("precis") or {}
+    week = ((pr.get("parsed") or {}).get("week")) if pr.get("published") else None
+    if week:
+        from . import opener                                    # noqa: PLC0415
+        tk = opener.takeaway(week)
+        if tk:
+            body = opener._TAKEAWAY_HEAD.sub("", tk).strip()    # noqa: SLF001
+            if body:
+                return body[0].upper() + body[1:]
+    return pr.get("stance_line") or None
 
 
 def precis_html(ed: dict) -> str:
@@ -512,22 +567,36 @@ def precis_html(ed: dict) -> str:
         out.append(f'<p style="{CLAIM}">{esc(p["tension"])}</p>')
         out.append(f'<p style="{PARA}">On one side: {esc(p["for"])} On the other: '
                    f'{esc(p["against"])}</p>')
-    out.append(f'<h3 style="{H3}">Verdicts, the coming week</h3><ul>'
-               + "".join(f'<li style="{PARA}">{esc(lab)}: {esc(p["verdicts"][a])}</li>'
-                         for a, lab, _ in VERDICT_ASSETS) + "</ul>")
+    # PAGE 1 HOLDS THE PRÉCIS (W-1.3c item 10). Dry run #6's PDF ran the six
+    # verdicts as a list, so page 1 filled before the stance line, which sat
+    # alone on page 2 ahead of a forced break before the terms box. The verdicts
+    # are now a compact three-column grid, the stance prints directly under "What
+    # changed in the outlook", and the terms box no longer forces a page.
+    cells = [f'{esc(lab)}: <b>{esc(p["verdicts"][a])}</b>'
+             for a, lab, _ in VERDICT_ASSETS]
+    grid = "".join("<tr>" + "".join(f'<td style="{PARA};padding:1px 12px 1px 0">'
+                                    f'{c}</td>' for c in cells[i:i + 3]) + "</tr>"
+                   for i in range(0, len(cells), 3))
+    out.append(f'<h3 style="{H3}" id="verdicts">Verdicts, the coming week</h3>'
+               f'<table style="border-collapse:collapse;margin:0 0 4px 0">{grid}'
+               f'</table>')
     out.append(f'<p style="{PARA}">{esc(p["confidence"])}</p>')
-    out.append(f'<h3 style="{H3}">What would change our mind</h3><ul>'
-               + "".join(f'<li style="{PARA}">{esc(c["series"])} ({esc(c["window"])}): '
-                         f'{esc(c["what"])}</li>' for c in p["change"]) + "</ul>")
-    out.append(f'<h3 style="{H3}">What changed in the outlook</h3>'
+    out.append(f'<h3 style="{H3}" id="change">What would change our mind</h3>'
+               + "".join(f'<p style="{PARA};margin:0 0 2px 0">· {esc(c["series"])} '
+                         f'({esc(c["window"])}): {esc(c["what"])}</p>'
+                         for c in p["change"]))
+    out.append(f'<h3 style="{H3}" id="outlook">What changed in the outlook</h3>'
+               f'<p style="{PARA}" id="stance" class="stance"><b>'
+               f'{esc(pr.get("stance_line") or "")}</b></p>'
                f'<p style="{PARA}">{esc(p["outlook"])}</p>')
-    out.append(f'<p style="{PARA}"><b>{esc(pr.get("stance_line") or "")}</b></p>')
-    return "".join(out)
+    return '<div class="precis-page" style="break-inside:auto">' + "".join(out) + "</div>"
 
 
 def terms_box_html() -> str:
-    """Page 2: the terms box, in full, every week."""
+    """The terms box, in full, every week, straight after the précis."""
     from .stack_render import H3, PARA, esc                     # noqa: PLC0415
-    return (f'<div style="page-break-before:always;break-before:page;'
+    # No forced page (W-1.3c item 10): the box follows the précis where it
+    # falls, and is kept whole.
+    return (f'<div style="break-inside:avoid;page-break-inside:avoid;'
             f'border:1px solid #cbd5e1;padding:10px 14px;margin:16px 0" id="terms">'
             f'<h3 style="{H3}">Terms</h3><p style="{PARA}">{esc(TERMS_BOX)}</p></div>')

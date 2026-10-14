@@ -158,10 +158,18 @@ def ordinal_error(f: "Figure") -> str:
 ORDINAL_FIELD = "_ordinal"
 
 
-def percentile_ordinal(value: float) -> str:
-    """The whole-number ordinal for a percentile, half up: 32.5 -> '33rd'."""
+def ordinal(value: float) -> str:
+    """THE ONE ORDINAL HELPER (W-1.3c item 7): a number as an English ordinal,
+    rounded half up to the whole -- 1st 2nd 3rd 11th 12th 13th 21st 92nd 103rd.
+    Every code-formatted percentile goes through it; dry run #6 printed "RS 92th
+    percentile" from an f-string's hard-coded "th"."""
     n = int(math.floor(float(value) + 0.5))
     return f"{n}{ordinal_suffix(n)}"
+
+
+def percentile_ordinal(value: float) -> str:
+    """The whole-number ordinal for a percentile, half up: 32.5 -> '33rd'."""
+    return ordinal(value)
 
 
 def with_ordinals(payload: Any, _depth: int = 0) -> Any:
@@ -950,8 +958,11 @@ def types_of(value, key: str = "") -> list[tuple[float, str]]:
 # allowing the suffixes above, which are part of the number rather than a word.
 _FIGURE = re.compile(
     r"""(?<![\w.])            # not mid-token, not a decimal tail
-        (?P<sign>-|−|minus\s)?  # a written minus counts; U+2212 is one too
-        \$?\s?
+        (?P<sign>-|−|\+|minus\s)?  # a written minus counts; U+2212 is one too
+        # A SIGN BEFORE ANY OF FOUR CURRENCY SYMBOLS (W-1.3c item 1): "−€1bn" was
+        # read as +1bn, its sign stranded in front of a symbol the pattern did
+        # not know. A plus is read, and the figure stays positive.
+        [$€£¥]?\s?
         (?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)
         # THE SPACE IS OPTIONAL AND THE WORD FORMS COME FIRST. "4.59bn" and
         # "4.59 billion" are the same claim. The trailing guard below is what makes
@@ -1121,7 +1132,7 @@ def extract(text: str) -> list[Figure]:
                     scale = mult
                     break
         value = base * scale
-        if m.group("sign"):
+        if m.group("sign") and m.group("sign") != "+":
             value = -value
         # The interval is symmetric about the value, so a negative needs no
         # special case: _interval works from the signed value directly.

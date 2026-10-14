@@ -10,7 +10,9 @@ network, no box, no register write (the register rows are dicts in memory).
      class's channel) and the positioning that would amplify a surprise. Ranked
      by the config tier, then time. Earnings print with their session, the
      consensus EPS and the implied move where a chain is captured ("not
-     captured" otherwise), classed mega / bank / tracked by config. Routine
+     captured" otherwise), classed mega / bank / tracked by config. Where the source
+     carries a release time the session prints pre- or post-market; a bare date
+     prints "release time not captured" (W-1.3c item 9). Routine
      releases and bill auctions go to the reference tables, counted. The
      top playbook-class event keeps the playbook slot.
   B  AHEAD'S OTHER SOURCES. A family of prediction-market resolutions collapses
@@ -73,9 +75,46 @@ def day(k: int) -> str:
     return (dt.date.fromisoformat(MON) + dt.timedelta(days=k)).isoformat()
 
 
+def release_at_captured() -> bool:
+    """W-1.3c item 9 at the source: a fake yfinance whose calendar gives a bare
+    date and whose earnings-dates table gives the unreported row a time."""
+    import datetime as _dt
+    import types as _types
+    import pandas as pd
+    import altdata
+    from altdata.sources import earnings
+
+    def ticker(with_time: bool):
+        idx = pd.DatetimeIndex([
+            pd.Timestamp("2026-10-27 16:05" if with_time else "2026-10-27 00:00",
+                         tz="America/New_York"),
+            pd.Timestamp("2026-07-28 16:05", tz="America/New_York")])
+        df = pd.DataFrame({"EPS Estimate": [2.1, 2.0], "Reported EPS": [None, 2.2],
+                           "Surprise(%)": [None, 10.0]}, index=idx)
+        return _types.SimpleNamespace(
+            calendar={"Earnings Date": [_dt.date(2026, 10, 27)],
+                      "Earnings Average": 2.1},
+            get_earnings_dates=lambda limit=12: df)
+
+    real = altdata.import_yfinance
+    got = []
+    try:
+        for with_time in (True, False):
+            altdata.import_yfinance = (lambda w=with_time: _types.SimpleNamespace(
+                Ticker=lambda sym: ticker(w)))
+            evs, _ = earnings.events_for("GOOGL")
+            fwd = next((e for e in evs if e.type == "scheduled"), None)
+            got.append((fwd.payload.get("release_at") if fwd else "no event"))
+    finally:
+        altdata.import_yfinance = real
+    print(f"    release_at with a time: {got[0]}; without: {got[1]}")
+    return (str(got[0]).startswith("2026-10-27T20:05") and got[1] is None)
+
+
 def seed_ahead(db: str, chain_dir: Path) -> None:
     """The edits gate's calendar, plus scheduled earnings: NVDA after the close
-    with a consensus and a captured chain, MSFT with a bare date and no chain."""
+    with a consensus and a captured chain, MSFT with a bare date and no chain,
+    GOOGL with a bare date and a release time the source carried (W-1.3c 9)."""
     import validate_weekly_edits as E
     from altdata import events as ev_mod
     E.seed_calendar(db, W.ENDING)
@@ -90,6 +129,11 @@ def seed_ahead(db: str, chain_dir: Path) -> None:
                source="yfinance", title="MSFT earnings (expected)", entities=["MSFT"],
                key=f"earnings-cal-MSFT-{day(3)}",
                payload={"kind": "earnings", "symbol": "MSFT", "eps_estimate": None}),
+            Ev(type="scheduled", observed_at=f"{day(3)}T13:30:00+00:00",
+               source="yfinance", title="GOOGL earnings (confirmed)",
+               entities=["GOOGL"], key=f"earnings-cal-GOOGL-{day(3)}-confirmed",
+               payload={"kind": "earnings", "symbol": "GOOGL", "eps_estimate": None,
+                        "release_at": f"{day(3)}T10:30:00+00:00"}),
             Ev(type="scheduled", observed_at=f"{day(1)}T13:30:00+00:00",
                source="fred_releases", title="Producer Price Index -- release date",
                payload={"release_name": "Producer Price Index"})],
@@ -200,10 +244,30 @@ def main() -> int:
     check(mv == "implied move ±7.5% (straddle to 2026-10-09)",
           f"the move is the ATM straddle's mid over spot: (7.0 + 6.5) / 181 ({mv})")
     ms = by.get("MSFT earnings") or {}
-    check(ms.get("cls") == "earnings_mega" and ms.get("time") == "session not stated"
+    check(ms.get("cls") == "earnings_mega"
+          and ms.get("time") == "release time not captured"
           and "not captured" in str(ms.get("consensus"))
           and "no consensus EPS carried" in str(ms.get("consensus")),
-          f"MSFT: a hyperscaler, a bare date (session not stated), not captured ({ms})")
+          f"MSFT: a hyperscaler, a bare date (release time not captured), not "
+          f"captured ({ms})")
+    # W-1.3c item 9: where the source carries a release time, the session.
+    go = by.get("GOOGL earnings") or {}
+    check(go.get("time") == "pre-market",
+          f"GOOGL: a bare date beside a stored release time (06:30 ET) prints "
+          f"pre-market ({go.get('time')})")
+    from daily_cascade import weekly_sections as wsec
+    es = wsec.earnings_session
+    check(es("2026-10-14T10:30:00+00:00") == "pre-market"
+          and es("2026-10-14T20:05:00+00:00") == "post-market"
+          and es("2026-10-14T13:30:00+00:00") == "release time not captured"
+          and es("2026-10-14") == "release time not captured"
+          and "session not stated" not in es(None),
+          "earnings_session: 06:30 ET pre-market, 16:05 ET post-market, a bare "
+          "date (13:30Z or no time) \"release time not captured\", never "
+          "\"session not stated\"")
+    check(release_at_captured(),
+          "the earnings source stores the unreported row's release time beside "
+          "the calendar's bare date (release_at), and none where it has no time")
     jp = by.get("JPM earnings") or {}
     check(jp.get("cls") == "earnings_bank" and jp.get("tier") == 2,
           "JPM: a large bank, tier 2")

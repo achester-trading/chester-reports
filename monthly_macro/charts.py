@@ -62,6 +62,7 @@ import logging
 import re
 from typing import Optional
 
+from altdata.numeral_audit import ordinal
 from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
@@ -361,17 +362,17 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
         for q, v in marks.items():
             ax.axhline(v, color="#94a3b8" if q == 50 else "#d97706",
                        linestyle="--", linewidth=0.8)
-            ax.annotate(f"{q}th {v:.2f}", xy=(1.0, v), xycoords=("axes fraction",
+            ax.annotate(f"{ordinal(q)} {v:.2f}", xy=(1.0, v), xycoords=("axes fraction",
                         "data"), xytext=(3, 0), textcoords="offset points",
                         va="center", fontsize=6.5, color="#475569")
         ax.plot([len(vals) - 1], [vals[-1]], marker="o", color=ch.DOWN, markersize=4)
-        ax.annotate(f"{vals[-1]:.2f} ({pct:.0f}th)", xy=(len(vals) - 1, vals[-1]),
+        ax.annotate(f"{vals[-1]:.2f} ({ordinal(pct)})", xy=(len(vals) - 1, vals[-1]),
                     xytext=(-4, 6), textcoords="offset points", ha="right",
                     fontsize=7, color=ch.DOWN)
         spaced_ticks(ax, [d for d, _ in hy], 5)
         out = ch._finish(fig, name, out_dir)
         cap = (f"{title}; latest {vals[-1]:.2f} on {hy[-1][0]}, at the "
-               f"{pct:.0f}th percentile of the span; 10th {marks[10]:.2f}, median "
+               f"{ordinal(pct)} percentile of the span; 10th {marks[10]:.2f}, median "
                f"{marks[50]:.2f}, 90th {marks[90]:.2f}")
         return {"id": "M5", "title": title, "drawn": [], "caption": cap, **out,
                 "percentile": pct, "marks": marks,
@@ -820,16 +821,18 @@ def drawn_levels_ok(chart: dict, book: Optional[dict]) -> bool:
     return all((d["label"], d["value"]) in listed for d in chart.get("drawn") or [])
 
 
-def png_name(stamp: str, cid: str) -> str:
-    return f"monthly_macro_{stamp}_{cid.lower()}.png"
+def png_name(stamp: str, cid: str, prefix: str = "monthly_macro") -> str:
+    return f"{prefix}_{stamp}_{cid.lower()}.png"
 
 
 def cids_in(html: str) -> list[str]:
-    """The chart ids an archived HTML references by Content-ID."""
-    return sorted(set(m.upper() for m in re.findall(r'cid:(m\d+)@chester', html)))
+    """The chart ids an archived HTML references by Content-ID: the Monthly's
+    M-series and the Quarterly's Q-series (AQ-2)."""
+    return sorted(set(m.upper() for m in re.findall(r'cid:([mq]\d+)@chester', html)))
 
 
-def archive_pngs(charts: dict, stamp: str, out_dir: str) -> list[str]:
+def archive_pngs(charts: dict, stamp: str, out_dir: str,
+                 prefix: str = "monthly_macro") -> list[str]:
     """Each chart's PNG beside the archived HTML, so a re-send (--deliver-only)
     mails the same images the record references. Returns the paths written."""
     from pathlib import Path                                    # noqa: PLC0415
@@ -838,20 +841,21 @@ def archive_pngs(charts: dict, stamp: str, out_dir: str) -> list[str]:
     out = []
     for k, c in charts.items():
         if c.get("png"):
-            p = d / png_name(stamp, k)
+            p = d / png_name(stamp, k, prefix)
             p.write_bytes(c["png"])
             out.append(str(p))
     return out
 
 
-def inline_images(html: str, stamp: str, out_dir: str) -> tuple[list, list[str]]:
+def inline_images(html: str, stamp: str, out_dir: str,
+                  prefix: str = "monthly_macro") -> tuple[list, list[str]]:
     """(the (Content-ID, PNG bytes) pairs an archived HTML references, the ids
     whose PNG is missing)."""
     from pathlib import Path                                    # noqa: PLC0415
     from daily_cascade import stack_render                      # noqa: PLC0415
     got, missing = [], []
     for cid in cids_in(html):
-        p = Path(out_dir) / png_name(stamp, cid)
+        p = Path(out_dir) / png_name(stamp, cid, prefix)
         if p.exists():
             got.append((stack_render.cid(cid), p.read_bytes()))
         else:

@@ -21,15 +21,19 @@ SYNTHETIC Weekly in temporary stores -- a code gate never reads the live store:
   F FORMATTING (6)         plurals by count, "28 Sep" in prose, "±", the ET
                            header stamp, minutes, signed changes
   G HEADER, SUBJECT (7, 8) title, week, reading time and what changed in the
-                           header; run metadata in the footer; the claim in the
-                           subject
+                           header; run metadata in the footer; the subject is
+                           the close's claim, and on the Weekly the précis's
+                           Takeaway, else the stance line, never an opener
+                           sentence (W-1.3c item 3, on dry run #6's précis)
   H PREDICTION MARKETS (9) one table: item, Kalshi, Polymarket, change, note
   I STYLES (10)            the six element styles, the same in both reports;
                            at most six columns; legible at 400 px
   J PDF (11)               print CSS, attached and archived beside the HTML, at
                            most 5 MB; the fixture renders to PDF where WeasyPrint
                            is installed (CI and the box), and says NOT VALIDATED
-                           on a laptop without its libraries
+                           on a laptop without its libraries; on dry run #6's
+                           précis, page 1 carries the précis, the verdicts, what
+                           would change our mind and the stance (W-1.3c item 10)
 """
 
 from __future__ import annotations
@@ -77,6 +81,27 @@ def body_text(html: str) -> str:
     t = re.sub(r"<[^>]+>", " ", h)
     import html as _h
     return re.sub(r"\s+", " ", _h.unescape(t))
+
+
+def run6_page_html() -> str:
+    """W-1.3c item 10: the head of dry run #6's Weekly as the email prints it --
+    the header with its three changed-since lines, the précis (run 6's own text),
+    the terms box and the first section's opener -- in the print document."""
+    import json as _json
+    from daily_cascade import precis, stack_render
+    r6 = _json.loads((REPO / "tests" / "fixtures" / "weekly_run6_2026-10-13.json")
+                     .read_text(encoding="utf-8"))
+    pr = r6["precis"]
+    ed = {"precis": {"published": True, "stance_line": pr["stance_line"],
+                     "parsed": {k: pr[k] for k in ("week", "tension", "for", "against",
+                                                   "verdicts", "confidence", "change",
+                                                   "outlook")}}}
+    head = stack_render.page_header("Weekly — week ending 9 Oct", "Sun 11 Oct, 05:00 ET",
+                                    9, pr["changed_since"], "Changed since last Weekly")
+    sec = (f'<h2 style="{stack_render.SECTION}" id="sec-read">1 · The read</h2>'
+           + stack_render.opener_html({"claim": r6["finding_opener"]}))
+    return (f'<div style="{stack_render.WRAP}">{head}{precis.precis_html(ed)}'
+            f'{precis.terms_box_html()}{sec}</div>')
 
 
 def weekly_fixture(td: str, replies: dict):
@@ -346,10 +371,12 @@ def main() -> int:
     claim = "The tape view held steady over the week."
     _, dcalls, _ = weekly_fixture(dup_td, {"READ": claim + " " + DEFAULT.format(p="week")})
     reads = [c for c in dcalls if "Write THE READ" in c]
-    check(len(reads) == 2 and "repeats a section's sentence" in reads[1]
+    # Three attempts on the Weekly since W-1.3c item 6 (this fixture's Read is
+    # out of the opener's band, so every attempt is withheld).
+    check(len(reads) == 3 and "repeats a section's sentence" in reads[1]
           and "NEVER copy a section's claim" in reads[0],
           "The read is told never to copy a section's sentence, and a draft that "
-          "does is sent back once with the reason")
+          "does is sent back with the reason")
     printed = [s for s in wed["sections"]]
     all_sents = [x for s in printed for t in [s.get("claim")] + list(s.get("paragraphs") or [])
                  for x in rd.sentences(t)]
@@ -452,8 +479,40 @@ def main() -> int:
     ch = "Close" + "—"
     wsub = rd.subject("Weekly", "w/e 2 Oct", wed)
     claim_w = next(s for s in wed["sections"] if s["id"] == "read")["claim"] or ""
-    check(wsub == f"Weekly — w/e 2 Oct — {rd.short_claim(claim_w)}" and claim_w,
-          f"the Weekly's subject carries The read's claim ({wsub})")
+    from daily_cascade import precis as precis_mod
+    want = rd.short_claim(precis_mod.subject_claim(wed))
+    check(wsub == "Weekly — w/e 2 Oct" + (f" — {want}" if want else "")
+          and (not claim_w or claim_w not in wsub),
+          f"the Weekly's subject is the précis's Takeaway or the stance line, "
+          f"never The read's claim ({wsub})")
+    # W-1.3c ITEM 3, on dry run #6's précis: the subject took The read's first
+    # sentence -- a definition of dealer gamma.
+    import json as _json
+    r6 = _json.loads((REPO / "tests" / "fixtures" / "weekly_run6_2026-10-13.json")
+                     .read_text(encoding="utf-8"))
+    pr6 = r6["precis"]
+    read6 = {"id": "read", "claim": r6["terms_explainers"]["read"]}
+    ed6 = {"sections": [read6], "precis": {
+        "published": True, "parsed": {"week": pr6["week"]},
+        "stance_line": pr6["stance_line"]}}
+    s6 = rd.subject("Weekly", "w/e 9 Oct", ed6)
+    tail = s6.split(" — ", 2)[2]
+    check(s6 != r6["subject_run6"] and tail.startswith("A market this narrow")
+          and len(tail) <= rd.SUBJECT_CLAIM_CHARS and tail.endswith("…")
+          and not tail[:-1].endswith(" ") and "Dealer gamma" not in s6,
+          f"run 6: the subject is the précis's Takeaway, trimmed at a word "
+          f"boundary to {rd.SUBJECT_CLAIM_CHARS} characters ({s6})")
+    ed6b = {"sections": [read6], "precis": {
+        "published": True, "parsed": {"week": "No Takeaway here."},
+        "stance_line": pr6["stance_line"]}}
+    check(rd.subject("Weekly", "w/e 9 Oct", ed6b)
+          == "Weekly — w/e 9 Oct — " + pr6["stance_line"],
+          "with no précis Takeaway, the stance line")
+    ed6c = {"sections": [read6], "precis": {"published": False, "state": "audit_failed"}}
+    check(rd.subject("Weekly", "w/e 9 Oct", ed6c) == "Weekly — w/e 9 Oct",
+          "with no précis at all, no opener sentence: the report and the week only")
+    check(rd.subject("Close", "9 Oct", {"sections": [{"id": "read", "claim": "x y"}]})
+          == "Close — 9 Oct — x y", "the close, which has no précis, keeps The read's claim")
     long_ed = {"sections": [{"id": "read", "claim": "word " * 40}]}
     s90 = rd.subject("Close", "2 Oct", long_ed).split(" — ", 2)[2]
     check(len(s90) <= 90 and s90.endswith("…"),
@@ -592,6 +651,16 @@ def main() -> int:
         check(pdf and pdf[:5] == b"%PDF-" and len(pdf) <= rd.PDF_MAX_BYTES
               and pages >= 2,
               f"the fixture Weekly renders to PDF: {detail}, {pages} pages")
+        # W-1.3c ITEM 10: on run 6's précis, page 1 carries the précis, the
+        # verdicts, what would change our mind and the stance line. Run 6's PDF
+        # put the stance alone on page 2, ahead of a forced break.
+        doc6 = weasyprint.HTML(string=rd.pdf_html(run6_page_html())).render()
+        a1 = set(doc6.pages[0].anchors)
+        want6 = {"precis", "verdicts", "change", "outlook", "stance"}
+        check(want6 <= a1,
+              f"run 6's précis page: page 1 carries the précis, the verdicts, what "
+              f"would change our mind and the stance (missing: "
+              f"{sorted(want6 - a1) or 'none'}; {len(doc6.pages)} pages)")
         pdf_c, detail_c = rd.pdf_bytes(chtml, cl["inline_images"])
         check(pdf_c and len(pdf_c) <= rd.PDF_MAX_BYTES,
               f"and the fixture close: {detail_c}")
@@ -602,7 +671,7 @@ def main() -> int:
     else:
         print(f"  NOT VALIDATED here: WeasyPrint is not installed with its "
               f"libraries on this machine ({why}); CI and the box render the "
-              f"fixture to PDF.")
+              f"fixture to PDF, and run 6's précis page with it (W-1.3c item 10).")
         check("WeasyPrint unavailable" in str(wk.get("pdf_detail"))
               and wk.get("pdf") is None,
               "without it, the edition builds and says the PDF was not built")

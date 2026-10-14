@@ -1,0 +1,423 @@
+# config/crypto_basket.yaml -- the crypto long-shot basket (basket tier).
+#
+# Ruled 12 Oct 2026: docs/briefs/crypto-basket-brief-2026-10-12.md (decisions
+# 1-7; decision 3 as the alternative). The thesis source is the operator's
+# document, docs/scans/crypto-basket-summary-2026-10-12.md.
+#
+# QUOTED, NEVER PARAPHRASED: thesis (the document's italic line), case_for,
+# case_against, measurable.pays and the table's us_access are the document's
+# words, with its Markdown escapes removed; tools/validate_crypto_basket.py finds
+# each one in the document.
+#
+# THE ODDS ARE THE OPERATOR'S. `odds` is hand-seeded and dated; the model never
+# writes or revises it (the gate refuses a file whose odds differ from the
+# document's table). The quarterly restatement (decision 3) prints BESIDE it and is
+# written to the thesis register, never here. `operator_restatement` is the
+# operator's own third column, hand-seeded, empty until he adds one.
+#
+# SYMBOLS ARE RESOLVED, NOT ASSUMED. Yahoo's bare `-USD` pair is a different coin
+# for three names (SKY-USD is Skycoin, AERO-USD Aerovek, PRL-USD The Parallel) and
+# absent for four (TAO, MORPHO, UNI, VVV), whose pairs Yahoo suffixes with an id;
+# each `yahoo` below was checked against Yahoo's own name on 13 Oct 2026. The
+# ticker is never a key (SR-10 MW-1).
+version: crypto-basket-v1
+dated: 2026-10-12
+source: docs/scans/crypto-basket-summary-2026-10-12.md
+tier: basket
+
+# Sources, one per series kind (one source per name, never two).
+sources:
+  price: {source: yfinance, key: "yfinance.crypto_<sym>", why: "the sanctioned exception (11 Oct); Yahoo lists all twelve"}
+  market_cap: {source: llama_coins, key: "llama.mcap_<sym>", why: "CoinGecko's terms do not provide for keyless reads and discourage storing data; DefiLlama's coin service (coins.llama.fi/mcaps) serves the current cap, no history"}
+  supply: {source: llama_coins, key: "llama.supply_<sym>", why: "the coin service's cap divided by its own price at the same instant"}
+  fees: {source: defillama, key: "llama.fees_<sym> / llama.revenue_<sym> / llama.holders_revenue_<sym>", why: "DS-29, CD-1"}
+  tvl: {source: defillama, key: "llama.tvl_<sym>", why: "DS-29, CD-1"}
+
+# The lenses (metric-lenses brief): each kind's family and long window.
+lenses:
+  price: {family: price, long_window: full}
+  market_cap: {family: quantity, long_window: full}
+  supply: {family: quantity, long_window: full}
+  fees: {family: quantity, long_window: 365d}
+  tvl: {family: quantity, long_window: full}
+  dilution: {family: ratio, long_window: 365d}
+
+# The grader's session-set parameters (item 3). Proposed, not ruled.
+grader:
+  strained_band: 0.10        # within 10% of a threshold is strained
+  half_time_rule: true       # past half the time to a date with no progress is strained
+  proposed: true
+
+names:
+  SKY:
+    name: "Sky"
+    tier: basket
+    yahoo: "SKY33038-USD"
+    llama_slug: "sky"
+    llama_coin: "coingecko:sky"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.revenue_sky"
+      pays: "Interest on the collateral behind its USDS/DAI dollar, ~$200M/yr; buybacks and staking rewards"
+      note: "DefiLlama revenue for the parent protocol `sky` (Sky Lending, Sky Money, Sky RWA)"
+    thesis: "The company-like protocol behind USDS and DAI, a dollar-pegged coin backed by crypto collateral and Treasury bills. Nearly all tokens are already in circulation."
+    case_for: "Sky earns interest on everything backing its dollar, about $200 million a year net, and uses that money to buy back its own token and pay people who stake it. It is one of the few crypto projects that is plainly profitable, and it set a new all-time high in October 2026 while the rest of the market was down. If stablecoins keep growing the way the new US law (GENIUS) encourages, Sky grows with them. A tenfold rise would make it an $18 billion asset, roughly the eleventh-largest coin, which is a large but believable size for a profitable crypto bank."
+    case_against: "The dollar it issues could lose ground to Circle's USDC, Tether, or new bank-issued coins, which would shrink the interest it earns. Falling interest rates would shrink it further. A bad loan or a collateral failure would hit the balance sheet directly, and control is concentrated in a small group. In that case the token is simply a shrinking cash flow, and in a crypto bear market even a profitable token can fall 50 to 80 percent."
+    falsifier:
+      quoted: "The dollar it issues could lose ground to Circle's USDC, Tether, or new bank-issued coins, which would shrink the interest it earns. Falling interest rates would shrink it further. A bad loan or a collateral failure would hit the balance sheet directly, and control is concentrated in a small group. In that case the token is simply a shrinking cash flow, and in a crypto bear market even a profitable token can fall 50 to 80 percent."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Coinbase"
+    market_cap_in_document: "$1.81B"
+    odds:
+      operator_10x: "12–15%"
+      operator_100x: "~0"
+      operator_10x_pct: [12.0, 15.0]
+      operator_100x_pct: [0.0, 0.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  LDO:
+    name: "Lido"
+    tier: basket
+    yahoo: "LDO-USD"
+    llama_slug: "lido"
+    llama_coin: "coingecko:lido-dao"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.tvl_ldo"
+      pays: "Cut of rewards on $24B of staked ETH; small buyback (capped $10M/yr)"
+      note: "DefiLlama TVL for `lido`: the staked ETH, in dollars"
+    thesis: "The largest service for staking Ethereum, holding about $24 billion of ETH on behalf of users and taking a small cut of the rewards."
+    case_for: "The token is priced at a fraction of the business behind it: its treasury alone is worth about a third of the market value, it has started buying back tokens, and it collects a fee on a very large pool of assets. If Ethereum recovers and staking keeps growing, a tenfold rise only takes Lido back to where it traded in early 2024, which is a far easier claim than growing into new territory."
+    case_against: "If Ethereum stays weak, Lido's fee pool shrinks with it. Competitors and the new ETFs that stake Ethereum themselves could take share, the buyback is capped at $10 million a year, and governance could cut fees to defend market share. In that case the token drifts down alongside ETH with no catalyst of its own."
+    falsifier:
+      quoted: "If Ethereum stays weak, Lido's fee pool shrinks with it. Competitors and the new ETFs that stake Ethereum themselves could take share, the buyback is capped at $10 million a year, and governance could cut fees to defend market share. In that case the token drifts down alongside ETH with no catalyst of its own."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Coinbase (not re-verified)"
+    market_cap_in_document: "$0.36B"
+    odds:
+      operator_10x: "10–13%"
+      operator_100x: "<0.5%"
+      operator_10x_pct: [10.0, 13.0]
+      operator_100x_pct: [0.0, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  SYRUP:
+    name: "Maple"
+    tier: basket
+    yahoo: "SYRUP-USD"
+    llama_slug: "maple-finance"
+    llama_coin: "coingecko:syrup"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.tvl_syrup"
+      pays: "Lending to institutions, $4.55B under management; 10% of net revenue to buybacks"
+      note: "DefiLlama TVL for the parent `maple-finance`; NOT the $4.55B assets-under-management figure, which includes loans DefiLlama does not count"
+    thesis: "An on-chain lender that makes loans to trading firms and institutions against collateral, with about $4.55 billion under management and distribution through Robinhood and Kraken."
+    case_for: "Maple is the fastest-growing version of private credit done on a blockchain, and private credit is the trend institutions are already moving into. It is small enough that a tenfold rise, about $3 billion, would only put it back among the top 30 or 35 coins. Of the twelve names here it has the only realistic path to a hundredfold outcome, because its starting size is so small relative to the market it serves."
+    case_against: "Lending is a loss business until it is not. Maple's own history includes defaults in 2022 when borrowers failed, and a bad credit cycle could take the token down 80 to 90 percent. Only a tenth of its revenue reaches the token through buybacks, and whether a US resident can buy it on a major exchange was not verified. It is a credit book, and it will behave like one."
+    falsifier:
+      quoted: "Lending is a loss business until it is not. Maple's own history includes defaults in 2022 when borrowers failed, and a bad credit cycle could take the token down 80 to 90 percent. Only a tenth of its revenue reaches the token through buybacks, and whether a US resident can buy it on a major exchange was not verified. It is a credit book, and it will behave like one."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Unverified"
+    market_cap_in_document: "$0.27B"
+    odds:
+      operator_10x: "10–12%"
+      operator_100x: "1–2%"
+      operator_10x_pct: [10.0, 12.0]
+      operator_100x_pct: [1.0, 2.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  AAVE:
+    name: "Aave"
+    tier: basket
+    yahoo: "AAVE-USD"
+    llama_slug: "aave"
+    llama_coin: "coingecko:aave"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.revenue_aave"
+      pays: "Largest crypto lending market; ~$92M revenue, all directed to buybacks"
+      note: "DefiLlama revenue for the parent `aave`, which the document says is all directed to buybacks"
+    thesis: "The largest lending market in crypto, with about $18 billion deposited. Users borrow against their crypto and the protocol earns the spread and fees."
+    case_for: "Aave is a real, profitable business, about $92 million of revenue, and it now directs all of that revenue to buying back its token. It trades at roughly fifteen times its fees, a price that assumes the business is in decline when it is not. If on-chain lending becomes a normal part of finance, a tenfold rise to about $27 billion is the size of a mid-sized bank, which is what Aave would be."
+    case_against: "A leaner rival, Morpho, already holds deposits equal to 61 percent of Aave's and is growing faster. In April 2026 an exploit at a partner left Aave with a modelled $124 to $230 million of bad debt, which showed how thin the cushion is. The market has refused for years to pay a premium for crypto cash flow, and the failure of the CLARITY Act leaves lending in regulatory limbo. If any of that bites, Aave stays cheap and gets cheaper."
+    falsifier:
+      quoted: "A leaner rival, Morpho, already holds deposits equal to 61 percent of Aave's and is growing faster. In April 2026 an exploit at a partner left Aave with a modelled $124 to $230 million of bad debt, which showed how thin the cushion is. The market has refused for years to pay a premium for crypto cash flow, and the failure of the CLARITY Act leaves lending in regulatory limbo. If any of that bites, Aave stays cheap and gets cheaper."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Coinbase, Kraken, Robinhood"
+    market_cap_in_document: "$2.65B"
+    odds:
+      operator_10x: "8–10%"
+      operator_100x: "<0.5%"
+      operator_10x_pct: [8.0, 10.0]
+      operator_100x_pct: [0.0, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  AERO:
+    name: "Aerodrome"
+    tier: basket
+    yahoo: "AERO29270-USD"
+    llama_slug: "aerodrome"
+    llama_coin: "coingecko:aerodrome-finance"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.fees_aero"
+      pays: "Main exchange on Coinbase's Base network; 100% of ~$91M fees to token lockers"
+      note: "DefiLlama fees for the parent `aerodrome`; the document's ~$105M a year of emissions is not served free (DefiLlama /emissions is Pro)"
+    thesis: "The main trading exchange on Base, the network run by Coinbase. All trading fees, about $91 million a year, go to people who lock the token."
+    case_for: "Few tokens pay their holders so directly: lock AERO and you receive the exchange's fees. Base is one of the fastest-growing networks because Coinbase routes its customers there, and on 21 October 2026 Aerodrome launches on six more chains, which could multiply the fee pool. A tenfold rise would be about $12 billion, a large but not unprecedented size for a top exchange."
+    case_against: "Aerodrome lives or dies with Base. It also pays out roughly $105 million a year in new tokens to attract traders, more than it earns, so holders are diluted while they collect fees. Uniswap competes for the same volume. If activity on Base fades or the multi-chain launch disappoints, the fees fall, the dilution continues, and the token has nothing else to stand on."
+    falsifier:
+      quoted: "Aerodrome lives or dies with Base. It also pays out roughly $105 million a year in new tokens to attract traders, more than it earns, so holders are diluted while they collect fees. Uniswap competes for the same volume. If activity on Base fades or the multi-chain launch disappoints, the fees fall, the dilution continues, and the token has nothing else to stand on."
+      kind: "event_then_level"
+      measured: true
+      series: "llama.fees_aero"
+      event: "Aerodrome launches on six more chains"
+      event_date: "2026-10-21"
+      statement: "the multi-chain launch disappoints: the 30-day fee sum one quarter after the launch is below the 30-day fee sum on the day before it"
+      window_days: 30
+      comparator: "below_pre_event"
+      date: "2027-01-21"
+      threshold_source: "session (the document dates the launch and names the fee fall, not a level)"
+    us_access: "Coinbase"
+    market_cap_in_document: "$0.93B"
+    odds:
+      operator_10x: "8–10%"
+      operator_100x: "~0"
+      operator_10x_pct: [8.0, 10.0]
+      operator_100x_pct: [0.0, 0.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  TAO:
+    name: "Bittensor"
+    tier: basket
+    yahoo: "TAO22974-USD"
+    llama_slug: null
+    llama_slug_note: "listed as `bittensor` (category Chain) with no fee, revenue or TVL series; outside revenue is not on DefiLlama"
+    llama_coin: "coingecko:bittensor"
+    llama_series: []
+    measurable:
+      key: null
+      pays: "AI-work network; $19–35M outside revenue vs ~$370M/yr paid out; ETF pending"
+      note: "outside (customer) revenue is not served by any free source the system reads"
+    thesis: "A network that pays AI developers in TAO for contributing AI work across dozens of sub-networks. It copies Bitcoin's 21 million cap and halvings."
+    case_for: "Bittensor is the largest crypto-AI project, it is listed on Coinbase and Kraken, and an ETF from Grayscale is pending, which would give institutions a way in. If even a handful of its sub-networks become AI businesses that customers pay for, and the AI theme runs again into 2029, TAO is the way to express that theme in crypto. A tenfold rise on the 2029 supply is about $43 billion."
+    case_against: "Today the network pays out about $370 million a year in new tokens against only $19 to $35 million of revenue from outside customers, so holders fund almost everything. Many sub-networks have been caught gaming the rewards, supply keeps growing, and a governance scare in April 2026 showed a single party could change the rules. If the AI narrative cools, TAO is an expensive machine for printing tokens, and it has already fallen more than 60 percent from its high once."
+    falsifier:
+      quoted: "Today the network pays out about $370 million a year in new tokens against only $19 to $35 million of revenue from outside customers, so holders fund almost everything. Many sub-networks have been caught gaming the rewards, supply keeps growing, and a governance scare in April 2026 showed a single party could change the rules. If the AI narrative cools, TAO is an expensive machine for printing tokens, and it has already fallen more than 60 percent from its high once."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date, and outside revenue has no series"
+    us_access: "Coinbase, Kraken"
+    market_cap_in_document: "$3.20B"
+    odds:
+      operator_10x: "7–9%"
+      operator_100x: "~1%"
+      operator_10x_pct: [7.0, 9.0]
+      operator_100x_pct: [1.0, 1.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  MORPHO:
+    name: "Morpho"
+    tier: basket
+    yahoo: "MORPHO34104-USD"
+    llama_slug: "morpho"
+    llama_coin: "coingecko:morpho"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.tvl_morpho"
+      pays: "Lending engine used by Coinbase and Robinhood, $11.2B deposited; no fee to token yet"
+      note: "DefiLlama TVL for the parent `morpho`: the deposits"
+    thesis: "Lending infrastructure that other companies build on, including Coinbase and Robinhood. Deposits reached $11.2 billion and grew 15 percent a month through a bear market."
+    case_for: "Morpho is the fastest-growing lender in crypto and the one big institutions are choosing to integrate. The token has a built-in switch that could send up to a quarter of interest paid, more than $50 million a year today, to holders. If governance turns it on, the market would reprice Morpho as a business rather than a promise, and a tenfold rise on its full supply is about $24 billion."
+    case_against: "The token has never received a dollar. Insiders have been selling roughly $20 million a month, and blow-ups in vaults built on Morpho (Stream's xUSD in late 2025) showed that its open design lets others take risks in its name. If the fee switch never comes, holders own a vote on a business whose profits flow to everyone else."
+    falsifier:
+      quoted: "The token has never received a dollar. Insiders have been selling roughly $20 million a month, and blow-ups in vaults built on Morpho (Stream's xUSD in late 2025) showed that its open design lets others take risks in its name. If the fee switch never comes, holders own a vote on a business whose profits flow to everyone else."
+      kind: "switch"
+      measured: true
+      series: "llama.holders_revenue_morpho"
+      statement: "the fee switch never comes: no value reaches the token (DefiLlama holders revenue stays zero)"
+      window_days: 30
+      comparator: "switch_on_if_positive"
+      date: null
+      threshold_source: "document (the fee switch); undated, so it cannot fail until a date is set"
+    us_access: "Robinhood"
+    market_cap_in_document: "$1.68B"
+    odds:
+      operator_10x: "6–8%"
+      operator_100x: "~0"
+      operator_10x_pct: [6.0, 8.0]
+      operator_100x_pct: [0.0, 0.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  UNI:
+    name: "Uniswap"
+    tier: basket
+    yahoo: "UNI7083-USD"
+    llama_slug: "uniswap"
+    llama_coin: "coingecko:uniswap"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.holders_revenue_uni"
+      pays: "Largest decentralized exchange; burns ~$170M/yr of UNI from fees"
+      note: "DefiLlama holders revenue for the parent `uniswap`: the fee-funded burn"
+    thesis: "The largest decentralized exchange. Its fee switch is now on and it burns about $170 million a year of UNI bought with fees."
+    case_for: "Uniswap is the easiest of these to buy in the US, it is the standard that other exchanges copy, and it is now destroying supply with its fees. Standard Chartered put a $100 target on it for 2030, about thirteen times today's price, on the strength of that burn and its tie-up with Robinhood. It is the one name here with a Wall Street research call for a tenfold outcome."
+    case_against: "A tenfold rise means about $47 billion, which would make it one of the eight largest coins, a high bar for an exchange facing fee compression from Aerodrome, Hyperliquid, and the Solana exchanges. The burn depends on trading volume, which collapses in bear markets. If volumes stay low, the burn shrinks and the big end-state never arrives."
+    falsifier:
+      quoted: "A tenfold rise means about $47 billion, which would make it one of the eight largest coins, a high bar for an exchange facing fee compression from Aerodrome, Hyperliquid, and the Solana exchanges. The burn depends on trading volume, which collapses in bear markets. If volumes stay low, the burn shrinks and the big end-state never arrives."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Coinbase, Robinhood"
+    market_cap_in_document: "$4.73B"
+    odds:
+      operator_10x: "6–8%"
+      operator_100x: "~0"
+      operator_10x_pct: [6.0, 8.0]
+      operator_100x_pct: [0.0, 0.0]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  ONDO:
+    name: "Ondo"
+    tier: basket
+    yahoo: "ONDO-USD"
+    llama_slug: "ondo-finance"
+    llama_coin: "coingecko:ondo-finance"
+    llama_series: ["fees", "revenue", "holders_revenue"]
+    measurable:
+      key: "llama.fees_ondo"
+      pays: "Tokenized Treasuries and stocks, $3.2–3.4B; fees ~$65M, none to token yet"
+      note: "DefiLlama fees for `ondo-finance` (~$65M a year in the document); its AUM is not a DefiLlama TVL series (the protocol's TVL chart is empty)"
+    thesis: "The leading provider of tokenized Treasuries and stocks for crypto users, with $3.2 to $3.4 billion of assets."
+    case_for: "Tokenizing real-world assets is the one crypto trend Wall Street is actively building, and Ondo is the brand name in it. The protocol already earns about $65 million a year in fees. If governance passes the long-promised fee switch, the token gains a claim on a fast-growing income stream, and the asset base could grow many times over as stocks and funds move on-chain."
+    case_against: "Today the token has no claim on any of that revenue, and the fee-switch vote has not been proposed. The number of tokens in circulation doubles by January 2029, so the price can go nowhere while the market value doubles. The founder died in May 2026 and a control dispute followed. BlackRock, Franklin, and Circle are larger in tokenized Treasuries. If the switch never comes, holders own a vote and nothing else."
+    falsifier:
+      quoted: "Today the token has no claim on any of that revenue, and the fee-switch vote has not been proposed. The number of tokens in circulation doubles by January 2029, so the price can go nowhere while the market value doubles. The founder died in May 2026 and a control dispute followed. BlackRock, Franklin, and Circle are larger in tokenized Treasuries. If the switch never comes, holders own a vote and nothing else."
+      kind: "level_by_date"
+      measured: true
+      series: "llama.supply_ondo"
+      statement: "the number of tokens in circulation doubles by January 2029"
+      comparator: "ratio_to_baseline_at_or_above"
+      threshold: 2.0
+      baseline: "the first stored circulating supply"
+      band: 0.1
+      date: "2029-01-31"
+      threshold_source: "document"
+    us_access: "Coinbase, Kraken, Robinhood"
+    market_cap_in_document: "$2.43B"
+    odds:
+      operator_10x: "4–6%"
+      operator_100x: "<0.5%"
+      operator_10x_pct: [4.0, 6.0]
+      operator_100x_pct: [0.0, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  KAS:
+    name: "Kaspa"
+    tier: basket
+    yahoo: "KAS-USD"
+    llama_slug: null
+    llama_slug_note: "not listed on DefiLlama (/protocols has only third-party Kaspa DEXs and a bridge)"
+    llama_coin: "coingecko:kaspa"
+    llama_series: []
+    measurable:
+      key: null
+      pays: "Fast proof-of-work coin, 99.5% mined; nothing pays the token but demand for the coin itself"
+      note: "fees (~$19,000 a year in the document) are not on DefiLlama"
+    thesis: "A fast proof-of-work coin, essentially Bitcoin's design with much faster blocks, launched fairly with no insiders. About 99.5 percent of all coins already exist."
+    case_for: "There is no dilution ahead, no founder stock, and a committed mining community. A tenfold rise would be about $12 billion, barely twice what Kaspa was worth at its 2024 peak, so the claim is a recovery rather than a leap. It has recently added smart contracts. If developers show up and a major US exchange lists it, Kaspa is one of only two names here with a plausible, if remote, hundredfold path."
+    case_against: "So far nobody has shown up: total fees are about $19,000 a year, a token exploit in September 2026 drained two pools, and in the US it trades only on Kraken. Miners sell what they mine. Kaspa could simply remain an elegant mining curiosity with a shrinking audience, in which case it drifts down for years with no business to catch it."
+    falsifier:
+      quoted: "So far nobody has shown up: total fees are about $19,000 a year, a token exploit in September 2026 drained two pools, and in the US it trades only on Kraken. Miners sell what they mine. Kaspa could simply remain an elegant mining curiosity with a shrinking audience, in which case it drifts down for years with no business to catch it."
+      kind: "unthresholded"
+      measured: false
+      reason: "Kaspa's fees have no free series (not listed on DefiLlama)"
+    us_access: "Kraken"
+    market_cap_in_document: "$1.14B"
+    odds:
+      operator_10x: "4–6%"
+      operator_100x: "~0.5%"
+      operator_10x_pct: [4.0, 6.0]
+      operator_100x_pct: [0.5, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  VVV:
+    name: "Venice"
+    tier: basket
+    yahoo: "VVV35509-USD"
+    llama_slug: "venice"
+    llama_coin: "coingecko:venice-token"
+    llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    measurable:
+      key: "llama.fees_vvv"
+      pays: "Private-AI platform with ~$100M revenue run-rate (unaudited); staking buys access to AI capacity; small buybacks"
+      note: "DefiLlama fees for `venice` (staking, on-chain only, from Dec 2025); NOT the founder's ~$100M revenue run-rate, which is unaudited and off-chain"
+    thesis: "The token of Venice, a privacy-first AI service founded by Erik Voorhees that routes requests to open-source models. Staking VVV grants a share of the platform's AI capacity; locking it mints a credit worth $1 of usage a day. Price about $23.55, market value $1.14 billion, up roughly 25-fold from its December 2025 low."
+    case_for: "Of all the AI tokens, Venice is the one attached to a verifiable business: the founder reports a $100 million annual revenue run-rate, investors led by Dragonfly and Coinbase Ventures valued the company at $1 billion in July 2026, and the token is a metered right to use the product rather than a story about future demand. Issuance has been cut from 14 million to 2 million tokens a year. If private AI becomes a category and Venice is its API, the token is the key to the meter, and a tenfold rise to about $20 billion is a top-ten outcome."
+    case_against: "The big move has already happened, and after a 25-fold run most coins give back 70 to 90 percent. Buybacks are tiny next to the roughly $50 million a year of new tokens still being issued. The company holds a quarter of the supply with no public vesting schedule, the contract lets the owner mint more tokens, holder concentration is extreme, and the revenue figure is a founder's statement, not an audited number. Every large AI company sells the same product cheaper. If growth stalls, VVV reverts to a thinly traded AI-narrative coin. It would slot around eighth or ninth in the ranking if admitted; for now it is an alternate."
+    falsifier:
+      quoted: "The big move has already happened, and after a 25-fold run most coins give back 70 to 90 percent. Buybacks are tiny next to the roughly $50 million a year of new tokens still being issued. The company holds a quarter of the supply with no public vesting schedule, the contract lets the owner mint more tokens, holder concentration is extreme, and the revenue figure is a founder's statement, not an audited number. Every large AI company sells the same product cheaper. If growth stalls, VVV reverts to a thinly traded AI-narrative coin. It would slot around eighth or ninth in the ranking if admitted; for now it is an alternate."
+      kind: "unthresholded"
+      measured: false
+      reason: "the document gives no threshold or date for this falsifier"
+    us_access: "Coinbase, Kraken"
+    market_cap_in_document: "$1.14B"
+    odds:
+      operator_10x: "5–7%"
+      operator_100x: "~0.5%"
+      operator_10x_pct: [5.0, 7.0]
+      operator_100x_pct: [0.5, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+  PRL:
+    name: "Pearl"
+    tier: basket
+    yahoo: "PRL41876-USD"
+    llama_slug: "pearl"
+    llama_slug_note: "listed as the chain `pearl` (gecko_id pearl-2, pearlresearch.ai); NOT `the-parallel` or the `pearlfi` DEX, which share the ticker"
+    llama_coin: "coingecko:pearl-2"
+    llama_series: ["fees"]
+    measurable:
+      key: "llama.fees_prl"
+      pays: "AI-mined coin; one partner, funded by the coin's own issuance; nothing verified pays the token"
+      note: "DefiLlama chain fees for `pearl`; the one partner (S1) is a narrative signpost"
+    thesis: "A new coin mined with the matrix math used by AI models, launched April 2026. One partner (Together AI), whose discount is paid for by the coin's own issuance. Not available on any US exchange."
+    case_for: "The original idea was that every computer running AI would also mine Pearl for free, making it the currency of machine compute, and that in a 2029 AI boom that story could lift a small coin a long way. If the project ships a way to prove the mining is real AI work, signs paying customers, and gets a major listing, the thesis comes back to life."
+    case_against: "An independent study in June 2026 found that the mining does no useful AI work at all; it accepts random math. The coin issues roughly its entire market value in new tokens every year, early miners hold about 37 percent with no lockup, almost all trading happens on one small exchange, and a US investor cannot buy it on a regulated venue. This is the most likely path, which is why it was demoted: an existing position should be managed on the signposts above and sold into strength rather than added to."
+    falsifier:
+      quoted: "An independent study in June 2026 found that the mining does no useful AI work at all; it accepts random math. The coin issues roughly its entire market value in new tokens every year, early miners hold about 37 percent with no lockup, almost all trading happens on one small exchange, and a US investor cannot buy it on a regulated venue. This is the most likely path, which is why it was demoted: an existing position should be managed on the signposts above and sold into strength rather than added to."
+      kind: "signposts"
+      measured: false
+      signposts: "SR-10 S1-S8 (docs/change-order-signal-triage-2026-09-25.md §2.7.3)"
+      reason: "S1-S8 are SR-10's signposts; S1, S2, S7, S8 are narrative and S3-S6 need SR-10's ST-13/ST-14 store, which is not built"
+    us_access: "None"
+    market_cap_in_document: "$0.47B"
+    odds:
+      operator_10x: "2–4%"
+      operator_100x: "<0.5%"
+      operator_10x_pct: [2.0, 4.0]
+      operator_100x_pct: [0.0, 0.5]
+      dated: 2026-10-12
+      source: docs/scans/crypto-basket-summary-2026-10-12.md
+    operator_restatement: null
+    demoted: {from: deep, to: basket, on: 2026-10-12, by: "the crypto basket brief", coin_page: false}
