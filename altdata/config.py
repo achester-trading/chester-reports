@@ -318,9 +318,26 @@ MASSIVE_SPOT_FROM_PARITY: dict[str, bool] = {"SPX": True, "SPCX": False}
 # until an identity layer exists.
 UNDERLYING_VERIFIED_FROM: dict[str, str] = {"SPCX": "2026-06-16"}
 
+# THE PAPER BID'S FOUR (AQ-8a; change order 10 Oct 2026, section 5 "Two-bid
+# decomposition", the Part 9 ruling's GLD, SLV, IBIT and USO). Captured every
+# night with the universe so the paper-bid leg -- net call-put OI and the
+# 25-delta risk reversal (altdata/paper_bid.py) -- accrues from the merge; a
+# night not captured is gone. CAPTURE ONLY: they are not in options_universe(),
+# so they enter no exposure profile, no pin log and no dealer table -- those
+# carry the 13 and their statistics are the 13's.
+PAPER_BID_SYMBOLS: list[str] = ["GLD", "SLV", "IBIT", "USO"]
+
+
 def options_universe() -> list[str]:
-    """Symbols the yfinance chain fetcher pulls. 13 today."""
+    """Symbols the yfinance chain fetcher pulls with Greeks. 13 today."""
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+
+def chain_universe() -> list[str]:
+    """Every symbol the yfinance chain fetcher captures nightly: the 13 and the
+    paper bid's four. 17 today."""
+    return options_universe() + [s for s in PAPER_BID_SYMBOLS
+                                 if s not in options_universe()]
 
 def massive_universe() -> list[str]:
     """Symbols the Massive chain fetcher pulls. Ingestion only."""

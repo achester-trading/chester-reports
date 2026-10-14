@@ -109,7 +109,13 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     "eia", "fedboard", "nyfed_sce",
                     # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
                     # republishes it (the Quarterly's oil chapter)
-                    "eia_rigs")
+                    "eia_rigs",
+                    # 10 Oct 2026: central-bank gold by country (IMF IL)
+                    "imf_ifs",
+                    # AQ-9a (11 Oct 2026): the EM scorecard's sources, then its
+                    # derived lenses, which read what the four just wrote -- the
+                    # order of this tuple is the order they run in
+                    "imf_weo", "imf_em", "bis_cbpol", "wb_qeds", "em_lenses")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
