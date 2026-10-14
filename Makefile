@@ -69,6 +69,17 @@ PY_VALIDATORS := \
 	tools/validate_feeds_scheduled.py \
 	tools/validate_readability.py \
 	tools/validate_stack_cadence.py \
+	tools/validate_figure_budget.py \
+	tools/validate_no_filler.py \
+	tools/validate_edition_consistency.py \
+	tools/validate_audit_fixes.py \
+	tools/validate_weekly_integrity.py \
+	tools/validate_monthly_frames.py \
+	tools/validate_weekly_storyline.py \
+	tools/validate_weekly_opener.py \
+	tools/validate_weekly_calendar.py \
+	tools/validate_weekly_analytics.py \
+	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
 	tools/validate_correlation_layer.py \
 	tools/check_library.py \

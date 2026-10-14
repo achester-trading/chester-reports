@@ -201,8 +201,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — forty-six code gates (forty-three Python,
-three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — fifty-eight code gates (fifty-five Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -302,9 +301,14 @@ each stale series with its reason in the verdict line.
 **A writer obeys robots.txt with its wildcards.** `urllib.robotparser` ignores `*`
 inside a path, which is how AAII's `Disallow: /files/*` was read as "no rule" on
 4 Oct; aaii.com also answers any client that names itself with a 403. The AAII
-writer (`altdata/sources/aaii.py`) therefore reads the operator's browser-downloaded
-spreadsheet ($AAII_SENTIMENT_FILE, by default the box's chester-data inbox)
-and fetches only while robots.txt allows it; it never passes for a browser.
+writer (`altdata/sources/aaii.py`) therefore reads its inbox on the box,
+~/chester-data/inbox/aaii, and fetches only while robots.txt allows it; it
+never passes for a browser. The inbox holds the history (the operator's
+browser-downloaded `sentiment.csv` or `.xls`, told apart by content, loaded once
+with `--history`) and, from 10 Oct 2026, `aaii-weekly.csv`: one row a week from
+the chat-side "AAII weekly read" task via Drive, pulled by the nightly rclone
+sweep and unioned with the history by date. The manual weekly drop is
+discontinued.
 
 **Import yfinance through `altdata.import_yfinance()`, never bare.** yfinance's own
 `__init__` puts a `default` warnings rule for its modules at the front of the

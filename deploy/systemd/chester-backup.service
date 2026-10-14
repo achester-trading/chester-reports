@@ -36,7 +36,11 @@ ProtectHome=no
 # to create chester.db-shm and chester.db-wal beside the file -- they do not
 # exist after a clean close -- and a read-only data/ refuses the snapshot. The
 # innermost path wins, so the rest of the repo stays read-only below.
-ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data
+# -%h/chester-data/inbox/aaii (10 Oct 2026): the sweep's one inbound copy, the
+# AAII weekly file, lands there; the rest of ~/chester-data stays read-only.
+# The leading - skips it where the directory is absent, so it must exist
+# before the sweep starts for the pull to write.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true

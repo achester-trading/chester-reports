@@ -528,6 +528,34 @@ def group_e() -> None:
     else:
         bad("the sweep's log is not per run")
 
+    # 10 Oct 2026: the one inbound file, the AAII weekly row.
+    pulls = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copyto\b", ln)]
+    body = code[code.find("pull_aaii_weekly() {"):code.find("pull_aaii_weekly || true")]
+    if (len(pulls) == 1 and '"$src" "$dest"' in pulls[0]
+            and 'src="$rname:chester-vendor-checks/aaii/aaii-weekly.csv"' in body
+            and 'dest="$DATA_DIR/inbox/aaii/aaii-weekly.csv"' in body
+            and 'rname="${REMOTE%%:*}"' in body):
+        ok("the AAII pull is one `rclone copyto` of one named file, the remote's "
+           "name with its path replaced, into the inbox")
+    else:
+        bad(f"the AAII pull is not a single named copyto ({pulls})")
+    if body and "RC=" not in body and "finish " not in body \
+            and code.find("pull_aaii_weekly || true") > code.find('log "  prune: $PRUNE"') \
+            and code.find("pull_aaii_weekly || true") < code.find("finish ok 0"):
+        ok("it runs after the trees and the prune and never sets the sweep's exit")
+    else:
+        bad("the AAII pull can change the sweep's exit, or runs before the trees")
+    if "absent" in body and "lsf" in body:
+        ok("an absent remote file is a skip with a log line")
+    else:
+        bad("an absent AAII file is not handled as a skip")
+    u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
+    m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
+    if m and "-%h/chester-data/inbox/aaii" in m.group(1).split():
+        ok("the sweep's unit may write the AAII inbox and nothing else of ~/chester-data")
+    else:
+        bad("under ProtectSystem=strict the AAII pull cannot write its inbox")
+
 
 def group_f() -> None:
     """30 Sep 2026: where the live CSV store resolves, so the sweep's tree is it."""

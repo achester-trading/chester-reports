@@ -278,6 +278,11 @@ vocabularies:
   # `kill_condition` (the written falsification condition, architecture Session 2)
   # where a ruling gave one.
   rights_ceiling: [narrow_flag, composite_input, confidence_modifier, base_rate_only, none]
+  # W-1.1a item 1 (12 Oct 2026): what a series' figure IS, for the numeral
+  # audit's unit equivalence -- a yield, rate, spread, probability, implied move
+  # or volatility may be written as a percent where its payload field types it
+  # as a price. See the `series_kinds` block.
+  series_kind: [yield, rate, spread, probability, implied_move, volatility, price]
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -2614,6 +2619,64 @@ metrics:
       6d: a venue market's cumulative traded volume (contracts on Kalshi, USD on
       Polymarket), same instrument key as pm.probability. Stored so a shock on a
       thin market can be told from one on a deep market (Part 27's quarantine).
+  pm.bid:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's best YES bid (0..1) at the fetch instant, same
+      instrument key as pm.probability. With pm.ask it gives the spread that marks
+      a contract illiquid (config/prediction_markets.yaml illiquid_spread_points).
+      Live pulls only; the backfill has no book.
+  pm.ask:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's best YES ask (0..1) at the fetch instant.
+  pm.last:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's last traded YES price (0..1) at the fetch
+      instant, stored beside the mid so a reader can see which one a printed
+      probability is (pm.price_basis) and how far apart they were.
+  pm.open_interest:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the market's liquidity at the fetch instant -- Kalshi's open
+      interest in contracts, Polymarket's posted liquidity in USD.
   pm.market:
     source: kalshi
     mechanism_group: prediction_market
@@ -6316,7 +6379,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 59   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5)
+    expected_members: 87   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6347,6 +6410,68 @@ bulk_imports:
     revision_policy: split_only
     trigger_eligible: false
     mechanism_group: market_close
+  market_volume_shares:
+    description: >-
+      Book B scanner follow-up 1 (ruled 13 Oct 2026): the daily volume beside the
+      close, keyed yfinance.mkt_<sym>_volume, for every ETF and stock in the
+      basket, in SHARES as Yahoo reports them. Read by the scanner's breakout and
+      reclaim volume legs (the session against its 20-session average) and its
+      dollar-ADV liquidity score. A zero is not stored: it is the source having
+      none. Index levels, currency pairs and the dollar index carry no volume
+      and have no member here (yfinance_source.VOLUME_UNITS).
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 68
+    key_prefix: yfinance.
+    units: shares
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_contracts:
+    description: >-
+      The same, for the three front futures (GC=F, CL=F, HG=F): front-month
+      CONTRACTS traded, a count and not a notional (a gold contract is 100 oz,
+      WTI 1,000 bbl), so the scanner reads it for the volume leg's ratio and
+      never multiplies it by the close.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 3
+    key_prefix: yfinance.
+    units: count
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_usd:
+    description: >-
+      The same, for the crypto pairs (BTC-USD, and AQ-5's ETH-USD, SOL-USD,
+      ZEC-USD): Yahoo quotes crypto volume in DOLLARS, not coins, so
+      it is already a dollar volume and the scanner reads it as one.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_USD_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 4
+    key_prefix: yfinance.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
   market_actions:
     description: >-
       Dividend and split events for the same basket, keyed
@@ -6361,7 +6486,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 59   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5)
+    expected_members: 87   # the market_closes basket: 59 (with AQ-5's six) + the 28 earnings names (scanner follow-up 4)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6755,6 +6880,85 @@ families:
   corr.copper_gold__10y.252d: ratio
   corr.avg_pairwise.60d: ratio
   corr.silver_over_gold: ratio
+
+# SERIES KINDS (W-1.1a item 1, the Weekly dry run of 12 Oct 2026). The numeral
+# audit types a payload figure by its FIELD's name, and a yield stored under
+# `level` or a probability under `priced` typed as a price, so "the 10-year at
+# 4.05%" was withheld as a unit mismatch. A row whose registry key is listed here
+# carries this kind, and altdata/numeral_audit.py's KIND_UNITS says which unit
+# words that kind may be written in: percent for all six non-price kinds, bp for
+# a change in a yield, rate or spread, pts for a change in a probability. A price
+# stays strict. check_registry holds every kind to the vocabulary and every key
+# to a registered series.
+series_kinds:
+  fred.yield_2y: yield
+  fred.yield_5y: yield
+  fred.yield_10y: yield
+  fred.yield_30y: yield
+  fred.tbill_3m: yield
+  fred.tips_10y: yield
+  fred.tips_30y: yield
+  fred.breakeven_5y: yield
+  fred.breakeven_10y: yield
+  fred.breakeven_5y5y: yield
+  fred.mortgage_30y: yield
+  yfinance.mkt_tnx: yield
+  yfinance.mkt_tyx: yield
+  mof.jgb_10y: yield
+  mof.jgb_30y: yield
+  fred.sofr: rate
+  fred.iorb: rate
+  fred.fed_funds: rate
+  calc.yield_curve_2s10s: spread
+  acm.term_premium_10y: spread
+  fred.ig_oas: spread
+  fred.hy_oas: spread
+  fred.ccc_oas: spread
+  fred.bb_oas: spread
+  pm.probability: probability
+  fred.vix: volatility
+  yfinance.mkt_vix: volatility
+  yfinance.mkt_vix3m: volatility
+  yfinance.mkt_move: volatility
+  chain.spy_atm_iv_30d: volatility
+  calc.vol_spy_realized_20d: volatility
+  yfinance.mkt_spy: price
+  yfinance.mkt_dxy: price
+  yfinance.mkt_eurusd: price
+  yfinance.mkt_usdjpy: price
+  yfinance.mkt_usdcny: price
+
+# QUOTE CONVENTIONS (W-1.1a item 3): for an FX pair, which currency strengthens
+# when the pair's quote rises. EUR/USD is dollars per euro, so EUR/USD up is the
+# euro firmer and the dollar softer; USD/JPY is yen per dollar, so USD/JPY up is
+# the dollar firmer and the yen weaker. The direction audit
+# (daily_cascade/direction.py) reads a sentence about "the dollar" against the
+# pair through this, and `aliases` are the names the tables and the prose use.
+quote_conventions:
+  yfinance.mkt_eurusd:
+    pair: EUR/USD
+    base: euro
+    quote: dollar
+    rises: base
+    aliases: ["EUR/USD", "EUR/USD (dollars per euro)", "euro-dollar"]
+  yfinance.mkt_usdjpy:
+    pair: USD/JPY
+    base: dollar
+    quote: yen
+    rises: base
+    aliases: ["USD/JPY", "USD/JPY (yen per dollar)", "dollar-yen"]
+  yfinance.mkt_usdcny:
+    pair: USD/CNY
+    base: dollar
+    quote: yuan
+    rises: base
+    aliases: ["USD/CNY", "USD/CNY (yuan per dollar)"]
+  yfinance.mkt_dxy:
+    pair: DXY
+    base: dollar
+    quote: basket
+    rises: base
+    aliases: ["DXY", "the dollar index", "dollar index"]
 
 non_metrics:
   provenance:

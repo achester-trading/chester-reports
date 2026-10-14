@@ -42,7 +42,9 @@ def view_faults(text: str) -> list[str]:
         pm_cfg = pm.load_config()
     except Exception:                                           # noqa: BLE001
         pm_cfg = None
-    return (stack_prose.style_faults(text, stack_mod.config())
+    # T3.5 (e): a view is the voice's own claim, printed under its source --
+    # attributed, so its motive words are the voice's (W-1.1 item 1.6's exemption).
+    return (stack_prose.style_faults(text, stack_mod.config(), attributed=True)
             + stack_prose.policy_word_faults(text, pm_cfg))
 
 
@@ -225,10 +227,15 @@ def story_items(ev: list[dict], stories: dict) -> list[dict]:
     """For each active story: its count for and against, three to five sourced
     items (the most recent, both sides represented when both exist), and who
     dissented -- the minority side, named."""
+    from . import analytics                                     # noqa: PLC0415
+    acfg = analytics.load_config()
+    ev = analytics.annotate(ev, acfg)
     out = []
     for sid, s in stories.items():
         rows = [e for e in ev if e["narrative_id"] == sid]
         sides = Counter(e["side"] for e in rows)
+        # W-1.3b item 3.1: counted by EVENT CLUSTER, never by item.
+        clusters = analytics.cluster_counts(rows)
         pick: list[dict] = []
         for side in ("for", "against"):
             pick += [e for e in rows if e["side"] == side][-3:]
@@ -238,6 +245,7 @@ def story_items(ev: list[dict], stories: dict) -> list[dict]:
             minority = "against" if sides["for"] > sides["against"] else "for"
         out.append({"story": sid, "name": s.get("name"), "state": s.get("state"),
                     "for": sides["for"], "against": sides["against"],
+                    "clusters": clusters, "rows": rows,
                     "items": pick, "minority": minority,
                     "dissent": [e for e in rows if e["side"] == minority]})
     return out
@@ -262,11 +270,11 @@ def week_section(week_ending: str, as_of: str, db_path: Optional[str] = None,
         from altdata import labels                              # noqa: PLC0415
         from .weekly_sections import in_words                   # noqa: PLC0415
         title = labels.story(s["story"]).get("title") or s["name"]
+        from . import analytics                                 # noqa: PLC0415
         head = (f"{title}: "
-                + (f"{in_words(n)} sourced item{'s' if n != 1 else ''} this week, "
-                   f"{in_words(s['for']) if s['for'] else 'none'} for it and "
-                   f"{in_words(s['against']) if s['against'] else 'none'} against."
+                + (f"{analytics.count_text(s['clusters'])} this week."
                    if n else "no sourced voice bore on it this week."))
+        _ = in_words
         if s["dissent"]:
             d = s["dissent"][-1]
             head += f" Dissent: {d['voice']} ({s['minority']})."
@@ -286,11 +294,47 @@ def week_section(week_ending: str, as_of: str, db_path: Optional[str] = None,
     u = unreachable_line(runs)
     if u:
         items.append(mk("voices:unreachable", u, 1, u))
+    # W-1.3b item 3.1: the steelman row per story, the unreachable sources with
+    # their last clean scan and the theses that lean on them, and the ledger
+    # items with their class, cluster and stored excerpt.
+    from altdata import labels                                  # noqa: PLC0415
+    from . import analytics                                     # noqa: PLC0415
+    acfg = analytics.load_config()
+    with vmod.VoicesStore(db_path, readonly=True) as vs:
+        steel = {}
+        for sid in stories:
+            qs = (((acfg.get("narratives") or {}).get("stories") or {}).get(sid)
+                  or {}).get("steelman_queries") or []
+            row = vs.steelman_latest(sid, st["start"], as_of)
+            if row:
+                # Every printed view is audited, the steelman's too.
+                row["found"] = [{**f, "view": printed_view(f)}
+                                for f in row.get("found") or []]
+            steel[sid] = analytics.steelman_text(row, qs)
+        last_ok = vs.last_ok(as_of)
+        deps = vs.evidence_sources()
+    active = set(stories)
+    unreach = analytics.unreachable_rows(
+        runs, last_ok, {k: {labels.story(x).get("title") or x for x in v & active}
+                        for k, v in deps.items()})
+    ledger = [[labels.story(e["narrative_id"]).get("title") or e["narrative_id"],
+               e["side"], e["source_class"], e["cluster"].split("|", 1)[0]
+               .split("://", 1)[-1] + " · " + str(e["published_at"])[:10],
+               f"{e['voice']} ({e['outlet']})", printed_view(e) or "—"]
+              for s in syn for e in s["rows"]]
     return {"items": items, "table": table(st),
+            "steelman": steel, "unreachable": unreach,
+            "ledger": {"columns": ["Story", "Side", "Source class", "Cluster",
+                                   "Label", "Excerpt"], "rows": ledger},
             "data": {"stories": [{k: s[k] for k in ("name", "state", "for",
-                                                     "against")}
+                                                     "against", "clusters")}
+                                 | {"story": s["story"],
+                                    "steelman": steel.get(s["story"])}
                                  | {"items": [{"voice": e["voice"], "side": e["side"],
                                                "view": e["summary"],
+                                               "excerpt": e["summary"],
+                                               "source_class": e["source_class"],
+                                               "cluster": e["cluster"],
                                                "outlet": e["outlet"],
                                                "published": e["published_at"][:10]}
                                               for e in s["items"]],

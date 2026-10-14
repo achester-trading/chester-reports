@@ -37,6 +37,8 @@ is not reconstructable. tools/validate_prices.py asserts the refusal.
     python tools/backfill_prices.py --years 5 --dry-run
     python tools/backfill_prices.py --symbols SPY,RSP
     python tools/backfill_prices.py --period max --symbols ^GSPC,^VIX
+    python tools/backfill_prices.py --years 5 --volume-only   # volume beside
+                                                  # closes already stored
 
 -----------------------------------------------------------------------------
 A BAR FROM A SESSION THAT HAS NOT CLOSED IS NOT A CLOSE
@@ -139,7 +141,9 @@ def drop_incomplete_sessions(rows: list, cutoff: str) -> tuple[list, list]:
 def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
              dry_run: bool = False,
              store: Optional[observations.ObservationStore] = None,
-             period: Optional[str] = None) -> dict:
+             period: Optional[str] = None, volume_only: bool = False) -> dict:
+    """`volume_only` writes the `_volume` companion alone (scanner follow-up 1):
+    the closes already stored are left as they are."""
     basket = symbols or yf_src.SYMBOLS
     own = store is None
     db = store or observations.ObservationStore()
@@ -172,12 +176,16 @@ def backfill(symbols: Optional[dict[str, str]] = None, years: int = 5,
                 print(f"  {symbol:<8} dropped {len(running)} bar(s) after the last "
                       f"completed session {cutoff}: {running}")
             rows = []
-            for suffix, series in (("", closes),
-                                   (yf_src.DIVIDEND_SUFFIX, parsed["dividends"]),
-                                   (yf_src.SPLIT_SUFFIX, parsed["splits"]),
-                                   # T2.1: open, high and low for the tape set.
-                                   *yf_src.ohlc_series(symbol, parsed,
-                                                       [d for d, _ in closes])):
+            parts = (yf_src.volume_series(symbol, parsed, [d for d, _ in closes])
+                     if volume_only else
+                     (("", closes),
+                      (yf_src.DIVIDEND_SUFFIX, parsed["dividends"]),
+                      (yf_src.SPLIT_SUFFIX, parsed["splits"]),
+                      # T2.1: open, high and low for the tape set; the daily
+                      # volume (scanner follow-up 1).
+                      *yf_src.companion_series(symbol, parsed,
+                                               [d for d, _ in closes])))
+            for suffix, series in parts:
                 rows += [{"registry_key": f"{metric}{suffix}", "instrument": None,
                           "observed_at": d,
                           "available_at": reconstructed_available_at(
@@ -214,6 +222,8 @@ def main(argv: list[str]) -> int:
     p.add_argument("--symbols", default=None,
                    help="comma-separated tickers (default: the whole basket)")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--volume-only", action="store_true",
+                   help="write the daily volume companion only")
     a = p.parse_args(argv)
 
     basket = yf_src.SYMBOLS
@@ -229,7 +239,8 @@ def main(argv: list[str]) -> int:
     print(f"price backfill -- {len(basket)} symbols, {span}, availability "
           f"RECONSTRUCTED as the close + "
           f"{yf_src.RECONSTRUCTED_LATENCY_MINUTES} minutes")
-    r = backfill(basket, years=a.years, dry_run=a.dry_run, period=a.period)
+    r = backfill(basket, years=a.years, dry_run=a.dry_run, period=a.period,
+                 volume_only=a.volume_only)
     print(f"\n{r['written']} rows written across {len(r['series'])} series; "
           f"{len(r['refused'])} refused, {len(r['failed'])} failed")
     for m, why in r["refused"]:

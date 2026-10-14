@@ -659,6 +659,18 @@ named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
 prune is logged and named in the status line; it does not fail the backup.
 Drive moves deleted files to its trash, where they stay 30 days.
 
+**One file comes back (10 Oct 2026).** After the trees and the prune, the sweep
+copies exactly one named file the other way:
+`<remote>:chester-vendor-checks/aaii/aaii-weekly.csv`, where `<remote>` is
+`CHESTER_RCLONE_REMOTE`'s remote name with its path replaced, into
+`~/chester-data/inbox/aaii/aaii-weekly.csv` — the AAII weekly row the chat-side
+task appends each Thursday (`docs/scheduled-tasks.md`). It is an
+`rclone copyto` of that file and nothing else, so the inbox only gains or
+overwrites it; an absent remote file is a logged skip, and neither outcome
+touches the sweep's exit code. The unit lets the sweep write
+`~/chester-data/inbox/aaii` and nothing else under `~/chester-data`; that
+directory must exist before the sweep starts (`mkdir -p` it once).
+
 Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
 venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep

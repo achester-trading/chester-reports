@@ -675,8 +675,10 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
     disp = na.scaled_display(s1, units) if "latest_level" in row else None
     if disp:
         row["latest_level_display"] = disp
+    # THE CHANGE BY THE SAME SCALER, SIGNED (T3.3 item 2): "+$23.15bn", not the
+    # "+23,154" -- raw millions -- the second box dry run printed for bank reserves.
     if "change" in row:
-        cdisp = na.scaled_display(row["change"], units)
+        cdisp = na.change_display(row["change"], units, key)
         if cdisp:
             row["change_display"] = cdisp
     try:

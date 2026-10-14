@@ -35,7 +35,10 @@ FRED_SERIES: list[SeriesSpec] = [
     # Pillar 1 — Labor Market Vitality
     SeriesSpec("nfp",              "PAYEMS",     "Nonfarm payrolls, total",         "1", "K",    "monthly"),
     SeriesSpec("u3_rate",          "UNRATE",     "Unemployment rate (U-3)",         "1", "%",    "monthly"),
-    SeriesSpec("claims_4wk",       "IC4WSA",     "Initial claims, 4-week avg",      "1", "K",    "weekly"),
+    # NUMBER, not thousands (T3.3, 10 Oct 2026): IC4WSA is published in plain units
+    # -- 200,500 claims -- and "K" printed it as "200.5 million" in the second box
+    # dry run. EXHOSLUSM495S below is plain Number too (4,020,000 homes).
+    SeriesSpec("claims_4wk",       "IC4WSA",     "Initial claims, 4-week avg",      "1", "N",    "weekly"),
     SeriesSpec("lfp_rate",         "CIVPART",    "Labor force participation rate",  "1", "%",    "monthly"),
     SeriesSpec("emp_pop_ratio",    "EMRATIO",    "Employment-population ratio",     "1", "%",    "monthly"),
     SeriesSpec("avg_wkly_hours",   "AWHAETP",    "Avg weekly hours, private",       "1", "hrs",  "monthly"),
@@ -53,7 +56,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("housing_starts",   "HOUST",      "Housing starts, total",           "2", "K",    "monthly"),
     SeriesSpec("housing_starts_sf","HOUST1F",    "Housing starts, single-family",   "2", "K",    "monthly"),
     SeriesSpec("housing_permits",  "PERMIT",     "Building permits, total",         "2", "K",    "monthly"),
-    SeriesSpec("existing_homes",   "EXHOSLUSM495S","Existing home sales",           "2", "K",    "monthly"),
+    SeriesSpec("existing_homes",   "EXHOSLUSM495S","Existing home sales",           "2", "N",    "monthly"),
     SeriesSpec("new_homes",        "HSN1F",      "New home sales, single-family",   "2", "K",    "monthly"),
     SeriesSpec("mortgage_30y",     "MORTGAGE30US","30-year mortgage rate",          "2", "%",    "weekly"),
     SeriesSpec("ahe_yoy",          "CES0500000003","Avg hourly earnings, private",  "2", "$",    "monthly"),
@@ -63,7 +66,8 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("cc_delinq_30",     "DRCCLACBS",  "Credit card delinquency, 30+ days",     "2","%","quarterly"),
     SeriesSpec("cc_chargeoff",     "CORCCACBS",  "Credit card charge-off rate",     "2", "%",    "quarterly"),
     SeriesSpec("auto_delinq",      "DRALACBN",   "Auto loan delinquency, 30+ days", "2", "%",    "quarterly"),
-    SeriesSpec("total_hh_debt",    "CMDEBT",     "Household debt, total",           "2", "B",    "quarterly"),
+    # MILLIONS of dollars, not billions (T3.3): CMDEBT 20,934,549 is $20.9tn.
+    SeriesSpec("total_hh_debt",    "CMDEBT",     "Household debt, total",           "2", "M",    "quarterly"),
 
     # Pillar 3 — Systemic Liquidity
     SeriesSpec("fed_balance",      "WALCL",      "Fed balance sheet, total assets", "3", "M",    "weekly"),
