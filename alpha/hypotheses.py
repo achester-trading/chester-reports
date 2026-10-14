@@ -74,7 +74,7 @@ BATCH_OPTIONAL = ("human_record", "prompt_version", "model_id", "packet_sha256",
 HYP_REQUIRED = ("local_id", "title", "horizon_class", "horizon_sessions", "family",
                 "mechanism", "universe", "rule_text", "conditioning", "expected",
                 "sample", "data", "needs_code", "kill", "state_at_registration")
-HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note")
+HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine")
 
 # THE BUDGETS (10.2 c), per channel. The daily proposer's weekly family budget
 # is a register-wide count (family_week_count), checked by the proposer before

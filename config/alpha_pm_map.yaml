@@ -1,0 +1,25 @@
+# alpha_pm_map.yaml -- engine 3's map from a prediction-market contract to the
+# FOMC meeting and outcome it prices (X-2.3). Session-set: a mapping is a
+# judgment about what a venue's contract resolves on, so it is DECLARED here,
+# never guessed from a title. alpha/engines/pm_futures.py reads it; nothing
+# writes it. Empty until a contract's resolution rule has been read (W-1.1 item
+# 1.5 stores the page that carries it) and mapped by a session or the operator.
+#
+#   - contract: <the store's pm.* instrument id>
+#     venue: kalshi | polymarket
+#     meeting: YYYY-MM-DD          # the FOMC decision day
+#     outcome: cut | hike | hold   # what YES pays on (a 25 bp move)
+#     resolution: "<the rule, quoted from the venue>"
+version: 1
+contracts: []
+
+# THE ENTRY THRESHOLD IS SET FROM THE STORED HISTORY: the `quantile` of each
+# contract's own |venue mid - futures-implied| over its stored life, never below
+# `min_points`. Above `liquidity_floor` (the venue's stored volume) only. A
+# position converges out inside `band_points`, or is held to resolution.
+threshold:
+  quantile: 0.9
+  min_points: 10
+  min_history: 10
+band_points: 3
+liquidity_floor: 1000

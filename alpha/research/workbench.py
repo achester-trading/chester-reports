@@ -113,6 +113,8 @@ def run(ledger, store, hid: str, as_of: Optional[str] = None) -> dict:
     if h["status"] == "data_gap":
         raise QueuedForSitting(f"{hid} is a data gap ({h.get('status_reason')})")
     first_run = h["status"] == "registered"
+    if (h.get("spec") or {}).get("engine"):
+        return run_engine(ledger, store, h, as_of, first_run)
     cmp = rules.compile_rule(h["rule_dsl"], store)
     con, cfg = acfg.constitution(), acfg.settings()
     family = h["family"]
@@ -166,6 +168,69 @@ def run(ledger, store, hid: str, as_of: Optional[str] = None) -> dict:
     else:
         status, why = "failed", "; ".join(res["reasons"]) or "failed"
     reg.set_status(hid, status, as_of, why, result=result)
+    return {"id": hid, "status": status, "reason": why, "result": result}
+
+
+ENGINE_WINDOWS = {"weekly": (52, 13), "daily": (60, 20)}
+
+
+def _summ(x: list) -> dict:
+    import statistics                                           # noqa: PLC0415
+    return {"n": len(x), "mean_net": statistics.fmean(x) if x else None,
+            "hit_rate": (sum(1 for v in x if v > 0) / len(x)) if x else None}
+
+
+def run_engine(ledger, store, h: dict, as_of: str, first_run: bool) -> dict:
+    """A CODED engine's hypothesis (the roster): its coverage check first -- a
+    store that cannot reach the minimum sample makes it a data gap, said so --
+    then X-1.6 unchanged on the engine's own point-in-time rows and strategy.
+    On a first run the engine's fitting grid is counted (each further grid point
+    one more variant, beyond the one its registration counted) before scoring."""
+    from .. import engine as engine_mod                         # noqa: PLC0415
+    reg = hyp.Register(ledger)
+    hid, eid = h["id"], h["spec"]["engine"]
+    entry = next((e for e in engine_mod.registered() if e["id"] == eid), None)
+    if entry is None:
+        raise QueuedForSitting(f"{hid}: engine {eid} is not registered")
+    eng = engine_mod.load(entry)
+    cov = eng.coverage(store, as_of) if hasattr(eng, "coverage") else {"ok": True}
+    if not cov.get("ok"):
+        reg.set_status(hid, "data_gap", as_of, cov.get("why"),
+                       result={"coverage": cov, "run_at": as_of})
+        return {"id": hid, "status": "data_gap", "reason": cov.get("why"),
+                "result": {"coverage": cov}}
+    if not (hasattr(eng, "refit_rows") and hasattr(eng, "strategy")):
+        raise QueuedForSitting(f"{hid}: engine {eid} has no harness hooks")
+    if first_run:
+        for _ in range(max(0, int(getattr(eng, "grid_size", 1)) - 1)):
+            ledger.bump_variant(eng.family, as_of)
+        reg.set_status(hid, "testing", as_of, "the harness has it")
+    rows = eng.refit_rows(store, as_of)
+    strat = eng.strategy()
+    fit_rows, test_rows = ENGINE_WINDOWS.get(eng.horizon, (60, 20))
+    res = av.run(ledger, eid, strat, rows, as_of, fit_rows, test_rows,
+                 min_size=eng.min_size, count_variant=False)
+    final = res.get("final_params") or {}
+    nets = list(strat.returns(rows, final)) if rows else []
+    by_regime: dict[str, list] = {}
+    for r, x in zip(rows, nets):
+        by_regime.setdefault(store.regime_key(r["decided_at"], r["day"]), []).append(x)
+    m = res["metrics"]
+    result = {"run_at": as_of, "engine": eid, "coverage": cov, "n_trades": len(rows),
+              "span": [rows[0]["day"], rows[-1]["day"]] if rows else [None, None],
+              "summary": _summ(nets), "passed": res["passed"],
+              "standard_gate": {"passed": res["passed"], "reasons": res["reasons"]},
+              "metrics": {k: m[k] for k in ("n_signals", "expectancy", "sr_ann",
+                                             "deflated_sharpe", "dsr_prob", "n_trials",
+                                             "holdout_n", "holdout_expectancy",
+                                             "min_signals", "deflated_sharpe_min")},
+              "final_params": final, "ranges": res.get("ranges"),
+              "by_regime": {k: _summ(v) for k, v in sorted(by_regime.items())},
+              "variants": [], "model_rule": {"applies": False},
+              "horizon": eng.horizon}
+    status = "passed" if res["passed"] else "failed"
+    why = "through X-1.6" if res["passed"] else "; ".join(res["reasons"])
+    reg.set_status(hid, status, as_of, why, result=result, engine_id=eid)
     return {"id": hid, "status": status, "reason": why, "result": result}
 
 

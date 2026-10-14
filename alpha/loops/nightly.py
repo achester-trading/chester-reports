@@ -99,6 +99,8 @@ class Run:
                 eng.params.update(refit)
             if hasattr(eng, "bind_ledger"):
                 eng.bind_ledger(self.ledger)
+            if hasattr(eng, "bind_store"):
+                eng.bind_store(self.store)
             self.engines[eng.engine_id] = eng
             if self.ledger.engine(eng.engine_id) is None:
                 self.ledger.upsert_engine(eng.engine_id, eng.family, eng.horizon,

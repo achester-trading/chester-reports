@@ -89,20 +89,19 @@ class ReadOnlyStore(observations.ObservationStore):
         return out
 
     def daily_closes(self, key: str, as_of: str, first: str = "",
-                     last: str = "9999") -> list[dict]:
+                     last: str = "9999", instrument: Optional[str] = None) -> list[dict]:
         """For a CLOSE-ONLY instrument (most of the basket stores no open, high
         or low): each stored close as a bar whose open, high and low are the
         close. A fill on one is at a close and an exit is checked on closes --
         the grammar's backtest reads such an instrument the same way (X-2.6)."""
-        out = []
-        for r in self.as_of(key, as_of):
+        by_day: dict[str, float] = {}
+        for r in self.as_of(key, as_of, instrument):
             d = str(r["observed_at"])[:10]
             if r.get("value_num") is None or not (first <= d <= last):
                 continue
-            c = float(r["value_num"])
-            out.append({"day": d, "open": c, "close": c, "high": c, "low": c,
-                        "volume": None})
-        return sorted(out, key=lambda b: b["day"])
+            by_day[d] = float(r["value_num"])     # the day's last stored value
+        return [{"day": d, "open": c, "close": c, "high": c, "low": c, "volume": None}
+                for d, c in sorted(by_day.items())]
 
     def intraday_bars(self, instrument: str, interval: str, first: str,
                       last: str, as_of: str) -> list[dict]:

@@ -77,7 +77,8 @@ class Paper:
                        low=r["low"], close=r["close"], volume=r.get("volume"))
                    for r in rows if str(r["observed_at"]) > after]
         elif inst.get("meta", {}).get("close_only"):
-            rows = self.store.daily_closes(inst["key"], as_of, last=through)
+            rows = self.store.daily_closes(inst["key"], as_of, last=through,
+                                           instrument=inst.get("store_instrument"))
             out = [Bar(**r) for r in rows if r["day"] > after]
         else:
             rows = self.store.daily_bars(inst["key"], as_of, last=through)

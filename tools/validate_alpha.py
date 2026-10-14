@@ -89,6 +89,15 @@ Tranche 2 (X-2; change order sections 4 and 10):
      agenda (losses by regime, instrument and day; unpositioned screen prints;
      crowding; the backtest-to-paper gap; the queue) is written, with a copy
      to the outbox; the steps run in order.
+  T  THE ENGINES (X-2.1 to X-2.3). The roster batch registers through the
+     workbench; the VRP's coverage check finds the fixture's dealer sessions
+     and no option quotes -- a data gap, said so; the prediction-market engine
+     with nothing mapped is a data gap too; both trend sleeves run through
+     X-1.6 with their fitting grid counted first, their fits on the grid; the
+     trend book is weekly, floored and capped, rolled close to close; the
+     futures-implied outcome and hold sum to 100 and the threshold comes from
+     the contract's own history; the registry's engines are candidates in the
+     nightly loop and trade nothing before they pass.
 
     python tools/validate_alpha.py
 """
@@ -454,8 +463,14 @@ def group_d() -> None:
     for a in ("engine_id", "family", "horizon", "cost_class", "validated_ranges",
               "kill_rule"):
         check(hasattr(engine_mod.Engine, a), f"and declares {a}")
-    check(engine_mod.registered() == [],
-          "config/alpha_engines.yaml registers no engine (Tranche 1)")
+    reg = engine_mod.registered()
+    check([e["id"] for e in reg] == ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer"]
+          and all(str(e["class"]).startswith("alpha.engines.") for e in reg),
+          "config/alpha_engines.yaml registers Tranche 2's engines (X-2.1 to X-2.3), "
+          "each in alpha/engines/")
+    loaded = engine_mod.load_all()
+    check(len(loaded) == 4 and all(hasattr(e, "coverage") for e in loaded),
+          "and each loads, with its coverage check")
     entry = {"id": "fx", "class": "tests.fixtures.alpha.fixture_engine:FixtureEngine"}
     try:
         engine_mod.load(entry)
@@ -1652,9 +1667,107 @@ def group_s() -> None:
           "in order: walk-forward and re-fit, rebalance, agenda, verdicts")
 
 
+def group_t() -> None:
+    head("T. THE ENGINES: TREND, PREDICTION MARKETS, THE VRP'S COVERAGE (X-2.1 to X-2.3)")
+    from alpha.engines import pm_futures, trend, vrp            # noqa: PLC0415
+    from alpha.research import workbench                         # noqa: PLC0415
+    roster = REPO / "alpha" / "research" / "roster-2026-10-14.yaml"
+    doc = hyp.load_batch(roster.read_text(encoding="utf-8"))
+    check(hyp.validate_batch(doc) == [] and
+          [h["engine"] for h in doc["hypotheses"]] ==
+          ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer"],
+          "the roster batch is valid v1, one hypothesis per registered engine")
+    path = Path(_TMP) / "t.db"
+    st = ReadOnlyStore(fx_store())
+    try:
+        with Ledger(path) as lg:
+            out = workbench.new(lg, st, doc, "operator", as_of="2026-10-14T16:00:00+00:00")
+            check(set(out["statuses"].values()) == {"registered"},
+                  f"the workbench pre-registers all four: {out['statuses']}")
+            ids = out["registered"]
+            r1 = workbench.run(lg, st, ids["E-1"], RUN_AT)
+            check(r1["status"] == "data_gap" and "quotes 0" in r1["reason"]
+                  and "dealer 60" in r1["reason"],
+                  f"X-2.1 the VRP: the coverage check runs first and finds the sample the "
+                  f"store holds -- a data gap, said so ({r1['reason'][:90]}...)")
+            r3 = workbench.run(lg, st, ids["E-3"], RUN_AT)
+            check(r3["status"] == "data_gap" and "0 contract(s) mapped" in r3["reason"],
+                  "X-2.3 with no contract mapped is a data gap too, with the reason")
+            n0 = lg.variant_count("trend")
+            r2 = workbench.run(lg, st, ids["E-2a"], RUN_AT)
+            m = r2["result"].get("metrics") or {}
+            check(r2["status"] in ("passed", "failed") and m.get("n_signals", 0) >= 40
+                  and lg.variant_count("trend") == n0 + 8 and m["n_trials"] == n0 + 8,
+                  f"X-2.2 trend_ts runs through X-1.6 on the fixture ({r2['status']}: "
+                  f"{m.get('n_signals')} weekly signals, deflated Sharpe "
+                  f"{m.get('deflated_sharpe', 0):.2f}); its 3 x 3 fitting grid counted "
+                  f"before scoring (N {n0} -> {lg.variant_count('trend')})")
+            rg = r2["result"].get("ranges") or {}
+            check(rg and all(trend.GRID_VOL[0] <= v <= trend.GRID_VOL[-1]
+                             for v in rg.get("vol_window", [60])),
+                  f"its fitted parameters stay on the declared grid ({rg})")
+            rx = workbench.run(lg, st, ids["E-2b"], RUN_AT)
+            check(rx["status"] in ("passed", "failed")
+                  and lg.engine("trend_xs") is not None or rx["status"] == "failed",
+                  f"trend_xs runs too ({rx['status']})")
+        e = trend.TrendEngine({"sleeve": "ts"})
+        check(not trend.tradable("^VIX") and not trend.tradable("DX-Y.NYB")
+              and not trend.tradable("BN") and trend.tradable("SPY"),
+              "the trend basket leaves out index levels and the Brookfield complex")
+        fri = e.signal("2026-10-09T21:40:00+00:00", st)
+        wed = e.signal("2026-10-07T21:40:00+00:00", st)
+        check(fri and not wed and abs(sum(s.strength for s in fri) - 1.0) < 1e-9
+              and max(s.strength for s in fri) <= 0.25 + 1e-12
+              and all(s.params["time_stop_date"] == "2026-10-19" for s in fri)
+              and all(s.instrument.meta["fill_at"] == "close" for s in fri),
+              f"weekly at the Friday close only ({len(fri)} names); gross at most 1, a "
+              f"name at most 25%; filled at the next close and rolled to the session "
+              f"after the next rebalance (19 Oct)")
+        quiet = {"A": {"score": 1.0, "mom": 0.1, "vols": {60: 1e-9}, "close": 1.0},
+                 "B": {"score": -1.0, "mom": -0.1, "vols": {60: 0.2}, "close": 1.0}}
+        w = trend.weights(quiet, "ts", {})
+        check(abs(w["A"]) <= 0.25 + 1e-12, "a quiet series is floored, never leverage "
+              f"(A {w['A']:.3f})")
+        prices = {"2026-10": 95.875, "2026-11": 96.10, "2026-12": 96.12,
+                  "2027-01": 96.36, "2027-02": 96.37, "2027-03": 96.38}
+        from altdata import fed_funds                           # noqa: PLC0415
+        path_ = fed_funds.implied_path(prices, fed_funds.meeting_days(),
+                                       dt.date(2026, 10, 14))
+        mt = (path_.get("meetings") or [{}])[0]
+        if mt.get("meeting"):
+            cut = pm_futures.implied(prices, mt["meeting"], mt["direction"], "2026-10-14")
+            hold = pm_futures.implied(prices, mt["meeting"], "hold", "2026-10-14")
+            check(cut is not None and hold is not None and abs(cut + hold - 100) < 1e-6,
+                  f"X-2.3: the futures-implied probability of an outcome and of a hold "
+                  f"sum to 100 ({mt['meeting']}: {mt['direction']} {cut:.1f}, hold "
+                  f"{hold:.1f})")
+        pe = pm_futures.PredictionFuturesEngine({})
+        check(pe.threshold([1.0] * 5) is None and pe.threshold([1.0] * 20) == 10.0
+              and pe.threshold([float(i) for i in range(40)]) == 36.0,
+              "its threshold is set from the contract's own stored gaps (90th percentile, "
+              "never below 10 points, never on fewer than 10)")
+        cov = vrp.DealerVRPEngine({}).coverage(st, RUN_AT)
+        check(cov["per_underlying"]["SPY"]["dealer_sessions"] == 60 and cov["n"] == 0,
+              "the VRP's coverage counts the dealer sessions and the quote sessions "
+              "separately, and only sessions with both count")
+    finally:
+        st.close()
+    reg_default = REPO / "config" / "alpha_engines.yaml"
+    out = nightly.run(asof("2026-10-09"), fx_store(), Path(_TMP) / "t_nightly.db",
+                      reg_default)
+    with Ledger(Path(_TMP) / "t_nightly.db") as lg:
+        es = {e["id"]: e["status"] for e in lg.engines()}
+        sigs = lg.one("SELECT COUNT(*) AS n FROM signals")["n"]
+    check(not out["failures"] and es == {"trend_ts": "candidate", "trend_xs": "candidate",
+                                         "pm_futures": "candidate",
+                                         "vrp_dealer": "candidate"} and sigs == 0,
+          "the registry's engines enter the nightly loop as candidates and trade "
+          "nothing before they pass")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q, group_r, group_s]
+          group_p, group_q, group_r, group_s, group_t]
 
 
 def main() -> int:

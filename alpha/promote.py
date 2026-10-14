@@ -73,26 +73,28 @@ def promote_passed(ledger, as_of: str, min_size: Optional[float] = None) -> list
     reg = hyp.Register(ledger)
     out = []
     for h in reg.all(["passed"]):
-        if not h.get("rule_dsl"):
+        eid = (h.get("spec") or {}).get("engine") or h["id"]
+        if not h.get("rule_dsl") and eid == h["id"]:
             continue
-        eng = ledger.engine(h["id"])
+        eng = ledger.engine(eid)
         if eng is None:
             continue                     # the harness writes the pass record first
         model = is_model(h)
         vm = dict(eng.get("validated_metrics") or {})
         vm.update({"hypothesis": h["id"], "model_idea": model,
                    "paper_floor_signals": paper_signals_required(eng["horizon"], model)})
-        ledger.set_engine(h["id"], as_of, status="live", frozen=False,
-                          validated_metrics=vm, min_size=size)
+        esize = float(eng["min_size"]) if eid != h["id"] else size
+        ledger.set_engine(eid, as_of, status="live", frozen=False,
+                          validated_metrics=vm, min_size=esize)
         reg.set_status(h["id"], "promoted", as_of,
-                       f"promoted to paper at min_size {size}", engine_id=h["id"])
-        ledger.event("promote", "promotion", as_of, h["id"],
+                       f"promoted to paper at min_size {esize}", engine_id=eid)
+        ledger.event("promote", "promotion", as_of, eid,
                      before={"status": eng["status"]},
-                     after={"status": "live", "min_size": size, "hypothesis": h["id"],
+                     after={"status": "live", "min_size": esize, "hypothesis": h["id"],
                             "model_idea": model,
                             "paper_floor_signals": vm["paper_floor_signals"]},
                      counterfactual={"status": eng["status"]})
-        out.append({"engine": h["id"], "model_idea": model,
+        out.append({"engine": eid, "model_idea": model,
                     "paper_floor_signals": vm["paper_floor_signals"]})
     return out
 

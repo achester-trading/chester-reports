@@ -82,7 +82,19 @@ def admit(ledger, store, doc: dict, pre_registered_at: str, as_of: str,
             status, reason = "screened_out", (
                 f"over the daily proposer's {hyp.BUDGETS['daily-proposer']['per_family_per_week']}"
                 f" of family {h['family']} a week")
-        if status == "registered":
+        if status == "registered" and h.get("engine"):
+            # A CODED ENGINE's hypothesis (the roster): registered when the engine
+            # is in config/alpha_engines.yaml; its harness hooks are the rule.
+            from . import engine as engine_mod                  # noqa: PLC0415
+            ids = {e["id"] for e in engine_mod.registered()}
+            origin = "engine"
+            dup = reg.duplicate_of(h)
+            if dup:
+                status, reason = "screened_out", f"duplicate: {dup[1]}"
+            elif h["engine"] not in ids:
+                status, reason = "needs_code", (f"engine {h['engine']} is not in "
+                                                f"config/alpha_engines.yaml")
+        elif status == "registered":
             tr = None
             if isinstance(h.get("rule_dsl"), dict):
                 dsl, origin = h["rule_dsl"], "batch"
