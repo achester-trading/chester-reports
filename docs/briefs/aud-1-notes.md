@@ -499,8 +499,14 @@ The heartbeat gate's fixtures:
 
 ### CI
 
-- Merge commit `608c4e0`: see the report.
-- The changes: see the report.
+- Merge commit `608c4e0`: **CI #396 failed** on one check in validate_attribution
+  (79/1). w-1-3c's AQ-8a check looks for `run_eod.py --close-source` before
+  `altdata.attribution compute` in `run_eod_cron.sh`, and AUD-1 5a split that
+  call into `--capture-only` and `--skip-fetch` passes. The order was still
+  right (the attribution follows the compute pass). The check now reads "after
+  the last run_eod.py pass"; locally 82/0.
+- `e660f80` (the changes): CI #399, superseded by the fix push below.
+- The attribution fix: see the report.
 
 ### Needs you
 
