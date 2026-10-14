@@ -235,3 +235,7 @@ reports/daily_close_*.html
 # The Weekly's dry runs (T2.2 rulings of 5 Oct): never committed, never
 # in the way of `git pull --ff-only` on the box.
 reports/dryrun/
+
+# The Alpha Lab's weekly agenda (X-2.4), written by the loop on the box.
+alpha/research/agenda.md
+alpha/research/agenda.json

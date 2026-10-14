@@ -219,11 +219,17 @@ def walk_forward(rows: list[dict], strat: Strategy, fit_rows: int, test_rows: in
 
 def run(ledger, engine_id: str, strat: Strategy, rows: list[dict], as_of: str,
         fit_rows: int, test_rows: int, min_size: float = 0.0,
-        con: Optional[dict] = None, cfg: Optional[dict] = None) -> dict:
-    """One validation run: count it, walk it forward, deflate it, record it."""
+        con: Optional[dict] = None, cfg: Optional[dict] = None,
+        count_variant: bool = True) -> dict:
+    """One validation run: count it, walk it forward, deflate it, record it.
+
+    `count_variant=False` is for a registered hypothesis's FIRST run only: its
+    registration already counted it in the family (X-2.5; 10.2 c), and it is
+    deflated by the count that includes it. Every later run counts again."""
     con = con or acfg.constitution()
     cfg = cfg or acfg.settings()
-    n_trials = ledger.bump_variant(strat.family, as_of)
+    n_trials = (ledger.bump_variant(strat.family, as_of) if count_variant
+                else max(1, ledger.variant_count(strat.family)))
     try:
         wf = walk_forward(rows, strat, fit_rows, test_rows, con)
     except PointInTimeViolation as exc:

@@ -58,6 +58,13 @@ Tranche 2 (X-2; change order sections 4 and 10):
      bytes; a FRED series reads yesterday at the 17:40 decision; a broken rule
      is refused for every reason; a stored-nowhere series is a data gap; the
      interpreter evaluates no code.
+  P  THE WORKBENCH (X-2.9; 10.1). new pre-registers an operator's or the
+     chat's idea now; a text rule is needs_code and run refuses it; a model
+     batch is refused (the inbox's); run refuses a run before registration and
+     a closed idea; H-004 passes X-1.6 on the fixture with its variants counted
+     first and its result complete; a re-run counts nothing; H-002 fails and is
+     kept; report writes the one-page verdict; the lab's one writer refuses a
+     path outside its roots; the model-idea screen.
 
     python tools/validate_alpha.py
 """
@@ -263,12 +270,17 @@ MODULE_WRITES = {"os": {"remove", "unlink", "rename", "replace", "rmdir",
 
 
 def file_writes() -> list[str]:
-    """Every call in alpha/ that could write or remove a file. The one allowed:
-    alpha/ledger.py's snapshot() clears its own destination before the backup."""
+    """Every call in alpha/ that could write or remove a file. Two allowed:
+    alpha/ledger.py's snapshot() clears its own destination before the backup,
+    and alpha/files.py -- the lab's one writer (Tranche 2), which writes only
+    under the roots config/alpha.yaml declares (group N checks it refuses any
+    other path)."""
     out = []
     for p in sorted((REPO / "alpha").rglob("*.py")):
         tree = ast.parse(p.read_text(encoding="utf-8"))
         rel = str(p.relative_to(REPO)).replace("\\", "/")
+        if rel == "alpha/files.py":
+            continue
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
@@ -284,7 +296,7 @@ def file_writes() -> list[str]:
                      and isinstance(k.value, ast.Constant)), "r"))
                 if any(c in str(mode) for c in "wax+"):
                     out.append(f"{rel}:{node.lineno} open({mode!r})")
-            elif name in ("write_text", "write_bytes"):
+            elif name in ("write_text", "write_bytes") and owner != "files":
                 out.append(f"{rel}:{node.lineno} {name}()")
             elif owner in MODULE_WRITES and (MODULE_WRITES[owner] is None
                                              or name in MODULE_WRITES[owner]):
@@ -1154,8 +1166,126 @@ def group_o() -> None:
     check(sha(Path(fx_store())) == before, "the fixture store is unchanged by the grammar")
 
 
+def seeded_ledger(name: str):
+    """A ledger with the first batch admitted as the inbox would admit it:
+    pre-registered at its Drive created time, bound to its sha256."""
+    from alpha import intake                                    # noqa: PLC0415
+    lg = Ledger(Path(_TMP) / name)
+    st = ReadOnlyStore(fx_store())
+    out = intake.admit(lg, st, seed_doc(), hyp.instant(SEED_CREATED),
+                       "2026-10-14T21:40:00+00:00", SEED_BATCH.name, SEED_SHA256)
+    return lg, st, out
+
+
+RUN_AT = "2026-10-14T22:00:00+00:00"
+
+
+def group_p() -> None:
+    head("P. THE RESEARCH WORKBENCH (X-2.9; 10.1)")
+    from alpha import files, promote                             # noqa: PLC0415
+    from alpha.research import workbench                         # noqa: PLC0415
+    os.environ["ALPHA_REPORTS_DIR"] = os.path.join(_TMP, "reports")
+    before = sha(Path(fx_store()))
+    lg, st, seeded = seeded_ledger("p.db")
+    try:
+        reg = hyp.Register(lg)
+        rule = translation("H-005")["rule_dsl"]
+        idea = {"local_id": "OP-1", "title": "Operator: TLT after a fortnight of rising "
+                "real yields", "horizon_class": "medium", "horizon_sessions": 20,
+                "family": "rates-trend", "mechanism": "fixture",
+                "universe": ["TLT"], "rule_text": "fixture rule, see rule_dsl",
+                "conditioning": [], "expected": {"sign": "positive"},
+                "sample": {"min_independent_signals": 40}, "data": {}, "needs_code": False,
+                "kill": "constitution", "state_at_registration": "fixture",
+                "rule_dsl": {**rule, "exits": {"time": 20}}}
+        out = workbench.new(lg, st, idea, "operator", as_of="2026-10-14T23:00:00+00:00")
+        h = reg.get(out["registered"]["OP-1"])
+        check(h["status"] == "registered" and h["source"] == "operator"
+              and h["channel"] == "workbench"
+              and h["pre_registered_at"] == hyp.instant("2026-10-14T23:00:00+00:00"),
+              "new: an operator's rule in the grammar pre-registers NOW (source "
+              "operator, channel workbench)")
+        txt = dict(idea, local_id="OP-2", title="A chat idea in words only about gold",
+                   rule_text="buy gold when the dollar breaks down")
+        txt.pop("rule_dsl")
+        o2 = workbench.new(lg, st, txt, "chat", as_of="2026-10-14T23:05:00+00:00")
+        h2 = reg.get(o2["registered"]["OP-2"])
+        check(h2["status"] == "needs_code" and h2["channel"] == "chat"
+              and "research sitting" in h2["status_reason"],
+              "a rule in text registers needs_code, queued for the research sitting")
+        try:
+            workbench.run(lg, st, h2["id"], RUN_AT)
+            check(False, "run refuses a needs_code idea")
+        except workbench.QueuedForSitting:
+            check(True, "run refuses a needs_code idea: the sitting writes its code")
+        try:
+            workbench.new(lg, st, seed_doc(), "operator")
+            check(False, "the workbench refuses a model batch")
+        except ValueError:
+            check(True, "the workbench refuses a model batch: models come through the inbox")
+        try:
+            workbench.run(lg, st, h["id"], "2026-10-14T22:30:00+00:00")
+            check(False, "run refuses a run before the idea's registration")
+        except hyp.PreRegistrationViolation:
+            check(True, "run refuses a run timed before the idea's registration")
+        n0 = lg.variant_count("credit-quality")
+        r4 = workbench.run(lg, st, seeded["registered"]["H-004"], RUN_AT)
+        n1 = lg.variant_count("credit-quality")
+        check(r4["status"] == "passed" and r4["result"]["metrics"]["n_trials"] == n1
+              and n1 == n0 + 1,
+              f"H-004 runs through X-1.6 and passes on the fixture; its one variant was "
+              f"counted before the base was scored (N {n0} -> {n1})")
+        res = r4["result"]
+        check(res["by_regime"] and res["variants"] and res["model_rule"]["applies"]
+              and res["model_rule"]["paper_signals_required"] == 60
+              and res["metrics"]["holdout_n"] > 0,
+              "its result carries the regime split, the variants, the hold-out check and "
+              "the model-idea rule (60 = 1.5 x 40 paper signals)")
+        r4b = workbench.run(lg, st, seeded["registered"]["H-004"], RUN_AT)
+        check(lg.variant_count("credit-quality") == n1 and r4b["status"] == "passed",
+              "a re-run of the unchanged rule counts nothing new")
+        r2 = workbench.run(lg, st, seeded["registered"]["H-002"], RUN_AT)
+        h2b = reg.get(seeded["registered"]["H-002"])
+        check(r2["status"] == "failed" and h2b["result"]["n_trades"] > 0
+              and "min_signals" in h2b["status_reason"],
+              f"H-002 fails ({h2b['status_reason']}) and is KEPT with its result")
+        try:
+            workbench.run(lg, st, h2b["id"], RUN_AT)
+            check(False, "a failed idea is not re-run")
+        except hyp.PreRegistrationViolation:
+            check(True, "a failed idea is not re-run: a change is a new variant")
+        p = Path(workbench.report(lg, seeded["registered"]["H-004"]))
+        body = p.read_text(encoding="utf-8")
+        check(p.parent == Path(os.environ["ALPHA_REPORTS_DIR"]).resolve()
+              and "**Verdict: promote to paper.**" in body and "Deflated Sharpe" in body
+              and "By regime key" in body and "Variants tried" in body
+              and "Hold-out" in body and "never an instruction" in body,
+              f"report writes the one-page verdict to {p.name}: promote to paper")
+        b2 = Path(workbench.report(lg, h2b["id"])).read_text(encoding="utf-8")
+        check("**Verdict: reject.**" in b2 or "**Verdict: refine.**" in b2,
+              "and a failed idea's ends in reject or refine")
+        try:
+            files.write_text(REPO / "stray.md", "x")
+            check(False, "the lab's writer refuses a path outside its roots")
+        except files.OutsideTheLab:
+            check(not (REPO / "stray.md").exists(),
+                  "the lab's writer refuses a path outside its declared roots")
+        fake = [{"signal_day": "2026-07-10", "net": -0.01}]
+        sc = promote.model_rule_screen({"source": "model"}, fake, "weekly")
+        sc0 = promote.model_rule_screen({"source": "model"}, [], "weekly")
+        sco = promote.model_rule_screen({"source": "operator"}, fake, "weekly")
+        check(not sc["ok"] and not sc["pending"] and sc0["pending"] and sco["ok"],
+              "the model-idea screen: negative after 2026-07-01 fails, none yet is "
+              "pending, an operator's idea is not screened")
+    finally:
+        st.close()
+        lg.close()
+    check(sha(Path(fx_store())) == before, "the fixture store is unchanged by the workbench")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
-          group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o]
+          group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
+          group_p]
 
 
 def main() -> int:

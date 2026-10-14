@@ -56,3 +56,16 @@ periods_per_year:
   intraday: 252
   daily: 252
   weekly: 52
+
+# THE LAB'S FILES (Tranche 2). alpha/ writes alpha.db and, through alpha/files.py
+# and nowhere else, these directories only. The research dir (agenda.md and
+# agenda.json, X-2.4) and the workbench's verdicts (X-2.9) are repo-relative and
+# gitignored where a loop writes them; the inbox and the outbox (X-2.11) live
+# outside the checkout, beside the live CSV store, so no pass dirties it.
+# Each has an environment override: ALPHA_RESEARCH_DIR, ALPHA_REPORTS_DIR,
+# ALPHA_INBOX, ALPHA_OUTBOX.
+files:
+  research_dir: "alpha/research"
+  reports_dir: "alpha/research/reports"
+  inbox: "~/chester-data/inbox/lab"
+  outbox: "~/chester-data/outbox/lab"
