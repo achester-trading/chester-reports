@@ -192,11 +192,15 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 54, f"54 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 88, f"88 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
-          f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), and HG=F, "
-          f"JPY=X and EURUSD=X (T2.3), and DBC for AQ-4's returns quilt")
+          f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), HG=F, "
+          f"JPY=X and EURUSD=X (T2.3), DBC for AQ-4's returns quilt, AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
+          f"VNQI MCHI (the correlation universe), and the 28 earnings names "
+          f"(Book B scanner follow-up 4)")
+    check(yf_src.EARNINGS_SYMBOLS <= set(syms) and len(yf_src.EARNINGS_SYMBOLS) == 29,
+          "the 29 earnings names are all in the basket (NVDA was already)")
     check("^VIX" in syms and "^VIX3M" in syms,
           "the volatility indices are in the basket -- FRED's VIXCLS arrives the "
           "next morning, so a 16:45 object computed from it reads yesterday's "
@@ -299,10 +303,11 @@ def group_f() -> None:
     fx = bp.reconstructed_available_at("2026-10-02", symbol="JPY=X")
     ny = bp.reconstructed_available_at("2026-10-02", symbol="HG=F")
     btc = bp.reconstructed_available_at("2026-10-02", symbol="BTC-USD")
-    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD"}
+    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD",
+                                         "ETH-USD", "SOL-USD", "ZEC-USD"}
           and fx.startswith("2026-10-03T00:20:00") and btc.startswith("2026-10-03T00:20:00")
           and ny.startswith("2026-10-02T20:20:00"),
-          f"the backfill stamps an FX pair or Bitcoin at the end of its UTC day plus the delay, "
+          f"the backfill stamps an FX pair or a coin at the end of its UTC day plus the delay, "
           f"a session-bound symbol at the New York close ({fx} / {ny})")
     summer = bp.reconstructed_available_at("2026-09-18")
     winter = bp.reconstructed_available_at("2026-01-15")
@@ -395,8 +400,10 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"},
-          f"the exemption is a declared set (BTC-USD and the three FX pairs), not "
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
+                                             "ETH-USD", "SOL-USD", "ZEC-USD"},
+          f"the exemption is a declared set (the four coins and the three FX "
+          f"pairs), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
@@ -443,6 +450,60 @@ def group_ohlc() -> None:
     check({"^TNX", "^TYX", "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"} <= set(yf_src.SYMBOLS)
           and yf_src.OHLC_SYMBOLS <= set(yf_src.SYMBOLS),
           "the tape's own instruments are in the price basket")
+
+
+def group_volume() -> None:
+    """Book B scanner follow-up 1 (13 Oct 2026): the daily volume beside the close."""
+    print(f"\n{LINE}\nJ. DAILY VOLUME (Book B scanner follow-up 1)\n{LINE}")
+    rows = [{"Date": "2026-10-01", "Close": 764.0, "Volume": 61_000_000},
+            {"Date": "2026-10-02", "Close": 769.6, "Volume": 58_500_000},
+            {"Date": "2026-10-03", "Close": 769.6, "Volume": 0}]
+    parsed = yf_src.parse_rows(rows)
+    check(parsed["volumes"][-1] == ("2026-10-03", 0.0) and len(parsed["volumes"]) == 3,
+          "the parser reads the volume beside the close")
+    xlk = dict(yf_src.volume_series("XLK", parsed, ["2026-10-01", "2026-10-02",
+                                                    "2026-10-03"]))
+    check(xlk.get("_volume") == [("2026-10-01", 61e6), ("2026-10-02", 58.5e6)],
+          "an ETF stores _volume on the days its close was kept; a 0 is the source "
+          "having none and is not stored")
+    check(dict(yf_src.volume_series("XLK", parsed, ["2026-10-02"])).get("_volume")
+          == [("2026-10-02", 58.5e6)], "only on days whose close was kept")
+    check(all(yf_src.volume_series(s, parsed, ["2026-10-02"]) == []
+              for s in ("^VIX", "^TNX", "^GSPC", "JPY=X", "EURUSD=X", "DX-Y.NYB")),
+          "an index level, a currency pair and the dollar index store no volume")
+    check(yf_src.VOLUME_UNITS.get("SPY") == "shares"
+          and yf_src.VOLUME_UNITS.get("AAPL") == "shares"
+          and yf_src.VOLUME_UNITS.get("GC=F") == "count"
+          and all(yf_src.VOLUME_UNITS.get(c) == "usd"
+                  for c in ("BTC-USD", "ETH-USD", "SOL-USD", "ZEC-USD")),
+          "the unit is declared per kind: shares, contracts (count), dollars")
+    check(set(yf_src.VOLUME_SHARE_KEYS) | set(yf_src.VOLUME_CONTRACT_KEYS)
+          | set(yf_src.VOLUME_USD_KEYS) == set(yf_src.VOLUME_UNITS)
+          and len(yf_src.VOLUME_UNITS) == 76,
+          f"the three registry blocks cover the {len(yf_src.VOLUME_UNITS)} symbols "
+          f"with volume, each once")
+    spy = dict(yf_src.companion_series("SPY", parsed, ["2026-10-02"]))
+    check(set(spy) == {"_open", "_high", "_low", "_volume"},
+          "the live pull and the backfill write the same companions: OHLC for the "
+          "tape set, and the volume")
+    # THE BACKFILL'S --volume-only writes the volume and nothing else.
+    import gate_tmp                                           # noqa: PLC0415
+    db = str(Path(gate_tmp.mkdtemp("prices_vol_")) / "obs.db")
+    real = yf_src._fetch_symbol                               # noqa: SLF001
+    yf_src._fetch_symbol = lambda sym, period=None: yf_src.parse_rows(  # noqa: SLF001
+        [{"Date": "2026-09-21", "Close": 10.0, "Volume": 5e5, "Dividends": 0.1},
+         {"Date": "2026-09-22", "Close": 11.0, "Volume": 7e5}])
+    try:
+        with observations.ObservationStore(db) as st:
+            r = bp.backfill({"XLK": "mkt_xlk", "^VIX": "mkt_vix"}, store=st,
+                            volume_only=True)
+            keys = sorted({x["registry_key"] for x in st.conn.execute(
+                "SELECT registry_key FROM observations")})
+    finally:
+        yf_src._fetch_symbol = real                           # noqa: SLF001
+    check(keys == ["yfinance.mkt_xlk_volume"] and r["written"] == 2,
+          f"`--volume-only` writes the volume alone, and nothing for an index "
+          f"({keys})")
 
 
 def group_unfinished() -> None:
@@ -499,7 +560,7 @@ def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_d_backfill,
               group_e, group_f,
-              group_g, group_h, group_ohlc, group_unfinished):
+              group_g, group_h, group_ohlc, group_volume, group_unfinished):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

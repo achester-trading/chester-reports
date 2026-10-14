@@ -56,6 +56,7 @@ PY_VALIDATORS := \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
 	tools/validate_official_sources.py \
+	tools/validate_imf_ifs.py \
 	tools/validate_narratives.py \
 	tools/validate_config_refs.py \
 	tools/validate_enforce.py \
@@ -64,13 +65,27 @@ PY_VALIDATORS := \
 	tools/validate_prediction_markets.py \
 	tools/validate_weekly_stack.py \
 	tools/validate_monthly_stack.py \
+	tools/validate_thesis_register.py \
+	tools/validate_attribution.py \
 	tools/validate_voices.py \
 	tools/validate_weekly_edits.py \
 	tools/validate_weekly_complete.py \
 	tools/validate_feeds_scheduled.py \
 	tools/validate_readability.py \
 	tools/validate_stack_cadence.py \
+	tools/validate_figure_budget.py \
+	tools/validate_no_filler.py \
+	tools/validate_edition_consistency.py \
+	tools/validate_audit_fixes.py \
+	tools/validate_weekly_integrity.py \
+	tools/validate_monthly_frames.py \
+	tools/validate_weekly_storyline.py \
+	tools/validate_weekly_opener.py \
+	tools/validate_weekly_calendar.py \
+	tools/validate_weekly_analytics.py \
+	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
+	tools/validate_correlation_layer.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 
@@ -103,7 +118,8 @@ DATA_GATES := \
 	tools/validate_base_rates_store.py \
 	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
-	tools/validate_weekly_store.py
+	tools/validate_weekly_store.py \
+	tools/validate_imf_china.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \

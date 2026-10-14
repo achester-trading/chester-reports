@@ -1,0 +1,40 @@
+# THE DIRECTION LEXICON (W-1.1a item 3, the Weekly dry run of 12 Oct 2026).
+#
+# Read by daily_cascade/direction.py, the direction audit beside the numeral
+# audit. The 12 Oct dry run's Plumbing wrote "even as the dollar softened, with
+# EUR/USD down -0.43%" in a week the DXY rose +0.27%: every figure was true, and
+# the sentence was false. For every signed change a paragraph cites, the nearest
+# directional word in the same clause must agree with the sign; a sentence about
+# a currency is read against that currency's own index or, failing it, a pair it
+# is quoted in, through the registry's `quote_conventions`. A clause with no
+# directional word is not checked.
+#
+# `up` and `down` are the words; a spread that widens and a curve that steepens
+# are up. The comparatives (firmer, softer, stronger, weaker, higher, lower) are
+# the adverbs and adjectives a clause carries a direction in without a verb.
+
+up: [rose, rises, rising, climbed, climbs, gained, gains, firmed, firmer,
+     strengthened, stronger, widened, widening, steepened, steepening, added,
+     jumped, lifted, higher, up, advanced, increased]
+down: [fell, falls, falling, slipped, eased, easing, softened, softer, weakened,
+       weaker, narrowed, narrowing, tightened, tightening, flattened, flattening,
+       shed, dropped, declined, lower, down, retreated]
+
+# The words a clause names a currency by, and the series that is its own
+# direction: the dollar's is the DXY. A currency with no index of its own is
+# read through the pairs it is quoted in (metrics_registry.yaml
+# `quote_conventions`).
+currencies:
+  dollar:
+    words: [dollar, greenback, "the dollar", USD]
+    index: ["DXY", "the dollar index", "dollar index"]
+  euro:
+    words: [euro, EUR]
+  yen:
+    words: [yen, JPY]
+  yuan:
+    words: [yuan, renminbi, CNY]
+
+# How far apart, in words, a currency and its directional word may sit and still
+# be read together ("the dollar softened", "a firmer dollar").
+subject_window_words: 3
