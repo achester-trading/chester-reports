@@ -13,8 +13,8 @@
 # A theme with no dimension says so (`dimensions: []` and `no_dimension_why`):
 # geopolitics has no dimension in the object, and a theme that silently printed
 # nothing would read as a theme with nothing to say.
-version: monthly-themes-v3
-updated: 2026-10-01
+version: monthly-themes-v4
+updated: 2026-10-10
 
 # THE MONTH IN MARKETS: the opening scorecard, month-end to month-end, from the
 # store. Each move is in the metric's OWN delta unit (altdata.derived:
@@ -87,7 +87,10 @@ themes:
       - {metric: fred.fed_debt_pct_gdp, label: "Federal debt to GDP"}
       - {metric: fred.core_cpi, label: "Core CPI index"}
       - {metric: fred.core_pce, label: "Core PCE price index"}
-      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+      - {metric: yfinance.mkt_gold_front, label: "Gold, COMEX front-month future (GC=F)"}
+      # AQ-8a: one series under both papers' names (Currencies section 19
+      # "yields-up/dollar-down"; Rates S10/S29 "credibility repricing").
+      - {metric: calc.yields_up_dollar_down.recurrence_13w, label: "Yields-up/dollar-down weeks in the last 13 (the credibility-repricing signature)"}
     untracked:
       - Treasury quarterly refunding announcements
       - foreign central bank gold purchases by country beyond China
@@ -204,7 +207,7 @@ themes:
     stories: [midterm_cycle]
     release_sources: []
     metrics:
-      - {metric: lbma.gold_pm_usd, label: "Gold, London PM fix"}
+      - {metric: yfinance.mkt_gold_front, label: "Gold, COMEX front-month future (GC=F)"}
       - {metric: fred.wti, label: "WTI crude"}
       - {metric: fred.brent, label: "Brent crude"}
       - {metric: safe.fx_reserves, label: "China's foreign-exchange reserves (SAFE)"}

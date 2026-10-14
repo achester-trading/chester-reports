@@ -1,0 +1,90 @@
+# move_screen.yaml -- the store-wide move screen and the EM screen.
+# (Audit #4 Part III, Category 1 items 1 and 5; SR-46 b-d, ruled 6 Oct 2026;
+# subsumes SR-35, SR-46(a) and the prediction-market shock flag.)
+#
+# SESSION-SET, NOT RULED, except where a line says "ruled": the thresholds below
+# are the brief's (2.5 sigma, five years, 500 observations, five sessions) and the
+# rest are the session's choices, listed in docs/briefs/c1-move-screen-notes.md
+# for the operator to overrule. A ruling is a one-line change here.
+version: move-screen-v1
+status: session-set
+
+# THE SCREEN (brief item 1). Every daily series the registry declares and the
+# store holds: its 1-day and 5-day change as a z against its own five-year history
+# of such changes, flagged past `sigma`, two-sided.
+sigma: 2.5
+history_days: 1826
+min_observations: 500
+horizons: [1, 5]
+# The FALSE-FLAG BASE RATE: among the series' own past prints past `sigma` in the
+# window, the share whose move was at least `reversal_share` reversed within
+# `reversal_sessions` sessions. Printed "false flag k/N".
+reversal_share: 0.5
+reversal_sessions: 5
+# Not price-like series: their keys or suffixes are never screened.
+exclude_prefixes: ["screen.", "events.", "dealer.", "paper.", "pm.", "market_state"]
+exclude_suffixes: ["_open", "_high", "_low", "_dividend", "_split"]
+# The lines the reports print, ranked by |z|; the rest are counted and listed in
+# the reference tier.
+print_lines: {daily: 3, weekly: 5}
+
+# SR-35, SUBSUMED: the 10-year's two-week and one-month change as a z on a
+# twenty-year window, printed as the 10-year row's companion at 2 sigma.
+companion_10y:
+  key: fred.yield_10y
+  label: "10-year Treasury"
+  sessions: {two-week: 10, one-month: 21}
+  history_days: 7305
+  sigma: 2.0
+
+# THE PREDICTION-MARKET SHOCK FLAG, SUBSUMED: a contract's 5-day move in points as
+# a z against its FAMILY's pooled 5-day moves (a watch-list item's contracts are
+# short-lived, so no one contract reaches the screen's 500 observations).
+prediction_markets:
+  key: pm.probability
+  horizon: 5
+  min_pooled: 500
+
+# THE EM SCREEN (brief item 5; SR-46 b-d). Each member's "stress" sign: a
+# currency per dollar RISING is the currency weakening; a country ETF FALLING is
+# the market weakening -- both read as stress.
+em:
+  members:
+    - {country: Brazil,       key: fred.usd_brl,         kind: fx}
+    - {country: Brazil,       key: yfinance.mkt_ewz,     kind: etf}
+    - {country: Mexico,       key: fred.usd_mxn,         kind: fx}
+    - {country: Mexico,       key: yfinance.mkt_eww,     kind: etf}
+    - {country: South Africa, key: fred.usd_zar,         kind: fx}
+    - {country: South Africa, key: yfinance.mkt_eza,     kind: etf}
+    - {country: India,        key: fred.usd_inr,         kind: fx}
+    - {country: India,        key: yfinance.mkt_inda,    kind: etf}
+    - {country: Korea,        key: fred.usd_krw,         kind: fx}
+    - {country: Korea,        key: yfinance.mkt_ewy,     kind: etf}
+    - {country: Taiwan,       key: fred.usd_twd,         kind: fx}
+    - {country: Taiwan,       key: yfinance.mkt_ewt,     kind: etf}
+    - {country: Thailand,     key: fred.usd_thb,         kind: fx}
+    - {country: Thailand,     key: yfinance.mkt_thd,     kind: etf}
+    - {country: China,        key: fred.usd_cny,         kind: fx}
+    - {country: China,        key: yfinance.mkt_fxi,     kind: etf}
+    - {country: Turkey,       key: yfinance.mkt_usdtry,  kind: fx}
+    - {country: Turkey,       key: yfinance.mkt_tur,     kind: etf}
+    - {country: Indonesia,    key: yfinance.mkt_usdidr,  kind: fx}
+    - {country: Indonesia,    key: yfinance.mkt_eido,    kind: etf}
+  # FRED's H.10 currencies post weekly (a week of dailies each Monday): a member
+  # is read on its latest point no older than this, and the screen prints its date.
+  member_max_lag_days: 7
+  # (b) SYSTEMIC: at least this share of the members moving the same way (in
+  # stress terms) AND the basket's median 5-day stress z at least this far out.
+  co_movement_share: 0.8
+  systemic_median_z: 1.0
+  # (c) the EM spread family, ICE BofA via FRED. FRED serves three years of each
+  # (from April 2026), so the "five-year" percentile prints its true window.
+  spreads:
+    - {key: fred.em_corp_oas, label: "EM corporate OAS (ICE BofA)"}
+    - {key: fred.em_hy_oas,   label: "EM high-yield OAS (ICE BofA)"}
+  spread_percentile_days: 1826
+  # (d) THE CONTAGION RULE (ruled): a single-country shock earns a Weekly or
+  # Monthly line only if it passes to the basket (a systemic day) or to EM spreads
+  # (a spread's 5-day widening at `spread_sigma` or more) within the window.
+  contagion_sessions: 5
+  spread_sigma: 2.0

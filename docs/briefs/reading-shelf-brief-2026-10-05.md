@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Drafted 2026-10-05 in answer to "pull and read these as they are published; consider what emerging themes, new insights or new analytics to add; list them in their own chapter of the Monthly with hyperlinks; skip the insurance reporting." The scheduled task exists (created 5 Oct); the chapter is built in **T3, second half** (week of 19 Oct) and first prints in the **1 Nov Monthly**. Three decisions below are taken in chat. |
+| Status | Drafted 2026-10-05 in answer to "pull and read these as they are published; consider what emerging themes, new insights or new analytics to add; list them in their own chapter of the Monthly with hyperlinks; skip the insurance reporting." The scheduled task exists (created 5 Oct); the chapter is built in **T3, second half** (week of 19 Oct) and first prints in the **1 Nov Monthly**. Three decisions below are taken in chat. **Ruled 2026-10-05 09:10 ET in chat:** D1 after narratives, before ahead; D2 the 12th and 27th; D3 ECB and BoE stability reports promoted to deep, Hussman and Pew kept. **Amended 2026-10-08** by docs/change-order-reading-shelf-2026-10-08.md: eight shelf additions; tiers now 19 deep, 22 skim, 15 list across 56 items. |
 | Owner | Ari Chester |
 | Binding on | The scheduled task "Publication watch — reading shelf"; the Claude Code session building T3's second half; Phase B (voices) |
 | Precedence | Below Part 26, the change orders, Amendments #3–#5, the reporting-stack brief, the metric-lenses brief and `docs/change-order-jpm-gtm-2026-10-03.md`. The shelf has no decision rights. A publication's figures print in the Monthly only as sourced figures (URL stored); a publication's recommendations never print; the watch's own recommendations never print — they are governance candidates ruled in chat. |
@@ -17,13 +17,13 @@ A standing mechanism with two halves.
 
 The JPM Guide to the Markets keeps its own deep-read task; the watch registers each GTM edition and links the scan.
 
-## 2. Decisions (taken in chat, one at a time)
+## 2. Decisions (ruled in chat, 5 Oct 2026, one at a time)
 
-| # | Decision | Default applied until ruled | Alternative |
+| # | Decision | Ruling | Reasoning recorded |
 |---|---|---|---|
-| D1 | Where the Reading chapter sits in the Monthly's stack | Immediately after **narratives** (the voices register's chapter) and before **ahead** — the two chapters that carry outside views sit together, and "due next month" leads naturally into ahead | Last chapter, after **the book**, as a slow layer |
-| D2 | Watch cadence | **12th and 27th** — the 27th run catches month-end publications ahead of the 1st compile; the 12th catches the refunding (first Wednesday), BIS QR and most mid-month releases within a week | Weekly (Wednesdays): tighter "as published", four files a month to place instead of two |
-| D3 | Depth tiers as set in the watchlist | 16 deep, 18 skim, 13 list, as filed | Promote ECB/BoE FSRs to deep; drop Hussman and Pew from the shelf |
+| D1 | Where the Reading chapter sits in the Monthly's stack | **Immediately after narratives, before ahead** | Outside views sit together; "due next month" leads into ahead. Declined: last chapter after the book; a separate appendix. |
+| D2 | Watch cadence | **The 12th and the 27th** | The 27th feeds the 1st compile; the 12th catches the refunding, BIS QR and mid-month releases within a week; two files a month fits the attention budget. Declined: weekly; 10th/20th/28th. |
+| D3 | Depth tiers | **ECB and BoE stability reports promoted to deep; Hussman and Pew kept at list** | SR-29 (EU sovereign stress) and the gilt market justify full reads twice a year each. |
 
 ## 3. The watch — output contract
 
@@ -44,7 +44,7 @@ Rules carried from the other scans: paraphrase, at most one quote under 15 words
 
 ## 4. The register and the watchlist
 
-`docs/reading/watchlist.json` — the shelf. One object per publication: `id`, `publication`, `publisher`, `group` (chartbook · plumbing · history · positioning · ai · internal-order · voices), `cadence`, `expected` (months and the usual window, or "irregular"), `depth` (deep · skim · list), `index_url`, `feeds` (what in the framework it serves). Editing this file edits the shelf; the task carries a copy as its fallback and prefers the repo's when it can read it. No insurance-industry reporting (ruling 5 Oct 2026).
+`docs/reading/watchlist.json` — the shelf. One object per publication: `id`, `publication`, `publisher`, `group` (chartbook · plumbing · history · positioning · ai · internal-order · voices), `cadence`, `expected` (months and the usual window, or "irregular"), `depth` (deep · skim · list), `index_url`, `feeds` (what in the framework it serves). Editing this file edits the shelf; the task carries a copy as its fallback and prefers the repo's when it can read it. No insurance-industry reporting (ruling 5 Oct 2026). Eight publications added 8 Oct 2026 (Fidelity QMU and Timmer, Bridgewater/Dalio, PIMCO Secular and Cyclical, UBS Year Ahead, Morgan Stanley outlooks, Blackstone Ten Surprises); the Apollo/Slok daily, BlackRock BII and Vanguard outlooks stay off the shelf.
 
 `docs/reading/register.json` — the editions. One object per edition:
 
@@ -96,7 +96,7 @@ In T3's second half (week of 19 Oct), about **4 hours** of session time: the two
 The paste for that session (Ari's own line goes on top; expected run time about 4 hours of session work, first report-back after about an hour):
 
 ```
-Read docs/briefs/reading-shelf-brief-2026-10-05.md in full, then build §4 and §5 exactly as specified, applying the decisions D1–D3 as recorded in the brief's status row (defaults if unruled). Create tools/reading_register.py with `add <watch-file>` and `check` (ids unique, URL present on every printable entry, watch_id exists, dates parse, summary present for deep and skim items and absent for list items, summary within the length bands), wire `check` into make validate, and add the Reading chapter to the Monthly renderer in both editions, placed per D1: title line plus the stored summary paragraph for entries that carry one, title line plus the one-liner for list items, the withheld-count footnote, the due-next-month list, and the empty-month case. Use docs/reading/register.json and docs/reading/watchlist.json as committed. Test against a fixture month containing the jpm-gtm-2026q4 entry (which carries a summary) and against an empty month. Do not call any LLM for this chapter, do not rewrite or trim stored summaries, do not touch the store, and do not change any other chapter. Report back after the loader and tool are in with the gate passing, then after the renderer, with the rendered chapter for the fixture month pasted in the report.
+Read docs/briefs/reading-shelf-brief-2026-10-05.md in full, then build §4 and §5 exactly as specified, applying the decisions D1–D3 as ruled in the brief's §2 (the chapter goes immediately after narratives and before ahead). Create tools/reading_register.py with `add <watch-file>` and `check` (ids unique, URL present on every printable entry, watch_id exists, dates parse, summary present for deep and skim items and absent for list items, summary within the length bands), wire `check` into make validate, and add the Reading chapter to the Monthly renderer in both editions, placed per D1: title line plus the stored summary paragraph for entries that carry one, title line plus the one-liner for list items, the withheld-count footnote, the due-next-month list, and the empty-month case. Use docs/reading/register.json and docs/reading/watchlist.json as committed. Test against a fixture month containing the jpm-gtm-2026q4 entry (which carries a summary) and against an empty month. Do not call any LLM for this chapter, do not rewrite or trim stored summaries, do not touch the store, and do not change any other chapter. Report back after the loader and tool are in with the gate passing, then after the renderer, with the rendered chapter for the fixture month pasted in the report.
 ```
 
 ## 7. Standing rules

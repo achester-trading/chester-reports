@@ -4,8 +4,8 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXXIII** — System shelf, after *The Operating Doctrine* and *Building and Validating a Systematic Book*, per the library guide. Cross-references in this paper are by name.
-**Version:** Draft 1 — 6 October 2026
-**Status:** As-built. Describes the system as the code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Reread when the Monthly joins the stack, when the intraday layer is built, and at each Audit.
+**Version:** Draft 2 — 9 October 2026 (Draft 1, 6 October 2026, described the Monthly before it joined the stack)
+**Status:** As-built. Describes the system as the code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code. Reread when the intraday layer is built, after the first stacked Monthly, and at each Audit.
 
 ---
 
@@ -197,7 +197,7 @@ Every report reads the object through one reader that reads and never computes. 
 
 ### 4.1 The stack
 
-The daily close and the Weekly are built on one skeleton, the *stack*: ten sections in a fixed order. The same section answers the same question in every edition, so a reader learns where to look once. The Monthly is scheduled to join the stack; until it does, it keeps its own layout (§4.6).
+The daily close, the Weekly and the Monthly are built on one skeleton, the *stack*: ten sections in a fixed order. The same section answers the same question in every edition, so a reader learns where to look once. The three share one set of section builders, one renderer, one prose writer and one paragraph guard; what differs between them is configuration, read by cadence: the period noun, the depth of each section, the word allowance per depth and the prompts. The Monthly adds two chapters of its own (§4.6).
 
 Each section answers one question.
 
@@ -227,7 +227,7 @@ Each section answers one question.
 
 ### 4.2 Depth, and the triggers that deepen it
 
-Not every section deserves the same space every day. Each section has a *depth* per cadence: **deep** (paragraphs, a table and possibly a chart), **medium** (one paragraph and a table), **light** (two to four lines), **short**, or a single **line**. The daily close runs the read, the tape, mechanics, what doesn't fit and ahead deep; plumbing and what's priced light; positioning light; narratives as a line; and the book short. The Weekly deepens positioning and gives every section at least a medium treatment. The depths are declared in configuration, with the word allowance for each depth (Appendix A).
+Not every section deserves the same space every day. Each section has a *depth* per cadence: **deep** (paragraphs, a table and possibly a chart), **medium** (one paragraph and a table), **light** (two to four lines), **short**, or a single **line**. The daily close runs the read, the tape, mechanics, what doesn't fit and ahead deep; plumbing and what's priced light; positioning light; narratives as a line; and the book short. The Weekly deepens positioning and gives every section at least a medium treatment. The Monthly runs the read, mechanics, what doesn't fit, plumbing, what's priced, narratives and ahead deep; positioning and the book medium; and the tape light, with the long frame added (§4.6). The depths are declared in configuration, with the word allowance for each depth (Appendix A).
 
 Two sections can be *deepened by computation* rather than by habit. Plumbing goes deep on the daily close when a top-tier release (an FOMC statement or minutes, CPI, the PCE report, payrolls, GDP or the Treasury's quarterly refunding) falls in this session or the next, when a 10- or 30-year auction does, or when a rate or spread moves by more than a declared amount in one session. What's priced goes deep, daily or weekly, when a breakeven, the implied rate for one of the next few FOMC meetings, or a watched prediction-market probability moves by more than its declared threshold. When a trigger fires, the section header says why, and the chart allowance rises by one. The Weekly counts how many sessions each trigger fired on, so that a trigger firing every day or never can be recalibrated at the Doctrine monthly.
 
@@ -259,15 +259,29 @@ The Weekly carries a fixed chart set: SPY over six months and two years; the yie
 
 ### 4.6 The Monthly
 
-The Monthly runs on the first of the month and is the longest report. It is in transition. Its present form (Monthly v2's first phase) is a storyline in six parts. *The month in markets* opens it: a month-end-to-month-end scorecard and a few paragraphs. Then come *the month in one page* (five takeaways); *looking back*, organised by theme, each theme's items tagged CONSENSUS, NEW, DISSENT or CORRECTION, with a computed "what changed"; *voices*; *looking ahead* two to three months, with the scenario set, each weight beside its Brier score and "what would change our mind"; and **where our read lands**. That last part is built by code and bounded by rule: the system's read is what the scenario weights and the books already hold, and nothing beyond them. After the storyline come the older sections: the regime, the scenarios, Top & Bottom, alternative assets, the register's month and the appendix. Each part's prose is one audited model call.
+The Monthly runs on the first of the month, reads the month that ended the day before, and is the longest report. It is a stacked report: the same ten sections as the close and the Weekly, built by the Weekly's own builders over the month's window and assembled by the one function every cadence uses, at Monthly depth. Its prior edition is last month's Monthly, so its change marks mean "since last Monthly", and a "Changed since last Monthly" block sits under the header. It carries two chapters the other cadences do not: **Reading**, placed between Narratives and Ahead, and **Slow layers**, an eleventh section after The book. After Slow layers come the **detail tables**: the regime (the dials and the dimensions; the open contradictions and exceptions are What doesn't fit's), the scenario record (only the weights Ahead does not already print), the register's month, and the appendix.
+
+**The storyline, reconciled.** The Monthly's previous form was a storyline in six parts (Monthly v2's first phase). Each of its parts now prints once, inside the section that answers its question. *The month in markets* gives its scorecard to The tape and its prose to The read. *The month in one page*, five takeaways, is a sub-section of The read. *Looking back*, organised by theme, becomes sub-sections of Narratives, each theme with its prose, its series and its CONSENSUS and NEW developments; the DISSENT and CORRECTION developments go to What doesn't fit, and its computed "what changed" is the header's block. *Voices* are Narratives' sub-sections. *Looking ahead* two to three months is Ahead: the calendar, the scenario set with each weight beside its Brier score and "what would change our mind", and the month's graded calls. **Where our read lands** is The book's, and is still built by code and bounded by rule: the system's read is what the scenario weights and the books already hold, and nothing beyond them. A gate holds the edition to every storyline fact printed once and none lost.
 
 The themes are declared, each mapped to the state object's dimensions and, where one exists, to a story. They are liquidity and plumbing, fiscal dominance and the dollar, the Fed's path, the credit cycle, equity positioning, sentiment, and geopolitics and reserve currency. A tag carries rules: CONSENSUS needs at least two high-tier sources, DISSENT names its source, and CORRECTION cites the earlier statement it corrects.
 
-The stacked Monthly, with the ten sections in Monthly depth, a dealer retrospective, a "slow layers" section and its own chart set, is specified and scheduled but not built. The Monthly's depth column and charts exist in the commissioning brief, not yet in configuration.
+**The tape, with the long frame.** The tape is light at Monthly depth but carries two things the other cadences do not. The first is the long frame: a 40-week average on weekly closes and 10- and 20-month averages on monthly closes, printed as levels and never as signals; a cross counts only after the monthly close. The second is the cross-asset year to date, a ranked column of asset classes by total return from the prior year's last close to the month-end close, each read through a fund the store already holds, with dividends added on their ex-dates and not reinvested and cash accrued at the three-month bill rate. A class with no proxy, or no year-start close, says why.
 
-### 4.7 The anchor in the morning
+**Mechanics: the dealer retrospective.** Mechanics goes deep on the Monthly, and what it carries is a retrospective of the month against dealer positioning. It reads the month's stored dealer scorecard rows, one per session, written by the close; it recomputes nothing. Each session is flagged by the Weekly's own rule, so a session is *pinned* in the Monthly exactly when it was pinned in its Weekly. The flags are pinned (the close near max pain), held (a wall touched and the close inside it), amplified (the flip crossed and the range well beyond the implied one), and an implied-volatility check (SPY's own at-the-money volatility against the VIX). The month's counts and hit rates are taken over the sessions on which each flag could be computed. **The twenty-session rule:** below a declared floor of scored sessions, set in configuration (Appendix A), the counts are not printed as rates, the section says "insufficient sessions (n = …)", and the model is not asked for prose. When prose is written, a flag-word audit holds it to the per-session table: a sentence that says pinned, held or amplified must name a session whose flag is set, or carry that flag's own count for the month.
 
-A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a **What changed** block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. In the stacked close, the state and contradiction tables appear at the end as detail tables rather than as an opening block.
+**Slow layers.** The eleventh section holds what moves too slowly for a Weekly: valuation, base rates (the Top & Bottom record and the bear-rally base rate), tails, and themes (the alternative assets). Its figures print in **triple form**: the latest value, its long-run average and its percentile, each with its data-as-of date and its window. Until the metric lenses are built, the average is taken over the store's full history and the percentile over five years where the store holds them; a shorter history prints its own start and sample size. The equity risk premium and the dividend yield wait for the lenses and say so. Slow layers also prints the newest edition of each scan's reference table from the store, with its source line. The scans' tables are ingested as sourced figures, each with a URL, the scan's own section reference and an as-of date, and an advice row is refused and named.
+
+**Reading.** The Reading chapter is built from the committed reading register and watchlist with no model call. It lists the month's read and listed editions in the watchlist's group order. Each is a hyperlinked title line naming the publisher, the publication date, the data-as-of date where it differs and the scan, followed by the stored summary for a deep or skim item and the one-liner for a list item. An item with no URL is not printed and is counted in the footnote; a pending item never prints; a shelf entry the daily voices scan already stored is printed once and named. The month's window runs from the prior month-end to this one, so consecutive Monthlies tile. Then comes the coming month's due list. The summaries are stored text: escaped, never polished, trimmed or audited, outside the prose budget and inside the reading time.
+
+**Charts M1–M9.** The Monthly draws its own set with the Weekly's chart primitives, from the store at edition time: SPY over three years in weekly candles (M1) and over ten years in monthly candles with the drawdown from the high (M2), each drawing only the levels the tape's prose is given; the dealer retrospective (M3); the 10-year yield with its term premium (M4); twenty years of the high-yield spread with its percentiles (M5); speculative positioning as z-scores (M6); breakevens and the implied policy path at month start against month end (M7); the scenario weights and their Brier scores by edition (M8); and Book Z against the account's value (M9), whose caption says that the books are not yet marked one by one. Each chart sits in the section or sub-section it illustrates, inside the chart cap, and counts toward the reading time.
+
+**Budget, prose and fallback.** Each section's prose is one audited model call, with the one retry of §5.3. Over the word budget, code trims the appendix first, then the last of several paragraphs, back to front, and marks the cut "(trimmed)"; the Reading chapter is never cut. A fault in the stacked edition does not stop the Monthly: it degrades to the storyline render. A dry run builds with the model and reads the prior Monthly from the real archive, so its change marks are real, but writes only to a dry-run folder: no fetch, no scans ingest, no snapshot and no dashboard state, and, if asked, one email under a "[DRY RUN]" subject. The scenario weights are read from the probability ledger and are never written by the Monthly; until a scenario register is ruled, the block says the ledger holds none.
+
+### 4.7 The anchor in the morning, and the close's detail tables
+
+A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a **What changed** block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile and the levels moved behind it. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked.
+
+The stacked close does not open on that block. Its state table and its contradiction table print at the **end** of the edition as detail tables, after The book and before the glossary, read from the stored object the close's payload carries and never recomputed. The order is deliberate: the ten sections say what the session did, and the tables are there for the reader who wants the object itself. Only the pre-stack form of the close, kept as a fallback, opens on What changed.
 
 ### 4.8 The reports that are specified but not built
 
@@ -277,7 +291,7 @@ Four reports appear in the architecture and are not running.
 
 **Disruptive Themes** has a reserved dashboard identity and has been re-cadenced from monthly to quarterly, folded into the Quarterly Structural.
 
-**Top & Bottom** is no longer planned as a standalone report. It becomes a state variable, a verdict and a composite printed inside the Monthly and the Weekly. The Monthly already has its section, which prints "the Top & Bottom harness is not built" until it is.
+**Top & Bottom** is no longer planned as a standalone report. It becomes a state variable, a verdict and a composite printed inside the Monthly and the Weekly. The Monthly already carries its place, under Slow layers' base rates, which prints that the harness is not built until it is.
 
 **The Thailand quarterly** is a short, isolated monitor of a personal exposure, with alerts on the currency, the central bank and payment dates. It sits outside the dials and the register by design, can never trigger anything, and is deferred to the end of the roadmap.
 
@@ -291,8 +305,8 @@ Charts and prose describe the same market, so they must describe the same levels
 |---|---|---|---|---|---|
 | Daily close | Weekday evenings | Store, object, register, ledger | The object; outlooks; the dealer scorecard row; chain readings; archive; dashboard state | Smallest | Up to 3 |
 | Morning anchor | Weekday mornings | The prior object; overnight moves; events | Archive; dashboard state | Short | None |
-| Weekly | Sunday morning | Store, object, register, ledger, voices | Archive | Middle | Fixed set |
-| Monthly | The 1st | Store, object, register, ledger, voices, scenarios | Snapshot; archive; dashboard state; scenario weights to the ledger | Largest | Planned set |
+| Weekly | Sunday morning | Store, object, register, ledger, voices | Archive; dashboard state | Middle | Fixed set |
+| Monthly | The 1st | Store, object, register, ledger, voices, scans, the reading register | Scan figures to the store; snapshot; archive; dashboard state | Largest | M1–M9 |
 | Quarterly Structural | Quarter-end | — | — | Not built | — |
 | Thailand quarterly | Quarterly | — | — | Not built | — |
 
@@ -343,7 +357,7 @@ The Monthly adds its own list of banned internal terms and refuses bullet-list f
 
 A paragraph that fails is never rewritten by code and never "fixed" quietly. It is **withheld**, and the reader sees a short note saying which audit failed and on which figure. The tables and items of a section print even when its prose is withheld, so the reader loses the commentary, not the facts. An outage reads differently from a refusal: "model call failed" is never confused with "audit failed". The rejected text is kept out of the edition so that it cannot be published by accident.
 
-In the stacked reports only, a section the audit withholds gets **one retry**. The audit's reason goes back to the model with the instruction to fix exactly that and change nothing else. If the second attempt fails, the section is withheld as before. Faults such as an API error or a malformed payload are not retried, and neither is a reply that overran its length. The Monthly's section writer, the morning anchor and the voices block make one attempt only.
+In the stacked reports, the close, the Weekly and the Monthly, a section the audit withholds gets **one retry**. The audit's reason goes back to the model with the instruction to fix exactly that and change nothing else. If the second attempt fails, the section is withheld as before. Only an audit's refusal is retried. A fault, such as a failed API call, a malformed payload or a prompt past its guard, is not, and neither is a reply that overran its length. The Monthly's section writer takes the same one retry, and the Monthly's Mechanics prose passes the flag-word audit of §4.6 as well as the others. The morning anchor and the voices block make one attempt only.
 
 ### 5.4 No stored source, not printed
 
@@ -387,7 +401,7 @@ Two further scheduled tasks run outside the repository on their own calendars. A
 
 ### 6.6 The reading shelf
 
-A twice-monthly **publication watch**, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's planned Reading chapter: every shelf edition published in the month, linked, with a summary paragraph and nothing of the system's own stance. It has no decision rights either.
+A twice-monthly **publication watch**, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's Reading chapter (§4.6): every shelf edition published in the month, linked, with its stored summary and nothing of the system's own stance. It has no decision rights either. The other scans' reference tables reach the Monthly by a second route, the scans ingest, which stores each table's figures with their sources for Slow layers to print.
 
 | Scan | Cadence | Reads | May propose | In the repo |
 |---|---|---|---|---|
@@ -541,38 +555,38 @@ Values, meaning thresholds, mappings, budgets and limits, are ratified at sittin
 
 ### 10.1 Targets
 
-Each cadence has a reading target: about five minutes for the close, twenty for the Weekly and forty for the Monthly. These are enforced through budgets rather than by hope. Each report has a ceiling on prose words and on charts (Appendix A). Only prose counts toward the word ceiling; tables and code-written lines do not, because they are the facts the prose serves. When a report runs over, code cuts the third paragraphs of the deep sections first, then the second paragraphs, and marks the cut "(trimmed)". The model is never asked to summarise to fit. The Weekly prints its own estimated reading time in its header.
+Each cadence has a reading target: about five minutes for the close, twenty for the Weekly and forty for the Monthly. These are enforced through budgets rather than by hope. Each report has a ceiling on prose words and on charts (Appendix A). Only prose counts toward the word ceiling; tables and code-written lines do not, because they are the facts the prose serves. When a report runs over, code cuts the third paragraphs of the deep sections first, then the second paragraphs, and marks the cut "(trimmed)"; the Monthly cuts its appendix first and never cuts its Reading chapter (§4.6). The model is never asked to summarise to fit. The targets are configured, and the Weekly and the Monthly print their estimated reading time in the header against them. The Monthly's count includes the stored summaries of its Reading chapter, which are outside the word budget but not outside the reader's time.
 
 ### 10.2 How to read a stacked report
 
 Read the claim lines first. Ten bold sentences give the whole edition in under a minute. Then look for the diamonds. A ◆ marks what changed since the last edition of the same cadence, and an unchanged section has already collapsed to one line, so attention goes where something moved. Read What doesn't fit next, whatever the claim lines say, because it is the one section built to show where the system's own picture is under strain. Footnotes marked "Not yet tracked" are the honest edge of the system's knowledge. They do not need reading every day, but they are where the gaps are. A note saying a paragraph was withheld is a working audit, not a broken report. The figures in that section's table still stand.
 
-The words in the reports have fixed meanings, listed in the glossary at the end of the Weekly. *Pending* means a reading has crossed its line but not for long enough to count. *Open* means a gap has been wide for at least two sessions. An *exception* is a gap open five sessions or more, or a reading at a five-year extreme. "Outside 10–90%" means a reading in the outer fifth of its history. A *base rate* is how often something has happened, with its sample size. *Brier* is the forecast score, where 0.25 is the coin.
+The words in the reports have fixed meanings, listed in the glossary at the end of each stacked report. In the close, the state and contradiction tables sit just above it (§4.7). *Pending* means a reading has crossed its line but not for long enough to count. *Open* means a gap has been wide for at least two sessions. An *exception* is a gap open five sessions or more, or a reading at a five-year extreme. "Outside 10–90%" means a reading in the outer fifth of its history. A *base rate* is how often something has happened, with its sample size. *Brier* is the forecast score, where 0.25 is the coin.
 
 ### 10.3 A reading order for a busy week
 
-When time is short, the system is designed to degrade gracefully. On a weekday, the close's claim lines and its What doesn't fit take two minutes; the morning anchor's What changed block takes one. On Sunday, the Weekly's header, its "Changed since last Weekly" block, The read and The book take five minutes and cover the decisions that need attention. The Monthly's *month in one page* and *where our read lands* take ten. Everything else can wait for a quieter week, because the system's record is written to be read late. Every figure is dated, every forecast is in the ledger, and nothing a report said is lost by not being read on the day.
+When time is short, the system is designed to degrade gracefully. On a weekday, the close's claim lines and its What doesn't fit take two minutes; the morning anchor's What changed block takes one. On Sunday, the Weekly's header, its "Changed since last Weekly" block, The read and The book take five minutes and cover the decisions that need attention. The Monthly's read, with its *month in one page*, and its book, with *where our read lands*, take ten. Everything else can wait for a quieter week, because the system's record is written to be read late. Every figure is dated, every forecast is in the ledger, and nothing a report said is lost by not being read on the day.
 
 | If there is time for | Read |
 |---|---|
 | 1 minute, weekday | The anchor's What changed |
 | 2 minutes, weekday | The close's claim lines and What doesn't fit |
 | 5 minutes, Sunday | The Weekly's header, Changed since last Weekly, The read, The book |
-| 10 minutes, the 1st | The Monthly's one page and where our read lands |
+| 10 minutes, the 1st | The Monthly's read (the one page) and its book (where our read lands) |
 | A sitting | The Weekly whole; the ledger's Brier table; open rule breaks |
 
 ---
 
-## Appendix A — Dated: Timers, Thresholds, Budgets, Sources, Charts (as of 6 October 2026)
+## Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 9 October 2026)
 
-*Everything in this appendix is as of 6 October 2026, from the repository at that date: the systemd units in `deploy/systemd/`, `config/reporting_stack.yaml`, `config/risk_limits.yaml`, `config/market_state.yaml` and the feed modules. All times are U.S. Eastern. Whether each optional timer is enabled on the production box is not recorded in the repository.*
+*Everything in this appendix is as of 9 October 2026, from the repository at that date: the systemd units in `deploy/systemd/`, the deploy's timer list in `scripts/deploy_remote.sh`, the `Makefile`, `CLAUDE.md`, `config/reporting_stack.yaml`, `config/risk_limits.yaml`, `config/market_state.yaml` and the feed modules. All times are U.S. Eastern. Whether each timer is enabled on the production box is not recorded in the repository.*
 
 **Timers.**
 
 | Unit | When | What it runs |
 |---|---|---|
 | Voices and news scan | Weekdays 06:15 | The voices scan, then the voice seeds |
-| Overnight fetch | Weekdays 06:45 | Correction pass on prices; Japan and China writers; events |
+| Overnight fetch | Weekdays 06:45 | Correction pass on prices; Japan and China writers; events; then the loggers |
 | Morning anchor | Weekdays 07:00 | The morning report |
 | Heartbeat | Daily 08:30 | Health check; verdict and exit code |
 | Broker sync | Weekdays, every 30 minutes, 09:00–17:00 | Portfolio Truth; reconciliation; news top-up |
@@ -580,21 +594,27 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 | End-of-day pull | Weekdays 16:10 | Every feed but the loggers; events; option chains and exposures |
 | Daily close | Weekdays 16:45 | Price re-pull; the object; the close |
 | Weekly | Sundays 05:00 | The Weekly |
-| Monthly | The 1st, 07:30 | The Monthly |
+| Monthly | The 1st, 07:30 | The scans ingest; the Monthly |
 | Backup | Daily 02:30 | Off-box backup |
 | Broker gateway restart and watchdog | Held back | Enabled only after a witnessed clean start |
 
-A deploy enables only a declared list of timers: the end-of-day pull, the close, the heartbeat, the broker sync, the backup, the overnight fetch and the morning anchor. The Weekly, Monthly, voices and auction timers are enabled by hand. Deploy windows are weekdays 09:05–15:40 and 17:20–23:30, never 16:00–17:20. They are an operating convention, not a setting in the repository.
+A deploy enables only a declared list of timers: the end-of-day pull, the close, the heartbeat, the broker sync, the backup, the overnight fetch, the morning anchor, the Weekly, the voices scan and the auction sampler. The last three joined the list on 6 October with the loggers' fix (INC-9). The Monthly's timer is not on the list and is enabled by hand. The broker gateway's units are held back by design.
 
-**The stack.** Configuration `reporting-stack-v1`, ratified 2 October 2026. Prose budgets: close 1,000 words and 3 charts; Weekly 3,500 words and 10 charts (raised from 6 on 4 October); Monthly 7,000 words and 10 charts. Words per section by depth, daily: deep 150, medium 80, light and short 35, line 25. Weekly: deep 420, medium 220, light and short 60, line 40. Reading time printed by the Weekly is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart.
+**The Monthly's calendar.** The stacked Monthly was built and merged on 8 October 2026 (T3, on the shared stack code of T2.6 and T2.7). Its first dry run ran on 8 October 2026; the remaining dry runs are 23 and 28 October, with a deploy freeze from 29 October, and the first stacked edition is on 1 November 2026. Trims against the forty-minute target are ruled at the 23 October dry run and confirmed at the 28 October one.
+
+**Gates.** `make validate` runs every gate: 45 code gates (42 Python, 3 shell) and 5 data gates, with no network and no box. A code gate seeds a store of its own and never reads the live one, so its verdict is about the commit and is the same in CI, on the laptop and on the box. A data gate reports on the box's real history, does not set the exit code, and prints NOT VALIDATED where there is no store. The list lives in the `Makefile`, and CI reads it from there. Gates named in this paper include the feeds-scheduled gate (every feed has a runner that does not skip it; added with INC-9), the Monthly stack gate (order, budget, dealer retrospective, slow layers, Reading, charts, the dry run), the stack-cadence gate and the library check.
+
+**Operating windows.** Recorded in `CLAUDE.md` from 6 October 2026. Deploys and other box writes: weekdays 09:05–15:40 and 17:20–23:30, never 16:00–17:20, when the end-of-day pull and the close are running. Weekends are open, clear of Sunday 05:00, when the Weekly runs. **A merge to main is a box write.** Every box wrapper pulls main before it starts, so a push to main reaches the box at the next timer run, whether or not anybody deploys. Merges to main are therefore made only inside the windows, and a deploy ships unit files, timers and checks rather than code. A session never runs unit commands, privilege escalation or register writes; it prints them for the operator.
+
+**The stack.** Configuration `reporting-stack-v1`, ratified 2 October 2026; one configuration serves three cadences. Prose budgets: close 1,000 words and 3 charts; Weekly 3,500 words and 10 charts (raised from 6 on 4 October); Monthly 7,000 words and 10 charts. Words per section by depth, daily: deep 150, medium 80, light and short 35, line 25. Weekly: deep 420, medium 220, light and short 60, line 40. Monthly: deep 450, medium 220, light and short 60, line 40. Reading-time targets: close 5 minutes, Weekly 20, Monthly 40. Reading time is prose words ÷ 250 plus 20 seconds per chart; the Monthly adds its Reading chapter's stored words. A firing trigger adds one chart. The long frame: 40-week, 10-month and 20-month averages. The dealer retrospective's floor: 20 scored sessions (ruled 8 October 2026; the commissioning brief's 15 is superseded).
 
 **Deep triggers.** Plumbing (daily): a top-tier release or a 10- or 30-year auction this session or next; or a one-session move of ±10 bp in the 10- or 30-year yield, ±8 bp in the 2s10s curve or ±15 bp in the high-yield spread. What's priced (daily and Weekly): ±10 bp in a 5-year, 10-year or 5y5y breakeven; ±12.5 bp in the implied rate for any of the next four FOMC meetings; ±10 points in a watched prediction-market probability. Pending, read by nothing yet: a consensus EPS revision of 1% (Weekly) and one-year inflation expectations of 0.3 points.
 
-**The market-state object.** Rules `market-state-v1.10`; method `market-state-method-8` (v1.11–v1.12 and methods 9–10 are retired numbers). Persistence: 2 sessions. Window: five years. Staleness: 3 × a series' own allowance (daily 2 sessions, weekly 8, monthly 32, quarterly 95). Percentile bands: 66 and 33. Contradictions open at |gap z| ≥ 2.0 for 2 sessions and become exceptions at 5 sessions. Extremes: percentile ≤ 5 or ≥ 95. Volatility dial: VIX subdued below 14, normal 14–20, elevated 20–30, crisis 30 and above. Term structure runs as a dual trial from 23 September to 23 December 2026, with the VIX3M/VIX ratio published.
+**The market-state object.** Rules `market-state-v1.10`; method `market-state-method-8` (v1.11–v1.12 and methods 9–10 are retired numbers). Persistence: 2 sessions. Window: five years. Staleness: 3 × a series' own allowance (daily 2 sessions, weekly 8, monthly 32, quarterly 95). Percentile bands: 66 and 33. Contradictions open at |gap z| ≥ 2.0 for 2 sessions and become exceptions at 5 sessions; in the code a contradiction closes on the first session its condition fails, and a symmetric two-session close is ruled for v1.13 at Audit #4. Extremes: percentile ≤ 5 or ≥ 95. Volatility dial: VIX subdued below 14, normal 14–20, elevated 20–30, crisis 30 and above. Term structure runs as a dual trial from 23 September to 23 December 2026, with the VIX3M/VIX ratio published.
 
 **Risk limits.** `risk-limits-v1`, ratified 2 October 2026. Capital base $300,000. Net beta capped at the regime band's top plus 15 points. Sector at most 30% of capital. Volatility exposure at most 0.5% of capital per vol point. Duration at most 5% of capital per 100 bp. Book A bands (net equity beta): Expansion 60–80%, Overheat 40–60%, Tightening 20–40%, Contraction 20–40%. Transition: the lower half of the departing band, for 10 sessions after the macro dial changes. Mapping `dial-to-doctrine-v1.1`. Attention budget: 7 packets and 2 sitting hours a week.
 
-**Prose and audits.** Model pinned in configuration; one call per report paragraph or section, with one retry for stacked sections. Close paragraph at most 2,600 characters. Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget.
+**Prose and audits.** Model pinned in configuration; one call per report paragraph or section, with one retry for a stacked section the audit withholds, the Monthly's included. Close paragraph at most 2,600 characters. Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget.
 
 **Sources.**
 
@@ -605,20 +625,20 @@ A deploy enables only a declared list of timers: the end-of-day pull, the close,
 | FRED series | 83 (59 core, 24 signal) |
 | Official writers | 13 writers, 96 series |
 | External tables | 10 writers, 54 series |
-| Loggers | 6 (5 watched for freshness) |
+| Loggers | 6 (5 watched for freshness), run by the overnight fetch since 6 October |
 | Prediction markets | 2 venues |
 | Fed funds futures | About 10 contracts |
 | Option chains | 13 symbols by yfinance; SPX and one other by a second vendor, ingestion only |
 | Voices sources | 19 declared, 5 unreachable as of 5 October |
 | Event sources | 7 |
 
-**Scans outside the repository.** The Guide to the Markets read: 06:56 on the 6th of January, April, July and October (schedule per the scheduled task). The Monthly signal scan: the 25th (schedule per the scheduled task). The Saturday crypto mechanism scan: about 08:00 Saturdays (schedule per the scheduled task). The consensus-drift scan: the 20th of even months (schedule per the scheduled task). The reading-shelf publication watch: the 12th and the 27th, 06:58.
+**Scans outside the repository.** Defined in `docs/scheduled-tasks.md`. The Guide to the Markets read: 06:56 on the 6th of January, April, July and October. The Monthly signal scan: 06:57 on the 25th. The Saturday crypto mechanism scan: about 08:00 Saturdays. The AI-risk consensus-drift scan: the 20th of even months. The reading-shelf publication watch: the 12th and the 27th, 06:58. Their reference tables reach the Monthly through the scans ingest (§4.6).
 
-**Chart sets.** The close: C1 SPY session (5-minute candles, VWAP, dealer levels); C2 sixty daily candles with averages; C3 by rule (an open gap's z, or the curve). The Weekly: W1 SPY six months; W2 SPY two years, weekly; W3 the curve and high-yield spread over one and ten years; W4 speculative positioning z-scores; W5 the week's sector and style returns; W6 open contradictions (only when one is open); W7 SPY over two weeks with the overnight future; W8 six markets with averages; W9 positioning and sentiment gauges; W10 prediction-market odds and the futures path. The Monthly (planned): M1–M9, including a three-year weekly chart, a ten-year monthly chart with drawdown, the dealer retrospective, the term premium, twenty years of high-yield spread, positioning, what's priced at month start against month end, scenario weights with Brier, and Book Z.
+**Chart sets.** The close: C1 SPY session (5-minute candles, VWAP, dealer levels); C2 sixty daily candles with averages; C3 by rule (an open gap's z, or the curve). The Weekly: W1 SPY six months; W2 SPY two years, weekly; W3 the curve and high-yield spread over one and ten years; W4 speculative positioning z-scores; W5 the week's sector and style returns; W6 open contradictions (only when one is open); W7 SPY over two weeks with the overnight future; W8 six markets with averages; W9 positioning and sentiment gauges; W10 prediction-market odds and the futures path. The Monthly (built): M1 SPY three years, weekly, with the 40-week average; M2 SPY ten years, monthly, log axis, the 10- and 20-month averages and the drawdown; M3 the dealer retrospective; M4 the 10-year yield and the ACM term premium; M5 the high-yield spread over twenty years with its percentiles; M6 speculative positioning z-scores; M7 breakevens and the implied path at month start and end; M8 scenario weights with Brier by edition; M9 Book Z against the account's value. The Monthly's charts go to the email as images of at most 150 KB and to the archive as scalable files.
 
 ---
 
-## Appendix B — The Incident Log to Date (as of 6 October 2026)
+## Appendix B — The Incident Log to Date (as of 9 October 2026)
 
 | Id | Date | What happened | Fix and lesson |
 |---|---|---|---|
@@ -630,6 +650,7 @@ A deploy enables only a declared list of timers: the end-of-day pull, the close,
 | INC-6 | 1 Oct 2026 | A peso-listed SPY short was held on a draft decision and closed at a loss of about $8,950, mostly from the currency and the listing's basis | *A foreign listing is a currency position*: structured exit fields, an FX series, a currency gate |
 | INC-7 | 1 Oct 2026 | Closed positions persisted in Portfolio Truth for a week | Each sync is now the whole book; absent holdings are written as zero |
 | INC-8 | 2 Oct 2026 | A fallback recorded a peso close as dollars | *A fallback that invents a value is worse than an empty field*: unknown stays unknown; one rule judges every write |
+| INC-9 | 6 Oct 2026 | From 30 September to 6 October the loggers ran nowhere: the end-of-day pull skipped them as "run in the overnight pass", and the overnight pass's early set skipped them too. Six sessions of point-in-time captures were lost and cannot be backfilled. Found by this paper's first draft | *A feed is not scheduled until a gate says so*: the overnight fetch runs the loggers; a gate fails any commit in which a feed has no runner that does not skip it |
 
 ---
 
@@ -645,6 +666,59 @@ A deploy enables only a declared list of timers: the end-of-day pull, the close,
 
 **Regularities with dates.** The Brier coin of 0.25 is arithmetic, not a regularity. The thresholds in Appendix A were set by ruling, not estimated, and are falsified in the operational sense if a trigger fires every session or never over a month. That is the test the Doctrine monthly applies.
 
-**Standing-register items touching this paper.** The intraday layer (Part VIII) is unbuilt and scheduled. The stacked Monthly, its chart set and its depth column are unbuilt and scheduled. The Quarterly Structural, Disruptive Themes, the Top & Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.
+**Standing-register items touching this paper.** The intraday layer (Part VIII) is unbuilt and scheduled. The stacked Monthly is built and has not yet published: its first edition is the one to read against §4.6. The Quarterly Structural, Disruptive Themes, the Top & Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.
 
-**Dated figures in this paper.** Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 6 October 2026, from the configuration files named there.
+**Dated figures in this paper.** Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 9 October 2026, from the configuration files named there.
+
+---
+
+## Appendix D — Where the Brief Disagreed with the Code: Dispositions (as of 9 October 2026)
+
+*Draft 1 of this paper was commissioned by a brief, and in writing it twenty-five places were found where the brief, or the repository's own documents, disagreed with the code. Draft 1 followed the code and left each item for a ruling; they were listed when it was merged on 6 October. This appendix records what became of each. "Fixed" names the change that fixed it: D-2 (the corrections to the repository's own documents, 7 October), L-1 (the loggers' schedule and the small items with it, 6 October), T2.6 and T2.7 (the stack's cadences and the shared renderer, 8 October), T3 (the stacked Monthly, 8 October) and LIB-2 (this draft and its two companions, 9 October). "Ruled for Audit #4" means a ruling has placed it on that sitting's business. "Open" means nothing has yet been decided or changed.*
+
+**The data**
+
+| # | Draft 1 found | Disposition |
+|---|---|---|
+| 1 | No H.4.1 writer: the balance-sheet legs come through FRED; the brief's list of official writers omits the New York Fed's consumer survey and the Fed Board's inflation-expectations index | **Fixed (D-2).** Both briefs carry a dated correction |
+| 2 | WallStreetBets is a feed inside the borrow-and-mentions logger, not a logger of its own; the retail-activity logger is dormant without its key; the shielded-share logger has no reachable source | **Fixed (D-2)** for WallStreetBets. The dormant logger and the missing source are facts about the feeds, not disagreements, and stand |
+| 3 | The loggers had no scheduled run | **Fixed (L-1).** Recorded as INC-9 (Appendix B); the overnight fetch runs them and a gate holds every feed to a runner |
+| 4 | The brief names two kinds of knowable time; the code has three (observed, ingest instant, reconstructed), and nothing yet writes the first | **Open.** The brief is unchanged; this paper follows the code. Writing observed times waits on vintage data |
+| 5 | The contradiction table has eight pairs, not seven | **Fixed (D-2)** |
+| 6 | A contradiction closes on the first session it fails, though the documents said it closes over two | **Ruled for Audit #4.** A symmetric two-session close is ruled for rules v1.13; D-2 recorded the code's present behaviour in the state-object document |
+| 7 | The stacked close does not open on the What changed block | **Fixed (D-2, T2.6).** D-2 corrected the documents; T2.6 built the state and contradiction tables at the end of the close (§4.7) |
+| 8 | The state-object document was stale in places | **Fixed (D-2)** |
+
+**The reports**
+
+| # | Draft 1 found | Disposition |
+|---|---|---|
+| 9 | The Monthly was not on the stack; it had no depth column and its charts existed only in the brief | **Fixed (T3, on T2.6 and T2.7).** §4.6 describes it as built; the depth column, Slow layers, Reading and M1–M9 are in configuration and code |
+| 10 | The Quarterly Structural, Disruptive Themes, Top & Bottom and the Thailand quarterly are not built | **Open,** and described as not built (§4.8). The Quarterly Structural still has no specification document |
+| 11 | Reading targets were documented, not configured | **Fixed (T3).** The three targets are in configuration; the Weekly and the Monthly print against them |
+| 12 | The deploy did not enable the Weekly, Monthly, voices and auction timers | **Fixed in part (L-1):** the Weekly, voices and auction timers are on the deploy's list. **Open:** the Monthly's timer is still enabled by hand |
+| 13 | The Weekly sent no dashboard state record | **Fixed (L-1).** It reports under its own key, and not on a dry run |
+
+**Prose and scans**
+
+| # | Draft 1 found | Disposition |
+|---|---|---|
+| 14 | The one retry existed only in the stacked prose | **Fixed (T2.6, T3).** T2.6 stopped the stacked prose from retrying a failed call, so only an audit's refusal is retried; T3 gave the Monthly's section writer the same retry. The morning anchor and the voices block make one attempt, as §5.3 says |
+| 15 | No single plain-language audit; the brief's audit list omitted real checks | **Fixed (D-2).** The brief records that its list is superseded by §5.2 |
+| 16 | The Monthly signal scan had no definition in the repository | **Fixed in part (L-1):** the scheduled-tasks record defines its time, its output and the decision that created it. **Open:** the rights the brief gave it, a voices entry included, are not ruled |
+| 17 | "AI-risk" appeared nowhere in the repository | **Fixed (L-1).** The scheduled-tasks record names the AI-risk consensus-drift scan. The Saturday crypto scan remains interim until it retires |
+
+**The register and learning**
+
+| # | Draft 1 found | Disposition |
+|---|---|---|
+| 18 | Book Z is three benchmark ledgers, not a register book, and the Doctrine names only a 60/40 benchmark | **Open** |
+| 19 | The entry gate enforces four limits only; the per-position tiers, the book loss stops, the kill-switch ladder and the heat cap are reported but not refused, and the Systematic Book paper says an over-tier position would be refused | **Open** |
+| 20 | "Heat" means a factor view in the code and open risk to invalidation in the Doctrine; the second is not computed | **Open** |
+| 21 | Reconciliation's comments say hourly against a 30-minute timer, and an empty currency was read as dollars | **Fixed in part (L-1):** an empty currency is refused with a reason, never read as dollars. **Open:** the comments still say hourly |
+| 22 | The intraday layer: "never orders" comes from the Doctrine minutes while the Enterprise Layer's tactics item may place paper bracket orders; the state vector is defined only in a change order; none of it is built | **Open,** and described as unbuilt (Part VIII). The intraday scope is on Audit #4's list from the Enterprise Layer change order; the bracket-order question is not |
+| 23 | The Operating Doctrine was behind the 2 October rulings | **Fixed (LIB-2).** Its dated appendix carries the rulings and the incidents, and its body changed where it contradicted a ruling. **Open:** Book C still cites a 10:00 report, which no ruling addresses |
+| 24 | The Daily Cascade paper's Part 0 described as live what is not built | **Fixed (LIB-2).** Part 0 opens on a dated note marking the intraday slots and the drafted setups as plan, and describes the stacked close as it runs |
+| 25 | The voices scan's time was stale in three places; the deploy windows were not in the repository | **Fixed (L-1).** All three say 06:15; the windows are in `CLAUDE.md` (Appendix A) |
+
+Of the twenty-five, fourteen are fixed, four are fixed in part, one is ruled for Audit #4 and six are open.

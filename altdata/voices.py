@@ -9,7 +9,7 @@ The voices register -- who said what about the market, where, and when.
 Phase B, pulled forward and ruled 4 Oct 2026 (docs/briefs/monthly-v2-brief-2026-
 10-01.md, Phase B and the Rules; reporting-stack brief section 1, row 8; the J.P.
 Morgan GTM change order's voices entry). The scan that fills it is
-altdata/sources/voices_scan.py, run once a day in the 06:45 overnight fetch.
+altdata/sources/voices_scan.py, run once a day at 06:15 ET (chester-voices.timer).
 
 -----------------------------------------------------------------------------
 NO STORED SOURCE, NOT PRINTED
@@ -204,6 +204,21 @@ CREATE TABLE IF NOT EXISTS voice_scan_runs (
     voices        INTEGER NOT NULL DEFAULT 0,
     model_calls   INTEGER NOT NULL DEFAULT 0,
     UNIQUE (run_id, source_id)
+);
+
+-- THE STEELMAN SEARCH (W-1.3b item 3.1): one row per story per scan, the
+-- counter-case queries the scan searched the stored voices for and what it found
+-- (voice ids, JSON). An empty `found` is the record that it looked and found
+-- nothing -- which prints as "none found after search", never as silence.
+CREATE TABLE IF NOT EXISTS steelman_searches (
+    id            INTEGER PRIMARY KEY,
+    narrative_id  TEXT NOT NULL,
+    searched_at   TEXT NOT NULL,
+    since         TEXT NOT NULL,
+    queries       TEXT NOT NULL,
+    found         TEXT NOT NULL DEFAULT '[]',
+    run_id        TEXT,
+    UNIQUE (narrative_id, searched_at)
 );
 """
 
@@ -587,6 +602,85 @@ class VoicesStore:
         for r in self.conn.execute(q, args):
             out[r["source_id"]] = dict(r)
         return out
+
+
+    # -- W-1.3b item 3.1: the steelman search, the last clean scan, dependence --
+    def steelman_search(self, narrative_id: str, queries: list[str], since: str,
+                        searched_at: str, run_id: Optional[str] = None) -> dict:
+        """Search the stored voices published since `since` for the story's
+        counter-case queries (case-insensitive, in the view, the quote or the
+        title) and record what was found -- or that nothing was."""
+        found = []
+        for r in self.conn.execute(
+                "SELECT id, voice, outlet, view, quote, title, source_url, "
+                "published_at FROM voices WHERE published_at >= ? "
+                "ORDER BY published_at DESC, id DESC", (since,)):
+            text = " ".join(str(r[k] or "") for k in ("view", "quote", "title")).lower()
+            hit = [q for q in queries if q.lower() in text]
+            if hit:
+                found.append({"voice_id": r["id"], "voice": r["voice"],
+                              "outlet": r["outlet"], "view": r["view"],
+                              "source_url": r["source_url"],
+                              "published_at": r["published_at"], "query": hit[0]})
+        self.conn.execute(
+            "INSERT OR REPLACE INTO steelman_searches (narrative_id, searched_at, "
+            "since, queries, found, run_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (narrative_id, searched_at, since, json.dumps(list(queries)),
+             json.dumps(found[:10]), run_id))
+        self.conn.commit()
+        return {"narrative_id": narrative_id, "found": found[:10]}
+
+    def steelman_latest(self, narrative_id: str, since: str,
+                        as_of: Optional[str] = None) -> Optional[dict]:
+        """The story's latest search at or after `since` (and by `as_of`)."""
+        q = ("SELECT * FROM steelman_searches WHERE narrative_id = ? AND "
+             "searched_at >= ?")
+        args: list = [narrative_id, since]
+        if as_of:
+            q += " AND searched_at <= ?"
+            args.append(as_of)
+        r = self.conn.execute(q + " ORDER BY searched_at DESC LIMIT 1", args).fetchone()
+        if r is None:
+            return None
+        d = dict(r)
+        d["queries"] = json.loads(d.get("queries") or "[]")
+        d["found"] = json.loads(d.get("found") or "[]")
+        return d
+
+    def last_ok(self, as_of: Optional[str] = None) -> dict[str, str]:
+        """Each source's last clean scan date."""
+        q = ("SELECT source_id, MAX(started_at) AS last FROM voice_scan_runs "
+             "WHERE state = 'ok'")
+        args: list = []
+        if as_of:
+            q += " AND started_at <= ?"
+            args.append(as_of)
+        return {r["source_id"]: str(r["last"])[:10]
+                for r in self.conn.execute(q + " GROUP BY source_id", args)}
+
+    def evidence_sources(self) -> dict[str, set]:
+        """{source_id: the stories whose evidence came from it}."""
+        out: dict[str, set] = {}
+        for r in self.conn.execute(
+                "SELECT DISTINCT v.source_id, e.narrative_id FROM narrative_evidence e "
+                "JOIN voices v ON v.id = e.voice_id"):
+            out.setdefault(r["source_id"], set()).add(r["narrative_id"])
+        return out
+
+
+def steelman_pass(vs: "VoicesStore", stories: dict, cfg: dict, day: str,
+                  run_id: Optional[str] = None, days: int = 7) -> list[dict]:
+    """The scan's counter-case search for every story that declares queries
+    (config/weekly_analytics.yaml `narratives.stories.<id>.steelman_queries`)."""
+    since = (dt.date.fromisoformat(day[:10]) - dt.timedelta(days=days)).isoformat()
+    out = []
+    for sid in sorted(stories):
+        qs = (((cfg.get("narratives") or {}).get("stories") or {}).get(sid) or {}) \
+            .get("steelman_queries") or []
+        if qs:
+            out.append(vs.steelman_search(sid, qs, since, f"{day[:10]}T23:59:00+00:00",
+                                          run_id))
+    return out
 
 
 # ---------------------------------------------------------------------------

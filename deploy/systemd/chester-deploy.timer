@@ -1,0 +1,29 @@
+[Unit]
+Description=Self-deploy every 30 minutes inside the operating windows (ET)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# EVERY 30 MINUTES, INSIDE THE OPERATING WINDOWS ONLY (CLAUDE.md, "Operating
+# windows"): weekdays 09:05-15:40 and 17:20-23:30 ET, never 16:00-17:20 while
+# the EOD pass and the 16:45 close run; weekends open, clear of the Sunday 05:00
+# Weekly. Each line's last firing plus the delay below stays inside its window,
+# and the wrapper checks the window again in ET before it touches anything.
+# tools/validate_deploy.py group I expands these lines and checks every firing.
+OnCalendar=Mon-Fri *-*-* 09..15:05,35:00 America/New_York
+OnCalendar=Mon-Fri *-*-* 17..22:20,50:00 America/New_York
+OnCalendar=Mon-Fri *-*-* 23:20:00 America/New_York
+OnCalendar=Sat *-*-* *:05,35:00 America/New_York
+OnCalendar=Sun *-*-* 00..03:05,35:00 America/New_York
+OnCalendar=Sun *-*-* 07..23:05,35:00 America/New_York
+
+# At most two minutes late, so 15:35 cannot become 15:41. AccuracySec is
+# tightened from its one-minute default for the same reason.
+RandomizedDelaySec=120
+AccuracySec=1s
+
+# A missed tick is NOT caught up. A catch-up fires at boot, whenever that is --
+# 16:30 included -- and the next tick inside a window does the same work.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -2,7 +2,7 @@
 
 ### A Field Guide to the Analytical Sections, and the Architecture That Generates Them
 
-**Companion XII · Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Supersedes v1.0 (August 30, 2026)**
+**Companion XII · Version 2.0 · Companion to the Daily Cascade v2 · Anchored September 6, 2026 · Part 0 status note added October 9, 2026 · Supersedes v1.0 (August 30, 2026)**
 
 *Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
@@ -42,19 +42,36 @@ Each chapter closes with **Deferred Refinements** — additions and methodology 
 
 *Read this part first. Everything in Parts I–VI describes content; this part describes when the content is produced, what triggers it, what it reads from, and what happens to it afterward.*
 
+> **As built, 9 October 2026 — what runs, and what is plan.** Part 0 was written on 6 September as the v2 design, in the present tense. As of 9 October 2026 three of its slots run and the rest are **plan**: specified, scheduled behind the intraday captures, and not built. Where a passage below describes a plan item, it is marked *[plan, 9 Oct 2026]*. The Reporting System paper, Part VIII, gives the intraday layer's status and its ruled limits.
+>
+> | Part 0 describes | As of 9 October 2026 |
+> |---|---|
+> | The 07:00 anchor | **Runs**, weekdays. It reads the prior session's market-state object without recomputing it and opens on a What changed block, with the overnight block, the session's events and the news and narrative scan behind the numeral audit |
+> | The 16:45 anchor | **Runs**, weekdays, as the stacked close described below |
+> | The Sunday 05:00 anchor | **Runs**, as the stacked Weekly |
+> | The 09:15, 10:30, 15:00 and 21:45 conditionals, the Sunday 21:45 conditional and the 12:30 alert | **Plan.** No unit schedules them |
+> | The 09:45 and 12:30 chain captures | **Plan.** The exposure engine captures once a session, at 16:10 |
+> | "Sixteen dimensions" in the state object | **Plan.** The object has eight dimensions (v1), three dials and an eight-row contradiction table |
+> | The state object "recomputed by the EOD pass" | The **16:45 close** is the object's only writer; the 16:10 pass pulls the data it reads |
+> | §22–§23 setups drafted into the register, and the shadow grader that scores them | **Plan.** No setup is drafted into the register. The grader grades every recorded decision, taken, declined and draft, from stored prices; the ledger resolves the reports' stored outlooks |
+> | "There are no word counts" (0.5) | **Superseded** on 2 October 2026: each stacked report has a ruled prose budget and chart cap |
+> | Prose waiting on the numeral audit (0.6) | **Done.** The audit and the checks built beside it exist, and the close ships prose behind them |
+>
+> **The stacked close, as it runs.** At 16:45 ET each weekday the close re-pulls the session's prices, computes and stores the market-state object, writes the session's base-rate outlooks to the probability ledger before printing them, and stores the session's dealer scorecard row. It then prints the ten sections of the reporting stack at daily depth: the read, the tape, mechanics, what doesn't fit, plumbing and rates, positioning and flows, what's priced, narratives, ahead and the book. Each section opens on a claim line; change marks compare it with yesterday's close; an unchanged section collapses to one line; the prose sits inside a ruled word budget with up to three charts, every paragraph behind the audits and a withheld section given one retry. It does not open on the What changed block. The state and contradiction tables print at the end, after the book and before the glossary, read from the stored object. It archives the edition, emails it and reports its health to the dashboard. The chapters of Parts I–VI remain the reference for what each of its numbers means.
+
 ### 0.1 The cadence — three anchors, six conditionals, one alert
 
 | Slot | Kind | Publishes when | Unique content | Folds into | v1.2 slot it replaces |
 |---|---|---|---|---|---|
-| **07:00** | Anchor | Always | Overnight complete (Tokyo closed 02:00, Europe four hours in, futures); the regime stamp from the state object; **the news and narrative scan** (0.4); every Tier 1–5 section; setups drafted into the register | — | 0700 |
-| 09:15 | Conditional | A tier-1/2 release at 08:30; futures past threshold since 07:00; a dial change | 45 minutes of reaction to the 08:30 releases; the SPX global-hours options tape, which closes at 09:15 | 16:45 | 0920 |
-| 10:30 | Conditional | A move past threshold; a 10:00 release; gamma sign differs from the EOD read | The opening range complete; live 0DTE gamma from the 09:45 capture; the first-hour internals (Chapter 6's §3 read, now measured at 60 minutes rather than 30); the thesis grade against the 07:00 anchor | 16:45 | 1000 |
-| 12:30 | **Alert only** | Gamma sign flips, or a 1% move since 10:30 | The midday chain capture runs for data; it publishes nothing unless the gate opens | 16:45 | 1200 |
-| 15:00 | Conditional | A move past threshold since 10:30; a VIX change; a 14:00 event; a live pin setup | **The predictable last-hour flows, computed before they happen** — the leveraged-ETF rebalance from the day's return, the vol-control exposure change, the pin distance; the FOMC reaction on Fed days; the trade-into-the-close read | 16:45 | 1500 |
-| **16:45** | Anchor | Always | Cash close, MOC outcome, ES settlement, the first fifteen minutes of after-hours earnings reactions, post-close futures drift; the final candle and the day's grade; **the recap of every conditional** | 07:00 next day | 1630 |
-| 21:45 | Conditional | Futures, USD/JPY, the Nikkei, or a Chinese release past threshold | ES reopen (18:00) with nearly four hours traded; Tokyo open; Shanghai/HK open at 21:30; Chinese data; USD/JPY and JGBs for the yen monitor | 07:00 | (new) |
+| **07:00** | Anchor | Always | Overnight complete (Tokyo closed 02:00, Europe four hours in, futures); the regime stamp from the state object; **the news and narrative scan** (0.4); every Tier 1–5 section; setups drafted into the register *[plan, 9 Oct 2026]* | — | 0700 |
+| 09:15 | Conditional *[plan, 9 Oct 2026]* | A tier-1/2 release at 08:30; futures past threshold since 07:00; a dial change | 45 minutes of reaction to the 08:30 releases; the SPX global-hours options tape, which closes at 09:15 | 16:45 | 0920 |
+| 10:30 | Conditional *[plan, 9 Oct 2026]* | A move past threshold; a 10:00 release; gamma sign differs from the EOD read | The opening range complete; live 0DTE gamma from the 09:45 capture; the first-hour internals (Chapter 6's §3 read, now measured at 60 minutes rather than 30); the thesis grade against the 07:00 anchor | 16:45 | 1000 |
+| 12:30 | **Alert only** *[plan, 9 Oct 2026]* | Gamma sign flips, or a 1% move since 10:30 | The midday chain capture runs for data; it publishes nothing unless the gate opens | 16:45 | 1200 |
+| 15:00 | Conditional *[plan, 9 Oct 2026]* | A move past threshold since 10:30; a VIX change; a 14:00 event; a live pin setup | **The predictable last-hour flows, computed before they happen** — the leveraged-ETF rebalance from the day's return, the vol-control exposure change, the pin distance; the FOMC reaction on Fed days; the trade-into-the-close read | 16:45 | 1500 |
+| **16:45** | Anchor | Always | Cash close, MOC outcome, ES settlement, the first fifteen minutes of after-hours earnings reactions, post-close futures drift; the final candle and the day's grade; **the recap of every conditional** *[the recap is plan, 9 Oct 2026; the close runs as the stacked close above]* | 07:00 next day | 1630 |
+| 21:45 | Conditional *[plan, 9 Oct 2026]* | Futures, USD/JPY, the Nikkei, or a Chinese release past threshold | ES reopen (18:00) with nearly four hours traded; Tokyo open; Shanghai/HK open at 21:30; Chinese data; USD/JPY and JGBs for the yen monitor | 07:00 | (new) |
 | **Sunday 05:00** | Anchor (Weekly) | Always | Friday's data; the week's graded decisions and rule breaks; the system-performance review; the calendar; weekend developments; the week's narrative arc | Monday 07:00 | FRI 1800 + SUN 2130 |
-| Sunday 21:45 | Conditional | As 21:45 | ES reopen, Asia open, weekend policy announcements and the first reaction | Monday 07:00 | (new) |
+| Sunday 21:45 | Conditional *[plan, 9 Oct 2026]* | As 21:45 | ES reopen, Asia open, weekend policy announcements and the first reaction | Monday 07:00 | (new) |
 
 **The two-anchor guarantee.** The day is fully reconstructable from 07:00 and 16:45. Every conditional's observations are folded into the next anchor, so a skipped conditional loses nothing. This is v1's anchor-and-delta design (Chapter 22) made into a delivery contract.
 
@@ -64,7 +81,7 @@ Each chapter closes with **Deferred Refinements** — additions and methodology 
 
 Every figure a slot prints is read from one of three places, with provenance attached:
 
-- **The market-state object** — the three dials, the sixteen dimensions with state / direction / rate of change / percentile / confidence / horizon / supporting and contradicting signals, the contradiction table, the exceptions — recomputed by the EOD pass and versioned.
+- **The market-state object** — the three dials, the sixteen dimensions *[plan, 9 Oct 2026: v1 has eight]* with state / direction / rate of change / percentile / confidence / horizon / supporting and contradicting signals, the contradiction table, the exceptions — computed by the 16:45 close, its only writer, and versioned.
 - **The register** — open decisions, drafts, grades.
 - **The store** — observations as-of the slot's timestamp, stored events, the narrative register.
 
@@ -78,12 +95,12 @@ v1's tier structure (Preamble) is retained unchanged as the epistemics: Tier 1 c
 |---|---|---|---|---|---|
 | 1 — Narrative | §01–§03 | The narrative block (0.4) | — | Recap of narrative changes | **Ingested** events and the narrative register; no render-time news |
 | 2 — Carry-forward, overnight | §04–§05 | Full | 09:15 delta | Overnight → close reconciliation | Store: futures, regional closes, the overnight gap *attributed by session* |
-| 3 — Analytical core | §06–§12 | Full | Deltas at 09:15 / 10:30 / 15:00; 12:30 alert | Final read + recap | Exposure engine captures (16:10, 09:45, 12:30); state object; PM engine when built |
+| 3 — Analytical core | §06–§12 | Full | Deltas at 09:15 / 10:30 / 15:00; 12:30 alert *[plan, 9 Oct 2026]* | Final read + recap | Exposure engine captures (16:10; 09:45 and 12:30 *[plan, 9 Oct 2026]*); state object; PM engine when built |
 | 4 — Slow backdrop | §13–§17 | **Changes only** — a Tier 4 row prints when its state, percentile band, or extreme flag changed | — | Appendix: levels | State object dimensions; base-rate percentiles on every magnitude |
-| 5 — Trajectory and execution | §18–§23 | §22–§23 as **drafted packets** | 15:00's last-hour read | §18–§19 session trajectory; the grade | Register (drafts); exposure engine; store |
+| 5 — Trajectory and execution | §18–§23 | §22–§23 as **drafted packets** *[plan, 9 Oct 2026]* | 15:00's last-hour read | §18–§19 session trajectory; the grade | Register (drafts); exposure engine; store |
 | Positional | §20–§21, §24 | Prints only when a stored source exists; otherwise *absent, with the reason* | — | — | Crypto metrics from the store; congressional and IPO monitors only after events ingest (Phase 6c) |
 
-Two consequences for reading. **Levels no longer appear in the morning anchor for any metric whose half-life exceeds a day** — the change, the percentile, and the extreme flag do. And **§22–§23 are no longer prose.** Each setup is a packet in the register with `status: draft`, the four questions of *Options as Expression* answered (how far, by when, what implied volatility says, worst case), the expression named with its vertical numbers where applicable, the mechanism groups it cites (voted once, per Chapter 21), and its `base_rate_cited`.
+Two consequences for reading. **Levels no longer appear in the morning anchor for any metric whose half-life exceeds a day** — the change, the percentile, and the extreme flag do. And **§22–§23 are no longer prose** *[plan, 9 Oct 2026: no setup is yet drafted into the register]*. Each setup is a packet in the register with `status: draft`, the four questions of *Options as Expression* answered (how far, by when, what implied volatility says, worst case), the expression named with its vertical numbers where applicable, the mechanism groups it cites (voted once, per Chapter 21), and its `base_rate_cited`.
 
 ### 0.4 The news and narrative scan — a first-class block
 
@@ -95,7 +112,7 @@ v1 treated Tier 1 as contamination to be fenced. v2 keeps the fence — Tier 1 n
 
 ### 0.5 Length
 
-There are no word counts. The budget for *repetition* is zero — a metric is not reprinted when only its change matters — and the budget for *insight* is whatever the insight needs. The 07:00 narrative block and the Sunday reflection run long when warranted. The discipline that replaces a count: **the first screen answers "what changed and does it matter"; the depth follows.** Conditionals and the close anchor are terse because they are deltas; a long conditional is a failed exception gate.
+*[Superseded 2 October 2026: each stacked report now has a ruled prose budget and chart cap, and the close's is the smallest.]* There are no word counts. The budget for *repetition* is zero — a metric is not reprinted when only its change matters — and the budget for *insight* is whatever the insight needs. The 07:00 narrative block and the Sunday reflection run long when warranted. The discipline that replaces a count: **the first screen answers "what changed and does it matter"; the depth follows.** Conditionals and the close anchor are terse because they are deltas; a long conditional is a failed exception gate.
 
 ### 0.6 Generation — payload, prose, audit
 
@@ -105,11 +122,11 @@ Every slot is produced in three stages, and the middle one is mandatory:
 2. **Prose** — the reasoning model, over the payload only, model pinned per slot, model version recorded on the artifact.
 3. **Numeral audit** — every number in the prose matched to a number in the payload; a mismatch fails the slot to its data-only edition.
 
-No slot ships prose until the numeral audit exists. Until then the close anchor ships as the data-only edition — the D4c pattern — and the CI check that fails the build on any narrative import in the data-only path stays in force. **A Daily that can invent a number is worse than no Daily.**
+No slot ships prose until the numeral audit exists. Until then the close anchor ships as the data-only edition — the D4c pattern — and the CI check that fails the build on any narrative import in the data-only path stays in force. *[As of 9 October 2026 the audit exists, with the checks built beside it, and the 07:00 and 16:45 anchors ship prose behind them; a withheld paragraph leaves the data-only edition of its section.]* **A Daily that can invent a number is worse than no Daily.**
 
 ### 0.7 Delivery, archive, and grading
 
-Every slot is delivered by HTML email rendered in the message body, written to the archive *before* the socket is opened (the durable copy exists even if delivery fails), and recorded as a state row so the heartbeat knows it ran; a missed anchor is a non-healthy verdict. The shadow grader scores every drafted setup at its horizon whether or not it was traded, cut by regime, and the Sunday anchor prints the trailing calibration of each owning slot — which is how a slot earns or loses its publish right. v1's Chapter 24 put "the outcome-logging layer" first in its backlog and said every other refinement's value is unmeasurable without it. v2 makes it the architecture.
+Every slot is delivered by HTML email rendered in the message body, written to the archive *before* the socket is opened (the durable copy exists even if delivery fails), and recorded as a state row so the heartbeat knows it ran; a missed anchor is a non-healthy verdict. The shadow grader *[plan, 9 Oct 2026, for setups]* scores every drafted setup at its horizon whether or not it was traded, cut by regime, and the Sunday anchor prints the trailing calibration of each owning slot — which is how a slot earns or loses its publish right. v1's Chapter 24 put "the outcome-logging layer" first in its backlog and said every other refinement's value is unmeasurable without it. v2 makes it the architecture.
 
 ### 0.8 What the Daily no longer does
 

@@ -428,6 +428,109 @@ def contradiction_table(payload: dict) -> str:
             f'exception is report-only: this repo has no exceptions alert path.</p>')
 
 
+def _z_cell(v) -> str:
+    try:
+        return f"{float(v):+.1f}"
+    except (TypeError, ValueError):
+        return "state mismatch"
+
+
+def _plain_num(v, fmt: str) -> str:
+    """A number formatted for a stack table, which escapes its own cells: the
+    raw value, unescaped, when it is not a number; the dash when there is none."""
+    if v is None or v == "":
+        return "—"
+    try:
+        return format(float(v), fmt)
+    except (TypeError, ValueError):
+        return str(v)
+
+
+# The market's words for the three dials (the prose's rule: "dealer gamma",
+# "the volatility regime", "the macro regime" -- never "dial").
+DIAL_NAMES = {"gamma": "Dealer gamma", "vol": "Volatility regime",
+              "macro": "Macro regime"}
+
+
+def _cap(s: str) -> str:
+    return s[:1].upper() + s[1:] if s else s
+
+
+def detail_tables(payload: dict) -> list[dict]:
+    """THE STACKED CLOSE'S DETAIL TABLES (ruled 6 Oct 2026; built T2.6): the
+    state table and the contradiction table, after section 10, as detail blocks
+    for stack_render.details_html -- plain tables in the stack's styles, never
+    the classic edition's HTML.
+
+    READ, NEVER RECOMPUTED. Every cell is the object's own field: the payload
+    carries the object regime.latest() returned (daily_cascade/payload.py), and
+    this function does no arithmetic on it beyond formatting. Names print in
+    their display labels; an absent dimension or pair prints "absent" and its
+    reason goes to the block's footnote, a fault labelled as one."""
+    from altdata import labels                                  # noqa: PLC0415
+    obj = payload.get("market_state")
+    if not obj:
+        return [{"title": "Market state",
+                 "notes": ["No market-state object for this session: the close "
+                           "pass did not compute one, and no report recomputes it."]}]
+    from .readability import stamp_et                           # noqa: PLC0415
+    parts = [f"The market-state object for {obj.get('session')}"]
+    if obj.get("schema_version"):
+        parts.append(f"schema {obj['schema_version']}")
+    if obj.get("config_version"):
+        parts.append(f"config {obj['config_version']}")
+    if obj.get("computed_at"):
+        parts.append(f"computed {stamp_et(obj['computed_at'])}")
+    stamp = ", ".join(parts) + "; read from the store, not recomputed."
+    dials, absent = [], []
+    for name, d in (obj.get("dials") or {}).items():
+        dn = DIAL_NAMES.get(name) or _cap(labels.plain(name))
+        if d.get("state") is None:
+            dials.append([dn, "absent", "—"])
+            absent.append(f"{dn}: {_why(d)}")
+        else:
+            dials.append([dn, str(d["state"]),
+                          _plain_num(d.get("level"), ",.2f")])
+    dims = []
+    for name, d in (obj.get("dimensions") or {}).items():
+        if d.get("state") is None:
+            dims.append([_cap(labels.plain(name)), "absent", "—", "—", "—", "—"])
+            absent.append(f"{_cap(labels.plain(name))}: {_why(d)}")
+            continue
+        contra = d.get("contradicting") or []
+        contra = [contra] if isinstance(contra, str) else list(contra)
+        dims.append([_cap(labels.plain(name)), str(d["state"]),
+                     _plain_num(d.get("percentile"), ".1f"),
+                     str(d.get("direction") or "—"),
+                     str(d.get("confidence") or "—"),
+                     ", ".join(labels.plain(c) for c in contra) or "—"])
+    state = {"title": "Market state: the dials and the dimensions",
+             "table": {"columns": ["Dial", "State", "Level"], "rows": dials},
+             "tables": [{"columns": ["Dimension", "State", "Percentile", "Direction",
+                                     "Confidence", "Contradicting"], "rows": dims}],
+             "notes": [stamp] + (["Absent: " + "; ".join(absent) + "."]
+                                 if absent else [])}
+    rows, gone = [], []
+    for r in obj.get("contradictions") or []:
+        name = _cap(labels.contradiction(r.get("id")))
+        if r.get("open_state") == "absent":
+            rows.append([name, "absent", "—", "—", "—"])
+            gone.append(f"{name}: {_why(r)}")
+            continue
+        rows.append([name, str(r.get("open_state") or "—")
+                     + (" (exception)" if r.get("exception") else ""),
+                     _z_cell(r.get("magnitude")),
+                     "—" if r.get("persistence_days") is None
+                     else str(r.get("persistence_days")),
+                     str(r.get("since") or "—")])
+    contra_block = {"title": "The contradiction table",
+                    "table": {"columns": ["Pair", "State", "Gap z", "Days", "Since"],
+                              "rows": rows},
+                    "notes": (["Absent: " + "; ".join(gone) + "."] if gone else [])
+                    + ([] if rows else ["No contradiction table on this object."])}
+    return [state, contra_block]
+
+
 def text_lines(payload: dict) -> list[str]:
     """The same block for the plain-text fallback."""
     obj = payload.get("market_state")

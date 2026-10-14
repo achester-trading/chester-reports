@@ -59,6 +59,16 @@ metrics:
   pm.implied: "prediction-market odds"
   yfinance.mkt_spy: "SPY"
   yfinance.mkt_vix: "the VIX"
+  # The Monthly's theme families (T3.5): their tables printed the store key
+  # ("yfinance.mkt_gld") as the row name, and every paragraph naming it was
+  # withheld for an internal id.
+  yfinance.mkt_gld: "the gold fund (GLD)"
+  yfinance.mkt_slv: "the silver fund (SLV)"
+  yfinance.mkt_uso: "the oil fund (USO)"
+  yfinance.mkt_btc_usd: "bitcoin (BTC-USD)"
+  zec.shielded_value_share: "Zcash's shielded share of supply"
+  zec.price_usd: "Zcash (ZEC-USD)"
+  zec.crypto_cap_share: "Zcash's share of crypto market cap"
 
 # -----------------------------------------------------------------------------
 # PLAIN LANGUAGE (T2.2, ruled 4 Oct 2026, item 2). The prose may describe these
@@ -141,12 +151,40 @@ glossary:
   - term: "z"
     text: "how many standard deviations a reading sits from its own average; 2.0 is further out than about 95% of its history."
   - term: "gap z-score"
-    text: "how unusual today's distance between two markets is against that pair's own history; rising means the gap is widening, falling means it is closing."
+    text: "how unusual today's distance between two markets is against that pair's own history over a five-year window: each market is standardised over the window, and the z is of the gap between them, so it measures how far apart the two have drifted in all -- a cumulative divergence -- not the week's move. Rising means the gap is widening, falling means it is closing."
   - term: "pending, open, exception"
     text: "pending: a reading has crossed its line but not for long enough to count; open: a gap wide for at least two sessions; exception: a gap open five sessions or more, or a reading at a five-year extreme."
-  - term: "outside 10–90%"
-    text: "prediction-market odds this far from even are known to be mispriced at the level, so the change is read, not the level."
+  # W-1.1 (ruled 11 Oct 2026): the integrity tranche's terms.
+  - term: "gap since, open since, exception since"
+    text: "a gap's three dates: when it crossed its line (its age -- \"open n sessions\" counts from here), when it had held long enough to open, and when it became an exception. A gap measured for eight sessions and promoted to an exception this week shows all three."
+  - term: "favourite–longshot check"
+    text: "a flag, not a verdict: prediction markets tend to overprice longshots and underprice favourites, so a price below 10% or above 90% is read for its change more than its level."
+  - term: "legs sum, normalised"
+    text: "a meeting's hold, hike and cut contracts on one prediction market are separate contracts whose prices need not add to 100%; where they do not, the raw sum prints (\"legs sum 108%\") and each side's price prints beside its share of that sum."
+  - term: "illiquid"
+    text: "a prediction-market contract whose bid and ask are more than 10 points apart; its mid is a guess between two distant quotes."
+  - term: "mid"
+    text: "a prediction market's price is the midpoint of its best bid and ask where both are quoted, the last trade otherwise; comparisons between prediction markets use mids."
+  - term: "stale since, lag"
+    text: "\"stale since\" marks a price whose last bar is older than the edition's session; \"lag\" marks a series published on a known delay (TIC, monthly), with the period it covers and the day it was released."
+  - term: "the week's return"
+    text: "close to close: the last close of the week over the last close of the week before, from the same daily bars everywhere it prints. The overnight and cash-session legs compound to it unrounded."
+  - term: "tail"
+    text: "an auction's high yield above the when-issued yield at the bid deadline. No free source publishes the when-issued yield, so the tail is not stored and the report does not say an auction tailed."
+  - term: "events alongside the session"
+    text: "what happened on the same day as each session's move -- releases, Fed speakers, auctions, the most-cited story. Coincidence, not cause: an outlet's explanation is printed as that outlet's."
   - term: "base rate"
     text: "how often the outcome happened in the stored history under the same rule, with the count of cases (n); a frequency, not a forecast."
   - term: "Brier"
     text: "a score for probability calls: the average squared gap between the stated probability and what happened; 0 is perfect, 0.25 is what always saying 50% scores."
+  # T2.6 (8 Oct 2026): the Monthly's terms. The flag thresholds quoted here are
+  # config/reporting_stack.yaml `dealer_flags` and the retrospective's floor;
+  # tools/validate_stack_cadence.py holds these sentences to those values.
+  - term: "Slow layers"
+    text: "the Monthly's eleventh section: valuation, base rates, tail risks and the long-running themes — the readings that move over months, printed as levels and frequencies, never as signals."
+  - term: "pinned, held, amplified"
+    text: "a session's dealer flags, computed from the stored close and never judged: pinned, SPY closed within 0.25% of max pain; held, the session's high came within 0.25% of the morning's call wall (or its low of the put wall) and the close stayed inside it; amplified, price crossed the morning's gamma flip and the session's range was at least 1.2 times the one-day range implied by volatility. A flag is left blank when an input is missing, never guessed."
+  - term: "IV check"
+    text: "marks a session on which SPY's own 30-day at-the-money implied volatility and the VIX differ by more than 5 volatility points; both are printed side by side and neither is chosen. The implied range uses SPY's own volatility when it is stored, and the VIX, labelled as a proxy, when it is not."
+  - term: "hit rate"
+    text: "in the Monthly's dealer retrospective, how often a flag was set over the sessions on which it could be computed — a count over a count; below 20 scored sessions the section prints \"insufficient sessions\" and no rate."

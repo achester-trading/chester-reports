@@ -99,7 +99,8 @@ def universe() -> list[str]:
 
 def read_one(symbol: str) -> dict:
     """The declared fields for one name. Absent fields are ABSENT, not zero."""
-    import yfinance as yf
+    from altdata import import_yfinance
+    yf = import_yfinance()
     info = yf.Ticker(symbol).info or {}
     out: dict[str, float] = {}
     for key, field in FIELDS.items():

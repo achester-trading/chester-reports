@@ -31,6 +31,11 @@ WHEN IT RUNS, AND WHY TWICE
          every session from 28 Sep: systemd killed the pass before the
          overnight fetch it exists for ever ran. FRED and the other writers
          publish in the US day, so the 16:10 pull is the one that sees them.
+         Then, in the same pass, `pull --only loggers` -- the loggers' ONE
+         scheduled run. 16:10 skips them and so does --early, and from 30 Sep
+         to 6 Oct that left them running nowhere (INC-9).
+         tools/validate_feeds_scheduled.py fails a commit in which any feed in
+         FEEDS has no scheduled runner.
 
 Two pulls a day of the same window is deliberate duplication, and it is cheap:
 the observation store is append-only with a vintage key, so a re-pull of an
@@ -101,7 +106,27 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # ST-2: the external position and the funding-currency stack
                     "tic", "safe", "mof", "cfets", "cftc",
                     # ST-2: oil stocks and the expectations surveys
-                    "eia", "fedboard", "nyfed_sce")
+                    "eia", "fedboard", "nyfed_sce",
+                    # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
+                    # republishes it (the Quarterly's oil chapter)
+                    "eia_rigs",
+                    # AQ-3 part 2: the daily Bund (Bundesbank), the monthly
+                    # Bund/OAT/BTP (the ECB data portal), and China's 70-city
+                    # prices, starts and sales (the NBS English releases)
+                    "bundesbank", "ecb_irs", "nbs",
+                    # AQ-3 part 2, THAILAND (namespace thailand, never a trigger):
+                    # the BoT policy rate, TPSO's CPI, MOTS's arrivals, NESDC's GDP
+                    "bot", "tpso", "mots", "nesdc",
+                    # 10 Oct 2026: central-bank gold by country (IMF IL)
+                    "imf_ifs",
+                    # AQ-9a (11 Oct 2026): the EM scorecard's sources, then its
+                    # derived lenses, which read what the four just wrote -- the
+                    # order of this tuple is the order they run in
+                    "imf_weo", "imf_em", "bis_cbpol", "wb_qeds", "em_lenses",
+                    # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
+                    # buyback operations (SR-33), Japan's reserves and the Fed's
+                    # FIMA repo line (SR-34, both in tic.*)
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -118,12 +143,26 @@ EARLY_WRITERS = ("mof", "cfets")
 # issuer. A separate group so the freshness roster reports them separately: a
 # stale Ken French file is not the same news as a stale TIC release. Same step,
 # same pass, same entry point; no second unit.
+# LBMA left on 9 Oct 2026 (A-4): prices.lbma.org.uk answers 403 and its
+# robots.txt 401, and FRED dropped the IBA gold series in January 2022. Its
+# parser stays, unscheduled; the themes read the COMEX front future
+# (yfinance.mkt_gold_front) under its own name.
 EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
-                    "lbma", "finra", "proshares",
+                    "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
-                    "aaii")
+                    "aaii",
+                    # SR-38 (13 Oct 2026): S&P DJI's EPS workbook, from the
+                    # operator's monthly drop (inbox only)
+                    "spdji",
+                    # AQ-3 part 1 (11 Oct 2026), the Quarterly's structure rows:
+                    # GLD's archive (inbox; its API host disallows robots), the
+                    # iShares gold, silver and bitcoin trusts' share counts, SHFE
+                    # weekly metal stocks, and USD/CNH's New York close
+                    "spdr_gld", "ishares_trusts", "shfe", "cnh",
+                    # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
+                    "thai_set")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -252,6 +291,22 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
 # import contributes its KEYS (read from source), and a pull skipped for a
 # missing key counts too -- the module's rule is that a missing FRED_API_KEY
 # surfaces as the series going stale, and "pending" would hide it forever.
+#
+# NOT YET DUE IS PENDING (T2.6, 8 Oct 2026). The published-file writers (official,
+# external) also record, per key, the FIRST attempt and whether the writer FAILED
+# (a fetch error, a parse error, an import failure: status not OK). An absent key
+# whose writer failed is STALE, with the writer's reason -- AAII's HTTP 403 is a
+# fault, not a calendar. An absent key whose writer ran cleanly is the source not
+# having published it yet: PENDING, until a full staleness allowance (the key's
+# own cadence x the multiple) has passed since its first attempt, after which it
+# is STALE ("no row in N sessions of clean pulls"). A family that records no
+# outcomes (prices, FRED, the loggers) keeps the rule above.
+#
+# NEVER YET DROPPED IS PENDING (13 Oct 2026, ruled for SR-38). An inbox writer
+# whose file has never arrived returns PENDING, not STALE (_publication.PENDING),
+# and its keys are recorded as `awaiting`: listed pending ("no file yet"), with
+# no allowance running, until the first drop writes them. AAII keeps its STALE
+# precedent; this is the rule for a source never yet dropped.
 ATTEMPTED_FILE = "feeds_attempted.json"
 
 
@@ -276,7 +331,53 @@ def read_attempted() -> Optional[dict]:
     return {k: list((v or {}).get("keys") or []) for k, v in d.items()}
 
 
-def record_attempted(family: str, keys: list[str], merge: bool = False) -> None:
+def read_attempt_outcomes() -> dict:
+    """{family: {"first": {key: iso}, "failed": {key: reason},
+    "awaiting": {key: reason}, "outcomes": bool}}
+    for the families that record outcomes; {} when nothing is recorded."""
+    import json
+    try:
+        d = json.loads((_state_dir() / ATTEMPTED_FILE).read_text(encoding="utf-8"))
+    except Exception:                                         # noqa: BLE001
+        return {}
+    return {k: {"first": dict((v or {}).get("first") or {}),
+                "failed": dict((v or {}).get("failed") or {}),
+                "awaiting": dict((v or {}).get("awaiting") or {}),
+                "outcomes": bool((v or {}).get("outcomes"))}
+            for k, v in d.items() if isinstance(v, dict)}
+
+
+def writer_failures(mods: list, out: dict) -> dict:
+    """{key: reason} for every key of a writer whose pull did not return OK."""
+    failed: dict[str, str] = {}
+    for name, mod in mods:
+        r = out.get(name) or {}
+        if r.get("status") in ("OK", "PENDING"):
+            continue
+        why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
+        for k in _keys([(name, mod)]):
+            failed[k] = why[:160]
+    return failed
+
+
+def writer_awaiting(mods: list, out: dict) -> dict:
+    """{key: reason} for every key of a writer whose pull returned PENDING: a
+    source never yet dropped (13 Oct 2026). Its keys stay pending, with no
+    allowance running, until the first drop writes them."""
+    awaiting: dict[str, str] = {}
+    for name, mod in mods:
+        r = out.get(name) or {}
+        if r.get("status") != "PENDING":
+            continue
+        why = f"{name}: {r.get('reason') or 'never yet dropped'}"
+        for k in _keys([(name, mod)]):
+            awaiting[k] = why[:160]
+    return awaiting
+
+
+def record_attempted(family: str, keys: list[str], merge: bool = False,
+                     failed: Optional[dict] = None,
+                     awaiting: Optional[dict] = None) -> None:
     """Merge one family's attempted keys into the file. Never raises: a pull that
     wrote its rows must not fail on its bookkeeping.
 
@@ -293,8 +394,28 @@ def record_attempted(family: str, keys: list[str], merge: bool = False) -> None:
             cur = json.loads(p.read_text(encoding="utf-8"))
         except Exception:                                     # noqa: BLE001
             cur = {}
-        prior = set(((cur.get(family) or {}).get("keys") or [])) if merge else set()
-        cur[family] = {"keys": sorted(prior | set(keys)), "at": session.utc_iso()}
+        was = cur.get(family) or {}
+        prior = set(was.get("keys") or []) if merge else set()
+        now = session.utc_iso()
+        entry = {"keys": sorted(prior | set(keys)), "at": now}
+        if failed is not None:
+            # OUTCOMES (T2.6): the first attempt per key is kept across pulls; the
+            # failures are this pull's, merged over the prior ones for the keys a
+            # partial pull did not try.
+            first = dict(was.get("first") or {})
+            for k in keys:
+                first.setdefault(k, now)
+            old = dict(was.get("failed") or {}) if merge else {}
+            for k in keys:
+                old.pop(k, None)
+            old.update(failed)
+            wait = dict(was.get("awaiting") or {}) if merge else {}
+            for k in keys:
+                wait.pop(k, None)
+            wait.update(awaiting or {})
+            entry.update({"outcomes": True, "first": first, "failed": old,
+                          "awaiting": wait})
+        cur[family] = entry
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
         tmp.replace(p)
@@ -361,7 +482,9 @@ def pull_official(run_id: Optional[str] = None,
     """
     mods = _official_modules() if names is None else _writer_modules(names)
     out = _pull_writers(mods, run_id)
-    record_attempted("official", _keys(mods), merge=names is not None)
+    record_attempted("official", _keys(mods), merge=names is not None,
+                     failed=writer_failures(mods, out),
+                     awaiting=writer_awaiting(mods, out))
     return out
 
 
@@ -369,12 +492,14 @@ def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
     mods = _writer_modules(EXTERNAL_WRITERS)
     out = _pull_writers(mods, run_id)
-    record_attempted("external", _keys(mods))
+    record_attempted("external", _keys(mods), failed=writer_failures(mods, out),
+                     awaiting=writer_awaiting(mods, out))
     return out
 
 
 def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
-    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": []}
+    out: dict[str, Any] = {"ran": [], "total": 0, "written": 0, "stale": [],
+                           "pending": []}
     for name, mod in mods:
         out["ran"].append(name)
         out["total"] += 1
@@ -391,7 +516,9 @@ def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
                  "written": 0}
         out[name] = r
         out["written"] += int(r.get("written") or 0)
-        if r.get("status") != "OK":
+        if r.get("status") == "PENDING":
+            out["pending"].append(name)
+        elif r.get("status") != "OK":
             out["stale"].append(name)
     return out
 
@@ -486,6 +613,24 @@ def pull_fed_funds(run_id: Optional[str] = None) -> dict:
     return out
 
 
+# THE EARLY SET'S SKIPS. Named rather than inlined in pull() so that
+# tools/validate_feeds_scheduled.py can ask what `--early` leaves out instead of
+# keeping its own copy -- a fixed set that silently dropped the loggers is the
+# reason that gate exists (INC-9).
+EARLY_SKIP = ("fred", "external", "loggers", "bars", "fed_funds")
+
+
+def selection(only: Optional[str] = None, skip: tuple[str, ...] = (),
+              early: bool = False) -> tuple[str, ...]:
+    """The feeds a pull with these arguments runs, in FEEDS order. The one
+    answer to "does this invocation run feed X", shared by pull() and the
+    scheduling gate."""
+    if early:
+        only, skip = None, EARLY_SKIP
+    return tuple(n for n in FEEDS
+                 if not (only and only != n) and n not in skip)
+
+
 def pull(only: Optional[str] = None, run_id: Optional[str] = None,
          skip: tuple[str, ...] = (), early: bool = False) -> dict:
     """Run the feeds. `early` is the 06:45 correction set: the prices and the
@@ -493,7 +638,7 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
     out: dict[str, Any] = {"ran": [], "skipped": []}
     if early:
         only = None
-        skip = ("fred", "external", "loggers", "bars", "fed_funds")
+        skip = EARLY_SKIP
     for name, fn in (("prices", pull_prices), ("fred", pull_fred),
                      ("official", (lambda run_id: pull_official(run_id, EARLY_WRITERS))
                       if early else pull_official),
@@ -547,11 +692,13 @@ def freshness(as_of: Optional[str] = None,
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
         attempted = read_attempted()
+        outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
         for name, keys in rosters:
             absent, stale, fresh, pending = [], [], [], []
-            detail = {}
+            detail, pdetail = {}, {}
             tried = set((attempted or {}).get(name) or [])
+            oc = outcomes.get(name) or {}
             if not keys:
                 out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
                                       "absent": 0, "pending": 0, "stale_keys": [],
@@ -577,20 +724,49 @@ def freshness(as_of: Optional[str] = None,
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
-                        if k in tried:
+                        if k not in tried:
+                            pending.append(k)
+                            pdetail[k] = "no pull has tried it yet"
+                        elif not oc.get("outcomes"):
                             stale.append(k)
                             detail[k] = "attempted, nothing written"
-                        else:
+                        elif k in oc["failed"]:
+                            stale.append(k)
+                            detail[k] = f"never written; the writer failed ({oc['failed'][k]})"
+                        elif k in oc.get("awaiting", {}):
+                            # NEVER YET DROPPED (13 Oct 2026): a clean, empty
+                            # run. Pending, with no allowance running, until the
+                            # first drop writes the key.
                             pending.append(k)
+                            pdetail[k] = f"no file yet ({oc['awaiting'][k]})"
+                        else:
+                            # THE WRITER RAN CLEANLY: the source has not
+                            # published it. Pending while its next release is
+                            # not yet due -- one allowance since the first try.
+                            first = str(oc["first"].get(k) or "")[:10]
+                            allow, _w = derived.staleness_allowance(k)
+                            lim = None if allow is None else int(round(allow * multiple))
+                            n = (_sessions_between(first, last)[0]
+                                 if first and first <= last else 0)
+                            if lim is not None and first and n > lim:
+                                stale.append(k)
+                                detail[k] = (f"never written; no row in {n} sessions "
+                                             f"of clean pulls, limit {lim}")
+                            else:
+                                pending.append(k)
+                                pdetail[k] = (f"not yet published; first tried "
+                                              f"{first or 'n/a'}, due within "
+                                              f"{lim if lim is not None else 'any'} "
+                                              f"sessions")
                         continue
                     rows = [{"observed_at": newest_any}]
                 newest = str(rows[-1]["observed_at"])[:10]
                 n, _ = _sessions_between(newest, last)
-                own, _why = derived.staleness_allowance(k)
+                allow, _why = derived.staleness_allowance(k)
                 # half_life permanent cannot go stale -- a graded outcome does not
                 # decay -- so such a series is fresh by definition rather than by
                 # a number nobody can choose.
-                limit = None if own is None else int(round(own * multiple))
+                limit = None if allow is None else int(round(allow * multiple))
                 if limit is not None and n > limit:
                     stale.append(k)
                     detail[k] = f"{n} sessions, limit {limit}"
@@ -604,6 +780,7 @@ def freshness(as_of: Optional[str] = None,
                 "stale_detail": {k: detail[k] for k in sorted(detail)[:8]},
                 "absent_keys": sorted(absent)[:8],
                 "pending_keys": sorted(pending)[:8],
+                "pending_detail": {k: pdetail[k] for k in sorted(pdetail)[:8]},
                 # OK = NO STALE KEYS. A pending key is a key no pull has tried.
                 "ok": not stale}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())
@@ -620,6 +797,7 @@ def _sessions_between(a: str, b: str) -> tuple[int, str]:
 
 
 def format_freshness(r: dict) -> str:
+    """The one-line summary: per family, fresh of expected, then the counts."""
     bits = []
     for name, f in (r.get("feeds") or {}).items():
         bits.append(f"{name}={f['fresh']}/{f['expected']}"
@@ -627,6 +805,26 @@ def format_freshness(r: dict) -> str:
                     + (f" absent:{f['absent']}" if f["absent"] else "")
                     + (f" pending:{f.get('pending', 0)}" if f["absent"] else ""))
     return f"session={r.get('session')} " + " ".join(bits)
+
+
+def named_keys(r: dict) -> list[str]:
+    """THE SERIES BEHIND THE COUNTS (T2.6): one line per stale key and per
+    pending key, family first, with why -- what the 08:30 verdict names. The
+    vocabulary is this module's and only this module's: STALE (due and not
+    current, or a writer that failed), PENDING (not yet due, or never tried).
+    An absent key is one or the other, and says which. At most eight per family
+    (the JSON's own cap); the counts above carry the rest."""
+    out = []
+    for name, f in (r.get("feeds") or {}).items():
+        absent = set(f.get("absent_keys") or [])
+        for k in f.get("stale_keys") or []:
+            out.append(f"stale {name} {k}"
+                       + (" (absent)" if k in absent else "")
+                       + f": {(f.get('stale_detail') or {}).get(k) or 'stale'}")
+        for k in f.get("pending_keys") or []:
+            out.append(f"pending {name} {k} (absent): "
+                       f"{(f.get('pending_detail') or {}).get(k) or 'pending'}")
+    return out
 
 
 def _main(argv: list[str]) -> int:
@@ -696,8 +894,14 @@ def _main(argv: list[str]) -> int:
         return 0                      # a feed failure is stale data, not a crash
 
     r = freshness(as_of=a.as_of)
-    print(json.dumps(r, indent=2, sort_keys=True) if a.json
-          else format_freshness(r))
+    if a.json:
+        print(json.dumps(r, indent=2, sort_keys=True))
+    else:
+        # THE SUMMARY, THEN THE NAMES (T2.6): the heartbeat logs every line and
+        # puts the first in its verdict, with the stale names after it.
+        print(format_freshness(r))
+        for ln in named_keys(r):
+            print(f"  {ln}")
     return 0 if r["ok"] else 1
 
 

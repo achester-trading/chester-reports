@@ -411,8 +411,9 @@ heartbeat is exactly the alarm wanted.
 ### Exit codes
 
 `0` healthy · `1` stale · `2` no heartbeat ever · `3` last run failed · `8`
-healthy but installed units have drifted from the repo · `9` the check itself
-could not run. That last one is deliberately outside the
+healthy but installed units have drifted from the repo · `14` healthy but a
+deploy installed a changed unit that is still running the old file (restart
+pending, section 12) · `9` the check itself could not run. That last one is deliberately outside the
 checker's range: "the monitor is broken" must not read as "the pipeline
 failed", or somebody debugs the wrong machine.
 
@@ -658,6 +659,25 @@ named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
 prune is logged and named in the status line; it does not fail the backup.
 Drive moves deleted files to its trash, where they stay 30 days.
 
+**Two files come back (AAII 10 Oct, S&P DJI 13 Oct 2026).** After the trees and
+the prune, the sweep copies exactly two named files the other way, each through
+`pull_inbox_file <folder> <name>`: `<remote>:chester-vendor-checks/<folder>/<name>`,
+where `<remote>` is `CHESTER_RCLONE_REMOTE`'s remote name with its path replaced,
+into `~/chester-data/inbox/<folder>/<name>`.
+
+| Folder | File | What it is |
+|---|---|---|
+| `aaii` | `aaii-weekly.csv` | the AAII weekly row the chat-side task appends each Thursday (`docs/scheduled-tasks.md`) |
+| `spdji` | `sp-500-eps-est.xlsx` | S&P DJI's EPS workbook, which Ari downloads in a browser and drops monthly (`altdata/sources/spdji.py`) |
+
+Each is an `rclone copyto` of that file and nothing else, so an inbox only gains
+or overwrites it; `copyto` carries Drive's modification time over, which the S&P
+DJI reader takes as the drop time. An absent remote file is a logged skip, and
+neither outcome touches the sweep's exit code. The unit lets the sweep write
+`~/chester-data/inbox/aaii` and `~/chester-data/inbox/spdji` and nothing else
+under `~/chester-data`; both directories must exist before the sweep starts
+(`mkdir -p` each once).
+
 Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
 venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep
@@ -838,6 +858,47 @@ ssh vps 'm=~/chester-data/.migrated; echo "new store, files written since migrat
 Healthy is **a positive first count and a zero second count**; the third stays
 at its pre-migration value (the old untracked copies remain until you remove
 them — by hand, once you are satisfied; nothing here deletes them).
+
+## 12. The self-deploy (A-4, 9 Oct 2026)
+
+A push to main reaches the box's **code** at the next timer run, because every
+wrapper pulls first. Unit files used to wait for somebody to run
+`scripts/deploy.sh` from the laptop. `chester-deploy.timer` closes that gap:
+
+- **When.** Every 30 minutes, inside the operating windows only: weekdays
+  09:05–15:35 and 17:20–23:20 ET (firings), weekends on the half hour except
+  Sunday 04:00–06:59 around the 05:00 Weekly. `Persistent=false`, so a missed
+  tick is never caught up at boot. `scripts/run_self_deploy.sh` checks the
+  window again in ET before it touches anything.
+- **What.** `git pull --ff-only`; then, only when `git rev-parse
+  HEAD:deploy/systemd` differs from `~/state/self_deploy_last_tree`, the box
+  half of the deploy, `scripts/deploy_remote.sh`: unit copy, `daemon-reload`,
+  `enable --now` of any `DEPLOY_TIMERS` entry not yet enabled, the drift check
+  and the heartbeat. The log is `~/logs/self_deploy-YYYY-MM.log`, and the last
+  outcome is in `~/state/self_deploy_status`.
+- **What it never does.** It never restarts, stops, disables, kills or masks a
+  unit. A changed unit that was **running** keeps the old file until it is
+  restarted, so the copy writes it to `~/state/alerts/restart_pending`:
+
+  ```
+  restart pending: chester-eod.timer copied_at=1791522132 (2026-10-09T10:05:12-04:00) commit=abc1234
+  ```
+
+  The heartbeat reads that ledger live and names the unit in its verdict
+  (`restart_pending=<units>`, exit 14 on an otherwise healthy box) until you
+  restart it:
+
+  ```bash
+  systemctl --user restart <unit>
+  ```
+
+  A line is resolved, and pruned at the next deploy, once the unit has become
+  active since the copy or is no longer active. The laptop deploy writes the
+  same ledger.
+
+**Install, once.** The first laptop deploy after the merge copies both units
+and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
+box keeps its own unit files current.
 
 ## Timezone note
 
@@ -1045,3 +1106,14 @@ is neither confirmed nor excluded.
 connection (`ssh -o BatchMode=yes vps 'bash -s' < scripts/deploy_remote.sh`),
 with the same printed sections and the same exit codes. `tools/validate_deploy.py`
 group H holds the one-connection shape.
+
+## The crypto basket writers (12 Oct 2026)
+
+`chester-crypto-basket.timer` runs `scripts/run_crypto_basket.sh` every day at
+17:25 ET: the twelve basket names' Yahoo closes and volume
+(`yfinance.crypto_<sym>`, `_volume`), DefiLlama's `llama.*` family
+(`python -m altdata.sources.llama pull`) and the derived series
+(`python -m altdata.crypto_basket derive`). No key. It is in `DEPLOY_TIMERS`, so
+the self-deploy enables it after the merge. Backfill first, once, by hand —
+the commands are in `docs/briefs/crypto-basket-notes.md`. The quarterly odds
+restatement is not a timer; it runs inside the Quarterly's own run.

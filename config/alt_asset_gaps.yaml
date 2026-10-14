@@ -1,0 +1,203 @@
+# THE GAPS -- the quarterly scan's standing search list (change order of 10 Oct
+# 2026, section 8, part 2: "the papers' Gaps sections are the standing search
+# list"; section 4.1 item 9: "what the system does not yet measure (the paper's
+# Gaps, standing)"). Read by the scan's prompt, docs/scans/PROMPT-alt-assets-
+# quarterly.md, every quarter.
+#
+# HOW IT WAS COMPILED (12 Oct 2026). The structural papers carry no section headed
+# "Gaps": the Disruptive Themes paper's 7.6 "The Gaps Register" is the library's
+# only formal one. Each family paper states its gaps in place -- "What is
+# uncertain", "Nobody's model contained ...", "is unknown" -- and the change
+# order names more. Every entry below is one such statement, `passage` copied
+# VERBATIM from its source (Markdown emphasis aside), so a gate can find it
+# (tools/validate_alt_asset_scan.py). Cited by the paper's name and section, never
+# by numeral (Library conventions, D1).
+#
+#   id        stable; a candidate series in the scan's part 3 names it
+#   family    the Quarterly chapter it serves
+#   gap       what the system does not measure, in one line
+#   source    the file the passage is in; `section` the heading it sits under
+#   passage   the source's own words
+#   search    what the scan looks for each quarter
+#
+# An entry leaves the list when a stored series or a sourced figure closes it --
+# by a commit that says which, never by the scan.
+version: "1.0"
+updated: "2026-10-12"
+
+gaps:
+  - id: china_true_gold
+    family: metals
+    gap: China's true official gold holdings, against the disclosed figure
+    source: docs/whitepapers/metals-whitepaper.md
+    section: "8. The Central Bank Bid Examined"
+    passage: "China's actual holdings are widely believed to exceed disclosed figures, though by an unknown margin."
+    search: "estimates of undisclosed PBOC/SAFE gold (WGC unreported-buying estimates, import data via Hong Kong and Swiss customs), and any SAFE disclosure change"
+
+  - id: cb_unreported_buying
+    family: metals
+    gap: Central-bank purchases reported against the WGC's estimate of actual buying
+    source: docs/whitepapers/metals-whitepaper.md
+    section: "8. The Central Bank Bid Examined"
+    passage: "Reported figures materially understate actual purchases, which means the true level is estimated rather than measured"
+    search: "the WGC's quarterly estimate of unreported central-bank demand against IMF IFS-reported purchases"
+
+  - id: sulfuric_acid
+    family: metals
+    gap: Sulfuric-acid supply and price as a binding input to SX-EW copper
+    source: docs/whitepapers/metals-whitepaper.md
+    section: "15. Copper Supply: Grades, Disruption, and the Acid Bottleneck"
+    passage: "Nobody's 2025 copper model contained a sulfuric acid variable."
+    search: "acid prices (Chile, China), China's acid export policy, SX-EW output guidance"
+
+  - id: smelter_caps
+    family: metals
+    gap: Smelter and refinery production caps -- the cathode bottleneck
+    source: docs/whitepapers/metals-whitepaper.md
+    section: "15. Copper Supply: Grades, Disruption, and the Acid Bottleneck"
+    passage: "creating what one analysis called a \"hidden bottleneck\""
+    search: "treatment and refining charges, China smelter output-cut agreements (CSPT), refinery outages"
+
+  - id: acid_export_policy
+    family: metals
+    gap: China's sulfuric-acid export policy
+    source: docs/whitepapers/metals-whitepaper.md
+    section: "Tier 4: Macro and Policy"
+    passage: "Sulfuric acid export policy from China."
+    search: "MOFCOM and customs notices on acid exports; export volumes"
+
+  - id: reachable_spare_capacity
+    family: oil_energy
+    gap: Spare capacity adjusted for reachability (what can reach market through open routes)
+    source: docs/whitepapers/energy-whitepaper.md
+    section: "30. The Signal Hierarchy"
+    passage: "spare capacity estimates adjusted for reachability"
+    search: "agency and desk estimates of spare capacity with the share behind constrained routes; Gulf export volumes"
+
+  - id: quota_vs_tanker
+    family: oil_energy
+    gap: OPEC+ quotas against tanker-tracked exports
+    source: docs/whitepapers/energy-whitepaper.md
+    section: "34. False Signals"
+    passage: "Quotas are announcements; tanker-tracked exports are facts."
+    search: "published tanker-tracking summaries (Kpler, Vortexa press notes) against the quota table; OPEC MOMR secondary sources"
+
+  - id: turbine_backlog
+    family: oil_energy
+    gap: Gas-turbine and transformer backlogs at the three manufacturers
+    source: docs/whitepapers/energy-whitepaper.md
+    section: "30. The Signal Hierarchy"
+    passage: "turbine and transformer backlog disclosures from the three manufacturers"
+    search: "GE Vernova, Siemens Energy and Mitsubishi Heavy backlog and slot-reservation disclosures in quarterly results"
+
+  - id: nondollar_oil
+    family: oil_energy
+    gap: Non-dollar oil settlement through the mBridge corridor
+    source: docs/whitepapers/energy-whitepaper.md
+    section: "24. Energy and the Dollar"
+    passage: "any move toward non-dollar oil settlement"
+    search: "Gulf producers' yuan-settled cargoes and mBridge participation announcements"
+
+  - id: mbridge_volumes
+    family: currency
+    gap: mBridge cross-border volumes
+    source: docs/whitepapers/currencies-whitepaper.md
+    section: "11. CBDCs and the Plumbing Question"
+    passage: "mBridge volumes remain small"
+    search: "BIS, PBOC and HKMA statements of mBridge transaction volumes; new participants"
+
+  - id: treasury_company_premium
+    family: crypto
+    gap: The digital-asset treasury companies' premium to holdings, and their capacity to issue
+    source: docs/whitepapers/digital-assets-whitepaper.md
+    section: "21. Reflexivity and the Cycle"
+    passage: "treasury companies lose their premium and their ability to issue"
+    search: "mNAV of the listed bitcoin and ether treasury companies; their issuance and any forced selling"
+
+  - id: developer_activity
+    family: crypto
+    gap: Developer activity
+    source: docs/change-order-alternative-assets-quarterly-2026-10-10.md
+    section: "4.6 Crypto"
+    passage: "developer activity (a named gap)"
+    search: "published developer reports (Electric Capital) and GitHub-activity summaries by chain"
+
+  - id: crypto_unknowns
+    family: crypto
+    gap: The asset class's open questions, stated as unknown
+    source: docs/whitepapers/digital-assets-whitepaper.md
+    section: "Purpose and How to Use This Document"
+    passage: "it is explicit about what is unknown."
+    search: "evidence on fee capture by layer and on the ETF bid's persistence -- the questions the paper names"
+
+  - id: private_credit_downturn
+    family: credit
+    gap: Private credit's behaviour in a sustained downturn
+    source: docs/whitepapers/credit-whitepaper.md
+    section: "The untested-cycle caveat"
+    passage: "private credit's behaviour in a sustained downturn is unknown"
+    search: "non-traded BDC redemption requests against caps, mark dispersion, non-accruals, PIK share"
+
+  - id: private_credit_marks
+    family: credit
+    gap: True loan-to-value behind manager marks
+    source: docs/whitepapers/credit-whitepaper.md
+    section: "13. Structure: BDCs, Evergreens, Interval Funds, Insurance, and the Retail Channel"
+    passage: "true loan-to-value is unknown."
+    search: "listed BDC discounts to NAV; manager mark dispersion on shared loans"
+
+  - id: em_credit
+    family: em
+    gap: EM credit -- the Credit paper does not cover it
+    source: docs/change-order-alternative-assets-quarterly-2026-10-10.md
+    section: "4.8 Credit"
+    passage: "EM credit is the Credit paper's named gap"
+    search: "EM sovereign and corporate spreads (ICE BofA, JPMorgan EMBI as published), defaults, IMF programmes"
+
+  - id: capacity_discipline
+    family: china
+    gap: Whether China's capacity discipline is enforced
+    source: docs/whitepapers/international-equities-whitepaper.md
+    section: "10.4 The trap: winning the industry is not the same as earning a return"
+    passage: "have begun signaling capacity discipline"
+    search: "utilisation and prices in solar, batteries and EVs; consolidation; State Council and MIIT notices -- each measure on the ladder"
+
+  - id: lgfv_three_channel
+    family: china
+    gap: The property/LGFV shock's three channels
+    source: docs/change-order-alternative-assets-quarterly-2026-10-10.md
+    section: "4.5 Emerging markets, with China in depth"
+    passage: "a property/LGFV shock points three ways at once"
+    search: "LGFV refinancing swaps, special bonds, land-sale revenue, the IMF Article IV's financial-stability read"
+
+  - id: two_bid_s12
+    family: metals
+    gap: The two-bid decomposition (the Gaps Register's S12 item)
+    source: docs/whitepapers/disruptive-themes-whitepaper.md
+    section: "7.6 The Gaps Register"
+    passage: "the two-bid decomposition → S12"
+    search: "official-sector buying (WGC, IMF IFS) against the paper bid (ETF shares, options) by quarter"
+
+  - id: divergence_s3c
+    family: oil_energy
+    gap: Disruption-price divergence automation (the Gaps Register's S3c item)
+    source: docs/whitepapers/disruptive-themes-whitepaper.md
+    section: "7.6 The Gaps Register"
+    passage: "divergence automation → S3c"
+    search: "chokepoint transit counts (IMF PortWatch) against Brent"
+
+  - id: deal_graph
+    family: intl_equities
+    gap: Deal-graph circularity (the Gaps Register's S8/S14 item)
+    source: docs/whitepapers/disruptive-themes-whitepaper.md
+    section: "7.6 The Gaps Register"
+    passage: "deal-graph circularity → S8/S14"
+    search: "vendor-financing and cross-investment disclosures among the AI supply chain's largest names"
+
+  - id: nitrogen_complex
+    family: agriculture
+    gap: The nitrogen complex and its lead on food CPI
+    source: docs/change-order-alternative-assets-quarterly-2026-10-10.md
+    section: "4.11 Agriculture"
+    passage: "with its 2–3-quarter lead on food CPI, a named GAP"
+    search: "Tampa ammonia, NOLA urea and DAP prices as published (USDA AMS, trade press), Gulf ammonia trade"

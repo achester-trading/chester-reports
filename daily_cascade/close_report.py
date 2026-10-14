@@ -350,9 +350,17 @@ def _stacked(args, p: dict, run_id: str, sess: str) -> int:
             if o["state"] == "computed" else f"skipped -- {o.get('reason')}"))
     stack_close.save_edition(ed, sess, args.archive_dir)
     name = f"daily_close_{sess}.html"
-    subject = f"[chester] Close {sess}"
+    # THE SUBJECT CARRIES THE CLAIM (T2.5 item 8): "Close — 2 Oct — <claim>".
+    from daily_cascade import readability  # noqa: PLC0415
+    subject = readability.subject("Close", readability.prose_date(sess), ed)
+    print(f"  subject    : {subject}")
+    print(f"  pdf        : {'built, ' if out.get('pdf') else 'NOT built -- '}"
+          f"{out.get('pdf_detail')}")
     if args.dry_run:
         path = delivery.archive(out["html_archive"], name, args.archive_dir)
+        if out.get("pdf"):
+            delivery.archive_bytes(out["pdf"], f"daily_close_{sess}.pdf",
+                                   args.archive_dir)
         res = {"archive_state": "archived" if path else "archive_failed",
                "archive_path": path, "delivery": "dry_run",
                "delivery_detail": "--dry-run"}
@@ -361,7 +369,8 @@ def _stacked(args, p: dict, run_id: str, sess: str) -> int:
                                text_fallback=render_mod.text_fallback(p),
                                archive_dir=args.archive_dir,
                                archive_html=out["html_archive"],
-                               inline_images=out["inline_images"])
+                               inline_images=out["inline_images"],
+                               pdf=out.get("pdf"))
     _write_watermark(p.get("grades") or {})
     print(f"\n  archive    : {res['archive_path'] or 'FAILED'}")
     print(f"  delivery   : {res['delivery']} ({res['delivery_detail']})")

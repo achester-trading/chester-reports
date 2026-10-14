@@ -44,6 +44,7 @@ from typing import Any, Optional
 
 from altdata import session
 from register import instruments
+from register import store as rstore
 
 log = logging.getLogger("register.reconcile")
 
@@ -132,7 +133,7 @@ def reconcile_executions(reg: Any, xs: Any, session_day: str,
     for ch in chains:
         by_root.setdefault(ch[-1]["instrument_norm"], []).append(ch)
     execs = xs.all() if hasattr(xs, "all") else xs
-    out = {"executions": 0, "written": 0, "matched": 0, "breaks": [],
+    out = {"executions": 0, "written": 0, "matched": 0, "breaks": [], "refused": [],
            "unchecked": []}
     # Net filled quantity per decision chain, to check side and size.
     filled: dict[str, float] = {}
@@ -185,10 +186,31 @@ def reconcile_executions(reg: Any, xs: Any, session_day: str,
         # INC-6: THE FILL'S CURRENCY AGAINST THE DECISION'S EXPRESSION CURRENCY.
         # The root matches SPY@MEXI.MXN to a SPY decision, which is exactly how a
         # peso fill was booked against a dollar view; the currency is what tells
-        # them apart. A pre-guard decision reads as USD.
-        fill_ccy = str(e.get("currency") or "").upper()
-        expr = str(dec.get("expression_currency") or "USD").upper()
-        if fill_ccy and fill_ccy != expr:
+        # them apart.
+        #
+        # AN EMPTY CURRENCY IS REFUSED, NEVER READ AS USD (INC-8, L-1). This read
+        # a pre-guard decision's empty expression currency as "USD" -- the same
+        # fallback INC-8 removed from the register's writes, still alive in the
+        # one place that judges fills. Each side falls back only to its own
+        # listing suffix (`@….MXN` -> MXN), the register's rule; with neither,
+        # the fill is not matched and says why. Refused is not a rule break:
+        # an unrecorded field is the record's gap, not the operator's.
+        fill_ccy = str(e.get("currency")
+                       or rstore.listing_currency(e.get("instrument")) or "").upper()
+        expr = str(dec.get("expression_currency")
+                   or rstore.listing_currency(dec.get("instrument")) or "").upper()
+        if not fill_ccy or not expr:
+            gap = " and ".join(
+                w for w, v in (("the fill's currency", fill_ccy),
+                               (f"decision {dec.get('id')}'s expression currency",
+                                expr)) if not v)
+            reason = (f"{e.get('side')} {e.get('qty')} {e.get('instrument')}: "
+                      f"{gap} is not recorded -- refused, not read as USD (INC-8)")
+            log.warning("refused %s: %s", eid, reason)
+            out["refused"].append({"exec_id": eid, "reason": reason,
+                                   "decision_id": dec.get("id")})
+            continue
+        if fill_ccy != expr:
             brk("currency_mismatch",
                 f"{e.get('side')} {e.get('qty')} {e.get('instrument')} filled in "
                 f"{fill_ccy} against a decision expressed in {expr}", dec,
@@ -370,7 +392,10 @@ def _main(argv: list[str]) -> int:
     out = run(a.session, a.db)
     ex = out.get("executions") or {}
     print(f"reconcile session {out['session']}: {ex.get('executions', 0)} fill(s), "
-          f"{ex.get('matched', 0)} matched, {len(ex.get('breaks') or [])} break(s)")
+          f"{ex.get('matched', 0)} matched, {len(ex.get('breaks') or [])} break(s), "
+          f"{len(ex.get('refused') or [])} refused")
+    for rf in ex.get("refused") or []:
+        print(f"  REFUSED {rf['exec_id']}: {rf['reason']}")
     af = out.get("allocation_floor_breach") or {}
     print(f"  allocation floor : {af.get('state')}"
           + (f" -- {af.get('reason')}" if af.get("reason") else "")

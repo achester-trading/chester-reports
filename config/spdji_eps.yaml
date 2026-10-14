@@ -1,0 +1,42 @@
+# spdji_eps.yaml -- the layout of S&P Dow Jones Indices' `sp-500-eps-est.xlsx`,
+# as the inbox reader (altdata/sources/spdji.py) expects it. SR-38 (13 Oct 2026).
+#
+# THE LAYOUT IS DECLARED, NOT DISCOVERED. The workbook's host refuses any
+# non-browser client, so this was written from the workbook's documented layout,
+# not from a file in hand, and the reader holds a drop to every label below: a
+# label it cannot find, or a cell that is not what the label says it is, fails
+# the read naming the sheet and the cell (or the range searched). It never
+# guesses a column. The first real drop is the acceptance; if it fails, the fix
+# is an edit HERE (the label the file actually prints), not in the parser.
+#
+# Labels match a cell's text with whitespace collapsed and case ignored, so a
+# header printed over three lines ("OPERATING\nEARNINGS\nPER SHR") matches.
+version: 1
+file_name: sp-500-eps-est.xlsx
+sheet: "ESTIMATES&PEs"
+
+# "Data as of the close of: 10/09/2026" -- the date in the same cell, or in the
+# first non-empty cell to its right. Searched over the top of the sheet only.
+as_of:
+  label: "data as of the close of"
+  search: "A1:L20"
+
+# The quarterly table. Its header row holds both labels; the estimates block
+# runs from the row whose quarter cell reads `estimates_marker` to the row whose
+# quarter cell reads `actuals_marker`.
+table:
+  search: "A1:Z120"
+  quarter_label: "QUARTER END"
+  operating_eps_label: "OPERATING EARNINGS PER SHR"
+  estimates_marker: "ESTIMATES"
+  actuals_marker: "ACTUALS"
+
+# The basis: the quarterly estimates are S&P DJI's bottom-up figures (the sum
+# of the constituents' consensus). A cell containing this text must stand above
+# the estimates block, or the read fails rather than assume the basis.
+basis:
+  label: "BOTTOM UP"
+
+# The forward twelve months: the first four estimated quarters ending after the
+# as-of date. Fewer than four fails the read.
+forward_quarters: 4

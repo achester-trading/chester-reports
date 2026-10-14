@@ -236,6 +236,73 @@ copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
 log "  prune: $PRUNE"
 
+# --- the inbound files: AAII's weekly row (10 Oct 2026), S&P DJI's EPS workbook
+# (13 Oct 2026) --------------------------------------------------------------
+# Each is ONE NAMED FILE in the operator's Drive, under chester-vendor-checks/
+# <folder>/, copied into ~/chester-data/inbox/<folder>/ for its reader:
+#   aaii   aaii-weekly.csv       the chat-side task "AAII weekly read -- Thursday"
+#                                appends a row a week (altdata/sources/aaii.py)
+#   spdji  sp-500-eps-est.xlsx   Ari's monthly browser download of S&P DJI's
+#                                workbook (altdata/sources/spdji.py)
+# Same remote, its path replaced. `copyto` of one file, never a sync: the inbox
+# only gains or overwrites that file, and copyto carries Drive's modification
+# time over, which the S&P DJI reader takes as the drop time. They run after the
+# trees and the prune and NEVER touch RC -- a missing or failed pull is a log
+# line, not a failed backup.
+pull_inbox_file() {
+    local folder="$1" name="$2" rname="${REMOTE%%:*}"
+    local src="$rname:chester-vendor-checks/$folder/$name"
+    local dest="$DATA_DIR/inbox/$folder/$name"
+    if ! timeout 2m rclone lsf "$rname:chester-vendor-checks/$folder" --files-only \
+            --include "/$name" $RCLONE_LIMITS 2>>"$LOG" \
+            | grep -qxF "$name"; then
+        log "  $folder inbox: skip -- $src is absent (or unlistable)"
+        return 0
+    fi
+    if timeout 3m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
+            --log-file "$LOG" --log-level INFO; then
+        log "  $folder inbox: ok -> $dest"
+    else
+        log "  $folder inbox: FAILED copyto (not counted against the sweep)"
+    fi
+    return 0
+}
+pull_inbox_file aaii aaii-weekly.csv || true
+pull_inbox_file spdji sp-500-eps-est.xlsx || true
+
+# --- the GLD archive: a one-time history load (12 Oct 2026) -----------------
+# The operator downloads the GLD historical archive once in a browser (its API
+# host disallows robots) and drops it in Drive under chester-vendor-checks/etf/;
+# this copies each file there into the inbox the GLD writer reads, which tells
+# the archive by its content, never its name. The AAII pull is the model:
+# `copyto` of each named file, never a sync -- the inbox only gains or
+# overwrites; nothing is deleted on either side. A file already in the inbox at
+# the same size is skipped by rclone itself. Runs after the trees and NEVER
+# touches RC.
+pull_etf_archive() {
+    local rname="${REMOTE%%:*}" dir="$DATA_DIR/inbox/etf"
+    local srcdir="$rname:chester-vendor-checks/etf" f n=0
+    local files
+    if ! files=$(timeout 2m rclone lsf "$srcdir" --files-only --max-depth 1 \
+            $RCLONE_LIMITS 2>>"$LOG") || [[ -z "$files" ]]; then
+        log "  etf archive: skip -- $srcdir is empty, absent (or unlistable)"
+        return 0
+    fi
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        local src="$srcdir/$f" dest="$dir/$f"
+        if timeout 5m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            n=$((n + 1))
+        else
+            log "  etf archive: FAILED copyto $f (not counted against the sweep)"
+        fi
+    done <<< "$files"
+    log "  etf archive: $n file(s) -> $dir"
+    return 0
+}
+pull_etf_archive || true
+
 if [[ $RC -eq 0 ]]; then
     finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi

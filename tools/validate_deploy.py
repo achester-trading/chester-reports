@@ -38,6 +38,17 @@ which let it run unattended cannot be widened by accident.
      it runs) and by BEHAVIOUR: deploy.sh run against a fake ssh returns 0, 3, 4
      and 1 in exactly the old cases and prints the restart command without
      running it.
+  I  THE BOX'S SELF-DEPLOY NEVER RESTARTS (A-4, 9 Oct 2026). chester-deploy.timer
+     runs scripts/run_self_deploy.sh, which runs the box half above when main's
+     deploy/systemd/ has changed. Held here: the unit runs that wrapper and
+     nothing else, and its timer is in DEPLOY_TIMERS; the wrapper executes no
+     systemctl at all and the restart-pending ledger only is-active and show;
+     every timer firing, plus its delay, falls inside CLAUDE.md's operating
+     windows, and the wrapper's own ET guard agrees with them minute by minute;
+     and END TO END on a scratch box: outside the window it touches nothing,
+     inside it copies a changed unit, writes "restart pending: <unit>" for one
+     that was running, does nothing on an unchanged tree, prunes the line once
+     the unit has stopped, and never sends systemctl a destructive verb.
 
     python tools/validate_deploy.py
 """
@@ -61,6 +72,11 @@ DEPLOY_SH = REPO / "scripts" / "deploy.sh"
 DEPLOY_REMOTE = REPO / "scripts" / "deploy_remote.sh"
 # The make targets, for machines without make -- allowlisted, so audited here too.
 MAKE_SH = REPO / "scripts" / "make.sh"
+# The box's self-deploy (A-4): its wrapper, the restart-pending ledger, its units.
+SELF_DEPLOY = REPO / "scripts" / "run_self_deploy.sh"
+LEDGER = REPO / "scripts" / "restart_pending.sh"
+DEPLOY_SERVICE = REPO / "deploy" / "systemd" / "chester-deploy.service"
+DEPLOY_TIMER = REPO / "deploy" / "systemd" / "chester-deploy.timer"
 SETTINGS = REPO / ".claude" / "settings.json"
 CLAUDE_MD = REPO / "CLAUDE.md"
 
@@ -619,10 +635,250 @@ def group_h() -> None:
               f"({len(calls)} calls, all read/reload/enable)")
 
 
+DESTRUCTIVE = ("stop", "disable", "restart", "kill", "mask")
+
+
+def window_open(dow: int, sec: int) -> bool:
+    """CLAUDE.md's operating windows, ET: weekdays 09:05-15:40 and 17:20-23:30;
+    weekends open, clear of the Sunday 05:00 Weekly (04:00-06:59). `dow` is ISO
+    (1 = Monday), `sec` seconds after midnight."""
+    hm = lambda h, m: (h * 60 + m) * 60                         # noqa: E731
+    if dow <= 5:
+        return hm(9, 5) <= sec <= hm(15, 40) or hm(17, 20) <= sec <= hm(23, 30)
+    if dow == 7 and hm(4, 0) <= sec < hm(7, 0):
+        return False
+    return True
+
+
+def _expand(field: str, top: int) -> list[int]:
+    """One OnCalendar time field as this timer writes it: '*', 'N', 'a..b' and
+    comma lists of those."""
+    if field == "*":
+        return list(range(top))
+    out: list[int] = []
+    for part in field.split(","):
+        a, _, b = part.partition("..")
+        out += list(range(int(a), int(b or a) + 1))
+    return out
+
+
+def calendar_firings(text: str) -> list[tuple[int, int]]:
+    """(ISO weekday, seconds after midnight) for every OnCalendar line, in the
+    timer's own zone. Refuses a shape it does not parse rather than guessing."""
+    days = {"Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6, "Sun": 7}
+    out = []
+    for line in re.findall(r"^OnCalendar=(.+)$", text, re.M):
+        m = re.fullmatch(r"(\w{3})(?:-(\w{3}))? \*-\*-\* ([\d.,*]+):([\d.,]+):00 "
+                         r"America/New_York", line.strip())
+        if not m:
+            raise ValueError(f"unparsed OnCalendar: {line}")
+        d0, d1 = days[m.group(1)], days[m.group(2) or m.group(1)]
+        for d in range(d0, d1 + 1):
+            for h in _expand(m.group(3), 24):
+                for mi in _expand(m.group(4), 60):
+                    out.append((d, (h * 60 + mi) * 60))
+    return sorted(set(out))
+
+
+def _seconds(v: str) -> int:
+    m = re.fullmatch(r"(\d+)\s*(s|sec|min|m)?", v.strip())
+    if not m:
+        raise ValueError(f"unparsed duration: {v}")
+    return int(m.group(1)) * (60 if m.group(2) in ("min", "m") else 1)
+
+
+def group_i() -> None:
+    print(f"\n{LINE}\nI. THE BOX'S SELF-DEPLOY NEVER RESTARTS (A-4)\n{LINE}")
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+    for p in (SELF_DEPLOY, LEDGER, DEPLOY_SERVICE, DEPLOY_TIMER):
+        check(p.is_file(), f"{p.relative_to(REPO)} exists")
+    svc = DEPLOY_SERVICE.read_text(encoding="utf-8")
+    tmr = DEPLOY_TIMER.read_text(encoding="utf-8")
+    wrapper = SELF_DEPLOY.read_text(encoding="utf-8")
+    ledger = LEDGER.read_text(encoding="utf-8")
+    remote = DEPLOY_REMOTE.read_text(encoding="utf-8")
+
+    execs = re.findall(r"^Exec\w*=(.*)$", svc, re.M)
+    check(execs == ["%h/chester-reports/scripts/run_self_deploy.sh"],
+          f"chester-deploy.service runs the wrapper and nothing else ({execs})")
+    m = re.search(r'DEPLOY_TIMERS="([^"]*)"', remote, re.S)
+    check(m is not None and "chester-deploy.timer" in m.group(1).split(),
+          "chester-deploy.timer is in DEPLOY_TIMERS, so the operator's next deploy "
+          "enables it and no glob ever does")
+    check("scripts/deploy_remote.sh" in wrapper,
+          "the wrapper runs the SAME box half the laptop ships, not a copy of it")
+
+    # NO DESTRUCTIVE VERB, and tighter than group A: the wrapper executes no
+    # systemctl at all, and the ledger only reads.
+    wr_sys = [l for l in _executed_lines(wrapper) if re.search(r"\bsystemctl\b", l)]
+    check(not wr_sys, f"the wrapper executes no systemctl of its own ({wr_sys or 'none'})")
+    verbs = set()
+    for l in _executed_lines(ledger):
+        verbs |= set(re.findall(r"systemctl\s+--user\s+([\w-]+)", l))
+    check(verbs == {"is-active", "show"},
+          f"the ledger's systemctl verbs are is-active and show only ({sorted(verbs)})")
+    offenders = [(v, l[:70]) for t in (wrapper, ledger, svc)
+                 for l in _executed_lines(t) for v in DESTRUCTIVE
+                 if re.search(rf"systemctl[^;]*\b{v}\b", l)]
+    check(not offenders, f"no stop/disable/restart/kill/mask is executed by the "
+                         f"wrapper, the ledger or the unit ({offenders or 'none'})")
+    check(re.search(r"^self_deploy_main\s*</dev/null", wrapper, re.M) is not None,
+          "the wrapper is one function, parsed whole before the pull can rewrite it")
+    check("--ff-only" in wrapper, "the wrapper's pull is --ff-only")
+
+    # THE CALENDAR, firing by firing.
+    claude = CLAUDE_MD.read_text(encoding="utf-8")
+    check("weekdays 09:05–15:40 and 17:20–23:30 ET" in claude
+          and "Sunday 05:00" in claude,
+          "the windows checked below are CLAUDE.md's, as written there")
+    try:
+        fires = calendar_firings(tmr)
+        delay = (_seconds(re.search(r"^RandomizedDelaySec=(.+)$", tmr, re.M).group(1))
+                 + _seconds(re.search(r"^AccuracySec=(.+)$", tmr, re.M).group(1)))
+    except (ValueError, AttributeError) as exc:
+        bad(f"the timer's calendar parses ({exc})")
+        return
+    outside = [(d, s // 60) for d, s in fires
+               if not (window_open(d, s) and window_open(d, s + delay))]
+    check(bool(fires) and not outside,
+          f"all {len(fires)} firings a week, each plus its {delay}s delay, fall "
+          f"inside the operating windows (outside: {outside[:5] or 'none'})")
+    gaps = {d: sorted(s for dd, s in fires if dd == d) for d in range(1, 8)}
+    steps = {b - a for d in gaps for a, b in zip(gaps[d], gaps[d][1:])
+             if window_open(d, a) and all(window_open(d, x) for x in range(a, b, 60))}
+    check(steps == {1800},
+          f"inside a window the firings are every 30 minutes ({sorted(steps)} s)")
+    check(len(gaps[1]) == 27 and len(gaps[6]) == 48 and len(gaps[7]) == 42,
+          f"27 on a weekday, 48 on Saturday, 42 on Sunday "
+          f"({len(gaps[1])}, {len(gaps[6])}, {len(gaps[7])})")
+    check(re.search(r"^Persistent=false$", tmr, re.M) is not None,
+          "Persistent=false: a missed tick is never caught up at boot, whenever "
+          "boot is")
+
+    bash = shutil.which("bash")
+    if not bash:
+        ok("no bash here; the behavioural half of I runs where bash exists")
+        return
+    # THE WRAPPER'S OWN GUARD, minute by minute against the same windows.
+    fn = re.search(r"^in_window\(\) \{.*?^\}", wrapper, re.M | re.S)
+    check(fn is not None, "the wrapper declares in_window()")
+    if fn:
+        # No subshell per minute: ten thousand forks take minutes under Git Bash.
+        prog = (fn.group(0) + "\nfor d in {1..7}; do for h in {0..23}; do "
+                "for m in {0..59}; do printf -v t '%02d%02d' $h $m; "
+                "in_window $d $t && echo \"$d $t\"; done; done; done\n")
+        r = subprocess.run([bash, "-c", prog], capture_output=True, text=True)
+        got = set(r.stdout.split("\n")) - {""}
+        want = {f"{d} {h:02d}{m:02d}" for d in range(1, 8) for h in range(24)
+                for m in range(60) if window_open(d, (h * 60 + m) * 60)}
+        check(got == want,
+              f"the wrapper's ET guard opens on exactly CLAUDE.md's minutes "
+              f"({len(got)} vs {len(want)}; differ: "
+              f"{sorted(got ^ want)[:4] or 'none'})")
+
+    git = shutil.which("git")
+    if not git:
+        ok("no git here; the end-to-end half of I runs where git exists")
+        return
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        org = t / "origin"
+        (org / "deploy" / "systemd").mkdir(parents=True)
+        (org / "scripts").mkdir()
+        for p in (SELF_DEPLOY, LEDGER, DEPLOY_REMOTE):
+            (org / "scripts" / p.name).write_bytes(
+                p.read_bytes().replace(b"\r\n", b"\n"))
+        unit = org / "deploy" / "systemd" / "a.service"
+        unit.write_text("[Unit]\nnew\n", encoding="utf-8", newline="\n")
+        (org / "deploy" / "systemd" / "chester-eod.timer").write_text(
+            "[Timer]\n", encoding="utf-8", newline="\n")
+        hb = org / "scripts" / "check_heartbeat_cron.sh"
+        hb.write_text("#!/usr/bin/env bash\n"
+                      'echo "state=ok drift=clean" > "$CHESTER_STATE_DIR/heartbeat_check_status"\n'
+                      "exit 0\n", encoding="utf-8", newline="\n")
+        hb.chmod(0o755)
+        g = {"cwd": str(org), "capture_output": True, "text": True}
+        commit = [git, "-c", "user.email=t@t", "-c", "user.name=t",
+                  "-c", "core.autocrlf=false", "commit", "-qm"]
+        subprocess.run([git, "init", "-q"], **g)
+        subprocess.run([git, "add", "-A"], **g)
+        subprocess.run(commit + ["init"], **g)
+        subprocess.run([git, "clone", "-q", str(org), str(t / "box")],
+                       capture_output=True, text=True)
+        for d in ("bin", "units", "state", "logs", "home"):
+            (t / d).mkdir()
+        installed = t / "units" / "a.service"
+        installed.write_text("[Unit]\nold\n", encoding="utf-8")
+        sysctl = t / "bin" / "systemctl"
+        sysctl.write_text(
+            "#!/usr/bin/env bash\n"
+            'echo "$*" >> "$SYSLOG"\n'
+            'case "$*" in\n'
+            '  *is-active*) [[ -n "${FAKE_ACTIVE:-}" && "$*" == *"$FAKE_ACTIVE"* ]] ;;\n'
+            '  *ActiveEnterTimestamp*) echo "${FAKE_ENTER:-}" ;;\n'
+            "  *is-enabled*) exit 0 ;;\n"
+            "  *) exit 0 ;;\n"
+            "esac\n", encoding="utf-8", newline="\n")
+        sysctl.chmod(0o755)
+        slog = t / "sys.log"
+        ledger_file = t / "state" / "alerts" / "restart_pending"
+        last_tree = t / "state" / "self_deploy_last_tree"
+
+        def run(clock: str, **extra) -> subprocess.CompletedProcess:
+            env = {**os.environ, "HOME": str(t / "home"), "SYSLOG": str(slog),
+                   "PATH": f"{t / 'bin'}{os.pathsep}{os.environ.get('PATH', '')}",
+                   "CHESTER_REPO": str(t / "box"), "CHESTER_LOG_DIR": str(t / "logs"),
+                   "CHESTER_STATE_DIR": str(t / "state"),
+                   "CHESTER_SYSTEMD_USER_DIR": str(t / "units"),
+                   "CHESTER_DEPLOY_CLOCK": clock, **extra}
+            return subprocess.run([bash, str(t / "box" / "scripts" / "run_self_deploy.sh")],
+                                  capture_output=True, text=True, env=env)
+
+        def calls() -> list[str]:
+            return slog.read_text().splitlines() if slog.exists() else []
+
+        r = run("1 1630", FAKE_ACTIVE="a.service")
+        check(r.returncode == 0 and not calls() and not last_tree.exists()
+              and "old" in installed.read_text(),
+              f"16:30 on a Monday: exit {r.returncode}, no systemctl call, nothing "
+              f"copied, nothing recorded -- the close's window is never touched")
+        r = run("1 1005", FAKE_ACTIVE="a.service")
+        line = ledger_file.read_text() if ledger_file.exists() else ""
+        check(r.returncode == 0 and "new" in installed.read_text()
+              and last_tree.exists()
+              and re.match(r"restart pending: a\.service copied_at=\d+ ", line)
+              is not None,
+              f"10:05 with a changed RUNNING unit: copied, the tree recorded, and "
+              f"'restart pending: a.service' written to alerts/restart_pending "
+              f"(exit {r.returncode}; ledger {line.strip()[:60]!r})")
+        n = len(calls())
+        r = run("6 1205", FAKE_ACTIVE="a.service")
+        check(r.returncode == 0 and not [c for c in calls()[n:] if "daemon-reload" in c]
+              and ledger_file.exists(),
+              "an unchanged deploy/systemd/ deploys nothing (no daemon-reload), and "
+              "a unit still running the old file stays pending")
+        unit.write_text("[Unit]\nnewer\n", encoding="utf-8", newline="\n")
+        subprocess.run([git, "add", "-A"], **g)
+        subprocess.run(commit + ["change"], **g)
+        r = run("3 2105")
+        check(r.returncode == 0 and "newer" in installed.read_text()
+              and not ledger_file.exists(),
+              f"a new commit is pulled and copied, and the line is pruned once the "
+              f"unit is no longer running (exit {r.returncode})")
+        bad_calls = [c for c in calls()
+                     if re.search(r"\b(stop|disable|restart|kill|mask)\b", c)]
+        check(not bad_calls,
+              f"across every run systemctl never receives a destructive verb "
+              f"({len(calls())} calls: {bad_calls or 'read/reload/enable only'})")
+
+
 def main() -> int:
     print(f"{LINE}\nThe unattended deploy, and the permissions that allow it\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h):
+              group_h, group_i):
         try:
             g()
         except FileNotFoundError as exc:

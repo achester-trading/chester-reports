@@ -32,6 +32,27 @@ Every report prints these sections in this order, at the depth the matrix sets. 
 
 Depth words: **deep** = commentary paragraphs, the section's table, a chart where the set (§3.2) has one; **medium** = one paragraph and the table; **light** = two to four lines with figures; **line** = one line. "Not yet tracked" footnotes continue as in Monthly v2: a line the data cannot support says so rather than vanishing.
 
+**Dated corrections, 7 October 2026** — found by the Reader's Guide (white paper
+XXXIII) and verified against the code. The rows above stand as ruled; these are the
+source attributions they get wrong.
+
+- **Row 5, the balance-sheet legs come through FRED.** There is no H.4.1 writer in
+  the repo. Reserves, the TGA and the RRP are `fred.bank_reserves` (WRESBAL),
+  `fred.tga` (WTREGEN) and `fred.rrp`, with `fred.fed_balance` (WALCL) for total
+  assets; `calc.net_liquidity` is computed from them. The published-file writers
+  beside them in that row (ACM, the SF Fed model, DKW, TreasuryDirect, Fiscal Data)
+  are the ones in `altdata.feeds.OFFICIAL_WRITERS`, which is where a Fed writer
+  would have to appear.
+- **Row 6, WallStreetBets is a feed and not a logger of its own.** ApeWisdom's
+  `wallstreetbets` feed sits inside the short-interest-and-mentions logger
+  (`borrow_short_mentions`, `altdata/loggers/borrow.py`) beside FINRA Reg SHO short
+  volume and the `all-stocks` feed. The six loggers are `auction`,
+  `borrow_short_mentions`, `consensus`, `rtat10`, `shielded_zec` and `vx_curve`.
+- **Row 7, the NY Fed consumer survey is an official writer**, `nyfed_sce`
+  (`nyfed.sce_3y`, `nyfed.sce_5y`), beside the Fed Board's own expectations index
+  `fedboard` (`fedboard.cie`). Both are in `OFFICIAL_WRITERS`; the row's "NY Fed
+  SCE" is that writer, under its own name.
+
 ### 1.1 Conditional depth is computed, never judged
 
 The model does not decide a day was "major". A rule does, from the store, and the rule's firing is printed in the section's header ("deep: CPI released this session").
@@ -112,6 +133,10 @@ The watch list (`config/prediction_markets.yaml`): the FOMC decision at each of 
 Placement: What's priced always; an attention shock also earns a line in The read; a disagreement also appears in What doesn't fit. A market with no stored source is refused; a venue outage prints "as of *date*" and goes through the heartbeat's pending-versus-stale logic.
 
 ## 5. Gates
+
+**Superseded, 7 October 2026: the audit list below is superseded by the Reader's
+Guide §5.2** (`docs/whitepapers/reporting-system-whitepaper.md`), which carries the
+checks this list leaves out.
 
 - **Stack.** A fixture edition renders all ten sections in order at each cadence; an unchanged section collapses to its claim line; each conditional trigger fires on a fixture with a tier-1 event or a threshold crossing and stays silent without one.
 - **Levels.** Every level named in prose is in the level list; every level drawn is in the list; both read the same object. The label audit covers the new level types.

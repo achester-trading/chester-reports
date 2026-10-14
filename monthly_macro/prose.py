@@ -16,8 +16,10 @@ it needs, and a failure costs that section alone.
 THE AUDITS ARE THE CLOSE REPORT'S, per section. Every call goes through
 daily_cascade.narrative.generate(): print precision, the precomputed percentile
 ordinals, the numeral and label audit against THAT SECTION'S slice, the state audit
-against the object, markdown refused. A section that fails is WITHHELD WITH ITS
-REASON; the sections beside it publish.
+against the object, markdown refused. A section the audit withholds gets ONE
+RETRY with the audit's reason fed back (T3, the stacked reports' rule); if that
+fails too it is WITHHELD WITH ITS REASON, and the sections beside it publish. A
+fault -- the API, a payload past its guard -- is not retried.
 
 THE SHAPE IS INSTITUTIONAL DESK COMMENTARY, insight first: each paragraph opens
 with the claim, gives the evidence with numbers, and ends with what it implies for
@@ -34,6 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from altdata import observations, session
+from daily_cascade import readability
 
 from .narrative import TEMPLATE_PATH
 
@@ -89,6 +92,9 @@ Never compute a difference, a spread between two moves, a ratio, a sum or a \
 relative performance ("the Russell lagged by 4.36%") -- that number is in no \
 field, and one such figure withholds the whole section. Say "lagged" and give \
 both moves instead.
+
+FIGURES. Cite at most {figure_cap} figures in any one paragraph -- the tables carry \
+the rest.{ordinals}{display}
 """
 
 
@@ -96,10 +102,58 @@ def _style_guide() -> Path:
     return STYLE_REFERENCE if STYLE_REFERENCE.exists() else TEMPLATE_PATH
 
 
+# THE MONTHLY'S FIGURE CAP AND ITS ORDINALS (T3.2 items 1-2, 10 Oct 2026). Every
+# Monthly frame states the cap -- the cadence's `paragraph_figures`, 8 -- and that
+# the tables carry the rest; the executive summary's frame asks for at most three.
+# An ordinal is copied as printed: the tables and the `_ordinal` fields share the
+# one half-up rule (numeral_audit.percentile_ordinal), so the two agree.
+# The summary's cap is the cadence's `summary_figures` (T3.4: config, not a literal).
+def summary_figures() -> int:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.summary_cap(cadence_mod.get("monthly"))
+
+
+SUMMARY_FIGURES = summary_figures()
+
+
+def _month_column() -> str:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return str(cadence_mod.get("monthly").get("column") or "The month")
+
+
+# The Monthly's period column head ("The month"): a move is read from it first.
+MONTH_COLUMN = _month_column()
+# A LARGE FIGURE IS COPIED IN ITS DISPLAY FORM (T3.3 item 2): every level and
+# change a pillar or theme hands over in millions or thousands comes with its
+# `_display` string, built by the one scaler, and only that string.
+DISPLAY_RULE = (" A level or change that carries a latest_level_display or "
+                "change_display is written as that string, copied verbatim, sign "
+                "and scale included (\"+$23.15bn\", \"200.5 thousand\"; a count "
+                "or a small payroll change as its integer with its noun, "
+                "\"+42,984 contracts\", \"+29,000 jobs\") -- never as a raw number "
+                "and never without its noun: a change of 10,000 or more printed "
+                "without its unit, scale or noun withholds the paragraph.")
+ORDINAL_RULE = (" A percentile ordinal is copied exactly as it is printed -- from "
+                "the table, or from its _ordinal field -- never re-rounded from a "
+                "decimal: \"the 100th percentile\" stays 100th.")
+
+
+def figure_cap() -> int:
+    """The Monthly's per-paragraph figure cap (cadences.monthly)."""
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.figure_cap(cadence_mod.get("monthly"))
+
+
+def _cap_word(n: Optional[int] = None) -> str:
+    from daily_cascade import cadence as cadence_mod            # noqa: PLC0415
+    return cadence_mod.figure_word(figure_cap() if n is None else n)
+
+
 def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
     from daily_cascade import narrative as base
     return base.SYSTEM_PROMPT + SECTION_RULES.format(
-        title=title, scope=scope, paragraphs=paragraphs)
+        title=title, scope=scope, paragraphs=paragraphs, figure_cap=_cap_word(),
+        ordinals=ORDINAL_RULE, display=DISPLAY_RULE + vocab_frame())
 
 
 # ---------------------------------------------------------------------------
@@ -174,12 +228,26 @@ def _moves(p: dict, ids: Optional[list] = None) -> dict:
 
 
 def _series(rows: list[dict]) -> list[dict]:
-    """Every series a section sees, plainly keyed (the metric id stays out)."""
+    """Every series a section sees, plainly keyed (the metric id stays out).
+
+    WHERE A DISPLAY FORM EXISTS, THE RAW NUMBER IS NOT HANDED OVER (T3.3 item 2):
+    the Systemic Liquidity pillar wrote "rose +23,154 to $2.95tn" -- bank
+    reserves' change in raw millions, copied from `change` beside the
+    `change_display` it should have used. A series with `change_display` (or
+    `latest_level_display`) carries only that string for the figure, so the one
+    form the writer can copy is the scaled one."""
     keep = ("latest_level", "latest_level_display", "latest_pct", "latest_date",
             "since", "change_pct", "change_bps", "change", "change_display",
             "level_percentile_5y")
-    return [{"series": r.get("label"), **{k: r[k] for k in keep if k in r}}
-            for r in rows]
+    out = []
+    for r in rows:
+        d = {"series": r.get("label"), **{k: r[k] for k in keep if k in r}}
+        if "change_display" in d:
+            d.pop("change", None)
+        if "latest_level_display" in d:
+            d.pop("latest_level", None)
+        out.append(d)
+    return out
 
 
 def _changed(p: dict, words: Optional[list] = None) -> list[dict]:
@@ -378,6 +446,78 @@ def internal_terms(text: Optional[str]) -> list[str]:
     return sorted({m.group(0).lower() for m in _BANNED.finditer(text or "")})
 
 
+# THE BANNED LIST, IN THE FRAME (T3.4a, the third box dry run). summary:read and
+# summary:slow were withheld three times each over "the object", "tracked series"
+# and "extreme:", and stack:priced three times over "venues": the audit named the
+# word, but the frame never listed what is banned, so each retry traded one
+# banned word for another. Every Monthly frame now carries the list -- these
+# words in the reader's form, the stack's banned phrases from
+# config/reporting_stack.yaml -- and a retry names the offending word(s) and
+# quotes the rule (VOCAB_RETRY).
+BANNED_WORDS_READABLE = (
+    "payload", "the object", "state object", "our/the/its growth (inflation, "
+    "rates, liquidity, credit, trend, breadth, volatility, sentiment) dimension",
+    "dimension framework", "vol/macro/gamma/regime dial", "the dials",
+    "scorecard rows", "data rows", "not sourced", "absent_reason",
+    "the system tracks", "our system", "this system", "the system's data / reads "
+    "/ store / records", "tracked series", "in the store", "the store", "the "
+    "registry", "market state", "tier 1 / tier 2 / tier 3", "_ordinal",
+    "_signed", "_display")
+VOCAB_RULE = ("a reader's prose names markets, not the report's plumbing: never "
+              "write a word or phrase that names this report's machinery, its "
+              "labels or its section titles")
+VOCAB_RETRY = 'your draft used {words}; the rule: "{rule}"'
+
+
+def banned_phrases() -> list[str]:
+    """The stack's banned phrases (config/reporting_stack.yaml, style)."""
+    try:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        st = bars_mod.load_config().get("style") or {}
+    except Exception:                                           # noqa: BLE001
+        return []
+    return [str(x) for x in st.get("banned_phrases") or []]
+
+
+def vocab_frame() -> str:
+    return (f" WORDS THAT WITHHOLD THE PARAGRAPH -- {VOCAB_RULE}. Never write: "
+            + "; ".join(BANNED_WORDS_READABLE) + ". Never write these phrases: "
+            + "; ".join(f"'{x}'" for x in banned_phrases())
+            + ". Say \"prediction market\", never \"venue\".")
+
+
+_LABEL = re.compile(r"(?<![\w-])(?:extreme|contradiction|story|scen):[\w.:/-]*")
+
+
+def reader_slice(sl: dict) -> dict:
+    """A summary's prompt slice without the stack's own labels and titles
+    (T3.4a): the section and sub-section titles go, and the label prefixes the
+    stack prints for its own ids ("extreme:...", "contradiction:...") are struck
+    from every string. The figures stay, so the audit's given set is unchanged."""
+    def walk(o, depth=0):
+        if depth > 12:
+            return o
+        if isinstance(o, dict):
+            return {k: walk(v, depth + 1) for k, v in o.items()
+                    if k not in ("section", "title")}
+        if isinstance(o, list):
+            return [walk(v, depth + 1) for v in o]
+        if isinstance(o, str):
+            return " ".join(_LABEL.sub("", o).split())
+        return o
+    return walk(sl)
+
+
+def vocab_words(jargon: list[str], faults: list[str]) -> list[str]:
+    """The offending words: the internal terms, and the tape's banned phrases."""
+    out = list(jargon)
+    for f in faults:
+        m = re.match(r"(?:internal vocabulary: (.+)|banned phrase: '(.+)')$", f)
+        if m:
+            out.append(m.group(1) or m.group(2))
+    return sorted(set(out))
+
+
 # NO BULLET FRAGMENTS IN A NARRATIVE SECTION. The brief asks for prose; a reply
 # that lists is withheld like any other failed audit rather than re-flowed.
 _LIST_LINE = re.compile(r"^\s*(?:[-*•–]\s|\d+[.)]\s|#+\s)", re.M)
@@ -391,51 +531,603 @@ def words(text: Optional[str]) -> int:
     return len(re.findall(r"\b[\w'.%$-]+\b", text or ""))
 
 
-def write_all(p: dict, *, model: Optional[str] = None, client=None,
-              only: Optional[Callable[[dict], bool]] = None) -> dict:
-    """{section key: result}, one audited call each. Never raises."""
-    from daily_cascade import narrative as base
-    states = _market_states(p)
-    out: dict[str, dict] = {}
-    for sec in plan(p):
-        if only and not only(sec):
-            continue
+# ---------------------------------------------------------------------------
+# THE STACK'S OWN SECTIONS (T3): the six with no Monthly v2 prose -- the tape,
+# Mechanics, What doesn't fit, Plumbing, Positioning, What's priced -- plus the
+# claim lines of Narratives and Slow layers. Each is one call over that section's
+# data, written as the stack writes the close's and the Weekly's
+# (daily_cascade.stack_prose: the claim line, the tape's rules, the same audits),
+# in the Monthly's frames.
+# ---------------------------------------------------------------------------
+STACK_SECTIONS = ("tape", "mechanics", "misfit", "plumbing", "positioning",
+                  "priced", "narratives", "slow")
+# Sections whose call writes the claim line alone: Narratives' paragraphs are the
+# themes' own.
+CLAIM_ONLY = ("narratives",)
+MONTHLY_FRAMES = ("the weeks of the month first, then the month as a whole, then "
+                  "where the month sits in the long frame.")
+MONTHLY_NOTES = {
+    "mechanics": (
+        "\n\nTHE DEALER RETROSPECTIVE: how the market behaved against dealer "
+        "positioning over the month, never what to do about it. Every figure "
+        "comes from the counts table and the per-session flags. Write 'pinned', "
+        "'held' or 'amplified' about a session ONLY where that session's flag "
+        "is set, naming the session; or state the month's count for that flag "
+        "exactly as the table gives it. Never infer a flag from the figures."),
+    "misfit": (
+        "\n\nEach open gap in the plain words its row gives, never by an id; the "
+        "month's dissent and corrections as their sources state them."),
+    "slow": (
+        "\n\nSLOW LAYERS: the valuation, the base rates and the alternative "
+        "assets as the tables state them -- levels and frequencies, never a "
+        "signal. A level beside its long-run average or percentile names that "
+        "window as the table gives it ('full history since ...', 'five years'). "
+        "A sourced figure is the publisher's, stated with the publisher and its "
+        "as-of date; never the publisher's view, forecast or recommendation."),
+}
+
+
+# THE PARENT SECTIONS NAME THE MOVES, NOT THE LEVELS (T3.3 item 4). The second box
+# dry run withheld five parent paragraphs (the tape 10 figures, Plumbing 16,
+# Positioning 11, What's priced 12, Slow layers 21) against the cap of 8: each
+# re-listed the numbers its blocks beneath already print with their own reads. A
+# parent with blocks under it is told so, and told the cap, before it writes.
+PARENT_NOTE = ("\n\nTHE BLOCKS BENEATH THIS SECTION CARRY ITS NUMBERS: each has its "
+               "own table and its own paragraph. Your paragraph names the moves, "
+               "not the levels -- what moved, which way, and what moved with what "
+               "-- and leaves the levels to the blocks. Cite at most {cap} figures "
+               "in it; a paragraph over {n} figures is withheld.")
+
+
+def parent_note(s: dict) -> str:
+    """The parent frame's note, for a section with sub-sections beneath it."""
+    if not s.get("subsections"):
+        return ""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    # T3.4: the frame itself now offers only the cap's worth of figures.
+    return (PARENT_NOTE.format(cap=_cap_word(), n=figure_cap())
+            + (sp.parent_frame_note("monthly") if sp.is_parent(s, "monthly") else ""))
+
+
+# THE POLICY WORDS, MARKET BY MARKET, BEFORE THE WRITER WRITES (T3.3 item 8).
+# stack:priced was withheld for "a policy word ('hiking') attached to a recession
+# market" -- a rule the writer met only in the rejection. The frame now lists,
+# for each watched market, the policy words it may carry: the FOMC decision
+# markets and the fed-funds path all of them, every other market none.
+# The sections whose frames carry the list: What's priced writes about these
+# markets, and The read's summary may name them.
+POLICY_SECTIONS = ("priced", "read")
+POLICY_WORDS = ("hike", "hikes", "hiked", "hiking", "cut", "cuts", "cutting",
+                "hold", "holds", "holding", "held")
+
+
+def policy_word_frame(pm_cfg: Optional[dict] = None) -> str:
+    """The permitted policy words per scenario market, from the prediction-market
+    config's watch list and its non-policy terms (the audit's own list)."""
+    if pm_cfg is None:
         try:
-            r = base.generate(sec["slice"], model=model, client=client,
-                              system_prompt=system_prompt(sec["title"], sec["scope"],
-                                                          sec["paragraphs"]),
-                              guide_path=_style_guide(),
-                              max_chars=SECTION_MAX_CHARS, one_paragraph=False,
-                              citable_ids=[], market_states=states)
+            from altdata.sources import prediction_markets as _pm  # noqa: PLC0415
+            pm_cfg = _pm.load_config()
+        except Exception:                                       # noqa: BLE001
+            pm_cfg = {}
+    terms = ((pm_cfg.get("rules") or {}).get("non_policy_terms")
+             or ["CPI", "inflation print", "recession", "House", "Senate",
+                 "shutdown"])
+    words = ", ".join(POLICY_WORDS)
+    rows = ["the fed-funds futures path: " + words]
+    for w in pm_cfg.get("watch_list") or []:
+        lab = str(w.get("label") or w.get("id"))
+        rows.append(f"{lab}: " + (words if w.get("id") == "fomc_decision"
+                                  else "none"))
+    return ("\n\nPOLICY WORDS, MARKET BY MARKET. The words a sentence may use about "
+            "each market:\n" + "\n".join(f"  - {r}" for r in rows)
+            + "\nA sentence that names " + ", ".join(f"'{t}'" for t in terms)
+            + " carries no policy word at all -- a recession or CPI market is odds "
+              "on that event, never on the Fed. Put the Fed's path and such a "
+              "market in separate sentences.")
+
+
+def stack_plan(ed: dict) -> list[dict]:
+    """One entry per stack section that wants prose (not empty, not collapsed,
+    not Mechanics below its session threshold)."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    cfg = bars_mod.load_config()
+    caps = cfg.get("depth_words_monthly") or {}
+    out = []
+    for s in ed.get("sections") or []:
+        if s["id"] not in STACK_SECTIONS or s.get("empty") \
+                or not s.get("prose_wanted", True):
+            continue
+        paras = "0" if (s["id"] in CLAIM_ONLY or s.get("claim_only")) else \
+            sp.DEPTH_PARAGRAPHS.get(s["depth"], "0")
+        cap = int(caps.get(s["depth"]) or 120)
+        body = (f"Then write ONE paragraph of at most {cap} words."
+                if paras != "0" else "Write ONLY that one sentence.")
+        why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
+        system = sp.stack_system_prompt(base) + sp.RULES.format(
+            title=s["title"], depth=s["depth"], why=why, body=body,
+            report=voice(ed)[0], period=voice(ed)[1], frames=voice(ed)[2],
+            figure_cap=_cap_word(), figure_tail=" -- the tables carry the rest")
+        system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
+                   + parent_note(s)
+                   + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
+                   + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + vocab_frame())
+        out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
+                    "sid": s["id"], "system": system,
+                    "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
+                    # T3.4: a parent's frame is its budget, not its tables.
+                    "slice": sp.section_slice(s, ed, "monthly")})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# THE WRITTEN READS UNDER A SUB-SECTION'S TABLE (T3.1, ruled 9 Oct 2026): "the
+# operator reads the Monthly for takeaways, not for numbers". A sub-section that
+# declares `prose` -- Plumbing's buckets, Positioning's reads, What's priced's
+# blocks, Slow layers' families -- gets ONE paragraph through this writer, over
+# that sub-section's own table and data and nothing else, behind every audit the
+# section's own paragraph passes (the numeral audit against the slice, the tape's
+# rules, "no stored source, not printed"), with the one retry.
+# ---------------------------------------------------------------------------
+BLOCK_RULES = """
+
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE BLOCK of a
+section of {report}: the written read printed under the block's table, in a
+desk's register. Every other rule above still holds -- every figure from the data
+given, signs and percentile ordinals copied from their _signed and _ordinal
+fields, no recommendation.
+
+THE BLOCK: {title}, in the section {section}. {scope}
+
+SHAPE. ONE paragraph of {words} words. Its FIRST SENTENCE is the takeaway: the
+one thing the block's figures say together about the {period}, with its figure.
+No headings, no bullets, no lists, no bold, no tables -- the block's table is
+printed ABOVE your paragraph. Interpret it -- what the figures mean together,
+what moved with what -- and never re-list its rows: cite at most
+{figure_cap} figures -- the tables carry the rest.{ordinals}
+Write about the market, never about this report, its checks or its data.
+"""
+
+
+def block_plan(ed: dict) -> list[dict]:
+    """One entry per sub-section that declares `prose`, in a section that is
+    not empty. Keyed by the sub-section's `phase`, so apply_prose sets its
+    paragraphs, or its withheld note."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
+        .replace("{frames}", voice(ed)[2])
+    out = []
+    for s in ed.get("sections") or []:
+        if s.get("empty"):
+            continue
+        for ss in s.get("subsections") or []:
+            spec = ss.get("prose")
+            if not spec or not ss.get("phase"):
+                continue
+            words_ = str(spec.get("words") or "60 to 100")
+            hi = max(int(x) for x in re.findall(r"\d+", words_) or ["100"])
+            system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
+                report=voice(ed)[0], title=ss["title"], section=s["title"],
+                scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
+                period=voice(ed)[1],
+                # A block may carry its own figure budget (AQ-2: the Quarterly's
+                # items), never above the cadence's cap.
+                figure_cap=_cap_word(min(int(spec.get("figures") or figure_cap()),
+                                         figure_cap())),
+                ordinals=ORDINAL_RULE) + tape
+            sl = block_slice(s, ss, ed)
+            system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
+                       + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
+                       + DISPLAY_RULE + vocab_frame()
+                       + (BLOCK_FRAME_NOTE.format(cap=_cap_word().lower(),
+                                                  filler=sp.FILLER_RULE)
+                          if "figures_you_may_cite" in sl else
+                          "\n\n" + sp.FILLER_RULE))
+            out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
+                        "kind": "stack", "sid": s["id"], "system": system,
+                        "max_chars": hi * 9 + 500, "slice": sl})
+    return out
+
+
+# THE BLOCK'S FRAME, IN THE WEEKLY PARENTS' TERMS (T3.5 (b)). Monthly dry run #4
+# withheld Yields & spreads, Macro, FOMC pricing and Prediction markets: the rest
+# on the numeral audit -- figures the blocks' tables print but the frame did not
+# offer. A block past the cap is now handed what a Weekly parent is (W-1.1 item
+# 1.0): the figures it may cite, the table with the rest masked, and the other
+# rows' names under "In the tables (do not enumerate)"; the filler rule is in
+# the frame and enforced; a retry after the numeral audit names the figures it
+# refused and lists the ones allowed.
+BLOCK_FRAME_NOTE = (
+    "\n\nYOUR FIGURES ARE IN YOUR DATA: `figures_you_may_cite` holds every row "
+    "this paragraph may quantify -- at most {cap} figures -- each exactly as the "
+    "table prints it; copy them verbatim, and never convert one (a percent into "
+    "basis points, a level into a change, two figures into a difference). The "
+    "table is given with every other row's figures masked; the series under 'In "
+    "the tables (do not enumerate)' are printed for the reader: never list them "
+    "or quantify them. {filler}")
+
+
+def block_slice(s: dict, ss: dict, ed: dict) -> dict:
+    """A block's frame (T3.4): its table, lines, points and data while they offer
+    no more figures than the cap -- percentiles as ordinals only -- and past the
+    cap, the Weekly parents' frame (T3.5): the rows that fit under
+    `figures_you_may_cite`, the table with the rest masked, their names under
+    "In the tables (do not enumerate)" (figure_budget.block_frame)."""
+    from daily_cascade import figure_budget as fb               # noqa: PLC0415
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    full = fb.scrub_percentiles({"section": s["title"], "block": ss["title"],
+                                 "month": ed.get("month"), "table": ss.get("table"),
+                                 "lines": ss.get("lines"), "points": ss.get("points"),
+                                 "data": sp._scrub(ss.get("data") or {})})
+    if fb.quantified_figures(full) <= figure_cap():
+        return full
+    return fb.block_frame(s, ss, ed.get("month"), figure_cap(), MONTH_COLUMN)
+
+
+# ---------------------------------------------------------------------------
+# THE EXECUTIVE SUMMARY (T3.1 item 20, ruled 9 Oct 2026): one paragraph per
+# section, in stack order, opening the edition. BUILT LAST, FROM THE FINISHED
+# SECTIONS -- each call sees only what its section prints (its claim, its
+# paragraphs, its tables, lines, points and reading entries, and the data they
+# were written from), never the raw payload -- and through the same writer and
+# audits, with the one retry. A paragraph the audit withholds prints "(summary
+# withheld — audit)" rather than an unaudited sentence.
+# ---------------------------------------------------------------------------
+SUMMARY_RULES = """
+
+THIS OVERRIDES THE ONE-PARAGRAPH FRAMING ABOVE. You are writing ONE PARAGRAPH of
+the EXECUTIVE SUMMARY that opens {report}: the paragraph for its section
+"{title}". A reader may read only the summary, so it must stand alone. Every
+other rule above still holds -- every figure from the data given, signs and
+percentile ordinals as the data gives them, no recommendation.
+
+SHAPE. THREE TO FIVE sentences of continuous prose. Carry the section's
+takeaways -- what it says about the {period} -- and its load-bearing figures:
+at most {figures} figures per paragraph -- the section's tables carry the rest --
+each copied exactly as the section prints it.{ordinals} Introduce no figure, name
+or claim the section does not print. No headings, bullets, lists or bold. Write
+about the market, never about this report or its sections.
+"""
+SUMMARY_WITHHELD = "(summary withheld — audit)"
+
+
+def voice(ed: Optional[dict]) -> tuple[str, str, str]:
+    """(report, period noun, frames) for the edition's cadence: the Monthly's own
+    words, or -- for the Quarterly (AQ-1) -- the cadence's from
+    config/reporting_stack.yaml."""
+    name = (ed or {}).get("cadence") or "monthly"
+    if name == "monthly":
+        return "the Monthly", "month", MONTHLY_FRAMES
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    c = cadence_mod.get(name)
+    return c["report"], c["period"], c["frames"]
+
+
+def summary_slice(s: dict) -> dict:
+    """What a finished section prints, for its summary paragraph."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    subs = [{"title": ss.get("title"), "table": ss.get("table"),
+             "lines": ss.get("lines"), "points": ss.get("points"),
+             "paragraphs": ss.get("paragraphs"),
+             "entries": [{"publication": e.get("publication"),
+                          "summary": e.get("summary") or e.get("line")}
+                         for e in ss.get("entries") or []]}
+            for ss in s.get("subsections") or []]
+    return {"section": s["title"], "claim": s.get("claim"),
+            "paragraphs": s.get("paragraphs"), "table": s.get("table"),
+            "points": s.get("points"),
+            "entries": [{"publication": e.get("publication"),
+                         "summary": e.get("summary") or e.get("line")}
+                        for e in s.get("entries") or []],
+            "subsections": subs, "data": sp._scrub(s.get("data") or {})}
+
+
+def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
+    """One entry per section that is not empty, in stack order -- the read,
+    the tape, ..., Reading, Ahead, the book, Slow layers. An empty section gets
+    no call; its summary line is its empty note. `sections` (AQ-1): the
+    Quarterly's summary is one paragraph per CHAPTER, so it passes its chapters."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from daily_cascade import narrative as base                 # noqa: PLC0415
+    tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
+        .replace("{frames}", voice(ed)[2])
+    out = []
+    for s in (sections if sections is not None else ed.get("sections") or []):
+        if s.get("empty"):
+            continue
+        system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
+            report=voice(ed)[0], title=s["title"], period=voice(ed)[1],
+            figures=_cap_word(summary_figures()).lower(),
+            ordinals=ORDINAL_RULE) + tape
+        frame = summary_frame(s, ed)
+        cite = "; ".join(f"{f['series']} {f.get('change') or f.get('level')}"
+                         for f in frame["figures_you_may_cite"]) or "none"
+        system += ((policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
+                   + DISPLAY_RULE + vocab_frame()
+                   + SUMMARY_CITE.format(n=_cap_word(len(frame["figures_you_may_cite"]))
+                                         .lower(), figures=cite))
+        out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
+                    "kind": "stack", "sid": s["id"], "system": system,
+                    "max_chars": 1400, "slice": reader_slice(frame),
+                    "audit_extra": summary_audit_extra(s, ed)})
+    return out
+
+
+# THE SUMMARY IS AUDITED AGAINST WHAT IT SUMMARISES (T3.3 item 3). summary:read was
+# withheld twice for "100th": the S&P 500, QQQ and the 10-year sit at the 100th
+# percentile, printed by the tape, whose own paragraph passed -- but the read's
+# summary was audited against the read's slice alone, which does not carry them.
+# Each summary paragraph is now audited against the union of the figures and
+# `_ordinal` fields of the sections it summarises: its own section, and for The
+# read -- the edition's lines, drawn from every section -- every finished
+# section. The audit set widens; the prompt does not, and the cap stays.
+SUMMARISES_ALL = ("read",)
+
+
+def summary_audit_extra(s: dict, ed: dict) -> dict:
+    """What a summary paragraph is audited against beyond its frame: the
+    section it summarises as it prints (since T3.4 the frame masks the prose's
+    figures, so the section's own slice moves here and the scope is unchanged),
+    and for The read every other finished section too."""
+    own = summary_slice(s)
+    if s["id"] not in SUMMARISES_ALL:
+        return {"section_summarised": own}
+    return {"section_summarised": own,
+            "sections_summarised": [summary_slice(x) for x in ed.get("sections") or []
+                                    if x is not s and not x.get("empty")]}
+
+
+# THE SUMMARY'S FRAME HANDS IT ITS FIGURES (T3.4). The prose it summarises is given
+# with its figures masked, and the cadence's `summary_figures` -- the section's
+# top moves, ranked as a parent's are -- are named in the frame and the data.
+SUMMARY_CITE = ("\n\nFIGURES YOU MAY CITE: these {n} -- {figures}. Each exactly as "
+                "printed here; the prose you are given has its figures masked as "
+                "[figure], and no other figure may be written.")
+
+
+def summary_frame(s: dict, ed: dict) -> dict:
+    """The summary's frame: the section's prose with its figures masked and its
+    top moves up to the cadence's summary cap. The read, which summarises the
+    edition and has no table of its own, takes the top moves across every
+    finished section."""
+    from daily_cascade import figure_budget as fb               # noqa: PLC0415
+    frame = fb.summary_frame(s, summary_figures(), MONTH_COLUMN)
+    if s["id"] in SUMMARISES_ALL:
+        pool = [m for x in ed.get("sections") or [] if x is not s
+                and not x.get("empty") for m in fb.section_moves(x, MONTH_COLUMN)]
+        got, _ = fb.take(pool, summary_figures())
+        frame["figures_you_may_cite"] = [fb.cite(m) for m in got]
+    return frame
+
+
+def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
+    """The stack's tape rules (daily_cascade.stack_prose), and in Mechanics the
+    flag words held to the per-session flags (monthly_macro.dealer)."""
+    from daily_cascade import stack_prose as sp                 # noqa: PLC0415
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    cfg = bars_mod.load_config()
+    out = (sp.style_faults(text, cfg) + sp.id_faults(text)
+           + sp.policy_word_faults(text, pm_cfg) + sp.excess_faults(text)
+           + sp.outlook_misprints(text, [], sp.venue_percents(ed))
+           + sp.figure_faults(text, figure_cap())
+           # T3.5 (b): the Weekly's filler ban (W-1.1 item 1.0d), on every
+           # Monthly frame -- section, block and summary.
+           + sp.filler_faults(text, sp.filler_names(sec.get("slice"))))
+    # THE DIRECTION AUDIT AND THE STANCE CHECK (W-1.1b), as stack_prose.write
+    # runs them for the Weekly and the close: a direction word is held to the
+    # sign of the change the section prints in its month column, and "bullish on
+    # inflation" is refused. Withheld on the same messages.
+    out += direction_faults(text, sec, ed) + readability.stance_faults(text)
+    if sec["sid"] == "mechanics" and ed.get("_retro"):
+        from . import dealer                                    # noqa: PLC0415
+        out += dealer.flag_word_faults(text, ed["_retro"])
+    return out
+
+
+def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
+    """daily_cascade.direction's audit over one Monthly frame: the moves its
+    section prints (a block's and a summary's are its parent section's), read
+    from the month column -- every section's for a frame over the whole edition."""
+    from daily_cascade import direction                         # noqa: PLC0415
+    if not ed:
+        return []
+    return direction.faults(text, direction.edition_moves(
+        ed, sec.get("sid"), MONTH_COLUMN))
+
+
+# Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
+# API call failed, a payload past its guard, an empty reply, a reply that overran
+# its length. Only an AUDIT's refusal is retried.
+#
+# THREE ATTEMPTS FOR EVERY SECTION (T3.3 item 4, the second box dry run): the
+# first, and two retries, each with the audit's reason fed back. Where the draft
+# ran over the figure cap the retry says exactly how far, in one fixed sentence
+# (CAP_RETRY) -- the 10 Oct retries were told only "at most 8" and came back over
+# it again. The caps themselves are not raised.
+ATTEMPTS = 3
+CAP_RETRY = "your draft cited {n} figures; the cap is {m}; remove figures, keep the reading"
+
+
+def retry_prompt(system: str, prev: dict, sl: Optional[dict] = None) -> str:
+    """The prompt for the next attempt: the frame, the audit's reason, and --
+    when the draft ran over the cap -- the count and the cap; after the
+    numeral audit, the figures it refused and those `sl` allows (T3.5)."""
+    out = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS WITHHELD BY THE "
+           "AUDIT: " + str(prev.get("reason"))[:600])
+    if prev.get("vocab_words"):
+        out += "\n" + VOCAB_RETRY.format(
+            words=", ".join(f'"{w}"' for w in prev["vocab_words"]), rule=VOCAB_RULE)
+    if prev.get("figures_over"):
+        n, m = prev["figures_over"]
+        out += "\n" + CAP_RETRY.format(n=n, m=m)
+    if prev.get("unmatched"):
+        out += "\n" + FIGURE_RETRY.format(
+            figures=", ".join(f'"{f}"' for f in prev["unmatched"][:12]),
+            allowed=allowed_figures(sl) or "none -- write the reading without figures")
+    return out + ("\nWrite it again from the same data, fixing exactly that and "
+                  "changing nothing else.")
+
+
+# THE RETRY NAMES THE FIGURES (T3.5 (b), as W-1.1's did for the Weekly): after the
+# numeral audit, the figures it refused and the ones the frame allows, so the
+# second draft is not a guess at which number was wrong.
+FIGURE_RETRY = ("the audit could not find {figures} in your data; cite only these, "
+                "exactly as written: {allowed}")
+
+
+def allowed_figures(sl: Optional[dict]) -> str:
+    """The frame's citable figures as one line: each series and its cells, in the
+    frame's order."""
+    rows = []
+    for r in (sl or {}).get("figures_you_may_cite") or []:
+        if not isinstance(r, dict):
+            continue
+        name = r.get("series") or r.get("name") or ""
+        cells = [f"{k} {v}" if k not in ("change", "level") else str(v)
+                 for k, v in r.items() if k not in ("series", "name", "where")
+                 and v not in (None, "", "—")]
+        rows.append(f"{name}: " + ", ".join(cells) if cells else str(name))
+    return "; ".join(rows)
+
+
+NOT_RETRIED = ("fault", "unavailable", "call_failed", "prompt_too_large",
+               "payload_too_large", "empty", "too_long")
+
+
+def _not_retried(r: dict) -> bool:
+    reason = str(r.get("reason") or "")
+    return (r.get("state") in NOT_RETRIED
+            or ("past the" in reason and "guard" in reason))
+
+
+def write_all(p: dict, *, model: Optional[str] = None, client=None,
+              only: Optional[Callable[[dict], bool]] = None,
+              ed: Optional[dict] = None,
+              secs: Optional[list[dict]] = None) -> dict:
+    """{section key: result}, one audited call each -- and, for a section the
+    audit withholds, up to two retries (ATTEMPTS, T3.3) with the audit's reason
+    fed back (T3: the stack's retry, extended to the Monthly's section writer).
+    Never raises.
+
+    With `ed` (the stacked edition, monthly_macro.stack), the stack's own
+    sections are written too, after the Monthly v2 sections. With `secs`, only
+    those calls are made (the executive summary's, summary_plan)."""
+    from daily_cascade import narrative as base
+    from daily_cascade import stack_prose as sp_mod             # noqa: PLC0415
+    from altdata import numeral_audit as na                     # noqa: PLC0415
+    states = _market_states(p)
+    try:
+        from altdata.sources import prediction_markets as _pm   # noqa: PLC0415
+        pm_cfg = _pm.load_config()
+    except Exception:                                           # noqa: BLE001
+        pm_cfg = None
+    out: dict[str, dict] = {}
+    if secs is None:
+        secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
+
+    def attempt(sec: dict, system: str) -> dict:
+        stack = sec.get("kind") == "stack"
+        try:
+            if stack:
+                from daily_cascade import stack_prose as sp     # noqa: PLC0415
+                r = base.generate(sec["slice"], model=model, client=client,
+                                  system_prompt=system, max_chars=sec["max_chars"],
+                                  one_paragraph=False, citable_ids=[],
+                                  unit_constants=sp.UNIT_CONSTANTS,
+                                  guide_path=sp.STACK_GUIDE, market_states=states,
+                                  audit_payload=sec.get("audit_extra"))
+            else:
+                r = base.generate(sec["slice"], model=model, client=client,
+                                  system_prompt=system, guide_path=_style_guide(),
+                                  max_chars=SECTION_MAX_CHARS, one_paragraph=False,
+                                  citable_ids=[], market_states=states)
             published, state = bool(r.published), r.state
             reason = None if published else (r.withheld_note() or r.reason)
             lists = list_lines(r.text) if published else []
             jargon = internal_terms(r.text) if published else []
+            tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
+                    if (published and stack) else
+                    # A v2 section has no edition to hold directions to; the
+                    # stance check needs none.
+                    readability.stance_faults(r.text) if published else [])
+            # A count's or a small thousands change's own display form is
+            # accepted (T3.4a): "+42,984" contracts, "+29,000" payrolls.
+            accepted = na.accepted_deltas([sec.get("slice"),
+                                           sec.get("audit_extra")])
+            bare = na.bare_deltas(r.text, accepted) if published else []
+            # The draft's figure count against the cap, published or not, so the
+            # retry can say how far over it ran.
+            drafted = r.text or getattr(r, "rejected_text", None) or ""
+            cited = sp_mod.figures_cited(drafted) if stack and drafted else None
+            over = ((cited, figure_cap()) if cited is not None
+                    and cited > figure_cap() else None)
+            vwords = vocab_words(jargon, tape)
             if jargon:
                 published, state = False, "internal_vocabulary"
                 reason = (f"narrative withheld: it writes about the system "
-                          f"({', '.join(jargon)}) -- a reader's prose names markets, "
-                          f"not the report's plumbing")
+                          f"({', '.join(jargon)}) -- {VOCAB_RULE}")
             elif lists:
                 published, state = False, "list_fragments"
                 reason = (f"narrative withheld: the section came back as list "
                           f"fragments ({len(lists)} list line(s)), and a narrative "
                           f"section is prose")
-            out[sec["key"]] = {
+            elif tape:
+                published, state = False, "tape_rules"
+                reason = "withheld: " + "; ".join(tape[:4])
+            elif bare:
+                published, state = False, "bare_delta"
+                reason = (f"withheld: a change of 10,000 or more printed without its "
+                          f"unit or scale ({', '.join(bare[:3])}) -- copy its "
+                          f"change_display or latest_level_display verbatim")
+            # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1b, the Weekly's W-1.1a
+            # item 4): "fell -3 bp" prints "fell 3 bp", after every audit, and
+            # the rewrite is counted.
+            text, n_unsigned = (readability.unsign_after_verbs(r.text)
+                                if published else (None, 0))
+            return {
                 "title": sec["title"], "state": state, "published": published,
-                "text": r.text if published else None, "reason": reason,
-                "words": words(r.text) if published else 0,
+                "text": text, "reason": reason,
+                "unsigned_rewrites": n_unsigned,
+                "words": words(text) if published else 0,
                 # Kept for inspection, never printed: the operator can see what a
                 # withheld section said and why the audit stopped it.
                 "rejected_text": None if published else (
                     getattr(r, "rejected_text", None) or r.text),
                 "model": r.model,
-                "figures_checked": getattr(r, "figures_checked", None)}
+                "figures_checked": getattr(r, "figures_checked", None),
+                "figures_cited": cited,
+                "figures_over": None if published else over,
+                "vocab_words": None if published else (vwords or None),
+                "unmatched": (list(getattr(r, "unmatched", None) or []) or None)
+                if state == "audit_failed" else None}
         except Exception as exc:                               # noqa: BLE001
-            out[sec["key"]] = {"title": sec["title"], "state": "fault",
-                               "published": False, "text": None, "words": 0,
-                               "reason": f"FAULT (code, not data) -- "
-                                         f"{type(exc).__name__}: {exc}"}
-        log.info("section %s: %s (%s words)", sec["key"], out[sec["key"]]["state"],
-                 out[sec["key"]]["words"])
+            return {"title": sec["title"], "state": "fault",
+                    "published": False, "text": None, "words": 0,
+                    "reason": f"FAULT (code, not data) -- "
+                              f"{type(exc).__name__}: {exc}"}
+
+    for sec in secs:
+        if only and not only(sec):
+            continue
+        system = sec.get("system") or system_prompt(sec["title"], sec["scope"],
+                                                    sec["paragraphs"])
+        # THE RETRIES (Reader's Guide 5.3; three attempts from T3.3): the audit's
+        # reason goes back with the instruction to fix exactly that; a third
+        # failure is withheld as before, with every reason kept.
+        res = {**attempt(sec, system), "attempts": 1}
+        reasons = [res.get("reason")]
+        while (not res["published"] and not _not_retried(res)
+               and res["attempts"] < ATTEMPTS):
+            res = {**attempt(sec, retry_prompt(system, res, sec.get("slice"))),
+                   "attempts": res["attempts"] + 1}
+            reasons.append(res.get("reason"))
+        if not res["published"] and len(reasons) > 1:
+            res["first_reason"] = reasons[0]
+            res["reasons"] = reasons
+        out[sec["key"]] = res
+        log.info("section %s: %s (%s words, %d attempt(s))", sec["key"],
+                 res["state"], res["words"], res["attempts"])
     return out

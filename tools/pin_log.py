@@ -55,9 +55,21 @@ needed and old rows stay directly comparable to new ones. Column order is
 append-only: new columns go on the end and no existing column ever moves, so a
 file written months apart still parses as one table.
 
+GROSS AGAINST NET -- METHODOLOGY ADDITION, 11 Oct 2026 (dealer audit F1).
+Since 9 Oct the row carries gross_gex_abs (call-gamma mass plus put-gamma mass,
+unnetted), gross_gamma_per_1pct (that x 0.01 x spot) and net_to_gross
+(|net_gex| / gross, blank when gross is zero). Rows written before then are
+filled by `--backfill-gross`, which reads each row's stored profile's
+per_strike (sum of |call_gex| + |put_gex|) and that profile's spot, writes
+those three columns where they are blank, and changes no other column -- no
+regrade, no recompute of the profile, no row added or removed. A row whose
+profile is missing, or predates the per-strike call/put split, stays blank and
+is counted.
+
 Usage:
     python tools/pin_log.py                  # score today's computed snapshots
     python tools/pin_log.py --date 2026-09-04
+    python tools/pin_log.py --backfill-gross # fill the three F1 columns on old rows
 """
 
 from __future__ import annotations
@@ -128,6 +140,10 @@ PIN_COLUMNS = [
     # Which IV produced the greeks behind this grading. Constant until 5 Sep,
     # which meant a solved-IV grading and a vendor-IV grading looked identical.
     "greeks_source",
+    # --- appended 9 Oct 2026: gross against net (dealer audit F1) ---------
+    # The net is a small difference of two large masses; these record how
+    # small, so a row's regime word can be read against its own ratio later.
+    "gross_gex_abs", "gross_gamma_per_1pct", "net_to_gross",
 ]
 
 
@@ -248,6 +264,8 @@ def row_for(computed: dict, close: Optional[float] = None,
 
     z = b.get("0dte") or {}
     row["greeks_source"] = computed.get("greeks_source")
+    for name in ("gross_gex_abs", "gross_gamma_per_1pct", "net_to_gross"):
+        row[name] = o.get(name)
     row["oi_0dte"] = z.get("oi_total")
     row["oi_0dte_put_call_ratio"] = z.get("oi_put_call_ratio")
     # Named, not counted: which bucket is leaning on the floor matters more
@@ -383,6 +401,87 @@ def _load_day(day: Path, symbols: Optional[list[str]] = None) -> dict[str, dict]
     return out
 
 
+GROSS_COLUMNS = ("gross_gex_abs", "gross_gamma_per_1pct", "net_to_gross")
+
+
+def _gross_from_profile(prof: dict) -> Optional[float]:
+    """Sum of |call_gex| + |put_gex| over the stored per_strike, or None when
+    the profile predates the call/put split (or carries no strikes)."""
+    strikes = prof.get("per_strike") or []
+    if not strikes or any("call_gex" not in s or "put_gex" not in s
+                          for s in strikes):
+        return None
+    return sum(abs(s["call_gex"] or 0.0) + abs(s["put_gex"] or 0.0)
+               for s in strikes)
+
+
+def backfill_gross(log_path: Optional[str] = None,
+                   computed_dir: Optional[str] = None) -> dict:
+    """Fill the three gross columns on existing rows from stored profiles.
+
+    Only blank cells in those three columns are written; every other cell is
+    carried through as the string it was read as. The file is rewritten via a
+    temporary file and a rename, so a failure part-way leaves it untouched.
+    """
+    p = Path(log_path or config.PIN_LOG_PATH)
+    counts = {"rows": 0, "filled": 0, "already": 0, "no_profile": 0,
+              "no_split": 0}
+    if not p.exists():
+        return counts
+    with p.open(encoding="utf-8", newline="") as fp:
+        reader = csv.DictReader(fp)
+        header = list(reader.fieldnames or [])
+        rows = list(reader)
+    fieldnames = header + [c for c in PIN_COLUMNS if c not in header]
+
+    cache: dict[str, dict] = {}
+    root = Path(computed_dir or config.COMPUTED_DIR)
+    for r in rows:
+        counts["rows"] += 1
+        if all((r.get(c) or "") != "" for c in GROSS_COLUMNS):
+            counts["already"] += 1
+            continue
+        d = r.get("date") or ""
+        if d not in cache:
+            day = root / d
+            cache[d] = _load_day(day) if d and day.is_dir() else {}
+        prof = cache[d].get(r.get("symbol") or "")
+        if not prof or prof.get("error"):
+            counts["no_profile"] += 1
+            continue
+        gross = _gross_from_profile(prof)
+        if gross is None:
+            counts["no_split"] += 1
+            continue
+        net = _to_float(r.get("net_gex"))
+        if net is None:
+            net = (prof.get("overall") or {}).get("net_gex")
+        spot = prof.get("spot")
+        vals = {"gross_gex_abs": gross,
+                "gross_gamma_per_1pct": gross * 0.01 * spot if spot else None,
+                "net_to_gross": (abs(net) / gross if gross and net is not None
+                                 else None)}
+        for c in GROSS_COLUMNS:
+            if (r.get(c) or "") == "" and vals[c] is not None:
+                r[c] = vals[c]
+        counts["filled"] += 1
+
+    tmp = p.with_suffix(p.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8", newline="") as fp:
+        w = csv.DictWriter(fp, fieldnames=fieldnames)
+        w.writeheader()
+        w.writerows(rows)
+    tmp.replace(p)
+    return counts
+
+
+def _to_float(v) -> Optional[float]:
+    try:
+        return float(v) if v not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
 def run(date: Optional[str] = None, symbols: Optional[list[str]] = None,
         computed_dir: Optional[str] = None, log_path: Optional[str] = None,
         close_source: str = "chain_snapshot_spot",
@@ -426,6 +525,11 @@ def main() -> int:
                     help="Rescore EXISTING rows at config's current tolerance. "
                          "A deliberate methodology change; a plain rerun "
                          "preserves each row's declared tolerance.")
+    ap.add_argument("--backfill-gross", action="store_true",
+                    help="Fill gross_gex_abs, gross_gamma_per_1pct and "
+                         "net_to_gross on existing rows from their stored "
+                         "profiles; no other column changes, nothing is "
+                         "regraded or added (methodology addition, 11 Oct 2026).")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -433,6 +537,15 @@ def main() -> int:
                         datefmt="%H:%M:%S")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+    if args.backfill_gross:
+        c = backfill_gross(args.log_path, args.computed_dir)
+        print(f"backfill-gross: {c['rows']} rows read; {c['filled']} filled, "
+              f"{c['already']} already carried the columns, {c['no_profile']} "
+              f"without a stored profile, {c['no_split']} whose profile predates "
+              f"the call/put split")
+        print(f"  written: {args.log_path or config.PIN_LOG_PATH}")
+        return 0
 
     rows = run(args.date, args.symbols, args.computed_dir, args.log_path,
                args.close_source, args.allow_regrade)

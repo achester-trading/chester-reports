@@ -127,10 +127,10 @@ PERCENT_KEYS = [registry_key(slug, f)
 def _yf():
     """Imported lazily so the rest of the pipeline works without yfinance."""
     try:
-        import yfinance  # noqa: PLC0415
+        from altdata import import_yfinance  # noqa: PLC0415
+        return import_yfinance()
     except ImportError:
         return None
-    return yfinance
 
 
 def prior_us_settlement(now_et: dt.datetime) -> dt.datetime:

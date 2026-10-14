@@ -1,0 +1,2300 @@
+"""
+The ten-section stack on the Monthly, first half. (reporting-stack brief; Tranche T3)
+
+    from monthly_macro import stack
+    ed = stack.build(payload, prior=None, db_path=None)
+    stack.apply_prose(ed, written)        # monthly_macro.prose.write_all(..., ed=ed)
+    stack.enforce_budget(ed)
+
+THE WEEKLY'S PATH, AT THE MONTHLY'S DEPTHS. The sections are built by the same
+builders the Weekly uses (daily_cascade.weekly_stack: plumbing, positioning,
+what's priced, what doesn't fit) over the MONTH's window, and assembled by the
+one function every cadence uses (daily_cascade.stack.assemble, cadence
+"monthly", reading the Monthly column of config/reporting_stack.yaml): the same
+order, claim lines, change marks against the PRIOR MONTHLY, and collapse rule.
+
+MONTHLY v2 PHASE A IS RECONCILED INTO THE TEN, each part printed once:
+
+  the month in markets   its scorecard table is The tape's; its prose is The
+                         read's paragraphs (claim = its first sentence)
+  the one page           The read's sub-section: the five takeaways, as prose
+                         when written, as lines when withheld
+  looking back by theme  each theme a sub-section of Narratives -- its prose,
+                         its series, its CONSENSUS and NEW developments; the
+                         DISSENT and CORRECTION developments go to What doesn't
+                         fit; "what changed" is the header's "Changed since last
+                         Monthly", as the Weekly's is
+  voices                 Narratives' sub-sections (the table, consensus against
+                         contrarian, the four weeks by story)
+  looking ahead          Ahead: its prose, the calendar by period, the scenario
+                         weights with Brier and signposts; the month's graded
+                         calls beside them
+  where our read lands   The book: its prose, and the bound restated beneath it,
+                         bounded as now
+
+The Phase A "in one line each" summary is not carried: it was each theme's first
+sentence printed a second time.
+
+THE OLDER SECTIONS, in the brief's order. Slow layers (the matrix's last row, the
+Monthly only) follows The book: valuation, base rates (Top & Bottom and the
+bear-rally base rate), tails, themes (the alternative assets). The rest of the
+old record prints after it as the DETAIL TABLES: the regime (dials and
+dimensions; the open contradictions and exceptions are What doesn't fit's), the
+scenario record (only the weights Ahead does not already print), the register's
+month, and the appendix.
+
+EVERY PRINTED PHASE A FACT CARRIES AN ID (`phase_a`), so the gate can hold the
+edition to "nothing lost, nothing twice". Reads only. Never raises on a section:
+a builder that fails prints its FAULT in that section's footnote.
+"""
+
+from __future__ import annotations
+
+import copy
+import datetime as dt
+import json
+import logging
+import re
+from pathlib import Path
+from typing import Any, Optional
+
+from altdata import labels, observations, session
+
+from daily_cascade import readability as rd
+from daily_cascade import stack as stack_mod
+from daily_cascade import stack_render as sr
+from daily_cascade.stack import item
+
+from . import dealer as dealer_mod
+
+log = logging.getLogger("monthly_macro.stack")
+
+CADENCE = "monthly"
+SLOW_ID = "slow"
+
+# THE WEEKLY'S BUILDERS SPEAK OF A WEEK; over a month's window the same lines are
+# the month's. Applied, in order, to every string those builders return. (RTAT10's
+# "prior" is still the week before the window opens, and is labelled so.)
+PERIOD_WORDS = (("on the week", "on the month"), ("this week", "this month"),
+                ("This week", "This month"),
+                ("the week before", "the week before the month"),
+                ("Week or prior", "Month or prior"),
+                ("the week's sector", "the month's sector"),
+                ("at the week's end", "at the month's end"),
+                ("At the week's end", "At the month's end"),
+                ("week mean", "month mean"),
+                ("since the prior report", "on the month"))
+
+
+def edition_name(report_date: str) -> str:
+    return f"monthly_macro_{report_date}_stack.json"
+
+
+def load_prior(report_date: str, archive_dir: Optional[str]) -> Optional[dict]:
+    """The newest stacked Monthly archived strictly before `report_date` -- the
+    marks compare against the PRIOR MONTHLY, never a Weekly or a close."""
+    if not archive_dir or not Path(archive_dir).exists():
+        return None
+    best = None
+    for f in Path(archive_dir).glob("monthly_macro_*_stack.json"):
+        m = re.match(r"monthly_macro_(\d{4}-\d{2}-\d{2})_stack\.json$", f.name)
+        if m and m.group(1) < report_date and (best is None or m.group(1) > best[0]):
+            best = (m.group(1), f)
+    if not best:
+        return None
+    try:
+        return json.loads(best[1].read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+
+
+def save_edition(ed: dict, archive_dir: Optional[str]) -> Optional[str]:
+    from daily_cascade import deliver                            # noqa: PLC0415
+    return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
+                           edition_name(ed["report_date"]), archive_dir)
+
+
+def window(p: dict) -> tuple[str, str, str, str]:
+    """(first session day, month-end, then-cutoff, now-cutoff). The month is the
+    one Phase A's scorecard reads (v2.month_bounds): the close on or before the
+    prior month-end against the close on or before this month-end."""
+    from . import v2                                             # noqa: PLC0415
+    start, end = v2.month_bounds(p)
+    now = str(p.get("as_of") or session.utc_iso())
+    then = f"{start.isoformat()}T23:59:59+00:00"
+    first = (start + dt.timedelta(days=1)).isoformat()
+    return first, end.isoformat(), then, now
+
+
+def _month_words(v: Any) -> Any:
+    if isinstance(v, str):
+        for a, b in PERIOD_WORDS:
+            v = v.replace(a, b)
+        return v
+    if isinstance(v, list):
+        return [_month_words(x) for x in v]
+    if isinstance(v, tuple):
+        return tuple(_month_words(x) for x in v)
+    if isinstance(v, dict):
+        out = {k: (_month_words(x) if k not in ("fingerprint", "key") else x)
+               for k, x in v.items()}
+        if isinstance(out.get("columns"), list):
+            out["columns"] = ["The month" if c == "Week" else c
+                              for c in out["columns"]]
+        return out
+    return v
+
+
+def _fault(sid: str, exc: Exception) -> dict:
+    log.warning("monthly stack: %s unavailable", sid, exc_info=True)
+    return {"items": [], "not_tracked": [], "data": {},
+            "notes": [f"FAULT (code, not data) -- {type(exc).__name__}: {exc}"]}
+
+
+def _cell(v: Any) -> str:
+    return str("—" if v in (None, "") else v).replace("\n", " ")
+
+
+def _v(x: Any, dp: int = 2) -> str:
+    if x is None:
+        return "—"
+    try:
+        return f"{float(x):,.{dp}f}"
+    except (TypeError, ValueError):
+        return str(x)
+
+
+def _ord(x: Any) -> str:
+    """A percentile as the table prints it: the whole-number ordinal, rounded
+    HALF UP by the one rule the payload's `_ordinal` fields use
+    (numeral_audit.percentile_ordinal), so a table never prints "99th" -- or
+    "99.9" -- where the audit holds "100th" (T3.2 item 2)."""
+    from altdata.numeral_audit import percentile_ordinal        # noqa: PLC0415
+    if x is None:
+        return "—"
+    try:
+        return percentile_ordinal(float(x))
+    except (TypeError, ValueError):
+        return str(x)
+
+
+def _cite(s: Optional[dict]) -> str:
+    if not s:
+        return "—"
+    tier = f", tier {s['tier']}" if s.get("tier") is not None else ""
+    title = f"{s.get('title')}, " if s.get("title") else ""
+    return f"{title}{s.get('date')}{tier}"
+
+
+# ---------------------------------------------------------------------------
+# 1. The read: the month in markets' prose and the one page
+# ---------------------------------------------------------------------------
+def read_section(p: dict) -> dict:
+    op = p.get("month_in_one_page") or {}
+    takes = op.get("takeaways") or []
+    items = [item(f"read:take:{t.get('n')}", str(t.get("text")), 1, t.get("text"))
+             for t in takes]
+    for it in items:
+        it["show"] = False
+    cites = "; ".join(_cite(s) for t in takes for s in (t.get("sources") or [])[:1])
+    sub = {"title": "The month in one page", "phase": "month_in_one_page",
+           "lines": [f"{t['n']}. {t['text']}" for t in takes],
+           "not_tracked": ([] if takes else [op.get("reason") or
+                                             "no takeaway this month"])}
+    return {"items": items, "print_items": False, "subsections": [sub],
+            "notes": ([f"The takeaways are built from: {cites}."] if cites else []),
+            "phase_a": ["month_in_markets:prose"]
+            + (["month_in_one_page:takeaways"] if takes else []),
+            "data": {"takeaways": [t.get("text") for t in takes],
+                     "month": (p.get("month_in_markets") or {}).get("month")}}
+
+
+# ---------------------------------------------------------------------------
+# 2. The tape: the scorecard (light) and the long frame (brief 3.4)
+# ---------------------------------------------------------------------------
+def _move(r: dict) -> str:
+    if r.get("change_unit") == "bps":
+        return stack_mod._signed(r.get("change"), "bp")
+    if r.get("change_unit") == "percent":
+        return stack_mod._signed(r.get("change"), "%")
+    return _v(r.get("change"), 4)
+
+
+def _lvl(r: dict, which: str) -> str:
+    v = r.get(f"{which}_level")
+    return f"{_v(v)}%" if r.get("change_unit") == "bps" else _v(v)
+
+
+def _closes(st, key: str, now: str) -> list[tuple[str, float]]:
+    return sorted((str(r["observed_at"])[:10], float(r["value_num"]))
+                  for r in st.as_of(key, now) if r.get("value_num") is not None)
+
+
+def _ytd_fund(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
+    """Total return from the last close on or before `start` to the last on or
+    before `end`, a dividend added on its ex-date and not reinvested. A start
+    close more than a week before `start` is not that day's (the scorecard's
+    rule): the window is not spanned and the answer is None."""
+    px = [x for x in _closes(st, key, now) if x[0] <= end]
+    p0 = [x for x in px if x[0] <= start]
+    if not p0 or not px or px[-1][0] <= p0[-1][0]:
+        return None
+    if (dt.date.fromisoformat(start[:10])
+            - dt.date.fromisoformat(p0[-1][0])).days > 7:
+        return None
+    (d0, v0), (d1, v1) = p0[-1], px[-1]
+    div = sum(v for d, v in _closes(st, f"{key}_dividend", now) if d0 < d <= d1)
+    return {"from": d0, "to": d1, "pct": round(100.0 * ((v1 + div) / v0 - 1.0), 2),
+            "dividends": round(div, 4)}
+
+
+def _ytd_bill(st, key: str, start: str, end: str, now: str) -> Optional[dict]:
+    """Cash: the 3-month bill as Book Z accrues it, rate x calendar days / 360,
+    each day at the latest rate observed before it."""
+    rates = [x for x in _closes(st, key, now) if x[0] <= end]
+    if not rates or rates[0][0] > start:
+        return None
+    d, stop = dt.date.fromisoformat(start), dt.date.fromisoformat(min(end, rates[-1][0]))
+    if stop <= d:
+        return None
+    val, i, r = 1.0, 0, None
+    while d < stop:
+        while i < len(rates) and rates[i][0] <= d.isoformat():
+            r = rates[i][1]
+            i += 1
+        val *= 1.0 + (r or 0.0) / 100.0 / 360.0
+        d += dt.timedelta(days=1)
+    return {"from": start, "to": stop.isoformat(),
+            "pct": round(100.0 * (val - 1.0), 2), "dividends": None}
+
+
+def _year_back(day: str) -> str:
+    d = dt.date.fromisoformat(str(day)[:10])
+    try:
+        return d.replace(year=d.year - 1).isoformat()
+    except ValueError:                                          # 29 February
+        return d.replace(year=d.year - 1, day=28).isoformat()
+
+
+def _pct_cell(r: Optional[dict]) -> str:
+    return "—" if r is None else f"{r['pct']:+.2f}%"
+
+
+def cross_asset_ytd(st, last: str, now: str, cfg: dict,
+                    month_start: Optional[str] = None) -> dict:
+    """GTM-14: the quilt's current column, from the proxies the store holds,
+    ranked by the year to date. Beside it the month and the twelve months (T3.1
+    item 4), by the same total-return rule over the store's daily closes: the
+    month from the close on or before `month_start` (the prior month-end), the
+    twelve months from the close on or before the same day a year earlier. A
+    window the store cannot span prints a dash. Code-written; a class without a
+    proxy or without closes says why."""
+    year = int(str(last)[:4])
+    start, end = f"{year - 1}-12-31", str(last)[:10]
+    t12 = _year_back(end)
+    got, nt = [], []
+    for c in cfg.get("monthly_cross_asset_ytd") or []:
+        if c.get("absent") or not c.get("key"):
+            nt.append(f"{c['label']} year to date: {c.get('absent') or 'no proxy'}")
+            continue
+        fn = _ytd_bill if c.get("kind") == "bill" else _ytd_fund
+        r = fn(st, c["key"], start, end, now)
+        if r is None:
+            nt.append(f"{c['label']} year to date ({c['proxy']}): the store holds no "
+                      f"close at both {start} and the month end")
+            continue
+        mo = fn(st, c["key"], month_start, end, now) if month_start else None
+        yr = fn(st, c["key"], t12, end, now)
+        got.append({**c, **r, "month": mo, "twelve": yr})
+    got.sort(key=lambda r: -r["pct"])
+    rows = [[n, r["label"], str(r["proxy"]), _pct_cell(r["month"]),
+             f"{r['pct']:+.2f}%", _pct_cell(r["twelve"])]
+            for n, r in enumerate(got, start=1)]
+    ends = sorted({r["to"] for r in got})
+    note = (f"Total return to the {end} close"
+            + (f" (latest close {ends[0]})" if ends and ends[0] != end else "")
+            + (f": the month from the {month_start} close, " if month_start
+               else ": ")
+            + f"the year to date from the {start} close, the twelve months from the "
+              f"{t12} close; a fund's dividends added on their ex-dates, not "
+              "reinvested; cash at the 3-month bill, rate x days / 360. Ranked by "
+              "the year to date. Proxies are funds, not the indices JPM's quilt "
+              "uses (GTM-14).")
+    return {"rows": rows, "not_tracked": nt, "note": note if rows else None,
+            "data": [{"rank": n, "class": r["label"], "proxy": r["proxy"],
+                      "month_pct": (r["month"] or {}).get("pct"),
+                      "ytd_pct": r["pct"],
+                      "twelve_month_pct": (r["twelve"] or {}).get("pct"),
+                      "from": r["from"], "to": r["to"]}
+                     for n, r in enumerate(got, start=1)]}
+
+
+# THE LONG FRAME'S AVERAGES, each with its daily equivalent (T3.1 item 3): the
+# ruled values stay -- levels, never signals (2 Oct) -- and a reader used to the
+# 200-day sees where each one sits.
+LONG_FRAME_LABELS = {"ma_40w": "40-week (≈200-day)", "ma_10m": "10-month (≈210-day)",
+                     "ma_20m": "20-month (≈400-day)"}
+
+
+def year_end_close(st, key: str, year: int, now: str) -> Optional[tuple[str, float]]:
+    """The last close on or before 31 December of `year`, as knowable at `now`;
+    None when that close is more than a week before the year's end -- an old
+    level is not the year-end's (the scorecard's own rule)."""
+    px = [x for x in _closes(st, key, now) if x[0] <= f"{year}-12-31"]
+    return px[-1] if px and px[-1][0] >= f"{year}-12-24" else None
+
+
+def _ytd_move(r: dict, ye: Optional[tuple[str, float]]) -> Optional[dict]:
+    """A scorecard row's year to date in the row's own unit: basis points for a
+    yield or a spread, percent for a price, raw otherwise."""
+    end = r.get("end_level")
+    if ye is None or end is None:
+        return None
+    v0 = ye[1]
+    if r.get("change_unit") == "bps":
+        return {"from": ye[0], "value": round((float(end) - v0) * 100.0, 1),
+                "unit": "bps"}
+    if r.get("change_unit") == "percent":
+        if not v0:
+            return None
+        return {"from": ye[0], "value": round(100.0 * (float(end) / v0 - 1.0), 2),
+                "unit": "percent"}
+    return {"from": ye[0], "value": round(float(end) - v0, 4), "unit": "raw"}
+
+
+def _ytd_text(y: Optional[dict]) -> str:
+    if y is None:
+        return "—"
+    if y["unit"] == "bps":
+        return stack_mod._signed(y["value"], "bp")
+    if y["unit"] == "percent":
+        return stack_mod._signed(y["value"], "%")
+    return _v(y["value"], 4)
+
+
+def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = None,
+                 now: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
+    m = p.get("month_in_markets") or {}
+    rows = m.get("rows") or []
+    items, trows, ytds = [], [], {}
+    # THE CLOSE AND THE MOVE, AND THE YEAR TO DATE (T3.1 item 2): the prior
+    # month-end's close is dropped -- the move carries it -- and the year to date
+    # is the row's own unit from the last close on or before the prior year-end
+    # the store holds.
+    year = int(str(m.get("end") or last or "2000")[:4])
+    for r in rows:
+        ye = (year_end_close(st, r["metric"], year - 1, now)
+              if st is not None and now and r.get("metric") else None)
+        ytds[r["id"]] = _ytd_move(r, ye)
+        items.append(item(f"tape:{r['id']}", f"{r['label']} {_lvl(r, 'end')}, "
+                          f"{_move(r)} on the month.", 1 if r is rows[0] else 2,
+                          (r.get("end_level"), r.get("change"))))
+        trows.append([r["label"], _lvl(r, "end"), _move(r), _ytd_text(ytds[r["id"]]),
+                      _ord(r.get("percentile"))])
+    table = {"columns": ["Market", f"Close, {m.get('end')}", "Move", "Year to date",
+                         "Level, 5y percentile"], "rows": trows}
+    # THE LONG FRAME: levels, never signals; a cross counts only after the
+    # monthly close (item 10). The 40-week, 10-month and 20-month averages from
+    # the level list, beside the month-end close and the drawdown.
+    lf_rows, lf_data, nt = [], [], []
+    for i in (book or {}).get("instruments") or []:
+        lv = {x["type"]: x["value"] for x in i.get("levels") or []}
+        if not any(k in lv for k in ("ma_40w", "ma_10m", "ma_20m")):
+            continue
+        close = (i.get("frame") or {}).get("last")
+        dd = (i.get("row") or {}).get("drawdown_52w_pct")
+        lf_rows.append([i["label"], _v(close), _v(lv.get("ma_40w")),
+                        _v(lv.get("ma_10m")), _v(lv.get("ma_20m")),
+                        "—" if dd is None else f"{dd:+.2f}%"])
+        lf_data.append({"market": i["label"], "close": close,
+                        "ma_40w": lv.get("ma_40w"), "ma_10m": lv.get("ma_10m"),
+                        "ma_20m": lv.get("ma_20m"), "drawdown_52w_pct": dd})
+    if not lf_rows:
+        nt.append("the long-frame averages (40-week, 10-month, 20-month): the store "
+                  "holds too few daily closes to resample")
+    subs = [{"title": "The long frame: levels, never signals",
+             "table": {"columns": ["Market", "Month-end close",
+                                   f"{LONG_FRAME_LABELS['ma_40w']} average",
+                                   f"{LONG_FRAME_LABELS['ma_10m']} average",
+                                   f"{LONG_FRAME_LABELS['ma_20m']} average",
+                                   "From the 52-week high"], "rows": lf_rows},
+             "not_tracked": nt}]
+    ytd = None
+    if st is not None and last and now:
+        try:
+            ytd = cross_asset_ytd(st, last, now, cfg or {},
+                                  month_start=m.get("start"))
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("cross-asset year to date unavailable", exc_info=True)
+            nt.append(f"the cross-asset year to date: FAULT {exc}")
+    if ytd is not None:
+        subs.append({"title": "Across assets, year to date",
+                     "table": {"columns": ["Rank", "Asset class", "Proxy",
+                                           "The month", "Year to date",
+                                           "Twelve months"], "rows": ytd["rows"]},
+                     "notes": [ytd["note"]] if ytd["note"] else [],
+                     "not_tracked": ytd["not_tracked"]})
+        items.extend(item(f"tape:ytd:{r['class']}", f"{r['class']} "
+                          f"{r['ytd_pct']:+.2f}% year to date", 3,
+                          (r["rank"], r["ytd_pct"])) for r in ytd["data"])
+    levels = [{"symbol": i.get("symbol"), "name": i.get("label"),
+               **{x["label"]: x["value"] for x in i.get("levels") or []
+                  if x["type"] in ("ma_40w", "ma_10m", "ma_20m")}}
+              for i in (book or {}).get("instruments") or []]
+    return {"items": items, "print_items": False, "table": table,
+            "subsections": subs,
+            "not_tracked": [x.split(" (")[0] for x in m.get("missing") or []],
+            "phase_a": [f"month_in_markets:row:{r['id']}" for r in rows],
+            "data": {"month": m.get("month"), "from": m.get("start"),
+                     "to": m.get("end"),
+                     "moves": [{"market": r["label"], "move": _move(r),
+                                "year_to_date": _ytd_text(ytds.get(r["id"])),
+                                "level_percentile_5y": r.get("percentile"),
+                                "level_percentile_5y_ordinal":
+                                    None if r.get("percentile") is None
+                                    else _ord(r.get("percentile"))}
+                               for r in rows],
+                     "long_frame": lf_data, "levels": levels,
+                     "cross_asset_ytd": (ytd or {}).get("data") or []}}
+
+
+# ---------------------------------------------------------------------------
+# 3. Mechanics: the dealer retrospective (brief 1.2)
+# ---------------------------------------------------------------------------
+def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
+    r = dealer_mod.retrospective(st, first, last, now, cfg)
+    c = r["counts"]
+    items = [item("mech:sessions", f"SPY over {c['sessions']} scored session(s): "
+                  f"{c['positive_gamma']} in positive net GEX, {c['negative_gamma']} "
+                  f"in negative; the morning flip crossed on {c['flip_crossed']}.", 1,
+                  (c["sessions"], c["positive_gamma"], c["flip_crossed"]))]
+    for k, lab in dealer_mod.FLAGS:
+        items.append(item(f"mech:{k}", f"{lab[0].upper() + lab[1:]} on {c[k]} of "
+                          f"{c[k + '_scored']} session(s).", 2, (c[k], c[k + "_scored"])))
+    subs = []
+    if r["summary_table"]:
+        subs.append({"title": "The month's counts and hit rates",
+                     "table": r["summary_table"], "lines": r["lines"]})
+    else:
+        subs.append({"title": "The month's counts and hit rates", "lines": r["lines"]})
+    if r["sessions"]:
+        subs.append({"title": "Ranges and flags, by session",
+                     "table": r["ranges_table"],
+                     "table_note": "Flags are computed by the Weekly's rule "
+                                   "(config/reporting_stack.yaml dealer_flags), "
+                                   "never by the model."})
+    # SR-37 and SR-38 (batch 4; placement: Mechanics, Monthly): the AI
+    # FCF-transfer panel and the forward-EPS revision line, code-written and
+    # tagged, with no paragraph of their own (report-only).
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    fcf, fcf_data = ws.ai_fcf_block(st, now)
+    rv, rv_data = ws.ai_revisions_block(st, now)
+    subs += [x for x in (fcf, rv) if x]
+    extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
+             **({"ai_revisions": rv_data} if rv_data else {})}
+    return {"items": items, "print_items": False,
+            "table": r["table"] if r["sessions"] else None,
+            "subsections": subs,
+            "not_tracked": ([] if r["sessions"] else
+                            ["the dealer scorecard: the close stores one per session "
+                             "from the first stacked close on"]),
+            "prose_wanted": not r["insufficient"],
+            "data": {"retrospective": {k: r[k] for k in ("counts", "rates",
+                                                         "insufficient",
+                                                         "min_sessions")},
+                     "sessions": [{"session": x["session"],
+                                   "gamma_regime": x["gamma_regime"],
+                                   "flags": x["flags"], "iv_check": x["iv_check"]}
+                                  for x in r["sessions"]], **extra},
+            "_retro": r}
+
+
+# ---------------------------------------------------------------------------
+# 4. What doesn't fit: the gaps, and Phase A's dissent and corrections
+# ---------------------------------------------------------------------------
+def month_in_state(p: dict) -> dict:
+    """The Weekly's `week_in_state` shape, from the Monthly's regime block."""
+    rg = p.get("regime") or {}
+    return {"contradictions": [c for c in rg.get("contradictions") or []
+                               if c.get("open_state") == "open"],
+            "exceptions_opened": rg.get("exceptions_opened") or [],
+            "exceptions_intraweek_only": [],
+            "exceptions_open_now": rg.get("exceptions_open_now") or []}
+
+
+MISFIT_TAGS = ("DISSENT", "CORRECTION")
+
+
+def _dev_row(it: dict) -> list:
+    corr = (f" (corrects: {it['corrects']['statement']})" if it.get("corrects") else "")
+    return [str(it.get("text")) + corr, it.get("tag"),
+            "; ".join(_cite(s) for s in (it.get("sources") or [])[:2])]
+
+
+def gap_points(gaps: list[dict]) -> list[dict]:
+    """Each open gap as a point (T3.1 item 7): what doesn't fit as the header,
+    the two sides as the one sentence on the mechanism, the figures as bullets.
+    From the gap table's own data (weekly_sections.gap_table) -- nothing new."""
+    out = []
+    for g in gaps or []:
+        sides = str(g.get("sides") or "").strip().rstrip(".")
+        bullets = []
+        if g.get("z") is not None:
+            bullets.append(f"z {g['z']:+.1f} against its own history")
+        if g.get("direction") and g["direction"] != "—":
+            bullets.append(f"the gap is {g['direction']}")
+        if g.get("sessions_open") is not None:
+            bullets.append(f"open {g['sessions_open']} session(s)")
+        if g.get("closes_when"):
+            bullets.append(f"closes when {str(g['closes_when']).rstrip('.')}")
+        out.append({"head": str(g.get("gap") or "").capitalize(),
+                    "sentence": (sides[0].upper() + sides[1:] + ".") if sides else None,
+                    "bullets": bullets})
+    return out
+
+
+def dev_point(theme: str, it: dict) -> dict:
+    """A dissent or a correction as a point: the tag and theme, the
+    development as its source states it, the source under it."""
+    text = str(it.get("text") or "").strip()
+    if it.get("corrects"):
+        text += f" (It corrects: {it['corrects']['statement']})"
+    return {"head": f"{str(it.get('tag')).capitalize()}: {theme}",
+            "sentence": text,
+            "bullets": [f"Source: {_cite(s)}" for s in (it.get("sources") or [])[:2]]}
+
+
+def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    from daily_cascade.stack_close import _contradiction_history  # noqa: PLC0415
+    mis = month_in_state(p)
+    hist = {c["id"]: _contradiction_history(st, c["id"], now)
+            for c in mis["contradictions"]}
+    b = _month_words(ws.misfit_week(mis, pmb, hist))
+    rows, ids, pts = [], [], []
+    for t in (p.get("looking_back") or {}).get("themes") or []:
+        for n, it in enumerate(t.get("items") or []):
+            if it.get("tag") in MISFIT_TAGS:
+                rows.append([t.get("name")] + _dev_row(it))
+                pts.append(dev_point(t.get("name"), it))
+                ids.append(f"looking_back:{t['theme']}:item:{n}")
+                b["items"].append(item(f"misfit:dev:{t['theme']}:{n}",
+                                       f"{it.get('tag')}: {it.get('text')}", 2,
+                                       (it.get("tag"), it.get("text"))))
+                b["items"][-1]["show"] = False
+    # SR-30's crisis tier earns one sentence here (batch 3, decision 2).
+    from daily_cascade import batch3_block                      # noqa: PLC0415
+    sr30 = batch3_block.misfit_items(st, now)
+    b["items"] = [i for i in b["items"]
+                  if i["key"] != "misfit:none" or not (rows or sr30)] + sr30
+    # PARAGRAPHS WITH HEADERS AND BULLETS, NOT TABLES (T3.1 item 7): the gap
+    # table and the dissent table stay the source -- in the section's data, and so
+    # in its prose slice -- and print as points. Each gap row rides as a hidden
+    # item, so the fingerprint, the change marks and the collapse still read it.
+    for r in (b.get("table") or {}).get("rows") or []:
+        b["items"].append(item(f"misfit:gap:{r[0]}", str(r[0]), 1, r))
+        b["items"][-1]["show"] = False
+    b["data"]["gap_table"] = b.get("table")
+    b["data"]["dissent"] = [{"theme": r[0], "development": r[1], "tag": r[2],
+                             "source": r[3]} for r in rows]
+    b["points"] = gap_points((b.get("data") or {}).get("gaps") or [])
+    b["table"] = None
+    b.setdefault("subsections", []).append(
+        {"title": "Dissent and corrections this month", "points": pts,
+         "lines": [] if pts else ["No dissent or correction this month."]})
+    b["phase_a"] = ids
+    return b
+
+
+# ---------------------------------------------------------------------------
+# 5-7. Plumbing, positioning, what's priced: the Weekly's builders, the month
+# ---------------------------------------------------------------------------
+def bucket_of(label: str, key: Optional[str], bcfg: dict) -> str:
+    """A Plumbing row's bucket (T3.1 item 8): by the registry's `family` where
+    it declares one, else by the series key, else by the first label pattern the
+    printed label contains; "other" when nothing names it."""
+    if key:
+        from altdata import derived                              # noqa: PLC0415
+        fam = derived.registry_entry(key).get("family")
+        if fam and fam in (bcfg.get("families") or {}):
+            return bcfg["families"][fam]
+        if key in (bcfg.get("keys") or {}):
+            return bcfg["keys"][key]
+    for m in bcfg.get("labels") or []:
+        if m["match"] in str(label):
+            return m["bucket"]
+    return "other"
+
+
+def buckets(rows: list[list], keys: dict, bcfg: dict, columns: list) -> tuple:
+    """(the bucket sub-sections in the ruled order, each with its table; the
+    rows no bucket named). A bucket with no row still prints, with its line."""
+    by: dict[str, list] = {}
+    for r in rows:
+        by.setdefault(bucket_of(r[0], keys.get(r[0]), bcfg), []).append(r)
+    titles = bcfg.get("titles") or {}
+    words = bcfg.get("paragraph_words") or "60 to 100"
+    subs = []
+    for bid in list(bcfg.get("order") or []) + (["other"] if by.get("other") else []):
+        got = by.get(bid) or []
+        subs.append({"title": titles.get(bid) or bid, "bucket": bid,
+                     "phase": f"block:plumbing:{bid}",
+                     "table": {"columns": columns, "rows": got},
+                     "lines": [] if got else ["Nothing stored for this bucket this "
+                                              "month."],
+                     "prose": ({"words": words,
+                                "scope": "what the bucket's figures say together "
+                                         "over the month, and the takeaway"}
+                               if got else None),
+                     "charts_after_prose": True})
+    return subs, by.get("other") or []
+
+
+def plumbing_section(st, now: str, then: str, on_tape: set,
+                     cfg: Optional[dict] = None) -> dict:
+    """The Weekly's Plumbing over the month. A rate or spread the tape's
+    scorecard already prints (its month-end level and move) is not printed a
+    second time here; the footnote says where it is, and the prose still reads
+    it.
+
+    SIX BUCKETS (T3.1 item 8): the Weekly's one table and its global-rates
+    sub-section are regrouped into yields & spreads, macro, liquidity, auction
+    results, metals and global rates (config `monthly_plumbing_buckets`), each a
+    table and a written takeaway; the charts print under their bucket's
+    paragraph. The one table stays in the section's data."""
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    # yudd_line=False: the yields-up/dollar-down line is the Weekly's (AQ-8a);
+    # the Monthly carries the series in the fiscal_dollar theme.
+    b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True,
+                                      yudd_line=False))
+    names = {name: k for k, name in ws.PLUMB}
+    rows = (b.get("table") or {}).get("rows") or []
+    moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
+    if moved:
+        b["table"]["rows"] = [r for r in rows if names.get(r[0]) not in on_tape]
+        b.setdefault("notes", []).append(
+            f"In The tape's table: {', '.join(moved)}.")
+    b["_printed"] = [names[r[0]] for r in b["table"]["rows"] if r[0] in names]
+    bcfg = (cfg or {}).get("monthly_plumbing_buckets")
+    if not bcfg:
+        return b
+    keys = dict(names)
+    for r in (b.get("data") or {}).get("tier1_releases") or []:
+        keys[f"{r['release']}: {r['label']}"] = r["series"]
+    fx = next((ss for ss in b.get("subsections") or []
+               if ss.get("title") == "Global rates and FX"), None)
+    allrows = list(b["table"]["rows"]) + list(((fx or {}).get("table") or {})
+                                              .get("rows") or [])
+    subs, other = buckets(allrows, keys, bcfg, list(b["table"]["columns"]))
+    # Every row rides as a hidden item, so the fingerprint -- the change marks and
+    # the collapse -- reads what the one table carried.
+    for r in allrows:
+        b["items"].append(item(f"plumb:row:{r[0]}", str(r[0]), 3, r))
+        b["items"][-1]["show"] = False
+    # THE LIQUIDITY BUCKET'S CHANGES, IN THE PAYLOAD (T3.2 item 4): the 10 Oct
+    # dry run withheld Plumbing on "$37bn" and "$11bn" -- bank reserves' and
+    # RRP's month changes, printed in this table as "−$37bn" and "−$11bn" and
+    # written unsigned. Each change now rides as a dollar figure with the signed
+    # form to copy; the sign rule still withholds the bare magnitude.
+    liq = next((s for s in subs if s["bucket"] == "liquidity"), None)
+    deltas = ((b.get("data") or {}).get("plumbing") or {}).get("liquidity") or []
+    if liq is not None and deltas:
+        liq["data"] = {"changes": deltas}
+    glob = next((s for s in subs if s["bucket"] == "global"), None)
+    if fx and glob is not None:
+        glob["not_tracked"] = list(fx.get("not_tracked") or [])
+    b["data"]["table"] = b["table"]
+    b["data"]["buckets"] = {s["bucket"]: len(s["table"]["rows"]) for s in subs}
+    b["data"]["other_rows"] = [r[0] for r in other]
+    b["table"] = None
+    # SR-43 / SR-49 (batch 4, placement: Plumbing & rates, Weekly and Monthly):
+    # the anchors-and-shape lines and the four voices ride after the buckets,
+    # code-written and tagged, with no paragraph of their own.
+    keep = [ss for ss in b.get("subsections") or []
+            if str(ss.get("title", "")).startswith(("The 10-year's anchors",
+                                                    "The 10-year top"))]
+    # SIGNAL-TRIAGE BATCH 3, TRANCHE A: the Weekly's batch-3 sub-sections over
+    # the month, and the Rate and Liquidity Machine's lever table (SR-33).
+    from daily_cascade import batch3_block                      # noqa: PLC0415
+    b["subsections"] = subs + keep + batch3_block.monthly_subsections(st, now, then)
+    b["claim_only"] = True
+    return b
+
+
+# WHERE EACH POSITIONING SERIES SITS IN ITS OWN HISTORY (T3.1 items 10 and 11):
+# its z over two years -- the CFTC table's window -- until the metric lenses (6e)
+# give each family its dual percentile. Fewer than HISTORY_MIN observations in
+# the window and the series prints "history too short" with its n.
+HISTORY_YEARS = 2
+HISTORY_MIN = 20
+# (group, label, registry key, instrument); the CFTC contracts are the Weekly's
+# own list (weekly_stack.CFTC_CONTRACTS), read at run time.
+POSITIONING_SERIES = (
+    ("short", "SPY days to cover", "finra.short_interest_days_to_cover", "SPY"),
+    ("short", "QQQ days to cover", "finra.short_interest_days_to_cover", "QQQ"),
+    ("short", "IWM days to cover", "finra.short_interest_days_to_cover", "IWM"),
+    ("retail", "SPY retail sentiment (RTAT10)", "ndl.rtat10_sentiment", "SPY"),
+    ("retail", "QQQ retail sentiment (RTAT10)", "ndl.rtat10_sentiment", "QQQ"),
+    ("retail", "AAII bull-bear spread", "aaii.bull_bear_spread", None),
+    ("tic", "Net foreign purchases of US long-term securities",
+     "tic.flow_net_foreign", None),
+    ("tic", "Total net TIC flows", "tic.flow_total", None))
+
+
+def positioning_history(st, now: str) -> list[dict]:
+    """Every positioning series the store holds, with its latest value and
+    where that value sits in its own last two years: the z, its n and window, or
+    "history too short (n=...)". Read from the store; computed by derived.z_of."""
+    from altdata import derived                                  # noqa: PLC0415
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    since = (dt.date.fromisoformat(now[:10])
+             - dt.timedelta(days=int(365.25 * HISTORY_YEARS))).isoformat()
+    cftc = [("cftc", f"CFTC {lab}", "cftc.noncomm_net", inst)
+            for inst, lab in ws.CFTC_CONTRACTS]
+    out = []
+    for group, label, key, inst in cftc + list(POSITIONING_SERIES):
+        pts = [(d, v) for d, v in ws.series(st, key, now, inst) if d >= since]
+        if not pts:
+            continue
+        vals = [v for _, v in pts]
+        z = derived.z_of(vals, vals[-1]) if len(vals) >= HISTORY_MIN else None
+        out.append({"group": group, "series": label, "latest": vals[-1],
+                    "as_of": pts[-1][0], "n": len(vals),
+                    "z_two_years": None if z is None else round(z, 1),
+                    "history": (f"z {z:+.1f} over two years (n={len(vals)})"
+                                if z is not None else
+                                f"history too short (n={len(vals)})")})
+    return out
+
+
+POSITIONING_READS = {
+    "Sector rotation and leadership": (
+        "sectors", "the month's leaders and laggards against three and twelve "
+        "months, and how many sectors sit above their 50- and 200-day averages"),
+    "Speculative positioning (CFTC)": ("cftc", None),
+    "Short interest": ("short", None),
+    "Retail sentiment": ("retail", None),
+    "Foreign flows (TIC)": ("tic", None),
+}
+READ_SCOPE = ("the level, its change against the prior month, and where the level "
+              "sits in the series' own history -- the z over two years where the "
+              "history allows it, and 'history too short' where it does not")
+
+
+def positioning_section(st, now: str, then: str) -> dict:
+    """The Weekly's Positioning at the Monthly's cadence: the sector table's
+    horizons are the month, three months and twelve months (T3.1 item 9); every
+    sub-section carries a written read with each series' place in its own
+    history (item 10); the section's own call writes the claim line alone."""
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    b = ws.positioning_week(st, now, then, cadence=CADENCE)
+    b.pop("_cftc_series", None)
+    b.pop("_leadership", None)
+    b = _month_words(b)
+    hist = positioning_history(st, now)
+    b["data"]["history"] = hist
+    for ss in b.get("subsections") or []:
+        group, scope = POSITIONING_READS.get(ss.get("title"), (None, None))
+        if not group:
+            continue
+        ss["phase"] = f"block:positioning:{group}"
+        if group != "sectors":
+            ss["data"] = {"history": [h for h in hist if h["group"] == group]}
+        if (ss.get("table") or {}).get("rows"):
+            ss["prose"] = {"words": "60 to 100", "scope": scope or READ_SCOPE}
+    b["claim_only"] = True
+    return b
+
+
+PM_CHANNEL_NOTE = (
+    "\n\nA POLITICAL OR NON-FED MARKET is read for its MARKET CHANNEL: what a "
+    "change in its odds would move, and through what -- rates, the dollar, a "
+    "sector, credit -- said as the channel, never as a forecast of the event and "
+    "never as our view. A venue's figure is its price (\"Kalshi prices ... at "
+    "62%\"), never \"a 62% chance\".")
+
+
+# COPY change_signed (T3.3 item 5), as the plumbing deltas' frames say to copy
+# theirs: each contract's week change rides in the block's data as a figure in
+# probability points with its signed form, the string its table cell prints.
+PM_CHANGE_NOTE = (
+    "\n\nA CONTRACT'S CHANGE is in points of probability: copy change_signed "
+    "verbatim, sign and unit included (\"−14.0 pts\", \"+2.0 pts\"), naming the "
+    "venue whose change it is. Never drop the sign and never restate it as a "
+    "percent.")
+
+
+def _split_rows(rows: list, fomc: bool) -> list:
+    return [r for r in rows if str(r[0]).startswith("FOMC ") == fomc]
+
+
+def _split_contracts(contracts: list, fomc: bool) -> list:
+    return [c for c in contracts if str(c["item"]).startswith("FOMC ") == fomc]
+
+
+def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
+    """The Weekly's What's priced over the month, in blocks each with its own
+    read (T3.1, ruled 9 Oct 2026): FOMC pricing and the breakevens apart, each
+    with its chart beside it (item 12); prediction markets as the FOMC's and
+    the rest, political markets read for their market channel (item 13). The
+    section's own call writes the claim line alone."""
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    b = ws.priced_week(st, now, then, cfg, pmb, fed, fed_then)
+    # The Monthly's What's priced is deep by the matrix; no trigger deepens it.
+    b["deep_reason"] = None
+    b = _month_words(b)
+    subs = list(b.get("subsections") or [])
+    rates = next((ss for ss in subs if str(ss.get("title")).startswith("Rates priced")),
+                 None)
+    pm = next((ss for ss in subs if ss.get("title") == "Prediction markets"), None)
+    out = []
+    for ss in subs:
+        if ss is rates:
+            rows = (ss.get("table") or {}).get("rows") or []
+            cols = (ss.get("table") or {}).get("columns") or []
+            fomc, be = _split_rows(rows, True), _split_rows(rows, False)
+            out.append({"title": "FOMC pricing: the fed-funds path", "bucket": "fomc",
+                        "phase": "block:priced:fomc",
+                        "table": {"columns": cols, "rows": fomc},
+                        "not_tracked": list(ss.get("not_tracked") or []),
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "what the fed-funds futures price for the "
+                                            "coming meetings, and how that moved over "
+                                            "the month"} if fomc else None)})
+            out.append({"title": "Breakevens", "bucket": "breakevens",
+                        "phase": "block:priced:breakevens",
+                        "table": {"columns": cols, "rows": be},
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "where the breakevens sit and how they "
+                                            "moved over the month"} if be else None)})
+        elif ss is pm:
+            from daily_cascade import readability as rd          # noqa: PLC0415
+            t = ss.get("table") or {}
+            rows = t.get("rows") or []
+            fomc, rest = _split_rows(rows, True), _split_rows(rows, False)
+            con = rd.pm_contracts(pmb, "5s")
+            out.append({"title": "Prediction markets: the FOMC", "bucket": "pm_fomc",
+                        "phase": "block:priced:pm_fomc",
+                        "table": {"columns": t.get("columns") or [], "rows": fomc},
+                        "data": {"contracts": _split_contracts(con, True)},
+                        "prose": ({"words": "40 to 80",
+                                   "scope": "what the prediction markets price for "
+                                            "the coming FOMC decisions, beside the "
+                                            "futures",
+                                   "note": PM_CHANGE_NOTE} if fomc else None)})
+            out.append({"title": "Prediction markets: the rest", "bucket": "pm_rest",
+                        "phase": "block:priced:pm_rest",
+                        "table": {"columns": t.get("columns") or [], "rows": rest},
+                        "data": {"contracts": _split_contracts(con, False)},
+                        "not_tracked": list(ss.get("not_tracked") or []),
+                        "prose": ({"words": "60 to 100",
+                                   "scope": "the other watched markets, each read "
+                                            "for its market channel",
+                                   "note": PM_CHANNEL_NOTE + PM_CHANGE_NOTE}
+                                  if rest else None)})
+        else:
+            out.append(ss)
+    # SR-38 (batch 4; placement: What's priced, Monthly): the 12-month return
+    # split into earnings and multiple, and EY minus the bill -- trailing,
+    # code-written and tagged, with no paragraph of their own (report-only).
+    att, att_data = ws.attribution_block(st, now)
+    if att:
+        out.append(att)
+        b.setdefault("data", {})["return_attribution"] = att_data
+    b["subsections"] = out
+    b["claim_only"] = True
+    return b
+
+
+# ---------------------------------------------------------------------------
+# 8. Narratives: the themes, the voices
+# ---------------------------------------------------------------------------
+def _series_rows(rows: list[dict]) -> list[list]:
+    out = []
+    for r in rows:
+        if "latest_pct" in r:
+            lvl = f"{_v(r['latest_pct'])}%"
+            mv = (stack_mod._signed(r["change_bps"], "bp") if "change_bps" in r
+                  else "—")
+        else:
+            lvl = r.get("latest_level_display") or _v(r.get("latest_level"))
+            mv = (stack_mod._signed(r["change_pct"], "%") if "change_pct" in r else
+                  r.get("change_display") or (_v(r["change"]) if "change" in r
+                                              else "—"))
+        out.append([r.get("label"), lvl, r.get("latest_date"), mv,
+                    r.get("since") or "—"])
+    return out
+
+
+def _story_head(s: dict) -> str:
+    m, t = s["month"], s["three_months"]
+    head = (f"{s['title']}: {m['for']} for and {m['against']} against this month; "
+            f"{t['for']} for and {t['against']} against over three months")
+    if s.get("dissent"):
+        head += f"; dissent from {', '.join(dict.fromkeys(s['dissent']))}"
+    return head + "."
+
+
+def voices_prose_view(vb: dict) -> tuple[list[dict], list[str]]:
+    """The Monthly's voices as sub-sections (T3.1 item 17): the consensus line;
+    one per story the month's voices bore on, with its counts as the header,
+    each item a bullet with its source beneath, and one short paragraph asked of
+    the writer; then the voices heard on no story. Code-written from
+    voices_block.month_block; nothing here reads a row itself."""
+    subs, ids = [], ["voices:table"]
+    lead = [f"Consensus against contrarian: {vb.get('consensus')}"] \
+        if vb.get("consensus") else []
+    quiet = [s["title"] for s in vb.get("by_story") or [] if not s.get("items")]
+    if quiet:
+        lead.append("No sourced voice bore on " + "; ".join(quiet) + " this month.")
+    if vb.get("consensus"):
+        ids.append("voices:consensus")
+    subs.append({"title": "Voices", "lines": lead})
+    for s in vb.get("by_story") or []:
+        if not s.get("items"):
+            continue
+        bullets = [{"text": f"{x['voice']} ({x['kind']}), {x['side']}: {x['view']} "
+                            f"Status this month {x['status_month']}; over three "
+                            f"months {x['status_three_months']}.",
+                    "source": f"Source: {x['source']}"} for x in s["items"]]
+        subs.append({"title": f"Voices: {s['title']}",
+                     "phase": f"block:voices:{s['story']}",
+                     "points": [{"head": _story_head(s), "bullets": bullets}],
+                     "data": {k: s[k] for k in ("title", "state", "month",
+                                                "three_months", "since_start",
+                                                "items", "minority", "dissent")},
+                     "prose": {"words": "40 to 80",
+                               "scope": "who said what about this story over the "
+                                        "month, their status, and who dissented, "
+                                        "each named as the bullets name them"}})
+    others = vb.get("other_voices") or []
+    if others:
+        pts = []
+        for x in others:
+            b = [{"text": f"Status this month {x['status_month']}; over three months "
+                          f"{x['status_three_months']}.",
+                  "source": f"Source: {x['source']}"}]
+            if x.get("13f"):
+                b.append(f"13F: {x['13f']}")
+            pts.append({"head": f"{x['voice']}, {x['affiliation']} ({x['kind']})",
+                        "sentence": x["view"], "bullets": b})
+        subs.append({"title": "Voices on no story", "points": pts})
+    return subs, ids
+
+
+def narratives_section(p: dict, on_tape: Optional[set] = None,
+                       in_plumbing: Optional[set] = None) -> dict:
+    lb = p.get("looking_back") or {}
+    items, subs, ids = [], [], []
+    on_tape = on_tape or set()
+    in_plumbing = in_plumbing or set()
+    printed: list[str] = []
+    # A SERIES TWO THEMES SHARE PRINTS ONCE, under the first theme that lists it;
+    # the later theme's footnote names where it is (its prose still reads it).
+    shown: dict[str, str] = {}
+    for t in lb.get("themes") or []:
+        devs = [(n, it) for n, it in enumerate(t.get("items") or [])
+                if it.get("tag") not in MISFIT_TAGS]
+        for n, it in devs:
+            items.append(item(f"narr:{t['theme']}:{n}", str(it.get("text")), 2,
+                              (it.get("tag"), it.get("text"))))
+            items[-1]["show"] = False
+        # The tape's scorecard markets print there, once.
+        own = [r for r in t.get("rows") or [] if r.get("label") not in shown
+               and r.get("metric") not in on_tape | in_plumbing]
+        elsewhere = [f"{r.get('label')} (under {shown[r.get('label')]})"
+                     for r in t.get("rows") or [] if r.get("label") in shown]
+        elsewhere += [f"{r.get('label')} (in The tape)"
+                      for r in t.get("rows") or [] if r.get("metric") in on_tape
+                      and r.get("label") not in shown]
+        elsewhere += [f"{r.get('label')} (in Plumbing & rates)"
+                      for r in t.get("rows") or [] if r.get("metric") in in_plumbing
+                      and r.get("metric") not in on_tape
+                      and r.get("label") not in shown]
+        printed += [r.get("metric") for r in own if r.get("metric")]
+        for r in own:
+            shown[r.get("label")] = t.get("name")
+        subs.append({"title": t.get("name"), "phase": f"theme:{t['theme']}",
+                     "table": {"columns": ["Series", "Latest", "Date", "Change",
+                                           "Since"], "rows": _series_rows(own)},
+                     "tables": [{"columns": ["Development", "Tag", "Source"],
+                                 "rows": [_dev_row(it) for _, it in devs]}],
+                     "notes": ([f"Also read here: {'; '.join(elsewhere)}."]
+                               if elsewhere else []),
+                     "not_tracked": list(t.get("not_yet_tracked") or [])})
+        ids += [f"theme:{t['theme']}:prose"]
+        ids += [f"looking_back:series:{r.get('label')}" for r in own]
+        ids += [f"looking_back:{t['theme']}:item:{n}" for n, _ in devs]
+    vb = p.get("voices") or {}
+    nt = []
+    if vb.get("state") in ("ok", "empty"):
+        if vb.get("state") == "empty":
+            nt.append(str(vb.get("reason") or "no voice stored this month"))
+        if vb.get("by_story") is not None and (vb.get("table") or {}).get("rows"):
+            # THE VOICES AS PARAGRAPHS AND BULLETS (T3.1 item 17): per story,
+            # who said what, each voice's status this month and over three
+            # months, and the dissent, the source under each bullet; one short
+            # written paragraph per story. voices_block built every line.
+            vsubs, vids = voices_prose_view(vb)
+            subs += vsubs
+            ids += vids
+            items.append(item("narr:voices", f"{len(vb['table']['rows'])} voice(s) "
+                              f"this month.", 1, vb["table"]["rows"]))
+            items[-1]["show"] = False
+        elif (vb.get("table") or {}).get("rows"):
+            subs.append({"title": "Voices", "table": vb["table"],
+                         "lines": ([f"Consensus against contrarian: "
+                                    f"{vb.get('consensus')}"]
+                                   if vb.get("consensus") else [])})
+            ids += ["voices:table"] + (["voices:consensus"] if vb.get("consensus")
+                                       else [])
+            items.append(item("narr:voices", f"{len(vb['table']['rows'])} voice(s) "
+                              f"this month.", 1, vb["table"]["rows"]))
+            items[-1]["show"] = False
+        if (vb.get("rollup") or {}).get("rows"):
+            subs.append({"title": "The four weeks, by story (sourced items for "
+                                  "and against)", "table": vb["rollup"]})
+            ids.append("voices:rollup")
+        if vb.get("unreachable"):
+            nt.append(str(vb["unreachable"]).rstrip("."))
+    else:
+        nt.append(f"the voices: {vb.get('reason') or 'not read'}")
+    return {"items": items or [item("narr:none", "No theme or voice this month.",
+                                    1, "none")],
+            "print_items": False, "subsections": subs, "not_tracked": nt,
+            "phase_a": ids, "_printed": printed,
+            "data": {"themes": [t.get("name") for t in lb.get("themes") or []],
+                     "voices": (vb.get("table") or {}).get("rows"),
+                     "consensus": vb.get("consensus")}}
+
+
+# ---------------------------------------------------------------------------
+# 9. Ahead: the look-ahead, the scenario weights, the month's graded calls
+# ---------------------------------------------------------------------------
+def _weekday(day: str) -> str:
+    try:
+        return dt.date.fromisoformat(str(day)[:10]).strftime("%a")
+    except ValueError:
+        return "—"
+
+
+AHEAD_COLUMNS = ["Date", "Day", "Event", "Rank (1-5)", "Why it ranks high"]
+
+# THE SCENARIOS' NEW SHAPE (T3.1 item 18, ruled 9 Oct 2026): a summary in
+# narrative form, then what would change our mind in two or three sentences --
+# not a table of variables. The content arrives with scenario set #1 (ruled at
+# Audit #4, item II.2) as each weight's stored `summary` and `change_our_mind`;
+# until a weight carries them its block prints these placeholders, and the
+# signposts stored with it.
+SCENARIO_SUMMARY_PENDING = ("Summary to come: the narrative arrives with scenario "
+                            "set #1, ruled at Audit #4.")
+SCENARIO_MIND_PENDING = "What would change our mind arrives with it."
+
+
+def scenario_point(s: dict) -> dict:
+    """One scenario as a point: the claim and its weight as the header, the
+    summary, then what would change our mind."""
+    brier = _v(s.get("brier"), 4) if s.get("brier") is not None else "pending"
+    head = (f"{s.get('claim')} — p {_v(s.get('probability'), 3)}, Brier {brier}, "
+            f"resolves {s.get('resolve_by') or '—'}")
+    mind = s.get("change_our_mind")
+    if not mind:
+        sp = [f"{x['observable']} by {x['date']}" for x in s.get("signposts") or []]
+        mind = SCENARIO_MIND_PENDING + (
+            f" The signposts stored with this weight: {'; '.join(sp)}." if sp else "")
+    return {"head": head, "sentence": s.get("summary") or SCENARIO_SUMMARY_PENDING,
+            "more": [f"What would change our mind: {mind}"
+                     if s.get("change_our_mind") else mind]}
+
+
+def ahead_section(p: dict, now: str, db_path: Optional[str]) -> dict:
+    """Ahead: the look-ahead by period, the scenario weights, the month's
+    graded calls. Every calendar row carries its weekday and a 1-5 significance
+    rank from the release calendar's tiers, with a one-clause reason on ranks 4
+    and 5 (T3.1 item 14; events_block.significance)."""
+    from daily_cascade import events_block                       # noqa: PLC0415
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    cal = wsec.load_calendar()
+    scfg = stack_mod.config()
+    la = p.get("looking_ahead") or {}
+    items, subs, ids = [], [], ["looking_ahead:prose"]
+    for w in la.get("windows") or []:
+        rows = []
+        for c in w.get("calendar") or []:
+            sg = events_block.significance(c["title"], cal, scfg)
+            rows.append([c["date"], _weekday(c["date"]), c["title"], sg["rank"],
+                         sg["why"] or "—"])
+        subs.append({"title": w["name"], "table": {"columns": AHEAD_COLUMNS,
+                                                   "rows": rows},
+                     "lines": [] if rows else
+                     ["Nothing on our calendar for this period yet."]})
+        ids.append(f"looking_ahead:window:{w['name']}")
+        for c in w.get("calendar") or []:
+            items.append(item(f"ahead:{c['date']}:{c['title']}",
+                              f"{c['date']}: {c['title']}.", 2, c["title"]))
+    scen = la.get("scenarios") or []
+    pts = []
+    for n, s in enumerate(scen):
+        pts.append(scenario_point(s))
+        ids.append(f"looking_ahead:scenario:{n}")
+        items.append(item(f"ahead:scen:{n}", f"{s.get('claim')}: "
+                          f"{_v(s.get('probability'), 3)}.", 1,
+                          (s.get("claim"), s.get("probability"), s.get("brier"))))
+    subs.append({"title": "Scenarios, and what would change our mind",
+                 "points": pts,
+                 "lines": [] if pts else ["No live scenario weight this month."]})
+    # THE MONTH'S GRADED CALLS (brief 1.3 rule 3: "the Monthly the month's").
+    try:
+        from daily_cascade import weekly_stack as ws             # noqa: PLC0415
+        calls = ws.graded_calls(now, db_path)
+        crows = [[ws.source_label(r["source"]), r["n"], f"{r['mean_brier']:.3f}",
+                  f"{r['vs_coin']:+.3f}"] for r in calls["rows"]]
+        subs.append({"title": "Graded calls, the month",
+                     "table": {"columns": ["Source", "Resolved", "Mean Brier",
+                                           "Against a coin"], "rows": crows},
+                     "lines": [] if crows else ["No call resolved this month."]})
+        items.append(item("ahead:calls", "Graded calls: " + ("; ".join(
+            f"{r[0]} n={r[1]}, Brier {r[2]}" for r in crows) or "none") + ".", 1,
+            crows))
+    except Exception as exc:                                    # noqa: BLE001
+        calls = None
+        subs.append({"title": "Graded calls, the month",
+                     "notes": [f"FAULT (code, not data) -- {type(exc).__name__}"]})
+    for it in items:
+        it["show"] = False
+    return {"items": items, "print_items": False, "subsections": subs,
+            "not_tracked": list(la.get("not_yet_tracked") or []),
+            "phase_a": ids,
+            "data": {"scenarios": [{"claim": s.get("claim"),
+                                    "probability": s.get("probability"),
+                                    "brier": s.get("brier")} for s in scen],
+                     "graded_calls": calls}}
+
+
+# ---------------------------------------------------------------------------
+# 10. The book: where our read lands, bounded as now
+# ---------------------------------------------------------------------------
+def book_section(p: dict) -> dict:
+    r = p.get("our_read") or {}
+    rm = p.get("register_month") or {}
+    rb = rm.get("rule_breaks") or {}
+    rows = [["Open decisions now", _cell(rm.get("open_now"))],
+            ["Opened this month", len(rm.get("decisions_opened") or [])],
+            ["Closed this month", len(rm.get("decisions_closed") or [])],
+            ["Restricted-instrument attempts this month",
+             _cell(rb.get("restricted_instrument_attempts_this_month"))]]
+    items = [item("book:counts", "; ".join(f"{a}: {b}" for a, b in rows) + ".", 1,
+                  rows)]
+    items[0]["show"] = False
+    lines, ids = [], ["our_read:prose"]
+    if r.get("state") == "ok" and r.get("paragraph"):
+        lines.append(f"The bound, restated from the weights and the positions: "
+                     f"{r['paragraph']}")
+        ids.append("our_read:bound")
+        items.append(item("book:bound", str(r["paragraph"]), 1, r["paragraph"]))
+        items[-1]["show"] = False
+    return {"items": items, "print_items": False,
+            "table": {"columns": ["The register", "This month"], "rows": rows},
+            "subsections": [{"title": "Where our read lands", "lines": lines}],
+            "not_tracked": ([] if r.get("state") == "ok" else
+                            [f"where our read lands: {r.get('reason')}"]),
+            "phase_a": ids,
+            "data": {"register": rows, "live_weights": r.get("live_weights"),
+                     "active_decisions": r.get("active_decisions")}}
+
+
+# ---------------------------------------------------------------------------
+# Slow layers (the matrix's last row) and the detail tables
+# ---------------------------------------------------------------------------
+def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, list, list]:
+    """The scans' reference tables, as stored (altdata/scans.py): one sub-section
+    per scan family, the newest edition readable at the cutoff. A figure prints
+    only from the store -- no stored source, not printed -- and with its source
+    beside it: the URL, the scan's own section (and slide, when the scan recorded
+    one), the as-of date. Only reference-table rows were ever stored, so none of
+    the publisher's recommendations can reach this table."""
+    from altdata import scans                                    # noqa: PLC0415
+    rows = scans.latest(now, db_path)
+    subs, items, data = [], [], []
+    by_fam: dict[str, list] = {}
+    for r in rows:
+        by_fam.setdefault(r["family"], []).append(r)
+    for fam, rs in by_fam.items():
+        r0 = rs[0]
+        if fam.startswith(scans.ALT_FAMILY_PREFIX):
+            # THE QUARTERLY SCAN'S AGENCY TABLES (AQ-7): one publisher per row,
+            # so each row carries its own source, vintage and date, and the
+            # comparison column is the revision against the prior vintage.
+            subs.append({
+                "title": f"Sourced figures: {r0['title']}",
+                "table": {"columns": ["Metric", "Figure", "Against the prior vintage",
+                                      "Source"],
+                          "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
+                                    f"{r['source_url']} ({r.get('edition') or '—'}, "
+                                    f"{r['as_of']})"] for r in rs]},
+                "notes": [f"From the quarterly scan's agency tables "
+                          f"({r0['section_ref']}), read {r0['read_on']}. Figures as "
+                          f"published, each with its publisher's vintage."]})
+        else:
+            subs.append({
+                "title": f"Sourced figures: {r0.get('edition') or r0['title']}",
+                "table": {"columns": ["Metric", "Figure", "Long-run comparison",
+                                      "Source"],
+                          "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
+                                    r["source_ref"]] for r in rs]},
+                "notes": [f"Source: {r0['source_url']}, from the scan's "
+                          f"{r0['section_ref']} reference table, data as of "
+                          f"{r0['as_of']}, read {r0['read_on']}. Figures as "
+                          f"published; the publisher's recommendations are not "
+                          f"printed."]})
+        for r in rs:
+            items.append(item(f"slow:scan:{fam}:{r['metric']}",
+                              f"{r['metric']} {r['value']}", 3,
+                              (r["value"], r.get("comparison"), r["as_of"])))
+            data.append({"family": fam, "metric": r["metric"], "figure": r["value"],
+                         "comparison": r.get("comparison"),
+                         "source": r["source_ref"], "url": r["source_url"],
+                         "as_of": r["as_of"]})
+    return subs, items, data
+
+
+# The registry's delta unit -> the field that carries a 20-day change typed so.
+_CHANGE_FIELD = {"percent": "change_20d_pct", "bps": "change_20d_bp",
+                 "bp": "change_20d_bp"}
+
+def family_change(m: dict) -> dict:
+    """THE 20-DAY CHANGE IN ITS OWN UNIT (T3.2 item 3): a family metric's change
+    in a field whose name carries the registry's delta unit -- percent for a
+    price, bp for a rate or spread -- so the audit types it as what it is. A
+    change in no such unit (raw) adds nothing."""
+    fld = _CHANGE_FIELD.get(str(m.get("delta_unit") or ""))
+    if fld and isinstance(m.get("delta_20d"), (int, float)) \
+            and not isinstance(m.get("delta_20d"), bool):
+        return {fld: m["delta_20d"]}
+    return {}
+
+
+# The fewest observations a percentile is taken over (T3.3 item 7).
+MIN_PERCENTILE_N = 20
+
+TRIPLE_COLUMNS = ["Latest (data as of)", "Long-run average (window)",
+                  "Percentile (window)"]
+
+
+def triple(st, key: str, now: str, window_days: int = 1825,
+           instrument: Optional[str] = None) -> Optional[dict]:
+    """Latest / long-run average / percentile for one stored series, each with
+    its window (altdata.derived computes all three). None when the store holds
+    nothing knowable at the cutoff."""
+    from altdata import derived                                  # noqa: PLC0415
+    f = derived.derived_forms(key, now, window=window_days, store=st,
+                              instrument=instrument)
+    if f.get("level") is None:
+        return None
+    lr = derived.long_run_average(key, now, store=st, instrument=instrument)
+    full = (f.get("window_actual_days") or 0) >= window_days - 31
+    yrs = window_days // 365
+    pct_win = (f"{yrs} years, n={f['n']:,}" if full else
+               f"since {f['first_observed']}, n={f['n']:,}; under {yrs} years")
+    # NO PERCENTILE BELOW THE MINIMUM SAMPLE (T3.3 item 7): one Damodaran print
+    # read "100th (since 2026-01-05, n=1)" -- true of any single observation and
+    # citable by the prose as if it meant something. Below MIN_PERCENTILE_N the
+    # percentile is not taken: the cell prints "— (n=1)" and there is no
+    # `_ordinal` for any paragraph to cite.
+    pct = f.get("percentile") if (f.get("n") or 0) >= MIN_PERCENTILE_N else None
+    return {"key": key, "instrument": instrument, "latest": f["level"],
+            "as_of": f["observed_at"], "mean": lr.get("mean"), "mean_n": lr.get("n"),
+            "mean_since": lr.get("first_observed"), "percentile": pct,
+            "percentile_window": pct_win, "percentile_n": f["n"],
+            "percentile_since": f.get("first_observed"),
+            "delta_20d": f.get("delta_20d"), "delta_unit": f.get("delta_unit")}
+
+
+def triple_cells(t: dict, dp: int = 2) -> list[str]:
+    small = t.get("percentile") is None and t.get("percentile_n") is not None
+    return [f"{_v(t['latest'], dp)} ({t['as_of']})",
+            (f"{_v(t['mean'], dp)} (full history since {t['mean_since']}, "
+             f"n={t['mean_n']:,})" if t.get("mean") is not None else "—"),
+            (f"{_ord(t['percentile'])} ({t['percentile_window']})"
+             if t.get("percentile") is not None else
+             f"— (n={t['percentile_n']:,})" if small else "—")]
+
+
+CORR_COLUMNS = ["Series", "Latest (data as of)", "Long-run average (window)",
+                "Percentile, full history", "Percentile, five years"]
+UNTIL_LENSES = "until the lenses"
+
+
+def correlations_block(st, now: str, then: str) -> dict:
+    """THE CORRELATIONS BLOCK (AQ-5; change order 10 Oct 2026, section 9): the
+    stock-bond rows in the triple form -- latest, long-run average, percentile,
+    each with its data-as-of -- and the month's top shifts. Percentiles are over
+    the store's own full history; the five-year column waits for the metric
+    lenses (6e) and says so. No chart this round (the cap of 12 stands; the
+    heatmap waits for AQ-1). The surprise quadrant prints beside the shifts once
+    round 4 item 25 builds it; until then its hook returns nothing."""
+    from altdata import correlation                              # noqa: PLC0415
+    ccfg = correlation.config()
+    mcfg = ccfg.get("monthly") or {}
+    labels = {n["key"]: n["label"] for n in ccfg.get("named") or []}
+    rows, data, nt = [], {"stock_bond": [], "shifts": []}, []
+    for key in mcfg.get("stock_bond") or []:
+        t = correlation.triple(st, key, now)
+        lab = labels.get(key, key)
+        if t is None:
+            nt.append(f"{lab}: no correlation stored at this cutoff")
+            continue
+        rows.append([lab, f"{t['latest']:+.2f} ({t['as_of']})",
+                     (f"{t['mean']:+.2f} (since {t['since']}, n={t['mean_n']:,})"
+                      if t.get("mean") is not None else "—"),
+                     f"{_ord(t['percentile'])} (n={t['n']:,})", UNTIL_LENSES])
+        data["stock_bond"].append({**t, "label": lab})
+    shifts = correlation.shifts_between(st, then, now)
+    top = shifts[:int(mcfg.get("top_shifts", 5))]
+    srows = [[f"{correlation.label(s['pair'][0])} – {correlation.label(s['pair'][1])}",
+              f"{s['c60']:+.2f}", f"{s['c252']:+.2f}", f"{s['gap']:+.2f}",
+              "—" if s["iqr"] is None else f"{s['iqr']:.2f}", s["rule"], s["day"]]
+             for s in top]
+    data["shifts"] = [correlation.shift_record(s) for s in top]
+    data["shifts_flagged"] = len(shifts)
+    lines = []
+    if not shifts:
+        lines.append("No pair's shift flag fired this month.")
+    elif len(shifts) > len(top):
+        lines.append(f"{len(shifts)} pairs flagged this month; the {len(top)} "
+                     f"furthest past their own interquartile range print.")
+    quad = correlation.surprise_quadrant(st, now)
+    if quad is None:
+        nt.append("the surprise quadrant beside the shifts (round 4 item 25; not "
+                  "yet built)")
+    nt.append("the five-year percentiles (until the metric lenses, 6e)")
+    return {"title": "Correlations",
+            "table": {"columns": CORR_COLUMNS, "rows": rows},
+            "tables": [{"columns": ["Pair", "60-day", "252-day", "Gap",
+                                    "IQR, five years", "Rule", "Flagged"],
+                        "rows": srows}] if srows else [],
+            "lines": lines,
+            "notes": (["Correlations of daily returns over common sessions; the "
+                       "stock-bond rows against the S&P 500. A shift: the 60-day "
+                       "crossing the 252-day by more than its own five-year "
+                       "interquartile range, or a sign change held 20 sessions."]
+                      if rows or srows else []),
+            "not_tracked": nt, "data": data}
+
+
+def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
+                db_path: Optional[str] = None) -> dict:
+    tb = p.get("top_bottom") or {}
+    br = tb.get("bear_rally_base_rate") or {}
+    base_rows = []
+    if tb.get("state") == "ok":
+        base_rows.append(["Top & Bottom verdict", tb.get("verdict") or "—",
+                          _v(tb.get("composite")), tb.get("as_of") or "—"])
+    if not br.get("absent_reason") and br:
+        base_rows.append([f"Largest counter-trend rally inside a bear market "
+                          f"(n={_v(br.get('n_bears'), 0)} bears)",
+                          f"median {_v(br.get('median'))}%",
+                          f"p25 {_v(br.get('p25'))}% to p75 {_v(br.get('p75'))}%",
+                          f"extreme {_v(br.get('max'))}%"])
+    base_nt = []
+    if tb.get("state") != "ok":
+        base_nt.append(f"the Top & Bottom verdict: {tb.get('reason')}")
+    if br.get("absent_reason"):
+        base_nt.append(f"the bear-rally base rate: {br['absent_reason']}")
+    tcfg = cfg.get("monthly_slow_triple") or {}
+    win = int(tcfg.get("percentile_window_days") or 1825)
+    vrows, vdata, val_nt = [], [], list(tcfg.get("not_tracked") or [])
+    for v in tcfg.get("valuation") or []:
+        t = triple(st, v["key"], now, win, v.get("instrument")) if st and now else None
+        if t is None:
+            val_nt.append(f"{v['label']}: no observation knowable at this cutoff")
+            continue
+        vrows.append([v["label"], *triple_cells(t, 1)])
+        vdata.append({"series": v["label"], **{k: t[k] for k in (
+            "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
+            "percentile_window")}})
+    alt = p.get("alternative_assets") or {}
+    arows, alt_nt, adata = [], [], []
+    # ONE BLOCK PER FAMILY, EACH WITH ITS PARAGRAPH (T3.1 item 19): the family's
+    # rows, then a read written from them -- what moved, what the long frame
+    # says, the takeaway. The families are payload.ALT_FAMILIES.
+    fam_subs = []
+    for fam, v in sorted((alt.get("families") or {}).items()):
+        name = fam.replace("_", " ")
+        title = f"Themes: {name}"
+        if v.get("state") == "not_yet_sourced":
+            alt_nt.append(f"{fam}: needs {', '.join(v.get('needs') or [])}")
+            fam_subs.append({"title": title, "family": fam, "not_tracked": [],
+                             "lines": [f"Not yet sourced: needs "
+                                       f"{', '.join(v.get('needs') or [])}."]})
+            continue
+        frows, fdata, fnt = [], [], []
+        for m in v.get("metrics") or []:
+            if m.get("not_sourced"):
+                # A WITHDRAWN SOURCE PRINTS ITS ROW (13 Oct 2026): "not sourced
+                # -- <reason>", and the date of the last stored value, never
+                # that value read as this month's.
+                lab = labels.metric(m["metric"])
+                lab = lab[:1].upper() + lab[1:]
+                cell = f"not sourced — {m['not_sourced']}"
+                if m.get("last_stored"):
+                    cell += f"; last stored {m['last_stored']}"
+                arows.append([fam, lab, cell, "—", "—", "—"])
+                frows.append([lab, cell, "—", "—", "—"])
+                fnt.append(f"{lab}: not sourced — {m['not_sourced']}")
+                continue
+            t = triple(st, m["metric"], now, win) if st and now else None
+            if m.get("level") is None or t is None:
+                alt_nt.append(f"{fam}: {m['metric']}")
+                fnt.append(f"{m['metric']}: no observation knowable at this cutoff")
+                continue
+            cells = triple_cells(t)
+            chg = (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
+                   if isinstance(m.get("delta_20d"), (int, float)) else "—")
+            # THE ROW'S NAME IS ITS LABEL, NEVER THE STORE KEY (T3.5 (d)): the
+            # key printed as a name withheld every paragraph that named it.
+            lab = labels.metric(m["metric"])
+            if lab == labels.plain(m["metric"]):
+                # No configured label (an unregistered series): the
+                # key in words, never with its dot.
+                lab = str(m["metric"]).replace(".", " ").replace("_", " ")
+            lab = lab[:1].upper() + lab[1:]
+            arows.append([fam, lab, cells[0], chg, cells[1], cells[2]])
+            frows.append([lab, cells[0], chg, cells[1], cells[2]])
+            d = {"family": fam, "series": lab, **{k: t[k] for k in (
+                "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
+                "percentile_window")}}
+            # THE ORDINAL THE TABLE PRINTS, AS ITS OWN FIELD (T3.5 (c)): the
+            # frame scrubs the raw percentile, so without this the audit held
+            # no ordinal for "86th" while the table printed it.
+            if t.get("percentile") is not None:
+                d["percentile_ordinal"] = _ord(t["percentile"])
+            d.update(family_change(m))
+            adata.append(d)
+            fdata.append(d)
+        fam_subs.append({
+            "title": title, "family": fam, "phase": f"block:slow:{fam}",
+            "table": {"columns": ["Series", TRIPLE_COLUMNS[0], "20-day change",
+                                  *TRIPLE_COLUMNS[1:]], "rows": frows},
+            "data": {"family": name, "note": v.get("note"), "rows": fdata},
+            "not_tracked": fnt,
+            "lines": [] if frows else ["Nothing stored for this family at this "
+                                       "cutoff."],
+            "prose": ({"words": "60 to 100",
+                       "scope": "what moved in this family over the month, what "
+                                "its long frame says -- each latest beside its "
+                                "long-run average and percentile, naming the "
+                                "window as the table does -- and the takeaway"}
+                      if frows else None)})
+    # THE CRYPTO BASKET (12 Oct 2026): Themes: digital gains the basket block,
+    # right after the classics' rows, which are unchanged -- the twelve names at
+    # the month's resolution with dilution, and a status line per name from its
+    # falsifier (altdata/crypto_basket.py). Read from the store; nothing computed
+    # here.
+    if st is not None and now:
+        try:
+            from altdata import crypto_basket as cbk             # noqa: PLC0415
+            blk = cbk.monthly_block(st, now)
+            at = next((i for i, s in enumerate(fam_subs)
+                       if s.get("family") == "digital"), len(fam_subs) - 1)
+            fam_subs.insert(at + 1, blk)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("crypto basket unavailable", exc_info=True)
+            alt_nt.append(f"the crypto basket: FAULT {type(exc).__name__}")
+    seed_sub, seed_data = thesis_seed(now, db_path)
+    # THE GOLD RESIDUAL AND THE TWO-BID STATE in the metals block (AQ-8a).
+    metals = next((s for s in fam_subs if s.get("family") == "metals"), None)
+    if metals is not None and st and now:
+        try:
+            gold_two_bid(metals, st, now)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("gold residual block unavailable", exc_info=True)
+            metals["not_tracked"] = list(metals.get("not_tracked") or []) + [
+                f"the gold residual and the two-bid state: FAULT {exc}"]
+    subs = [{"title": "Valuation",
+             "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
+             "notes": ([f"Long-run average over the store's full history and "
+                        f"percentile over {win // 365} years where the store holds "
+                        f"them, until the metric lenses (6e) set each series' long "
+                        f"window."] if vrows else []),
+             "not_tracked": val_nt},
+            {"title": "Base rates: Top & Bottom",
+             "table": {"columns": ["Base rate", "Level", "Range", "As of or extreme"],
+                       "rows": base_rows}, "not_tracked": base_nt},
+            seed_sub,
+            {"title": "Tails",
+             "not_tracked": ["the 25 tail scenarios (not yet stored)"]}]
+    corr_data = None
+    if st and now:
+        try:
+            corr = correlations_block(st, now, window(p)[2])
+            corr_data = corr.pop("data")
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("correlation block unavailable", exc_info=True)
+            corr = {"title": "Correlations",
+                    "not_tracked": [f"the correlation layer: FAULT {exc}"]}
+        subs.insert(2, corr)
+    if fam_subs:
+        fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
+                                      + ["Disruptive Themes (quarterly; folded into "
+                                         "the Quarterly Structural)"])
+    subs += fam_subs or [{"title": "Themes: alternative assets",
+                          "not_tracked": alt_nt + ["Disruptive Themes (quarterly; "
+                                                   "folded into the Quarterly "
+                                                   "Structural)"]}]
+    # THE EM SCORECARD'S ONE LINE (AQ-9a, 11 Oct 2026): the quarter's three largest
+    # deteriorations by lens, each with its data-as-of, from the stored lenses
+    # (altdata/em_scorecard.py). The table itself is the Quarterly's.
+    em_title = "Emerging markets: the scorecard's quarter"
+    try:
+        from altdata import em_scorecard as em_sc                # noqa: PLC0415
+        em_line = em_sc.monthly_line(st, now) if st is not None and now else None
+        subs.append({"title": em_title, "lines": [em_line], "not_tracked": []}
+                    if em_line else
+                    {"title": em_title, "not_tracked": ["the EM scorecard: no store "
+                                                        "at this cutoff"]})
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("EM scorecard line unavailable", exc_info=True)
+        subs.append({"title": em_title,
+                     "not_tracked": [f"the EM scorecard: FAULT {exc}"]})
+    if st and now:
+        # Before the families it reads across (AQ-8a): one table, every family.
+        at = next((i for i, s in enumerate(subs)
+                   if str(s.get("title") or "").startswith("Themes")), len(subs))
+        subs.insert(at, driver_attribution_block(st, now))
+    try:
+        src_subs, src_items, src_data = sourced_figures(now, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("sourced figures unavailable", exc_info=True)
+        src_subs, src_items, src_data = [], [], []
+        subs[-1]["not_tracked"].append(f"the scans' sourced figures: FAULT {exc}")
+    if not src_subs:
+        subs[-1]["not_tracked"].append(
+            "the scans' sourced figures: no scan ingested by this edition's cutoff")
+    subs += src_subs
+    items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
+             for n, r in enumerate(base_rows)]
+    items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]
+    items += [item(f"slow:val:{r[0]}", f"{r[0]} {r[1]}", 1, r) for r in vrows]
+    items += src_items
+    for it in items:
+        it["show"] = False
+    return {"items": items, "print_items": False, "subsections": subs,
+            "phase_a": (["top_bottom"] if base_rows else [])
+            + [f"alternative_assets:{r[1]}" for r in arows],
+            "data": {"valuation": vdata, "base_rates": base_rows,
+                     "theses_seed": seed_data,
+                     "alternative_assets": adata, "sourced_figures": src_data,
+                     "correlations": corr_data}}
+
+
+# THE THESIS REGISTER'S SEED TABLE (AQ-6; change order section 6): the theses the
+# probability ledger holds for the coming quarter, in the ledger's own form, each
+# weight beside its Brier where graded. READ ONLY -- the Monthly prints what the
+# operator seeded and never writes a weight. No chart.
+THESES_TITLE = "Theses: the ledger's seed for the coming quarter"
+
+
+def thesis_seed(now: Optional[str], db_path: Optional[str]) -> tuple[dict, dict]:
+    from altdata import thesis_register as tr                    # noqa: PLC0415
+    if not now:
+        return ({"title": THESES_TITLE, "not_tracked": [
+            "the thesis register: no cutoff for this edition"]}, {})
+    try:
+        t = tr.seed_table(now, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("thesis seed table unavailable", exc_info=True)
+        return ({"title": THESES_TITLE, "notes": [
+            f"FAULT (code, not data) -- {type(exc).__name__}"]}, {})
+    sub = {"title": f"Theses: the ledger's seed for {t['label']}",
+           "lines": [t["line"]]}
+    if t["rows"]:
+        sub["table"] = {"columns": t["columns"], "rows": t["rows"]}
+    return (sub,
+            {"quarter": t["quarter"], "count": t["count"],
+             "weights": t["weights"]})
+
+
+def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
+    """The old record after the stack: the regime, the scenario record, the
+    register's month, the appendix -- each fact once."""
+    out = []
+    rg = p.get("regime") or {}
+    if rg.get("state") == "ok":
+        drows = [[d["dial"], d.get("state") or "absent",
+                  d.get("previous_state") or "—",
+                  "changed" if d.get("changed") else "held"]
+                 for d in rg.get("dials") or []]
+        dims = [[d["dimension"], d.get("state") or "absent",
+                 d.get("previous_state") or "—", _v(d.get("percentile"), 1),
+                 d.get("direction") or "—", d.get("confidence") or "—"]
+                for d in rg.get("dimensions") or []]
+        closed = [c for c in rg.get("contradictions") or []
+                  if c.get("open_state") not in ("open", "absent", None)]
+        out.append({"id": "regime", "title": "The regime, read from the close",
+                    "tables": [{"columns": ["Read", "State", "Previous Monthly",
+                                            "Since"], "rows": drows},
+                               {"columns": ["Dimension", "State", "Previous Monthly",
+                                            "Percentile", "Direction", "Confidence"],
+                                "rows": dims},
+                               {"columns": ["Pair not open", "State", "z", "Since"],
+                                "rows": [[c.get("id"), c.get("open_state"),
+                                          _v(c.get("magnitude")), c.get("since") or "—"]
+                                         for c in closed]}],
+                    "lines": ([f"Exceptions closed this month: "
+                               f"{', '.join(rg['exceptions_closed'])}."]
+                              if rg.get("exceptions_closed") else []),
+                    "notes": [f"Object session {rg.get('session')}, config "
+                              f"{rg.get('config_version')}, method "
+                              f"{rg.get('method_version')}; against "
+                              f"{rg.get('previous_monthly') or 'no previous Monthly'}."],
+                    "not_tracked": [f"{d['dimension']}: "
+                                    f"{d.get('absent_reason') or 'no reason recorded'}"
+                                    for d in rg.get("dimensions") or []
+                                    if not d.get("state")],
+                    "phase_a": ["regime:dials", "regime:dimensions"]})
+    sc = p.get("scenarios") or {}
+    rec = [w for w in sc.get("weights") or [] if w.get("claim") not in ahead_claims]
+    out.append({"id": "scenarios", "title": "The scenario record",
+                "tables": [{"columns": ["Claim", "p", "Outcome", "Brier",
+                                        "Resolve by"],
+                            "rows": [[w.get("claim"), _v(w.get("probability"), 3),
+                                      "—" if w.get("outcome") is None else w["outcome"],
+                                      _v(w.get("brier"), 4), w.get("resolve_by") or "—"]
+                                     for w in rec]}],
+                "lines": ([] if rec else
+                          ["No weight beyond the live ones Ahead prints."
+                           if sc.get("state") == "ok" else
+                           f"No probability has been emitted. "
+                           f"{sc.get('reason') or ''}".strip()]),
+                "phase_a": [f"scenarios:{w.get('claim')}" for w in rec]})
+    rm = p.get("register_month") or {}
+    ov = ((rm.get("cuts") or {}).get("overall") or {})
+    lines = []
+    if rm.get("state") == "ok":
+        lines.append(f"{rm.get('graded_total')} graded to date, "
+                     f"{rm.get('graded_this_month')} this month. Expectancy, interval "
+                     f"first: n={ov.get('n')}, {_v(ov.get('lo'), 3)} to "
+                     f"{_v(ov.get('hi'), 3)}R, mean {_v(ov.get('mean'), 3)}R.")
+    else:
+        lines.append(f"Grades: {rm.get('reason') or 'unavailable'}")
+    dec = [[d.get("instrument"), d.get("direction"), d.get("status"),
+            d.get("expression_family") or "—", str(d.get("created_at"))[:10]]
+           for d in rm.get("decisions_opened") or []]
+    bz = rm.get("books_vs_benchmark") or {}
+    out.append({"id": "register", "title": "The register's month",
+                "tables": [{"columns": ["Opened", "Direction", "Status", "Expression",
+                                        "On"], "rows": dec},
+                           {"columns": ["Book", "Paper equity"],
+                            "rows": [[f"Book {k}", v] for k, v in
+                                     sorted((bz.get("books") or {}).items())]}],
+                "lines": lines,
+                "not_tracked": list((rm.get("rule_breaks") or {}).get("not_yet_sourced")
+                                    or []),
+                "phase_a": ["register_month"]})
+    ap = p.get("appendix") or {}
+    ptabs, pnames = [], []
+    for num, v in sorted((ap.get("pillars") or {}).items(), key=lambda kv: int(kv[0])):
+        pnames.append((num, v.get("name")))
+        ptabs.append({"title": f"Pillar {num}: {v.get('name')}",
+                      "phase": f"pillar:{num}",
+                      "table": {"columns": ["Series", "Level", "20-day change",
+                                            "Percentile", "Confidence"],
+                                "rows": [[r["metric"], _v(r.get("level")),
+                                          (f"{r['delta_20d']:+.2f} "
+                                           f"{r.get('delta_unit') or ''}".strip()
+                                           if isinstance(r.get("delta_20d"),
+                                                         (int, float)) else "—"),
+                                          _v(r.get("percentile"), 1),
+                                          r.get("confidence") or "—"]
+                                         for r in v.get("series") or []]}})
+    macro = ap.get("derived_macro") or []
+    gate = ap.get("pm_calibration_gate") or {}
+    out.append({"id": "appendix", "title": "Appendix: the pillars, as one delta table",
+                "tables": ([{"columns": ["Derived series", "Level", "20-day change",
+                                         "Percentile", "Read by"],
+                             "rows": [[m["metric"], _v(m.get("level")),
+                                       (f"{m['delta_20d']:+.2f}"
+                                        if isinstance(m.get("delta_20d"), (int, float))
+                                        else "—"), _v(m.get("percentile"), 1),
+                                       ", ".join(m.get("read_by") or []) or "—"]
+                                      for m in macro]}] if macro else [])
+                + ([{"columns": ["Prediction-market gate", "Have", "Need", "Met"],
+                     "rows": [[c["condition"], c["have"], c["need"],
+                               "yes" if c.get("met") else "no"]
+                              for c in gate.get("conditions") or []]}]
+                   if gate.get("state") == "ok" else []),
+                "subsections": ptabs,
+                "not_tracked": [f"pillar {g['pillar']} ({g.get('name')}): "
+                                f"{g.get('reason')}"
+                                for g in ap.get("pillars_without_series") or []]
+                + ([] if ap.get("state") == "ok" else
+                   [f"the appendix: {ap.get('reason')}"]),
+                "phase_a": [f"appendix:pillar:{n}" for n, _ in pnames]})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# AQ-8a in the slow layers: the gold residual and the two-bid state in the
+# metals block; the driver attribution as one table
+# ---------------------------------------------------------------------------
+def gold_two_bid(metals: dict, st, now: str) -> dict:
+    """THE METALS BLOCK GAINS (AQ-8a; change order 10 Oct 2026, section 5): the
+    gold residual and the two-bid legs in the triple form -- latest, long-run
+    average, percentile over the store's own history, each with its data-as-of;
+    the five-year column "until the lenses" -- and the two-bid state, or which
+    leg is waiting for its twelve months. Each series' kill state is in the
+    notes. No chart (the cap of 12 stands). Mutates and returns the block."""
+    from altdata import attribution as att, paper_bid as pb      # noqa: PLC0415
+    g = att.gold_block(st, now)
+    rows = list(g["rows"])
+    c = pb.cfg()
+    sym = str(c.get("gold_symbol") or "GLD")
+    legs = [(pb.oi_key(sym), f"{sym} net call-put open interest (contracts)", 0),
+            (pb.rr_key(sym), f"{sym} 25-delta risk reversal, 30 days (vol points)", 2),
+            ((c.get("official") or {}).get("key") or "safe.gold_reserves_oz",
+             "China's reported gold holdings (troy ounces)", 0)]
+    leg_data = {}
+    for key, lab, dp in legs:
+        t = att.triple(st, key, now)
+        if t is not None:
+            rows.append(att.triple_row(t, lab, dp))
+            leg_data[key] = t
+    state = pb.two_bid_state(st, now, c)
+    nt = list(metals.get("not_tracked") or []) + g["not_tracked"]
+    nt += [f"{x['label']} ({x['why']})" for x in
+           (c.get("official") or {}).get("not_yet_sourced") or []]
+    nt.append(f"{sym} holdings in tonnes (a feeds writer for a later order)")
+    if rows:
+        metals.setdefault("tables", []).append(
+            {"columns": att.TRIPLE_COLUMNS, "rows": rows})
+    metals["lines"] = list(metals.get("lines") or []) + pb.two_bid_lines(state)
+    metals["notes"] = list(metals.get("notes") or []) + [
+        "The gold residual: gold's monthly log return less the fit of a rolling "
+        "36-month regression on the 10-year real yield's change and the broad "
+        "dollar's log return. Kill states: the residual, "
+        f"{att.gold_kill_state()}; {sym} call-put OI, "
+        f"{pb.oi_kill_state(st, sym, now, c)}; the risk reversal, "
+        f"{pb.rr_kill_state()}."]
+    metals["not_tracked"] = nt
+    data = metals.setdefault("data", {})
+    data["gold_residual"] = g["data"]
+    data["two_bid"] = {**state, "legs": leg_data}
+    if metals.get("prose"):
+        metals["prose"]["scope"] = (str(metals["prose"].get("scope") or "")
+                                    + "; the gold residual -- what real yields and "
+                                      "the dollar do not explain -- and the two-bid "
+                                      "state as the table and its line give them")
+    return metals
+
+
+def driver_attribution_block(st, now: str) -> dict:
+    """THE DRIVER ATTRIBUTION (AQ-8a; section 5, 10A): one table -- family,
+    explained share, the largest standardised loading, the residual's sign this
+    month, and the sign-stability state behind the kill condition (printed,
+    never acted on). A lens, never a composite."""
+    from altdata import attribution as att                     # noqa: PLC0415
+    try:
+        d = att.driver_table(st, now)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("driver attribution unavailable", exc_info=True)
+        return {"title": "Driver attribution",
+                "not_tracked": [f"the driver attribution: FAULT {exc}"]}
+    return {"title": "Driver attribution",
+            "table": {"columns": att.DRIVER_COLUMNS, "rows": d["rows"]},
+            "notes": (["Each family's monthly return on the 10-year real yield's "
+                       "change, the broad dollar, and the growth and inflation "
+                       "surprises (payrolls and core CPI against the naive rule), "
+                       "over a rolling 60 months. The share is printed, not "
+                       "asserted: no factor is named as the cause."]
+                      if d["rows"] else []),
+            "lines": [] if d["rows"] or d.get("universe_absent") else
+                     ["No family holds 60 months of complete history at this cutoff."],
+            "not_tracked": d["not_tracked"], "data": {"families": d["data"]}}
+
+
+# ---------------------------------------------------------------------------
+# Changed since last Monthly: Phase A's "what changed", in the header
+# ---------------------------------------------------------------------------
+def changed_since(p: dict) -> tuple[list[str], list[str]]:
+    wc = (p.get("looking_back") or {}).get("what_changed") or {}
+    lines, ids = [], []
+    for n, r in enumerate(wc.get("rows") or []):
+        lines.append(f"{r.get('what')}: {r.get('from') or '—'} to {r.get('to') or '—'}"
+                     f" ({_cite(r.get('source'))}).")
+        ids.append(f"looking_back:what_changed:{n}")
+    return lines, ids
+
+
+# ---------------------------------------------------------------------------
+# Assembly
+# ---------------------------------------------------------------------------
+def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
+          book: Optional[dict] = None, cadence: str = CADENCE) -> dict:
+    """The edition's data, at Monthly depth, before any prose.
+
+    AT `cadence` "quarterly" (AQ-1) the same builders make the Quarterly's front
+    matter: the ten sections at the quarterly column's depth over the payload's
+    quarter window (v2.month_bounds), each phrase in the quarter's words; Slow
+    layers and Reading are the Monthly's and are not built -- the Quarterly's
+    slow layers are its chapters (monthly_macro.quarterly)."""
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    cfg = stack_mod.config()
+    noun = cadence_mod.get(cadence, cfg)["period"]
+    monthly = cadence == CADENCE
+    first, last, then, now = window(p)
+    built: dict[str, dict] = {}
+    retro = None
+    # THE SCORECARD'S MARKETS PRINT IN THE TAPE, once: the themes and Plumbing
+    # leave them out of their tables (each fact once, T2.5 item 1).
+    on_tape = {r.get("metric") for r in (p.get("month_in_markets") or {})
+               .get("rows") or [] if r.get("metric")}
+    with observations.ObservationStore(db_path) as st:
+        try:
+            pmb, fed, _ = stack_mod.venues_and_path(last, now, st)
+        except Exception:                                       # noqa: BLE001
+            pmb, fed = None, None
+        try:
+            from altdata import fed_funds                       # noqa: PLC0415
+            fed_then = fed_funds.path_as_of(then, st)
+        except Exception:                                       # noqa: BLE001
+            fed_then = None
+        steps = {
+            "read": lambda: read_section(p),
+            "tape": lambda: tape_section(p, book, st, last, now, cfg),
+            "mechanics": lambda: mechanics_section(st, first, last, now, cfg),
+            "misfit": lambda: misfit_section(p, st, now, pmb),
+            "plumbing": lambda: plumbing_section(st, now, then, on_tape, cfg),
+            "positioning": lambda: positioning_section(st, now, then),
+            "priced": lambda: priced_section(st, now, then, cfg, pmb, fed, fed_then),
+            "narratives": lambda: narratives_section(
+                p, on_tape, set(built.get("plumbing", {}).get("_printed") or [])),
+            "ahead": lambda: ahead_section(p, now, db_path),
+            "book": lambda: book_section(p),
+        }
+        for sid, fn in steps.items():
+            try:
+                built[sid] = fn()
+            except Exception as exc:                            # noqa: BLE001
+                built[sid] = _fault(sid, exc)
+        retro = built["mechanics"].pop("_retro", None)
+        printed = [(k, "tape") for k in sorted(on_tape)]
+        for sid in ("plumbing", "narratives"):
+            printed += [(k, sid) for k in built[sid].pop("_printed", None) or []]
+        slow = slow_layers(p, cfg, st, now, db_path) if monthly else None
+    if not monthly:
+        built = {k: period_words(v, noun) for k, v in built.items()}
+    sections = stack_mod.assemble(built, cfg, prior, cadence)
+    specs = {s["id"]: s for s in cfg.get("sections") or []}
+    for s in sections:
+        b = built[s["id"]]
+        s["period"] = noun
+        sp = specs[s["id"]]
+        s["subtitle"] = (sp.get(f"{cadence}_subtitle")
+                         or (sp.get("monthly_subtitle") if monthly else None)
+                         or s.get("subtitle"))
+        s["depth_note"] = sp.get(f"{cadence}_note")
+        s["tier"] = sp.get(f"{cadence}_tier")
+        s["phase_a"] = list(b.get("phase_a") or [])
+        s["notes"] = list(b.get("notes") or [])
+        s["prose_wanted"] = b.get("prose_wanted", True)
+        if b.get("points"):
+            s["points"] = b["points"]
+        # A SECTION WHOSE SUB-SECTIONS CARRY THE WRITTEN READS (T3.1: Plumbing's
+        # buckets, Positioning's reads, What's priced's blocks) asks its own call
+        # for the claim line alone, so the reads are not said twice.
+        s["claim_only"] = bool(b.get("claim_only"))
+    if not monthly:
+        rd.mark_empty(sections, noun)
+        return _edition(p, cfg, sections, prior, cadence, (first, last, then, now),
+                        retro, printed)
+    sl = cfg.get("monthly_slow_layers") or {"id": SLOW_ID, "title": "Slow layers",
+                                            "monthly": "deep"}
+    pr = {x["id"]: x for x in (prior or {}).get("sections") or []}.get(SLOW_ID) or {}
+    pmarks = {i["key"]: i["fingerprint"] for i in pr.get("items") or []}
+    for it in slow["items"]:
+        it["changed"] = bool(prior) and pmarks.get(it["key"]) != it["fingerprint"]
+    fp = stack_mod._fp([(i["key"], i["fingerprint"]) for i in slow["items"]])
+    collapsed = bool(prior) and pr.get("fingerprint") == fp
+    sections.append({"id": SLOW_ID, "title": sl["title"], "subtitle": sl.get("subtitle"),
+                     "depth": sl.get("monthly") or "deep", "depth_reason": None,
+                     "items": slow["items"], "table": None, "charts": [],
+                     "data": slow["data"], "not_tracked": [], "legend": None,
+                     "print_items": False, "subsections": slow["subsections"],
+                     "fingerprint": fp, "collapsed": collapsed,
+                     "unchanged_since": ((pr.get("unchanged_since") or
+                                          (prior or {}).get("report_date"))
+                                         if collapsed else None),
+                     "prior_claim": pr.get("claim") if collapsed else None,
+                     "claim": None, "paragraphs": [], "trimmed": False,
+                     "period": "month", "phase_a": slow["phase_a"], "notes": [],
+                     "prose_wanted": True})
+    rd.mark_empty(sections, "month")
+    # THE READING CHAPTER (D1): immediately after Narratives, before Ahead. Built
+    # after the empty-marking -- an empty month still prints its line and the due
+    # list -- from the committed register, with no model call.
+    try:
+        from . import reading as reading_mod                     # noqa: PLC0415
+        rdata = reading_mod.section(
+            then, last, now, reading_mod.voices_urls(p.get("voices")), cfg)
+    except Exception as exc:                                    # noqa: BLE001
+        rdata = {"entries_by_group": [], "due": [], "withheld": 0, "matched": [],
+                 "fault": f"FAULT (code, not data) -- {type(exc).__name__}"}
+    rsec = reading_mod.stack_section(rdata, specs.get("reading") or {}, prior)
+    # ITS PLACE IS CONFIG ORDER (stack.section_ids: the reading row follows
+    # narratives); Slow layers, which has no row there, stays last.
+    by_id = {x["id"]: x for x in sections + [rsec]}
+    ids = stack_mod.section_ids(cfg, CADENCE, by_id)
+    sections = [by_id[i] for i in ids] + [x for x in sections if x["id"] not in ids]
+    return _edition(p, cfg, sections, prior, cadence, (first, last, then, now),
+                    retro, printed)
+
+
+def _edition(p: dict, cfg: dict, sections: list, prior: Optional[dict],
+             cadence: str, win: tuple, retro: Optional[dict], printed: list) -> dict:
+    """The edition around its sections: the window, the detail tables, what
+    changed, the cadence's budget and reading target."""
+    first, last, then, now = win
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    noun = cadence_mod.get(cadence, cfg)["period"]
+    mech = next((s for s in sections if s["id"] == "mechanics"), {})
+    if retro and retro.get("insufficient") and not mech.get("empty"):
+        # BELOW THE THRESHOLD THE SECTION'S CLAIM IS THE COUNT, written by code,
+        # and no paragraph is asked for (brief 1.2; T3 item 3).
+        mech["claim"] = (f"Insufficient sessions (n={len(retro['sessions'])}) for "
+                         f"the {noun}'s dealer retrospective.")
+    claims = {s.get("claim") for s in (p.get("looking_ahead") or {}).get("scenarios")
+              or []}
+    changed, changed_ids = changed_since(p)
+    targets = cfg.get("reading_targets_minutes") or {}
+    ed = {"report": f"{cadence}_stack", "cadence": cadence,
+          "report_date": p.get("report_date"),
+          "session": last, "month": (p.get("month_in_markets") or {}).get("month"),
+          "window": {"first": first, "last": last, "then": then, "now": now},
+          "config_version": cfg.get("version"), "as_of": now,
+          "prior_session": (prior or {}).get("report_date"),
+          "sections": sections, "detail": detail_tables(p, claims),
+          "changed_since": changed, "changed_since_phase_a": changed_ids,
+          "budget": (cfg.get("budget") or {}).get(cadence),
+          "reading_target_minutes": targets.get(cadence),
+          "chart_count": 0, "charts": {}, "run_id": p.get("run_id"),
+          # Which section's table prints each series' month: the gate holds
+          # every series to one.
+          "printed_metrics": printed}
+    ed["_retro"] = retro
+    return ed
+
+
+# THE QUARTER'S WORDS (AQ-1). The front matter's builders are the Monthly's and
+# speak of a month; over the payload's quarter window (v2.month_bounds, period
+# "quarter") the same lines are the quarter's. Applied, in order, to every string
+# the builders return at a cadence other than the Monthly's -- the
+# PERIOD_WORDS pass this module already makes from the week. Threading the
+# cadence's Period through each builder instead is AQ-2's.
+_NOUN_WORDS = (("on the month", "on the {n}"), ("this month", "this {n}"),
+               ("This month", "This {n}"), ("the month's", "the {n}'s"),
+               ("The month's", "The {n}'s"), ("the month", "the {n}"),
+               ("The month", "The {n}"), ("Month or prior", "{N} or prior"),
+               ("month mean", "{n} mean"), ("over the month", "over the {n}"))
+
+
+def period_words(v: Any, noun: str) -> Any:
+    if noun == "month":
+        return v
+    pairs = [(a, b.format(n=noun, N=noun.capitalize())) for a, b in _NOUN_WORDS]
+    if isinstance(v, str):
+        for a, b in pairs:
+            v = v.replace(a, b)
+        return v
+    if isinstance(v, list):
+        return [period_words(x, noun) for x in v]
+    if isinstance(v, tuple):
+        return tuple(period_words(x, noun) for x in v)
+    if isinstance(v, dict):
+        return {k: (period_words(x, noun) if k not in ("fingerprint", "key") else x)
+                for k, x in v.items()}
+    return v
+
+
+# ---------------------------------------------------------------------------
+# The prose onto the edition
+# ---------------------------------------------------------------------------
+def _sentences(text: str) -> list[str]:
+    return [x for x in re.split(r"(?<=[.!?])\s+", (text or "").strip()) if x]
+
+
+def _paras(text: Optional[str]) -> list[str]:
+    return [re.sub(r"\s+", " ", x).strip() for x in (text or "").split("\n\n")
+            if x.strip()]
+
+
+def _claim_and_rest(text: str) -> tuple[Optional[str], list[str]]:
+    """The first sentence is the claim; the rest of its paragraph and every
+    paragraph after it follow -- the claim is never printed twice."""
+    paras = _paras(text)
+    if not paras:
+        return None, []
+    sents = _sentences(paras[0])
+    claim = sents[0] if sents else paras[0]
+    rest = " ".join(sents[1:]).strip()
+    return claim, ([rest] if rest else []) + paras[1:]
+
+
+# Where each Phase A prose call lands: (section, sub-section phase or None).
+PHASE_A_PROSE = {"month_in_markets": ("read", None),
+                 "month_in_one_page": ("read", "month_in_one_page"),
+                 "looking_ahead": ("ahead", None),
+                 "our_read": ("book", None)}
+
+
+# WHAT THE EDITION KEEPS OF EACH CALL. Every attempt's reason, the figures the
+# draft cited and the withheld draft itself are kept from T3.3: the 10 Oct dry
+# run's archive held only the last reason, and what a withheld section needed
+# had to be inferred from it.
+PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
+                  "reasons", "words", "figures_cited", "rejected_text")
+
+
+def apply_prose(ed: dict, written: dict) -> dict:
+    """Every published text onto its section; every withheld one's reason into
+    its footnote. Phase A prose keeps its paragraphs (it is long form); a stack
+    section's call gives the claim and its one paragraph."""
+    secs = {s["id"]: s for s in ed["sections"]}
+    subs = {}
+    for s in ed["sections"]:
+        for ss in s.get("subsections") or []:
+            if ss.get("phase"):
+                subs[ss["phase"]] = (s, ss)
+    for d in ed.get("detail") or []:
+        for ss in d.get("subsections") or []:
+            if ss.get("phase"):
+                subs[ss["phase"]] = (d, ss)
+    for key, r in written.items():
+        ok = bool(r.get("published") and r.get("text"))
+        why = r.get("reason") or r.get("state")
+        if key.startswith("stack:"):
+            s = secs.get(key.split(":", 1)[1])
+            if s is None:
+                continue
+            if ok:
+                s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+                s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
+                    "deep", "medium") and not s.get("claim_only") else []
+            else:
+                s["withheld"] = why
+            continue
+        sid, phase = PHASE_A_PROSE.get(key, (None, None))
+        if sid is None and key in subs:
+            owner, ss = subs[key]
+            if ok:
+                ss["paragraphs"] = _paras(r["text"])
+            else:
+                ss.setdefault("notes", []).append(
+                    f"Commentary withheld by the audit: {why}")
+            continue
+        s = secs.get(sid)
+        if s is None:
+            continue
+        if phase:
+            ss = next((x for x in s.get("subsections") or []
+                       if x.get("phase") == phase), None)
+            if ss is None:
+                continue
+            if ok:
+                ss["paragraphs"] = _paras(r["text"])
+                # The takeaways now print as their prose: the lines are its data.
+                ss["lines"] = []
+            else:
+                ss.setdefault("notes", []).append(
+                    f"Commentary withheld by the audit: {why}")
+            continue
+        if ok:
+            s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+        else:
+            s["withheld"] = why
+    ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
+                   for k, v in written.items()}
+    return ed
+
+
+# ---------------------------------------------------------------------------
+# The executive summary (T3.1 item 20)
+# ---------------------------------------------------------------------------
+def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
+    """ed["summary"]: one entry per section in stack order -- its paragraph as
+    published (one paragraph, polished), "(summary withheld — audit)" with the
+    reason kept where the audit withheld it, or the section's empty note where it
+    had nothing new. No narrative step, no summary. Then the short path's
+    reading time: the summary with section 1."""
+    from . import prose as prose_mod                             # noqa: PLC0415
+    if not narrative:
+        ed["summary"] = []
+        return ed
+    year = None
+    try:
+        year = dt.date.fromisoformat(str(ed.get("session"))[:10]).year
+    except ValueError:
+        pass
+    out = []
+    for s in ed.get("sections") or []:
+        e = {"id": s["id"], "title": s["title"], "text": None}
+        if s.get("empty"):
+            e["note"] = s.get("empty_note") or "Nothing new this month."
+        else:
+            r = written.get(f"summary:{s['id']}") or {}
+            if r.get("published") and r.get("text"):
+                e["text"] = rd.polish(" ".join(_paras(r["text"])), year)
+            else:
+                e["note"] = prose_mod.SUMMARY_WITHHELD
+                e["withheld"] = r.get("reason") or r.get("state") or "not written"
+        out.append(e)
+    ed["summary"] = out
+    ed.setdefault("prose", {}).update(
+        {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
+         for k, v in written.items()})
+    return ed
+
+
+def summary_minutes(ed: dict) -> int:
+    """The short path's reading time (T3.1 item 22): the executive summary and
+    section 1, at the shared rate."""
+    import math                                                  # noqa: PLC0415
+    read = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
+    n = (sum(stack_mod.words(x.get("text")) for x in ed.get("summary") or [])
+         + stack_mod.section_words(read))
+    return max(1, math.ceil(n / rd.WORDS_PER_MINUTE))
+
+
+# ---------------------------------------------------------------------------
+# The budget: the shared guard (T2.7)
+# ---------------------------------------------------------------------------
+def enforce_budget(ed: dict) -> dict:
+    """The stacked reports' guard at the Monthly's cadence
+    (daily_cascade.stack.enforce_budget): each paragraph cut to its section's
+    depth allowance, The read's sentences not repeated elsewhere, then over the
+    budget the lowest-priority paragraphs go and the block prints "(trimmed)".
+    A claim, an item, a line, a table and a reading entry are never cut. The
+    reading time is the shared estimate, which counts the stored text the
+    Reading chapter prints (readability.stored_words)."""
+    stack_mod.enforce_budget(ed, CADENCE)
+    ed["reading_minutes"] = rd.reading_minutes(ed)
+    if ed.get("summary"):
+        ed["summary_minutes"] = summary_minutes(ed)
+    return ed
+
+
+# ---------------------------------------------------------------------------
+# The book of levels for the tape's long frame
+# ---------------------------------------------------------------------------
+def level_book(p: dict, db_path: Optional[str] = None) -> Optional[dict]:
+    """The level list at the month-end session, for the long frame. None when the
+    bars store cannot be read -- the tape then says so."""
+    try:
+        from altdata import bars as bars_mod, levels as levels_mod  # noqa: PLC0415
+        _, last, _, now = window(p)
+        with bars_mod.BarStore(db_path) as bst:
+            return levels_mod.compute(last, [], store=bst, as_of=now)
+    except Exception:                                           # noqa: BLE001
+        log.warning("level list unavailable", exc_info=True)
+        return None
+
+
+def public(ed: dict) -> dict:
+    """The edition as archived: private keys dropped."""
+    out = copy.copy(ed)
+    out.pop("_retro", None)
+    return out
+
+
+def polish(ed: dict, charts: Optional[dict] = None) -> dict:
+    """The shared formatting pass (readability.polish_edition), which covers
+    what the Monthly carries -- sub-section paragraphs, extra tables, the detail
+    tables, the charts' captions -- and leaves the reading entries as stored.
+    The edition keeps the charts without their PNG bytes."""
+    rd.polish_edition(ed, charts)
+    if charts:
+        ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
+                        for k, c in charts.items()}
+    return ed
+
+
+CHANGED_HEAD = "Changed since last Monthly"
+
+
+def title(ed: dict) -> str:
+    return f"Monthly — {ed.get('month') or ed.get('report_date')}"
+
+
+def html(ed: dict, mode: str = "email", charts: Optional[dict] = None) -> str:
+    """The page, by the shared renderer at the Monthly's cadence."""
+    return sr.page_html(ed, CADENCE, title(ed), mode, charts, CHANGED_HEAD, "Monthly")
+
+
+def markdown(ed: dict) -> str:
+    """The attachment and text fallback, by the shared renderer."""
+    return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
+
+
+def produce(p: dict, *, archive_dir: Optional[str], client=None,
+            model: Optional[str] = None, narrative: bool = True,
+            db_path: Optional[str] = None, write=None,
+            prior_dir: Optional[str] = None) -> dict:
+    """Build, write, polish, budget and render the stacked Monthly. Archives
+    nothing -- run.py does, through deliver.archive, as for every report.
+    `write(ed) -> {key: result}` replaces the default prose step (run.py passes
+    its own, which logs and records the prose on the payload)."""
+    from . import charts as charts_mod                           # noqa: PLC0415
+    from . import prose as prose_mod                             # noqa: PLC0415
+    prior = load_prior(str(p.get("report_date")),
+                       prior_dir if prior_dir is not None else archive_dir)
+    book = level_book(p, db_path)
+    ed = build(p, prior, db_path, book=book)
+    if not narrative:
+        written = {}
+    elif write is not None:
+        written = write(ed)
+    else:
+        written = prose_mod.write_all(p, model=model, client=client, ed=ed)
+    apply_prose(ed, written)
+    # THE CHARTS (brief 3; T3 second half): after the prose, as the Weekly's, and
+    # before the budget, so the reading time counts them. M1 and M2 draw from the
+    # same level list the tape's prose is audited against.
+    stamp = p.get("report_date")
+    try:
+        charts = charts_mod.build(ed, book, ed.get("_retro"), db_path, archive_dir,
+                                  f"monthly_macro_{stamp}")
+    except Exception:                                           # noqa: BLE001
+        log.exception("the Monthly's charts faulted; the edition prints none")
+        charts = {}
+    ed["levels"] = book
+    polish(ed, charts)
+    # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item
+    # 20): the sections are finished first -- each paragraph cut to its depth,
+    # The read's repeats withheld -- then one audited call per section over what
+    # that section now prints. The summary is prose and counts in the budget;
+    # it is never cut, so over the budget the body's lowest-priority paragraphs
+    # go, in the guard below.
+    rd.finalize(ed, CADENCE)
+    rd.withhold_duplicates(ed)
+    sw: dict = {}
+    if narrative:
+        try:
+            sw = prose_mod.write_all(p, model=model, client=client, ed=ed,
+                                     secs=prose_mod.summary_plan(ed))
+        except Exception:                                       # noqa: BLE001
+            log.exception("the executive summary faulted; each paragraph prints "
+                          "as withheld")
+    apply_summary(ed, sw, narrative)
+    # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
+    # formatting pass, run after it, wrote the key back -- so nothing after
+    # the budget may rewrite the edition's prose.
+    enforce_budget(ed)
+    ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
+                          if archive_dir else None)
+    return {"edition": public(ed), "written": written, "summary_written": sw,
+            "charts": charts,
+            "inline_images": [(sr.cid(k), c["png"])
+                              for k, c in charts.items() if c.get("png")],
+            "html_email": html(ed, mode="email", charts=charts),
+            "html_archive": html(ed, mode="archive", charts=charts),
+            "markdown": markdown(ed)}

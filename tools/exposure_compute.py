@@ -524,8 +524,7 @@ def net_gex_at_spot(rows: list[dict], candidate: float, r: float) -> float:
         g = bs_gamma(candidate, k, iv, max(row.get("dte") or 0, 0) / 365.0, r)
         if g is None:
             continue
-        notional = g * oi * 100.0 * candidate
-        total += notional if row.get("right") == "C" else -notional
+        total += dealer_position(row.get("right")) * g * oi * 100.0 * candidate
     return total
 
 
@@ -690,6 +689,13 @@ def _empty_greek_aggregates() -> dict:
     }
 
 
+def _empty_gross_aggregates() -> dict:
+    """The gross-against-net keys (audit F1), all None, for a profile with no
+    gamma -- the same key set as a populated one, for the same reason."""
+    return {"gross_gex_abs": None, "gross_gamma_per_1pct": None,
+            "net_to_gross": None}
+
+
 def _profile(rows: list[dict], spot: float) -> dict:
     """Aggregate per-strike GEX, DEX, VEX and CHEX, and the levels from them.
 
@@ -699,6 +705,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
     they describe.
     """
     by_strike: dict[float, float] = defaultdict(float)
+    gross_abs = 0.0
     call_gex: dict[float, float] = defaultdict(float)
     put_gex: dict[float, float] = defaultdict(float)
     dex_strike: dict[float, float] = defaultdict(float)
@@ -714,6 +721,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
 
         notional = g * contracts * spot
         by_strike[k] += pos * notional        # long calls -> +gamma, puts -> -
+        gross_abs += abs(pos * notional)      # call mass + put mass, unnetted
         if r["right"] == "C":
             call_gex[k] += notional
         else:
@@ -733,7 +741,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
 
     if not by_strike:
         return {"net_gex": None, "shares_per_1pct": None,
-                "dollar_gamma_per_1pct": None,
+                "dollar_gamma_per_1pct": None, **_empty_gross_aggregates(),
                 "gamma_flip": None, "call_wall": None, "put_wall": None,
                 "put_wall_gamma": None, "put_wall_oi": None,
                 "put_wall_otm": None, "call_wall_otm": None,
@@ -787,6 +795,12 @@ def _profile(rows: list[dict], spot: float) -> dict:
         "net_gex": net,
         "shares_per_1pct": shares_1pct,
         "dollar_gamma_per_1pct": shares_1pct * spot,
+        # Gross against net (audit F1): the net is a small difference of two
+        # large masses, and its sign means something only when it is large
+        # against them. Same units as net_gex; the per-1% figure the same way.
+        "gross_gex_abs": gross_abs,
+        "gross_gamma_per_1pct": gross_abs * 0.01 * spot,
+        "net_to_gross": abs(net) / gross_abs if gross_abs else None,
         # DEX: what the dealer OPTION BOOK is long, in shares. The hedge is the
         # opposite sign; the unwind at expiry is this sign. See the docstring.
         "dex_shares": dex_sh,
@@ -1027,7 +1041,7 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         # greeks. Reported, not dropped: open interest at settlement is a fact.
         if settled and b == "0dte":
             buckets[b] = {
-                **_empty_greek_aggregates(),
+                **_empty_greek_aggregates(), **_empty_gross_aggregates(),
                 "net_gex": None, "shares_per_1pct": None,
                 "dollar_gamma_per_1pct": None,
                 "greeks": config.SETTLED_0DTE_GREEKS_LABEL,

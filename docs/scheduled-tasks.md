@@ -1,0 +1,39 @@
+# Scheduled tasks (chat-side)
+
+A register of the scheduled tasks that run on the chat side, in the scheduler,
+rather than on the box. One row each. Started 6 Oct 2026 under L-1.
+
+**What this register is for.** The box's schedule is declared in
+`deploy/systemd/` and enabled from `DEPLOY_TIMERS` in
+`scripts/deploy_remote.sh`. These tasks are not declared anywhere in the
+repository, so this file is where they are written down. Each row gives what
+the task delivers and where its output lands.
+
+**The prompts live in the scheduler, not here.** This register records what each
+task delivers and where it lands. It does not hold a copy of the prompt, so the
+two cannot drift.
+
+**None of these tasks has decision rights.** Each one reads and reports. None
+writes to the register, changes a report's configuration, edits a paper, or
+runs anything on the box. Whatever a task finds, a human acts on it through the
+normal channels (a change order, a commit, an operator's register write).
+
+Times are Eastern unless the scheduler holds the task in UTC, in which case
+the UTC time is given with its Eastern equivalent in summer and winter.
+
+**Where the output lands.** Every task's output lands in its own session in the
+Claude app. Nothing reaches the repository unless a human commits it. The
+"Delivers" column names the file a task produces where it produces one, at the
+path it lands at once committed.
+
+| Task | When | Delivers | Notes |
+|---|---|---|---|
+| JPM Guide to the Markets — quarterly read | 06:56 ET, the 6th of Jan, Apr, Jul and Oct | `docs/scans/jpm-gtm-YYYYqN.md` (e.g. [`jpm-gtm-2026q4.md`](scans/jpm-gtm-2026q4.md)) | Last ran 6 Oct 2026, a second read of the 4Q edition. Rulings: [`change-order-jpm-gtm-2026-10-03.md`](change-order-jpm-gtm-2026-10-03.md) |
+| Monthly signal scan | 06:57 ET, the 25th of each month | `docs/scans/signal-scan-YYYY-MM.md` | Signal-triage batch 3, decision 7 |
+| AI-risk consensus drift scan (pre-refresh) | 13:00 UTC on the 20th of even months (09:00 ET in summer, 08:00 ET in winter) | A read of drift in consensus on AI risk | Folds into the monthly signal scan once that is stable |
+| Weekly crypto tech scan — Pearl (PRL) + new mechanisms | Saturdays 12:00 UTC (08:00 ET in summer, 07:00 ET in winter) | A weekly read of Pearl (PRL) and new crypto mechanisms | **Interim, due to retire.** Remove this row when it retires |
+| Publication watch — reading shelf | 06:58 ET, the 12th and 27th of each month | A watch for new publications on the reading shelf | — |
+| FlashAlpha vendor pull — Wednesday close | Wednesdays 16:25 ET | One JSON of FlashAlpha's settled-close SPY/QQQ exposure numbers in the operator's Drive folder chester-vendor-checks | Cross-check only; FlashAlpha is never a data source. Definitions: [ledgers/gex-scale-flashalpha-2026-10-09.md](ledgers/gex-scale-flashalpha-2026-10-09.md) |
+| FlashAlpha vendor reconcile — Thursday morning | Thursdays 07:05 ET | A reconciliation row appended to chester-vendor-checks/flashalpha-ledger.md in Drive, emailed to the operator; rows are pasted into docs/ledgers/ by a session when convenient | Compares against the box's own exposure JSON from the 02:30 backup. Retires when the box-side vendor writer (6b) ships |
+| AAII weekly read — Thursday | Thursdays 12:10 ET | one row appended to chester-vendor-checks/aaii/aaii-weekly.csv in Drive (week ending, bull, neutral, bear, spread, source, retrieval instant, cross-check against AAII’s weekly article) | the box’s nightly rclone sweep pulls the file into the inbox; the writer unions it with the history; id trig_01CUGkyHUbvRXVYswkuSFVr7; first run 15 Oct 2026 |
+| Alternative assets — quarterly scan | 06:30 ET on the Monday of each edition's week: Mon 4 Jan, 5 Apr, 5 Jul and 4 Oct 2027 (cloud-only, web-only) | `docs/scans/alt-assets-YYYYqN.md`, for the quarter just ended (the 4 Jan run writes `alt-assets-2026q4.md`). It reads `config/alt_asset_scan.yaml`, `config/alt_asset_gaps.yaml` (the standing search list), `config/voices_sources.yaml`, `config/source_tiers.yaml`, the two political calendars and the previous quarter's scan | **Not yet created. The operator creates it** from [`scans/PROMPT-alt-assets-quarterly.md`](scans/PROMPT-alt-assets-quarterly.md) (the text below its line). A human commits the file; `python -m altdata.alt_scan ingest` then writes the operator's calendar proposals and the draft intake entries beside it, and every Monthly run stores its figures and voices. Rulings: [`change-order-alternative-assets-quarterly-2026-10-10.md`](change-order-alternative-assets-quarterly-2026-10-10.md) §8 (AQ-7) |

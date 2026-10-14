@@ -41,6 +41,7 @@ from daily_cascade import deliver as delivery        # noqa: E402
 from daily_cascade import narrative as narrative_mod  # noqa: E402
 from daily_cascade import weekly_payload as payload_mod  # noqa: E402
 from daily_cascade import weekly_render as render_mod    # noqa: E402
+from state.emit import emit                              # noqa: E402
 
 log = logging.getLogger("daily_cascade.weekly")
 
@@ -48,6 +49,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 TEMPLATE_PATH = REPO / "docs" / "narrative-template-weekly.md"
+
+# THE DASHBOARD'S KEY FOR THIS REPORT (L-1, 6 Oct 2026). Its own, not the close's
+# `daily_cascade`: a Sunday record under the close's key would overwrite Friday's
+# close and then read stale by Tuesday, and a weekly that stopped would hide
+# behind five closes a week. Producers report as_of -- the week ending -- and the
+# Worker computes the age.
+REPORT_KEY = "weekly_tactical"
 
 # THE RUNAWAY GUARD, not a word count. The first weekly reflection came in at 2,961
 # characters and was withheld by the close report's 2,600-character
@@ -85,6 +93,8 @@ def main() -> int:
                          "the original edition is not overwritten")
     ap.add_argument("--classic", action="store_true",
                     help="The pre-stack Weekly: one long paragraph over the blocks")
+    ap.add_argument("--no-emit", action="store_true",
+                    help="Skip the dashboard state record")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
     # THE DRY RUN'S OWN DIRECTORY (T2.2 rulings of 5 Oct, item 2): it renders with
@@ -120,6 +130,8 @@ def main() -> int:
     ending = p.get("week_ending")
     if not ending:
         print("no payload -- the week could not be resolved")
+        _emit(args, "error", "no payload -- the week could not be resolved",
+              {"run_id": run_id, "warnings": p.get("warnings") or []}, None)
         return 1
 
     # THE TEN-SECTION STACK (reporting-stack brief, T2) is the Weekly's shape;
@@ -220,6 +232,12 @@ def main() -> int:
     print(f"  delivery   : {out.get('delivery')} ({out.get('delivery_detail')})")
     for w in p.get("warnings") or []:
         print(f"  WARNING    : {w}")
+    if not args.dry_run:
+        _emit(args, _status(p, out),
+              f"week ending {ending}, delivery {out.get('delivery')}",
+              {"run_id": run_id, "edition": "classic",
+               "narrative": (None if narr is None else narr.state),
+               "delivery": out.get("delivery")}, ending)
     return rc
 
 
@@ -232,10 +250,22 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                          f"weekly_tactical_{ending}_payload.json", args.archive_dir)
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
-    out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
-                               prior_dir=getattr(args, "prior_dir", None),
-                               model=args.narrative_model,
-                               narrative=not args.no_narrative)
+    from daily_cascade import consistency  # noqa: PLC0415
+    try:
+        out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
+                                   prior_dir=getattr(args, "prior_dir", None),
+                                   model=args.narrative_model,
+                                   narrative=not args.no_narrative)
+    except consistency.EditionInconsistent as exc:
+        # BEYOND ROUNDING, THE RUN FAILS (W-1.1 item 1.1, ruling 1): two tables
+        # print one fact differently, and no edition goes out saying both.
+        print(f"\nweekly (stacked) -- week ending {ending}")
+        print(f"  run id     : {run_id}")
+        print(f"  FAILED     : the edition is inconsistent -- {exc}")
+        if not args.dry_run:
+            _emit(args, "error", "stacked weekly failed the consistency gate",
+                  {"run_id": run_id, "mismatches": exc.mismatches}, ending)
+        return 5
     ed = out["edition"]
     print(f"\nweekly (stacked) -- week ending {ending}")
     print(f"  run id     : {run_id}")
@@ -255,33 +285,78 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                                     else f"{c.get('png_bytes')} bytes PNG"))
     weekly_stack.save_edition(ed, ending, args.archive_dir)
     name = f"weekly_tactical_{ending}.html"
+    # THE SUBJECT CARRIES THE CLAIM (T2.5 item 8):
+    # "Weekly — w/e 2 Oct — <The read's claim, at most 90 characters>".
+    from daily_cascade import readability  # noqa: PLC0415
+    when = f"w/e {readability.prose_date(ending)}"
+    print(f"  subject    : {readability.subject('Weekly', when, ed)}")
+    print(f"  pdf        : {'built, ' if out.get('pdf') else 'NOT built -- '}"
+          f"{out.get('pdf_detail')}")
     if args.dry_run:
         if getattr(args, "email", False):
             # THE DRY RUN, MAILED (PB-1): the same render, to the configured
             # recipient, the subject marked "[DRY RUN]"; archived to the dry-run
-            # directory like any dry run, never over the real edition.
-            res = delivery.deliver(f"[DRY RUN] [chester] Weekly — {ending}",
+            # directory like any dry run, never over the real edition. The PDF
+            # rides with it (T2.5 item 11).
+            res = delivery.deliver(readability.subject("Weekly", when, ed, True),
                                    out["html_email"], name,
                                    text_fallback=render_mod.text_fallback(p),
                                    archive_dir=args.archive_dir,
                                    archive_html=out["html_archive"],
-                                   inline_images=out["inline_images"])
+                                   inline_images=out["inline_images"],
+                                   pdf=out.get("pdf"))
             print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
+            print(f"  pdf archive: {res.get('pdf_path') or 'none'}")
             print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})"
                   f" -- dry run, mailed")
             return 3
         path = delivery.archive(out["html_archive"], name, args.archive_dir)
+        if out.get("pdf"):
+            print(f"  pdf archive: " + str(delivery.archive_bytes(
+                out["pdf"], f"weekly_tactical_{ending}.pdf", args.archive_dir)))
         print(f"  archive    : {path or 'FAILED'}")
         print("  delivery   : dry_run (--dry-run)")
         return 3
-    res = delivery.deliver(f"[chester] Weekly — {ending}", out["html_email"], name,
-                           text_fallback=render_mod.text_fallback(p),
+    res = delivery.deliver(readability.subject("Weekly", when, ed), out["html_email"],
+                           name, text_fallback=render_mod.text_fallback(p),
                            archive_dir=args.archive_dir,
                            archive_html=out["html_archive"],
-                           inline_images=out["inline_images"])
+                           inline_images=out["inline_images"],
+                           pdf=out.get("pdf"))
     print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
     print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})")
+    _emit(args, _status(p, res),
+          f"stacked weekly, {ed.get('words')} words, delivery {res.get('delivery')}",
+          {"run_id": run_id, "stack": ed.get("config_version"),
+           "words": ed.get("words"), "charts": ed.get("chart_count"),
+           "prose": ed.get("prose"), "delivery": res.get("delivery")}, ending)
     return 0 if res.get("delivery") == "sent" else 2
+
+
+def _status(p: dict, res: dict) -> str:
+    """ok, or degraded when the edition carries a warning or did not reach the
+    reader. The close's rule, with delivery counted as the close's classic path
+    counts it: a weekly nobody received is the 1 Oct failure, not a success."""
+    if p.get("warnings") or res.get("delivery") != "sent":
+        return "degraded"
+    return "ok"
+
+
+def _emit(args, status: str, headline: str, detail: dict,
+          ending) -> None:
+    """The Weekly's state record, the way the close emits its own (state/emit:
+    never raises, skipped when unconfigured). NOT on a dry run, unlike the
+    close: a Weekly dry run is a re-render of a past week -- --week-ending,
+    --from-payload, --email -- and its record would stand on the dashboard for
+    an edition no reader received."""
+    if args.no_emit or args.dry_run:
+        return
+    import datetime as dt  # noqa: PLC0415
+    try:
+        as_of = dt.date.fromisoformat(str(ending)) if ending else None
+    except ValueError:
+        as_of = None
+    emit(REPORT_KEY, status, headline=headline, detail=detail, as_of=as_of)
 
 
 def weekly_system_prompt() -> str:

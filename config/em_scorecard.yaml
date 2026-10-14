@@ -1,0 +1,129 @@
+# THE EM VULNERABILITY SCORECARD (AQ-9a; change order "Alternative Assets
+# Quarterly", 10 Oct 2026, section 4.5 and section 10). A table of lenses --
+# country x lens, each cell the latest value, its own ten-year percentile and the
+# change over the quarter, ranked per column -- and NEVER a composite (section
+# 26.8). Every series here is trigger_eligible: false.
+#
+# Read by the writers altdata/sources/imf_weo.py, imf_em.py, bis_cbpol.py,
+# wb_qeds.py and em_lenses.py (the feeds' official group), and by
+# altdata/em_scorecard.py (the table, the Quarterly's block, the Monthly's line).
+# Free sources only; a lens with no free source for a country is declared
+# not_yet_sourced below with its candidate, never estimated.
+
+# ---------------------------------------------------------------------------
+# THE COUNTRIES: the twelve largest emerging markets by MSCI Emerging Markets
+# index weight, plus Thailand (the change order's set). SESSION-SET from the
+# index's usual order (China, Taiwan, India, Korea, Brazil, Saudi Arabia, South
+# Africa, Mexico, the UAE, Malaysia, Indonesia, Poland); the operator confirms
+# against the current MSCI factsheet -- the tail (UAE, Malaysia, Indonesia,
+# Poland, Qatar, Kuwait, Turkiye) reorders quarter to quarter.
+#
+#   iso3, iso2      the IMF's and World Bank's code; the BIS's
+#   target          the central bank's inflation target in percent (the
+#                   midpoint where it is a range), with its source; null where
+#                   the country has none (a peg, or no formal target) -- that
+#                   country's inflation-gap lens is "not tracked: no target"
+#   policy_rate     the BIS central-bank policy-rate series it reads
+# ---------------------------------------------------------------------------
+countries:
+  - {iso3: CHN, iso2: CN, name: China, target: 2.0,
+     target_source: "State Council, 2025 Government Work Report: CPI 'around 2%' (was 3%); verify the 2026 report",
+     policy_rate: "BIS WS_CBPOL M.CN (the 7-day reverse repo rate)"}
+  - {iso3: TWN, iso2: TW, name: Taiwan, target: null,
+     target_source: "Central Bank of the Republic of China (Taiwan): no formal inflation target",
+     policy_rate: null}
+  - {iso3: IND, iso2: IN, name: India, target: 4.0,
+     target_source: "Reserve Bank of India Act, section 45ZA: 4% CPI, +/-2 points (flexible inflation targeting)",
+     policy_rate: "BIS WS_CBPOL M.IN (the repo rate)"}
+  - {iso3: KOR, iso2: KR, name: Korea, target: 2.0,
+     target_source: "Bank of Korea: 2% CPI (medium-term target since 2019)",
+     policy_rate: "BIS WS_CBPOL M.KR (the base rate)"}
+  - {iso3: BRA, iso2: BR, name: Brazil, target: 3.0,
+     target_source: "Conselho Monetario Nacional: 3% IPCA continuous target from January 2025, +/-1.5 points",
+     policy_rate: "BIS WS_CBPOL M.BR (the Selic target)"}
+  - {iso3: SAU, iso2: SA, name: Saudi Arabia, target: null,
+     target_source: "Saudi Central Bank: no inflation target (US-dollar peg)",
+     policy_rate: "BIS WS_CBPOL M.SA (the repo rate)"}
+  - {iso3: ZAF, iso2: ZA, name: South Africa, target: 3.0,
+     target_source: "National Treasury and SARB, November 2025: a 3% point target, +/-1 point (was 3-6%); verify",
+     policy_rate: "BIS WS_CBPOL M.ZA (the repo rate)"}
+  - {iso3: MEX, iso2: MX, name: Mexico, target: 3.0,
+     target_source: "Banco de Mexico: 3% CPI, +/-1 point",
+     policy_rate: "BIS WS_CBPOL M.MX (the overnight interbank target)"}
+  - {iso3: ARE, iso2: AE, name: United Arab Emirates, target: null,
+     target_source: "Central Bank of the UAE: no inflation target (US-dollar peg)",
+     policy_rate: null}
+  - {iso3: MYS, iso2: MY, name: Malaysia, target: null,
+     target_source: "Bank Negara Malaysia: no formal inflation target",
+     policy_rate: "BIS WS_CBPOL M.MY (the overnight policy rate)"}
+  - {iso3: IDN, iso2: ID, name: Indonesia, target: 2.5,
+     target_source: "Bank Indonesia and the government: 2.5% CPI, +/-1 point, for 2025-2027",
+     policy_rate: "BIS WS_CBPOL M.ID (the BI rate)"}
+  - {iso3: POL, iso2: PL, name: Poland, target: 2.5,
+     target_source: "Narodowy Bank Polski: 2.5% CPI, +/-1 point",
+     policy_rate: "BIS WS_CBPOL M.PL (the reference rate)"}
+  - {iso3: THA, iso2: TH, name: Thailand, target: 2.0,
+     target_source: "Bank of Thailand and the Ministry of Finance: 1-3% headline CPI (midpoint 2%)",
+     policy_rate: "BIS WS_CBPOL M.TH (the one-day repurchase rate)"}
+
+# ---------------------------------------------------------------------------
+# THE SOURCES. All answer without a key (checked 10-11 Oct 2026).
+# ---------------------------------------------------------------------------
+imf:
+  base: https://api.imf.org/external/sdmx/3.0
+  accept: "application/vnd.sdmx.data+json;version=2.0.0"
+  citation: "Source: International Monetary Fund"
+weo:
+  # The current WEO dataflow plus the published vintages, each stored as its own
+  # vintage at its own PUBLICATION_DATE / UPDATE_DATE (the later), never an
+  # overwrite. The current flow is April 2026 until the October edition lands;
+  # add each new vintage flow here when the IMF lists it.
+  dataflows: ["IMF.RES/WEO/+", "IMF.RES/WEO_2025_OCT_VINTAGE/+", "IMF.RES/WEO_2026_APR_VINTAGE/+"]
+  indicators: {BCA_NGDPD: ca_gdp, GGXCNL_NGDP: fiscal_gdp, GGXWDG_NGDP: debt_gdp, NGDPD: gdp_usd}
+il:   {dataflow: "IMF.STA/IL/+", indicator: TRGMV_REVS, unit: USD, frequency: M}
+itg:  {dataflow: "IMF.STA/ITG/+", indicator: MG, transformation: CIF_USD, frequency: M}
+cpi:  {dataflow: "IMF.STA/CPI/+", index_type: CPI, coicop: _T, transformation: YOY_PCH_PA_PT, frequency: M}
+bis:  {url: "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0", frequency: M}
+qeds:
+  url: https://api.worldbank.org/v2
+  source: 22                       # Quarterly External Debt Statistics, SDDS
+  indicators: {DT.DOD.DECT.CD.AR.US: ext_debt_usd, DT.DOD.DSTC.CD.US: st_debt_usd}
+
+# ---------------------------------------------------------------------------
+# THE LENSES, in the table's column order.
+#   key        the stored series, `<iso3>` the country's lower-case ISO3
+#   worse      which way is more vulnerable: the column's rank 1 is the most
+#              vulnerable, and the Monthly's line reads deteriorations this way
+#   unit       how a cell prints
+# ---------------------------------------------------------------------------
+lenses:
+  - {id: ca_gdp,        label: "Current account, % of GDP",          key: "em.weo.ca_gdp.<iso3>",                 worse: lower,  unit: pct_gdp, freq: annual,    source: "IMF WEO"}
+  - {id: reserves_imp,  label: "Reserves, months of imports",        key: "em.lens.reserves_import_months.<iso3>", worse: lower,  unit: months,  freq: monthly,   source: "IMF IL reserves over IMF ITG goods imports, trailing twelve months"}
+  - {id: reserves_std,  label: "Reserves / short-term external debt", key: "em.lens.reserves_st_debt.<iso3>",      worse: lower,  unit: times,   freq: quarterly, source: "IMF IL reserves over World Bank QEDS short-term external debt"}
+  - {id: ext_debt_gdp,  label: "External debt, % of GDP",            key: "em.lens.ext_debt_gdp.<iso3>",          worse: higher, unit: pct_gdp, freq: quarterly, source: "World Bank QEDS gross external debt over IMF WEO GDP (latest full year)"}
+  - {id: real_rate,     label: "Real policy rate",                   key: "em.lens.real_policy_rate.<iso3>",      worse: lower,  unit: pts,     freq: monthly,   source: "BIS policy rate less IMF CPI inflation, year on year"}
+  - {id: infl_gap,      label: "Inflation against target",           key: "em.lens.inflation_gap.<iso3>",         worse: higher, unit: pts,     freq: monthly,   source: "IMF CPI inflation, year on year, less the configured target"}
+  - {id: fiscal_gdp,    label: "Fiscal balance, % of GDP",           key: "em.weo.fiscal_gdp.<iso3>",             worse: lower,  unit: pct_gdp, freq: annual,    source: "IMF WEO, general government net lending/borrowing"}
+  - {id: debt_gdp,      label: "Government debt, % of GDP",          key: "em.weo.debt_gdp.<iso3>",               worse: higher, unit: pct_gdp, freq: annual,    source: "IMF WEO, general government gross debt"}
+
+# The cell's percentile window and the quarter its change is taken over.
+percentile_years: 10
+quarter_days: 91
+
+# ---------------------------------------------------------------------------
+# NOT YET SOURCED: a country's lens with no free source, and the candidate that
+# would fill it. Printed "not tracked: <why>" in the table, never a blank.
+# ---------------------------------------------------------------------------
+not_yet_sourced:
+  TWN:
+    reserves_std: "no QEDS row (Taiwan is outside the World Bank's tables); candidate: the CBC's external debt statistics"
+    ext_debt_gdp: "no QEDS row; candidate: the CBC's external debt statistics"
+    real_rate: "no BIS policy rate or IMF CPI row; candidates: the CBC discount rate and DGBAS CPI"
+    infl_gap: "no IMF CPI row, and no formal target; candidate: DGBAS CPI"
+  ARE:
+    reserves_imp: "no IMF ITG goods imports; candidate: IMF BOP goods debits (quarterly) or the Federal Competitiveness and Statistics Centre"
+    reserves_std: "no QEDS row; candidate: the CBUAE's external debt data, if published"
+    ext_debt_gdp: "no QEDS row; candidate: the CBUAE's external debt data, if published"
+    real_rate: "no BIS policy rate; candidate: the CBUAE base rate"
+  ZAF:
+    reserves_imp: "no IMF ITG goods imports; candidate: IMF BOP goods debits (quarterly) or SARS trade statistics"

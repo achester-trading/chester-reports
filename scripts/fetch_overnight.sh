@@ -3,7 +3,8 @@
 # The 06:45 ET overnight fetch, as the VPS timer runs it.
 #
 #   git pull --ff-only -> calendar guard -> venv overnight -> log -> status
-#     -> correction pull (early set) -> weekly/annual checks -> events -> surprise
+#     -> correction pull (early set) -> loggers -> weekly/annual checks -> events
+#     -> surprise
 #
 # WHY IT IS A SEPARATE UNIT FROM THE 07:00 RENDER. Reports never fetch (30.4),
 # and the reason is not tidiness. A render that fetched would fail for transport
@@ -136,9 +137,29 @@ printf 'state=%s rc=%s sha=%s at=%s\n' \
 log "feeds: correction pull start (early set)"
 FEED_OUT="$("$PY" -m altdata.feeds pull --early 2>&1)"
 FEED_RC=$?
-printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEED_RC -ne 0 ]] && log "WARN feeds pull exited $FEED_RC -- continuing"
 log "feeds: correction pull done"
+
+# ---- the loggers (L-1, 6 Oct 2026) -----------------------------------------
+#
+# THIS IS THEIR ONE SCHEDULED RUN. The 16:10 eod pull skips them ("they run in
+# the overnight pass") and --early's fixed set skips them too, so from 30 Sep to
+# 6 Oct borrow, consensus, vxcurve, shielded and rtat ran nowhere and nothing
+# said so (INC-9, docs/incidents.md). tools/validate_feeds_scheduled.py now
+# fails any commit in which a feed has no scheduled runner.
+#
+# After the correction pull, and after the status line, for the same reason the
+# correction pull is: the overnight fetch is the capture and nothing goes in front
+# of it. Its failure is not this run's failure -- one logger never takes another
+# down (feeds.pull_loggers), and a dead one surfaces as the freshness roster
+# reporting its keys stale.
+log "feeds: loggers start"
+LOG_OUT="$("$PY" -m altdata.feeds pull --only loggers 2>&1)"
+LOG_RC=$?
+printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
+log "feeds: loggers done"
 
 # THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
 #
@@ -161,13 +182,13 @@ log "feeds: correction pull done"
 log "structure compare: weekly check"
 SC_OUT="$("$PY" tools/structure_compare.py weekly --if-stale 2>&1 | tail -20)"
 SC_RC=$?
-printf '%s' "$SC_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SC_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SC_RC -ne 0 ]] && log "WARN structure_compare exited $SC_RC -- continuing"
 
 log "base rates: annual check"
 BR_OUT="$("$PY" tools/base_rates.py maybe-recompute 2>&1)"
 BR_RC=$?
-printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $BR_RC -ne 0 ]] && log "WARN base_rates maybe-recompute exited $BR_RC -- continuing"
 
 # AFTER THE VERDICT IS TAKEN, and this position is load-bearing. `RC=$?` above
@@ -188,7 +209,7 @@ printf '%s' "$BR_OUT" | sed 's/^/  /' >>"$LOG"
 log "events: ingest"
 EV_OUT="$("$PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
 EV_EXIT=$?
-printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; the anchor prints its EVENTS block with a reason"
 
 # ---- the voices scan moved to its own timer (PB-1, 5 Oct 2026) -------------
@@ -199,7 +220,7 @@ printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 log "surprise: compute"
 SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
-printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
 

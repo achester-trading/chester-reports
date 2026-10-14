@@ -16,7 +16,8 @@ Cloudflare Worker so one dashboard can show the health of all five at a glance.
 | Daily Cascade | `daily_cascade` | Not yet built |
 
 The state keys are already reserved in `state/emit.py:VALID_KEYS` (which also
-carries a sixth, `gamma_weekly`). Treat that set as the registry of report
+carries `gamma_weekly`, the EOD options pass, and `weekly_tactical`, the Weekly,
+added 6 Oct 2026). Treat that set as the registry of report
 identities — a new report adds its key there before anything else.
 
 `docs/chester-reports-architecture-v3.md` **is the canonical planning document**
@@ -28,7 +29,8 @@ governs where it is going and overrides this file on intent.
 
 `docs/` also carries `chester-reports-master-schedule.md` and
 `white-paper-library-guide.md`, plus the white paper library itself in
-`docs/whitepapers/`.
+`docs/whitepapers/`. `docs/scheduled-tasks.md` lists the chat-side scheduled
+tasks, which the box's units do not declare.
 
 **The Markdown is canonical for everything.** A paper's `.md` under
 `docs/whitepapers/` holds its text, its tables and its figure references, and it
@@ -121,7 +123,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    27 market symbols -> store keys prefixed mkt_
+    yfinance_source.py    59 market symbols -> store keys prefixed mkt_
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -129,9 +131,46 @@ altdata/                  Shared ingestion package — used by every report
                           every price fetch. A row's available_at is the MAXIMUM
                           across its inputs' — a feature is never knowable before
                           the data it is made of
+  correlation.py          The correlation layer (AQ-5): rolling 60/252-session
+                          return correlations across config/correlation.yaml's
+                          universe, the former report's 30-vs-120-day break, a
+                          shift flag per pair, the named rows. Rides the
+                          market_features pass (last few sessions); the full
+                          history is `compute --backfill`. Narrow flags only
+  thesis_register.py      AQ-6: the Quarterly's theses, ledgered under
+                          alt_asset:<family>. Loads the operator's
+                          config/alt_asset_theses/<YYYY>q<N>.yaml (measurables
+                          only), resolves from the store as of, grades sets by
+                          ordering and direction, writes book DRAFTS only; reached
+                          through `python -m altdata.probability_ledger
+                          seed-alt-asset | show | resolve-alt-asset`
 
-monthly_macro/            The one built report
+monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the ten
+                          sections at Monthly depth, Slow layers eleventh, then the
+                          detail tables (the regime, the scenario record, the
+                          register's month, the appendix); the Monthly v2 render is
+                          its fallback when the stacked edition faults
   run.py                  Entry point: python -m monthly_macro.run
+  stack.py                The stacked edition: builds the sections through the
+                          Weekly's builders at cadence "monthly" and the one
+                          stack.assemble(), reconciles Monthly v2 Phase A into
+                          them (each fact printed once), enforces the 10,000-word
+                          budget (T3.1), opens on the executive summary written
+                          last from the finished sections, archives the edition
+                          JSON. At cadence "quarterly" the same build() makes
+                          the Quarterly's front matter
+  quarterly.py            AQ-1: the Alternative Assets Quarterly, the fourth
+                          cadence (`run --cadence quarterly`). The stack's ten
+                          sections over the previous quarter as front matter,
+                          the eleven family chapters (config quarterly_chapters,
+                          the section 4.1 template) as slow layers; every section
+                          and item tiered lead or reference; the read timed apart
+                          from the whole edition; state key alt_asset. Timer
+                          chester-quarterly.timer ships disabled
+  dealer.py               Mechanics' dealer retrospective: the month's stored
+                          dealer.scorecard_day rows, per-session flags by the
+                          Weekly's rule, counts and hit rates; "insufficient
+                          sessions (n=...)" below 20; the flag-word audit
   snapshot.py             Writes snapshots/<report_date>.json each run; compares
                           against the newest snapshot strictly BEFORE today so a
                           same-day re-run still compares to last month
@@ -147,9 +186,10 @@ monthly_macro/            The one built report
   narrative.py            The Monthly's brief and template path. One paragraph
                           over one payload, long form, behind the numeral audit.
                           The ten per-pillar placeholders are gone
-  writer/
-    render_v2.py          The report: six sections in payload order, each pillar
-                          printed beneath the dial it feeds
+  writer/                 (the stacked Monthly renders through
+                          daily_cascade/stack_render.py at cadence "monthly")
+    render_v2.py          The v2 report (the fallback): six sections in payload
+                          order, each pillar printed beneath the dial it feeds
     build_html.py         Markdown -> navy-styled <details> accordion HTML
 
 state/emit.py             POSTs one report's state to the Worker. Never raises.
@@ -173,9 +213,11 @@ Environment: `FRED_API_KEY`, `ANTHROPIC_API_KEY`, `ALTDATA_STORE`,
 
 Running: `python -m monthly_macro.run --verbose`; add `--skip-fetch` to render
 from the existing store and `--skip-narrative` to skip the LLM step.
+`--dry-run` builds with the model, reads the real archive's prior Monthly and
+writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
+`--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — thirty-seven code gates and five data gates, no
-network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — seventy-four code gates (seventy-one Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -209,24 +251,46 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and a seven-row
+`config/market_state.yaml` — eight dimensions, three dials and an eight-row
 contradiction table — and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was
-taken under. Both anchors open on a **WHAT CHANGED** block rendered by
-`daily_cascade/state_block.py`, with every magnitude stamped with its percentile
-and the levels moved behind it. `altdata/derived.py` is the one place a delta, a
-percentile or a z-score is computed — the delta's meaning comes from the
-registry's `units` (bps for rates and spreads, percent for prices, raw for
-counts), never from one formula. Do not add a second regime anywhere: if a report
-needs one, point it at the object. ST-3's rates attribution is deliberately NOT
+taken under. The **07:00 morning anchor** opens on a **WHAT CHANGED** block rendered
+by `daily_cascade/state_block.py`, with every magnitude stamped with its percentile
+and the levels moved behind it, and so does the pre-stack `--classic` close. The
+live stacked close does NOT open on it: ruled 6 Oct 2026, the state and
+contradiction tables belong at the END of the stacked close as detail tables, and
+they are built (T2.6) -- `state_block.detail_tables()` reads them from the stored
+object the payload carries, never recomputing, and `stack_render.details_html()`
+prints them after section 10 and before the glossary.
+
+**One stack, four cadences (T2.6; AQ-1).** The close, the Weekly, the Monthly and
+the Quarterly share the section builders, the renderer, the prose and the
+paragraph guard, each taking a `cadence` ("daily", "weekly", "monthly",
+"quarterly"). What differs is config, under
+`cadences:` in `config/reporting_stack.yaml` (period noun, column head, depth
+allowances, paragraph rule, prompt frames, guards), read through
+`daily_cascade/cadence.py`, whose `Period` builds every period phrase ("on the
+week", "This month"). No section hard-codes "week": a new phrase goes in `Period`.
+The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` and
+`stack_render.markdown` print a whole edition at any cadence; at "monthly" a
+sub-section carries its own charts and notes, a Reading entry's stored summary
+prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
+never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
+words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
+(`stack.section_ids`).
+
+`altdata/derived.py` is the one place a delta, a percentile or a z-score is
+computed — the delta's meaning comes from the registry's `units` (bps for rates
+and spreads, percent for prices, raw for counts), never from one formula. Do not
+add a second regime anywhere: if a report needs one, point it at the object. ST-3's rates attribution is deliberately NOT
 part of it: `altdata/rates_attribution.py` prints each model's path/premium split,
 dated, and a models-agree flag, and decides nothing. The four-cell driver it
 replaces failed its gate twice and was withdrawn; config v1.11/v1.12 and
 method-9/10 are retired numbers, so the next bumps are v1.13 and method-11.
-Three of the eight dimensions are absent today for want of data, and each says so
-with its reason rather than substituting a proxy. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
+Dimensions whose data is missing or stale are absent, each with its reason, rather
+than substituting a proxy; the count varies by session. Full schema, rules and the v1/v2 boundary: `docs/market-state.md`.
 
 **Voices are stored and sourced before they are printed (Phase B, 4 Oct 2026).**
 `altdata/sources/voices_scan.py` runs once a day on its own timer
@@ -243,6 +307,31 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
+
+**Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
+(T2.6).** Stale: due and not current, or never written by a writer that failed.
+Pending: not yet due -- never tried, or tried by a writer that ran cleanly while
+the source has published nothing, until one staleness allowance has passed since
+the first attempt. The 08:30 heartbeat uses those words and no others, and names
+each stale series with its reason in the verdict line.
+
+**A writer obeys robots.txt with its wildcards.** `urllib.robotparser` ignores `*`
+inside a path, which is how AAII's `Disallow: /files/*` was read as "no rule" on
+4 Oct; aaii.com also answers any client that names itself with a 403. The AAII
+writer (`altdata/sources/aaii.py`) therefore reads its inbox on the box,
+~/chester-data/inbox/aaii, and fetches only while robots.txt allows it; it
+never passes for a browser. The inbox holds the history (the operator's
+browser-downloaded `sentiment.csv` or `.xls`, told apart by content, loaded once
+with `--history`) and, from 10 Oct 2026, `aaii-weekly.csv`: one row a week from
+the chat-side "AAII weekly read" task via Drive, pulled by the nightly rclone
+sweep and unioned with the history by date. The manual weekly drop is
+discontinued.
+
+**Import yfinance through `altdata.import_yfinance()`, never bare.** yfinance's own
+`__init__` puts a `default` warnings rule for its modules at the front of the
+filter list, overriding ours, so the helper re-asserts the filter after the import.
+Gate L in `tools/validate_weekly_complete.py` refuses a bare import and proves the
+silence in a fresh interpreter.
 
 ### Known cleanup
 
@@ -363,6 +452,24 @@ would otherwise reach it.
 (`scripts/deploy_remote.sh`) that is not yet enabled, run the drift check and the heartbeat checker, print the timer
 roster.
 
+**A push to main deploys code at the next timer; unit files follow at the next
+self-deploy; restarts stay the operator's.** Each box wrapper runs
+`git pull --ff-only` on main before it starts, so code and config reach the box at
+the next timer run after a push, whether or not anybody deploys. Unit files reach
+`~/.config/systemd/user/` through the box's **self-deploy** (A-4, 9 Oct 2026):
+`chester-deploy.timer` fires every 30 minutes inside the operating windows only,
+and when main's `deploy/systemd/` tree differs from the one it last deployed,
+`scripts/run_self_deploy.sh` runs the same box half the laptop ships,
+`scripts/deploy_remote.sh` (unit copy, `daemon-reload`, enable of `DEPLOY_TIMERS`,
+the drift check). It never restarts, stops or disables a unit. A changed unit that
+was running is written to `~/state/alerts/restart_pending` as
+`restart pending: <unit>` (`scripts/restart_pending.sh`), and the heartbeat's
+verdict names it (`restart_pending`, exit 14) until the operator restarts it.
+`tools/validate_deploy.py` group I holds all of that. `scripts/deploy.sh` from the
+laptop still does the same six steps on demand, and it is how the self-deploy's
+own timer is first enabled. Hence the rule under "Operating windows": a merge to
+main is a box write and happens only inside the windows.
+
 **All six box-side steps run over ONE ssh connection.** `scripts/deploy.sh`
 ships `scripts/deploy_remote.sh` to the box as `ssh -o BatchMode=yes vps 'bash -s'
 < deploy_remote.sh`, streams its sections back, and decides the exit code from
@@ -383,6 +490,24 @@ glob would enable them the first time anybody deployed.
 Exit codes: `0` clean, `3` a changed unit is running and needs the printed
 restart, `4` drift still reported after the copy so the deploy did not take, `1`
 the pull or copy failed, or the connection did.
+
+## Operating windows (Eastern time)
+
+- **Deploys and box writes:** weekdays 09:05–15:40 and 17:20–23:30 ET, and never
+  16:00–17:20, when the EOD pass and the 16:45 close are running. Weekends are
+  open, but stay clear of Sunday 05:00, when the Weekly runs.
+- **A merge to main is a box write.** Every box wrapper (`run_eod_cron.sh`,
+  `run_daily_close.sh`, `fetch_overnight.sh`, `sync_ibkr.sh`, the anchors, the
+  Weekly and the Monthly) runs `git pull --ff-only` on main before it starts, so
+  a push to main reaches the box at the next timer run -- not at the next deploy.
+  A changed unit file follows at the next self-deploy tick (`chester-deploy.timer`,
+  every 30 minutes inside these windows). Merges to main therefore happen only
+  inside the windows above, the same as deploys; `scripts/deploy.sh` is for unit
+  files, timers and the checks only.
+- **Check the clock in ET, not UTC.** Git Bash's `TZ=` prints UTC on the laptop,
+  so read the time in ET through Python's `zoneinfo`.
+- **A session never runs unit commands, `sudo` or register writes.** It prints
+  them for the operator to run, as described under "What runs without asking".
 
 ## Standing rules
 

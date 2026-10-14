@@ -565,11 +565,19 @@ def group_g() -> None:
                       "32.3's 'a report that must be opened is read late'")
                 atts = list(m.iter_attachments())
                 a = atts[0] if atts else None
-                check(len(atts) == 1 and a.get_filename() == f"monthly_macro_{stamp}.md"
+                check(len(atts) == 2 and a.get_filename() == f"monthly_macro_{stamp}.md"
                       and a.get_content_type() == "text/markdown"
                       and a.get_content() == md,
                       f"the Markdown is attached, byte-identical to the archive "
                       f"({[x.get_filename() for x in atts]})")
+                h = atts[1] if len(atts) > 1 else None
+                # T3.1 item 1: the HTML is attached too, its charts embedded (this
+                # edition has none, so it is the archive's HTML byte for byte).
+                check(h is not None and h.get_filename() == f"monthly_macro_{stamp}.html"
+                      and h.get_content_type() == "text/html"
+                      and h.get_content().rstrip("\n") == html,
+                      "and the edition's HTML beside it, for a phone's browser "
+                      "(T3.1 item 1)")
             check(printed.startswith("delivery=smtp ok "),
                   f"and one greppable line says so ({printed.strip()[:40]}...)")
 
@@ -907,12 +915,22 @@ def group_h() -> None:
         n_themes = len(built["looking_back"]["themes"])
         planned = [s["key"] for s in prose_mod.plan(built)]
         n_pillars = sum(1 for k in planned if k.startswith("pillar:"))
-        check(len(calls) == len(planned) and list(written) == planned
+        # T3: a section the audit withholds is retried (Reader's Guide 5.3,
+        # extended to the Monthly's section writer) -- up to three attempts from
+        # T3.3 -- so each of the three seeded failures below costs its retries.
+        retried = sum(1 for r in written.values() if r.get("attempts", 1) > 1)
+        extra = sum(r.get("attempts", 1) - 1 for r in written.values())
+        check(len(calls) == len(planned) + extra and list(written) == planned
+              and retried == 3
+              and all(r.get("attempts", 1) <= prose_mod.ATTEMPTS
+                      for r in written.values())
               and {"month_in_markets", "month_in_one_page", "looking_ahead",
                    "our_read"} <= set(planned) and n_themes == 7,
-              f"one model call per section: the opening, the takeaways, {n_themes} "
-              f"themes (Sentiment among them), the look-ahead, our read and "
-              f"{n_pillars} appendix pillar(s) ({len(calls)} calls)")
+              f"one model call per section, and up to two retries for each the "
+              f"audit withheld: the opening, the takeaways, {n_themes} themes "
+              f"(Sentiment among them), the look-ahead, our read and {n_pillars} "
+              f"appendix pillar(s) ({len(calls)} calls, {extra} retries over "
+              f"{retried} sections)")
         check(not written["theme:sentiment"]["published"]
               and written["theme:sentiment"]["state"] == "internal_vocabulary"
               and "payload" in str(written["theme:sentiment"]["reason"]),

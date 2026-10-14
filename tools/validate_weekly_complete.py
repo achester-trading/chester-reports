@@ -40,7 +40,8 @@ socket.
                  sections because a cell was typed by its `rows` key).
   K BARS         the bars backfill stamps a bar at its close plus the delay and a
                  re-run moves the stamp earlier without a second row.
-  L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source.
+  L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source,
+                 proven in a fresh interpreter under the real import order (T2.6).
 """
 
 from __future__ import annotations
@@ -205,18 +206,25 @@ def main() -> int:
         pr, o, c = rows[i - 1]["close"], byd[r["day"]]["open"], byd[r["day"]]["close"]
         ok &= (abs(r["overnight_pct"] - round(100 * (o / pr - 1), 2)) < 1e-9
                and abs(r["intraday_pct"] - round(100 * (c / o - 1), 2)) < 1e-9)
+    # W-1.1 item 1.1: the legs compound UNROUNDED, and the week is close to close.
     tot = 1.0
     for r in oi["rows"]:
-        tot *= 1 + r["overnight_pct"] / 100
+        i = allc.index(r["day"])
+        tot *= byd[r["day"]]["open"] / rows[i - 1]["close"]
+    first = allc.index(oi["rows"][0]["day"]) if oi["rows"] else 0
+    c2c = round(100 * (rows[allc.index(oi["rows"][-1]["day"])]["close"]
+                       / rows[first - 1]["close"] - 1), 2) if oi["rows"] else None
     check(oi["rows"] and ok and abs(oi["totals"]["overnight_pct"] - round(100 * (tot - 1), 2))
-          < 1e-9, f"overnight and intraday returns from the stored OHLC, the week "
-                  f"compounded ({len(oi['rows'])} sessions, {oi['totals']})")
-    tsubs = {ss["title"]: ss for ss in sec["tape"]["subsections"]}
+          < 1e-9 and oi["totals"]["close_to_close_pct"] == c2c,
+          f"overnight and intraday returns from the stored OHLC, the week compounded "
+          f"unrounded and close to close ({len(oi['rows'])} sessions, {oi['totals']})")
+    # W-1.2 item 2.7: the daily session tables print in Mechanics only.
+    tsubs = {ss["title"]: ss for ss in sec["mechanics"]["subsections"]}
     check("SPY overnight against the cash session" in tsubs
           and tsubs["SPY overnight against the cash session"]["table"]["rows"][-1][0]
           == "The week" and tsubs["SPY overnight against the cash session"]["table"]
-          ["rows"][-1][3] != "—", "the tape carries the table with the week's totals, "
-          "close to close included")
+          ["rows"][-1][3] != "—", "Mechanics carries the overnight table with the "
+          "week's totals, close to close included")
     book = {"instruments": [{"id": "spy", "ohlc": {"open": 701.0},
                              "frame": {"last": 700.0},
                              "levels": [{"type": "prior_close", "value": 697.0}]}]}
@@ -245,7 +253,17 @@ def main() -> int:
     cb = prow.get("CCC less BB (stress inside high yield)")
     check(cb and cb[1] == "520 bp" and cb[2] == "+25 bp" and "CCC OAS" in prow
           and "Investment-grade OAS" in prow, f"IG, CCC and CCC less BB ({cb})")
+    # W-1.1 item 1.4: the Weekly prints its auctions in their own table, every
+    # field with its two-year percentile; the plumbing rows keep the Monthly's form.
     auc = [r for r in sec["plumbing"]["table"]["rows"] if "auction" in r[0]]
+    at = next((ss["table"] for ss in sec["plumbing"]["subsections"]
+               if ss.get("title") == "Treasury auctions"), None)
+    check(not auc and at and at["rows"] and at["rows"][0][1].startswith("2.51")
+          and at["rows"][0][4].startswith("14.0%") and at["rows"][0][5] == "not stored",
+          f"the Weekly's auctions in their own table ({(at or {}).get('rows', [])[:1]})")
+    with observations.ObservationStore(db) as st:
+        auc = [r for r in wsec.plumbing_rows(st, vws.AS_OF, ws.week_ago(vws.AS_OF))["rows"]
+               if "auction" in r[0]]
     with observations.ObservationStore(db) as st:
         quiet = wsec.plumbing_rows(st, "2026-08-08T09:00:00+00:00",
                                    "2026-08-01T09:00:00+00:00")
@@ -267,12 +285,14 @@ def main() -> int:
     # --- D. VOLATILITY ------------------------------------------------------
     print(f"\n{LINE}\nD. VOLATILITY\n{LINE}")
     vol = next(ss for ss in sec["mechanics"]["subsections"] if ss["title"] == "Volatility")
-    check(len(vol["table"]["rows"]) <= 6 and vol["table"]["rows"]
-          and vol.get("paragraph_wanted"),
-          f"a table of at most six rows and its paragraph ({len(vol['table']['rows'])})")
+    check(len(vol["table"]["rows"]) <= 6 and vol["table"]["rows"],
+          f"a table of at most six rows ({len(vol['table']['rows'])})")
+    # T2.5 item 2: one paragraph per section; the volatility read sits inside it.
     mcalls = [c for c in calls if "THE SECTION: Mechanics." in c]
-    check(mcalls and "[A] Volatility" in mcalls[0] and "1 untagged paragraph" in mcalls[0],
-          "Mechanics: one paragraph on the dealer table, then [A] Volatility")
+    check(mcalls and "ONE paragraph" in mcalls[0] and "[A]" not in mcalls[0]
+          and "THE VOLATILITY READ, inside the one paragraph" in mcalls[0]
+          and "Daily move priced, and realized" in mcalls[0],
+          "Mechanics: ONE paragraph, the volatility read stated from the daily move")
 
     # --- E. BREADTH ---------------------------------------------------------
     print(f"\n{LINE}\nE. LEADERSHIP AND BREADTH\n{LINE}")
@@ -292,7 +312,7 @@ def main() -> int:
     check(0 < i_changed < i_read and ed.get("changed_since"),
           f"'Changed since last Weekly' under the header, before The read "
           f"({ed.get('changed_since')[:2]})")
-    m = re.search(r"about\s+([\d.]+) minutes to read", html)
+    m = re.search(r"about\s+([\d.]+) minutes? to read", html)
     check(m and abs(float(m.group(1)) - wsec.reading_minutes(ed, ed["chart_count"]))
           < 0.05, f"the reading time (prose / 250 + 20 s a chart): {m and m.group(1)}")
 
@@ -516,6 +536,57 @@ def main() -> int:
     check(hits and hits[0][3].match("yfinance.utils") and hits[0][3].match("yfinance")
           and not hits[0][3].match("altdata.fx_charts"),
           "a filter on yfinance's own modules only")
+    # UNDER THE REAL IMPORT ORDER (T2.6). The filter above was present on 6 Oct and
+    # the box still printed thirteen warnings: yfinance's own __init__ inserts a
+    # 'default' rule for its modules AT THE FRONT when it is imported, after
+    # ours. So the proof is a FRESH interpreter, no -W, importing the package
+    # first as `python -m altdata.bars` does, then yfinance through a production
+    # import site, then calling the two yfinance lines that warned
+    # (utils.py:432 and :612). The control -- the same calls after a BARE
+    # `import yfinance` -- shows the check can see the warning at all.
+    import subprocess
+    probe = ("import pandas as pd\n"
+             "import altdata.bars\n"
+             "{imp}\n"
+             "import yfinance.utils as u\n"
+             "u._interval_to_timedelta('5m')\n"
+             "u._dts_in_same_interval(pd.Timestamp('2026-10-01 10:00'), "
+             "pd.Timestamp('2026-10-01 10:30'), '1h')\n"
+             "print('probe ok')\n")
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONWARNINGS"}
+
+    def run_probe(imp: str) -> tuple[str, str]:
+        r = subprocess.run([sys.executable, "-c", probe.format(imp=imp)],
+                           cwd=str(REPO), capture_output=True, text=True, env=env,
+                           timeout=180)
+        return r.stdout, r.stderr
+    out_c, err_c = run_probe("import yfinance")
+    control = "DeprecationWarning" in err_c and "yfinance" in err_c
+    out_p, err_p = run_probe("from altdata.sources import overnight\n"
+                             "assert overnight._yf() is not None")
+    check("probe ok" in out_p and "DeprecationWarning" not in err_p,
+          "a fresh interpreter importing yfinance through the repo's import site "
+          "prints no yfinance DeprecationWarning from utils.py:432 or :612"
+          + (f" -- stderr: {err_p.strip()[-300:]}" if err_p.strip() else ""))
+    if control:
+        check(True, "and the control prints it after a bare `import yfinance` -- "
+                    "yfinance's own filter wins there, which is why the helper exists")
+    else:
+        print("  NOTE  the control printed no warning: this yfinance no longer "
+              "raises it, so the silence above is not yet tested against it")
+    root = REPO
+    bare = []
+    for f in list(root.glob("*.py")) + [p for d in ("altdata", "daily_cascade",
+                                                     "monthly_macro", "tools", "scripts")
+                                        for p in (root / d).rglob("*.py")]:
+        if f.as_posix().endswith("altdata/__init__.py") or ".venv" in f.parts:
+            continue
+        for n, ln in enumerate(f.read_text(encoding="utf-8", errors="replace")
+                               .splitlines(), 1):
+            if re.match(r"\s*(import yfinance\b|from yfinance\b)", ln):
+                bare.append(f"{f.relative_to(root).as_posix()}:{n}")
+    check(not bare, "every import of yfinance goes through altdata.import_yfinance()"
+          + (f"; bare imports at {bare}" if bare else ""))
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

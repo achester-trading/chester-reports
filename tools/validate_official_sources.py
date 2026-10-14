@@ -44,6 +44,13 @@ same on a CI runner as on the laptop.
      fractions, future dates, non-numbers and missing notes are refused; a
      correction is a new vintage that supersedes, not an edit; the order's six
      keys exist.
+  S  AAII (T2.7). The parser reads the bull-bear spread in percentage points
+     from a sheet whose header row is found by name, skips undated and
+     non-numeric rows, and refuses a sheet with no Bullish/Bearish header;
+     robots.txt is read with its wildcards (`Disallow: /files/*` forbids the
+     file, which urllib.robotparser misses); a disallowing or refused
+     robots.txt fetches nothing and the run is STALE with the reason; the
+     operator's file, when present, is read with no network call.
 """
 
 from __future__ import annotations
@@ -893,6 +900,7 @@ def group_n() -> None:
         # fetch_frames: fundamentals.py reads yfinance, not the HTTP helpers, and
         # an outage test that left it live reached the network and wrote rows.
         for attr in ("http_get_response", "http_get_json", "http_get_text",
+                     "http_post_json",
                      "fetch_frames"):
             if hasattr(mod, attr):
                 saved[(mod, attr)] = getattr(mod, attr)
@@ -904,9 +912,13 @@ def group_n() -> None:
         for name, mod in mods:
             before = count(db)
             r = mod.pull(db=db)
-            check(r["status"] == pub.STALE and r["written"] == 0
+            # An inbox writer NEVER YET DROPPED is PENDING, a clean empty run
+            # (ruled 13 Oct 2026, SR-38); with no file and an empty store, that
+            # is what spdji must say. Its STALE cases are in validate_sr38_inbox.
+            want = pub.PENDING if name == "spdji" else pub.STALE
+            check(r["status"] == want and r["written"] == 0
                   and count(db) == before,
-                  f"{name}: an outage is STALE and writes nothing")
+                  f"{name}: an outage is {want} and writes nothing")
     finally:
         for (mod, attr), fn in saved.items():
             setattr(mod, attr, fn)
@@ -918,8 +930,11 @@ def group_n() -> None:
           f"{len(ns)} not_yet_sourced keys are registered and no writer claims them")
 
 
-NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "wgc.cb_gold_holdings_t",
-                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity"]
+# The two wgc.* gold names left this list on 10 Oct 2026: superseded by imf.ifs.*
+# (tools/validate_imf_ifs.py holds them to that).
+NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "sifma.corp_issuance_by_maturity",
+                         # A-4 (9 Oct 2026): LBMA answers 403; off the roster
+                         "lbma.gold_pm_usd"]
 
 
 def group_o() -> None:
@@ -1054,8 +1069,9 @@ def group_o() -> None:
           == derived.FREQ_SESSIONS["annual"],
           "an annual table gets the annual staleness allowance, not the monthly")
     check("external" in feeds.FEEDS and set(feeds.EXTERNAL_WRITERS) >= {
-        "umich", "french", "damodaran", "shiller", "worldbank", "lbma", "finra",
-        "proshares"}, "the external writers run as the `external` feed")
+        "umich", "french", "damodaran", "shiller", "worldbank", "finra",
+        "proshares"} and "lbma" not in feeds.EXTERNAL_WRITERS,
+          "the external writers run as the `external` feed; LBMA (403) is not one")
 
 
 def group_p() -> None:
@@ -1182,6 +1198,46 @@ def group_q() -> None:
         line = feeds.format_freshness(r)
         check("fixture_family=0/3 stale:1 absent:3 pending:2" in line,
               f"the feeds line carries pending beside absent ({line[-60:]})")
+        names = feeds.named_keys(r)
+        check(f"stale fixture_family {k3} (absent): attempted, nothing written"
+              in names and any(n.startswith(f"pending fixture_family {k1}")
+                               for n in names),
+              f"named_keys names each stale and pending key with why "
+              f"({[n for n in names if 'fixture' in n]})")
+
+        # T2.6: NOT YET DUE IS PENDING; A FAILED WRITER IS STALE. With outcomes
+        # recorded, an absent key whose writer FAILED is stale with the writer's
+        # reason, and one whose writer ran cleanly is pending -- until a full
+        # allowance of clean pulls has passed since its first attempt.
+        feeds.record_attempted("fixture_family", [k1, k2, k3],
+                               failed={k3: "fixture: FetchError: HTTP 403"})
+        f2 = feeds.freshness(store=db)["feeds"]["fixture_family"]
+        check(f2["stale_keys"] == [k3]
+              and "the writer failed (fixture: FetchError: HTTP 403)"
+              in f2["stale_detail"].get(k3, ""),
+              f"a failed writer's absent key is stale, with its reason "
+              f"({f2['stale_detail']})")
+        check(set(f2["pending_keys"]) == {k1, k2}
+              and "not yet published" in f2["pending_detail"].get(k1, ""),
+              f"a clean writer's absent key is pending: not yet published "
+              f"({f2['pending_detail']})")
+        import json as _json
+        p = Path(td) / feeds.ATTEMPTED_FILE
+        d = _json.loads(p.read_text(encoding="utf-8"))
+        d["fixture_family"]["first"][k1] = "2025-01-02T00:00:00+00:00"
+        p.write_text(_json.dumps(d), encoding="utf-8")
+        f3 = feeds.freshness(store=db)["feeds"]["fixture_family"]
+        check(k1 in f3["stale_keys"]
+              and "of clean pulls" in f3["stale_detail"].get(k1, "")
+              and k2 in f3["pending_keys"],
+              f"past a full allowance of clean pulls since its first attempt, the "
+              f"key is stale ({f3['stale_detail'].get(k1)})")
+        feeds.record_attempted("fixture_family", [k3], merge=True, failed={})
+        d = _json.loads(p.read_text(encoding="utf-8"))
+        check(d["fixture_family"]["first"][k1].startswith("2025-01-02")
+              and k3 not in d["fixture_family"]["failed"],
+              "a later pull keeps each key's first attempt and clears a "
+              "failure it did not repeat")
 
         # A WRITER THAT WILL NOT IMPORT STILL ATTEMPTED, and its keys are read
         # from source -- an import failure used to drop them from the roster.
@@ -1289,20 +1345,250 @@ def group_r() -> None:
           "fetch_overnight.sh runs the overnight fetch and writes its status BEFORE "
           "the correction pull -- a slow pull can no longer stand in front of the "
           "capture")
-    check(bool(re.search(r"-m altdata\.feeds pull --early\b", code))
-          and code.count("-m altdata.feeds pull") == 1,
-          "and its one feeds pull is `pull --early`")
+    pulls = re.findall(r"-m altdata\.feeds pull([^\n\"]*)", code)
+    check([p.split("2>")[0].strip() for p in pulls] == ["--early", "--only loggers"],
+          f"and its feeds pulls are `pull --early` then `pull --only loggers` -- "
+          f"the correction set, then the loggers' one scheduled run (L-1) "
+          f"({pulls})")
     unit = (REPO / "deploy" / "systemd" / "chester-overnight.service").read_text(
         encoding="utf-8")
     check(re.search(r"^TimeoutStartSec=10min\s*$", unit, re.M) is not None,
           "chester-overnight.service allows 10min (was 5min)")
 
 
+def group_s() -> None:
+    """AAII: the parser, the robots rule, the operator's file (T2.7)."""
+    print(f"{LINE}\nS. AAII -- THE PARSER, THE ROBOTS RULE, THE OPERATOR'S FILE\n{LINE}")
+    from altdata.sources import aaii
+
+    def serial(d: str) -> float:
+        return float((dt.date.fromisoformat(d) - dt.date(1899, 12, 30)).days)
+
+    class Sheet:
+        def __init__(self, rows):
+            self.rows = rows
+            self.nrows = len(rows)
+
+        def row_values(self, r):
+            return self.rows[r]
+
+    rows = [["AAII Sentiment Survey", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["Reported Date", "Bullish", "Neutral", "Bearish", "Total", "Bull-Bear Spread"],
+            [serial("2026-09-24"), 0.3077, 0.2308, 0.4615, 1.0, -0.1538],
+            ["Average", 0.375, 0.315, 0.31, "", ""],
+            [serial("2026-10-01"), 0.3421, 0.1974, 0.4605, 1.0, -0.1184],
+            [serial("2026-10-02"), "", "", "", "", ""]]
+    at = "2026-10-08T00:00:00.000000+00:00"
+    out = aaii.rows_from_sheet(Sheet(rows), 0, at, "ingest_instant")
+    check([(r["observed_at"], r["value"]) for r in out]
+          == [("2026-09-24", -15.38), ("2026-10-01", -11.84)]
+          and all(r["registry_key"] == aaii.KEY for r in out),
+          f"the parser: two dated surveys, Bullish minus Bearish in percentage "
+          f"points; the average and the blank row skipped ({out})")
+    # The header found by name: a column inserted before Bullish moves nothing.
+    wide = [r[:1] + ["x"] + r[1:] for r in rows]
+    wide[2][1] = "Week"
+    out2 = aaii.rows_from_sheet(Sheet(wide), 0, at, "ingest_instant")
+    check([r["value"] for r in out2] == [r["value"] for r in out],
+          "an inserted column does not shift the read -- the header is found by name")
+    try:
+        aaii.rows_from_sheet(Sheet(rows[3:]), 0, at, "ingest_instant")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a sheet with no Bullish/Bearish header raises -- a changed shape "
+                   "is a failure, not a quiet week")
+
+    robots = ("User-agent: *\nDisallow: /survey2007/\nDisallow: /files/*\n\n"
+              "User-agent: SemrushBot\nDisallow: /\n")
+    ok, rule = aaii.robots_verdict(robots, aaii.URL)
+    import urllib.robotparser
+    rp = urllib.robotparser.RobotFileParser()
+    rp.parse(robots.splitlines())
+    check(not ok and rule == "Disallow: /files/*"
+          and rp.can_fetch(aaii.AGENT, aaii.URL),
+          f"robots.txt read with its wildcards: `Disallow: /files/*` forbids the "
+          f"file ({rule}) -- urllib.robotparser says allowed, which is how 4 Oct "
+          f"missed it")
+    check(aaii.robots_verdict(robots, "https://www.aaii.com/sentimentsurvey")[0]
+          and aaii.robots_verdict("User-agent: *\nDisallow: /files/*\n"
+                                  "Allow: /files/surveys/\n", aaii.URL)[0]
+          and not aaii.robots_verdict("User-agent: chester-reports\nDisallow: /\n"
+                                      "User-agent: *\nAllow: /\n", aaii.URL)[0],
+          "an unmatched path is allowed; the longer Allow wins; a group naming "
+          "chester-reports is ours over `*`")
+
+    saved = (aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls,
+             os.environ.get(aaii.FILE_VAR), os.environ.get(aaii.WEEKLY_VAR))
+    fetched: list = []
+    db = temp_store()
+    try:
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_aaii.xls")
+        os.environ[aaii.WEEKLY_VAR] = str(Path(_TMP) / "no_such_aaii_weekly.csv")
+        aaii.http_get_response = lambda url, *a, **k: fetched.append(url) or (b"", {})
+        aaii.http_get_text = lambda url, *a, **k: robots
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.STALE and r["written"] == 0 and not fetched
+              and "robots.txt disallows" in (r.get("reason") or ""),
+              f"a disallowing robots.txt: STALE, nothing fetched, nothing written, "
+              f"the reason named ({(r.get('reason') or '')[:70]}...)")
+
+        def refused_robots(url, *a, **k):
+            raise FetchError(f"HTTP 403 from {url}: <html>")
+        aaii.http_get_text = refused_robots
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.STALE and not fetched
+              and "refused robots.txt" in (r.get("reason") or "")
+              and aaii.FILE_VAR in (r.get("reason") or ""),
+              "a refused robots.txt (the box's 403): STALE, the file not fetched, "
+              "and the reason says where the operator's file goes")
+
+        f = Path(_TMP) / "aaii_sentiment.xls"
+        # OLE2's magic bytes, so the content sniff routes it to the xls reader.
+        f.write_bytes(aaii.OLE2_MAGIC + b" not read: rows_from_xls is the fixture")
+        os.environ[aaii.FILE_VAR] = str(f)
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or robots
+        aaii.rows_from_xls = lambda data, when, kind: aaii.rows_from_sheet(
+            Sheet(rows), 0, when, kind)
+        r = aaii.pull(db=db)
+        n = db.conn.execute("SELECT COUNT(*) FROM observations WHERE registry_key = ?",
+                            (aaii.KEY,)).fetchone()[0]
+        kinds = {x[0] for x in db.conn.execute(
+            "SELECT availability_kind FROM observations WHERE registry_key = ?",
+            (aaii.KEY,))}
+        check(r["status"] == pub.OK and n == 2 and not fetched
+              and kinds == {"ingest_instant"},
+              f"the operator's file is read with no network call and writes the "
+              f"rows ({n}, availability {sorted(kinds)}: the file's time, an upper "
+              f"bound)")
+    finally:
+        aaii.http_get_text, aaii.http_get_response, aaii.rows_from_xls = saved[:3]
+        for var, val in ((aaii.FILE_VAR, saved[3]), (aaii.WEEKLY_VAR, saved[4])):
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
+        db.close()
+
+
+# The history CSV as AAII serves it from 10 Oct 2026: an address line, a
+# two-row column header, then the data. Three data rows.
+AAII_HISTORY_CSV = (
+    "AAII Investor Sentiment Survey,,,,,,,,,,,,,\n"
+    "Reported,Bullish,Neutral,Bearish,Total,Bullish,Bull-Bear,Bullish,Bullish,"
+    "Bullish,S&P 500,S&P 500,S&P 500\n"
+    "Date,,,,,8-week Mov Avg,Spread,Average,Average +St. Dev.,"
+    "Average -St. Dev.,Weekly High,Weekly Low,Weekly Close\n"
+    "9-17-26,38.5%,25.0%,36.5%,100.0%,36.1%,2.0%,37.5%,47.6%,27.4%,6720.1,6650.3,6702.4\n"
+    "9-24-26,30.8%,23.1%,46.1%,100.0%,35.0%,-15.3%,37.5%,47.6%,27.4%,6705.0,6588.2,6600.9\n"
+    "10-1-26,34.2%,19.7%,46.1%,100.0%,34.6%,-11.9%,37.5%,47.6%,27.4%,6690.4,6571.0,6655.7\n")
+
+AAII_WEEKLY_CSV = (
+    "week_ending,bullish,neutral,bearish,spread,source_url,retrieved_at,crosscheck\n"
+    # 30 Sep (Wed) is in the history as 1 Oct (Thu): the history's row is kept.
+    "2026-09-30,33.0,20.0,47.0,-14.0,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-01T16:10:00Z,agrees\n"
+    # 7 Oct (Wed) -> 8 Oct (Thu); fractions, read as percents.
+    "2026-10-07,0.401,0.252,0.347,0.054,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-08T16:10:00+00:00,disagrees: article says 40.0\n")
+
+
+def group_t() -> None:
+    """AAII from 10 Oct 2026: the CSV history, the weekly file, the union."""
+    print(f"{LINE}\nT. AAII -- THE CSV HISTORY, THE WEEKLY FILE, THE UNION\n{LINE}")
+    from altdata.sources import aaii
+    at = "2026-10-10T00:00:00.000000+00:00"
+
+    hist = aaii.rows_from_bytes(AAII_HISTORY_CSV.encode("utf-8"), at, "ingest_instant")
+    check([(r["observed_at"], r["value"]) for r in hist]
+          == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9)]
+          and all(r["available_at"] == at and r["availability_kind"] == "ingest_instant"
+                  for r in hist),
+          f"the history CSV (address line, two-row header, three rows) is sniffed as "
+          f"text and read: AAII's text dates to the Reported Date, Bullish minus "
+          f"Bearish in pp, available_at the file's time ({hist})")
+    check([r["value"] for r in aaii.rows_from_bytes(
+              ("﻿" + AAII_HISTORY_CSV).encode("utf-8"), at, "ingest_instant")]
+          == [r["value"] for r in hist],
+          "a byte-order mark does not move the read")
+    try:
+        aaii.rows_from_bytes(b"Reported Date,Up,Down\n9-18-26,1,2\n", at, "ingest_instant")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a CSV with no Bullish/Bearish header raises")
+
+    check(aaii.reported_date(dt.date(2026, 10, 7)) == dt.date(2026, 10, 8)
+          and aaii.reported_date(dt.date(2026, 10, 8)) == dt.date(2026, 10, 8)
+          and aaii.reported_date(dt.date(2026, 10, 9)) == dt.date(2026, 10, 15),
+          "the date rule: the survey's Wednesday maps to the Thursday release on or "
+          "after it -- the next day; a Thursday stays; a Friday goes forward")
+
+    week = aaii.rows_from_weekly(AAII_WEEKLY_CSV.encode("utf-8"))
+    check([(r["observed_at"], r["value"], r["available_at"]) for r in week]
+          == [("2026-10-01", -14.0, "2026-10-01T16:10:00.000000+00:00"),
+              ("2026-10-08", 5.4, "2026-10-08T16:10:00.000000+00:00")]
+          and all(r["availability_kind"] == "ingest_instant" for r in week),
+          f"the weekly file: week_ending to the Thursday, percents and fractions "
+          f"both to pp, available_at each row's own retrieved_at in UTC; the "
+          f"'disagrees' row is still written ({week})")
+    try:
+        aaii.rows_from_weekly(b"week_ending,bullish\n2026-10-08,40\n")
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a weekly file missing a declared column raises")
+
+    both = aaii.union(hist, week)
+    check([(r["observed_at"], r["value"]) for r in both]
+          == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9),
+              ("2026-10-08", 5.4)],
+          "the union by date: 1 Oct in both keeps the history's -11.9, the weekly "
+          "file adds 8 Oct")
+
+    saved = (os.environ.get(aaii.FILE_VAR), os.environ.get(aaii.WEEKLY_VAR),
+             aaii.http_get_text)
+    fetched: list = []
+    db = temp_store()
+    try:
+        h = Path(_TMP) / "sentiment(SENTIMENT).csv"
+        h.write_text(AAII_HISTORY_CSV, encoding="utf-8")
+        w = Path(_TMP) / "aaii-weekly.csv"
+        w.write_text(AAII_WEEKLY_CSV, encoding="utf-8")
+        os.environ[aaii.FILE_VAR] = str(h)
+        os.environ[aaii.WEEKLY_VAR] = str(w)
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or ""
+        r = aaii.pull(db=db, history=True)
+        got = db.conn.execute(
+            "SELECT observed_at, value_num, availability_kind FROM observations "
+            "WHERE registry_key = ? ORDER BY observed_at", (aaii.KEY,)).fetchall()
+        check(r["status"] == pub.OK and not fetched
+              and [(g[0][:10], g[1]) for g in got]
+              == [("2026-09-17", 2.0), ("2026-09-24", -15.3), ("2026-10-01", -11.9),
+                  ("2026-10-08", 5.4)],
+              f"a pull with both files writes the union with no network call, "
+              f"whatever the history file is named ({[(g[0][:10], g[1]) for g in got]})")
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_history.csv")
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.OK and not fetched,
+              "with the history gone from the inbox, the weekly file alone still "
+              "writes, and nothing is fetched")
+    finally:
+        aaii.http_get_text = saved[2]
+        for var, val in ((aaii.FILE_VAR, saved[0]), (aaii.WEEKLY_VAR, saved[1])):
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
+        db.close()
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q, group_r):
+              group_p, group_n, group_q, group_r, group_s, group_t):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

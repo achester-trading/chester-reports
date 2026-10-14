@@ -150,9 +150,12 @@ log "feeds: pull start"
 # end-of-day read) and this step exists to put prices and FRED in front of the
 # 16:45 object. Running them twice would be harmless -- drop_unchanged sees to that
 # -- and would still spend a vendor's rate limit twice for nothing.
+# THIS COMMENT WAS FALSE from 30 Sep to 6 Oct (INC-9): the overnight pass had
+# become `--early`, which skips them too. tools/validate_feeds_scheduled.py now
+# fails the commit if no scheduled runner pulls them.
 FEED_OUT="$("$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
 FEED_RC=$?
-printf '%s' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
 if [[ $FEED_RC -ne 0 ]]; then
     log "WARN feeds pull exited $FEED_RC -- continuing; the freshness check reports it"
 else
@@ -175,7 +178,7 @@ fi
 log "features: derived recompute"
 FEAT_OUT="$("$VENV_PY" -m altdata.market_features compute 2>&1)"
 FEAT_RC=$?
-printf '%s' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
 if [[ $FEAT_RC -ne 0 ]]; then
     log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
 else
@@ -195,13 +198,13 @@ fi
 log "events: ingest"
 EV_OUT="$("$VENV_PY" -m altdata.events_ingest pull 2>&1 | tail -20)"
 EV_EXIT=$?
-printf '%s' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $EV_EXIT -ne 0 ]] && log "WARN events_ingest exited $EV_EXIT -- continuing; tomorrow's anchor prints its EVENTS block with a reason"
 
 log "surprise: compute"
 SUR_OUT="$("$VENV_PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
-printf '%s' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
+printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
 START_EPOCH=$(date +%s)
@@ -221,5 +224,19 @@ if [[ $RC -eq 0 ]]; then
 else
     log "heartbeat NOT touched (rc=$RC)"
 fi
+
+# ---- AQ-8a: the gold residual, the driver attribution, yields-up/dollar-down --
+#
+# AFTER the chains, so it costs the capture nothing, and after the feeds and the
+# surprises it reads (the driver attribution's growth and inflation factors are
+# calc.surprise_vs_naive.*). Its last few months and weeks only; the full history
+# is the one-shot `python -m altdata.attribution compute --backfill`. It never
+# changes this run's exit code or the heartbeat: a fault costs these rows, which
+# the Monthly then prints as absent with a reason.
+log "attribution: compute"
+ATT_OUT="$("$VENV_PY" -m altdata.attribution compute 2>&1 | tail -12)"
+ATT_EXIT=$?
+printf '%s\n' "$ATT_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $ATT_EXIT -ne 0 ]] && log "WARN attribution exited $ATT_EXIT -- continuing"
 
 exit $RC

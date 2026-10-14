@@ -78,8 +78,31 @@ def _series(st, key: str, cutoff: str) -> list[tuple[str, float]]:
     return sorted(rows)
 
 
-def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict]) -> dict:
-    """The fields the Monthly's dealer retrospective reads (brief 1.2), for SPY."""
+def _within_pct(a: Optional[float], b: Optional[float], pct: float) -> Optional[bool]:
+    """a within pct% of b -- weekly_sections._within's arithmetic, None when
+    either side is missing rather than False."""
+    if a is None or b in (None, 0):
+        return None
+    return abs(a / b - 1.0) * 100.0 <= pct
+
+
+def _carried_0dte(profile: dict) -> Optional[bool]:
+    """Did this computed capture carry rows with dte 0? None when there is no
+    profile to say. A settled capture excludes them from exposure and counts
+    them; either capture puts them in the 0dte bucket."""
+    if not profile or profile.get("error"):
+        return None
+    q = profile.get("quality") or {}
+    return bool((profile.get("buckets") or {}).get("0dte")
+                or (q.get("settled_0dte_excluded_rows") or 0) > 0)
+
+
+def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
+                  close_profile: Optional[dict] = None) -> dict:
+    """The fields the Monthly's dealer retrospective reads (brief 1.2), for SPY.
+
+    `close_profile` is the session's own computed SPY profile (the whole JSON,
+    not only `overall`), read for the eligibility fields below."""
     sess = p["session"]
     exp = next((r for r in p.get("exposure") or [] if r.get("symbol") == "SPY"), {})
     pin = next((r for r in p.get("pins") or [] if r.get("symbol") == "SPY"), {})
@@ -96,9 +119,11 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict]) ->
             if b[i - 1]["close"]]
     rv = (math.sqrt(sum(r * r for r in rets) / len(rets)) * math.sqrt(78 * 252) * 100
           if len(rets) > 10 else None)
+    # Dealer audit F11: no net GEX, no regime word -- never "negative" by default.
+    net_close = exp.get("net_gex")
     row = {"session": sess, "symbol": "SPY",
-           "gamma_regime": ("positive" if (exp.get("net_gex") or 0) > 0 else
-                            "negative") if exp else None,
+           "gamma_regime": (None if net_close is None else
+                            "positive" if net_close > 0 else "negative"),
            "net_gex_close": exp.get("net_gex"),
            "net_gex_morning": morning.get("net_gex"),
            "flip_morning": flip,
@@ -125,6 +150,21 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict]) ->
            # (the prior session's close); the held flags read these.
            "call_wall_morning": morning.get("call_wall"),
            "put_wall_morning": morning.get("put_wall")}
+    # DEALER AUDIT F6, FIELDS ONLY (9 Oct 2026). Eligibility before outcome:
+    # whether each flag's hypothesis was even testable on this session. Stored
+    # here and read by nothing yet -- weekly_sections.flags_for keeps its
+    # semantics until the 6b pre-registration changes them.
+    wall_pct = float((bars_mod.load_config().get("dealer_flags") or {})
+                     .get("wall_pct", 0.25))
+    cp = close_profile or {}
+    row.update({
+        "is_expiry_session": _carried_0dte(cp),
+        "call_wall_approached": _within_pct(hi, morning.get("call_wall"), wall_pct),
+        "put_wall_approached": _within_pct(lo, morning.get("put_wall"), wall_pct),
+        "peak_gex_strike_morning": morning.get("peak_abs_gex_strike"),
+        "net_to_gross_morning": morning.get("net_to_gross"),
+        "net_to_gross_close": (cp.get("overall") or {}).get("net_to_gross"),
+    })
     return row
 
 
@@ -156,7 +196,6 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 pass
             stack_prose.write(ed, market_states=ms, client=client, model=model,
                               outlooks=outs)
-        stack_mod.enforce_budget(ed)
         # THE CHARTS, from the same level list the prose was audited against.
         plan = stack_mod.chart_plan(ed, {})
         charts: dict[str, dict] = {}
@@ -206,7 +245,8 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             chain = (chain_metrics.readings(sess) if dry_run
                      else chain_metrics.record_session(sess, st))
             report["chain_readings"] = chain
-            card = scorecard_row(p, book, bst, (prof.get("overall") or {}))
+            cur = ((pin_log.load_computed(date=sess) or {}).get("SPY") or {})
+            card = scorecard_row(p, book, bst, (prof.get("overall") or {}), cur)
             card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
             card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
@@ -220,13 +260,33 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     ed["levels"] = book
     ed["outlooks"] = outs
     ed["chart_count"] = sum(1 for c in charts.values() if not c.get("unavailable"))
+    # THE DETAIL TABLES (ruled 6 Oct 2026): the state table and the contradiction
+    # table after section 10, read from the stored object the payload carries
+    # (regime.latest), never recomputed.
+    from . import state_block                                   # noqa: PLC0415
+    ed["detail"] = state_block.detail_tables(p)
+    # THE MOVE SCREEN'S REFERENCE TIER: every flag, after the state tables.
+    mis = next((s for s in ed["sections"] if s["id"] == "misfit"), {})
+    ref = (mis.get("data") or {}).get("_move_screen_reference")
+    if ref and ref.get("rows"):
+        ed["detail"].append({"title": "Moves past 2.5σ", "table": ref})
+    # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
+    from . import readability                                   # noqa: PLC0415
+    readability.polish_edition(ed, charts)
+    # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
+    # formatting pass, run after it, wrote the key back -- so nothing after
+    # the budget may rewrite the edition's prose.
+    stack_mod.enforce_budget(ed)
+    ed["run_id"] = p.get("run_id")
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()
               if c.get("png")]
+    # THE PDF (T2.5 item 11), from the emailed HTML.
+    pdf, pdf_detail = readability.pdf_bytes(html_email, images)
     return {"edition": ed, "charts": charts, "html_email": html_email,
             "html_archive": html_archive, "inline_images": images,
-            "report": report}
+            "pdf": pdf, "pdf_detail": pdf_detail, "report": report}
 
 
 def save_edition(ed: dict, sess: str, archive_dir: Optional[str]) -> Optional[str]:

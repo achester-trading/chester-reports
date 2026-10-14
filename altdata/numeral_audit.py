@@ -186,6 +186,13 @@ def with_ordinals(payload: Any, _depth: int = 0) -> Any:
     return payload
 
 
+# A percentile ordinal as a table cell prints it: the cell's opening ordinal,
+# before its window in brackets or the word "percentile" -- never an ordinal in
+# running text ("the 2nd session").
+_PRINTED_ORDINAL = re.compile(
+    r"(?:^|(?<=\s))\d{1,3}(?:st|nd|rd|th)(?=\s*(?:\(|percentile\b|$))", re.I)
+
+
 def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
     """Every percentile ordinal the payload carries or implies, lower-cased.
 
@@ -195,6 +202,13 @@ def stored_ordinals(payload: Any, _depth: int = 0) -> set[str]:
     """
     out: set[str] = set()
     if _depth > 16:
+        return out
+    if isinstance(payload, str):
+        # THE ORDINAL A TABLE PRINTS (T3.5 (c)): ORDINAL_RULE tells the writer to
+        # copy an ordinal "from the table, or from its _ordinal field", and the
+        # tables print "86th (5 years, n=59)" -- built by the same half-up rule
+        # (monthly_macro.stack._ord). The audit now holds what the rule allows.
+        out |= {m.group(0).lower() for m in _PRINTED_ORDINAL.finditer(payload)}
         return out
     if isinstance(payload, dict):
         for k, v in payload.items():
@@ -314,8 +328,23 @@ def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]
 # unmatched scaled figure is withheld with the field named.
 DISPLAY_FIELD = "_display"
 # Registry `units` -> (multiplier to the base unit, is it dollars).
+#
+# EACH SERIES' OWN UNITS, NEVER AN ASSUMED SCALE (T3.3 item 1, the second box dry
+# run of 10 Oct 2026). The Fed-path block printed initial jobless claims at
+# "200.5 million": IC4WSA is published in plain Number (200,500 claims) and its
+# SeriesSpec said "K", so the scaler multiplied by a thousand. The scaler already
+# read the registry; the registry was wrong (claims, existing home sales) or the
+# other way about (CMDEBT in millions, declared billions). FRED's own unit names
+# are accepted beside the short codes, and a unit the table does not name has no
+# display -- the figure prints as it stands rather than at a guessed scale.
+#   N / Number      a plain count            200,500 -> "200.5 thousand"
+#   K / Thousands   thousands (of persons)   159,040 -> "159.04 million"
+#   M / Millions    millions of dollars    2,948,000 -> "$2.95tn"
+#   B / Billions    billions of dollars       22,804 -> "$22.8tn"
 SCALE_UNITS = {"usd": (1.0, True), "M": (1e6, True), "B": (1e9, True),
-               "K": (1e3, False), "count": (1.0, False)}
+               "K": (1e3, False), "N": (1.0, False), "count": (1.0, False),
+               "Number": (1.0, False), "Thousands": (1e3, False),
+               "Millions": (1e6, True), "Billions": (1e9, True)}
 
 
 def scaled_display(value: float, units: str) -> Optional[str]:
@@ -339,6 +368,146 @@ def scaled_display(value: float, units: str) -> Optional[str]:
             mag = f"{a / m:,.2f}".rstrip("0").rstrip(".")
             return f"{sign}{mag} {word}"
     return None
+
+
+# PLAIN COUNTS AND SMALL THOUSANDS PRINT AS THE INTEGER (T3.4a, the third box dry
+# run). The bare-delta rule withheld "+29,000" (payrolls, a thousands-unit series)
+# and "+42,984, −77,476" (CFTC contracts, plain counts) in three sections -- each
+# a correct figure in its natural form. A plain count's change is the integer with
+# separators, whatever its size; a thousands-unit change below ±1,000 thousand is
+# the integer it stands for ("+29,000"); levels keep their scale ("159.04
+# million"), and currency and scaled series are unchanged ("+$23.15bn").
+COUNT_UNITS = ("N", "count", "Number", "contracts", "Contracts", "jobs",
+               "persons", "Persons", "shares")
+THOUSAND_UNITS = ("K", "Thousands")
+
+
+def _signed_int(x: float) -> str:
+    return (MINUS if x < 0 else "+") + f"{abs(x):,.0f}"
+
+
+# THE INTEGER CARRIES ITS NOUN (T3.5 (a), Monthly dry run #4). The integer form
+# "+29,000" was accepted by the audit only where the frame still carried the
+# display under `change_display`; a frame that handed it on under another key (a
+# parent's or a summary's figures_you_may_cite) left the integer bare, and the
+# rule withheld it -- payrolls twice, CFTC once. The display now carries its
+# noun ("+29,000 jobs", "+125,623 contracts"), the bare-delta rule accepts a
+# figure followed by one of these nouns, and the two cannot disagree: the form
+# the writer is told to copy is the form the gate passes. A series with no noun
+# here keeps the plain integer, accepted as before.
+DISPLAY_NOUNS = {
+    "fred.nfp": "jobs", "fred.claims_4wk": "claims", "fred.lt_unemp": "people",
+    "fred.job_openings": "openings", "fred.hires_total": "hires",
+    "fred.layoffs": "layoffs", "fred.housing_starts": "starts",
+    "fred.housing_starts_sf": "starts", "fred.housing_permits": "permits",
+    "fred.existing_homes": "homes", "fred.new_homes": "homes",
+    "cftc.": "contracts", "pm.volume": "contracts", "pm.open_interest": "contracts",
+    "exposure.oi_": "contracts", "eia.": "barrels",
+    "manual.global_visible_stocks_bbl": "barrels",
+}
+UNIT_NOUNS = {"shares": "shares", "contracts": "contracts", "Contracts": "contracts",
+              "jobs": "jobs", "persons": "people", "Persons": "people"}
+_DERIVED_PREFIXES = ("calc.naive_expectation.", "calc.surprise_vs_naive.")
+
+
+def display_noun(key: Optional[str], units: str = "") -> Optional[str]:
+    """The noun a count's or a small thousands change prints with: the series'
+    own (DISPLAY_NOUNS, by key or key prefix; a derived naive-expectation or
+    surprise series takes its source's), else the unit's (UNIT_NOUNS)."""
+    k = str(key or "")
+    for pre in _DERIVED_PREFIXES:
+        if k.startswith(pre):
+            k = "fred." + k[len(pre):]
+    if k in DISPLAY_NOUNS:
+        return DISPLAY_NOUNS[k]
+    for pre, noun in DISPLAY_NOUNS.items():
+        if pre.endswith((".", "_")) and k.startswith(pre):
+            return noun
+    return UNIT_NOUNS.get(str(units))
+
+
+def change_display(value: float, units: str, key: Optional[str] = None) -> Optional[str]:
+    """A CHANGE in its series' own form, SIGNED: '+$23.15bn' and '−7.2 million'
+    from the scaler (T3.3 item 2); '+42,984' for a plain count and '+29,000' for a
+    thousands-unit change below ±1,000 thousand (T3.4a) -- and, given the series'
+    key, the integer with its noun: '+29,000 jobs', '+42,984 contracts' (T3.5).
+    None where the level would have no display either."""
+    u = str(units)
+    noun = display_noun(key, u)
+    tail = f" {noun}" if noun else ""
+    if u in COUNT_UNITS:
+        return _signed_int(float(value)) + tail
+    if u in THOUSAND_UNITS and abs(float(value)) < 1000:
+        return _signed_int(float(value) * 1000) + tail
+    d = scaled_display(value, units)
+    if d is None:
+        return None
+    return d if d.startswith(MINUS) or float(value) == 0 else "+" + d
+
+
+def _noun_words() -> str:
+    return "|".join(sorted({*DISPLAY_NOUNS.values(), *UNIT_NOUNS.values()},
+                           key=len, reverse=True))
+
+
+# NO BARE DELTA ABOVE 9,999 (T3.3 item 2). The Systemic Liquidity pillar printed
+# "rose +23,154 to $2.95tn" -- bank reserves' change in raw millions, copied from
+# the number beside the display form. A change that large means nothing without
+# its scale, so a published paragraph may not carry one: a signed figure, or one
+# after a change verb, of 10,000 or more with no currency sign, scale word,
+# percent, basis points, points or a count's noun (T3.5: "jobs", "contracts")
+# beside it is withheld, naming the display to copy instead.
+_BARE_DELTA = re.compile(
+    r"(?P<lead>(?:\b(?:rose|rising|fell|falling|added|adding|gained|lost|dropped|"
+    r"declined|increased|decreased|climbed|slipped|shed|jumped|grew|shrank|"
+    r"up|down|by)\s+)|[+−-])"
+    r"(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{5,}(?:\.\d+)?)"
+    r"(?!\s?(?:%|percent|per\s?cent|bps?\b|basis|pts\b|points?\b|"
+    r"trillion|billion|million|thousand|tn\b|bn\b|mm\b|k\b|"
+    r"(?:" + _noun_words() + r")\b))"
+    # Not followed by more of a number -- a full stop or a clause's comma is not
+    # one (T3.5: "+29,000." at a sentence's end, and "+29,000, the ...", passed
+    # unseen).
+    r"(?!\d|[.,]\d)", re.I)
+
+
+_PLAIN_DISPLAY = re.compile(r"^[+−-]?\d{1,3}(?:,\d{3})+$|^[+−-]?\d+$")
+
+
+def accepted_deltas(payload: Any, _depth: int = 0) -> set[float]:
+    """The magnitudes of every plain-integer display form the payload carries
+    (`change_display`, `change_signed`) -- a count's or a small thousands
+    change's own printed form, which the audit accepts (T3.4a)."""
+    out: set[float] = set()
+    if _depth > 12:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if (k in ("change_display", "change_signed") and isinstance(v, str)
+                    and _PLAIN_DISPLAY.match(v.strip())):
+                out.add(abs(float(v.strip().lstrip("+−-").replace(",", ""))))
+            else:
+                out |= accepted_deltas(v, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out |= accepted_deltas(v, _depth + 1)
+    return out
+
+
+def bare_deltas(text: Optional[str], accepted: Any = ()) -> list[str]:
+    """Every change of 10,000 or more printed with no unit or scale beside it --
+    except a figure the payload's own display form prints that way (`accepted`,
+    from accepted_deltas): a plain count or a thousands-unit change."""
+    out = []
+    ok = {abs(float(x)) for x in accepted or ()}
+    for m in _BARE_DELTA.finditer(text or ""):
+        before = (text or "")[max(0, m.start("num") - 2):m.start("num")]
+        if "$" in before:
+            continue
+        n = float(m.group("num").replace(",", ""))
+        if n >= 10000 and n not in ok:
+            out.append(m.group(0).strip())
+    return out
 
 
 def display_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:
@@ -556,6 +725,76 @@ COMPATIBLE: dict[str, tuple[str, ...]] = {
     TYPE_PRICE: (TYPE_Z,),
 }
 
+# THE SERIES-KIND EQUIVALENCE (W-1.1a item 1, the Weekly dry run of 12 Oct). A
+# value the payload types as a price -- because its field is named `level`,
+# `priced` or `mark` -- may be a yield, a rate, a probability, an implied move, a
+# volatility or a spread, and those are written as percents: "the 10-year at
+# 4.05%", "19% of a 25 bp hike". Where the value's row declares its SERIES KIND
+# (a `series_kind` field, or a registry `key` whose kind metrics_registry.yaml's
+# `series_kinds` block declares), the unit word may be the one that kind is
+# written in: percent for all six, basis points for a change in a yield, rate or
+# spread, points for a change in a probability. A price stays strict: "SPY at
+# 0.93%" against a price of 0.93 still fails, and the message names the kind
+# it used.
+KIND_UNITS: dict[str, tuple[str, ...]] = {
+    "yield": (TYPE_PERCENT, TYPE_BP),
+    "rate": (TYPE_PERCENT, TYPE_BP),
+    "spread": (TYPE_PERCENT, TYPE_BP),
+    "probability": (TYPE_PERCENT, TYPE_PRICE),
+    "implied_move": (TYPE_PERCENT,),
+    "volatility": (TYPE_PERCENT,),
+}
+_KIND_KEYS = ("key", "metric_id", "registry_key")
+_REGISTRY_KINDS: Optional[dict] = None
+
+
+def registry_kinds() -> dict:
+    """{metric id: series kind} from metrics_registry.yaml's `series_kinds`."""
+    global _REGISTRY_KINDS
+    if _REGISTRY_KINDS is None:
+        try:
+            import yaml                                         # noqa: PLC0415
+            path = Path(__file__).resolve().parent.parent / "metrics_registry.yaml"
+            reg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            _REGISTRY_KINDS = {str(k): str(v) for k, v in
+                               (reg.get("series_kinds") or {}).items()}
+        except Exception:                                       # noqa: BLE001
+            _REGISTRY_KINDS = {}
+    return _REGISTRY_KINDS
+
+
+def series_kind_of(d: dict, inherited: Optional[str] = None) -> Optional[str]:
+    """A row's declared series kind: its own `series_kind`, else its registry
+    key's, else its parent's."""
+    k = d.get("series_kind")
+    if isinstance(k, str) and k:
+        return k
+    for f in _KIND_KEYS:
+        v = d.get(f)
+        if isinstance(v, str) and v in registry_kinds():
+            return registry_kinds()[v]
+    return inherited
+
+
+def kinds_of(value, key: str = "", kind: Optional[str] = None
+             ) -> list[tuple[float, str, Optional[str]]]:
+    """Every numeric leaf as (value, type, series kind) -- types_of() with the
+    series kind of the row each value sits in."""
+    if isinstance(value, dict):
+        here = series_kind_of(value, kind)
+        out: list[tuple[float, str, Optional[str]]] = []
+        for k, v in value.items():
+            if k == "series_kind":
+                continue
+            out.extend(kinds_of(v, k, here))
+        return out
+    if isinstance(value, (list, tuple, set)):
+        out = []
+        for v in value:
+            out.extend(kinds_of(v, key, kind))
+        return out
+    return [(v, t, kind) for v, t in types_of(value, key)]
+
 
 def type_of_key(key: str) -> str:
     """The type a field name declares. TYPE_ANY when it declares nothing.
@@ -588,31 +827,88 @@ def type_of_key(key: str) -> str:
 # a basis-point figure, pts or points a price, a dollar sign or a scale word (k,
 # bn, tn, thousand...) carries its own and imposes none. A figure with no unit
 # word stays a count, as before -- and an ISO date in a cell keeps the date reading.
+#
+# TWO UNITS THE CELLS PRINT THAT THIS READ AS COUNTS (T3.2 item 3, the first real
+# Monthly dry run, 10 Oct 2026). The word "percent" -- the slow layers' 20-day
+# change prints "−5.40 percent" -- is a percent, as "%" is. And a PAIR sharing
+# one unit -- the prediction markets' "+35.5 / +38.0 pts", Kalshi then
+# Polymarket -- is two figures in that unit: the first took none, so 35.5 was a
+# count and "up 35.5 points" was withheld as a unit mismatch. Each figure now has
+# the type it truly has; a figure with no unit word anywhere is still a count.
 _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}(?:[T ][\d:.+Z-]*)?")
 _CELL_FIGURE = re.compile(
     r"""(?P<lead>\$?)[-+\u2212]?\$?\d[\d,]*(?:\.\d+)?
         (?P<scale>\s?(?:trillion|billion|million|thousand|tn|bn|mm|k)\b)?
-        (?P<unit>\s?(?:%|bps?\b|pts\b|points?\b))?""", re.X | re.I)
+        (?P<unit>\s?(?:%|percent\b|per\s?cent\b|bps?\b|pts\b|points?\b))?""",
+    re.X | re.I)
+# "a / b unit": the first of a pair takes the unit written after the second;
+# "a / — unit" (one venue unpriced) the unit written after the dash.
+_CELL_PAIR = re.compile(r"\s*/\s*$")
+_CELL_PAIR_DASH = re.compile(
+    r"\s*/\s*[—–-]\s*(?P<unit>%|percent\b|per\s?cent\b|bps?\b|pts\b|points?\b)",
+    re.I)
+
+
+def _unit_kind(unit: str) -> str:
+    unit = (unit or "").strip().lower()
+    if unit == "%" or unit.startswith("per"):
+        return TYPE_PERCENT
+    if unit.startswith("bp"):
+        return TYPE_BP
+    if unit in ("pts", "point", "points"):
+        return TYPE_PRICE
+    return TYPE_COUNT
+
+
+def _cell_kind(m: "re.Match") -> str:
+    unit = (m.group("unit") or "").strip().lower()
+    if unit == "%" or unit.startswith("per"):
+        return TYPE_PERCENT
+    if unit.startswith("bp"):
+        return TYPE_BP
+    if unit in ("pts", "point", "points"):
+        return TYPE_PRICE
+    if m.group("lead") or "$" in m.group(0) or m.group("scale"):
+        return TYPE_ANY
+    return TYPE_COUNT
 
 
 def cell_types(text: str) -> list[tuple[float, str]]:
-    """The figures in one table cell, each typed by the unit written beside it."""
+    """The figures in one table cell, each typed by the unit written beside it
+    -- or, for the first of an "a / b unit" pair, after its partner."""
     out: list[tuple[float, str]] = []
     for d in _ISO_DATE.findall(text):
         out += [(v, TYPE_COUNT) for v in payload_numbers(d)]
     rest = _ISO_DATE.sub(" ", text)
+    ms = list(_CELL_FIGURE.finditer(rest))
+    kinds = [_cell_kind(m) for m in ms]
+    for i in range(len(ms) - 1, -1, -1):
+        if kinds[i] != TYPE_COUNT or ms[i].group("unit"):
+            continue
+        if (i + 1 < len(ms) and ms[i + 1].group("unit")
+                and _CELL_PAIR.match(rest[ms[i].end():ms[i + 1].start()])):
+            kinds[i] = kinds[i + 1]
+            continue
+        dash = _CELL_PAIR_DASH.match(rest, ms[i].end())
+        if dash:
+            kinds[i] = _unit_kind(dash.group("unit"))
+    for m, kind in zip(ms, kinds):
+        out += [(v, kind) for v in payload_numbers(m.group(0).strip())]
+    return out
+
+
+def string_types(text: str, key: str = "") -> list[tuple[float, str]]:
+    """The figures in one payload string: each typed by the unit written beside
+    it (a cell's rule), else by the string's field."""
+    base = type_of_key(key)
+    out: list[tuple[float, str]] = []
+    for d in _ISO_DATE.findall(text):
+        out += [(v, base) for v in payload_numbers(d)]
+    rest = _ISO_DATE.sub(" ", text)
     for m in _CELL_FIGURE.finditer(rest):
-        unit = (m.group("unit") or "").strip().lower()
-        if unit == "%":
-            kind = TYPE_PERCENT
-        elif unit.startswith("bp"):
-            kind = TYPE_BP
-        elif unit in ("pts", "point", "points"):
-            kind = TYPE_PRICE
-        elif m.group("lead") or "$" in m.group(0) or m.group("scale"):
-            kind = TYPE_ANY
-        else:
-            kind = TYPE_COUNT
+        kind = _cell_kind(m)
+        if kind == TYPE_COUNT and not m.group("unit"):
+            kind = base
         out += [(v, kind) for v in payload_numbers(m.group(0).strip())]
     return out
 
@@ -630,7 +926,12 @@ def types_of(value, key: str = "") -> list[tuple[float, str]]:
         # A numeral inside a string is a payload figure (see payload_numbers), and
         # its type is the string's field -- a level quoted inside an invalidation
         # rule is still a level.
-        return [(v, type_of_key(key)) for v in payload_numbers(value)]
+        # A UNIT WRITTEN BESIDE IT WINS (W-1.1a item 1). "0.93% priced" under
+        # the key `priced` is a percent, and "19% of a 25 bp hike" a percent and
+        # a basis-point figure: the field's name typed all three as prices and
+        # the 12 Oct dry run withheld Mechanics and Ahead over it. A figure with
+        # no unit beside it keeps its field's type, as before.
+        return string_types(value, key)
     if isinstance(value, dict):
         for k, v in value.items():
             out.extend(types_of(v, k))
@@ -705,6 +1006,9 @@ class Figure:
     # Filled when a large figure matches nothing but is near a `_display` form
     # the payload carries: names the field the writer should have copied.
     scale_error: str = ""
+    # The series kind whose unit let a price-typed value be written as a
+    # percent, bp or pts (W-1.1a item 1); empty when no equivalence was used.
+    series_kind: str = ""
 
     def __str__(self) -> str:                      # pragma: no cover - display
         return f"{self.text!r} (={self.value:g}, accepts [{self.low:g}, {self.high:g}))"
@@ -1050,6 +1354,26 @@ def label_bindings(text: str, figures: list["Figure"]) -> list[tuple["Figure", s
     return out
 
 
+_DOWN: Optional[set] = None
+
+
+def _down_verb_before(text: str, pos: int) -> bool:
+    """Is the word before position `pos` (allowing "by") a falling verb of the
+    direction lexicon (config/direction_lexicon.yaml)?"""
+    global _DOWN
+    if _DOWN is None:
+        try:
+            import yaml                                         # noqa: PLC0415
+            lex = yaml.safe_load((Path(__file__).resolve().parent.parent / "config"
+                                  / "direction_lexicon.yaml").read_text(
+                                      encoding="utf-8")) or {}
+            _DOWN = {str(w).lower() for w in lex.get("down") or []}
+        except Exception:                                       # noqa: BLE001
+            _DOWN = set()
+    m = re.search(r"([A-Za-z]+)\s+(?:by\s+)?$", text[:pos])
+    return bool(m) and m.group(1).lower() in _DOWN
+
+
 def audit(text: str, payload: Any, *,
           extra_values: Optional[Iterable[float]] = None) -> AuditResult:
     """Does every numeral in `text` correspond to a value in `payload`?
@@ -1083,6 +1407,7 @@ def audit(text: str, payload: Any, *,
         (names if _is_day_name(f, masked, days) else figures).append(f)
     values = payload_numbers(payload)
     typed = types_of(payload)
+    series_typed = kinds_of(payload)
     if extra_values:
         values.extend(float(v) for v in extra_values)
         # A DECLARED UNIT CONSTANT IS TYPELESS. The 1 in "per 1% decline" belongs to
@@ -1138,6 +1463,12 @@ def audit(text: str, payload: Any, *,
             if f.value > 0:
                 neg = next(((v, fld, disp) for v, fld, disp in signed
                              if f.low <= -v < f.high), None)
+                # THE VERB CARRIES THE SIGN (W-1.1a item 4): "fell 3 bp" for
+                # -3 is the move as written after a falling verb, not a dropped
+                # sign. The direction audit holds the verb to the sign.
+                if neg and _down_verb_before(masked, f.position):
+                    matched.append((f, -neg[0]))
+                    continue
                 if neg:
                     f.sign_error = (f"the payload's value is negative -- copy "
                                     f"`{neg[1]}` verbatim: {neg[2]}")
@@ -1161,9 +1492,21 @@ def audit(text: str, payload: Any, *,
             allowed = {f.unit_type, TYPE_ANY} | set(
                 COMPATIBLE.get(f.unit_type, ()))
             if kinds and not (kinds & allowed):
+                # THE SERIES-KIND EQUIVALENCE (W-1.1a item 1): a price-typed
+                # value in a row whose kind is written in this unit.
+                skinds = {sk for v, t, sk in series_typed
+                          if t == TYPE_PRICE
+                          and (f.low <= v < f.high or abs(v - f.value) <= 1e-9)}
+                ok = sorted(sk for sk in skinds if sk
+                            and f.unit_type in KIND_UNITS.get(sk, ()))
+                if ok:
+                    f.series_kind = ok[0]
+                    matched.append((f, hit))
+                    continue
+                named = ", ".join(sorted(sk for sk in skinds if sk)) or "none declared"
                 f.type_conflict = (
                     f"written as {f.unit_type} but the payload carries this value "
-                    f"as {sorted(kinds)}")
+                    f"as {sorted(kinds)}; series kind: {named}")
                 unmatched.append(f)
                 continue
         matched.append((f, hit))

@@ -439,7 +439,10 @@ def main() -> int:
                           source_url="https://down.example/x/old",
                           published_at="2026-09-29",
                           retrieved_at="2026-09-30T11:00:00+00:00"))
-    wk = vb.week_section("2026-10-10", "2026-10-10T12:00:00+00:00", DB)
+    # The real clock here too (T3.2): the fixed 2026-10-10T12:00Z cutoff hid
+    # the scan's own run, stamped after it, from 12:00 UTC on 10 Oct onwards.
+    wk = vb.week_section("2026-10-10", _dt.datetime.now(_dt.timezone.utc).isoformat(),
+                         DB)
     stale = [r for r in wk["table"]["rows"] if r[0].startswith("Stale Voice")]
     check(stale and stale[0][2].startswith("UNREACHABLE")
           and stale[0][1].startswith("last:"),
@@ -632,10 +635,11 @@ def main() -> int:
           and "voices_scan run" not in ov
           and "OnCalendar=Mon-Fri 06:15 America/New_York" in tm
           and "run_voices_scan.sh" in sv and "TimeoutStartSec=20min" in sv
-          and "chester-voices.timer" not in dr
+          and "chester-voices.timer" in (re.search(
+              r'^DEPLOY_TIMERS="([^"]*)"', dr, re.M) or [None, ""])[1].split()
           and vmod.load_config()["time_budget_seconds"] == 900,
           "2: the scan has its own 06:15 timer and a fifteen-minute budget, out of "
-          "the 06:45 pass; enabling it is the operator's (not in DEPLOY_TIMERS)")
+          "the 06:45 pass; the deploy enables it (in DEPLOY_TIMERS since L-1)")
     full = vmod.load_config()
     untiered = [s["id"] for s in full["sources"]
                 if source_tiers.tier_of(f"x - {s['outlet']}") is None]

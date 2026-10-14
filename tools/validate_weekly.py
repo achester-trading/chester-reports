@@ -25,8 +25,9 @@ Five groups, and the third is the one the phase turns on:
      makes "read the object, never recompute" checkable rather than asserted.
 
   E. THE UNIT AND THE WRAPPER. Sunday 05:00 ET, zone-pinned, Persistent=true with
-     its reason, not in DEPLOY_TIMERS (so no deploy can enable it), and the
-     heartbeat check dormant until the timer is.
+     its reason, in DEPLOY_TIMERS (L-1, 6 Oct 2026; read from
+     scripts/deploy_remote.sh), and the heartbeat check dormant until the
+     timer is enabled.
 
 A CODE GATE NEVER READS THE LIVE STORE (1 Oct 2026). This gate built the test
 week from whatever data/chester.db it found: in CI that is none, and on the box
@@ -269,11 +270,42 @@ def group_e() -> None:
     check("run_weekly.sh" in s, "and runs the wrapper")
 
     mk = (REPO / "Makefile").read_text(encoding="utf-8")
-    m = re.search(r"DEPLOY_TIMERS\s*[:?]?=\s*((?:.*\\\n)*.*)", mk)
-    timers = m.group(1) if m else ""
-    check("chester-weekly.timer" not in timers,
-          "chester-weekly.timer is NOT in DEPLOY_TIMERS, so no deploy can enable "
-          "it -- the enable is a human act, printed and not taken")
+    # READ FROM scripts/deploy_remote.sh, where the list lives. This used to
+    # search the Makefile, which has not declared DEPLOY_TIMERS since the deploy
+    # became a delegation -- so the check matched nothing and passed whatever
+    # the list said.
+    dr = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
+    m = re.search(r'^DEPLOY_TIMERS="([^"]*)"', dr, re.M)
+    timers = m.group(1).split() if m else []
+    check("chester-weekly.timer" in timers,
+          "chester-weekly.timer is in DEPLOY_TIMERS (L-1, 6 Oct 2026): the "
+          "deploy enables it, and the heartbeat's weekly check goes live with it")
+    # THE STATE RECORD (L-1): the Weekly emits as the close does, under its own key.
+    import types
+    from daily_cascade import weekly_report as wr
+    from state import emit as emit_mod
+    sent = []
+    saved = wr.emit
+    wr.emit = lambda *a, **k: sent.append((a, k)) or True
+    try:
+        wr._emit(types.SimpleNamespace(no_emit=False, dry_run=True), "ok", "h",
+                 {}, "2026-10-02")
+        dry = len(sent)
+        wr._emit(types.SimpleNamespace(no_emit=False, dry_run=False), "ok", "h",
+                 {}, "2026-10-02")
+    finally:
+        wr.emit = saved
+    check(wr.REPORT_KEY in emit_mod.VALID_KEYS and wr.REPORT_KEY != "daily_cascade",
+          f"the Weekly emits under its own registered key ({wr.REPORT_KEY!r}), not "
+          f"the close's -- a Sunday record must not overwrite Friday's close")
+    check(dry == 0 and len(sent) == 1 and sent[0][0][0] == wr.REPORT_KEY
+          and str(sent[0][1].get("as_of")) == "2026-10-02",
+          "a dry run posts nothing; a real run posts one record, as_of the week "
+          "ending")
+    check(wr._status({"warnings": []}, {"delivery": "sent"}) == "ok"
+          and wr._status({"warnings": []}, {"delivery": "send_failed"}) == "degraded"
+          and wr._status({"warnings": ["w"]}, {"delivery": "sent"}) == "degraded",
+          "status is ok only for a delivered edition with no warning")
     check("tools/validate_weekly.py" in mk,
           "and this gate is in the Makefile's validator list, which CI reads")
 

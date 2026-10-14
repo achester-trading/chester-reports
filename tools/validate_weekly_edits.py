@@ -195,8 +195,9 @@ def main() -> int:
 
     # --- A. STRUCTURE -------------------------------------------------------------
     print(f"\n{LINE}\nA. HEADERS, SUB-SECTIONS, THE GLOSSARY\n{LINE}")
-    heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\"font-size:13px;"
-                       r"font-weight:400;font-style:italic;color:#5a6b7a\">&mdash; "
+    # The subtitle's style is the renderer's own constant (T2.5 item 10).
+    heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\""
+                       + re.escape(stack_render.SUBTITLE) + r"\">&mdash; "
                        r"([^<]+)</span>", html)
     check(len(heads) == 10 and [int(h[0]) for h in heads] == list(range(1, 11)),
           f"every header is 'number · name — subtitle', styled apart ({len(heads)})")
@@ -204,10 +205,13 @@ def main() -> int:
               or h[2] == "what markets and surveys expect, not how they're positioned"
               for h in heads),
           "What's priced: 'what markets and surveys expect, not how they're positioned'")
+    # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts).
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
-           "Short interest", "Retail sentiment", "Foreign flows (TIC)"],
-          "Positioning in five sub-sections, each with its table")
+           "Futures positioning by trader type (CFTC TFF, % of open interest)",
+           "ETF share counts", "Short interest", "Retail sentiment",
+           "Foreign flows (TIC)"],
+          "Positioning in seven sub-sections, each with its table")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the
@@ -230,9 +234,11 @@ def main() -> int:
     check(html.count(">Glossary</h2>") == 1 and html.rfind(">Glossary</h2>") >
           html.rfind("&middot; The book"),
           "the glossary prints once, at the end")
-    for t in ("z", "gap z-score", "pending, open, exception", "outside 10–90%",
+    for t in ("z", "gap z-score", "pending, open, exception", "favourite–longshot check",
               "base rate", "Brier"):
-        check(f"<strong>{stack_render.esc(t)}</strong>" in html, f"glossary: {t}")
+        # The glossary is a table (T2.5: nothing prints as a list).
+        check(re.search(r">" + re.escape(stack_render.esc(t)) + r"</td>", html),
+              f"glossary: {t}")
 
     # --- B. PLAIN WORDS -----------------------------------------------------------
     print(f"\n{LINE}\nB. THE PLAIN-LANGUAGE RULE\n{LINE}")
@@ -292,7 +298,8 @@ def main() -> int:
     # --- C. TABLE AND PROSE ------------------------------------------------------
     print(f"\n{LINE}\nC. THE TABLE-AND-PROSE RULE\n{LINE}")
     tt = sec["tape"]["table"]
-    lv = next(ss for ss in sec["tape"]["subsections"] if ss["title"] == "Levels")
+    # W-1.2 item 2.7: the levels table moved to the reference tables.
+    lv = next(d for d in ed.get("detail") or [] if d["title"] == "The tape: named levels")
     check(tt["columns"] == ["Market", "Last", "Session", "Week", "Month", "YTD"]
           and lv["table"]["columns"] == ["Market", "Week high / low",
                                          "52-week high (distance)",
@@ -303,9 +310,11 @@ def main() -> int:
     check(not sec["tape"]["print_items"] and not sec["plumbing"]["print_items"],
           "the tape and Plumbing print no bullets; the prose reads the table")
     tape_calls = [c for c in calls if "THE SECTION: The tape." in c]
-    check(tape_calls and "exactly four paragraphs" in tape_calls[0]
-          and "equities (SPY, QQQ, IWM); rates" in tape_calls[0],
-          "the tape's prose is asked for four paragraphs: equities, rates, the dollar "
+    # T2.5 item 2: the four paragraphs became ONE across the four groups.
+    check(tape_calls and "THE TAPE IN ONE PARAGRAPH" in tape_calls[0]
+          and "equities, rates, the dollar and commodities, and crypto"
+          in tape_calls[0],
+          "the tape's prose is asked for ONE paragraph across equities, rates, the dollar "
           "and commodities, crypto")
     rel = [{"release": "Consumer Price Index", "label": "CPI", "actual_text": "3.10%",
             "prior_text": "3.00%", "as_of": "2026-09-01", "date": "2026-10-01",
@@ -329,7 +338,12 @@ def main() -> int:
 
     # --- D. THE WEEK BY DAY -----------------------------------------------------
     print(f"\n{LINE}\nD. THE READ: THE WEEK BY DAY\n{LINE}")
-    rt = sec["read"]["table"] or {}
+    # W-1.2 item 2.7: the week by day prints in Mechanics, the read's frame
+    # still reading it.
+    rt = next((ss["table"] for ss in sec["mechanics"]["subsections"]
+               if ss.get("title") == "The week by day"), None) or {}
+    check(not sec["read"].get("table"),
+          "The read prints no daily table; Mechanics carries the week by day")
     check(rt.get("columns") == ["Day", "SPY", "10-year", "Tier-1 release (actual, prior)",
                                 "Fed speech or auction", "Most-cited story (source)"]
           and len(rt.get("rows") or []) == len(sessions),
@@ -404,10 +418,14 @@ def main() -> int:
     srcs = {k: _insp.getsource(getattr(charts_mod, f)) for k, f in
             (("W1", "w1"), ("W2", "w2"), ("W3", "w3_panel"), ("W7", "w7"),
              ("W8", "w8"), ("W10", "w10"))}
+    # W-1.2 item 2.8: a small multiple's span moves from its titles to its
+    # caption (W8: "{n} sessions from {first}"); the count, span and dates
+    # still print with every chart.
     check(all("span_title(" in v or "sessions, {d0} to {d1}" in v
+              or "sessions \"" in v and "from {v['from']}" in v
               for v in srcs.values())
           and "span_title(" in _insp.getsource(ws.produce),
-          "W1-W10 build their titles with the count, span and dates")
+          "W1-W10 carry the count, span and dates, in the title or the caption")
     check(ws.chart_plan({"budget": {"charts": 10}, "sections": [
         {"id": "misfit", "data": {"open_contradictions": [1]}}]}) ==
         ["W1", "W2", "W8", "W7", "W6", "W3", "W5", "W4", "W9", "W10"],
@@ -439,8 +457,11 @@ def main() -> int:
     check(ex and ex[0]["tier"] == 2, "a monthly expiry, importance 2")
     check(any(r["event"] == "JPM earnings" for r in rows), "earnings from the universe")
     check("H.15" not in json.dumps(rows) and "Bill" not in json.dumps(rows)
-          and any("routine data releases" in n for n in sec["ahead"]["not_tracked"]),
-          "routine releases and bill auctions are counted, not listed")
+          and any("routine data release" in n for n in sec["ahead"].get("notes") or [])
+          and any(d["title"].startswith("Routine releases and bill auctions")
+                  for d in ed.get("detail") or []),
+          "routine releases and bill auctions are counted, not listed -- their rows "
+          "in the reference tables (W-1.3a item 3.9)")
     check(wsec.canonical_auction("Bond:29-Year 10-Month") == "Bond:30-Year",
           "a reopening is named by the security it reopens")
 
@@ -457,8 +478,9 @@ def main() -> int:
     check(te and te["changed_on"] == "2026-10-01" and te["expires_after"] == "2026-10-15",
           f"the Transition count runs ten sessions from the change ({te})")
     w_lines = (sec["ahead"]["data"] or {}).get("watching") or []
-    check(sec["ahead"]["subsections"][0]["title"] == "What the system is watching",
-          f"Ahead carries 'What the system is watching' ({w_lines[:1]})")
+    # "What the system is watching" is a sentence about the system (T2.5 item 3).
+    check(sec["ahead"]["subsections"][0]["title"] == "Watching",
+          f"Ahead carries 'Watching' ({w_lines[:1]})")
 
     # --- H. FEEDS, CONFIG AND RECORDS ------------------------------------------
     print(f"\n{LINE}\nH. FEEDS, CONFIG AND THE RECORDS\n{LINE}")
@@ -515,10 +537,13 @@ def main() -> int:
           and round(hf([100.0, 101.0], "annualised")[0], 2) == 4.06
           and hf([231000.0], "level") == (231000.0, None),
           "1: the forms compute: change, m/m, y/y over twelve prints, annualised, level")
-    check(ws.form_text(29.0, "change", "fred.nfp") == "+29k"
+    # T3.4a: payrolls' change in the one form every report shares -- the integer
+    # +29 thousand stands for, which the audit accepts as the display form.
+    check(ws.form_text(29.0, "change", "fred.nfp") == "+29,000 jobs"
           and ws.form_text(0.31, "mom", "fred.cpi") == "+0.3%"
           and ws.form_text(4.2, "level", "fred.u3_rate") == "4.2%",
-          "1: printed as +29k (payrolls in thousands, the scale written), +0.3%, "
+          "1: printed as +29,000 jobs (payrolls in thousands, the integer with "
+          "its noun, T3.5), +0.3%, "
           "4.2%")
     wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
     gi = (REPO / ".gitignore").read_text(encoding="utf-8")
@@ -588,7 +613,10 @@ def main() -> int:
           and "SPY IV" in _insp.getsource(wsec.dealer_week),
           "7: the table prints both figures and the flag 'check'")
     wr = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
-    check('"--email"' in wr and "[DRY RUN] [chester] Weekly" in wr
+    from daily_cascade import readability as _rd
+    check('"--email"' in wr and 'readability.subject("Weekly", when, ed, True)' in wr
+          and _rd.subject("Weekly", "w/e 2 Oct", {"sections": []}, True)
+          .startswith("[DRY RUN] Weekly — w/e 2 Oct")
           and 'getattr(args, "email", False)' in wr,
           "8: --dry-run --email sends the render with the subject prefixed "
           "'[DRY RUN]'; nothing else changes")

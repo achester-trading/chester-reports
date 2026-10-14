@@ -1,0 +1,174 @@
+# weekly_analytics.yaml -- the Weekly's descriptive analytics (W-1.3b, items
+# 3.1-3.5; change order of 11 Oct 2026, section 4). Read by
+# daily_cascade/analytics.py. Everything here is DESCRIPTIVE: a rule that labels
+# what the data shows, never a forecast. Forward-outcome statistics wait for the
+# scorecard track (change order section 6).
+#
+# SESSION-SET (W-1.3b): every vocabulary, threshold, template and map here is the
+# session's proposal for the operator to overrule; none is ruled.
+version: weekly-analytics-v1
+updated: 2026-10-12
+status: proposed
+
+# ---------------------------------------------------------------------------
+# 3.1 NARRATIVES
+# ---------------------------------------------------------------------------
+narratives:
+  # An item's SOURCE CLASS, from its voice's kind; an outlet that is a statistical
+  # agency or a central bank's data release is "data" whatever the kind.
+  source_classes: {official: official, sell_side: sell-side, buy_side: sell-side, independent: press}
+  data_outlets: ["Bureau of Labor Statistics", "BLS", "Bureau of Economic Analysis", "BEA",
+                 "Census Bureau", "Treasury Direct", "TIC", "FRED", "H.4.1", "H.15"]
+  # The STATUS vocabulary, and the order its rules are tried in (the first that
+  # holds wins). long-term theme is the default.
+  statuses: [tradeable, priced, catalysed, long-term theme]
+  catalyst_window_days: 30
+  # Per story: the counter-case queries the scan searches for (the steelman),
+  # hand-seeded catalysts {date, what}, and the variable whose level would mean
+  # the story is priced {key, instrument, level, side: above|below}.
+  stories:
+    ai_capex_durability:
+      steelman_queries: ["capex cut", "spending slowdown", "data center pause", "overbuild", "AI bubble"]
+      catalysts: []
+      priced: null
+    fiscal_dominance:
+      steelman_queries: ["deficit narrowing", "term premium falls", "strong auction demand", "Fed sets long rates"]
+      catalysts: []
+      priced: {key: acm.term_premium_10y, level: 1.0, side: above, label: "the 10-year term premium at 1.0%"}
+    yen_carry:
+      steelman_queries: ["carry trade intact", "yen weakens", "BoJ holds", "carry trade returns"]
+      catalysts: []
+      priced: null
+    midterm_cycle:
+      steelman_queries: ["midterm rally fails", "election-year weakness", "post-election selloff"]
+      catalysts: [{date: 2026-11-03, what: "the midterm election"}]
+      priced: null
+
+# ---------------------------------------------------------------------------
+# 3.2 EXCEPTIONS
+# ---------------------------------------------------------------------------
+exceptions:
+  # The three tiers, in print order (the table's grouping).
+  tiers:
+    - {id: leading, title: "Potential leading indicator"}
+    - {id: contradiction, title: "Contemporaneous contradiction"}
+    - {id: extreme, title: "Extreme without a trade"}
+  # The tier of each exception kind; a series named under `series_tier` takes
+  # that tier instead (an extreme in credit or the curve has led before).
+  kind_tier: {contradiction: contradiction, extreme: extreme}
+  series_tier:
+    fred.hy_oas: leading
+    fred.ccc_oas: leading
+    fred.ig_oas: leading
+    calc.yield_curve_2s10s: leading
+    fred.claims_4wk: leading
+  # The descriptive fields, a template per tier: what would resolve it, what
+  # could catalyse it, what would invalidate it. {name} is the exception's label.
+  templates:
+    leading:
+      resolution: "the series returns inside its five-year range, or the market it has led before follows it"
+      catalyst: "the next release or session that moves {name}"
+      invalidation: "{name} reverses without the markets it usually leads moving"
+    contradiction:
+      resolution: "the two markets converge -- one side gives way"
+      catalyst: "the week's scheduled events that bear on either side"
+      invalidation: "the gap closes by both sides drifting, with no event"
+    extreme:
+      resolution: "the series leaves its five-year extreme"
+      catalyst: "none scheduled -- an extreme with no trade attached"
+      invalidation: "a new extreme beyond this one"
+  # The level / change / extreme labels on every series row.
+  labels: {window_days: 1825, level_decile: 10, change_z: 2.0, change_days: 7}
+
+# ---------------------------------------------------------------------------
+# 3.3 POSITIONING
+# ---------------------------------------------------------------------------
+positioning:
+  # The section 10A standard: TFF categories as a percent of open interest, for
+  # the financial futures the store holds (the AQ-3 writer's contracts).
+  tff:
+    contracts: [EUR, JPY, GBP, CHF, CAD, AUD]
+    categories:
+      - {id: lev_money, label: "Leveraged funds"}
+      - {id: asset_mgr, label: "Asset managers"}
+      - {id: dealer, label: "Dealers"}
+  etf_shares:
+    - {key: etf.gld_shares, label: "GLD shares outstanding"}
+    - {key: etf.iau_shares, label: "IAU shares outstanding"}
+    - {key: etf.slv_shares, label: "SLV shares outstanding"}
+    - {key: etf.ibit_shares, label: "IBIT shares outstanding"}
+  # The positioning-change score: the change over this many weeks, as a z
+  # against the same-length changes over the window.
+  change_weeks: 4
+  z_window_days: 730
+  # A sentiment row with fewer observations than this prints "thin sample (n=K)"
+  # and is excluded from any composite.
+  sentiment_min_n: 4
+
+# ---------------------------------------------------------------------------
+# 3.4 WHAT'S PRICED: the event x venue matrix
+# ---------------------------------------------------------------------------
+priced_matrix:
+  # The top events: Ahead's tier-1 rows of these classes. A venue's market
+  # matches an event when its question names one of the class's words.
+  classes:
+    fomc_decision: {words: ["FOMC", "Fed decision", "fed funds", "rate cut", "rate hike", "interest rate"], fed_funds: true}
+    inflation_print: {words: ["CPI", "inflation"]}
+    labour_print: {words: ["payroll", "unemployment", "jobs report"]}
+    growth_print: {words: ["GDP"]}
+  venues: [fed_funds, kalshi, polymarket, consensus]
+  venue_labels: {fed_funds: "Fed funds futures", kalshi: "Kalshi", polymarket: "Polymarket", consensus: "Economist consensus"}
+  # No economist-consensus feed is stored: the column prints a dash until one is.
+  consensus_feed: null
+
+# ---------------------------------------------------------------------------
+# 3.5 AHEAD'S PLAYBOOK
+# ---------------------------------------------------------------------------
+playbook:
+  channels: [yields, dollar, equities, vol]
+  # Per playbook class: each outcome's direction on each channel (+ up, - down,
+  # 0 little changed). In-line is a non-event by construction.
+  outcomes:
+    inflation_print:
+      hot:  {yields: "+", dollar: "+", equities: "-", vol: "+"}
+      in-line: {yields: "0", dollar: "0", equities: "0", vol: "-"}
+      cool: {yields: "-", dollar: "-", equities: "+", vol: "-"}
+    labour_print:
+      hot:  {yields: "+", dollar: "+", equities: "-", vol: "+"}
+      in-line: {yields: "0", dollar: "0", equities: "0", vol: "-"}
+      cool: {yields: "-", dollar: "-", equities: "-", vol: "+"}
+    growth_print:
+      hot:  {yields: "+", dollar: "+", equities: "+", vol: "-"}
+      in-line: {yields: "0", dollar: "0", equities: "0", vol: "-"}
+      cool: {yields: "-", dollar: "-", equities: "-", vol: "+"}
+    fomc_decision:
+      hot:  {yields: "+", dollar: "+", equities: "-", vol: "+"}
+      in-line: {yields: "0", dollar: "0", equities: "0", vol: "-"}
+      cool: {yields: "-", dollar: "-", equities: "+", vol: "-"}
+  outcome_words: {hot: "Hot (above consensus, or hawkish)", in-line: "In line", cool: "Cool (below consensus, or dovish)"}
+  # A CFTC contract's exposure to a channel: the sign of the position's P&L when
+  # the channel goes up. Speculators net long 10-year notes LOSE when yields rise,
+  # so a hot print forces them out: that is the amplification.
+  exposures:
+    UST10Y: {channel: yields, sign: "-"}
+    UST30Y: {channel: yields, sign: "-"}
+    USD_INDEX: {channel: dollar, sign: "+"}
+    SP500: {channel: equities, sign: "+"}
+    NDX100: {channel: equities, sign: "+"}
+    RUSSELL2000: {channel: equities, sign: "+"}
+    VIX: {channel: vol, sign: "+"}
+    GOLD: {channel: dollar, sign: "-"}
+  # THE REGIME SWITCH (ruled 12 Oct 2026, W-1.3b Needs you 4): when the stored
+  # fed funds path prices hikes -- the implied rate after the meeting `meetings`
+  # on from the next is at least `min_bp` above the next meeting's -- a cool print
+  # of these classes reads two-sided on these channels: weaker growth is rates
+  # relief as much as growth fear. Otherwise the map stands.
+  regime_switch:
+    classes: [growth_print]
+    outcome: cool
+    channels: [equities, vol]
+    text: "two-sided — rates relief against growth fear"
+    meetings: 4
+    min_bp: 1.0
+  # The frame sentence per outcome: at most this many words, no figure.
+  sentence_words: 30

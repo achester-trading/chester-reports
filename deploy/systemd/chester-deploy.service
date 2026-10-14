@@ -1,0 +1,39 @@
+[Unit]
+Description=Self-deploy -- install main's changed unit files (never restarts a unit)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_self_deploy.sh
+
+# THE BOX HALF OF THE DEPLOY, RUN BY THE BOX (A-4, 9 Oct 2026). When main's
+# deploy/systemd/ has changed since the last run, scripts/deploy_remote.sh copies
+# the units, reloads, enables any DEPLOY_TIMERS entry not yet enabled, and runs
+# the drift check and the heartbeat. It NEVER stops, disables, restarts, kills or
+# masks a unit: a changed unit that is running is written to
+# ~/state/alerts/restart_pending and the heartbeat names it until the operator
+# restarts it. tools/validate_deploy.py group I holds that.
+#
+# .env for the heartbeat step's mail, as chester-heartbeat.service loads it.
+# Optional: without it the deploy still runs and the mail reports no_address.
+EnvironmentFile=-%h/chester-reports/.env
+
+# Only 0 is success. A pending restart or remaining drift exits 0 (reported
+# through the ledger and the heartbeat); a failed pull or copy exits 1 and leaves
+# this unit failed, which the heartbeat's unit check names.
+
+# A pull, a copy of a few dozen small files, and the heartbeat (under two
+# minutes on its own timer).
+TimeoutStartSec=5min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The checkout (the pull), the installed-unit directory (the copy), and what the
+# heartbeat step writes: the logs, ~/.chester and ~/state, the last two
+# permitted-if-present as in chester-heartbeat.service.
+ReadWritePaths=%h/logs %h/chester-reports %h/.config/systemd/user -%h/.chester -%h/state
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

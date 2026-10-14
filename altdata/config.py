@@ -35,7 +35,10 @@ FRED_SERIES: list[SeriesSpec] = [
     # Pillar 1 — Labor Market Vitality
     SeriesSpec("nfp",              "PAYEMS",     "Nonfarm payrolls, total",         "1", "K",    "monthly"),
     SeriesSpec("u3_rate",          "UNRATE",     "Unemployment rate (U-3)",         "1", "%",    "monthly"),
-    SeriesSpec("claims_4wk",       "IC4WSA",     "Initial claims, 4-week avg",      "1", "K",    "weekly"),
+    # NUMBER, not thousands (T3.3, 10 Oct 2026): IC4WSA is published in plain units
+    # -- 200,500 claims -- and "K" printed it as "200.5 million" in the second box
+    # dry run. EXHOSLUSM495S below is plain Number too (4,020,000 homes).
+    SeriesSpec("claims_4wk",       "IC4WSA",     "Initial claims, 4-week avg",      "1", "N",    "weekly"),
     SeriesSpec("lfp_rate",         "CIVPART",    "Labor force participation rate",  "1", "%",    "monthly"),
     SeriesSpec("emp_pop_ratio",    "EMRATIO",    "Employment-population ratio",     "1", "%",    "monthly"),
     SeriesSpec("avg_wkly_hours",   "AWHAETP",    "Avg weekly hours, private",       "1", "hrs",  "monthly"),
@@ -53,7 +56,7 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("housing_starts",   "HOUST",      "Housing starts, total",           "2", "K",    "monthly"),
     SeriesSpec("housing_starts_sf","HOUST1F",    "Housing starts, single-family",   "2", "K",    "monthly"),
     SeriesSpec("housing_permits",  "PERMIT",     "Building permits, total",         "2", "K",    "monthly"),
-    SeriesSpec("existing_homes",   "EXHOSLUSM495S","Existing home sales",           "2", "K",    "monthly"),
+    SeriesSpec("existing_homes",   "EXHOSLUSM495S","Existing home sales",           "2", "N",    "monthly"),
     SeriesSpec("new_homes",        "HSN1F",      "New home sales, single-family",   "2", "K",    "monthly"),
     SeriesSpec("mortgage_30y",     "MORTGAGE30US","30-year mortgage rate",          "2", "%",    "weekly"),
     SeriesSpec("ahe_yoy",          "CES0500000003","Avg hourly earnings, private",  "2", "$",    "monthly"),
@@ -63,7 +66,8 @@ FRED_SERIES: list[SeriesSpec] = [
     SeriesSpec("cc_delinq_30",     "DRCCLACBS",  "Credit card delinquency, 30+ days",     "2","%","quarterly"),
     SeriesSpec("cc_chargeoff",     "CORCCACBS",  "Credit card charge-off rate",     "2", "%",    "quarterly"),
     SeriesSpec("auto_delinq",      "DRALACBN",   "Auto loan delinquency, 30+ days", "2", "%",    "quarterly"),
-    SeriesSpec("total_hh_debt",    "CMDEBT",     "Household debt, total",           "2", "B",    "quarterly"),
+    # MILLIONS of dollars, not billions (T3.3): CMDEBT 20,934,549 is $20.9tn.
+    SeriesSpec("total_hh_debt",    "CMDEBT",     "Household debt, total",           "2", "M",    "quarterly"),
 
     # Pillar 3 — Systemic Liquidity
     SeriesSpec("fed_balance",      "WALCL",      "Fed balance sheet, total assets", "3", "M",    "weekly"),
@@ -192,10 +196,141 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # series pages (SOFR; IORB, from 29 Jul 2021).
     SeriesSpec("sofr",             "SOFR",       "Secured overnight financing rate", "3", "%",    "daily"),
     SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
+    # Signal-triage batch 3, ST-B3-02 (SR-6 by tenor, 13 Oct 2026): the 5-year
+    # real yield, for the 5-year's split (and the 2-year's, as the nearest TIPS
+    # tenor). Percent, daily -- read off FRED's series page that day ("Market
+    # Yield on U.S. Treasury Securities at 5-Year Constant Maturity, Quoted on
+    # an Investment Basis, Inflation-Indexed").
+    SeriesSpec("tips_5y",          "DFII5",      "5-year TIPS real yield",          "2",  "%",    "daily"),
+    # SR-46 (ruled 6 Oct 2026; Audit #4 Category 1 item 5): the EM screen's FRED
+    # currencies are AQ-3's H.10 keys (FRED_FX_SCAN_SERIES, FRED_THAILAND_SERIES:
+    # usd_brl, usd_zar, usd_inr, usd_krw, usd_twd, usd_thb), one copy each
+    # (Friday stitching, 13 Oct).
+    # SR-46(c): the EM spread family. Both PERCENT, daily, read off their FRED
+    # pages 11 Oct 2026. FRED notes that from April 2026 each serves only THREE
+    # YEARS of observations, so a five-year percentile is not computable from it.
+    SeriesSpec("em_corp_oas",      "BAMLEMCBPIOAS","ICE BofA EM Corporate Plus OAS",  "6", "%",    "daily"),
+    SeriesSpec("em_hy_oas",        "BAMLEMHBHYCRPIOAS","ICE BofA High Yield EM Corporate Plus OAS","6","%","daily"),
 ]
 
+# ---------------------------------------------------------------------------
+# THE FX SCAN TIER (AQ-3 part 1, 11 Oct 2026; the Quarterly's currency chapter,
+# change order section 4.4): every daily pair of the Fed's H.10 release on FRED
+# that the store did not already hold (it held DEXUSEU, DEXJPUS, DEXCHUS,
+# DEXMXUS). Each was read off FRED on 11 Oct 2026 -- live, last print 2 Oct --
+# and its QUOTE CONVENTION with it: H.10 quotes most pairs as foreign currency
+# PER US DOLLAR, and four as US DOLLARS PER UNIT (AUD, NZD, GBP and the euro
+# already held). The units field is the quoted currency, so a USD-per pair is
+# "$" and USD/KRW is "KRW"; every one moves in percent (derived.DELTA_UNITS).
+# A separate list for the reason FRED_SIGNAL_SERIES is one: FRED_SERIES is the
+# Monthly's set, and nothing reads these yet but the currency chapter.
+#
+# THE BAHT IS NOT HERE. DEXTHUS is in FRED_THAILAND_SERIES below, registered
+# under namespace: thailand and trigger_eligible: false (the Thailand chapter's
+# isolation, section 4.10), so no trigger can reach it through this list.
+# ---------------------------------------------------------------------------
+FRED_FX_SCAN_SERIES: list[SeriesSpec] = [
+    SeriesSpec("usd_aud", "DEXUSAL", "USD per AUD (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_nzd", "DEXUSNZ", "USD per NZD (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_gbp", "DEXUSUK", "USD per GBP (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_cad", "DEXCAUS", "CAD per USD (H.10)",                 "7", "CAD", "daily"),
+    SeriesSpec("usd_chf", "DEXSZUS", "CHF per USD (H.10)",                 "7", "CHF", "daily"),
+    SeriesSpec("usd_sek", "DEXSDUS", "SEK per USD (H.10)",                 "7", "SEK", "daily"),
+    SeriesSpec("usd_nok", "DEXNOUS", "NOK per USD (H.10)",                 "7", "NOK", "daily"),
+    SeriesSpec("usd_dkk", "DEXDNUS", "DKK per USD (H.10)",                 "7", "DKK", "daily"),
+    SeriesSpec("usd_brl", "DEXBZUS", "BRL per USD (H.10)",                 "7", "BRL", "daily"),
+    SeriesSpec("usd_zar", "DEXSFUS", "ZAR per USD (H.10)",                 "7", "ZAR", "daily"),
+    SeriesSpec("usd_krw", "DEXKOUS", "KRW per USD (H.10)",                 "7", "KRW", "daily"),
+    SeriesSpec("usd_twd", "DEXTAUS", "TWD per USD (H.10)",                 "7", "TWD", "daily"),
+    SeriesSpec("usd_inr", "DEXINUS", "INR per USD (H.10)",                 "7", "INR", "daily"),
+    SeriesSpec("usd_sgd", "DEXSIUS", "SGD per USD (H.10)",                 "7", "SGD", "daily"),
+    SeriesSpec("usd_hkd", "DEXHKUS", "HKD per USD (H.10)",                 "7", "HKD", "daily"),
+    SeriesSpec("usd_myr", "DEXMAUS", "MYR per USD (H.10)",                 "7", "MYR", "daily"),
+    SeriesSpec("usd_lkr", "DEXSLUS", "LKR per USD (H.10)",                 "7", "LKR", "daily"),
+    SeriesSpec("usd_ves", "DEXVZUS", "VES per USD (H.10; Venezuela, administered rate)", "7", "VES", "daily"),
+]
+
+# THE BAHT, ISOLATED (section 4.10; the Thailand spec). Pulled by the same FRED
+# path, registered in its own block under namespace: thailand.
+FRED_THAILAND_SERIES: list[SeriesSpec] = [
+    SeriesSpec("usd_thb", "DEXTHUS", "THB per USD (H.10)",                 "7", "THB", "daily"),
+]
+
+# SLOOS (AQ-3 part 2, 11 Oct 2026; the credit chapter's lending-standards
+# measurable, the operator's ruling on AQ-2 part 2's choice 6). The Fed's Senior
+# Loan Officer Opinion Survey: the NET PERCENTAGE of domestic banks tightening
+# standards, quarterly (observed_at = the survey quarter's first day). A net
+# share of banks, not a rate: its own block (fred_sloos) moves it in percentage
+# points, where "%" alone would print a ten-point swing as 1,000 bp. Read off
+# FRED 11 Oct 2026, last print 2026-07-01. The CRE split exists from 2013Q4 only.
+FRED_SLOOS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("sloos_ci_large", "DRTSCILM", "SLOOS: net % of banks tightening C&I standards, large and middle-market firms", "6", "%", "quarterly"),
+    SeriesSpec("sloos_ci_small", "DRTSCIS", "SLOOS: net % of banks tightening C&I standards, small firms", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_construction", "SUBLPDRCSC", "SLOOS: net % tightening CRE, construction and land development", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_nonres", "SUBLPDRCSN", "SLOOS: net % tightening CRE, nonfarm nonresidential", "6", "%", "quarterly"),
+    SeriesSpec("sloos_cre_multifamily", "SUBLPDRCSM", "SLOOS: net % tightening CRE, multifamily", "6", "%", "quarterly"),
+]
+
+# THE REAL-ESTATE AND GLOBAL-RATES LEGS (AQ-3 part 2). Each read off FRED on 11
+# Oct 2026 with its unit checked against the series page (Gotcha 2):
+#   DRCRELEXFACBS  CRE loan delinquency (ex farmland), all banks, %, quarterly,
+#                  last 2026-04-01 -- the real-estate chapter's headline row
+#   CSUSHPINSA     Case-Shiller US national, index Jan 2000 = 100, NSA, monthly
+#   DFF            effective fed funds, daily -- the US leg of the hedging cost
+#   ECBDFR         ECB deposit facility rate, daily -- the euro leg
+#   IRSTCI01JPM156N  Japan's call rate, monthly (OECD) -- the yen leg; FRED
+#                  carries no daily BoJ rate, so the JGB hedge is monthly-stepped
+#   IRLTLT01GBM156N  UK 10-year gilt, monthly average (OECD). The Bank of
+#                  England's own database is disallowed to robots
+#                  (/boeapps/database/_iadb-FromShowColumns.asp), so the gilt
+#                  is this monthly series and not a daily one
+#   DTWEXEMEGS     the Fed's nominal EMERGING-MARKET dollar index, index Jan
+#                  2006 = 100, daily, NSA (read off FRED 12 Oct 2026, last print
+#                  129.7052) -- the EM paper's request (AQ-14 Needs you 4, ruled
+#                  yes); the EM chapter's structure row reads fred.dxy_em
+FRED_AQ3_SERIES: list[SeriesSpec] = [
+    SeriesSpec("cre_delinq", "DRCRELEXFACBS", "CRE loan delinquency rate (ex farmland), all banks", "6", "%", "quarterly"),
+    SeriesSpec("case_shiller_national", "CSUSHPINSA", "S&P CoreLogic Case-Shiller US national home price index, NSA", "2", "idx", "monthly"),
+    SeriesSpec("effr_daily", "DFF", "Effective federal funds rate, daily", "3", "%", "daily"),
+    SeriesSpec("ecb_dfr", "ECBDFR", "ECB deposit facility rate", "7", "%", "daily"),
+    SeriesSpec("jp_call_rate", "IRSTCI01JPM156N", "Japan call money rate, monthly (OECD)", "7", "%", "monthly"),
+    SeriesSpec("gilt_10y", "IRLTLT01GBM156N", "UK 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    SeriesSpec("dxy_em", "DTWEXEMEGS", "Nominal Emerging Market Economies US Dollar Index (DTWEXEMEGS, FRB; Jan 2006=100)", "7", "idx", "daily"),
+]
+
+# SR-43 / SR-49 (signal-triage batch 4, ST4-09 and ST4-15): the OECD long-term
+# government bond yields the twin-deficit fit and the selloff-shape axis share --
+# the "OECD-yields fetcher" is these series on the existing FRED pull. Each id
+# and unit was read off its FRED series page on 12 Oct 2026 (Gotcha 2): all
+# "Percent, Not Seasonally Adjusted", monthly averages. The UK (gilt_10y) and
+# Japan (jp_10y) are already above; China's id 404s and is not used.
+FRED_SR43_SERIES: list[SeriesSpec] = [
+    SeriesSpec(f"oecd_10y_{c.lower()}", f"IRLTLT01{c}M156N",
+               f"{name} 10-year government bond yield, monthly average (OECD)",
+               "7", "%", "monthly")
+    for c, name in (("US", "United States"), ("CA", "Canada"), ("DE", "Germany"),
+                    ("FR", "France"), ("IT", "Italy"), ("ES", "Spain"),
+                    ("NL", "Netherlands"), ("BE", "Belgium"), ("AU", "Australia"),
+                    ("NZ", "New Zealand"), ("CH", "Switzerland"), ("SE", "Sweden"))
+]
+# THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
+# ounces between two archives are shares x the last archive's ounces per share,
+# decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
+# share's gold falls by the fee and nothing else (altdata/sources/spdr_gld.py).
+# Re-read the ratio off the fund page when the trust changes its fee.
+GLD_EXPENSE_RATIO = {
+    "ratio": 0.0040,
+    "source": ("State Street Global Advisors, the SPDR Gold Shares (GLD) fund page, "
+               "ssga.com/us/en/intermediary/etfs/spdr-gold-shares-gld: Expense "
+               "Ratio 0.40%"),
+    "read": "2026-10-12",
+}
+
 # Everything the FRED pull fetches and the freshness roster watches.
-FRED_PULL_SERIES: list[SeriesSpec] = FRED_SERIES + FRED_SIGNAL_SERIES
+FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
+                                      + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
+                                      + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
+                                      + FRED_SR43_SERIES)
 
 
 # Quick lookup by key
@@ -270,9 +405,26 @@ MASSIVE_SPOT_FROM_PARITY: dict[str, bool] = {"SPX": True, "SPCX": False}
 # until an identity layer exists.
 UNDERLYING_VERIFIED_FROM: dict[str, str] = {"SPCX": "2026-06-16"}
 
+# THE PAPER BID'S FOUR (AQ-8a; change order 10 Oct 2026, section 5 "Two-bid
+# decomposition", the Part 9 ruling's GLD, SLV, IBIT and USO). Captured every
+# night with the universe so the paper-bid leg -- net call-put OI and the
+# 25-delta risk reversal (altdata/paper_bid.py) -- accrues from the merge; a
+# night not captured is gone. CAPTURE ONLY: they are not in options_universe(),
+# so they enter no exposure profile, no pin log and no dealer table -- those
+# carry the 13 and their statistics are the 13's.
+PAPER_BID_SYMBOLS: list[str] = ["GLD", "SLV", "IBIT", "USO"]
+
+
 def options_universe() -> list[str]:
-    """Symbols the yfinance chain fetcher pulls. 13 today."""
+    """Symbols the yfinance chain fetcher pulls with Greeks. 13 today."""
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+
+def chain_universe() -> list[str]:
+    """Every symbol the yfinance chain fetcher captures nightly: the 13 and the
+    paper bid's four. 17 today."""
+    return options_universe() + [s for s in PAPER_BID_SYMBOLS
+                                 if s not in options_universe()]
 
 def massive_universe() -> list[str]:
     """Symbols the Massive chain fetcher pulls. Ingestion only."""

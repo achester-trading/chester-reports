@@ -40,6 +40,10 @@ VALID_KEYS = {
     "alt_asset",
     "daily_cascade",
     "gamma_weekly",
+    # L-1 (6 Oct 2026): the Weekly Tactical, daily_cascade/weekly_report.py.
+    # Its own key rather than the close's `daily_cascade`, so a Sunday record
+    # neither overwrites the close nor hides a stopped Weekly behind it.
+    "weekly_tactical",
 }
 
 TIMEOUT_SECONDS = 10

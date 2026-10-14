@@ -30,6 +30,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  # THE RUNNER IS PINNED (T2.6, 8 Oct 2026): GitHub moves ubuntu-latest to Ubuntu
+  # 26 on 19 Oct, inside the freeze week, and a gate's verdict must not change
+  # because the image under it did. Every job here and in monthly-report.yml says
+  # ubuntu-24.04; tools/validate_deploy.py refuses `-latest` in any workflow.
+  #
   # One job resolves both lists so the matrices and the Makefile cannot disagree.
   #
   # TWO LISTS, BECAUSE THERE ARE TWO KINDS OF CHECK. A code gate returns the same
@@ -40,7 +45,7 @@ jobs:
   # about the commit. `make list-code` and `make list-data` print them bare, one
   # per line, so nothing here has to parse the human-readable `make list`.
   enumerate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       gates: ${{ steps.list.outputs.gates }}
       data: ${{ steps.list.outputs.data }}
@@ -58,8 +63,16 @@ jobs:
 
   gate:
     needs: enumerate
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    # STOPGAP, 12 Oct 2026: tools/validate_session_calendar.sh alone gets 20.
+    # Diagnosis: its stand-in interpreter passed every `-m` call through, so the
+    # cron's run path did two LIVE feeds pulls (plus features, events, surprise)
+    # and the gate's time grew with the writer roster -- 1,049 s on the laptop on
+    # aq-3-series-2 (37 writers, 114 FRED series; main 24 and 83), over the ten
+    # minutes in runs #286 and #295. The gate is fixed in the same branch (only
+    # `-m altdata.session` is real); this allowance can return to 10 once the
+    # fix has shown the gate well inside it.
+    timeout-minutes: ${{ matrix.gate == 'tools/validate_session_calendar.sh' && 20 || 10 }}
     strategy:
       # THE POINT OF THIS FILE. Every gate reports, whatever the others do.
       fail-fast: false
@@ -109,7 +122,7 @@ jobs:
   data-gate:
     needs: enumerate
     if: needs.enumerate.outputs.data != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     # No error-tolerance flag (6d, 2 Oct 2026): each data gate now SKIPS explicitly
     # under GitHub Actions -- "skipped: box-only", exit 0 (tools/box_only.py) --
@@ -140,7 +153,7 @@ jobs:
   gates-passed:
     needs: gate
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: All gates passed
         run: |

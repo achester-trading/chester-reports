@@ -114,7 +114,7 @@ def _change(x: dict) -> str:
         return _signed(c, "bp")
     if x["unit"] == "%":
         return _signed(c, "%")
-    return f"{c:+,.0f}"
+    return x.get("change_display") or f"{c:+,.0f}"
 
 
 # ---------------------------------------------------------------------------
@@ -211,13 +211,60 @@ def mechanics_section(p: dict) -> dict:
                      "dials": {k: (v or {}).get("state") for k, v in dials.items()}}}
 
 
-def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
+def screen_items(screen: Optional[dict], cadence: str = "daily") -> tuple[list, dict]:
+    """THE STORE-WIDE MOVE SCREEN IN WHAT DOESN'T FIT (Audit #4 Category 1 items 1
+    and 5; altdata/move_screen.py): the top flags by |z|, each "<series> +x.xσ
+    1-day / +x.xσ 5-day · false flag k/N", SR-35's 10-year companion beside its
+    row, the rest counted ("n more past 2.5σ -- in the tables"); the EM line
+    (idiosyncratic or systemic); the contagion lines -- every shock on the close,
+    only one that passed on the Weekly and the Monthly. (items, data)."""
+    if not screen:
+        return [], {}
+    from altdata import move_screen                              # noqa: PLC0415
+    rl = move_screen.report_lines(screen, cadence)
+    items = [item(f"misfit:move:{n}", ln, 1 if n < 2 else 2, ln)
+             for n, ln in enumerate(rl["lines"])]
+    if rl["more"]:
+        items.append(item("misfit:move:more", rl["more"], 3, rl["more"]))
+    em = screen.get("em") or {}
+    line = em.get("line") or move_screen.em_line(em)
+    if line:
+        items.append(item("misfit:em", line, 1, em.get("state")))
+    weekly = cadence != "daily"
+    for c in screen.get("contagion") or []:
+        cl = move_screen.contagion_line(c, weekly=weekly)
+        if cl:
+            items.append(item(f"misfit:contagion:{c['country']}:{c['shock_date']}",
+                              cl, 1, c.get("status")))
+    data = {"move_screen": {"screened": screen.get("screened"),
+                            "flags": [{"series": f.get("label"), "z_1d": f.get("z1"),
+                                       "z_5d": f.get("z5")}
+                                      for f in (screen.get("flags") or [])[:10]],
+                            "em_state": em.get("state")},
+            "_move_screen_reference": rl["reference"]}
+    return items, data
+
+
+def move_screen_detail(screen: Optional[dict], cadence: str = "daily") -> list[dict]:
+    """The reference tier: every flag, in a detail table after section 10."""
+    if not screen or not screen.get("flags"):
+        return []
+    from altdata import move_screen                              # noqa: PLC0415
+    ref = move_screen.report_lines(screen, cadence)["reference"]
+    return [{"title": "Moves past 2.5σ", "table": ref,
+             "notes": [f"{screen.get('screened')} daily series screened against their "
+                       f"own five-year history; {len(screen.get('skipped') or [])} "
+                       f"skipped for want of 500 observations."]}]
+
+
+def misfit_section(p: dict, pmb: Optional[dict] = None,
+                   screen: Optional[dict] = None) -> dict:
     ms = p.get("market_state") or {}
     items = []
     dis = (pmb or {}).get("disagreements") or {}
     for d in dis.get("fed_funds") or []:
         legs = d.get("legs_sum")
-        norm_note = (f" (legs normalised from {round(legs * 100):.0f}%)"
+        norm_note = (f" (normalised; legs sum {round(legs * 100):.0f}%)"
                      if legs and abs(legs - 1.0) > 0.005 else "")
         items.append(item(f"misfit:pm_ff:{d['meeting']}:{d['venue']}:{d['side']}",
                           f"{d['venue'].title()} prices a {d['side']} at the "
@@ -246,6 +293,8 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                           + "; ".join(labels.exception(e.get("id")) for e in exc[:4])
                           + ("…" if len(exc) > 4 else "") + ".", 2,
                           sorted(str(e.get("id")) for e in exc)))
+    sitems, sdata = screen_items(screen, "daily")
+    items += sitems
     if not items:
         items.append(item("misfit:none", "No contradiction is open and no "
                           "exception is flagged.", 1, "none"))
@@ -262,7 +311,7 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
                      "open_contradictions": [contradiction_data(c) for c in opened],
                      "exceptions": [{"name": labels.exception(e.get("id")),
                                      "kind": e.get("kind"), "_id": e.get("id")}
-                                    for e in exc]}}
+                                    for e in exc], **sdata}}
 
 
 def _z(v) -> Optional[float]:
@@ -445,13 +494,13 @@ def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
                                   f"{_venue_name(v)}: \"{r.get('question')}\" "
                                   f"{_pct(r['probability'])} "
                                   f"({_pts(r.get('change_1s_points'))} on the session"
-                                  + (", outside 10-90%" if r.get("bias_zone") else "")
+                                  + (f", {FLC}" if r.get("bias_zone") else "")
                                   + ").", 3, (v, r["probability"])))
             continue
         txt = "; ".join(
             f"{_venue_name(v)} {_pct(r['probability'])}"
             f" ({_pts(r.get('change_1s_points'))} on the session"
-            + (", outside 10-90%" if r.get("bias_zone") else "") + ")"
+            + (f", {FLC}" if r.get("bias_zone") else "") + ")"
             for v, r in sorted(picked.items()))
         side = w.get("side") or "Yes"
         items.append(item(f"priced:pm:{wid}", f"{label[0].upper() + label[1:]} "
@@ -487,8 +536,15 @@ def side_rows(rows: list[dict], w: dict) -> dict:
     return out
 
 
-BIAS_LEGEND = ("Outside 10-90%: at odds this far from even, prediction markets are "
-               "known to misprice the level, so read the change, not the level.")
+# THE FAVOURITE-LONGSHOT CHECK (W-1.1 item 1.5, ruled 11 Oct 2026): the rule once
+# printed as "outside 10-90%" -- read as "mispriced" -- is a flag, not a verdict.
+# Prediction markets tend to overprice longshots and underprice favourites, so a
+# price this far from even is read for its change more than its level.
+FLC = "favourite–longshot check: outside 10-90%"
+BIAS_LEGEND = ("Favourite–longshot check (outside 10-90%): a flag, not a verdict -- "
+               "prediction markets tend to overprice longshots and underprice "
+               "favourites, so at odds this far from even read the change more than "
+               "the level.")
 
 
 def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
@@ -536,9 +592,18 @@ def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,
                               + ((fed or {}).get("reason") or "no contracts stored"))
     if not pmb or not pmb.get("markets"):
         not_tracked.insert(0, "prediction-market odds: no venue market stored")
-    legend = BIAS_LEGEND if any("outside 10-90%" in i["text"] for i in items) else None
+    # PREDICTION MARKETS AS ONE TABLE (T2.5 item 9): the odds lines stay as the
+    # section's data and change marks; the table is what prints. The bias note
+    # is the table's own column, and the glossary explains it.
+    from . import readability                                   # noqa: PLC0415
+    pmt = readability.pm_table(pmb, "1s")
+    for i in items:
+        if i["key"].startswith(("priced:fomc", "priced:pm", "priced:outage")):
+            i["show"] = False
+    not_tracked += readability.pm_outages(pmb)
+    subs = ([{"title": "Prediction markets", "table": pmt}] if pmt["rows"] else [])
     return {"items": items, "deep_reason": reason, "not_tracked": not_tracked,
-            "legend": legend,
+            "legend": None, "subsections": subs,
             "data": {"series": data,
                      "rate_path": {k: (fed or {}).get(k) for k in
                                    ("meetings", "tracked", "reason", "sentence",
@@ -558,10 +623,13 @@ def read_items(pmb: Optional[dict]) -> list[dict]:
     """The read: an attention shock earns a line (brief 4)."""
     out = []
     for sh in (pmb or {}).get("shocks") or []:
-        out.append(item(f"read:shock:{sh['instrument']}",
-                        shock_sentence(sh, "in a session",
-                                       sh["change_1s_points"]), 1,
-                        (sh["probability"], sh["change_1s_points"])))
+        it = item(f"read:shock:{sh['instrument']}",
+                  shock_sentence(sh, "in a session", sh["change_1s_points"]), 1,
+                  (sh["probability"], sh["change_1s_points"]))
+        # The move prints once, in What's priced's table (T2.5 item 1); here it
+        # is The read's data.
+        it["show"] = False
+        out.append(it)
     return out
 
 
@@ -613,7 +681,7 @@ def narratives_section(st, session_day: Optional[str] = None,
     except Exception:                                           # noqa: BLE001
         rows = []
     # PHASE B (4 Oct 2026): the day's most-cited story and a dissent if one was
-    # published, each sourced, from the voices the 06:45 scan stored. Fixed
+    # published, each sourced, from the voices the 06:15 scan stored. Fixed
     # sentences over stored rows; every view printed is audited.
     voices = None
     if session_day and cutoff:
@@ -732,12 +800,16 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
     cutoff = p.get("as_of") or session.utc_iso()
     with observations.ObservationStore(store_path) as st:
         pmb, fed, fed_prior = venues_and_path(p["session"], cutoff, st)
+        # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the stored result,
+        # else computed in memory; the close never writes it.
+        from altdata import move_screen                          # noqa: PLC0415
+        screen = move_screen.result_for(st, p["session"], cutoff)
         built = {
             "read": {"items": read_items(pmb), "data": {
                 "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
             "mechanics": mechanics_section(p),
-            "misfit": misfit_section(p, pmb),
+            "misfit": misfit_section(p, pmb, screen),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),
             "priced": priced_section(st, cutoff, cfg, pmb, fed, fed_prior),
@@ -745,11 +817,54 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "ahead": ahead_section(p, st, cutoff, outlook_rows),
             "book": book_section(p),
         }
+        em_extras(built, screen, p["session"])
+        # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
+        # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
+        from . import batch3_block                              # noqa: PLC0415
+        built["tape"]["items"] += batch3_block.tape_items(st, cutoff)
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
             "config_version": cfg.get("version"), "as_of": cutoff,
             "prior_session": (prior or {}).get("session"),
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
+
+
+def em_extras(built: dict, screen: Optional[dict], day: str) -> None:
+    """SR-46(c) and the EM calendar on the close: the report-only "EM leg" line
+    in Plumbing & rates, and the quarter's hand-seeded EM events in Ahead."""
+    from altdata import move_screen                              # noqa: PLC0415
+    leg = ((screen or {}).get("em") or {}).get("em_leg_line")
+    if leg and built.get("plumbing") is not None:
+        built["plumbing"]["items"].append(item("plumb:em_leg", leg, 2, leg))
+    for e in move_screen.em_calendar(day):
+        if built.get("ahead") is not None:
+            ln = move_screen.calendar_line(e)
+            built["ahead"]["items"].append(item(f"ahead:em:{e.get('date')}:"
+                                                f"{e.get('country')}", ln, 2, ln))
+
+
+def section_ids(cfg: dict, cadence: str, built: Optional[dict] = None) -> list[str]:
+    """The sections assemble() lays out at `cadence`, in config order (T2.7).
+
+    The ten (SECTION_ORDER) always, each at its declared depth or "light". A
+    section that exists at ONE CADENCE ONLY -- the Monthly's Reading chapter
+    declares a `monthly` depth and no other -- is skipped at every cadence that
+    declares no depth for it, and at its own cadence too unless the caller built
+    it (the Monthly builds Reading after assembly, from the register, and places
+    it itself). A section missing from config is a code fault: KeyError."""
+    specs = [s for s in cfg.get("sections") or []]
+    have = {s["id"] for s in specs}
+    missing = [sid for sid in SECTION_ORDER if sid not in have]
+    if missing:
+        raise KeyError(f"config sections lack {missing}")
+    out = []
+    for sp in specs:
+        sid = sp["id"]
+        if sid in SECTION_ORDER:
+            out.append(sid)
+        elif sp.get(cadence) and built is not None and sid in built:
+            out.append(sid)
+    return out
 
 
 def assemble(built: dict, cfg: dict, prior: Optional[dict],
@@ -765,7 +880,7 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
     prior_secs = {s["id"]: s for s in (prior or {}).get("sections") or []}
     deep_key = "deep_on" if cadence == "daily" else f"{cadence}_deep_on"
     out = []
-    for sid in SECTION_ORDER:
+    for sid in section_ids(cfg, cadence, built):
         sp, b = specs[sid], built[sid]
         depth = sp.get(cadence) or "light"
         reason = b.get("deep_reason")
@@ -800,6 +915,16 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
                                         if unchanged else None),
                     "prior_claim": pr.get("claim") if unchanged else None,
                     "claim": None, "paragraphs": [], "trimmed": False})
+    # EMPTY MEANS ONE LINE (T2.5 item 5): marked here, so the prose skips the
+    # section and the renderer prints its footnote alone. The period noun is the
+    # cadence's (config `cadences:`), so "Nothing new this month" is written as
+    # such rather than rewritten from the Weekly's.
+    from . import readability                                   # noqa: PLC0415
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    period = cadence_mod.get(cadence, cfg)["period"]
+    for s in out:
+        s["period"] = period
+    readability.mark_empty(out, period)
     return out
 
 
@@ -808,31 +933,79 @@ def words(text: Optional[str]) -> int:
 
 
 def section_words(s: dict) -> int:
-    """PROSE ONLY (T2.2, 4 Oct 2026): the claim line, the paragraphs and each
-    sub-section's paragraph. Items and tables are data and never count."""
+    """PROSE ONLY (T2.2, 4 Oct 2026, every report): the claim line, the
+    paragraphs and each sub-section's paragraphs -- the Monthly's sub-sections
+    keep theirs (`paragraphs`), the close's and the Weekly's keep none. Items,
+    lines and tables are data and never count. One function for every cadence
+    (T2.6); a detail block (the Monthly's) is counted the same way."""
     if s.get("collapsed"):
         return words(s.get("claim"))
-    return (words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
-            + sum(words(ss.get("paragraph")) for ss in s.get("subsections") or []))
+    n = words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
+    for ss in s.get("subsections") or []:
+        n += words(ss.get("paragraph")) + sum(words(x) for x in ss.get("paragraphs") or [])
+    return n
 
 
-def enforce_budget(ed: dict) -> dict:
-    """Trim to the word budget, lowest priority first; mark what was cut."""
-    limit = int((ed.get("budget") or {}).get("words") or 1000)
-    total = lambda: sum(section_words(s) for s in ed["sections"])  # noqa: E731
+def edition_words(ed: dict) -> int:
+    """The edition's prose: every section, and every detail block after them,
+    and an executive summary where the edition carries one (the Monthly's,
+    T3.1 item 20 -- it is prose and counts in the budget)."""
+    return (sum(section_words(s) for s in ed.get("sections") or [])
+            + sum(section_words(d) for d in ed.get("detail") or [])
+            + sum(words(x.get("text")) for x in ed.get("summary") or []))
 
-    def cut_paragraphs(keep: int) -> None:
-        for s in reversed(ed["sections"]):
-            while total() > limit and len(s.get("paragraphs") or []) > keep:
-                s["paragraphs"] = s["paragraphs"][:-1]
-                s["trimmed"] = True
 
-    # PROSE ONLY IS CUT (T2.2): a deep section's third paragraph, then second
-    # paragraphs. A claim line, an item and a table are never cut -- they are
-    # data, and the budget counts prose.
-    cut_paragraphs(2)
-    cut_paragraphs(1)
-    ed["words"] = total()
+def enforce_budget(ed: dict, cadence: str = "daily") -> dict:
+    """THE PARAGRAPH GUARD (T2.5 item 2; per cadence, T2.6): the close and the
+    Weekly keep one paragraph of at most 120 words per section, which keeps them
+    inside their budgets by construction; the Monthly's allowance is its own
+    (config `cadences:`). Then a sentence that repeats The read is withheld where
+    it repeats it (item 4). A claim line, an item and a table are never cut --
+    they are data, and the budget counts prose."""
+    from . import readability                                   # noqa: PLC0415
+    from . import cadence as cadence_mod                        # noqa: PLC0415
+    readability.finalize(ed, cadence)
+    readability.withhold_duplicates(ed)
+    cad = cadence_mod.get(cadence)
+    if cad.get("trim_to_budget"):
+        trim_to_budget(ed, int((cad.get("budget") or {}).get("words") or 0))
+    ed["words"] = edition_words(ed)
+    return ed
+
+
+def trim_to_budget(ed: dict, budget: int) -> dict:
+    """THE BUDGET CUT (T2.7; the Monthly's, config `trim_to_budget`): while the
+    prose runs over `budget` words, the lowest-priority paragraph goes -- a
+    detail block's sub-section paragraphs first (the appendix), then the last
+    paragraph of a block that keeps several, from the back of the edition
+    forward, then any last paragraph -- and the block and its section print
+    "(trimmed)". A claim, an item, a line, a table and a reading entry are never
+    cut; the model never summarises to fit. Returns the edition."""
+    if budget <= 0:
+        return ed
+    order = [(d, ss) for d in ed.get("detail") or [] for ss in d.get("subsections") or []]
+    blocks = []
+    for s in reversed(ed.get("sections") or []):
+        for ss in reversed(s.get("subsections") or []):
+            blocks.append((s, ss))
+        blocks.append((s, s))
+
+    def cut_one() -> bool:
+        for owner, blk in order:
+            if blk.get("paragraphs"):
+                blk["paragraphs"] = []
+                blk["trimmed"] = owner["trimmed"] = True
+                return True
+        for least in (2, 1):
+            for owner, blk in blocks:
+                if len(blk.get("paragraphs") or []) >= least:
+                    blk["paragraphs"] = blk["paragraphs"][:-1]
+                    blk["trimmed"] = owner["trimmed"] = True
+                    return True
+        return False
+
+    while edition_words(ed) > budget and cut_one():
+        pass
     return ed
 
 
