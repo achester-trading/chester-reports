@@ -370,3 +370,5 @@ Say if any should change.
 W7 with its panel was also rendered from fixture bars and looked at: two blues
 stacked by week, the week's POC line and value-area band, the legend under the
 panel, and the candles unchanged.
+
+**CI:** #388 on `c9d5193` passed every check, the full validate on Linux.
