@@ -1,0 +1,27 @@
+[Unit]
+Description=Alternative Assets Quarterly, second Saturday after quarter-end, 06:00 ET
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# THE SECOND SATURDAY AFTER QUARTER-END, 06:00 ET (change order 10 Oct 2026,
+# section 3; first edition Sat 9 Jan 2027 for 4Q26). A quarter ends on 31 Mar,
+# 30 Jun, 30 Sep or 31 Dec, so the second Saturday after it is always the second
+# Saturday of January, April, July or October -- days 8 to 14. Zone-pinned like
+# every unit here.
+#
+# 06:00, clear of Sunday 05:00 (the Weekly) by a day and of the weekday windows
+# entirely; nothing else runs on a Saturday morning.
+#
+# SHIPPED DISABLED (AQ-1): not in DEPLOY_TIMERS. The operator enables it after
+# the December dry run:
+#   systemctl --user enable --now chester-quarterly.timer
+OnCalendar=Sat *-01,04,07,10-08..14 06:00 America/New_York
+
+RandomizedDelaySec=600
+
+# Persistent: a box down on the Saturday still produces the quarter's edition
+# when it returns.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

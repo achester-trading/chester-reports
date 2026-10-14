@@ -322,6 +322,27 @@ def style_faults(text: str, cfg: dict, attributed: bool = False) -> list[str]:
         for w in st.get("intensity_words") or []:
             if re.search(rf"\b{re.escape(w)}\b", s, re.I) and not re.search(r"\d", s):
                 out.append(f"'{w}' with no figure in its sentence")
+    return out + basis_faults(text)
+
+
+# THE BASIS PROXY'S FENCE (SR-36): the leveraged short in Treasury futures is the
+# basis trade's futures leg, never a directional short. The rejected readings --
+# "hedge funds are short bonds", a bet on yields, a squeeze -- withhold the
+# paragraph wherever they appear (config/basis_proxy.yaml `banned_patterns`).
+def basis_faults(text: str) -> list[str]:
+    try:
+        from altdata import basis_proxy                         # noqa: PLC0415
+        pats = basis_proxy.load_config().get("banned_patterns") or []
+    except Exception:                                           # noqa: BLE001
+        return []
+    out = []
+    for s in _sentences(text):
+        for p in pats:
+            if re.search(p, s, re.I):
+                out.append(f"directional reading of the basis trade: '{s[:120]}' -- "
+                           f"the leveraged short is the basis trade's futures leg; "
+                           f"read it only as fragility")
+                break
     return out
 
 
@@ -589,12 +610,16 @@ def stack_system_prompt(base) -> str:
 
 
 # What one section's prose must do beyond the shared rules.
+from altdata.basis_proxy import BASIS_NOTE                      # noqa: E402
+
 SECTION_NOTES = {
     "positioning": (
         "\n\nPOSITIONING & FLOWS: the claim line states the leadership; the "
         "paragraph reads the sources together -- futures positioning (CFTC), "
         "retail, short interest, foreign flows -- for what they say jointly. A "
-        "source with no figure in the data gets no mention."),
+        "source with no figure in the data gets no mention." + BASIS_NOTE),
+    # SR-36: the basis-unwind watch prints in Plumbing too.
+    "plumbing": BASIS_NOTE,
     "book": (
         "\n\nBOOK Z: the book's return and each benchmark's are absolutes; any "
         "comparison between them is written as an EXCESS ('an excess of +0.8 "
@@ -684,13 +709,20 @@ def not_retried(r: dict) -> bool:
             or ("past the" in reason and "guard" in reason))
 
 
-def retry_prompt(system: str, reason: Optional[str]) -> str:
-    """The one retry's system prompt: the audit's reason, and the instruction to
-    fix exactly that."""
-    return (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS "
-            "WITHHELD BY THE AUDIT: " + str(reason)[:600]
-            + "\nWrite it again from the same data, fixing exactly that "
-              "and changing nothing else.")
+def retry_prompt(system: str, reason: Optional[str], attempt: int = 2,
+                 attempts: int = 2) -> str:
+    """A retry's system prompt: the audit's WHOLE withhold message, the rule
+    behind each kind of fault it names, and the instruction to fix exactly that
+    (W-1.3c item 6 -- until then the message was cut at 600 characters, after
+    the first four faults, so a late fault never reached the writer)."""
+    return system + opener_mod.retry_note(reason, attempt, attempts).replace(
+        "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
+
+
+def attempts_of(cad: dict) -> int:
+    """Audited attempts per section at a cadence: `prose_attempts` (the Weekly's
+    is three, W-1.3c item 6), else two -- one draft and one retry."""
+    return max(1, int(cad.get("prose_attempts") or 2))
 
 
 def cadence_of(cadence: str) -> dict:
@@ -923,26 +955,33 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     depth_of = {s["id"]: (READ_DEPTH if s["id"] == "read" else s.get("depth"))
                 for s in ed["sections"]}
 
+    n_attempts = attempts_of(cad)
+
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
-        """One audited attempt; if the audit withholds it, ONE retry with the
-        audit's reason fed back (T2.1 ruling), then withhold as before. A fault
-        (the API, the payload guard) is not retried: the reason is not the
-        prose's to fix."""
+        """One audited attempt; if the audit withholds it, a retry with the
+        audit's whole reason and its rules fed back (T2.1 ruling; W-1.3c item
+        6), up to the cadence's attempts, then withhold as before. A fault (the
+        API, the payload guard) is not retried: the reason is not the prose's
+        to fix."""
         first = attempt(sid, payload, system, max_chars)
         # A FAULT IS NOT RETRIED (Reader's Guide 5.3): until T2.6 only "fault"
         # and the payload guard were excluded here, so a failed API call
         # (`call_failed`) was sent a second time with an "audit" reason.
         if first.get("published") or not_retried(first):
             return {**first, "attempts": 1}
-        retry_sys = retry_prompt(system, first.get("reason"))
-        # THE RETRY MAY KEEP A REPEATED SENTENCE (T2.5 item 4): the code check
-        # after the prose withholds it in the later section, so a Read that
-        # repeats one sentence is not lost whole.
-        second = attempt(sid, payload, retry_sys, max_chars, dup_ok=True)
-        second["attempts"] = 2
-        if not second.get("published"):
-            second["first_reason"] = first.get("reason")
-        return second
+        res, k = first, 1
+        while k < n_attempts and not res.get("published") and not not_retried(res):
+            k += 1
+            retry_sys = retry_prompt(system, res.get("retry_reason")
+                                     or res.get("reason"), k, n_attempts)
+            # THE RETRY MAY KEEP A REPEATED SENTENCE (T2.5 item 4): the code
+            # check after the prose withholds it in the later section, so a Read
+            # that repeats one sentence is not lost whole.
+            res = attempt(sid, payload, retry_sys, max_chars, dup_ok=True)
+        res["attempts"] = k
+        if not res.get("published"):
+            res["first_reason"] = first.get("reason")
+        return res
 
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
@@ -973,6 +1012,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
                       # Takeaway, last, carrying no figure.
                       + opener_mod.faults(text, cad, depth_of.get(sid))
+                      # W-1.3c items 5 and 2 on a cadence with an opener: the
+                      # first sentence is the finding, and no sentence restates
+                      # the terms box.
+                      + (opener_mod.finding_faults(text) + opener_mod.terms_faults(text)
+                         if opener_mod.band(cad, depth_of.get(sid)) else [])
                       # THE DIRECTION AUDIT (W-1.1a item 3) and the stance and
                       # level-word rules (item 4).
                       + direction.faults(text, direction.edition_moves(
@@ -988,8 +1032,10 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                                     readability.section_sentences(ed))]
                          if sid == "read" and not dup_ok else []))
         if faults:
+            # The printed line keeps the first four; the retry hears them all.
             return {"state": "tape_rules", "published": False,
                     "reason": "withheld: " + "; ".join(faults[:4]),
+                    "retry_reason": "withheld: " + "; ".join(faults),
                     "rejected_text": text}
         if not r.published:
             return {"state": r.state, "published": False,

@@ -1327,7 +1327,11 @@ def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
     finally:
         derived.registry_entry = saved
     check(fam == "global", "and by the registry's family first, where it declares one")
-    sub_n = [ss for ss in pl["subsections"] if (ss.get("table") or {}).get("rows")]
+    # The buckets only: batch 3's sub-sections (daily_cascade/batch3_block.py)
+    # carry tables but no bucket and ask for no paragraph, and SR-43/49's
+    # code-written blocks ride after them unwritten.
+    sub_n = [ss for ss in pl["subsections"] if ss.get("bucket")
+             and (ss.get("table") or {}).get("rows")]
     check(sub_n and all(ss.get("paragraphs") for ss in sub_n)
           and all(f"block:plumbing:{ss['bucket']}" in out["written"] for ss in sub_n),
           f"each bucket with rows carries one written takeaway through the section "
@@ -1543,11 +1547,18 @@ def t31_scenarios_themes_group(ed: dict, out: dict) -> None:
     check("Summary to come" in out["html_email"] and "What would change our mind"
           in out["markdown"], "the placeholder prints in the page and the Markdown")
     sl = next(s for s in ed["sections"] if s["id"] == "slow")
-    fam = [ss for ss in sl["subsections"] if ss["title"].startswith("Themes: ")]
+    # A FAMILY BLOCK carries its family; the crypto basket (12 Oct 2026) is a
+    # block inside Themes: digital, not a fifth family.
+    fam = [ss for ss in sl["subsections"] if ss["title"].startswith("Themes: ")
+           and ss.get("family")]
     names = [ss["title"] for ss in fam]
     check(names == ["Themes: digital", "Themes: energy", "Themes: metals",
                     "Themes: real assets"],
           f"item 19: one block per alternative-asset family ({names})")
+    allt = [ss["title"] for ss in sl["subsections"]]
+    check(allt[allt.index("Themes: digital") + 1]
+          == "Themes: digital — the crypto basket",
+          "and the crypto basket's block follows Themes: digital")
     met = next(ss for ss in fam if ss["title"] == "Themes: metals")
     check(met.get("paragraphs") and "block:slow:metals" in out["written"]
           and (met.get("prose") or {}).get("scope", "").startswith("what moved"),
@@ -1640,7 +1651,7 @@ def t32_group(ed: dict, out: dict) -> None:
 
     # O1 -- the paragraph figure cap.
     caps = {c: cad_mod.figure_cap(cad_mod.get(c)) for c in cad_mod.NAMES}
-    check(caps == {"daily": 6, "weekly": 6, "monthly": 8}
+    check(caps == {"daily": 6, "weekly": 6, "monthly": 8, "quarterly": 8}
           and prose_mod.figure_cap() == 8,
           f"O1 item 1: the per-paragraph figure cap is the cadence's -- the close "
           f"and the Weekly 6, the Monthly 8 ({caps})")
@@ -2074,8 +2085,11 @@ def t33_group(ed: dict, out: dict) -> None:
     check(not bad, "no Monthly table prints a series it labels in $ or % as a bare "
                    "count" + (f" ({bad[:3]})" if bad else ""))
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
-    priceish = re.compile(r"\bprices?\b|\byields?\b|\$|per pound|\bratio\b|\bspread\b",
-                          re.I)
+    # "yields-up/dollar-down" is AQ-8a's week signature, and its recurrence and
+    # persistence are counts of weeks: the compound is not a yield (Friday
+    # stitching, 13 Oct).
+    priceish = re.compile(r"\bprices?\b|\byields?\b(?!-)|\$|per pound|\bratio\b|"
+                          r"\bspread\b", re.I)
     typed_count = [k for k, e in (reg.get("metrics") or {}).items()
                    if str(e.get("units")) in ("count", "K", "N")
                    and priceish.search(str(e.get("description") or ""))]
@@ -2318,9 +2332,10 @@ def main() -> int:
           "record, the register's month, the appendix")
     check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
           and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
-                                                     "monthly": 55},
-          "the Monthly budget (10,000 words, 12 charts; T3.1) and the three "
-          "reading targets (5, 20, 55 minutes) are configuration")
+                                                     "monthly": 55, "quarterly": 90},
+          "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
+          "reading targets (5, 20, 55 minutes; the Quarterly's read 90, AQ-1) are "
+          "configuration")
     check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
               and s["id"] not in ("positioning",)),
           "every non-empty section opens with a claim line (Positioning's call "

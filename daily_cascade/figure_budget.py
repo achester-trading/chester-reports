@@ -72,7 +72,7 @@ NAME_KEYS = frozenset({"section", "block", "series", "name", "title", "also_move
                        "series_kind", "direction", "cap_note", "groups",
                        "as_of", "note", "blocks_carry", "where", "period",
                        "columns"})
-_NUM = re.compile(r"(?P<sign>[+\-−±])?\s?(?P<dollar>\$)?(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
+_NUM = re.compile(r"(?P<sign>[+\-−±])?\s?(?P<dollar>[$€£¥])?(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
                   r"(?P<unit>%|bp\b|bps\b|pts\b|points\b|tn\b|bn\b|mn\b|m\b|k\b|x\b)?")
 _SCALE = {"tn": 1e12, "bn": 1e9, "mn": 1e6, "m": 1e6, "k": 1e3}
 
@@ -91,11 +91,13 @@ def parse_figure(cell) -> Optional[tuple[float, str]]:
         return None
     v = float(m.group("num").replace(",", ""))
     unit = (m.group("unit") or "").lower()
+    # The currency is the unit: "$" for the dollar and, since W-1.3c item 1, the
+    # euro, pound and yen signs as themselves, so "−€1bn" is never a dollar.
     if unit in _SCALE:
         v *= _SCALE[unit]
-        unit = "$" if m.group("dollar") else ""
+        unit = m.group("dollar") or ""
     elif m.group("dollar"):
-        unit = "$"
+        unit = m.group("dollar")
     unit = {"bps": "bp", "points": "pts"}.get(unit, unit)
     if m.group("sign") in ("-", "−"):
         v = -v

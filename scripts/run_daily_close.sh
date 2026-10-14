@@ -142,6 +142,16 @@ FEAT_RC=$?
 printf '%s\n' "$FEAT_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $FEAT_RC -ne 0 ]] && log "WARN market_features exited $FEAT_RC -- continuing; the object's dimensions report their own staleness"
 
+# THE STORE-WIDE MOVE SCREEN (Audit #4 Category 1 items 1 and 5), after the final
+# prices and the features: one stored result a session, so the false-flag base
+# rates accrue point-in-time. Never fatal: without it the close computes the
+# screen in memory and prints the same lines.
+log "move screen: the session's flags"
+MS_OUT="$("$PY" -m altdata.move_screen write ${SESSION_ARG:+--day "$SESSION_ARG"} 2>&1 | tail -8)"
+MS_RC=$?
+printf '%s\n' "$MS_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $MS_RC -ne 0 ]] && log "WARN move screen exited $MS_RC -- continuing; the close computes it in memory"
+
 # ---- the order gate, by reconciliation (Phase 5a), BEFORE the report ---------
 #
 # The close prints the session's rule breaks, so they are written first: every

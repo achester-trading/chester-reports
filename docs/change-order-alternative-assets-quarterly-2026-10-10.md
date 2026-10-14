@@ -138,6 +138,8 @@ Light chapters (real estate, credit, international equities, agriculture) use it
 
 **Scanning sub-chapter.** The Saturday mechanism scan and the monthly signal scan's crypto items fold in here: emerging mechanisms, venues, protocol events, tokenised claims read as a legal and custody question before a market one (does the token convey the claim, or only platform exposure?), with the MW-7 promote/demote/remove criteria applied to the light tier each quarter; the roster is refreshed on executable depth and turnover, never on market cap alone. Names outside the two tiers (XRP, BNB, TRX, DOGE, ADA, SUI, AVAX, UNI and whatever qualifies) are scan-tier only — no series, no page — unless the operator promotes one (MW-6). **Deck items added** (the Coin Metrics, Galaxy and Messari quarterlies): the sector returns table (L1, L2, DeFi, RWA, memes, privacy), venue share (CEX against DEX, Hyperliquid's share), ETF AUM, VC raises (DS-29 `/raises`), developer activity (a named gap).
 
+**Amendment.** PRL: deep → basket, 12 Oct, by the crypto basket brief.
+
 ### 4.7 Real estate (light; VI §18–21; XV §12; reserved XXIX)
 
 CMBS delinquency by property type and the extension-versus-foreclosure share ("rising foreclosure share = deferral has stopped"); the office / data-centre split, data-centre ABS as the mutation to watch (S14); REITs against the index and the rate-sensitive ratio (utilities, REITs, small caps against the market); CPPI; real house prices YoY; mortgage rates and spreads; the CRE ten-year families (slow workout 55 / acceleration 30 / muddle-through 15) rewritten.

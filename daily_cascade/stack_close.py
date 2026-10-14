@@ -267,6 +267,11 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # (regime.latest), never recomputed.
     from . import state_block                                   # noqa: PLC0415
     ed["detail"] = state_block.detail_tables(p)
+    # THE MOVE SCREEN'S REFERENCE TIER: every flag, after the state tables.
+    mis = next((s for s in ed["sections"] if s["id"] == "misfit"), {})
+    ref = (mis.get("data") or {}).get("_move_screen_reference")
+    if ref and ref.get("rows"):
+        ed["detail"].append({"title": "Moves past 2.5σ", "table": ref})
     # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
     from . import readability                                   # noqa: PLC0415
     readability.polish_edition(ed, charts)

@@ -50,6 +50,12 @@ classes:
   earnings_tracked:   {tier: 3, channel: "a name a tracked story turns on", amplifiers: []}
   prediction_family:  {tier: 3, channel: "a prediction market's resolution: the outcome its traders have priced", amplifiers: []}
   thailand_political: {tier: 3, channel: "Thailand's policy calendar: the baht and Thai rates", amplifiers: []}
+  # Signal-triage batch 3, Tranche A's own calendar rows (config/release_calendar.yaml
+  # `scheduled` / `recurring`; Friday stitching, 13 Oct).
+  boj_decision:       {tier: 2, channel: "the yen's funding rate and the JGB curve", amplifiers: [USD_INDEX, UST10Y]}
+  treasury_buyback:   {tier: 3, channel: "Treasury buying back its own coupons: long-end supply and the term premium", amplifiers: [UST30Y, UST10Y]}
+  jgb_auction:        {tier: 3, channel: "Japan's demand for its long end: JGB yields, and the pull on Treasuries", amplifiers: [UST30Y]}
+  weekly_release:     {tier: 3, channel: "a scheduled data release the Plumbing and Positioning tables read", amplifiers: []}
 
 # A RELEASE's class, by its calendar label (config/release_calendar.yaml). A
 # release this map does not name is ROUTINE: it goes to the reference tables,
