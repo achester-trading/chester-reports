@@ -209,6 +209,26 @@ def group_c() -> None:
     check(tries["n"] == 2 and len(rows) == 2,
           f"an expiry that comes back empty is retried and captured (5b; "
           f"{tries['n']} tries, {len(rows)} rows)")
+    # A night Yahoo serves nothing: retries stop after three dead expiries.
+    dead = {"n": 0}
+
+    class Dead:
+        options = tuple(f"2026-11-{d:02d}" for d in range(1, 21))
+        fast_info = {"last_price": 100.0}
+
+        def option_chain(self, exp):
+            dead["n"] += 1
+            return types.SimpleNamespace(calls=pd.DataFrame(), puts=pd.DataFrame())
+    altdata.import_yfinance = lambda: types.SimpleNamespace(Ticker=lambda s: Dead())
+    _base.time.sleep = options_chain.time.sleep = lambda s: None
+    try:
+        rows, man = options_chain.fetch_symbol("SPY")
+    finally:
+        altdata.import_yfinance, _base.time.sleep, options_chain.time.sleep = orig
+    g = options_chain.RETRY_GIVE_UP_AFTER
+    check(dead["n"] == 3 * g + (20 - g) and not rows,
+          f"20 empty expiries cost {dead['n']} calls, not 60: three tries for the "
+          f"first {g}, then one each -- inside the EOD unit's 30 minutes")
     src = Path(options_chain.__file__).read_text(encoding="utf-8")
     check(src.count("retry_call(") >= 3,
           "the spot history, the expiry list and each chain all retry (5b)")

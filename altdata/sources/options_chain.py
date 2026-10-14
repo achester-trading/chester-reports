@@ -58,6 +58,7 @@ def _chain_empty(chain) -> bool:
 log = logging.getLogger(__name__)
 
 PACING_SECONDS = 0.25          # be polite; a busy symbol has 40+ expiries
+RETRY_GIVE_UP_AFTER = 3        # empty expiries in a row before one try each (AUD-1 5b)
 SNAPSHOT_FMT = "%H%M%SZ"
 
 # Columns kept from the yfinance frame, in written order.
@@ -200,6 +201,13 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
     manifest["expiries_fetched"] = len(expiries)
 
     today = session.session_date_obj()
+    # THE RETRIES ARE BOUNDED (AUD-1 5b). Three tries cost up to six seconds of
+    # backoff an expiry, and on a night Yahoo serves nothing that is some forty
+    # minutes across the universe -- past chester-eod.service's 30-minute limit,
+    # which would kill the run before it wrote its status. So once
+    # RETRY_GIVE_UP_AFTER expiries in a row have come back empty even with
+    # retries, the rest of this symbol gets one try each.
+    dead_run = 0
     for exp in expiries:
         try:
             exp_date = dt.date.fromisoformat(exp)
@@ -208,12 +216,15 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
             dte = -1
         try:
             # AUD-1 5b: three tries, on an error or an empty pair of frames.
-            chain = retry_call(lambda: t.option_chain(exp), empty=_chain_empty)
+            chain = retry_call(lambda: t.option_chain(exp), empty=_chain_empty,
+                               tries=1 if dead_run >= RETRY_GIVE_UP_AFTER else 3)
             exp_rows = (_frame_to_rows(chain.calls, symbol, fetched_at, spot, exp, dte, "C")
                         + _frame_to_rows(chain.puts, symbol, fetched_at, spot, exp, dte, "P"))
+            dead_run = 0 if exp_rows else dead_run + 1
             rows.extend(exp_rows)
             manifest["expiries"][exp] = {"dte": dte, **_expiry_quality(exp_rows)}
         except Exception as e:  # noqa: BLE001 -- one bad expiry is not fatal
+            dead_run += 1
             manifest["expiries"][exp] = {"dte": dte, "rows": 0, "usable": False,
                                          "reason": f"{type(e).__name__}: {e}"}
             manifest["errors"].append(f"{exp}: {type(e).__name__}: {e}")
