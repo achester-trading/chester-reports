@@ -762,8 +762,13 @@ def group_g(r: dict) -> None:
     drawn_ = [k for k in met["quarter"]["charts_rendered"]
               if not out["charts"][k].get("unavailable")]
     lf = out["charts"][met["quarter"]["charts_rendered"][0]]
-    check(len(drawn_) == 2 and "AQ-4" in str(lf.get("unavailable")),
-          "the two structure charts are drawn; the long frame says it waits for AQ-4")
+    # Where AQ-4's horizon charts are on the branch the long frame is drawn too
+    # (Friday stitching, 13 Oct); else it says it waits for AQ-4.
+    from monthly_macro import quarterly_items as qi_            # noqa: PLC0415
+    check(len(drawn_) == 3 if qi_.module("horizon") is not None
+          else len(drawn_) == 2 and "AQ-4" in str(lf.get("unavailable")),
+          "the two structure charts are drawn; the long frame too where AQ-4 is on "
+          "the branch, else it says it waits for AQ-4")
     st_rows = met["structure"]["table"]["rows"]
     check(st_rows and all(r_[4] == "until the lenses" for r_ in st_rows)
           and all(re.search(r"\d+(st|nd|rd|th) \(n=", r_[3]) for r_ in st_rows
@@ -800,8 +805,11 @@ def group_g(r: dict) -> None:
           "currency names its pair universe: the deep basket (three stored, six by "
           "name) and the scan tier (fifteen; H.10's legs wait for aq-3-series-1)")
     an = met["analyses"]["table"]["rows"]
+    # A hook whose branch is on this one reads its store instead of naming the
+    # branch it waits for (Friday stitching, 13 Oct).
     check(all(len(x) == 3 and x[2] for x in an)
-          and any("AQ-8a" in x[1] for x in an) and any("AQ-5" in x[1] for x in an),
+          and (qi_.module("attribution") is not None or any("AQ-8a" in x[1] for x in an))
+          and (qi_.module("correlation") is not None or any("AQ-5" in x[1] for x in an)),
           "item 6: each analysis's state and its kill condition; the hooks name the "
           "branch they wait for")
     pr = met["priced"]

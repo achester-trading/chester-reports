@@ -1,5 +1,5 @@
 """
-Quarterly fundamentals for six AI-capex names -- yfinance, stamped by SEC filing.
+Quarterly fundamentals for nine AI-capex names -- yfinance, stamped by SEC filing.
 
     python -m altdata.sources.fundamentals   # one pull, summary to stdout
 
@@ -7,7 +7,8 @@ Signal-triage order ST-2 (SR-16 capex funding, SR-25 the memory-cycle tell): the
 inputs to calc.self_fund_ratio, calc.hs_netdebt_12m and calc.mu_inv_days (ST-4).
 
 SOURCE. yfinance's quarterly_cashflow, quarterly_balance_sheet and
-quarterly_income_stmt for AMZN, GOOGL, MSFT, META, ORCL, MU -- five to seven
+quarterly_income_stmt for AMZN, GOOGL, MSFT, META, ORCL, MU, and (SR-37) NVDA,
+AVGO, AMAT -- five to seven
 quarters deep, no key. A tier-C mirror of the companies' 10-Q/10-K filings.
 
 STORED, key yfinance.fund_<ticker>_<field>, observed_at = the fiscal quarter's end
@@ -61,7 +62,9 @@ from . import _publication as pub
 log = logging.getLogger(__name__)
 
 SOURCE = "yfinance_fundamentals"
-TICKERS = ("AMZN", "GOOGL", "MSFT", "META", "ORCL", "MU")
+# SR-37 (batch 4, ST4-01): the AI FCF-transfer panel reads the five
+# hyperscalers and four semiconductor names -- NVDA, AVGO and AMAT join MU.
+TICKERS = ("AMZN", "GOOGL", "MSFT", "META", "ORCL", "MU", "NVDA", "AVGO", "AMAT")
 INVENTORY_TICKERS = ("AMZN", "GOOGL", "MSFT", "MU")
 FRESH_DAYS = 14
 FORMS = ("10-Q", "10-K")
