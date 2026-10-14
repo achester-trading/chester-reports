@@ -82,6 +82,13 @@ Tranche 2 (X-2; change order sections 4 and 10):
      exactly as the backtest did -- both legs, the close-only fills, the time
      stop, one position at a time; the operator retires it by ruling (source
      operator), never without one.
+  S  THE WEEKLY LOOP (X-2.4). An in-range re-fit is judged on the embargoed
+     window and counts a variant, and only an accepted one is loaded; a
+     parameter that wants out of its validated range is registered as a
+     systematic hypothesis, never moved; a frozen engine is not re-fitted; the
+     agenda (losses by regime, instrument and day; unpositioned screen prints;
+     crowding; the backtest-to-paper gap; the queue) is written, with a copy
+     to the outbox; the steps run in order.
 
     python tools/validate_alpha.py
 """
@@ -1553,9 +1560,101 @@ def st_close(key: str, day: str) -> Optional[float]:
         st.close()
 
 
+def group_s() -> None:
+    head("S. THE WEEKLY LOOP: WALK-FORWARD, BOUNDED RE-FIT, AGENDA (X-2.4)")
+    saved = engine_mod.ENGINE_PACKAGES
+    engine_mod.ENGINE_PACKAGES = saved + ("tests.fixtures.alpha.",)
+    path = Path(_TMP) / "s.db"
+    sun = "2026-10-11T10:00:00+00:00"
+
+    def registry(fit_to: int) -> Path:
+        reg = Path(_TMP) / f"s_registry_{fit_to}.yaml"
+        reg.write_text(yaml.safe_dump({"engines": [
+            {"id": "fixture_refit", "class": "tests.fixtures.alpha.fixture_engine:RefitEngine",
+             "family": "fixture-refit", "horizon": "daily", "cost_class": "etf",
+             "min_size": 0.01, "params": {"lookback": 20, "fit_to": fit_to}}]}),
+            encoding="utf-8")
+        return reg
+    try:
+        with Ledger(path) as lg:
+            lg.upsert_engine("fixture_refit", "fixture-refit", "daily", "live", 0.01, "x",
+                             validated_ranges={"lookback": [10, 40]},
+                             validated_metrics={"expectancy": 0.0004,
+                                                "deflated_sharpe": 1.1})
+        n0 = 0
+        out = weekly.run(sun, path, fx_store(), registry(30))
+        with Ledger(path) as lg:
+            n1 = lg.variant_count("fixture-refit")
+            ev = lg.one("SELECT kind, after FROM loop_events WHERE engine='fixture_refit' "
+                        "AND kind LIKE 'refit%' ORDER BY id DESC")
+        a = json.loads(ev["after"]) if ev else {}
+        check(not out["failures"] and ev and ev["kind"] in ("refit_accepted", "refit_rejected")
+              and n1 == n0 + 1 and a.get("embargo_rows") == 1,
+              f"an in-range re-fit (lookback 20 -> 30) is judged on the embargoed window "
+              f"({ev['kind'] if ev else None}: {a.get('current_dsr', 0):.2f} -> "
+              f"{a.get('proposed_dsr', 0):.2f}) and counts one variant ({n0} -> {n1})")
+        acc = ev and ev["kind"] == "refit_accepted"
+        with Ledger(path) as lg:
+            lr = weekly.latest_refit(lg, "fixture_refit")
+        check((lr == {"lookback": 30}) if acc else (lr is None),
+              "an accepted re-fit's parameters are what the loops load next; a rejected "
+              "one's are not")
+        weekly.run(sun, path, fx_store(), registry(55))
+        with Ledger(path) as lg:
+            ev2 = lg.one("SELECT after FROM loop_events WHERE engine='fixture_refit' AND "
+                         "kind='refit_out_of_range' ORDER BY id DESC")
+            a2 = json.loads(ev2["after"]) if ev2 else {}
+            h = hyp.Register(lg).get(a2.get("hypothesis", "")) if a2 else None
+            lr2 = weekly.latest_refit(lg, "fixture_refit")
+        check(ev2 and h and h["source"] == "systematic" and h["status"] == "needs_code"
+              and "outside" in h["mechanism"] and lr2 == lr,
+              f"a parameter that wants to leave its range (lookback 55, range [10, 40]) "
+              f"is NOT moved: it is registered as hypothesis {a2.get('hypothesis')}")
+        with Ledger(path) as lg:
+            lg.set_engine("fixture_refit", "x", status="halved", frozen=True)
+            nf = lg.variant_count("fixture-refit")
+        weekly.run(sun, path, fx_store(), registry(30))
+        with Ledger(path) as lg:
+            skipped = lg.one("SELECT 1 AS x FROM loop_events WHERE engine='fixture_refit' "
+                             "AND kind='refit_skipped' AND after LIKE '%frozen%'")
+            check(skipped and lg.variant_count("fixture-refit") == nf,
+                  "a frozen (halved) engine is never re-fitted, and counts nothing")
+    finally:
+        engine_mod.ENGINE_PACKAGES = saved
+    # the agenda, on the Tranche 1 ledger's grades (group J) and the fixture store
+    jpath = Path(_TMP) / "j.db"
+    out = weekly.run(asof(DAYS[39]).replace("21:40", "23:30"), jpath, STORE)
+    rd = Path(os.environ["ALPHA_RESEARCH_DIR"])
+    md = (rd / "agenda.md").read_text(encoding="utf-8") if (rd / "agenda.md").is_file() else ""
+    js = json.loads((rd / "agenda.json").read_text(encoding="utf-8")) \
+        if (rd / "agenda.json").is_file() else {}
+    check(not out["failures"] and md and js,
+          "the weekly loop writes alpha/research/agenda.md and agenda.json (the research "
+          "dir; gitignored where the box writes it)")
+    check(all(k in js for k in ("losses_by_regime", "losses_by_instrument",
+                                "losses_by_day", "screen_prints_without_a_position",
+                                "engine_correlation", "backtest_to_paper_gap",
+                                "research_queue"))
+          and js["losses_by_day"] and isinstance(js["engine_correlation"], list)
+          and len(js["backtest_to_paper_gap"]) == 2,
+          f"from the residuals: losses by regime, instrument and day "
+          f"({len(js.get('losses_by_day', []))} days), the screen's unpositioned prints, "
+          f"the engines' correlation (a pair with no variance is left out), the "
+          f"backtest-to-paper gap, the research queue")
+    check(any(p.name.startswith("lab-agenda-") for p in
+              Path(os.environ["ALPHA_OUTBOX"]).glob("*.md")),
+          "and a copy goes to the outbox for the Saturday brief")
+    with Ledger(jpath) as lg:
+        kinds = [r["kind"] for r in lg.q("SELECT kind FROM loop_events WHERE loop='weekly' "
+                                         "ORDER BY id")]
+    order = [k for k in kinds if k in ("rebalance", "agenda_written", "verdicts_written")]
+    check(order[-3:] == ["rebalance", "agenda_written", "verdicts_written"],
+          "in order: walk-forward and re-fit, rebalance, agenda, verdicts")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q, group_r]
+          group_p, group_q, group_r, group_s]
 
 
 def main() -> int:

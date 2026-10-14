@@ -926,7 +926,7 @@ observation store read-only (`docs/alpha-lab.md`).
 | Unit | When | What |
 |---|---|---|
 | `chester-alpha-nightly` | weekdays 17:40 ET | `scripts/run_alpha_nightly.sh` → `python -m alpha.loops.nightly`: fill, mark, grade, govern, learn |
-| `chester-alpha-weekly` | Sunday 06:00 ET | `scripts/run_alpha_weekly.sh` → `python -m alpha.loops.weekly`: the allocator's rebalance |
+| `chester-alpha-weekly` | Sunday 06:00 ET | `scripts/run_alpha_weekly.sh` → `python -m alpha.loops.weekly`: walk-forward, the bounded re-fit, the rebalance, the agenda, the verdicts |
 
 **Why 17:40.** After the daily close's capture: `chester-daily-close` fires at
 16:45 (+60 s jitter) and finishes inside its 10-minute `TimeoutStartSec`,

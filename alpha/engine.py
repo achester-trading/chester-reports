@@ -12,6 +12,13 @@ lists each engine's id, family, horizon, its class as a dotted path, its
 min_size and its parameters; `registered()` loads them, and no loop or report
 names an engine any other way. Tranche 1 registers none.
 
+THE RE-FIT HOOKS (optional, X-2.4). An engine the weekly loop may re-fit
+within its validated ranges also defines `strategy()` -> alpha.validate.Strategy
+(fit(rows) -> params; returns(rows, params) -> net returns), `refit_rows(store,
+as_of)` -> its point-in-time rows, and `refit_test_rows`, the embargoed window
+the deflated metric is compared on. Without them, its record extends through
+the nightly loop's grades and nothing is re-fitted.
+
 An engine reads the store only through the ReadOnlyStore it is handed, at the
 as-of instant it is handed; it never opens a connection, never fetches and never
 writes. It does not size above its minimum before its sample: the allocator

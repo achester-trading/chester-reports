@@ -91,8 +91,12 @@ class Run:
         from .. import promote                                  # noqa: PLC0415
         entries = list(engine_mod.registered(self.registry_path))
         entries += promote.register_engines(self.ledger)      # promoted grammar rules
+        from .weekly import latest_refit                        # noqa: PLC0415
         for entry in entries:
             eng = engine_mod.load(entry)
+            refit = latest_refit(self.ledger, eng.engine_id)
+            if refit:                     # the weekly loop's accepted re-fit (X-2.4)
+                eng.params.update(refit)
             if hasattr(eng, "bind_ledger"):
                 eng.bind_ledger(self.ledger)
             self.engines[eng.engine_id] = eng

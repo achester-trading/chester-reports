@@ -34,17 +34,15 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
-import statistics
 from typing import Any, Optional
 
 import yaml
 
 from altdata import observations, session
-from alpha import files, rules
+from alpha import files, rules, screen
 from alpha import hypotheses as hyp
 
-SIGMA = 2.5
-Z_WINDOW = 1260
+SIGMA = screen.SIGMA
 DEALER_KEYS = ("exposure.net_gex", "exposure.gamma_flip", "exposure.call_wall",
                "exposure.put_wall")
 
@@ -68,24 +66,8 @@ def _shock_points() -> float:
 
 
 def moves(store, as_of: str) -> list[dict]:
-    t = observations.canonical_instant(as_of)
-    day = session.session_date(as_of)
-    data = rules.Data(store)
-    out = []
-    for sym, key in sorted(rules.price_symbols().items()):
-        if not store.all_vintages(key):
-            continue
-        xs = data.series(key).known(day, t, Z_WINDOW + 1)
-        if len(xs) < 61 or xs[-1][0] != day:
-            continue
-        r = [xs[i][1] / xs[i - 1][1] - 1 for i in range(1, len(xs)) if xs[i - 1][1]]
-        hist, last = r[:-1], r[-1]
-        sd = statistics.stdev(hist) if len(hist) > 2 else 0.0
-        out.append({"symbol": sym, "close": round(xs[-1][1], 4),
-                    "change_pct": round(last * 100, 3),
-                    "z": round((last - statistics.fmean(hist)) / sd, 2) if sd else None,
-                    "history_days": len(hist)})
-    return out
+    """The basket's moves with z-scores: alpha/screen.py's, the agenda's too."""
+    return screen.moves(store, as_of)
 
 
 def dealer(store, as_of: str) -> dict:
@@ -205,7 +187,7 @@ def build(store, ledger, as_of: str) -> dict:
         "moves": mv,
         "screen": {"sigma": SIGMA, "source": "the packet's own screen over the price "
                    "basket (altdata.move_screen is not built yet)",
-                   "prints": [m for m in mv if m["z"] is not None and abs(m["z"]) >= SIGMA]},
+                   "prints": screen.prints(mv)},
         "dealer": dealer(store, as_of),
         "state": state(store, as_of),
         "prediction": prediction(store, as_of),

@@ -57,3 +57,42 @@ class BlockedEngine(FixtureEngine):
         return [Signal(instrument=Instrument(id="BN", key="yfinance.mkt_spy",
                                              cost_class="single_name"),
                        direction=1, as_of=as_of)]
+
+
+class RefitEngine(FixtureEngine):
+    """Exposes the weekly loop's re-fit hooks (X-2.4) over SPY's stored closes:
+    a momentum sign over `lookback` sessions, validated over lookback [10, 40].
+    Its fit returns `fit_to` (a param), so the gate can ask for an in-range and
+    an out-of-range re-fit and watch what the loop does with each."""
+    engine_id = "fixture_refit"
+    validated_ranges = {"lookback": [10, 40]}
+    refit_test_rows = 60
+
+    def refit_rows(self, store, as_of: str) -> list[dict]:
+        from altdata import observations                        # noqa: PLC0415
+        bars = store.daily_bars(SPY.key, as_of)
+        t = observations.canonical_instant(as_of)
+        rows = []
+        closes = [b["close"] for b in bars]
+        for i in range(60, len(bars) - 1):
+            rows.append({"day": bars[i]["day"], "decided_at": t,
+                         "available_at": f"{bars[i]['day']}T20:20:00.000000+00:00",
+                         "past": closes[i - 60:i + 1],
+                         "next_ret": closes[i + 1] / closes[i] - 1})
+        return rows
+
+    def strategy(self):
+        from alpha import validate as av                        # noqa: PLC0415
+        fit_to = int(self.params.get("fit_to", 20))
+
+        def returns(rows, p):
+            k = int(p.get("lookback", 20))
+            out = []
+            for r in rows:
+                if len(r["past"]) <= k:
+                    continue
+                d = 1 if r["past"][-1] > r["past"][-1 - k] else -1
+                out.append(d * r["next_ret"] - 0.0002)
+            return out
+        return av.Strategy(family=self.family, horizon=self.horizon,
+                           fit=lambda rows: {"lookback": fit_to}, returns=returns)
