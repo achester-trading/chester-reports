@@ -1286,6 +1286,26 @@ sources:
         China's primary stays SAFE (safe.gold_reserves_oz); IL is its
         cross-check.
 
+  imf_ifs:
+    name: IMF International Financial Statistics -- official reserve assets, gold
+    tier: B
+    epistemic_role: primary_fact
+    domain: [metals, reserves]
+    geography: [global]
+    latency: monthly
+    timestamp_reliability: unknown
+    timestamp_notes: >-
+      Not ingested. Declared by AQ-8a (10 Oct 2026) as the two-bid
+      decomposition's official leg beyond China; a ruling on the source is
+      pending, and no writer exists.
+    license: public
+    allowed_reports: [monthly_macro]
+    status: not_yet_sourced
+    caveats:
+      - >-
+        imf.ifs_official_gold_oz registered not_yet_sourced. China's own report
+        (safe.gold_reserves_oz) is read in the meantime.
+
   ken_french:
     name: Kenneth R. French Data Library (Tuck, Dartmouth)
     tier: B
