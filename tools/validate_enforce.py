@@ -219,9 +219,16 @@ def group_b(store) -> None:
     g = heat.gate(pkt(9, "QQQ", "D", "short", 0.0, fam="iron_condor"), [], store, limits=FIX)
     check(g["outcome"] == "delay" and "vega" in g["reasons"][0],
           "an options expression with no vega -> delay, not a guess")
-    g = heat.gate(pkt(9, "AAPL", "B", "long", 10000), [], store, limits=FIX)
+    # AMD: outside the price basket. (AAPL was the example until the earnings
+    # names joined the basket, Book B scanner follow-up 4, 13 Oct 2026; in the
+    # basket with no closes stored, it delays too, on its history.)
+    g = heat.gate(pkt(9, "AMD", "B", "long", 10000), [], store, limits=FIX)
     check(g["outcome"] == "delay" and "price basket" in g["reasons"][0],
           "a name the store does not carry has no beta -> delay")
+    g = heat.gate(pkt(9, "AAPL", "B", "long", 10000), [], store, limits=FIX)
+    check(g["outcome"] == "delay" and "beta" in g["reasons"][0],
+          f"a basket name with no closes stored has no beta either -> delay "
+          f"({g['reasons'][0][:80]})")
     # Net beta: expansion band 60-80, cap 95% = $285,000 beta-adjusted.
     big = [pkt(20, "SPY", "A", "long", 280000)]
     g = heat.gate(pkt(21, "SPY", "B", "long", 20000), big, store, limits=FIX)

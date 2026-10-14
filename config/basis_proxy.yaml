@@ -1,0 +1,86 @@
+# SR-36 -- the Treasury basis-trade proxy (ST-B3-12) and its calibration ledger
+# (ST-B3-14). Read by altdata/basis_proxy.py. Ruled 6 Oct 2026 (batch-3 change
+# order, section 7 decisions 8 and 9): report-only through the first calibration
+# cycle -- no overlay wiring, no trigger, no book rule.
+version: 1
+
+# The six CBOT Treasury futures in the CFTC's Traders in Financial Futures
+# report (futures only, dataset gpe5-46if), stored by altdata/sources/cftc.py
+# under instrument = the contract's ticker. Codes read from the dataset on
+# 11 Oct 2026; 020604 printed "LONG-TERM U.S. TREASURY BONDS" from its first
+# report (2 Mar 2010) to 7 Jun 2016 -- the Ultra bond under its launch name.
+contracts: [TU, FV, TY, TN, US, WN]
+
+# DV01 PER CONTRACT, US dollars per basis point. SESSION-SET (11 Oct 2026), NOT
+# CME's published figures: a CTD-duration approximation, contract notional x the
+# cheapest-to-deliver's approximate modified duration x 0.0001, the CTD taken at
+# par. CME publishes contract specifications (notional, deliverable range), not a
+# standing DV01; the CTD and its duration move with the curve, so these are
+# order-of-magnitude weights for summing across tenors, not hedge ratios. The
+# operator may replace any of them; the DV01-weighted share is printed beside the
+# contract-weighted one so neither is read alone.
+dv01:
+  source: "CTD-duration approximation, session-set 11 Oct 2026"
+  per_contract:
+    TU: {usd_per_bp: 38,  notional: 200000, ctd_duration: 1.9}
+    FV: {usd_per_bp: 42,  notional: 100000, ctd_duration: 4.2}
+    TY: {usd_per_bp: 62,  notional: 100000, ctd_duration: 6.2}
+    TN: {usd_per_bp: 85,  notional: 100000, ctd_duration: 8.5}
+    US: {usd_per_bp: 120, notional: 100000, ctd_duration: 12.0}
+    WN: {usd_per_bp: 190, notional: 100000, ctd_duration: 19.0}
+
+# THE TIERS (ruled 6 Oct 2026, option A).
+tiers:
+  # The 10-year (TY): leveraged-fund net short as a share of its open interest.
+  # The record is ~45% (26 Aug 2025).
+  ten_year: {contract: TY, elevated: 35.0, extreme: 40.0}
+  # The six-contract aggregate (contract-weighted): its own full-history
+  # percentiles, computed at each read from the history knowable then -- never
+  # fixed numbers.
+  aggregate: {elevated_percentile: 90, extreme_percentile: 97}
+
+# The aggregate's full history starts at the first report carrying the Ultra bond
+# (WN), 2 Mar 2010 -- the order's "full TFF history (2010-)". The Ultra 10-year
+# (TN) joins on 8 Mar 2016; before then the aggregate is five contracts.
+history_start: "2010-03-02"
+five_year_days: 1826
+
+# (d) THE OI-CHANGE READ, week on week, aggregate (contract-weighted):
+# the leveraged NET short against open interest. A change smaller than this
+# share of the prior week's level is "flat".
+flat_pct: 1.0
+
+# THE BASIS-UNWIND WATCH: a COINCIDENCE flag only -- a level flag on either
+# series plus at least `min_cosignals` of the four co-signals. A co-signal whose
+# series is not stored is ABSENT, named, and never counts either way.
+unwind_watch:
+  min_cosignals: 2
+  sigma: 2.0
+  # SR-35: the move screen's 10-year companion (altdata.move_screen.companion_10y,
+  # c1-move-screen), hooked by name; absent where the module or function is not.
+  sr35: {module: altdata.move_screen, function: companion_10y}
+  # MOVE's one-month (21-session) change as a z on five years of such changes.
+  move: {key: yfinance.mkt_move, sessions: 21, history_days: 1826}
+  # SOFR less IORB, its two-week (10-session) change in bp as a z on five years;
+  # a widening only. The sponsored-repo volume series is not stored.
+  funding: {sofr: fred.sofr, iorb: fred.iorb, sessions: 10, history_days: 1826,
+            sponsored_repo_key: null}
+  # The 10-year swap spread's two-week change beyond 2 sigma, either way. Not
+  # stored: no source for the 10-year SOFR swap rate is in the store.
+  swap_spread: {key: null, sessions: 10, history_days: 1826}
+
+# THE FRAME'S FENCE: the directional reading the order rejects. Any of these in a
+# paragraph withholds it (daily_cascade.stack_prose.basis_faults).
+banned_patterns:
+  - "hedge funds are short (?:bonds|treasuries|the bond market)"
+  - "(?:hedge funds|leveraged funds|speculators|the street)(?:'s)? (?:are|were|is|remain|stay|went) (?:net )?short (?:bonds|treasuries|duration|the 10-year|the long end)"
+  - "bet(?:s|ting)? (?:on|against) (?:higher|lower|rising|falling) (?:yields|bonds|treasuries)"
+  - "(?:short|bond|treasury) squeeze"
+  - "betting against (?:bonds|treasuries)"
+
+# The calibration ledger's episodes (ST-B3-14): first and last report Tuesday.
+episodes:
+  - {id: mar2020, title: "March 2020", start: "2020-01-07", end: "2020-05-26"}
+  - {id: apr2025, title: "April 2025", start: "2025-02-25", end: "2025-06-24"}
+  - {id: augoct2025, title: "Aug-Oct 2025 (the record and the ease)", start: "2025-07-01", end: "2025-11-25"}
+  - {id: compression2026, title: "The 2026 compression", start: "2026-01-06", end: null}

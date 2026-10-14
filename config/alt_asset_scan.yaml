@@ -1,0 +1,105 @@
+# THE ALTERNATIVE-ASSETS QUARTERLY SCAN -- what it may read and how its file is
+# ingested (AQ-7; change order of 10 Oct 2026, sections 8, 4.5 and 4.10).
+#
+# The scan is a chat-side scheduled task (docs/scheduled-tasks.md), cloud-only and
+# web-only, that writes ONE FILE: docs/scans/alt-assets-YYYYqN.md, in three parts.
+# Its prompt is docs/scans/PROMPT-alt-assets-quarterly.md; the ingest is
+# altdata/alt_scan.py. Nothing here moves a decision: every figure is a sourced
+# figure (no stored source, not printed), every story a voices row whose status
+# the register computes, every calendar entry a PROPOSAL the operator seeds by
+# hand, every candidate series a DRAFT intake entry the operator rules on.
+#
+# YYYYqN is the quarter the edition COVERS -- the one just ended. The task fires
+# the Monday of the edition's week, so the 4 Jan 2027 run writes
+# alt-assets-2026q4.md for the Sat 9 Jan 2027 edition.
+version: "1.0"
+updated: "2026-10-12"
+
+fires:                              # the Monday of each edition's week (section 8)
+  - {run: "2027-01-04", quarter: 2026q4, edition: "2027-01-09"}
+  - {run: "2027-04-05", quarter: 2027q1, edition: "2027-04-10"}
+  - {run: "2027-07-05", quarter: 2027q2, edition: "2027-07-10"}
+  - {run: "2027-10-04", quarter: 2027q3, edition: "2027-10-09"}
+
+# PART 1 -- the agency reference tables. A publisher not listed here is refused at
+# ingest: the list is what section 8 names. `isolated: true` stores the figures
+# under their own scan family (alt-assets-thailand), which no report but the
+# Thailand chapter reads (altdata/scans.ISOLATED_FAMILIES; section 4.10).
+agencies:
+  WGC:              {name: "World Gold Council", tables: ["Gold Demand Trends by category", "Central bank statistics"]}
+  Silver Institute: {name: "The Silver Institute", tables: ["World Silver Survey / Interim balance"]}
+  ICSG:             {name: "International Copper Study Group", tables: ["Copper market forecast", "Monthly bulletin balance"]}
+  EIA:              {name: "US Energy Information Administration", tables: ["Short-Term Energy Outlook (demand, supply, stocks)"]}
+  IEA:              {name: "International Energy Agency", tables: ["Oil Market Report (demand, supply, stocks)"]}
+  OPEC:             {name: "OPEC", tables: ["Monthly Oil Market Report (demand, supply, stocks)"]}
+  IMF:              {name: "International Monetary Fund", tables: ["COFER (currency composition of reserves)", "World Economic Outlook (vulnerability inputs)"]}
+  IIF:              {name: "Institute of International Finance", tables: ["Capital flows to emerging markets"]}
+  BoT:              {name: "Bank of Thailand", isolated: true, tables: ["Policy rate and statistics"]}
+  NESDC:            {name: "Office of the National Economic and Social Development Council", isolated: true, tables: ["National accounts"]}
+
+# PART 2 -- the families' stories become voices rows. A row's direction is kept
+# only on a subject config/voices_sources.yaml declares; a family with no
+# declared subject is stored without one (its status is NEW or REITERATED, never
+# INFLECTED). Thailand's items are NOT voices rows: the voices register prints in
+# the close, the Weekly and the Monthly, and the Thailand chapter feeds nothing
+# (section 4.10), so its items go to the proposals file only.
+families:
+  metals:        {subjects: [gold]}
+  oil_energy:    {subjects: [oil]}
+  currency:      {subjects: [usd]}
+  em:            {subjects: [em_equities]}
+  china:         {subjects: [], political: true}
+  crypto:        {subjects: [bitcoin]}
+  real_estate:   {subjects: []}
+  credit:        {subjects: [credit]}
+  intl_equities: {subjects: [intl_equities]}
+  thailand:      {subjects: [], isolated: true}
+  agriculture:   {subjects: []}
+
+# The classes of evidence (section 4.5's three rules). `rumour` is never stored
+# as a voice and never proposed for a calendar; it is listed, flagged, in the
+# proposals file.
+classes: [authoritative, commentary, rumour]
+
+# The policy ladder (section 4.5): every China measure the scan reports is placed
+# on one rung, and only these.
+ladder: [announced, authorised, funded, implemented]
+
+# THE SOURCE HIERARCHIES. A row classed `authoritative` must come from an outlet
+# on its country's list (matched case-insensitively on the outlet's name or its
+# short form); anything else is commentary at best.
+hierarchies:
+  china:
+    - "National Bureau of Statistics"
+    - "NBS"
+    - "People's Bank of China"
+    - "PBOC"
+    - "Ministry of Finance"
+    - "MOF"
+    - "State Administration of Foreign Exchange"
+    - "SAFE"
+    - "General Administration of Customs"
+    - "GACC"
+    - "State Council"
+    - "Xinhua"                    # its official notices only (the calendar's rule)
+  thailand:
+    - "Bank of Thailand"
+    - "BoT"
+    - "Ministry of Finance"
+    - "MoF"
+    - "NESDC"
+    - "Ministry of Commerce"
+    - "Customs Department"
+    - "Board of Investment"
+    - "BOI"
+    - "Election Commission"
+    - "Parliament"
+    - "Royal Thai Government"
+    - "Ministry of Foreign Affairs"
+    - "MFA"
+    - "IMF Article IV"
+
+# Where China's political reporting is filed in the voices register: the China
+# chapter reads rows whose source_id starts with this (config/
+# quarterly_chapters.yaml, china_political `reporting_prefix`).
+china_reporting_prefix: "china."

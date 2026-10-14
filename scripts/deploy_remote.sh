@@ -56,6 +56,7 @@ chester-voices.timer
 chester-auction.timer
 chester-deploy.timer
 chester-monthly.timer
+chester-crypto-basket.timer
 "
 
 deploy_main() {
