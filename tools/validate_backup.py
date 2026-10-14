@@ -504,18 +504,22 @@ def group_e() -> None:
         ok("every rclone copy runs under its own timeout and the stall limits")
     else:
         bad("an rclone copy can run uncapped")
-    caps = [int(x) for x in re.findall(r'^\s*(?:if\s+)?copy_tree "[^"]+"\s+"[\w-]+"\s+(\d+)',
-                                        code, re.M)]
+    # ONE BUDGET (14 Oct 2026), in place of a sum of caps: the budget, the
+    # kill-after and ten minutes of slack fit inside the unit's TimeoutStartSec,
+    # read from the unit file -- 2h30 on this branch, 2h once aud-2 merges.
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     tm = re.search(r"^TimeoutStartSec=(?:(\d+)h)?(?:(\d+)min)?\s*$", u, re.M)
     ceiling = (int(tm.group(1) or 0) * 60 + int(tm.group(2) or 0)) if tm else 0
-    # Six trees since AUD-1 1e (reports/), plus the AAII pull (5), the db/
-    # prune (10) and the chain-zip prune (10).
-    if len(caps) == 6 and ceiling > sum(caps) + 5 + 10 + 10:
-        ok(f"TimeoutStartSec {ceiling}m sits above the tree caps "
-           f"({'+'.join(map(str, caps))}={sum(caps)}m) plus the prune")
+    bm = re.search(r'^SWEEP_BUDGET_MIN="\$\{CHESTER_SWEEP_BUDGET_MIN:-(\d+)\}"', code, re.M)
+    km = re.search(r"timeout --kill-after=(\d+)s", code)
+    budget = int(bm.group(1)) if bm else 0
+    kill = -(-int(km.group(1)) // 60) if km else 0
+    if budget and kill and budget + kill + 10 <= ceiling:
+        ok(f"the sweep budget {budget}m + kill-after {kill}m + 10m fits inside "
+           f"TimeoutStartSec {ceiling}m")
     else:
-        bad(f"TimeoutStartSec {ceiling}m does not clear the caps {caps}")
+        bad(f"the sweep budget {budget}m + kill-after {kill}m + 10m does not fit "
+            f"inside TimeoutStartSec {ceiling}m")
     if re.search(r"^trap '.*finish killed 4.*' TERM", code, re.M):
         ok("a SIGTERM from systemd writes state=killed rc=4 before exit")
     else:
@@ -704,6 +708,178 @@ def group_aud1() -> None:
     else:
         bad("1b/1c: a prune deletes by something other than an exact name")
 
+# --- THE SWEEP BUDGET, ON A FAKE CLOCK (14 Oct 2026) -------------------------
+# The real rclone_sync.sh, run end to end against a fake rclone that copies
+# local trees (honouring --exclude) and advances CHESTER_SWEEP_CLOCK by a set
+# number of minutes per tree, so a night of two hours takes a second and nothing
+# sleeps. A fake interpreter stands in for the snapshot and the retention plan.
+FAKE_RCLONE = r"""#!/usr/bin/env bash
+echo "$*" >> "$FAKE_LOG"
+verb="$1"; shift
+map() { echo "$FAKE_ROOT/${1#*:}"; }
+case "$verb" in
+  copy)
+    src="$1"; dst="$(map "$2")"; sub="${2#*:}"; sub="${sub#remote/}"; shift 2
+    ex=()
+    while (($#)); do
+      if [[ "$1" == --exclude ]]; then ex+=("${2#/}"); shift; fi
+      shift
+    done
+    mkdir -p "$dst"
+    while IFS= read -r rel; do
+      skip=0
+      for p in "${ex[@]}"; do [[ "$rel" == $p ]] && skip=1; done
+      if ((skip == 0)); then
+        mkdir -p "$dst/$(dirname "$rel")"; cp "$src/$rel" "$dst/$rel"
+      fi
+    done < <(cd "$src" && find . -type f | sed 's|^\./||')
+    adv=1
+    for pair in ${FAKE_TREE_MIN:-}; do [[ "${pair%%=*}" == "$sub" ]] && adv="${pair#*=}"; done
+    echo $(( $(cat "$FAKE_CLOCK") + adv * 60 )) > "$FAKE_CLOCK"
+    ;;
+  lsf)
+    d="$(map "$1")"
+    [[ -d "$d" ]] || exit 0
+    if [[ " $* " == *" sp "* ]]; then
+      for f in "$d"/*; do [[ -f "$f" ]] && echo "$(stat -c %s "$f");$(basename "$f")"; done
+    else
+      ls -1 "$d"
+    fi
+    ;;
+esac
+exit 0
+"""
+FAKE_PY = r"""#!/usr/bin/env bash
+case "$*" in
+  *"altdata.observations snapshot"*) printf 'SQLite format 3 fake' > "${@: -1}" ;;
+  *"altdata.observations integrity"*) : ;;
+  *backup_retention.py*) cat >/dev/null ;;
+esac
+exit 0
+"""
+
+
+def _sweep(td: Path, tree_min: str, budget: int = 105) -> tuple[int, str, str, str]:
+    import os  # noqa: PLC0415
+    import shutil  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+    fw = lambda x: str(x).replace("\\", "/")   # noqa: E731 -- bash wants slashes
+    if td.exists():
+        shutil.rmtree(td)
+    for d in ("bin", "repo/.git", "repo/data/chains", "repo/reports", "backups/chains",
+              "state", "logs", "chester-data/inbox/aaii", "remote"):
+        (td / d).mkdir(parents=True, exist_ok=True)
+    for rel, body in (("repo/data/chester.db", "live"), ("repo/data/chester.db-wal", "w"),
+                      ("repo/data/chains/SPY.json", "{}"), ("repo/reports/a.html", "<p>"),
+                      ("backups/chains/chains_2026-10-13.zip", "zip"),
+                      ("backups/chester-pre-compact-2026-10-20.db", "raw"),
+                      ("chester-data/store.csv", "d"), ("state/heartbeat", "hb")):
+        (td / rel).write_text(body, encoding="utf-8")
+    for name, body in (("rclone", FAKE_RCLONE), ("flock", "#!/usr/bin/env bash\nexit 0\n"),
+                       ("python", FAKE_PY)):
+        f = td / "bin" / name
+        f.write_text(body, encoding="utf-8", newline="\n")
+        f.chmod(0o755)
+    (td / "clock").write_text("1800000000\n", encoding="utf-8")
+    env = {**os.environ,
+           "PATH": f"{td / 'bin'}{os.pathsep}{os.environ.get('PATH', '')}",
+           "CHESTER_REPO": fw(td / "repo"), "CHESTER_LOG_DIR": fw(td / "logs"),
+           "CHESTER_STATE_DIR": fw(td / "state"), "CHESTER_BACKUP_DIR": fw(td / "backups"),
+           "CHESTER_DATA_DIR": fw(td / "chester-data"),
+           "CHESTER_PYTHON": fw(td / "bin" / "python"),
+           "CHESTER_RCLONE_REMOTE": "fake:remote",
+           "CHESTER_SWEEP_BUDGET_MIN": str(budget),
+           "CHESTER_SWEEP_CLOCK": fw(td / "clock"), "FAKE_CLOCK": fw(td / "clock"),
+           "FAKE_ROOT": fw(td), "FAKE_LOG": fw(td / "rclone.log"),
+           "FAKE_TREE_MIN": tree_min}
+    env.pop("CHESTER_REPORTS_DIR", None)
+    r = subprocess.run([shutil.which("bash"), fw(REPO / "scripts" / "rclone_sync.sh")],
+                       env=env, capture_output=True, text=True, timeout=300)
+    logs = list((td / "logs").glob("rclone_sync-*.log"))
+    log = logs[0].read_text(encoding="utf-8") if logs else r.stderr
+    st = td / "state" / "rclone_sync_status"
+    return r.returncode, log, st.read_text(encoding="utf-8") if st.exists() else "", fw(td)
+
+
+def group_budget() -> None:
+    """14 Oct 2026: one budget for the sweep, on a fake clock."""
+    print(f"\n{LINE}\nBUDGET. One budget for the sweep, on a fake clock (14 Oct 2026)"
+          f"\n{LINE}")
+    import shutil  # noqa: PLC0415
+    if not shutil.which("bash"):
+        ok("no bash here; the fake-clock nights run where bash exists")
+        return
+    with tempfile.TemporaryDirectory() as d:
+        td = Path(d) / "night"
+        # 1. a normal night: everything runs, in the declared order.
+        rc, log, st, _ = _sweep(td, "")
+        starts = re.findall(r"  start (\S+) \(cap", log)
+        if rc == 0 and st.startswith("state=ok") and starts == [
+                "db", "data", "chester-data", "state", "reports", "backups"]:
+            ok("a normal night copies every tree, db, data, chester-data, state, "
+               "reports, then the zips' backups/ last")
+        else:
+            bad(f"a normal night: rc {rc}, status {st.strip()!r}, order {starts}")
+        if ("prune: ok" in log and "zips: ok" in log and "aaii inbox: skip" in log
+                and "deferred" not in log):
+            ok("on a normal night the db/ prune, the zip prune and the inbox pulls run")
+        else:
+            bad("a normal night skipped its housekeeping:\n" + log[-800:])
+        rb = td / "remote" / "backups"
+        if (rb / "chains" / "chains_2026-10-13.zip").exists() \
+                and not (rb / "chester-pre-compact-2026-10-20.db").exists() \
+                and (td / "backups" / "chester-pre-compact-2026-10-20.db").exists():
+            ok("backups/ excludes /chester-pre-compact-*.db: the compaction's raw "
+               "safety copy stays on the box, the zips go up")
+        else:
+            bad("the compaction's safety copy reached the remote, or the zips did not")
+        if not (td / "remote" / "data" / "chester.db").exists() \
+                and (td / "remote" / "data" / "chains" / "SPY.json").exists():
+            ok("data/ still excludes the live chester.db (run, not read)")
+        else:
+            bad("data/ uploaded the live chester.db")
+
+        # 2. a tree past the budget: db eats 80 minutes, data's cap is cut to the
+        # 23 left less 2 and it uses them; everything after is skipped and named.
+        rc, log, st, _ = _sweep(td, "db=80 data=23")
+        if "start data (cap 23m, 25m of the budget left)" in log:
+            ok("a tree's cap is the smaller of its own (40m) and the minutes left "
+               "less 2 (25 - 2 = 23m)")
+        else:
+            bad("the cap was not cut to the budget:\n" + log[-800:])
+        named = "chester-data(budget) state(budget) reports(budget) backups(budget)"
+        if rc == 3 and st.startswith("state=partial rc=3") and named in st \
+                and log.count("-- sweep budget spent") >= 4 \
+                and "SKIP backups -- sweep budget spent" in log:
+            ok("with under 3 minutes left a tree is skipped, logged 'SKIP <tree> -- "
+               "sweep budget spent' and named <tree>(budget), rc 3")
+        else:
+            bad(f"a spent budget: rc {rc}, status {st.strip()!r}")
+        if "zips: deferred to the next night" in log \
+                and "aaii inbox: deferred to the next night" in log:
+            ok("the zip prune and the inbox pull wait for the next night")
+        else:
+            bad("housekeeping ran on a spent budget")
+
+        # 3. a prune with 9 minutes left is deferred, and is not a failure.
+        rc, log, st, _ = _sweep(td, "db=96")
+        if "prune: deferred to the next night (9m of the sweep budget left)" in log \
+                and "rclone lsf fake:remote/db" not in (td / "rclone.log").read_text() \
+                and rc == 0 and "db/ prune: deferred to the next night" in st:
+            ok("the db/ prune with 9 minutes left is deferred to the next night, "
+               "is never listed, and the sweep still exits 0")
+        else:
+            bad(f"a 9-minute prune: rc {rc}, status {st.strip()!r}\n" + log[-800:])
+
+        # 4. the budget override: a 5-minute budget runs db and data, then stops.
+        rc, log, st, _ = _sweep(td, "", budget=5)
+        if rc == 3 and "data(budget)" not in st and "state(budget)" in st \
+                and "budget=5m" in log:
+            ok("CHESTER_SWEEP_BUDGET_MIN overrides the budget (5m: db, data and "
+               "chester-data a minute each, then state onward named)")
+        else:
+            bad(f"the budget override: rc {rc}, status {st.strip()!r}")
+
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
@@ -716,6 +892,7 @@ def main() -> int:
     group_e()
     group_f()
     group_aud1()
+    group_budget()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

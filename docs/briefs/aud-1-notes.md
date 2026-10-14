@@ -378,3 +378,137 @@ sr-38-inbox and sr-43-49. They stack on one another, so the sets are cumulative.
    ApeWisdom all-stocks grows by three keys per ticker on every page, its size
    set by the payload. Both pass `drop_unchanged`, but a new day is new rows.
    The 1d disk line is the watch on both.
+
+## 14 Oct evening — the follow-ups, ruled
+
+Ari ruled on the needs-you list above on the evening of 14 Oct. This section
+records what was built from those rulings. Where it and the sections above
+disagree, this section is current.
+
+**Step 0.** CI #395 (`4daf4c4`) finished **green**.
+
+### The merge of w-1-3c-weekly-polish
+
+Merged `origin/w-1-3c-weekly-polish` at **`fb67bf3`** (it had not moved), as
+merge commit **`608c4e0`**, pushed on its own before the changes below. Six
+conflicts, each resolved by keeping both sides:
+
+| File | Resolution |
+|---|---|
+| `CLAUDE.md` | w-1-3c's sentence, with the gate count recounted from the Makefile's list: **seventy-five code gates (seventy-two Python, three shell) and six data gates**. w-1-3c's text said 74 and five; the list holds 75 and six (it added `validate_imf_china` as a data gate). |
+| `Makefile` | w-1-3c's six gates, then `validate_audit_1`. |
+| `altdata/sources/yfinance_source.py` | w-1-3c's continuous set, which already holds ZEC-USD (AQ-5) and the crypto basket; the AUD-1 5d reason kept as a comment. |
+| `deploy/systemd/chester-backup.service` | ReadWritePaths is the union: `inbox/aaii`, `inbox/spdji`, `inbox/etf` and `backups/chains`, with both sides' comments. |
+| `scripts/rclone_sync.sh` | AUD-1's zip prune, then w-1-3c's `pull_inbox_file` (AAII and S&P DJI, which replaced the AAII-only pull) and the GLD archive pull. |
+| `tools/validate_prices.py` | w-1-3c's declared set (a superset of AUD-1's), the AUD-1 note kept. |
+
+The merge was checked locally before the push: validate_backup 70/0,
+validate_prices 101/0, validate_audit_1 38/0, validate_systemd_units 85/0,
+check_library 0 failures.
+
+### The changes
+
+1. **The unit file, ruled.** Repo unit files are code. `-%h/backups/chains`
+   stays in ReadWritePaths. `TimeoutStartSec` is back to main's `2h30min`: that
+   line is aud-2's, which sets `2h` when it merges. The unit's diff against main
+   is now only the ReadWritePaths union and its comments.
+2. **One budget for the sweep** (`scripts/rclone_sync.sh`), in place of trimmed
+   caps.
+   - The budget is **105 minutes from the sweep's start**
+     (`CHESTER_SWEEP_BUDGET_MIN` overrides it). Each tree's cap is the smaller of
+     its own cap and the minutes left, less 2.
+   - With under 3 minutes left a tree is skipped, logged `SKIP <tree> -- sweep
+     budget spent`, and named in FAILED as `<tree>(budget)`, rc 3.
+   - The db/ prune, the chain-zip prune and the inbox pulls start only with at
+     least 10 minutes left; otherwise they log `deferred to the next night` and
+     are not a failure. A prune stops deleting when fewer than 2 minutes (one
+     delete's own cap) are left.
+   - **Beyond the ruling's words:** the ruling named "the AAII copy". Since the
+     merge, that copy is `pull_inbox_file`, which also pulls S&P DJI's workbook,
+     and w-1-3c added the GLD archive pull. All three are under the 10-minute
+     rule, and the GLD loop stops between files with under 7 minutes left (its
+     5-minute copy cap plus the 2).
+   - Tree order: db, data, chester-data, state, reports, backups. The zips go last.
+   - The backups tree excludes `/chester-pre-compact-*.db`, so the compaction's
+     safety copy never leaves the box unencrypted.
+   - The header comment says why a budget: trimmed caps fit tonight's trees, but
+     the lab's copies on alpha-lab-2 and the next tree would break the sum again.
+     A budget holds whatever is added, and the sweep always writes its own status
+     line before systemd's ceiling.
+   - Fixtures need a fake clock, so `CHESTER_SWEEP_CLOCK` (a file of epoch
+     seconds) stands in for `date +%s` when set. Unset on the box.
+   - `deploy/systemd/README.md`'s stall paragraph no longer says 2h45min and
+     describes the budget.
+3. **The swap rule, corrected** (`scripts/check_heartbeat_cron.sh`).
+   - Swap: **warn above 512 MiB, alert above 1 GiB**.
+   - Memory: **alert when MemAvailable is under 10% of MemTotal**.
+   - The disk thresholds stay (warn 70%, alert 85%). An alert is still exit 15,
+     `disk_alert`.
+   - The verdict reads, e.g., `disk=warn:62%+swap:614400kB` or
+     `disk=alert:62%+memavail:8%`. The swap is named only above 512 MiB.
+   - `CHESTER_SWAP_USED_KB` has twins for fixtures: `CHESTER_MEM_AVAILABLE_KB` and
+     `CHESTER_MEM_TOTAL_KB` (MemTotal is needed for the 10%). The gate pins all
+     three in every invocation.
+4. **Rulings recorded, as built:**
+   - **Reg SHO keeps the universe plus every symbol with at least 1,000,000
+     shares of total volume.** Ruled; built in item 3 (`REGSHO_MIN_TOTAL_VOLUME`).
+   - **The 5b retry bound stands:** three dead expiries in a row, then one try
+     each (`RETRY_GIVE_UP_AFTER = 3`).
+   - **No manual zip prune.** The disk is at 62%. Box command 3 above is
+     withdrawn; the sweep prunes from its first night after the merge.
+   - **The five committed `reports/monthly_macro_*` files stay**, and go private
+     with the repo.
+   - **The compaction runs after the merge, on a weekday evening, after the CX33
+     move.** Box commands 1–2 above, in that order.
+   - **The first-night timing check (box command 4) is Ari's,** the morning after
+     the merge.
+
+### Gates (run locally, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_backup | 79/0 |
+| validate_heartbeat_caller.sh | the new swap block passed in full (131 MiB clean, 600 MiB warns, 1.1 GiB alerts, 8% alerts, stale outranks both); the full run was stopped by the laptop's low-memory guard before its total, so CI is its count |
+| validate_systemd_units | 85/0 (on the merge) |
+| validate_deploy | not rerun locally (memory); CI |
+| validate_audit_1 | 38/0 (on the merge) |
+
+validate_backup's new BUDGET group runs the real `rclone_sync.sh` end to end
+against a fake rclone that copies local trees, honours `--exclude`, and moves the
+fake clock a set number of minutes per tree. Nothing sleeps. Its fixtures:
+
+- **A normal night** runs every tree in order, and every prune and pull.
+- **The exclude** keeps `chester-pre-compact-*.db` on the box, and the zips go up.
+- **A cut cap:** db takes 80 minutes, so data's cap becomes 23m.
+- **A tree past the budget** is skipped and named, rc 3.
+- **A prune with 9 minutes left** is deferred and never listed, and the sweep
+  still exits 0.
+- **The override:** a 5-minute budget stops after three trees.
+
+The static check now holds that the budget (105) plus the kill-after (1) plus 10
+fits inside TimeoutStartSec, read from the unit file. That is 116 against 150
+here, and against 120 after aud-2.
+
+The heartbeat gate's fixtures:
+
+- 131 MiB of swap with 2.7 GiB available is clean.
+- 600 MiB warns.
+- 1.1 GiB alerts.
+- 8% available alerts.
+- A stale pipeline still outranks a full disk, and outranks swap with low memory.
+
+### CI
+
+- Merge commit `608c4e0`: see the report.
+- The changes: see the report.
+
+### Needs you
+
+- **Nothing new to rule.** The box steps are unchanged: commands 1, 2 and 4
+  above, now on the ruled schedule (compaction after the merge and the CX33 move;
+  the timing check the morning after the merge). Command 3 is withdrawn.
+- **When aud-2 merges onto this:** its `TimeoutStartSec=2h` meets this branch's
+  budget check (116 ≤ 120 holds). The check reads the unit file, so it needs no
+  edit.
+- **When alpha-lab-2 meets this branch next week,** the lab's copies and its
+  alpha-* snapshot prune go under the budget.

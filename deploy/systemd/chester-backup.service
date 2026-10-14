@@ -22,7 +22,7 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # the old 2h ceiling with no per-tree cap, so systemd killed the sweep and no
 # status line said which tree had stalled; the script now traps the SIGTERM
 # and writes state=killed (rc 4).
-TimeoutStartSec=2h45min
+TimeoutStartSec=2h30min
 
 NoNewPrivileges=true
 PrivateTmp=true

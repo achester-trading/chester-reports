@@ -81,9 +81,11 @@
 #                       30h (stale:<h>h). Ranked ABOVE feed stale: a store with
 #                       no off-box copy is worse than a late feed. INC-1.
 #  15 disk alert     -> the pipeline is healthy AND the disk holding the store
-#                       is 85% used or more, or swap is in use (AUD-1 item 1d,
-#                       the audit of 14 Oct 2026: each EOD zip carried a full
-#                       copy of the database and nothing pruned them). 70% is a
+#                       is 85% used or more, or more than 1 GiB of swap is in
+#                       use, or MemAvailable is under 10% of MemTotal (AUD-1
+#                       item 1d, the audit of 14 Oct 2026: each EOD zip carried
+#                       a full copy of the database and nothing pruned them).
+#                       70% of the disk, or more than 512 MiB of swap, is a
 #                       warning on the verdict line (disk=warn:<n>%), not a
 #                       verdict. Ranked below the backup and above a stale feed.
 #  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
@@ -641,31 +643,55 @@ fi
 # The space leak the audit of 14 Oct found -- a full copy of chester.db in every
 # EOD zip, and nothing pruning them -- would have announced itself only as a
 # full disk, at which point SQLite cannot write its WAL and every pass fails at
-# once. So the verdict line carries the disk the store lives on, and swap: a
-# box on swap is a box whose next large pass (the backfill, a VACUUM) may be
-# killed. WARN at 70% used (the line says disk=warn:<n>%); ALERT, exit 15, at
-# 85% or with any swap in use.
+# once. So the verdict line carries the disk the store lives on, and the
+# memory: a box short of memory is a box whose next large pass (the backfill,
+# a VACUUM) may be killed.
+#   DISK  WARN at 70% used (the line says disk=warn:<n>%); ALERT, exit 15, at 85%.
+#   SWAP  WARN above 512 MiB in use; ALERT above 1 GiB. Not "any swap" (corrected
+#         14 Oct 2026): that day the box held 131 MiB of swap on an ordinary
+#         run with 2.7 GiB available, so "any" would alert on every run. A
+#         little swap is the kernel parking idle pages; a lot is pressure.
+#   MEM   ALERT when MemAvailable is under 10% of MemTotal -- the pressure
+#         itself, whatever the swap says.
 # Overridable for the gate: CHESTER_DISK_PATH, CHESTER_DISK_PCT,
-# CHESTER_SWAP_USED_KB.
+# CHESTER_SWAP_USED_KB, and its twins CHESTER_MEM_AVAILABLE_KB and
+# CHESTER_MEM_TOTAL_KB.
 DISK_PATH="${CHESTER_DISK_PATH:-$REPO/data}"
 [[ -d "$DISK_PATH" ]] || DISK_PATH="$HOME"
 DISK_PCT="${CHESTER_DISK_PCT:-$(df --output=pcent "$DISK_PATH" 2>/dev/null | tail -1 | tr -dc '0-9')}"
 SWAP_USED_KB="${CHESTER_SWAP_USED_KB:-$(awk '/^SwapTotal:/{t=$2} /^SwapFree:/{f=$2} END{if (t != "") print t - f}' /proc/meminfo 2>/dev/null)}"
+MEM_AVAIL_KB="${CHESTER_MEM_AVAILABLE_KB:-$(awk '/^MemAvailable:/{print $2}' /proc/meminfo 2>/dev/null)}"
+MEM_TOTAL_KB="${CHESTER_MEM_TOTAL_KB:-$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)}"
+SWAP_WARN_KB=524288     # 512 MiB
+SWAP_ALERT_KB=1048576   # 1 GiB
+MEM_ALERT_PCT=10
 DISK_STATE=unknown
 if [[ -n "$DISK_PCT" ]]; then
-    DISK_STATE=ok
-    if (( DISK_PCT >= 85 )) || (( ${SWAP_USED_KB:-0} > 0 )); then
-        DISK_STATE="alert:${DISK_PCT}%"
-        (( ${SWAP_USED_KB:-0} > 0 )) && DISK_STATE="${DISK_STATE}+swap:${SWAP_USED_KB}kB"
-    elif (( DISK_PCT >= 70 )); then
-        DISK_STATE="warn:${DISK_PCT}%"
+    level=0                                   # 0 ok, 1 warn, 2 alert
+    (( DISK_PCT >= 70 )) && level=1
+    (( DISK_PCT >= 85 )) && level=2
+    swap_kb=${SWAP_USED_KB:-0}
+    (( swap_kb > SWAP_WARN_KB && level < 1 )) && level=1
+    (( swap_kb > SWAP_ALERT_KB )) && level=2
+    mem_low=0
+    if [[ -n "$MEM_AVAIL_KB" && -n "$MEM_TOTAL_KB" ]] && (( MEM_TOTAL_KB > 0 )) \
+            && (( MEM_AVAIL_KB * 100 < MEM_TOTAL_KB * MEM_ALERT_PCT )); then
+        mem_low=1
+        level=2
     fi
+    case $level in
+        0) DISK_STATE=ok ;;
+        1) DISK_STATE="warn:${DISK_PCT}%" ;;
+        2) DISK_STATE="alert:${DISK_PCT}%" ;;
+    esac
+    (( swap_kb > SWAP_WARN_KB )) && DISK_STATE="${DISK_STATE}+swap:${swap_kb}kB"
+    (( mem_low )) && DISK_STATE="${DISK_STATE}+memavail:$(( MEM_AVAIL_KB * 100 / MEM_TOTAL_KB ))%"
 fi
-log "  disk: ${DISK_PCT:-?}% used of $DISK_PATH, swap ${SWAP_USED_KB:-?}kB in use -- $DISK_STATE"
+log "  disk: ${DISK_PCT:-?}% used of $DISK_PATH, swap ${SWAP_USED_KB:-?}kB in use, MemAvailable ${MEM_AVAIL_KB:-?} of ${MEM_TOTAL_KB:-?}kB -- $DISK_STATE"
 if [[ "$STATE" == "ok" ]] && [[ "$DISK_STATE" == alert:* ]]; then
     STATE=disk_alert
     RC=15
-    HEADLINE="DISK $DISK_STATE -- the store's disk is nearly full or the box is swapping"
+    HEADLINE="DISK $DISK_STATE -- the store's disk is nearly full or the box is short of memory"
 fi
 
 # ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
