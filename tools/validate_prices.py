@@ -624,7 +624,23 @@ def group_asof_paths() -> None:
                   and db.latest_as_of("pm.x") is None
                   and db.latest_as_of("fred.x", as_of="2020-01-01T00:00:00+00:00") is None,
                   "an instrument series by its instrument; nothing before the first row")
-            plan = " ".join(str(r[-1]) for r in db.conn.execute(
+            # AUD-1 3: across thousands of instruments, one MAX, the same answer.
+            db.write_many([{"registry_key": "pm.x", "instrument": "K2",
+                            "observed_at": "2026-09-04",
+                            "available_at": "2026-09-04T21:00:00+00:00",
+                            "value": 5.0, "source": "pm"}])
+            same_any = True
+            for cut in ("2026-09-01T22:00:00+00:00", "2026-09-03T00:00:00+00:00",
+                        "2026-09-05T00:00:00+00:00", "2020-01-01T00:00:00+00:00", None):
+                per = [db.latest_as_of("pm.x", as_of=cut, instrument=i)
+                       for i in db.instruments("pm.x")]
+                want = max((str(r["observed_at"])[:10] for r in per if r), default=None)
+                same_any &= db.newest_observed_any("pm.x", as_of=cut) == want
+            check(same_any and "db.newest_observed_any(k, as_of=as_of)" in
+                  (REPO / "altdata/feeds.py").read_text(encoding="utf-8"),
+                  "newest_observed_any is the per-instrument loop's answer at five "
+                  "cutoffs, and the freshness check uses it")
+            plan =" ".join(str(r[-1]) for r in db.conn.execute(
                 "EXPLAIN QUERY PLAN " + observations.LATEST_AS_OF_SQL,
                 {"key": "fred.x", "instrument": None, "as_of": "9999"}))
             check("INDEX" in plan.upper(),

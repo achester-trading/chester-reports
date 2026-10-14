@@ -482,6 +482,18 @@ class ObservationStore:
                 best = max(best or "", str(r[0])[:10])
         return best or None
 
+    def newest_observed_any(self, registry_key: str,
+                            as_of: Optional[str] = None) -> Optional[str]:
+        """The newest observed_at day knowable at `as_of` under ANY instrument --
+        one indexed MAX, the same answer as asking latest_as_of() per instrument
+        and taking the freshest. AUD-1 3: the loggers now store thousands of
+        instruments a key, and the freshness check asked them one at a time."""
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        r = self.conn.execute(
+            "SELECT MAX(observed_at) FROM observations WHERE registry_key = ? "
+            "AND available_at <= ?", (registry_key, cutoff)).fetchone()
+        return str(r[0])[:10] if r and r[0] else None
+
     def latest_as_of(self, registry_key: str, as_of: Optional[str] = None,
                      instrument: Optional[str] = None) -> Optional[dict]:
         """The most recent period knowable at the cutoff, or None -- one row from
@@ -531,6 +543,15 @@ class ObservationStore:
             "  FROM observations WHERE registry_key = ? AND instrument IS ?"
             " ORDER BY available_at, observed_at", (registry_key, instrument))
         return [dict(r) for r in cur.fetchall()]
+
+    def days_present(self, registry_key: str, since: str) -> set[str]:
+        """The observed_at days on or after `since` with ANY row for the key, any
+        instrument -- from the index, no values read (AUD-1 3b: which of the last
+        ten Reg SHO sessions are already stored)."""
+        cur = self.conn.execute(
+            "SELECT DISTINCT substr(observed_at, 1, 10) FROM observations "
+            "WHERE registry_key = ? AND observed_at >= ?", (registry_key, since))
+        return {r[0] for r in cur.fetchall()}
 
     def observed_days(self, registry_key: str,
                       text_contains: Optional[str] = None) -> list[str]:

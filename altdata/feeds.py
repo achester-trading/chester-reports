@@ -655,13 +655,9 @@ def freshness(as_of: Optional[str] = None,
                     # empty on the default join. Ask which instruments exist and
                     # take the freshest of them: the question here is "did this
                     # logger write last night", not "did it write for SPY".
-                    insts = db.instruments(k)
-                    newest_any = None
-                    for inst in insts:
-                        r2 = db.latest_as_of(k, as_of=as_of, instrument=inst)
-                        if r2:
-                            d = str(r2["observed_at"])[:10]
-                            newest_any = max(newest_any or d, d)
+                    # One indexed MAX across instruments (AUD-1 3: thousands
+                    # of them now, asked one at a time until then).
+                    newest_any = db.newest_observed_any(k, as_of=as_of)
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.

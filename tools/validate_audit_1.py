@@ -17,6 +17,11 @@ network, no box: every check seeds its own temporary store.
      the listed expiries and counts the vendor symbols apart; the close prints
      the gap and names a missing SPX; Massive without its key prints "Massive
      key not set" and raises nothing.
+  D  THE MEME LOGGERS (3a, 3b, 3c). ApeWisdom's all-stocks filter is stored
+     whole, every ticker on every page the payload declares; wallstreetbets
+     stays the universe. Reg SHO keeps the universe plus every symbol at or above
+     the liquidity floor, and fetches exactly the sessions missing from the last
+     ten. The registry and the logger's description say so.
 
     python tools/validate_audit_1.py
 """
@@ -263,6 +268,101 @@ def group_c() -> None:
     check("retry_call(" in msrc, "Massive's symbols take the same retries (5e)")
 
 
+def group_d() -> None:
+    print(f"\n{LINE}\nD. THE MEME LOGGERS (AUD-1 3a, 3b, 3c)\n{LINE}")
+    import datetime as dt
+    import json
+    from altdata.loggers import borrow
+
+    orig = (borrow._get, borrow.universe)
+    borrow.universe = lambda: ["SPY", "AAPL"]
+    fetched: list[str] = []
+
+    def ape(url, limit=0):
+        fetched.append(url)
+        page = int(url.rsplit("/", 1)[1])
+        if "all-stocks" in url:
+            res = [{"ticker": f"Z{page}{i}", "mentions": 10 + i, "rank": i, "upvotes": 1}
+                   for i in range(3)]
+            if page == 1:
+                res.append({"ticker": "AAPL", "mentions": 99, "rank": 1, "upvotes": 5})
+            return json.dumps({"pages": 3, "results": res}).encode()
+        return json.dumps({"pages": 9, "results": [
+            {"ticker": "SPY", "mentions": 7, "rank": 2, "upvotes": 1},
+            {"ticker": "GME", "mentions": 50, "rank": 1, "upvotes": 9}]}).encode()
+
+    try:
+        td = gate_tmp.mkdtemp("validate_audit_1_d_")
+        with observations.ObservationStore(os.path.join(td, "store.db")) as st:
+            borrow._get = ape
+            out = borrow.pull_apewisdom(store=st, pause=0)
+            insts = set(st.instruments(borrow.MENTIONS_KEY))
+            all_pages = sorted(u for u in fetched if "all-stocks" in u)
+            check(len(all_pages) == 3 and {"Z10@all-stocks", "Z31@all-stocks",
+                                           "AAPL@all-stocks"} <= insts,
+                  f"3a: all-stocks is read on every page the payload declares (3) "
+                  f"and every ticker is stored, tracked or not ({len(all_pages)} pages)")
+            wsb = {i for i in insts if i.endswith("@wallstreetbets")}
+            check(wsb == {"SPY@wallstreetbets"}
+                  and sum(1 for u in fetched if "wallstreetbets" in u) == borrow.APEWISDOM_PAGES,
+                  f"3a: wallstreetbets stays the tracked universe, {borrow.APEWISDOM_PAGES} pages "
+                  f"({sorted(wsb)})")
+            check(out["state"] == "ok" and dict(out["feeds"]).get("all-stocks") == 10,
+                  f"3a: the summary counts the whole feed ({out['feeds']})")
+
+            # 3b: the floor.
+            rows = [{"symbol": "SPY", "total_volume": 10.0},
+                    {"symbol": "BIG", "total_volume": float(borrow.REGSHO_MIN_TOTAL_VOLUME)},
+                    {"symbol": "THIN", "total_volume": borrow.REGSHO_MIN_TOTAL_VOLUME - 1.0},
+                    {"symbol": "NONE", "total_volume": None}]
+            kept = [r["symbol"] for r in borrow.regsho_keep(rows, {"SPY"})]
+            check(kept == ["SPY", "BIG"],
+                  f"3b: the universe whatever its volume, plus every symbol at the "
+                  f"{borrow.REGSHO_MIN_TOTAL_VOLUME:,}-share floor ({kept})")
+
+            # 3b: the last ten sessions, the missing ones only.
+            last = dt.date(2026, 10, 13)
+            have = ["2026-10-13", "2026-10-09", "2026-10-02"]
+            st.write_many([{"registry_key": borrow.SHORT_VOLUME_TOTAL_KEY,
+                            "instrument": "SPY", "observed_at": d,
+                            "available_at": f"{d}T23:00:00+00:00", "value": 1.0,
+                            "source": "finra", "availability_kind": "ingest_instant"}
+                           for d in have])
+            missing = borrow.regsho_missing_sessions(st, last)
+            check(len(missing) == 7 and not set(have) & set(missing)
+                  and missing[0] == "2026-09-30" and "2026-10-12" in missing,
+                  f"3b: of the last ten sessions to 13 Oct, the seven not stored "
+                  f"({missing})")
+            fetched.clear()
+
+            def regsho(url, limit=0):
+                fetched.append(url)
+                ymd = url.rsplit("CNMSshvol", 1)[1][:8]
+                return ("Date|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market\n"
+                        f"{ymd}|SPY|5|0|10|Q\n{ymd}|BIG|600000|0|2000000|Q\n"
+                        f"{ymd}|THIN|9|0|99|Q\n").encode()
+            borrow._get = regsho
+            res = borrow.pull_regsho_missing(store=st, last=last)
+            days = sorted(u.rsplit("CNMSshvol", 1)[1][:8] for u in fetched)
+            check(days == sorted(m.replace("-", "") for m in missing)
+                  and res["state"] == "ok" and res["names"] == 14,
+                  f"3b: exactly the missing sessions are fetched, two names each "
+                  f"({len(days)} files, {res['names']} names)")
+            check(borrow.regsho_missing_sessions(st, last) == [],
+                  "3b: a second night finds nothing missing")
+            check(set(st.instruments(borrow.SHORT_VOLUME_KEY)) == {"SPY", "BIG"},
+                  "3b: a name below the floor and outside the universe is not stored")
+    finally:
+        borrow._get, borrow.universe = orig
+
+    reg = (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")
+    check("at least 1,000,000 shares of FINRA-reported total volume" in reg
+          and "every ticker on every page ApeWisdom serves" in reg,
+          "3c: the registry describes the new instrument sets")
+    check("1,000,000" in borrow.SPEC.description and "all-stocks" in borrow.SPEC.description,
+          "3c: the logger's own description says the same")
+
+
 def json_roundtrip(d: dict) -> dict:
     import json
     return json.loads(json.dumps(d))
@@ -270,7 +370,7 @@ def json_roundtrip(d: dict) -> dict:
 
 def main() -> int:
     print(f"{LINE}\nAUD-1, THE FIXES WITH NO OTHER GATE\n{LINE}")
-    for g in (group_a, group_b, group_c):
+    for g in (group_a, group_b, group_c, group_d):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001
