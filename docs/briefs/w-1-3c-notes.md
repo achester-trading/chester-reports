@@ -458,3 +458,54 @@ a file that exists only on AQ-1's side.
    first, because (a) merges without conflict, but (a) leaves the numeral gate
    red on main from AQ-1's merge onward. Rule (a) or (b). Either way, the fix
    commit is needed once both this branch and AQ-1 are on main.
+
+## Part 0 — finishing for Friday (14 Oct, second paste)
+
+Ruled 14 Oct: needs-you 6 is (b), so **this branch merges last on Friday**,
+and the quarterly ordinal fix rides on it, since only branches reach main.
+
+1. **CI #379 (`20545d7`) is green**, every check. Item 10's WeasyPrint check
+   ran there for the first time and passed: "run 6's précis page: page 1
+   carries the précis, the verdicts, what would change our mind and the stance
+   (missing: none; 2 pages)". The précis's length did not need touching, so
+   needs-you 4 is closed. (#377 on `ecd3efc` was green too.)
+2. **`lib-aq14-em-paper` merged in** (`2dadf53`, "Merge lib-aq14-em-paper into
+   w-1-3c-weekly-polish (Friday: this branch merges last)"). It carries main
+   and branches 1 to 21, AQ-1 among them. No conflicts. `el-1-packets` and
+   `el-2-3-rollup` are not in the branch; they wait on the Audit sitting.
+3. **The quarterly fix** (`13c3f46`): `monthly_macro/quarterly.py` imports
+   `ordinal` from `altdata.numeral_audit` and prints
+   `f"{ordinal(t['percentile'])} percentile"`, so the Quarterly prints "92nd",
+   never "92th".
+4. **Finding 9** (`0145436`): `validate_weekly_stack` gives `book_week` an
+   explicit temporary `db_path` and the week's `ENDING`. The fixture records
+   every SQLite file the call opens and refuses any outside the gate's
+   temporary directory, so even the probe of the old call never opens the
+   laptop's store. The old call (no `db_path`) is shown reaching the default
+   store; it reached `data/chester.db` through the register as well as through
+   `observations.DEFAULT_DB`, which is the fault. The new call opens only the
+   gate's own file. The caught TypeError the gate used to log is gone; it was
+   the missing week ending, not the store. One traceback still prints during
+   the run: it is the probe's refusal of `data/chester.db`, logged and caught.
+5. **Gates, one at a time, on the branch:** numeral_audit 167/0,
+   quarterly_stack 94/0, quarterly_gates 95/0 (0 skipped), weekly_stack 70/0,
+   readability 67/0, no_filler 19/0, figure_budget 123/0, weekly_opener 46/0,
+   weekly_integrity 36/0, audit_fixes 73/0 (the direction audit's fixtures
+   live here; there is no `validate_direction.py`), stack_cadence 99/0,
+   weekly_calendar 43/0, stack 66/0.
+6. **The proofs, on throwaway local branches, never pushed, now deleted:**
+   - (i) main, the 23 in Friday's order, then this branch: 24 merges, no
+     conflicts, tree `ae7a0b1`; numeral gate 167/0.
+   - (ii) main, the first 21, then this branch (the EL pair held back): 22
+     merges, no conflicts, tree `bfe9c94`, which is this branch's own tree;
+     numeral gate 167/0.
+
+   **A slip on the way, and its repair.** My first attempt at (i) passed
+   `git worktree add` its arguments in the wrong order. The worktree was not
+   created, and the merges ran in this checkout, on this branch. That added
+   two merge commits, `el-1-packets` and `el-2-3-rollup`; the other 21 were
+   already in and merged as no-ops. Nothing was pushed. I reset the branch to
+   `0145436`, the tip before the proof, and checked that both EL branches are
+   out. The proofs were then run in a worktree created properly. No other
+   branch was touched.
+7. Pushed; the CI number is in the session report.
