@@ -80,6 +80,12 @@
 #                       succeeded (never), or the last success is older than
 #                       30h (stale:<h>h). Ranked ABOVE feed stale: a store with
 #                       no off-box copy is worse than a late feed. INC-1.
+#  15 disk alert     -> the pipeline is healthy AND the disk holding the store
+#                       is 85% used or more, or swap is in use (AUD-1 item 1d,
+#                       the audit of 14 Oct 2026: each EOD zip carried a full
+#                       copy of the database and nothing pruned them). 70% is a
+#                       warning on the verdict line (disk=warn:<n>%), not a
+#                       verdict. Ranked below the backup and above a stale feed.
 #  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
 #                       delivered: prices or FRED series older than the declared
 #                       allowance, or absent entirely. This is the channel a
@@ -630,6 +636,38 @@ if [[ "$STATE" == "ok" ]] && [[ "$BACKUP_STATE" != "ok" ]] \
     HEADLINE="BACKUP $BACKUP_STATE the off-box copy is not current"
 fi
 
+# ---- the disk and the swap (AUD-1 item 1d) ---------------------------------
+#
+# The space leak the audit of 14 Oct found -- a full copy of chester.db in every
+# EOD zip, and nothing pruning them -- would have announced itself only as a
+# full disk, at which point SQLite cannot write its WAL and every pass fails at
+# once. So the verdict line carries the disk the store lives on, and swap: a
+# box on swap is a box whose next large pass (the backfill, a VACUUM) may be
+# killed. WARN at 70% used (the line says disk=warn:<n>%); ALERT, exit 15, at
+# 85% or with any swap in use.
+# Overridable for the gate: CHESTER_DISK_PATH, CHESTER_DISK_PCT,
+# CHESTER_SWAP_USED_KB.
+DISK_PATH="${CHESTER_DISK_PATH:-$REPO/data}"
+[[ -d "$DISK_PATH" ]] || DISK_PATH="$HOME"
+DISK_PCT="${CHESTER_DISK_PCT:-$(df --output=pcent "$DISK_PATH" 2>/dev/null | tail -1 | tr -dc '0-9')}"
+SWAP_USED_KB="${CHESTER_SWAP_USED_KB:-$(awk '/^SwapTotal:/{t=$2} /^SwapFree:/{f=$2} END{if (t != "") print t - f}' /proc/meminfo 2>/dev/null)}"
+DISK_STATE=unknown
+if [[ -n "$DISK_PCT" ]]; then
+    DISK_STATE=ok
+    if (( DISK_PCT >= 85 )) || (( ${SWAP_USED_KB:-0} > 0 )); then
+        DISK_STATE="alert:${DISK_PCT}%"
+        (( ${SWAP_USED_KB:-0} > 0 )) && DISK_STATE="${DISK_STATE}+swap:${SWAP_USED_KB}kB"
+    elif (( DISK_PCT >= 70 )); then
+        DISK_STATE="warn:${DISK_PCT}%"
+    fi
+fi
+log "  disk: ${DISK_PCT:-?}% used of $DISK_PATH, swap ${SWAP_USED_KB:-?}kB in use -- $DISK_STATE"
+if [[ "$STATE" == "ok" ]] && [[ "$DISK_STATE" == alert:* ]]; then
+    STATE=disk_alert
+    RC=15
+    HEADLINE="DISK $DISK_STATE -- the store's disk is nearly full or the box is swapping"
+fi
+
 # ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
 #
 # "Are today's bars present" can only be asked where the store is. A CI runner has
@@ -923,7 +961,7 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi

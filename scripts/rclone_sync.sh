@@ -64,6 +64,8 @@
 #     nothing was uploaded for it
 #   3 rclone reported a failure, or hit its time cap, on at least one tree
 #   4 terminated from outside (TimeoutStartSec, or a stop) mid-sweep
+#   5 disk_low: under twice the database's size free where the snapshot is
+#     staged -- nothing staged, nothing uploaded (AUD-1 item 1d)
 #
 # Overridable:
 #   CHESTER_REPO        repo checkout        (~/chester-reports)
@@ -86,6 +88,10 @@ LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"
 STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
 BACKUP_DIR="${CHESTER_BACKUP_DIR:-$HOME/backups}"
 DATA_DIR="${CHESTER_DATA_DIR:-$HOME/chester-data}"
+# THE REPORT ARCHIVE (AUD-1 item 1e): every report's HTML, PDF and payload, as
+# the reports' delivery step writes them -- CHESTER_REPORTS_DIR, else reports/ in
+# the checkout. The README said the sweep carried it; it did not, until now.
+REPORTS_DIR="${CHESTER_REPORTS_DIR:-$REPO/reports}"
 REMOTE="${CHESTER_RCLONE_REMOTE:-}"
 RCLONE_FLAGS="${CHESTER_RCLONE_FLAGS:---transfers 4 --checkers 8}"
 
@@ -138,6 +144,19 @@ log "=== sweep start remote=$REMOTE"
 # --- stage a consistent, verified, compressed database snapshot -------------
 STAGE="$STATE_DIR/backup_stage"
 mkdir -p "$STAGE"
+
+# NOT ON A NEARLY FULL DISK (AUD-1 item 1d). The snapshot and its gzip need up to
+# twice the database's size beside it; a stage that fills the disk takes the
+# live store's WAL with it. Under twice the database's size free: no snapshot,
+# a named exit, and the heartbeat's disk line says why.
+DB_FILE="$REPO/data/chester.db"
+if [[ -f "$DB_FILE" ]]; then
+    DB_BYTES=$(stat -c %s "$DB_FILE")
+    FREE_BYTES=$(df --output=avail -B1 "$STAGE" | tail -1 | tr -d ' ')
+    if [[ -n "$FREE_BYTES" ]] && (( FREE_BYTES < 2 * DB_BYTES )); then
+        finish disk_low 5 "only $FREE_BYTES bytes free beside $STAGE, under twice the database's $DB_BYTES; no snapshot staged"
+    fi
+fi
 SNAP="$STAGE/chester-$(date +%Y-%m-%d).db"
 UPLOAD="$SNAP.gz"
 rm -f "$STAGE"/chester-*             # only tonight's staged copy is kept locally
@@ -160,8 +179,9 @@ rm -f "$SNAP"                        # the verified .gz is what goes off-box
 # --- copy, tree by tree -----------------------------------------------------
 # Each tree is reported separately and runs under its own time cap, so a
 # partial sweep names which part failed and a stalled tree cannot starve the
-# others. The caps sum to 115 minutes, plus up to ~10 for the db/ prune;
-# TimeoutStartSec is 2h30min, so a cap always fires before systemd does.
+# others. The caps sum to 130 minutes (reports/ joined in AUD-1), plus up to ~10
+# for the db/ prune and ~10 for the chain-zip prune;
+# TimeoutStartSec is 2h45min, so a cap always fires before systemd does.
 RC=0
 FAILED=""
 copy_tree() {    # copy_tree <local> <remote-subpath> <minutes> [rclone filter args...]
@@ -234,7 +254,52 @@ copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*"     || RC=3
 copy_tree "$BACKUP_DIR" "backups" 30                              || RC=3
 copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
+copy_tree "$REPORTS_DIR" "reports" 15                             || RC=3
 log "  prune: $PRUNE"
+
+# --- the chain zips: Drive's to 30 days, the box's to 14 (AUD-1 1b, 1c) ------
+# Neither was ever pruned. Both by exact name, one file at a time, after the
+# copy above has run; neither touches RC -- a failed prune is a log line.
+#   DRIVE: backups/chains/chains_YYYY-MM-DD.zip dated more than 30 days back,
+#     only once the newest local zip is listed there (backup_retention.py
+#     --mode zips), with `rclone deletefile` -- never delete, purge or sync.
+#   THE BOX: ~/backups/chains keeps its newest 14 session zips; an older one is
+#     deleted only when the remote listing holds THAT EXACT FILE -- the same name
+#     and the same size (--mode local-chains).
+CHAINS_DIR="$BACKUP_DIR/chains"
+ZIPS="not run"
+prune_zips() {
+    [[ -d "$CHAINS_DIR" ]] || { ZIPS="skipped (no $CHAINS_DIR)"; return 0; }
+    local newest listing remote_file name n=0 m=0
+    newest="$(ls -1 "$CHAINS_DIR" 2>/dev/null | grep -E '^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$' | sort | tail -1)"
+    [[ -n "$newest" ]] || { ZIPS="skipped (no local zip)"; return 0; }
+    remote_file="$STATE_DIR/remote_chains.lsf"
+    if ! timeout 5m rclone lsf "$REMOTE/backups/chains" --files-only --format sp \
+            --separator ";" $RCLONE_LIMITS >"$remote_file" 2>>"$LOG"; then
+        ZIPS="failed (listing backups/chains)"
+        return 1
+    fi
+    listing="$(cut -d';' -f2 "$remote_file")"
+    for name in $(printf '%s\n' "$listing" \
+            | "$PY" "$REPO/scripts/backup_retention.py" --mode zips \
+                --today "$TODAY" --require "$newest" 2>>"$LOG"); do
+        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
+        if timeout 2m rclone deletefile "$REMOTE/backups/chains/$name" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            n=$((n + 1))
+        fi
+    done
+    for name in $(find "$CHAINS_DIR" -maxdepth 1 -name 'chains_*.zip' -printf '%s;%f\n' \
+            | "$PY" "$REPO/scripts/backup_retention.py" --mode local-chains \
+                --remote "$remote_file" 2>>"$LOG"); do
+        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
+        rm -f -- "$CHAINS_DIR/$name" && m=$((m + 1))
+    done
+    ZIPS="ok ($n deleted on Drive, $m locally)"
+    return 0
+}
+prune_zips || true
+log "  zips: $ZIPS"
 
 # --- the one inbound file: the AAII weekly row (10 Oct 2026) ----------------
 # The chat-side task "AAII weekly read -- Thursday" appends a row a week to

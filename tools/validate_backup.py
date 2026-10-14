@@ -167,8 +167,10 @@ def group_wal() -> None:
 
 
 def group_b() -> None:
-    """The EOD zip carries the database and the pin log."""
-    print(f"\n{LINE}\nB. backup_chains -- the store is in the archive\n{LINE}")
+    """The EOD zip carries the chains and the pin log -- and, since AUD-1 1a,
+    NOT the database: the nightly sweep's verified db/ snapshot is its backup."""
+    print(f"\n{LINE}\nB. backup_chains -- the chains and the pin log, not the store "
+          f"(AUD-1 1a)\n{LINE}")
     import run_eod  # noqa: PLC0415
 
     with tempfile.TemporaryDirectory() as d:
@@ -199,26 +201,19 @@ def group_b() -> None:
             bad(f"backup failed: {out.get('error')}")
             return
         names = zipfile.ZipFile(out["dest"]).namelist()
-        for want, why in (("db/chester.db", "the database is in the zip"),
-                          ("state/pin_log.csv", "the pin log is in the zip")):
-            if want in names:
-                ok(why)
-            else:
-                bad(f"{want} missing from the archive: {names}")
-        if len(names) == 4:
-            ok("the archive holds exactly the 2 chains + 2 extras it claims")
+        if "state/pin_log.csv" in names:
+            ok("the pin log is in the zip")
         else:
-            bad(f"archive holds {len(names)} entries, wanted 4: {names}")
-
-        # The zipped database must itself be readable. A zip entry of the right
-        # name proves nothing about the bytes inside it.
-        with tempfile.TemporaryDirectory() as x:
-            zipfile.ZipFile(out["dest"]).extract("db/chester.db", x)
-            n = _count(Path(x) / "db" / "chester.db")
-            if n == 7:
-                ok("the database extracted from the zip holds all 7 rows")
-            else:
-                bad(f"extracted database holds {n} rows, wanted 7")
+            bad(f"state/pin_log.csv missing from the archive: {names}")
+        if not any(n.startswith("db/") or n.endswith(".db") for n in names):
+            ok("AUD-1 1a: the database is NOT in the zip -- the sweep's db/ snapshot "
+               "is its backup, and a full copy a session was the space leak")
+        else:
+            bad(f"the zip still carries a database: {names}")
+        if len(names) == 3 and zipfile.ZipFile(out["dest"]).testzip() is None:
+            ok("the archive holds exactly the 2 chains + the pin log, CRC clean")
+        else:
+            bad(f"archive holds {len(names)} entries, wanted 3: {names}")
 
 
 def group_c() -> None:
@@ -244,14 +239,16 @@ def group_c() -> None:
             run_eod.config.CHAIN_DIR = old_chain
             observations.DEFAULT_DB = old_db
 
-        if not out.get("ok") and "snapshot failed" in str(out.get("error", "")):
-            ok("an unreadable database fails the backup instead of omitting it")
+        # AUD-1 1a: the zip no longer reads the database at all, so a corrupt
+        # one cannot fail it, and nothing of it reaches the archive. The
+        # database's own backup is the sweep's snapshot, integrity-checked there.
+        names = (zipfile.ZipFile(out["dest"]).namelist()
+                 if out.get("ok") and out.get("dest") else [])
+        if out.get("ok") and names == ["SPY_1.csv"]:
+            ok("AUD-1 1a: a corrupt database no longer touches the chain zip, which "
+               "holds the chains alone")
         else:
-            bad(f"a corrupt database produced ok={out.get('ok')}: {out}")
-        if not (root / "out").exists() or not list((root / "out").glob("*.zip")):
-            ok("no archive was written at all -- nothing looks complete")
-        else:
-            bad("a partial archive was written to the backup folder")
+            bad(f"the chain zip read the database: {out}")
 
 
 def group_d() -> None:
@@ -397,8 +394,12 @@ def group_e() -> None:
         else:
             ok(why)
     deletes = [ln for ln in code.splitlines() if re.search(r"\brclone\s+deletefile\b", ln)]
-    if deletes and all('rclone deletefile "$REMOTE/db/$name"' in ln for ln in deletes):
-        ok("the only removal is `rclone deletefile \"$REMOTE/db/$name\"`")
+    allowed = ('rclone deletefile "$REMOTE/db/$name"',
+               # AUD-1 1c: Drive's chain zips past 30 days, by exact name
+               'rclone deletefile "$REMOTE/backups/chains/$name"')
+    if deletes and all(any(a in ln for a in allowed) for ln in deletes):
+        ok("the only removals are `rclone deletefile` of one named file in db/ or "
+           "backups/chains/")
     else:
         bad(f"a deletefile reaches outside db/: {deletes}")
     guard = code.find(r'^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$')
@@ -508,7 +509,9 @@ def group_e() -> None:
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     tm = re.search(r"^TimeoutStartSec=(?:(\d+)h)?(?:(\d+)min)?\s*$", u, re.M)
     ceiling = (int(tm.group(1) or 0) * 60 + int(tm.group(2) or 0)) if tm else 0
-    if len(caps) == 5 and ceiling > sum(caps) + 5 + 10:
+    # Six trees since AUD-1 1e (reports/), plus the AAII pull (5), the db/
+    # prune (10) and the chain-zip prune (10).
+    if len(caps) == 6 and ceiling > sum(caps) + 5 + 10 + 10:
         ok(f"TimeoutStartSec {ceiling}m sits above the tree caps "
            f"({'+'.join(map(str, caps))}={sum(caps)}m) plus the prune")
     else:
@@ -610,6 +613,73 @@ def group_f() -> None:
         bad(f"these units cannot write the moved store: {missing}")
 
 
+def group_aud1() -> None:
+    """AUD-1 items 1b-1e: the zips pruned on both sides, the disk guard, the
+    report archive as its own tree."""
+    print(f"\n{LINE}\nAUD-1 1b-1e. THE SPACE LEAK\n{LINE}")
+    import subprocess as sp_
+    br = REPO / "scripts" / "backup_retention.py"
+
+    def plan(mode_args, stdin):
+        r = sp_.run([sys.executable, str(br)] + mode_args, input=stdin,
+                    capture_output=True, text=True, timeout=60)
+        return r.returncode, [x for x in r.stdout.splitlines() if x.strip()]
+    names = "\n".join(f"chains_2026-{m:02d}-{d:02d}.zip" for m, d in
+                      ((8, 1), (8, 29), (9, 13), (9, 14), (9, 15), (10, 13))) + "\nREADME.txt\n"
+    rc, out = plan(["--mode", "zips", "--today", "2026-10-14",
+                    "--require", "chains_2026-10-13.zip"], names)
+    if rc == 0 and out == ["chains_2026-08-01.zip", "chains_2026-08-29.zip",
+                           "chains_2026-09-13.zip"]:
+        ok("1c: Drive's chain zips older than 30 days go by exact name; the 14 Sep "
+           "zip (30 days) and anything not a dated zip stay")
+    else:
+        bad(f"1c: the 30-day plan was {rc} {out}")
+    rc, out = plan(["--mode", "zips", "--today", "2026-10-14",
+                    "--require", "chains_2026-10-14.zip"], names)
+    if rc == 3 and not out:
+        ok("1c: nothing is pruned on Drive unless the newest local zip is listed there")
+    else:
+        bad(f"1c: a missing newest zip still pruned ({rc} {out})")
+    local = [f"chains_2026-09-{d:02d}.zip" for d in range(1, 18)]   # 17 zips
+    local_lines = "\n".join(f"100;{n}" for n in local)
+    with tempfile.TemporaryDirectory() as d:
+        rf = Path(d) / "remote.lsf"
+        # the remote holds the oldest exactly, the second at a different size,
+        # and not the third
+        rf.write_text(f"100;{local[0]}\n999;{local[1]}\n100;{local[3]}\n",
+                      encoding="utf-8")
+        rc, out = plan(["--mode", "local-chains", "--remote", str(rf)], local_lines)
+    if rc == 0 and out == [local[0]]:
+        ok("1b: the box keeps its newest 14 zips; of the 3 older, only the one the "
+           "remote holds as the exact file (same name, same size) is deleted")
+    else:
+        bad(f"1b: the local plan was {rc} {out}")
+    sweep = (REPO / "scripts" / "rclone_sync.sh").read_text(encoding="utf-8")
+    if ("finish disk_low 5" in sweep and "(( FREE_BYTES < 2 * DB_BYTES ))" in sweep
+            and sweep.index("finish disk_low 5") < sweep.index("altdata.observations snapshot")):
+        ok("1d: the sweep refuses to stage a snapshot with under twice the "
+           "database's size free, with a named exit (5, disk_low), before staging")
+    else:
+        bad("1d: the sweep has no disk guard ahead of the snapshot")
+    if 'REPORTS_DIR="${CHESTER_REPORTS_DIR:-$REPO/reports}"' in sweep \
+            and 'copy_tree "$REPORTS_DIR" "reports"' in sweep:
+        ok("1e: the report archive is its own copy tree (CHESTER_REPORTS_DIR)")
+    else:
+        bad("1e: the report archive is not swept")
+    readme = (REPO / "deploy" / "systemd" / "README.md").read_text(encoding="utf-8")
+    if "Until AUD-1 they were NOT swept" in readme:
+        ok("1e: the README's claim that the archive was already swept is corrected")
+    else:
+        bad("1e: the README still claims the archive was swept")
+    block = sweep[sweep.index("prune_zips() {"):sweep.index("prune_zips || true")]
+    if ("rclone deletefile" in block and "rclone delete " not in block
+            and "purge" not in block and "sync" not in block
+            and block.count("=~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}") == 2):
+        ok("1b/1c: both prunes delete one re-checked, exactly named file at a time")
+    else:
+        bad("1b/1c: a prune deletes by something other than an exact name")
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -620,6 +690,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_aud1()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

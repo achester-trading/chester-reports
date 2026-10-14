@@ -22,7 +22,7 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # the old 2h ceiling with no per-tree cap, so systemd killed the sweep and no
 # status line said which tree had stalled; the script now traps the SIGTERM
 # and writes state=killed (rc 4).
-TimeoutStartSec=2h30min
+TimeoutStartSec=2h45min
 
 NoNewPrivileges=true
 PrivateTmp=true
@@ -40,7 +40,9 @@ ProtectHome=no
 # AAII weekly file, lands there; the rest of ~/chester-data stays read-only.
 # The leading - skips it where the directory is absent, so it must exist
 # before the sweep starts for the pull to write.
-ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii
+# -%h/backups/chains (AUD-1 item 1b): the sweep deletes a local chain zip past
+# the newest 14, and only once the remote holds that exact file.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/backups/chains
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
