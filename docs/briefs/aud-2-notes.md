@@ -466,3 +466,10 @@ catch exactly that. The next commit fixes it.
 These are unchanged; the deploy now also carries the scores. After the deploy,
 box command 2 reads back the Gateway's applied score. The eod and report units
 are oneshots, so their scores apply at their next timer run with no restart.
+
+### CI
+
+- **#393** (`c0d3b04`, notes only): green.
+- **#397** (`aa452f3`, the merge): **failed one gate, validate_audit_2**, on
+  the tip's unmetered `crypto_basket` call. This was expected; see above.
+- **#398** (`e91d387`, the evening changes): green, every check.
