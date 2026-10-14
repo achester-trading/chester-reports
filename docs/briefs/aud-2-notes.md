@@ -365,3 +365,5 @@ next commit:
    body. The scope is now a decorator, `@model_meter.metered("daily_close")`
    (and `"weekly"`, `"monthly"`), so the body keeps its name and `inspect`
    follows `__wrapped__`.
+
+**#392** (`c9663c5`) passed every check.
