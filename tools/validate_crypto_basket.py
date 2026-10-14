@@ -323,11 +323,15 @@ def group_b() -> None:
     check(ok[0] == [("2026-10-10", 1.0), ("2026-10-11", 2.0)] and not ok[1],
           "a basket coin keeps its weekend bars (continuous, declared)")
     parsed = yf.parse_rows([{"Date": "2026-10-10", "Close": 1.5, "Volume": 1e6}])
+    # The market basket's volume is stored too since the Book B scanner's
+    # follow-up 1 (ruled 13 Oct 2026, by its unit); an index level still stores
+    # none (Friday stitching, 13 Oct).
     check(parsed["volumes"] == [("2026-10-10", 1e6)]
           and yf.volume_series("TAO22974-USD", parsed, ["2026-10-10"])
-          and not yf.volume_series("SPY", parsed, ["2026-10-10"]),
-          "volume is kept for the basket only (MW-7's turnover), never the market "
-          "basket")
+          and yf.volume_series("SPY", parsed, ["2026-10-10"])
+          and not yf.volume_series("^VIX", parsed, ["2026-10-10"]),
+          "volume is kept for the basket (MW-7's turnover) and the market basket "
+          "by its unit, never for an index level")
 
 
 def grade_store():

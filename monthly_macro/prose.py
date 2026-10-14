@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from altdata import observations, session
+from daily_cascade import readability
 
 from .narrative import TEMPLATE_PATH
 
@@ -647,7 +648,7 @@ def stack_plan(ed: dict) -> list[dict]:
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         system = sp.stack_system_prompt(base) + sp.RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            report="the Monthly", period="month", frames=MONTHLY_FRAMES,
+            report=voice(ed)[0], period=voice(ed)[1], frames=voice(ed)[2],
             figure_cap=_cap_word(), figure_tail=" -- the tables carry the rest")
         system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
                    + parent_note(s)
@@ -697,7 +698,7 @@ def block_plan(ed: dict) -> list[dict]:
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
     from daily_cascade import narrative as base                 # noqa: PLC0415
     tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
-        .replace("{frames}", MONTHLY_FRAMES)
+        .replace("{frames}", voice(ed)[2])
     out = []
     for s in ed.get("sections") or []:
         if s.get("empty"):
@@ -709,9 +710,13 @@ def block_plan(ed: dict) -> list[dict]:
             words_ = str(spec.get("words") or "60 to 100")
             hi = max(int(x) for x in re.findall(r"\d+", words_) or ["100"])
             system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
-                report="the Monthly", title=ss["title"], section=s["title"],
+                report=voice(ed)[0], title=ss["title"], section=s["title"],
                 scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
-                period="month", figure_cap=_cap_word(),
+                period=voice(ed)[1],
+                # A block may carry its own figure budget (AQ-2: the Quarterly's
+                # items), never above the cadence's cap.
+                figure_cap=_cap_word(min(int(spec.get("figures") or figure_cap()),
+                                         figure_cap())),
                 ordinals=ORDINAL_RULE) + tape
             sl = block_slice(s, ss, ed)
             system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
@@ -789,6 +794,18 @@ about the market, never about this report or its sections.
 SUMMARY_WITHHELD = "(summary withheld — audit)"
 
 
+def voice(ed: Optional[dict]) -> tuple[str, str, str]:
+    """(report, period noun, frames) for the edition's cadence: the Monthly's own
+    words, or -- for the Quarterly (AQ-1) -- the cadence's from
+    config/reporting_stack.yaml."""
+    name = (ed or {}).get("cadence") or "monthly"
+    if name == "monthly":
+        return "the Monthly", "month", MONTHLY_FRAMES
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    c = cadence_mod.get(name)
+    return c["report"], c["period"], c["frames"]
+
+
 def summary_slice(s: dict) -> dict:
     """What a finished section prints, for its summary paragraph."""
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
@@ -808,20 +825,21 @@ def summary_slice(s: dict) -> dict:
             "subsections": subs, "data": sp._scrub(s.get("data") or {})}
 
 
-def summary_plan(ed: dict) -> list[dict]:
+def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
     """One entry per section that is not empty, in stack order -- the read,
     the tape, ..., Reading, Ahead, the book, Slow layers. An empty section gets
-    no call; its summary line is its empty note."""
+    no call; its summary line is its empty note. `sections` (AQ-1): the
+    Quarterly's summary is one paragraph per CHAPTER, so it passes its chapters."""
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
     from daily_cascade import narrative as base                 # noqa: PLC0415
     tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
-        .replace("{frames}", MONTHLY_FRAMES)
+        .replace("{frames}", voice(ed)[2])
     out = []
-    for s in ed.get("sections") or []:
+    for s in (sections if sections is not None else ed.get("sections") or []):
         if s.get("empty"):
             continue
         system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
-            report="the Monthly", title=s["title"], period="month",
+            report=voice(ed)[0], title=s["title"], period=voice(ed)[1],
             figures=_cap_word(summary_figures()).lower(),
             ordinals=ORDINAL_RULE) + tape
         frame = summary_frame(s, ed)
@@ -898,10 +916,26 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
            # T3.5 (b): the Weekly's filler ban (W-1.1 item 1.0d), on every
            # Monthly frame -- section, block and summary.
            + sp.filler_faults(text, sp.filler_names(sec.get("slice"))))
+    # THE DIRECTION AUDIT AND THE STANCE CHECK (W-1.1b), as stack_prose.write
+    # runs them for the Weekly and the close: a direction word is held to the
+    # sign of the change the section prints in its month column, and "bullish on
+    # inflation" is refused. Withheld on the same messages.
+    out += direction_faults(text, sec, ed) + readability.stance_faults(text)
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])
     return out
+
+
+def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
+    """daily_cascade.direction's audit over one Monthly frame: the moves its
+    section prints (a block's and a summary's are its parent section's), read
+    from the month column -- every section's for a frame over the whole edition."""
+    from daily_cascade import direction                         # noqa: PLC0415
+    if not ed:
+        return []
+    return direction.faults(text, direction.edition_moves(
+        ed, sec.get("sid"), MONTH_COLUMN))
 
 
 # Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
@@ -1015,7 +1049,10 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             lists = list_lines(r.text) if published else []
             jargon = internal_terms(r.text) if published else []
             tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
-                    if (published and stack) else [])
+                    if (published and stack) else
+                    # A v2 section has no edition to hold directions to; the
+                    # stance check needs none.
+                    readability.stance_faults(r.text) if published else [])
             # A count's or a small thousands change's own display form is
             # accepted (T3.4a): "+42,984" contracts, "+29,000" payrolls.
             accepted = na.accepted_deltas([sec.get("slice"),
@@ -1045,10 +1082,16 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 reason = (f"withheld: a change of 10,000 or more printed without its "
                           f"unit or scale ({', '.join(bare[:3])}) -- copy its "
                           f"change_display or latest_level_display verbatim")
+            # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1b, the Weekly's W-1.1a
+            # item 4): "fell -3 bp" prints "fell 3 bp", after every audit, and
+            # the rewrite is counted.
+            text, n_unsigned = (readability.unsign_after_verbs(r.text)
+                                if published else (None, 0))
             return {
                 "title": sec["title"], "state": state, "published": published,
-                "text": r.text if published else None, "reason": reason,
-                "words": words(r.text) if published else 0,
+                "text": text, "reason": reason,
+                "unsigned_rewrites": n_unsigned,
+                "words": words(text) if published else 0,
                 # Kept for inspection, never printed: the operator can see what a
                 # withheld section said and why the audit stopped it.
                 "rejected_text": None if published else (

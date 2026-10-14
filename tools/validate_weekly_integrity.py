@@ -86,10 +86,12 @@ def group_a() -> None:
                                  None, prior=2650.0)]}
     t = wsec.tape_table(book)
     rows = {r[0]: r for r in t["table"]["rows"]}
-    check(rows["SPY"][1] == "671.20", "a current row prints its price bare")
-    check(rows["Bitcoin"][1] == "64,000.00 (stale since 2026-10-07)",
+    # W-1.2 item 2.8: the price carries its unit ("$671.20").
+    check(rows["SPY"][1] == "$671.20",
+          "a current row prints its price, with its unit and no stale mark")
+    check(rows["Bitcoin"][1] == "$64,000.00 (stale since 2026-10-07)",
           f"Bitcoin, two days behind the edition: '{rows['Bitcoin'][1]}'")
-    check(rows["Gold (front future)"][1] == "2,650.00 (stale since 2026-10-08)"
+    check(rows["Gold (front future)"][1] == "$2,650.00 (stale since 2026-10-08)"
           and rows["Gold (front future)"][3] == "—",
           "no bar for the session: the last close, stale, and no move")
     check(wsec.edition_session("2026-10-11T09:00:00+00:00") == DAY,
@@ -144,7 +146,10 @@ def group_b() -> None:
                          None, {}, dates={**dates, "contradiction:equities_vs_credit":
                                           {"exception_since": "2026-10-05"}})
     et = mis["subsections"][0]["table"]
-    check(et["columns"][-1] == "Exception since" and et["rows"][0][-1] == "2026-10-05",
+    # W-1.3b item 3.2: the tiered table keeps the column, with "opened this week"
+    # beside the date rather than in a column of its own.
+    i_s = et["columns"].index("Exception since")
+    check(str(et["rows"][0][i_s]).startswith("2026-10-05"),
           "the exceptions table prints each exception's own date")
     check("only of a gap's age" in sp.section_prompt(
         {"id": "misfit", "title": "What doesn't fit", "depth": "deep"}, "weekly"),

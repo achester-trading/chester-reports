@@ -205,10 +205,13 @@ def main() -> int:
               or h[2] == "what markets and surveys expect, not how they're positioned"
               for h in heads),
           "What's priced: 'what markets and surveys expect, not how they're positioned'")
+    # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts).
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
-           "Short interest", "Retail sentiment", "Foreign flows (TIC)"],
-          "Positioning in five sub-sections, each with its table")
+           "Futures positioning by trader type (CFTC TFF, % of open interest)",
+           "ETF share counts", "Short interest", "Retail sentiment",
+           "Foreign flows (TIC)"],
+          "Positioning in seven sub-sections, each with its table")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the
@@ -295,7 +298,8 @@ def main() -> int:
     # --- C. TABLE AND PROSE ------------------------------------------------------
     print(f"\n{LINE}\nC. THE TABLE-AND-PROSE RULE\n{LINE}")
     tt = sec["tape"]["table"]
-    lv = next(ss for ss in sec["tape"]["subsections"] if ss["title"] == "Levels")
+    # W-1.2 item 2.7: the levels table moved to the reference tables.
+    lv = next(d for d in ed.get("detail") or [] if d["title"] == "The tape: named levels")
     check(tt["columns"] == ["Market", "Last", "Session", "Week", "Month", "YTD"]
           and lv["table"]["columns"] == ["Market", "Week high / low",
                                          "52-week high (distance)",
@@ -334,7 +338,12 @@ def main() -> int:
 
     # --- D. THE WEEK BY DAY -----------------------------------------------------
     print(f"\n{LINE}\nD. THE READ: THE WEEK BY DAY\n{LINE}")
-    rt = sec["read"]["table"] or {}
+    # W-1.2 item 2.7: the week by day prints in Mechanics, the read's frame
+    # still reading it.
+    rt = next((ss["table"] for ss in sec["mechanics"]["subsections"]
+               if ss.get("title") == "The week by day"), None) or {}
+    check(not sec["read"].get("table"),
+          "The read prints no daily table; Mechanics carries the week by day")
     check(rt.get("columns") == ["Day", "SPY", "10-year", "Tier-1 release (actual, prior)",
                                 "Fed speech or auction", "Most-cited story (source)"]
           and len(rt.get("rows") or []) == len(sessions),
@@ -409,10 +418,14 @@ def main() -> int:
     srcs = {k: _insp.getsource(getattr(charts_mod, f)) for k, f in
             (("W1", "w1"), ("W2", "w2"), ("W3", "w3_panel"), ("W7", "w7"),
              ("W8", "w8"), ("W10", "w10"))}
+    # W-1.2 item 2.8: a small multiple's span moves from its titles to its
+    # caption (W8: "{n} sessions from {first}"); the count, span and dates
+    # still print with every chart.
     check(all("span_title(" in v or "sessions, {d0} to {d1}" in v
+              or "sessions \"" in v and "from {v['from']}" in v
               for v in srcs.values())
           and "span_title(" in _insp.getsource(ws.produce),
-          "W1-W10 build their titles with the count, span and dates")
+          "W1-W10 carry the count, span and dates, in the title or the caption")
     check(ws.chart_plan({"budget": {"charts": 10}, "sections": [
         {"id": "misfit", "data": {"open_contradictions": [1]}}]}) ==
         ["W1", "W2", "W8", "W7", "W6", "W3", "W5", "W4", "W9", "W10"],
@@ -444,8 +457,11 @@ def main() -> int:
     check(ex and ex[0]["tier"] == 2, "a monthly expiry, importance 2")
     check(any(r["event"] == "JPM earnings" for r in rows), "earnings from the universe")
     check("H.15" not in json.dumps(rows) and "Bill" not in json.dumps(rows)
-          and any("routine data releases" in n for n in sec["ahead"]["not_tracked"]),
-          "routine releases and bill auctions are counted, not listed")
+          and any("routine data release" in n for n in sec["ahead"].get("notes") or [])
+          and any(d["title"].startswith("Routine releases and bill auctions")
+                  for d in ed.get("detail") or []),
+          "routine releases and bill auctions are counted, not listed -- their rows "
+          "in the reference tables (W-1.3a item 3.9)")
     check(wsec.canonical_auction("Bond:29-Year 10-Month") == "Bond:30-Year",
           "a reopening is named by the security it reopens")
 

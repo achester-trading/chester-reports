@@ -139,6 +139,11 @@ def client(replies: dict, calls: list):
         period = "week" if "the Weekly" in sysm else "session"
         m = re.search(r"THE SECTION: ([^.]+)\.", sysm)
         tag = (m.group(1) if m else "read").lower()
+        if "THE OPENER SHAPE" in sysm:
+            # W-1.3a item 3.0: the Weekly's frames ask for the opener's shape.
+            import validate_weekly_stack as vws                 # noqa: PLC0415
+            return Resp(f"The {tag} view held steady over the {period}. "
+                        + vws.opener_text(tag))
         return Resp(f"The {tag} view held steady over the {period}. "
                     + DEFAULT.format(p=period))
     return types.SimpleNamespace(messages=types.SimpleNamespace(create=create))
@@ -151,8 +156,11 @@ def main() -> int:
 
     print(f"{LINE}\nThe readability pass on every stacked report (T2.5)\n{LINE}")
     td = gate_mkdtemp(prefix="validate_readability_")
+    import validate_weekly_stack as vws
+    # W-1.3a item 3.0: The read in the opener's shape (its band, its Takeaway).
     read_text = ("Dealer gamma turned negative over the week. Credit and equities "
-                 "kept arguing, and the curve kept steepening.")
+                 "kept arguing, and the curve kept steepening. "
+                 + vws.opener_text("weekly"))
     wk, wcalls, (wp, wdb, warch, wlog) = weekly_fixture(td, {"READ": read_text})
     wed, whtml = wk["edition"], wk["html_email"]
     cl, ccalls = close_fixture(td, {})
@@ -197,6 +205,19 @@ def main() -> int:
         for ch, s in zip(chunks(html), ed["sections"]):
             if s.get("empty"):
                 continue
+            if name == "Weekly":
+                # W-1.3a item 3.0: the Weekly opens on its commentary --
+                # opener (claim inside it) -> tables -> charts -> footnote.
+                pos = [ch.find('class="opener') if (s.get("claim") or s.get(
+                           "withheld")) else None,
+                       ch.find("<table") if "<table" in ch else None,
+                       ch.find("<figure") if "<figure" in ch else None,
+                       ch.rfind(f'style="{sr.FOOT}"') if f'style="{sr.FOOT}"' in ch
+                       else None]
+                seen = [x for x in pos if x is not None]
+                if -1 in seen or seen != sorted(seen)                         or ch.count('class="opener') > 1:
+                    bad.append(s["id"])
+                continue
             pos = [ch.find(f'style="{sr.CLAIM}"') if s.get("claim") else None,
                    ch.find("<table") if "<table" in ch else None,
                    ch.find("<figure") if "<figure" in ch else None,
@@ -205,14 +226,23 @@ def main() -> int:
             seen = [x for x in pos if x is not None]
             if seen != sorted(seen) or ch.count(f'style="{sr.PARA}"') > 1:
                 bad.append(s["id"])
-        check(not bad, f"{name}: claim -> tables -> charts -> one paragraph -> "
-                       f"footnote in every section (out of order: {bad})")
+        check(not bad, f"{name}: " + ("opener -> tables -> charts -> footnote"
+                                      if name == "Weekly" else
+                                      "claim -> tables -> charts -> one paragraph -> "
+                                      "footnote") + f" in every section (out of order: "
+                                                    f"{bad})")
+        from daily_cascade import cadence as cad_mod, opener as op_mod
+        cap_of = (lambda d: (op_mod.band(cad_mod.get("weekly"), d) or
+                             (0, rd.PARAGRAPH_WORDS))[1]) if name == "Weekly"             else (lambda d: rd.PARAGRAPH_WORDS)
         long_ = [s["id"] for s in ed["sections"]
                  if len(s.get("paragraphs") or []) > 1
-                 or any(len(p.split()) > rd.PARAGRAPH_WORDS for p in s["paragraphs"])
+                 or any(len(p.split()) > cap_of(s.get("depth"))
+                        for p in s["paragraphs"])
                  or any("paragraph" in ss for ss in s.get("subsections") or [])]
         check(not long_, f"{name}: one paragraph per section, at most "
-                         f"{rd.PARAGRAPH_WORDS} words, none under a sub-section "
+                         + ("its opener band's top"
+                            if name == "Weekly" else f"{rd.PARAGRAPH_WORDS}")
+                         + " words, none under a sub-section "
                          f"({long_})")
     big = {"sections": [{"id": "tape", "paragraphs": [
         " ".join(f"Sentence {n} has exactly seven words here." for n in range(30)),
@@ -476,7 +506,9 @@ def main() -> int:
                   re.findall(r"<table.*?</table>", html, flags=re.S)]
         check(widths and max(widths) <= 6, f"{name}: every table at most six "
                                            f"columns (widest {max(widths or [0])})")
-        has = {"section header": f'style="{sr.SECTION}"', "claim": f'style="{sr.CLAIM}"',
+        # The Weekly's claim prints in bold inside its opener (W-1.3a item 3.0).
+        has = {"section header": f'style="{sr.SECTION}"',
+               "claim": ('class="claim"' if name == "Weekly" else f'style="{sr.CLAIM}"'),
                "table header row": f'style="{sr.THL}"', "zebra": f'style="{sr.ZEBRA}"',
                "right-aligned number": f'style="{sr.TD}"',
                "chart caption": f'style="{sr.CAPTION}"',

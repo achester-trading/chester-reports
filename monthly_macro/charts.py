@@ -820,16 +820,18 @@ def drawn_levels_ok(chart: dict, book: Optional[dict]) -> bool:
     return all((d["label"], d["value"]) in listed for d in chart.get("drawn") or [])
 
 
-def png_name(stamp: str, cid: str) -> str:
-    return f"monthly_macro_{stamp}_{cid.lower()}.png"
+def png_name(stamp: str, cid: str, prefix: str = "monthly_macro") -> str:
+    return f"{prefix}_{stamp}_{cid.lower()}.png"
 
 
 def cids_in(html: str) -> list[str]:
-    """The chart ids an archived HTML references by Content-ID."""
-    return sorted(set(m.upper() for m in re.findall(r'cid:(m\d+)@chester', html)))
+    """The chart ids an archived HTML references by Content-ID: the Monthly's
+    M-series and the Quarterly's Q-series (AQ-2)."""
+    return sorted(set(m.upper() for m in re.findall(r'cid:([mq]\d+)@chester', html)))
 
 
-def archive_pngs(charts: dict, stamp: str, out_dir: str) -> list[str]:
+def archive_pngs(charts: dict, stamp: str, out_dir: str,
+                 prefix: str = "monthly_macro") -> list[str]:
     """Each chart's PNG beside the archived HTML, so a re-send (--deliver-only)
     mails the same images the record references. Returns the paths written."""
     from pathlib import Path                                    # noqa: PLC0415
@@ -838,20 +840,21 @@ def archive_pngs(charts: dict, stamp: str, out_dir: str) -> list[str]:
     out = []
     for k, c in charts.items():
         if c.get("png"):
-            p = d / png_name(stamp, k)
+            p = d / png_name(stamp, k, prefix)
             p.write_bytes(c["png"])
             out.append(str(p))
     return out
 
 
-def inline_images(html: str, stamp: str, out_dir: str) -> tuple[list, list[str]]:
+def inline_images(html: str, stamp: str, out_dir: str,
+                  prefix: str = "monthly_macro") -> tuple[list, list[str]]:
     """(the (Content-ID, PNG bytes) pairs an archived HTML references, the ids
     whose PNG is missing)."""
     from pathlib import Path                                    # noqa: PLC0415
     from daily_cascade import stack_render                      # noqa: PLC0415
     got, missing = [], []
     for cid in cids_in(html):
-        p = Path(out_dir) / png_name(stamp, cid)
+        p = Path(out_dir) / png_name(stamp, cid, prefix)
         if p.exists():
             got.append((stack_render.cid(cid), p.read_bytes()))
         else:

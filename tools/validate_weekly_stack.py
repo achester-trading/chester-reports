@@ -90,8 +90,11 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
     # Rates and breakevens: last week and this week.
     for key, a, b in (("fred.breakeven_10y", 2.30, 2.30 + breakeven_jump),
                       ("fred.breakeven_5y", 2.20, 2.21),
-                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.06),
-                      ("fred.yield_30y", 4.50, 4.53), ("fred.hy_oas", 3.00, 3.10)):
+                      # The 10- and 30-year end the week where the tape's bars
+                      # do (4.289%, 4.789%): one instrument on one date prints
+                      # one level (W-1.1a item 6, the alias check).
+                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.289),
+                      ("fred.yield_30y", 4.50, 4.789), ("fred.hy_oas", 3.00, 3.10)):
         put(key, None, "2026-09-25", a)
         put(key, None, ENDING, b)
     for i, d in enumerate(days[-260:]):           # a year of rates for W3
@@ -198,7 +201,40 @@ class Resp:
         self.stop_reason = "end_turn"
 
 
-def client(calls: list, text: str = "The week left this section where it was."):
+# THE OPENER SHAPE (W-1.3a item 3.0): the scripted writer's reply is one
+# paragraph inside every Weekly band (deep 120-220, medium 80-150) ending in its
+# Takeaway, so the fixture's commentaries publish as a model's would.
+OPENER_TEXT = ("The week left this section where it was. A reader new to the system can take "
+        "the readings here as the plain record of where each market sat when the week "
+        "closed, set beside where it sat a week earlier, so that a change shows up as a "
+        "difference between two columns rather than as a judgement. Nothing in the week "
+        "went far enough to alter how the readings fit together, and the relationships "
+        "that held at the start of the week held at its end. The quiet was broad rather "
+        "than confined to one corner of the market, and no single reading stood apart "
+        "from the rest. Takeaway: with nothing pulling the readings apart, the coming "
+        "week starts from the same footing, and a change would have to come from a "
+        "scheduled event rather than from drift.")
+
+
+def opener_text(tag: str) -> str:
+    """An opener-shaped paragraph worded for one section (`tag`), so no two
+    sections -- and not The read -- share a sentence the duplicate guard would
+    withhold. Inside every Weekly band, no figure, ending in its Takeaway."""
+    return (f"A reader new to the system can take the {tag} readings as the plain "
+            f"record of where each market sat when the week closed, set beside "
+            f"where it sat a week earlier, so that a change shows up as a "
+            f"difference between two columns rather than as a judgement. Nothing "
+            f"in the {tag} readings went far enough to alter how they fit together, "
+            f"and the relationships that held at the start of the week in the {tag} "
+            f"readings held at its end. The quiet in the {tag} readings was broad "
+            f"rather than confined to one corner of the market, and no single one "
+            f"of them stood apart from the rest. Takeaway: with nothing pulling the "
+            f"{tag} readings apart, the coming week starts from the same footing, "
+            f"and a change would have to come from a scheduled event rather than "
+            f"from drift.")
+
+
+def client(calls: list, text: str = OPENER_TEXT):
     def create(**k):
         calls.append(k["system"])
         return Resp(text)

@@ -1,0 +1,24 @@
+# THE CHINA POLITICAL CALENDAR -- a hand-seeded TEMPLATE (change order of 10 Oct
+# 2026, section 4.5, "The local political environment"; decision 4).
+#
+# The Party and State calendar for the quarter ahead -- plenums, Politburo
+# meetings, the NPC and its Standing Committee, the Central Economic Work
+# Conference -- maintained BY HAND. The Quarterly's China chapter prints the
+# entries dated in the 120 days after the quarter's end
+# (monthly_macro/quarterly_items.panel_political) and writes nothing about them:
+# what an entry means enters through the operator's political note, stored as an
+# operator voices row, never through the model.
+#
+# One entry per event, each with its source -- an authoritative release (NBS,
+# PBOC, MOF, SAFE, customs, the State Council, Xinhua's official notice) where
+# one exists. A date not yet announced is not entered; "expected" dates are not
+# entries.
+#
+#   - date:   YYYY-MM-DD
+#     body:   "Politburo"          # the convening body
+#     event:  "monthly meeting"    # what it is, in the release's words
+#     source: "https://..."        # where the date was announced
+#
+# Seeded by hand (section 11, "By hand"); no entry is written by any session.
+version: template
+entries: []

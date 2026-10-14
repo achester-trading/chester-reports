@@ -730,13 +730,17 @@ def v2_sections(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
-def build(as_of: Optional[str] = None, run_id: Optional[str] = None) -> dict:
-    """Every section. Reads only; never raises on a missing one."""
+def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
+          period: str = "month") -> dict:
+    """Every section. Reads only; never raises on a missing one. `period`
+    "quarter" (AQ-1) moves v2.month_bounds' window to the previous calendar
+    quarter, for the Quarterly's front matter."""
     cutoff = as_of or session.utc_iso(timespec="microseconds")
     db = observations.ObservationStore()
     try:
         out: dict[str, Any] = {
-            "report": "monthly",
+            "report": "monthly" if period == "month" else "quarterly",
+            "period": period,
             "report_date": session.session_date(),
             "as_of": cutoff,
             "generated_at": session.utc_iso(),
