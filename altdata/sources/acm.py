@@ -47,6 +47,10 @@ COLUMNS: dict[str, str] = {
     "acm.term_premium_5y": "ACMTP05",
     "acm.term_premium_10y": "ACMTP10",
     "acm.risk_neutral_yield_10y": "ACMRNY10",
+    # Signal-triage batch 3, ST-B3-02 (SR-6 by tenor, 13 Oct 2026): the expected
+    # short rate at the 2- and 5-year, beside their term premia above.
+    "acm.risk_neutral_yield_2y": "ACMRNY02",
+    "acm.risk_neutral_yield_5y": "ACMRNY05",
     "acm.fitted_yield_10y": "ACMY10",
 }
 KEYS = list(COLUMNS)

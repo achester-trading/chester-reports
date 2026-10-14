@@ -158,6 +158,25 @@ def events_for(symbol: str) -> tuple[list[ev_mod.Event], dict]:
     est_c = cols.get("eps estimate")
     rep_c = cols.get("reported eps")
     sur_c = cols.get("surprise(%)") or cols.get("surprise (%)")
+    # THE RELEASE TIME, WHERE THE SOURCE CARRIES ONE (W-1.3c item 9). The
+    # calendar gives the next report as a bare date; the earnings-dates table
+    # gives its unreported row as a timestamp. A row on the forward date with a
+    # time of day other than midnight is stored beside the date as `release_at`,
+    # and the Ahead prints pre- or post-market from it. Events dedupe on a hash
+    # without the payload, so it lands only on a date's first write.
+    fwd = next((e for e in out if e.type == "scheduled"), None)
+    if fwd is not None and rep_c:
+        for idx, row in df.iterrows():
+            r = row.get(rep_c)
+            if r is not None and r == r:
+                continue
+            if (getattr(idx, "hour", 0), getattr(idx, "minute", 0)) == (0, 0):
+                continue
+            if str(getattr(idx, "date", lambda: "")())[:10] == fwd.observed_at[:10]:
+                at = _iso(idx)
+                if at:
+                    fwd.payload["release_at"] = at
+                break
     kept = 0
     for idx, row in df.iterrows():
         when = _iso(idx)

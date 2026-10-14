@@ -1,0 +1,15 @@
+# em_calendar.yaml -- the EM calendar (SR-46; Audit #4 Part III, Category 3 "by
+# hand"). A TEMPLATE: the operator seeds it by hand -- elections, runoffs, IMF
+# reviews, major EM central-bank meetings. altdata/move_screen.em_calendar()
+# prints the current quarter's entries into Ahead when there are any, and nothing
+# while it is empty. No session writes an entry.
+#
+# One entry per event:
+#   - date: 2026-10-26              # ISO date of the event
+#     country: Brazil
+#     event: "Presidential runoff"
+#     pm_market_id: null            # "<venue>:<market id>" when a prediction
+#                                   # market exists, else null
+#     source: "TSE calendar, https://..."
+version: em-calendar-v1
+entries: []

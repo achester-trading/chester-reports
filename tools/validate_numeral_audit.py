@@ -24,6 +24,12 @@ while it was being written:
      arbitrary string is not a licence to print digits. Depth is bounded.
   E  THE RESULT CONTRACT. pass/fail, the unmatched list, and a one-line reason
      fit for the withheld-narrative note.
+  L  W-1.3c ITEMS 1 AND 7. A sign before $, the euro, pound or yen sign is the
+     figure's sign (a Unicode minus or a hyphen; a plus stays positive). One
+     ordinal() helper -- 1st 2nd 3rd 11th 12th 13th 21st 92nd 103rd, half up --
+     formats every code-written percentile: the scanner's candidate line prints
+     "RS 92nd" where dry run #6 printed "RS 92th", and no f-string in the
+     report code writes a suffix by hand.
 
     python tools/validate_numeral_audit.py
 """
@@ -735,6 +741,56 @@ def group_h() -> None:
                                  f"-- {why}" + ("" if want else f" ({rr.reason()})"))
 
 
+def group_l() -> None:
+    print(f"\n{LINE}\nL. W-1.3c ITEMS 1 AND 7 -- a sign before a currency symbol; the "
+          f"one ordinal helper\n{LINE}")
+    from altdata.numeral_audit import ordinal
+    vals = {t: f.value for f in extract("fell −$1bn, fell -$1bn, rose +$82bn, "
+                                        "−€2bn, -£3.5m, −¥4tn, +€5bn")
+            for t in [f.text]}
+    check(vals.get("−$1bn") == -1e9 and vals.get("-$1bn") == -1e9
+          and vals.get("+$82bn") == 82e9,
+          f"'−$1bn' and '-$1bn' are -1e9 (Unicode minus and hyphen); '+$82bn' is "
+          f"+82e9 ({vals})")
+    check(vals.get("−€2bn") == -2e9 and vals.get("-£3.5m") == -3.5e6
+          and vals.get("−¥4tn") == -4e12 and vals.get("+€5bn") == 5e9,
+          "the sign survives before the euro, pound and yen signs")
+    r = audit("Reverse repo fell −$1bn the same day.", {"rrp_change": -1e9})
+    check(r.passed, f"'fell −$1bn' against a stored -1e9 passes ({r.reason()})")
+    r = audit("ECB deposits fell −€2bn.", {"ecb_change": 2e9})
+    check(not r.passed, "'−€2bn' against a stored +2e9 fails: the sign is read")
+    want = {1: "1st", 2: "2nd", 3: "3rd", 11: "11th", 12: "12th", 13: "13th",
+            21: "21st", 92: "92nd", 103: "103rd"}
+    got = {n: ordinal(n) for n in want}
+    check(got == want, f"ordinal(): {', '.join(got.values())}")
+    check(ordinal(91.5) == "92nd" and ordinal(92.4) == "92nd",
+          "ordinal() rounds half up, as percentile_ordinal always has")
+    from altdata import book_b_scanner as bb
+    c = {"symbol": "IVW", "d": 1, "rs_pct": 92.0}
+    ctx = {"positioning": {}, "tells": {}, "moves": {},
+           "top_bottom": {"available": False, "overlay": {}},
+           "alt_assets": set(), "breaks": {}}
+    try:
+        lines = [x["text"] for x in bb.confirm(c, ctx, bb.load_config())
+                 if x["family"] == "relative strength"]
+    except Exception as exc:                                    # noqa: BLE001
+        lines = [f"{type(exc).__name__}: {exc}"]
+    check(lines and lines[0].startswith("RS 92nd percentile")
+          and "92th" not in lines[0],
+          f"the scanner's candidate line prints 'RS 92nd' -- dry run #6 printed "
+          f"'RS 92th' ({lines[:1]})")
+    import re as _re
+    hand = []
+    for p in list((REPO / "daily_cascade").glob("*.py")) + \
+            list((REPO / "altdata").rglob("*.py")) + \
+            list((REPO / "monthly_macro").rglob("*.py")):
+        for i, ln in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+            if _re.search(r"\}(?:th|st|nd|rd)\b", ln):
+                hand.append(f"{p.name}:{i}")
+    check(not hand, "no f-string writes an ordinal suffix by hand; ordinal() "
+                    "formats them all" + (f" -- not: {hand[:6]}" if hand else ""))
+
+
 def main() -> int:
     print(f"{LINE}\nD3 numeral audit -- the precondition for any generated "
           f"sentence\n{LINE}")
@@ -749,6 +805,7 @@ def main() -> int:
     group_i()
     group_j()
     group_k()
+    group_l()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
