@@ -305,8 +305,9 @@ def translation_for(batch_id: str, local_id: str, file_sha256: Optional[str],
     """A committed translation of a batch's text rule into the grammar, bound
     to the exact file by its sha256: alpha/research/translations/<batch_id>/
     <local_id>.yaml. It carries the rule and a note of every substitution it
-    made; it never changes the pre-registration instant, and a translation for
-    a different file's bytes is not applied."""
+    made -- or, for a rule the grammar cannot express, `needs_code_reason`. It
+    never changes the pre-registration instant, and a translation for a
+    different file's bytes is not applied."""
     p = Path(root or TRANSLATIONS) / batch_id / f"{local_id}.yaml"
     if not p.is_file():
         return None
@@ -314,7 +315,9 @@ def translation_for(batch_id: str, local_id: str, file_sha256: Optional[str],
     if doc.get("batch_sha256") and file_sha256 and \
             str(doc["batch_sha256"]).lower() != str(file_sha256).lower():
         return None
-    if doc.get("local_id") != local_id or not isinstance(doc.get("rule_dsl"), dict):
+    if doc.get("local_id") != local_id:
+        return None
+    if not isinstance(doc.get("rule_dsl"), dict) and not doc.get("needs_code_reason"):
         return None
     return doc
 

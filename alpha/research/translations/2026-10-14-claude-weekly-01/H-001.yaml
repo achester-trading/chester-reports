@@ -1,0 +1,13 @@
+# H-001, "The CPI-day straddle overprices the print": NOT IN THE GRAMMAR.
+batch_id: 2026-10-14-claude-weekly-01
+batch_sha256: 6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626
+local_id: H-001
+translated_at: "2026-10-14"
+translator: "session B, alpha-lab-2"
+needs_code_reason: >-
+  Option prices. The rule sells a release-day SPY straddle and buys the +/-2x
+  strangle (an iron fly), filled at the stored bid and ask per strike and expiry.
+  Grammar v1 trades stored price series; it reads no option quote, and the store
+  holds no history of event-day straddles yet (6b's OPRA history, the week of
+  19 Oct, or FlashAlpha's historical quotes at a tier to verify). Needs an options
+  pricer over stored chain quotes: queued for the research sitting.

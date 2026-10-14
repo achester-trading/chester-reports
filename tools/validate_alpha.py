@@ -51,6 +51,13 @@ Tranche 2 (X-2; change order sections 4 and 10):
      included; the harness refuses a hypothesis pre-registered after the run,
      an unregistered one and a closed one; a blocked instrument never reaches
      the register.
+  O  THE RULE GRAMMAR (X-2.10a), on the Tranche 2 fixture store
+     (tests/fixtures/alpha/fixture_store.py). H-002, H-004 and H-005 compile
+     and run, every trade point-in-time, their variants counted; H-001 and
+     H-003 are needs_code with the reason; a translation binds to the batch's
+     bytes; a FRED series reads yesterday at the 17:40 decision; a broken rule
+     is refused for every reason; a stored-nowhere series is a data gap; the
+     interpreter evaluates no code.
 
     python tools/validate_alpha.py
 """
@@ -1013,8 +1020,142 @@ def group_n() -> None:
           "the register's")
 
 
+# ---------------------------------------------------------------------------
+_FX: dict = {}
+TRANSLATIONS = REPO / "alpha" / "research" / "translations" / "2026-10-14-claude-weekly-01"
+
+
+def fx_store() -> str:
+    """The Tranche 2 fixture store (tests/fixtures/alpha/fixture_store.py),
+    built once per gate run in the gate's own temp directory."""
+    if "path" not in _FX:
+        from tests.fixtures.alpha import fixture_store            # noqa: PLC0415
+        p = os.path.join(_TMP, "t2_store.sqlite")
+        _FX["info"] = fixture_store.build(p)
+        _FX["path"] = p
+    return _FX["path"]
+
+
+def translation(lid: str) -> dict:
+    return yaml.safe_load((TRANSLATIONS / f"{lid}.yaml").read_text(encoding="utf-8"))
+
+
+def group_o() -> None:
+    head("O. THE RULE GRAMMAR v1 (X-2.10a)")
+    from alpha import rules                                     # noqa: PLC0415
+    st = ReadOnlyStore(fx_store())
+    before = sha(Path(fx_store()))
+    try:
+        for lid in ("H-001", "H-003"):
+            t = hyp.translation_for("2026-10-14-claude-weekly-01", lid, SEED_SHA256)
+            check(t is not None and t.get("needs_code_reason") and not t.get("rule_dsl"),
+                  f"{lid} registers as needs_code, with the reason: "
+                  f"{(t or {}).get('needs_code_reason', '')[:60]}...")
+        check(hyp.translation_for("2026-10-14-claude-weekly-01", "H-002", "0" * 64) is None,
+              "a translation is bound to the batch file's bytes: another sha256 gets none")
+        runs = {}
+        for lid, nvar in (("H-002", 1), ("H-004", 1), ("H-005", 2)):
+            t = hyp.translation_for("2026-10-14-claude-weekly-01", lid, SEED_SHA256)
+            try:
+                cmp = rules.compile_rule(t["rule_dsl"], st)
+            except rules.RuleError as exc:
+                check(False, f"{lid} compiles into the grammar: {exc.errors[:3]}")
+                continue
+            bt = rules.backtest(cmp, st, "2018-01-02", "2026-10-09")
+            tr = bt["trades"]
+            runs[lid] = (cmp, bt)
+            check(len(tr) >= 10 and len(cmp.variants) == nvar
+                  and bool(t.get("translation_note")),
+                  f"{lid} compiles into the grammar and runs on the fixture store: "
+                  f"{len(tr)} trades, {len(cmp.variants)} counted variant(s), its "
+                  f"substitutions noted")
+            check(all(x["available_at"] <= x["decided_at"] for x in tr)
+                  and all(x["entry_day"] > x["signal_day"] for x in tr),
+                  f"{lid}: every trade read only what was knowable at its decision, "
+                  f"and entered after it")
+        if "H-002" in runs:
+            cmp, bt = runs["H-002"]
+            st_ex = [x for x in bt["trades"] if x["exit_reason"].startswith("stop")]
+            check(all(x["exit_price"] in (x["stop"], x["entry_price"]) or "gap" in
+                      x["exit_reason"] for x in st_ex),
+                  f"H-002's stops exit at the stop, at a gapped open, or at an entry "
+                  f"already beyond it ({len(st_ex)} stopped)")
+            check(all(x["sessions"] <= 5 for x in bt["trades"]),
+                  "and none is held past its five-session time stop")
+            dc, drop = rules.variant_rule(cmp, cmp.variants[0])
+            dbt = rules.backtest(dc, st, "2018-01-02", "2026-10-09", drop=drop)
+            check(len(dbt["trades"]) >= len(bt["trades"]),
+                  f"the drop variant (without RSP/SPY) trades at least as often "
+                  f"({len(dbt['trades'])} against {len(bt['trades'])})")
+        if "H-004" in runs:
+            cmp, bt = runs["H-004"]
+            gaps = [(bt["trades"][i]["signal_day"], bt["trades"][i - 1]["exit_day"])
+                    for i in range(1, len(bt["trades"]))]
+            check(all(a > b for a, b in gaps), "H-004: one position at a time, and the "
+                  "cooldown holds")
+            rc, _ = rules.variant_rule(cmp, cmp.variants[0])
+            check(rc.instruments == ["LQD", "HYG"], "its LQD hedge-leg variant swaps the "
+                  "instrument and runs on its own")
+        if "H-005" in runs:
+            cmp, bt = runs["H-005"]
+            dirs = {x["direction"] for x in bt["trades"]}
+            check(dirs == {1, -1}, "H-005 is two-sided: the term premium's 20-session "
+                  "change chooses short or long")
+            bv = rules.by_variant(cmp, bt["trades"])
+            check(set(bv) == {"term_premium_rising=True", "term_premium_rising=False"}
+                  and sum(v["n"] for v in bv.values()) == len(bt["trades"]),
+                  "and its conditioning splits the trades into the two branches")
+        data = rules.Data(st)
+        d = "2024-03-14"
+        t = rules.decision_instant(d, "next_close")
+        e = rules.evaluate({"series": "fred.ccc_oas", "transform": "level"}, data, d, t)
+        prev = "2024-03-13"
+        check(e.value is not None and abs(e.value - data.series("fred.ccc_oas").first(prev))
+              < 1e-12, "point-in-time: at the 17:40 ET decision, a FRED series reads "
+              "yesterday's value (today's is published tomorrow)")
+        t2 = rules.decision_instant(d, "this_close")
+        e2 = rules.evaluate({"series": "SPY", "transform": "level"}, data, d, t2)
+        check(abs(e2.value - data.series("yfinance.mkt_spy").first(prev)) < 1e-12,
+              "a this_close rule decides at 15:50 ET, so it reads the previous close")
+        bad = {"grammar": rules.GRAMMAR, "universe": ["TLT", "BN"], "cadence": "hourly",
+               "trigger": [{"series": "NOPE", "transform": "wiggle", "op": "~"}],
+               "direction": "up", "instrument": "TLT", "entry": "next_open",
+               "exits": {"target": {"r": 1}, "time": 5}, "colour": "red"}
+        try:
+            rules.compile_rule(bad)
+            check(False, "a broken rule is refused")
+        except rules.RuleError as exc:
+            want = ["unknown key colour", "cadence", "wiggle", "NOPE", "direction",
+                    "restricted", "next_open needs a stored open", "target in R"]
+            miss = [w for w in want if not any(w in m for m in exc.errors)]
+            check(not miss, f"a broken rule is refused for every reason "
+                  f"({len(exc.errors)}){'' if not miss else ' missing ' + str(miss)}")
+        gap = dict(translation("H-005")["rule_dsl"])
+        gap["trigger"] = [{"series": "fred.yield_2y", "transform": "level", "op": ">",
+                           "value": 0}]
+        try:
+            rules.compile_rule(gap, st)
+            check(False, "a registered series the store does not hold is a data gap")
+        except rules.RuleError as exc:
+            check(any("data gap" in m for m in exc.errors),
+                  "a registered series the store does not hold is a data gap, never a "
+                  "substitute")
+        src = (REPO / "alpha" / "rules.py").read_text(encoding="utf-8")
+        calls = {n.func.id for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Name)}
+        check(not calls & {"eval", "exec", "compile", "__import__"},
+              "the grammar is interpreted: rules.py calls no eval, exec or compile")
+        doc = (REPO / "docs" / "alpha-lab-rules.md").read_text(encoding="utf-8")
+        check(all(w in doc for w in ("alpha-lab-rules/v1", "## 5. Point-in-time",
+                                     "## 9. Conditioning", "H-002", "needs_code")),
+              "docs/alpha-lab-rules.md documents the grammar for a reader without the code")
+    finally:
+        st.close()
+    check(sha(Path(fx_store())) == before, "the fixture store is unchanged by the grammar")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
-          group_h, group_i, group_j, group_k, group_l, group_m, group_n]
+          group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o]
 
 
 def main() -> int:

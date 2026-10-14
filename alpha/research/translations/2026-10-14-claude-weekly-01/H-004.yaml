@@ -1,0 +1,33 @@
+# H-004, "A quality split in credit leaks into high yield before investment
+# grade", in grammar v1.
+batch_id: 2026-10-14-claude-weekly-01
+batch_sha256: 6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626
+local_id: H-004
+translated_at: "2026-10-14"
+translator: "session B, alpha-lab-2"
+translation_note: >-
+  Two substitutions. (1) "Duration-matched" needs a duration series, and the store
+  holds none; the nearest hedge it can serve point-in-time is volatility-matched
+  over the trailing 60 sessions (each leg weighted inversely to its realised
+  volatility), which for HYG against IEF is close in spirit and is declared here
+  rather than assumed. "Beta-adjusted" LQD is volatility-matched the same way.
+  (2) HYG and IEF carry stored closes only, so the entry is the next session's
+  close after the trigger, never a fill at a price the rule had not yet seen. The
+  OAS changes are over 20 stored observations, in basis points (the series are in
+  percent). "No new trigger within 20 sessions" is the cooldown.
+rule_dsl:
+  grammar: alpha-lab-rules/v1
+  universe: [HYG, IEF, LQD]
+  cadence: daily_close
+  trigger:
+    - {series: {spread: [fred.ccc_oas, fred.bb_oas]}, transform: change, n: 20, units: bp, op: ">=", value: 40}
+    - {series: fred.ig_oas, transform: change, n: 20, units: bp, op: "<=", value: 5}
+  direction: long
+  instrument: {pair: {long: IEF, short: HYG, weight: vol_matched, n: 60}}
+  entry: next_close
+  exits:
+    time: 20
+  cooldown: 20
+  conditioning:
+    - name: hedge_leg_lqd
+      replace: {instrument: {pair: {long: LQD, short: HYG, weight: vol_matched, n: 60}}}

@@ -1,0 +1,14 @@
+# H-003, "Dealer gamma decides which pivot works": NOT IN THE GRAMMAR.
+batch_id: 2026-10-14-claude-weekly-01
+batch_sha256: 6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626
+local_id: H-003
+translated_at: "2026-10-14"
+translator: "session B, alpha-lab-2"
+needs_code_reason: >-
+  The scanner's setups. The trigger is the Book B scanner's own definitions
+  (a 20-60 session base, its range, the five-session failed-breakdown window and
+  the scanner's invalidation), which are code in the scanner rather than a
+  condition on one stored series, over a ~60-symbol basket; and the conditioning
+  regime is SPY's stored gamma history, whose depth is the check the batch itself
+  names. Needs the scanner's setups exposed as a stored series or an engine:
+  queued for the research sitting.
