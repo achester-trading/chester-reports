@@ -263,6 +263,9 @@ def reading_target(cadence: str) -> Optional[int]:
 # "S&P 500", "2s10s", "Nasdaq-100", a date. Each is removed before counting.
 _NOT_FIGURES = [
     re.compile(r"S&P\s?500|Russell\s?2000|Nasdaq-100|Dow\s?30", re.I),
+    # The 60-40 benchmark is a name (W-1.1a): it counted as two figures, "60"
+    # and "40", in every Book Z sentence.
+    re.compile(r"\b60[-/]40\b"),
     re.compile(r"\b\d+(?:[.,]\d+)?\s?-\s?(?:year|month|week|day|session|minute|hour|"
                r"quarter)s?(?:-[a-z]+)?\b", re.I),
     re.compile(r"\b\d+s\d+s\b", re.I),
@@ -296,6 +299,68 @@ def figures(text: Optional[str]) -> list[str]:
 
 def figure_count(text: Optional[str]) -> int:
     return len(figures(text))
+
+
+# ---------------------------------------------------------------------------
+# 1b. The verb carries the sign; no stance on a macro variable (W-1.1a item 4)
+# ---------------------------------------------------------------------------
+# The 12 Oct dry run wrote "fell -3 bp", "rose +3.36%", "widened +37 bp" through
+# the edition: the verb and the sign say the same thing twice. After every audit,
+# a signed figure that follows a lexicon verb (config/direction_lexicon.yaml)
+# AGREEING with its sign prints unsigned, and the rewrite is counted. A verb that
+# disagrees is left for the direction audit, which has already withheld it.
+def _lexicon_verbs() -> dict[str, int]:
+    from .direction import lexicon                              # noqa: PLC0415
+    lex = lexicon()
+    out = {str(w).lower(): 1 for w in lex.get("up") or []}
+    out.update({str(w).lower(): -1 for w in lex.get("down") or []})
+    # "up" and "down" are adverbs here, not verbs: "down -0.43%" is left alone
+    # only where it disagrees, as for any word.
+    return out
+
+
+_SIGNED_AFTER = re.compile(r"\b(?P<verb>[A-Za-z]+)(?P<gap>\s+(?:by\s+)?)"
+                           r"(?P<sign>[+\-−])(?P<num>\d)")
+
+
+def unsign_after_verbs(text: Optional[str]) -> tuple[Optional[str], int]:
+    """("fell 3 bp", 1) from "fell -3 bp": the sign dropped after an agreeing
+    lexicon verb, and the number of rewrites."""
+    if not text:
+        return text, 0
+    verbs = _lexicon_verbs()
+    n = 0
+
+    def sub(m: re.Match) -> str:
+        nonlocal n
+        d = verbs.get(m.group("verb").lower())
+        sign = 1 if m.group("sign") == "+" else -1
+        if d is None or d != sign:
+            return m.group(0)
+        n += 1
+        return f"{m.group('verb')}{m.group('gap')}{m.group('num')}"
+    out = _SIGNED_AFTER.sub(sub, text)
+    return out, n
+
+
+# "Bullish on inflation" is a position in a market, said of a macro variable: the
+# reader cannot tell whether it means more inflation is expected or that it is
+# welcome. The frame says "expects inflation to stay above target".
+_STANCE = re.compile(r"\b(bullish|bearish)\s+(?:on|about|for|over)\s+(?:the\s+)?"
+                     r"(inflation|growth|rates|interest rates|yields|the economy|"
+                     r"the labor market|the labour market|employment|GDP)\b", re.I)
+_MARKED = re.compile(r"\bmarked\s+(?:broke|broken|held|holding)\b", re.I)
+
+
+def stance_faults(text: Optional[str]) -> list[str]:
+    """'bullish'/'bearish' paired with a macro variable, and a level "marked
+    broke" -- each quoted, so the retry names it."""
+    out = [f"'{m.group(0)}' -- a stance on a macro variable; write what is "
+           f"expected (\"expects inflation to stay above target\")"
+           for m in _STANCE.finditer(text or "")]
+    out += [f"'{m.group(0)}' -- a level is \"broken\" or \"held\", never "
+            f"\"marked broke\"" for m in _MARKED.finditer(text or "")]
+    return out
 
 
 def _figure_core(f: str) -> str:
@@ -567,14 +632,42 @@ def _change_cell(by_venue: dict) -> str:
 
 def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
     """Item 9: item · Kalshi · Polymarket · change over the window · note. The
-    note carries a venue's legs-sum flag and odds outside 10-90%. Kalshi's change
+    note carries a venue's legs-sum flag and the favourite–longshot check. Kalshi's change
     is printed first, Polymarket's second, in the columns' order."""
+    cols, rows, _ = _pm(pmb, window)
+    return {"columns": cols, "rows": rows}
+
+
+def pm_contracts(pmb: Optional[dict], window: str = "5s") -> list[dict]:
+    """EACH CONTRACT'S CHANGE AS A FIGURE (T3.3 item 5): one entry per row and
+    venue the table prints a change for -- the row's item, the venue, the change
+    in probability points and its signed form with its unit ("−14.0 pts"), the
+    string the table cell prints for that venue. The 10 Oct dry run withheld the
+    FOMC block on 14.0 and the rest on 11.5: week changes the payload carried only
+    inside the table's "a / b pts" cells."""
+    return _pm(pmb, window)[2]
+
+
+def _contracts(item: str, by_venue: dict) -> list[dict]:
+    out = []
+    for v in VENUES:
+        x = by_venue.get(v)
+        if x is None:
+            continue
+        out.append({"item": item, "venue": v.title(),
+                    "change_points": round(float(x), 1),
+                    "change_signed": f"{_pts(x)} pts", "change_unit": "points"})
+    return out
+
+
+def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
     from .stack import _watch_cfg, side_rows                    # noqa: PLC0415
     label = "Week change" if window == "5s" else "Session change"
     cols = ["Item", "Kalshi", "Polymarket", label, "Note"]
     rows: list[list] = []
+    contracts: list[dict] = []
     if not pmb:
-        return {"columns": cols, "rows": rows}
+        return cols, rows, contracts
     lo, hi = pmb.get("legs_sum_band") or [0.95, 1.05]
     key = f"change_{window}_points"
     try:
@@ -591,8 +684,9 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
             if max((p or 0) for p in probs.values()) < 0.05:
                 continue
             ch: dict = {}
+            thin = set()
             for r in fomc_rows:
-                if not classify_fomc or r.get(key) is None:
+                if not classify_fomc:
                     continue
                 dd = str(r.get("decision_date") or "")[:10]
                 try:
@@ -602,16 +696,34 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
                     near = False
                 if near and classify_fomc(r.get("question") or "",
                                           r.get("outcome") or "") == side:
-                    ch[r["venue"]] = (ch.get(r["venue"]) or 0) + r[key]
+                    if r.get(key) is not None:
+                        ch[r["venue"]] = (ch.get(r["venue"]) or 0) + r[key]
+                    if r.get("illiquid"):
+                        thin.add(r["venue"])
             note = []
+            cells = {}
             for v in VENUES:
+                cells[v] = _pct(probs.get(v))
                 if v in sums and not lo <= sums[v] <= hi:
-                    note.append(f"{v.title()} legs sum to {round(sums[v] * 100):.0f}%")
+                    # THE RAW SUM AND THE NORMALISED ODDS SIDE BY SIDE (W-1.1
+                    # item 1.5): "legs sum 108%", and each side's price as quoted
+                    # beside its share of the book. Only a book normalises: the
+                    # hold leg and a move leg both quoted.
+                    o = by_v.get(v) or {}
+                    book = (o.get("hold") or 0) > 0 and ((o.get("hike") or 0) > 0
+                                                         or (o.get("cut") or 0) > 0)
+                    note.append(f"{v.title()} legs sum {round(sums[v] * 100):.0f}%")
+                    if book and probs.get(v) is not None and sums[v] > 0:
+                        cells[v] = (f"{_pct(probs[v])} ({_pct(probs[v] / sums[v])} "
+                                    f"normalised)")
+            for v in sorted(thin):
+                note.append(f"{v.title()} illiquid")
             if any(p is not None and not 0.1 <= p <= 0.9 for p in probs.values()):
-                note.append("outside 10–90%")
-            rows.append([f"FOMC {d}: {side}", _pct(probs.get("kalshi")),
-                         _pct(probs.get("polymarket")), _change_cell(ch),
+                note.append("favourite–longshot check: outside 10–90%")
+            rows.append([f"FOMC {d}: {side}", cells.get("kalshi"),
+                         cells.get("polymarket"), _change_cell(ch),
                          "; ".join(dict.fromkeys(note)) or "—"])
+            contracts += _contracts(rows[-1][0], ch)
     wcfg = _watch_cfg()
     for wid, wrows in (pmb.get("watch") or {}).items():
         if wid == "fomc_decision" or not wrows:
@@ -628,16 +740,32 @@ def pm_table(pmb: Optional[dict], window: str = "5s") -> dict:
                              _pct(r["probability"]) if v == "kalshi" else "—",
                              _pct(r["probability"]) if v == "polymarket" else "—",
                              _change_cell({v: r.get(key)}),
-                             "outside 10–90%" if r.get("bias_zone") else "—"])
+                             _pm_note([r])])
+                contracts += _contracts(rows[-1][0], {v: r.get(key)})
             continue
         side = w.get("side") or "Yes"
         rows.append([f"{name} ({side})",
                      _pct((picked.get("kalshi") or {}).get("probability")),
                      _pct((picked.get("polymarket") or {}).get("probability")),
                      _change_cell({v: r.get(key) for v, r in picked.items()}),
-                     "outside 10–90%" if any(r.get("bias_zone")
-                                             for r in picked.values()) else "—"])
-    return {"columns": cols, "rows": rows}
+                     _pm_note(list(picked.values()))])
+        contracts += _contracts(rows[-1][0], {v: r.get(key)
+                                              for v, r in picked.items()})
+    return cols, rows, contracts
+
+
+def _pm_note(rs: list[dict]) -> str:
+    """A watched market's note: the favourite-longshot flag and, from W-1.1 item
+    1.5, "illiquid (spread N pts)" where a venue's bid-ask is wider than the
+    config's threshold."""
+    note = []
+    for r in rs:
+        if r.get("illiquid"):
+            note.append(f"{str(r.get('venue')).title()} illiquid "
+                        f"(spread {r.get('spread_points'):.0f} pts)")
+    if any(r.get("bias_zone") for r in rs):
+        note.append("favourite–longshot check: outside 10–90%")
+    return "; ".join(note) or "—"
 
 
 def pm_outages(pmb: Optional[dict]) -> list[str]:

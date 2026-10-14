@@ -72,6 +72,18 @@ T3.2, THE FIXES FROM THE FIRST REAL DRY RUN (box, 10 Oct 2026):
                 for every ordinal a table prints and its _ordinal; a cell's
                 "a / b pts" pair and "percent" typed as they are; Plumbing's
                 level differences carried with their signed forms.
+
+T3.3, THE FIXES FROM THE SECOND BOX DRY RUN (10 Oct 2026, 20:53 UTC):
+
+  P UNITS/AUDIT each series displayed in its own units (Number, Thousands,
+                Millions; the FRED units corrected); every delta a pillar or theme
+                hands the writer carries its signed display form and no bare
+                delta above 9,999 publishes; a summary paragraph audited against
+                the sections it summarises; the parent frames, the three attempts
+                and the count-and-cap retry line; each prediction-market change
+                a signed figure in points; a series printed with $ or % never a
+                count; no percentile below n=20; the policy words in the frame;
+                every chart that does not render logged with its kind.
 """
 
 from __future__ import annotations
@@ -635,7 +647,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           f"the percentile over five years, its window and n beside it "
           f"({c[3] if c else None}; by hand {pct:.1f})")
     f = rows.get("Forward P/E, total market (Damodaran)") or []
-    check(f and "since 2026-01-05, n=1; under 5 years" in f[3]
+    check(f and f[3] == "— (n=1)"
           and "full history since 2026-01-05, n=1" in f[2],
           "a series with less than five years prints its own start and n rather "
           "than claiming the window")
@@ -645,7 +657,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           "a configured series the store lacks says so; the ERP waits for 6e")
     alt = subs.get("Themes: metals") or {}
     arow = next((r for r in (alt.get("table") or {}).get("rows") or []
-                 if r[0] == "yfinance.mkt_gld"), None)
+                 if r[0] == "The gold fund (GLD)"), None)
     g = gld_series()
     gmean = sum(v for _, v in g) / len(g)
     check(arow and alt["table"]["columns"][1:] == ["Latest (data as of)",
@@ -697,10 +709,23 @@ def seed_chart_history(db: str) -> None:
     # T3.1 item 10: a positioning series whose history is too short to place.
     for i, d in enumerate(("2026-08-14", "2026-08-29", "2026-09-15")):
         put("finra.short_interest_days_to_cover", "SPY", d, 1.5 + i / 10.0)
+    # IN THE BOX'S OWN SHAPE (T3.3 item 9): a Book Z mark is JSON text with no
+    # value_num, and the NAV is keyed to the account code, synced through the
+    # day. The fixture stored both as plain numbers on instrument NULL, so M9
+    # drew here and printed "no Book Z mark" on the box over 84 stored marks.
     for i, d in enumerate(weekdays("2026-09-01", M_END)):
         for lg, step in (("cash", 0.011), ("spy", 0.05), ("sixty_forty", 0.03)):
-            put("paper.benchmark", lg, d, round(100.0 + i * step, 4))
-        put("portfolio.nav", None, d, 1_000_000.0 + 900.0 * i)
+            mark = json.dumps({"ledger": lg, "session": d, "start": "2026-09-01",
+                               "value": round(100.0 + i * step, 4)}, sort_keys=True)
+            obs.append({"registry_key": "paper.benchmark", "instrument": lg,
+                        "observed_at": d, "available_at": f"{d}T21:00:00+00:00",
+                        "value": mark, "value_text": mark, "source": "synthetic"})
+        for hh, bump in (("15", 0.0), ("20", 400.0)):
+            obs.append({"registry_key": "portfolio.nav", "instrument": "DU0000000",
+                        "observed_at": f"{d}T{hh}:30:00+00:00",
+                        "available_at": f"{d}T{hh}:30:00+00:00",
+                        "value": 1_000_000.0 + 900.0 * i + bump,
+                        "source": "synthetic"})
     with observations.ObservationStore(db) as st:
         st.write_many(obs)
 
@@ -1551,16 +1576,18 @@ def t31_summary_group(ed: dict, out: dict) -> None:
     tape = next(e for e in summ if e["id"] == "tape")
     check(not tape["text"] and tape["note"] == prose_mod.SUMMARY_WITHHELD
           and "999" in str(sw["summary:tape"].get("first_reason"))
-          and sw["summary:tape"]["attempts"] == 2,
-          "a paragraph the audit withholds, after its one retry, prints \"(summary "
+          and sw["summary:tape"]["attempts"] == 3,
+          "a paragraph the audit withholds, after its retries, prints \"(summary "
           "withheld — audit)\" rather than an unaudited sentence")
     plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
     sl = (plan.get("summary:plumbing") or {}).get("slice") or {}
-    check(sl.get("section") == "Plumbing & rates" and "subsections" in sl
+    check("subsections" in sl and "section" not in sl
+          and "title" not in json.dumps(sl)
           and not any(k in json.dumps(sl) for k in ("month_in_markets",
                                                      "looking_back")),
           "each call sees its finished section -- claim, paragraphs, tables, lines, "
-          "points -- never the raw payload")
+          "points -- never the raw payload, and (T3.4a) without the stack's own "
+          "titles")
     html, md = out["html_email"], out["markdown"]
     check("Executive summary" in html and html.index("Executive summary")
           < html.index("1 &middot; The read") and prose_mod.SUMMARY_WITHHELD in html
@@ -1707,8 +1734,12 @@ def t32_group(ed: dict, out: dict) -> None:
     ok = [na.audit(t, na.with_signed(sl)).passed for t in (
         "The hold rose +35.5 points.", "The shutdown rose +2.0 points.",
         "WTI fell −6.03%.")]
+    # A dropped sign with no verb to carry it (W-1.1a item 4: after a falling
+    # verb the size is written unsigned, "WTI fell 6.03%").
     no = [na.audit(t, na.with_signed(sl)).passed for t in (
-        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.", "WTI fell 6.03%.")]
+        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.",
+        "WTI's move was 6.03%.")]
+    ok.append(na.audit("WTI fell 6.03%.", na.with_signed(sl)).passed)
     check(all(ok) and not any(no),
           f"the figures the 10 Oct run withheld now pass in their true unit, and the "
           f"audit is no looser: a wrong unit word or a dropped sign still fails "
@@ -1750,7 +1781,7 @@ def t32_group(ed: dict, out: dict) -> None:
     if neg:
         sl = na.with_signed(liq["data"])
         mag = neg["change_dollars_signed"].lstrip("−")
-        r_bad = na.audit(f"It fell {mag}.", sl)
+        r_bad = na.audit(f"Its change was {mag}.", sl)
         r_ok = na.audit(f"It moved {neg['change_dollars_signed']}.", sl)
         check(not r_bad.passed and "change_dollars_signed" in r_bad.reason()
               and r_ok.passed,
@@ -1767,6 +1798,448 @@ def t32_group(ed: dict, out: dict) -> None:
           .default is False,
           "the Monthly asks for the deltas; the Weekly's builders carry them only "
           "when asked (liquidity_deltas defaults off)")
+
+
+def _published_paragraphs(ed: dict):
+    """(where, text) for every paragraph the edition publishes."""
+    for s in list(ed.get("sections") or []) + list(ed.get("detail") or []):
+        for t in [s.get("claim")] + list(s.get("paragraphs") or []):
+            if t:
+                yield s.get("id"), t
+        for ss in s.get("subsections") or []:
+            for t in ss.get("paragraphs") or []:
+                if t:
+                    yield f"{s.get('id')}/{ss.get('title')}", t
+    for e in ed.get("summary") or []:
+        if e.get("text"):
+            yield f"summary:{e.get('id')}", e["text"]
+
+
+def t33_group(ed: dict, out: dict) -> None:
+    """P: the fixes from the second box dry run (T3.3, 10 Oct 2026)."""
+    import yaml
+    from altdata import config as acfg, derived, numeral_audit as na, observations
+    from daily_cascade import narrative as base, readability as rd
+    from daily_cascade import stack_prose as sp, weekly_sections as wsec
+    from monthly_macro import charts as mch, prose as prose_mod, stack as ms, v2
+    print(f"\n{LINE}\nP. T3.3: THE FIXES FROM THE SECOND BOX DRY RUN\n{LINE}")
+
+    # P1 -- each series in its own units (item 1).
+    units = {k: (derived.registry_entry(f"fred.{k}") or {}).get("units")
+             for k in ("claims_4wk", "nfp", "bank_reserves", "existing_homes",
+                       "total_hh_debt")}
+    check(units == {"claims_4wk": "N", "nfp": "K", "bank_reserves": "M",
+                    "existing_homes": "N", "total_hh_debt": "M"},
+          f"P1 item 1: the registry carries each FRED series' own units -- IC4WSA "
+          f"and EXHOSLUSM495S plain Number, PAYEMS thousands, WRESBAL and CMDEBT "
+          f"millions of dollars ({units})")
+    check(na.scaled_display(200500.0, units["claims_4wk"]) == "200.5 thousand"
+          and na.scaled_display(159040.0, units["nfp"]) == "159.04 million"
+          and na.scaled_display(2948000.0, units["bank_reserves"]) == "$2.95tn"
+          and na.scaled_display(200500.0, "Number") == "200.5 thousand"
+          and na.scaled_display(159040.0, "Thousands") == "159.04 million"
+          and na.scaled_display(2948000.0, "Millions") == "$2.95tn",
+          "the scaler reads each series' units: 200,500 claims -> \"200.5 "
+          "thousand\" (not \"200.5 million\"), PAYEMS 159,040 -> \"159.04 "
+          "million\", WRESBAL 2,948,000 -> \"$2.95tn\"; FRED's own unit names too")
+    check(na.scaled_display(200500.0, "hrs") is None
+          and na.scaled_display(200500.0, None) is None,
+          "a unit the scaler does not name gets no display -- no assumed thousands")
+    known = set(derived.DELTA_UNITS)
+    odd = [(s.key, s.units) for s in acfg.FRED_PULL_SERIES if s.units not in known]
+    check(not odd, f"every FRED series' units is a declared unit "
+                   f"({len(acfg.FRED_PULL_SERIES)} series" + (f"; {odd})" if odd else ")"))
+    db = str(Path(TD) / "t33_units.db")
+    with observations.ObservationStore(db) as st:
+        st.write_many([{"registry_key": "fred.claims_4wk", "instrument": None,
+                        "observed_at": d, "available_at": f"{d}T13:00:00+00:00",
+                        "value": v, "source": "synthetic"}
+                       for d, v in (("2026-08-29", 207500.0), ("2026-09-26", 200500.0))]
+                      + [{"registry_key": "fred.bank_reserves", "instrument": None,
+                          "observed_at": d, "available_at": f"{d}T21:00:00+00:00",
+                          "value": v, "source": "synthetic"}
+                         for d, v in (("2026-08-26", 2924846.0),
+                                      ("2026-09-30", 2948000.0))])
+        cl = v2.metric_month(st, {"metric": "fred.claims_4wk"}, AS_OF,
+                             dt.date(2026, 9, 30))
+        br = v2.metric_month(st, {"metric": "fred.bank_reserves"}, AS_OF,
+                             dt.date(2026, 9, 30))
+    check(cl.get("latest_level_display") == "200.5 thousand"
+          and cl.get("change_display") == "−7,000 claims",
+          f"the Fed-path theme's claims row: {cl.get('latest_level_display')}, "
+          f"{cl.get('change_display')} (the dry run printed \"200.5 million\" and "
+          f"\"−7 million\")")
+
+    # P2 -- every delta with its display form (item 2).
+    check(br.get("latest_level_display") == "$2.95tn"
+          and br.get("change_display") == "+$23.15bn"
+          and na.change_display(-7000.0, "N") == "−7,000"
+          and na.change_display(29.0, "K") == "+29,000"
+          and na.change_display(500.0, "N") == "+500",
+          f"P2 item 2: a change carries change_display, signed, by the scaler that "
+          f"builds latest_level_display ({br.get('change_display')} to "
+          f"{br.get('latest_level_display')})")
+    ser = prose_mod._series([dict(br, label="Bank reserves at Fed")])
+    check(ser and "change" not in ser[0] and "latest_level" not in ser[0]
+          and ser[0]["change_display"] == "+$23.15bn",
+          "the pillar and theme slices hand over the display form and not the raw "
+          "millions beside it")
+    sl = {"series": ser}
+    ok = na.audit("Bank reserves rose +$23.15bn to $2.95tn.", na.with_signed(sl))
+    raw = na.audit("Bank reserves rose +23,154 to $2.95tn.", na.with_signed(sl))
+    check(ok.passed and not raw.passed,
+          f"the numeral audit accepts the display form and refuses the raw "
+          f"millions ({raw.reason()[:90]})")
+    check(na.bare_deltas("Bank reserves rose +23,154 to $2.95tn.") == ["+23,154"]
+          and na.bare_deltas("the balance sheet added 12,119 to $6.74tn")
+          == ["added 12,119"]
+          and not na.bare_deltas("rose +$23.15bn; claims fell 7,000; up 12.5 "
+                                 "thousand; added 15,000 bp; the 2026-10-05 close"),
+          "a delta of 10,000 or more without a unit or scale is caught; with its "
+          "$, scale word or unit, or under 10,000, it is not")
+    calls: list = []
+    probe = [{"key": "probe", "title": "Probe pillar",
+              "scope": "One paragraph.", "paragraphs": "exactly 1",
+              "slice": {"series": [{"series": "Bank reserves", "change": 23154.0}]}}]
+    w = prose_mod.write_all({}, client=client(calls, {
+        "THE SECTION: Probe pillar": ["Bank reserves rose +23,154 over the month."]}),
+        secs=probe)["probe"]
+    check(not w["published"] and w["state"] == "bare_delta" and w["attempts"] == 3
+          and "change_display" in str(w["reason"]),
+          f"in the pipeline a paragraph printing a bare delta above 9,999 is "
+          f"withheld, after its retries, naming the display form "
+          f"({w['state']}, {w['attempts']} attempts)")
+    t34a_group(ed, client)
+    found = [(where, d) for where, t in _published_paragraphs(ed)
+             for d in na.bare_deltas(t, na.accepted_deltas(ed))]
+    check(not found, f"no published paragraph in the edition carries a bare delta "
+                     f"above 9,999 ({len(list(_published_paragraphs(ed)))} "
+                     f"paragraphs" + (f"; {found[:3]})" if found else ")"))
+    check(prose_mod.DISPLAY_RULE.strip() in prose_mod.system_prompt("T", "S")
+          and all(prose_mod.DISPLAY_RULE.strip() in x["system"] for x in
+                  prose_mod.stack_plan(ed) + prose_mod.block_plan(ed)
+                  + prose_mod.summary_plan(ed)),
+          "every Monthly frame tells the writer to copy the display form verbatim")
+
+    # P3 -- the summary's audit scope (item 3).
+    plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
+    rd_extra = (plan.get("summary:read") or {}).get("audit_extra") or {}
+    titles = [x.get("section") for x in rd_extra.get("sections_summarised") or []]
+    # T3.4: each summary's frame masks its section's figures, so the section's
+    # own slice travels in audit_extra -- the scope is the same as before.
+    check("The tape" in titles and "The read" not in titles
+          and all(set(x.get("audit_extra") or {}) == {"section_summarised"}
+                  and (x["audit_extra"]["section_summarised"] or {}).get("section")
+                  == x["title"].split("Summary: ", 1)[1]
+                  for k, x in plan.items() if k != "summary:read"),
+          f"P3 item 3: The read's summary is audited against every finished section "
+          f"it summarises ({len(titles)}); each other summary against its own")
+    tape_like = {"sections_summarised": [{"section": "The tape", "data": {
+        "moves": [{"market": "S&P 500", "level_percentile_5y": 99.96}]}}]}
+    text = "Stocks closed the month at the 100th percentile of their five years."
+
+    def gen(extra):
+        return base.generate({"section": "The read", "claim": "Stocks led."},
+                             client=client([], {"SUMMARY": [text]}),
+                             system_prompt="SUMMARY", one_paragraph=False,
+                             citable_ids=[], audit_payload=extra)
+    without, with_ = gen(None), gen(tape_like)
+    check(not without.published and with_.published,
+          f"the dry run's \"100th\": withheld against the read's own slice, "
+          f"published against the union with the tape's _ordinal "
+          f"({without.state} -> {with_.state})")
+    check(not gen({"sections_summarised": [{"data": {"level_percentile_5y": 51.7}}]}
+                  ).published,
+          "and the union is no looser: an ordinal no summarised section carries "
+          "still fails")
+    rframe = (plan.get("summary:read") or {}).get("system") or ""
+    check("at most three figures per paragraph" in rframe
+          and prose_mod.SUMMARY_FIGURES == 3,
+          "the summary keeps its own figure cap (three per paragraph)")
+
+    # P4 -- the cap honoured: parent frames, three attempts, the retry line.
+    check(prose_mod.ATTEMPTS == 3 and prose_mod.figure_cap() == 8,
+          "P4 item 4: three attempts for every section; the caps are not raised "
+          "(8; the summary 3)")
+    parents = [x for x in prose_mod.stack_plan(ed)
+               if next(s for s in ed["sections"] if s["id"] == x["sid"])
+               .get("subsections")]
+    check(parents and all("THE BLOCKS BENEATH THIS SECTION CARRY ITS NUMBERS"
+                          in x["system"] and "names the moves, not the levels"
+                          in x["system"] and "Cite at most EIGHT figures" in x["system"]
+                          for x in parents),
+          f"every parent frame says the blocks beneath carry the numbers, to name "
+          f"the moves and not the levels, and states the cap "
+          f"({[x['sid'] for x in parents]})")
+    over = ("Plumbing & rates moved. Yields rose 1.1%, 2.2%, 3.3%, 4.4%, 5.5%, "
+            "6.6%, 7.7%, 8.8%, 9.9% and 10.1% across the curve.")
+    n = sp.figures_cited(over)
+    calls2: list = []
+    w2 = prose_mod.write_all({}, client=client(calls2, {"OVERCAP": [over]}), secs=[{
+        "key": "summary:probe", "title": "Summary: probe", "kind": "stack",
+        "sid": "plumbing", "system": "OVERCAP", "max_chars": 1400,
+        "slice": {"section": "Plumbing & rates"}}], ed={})["summary:probe"]
+    line = prose_mod.CAP_RETRY.format(n=n, m=8)
+    check(n > 8 and len(calls2) == 3 and line not in calls2[0]
+          and all(line in c for c in calls2[1:]) and w2["attempts"] == 3,
+          f"the second and third attempts say exactly \"{line}\"")
+
+    # P5 -- prediction-market changes as signed figures in points (item 5).
+    pmb = {"legs_sum_band": [0.95, 1.05],
+           "fomc_odds": {"2027-03-17": {"kalshi": {"hold": 0.42, "hike": 0.59,
+                                                   "cut": 0.08}}},
+           "watch": {"fomc_decision": [
+               {"venue": "kalshi", "decision_date": "2027-03-17",
+                "question": "Fed decision in March 2027?", "outcome": "Hold",
+                "change_5s_points": -14.0},
+               {"venue": "kalshi", "decision_date": "2027-03-17",
+                "question": "Fed decision in March 2027?", "outcome": "Hike",
+                "change_5s_points": 15.0}],
+               "cpi_monthly": [
+               {"venue": "polymarket", "question": "Will Core CPI YoY be 2.4% in "
+                "September?", "outcome": "Yes", "probability": 0.33,
+                "change_5s_points": -11.5, "bias_zone": False}]}}
+    con = rd.pm_contracts(pmb, "5s")
+    tbl = rd.pm_table(pmb, "5s")
+    by = {(c["item"][:24], c["venue"]): c["change_signed"] for c in con}
+    check(any(v == "−14.0 pts" for v in by.values())
+          and any(v == "−11.5 pts" for v in by.values())
+          and all(c["change_unit"] == "points" and isinstance(c["change_points"], float)
+                  for c in con),
+          f"P5 item 5: each contract's change is a signed figure in points with its "
+          f"own unit ({sorted(by.values())})")
+    cells = [r[3] for r in tbl["rows"]]
+    signed = {c["change_signed"].replace(" pts", "") for c in con}
+    check(all(any(sg in cell for sg in signed) or cell == "—" for cell in cells),
+          "and each is the string its table cell prints for that venue")
+    fomc_c = ms._split_contracts(con, True)
+    rest_c = ms._split_contracts(con, False)
+    sl_f, sl_r = na.with_signed({"contracts": fomc_c}), na.with_signed({"contracts": rest_c})
+    check(na.audit("Kalshi's hold moved −14.0 pts.", sl_f).passed
+          and na.audit("The core CPI market moved −11.5 pts on Polymarket.",
+                       sl_r).passed
+          and not na.audit("Kalshi's hold moved 14.0 points.", sl_f).passed
+          and not na.audit("The core CPI market moved 11.5 points.", sl_r).passed
+          # W-1.1a item 4: a falling verb carries the sign.
+          and na.audit("Kalshi's hold fell 14.0 points.", sl_f).passed,
+          "the dry run's 14.0 and 11.5 now pass as copied, signed; dropping the sign "
+          "still fails")
+    cases = ("+35.5 / +38.0 pts", "−35.0 / −37.4 pts", "−14.0 / — pts",
+             "— / −11.5 pts", "+0.5 / — pts", "— / +3.1 pts")
+    typed = [na.cell_types(c) for c in cases]
+    keys = {k for c in con for k in c} | {"change_5s_points", "change_1s_points",
+                                          "change_20s_points"}
+    ktypes = {k: na.type_of_key(k) for k in keys if k.startswith("change_")
+              and not k.endswith(("_signed", "_unit"))}
+    check(all(t and all(kind == "price" for _, kind in t) for t in typed)
+          and all(v in ("price", "any") for v in ktypes.values()),
+          f"the T3.2 unit fix covers every prediction-market form: each change cell "
+          f"types as points, and no change key types as a count ({ktypes})")
+    pr = next(s for s in ed["sections"] if s["id"] == "priced")
+    pm_subs = [ss for ss in pr["subsections"] if ss.get("bucket") in ("pm_fomc",
+                                                                       "pm_rest")]
+    fake = {"month": "September 2026", "sections": [{
+        "id": "priced", "title": "What's priced", "empty": False,
+        "subsections": [{"title": "Prediction markets: the FOMC",
+                         "phase": "block:priced:pm_fomc",
+                         "table": {"columns": ["Item"], "rows": [["FOMC x"]]},
+                         "data": {"contracts": fomc_c},
+                         "prose": {"words": "40 to 80", "scope": "x",
+                                   "note": ms.PM_CHANGE_NOTE}}]}]}
+    bp = prose_mod.block_plan(fake)
+    check(len(pm_subs) == 2 and all("contracts" in (ss.get("data") or {})
+                                     for ss in pm_subs)
+          and "copy change_signed verbatim" in bp[0]["system"]
+          and bp[0]["slice"]["data"]["contracts"],
+          "both blocks carry the contracts in their data, and the frame says "
+          "\"copy change_signed verbatim\"")
+
+    # P6 -- a series printed with $ or % is never a count (item 6).
+    rows = wsec.plumbing_rows(observations.ObservationStore(DB), AS_OF,
+                              "2026-08-31T23:59:59+00:00", "monthly")["rows"]
+    cu = next((r for r in rows if str(r[0]).startswith("Copper")), None)
+    check(cu and cu[1].startswith("$")
+          and all(k != "count" for _, k in na.cell_types(cu[1])),
+          f"P6 item 6: copper's level prints in dollars ({cu and cu[1]}) and types "
+          f"as what it is, not a count")
+    bad = []
+    for where, t, _ in _tables_with_data(ed):
+        for r in t.get("rows") or []:
+            lab = str(r[0]) if r else ""
+            # A label that DECLARES its unit -- "($/lb ...)", "(%)" -- promises
+            # the level cell beside it is in that unit.
+            if len(r) > 1 and re.search(r"\(\s*[$%]", lab):
+                if any(k == "count" for _, k in na.cell_types(str(r[1]))):
+                    bad.append((where, lab[:40], r[1]))
+    check(not bad, "no Monthly table prints a series it labels in $ or % as a bare "
+                   "count" + (f" ({bad[:3]})" if bad else ""))
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    # "yields-up/dollar-down" is AQ-8a's week signature, and its recurrence and
+    # persistence are counts of weeks: the compound is not a yield (Friday
+    # stitching, 13 Oct).
+    priceish = re.compile(r"\bprices?\b|\byields?\b(?!-)|\$|per pound|\bratio\b|"
+                          r"\bspread\b", re.I)
+    typed_count = [k for k, e in (reg.get("metrics") or {}).items()
+                   if str(e.get("units")) in ("count", "K", "N")
+                   and priceish.search(str(e.get("description") or ""))]
+    fred_count = [x.key for x in acfg.FRED_PULL_SERIES
+                  if x.units in ("K", "N") and priceish.search(x.description)]
+    check(not typed_count and not fred_count
+          and derived.registry_entry("yfinance.mkt_copper_front").get("units") == "price",
+          f"the registry sweep: no price, yield, spread or ratio series is typed "
+          f"count ({typed_count or fred_count or 'none'}); copper is a price")
+
+    # P7 -- no percentile on a tiny sample (item 7).
+    sl_ = next(s for s in ed["sections"] if s["id"] == "slow")
+    val = next(ss for ss in sl_["subsections"] if ss["title"] == "Valuation")
+    dam = next((r for r in val["table"]["rows"] if "Damodaran" in str(r[0])), None)
+    vd = list((sl_.get("data") or {}).get("valuation") or [])
+    t_small = ms.triple(observations.ObservationStore(DB), "damodaran.pe_forward",
+                        AS_OF, 1825, "Total Market")
+    dd = next((d for d in vd if "Damodaran" in str(d.get("series"))), None)
+    check(ms.MIN_PERCENTILE_N == 20 and dam and dam[3] == "— (n=1)"
+          and t_small and t_small["percentile"] is None
+          and dd and dd.get("percentile") is None
+          and not na.stored_ordinals(na.with_ordinals(dd)),
+          f"P7 item 7: below n=20 the percentile cell prints \"— (n=1)\" and no "
+          f"_ordinal exists for a paragraph to cite ({dam and dam[3]})")
+    cape = ms.triple(observations.ObservationStore(DB), "shiller.cape", AS_OF, 1825)
+    check(cape and cape["percentile"] is not None and cape["percentile_n"] >= 20,
+          f"a series with its sample (CAPE, n={cape and cape['percentile_n']}) keeps "
+          f"its percentile")
+    del vd
+
+    # P8 -- the policy words, in the frame (item 8).
+    frames = ([x for x in prose_mod.stack_plan(ed) if x["sid"] == "priced"]
+              + [x for x in prose_mod.block_plan(ed) if x["sid"] == "priced"]
+              + [x for x in prose_mod.summary_plan(ed) if x["sid"] == "priced"])
+    check(frames and all("POLICY WORDS, MARKET BY MARKET" in x["system"]
+                         and "US recession in 2026 and in 2027: none" in x["system"]
+                         and "the FOMC decision at each of the next four meetings: "
+                             "hike" in x["system"] for x in frames),
+          f"P8 item 8: every What's priced frame lists the policy words each market "
+          f"may carry -- the FOMC decision and the futures path all, the recession, "
+          f"CPI, House, Senate and shutdown markets none ({len(frames)} frames)")
+    check(sp.policy_word_faults("Odds of hiking rose as the recession market fell.")
+          and not sp.policy_word_faults("Futures price a hike in December."),
+          "and the audit is unchanged: 'hiking' beside a recession market still fails")
+
+    # P9 -- every chart that does not render, logged with its kind (item 9).
+    charts = {"M3": mch.m3([], "x", None, "2026-10-05"),
+              "M8": mch.m8([], "x", None),
+              "M9": {"id": "M9", "unavailable": "no Book Z mark and no account NAV "
+                                                "stored"},
+              "M5": {"id": "M5", "unavailable": "fewer than 60 stored points"},
+              "M4": {"id": "M4", "unavailable": "ValueError: bad axis"}}
+    lines = mch.log_unrendered(charts)
+    kinds = {c: charts[c].get("unavailable_kind") for c in charts}
+    check(kinds == {"M3": "too little history", "M8": "skipped by rule",
+                    "M9": "missing series", "M5": "too little history",
+                    "M4": "exception"} and len(lines) == 5
+          and all(ln.startswith(f"chart {c} not rendered (") for c, ln in
+                  zip(("M3", "M4", "M5", "M8", "M9"), lines)),
+          f"P9 item 9: one line per chart that does not render, with its kind "
+          f"({kinds})")
+    check("first stored session is 2026-10-05, after the month"
+          in charts["M3"]["unavailable"]
+          and charts["M8"]["unavailable"] == "not yet: scenario set #1",
+          "M3 says why it is empty when the scorecard begins after the month; M8 is "
+          "skipped by the 9 Oct ruling and logged so")
+    check("M11" not in mch.ORDER and len(mch.ORDER) == 11,
+          f"the plan is eleven charts, M0-M10 ({', '.join(mch.ORDER)}); there is no "
+          f"M11")
+
+
+def t34a_group(ed: dict, client) -> None:
+    """T3.4a, the third box dry run's hot-fix: the bare-delta rule's three cases,
+    and the internal-vocabulary frame and retry."""
+    from altdata import numeral_audit as na
+    from monthly_macro import prose as prose_mod
+    print("\n  T3.4a -- counts, small thousands, and the banned list in the frame")
+    # Case 1 -- payrolls, a thousands-unit series: +29 thousand prints "+29,000",
+    # the level keeps its scale, and the audit accepts the display form.
+    pay = {"series": [{"series": "Nonfarm payrolls", "change_display":
+                       na.change_display(29.0, "K"),
+                       "latest_level_display": na.scaled_display(159040.0, "K")}]}
+    check(pay["series"][0]["change_display"] == "+29,000"
+          and pay["series"][0]["latest_level_display"] == "159.04 million"
+          and na.change_display(-1500.0, "K") == "−1.5 million",
+          "T3.4a case 1: payrolls' +29 thousand displays \"+29,000\"; the level "
+          "keeps \"159.04 million\"; at ±1,000 thousand the scale word returns")
+    check(not na.bare_deltas("Payrolls rose +29,000 to 159.04 million.",
+                             na.accepted_deltas(pay))
+          and na.bare_deltas("Payrolls rose +29,000 in September.") == ["+29,000"],
+          "and the audit accepts \"+29,000\" as the payload's display form -- "
+          "and still refuses it where no display form says so")
+    # Case 2 -- CFTC contracts, plain counts: the integer with separators.
+    cf = {"cftc:ES": {"change": 42984.0, "change_display":
+                      na.change_display(42984.0, "count")},
+          "cftc:ZN": {"change": -77476.0, "change_display":
+                      na.change_display(-77476.0, "count")}}
+    txt = ("Speculators added +42,984 contracts in S&P futures and cut "
+           "−77,476 in Treasuries.")
+    check(cf["cftc:ES"]["change_display"] == "+42,984"
+          and cf["cftc:ZN"]["change_display"] == "−77,476"
+          and not na.bare_deltas(txt, na.accepted_deltas(cf)),
+          "T3.4a case 2: CFTC contracts print \"+42,984\" and \"−77,476\" and "
+          "the audit accepts them")
+    from daily_cascade import stack as dstack
+    check(dstack._change({"change": -77476.0, "unit": "",
+                          "change_display": "−77,476"}) == "−77,476",
+          "the stack's change cell prints the same display form")
+    # Case 3 -- currency and scaled series unchanged.
+    check(na.change_display(23154.0, "M") == "+$23.15bn"
+          and na.bare_deltas("Reserves rose +23,154 on the month.",
+                             na.accepted_deltas({"change_display": "+$23.15bn"}))
+          == ["+23,154"],
+          "T3.4a case 3: a currency series keeps \"+$23.15bn\", and its raw "
+          "millions are still refused")
+    calls: list = []
+    probe = [{"key": "probe_cftc", "title": "Probe positioning",
+              "scope": "One paragraph.", "paragraphs": "exactly 1",
+              "slice": {"series": [{"series": "CFTC S&P 500 net",
+                                    "change_display": "+42,984"},
+                                   {"series": "Nonfarm payrolls",
+                                    "change_display": "+29,000"}]}}]
+    w = prose_mod.write_all({}, client=client(calls, {
+        "THE SECTION: Probe positioning": [
+            "Speculators added +42,984 S&P contracts as payrolls rose +29,000."]}),
+        secs=probe)["probe_cftc"]
+    check(w["published"] and w["state"] != "bare_delta",
+          f"in the pipeline those two figures publish ({w['state']})")
+    # The banned list in every frame; the retry names the word and quotes the rule.
+    frames = (prose_mod.stack_plan(ed) + prose_mod.block_plan(ed)
+              + prose_mod.summary_plan(ed))
+    vf = prose_mod.vocab_frame()
+    check("the object" in vf and "tracked series" in vf and "'venues'" in vf
+          and "'extreme:'" in vf and vf in prose_mod.system_prompt("T", "S")
+          and all(vf in x["system"] for x in frames),
+          f"every Monthly frame -- {len(frames)} stack, block and summary frames and "
+          f"the v2 sections' -- lists the banned words and phrases")
+    retry = prose_mod.retry_prompt("SYS", {
+        "reason": "withheld: banned phrase: 'venues'",
+        "vocab_words": prose_mod.vocab_words(["the object"],
+                                             ["banned phrase: 'venues'"])})
+    check('your draft used "the object", "venues"; the rule: "'
+          + prose_mod.VOCAB_RULE + '"' in retry,
+          "the retry names the offending words and quotes the rule")
+    calls2: list = []
+    probe = [{"key": "probe_vocab", "title": "Probe vocab",
+              "scope": "One paragraph.", "paragraphs": "exactly 1",
+              "slice": {"series": [{"series": "S&P 500", "change_pct": 1.2}]}}]
+    w = prose_mod.write_all({}, client=client(calls2, {
+        "THE SECTION: Probe vocab": ["The object says the S&P 500 rose 1.2%."]}),
+        secs=probe)["probe_vocab"]
+    second = [c for c in calls2 if "YOUR PREVIOUS DRAFT" in str(c)]
+    check(not w["published"] and w["vocab_words"] == ["the object"]
+          and second and 'your draft used "the object"' in str(second[0]),
+          "in the pipeline the retry after an internal-vocabulary withhold names "
+          "\"the object\"")
+    rs = prose_mod.reader_slice({"section": "Slow layers", "subsections": [
+        {"title": "Tails", "lines": ["extreme:vix_low the VIX at 12"]}]})
+    check(rs == {"subsections": [{"lines": ["the VIX at 12"]}]},
+          "a summary's slice carries the sections' prose without the stack's "
+          "titles and label prefixes")
 
 
 def main() -> int:
@@ -1927,10 +2400,10 @@ def main() -> int:
     out3 = ms.produce(p, archive_dir=None, db_path=DB,
                       client=client(calls3, {"THE SECTION: Mechanics": [bad]}))
     w3 = out3["written"]["stack:mechanics"]
-    check(not w3["published"] and w3["attempts"] == 2
+    check(not w3["published"] and w3["attempts"] == 3
           and "flag is not set" in str(w3["reason"]),
           "in the pipeline, Mechanics prose that calls an unflagged session "
-          "pinned is withheld, after its one retry")
+          "pinned is withheld, after its two retries (T3.3: three attempts)")
 
     # --- D. PHASE A, ONCE ----------------------------------------------------------
     print(f"\n{LINE}\nD. MONTHLY v2 PHASE A: NOTHING LOST, NOTHING TWICE\n{LINE}")
@@ -2039,9 +2512,10 @@ def main() -> int:
           and "because" in retry_prompt[1],
           "with the audit's reason fed back")
     cc = written.get("theme:credit_cycle") or {}
-    check(not cc.get("published") and cc.get("attempts") == 2
-          and "999" in str(cc.get("first_reason")) and "998" in str(cc.get("reason")),
-          "a Phase A section that fails twice is withheld, both reasons kept")
+    check(not cc.get("published") and cc.get("attempts") == 3
+          and "999" in str(cc.get("first_reason")) and "998" in str(cc.get("reason"))
+          and len(cc.get("reasons") or []) == 3,
+          "a Phase A section that fails three times is withheld, every reason kept")
     pos = written.get("stack:positioning") or {}
     check(pos.get("state") == "call_failed" and pos.get("attempts") == 1
           and sum(1 for x in calls if "THE SECTION: Positioning & flows" in x) == 1,
@@ -2061,6 +2535,7 @@ def main() -> int:
     t31_scenarios_themes_group(ed, out)
     t31_summary_group(ed, out)
     t32_group(ed, out)
+    t33_group(ed, out)
     scans_group(p, cfg, ed, out)
     ytd_group(cfg, ed, out)
     triple_group(cfg, ed, out)

@@ -30,16 +30,18 @@ tape:
 # `daily` is the store series the daily frames, moving averages, 52-week levels
 # and the Weekly's candles read (T2.1: the bars table holds intraday only).
 # `fallback` is read ONLY when the instrument's own series is empty, and the
-# tape then names it ("DXY (proxy: UUP)") -- never silently.
-  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy}
-  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq}
-  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm}
+# tape then names it ("DXY (proxy: UUP)") -- never silently. `unit` (W-1.2
+# item 2.8): what a price prints with in the tape's Last column -- "$" before
+# it, any other word after ("98.10 index"); a yield prints its %.
+  - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy, unit: "$"}
+  - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq, unit: "$"}
+  - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm, unit: "$"}
   - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, daily: yfinance.mkt_tnx, fallback: {daily: fred.yield_10y, label: "FRED DGS10"}, aliases: ["10-year yield", "10-year", "ten-year"]}
   - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, daily: yfinance.mkt_tyx, fallback: {daily: fred.yield_30y, label: "FRED DGS30"}, aliases: ["30-year yield", "30-year", "long bond"]}
-  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"]}
-  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"]}
-  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"]}
-  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"]}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"], unit: index}
+  - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"], unit: "$"}
+  - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"], unit: "$"}
+  - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"], unit: "$"}
 
 # INTRADAY-ONLY INSTRUMENTS (T2.3, ruled 4 Oct 2026, item 2): pulled into the
 # 5-minute bars table beside the tape set, never printed in the tape's tables.
@@ -163,7 +165,7 @@ outlooks:
 # The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
 # major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read", subtitle: "the week's five lines, and the week day by day",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
+  - {id: read,        title: "The read", subtitle: "the week's five lines, and the events alongside each session",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
   - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep, monthly: light, monthly_note: "light + the long frame (brief 3.4)"}
   - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)"}
   - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep}
@@ -209,6 +211,8 @@ depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 #   paragraph_figures  the most figures one paragraph after the claim line may
 #                 cite before the guard withholds it; the tables carry the rest
 #                 (T2.5 item 1: six; the Monthly 8 from 10 Oct 2026, T3.2 item 1)
+#   summary_figures  the figures an executive-summary paragraph is handed and may
+#                 cite (T3.1 item 20: three; T3.4 puts them in its frame)
 #   subsection_charts  whether a sub-section's charts print under it (T2.7);
 #                 otherwise they print with the section's own
 #   trim_to_budget  whether the budget step cuts paragraphs, lowest priority
@@ -248,6 +252,17 @@ cadences:
     frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
     chars_scale: 2.5
     read_chars: 2400
+    # THE SECTION OPENER (W-1.3a item 3.0, change order amended 12 Oct 2026):
+    # every section's commentary prints FIRST, before any table or chart, as one
+    # paragraph -- the précis's relevance sentence, then the writer's claim and
+    # body -- ending in exactly one sentence that begins "Takeaway". The bands are
+    # the words the WRITER's text (claim line, body and Takeaway) may run to; the
+    # relevance sentence is the précis's and is not counted. A kept paragraph's
+    # guard is the band's top, so the guard never cuts a Takeaway off.
+    opener:
+      deep: [120, 220]
+      medium: [80, 150]
+      precis: [150, 250]
   monthly:
     report: "the Monthly"
     period: month
@@ -256,6 +271,7 @@ cadences:
     paragraphs: null
     paragraph_words: depth
     paragraph_figures: 8
+    summary_figures: 3
     subsection_paragraphs: true
     subsection_charts: true
     trim_to_budget: true
@@ -263,6 +279,56 @@ cadences:
     chars_scale: 2.5
     read_chars: 2400
     mobile_tables: true
+
+# THE PARENT SECTIONS (T3.4, 10 Oct 2026): the sections with blocks beneath them
+# whose frames carry at most the cadence's `paragraph_figures` -- their largest
+# moves, each with its display form -- and every other series by name only
+# (daily_cascade/figure_budget.py). Three dry runs cited 9 to 21 figures here
+# against the cap through three retries; the frame now offers no more than the
+# paragraph may cite. Every cadence; a listed section with no sub-sections is not
+# a parent at that cadence.
+figure_budget_parents: [tape, plumbing, positioning, priced, slow]
+
+# DESCRIPTIVE, UNVALIDATED (W-1.1 item 1.7, ruled 11 Oct 2026). Every descriptive
+# classification the Weekly prints carries "(descriptive; unvalidated, n=K)" in
+# the glossary and one footnote in each section that prints it. K is the count of
+# scorecard-graded instances: resolved rows in the probability ledger under
+# `graded_source`. No classification is graded yet (graded_source null), so K is 0
+# until the scorecard grades it -- then the source goes here and K counts itself.
+# THE VALIDATED TAG (W-1.3a item 3.7): a classification or signal the scorecard
+# has graded at least this many times prints "(validated, n=K)" in place of the
+# unvalidated tag. None reaches it today.
+validated_min_n: 30
+descriptive_classifications:
+  - {id: dealer_flags, label: "the dealer flags (pinned, held, amplified)", sections: [mechanics], graded_source: null}
+  - {id: gamma_regime, label: "the gamma regime", sections: [mechanics], graded_source: null}
+  - {id: gap_states, label: "the gap states (pending, open, exception)", sections: [misfit], graded_source: null}
+  - {id: extremes, label: "the five-year extremes", sections: [misfit], graded_source: null}
+  - {id: favourite_longshot, label: "the favourite–longshot check", sections: [priced], graded_source: null}
+  - {id: story_states, label: "the story states", sections: [narratives], graded_source: null}
+
+# STALE VERSUS LAGGED (W-1.1 item 1.2, ruling 2, 11 Oct 2026). A price series
+# whose last bar is older than the edition's prints "stale since <date>"; a series
+# declared here prints "lag: <period> (<reference>, released <date>)" instead,
+# because a monthly release two months behind is its normal state, not a fault.
+# Session-set list; WASDE and the IMF series join it when the store holds them.
+freshness:
+  expected_lag:
+    tic.flow_net_foreign: monthly
+    tic.flow_total: monthly
+
+# PER-SECTION OVERRIDES (W-1.1 item 1.0c, ruled 11 Oct 2026). A parent with three
+# or more sub-blocks spent all six figures on one of them: the 9 Oct Weekly's
+# Positioning cited six sector returns and had none left for the COT extremes. On
+# the Weekly these sections take a cap of 8 and, with `per_block`, one figure for
+# every sub-block that moved before the rest go to the largest z. The daily close
+# keeps its 6 (no entry). Plumbing's sub-blocks are its buckets
+# (monthly_plumbing_buckets' map, read at the Weekly's cadence too).
+figure_budget_sections:
+  weekly:
+    plumbing: {cap: 8, per_block: true}
+    positioning: {cap: 8, per_block: true}
+    priced: {cap: 8, per_block: true}
 
 # THE MONTHLY'S ELEVENTH SECTION (brief 1, the matrix's last row; Monthly only,
 # deep). It follows The book; the old Monthly's record -- the regime, the
@@ -392,9 +458,12 @@ monthly_reading:
 # number's work. A motive word is refused outright; an intensity word only when
 # its sentence carries no figure.
 style:
+  # W-1.1 item 1.6 (ruled 11 Oct 2026): coincidence, never cause -- "on the back
+  # of", "in response to" and "reacting to" join the list. Quoted text is exempt
+  # (stack_prose.unquoted): a quoted official's "driven by" is attribution.
   motive_phrases: ["because", "due to", "driven by", "on fears", "on hopes",
                    "as investors", "amid concerns", "thanks to", "spooked",
-                   "cheered"]
+                   "cheered", "on the back of", "in response to", "reacting to"]
   # Closers the stack does not use (T2.1 item 8): refused in any section.
   banned_phrases: ["for the system", "what it will test next", "what it tests next",
                    "what next week tests", "what tomorrow tests",
@@ -437,3 +506,40 @@ dealer_flags:
   # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
+
+# THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
+# and sign conventions, printed after the Weekly's detail tables. The GEX/DEX
+# universe is the tape's `dealer` symbols, read from the tape set above, never
+# retyped here. Session-set; every row restates a convention the code already
+# holds; no module path prints (the id rule).
+technical_appendix:
+  rows:
+    - {quantity: "Move z-score", formula: "(the change - the mean change) / the standard deviation of changes over the series' window", units: "standard deviations", sign: "+ is a rise; the size is how unusual the move is"}
+    - {quantity: "Percentile", formula: "share of the window's observations at or below the level", units: "percentile (0-100)", sign: "high is near the window's top"}
+    - {quantity: "Basis point", formula: "0.01 percentage point; yields and spreads move in it", units: "bp", sign: "+ is higher"}
+    - {quantity: "Credit spread (OAS)", formula: "ICE BofA option-adjusted spread over Treasuries, via FRED (BAMLH0A0HYM2, BAMLC0A0CM, BAMLH0A3HYC)", units: "bp", sign: "+ is wider: lenders asking more"}
+    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot, stored as shares per 1% move", units: "shares per 1% move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
+    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100", units: "shares", sign: "+ the option book is long delta, so the hedge held is short stock"}
+    - {quantity: "Flip", formula: "the spot level at which net GEX changes sign", units: "index points", sign: "above it, dealer hedging damps; below it, amplifies"}
+    - {quantity: "Net liquidity", formula: "Fed balance sheet - reverse repo - Treasury General Account, each leg in dollars (WALCL x 1e6, RRPONTSYD x 1e9, WTREGEN x 1e6)", units: "$", sign: "+ is more liquidity"}
+    - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
+    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, first expiry on or after the event", units: "% of spot", sign: "either direction"}
+    - {quantity: "Brier score", formula: "the mean of (probability - outcome) squared", units: "0 to 1", sign: "lower is better; 0.25 is a coin"}
+  expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"
+
+# W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
+storyline:
+  # Item 2.4: an open contradiction's status line. "resolved by <section>" when
+  # the named section prints every listed row -- the decomposition that answers
+  # the gap (the 9 Oct HY tension: Plumbing's CCC against investment grade) --
+  # and its commentary published; "stale" when the gap has been open at least
+  # `stale_sessions` sessions and is no longer widening; otherwise "carried --
+  # resolves when <what would close it>". Session-set.
+  stale_sessions: 20
+  contradiction_resolution:
+    equities_vs_credit: {section: plumbing, rows: ["CCC OAS", "Investment-grade OAS", "High-yield OAS"]}
+    long_bond_vs_hy: {section: plumbing, rows: ["30-year", "CCC OAS", "High-yield OAS"]}
+    implied_vs_realized_vol: {section: mechanics, rows: ["VIX", "SPY 20-day realized against the VIX"]}
+  # Item 2.6: a family of prediction-market resolutions in Ahead collapses to one
+  # row (its modal outcome) when it has at least this many outcomes.
+  family_min_outcomes: 2

@@ -109,6 +109,7 @@ DELTA_UNITS: dict[str, str] = {
     "MXN": "percent",
     # Counts, levels and stocks: moved in their own units.
     "K": "raw",
+    "N": "raw",          # a plain count (FRED "Number": IC4WSA, EXHOSLUSM495S)
     "B": "raw",
     "M": "raw",
     "hrs": "raw",
@@ -117,6 +118,7 @@ DELTA_UNITS: dict[str, str] = {
     "days": "raw",
     "ratio": "raw",
     "fraction": "raw",
+    "0/1": "raw",        # a 0/1 indicator (USREC); its change is the flip itself
 }
 
 # PERCENTAGE POINTS, for the one case `units` cannot separate on its own.
@@ -814,6 +816,79 @@ def long_run_average(metric_id: str, as_of: Optional[str] = None,
     return {"metric_id": metric_id, "mean": sum(v for _, v in vals) / len(vals),
             "n": len(vals), "first_observed": vals[0][0],
             "last_observed": vals[-1][0]}
+
+
+# THE z OF A PERIOD'S CHANGE (W-1.1 item 1.0b, ruled 11 Oct 2026). Ranking a
+# week's moves relative to their level favoured low-level series: IG OAS -4 bp on
+# a 0.80% level outranked CCC OAS +37 bp on 9.6%, and Plumbing's prose read "no
+# stress" in the week of the CCC blow-out. A move is now ranked by how unusual it
+# is for ITS OWN series: the change over the period against every same-length
+# change in the trailing year, in the unit the table prints (bp for a rate or a
+# spread, percent for a price, the raw unit otherwise). Fewer than
+# CHANGE_Z_MIN_N such changes and the z is not computed: the caller ranks that
+# move relative to its level and says so.
+CHANGE_Z_MIN_N = 60
+
+
+def change_in_unit(a: float, b: float, unit: str, level_units: str = "") -> Optional[float]:
+    """b minus a as a table prints it: "bp" (a percent level x100, a bps level
+    as is), "%" (relative), anything else the raw difference."""
+    if unit == "bp":
+        return (b - a) * (1.0 if str(level_units) in ("bps", "bp") else 100.0)
+    if unit == "%":
+        return None if not a else 100.0 * (b / a - 1.0)
+    return b - a
+
+
+def period_change_z(series: list[tuple[str, float]], end_day: str, unit: str,
+                    level_units: str = "", days: int = 7, trailing_days: int = 365,
+                    min_n: int = CHANGE_Z_MIN_N) -> dict:
+    """{z, change, n, basis, reason} for the `days`-day change to `end_day`.
+
+    Every observation in the trailing year (to the period's start) is the end of
+    one historical change: its value less the value latest known `days` earlier.
+    A daily series gives about 250 overlapping weekly changes; a weekly series 52,
+    which is under the floor -- `basis` "relative" and the reason say so."""
+    pts = sorted((str(d)[:10], float(v)) for d, v in series if v is not None)
+    pts = [p for p in pts if p[0] <= end_day[:10]]
+    if len(pts) < 2:
+        return {"z": None, "change": None, "n": 0, "basis": "relative",
+                "reason": "fewer than two observations"}
+    end = _as_date(end_day)
+
+    def at_or_before(day: dt.date) -> Optional[float]:
+        v = None
+        for d, x in pts:
+            if d <= day.isoformat():
+                v = x
+            else:
+                break
+        return v
+    start_val = at_or_before(end - dt.timedelta(days=days))
+    change = (change_in_unit(start_val, pts[-1][1], unit, level_units)
+              if start_val is not None else None)
+    lo = (end - dt.timedelta(days=trailing_days + days)).isoformat()
+    hist = []
+    for d, x in pts:
+        if d < lo or d > (end - dt.timedelta(days=days)).isoformat():
+            continue
+        prev = at_or_before(_as_date(d) - dt.timedelta(days=days))
+        if prev is None:
+            continue
+        c = change_in_unit(prev, x, unit, level_units)
+        if c is not None:
+            hist.append(c)
+    if change is None:
+        return {"z": None, "change": None, "n": len(hist), "basis": "relative",
+                "reason": "no value a period before the last"}
+    if len(hist) < min_n:
+        return {"z": None, "change": round(change, 4), "n": len(hist),
+                "basis": "relative",
+                "reason": f"{len(hist)} trailing-year changes, fewer than {min_n}"}
+    z = z_of(hist, change)
+    return {"z": None if z is None else round(z, 2), "change": round(change, 4),
+            "n": len(hist), "basis": "z" if z is not None else "relative",
+            "reason": None if z is not None else "the trailing changes do not vary"}
 
 
 def _delta_in_unit(a: float, b: float, unit: str) -> Optional[float]:

@@ -114,7 +114,7 @@ def _change(x: dict) -> str:
         return _signed(c, "bp")
     if x["unit"] == "%":
         return _signed(c, "%")
-    return f"{c:+,.0f}"
+    return x.get("change_display") or f"{c:+,.0f}"
 
 
 # ---------------------------------------------------------------------------
@@ -217,7 +217,7 @@ def misfit_section(p: dict, pmb: Optional[dict] = None) -> dict:
     dis = (pmb or {}).get("disagreements") or {}
     for d in dis.get("fed_funds") or []:
         legs = d.get("legs_sum")
-        norm_note = (f" (legs normalised from {round(legs * 100):.0f}%)"
+        norm_note = (f" (normalised; legs sum {round(legs * 100):.0f}%)"
                      if legs and abs(legs - 1.0) > 0.005 else "")
         items.append(item(f"misfit:pm_ff:{d['meeting']}:{d['venue']}:{d['side']}",
                           f"{d['venue'].title()} prices a {d['side']} at the "
@@ -445,13 +445,13 @@ def venue_items(pmb: Optional[dict], fed: Optional[dict]) -> list[dict]:
                                   f"{_venue_name(v)}: \"{r.get('question')}\" "
                                   f"{_pct(r['probability'])} "
                                   f"({_pts(r.get('change_1s_points'))} on the session"
-                                  + (", outside 10-90%" if r.get("bias_zone") else "")
+                                  + (f", {FLC}" if r.get("bias_zone") else "")
                                   + ").", 3, (v, r["probability"])))
             continue
         txt = "; ".join(
             f"{_venue_name(v)} {_pct(r['probability'])}"
             f" ({_pts(r.get('change_1s_points'))} on the session"
-            + (", outside 10-90%" if r.get("bias_zone") else "") + ")"
+            + (f", {FLC}" if r.get("bias_zone") else "") + ")"
             for v, r in sorted(picked.items()))
         side = w.get("side") or "Yes"
         items.append(item(f"priced:pm:{wid}", f"{label[0].upper() + label[1:]} "
@@ -487,8 +487,15 @@ def side_rows(rows: list[dict], w: dict) -> dict:
     return out
 
 
-BIAS_LEGEND = ("Outside 10-90%: at odds this far from even, prediction markets are "
-               "known to misprice the level, so read the change, not the level.")
+# THE FAVOURITE-LONGSHOT CHECK (W-1.1 item 1.5, ruled 11 Oct 2026): the rule once
+# printed as "outside 10-90%" -- read as "mispriced" -- is a flag, not a verdict.
+# Prediction markets tend to overprice longshots and underprice favourites, so a
+# price this far from even is read for its change more than its level.
+FLC = "favourite–longshot check: outside 10-90%"
+BIAS_LEGEND = ("Favourite–longshot check (outside 10-90%): a flag, not a verdict -- "
+               "prediction markets tend to overprice longshots and underprice "
+               "favourites, so at odds this far from even read the change more than "
+               "the level.")
 
 
 def priced_section(st, cutoff: str, cfg: dict, pmb: Optional[dict] = None,

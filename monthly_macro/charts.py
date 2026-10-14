@@ -286,11 +286,17 @@ def m2(book: dict, daily: list[dict], name: str, out_dir: Optional[str]) -> dict
 # ---------------------------------------------------------------------------
 # M3: the dealer retrospective
 # ---------------------------------------------------------------------------
-def m3(sessions: list[dict], name: str, out_dir: Optional[str]) -> dict:
+def m3(sessions: list[dict], name: str, out_dir: Optional[str],
+       first_stored: Optional[str] = None) -> dict:
     rows = [r for r in sessions if r.get("close") is not None]
     if len(rows) < 5:
+        # WHY THERE ARE NONE, WHERE THAT IS THE STORE'S START (T3.3 item 9): the
+        # September dry run read "0 scored sessions" because the scorecard's first
+        # row is 5 Oct -- nothing in the code to fix, and the line now says so.
+        late = (f"; the scorecard's first stored session is {first_stored}, after "
+                f"the month" if not rows and first_stored else "")
         return {"id": "M3", "unavailable": f"{len(rows)} scored sessions with a close "
-                                           f"stored, 5 needed"}
+                                           f"stored, 5 needed{late}"}
     try:
         title = ch.span_title("SPY closes against the morning flip and max pain",
                               len(rows), "sessions", rows[0]["session"],
@@ -611,6 +617,40 @@ def m9(ledgers: dict, nav: list[tuple[str, float]], start: str, now: str,
 # ---------------------------------------------------------------------------
 # The edition's charts
 # ---------------------------------------------------------------------------
+def book_z(st, now: str, ledger: str, since: Optional[str] = None
+           ) -> list[tuple[str, float]]:
+    """ONE BOOK Z LEDGER'S MARKS, from their JSON (T3.3 item 9). A mark is stored
+    as text -- its units, cash, the closes it was marked at and the ledger's
+    value -- with no value_num, so series() found none and M9 printed "no Book Z
+    mark" over 84 stored marks in the 10 Oct dry run."""
+    from altdata import benchmark                                # noqa: PLC0415
+    out = []
+    for r in st.as_of(benchmark.KEY, now, ledger):
+        try:
+            v = json.loads(r.get("value_text") or "null")
+        except ValueError:
+            continue
+        if isinstance(v, dict) and isinstance(v.get("value"), (int, float)):
+            out.append((str(r["observed_at"])[:10], float(v["value"])))
+    return sorted(x for x in out if not since or x[0] >= since)
+
+
+def account_nav(st, now: str) -> list[tuple[str, float]]:
+    """THE PAPER ACCOUNT'S NAV, one value a day (its last), across every account
+    the store holds. The NAV is keyed to the account code (instrument), synced
+    hourly; M9 asked for instrument NULL and found none of 451 rows (10 Oct dry
+    run) -- the trap altdata.benchmark.book_line already reads around."""
+    by_day: dict[str, tuple[str, float]] = {}
+    for inst in [None] + list(st.instruments("portfolio.nav")):
+        for r in st.as_of("portfolio.nav", now, inst):
+            if r.get("value_num") is None:
+                continue
+            ts, day = str(r["observed_at"]), str(r["observed_at"])[:10]
+            if day not in by_day or ts >= by_day[day][0]:
+                by_day[day] = (ts, float(r["value_num"]))
+    return sorted((d, v) for d, (_, v) in by_day.items())
+
+
 def series(st, key: str, now: str, instrument: Optional[str] = None,
            since: Optional[str] = None) -> list[tuple[str, float]]:
     rows = sorted((str(r["observed_at"])[:10], float(r["value_num"]))
@@ -652,8 +692,11 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
         run("M0", lambda: m0(book or {}, daily, f"{base}_m0", out_dir))
         run("M1", lambda: m1(book or {}, daily, f"{base}_m1", out_dir))
         run("M2", lambda: m2(book or {}, daily, f"{base}_m2", out_dir))
-        run("M3", lambda: m3((retro or {}).get("sessions") or [], f"{base}_m3",
-                             out_dir))
+        def _m3():
+            first = st.as_of("dealer.scorecard_day", now, "SPY")
+            return m3((retro or {}).get("sessions") or [], f"{base}_m3", out_dir,
+                      str(first[0]["observed_at"])[:10] if first else None)
+        run("M3", _m3)
         five = _years_back(now, 5)
         def _m4():
             title = _m4_title(st, now, five)
@@ -691,9 +734,9 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
             start = benchmark.start_date().isoformat()
             led = {}
             for lg in benchmark.LEDGERS:
-                pts = series(st, benchmark.KEY, now, lg, start)
+                pts = book_z(st, now, lg, start)
                 led[f"Book Z: {benchmark.LABEL.get(lg, lg)}"] = pts
-            return m9(led, series(st, "portfolio.nav", now), start, now,
+            return m9(led, account_nav(st, now), start, now,
                       f"{base}_m9", out_dir)
         run("M9", _m9)
 
@@ -705,12 +748,49 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
         if c.get("min_px_at_400") is not None:
             c["min_px_at_400"] = float(c["min_px_at_400"])
     ed["charts_over_cap"] = hold_cap(charts, cap_of(ed))
+    log_unrendered(charts)
     place(ed, charts)
     ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                     for k, c in charts.items()}
     ed["chart_count"] = sum(1 for c in charts.values() if not c.get("unavailable"))
     ed["chart_plan"] = want
     return charts
+
+
+# WHY A CHART DID NOT RENDER, ONE LINE EACH (T3.3 item 9). The kinds: a chart
+# skipped by a ruling (M8 until scenario set #1, 9 Oct), one set aside over the
+# cap, too little history, a missing series, and an exception -- a fault in code.
+_EXC = re.compile(r"^[A-Z]\w*(?:Error|Exception|Exit|Interrupt)\b")
+
+
+def unavailable_kind(c: dict) -> Optional[str]:
+    why = str(c.get("unavailable") or "")
+    if not why:
+        return None
+    if why.startswith("not yet"):
+        return "skipped by rule"
+    if why.startswith("not printed: over"):
+        return "over the cap"
+    if _EXC.match(why):
+        return "exception"
+    if re.search(r"\bneeded\b|\bfewer than\b|too short|too little", why):
+        return "too little history"
+    return "missing series"
+
+
+def log_unrendered(charts: dict) -> list[str]:
+    """One log line per chart that does not render, with its kind and reason;
+    each chart carries its kind as `unavailable_kind`. Returns the lines."""
+    lines = []
+    for cid in ORDER:
+        c = charts.get(cid)
+        kind = unavailable_kind(c or {})
+        if not kind:
+            continue
+        c["unavailable_kind"] = kind
+        lines.append(f"chart {cid} not rendered ({kind}): {c['unavailable']}")
+        log.info(lines[-1])
+    return lines
 
 
 def _m4_title(st, now: str, since: str) -> str:

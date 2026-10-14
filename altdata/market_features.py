@@ -793,8 +793,20 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         by_key: dict[str, int] = {}
         for r in rows:
             by_key[r["registry_key"]] = by_key.get(r["registry_key"], 0) + 1
+        # THE CORRELATION LAYER (AQ-5) rides the same pass, after the features it
+        # aliases (calc.corr_spy_tlt_60d) are written: its inputs are the closes
+        # this pass follows. Its own last few sessions only -- the full history
+        # is the one-shot `python -m altdata.correlation compute --backfill`.
+        # Never fatal: a fault costs the correlation rows, not the features.
+        try:
+            from . import correlation                            # noqa: PLC0415
+            corr = correlation.compute(as_of=as_of, first_day=first_day,
+                                       store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("correlation layer failed", exc_info=True)
+            corr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
-                "dry_run": dry_run}
+                "dry_run": dry_run, "correlation": corr}
     finally:
         if own:
             db.close()
@@ -822,6 +834,11 @@ def _main(argv: list[str]) -> int:
               + ("  (dry run)" if r["dry_run"] else ""))
         for k in sorted(r["by_key"]):
             print(f"  {k:36} {r['by_key'][k]:>6}")
+        c = r.get("correlation") or {}
+        print(f"correlation layer: FAULT {c['error']}" if c.get("error") else
+              f"correlation layer: {c.get('computed', 0)} rows computed from "
+              f"{c.get('first_day') or 'the first session'}, "
+              f"{c.get('written', 0)} written")
         return 0
 
     for key in sorted({**FEATURES, **MACRO_FEATURES, **RATES_FEATURES}):

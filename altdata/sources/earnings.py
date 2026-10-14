@@ -55,10 +55,27 @@ log = logging.getLogger(__name__)
 EXTRA_SYMBOLS = ("AAPL", "JPM", "BAC", "C", "WFC", "GS", "MS")
 
 
+def index_weight_symbols() -> list[str]:
+    """W-1.3a item 3.9: the index-weight-ranked names, the hyperscalers and the
+    banks (config/weekly_ahead.yaml `earnings`), so the Weekly's Ahead sees them
+    report. Read here, in the earnings pass -- the one network read for
+    earnings -- never in the Weekly. A missing file adds nothing."""
+    from pathlib import Path                                    # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    p = Path(__file__).resolve().parents[2] / "config" / "weekly_ahead.yaml"
+    try:
+        e = (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("earnings") or {}
+    except (OSError, yaml.YAMLError):
+        return []
+    return sorted({str(s) for k in ("index_weight_rank", "hyperscalers", "banks")
+                   for s in e.get(k) or []})
+
+
 def universe() -> list[str]:
-    """Single names from config/story_queries.yaml, plus EXTRA_SYMBOLS."""
+    """Single names from config/story_queries.yaml, plus EXTRA_SYMBOLS and the
+    index-weight names (index_weight_symbols)."""
     from .news import load_queries
-    out: set[str] = set(EXTRA_SYMBOLS)
+    out: set[str] = set(EXTRA_SYMBOLS) | set(index_weight_symbols())
     for spec in (load_queries().get("queries") or {}).values():
         for e in spec.get("entities") or []:
             s = str(e)

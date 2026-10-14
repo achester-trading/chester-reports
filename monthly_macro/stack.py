@@ -58,7 +58,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from altdata import observations, session
+from altdata import labels, observations, session
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -792,8 +792,22 @@ PM_CHANNEL_NOTE = (
     "62%\"), never \"a 62% chance\".")
 
 
+# COPY change_signed (T3.3 item 5), as the plumbing deltas' frames say to copy
+# theirs: each contract's week change rides in the block's data as a figure in
+# probability points with its signed form, the string its table cell prints.
+PM_CHANGE_NOTE = (
+    "\n\nA CONTRACT'S CHANGE is in points of probability: copy change_signed "
+    "verbatim, sign and unit included (\"−14.0 pts\", \"+2.0 pts\"), naming the "
+    "venue whose change it is. Never drop the sign and never restate it as a "
+    "percent.")
+
+
 def _split_rows(rows: list, fomc: bool) -> list:
     return [r for r in rows if str(r[0]).startswith("FOMC ") == fomc]
+
+
+def _split_contracts(contracts: list, fomc: bool) -> list:
+    return [c for c in contracts if str(c["item"]).startswith("FOMC ") == fomc]
 
 
 def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> dict:
@@ -832,24 +846,30 @@ def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> di
                                    "scope": "where the breakevens sit and how they "
                                             "moved over the month"} if be else None)})
         elif ss is pm:
+            from daily_cascade import readability as rd          # noqa: PLC0415
             t = ss.get("table") or {}
             rows = t.get("rows") or []
             fomc, rest = _split_rows(rows, True), _split_rows(rows, False)
+            con = rd.pm_contracts(pmb, "5s")
             out.append({"title": "Prediction markets: the FOMC", "bucket": "pm_fomc",
                         "phase": "block:priced:pm_fomc",
                         "table": {"columns": t.get("columns") or [], "rows": fomc},
+                        "data": {"contracts": _split_contracts(con, True)},
                         "prose": ({"words": "40 to 80",
                                    "scope": "what the prediction markets price for "
                                             "the coming FOMC decisions, beside the "
-                                            "futures"} if fomc else None)})
+                                            "futures",
+                                   "note": PM_CHANGE_NOTE} if fomc else None)})
             out.append({"title": "Prediction markets: the rest", "bucket": "pm_rest",
                         "phase": "block:priced:pm_rest",
                         "table": {"columns": t.get("columns") or [], "rows": rest},
+                        "data": {"contracts": _split_contracts(con, False)},
                         "not_tracked": list(ss.get("not_tracked") or []),
                         "prose": ({"words": "60 to 100",
                                    "scope": "the other watched markets, each read "
                                             "for its market channel",
-                                   "note": PM_CHANNEL_NOTE} if rest else None)})
+                                   "note": PM_CHANNEL_NOTE + PM_CHANGE_NOTE}
+                                  if rest else None)})
         else:
             out.append(ss)
     b["subsections"] = out
@@ -1210,6 +1230,9 @@ def family_change(m: dict) -> dict:
     return {}
 
 
+# The fewest observations a percentile is taken over (T3.3 item 7).
+MIN_PERCENTILE_N = 20
+
 TRIPLE_COLUMNS = ["Latest (data as of)", "Long-run average (window)",
                   "Percentile (window)"]
 
@@ -1229,20 +1252,90 @@ def triple(st, key: str, now: str, window_days: int = 1825,
     yrs = window_days // 365
     pct_win = (f"{yrs} years, n={f['n']:,}" if full else
                f"since {f['first_observed']}, n={f['n']:,}; under {yrs} years")
+    # NO PERCENTILE BELOW THE MINIMUM SAMPLE (T3.3 item 7): one Damodaran print
+    # read "100th (since 2026-01-05, n=1)" -- true of any single observation and
+    # citable by the prose as if it meant something. Below MIN_PERCENTILE_N the
+    # percentile is not taken: the cell prints "— (n=1)" and there is no
+    # `_ordinal` for any paragraph to cite.
+    pct = f.get("percentile") if (f.get("n") or 0) >= MIN_PERCENTILE_N else None
     return {"key": key, "instrument": instrument, "latest": f["level"],
             "as_of": f["observed_at"], "mean": lr.get("mean"), "mean_n": lr.get("n"),
-            "mean_since": lr.get("first_observed"), "percentile": f.get("percentile"),
+            "mean_since": lr.get("first_observed"), "percentile": pct,
             "percentile_window": pct_win, "percentile_n": f["n"],
             "percentile_since": f.get("first_observed"),
             "delta_20d": f.get("delta_20d"), "delta_unit": f.get("delta_unit")}
 
 
 def triple_cells(t: dict, dp: int = 2) -> list[str]:
+    small = t.get("percentile") is None and t.get("percentile_n") is not None
     return [f"{_v(t['latest'], dp)} ({t['as_of']})",
             (f"{_v(t['mean'], dp)} (full history since {t['mean_since']}, "
              f"n={t['mean_n']:,})" if t.get("mean") is not None else "—"),
             (f"{_ord(t['percentile'])} ({t['percentile_window']})"
-             if t.get("percentile") is not None else "—")]
+             if t.get("percentile") is not None else
+             f"— (n={t['percentile_n']:,})" if small else "—")]
+
+
+CORR_COLUMNS = ["Series", "Latest (data as of)", "Long-run average (window)",
+                "Percentile, full history", "Percentile, five years"]
+UNTIL_LENSES = "until the lenses"
+
+
+def correlations_block(st, now: str, then: str) -> dict:
+    """THE CORRELATIONS BLOCK (AQ-5; change order 10 Oct 2026, section 9): the
+    stock-bond rows in the triple form -- latest, long-run average, percentile,
+    each with its data-as-of -- and the month's top shifts. Percentiles are over
+    the store's own full history; the five-year column waits for the metric
+    lenses (6e) and says so. No chart this round (the cap of 12 stands; the
+    heatmap waits for AQ-1). The surprise quadrant prints beside the shifts once
+    round 4 item 25 builds it; until then its hook returns nothing."""
+    from altdata import correlation                              # noqa: PLC0415
+    ccfg = correlation.config()
+    mcfg = ccfg.get("monthly") or {}
+    labels = {n["key"]: n["label"] for n in ccfg.get("named") or []}
+    rows, data, nt = [], {"stock_bond": [], "shifts": []}, []
+    for key in mcfg.get("stock_bond") or []:
+        t = correlation.triple(st, key, now)
+        lab = labels.get(key, key)
+        if t is None:
+            nt.append(f"{lab}: no correlation stored at this cutoff")
+            continue
+        rows.append([lab, f"{t['latest']:+.2f} ({t['as_of']})",
+                     (f"{t['mean']:+.2f} (since {t['since']}, n={t['mean_n']:,})"
+                      if t.get("mean") is not None else "—"),
+                     f"{_ord(t['percentile'])} (n={t['n']:,})", UNTIL_LENSES])
+        data["stock_bond"].append({**t, "label": lab})
+    shifts = correlation.shifts_between(st, then, now)
+    top = shifts[:int(mcfg.get("top_shifts", 5))]
+    srows = [[f"{correlation.label(s['pair'][0])} – {correlation.label(s['pair'][1])}",
+              f"{s['c60']:+.2f}", f"{s['c252']:+.2f}", f"{s['gap']:+.2f}",
+              "—" if s["iqr"] is None else f"{s['iqr']:.2f}", s["rule"], s["day"]]
+             for s in top]
+    data["shifts"] = [correlation.shift_record(s) for s in top]
+    data["shifts_flagged"] = len(shifts)
+    lines = []
+    if not shifts:
+        lines.append("No pair's shift flag fired this month.")
+    elif len(shifts) > len(top):
+        lines.append(f"{len(shifts)} pairs flagged this month; the {len(top)} "
+                     f"furthest past their own interquartile range print.")
+    quad = correlation.surprise_quadrant(st, now)
+    if quad is None:
+        nt.append("the surprise quadrant beside the shifts (round 4 item 25; not "
+                  "yet built)")
+    nt.append("the five-year percentiles (until the metric lenses, 6e)")
+    return {"title": "Correlations",
+            "table": {"columns": CORR_COLUMNS, "rows": rows},
+            "tables": [{"columns": ["Pair", "60-day", "252-day", "Gap",
+                                    "IQR, five years", "Rule", "Flagged"],
+                        "rows": srows}] if srows else [],
+            "lines": lines,
+            "notes": (["Correlations of daily returns over common sessions; the "
+                       "stock-bond rows against the S&P 500. A shift: the 60-day "
+                       "crossing the 252-day by more than its own five-year "
+                       "interquartile range, or a sign change held 20 sessions."]
+                      if rows or srows else []),
+            "not_tracked": nt, "data": data}
 
 
 def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
@@ -1301,11 +1394,24 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             cells = triple_cells(t)
             chg = (f"{m['delta_20d']:+.2f} {m.get('delta_unit') or ''}".strip()
                    if isinstance(m.get("delta_20d"), (int, float)) else "—")
-            arows.append([fam, m["metric"], cells[0], chg, cells[1], cells[2]])
-            frows.append([m["metric"], cells[0], chg, cells[1], cells[2]])
-            d = {"family": fam, "series": m["metric"], **{k: t[k] for k in (
+            # THE ROW'S NAME IS ITS LABEL, NEVER THE STORE KEY (T3.5 (d)): the
+            # key printed as a name withheld every paragraph that named it.
+            lab = labels.metric(m["metric"])
+            if lab == labels.plain(m["metric"]):
+                # No configured label (an unregistered series, zec.price): the
+                # key in words, never with its dot.
+                lab = str(m["metric"]).replace(".", " ").replace("_", " ")
+            lab = lab[:1].upper() + lab[1:]
+            arows.append([fam, lab, cells[0], chg, cells[1], cells[2]])
+            frows.append([lab, cells[0], chg, cells[1], cells[2]])
+            d = {"family": fam, "series": lab, **{k: t[k] for k in (
                 "latest", "as_of", "mean", "mean_since", "mean_n", "percentile",
                 "percentile_window")}}
+            # THE ORDINAL THE TABLE PRINTS, AS ITS OWN FIELD (T3.5 (c)): the
+            # frame scrubs the raw percentile, so without this the audit held
+            # no ordinal for "86th" while the table printed it.
+            if t.get("percentile") is not None:
+                d["percentile_ordinal"] = _ord(t["percentile"])
             d.update(family_change(m))
             adata.append(d)
             fdata.append(d)
@@ -1344,6 +1450,16 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                        "rows": base_rows}, "not_tracked": base_nt},
             {"title": "Tails",
              "not_tracked": ["the 25 tail scenarios (not yet stored)"]}]
+    corr_data = None
+    if st and now:
+        try:
+            corr = correlations_block(st, now, window(p)[2])
+            corr_data = corr.pop("data")
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("correlation block unavailable", exc_info=True)
+            corr = {"title": "Correlations",
+                    "not_tracked": [f"the correlation layer: FAULT {exc}"]}
+        subs.insert(2, corr)
     if fam_subs:
         fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
                                       + ["Disruptive Themes (quarterly; folded into "
@@ -1378,7 +1494,8 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             "phase_a": (["top_bottom"] if base_rows else [])
             + [f"alternative_assets:{r[1]}" for r in arows],
             "data": {"valuation": vdata, "base_rates": base_rows,
-                     "alternative_assets": adata, "sourced_figures": src_data}}
+                     "alternative_assets": adata, "sourced_figures": src_data,
+                     "correlations": corr_data}}
 
 
 def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
@@ -1751,6 +1868,14 @@ PHASE_A_PROSE = {"month_in_markets": ("read", None),
                  "our_read": ("book", None)}
 
 
+# WHAT THE EDITION KEEPS OF EACH CALL. Every attempt's reason, the figures the
+# draft cited and the withheld draft itself are kept from T3.3: the 10 Oct dry
+# run's archive held only the last reason, and what a withheld section needed
+# had to be inferred from it.
+PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
+                  "reasons", "words", "figures_cited", "rejected_text")
+
+
 def apply_prose(ed: dict, written: dict) -> dict:
     """Every published text onto its section; every withheld one's reason into
     its footnote. Phase A prose keeps its paragraphs (it is long form); a stack
@@ -1808,8 +1933,7 @@ def apply_prose(ed: dict, written: dict) -> dict:
             s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
         else:
             s["withheld"] = why
-    ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
-                                                 "attempts", "first_reason", "words")}
+    ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
                    for k, v in written.items()}
     return ed
 
@@ -1847,8 +1971,7 @@ def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
         out.append(e)
     ed["summary"] = out
     ed.setdefault("prose", {}).update(
-        {k: {kk: v.get(kk) for kk in ("state", "published", "reason", "attempts",
-                                       "first_reason", "words")}
+        {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
          for k, v in written.items()})
     return ed
 

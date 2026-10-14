@@ -131,7 +131,7 @@
 #
 # Instruments that genuinely trade when the US equity market does not are DECLARED
 # (yfinance_source.CONTINUOUS_SYMBOLS -- Bitcoin, whose 528 non-session bars out of
-# 1,827 are all real). Everything else is filtered against the session calendar,
+# 1,827 are all real, and since AQ-5 ETH, SOL and ZEC). Everything else is filtered against the session calendar,
 # which sees holidays only in the years it covers (2026-2027) and falls back to
 # weekdays outside them.
 #
@@ -278,6 +278,11 @@ vocabularies:
   # `kill_condition` (the written falsification condition, architecture Session 2)
   # where a ruling gave one.
   rights_ceiling: [narrow_flag, composite_input, confidence_modifier, base_rate_only, none]
+  # W-1.1a item 1 (12 Oct 2026): what a series' figure IS, for the numeral
+  # audit's unit equivalence -- a yield, rate, spread, probability, implied move
+  # or volatility may be written as a percent where its payload field types it
+  # as a price. See the `series_kinds` block.
+  series_kind: [yield, rate, spread, probability, implied_move, volatility, price]
   mechanism_group:
     # Dealer chain. The greeks and the OI structure are SEPARATE groups on
     # purpose -- architecture 26.9 requires settled OI, effective OI and flow
@@ -492,6 +497,8 @@ vocabularies:
     # never facts, with discovery / shock / disagreement rights only -- their own
     # group so a venue move can never confirm a market signal it resembles.
     - prediction_market
+    # The correlation layer (AQ-5): one mechanism, however many pairs.
+    - cross_asset_correlation
 
 defaults:
   trigger_eligible: false
@@ -2624,6 +2631,64 @@ metrics:
       6d: a venue market's cumulative traded volume (contracts on Kalshi, USD on
       Polymarket), same instrument key as pm.probability. Stored so a shock on a
       thin market can be told from one on a deep market (Part 27's quarantine).
+  pm.bid:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's best YES bid (0..1) at the fetch instant, same
+      instrument key as pm.probability. With pm.ask it gives the spread that marks
+      a contract illiquid (config/prediction_markets.yaml illiquid_spread_points).
+      Live pulls only; the backfill has no book.
+  pm.ask:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's best YES ask (0..1) at the fetch instant.
+  pm.last:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the venue's last traded YES price (0..1) at the fetch
+      instant, stored beside the mid so a reader can see which one a printed
+      probability is (pm.price_basis) and how far apart they were.
+  pm.open_interest:
+    source: kalshi
+    mechanism_group: prediction_market
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      W-1.1 item 1.5: the market's liquidity at the fetch instant -- Kalshi's open
+      interest in contracts, Polymarket's posted liquidity in USD.
   pm.market:
     source: kalshi
     mechanism_group: prediction_market
@@ -6051,6 +6116,405 @@ metrics:
     description: >-
       Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
 
+  # ---------------------------------------------------------------------------
+  # THE CORRELATION LAYER'S NAMED ROWS (AQ-5; change order 10 Oct 2026, sections
+  # 5 and 9). Each carries its paper's reading rule in its description. Written by
+  # altdata/correlation.py from config/correlation.yaml; rights ceiling NARROW
+  # FLAG, never trigger-eligible, no composite weight. The matrix, the shift flags
+  # and the breaks are the three correlation_* bulk blocks below. The btc/gold/oil
+  # rows are matrix cells registered here for their reading rule (a metric entry
+  # takes precedence over a bulk member of the same key). long_window waits for
+  # the metric lenses (6e): until then percentiles are over the store's own
+  # full history.
+  # ---------------------------------------------------------------------------
+  corr.stock_bond.spx_tlt.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      S&P 500 (^GSPC) against TLT, daily log returns over 60 common sessions,
+      percentile-ranked over the store's own history. Reading rule (arch Session 12;
+      XX Ch 5; XVII): high inflation makes a negative stock-bond correlation rare and
+      low inflation makes it possible -- never a CPI threshold. The Base Rates regime
+      table is the prior: disinflationary calm -0.3 to -0.5; inflationary +0.2 to
+      +0.6; crisis 'bonds usually rally, but not always'.
+  corr.stock_bond.spx_tlt.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      S&P 500 (^GSPC) against TLT over 252 common sessions (one year), percentile-
+      ranked over the store's own history. Reading rule (arch Session 12; XX Ch 5;
+      XVII): high inflation makes a negative stock-bond correlation rare and low
+      inflation makes it possible -- never a CPI threshold. The Base Rates regime
+      table is the prior: disinflationary calm -0.3 to -0.5; inflationary +0.2 to
+      +0.6; crisis 'bonds usually rally, but not always'.
+  corr.stock_bond.spx_tlt.756d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    kill_condition: >-
+      If the three-year SPX-TLT correlation shows no relationship to the three-year
+      average CPI across backfilled history, drop the inflation framing and keep the
+      series (change order 10 Oct 2026, section 5, stock-bond correlation anchor).
+    description: >-
+      S&P 500 (^GSPC) against TLT over 756 common sessions (three years): the series
+      the CPI test reads -- the three-year correlation against the three-year average
+      CPI across backfilled history. Reading rule (arch Session 12; XX Ch 5; XVII):
+      high inflation makes a negative stock-bond correlation rare and low inflation
+      makes it possible -- never a CPI threshold. The Base Rates regime table is the
+      prior: disinflationary calm -0.3 to -0.5; inflationary +0.2 to +0.6; crisis
+      'bonds usually rally, but not always'.
+  corr.stock_bond.spx_10y.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      S&P 500 (^GSPC) log returns against the 10-year yield's daily change (DGS10,
+      percent) over 60 common sessions. Against the YIELD's change, so the sign is the
+      bond price's reversed: a positive SPX-10y reading is the negative stock-bond
+      (price) correlation. Reading rule (arch Session 12; XX Ch 5; XVII): high
+      inflation makes a negative stock-bond correlation rare and low inflation makes
+      it possible -- never a CPI threshold. The Base Rates regime table is the prior:
+      disinflationary calm -0.3 to -0.5; inflationary +0.2 to +0.6; crisis 'bonds
+      usually rally, but not always'.
+  corr.stock_bond.spx_10y.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      S&P 500 (^GSPC) log returns against the 10-year yield's daily change over 252
+      common sessions (one year). Against the YIELD's change, so the sign is the bond
+      price's reversed: a positive SPX-10y reading is the negative stock-bond (price)
+      correlation. Reading rule (arch Session 12; XX Ch 5; XVII): high inflation makes
+      a negative stock-bond correlation rare and low inflation makes it possible --
+      never a CPI threshold. The Base Rates regime table is the prior: disinflationary
+      calm -0.3 to -0.5; inflationary +0.2 to +0.6; crisis 'bonds usually rally, but
+      not always'.
+  corr.us_intl.756d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      SPY against EFA (developed ex-US equity) over 756 common sessions (three years).
+      Reading rule (XXI 14.3): calm 0.65-0.75; above it ordinary, then stressed, then
+      crisis as the correlation rises -- the diversification international equity
+      offers is a property of the regime.
+  corr.btc__spy.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Bitcoin against SPY over 60 common sessions (Friday-to-Monday returns for both).
+      Reading rule (IX T1): a decline toward zero is the bull reading; 0.4-0.7
+      persisting is the bear reading. Crypto-equity is 'the least stable of any factor
+      in the book' (XVII).
+  corr.btc__spy.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Bitcoin against SPY over 252 common sessions. Reading rule (IX T1): a decline
+      toward zero is the bull reading; 0.4-0.7 persisting is the bear reading (XVII:
+      the least stable factor in the book).
+  corr.btc__qqq.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Bitcoin against QQQ over 60 common sessions. Reading rule (IX T1, section 5 'BTC
+      against M2'): as BTC-SPY -- toward zero bull, 0.4-0.7 persisting bear.
+  corr.btc__qqq.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Bitcoin against QQQ over 252 common sessions. Reading rule (IX T1): toward zero
+      bull, 0.4-0.7 persisting bear.
+  corr.gold__spy.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Gold (GLD) against SPY over 60 common sessions. Reading rule (VIII section 23),
+      by shock type: a growth shock, gold holds; a liquidity shock, gold falls then
+      leads; a rate shock, all fall.
+  corr.gold__dxy.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Gold (GLD) against the dollar index over 60 common sessions. Reading rule: THE
+      SIGN. The textbook is negative; a positive gold-dollar correlation is 'a regime
+      flag'.
+  corr.gold__dxy.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Gold (GLD) against the dollar index over 252 common sessions. Reading rule: the
+      sign -- positive is 'a regime flag'.
+  corr.oil__dxy.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Oil (USO) against the dollar index over 60 common sessions. Reading rule: THE
+      SIGN -- which side of zero oil and the dollar sit on says whether the dollar is
+      pricing oil or oil is pricing the dollar (an exporter's currency regime).
+  corr.oil__dxy.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      Oil (USO) against the dollar index over 252 common sessions. Reading rule: the
+      sign.
+  corr.copper_gold__10y.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The copper/gold ratio's log return (HG=F over GLD, on common days) against the
+      10-year yield's daily change, over 60 common sessions. Reading rule (section 9;
+      II S12): copper/gold tracks the 10-year as a growth gauge; a divergence from
+      equities reads as supply-driven.
+  corr.copper_gold__10y.252d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The copper/gold ratio's log return against the 10-year yield's daily change over
+      252 common sessions. Reading rule: as the 60-day -- divergence from equities
+      reads as supply-driven.
+  corr.avg_pairwise.60d:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      The mean ABSOLUTE 60-day correlation across every pair in the universe -- the
+      liquidation signature (II S2, M1: 'correlation spikes without news'). Absolute,
+      because the VIX, the dollar and TLT join a liquidation by moving against the
+      rest. Written only on a day every pair whose history has begun contributes (a
+      pair's value carries at most five sessions).
+  corr.silver_over_gold:
+    source: derived_state
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+    description: >-
+      SLV over GLD, a fund ratio (scaled; not the metal price ratio, though it moves
+      with it). Reading rule (section 9): the silver/gold ratio FALLING -- the
+      gold/silver ratio widening -- in risk-off is 'one of the most dependable stress
+      behaviours'.
+
 bulk_imports:
 
   fred_macro:
@@ -6147,7 +6611,9 @@ bulk_imports:
     description: >-
       Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
       (ST-2 added IVW IVE IWF IWD VWO ACWX EMXC GUNR and CNH=X as mkt_usdcnh;
-      PB-1, 5 Oct 2026, replaced CNH=X with CNY=X as mkt_usdcny).
+      PB-1, 5 Oct 2026, replaced CNH=X with CNY=X as mkt_usdcny; AQ-5, 10 Oct
+      2026, added DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI for the correlation
+      layer's universe).
       SPLIT-ADJUSTED AND DIVIDEND-UNADJUSTED -- the value that traded. The
       adjusted close is deliberately not stored: it restates its own history
       every time a dividend is paid, which no point-in-time store can support,
@@ -6162,7 +6628,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 87   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6193,6 +6659,68 @@ bulk_imports:
     revision_policy: split_only
     trigger_eligible: false
     mechanism_group: market_close
+  market_volume_shares:
+    description: >-
+      Book B scanner follow-up 1 (ruled 13 Oct 2026): the daily volume beside the
+      close, keyed yfinance.mkt_<sym>_volume, for every ETF and stock in the
+      basket, in SHARES as Yahoo reports them. Read by the scanner's breakout and
+      reclaim volume legs (the session against its 20-session average) and its
+      dollar-ADV liquidity score. A zero is not stored: it is the source having
+      none. Index levels, currency pairs and the dollar index carry no volume
+      and have no member here (yfinance_source.VOLUME_UNITS).
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 68
+    key_prefix: yfinance.
+    units: shares
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_contracts:
+    description: >-
+      The same, for the three front futures (GC=F, CL=F, HG=F): front-month
+      CONTRACTS traded, a count and not a notional (a gold contract is 100 oz,
+      WTI 1,000 bbl), so the scanner reads it for the volume leg's ratio and
+      never multiplies it by the close.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 3
+    key_prefix: yfinance.
+    units: count
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  market_volume_usd:
+    description: >-
+      The same, for the crypto pairs (BTC-USD, and AQ-5's ETH-USD, SOL-USD,
+      ZEC-USD): Yahoo quotes crypto volume in DOLLARS, not coins, so
+      it is already a dollar volume and the scanner reads it as one.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.VOLUME_USD_KEYS
+    members_are: values
+    member_suffixes: ['_volume']
+    expected_members: 4
+    key_prefix: yfinance.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
   market_actions:
     description: >-
       Dividend and split events for the same basket, keyed
@@ -6207,7 +6735,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 53   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3)
+    expected_members: 87   # the market_closes basket: 59 (with AQ-5's six) + the 28 earnings names (scanner follow-up 4)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -6647,6 +7175,91 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
 
+  # THE CORRELATION LAYER (AQ-5; change order 10 Oct 2026, section 9). Three
+  # blocks because a correlation, a flag and a difference of two correlations are
+  # three units. Members are built from config/correlation.yaml by
+  # altdata/correlation.py, so a universe member added there is registered at
+  # once -- and expected_members makes that count change deliberate. Every member
+  # is a NARROW FLAG at most (rights_ceiling), never trigger-eligible, and enters
+  # no composite. long_window waits for the metric lenses (6e).
+  correlation_matrix:
+    description: >-
+      Rolling Pearson correlations of daily returns (log returns; a yield's
+      change; USD/JPY and USD/CNY inverted to the yen and the yuan) over 60 and
+      252 COMMON sessions, for every pair of the v1 universe that has a price
+      series (all 21; DBA, ETH-USD, SOL-USD, ZEC-USD, VNQI and MCHI joined the
+      price basket for agri, eth, sol, zec, intl_re and china). SPY-TLT at 60 days is not
+      a member: it is calc.corr_spy_tlt_60d, read under its alias.
+    source: derived_state
+    members_from: altdata.correlation.PAIR_SERIES
+    members_are: keys
+    expected_members: 419
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    units: ratio
+    family: ratio
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+
+  correlation_shift_flags:
+    description: >-
+      The shift flag per pair (section 9): 1 when the 60-day correlation has
+      crossed the 252-day by more than its own five-year interquartile range, or
+      has changed sign and held it 20 sessions; 0 otherwise. Written only where
+      both windows are full, so the flag is off where history is shorter than
+      its window. The crossing reading and the IQR's minimum history are
+      session-set, in config/correlation.yaml `shift`.
+    source: derived_state
+    members_from: altdata.correlation.SHIFT_SERIES
+    members_are: keys
+    expected_members: 210
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    units: boolean
+    family: ratio
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+
+  correlation_breaks:
+    description: >-
+      The former Alternative Asset report's break, exactly as
+      altdata/report/signals.py defined it: per asset, the 30-day correlation to
+      SPY and to TLT minus the 120-day. A break is |value| >= 0.30; 'toward' when
+      positive, 'away' otherwise. us_re, intl_re, em and china breaking AWAY from
+      SPY is the credit-sensitive escalation, printed by the Weekly as a flag and
+      escalating no trigger.
+    source: derived_state
+    members_from: altdata.correlation.BREAK_SERIES
+    members_are: keys
+    expected_members: 36
+    mechanism_group: cross_asset_correlation
+    native_horizon: daily
+    freq: daily
+    units: ratio
+    family: ratio
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    long_window: until_the_lenses
+    rights_ceiling: narrow_flag
+    trigger_eligible: false
+    added_date: "2026-10-10"
+
 # FAMILIES (metric-lenses brief; first declared by T2.3, 4 Oct 2026): every series
 # T2.3 added, and the existing ones its Plumbing, Volatility and FX rows read,
 # with its family. Units stay on the series' own entry or bulk block; the T2.3
@@ -6677,6 +7290,106 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+  # The correlation layer's named rows (AQ-5): `ratio` -- a correlation is dimensionless
+  # and bounded; whether it earns a family of its own is the lenses' question (6e).
+  corr.stock_bond.spx_tlt.60d: ratio
+  corr.stock_bond.spx_tlt.252d: ratio
+  corr.stock_bond.spx_tlt.756d: ratio
+  corr.stock_bond.spx_10y.60d: ratio
+  corr.stock_bond.spx_10y.252d: ratio
+  corr.us_intl.756d: ratio
+  corr.btc__spy.60d: ratio
+  corr.btc__spy.252d: ratio
+  corr.btc__qqq.60d: ratio
+  corr.btc__qqq.252d: ratio
+  corr.gold__spy.60d: ratio
+  corr.gold__dxy.60d: ratio
+  corr.gold__dxy.252d: ratio
+  corr.oil__dxy.60d: ratio
+  corr.oil__dxy.252d: ratio
+  corr.copper_gold__10y.60d: ratio
+  corr.copper_gold__10y.252d: ratio
+  corr.avg_pairwise.60d: ratio
+  corr.silver_over_gold: ratio
+
+# SERIES KINDS (W-1.1a item 1, the Weekly dry run of 12 Oct 2026). The numeral
+# audit types a payload figure by its FIELD's name, and a yield stored under
+# `level` or a probability under `priced` typed as a price, so "the 10-year at
+# 4.05%" was withheld as a unit mismatch. A row whose registry key is listed here
+# carries this kind, and altdata/numeral_audit.py's KIND_UNITS says which unit
+# words that kind may be written in: percent for all six non-price kinds, bp for
+# a change in a yield, rate or spread, pts for a change in a probability. A price
+# stays strict. check_registry holds every kind to the vocabulary and every key
+# to a registered series.
+series_kinds:
+  fred.yield_2y: yield
+  fred.yield_5y: yield
+  fred.yield_10y: yield
+  fred.yield_30y: yield
+  fred.tbill_3m: yield
+  fred.tips_10y: yield
+  fred.tips_30y: yield
+  fred.breakeven_5y: yield
+  fred.breakeven_10y: yield
+  fred.breakeven_5y5y: yield
+  fred.mortgage_30y: yield
+  yfinance.mkt_tnx: yield
+  yfinance.mkt_tyx: yield
+  mof.jgb_10y: yield
+  mof.jgb_30y: yield
+  fred.sofr: rate
+  fred.iorb: rate
+  fred.fed_funds: rate
+  calc.yield_curve_2s10s: spread
+  acm.term_premium_10y: spread
+  fred.ig_oas: spread
+  fred.hy_oas: spread
+  fred.ccc_oas: spread
+  fred.bb_oas: spread
+  pm.probability: probability
+  fred.vix: volatility
+  yfinance.mkt_vix: volatility
+  yfinance.mkt_vix3m: volatility
+  yfinance.mkt_move: volatility
+  chain.spy_atm_iv_30d: volatility
+  calc.vol_spy_realized_20d: volatility
+  yfinance.mkt_spy: price
+  yfinance.mkt_dxy: price
+  yfinance.mkt_eurusd: price
+  yfinance.mkt_usdjpy: price
+  yfinance.mkt_usdcny: price
+
+# QUOTE CONVENTIONS (W-1.1a item 3): for an FX pair, which currency strengthens
+# when the pair's quote rises. EUR/USD is dollars per euro, so EUR/USD up is the
+# euro firmer and the dollar softer; USD/JPY is yen per dollar, so USD/JPY up is
+# the dollar firmer and the yen weaker. The direction audit
+# (daily_cascade/direction.py) reads a sentence about "the dollar" against the
+# pair through this, and `aliases` are the names the tables and the prose use.
+quote_conventions:
+  yfinance.mkt_eurusd:
+    pair: EUR/USD
+    base: euro
+    quote: dollar
+    rises: base
+    aliases: ["EUR/USD", "EUR/USD (dollars per euro)", "euro-dollar"]
+  yfinance.mkt_usdjpy:
+    pair: USD/JPY
+    base: dollar
+    quote: yen
+    rises: base
+    aliases: ["USD/JPY", "USD/JPY (yen per dollar)", "dollar-yen"]
+  yfinance.mkt_usdcny:
+    pair: USD/CNY
+    base: dollar
+    quote: yuan
+    rises: base
+    aliases: ["USD/CNY", "USD/CNY (yuan per dollar)"]
+  yfinance.mkt_dxy:
+    pair: DXY
+    base: dollar
+    quote: basket
+    rises: base
+    aliases: ["DXY", "the dollar index", "dollar index"]
 
 non_metrics:
   provenance:
