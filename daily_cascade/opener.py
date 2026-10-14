@@ -367,8 +367,10 @@ def retry_note(reason: Optional[str], attempt: int, attempts: int) -> str:
     """What retry `attempt` (2 or 3 of `attempts`) is told: the previous
     attempt's whole withhold message and the rule behind each of its faults."""
     rules = rules_for(reason)
-    return ("\n\nYOUR PREVIOUS DRAFT WAS WITHHELD BY THE AUDIT (attempt "
-            f"{attempt - 1} of {attempts}): {reason}"
+    # The first line keeps the wording every gate reads ("WITHHELD BY THE
+    # AUDIT: <the message as the audit wrote it>"); the count follows it.
+    return ("\n\nYOUR PREVIOUS DRAFT WAS WITHHELD BY THE AUDIT: " + str(reason)
+            + f"\nThat draft was attempt {attempt - 1} of {attempts}."
             + ("\nTHE RULE" + ("S" if len(rules) > 1 else "") + " IT BROKE:\n- "
                + "\n- ".join(rules) if rules else "")
             + "\nWrite it again from the same data, fixing exactly that and "

@@ -689,8 +689,7 @@ def retry_prompt(system: str, reason: Optional[str], attempt: int = 2,
     behind each kind of fault it names, and the instruction to fix exactly that
     (W-1.3c item 6 -- until then the message was cut at 600 characters, after
     the first four faults, so a late fault never reached the writer)."""
-    return system + opener_mod.retry_note(
-        str(reason).replace("withheld: ", "", 1), attempt, attempts).replace(
+    return system + opener_mod.retry_note(reason, attempt, attempts).replace(
         "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
 
 
