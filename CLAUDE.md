@@ -195,7 +195,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — fifty-seven code gates (fifty-four Python,
+**`make validate` runs every gate** — fifty-nine code gates (fifty-six Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -310,6 +310,47 @@ discontinued.
 filter list, overriding ours, so the helper re-asserts the filter after the import.
 Gate L in `tools/validate_weekly_complete.py` refuses a bare import and proves the
 silence in a fresh interpreter.
+
+### Layer X — the Alpha Lab (`alpha/`)
+
+**`alpha/` is a machine's book in ledger-paper beside the reports and the four
+books** (change order `docs/change-order-alpha-lab-2026-10-12.md`, ruled 12 Oct
+2026; `docs/alpha-lab.md`). It writes `alpha.db` and nothing else. Four rules
+hold it, and a gate holds each:
+
+- **The observation store is opened read-only.** `alpha/store.py` opens
+  `file:...?mode=ro` through the point-in-time reader and refuses `write()`.
+  `tools/validate_alpha.py` proves the store file's hash is unchanged after a
+  full nightly run on its fixture. The lab never writes the register, the
+  probability ledger, the narrative ledger or a report. The Weekly reads one
+  line from `alpha.db`, read-only, through one hook in
+  `daily_cascade/weekly_stack.py`.
+- **No order, gate, broker or network import, and no fetch.**
+  `tools/validate_alpha_no_orders.py` covers:
+  - the order gate and the whole `register` package;
+  - the IBKR modules;
+  - the ledgers and the report writers;
+  - every network library and the repo's fetchers;
+  - `subprocess`.
+
+  It checks the source by AST and checks a fresh interpreter's `sys.modules`.
+  The blocklist is the system's own: `register/instruments.py`, loaded from its
+  file by `alpha/blocklist.py`. `alpha.db`'s triggers refuse a restricted
+  instrument again.
+- **The constitution is unchanged without a quoted ruling.**
+  `config/alpha_constitution.yaml` is read by every loop and written by none.
+  Its sha256 is recorded in `docs/alpha-lab.md` beside the ruling, and
+  `tools/validate_alpha.py` fails on an unrecorded change. A session edits it
+  only on a paste that quotes the ruling, and adds a hash row when it does.
+  Session-set values (shrinkage, correlation threshold, heat cap) live in
+  `config/alpha.yaml`.
+- **The two-session rule is unchanged.** The lab is built by session A or B as
+  the queue allows, never a third. Its loops run on their own timers
+  (`chester-alpha-nightly`, `chester-alpha-weekly`), never inside a report's
+  run. Enabling them is the operator's.
+
+Engines are named only in `config/alpha_engines.yaml`, and Tranche 1 registers
+none. No gate reads the live store.
 
 ### Known cleanup
 
