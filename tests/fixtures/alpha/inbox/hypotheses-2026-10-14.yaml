@@ -1,0 +1,144 @@
+# Alpha Lab hypothesis batch. Schema alpha-lab-hypotheses/v1.
+# Pre-registration time = the Drive file's createdTime. This file is never edited after
+# creation: a correction is a new file that names the local_id it supersedes.
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-14-claude-weekly-01
+source: model              # model | operator | chat
+proposer: claude
+channel: weekly-brief      # daily-proposer | weekly-brief | workbench | chat
+written_at: "2026-10-14T05:17:00-04:00"
+model_idea_rule: true      # ruled 14 Oct: also hold on data after 2026-07-01; 1.5x the minimum-size paper period
+inputs:
+  - "Weekly, week ending 2026-10-09 (dry run #6, mailed 13 Oct 22:37 ET)"
+  - "FlashAlpha get_expected_move SPY, options as of 2026-10-13 20:30Z; SPY 779.70 at 2026-10-14 09:15Z"
+human_record: "hypotheses-2026-10-14.md (same folder)"
+hypotheses:
+  - local_id: H-001
+    title: "The CPI-day straddle overprices the print"
+    horizon_class: short
+    horizon_sessions: 1
+    family: event-vol
+    mechanism: >-
+      Options expiring on a scheduled release day carry an event premium; with dealers long
+      gamma into the print, hedging damps the realised move, so the premium is earned more
+      often than paid.
+    universe: [SPY]
+    rule_text: >-
+      At the close before each CPI release, sell the SPY straddle expiring on the release day
+      at the ATM strike and buy the strangle at +/-2x the straddle-implied move (iron fly);
+      hold to the release-day close (expiry). Fills at the stored bid/ask; cost class ETF option.
+    conditioning:
+      - {name: spy_gamma_regime_prior_close, values: [positive, negative]}
+      - {name: event_iv_over_next_expiry_iv, split_at: 1.3}
+    expected: {sign: positive_expectancy_after_costs, realised_below_priced_share_min: 0.60, stronger_when: "gamma positive"}
+    sample: {min_independent_signals: 40, history_from: "2022-11 (same-day expiries); earlier 1-2 DTE as a counted variant"}
+    data:
+      in_store: ["CPI release dates (FRED releases)", "SPY daily OHLC"]
+      gaps: ["historical event-straddle prices: FlashAlpha historical quotes (tier to verify) or 6b OPRA history"]
+    needs_code: true
+    kill: constitution
+    state_at_registration: >-
+      14 Oct expiry priced +/-0.67% ($5.20) at the 13 Oct close; ATM IV 19.1% vs 13.6% for 15 Oct
+      and 9.8% for 19 Oct (ratio 1.40); gamma positive at the 9 Oct close (13 Oct not read).
+
+  - local_id: H-002
+    title: "Defensive leadership in an up week is a fragile advance"
+    horizon_class: short
+    horizon_sessions: 5
+    family: rotation-tell
+    mechanism: >-
+      Utilities and staples leading while the index rises marks hedged or narrow participation;
+      such advances stall and next-week realised volatility rises.
+    universe: [SPY]
+    rule_text: >-
+      Trigger at the Friday close when: SPY week return >= +1.0%; XLU and XLP both rank in the
+      top three of the sector ETFs on the week (the sectors existing at that date: 9 before
+      2015-10, 10 before 2018-06, then 11); RSP/SPY <= its 10th percentile over the trailing
+      five years. Short SPY at the Friday close; exit at the fifth session's close; stop at the
+      trigger week's high.
+    conditioning:
+      - {name: without_rsp_spy_condition, values: [true]}
+    expected: {next5_return_vs_unconditional_mean_pts: -0.3, next5_realised_vol: "above trailing 20-day"}
+    sample: {min_independent_signals: 40, history_from: "1999-01", note: "below 40 triggers -> stored as a descriptive base-rate row, not an engine"}
+    data: {in_store: ["SPY, RSP and sector ETF daily closes"], gaps: []}
+    needs_code: true
+    kill: constitution
+    state_at_registration: >-
+      Fired for the week ending 2026-10-09: SPY +1.16%; XLU first +3.97%, XLP joint second +3.60%;
+      RSP/SPY 1st percentile. First forward window 12-16 Oct.
+
+  - local_id: H-003
+    title: "Dealer gamma decides which pivot works"
+    horizon_class: short
+    horizon_sessions: 10
+    family: pivot-regime
+    mechanism: >-
+      Positive gamma makes the index mean-revert (dealers buy dips, sell rallies), so reversal
+      setups (failed breakdowns) should work and continuation setups (breakouts) fail; negative
+      gamma reverses the ordering. Tests the Doctrine's Gamma card.
+    universe: "the stored ETF basket (~60 symbols)"
+    rule_text: >-
+      The Book B scanner's setup definitions verbatim (base N 20-60, R <= 10%, failed-breakdown
+      window F 5, the scanner's invalidation); target +1R, stop -1R, time stop 10 sessions;
+      regime = SPY gamma regime at the signal session's close.
+    conditioning:
+      - {name: setup, values: [failed_breakdown, breakout]}
+      - {name: spy_gamma_regime_signal_close, values: [positive, negative]}
+    expected:
+      positive_gamma: {failed_breakdown_plus1R_first_min: 0.55, breakout_plus1R_first_max: 0.45}
+      negative_gamma: "ordering reverses"
+    sample: {min_independent_signals: 100, note: "unconditional on full price history; conditional on the stored gamma history, extended forward"}
+    data:
+      in_store: ["ETF daily OHLC and volume", "the dealer gamma series as stored"]
+      gaps: ["gamma history depth: FlashAlpha historical GEX where the plan serves it (coverage to verify)"]
+    needs_code: true
+    kill: constitution
+    state_at_registration: >-
+      The Weekly of 9 Oct lists IWD and XLP failed breakdowns and IVW and IWF breakouts, all in
+      positive gamma: the hypothesis predicts IWD/XLP reach +1R before IVW/IWF.
+
+  - local_id: H-004
+    title: "A quality split in credit leaks into high yield before investment grade"
+    horizon_class: medium
+    horizon_sessions: 20
+    family: credit-quality
+    mechanism: >-
+      Stress concentrating in CCCs while investment grade is calm marks the early default cycle;
+      it reaches the broad high-yield index before investment grade.
+    universe: [HYG, IEF, LQD]
+    rule_text: >-
+      Trigger when, over the same 20 sessions, CCC minus BB OAS widens >= 40 bp and IG OAS
+      changes <= +5 bp. Short HYG against a duration-matched long IEF for 20 sessions; no new
+      trigger within 20 sessions of one.
+    conditioning:
+      - {name: hedge_leg, values: [IEF_duration_matched, LQD_beta_adjusted]}
+    expected: {hyg_minus_hedge_20s_pts_max: -0.5, hit_rate_min: 0.55}
+    sample: {min_independent_signals: 40, history_from: "2007-04 (HYG); earlier OAS-change x duration proxy as a counted variant"}
+    data:
+      in_store: ["ICE BofA CCC, BB and IG OAS", "HYG, IEF, LQD daily"]
+      gaps: ["OAS history depth: FRED's ICE series may carry only recent years"]
+    needs_code: true
+    kill: constitution
+    state_at_registration: "Week to 9 Oct: CCC-BB +47 bp in five sessions, IG -4 bp; on track to trigger on the 20-session count."
+
+  - local_id: H-005
+    title: "At a long-end extreme, the term premium sets the direction"
+    horizon_class: medium
+    horizon_sessions: 40
+    family: rates-trend
+    mechanism: >-
+      A term-premium-driven rise in long yields (supply, fiscal) tends to persist; a rise driven by
+      the expected short-rate path reverts when the cycle turns.
+    universe: [TLT]
+    rule_text: >-
+      Weekly trigger: the 10-year yield >= its 95th percentile of the trailing five years. If the
+      ACM 10-year term premium rose over the trailing 20 sessions, short TLT for 40 sessions; if it
+      fell, long TLT for 40 sessions. Stop at 1.5x the 20-day ATR.
+    conditioning:
+      - {name: term_premium_20s_change, values: [rising, falling]}
+    expected: {rising_branch: "TLT falls, hit rate >= 0.55", falling_branch: "TLT rises (reversion)"}
+    sample: {min_independent_signals: 40, history_from: "ACM 1961, 10y 1962, TLT 2002; pre-2002 yield-change x duration proxy as a counted variant"}
+    data: {in_store: ["10-year yield", "ACM term premium", "TLT daily"], gaps: []}
+    needs_code: true
+    kill: constitution
+    state_at_registration: "10-year 5.244% (100th percentile, 9 Oct): trigger on; ACM term premium 0.92% (+2 bp on the week); branch set by the 20-session change."
