@@ -1242,6 +1242,23 @@ def t31_tape_group(ed: dict, out: dict) -> None:
           "daily equivalent")
     check("Year to date" in out["markdown"] and "Year to date" in out["html_email"],
           "the year to date prints in the HTML and the Markdown")
+    # VP-1 item 8: the month's value area against the prior month's, a
+    # sub-section of the month in markets; data, never a paragraph.
+    va = next((ss for ss in tape["subsections"]
+               if ss["title"] == "Value area: the month against the prior month"), {})
+    check((va.get("table") or {}).get("columns") == [
+              "Market", "Value area (POC)", "Prior month", "Migration",
+              "Close vs value"]
+          and [r[0] for r in va["table"]["rows"]] == ["SPY", "QQQ", "IWM"]
+          and not va.get("prose"),
+          f"VP-1: the month against the prior month, one row per configured "
+          f"instrument, as data ({(va.get('table') or {}).get('rows')})")
+    check(all(r[1] == "not computed" or r[1].startswith("$")
+              for r in va["table"]["rows"]) if va else False,
+          "a month the fixture's bars do not cover is not computed, never zero")
+    check(any(" month: " in x for x in va.get("not_tracked") or [])
+          and "Value area: the month against the prior month" in out["html_email"],
+          "its reasons are in the footnote, and it prints")
 
 
 def t31_misfit_group(ed: dict, out: dict) -> None:

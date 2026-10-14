@@ -1673,19 +1673,30 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         hist = {c["id"]: _contradiction_history(st, c["id"], now) for c in opened}
         rel = tier1_releases(st, now, then)
         wbd = wsec.week_by_day(st, sessions, ending, now, then, rel, str(st.path))
-        tape = stack_mod.tape_section(book)
+        tape = stack_mod.tape_section(book, vp_windows=None)
         tt = wsec.tape_table(book, ending)
         oi = wsec.overnight_intraday(st, sessions, ending, now)
+        # THE VOLUME PROFILE (VP-1 item 7): the week's value area against the
+        # prior week's, beside the levels; the close's session table is not the
+        # Weekly's.
+        from altdata import volume_profile as vp                # noqa: PLC0415
+        vpt = vp.table(book.get("instruments") or [], "week", "prior_week",
+                       {t["id"]: t.get("unit") for t in bars_mod.tape()})
         tape.update({"table": tt["table"], "print_items": False,
                      "subsections": [
                          {"title": "Levels", "table": tt["levels_table"],
                           "paragraph_wanted": False},
+                         *([{"title": "Value area: the week against the prior week",
+                             "table": {k: vpt[k] for k in ("columns", "rows")},
+                             "not_tracked": vpt["not_tracked"],
+                             "paragraph_wanted": False}] if vpt["rows"] else []),
                          # OVERNIGHT AGAINST THE CASH SESSION (T2.3 item 1)
                          {"title": "SPY overnight against the cash session",
                           "table": oi["table"], "paragraph_wanted": False}]})
         tape["data"] = {**(tape.get("data") or {}),
                         "overnight_intraday": {"sessions": oi["rows"],
-                                               "week": oi["totals"]}}
+                                               "week": oi["totals"]},
+                        "volume_profile": vpt["data"]}
         try:
             cal = wsec.calendar_week(st, ending, now, pmb)
         except Exception:                                       # noqa: BLE001

@@ -205,6 +205,74 @@ def client(replies: dict, calls: list):
 # ---------------------------------------------------------------------------
 # The groups
 # ---------------------------------------------------------------------------
+def group_v(td: str, p: dict, out1: dict) -> None:
+    """VP-1 item 6: the close's value-area table and C1's shaded prior area."""
+    from altdata import bars as bars_mod, levels as levels_mod, session
+    from altdata import volume_profile as vp
+    from daily_cascade import charts as charts_mod, stack as stack_mod
+    print(f"\n{LINE}\nV. THE VOLUME PROFILE ON THE CLOSE (VP-1 item 6)\n{LINE}")
+    tape1 = next(s for s in out1["edition"]["sections"] if s["id"] == "tape")
+    t = (tape1.get("tables") or [None])[0]
+    check(t and t["columns"] == ["Market", "Value area (POC)", "Prior session",
+                                 "Migration", "Close vs value"]
+          and [r[0] for r in t["rows"]] == ["SPY", "QQQ", "IWM"],
+          f"the tape section carries the value-area table, one row per configured "
+          f"instrument ({t and t['rows']})")
+    spy_row = t["rows"][0] if t else []
+    check(spy_row[1:3] and spy_row[1].startswith("$") and spy_row[2] == "not computed"
+          and spy_row[3] == "—"
+          and any(x.startswith("SPY prior session: bars incomplete (n=0 of 78)")
+                  for x in tape1["not_tracked"]),
+          f"the fixture stores no prior-session bars: the prior area is not "
+          f"computed, no migration is claimed, and the reason is in the footnote "
+          f"({spy_row})")
+    check("Value area (POC)" in out1["html_archive"],
+          "and the table prints in the edition")
+    check(not any("value-area" in i["text"] for i in tape1["items"]),
+          "the tape's lines name the same levels as before the profile")
+    # With the prior session's bars stored too.
+    db = str(Path(td) / "vp.db")
+    seed(db)
+    prior = session.previous_trading_session(SESSION).isoformat()
+    first, _, n = bars_mod.session_window("spy", prior)
+    t0 = dt.datetime.fromisoformat(first)
+    with bars_mod.BarStore(db, create=True) as bst:
+        today = bars_mod.intraday(bst, "spy", SESSION)["bars"]
+        mid = sum(x["close"] for x in today) / len(today)
+        # The prior session traded a little lower, overlapping today's range.
+        bst.write_many([{"instrument": "spy", "symbol": "SPY", "interval": "5m",
+                         "observed_at": (t0 + dt.timedelta(minutes=5 * k)).isoformat(),
+                         "open": mid * 0.998, "high": mid * (0.999 + 0.0002 * (k % 9)),
+                         "low": mid * (0.997 - 0.0002 * (k % 7)), "close": mid * 0.998,
+                         "volume": 2000 + k,
+                         "available_at": f"{prior}T20:30:00+00:00"}
+                        for k in range(n)])
+    with bars_mod.BarStore(db) as bst:
+        bk = levels_mod.compute(SESSION, p["exposure"], store=bst)
+        bars5 = bars_mod.intraday(bst, "spy", SESSION)["bars"]
+    sec = stack_mod.tape_section(bk)
+    row = sec["tables"][0]["rows"][0]
+    check(row[2] != "not computed" and row[3] in vp.MIGRATIONS
+          and row[4] in ("above the VAH", "inside", "below the VAL"),
+          f"with both sessions stored: a migration and a close against value by "
+          f"the declared rules ({row})")
+    spy = next(i for i in bk["instruments"] if i["id"] == "spy")
+    pv = spy["volume_profile"]["prior_session"]
+    check(row[3] == vp.migration(spy["volume_profile"]["session"], pv),
+          "the row's migration is the module's rule over the two windows")
+    c1 = charts_mod.c1(bk, bars5, True, None, "c1_vp", None)
+    types = {d["type"]: d["value"] for d in c1.get("drawn") or []}
+    listed = {lv["type"]: lv["value"] for lv in spy["levels"]}
+    check(types.get("vp_prior_session_val") == pv["val"]
+          and types.get("vp_prior_session_vah") == pv["vah"],
+          f"C1 shades the prior session's value area and returns its VAL and VAH "
+          f"in drawn ({pv.get('val')}, {pv.get('vah')})")
+    check(all(listed.get(k) == v for k, v in types.items()),
+          "every level C1 draws is a listed level")
+    check("prior session's value-area high" in c1.get("caption", ""),
+          f"and its caption names them from the data ({c1.get('caption', '')[-90:]})")
+
+
 def main() -> int:
     from altdata import bars as bars_mod, config, levels as levels_mod, session
     from altdata import probability_ledger as pl
@@ -673,6 +741,8 @@ def main() -> int:
     with observations.ObservationStore(db3) as st:
         check(st.latest_as_of(stack_close.SCORECARD_KEY, instrument="SPY") is None,
               "and a dry run stores none")
+
+    group_v(td, p, out1)
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

@@ -419,6 +419,15 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                                    f"{LONG_FRAME_LABELS['ma_20m']} average",
                                    "From the 52-week high"], "rows": lf_rows},
              "not_tracked": nt}]
+    # THE VOLUME PROFILE (VP-1 item 8): the month's value area against the prior
+    # month's, for the instruments in config/volume_profile.yaml.
+    from altdata import bars as bars_mod, volume_profile as vp  # noqa: PLC0415
+    vpt = vp.table((book or {}).get("instruments") or [], "month", "prior_month",
+                   {t["id"]: t.get("unit") for t in bars_mod.tape()})
+    if vpt["rows"]:
+        subs.append({"title": "Value area: the month against the prior month",
+                     "table": {k: vpt[k] for k in ("columns", "rows")},
+                     "not_tracked": vpt["not_tracked"]})
     ytd = None
     if st is not None and last and now:
         try:
@@ -455,6 +464,7 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                                     else _ord(r.get("percentile"))}
                                for r in rows],
                      "long_frame": lf_data, "levels": levels,
+                     "volume_profile": vpt["data"],
                      "cross_asset_ytd": (ytd or {}).get("data") or []}}
 
 

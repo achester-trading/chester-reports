@@ -523,6 +523,19 @@ def main() -> int:
                                                     "regime", "liquidity"},
           f"the score is the weighted mean of its five components "
           f"(XLK {xlk and xlk['components']} -> {xlk and xlk['score']})")
+    # VP-1 item 9: every candidate carries the two daily-bar readings, printed as
+    # one clause on its line; the components (and so the score) are the same five.
+    vps = [c.get("volume_profile") or {} for c in res["candidates"]]
+    check(res["candidates"] and all(v.get("note") == "approximated from daily bars"
+                                    and v.get("base_text") and v.get("hvn_text")
+                                    for v in vps)
+          and "volume profile (approximated from daily bars): "
+              in book_b.candidate_line(1, xlk)
+          and "volume_profile" not in xlk["components"],
+          f"VP-1: each candidate's line carries the base's POC and the nearest HVN "
+          f"toward +1R, approximated from daily bars; the score does not read them "
+          f"(XLK: {xlk and xlk['volume_profile'].get('base_text')}; "
+          f"{xlk and xlk['volume_profile'].get('hvn_text')})")
     check(xlk and xlk["components"]["regime"] == 1.0 and xlk["components"]["trend"] == 0.75
           and qqq and qqq["components"]["liquidity"] == 0.5,
           "regime alignment (Expansion, long: 1.0), the trend share (3 of 4), "

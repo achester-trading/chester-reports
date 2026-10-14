@@ -195,7 +195,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — fifty-seven code gates (fifty-four Python,
+**`make validate` runs every gate** — fifty-eight code gates (fifty-five Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -285,6 +285,22 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
+
+**The volume profile is data, never a claim (VP-1, 14 Oct 2026).**
+`altdata/volume_profile.py` is the one module that bins volume by price, and every
+reader calls it: the level list (POC, VAH and VAL of six windows for spy, qqq and
+iwm, appended after the older types; statuses on the prior windows only), the
+close's, the Weekly's and the Monthly's value-area tables (migration and close
+against value by declared rule), C1's shaded prior-session value area, W7's
+volume-at-price panel, the Book B candidate line's clause (approximated from daily
+bars; the score never reads it), and the stored `calc.vp_<id>_session_*` and
+`_20s_*` series that `python -m altdata.volume_profile compute` writes after the
+derived features in the EOD pass. A window that is incomplete or mixes sources is
+absent with its reason; every read is as of. The settings are
+`config/volume_profile.yaml`, all session-set. What the profile predicts is H-006
+to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
+crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
+is `docs/volume-profile.md`.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
