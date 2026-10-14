@@ -1118,6 +1118,245 @@ sources:
       - >-
         Behind config.ENABLED_SOURCES['cftc'], turned on in ST-2.
 
+  # --- AQ-3 part 1 (11 Oct 2026): the Quarterly's structure series -------------
+  eia_rigs:
+    name: US Energy Information Administration -- rotary rigs in operation (Baker Hughes' count, monthly)
+    tier: A0
+    epistemic_role: redistributed_primary
+    domain: [energy]
+    geography: [US]
+    latency: monthly, about six weeks after the month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The workbook is republished in place; Last-Modified stamps the vintage (observed), the write instant without it. Either is an upper bound for the history it carries.
+    license: public, no key (history workbooks)
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/eia_rigs.py
+    status: live
+    caveats:
+      - >-
+        Monthly. rigcount.bakerhughes.com refuses scripted requests (Akamai 403, robots.txt included, 11 Oct 2026), so the weekly count has no free source.
+
+  spdr_gld:
+    name: SPDR Gold Trust -- the GLD historical archive (one-time, the anchor) and State Street's daily NAV-history workbook
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: the next business day
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The archive is read from the operator's inbox (~/chester-data/inbox/etf/, swept from Drive chester-vendor-checks/etf/): available_at is the file's modification time (ingest_instant), an upper bound. The daily workbook (www.ssga.com navhist-us-en-gld.xlsx) is available at its Last-Modified (observed).
+    license: issuer file; redistribution prohibited by its disclaimer -- stored for the operator's own read only
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/spdr_gld.py
+    status: live
+    caveats:
+      - >-
+        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches the archive only while that changes; the operator drops it once in Drive and the rclone sweep brings it to the inbox.
+      - >-
+        www.ssga.com's robots.txt has no rule matching the daily workbook's path (12 Oct 2026; nearest "Disallow: /fd"), read each run. The workbook carries shares, NAV and total net assets but NOT gold in ounces: ounces and tonnes after the archive's last date are an APPROXIMATION (shares x ounces per share, decayed at the expense ratio), re-anchored by each newer archive.
+
+  ishares_trusts:
+    name: iShares (BlackRock) -- IAU, SLV and IBIT product pages
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [commodities, crypto]
+    geography: [global]
+    latency: the page's as-of date, the prior business day
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The page carries an as-of date and no publication time; available_at is the write instant (ingest_instant).
+    license: public product pages, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/ishares_trusts.py
+    status: live
+    caveats:
+      - >-
+        Forward-only from the first run: the page serves today's facts, not a history.
+
+  shfe:
+    name: Shanghai Futures Exchange -- weekly warehouse stock report
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [CN]
+    latency: Friday after the close, Beijing
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at is the report date at 16:00 Beijing by rule (reconstructed).
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/shfe.py
+    status: live
+    caveats:
+      - >-
+        Reached intermittently from a US address (connection resets, 11 Oct 2026); a run that reads no page is STALE. Pages before roughly mid-2026 answer 404.
+
+  yahoo_cnh:
+    name: Yahoo Finance -- CNH=X hourly bars (via yfinance), USD/CNH's New York close
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [fx]
+    geography: [CN]
+    latency: the bar's end
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the close bar's end (reconstructed): an hourly bar is final once its hour has passed.
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/cnh.py
+    status: live
+    caveats:
+      - >-
+        Yahoo serves one DAILY bar for CNH=X whatever the period (PB-1, 5 Oct 2026); the hourly bars are served, 730 days back.
+
+  # --- AQ-3 part 2 (11 Oct 2026): the remaining structure series --------------
+  bundesbank:
+    name: Deutsche Bundesbank -- time-series API (SDMX), the daily term structure of Federal securities
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE]
+    latency: the next business morning, Frankfurt
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at is the next weekday 12:00 Frankfurt by rule (reconstructed), never after the write instant.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/bundesbank.py
+    status: live
+    caveats:
+      - >-
+        The 10-year point is the Svensson-fitted zero-coupon yield, not the benchmark bond's quoted yield. CSV is served only to an Accept header naming it.
+
+  ecb:
+    name: European Central Bank data portal -- IRS, long-term interest rates for convergence purposes
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE, FR, IT]
+    latency: monthly, about six weeks after the month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified stamps the vintage (observed); the write instant without it. Either is an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/ecb_irs.py
+    status: live
+    caveats:
+      - >-
+        Monthly averages. A daily OAT or BTP is not published keyless (Banque de France's Webstat API needs a registered key).
+
+  nbs:
+    name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro, real_estate]
+    geography: [CN]
+    latency: mid-month, 09:30-10:00 Beijing
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the release date (from the release URL) at its stated hour, Beijing (reconstructed).
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/nbs.py
+    status: live
+    caveats:
+      - >-
+        Forward from the first run: the index lists about thirty releases across its two pages; the query database that holds history (data.stats.gov.cn) answers 403. The English 70-city edition prints no aggregate, so the counts and means are computed here.
+
+  # --- AQ-3 part 2: Thailand (isolated, namespace thailand) -------------------
+  bot:
+    name: Bank of Thailand -- MPC decisions table (keyless) and the policy-rate API (key)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [TH]
+    latency: 14:05 Bangkok on the meeting date
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each decision stamped 14:05 Bangkok on its date (the BoT's stated release time), reconstructed.
+    license: public; the API needs a free personal key (BOT_API_KEY, the operator's .env) and is optional
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/bot.py
+    status: live
+    caveats:
+      - >-
+        The table's link changes with each meeting and is found on the page. Without a key the API leg is skipped and logged as "no key".
+
+  tpso:
+    name: Trade Policy and Strategy Office (Thailand, Ministry of Commerce) -- CPI index service
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: the first week of the next month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at the 10th of the next month 10:30 Bangkok by rule (reconstructed, an upper bound).
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/tpso.py
+    status: live
+    caveats:
+      - >-
+        A POST query (index.tpso.go.th/api/cpig/filter); years in the Buddhist Era. FRED carries Thai CPI only annually.
+
+  mots:
+    name: Ministry of Tourism and Sports (Thailand) -- international tourist arrivals workbook
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about the first of the next month (preliminary)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The workbook's Last-Modified (observed), else the write instant.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/mots.py
+    status: live
+    caveats:
+      - >-
+        robots.txt disallows /web-api/ and paths containing "api"; the writer reads only /news/category/ pages and /images/ files. History starts with the first release read (this year and the prior year's same months).
+
+  nesdc:
+    name: NESDC (Thailand) -- quarterly national accounts, CSV tables
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about seven weeks after the quarter
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The zip's Last-Modified (observed), an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/nesdc.py
+    status: live
+    caveats:
+      - >-
+        The download link redirects through a cookie-setting hop; the file is a zip of CSVs read by content.
+
+  yahoo_set:
+    name: Yahoo Finance -- ^SET.BK (via yfinance), the SET index close
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [equities]
+    geography: [TH]
+    latency: the session's close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      17:00 Bangkok on the session date (reconstructed).
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/thai_set.py
+    status: live
+    caveats:
+      - >-
+        One bar whatever the period (11 Oct 2026): forward-only. Yahoo's query hosts' robots.txt is Disallow: / for every agent, as for the whole yfinance basket -- named for the operator's ruling.
+
   # --- Signal-triage order ST-2, step 2 ----------------------------------------
   eia:
     name: US Energy Information Administration -- Weekly Petroleum Status Report history
@@ -1138,6 +1377,56 @@ sources:
         Behind config.ENABLED_SOURCES['eia'], turned on in ST-2.
       - >-
         The NYMEX futures files (RCLC1/RCLC2) end 2024-04-05, so no prompt spread (G-11).
+
+  treasury_buybacks:
+    name: US Treasury Fiscal Data -- Treasury Securities Buybacks (operations)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [treasury_supply, rates]
+    geography: [US]
+    latency: same day, after the operation's 14:00 ET close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No publication timestamp per row; available_at is the write instant
+      (ingest_instant), an upper bound. The API host answers robots.txt 404 (no
+      rules); fiscaldata.treasury.gov is Allow: / (checked 13 Oct 2026).
+      TreasuryDirect's results pages are robots-disallowed and not read.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/treasury_buybacks.py
+    status: live
+
+  mof_reserves:
+    name: Japan Ministry of Finance -- International Reserves/Foreign Currency Liquidity
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, fx]
+    geography: [global]
+    latency: monthly, about the 7th, 08:50 JST
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified of historical.csv (observed). www.mof.go.jp answers robots.txt
+      404 (no rules; checked 13 Oct 2026). Revised in place.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/mof_reserves.py
+    status: live
+
+  frb_h41:
+    name: Federal Reserve Board -- H.4.1 (Data Download Program package), the FIMA repo line
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [external_position, rates]
+    geography: [US, global]
+    latency: weekly, Thursdays 16:30 ET (Wednesday levels)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified where sent (observed), else the write instant.
+      federalreserve.gov answers robots.txt 404 (no rules; checked 13 Oct 2026).
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/fedboard.py
+    status: live
 
   frb_cie:
     name: Federal Reserve Board -- Index of Common Inflation Expectations
@@ -1254,7 +1543,132 @@ sources:
     status: not_yet_sourced
     caveats:
       - >-
-        wgc.* registered not_yet_sourced. IMF IFS, the WGC's own source, is the candidate primary.
+        wgc.* superseded 10 Oct 2026 by imf.ifs.* (source imf_ifs): IMF IFS, the WGC's own source, was ruled the primary.
+
+  imf_ifs:
+    name: IMF International Financial Statistics -- International Liquidity (IL), gold volume
+    tier: B
+    epistemic_role: primary_fact
+    domain: [metals, reserves]
+    geography: [global]
+    latency: monthly; most countries one to two months behind, the euro members and China about three
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The SDMX-JSON response carries the dataset's own PUBLICATION_DATE and
+      UPDATE_DATE (the same instant across requests hours apart on 10 Oct 2026),
+      used as available_at, `observed`; the ingest instant where absent.
+    license: >-
+      Free reuse with attribution ("Source: International Monetary Fund,
+      International Liquidity (IL)"); commercial reuse needs permission
+      (copyright@imf.org); the terms prohibit "bulk download of information by
+      automated technology without explicit permission" -- the writer makes one
+      narrow API query a day (see docs/briefs/imf-ifs-gold-notes.md).
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/imf_ifs.py
+    status: live
+    caveats:
+      - >-
+        The legacy dataservices.imf.org service no longer answers; this is the
+        SDMX 3.0 API at api.imf.org, no key. IFS is split into thematic
+        dataflows; the gold line is IL's RGV_REVS (FTO, monthly).
+      - >-
+        China's primary stays SAFE (safe.gold_reserves_oz); IL is its
+        cross-check.
+
+  imf_weo:
+    name: IMF World Economic Outlook (WEO), current edition and published vintages
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: semi-annual (April and October editions); annual data, the latest year an estimate
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each dataflow's own PUBLICATION_DATE / UPDATE_DATE (the later) is available_at, `observed`; every edition is stored as its own vintage, never an overwrite.
+    license: >-
+      Free reuse with attribution (IMF: 'Source: International Monetary Fund'; commercial reuse needs permission, copyright@imf.org; the IMF's terms prohibit bulk download by automated technology without explicit permission -- the writers make a few narrow API queries a day).
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/imf_weo.py
+    status: live
+    caveats:
+      - >-
+        Projections (to five years out) are not stored: a year is stored from its year-end.
+
+  imf_em:
+    name: IMF International Liquidity (IL) reserves, International Trade in Goods (ITG) imports and Consumer Price Index (CPI), for the EM scorecard
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: monthly; one to four months behind by country
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each response's own PUBLICATION_DATE / UPDATE_DATE (the later), `observed`; the ingest instant where absent.
+    license: >-
+      Free reuse with attribution (IMF: 'Source: International Monetary Fund'; commercial reuse needs permission, copyright@imf.org; the IMF's terms prohibit bulk download by automated technology without explicit permission -- the writers make a few narrow API queries a day).
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/imf_em.py
+    status: live
+    caveats:
+      - >-
+        ITG has no row for the UAE or South Africa and CPI none for Taiwan (11 Oct 2026); those lenses print not tracked with the candidate.
+
+  bis_cbpol:
+    name: BIS central-bank policy rates (WS_CBPOL)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: monthly, end of period; current to the prior month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The response's Last-Modified where sent (`observed`), else the ingest instant.
+    license: >-
+      BIS statistics: free reuse with attribution ('Source: BIS'), per the BIS terms of use.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/bis_cbpol.py
+    status: live
+    caveats:
+      - >-
+        No row for Taiwan or the UAE (11 Oct 2026). Definition breaks are documented by the BIS in each series' COMPILATION field.
+
+  wb_qeds:
+    name: World Bank Quarterly External Debt Statistics (QEDS, SDDS; API source 22)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: quarterly; about one quarter behind (2026Q1 on 7 Aug 2026)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The response's `lastupdated` date, taken as the end of that day, `observed`, never later than now.
+    license: >-
+      World Bank data: CC BY 4.0.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/wb_qeds.py
+    status: live
+    caveats:
+      - >-
+        No row for Taiwan (outside the World Bank's tables) or the UAE (11 Oct 2026).
+
+  em_lenses:
+    name: The EM scorecard's derived lenses (reserves cover, external debt, the real policy rate, inflation against target)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: as its inputs
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is the latest of the inputs' (a ratio is knowable when its last number was).
+    license: >-
+      Derived from the sources above.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/em_lenses.py
+    status: live
+    caveats:
+      - >-
+        Computed from the stored inputs only; a period missing an input has no row.
 
   ken_french:
     name: Kenneth R. French Data Library (Tuck, Dartmouth)
@@ -1303,6 +1717,33 @@ sources:
     allowed_reports: [monthly_macro, daily_cascade]
     implemented_by: altdata/sources/shiller.py
     status: live
+
+  spdji:
+    name: S&P Dow Jones Indices -- S&P 500 earnings and estimates (sp-500-eps-est.xlsx)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [valuation]
+    geography: [US]
+    latency: monthly, by the operator's drop
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the workbook's own "as of" cell, at the end of that day in
+      New York (observed, as ruled 13 Oct 2026); retrieved_at, the drop time, is
+      the inbox file's modification time and is stored in spdji.eps_drop.
+    license: >-
+      S&P DJI's public workbook; its host refuses any non-browser client, and a
+      writer never passes for a browser. The operator downloads it in a browser
+      and drops it into Drive (chester-vendor-checks/spdji); the nightly sweep
+      copies it to ~/chester-data/inbox/spdji. Nothing is fetched.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/spdji.py
+    status: built
+    caveats:
+      - >-
+        THE LAYOUT IS DECLARED, NOT SEEN (config/spdji_eps.yaml): written from the
+        workbook's documented layout without a file in hand. A label the drop
+        does not carry fails the read naming the sheet and cell; the first real
+        drop is the acceptance.
 
   worldbank_cmo:
     name: World Bank -- Commodity Price Data (Pink Sheet)

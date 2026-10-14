@@ -1,0 +1,105 @@
+# THE THESIS FILE -- TEMPLATE, WITH ONE WORKED EXAMPLE. NOT A THESIS.
+#
+# Copy to config/alt_asset_theses/<YYYY>q<N>.yaml (e.g. 2027q1.yaml), delete
+# `example: true`, and write each family's block FROM DRIVERS BEFORE LOOKING AT
+# THE PRIOR (change order 10 Oct 2026, section 6). Then, on the box:
+#
+#   python -m altdata.probability_ledger seed-alt-asset --file <file> --dry-run
+#   python -m altdata.probability_ledger seed-alt-asset --file <file>
+#
+# The metals block below is a WORKED EXAMPLE of the shape. Its numbers are
+# illustrative and are nobody's view; the loader refuses any file marked
+# `example: true` except under --dry-run, so it can never reach the ledger.
+#
+# THE RULES THE LOADER ENFORCES (altdata/thesis_register.py):
+#   - every criterion is a measurable: {series, comparator, level, date}. series
+#     is a registered store key (metrics_registry.yaml); comparator is one of
+#     >=  >  <=  <  between (level [low, high]); the date is in the future at
+#     written_at. Prose is refused.
+#   - the 12-month weights sum to one (reported, never normalised); each weight
+#     is in (0, 1).
+#   - the 3-month thesis has a probability, a criterion, a falsifier (also a
+#     measurable, dated no later than the thesis) and the Book it informs.
+#   - every DEEP family (metals, oil, currency, em, china, crypto) is present, and
+#     its book has, per horizon, either a draft or `no_draft: <reason>`. A light
+#     family (real_estate, credit, intl_equities, agriculture) or thailand may
+#     sit out with `not_this_quarter: <reason>`; thailand's book may only say
+#     no_draft (its isolation, section 4.10).
+#   - written_at is the emission instant every row carries. A first seeding more
+#     than 7 days after it is refused; a re-run of the same file writes nothing;
+#     an edited forecast under the same written_at is refused (a forecast is
+#     immutable). One file per quarter.
+#
+# A DRAFT is written to the register with status `draft` and nothing else; the
+# operator promotes one, or not, with decide.py. Its cost row comes from the
+# IBKR costs writer's rate card when the draft carries a `quantity` (and a
+# `price_series` to price it); spread, roll, borrow and FX hedge are named as
+# not priced.
+
+example: true
+quarter: 2027q1
+written_at: "2026-11-07T15:00:00+00:00"
+
+families:
+
+  metals:                                   # EXAMPLE -- illustrative numbers
+    scenarios_12m:                          # the paper's set (VIII), rewritten
+      - name: "EXAMPLE: central-bank bid holds, real rates ease"
+        probability: 0.45
+        horizon: 2027-12-31
+        criterion: {series: yfinance.mkt_gld, comparator: ">=", level: 400,
+                    date: 2027-12-31}
+      - name: "EXAMPLE: range-bound"
+        probability: 0.35
+        horizon: 2027-12-31
+        criterion: {series: yfinance.mkt_gld, comparator: between,
+                    level: [330, 400], date: 2027-12-31}
+      - name: "EXAMPLE: real-rate shock unwinds the bid"
+        probability: 0.20
+        horizon: 2027-12-31
+        criterion: {series: yfinance.mkt_gld, comparator: "<", level: 330,
+                    date: 2027-12-31}
+    thesis_3m:
+      claim: "EXAMPLE: GLD closes 1Q27 above 360"
+      probability: 0.60
+      criterion: {series: yfinance.mkt_gld, comparator: ">", level: 360,
+                  date: 2027-03-31}
+      falsifier: {series: yfinance.mkt_gld, comparator: "<", level: 320,
+                  date: 2027-02-26}
+      book: B
+      # Section 26.12's statement, carried with the thesis (optional fields):
+      market_expectation: "EXAMPLE: the forward and the options range"
+      chester_read: "EXAMPLE: the read from the drivers"
+      difference: "EXAMPLE: where the read and the market part"
+      evidence: "EXAMPLE: the series the read rests on"
+      what_changes_the_view: "EXAMPLE: the falsifier, in words"
+    book:
+      3m:
+        instrument: GLD
+        direction: long
+        thesis: "EXAMPLE: the 3-month thesis, as a position"
+        edge: structural_flow
+        horizon: positional
+        size: "EXAMPLE: one quarter of the Book B unit"
+        invalidation: "EXAMPLE: settled close below 320"
+        counter_thesis: "EXAMPLE: the other side's case in one sentence"
+        portfolio_role: proxy               # XVII: structural/proxy/direct/convex,
+                                            # or carry/growth/tactical
+        quantity: 10                        # optional: prices the cost row
+        price_series: yfinance.mkt_gld      # optional: the price it is priced at
+        # counter_structural: true          # a tactical trade against the
+                                            # chapter's structural view
+      12m:
+        no_draft: "EXAMPLE: no edge beyond the strategic allocation already held"
+
+  # The other families, in the same shape. Deep families cannot sit out.
+  # oil:            {scenarios_12m: [...], thesis_3m: {...}, book: {3m: ..., 12m: ...}}
+  # currency:       {...}
+  # em:             {...}
+  # china:          {...}
+  # crypto:         {...}
+  # real_estate:    {not_this_quarter: "<reason>"}   # or the full block
+  # credit:         {...}
+  # intl_equities:  {...}
+  # thailand:       {..., book: {3m: {no_draft: "isolated (section 4.10)"}, 12m: ...}}
+  # agriculture:    {...}

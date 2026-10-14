@@ -690,6 +690,16 @@ def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
         if events:
             with ev_mod.EventStore(db_path) as ev:
                 report["headline_events"] = ev.write_many(events)
+        # THE STEELMAN SEARCH (W-1.3b item 3.1): every story's counter-case
+        # queries against the stored voices, recorded found or not.
+        try:
+            from daily_cascade import analytics                 # noqa: PLC0415
+            report["steelman"] = [
+                {"story": r["narrative_id"], "found": len(r["found"])}
+                for r in vmod.steelman_pass(vs, stories, analytics.load_config(),
+                                            today, run_id)]
+        except Exception as exc:                                # noqa: BLE001
+            report["steelman"] = f"failed: {type(exc).__name__}: {exc}"[:200]
         report["model_calls_today"] = used
         report["state"] = "ok"
         if use_model:

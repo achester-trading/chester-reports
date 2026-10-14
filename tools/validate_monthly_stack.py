@@ -657,7 +657,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           "a configured series the store lacks says so; the ERP waits for 6e")
     alt = subs.get("Themes: metals") or {}
     arow = next((r for r in (alt.get("table") or {}).get("rows") or []
-                 if r[0] == "yfinance.mkt_gld"), None)
+                 if r[0] == "The gold fund (GLD)"), None)
     g = gld_series()
     gmean = sum(v for _, v in g) / len(g)
     check(arow and alt["table"]["columns"][1:] == ["Latest (data as of)",
@@ -1327,7 +1327,11 @@ def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
     finally:
         derived.registry_entry = saved
     check(fam == "global", "and by the registry's family first, where it declares one")
-    sub_n = [ss for ss in pl["subsections"] if (ss.get("table") or {}).get("rows")]
+    # The buckets only: batch 3's sub-sections (daily_cascade/batch3_block.py)
+    # carry tables but no bucket and ask for no paragraph, and SR-43/49's
+    # code-written blocks ride after them unwritten.
+    sub_n = [ss for ss in pl["subsections"] if ss.get("bucket")
+             and (ss.get("table") or {}).get("rows")]
     check(sub_n and all(ss.get("paragraphs") for ss in sub_n)
           and all(f"block:plumbing:{ss['bucket']}" in out["written"] for ss in sub_n),
           f"each bucket with rows carries one written takeaway through the section "
@@ -1734,8 +1738,12 @@ def t32_group(ed: dict, out: dict) -> None:
     ok = [na.audit(t, na.with_signed(sl)).passed for t in (
         "The hold rose +35.5 points.", "The shutdown rose +2.0 points.",
         "WTI fell −6.03%.")]
+    # A dropped sign with no verb to carry it (W-1.1a item 4: after a falling
+    # verb the size is written unsigned, "WTI fell 6.03%").
     no = [na.audit(t, na.with_signed(sl)).passed for t in (
-        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.", "WTI fell 6.03%.")]
+        "The hold rose +35.5 sessions.", "WTI fell −6.03 bp.",
+        "WTI's move was 6.03%.")]
+    ok.append(na.audit("WTI fell 6.03%.", na.with_signed(sl)).passed)
     check(all(ok) and not any(no),
           f"the figures the 10 Oct run withheld now pass in their true unit, and the "
           f"audit is no looser: a wrong unit word or a dropped sign still fails "
@@ -1777,7 +1785,7 @@ def t32_group(ed: dict, out: dict) -> None:
     if neg:
         sl = na.with_signed(liq["data"])
         mag = neg["change_dollars_signed"].lstrip("−")
-        r_bad = na.audit(f"It fell {mag}.", sl)
+        r_bad = na.audit(f"Its change was {mag}.", sl)
         r_ok = na.audit(f"It moved {neg['change_dollars_signed']}.", sl)
         check(not r_bad.passed and "change_dollars_signed" in r_bad.reason()
               and r_ok.passed,
@@ -1861,7 +1869,7 @@ def t33_group(ed: dict, out: dict) -> None:
         br = v2.metric_month(st, {"metric": "fred.bank_reserves"}, AS_OF,
                              dt.date(2026, 9, 30))
     check(cl.get("latest_level_display") == "200.5 thousand"
-          and cl.get("change_display") == "−7,000",
+          and cl.get("change_display") == "−7,000 claims",
           f"the Fed-path theme's claims row: {cl.get('latest_level_display')}, "
           f"{cl.get('change_display')} (the dry run printed \"200.5 million\" and "
           f"\"−7 million\")")
@@ -1921,9 +1929,13 @@ def t33_group(ed: dict, out: dict) -> None:
     plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
     rd_extra = (plan.get("summary:read") or {}).get("audit_extra") or {}
     titles = [x.get("section") for x in rd_extra.get("sections_summarised") or []]
+    # T3.4: each summary's frame masks its section's figures, so the section's
+    # own slice travels in audit_extra -- the scope is the same as before.
     check("The tape" in titles and "The read" not in titles
-          and all(x.get("audit_extra") is None for k, x in plan.items()
-                  if k != "summary:read"),
+          and all(set(x.get("audit_extra") or {}) == {"section_summarised"}
+                  and (x["audit_extra"]["section_summarised"] or {}).get("section")
+                  == x["title"].split("Summary: ", 1)[1]
+                  for k, x in plan.items() if k != "summary:read"),
           f"P3 item 3: The read's summary is audited against every finished section "
           f"it summarises ({len(titles)}); each other summary against its own")
     tape_like = {"sections_summarised": [{"section": "The tape", "data": {
@@ -2010,8 +2022,10 @@ def t33_group(ed: dict, out: dict) -> None:
     check(na.audit("Kalshi's hold moved −14.0 pts.", sl_f).passed
           and na.audit("The core CPI market moved −11.5 pts on Polymarket.",
                        sl_r).passed
-          and not na.audit("Kalshi's hold fell 14.0 points.", sl_f).passed
-          and not na.audit("The core CPI market fell 11.5 points.", sl_r).passed,
+          and not na.audit("Kalshi's hold moved 14.0 points.", sl_f).passed
+          and not na.audit("The core CPI market moved 11.5 points.", sl_r).passed
+          # W-1.1a item 4: a falling verb carries the sign.
+          and na.audit("Kalshi's hold fell 14.0 points.", sl_f).passed,
           "the dry run's 14.0 and 11.5 now pass as copied, signed; dropping the sign "
           "still fails")
     cases = ("+35.5 / +38.0 pts", "−35.0 / −37.4 pts", "−14.0 / — pts",
@@ -2064,8 +2078,11 @@ def t33_group(ed: dict, out: dict) -> None:
     check(not bad, "no Monthly table prints a series it labels in $ or % as a bare "
                    "count" + (f" ({bad[:3]})" if bad else ""))
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
-    priceish = re.compile(r"\bprices?\b|\byields?\b|\$|per pound|\bratio\b|\bspread\b",
-                          re.I)
+    # "yields-up/dollar-down" is AQ-8a's week signature, and its recurrence and
+    # persistence are counts of weeks: the compound is not a yield (Friday
+    # stitching, 13 Oct).
+    priceish = re.compile(r"\bprices?\b|\byields?\b(?!-)|\$|per pound|\bratio\b|"
+                          r"\bspread\b", re.I)
     typed_count = [k for k, e in (reg.get("metrics") or {}).items()
                    if str(e.get("units")) in ("count", "K", "N")
                    and priceish.search(str(e.get("description") or ""))]

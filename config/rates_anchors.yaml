@@ -1,0 +1,109 @@
+# rates_anchors.yaml -- the 10-year anchors lens (SR-43; ST4-08, ST4-09) and the
+# selloff-shape axis (SR-49; ST4-15). Signal-triage batch 4 (6 Oct 2026), section
+# 4.1 and 4.2. Read by altdata/rates_anchors.py and altdata/rates_shape.py.
+#
+# RIGHTS (the batch-4 order's): report-only modifiers on the Plumbing & rates read
+# and the Factor IV note. No trigger, no book rule, nothing in the market-state
+# object -- the rates `driver` sub-state was withdrawn on 30 Sep 2026 (config
+# market-state v1.10; tools/validate_regime.py group L), so the shape axis and the
+# selloff composition are a DESCRIPTIVE block beside altdata/rates_attribution.py,
+# not cells on the object. Every printed line carries "(descriptive; unvalidated,
+# n=0)".
+#
+# SESSION-SET: every threshold here is the session's proposal; none is ruled.
+version: rates-anchors-v1
+updated: 2026-10-12
+status: proposed
+
+tag: "(descriptive; unvalidated, n=0)"
+
+# ---------------------------------------------------------------------------
+# SR-43 (1) THE INFLATION ANCHOR: the 10-year against the trailing ten-year
+# average of CPI year on year -- a transparent stand-in for Topdown Charts'
+# "10-Year Inflation Rate Model", whose specification is unpublished. The fit
+# regresses the monthly 10-year on the anchor over the stored history; the
+# printed residual is the 10-year minus the fitted yield.
+# ---------------------------------------------------------------------------
+inflation_anchor:
+  ten_year: fred.yield_10y
+  cpi: fred.cpi
+  trailing_years: 10
+  fit_min_months: 120
+  label: "trailing ten-year average CPI inflation (a stand-in for Topdown Charts' unpublished model)"
+
+# ---------------------------------------------------------------------------
+# SR-43 (2) THE FISCAL ANCHOR: the twin balance (general government balance plus
+# current account, % of GDP, IMF WEO) against the 10-year across 14 developed
+# markets, refit at each WEO. The US reading is the fitted yield minus the market
+# yield. Inputs: the WEO writer's keys (altdata/sources/imf_weo.py on
+# aq-9a-em-scorecard, `em.weo.<field>.<iso3>`) and the OECD 10-year monthlies on
+# FRED. A 14-point cross-section is fragile: refit, never extrapolated.
+# ---------------------------------------------------------------------------
+fiscal_anchor:
+  weo_balance: "em.weo.fiscal_gdp.{iso3}"
+  weo_current_account: "em.weo.ca_gdp.{iso3}"
+  min_countries: 10
+  # Courtial's fit excluded China; the cross-section is developed markets only.
+  countries:
+    - {iso3: usa, name: "United States", yield: fred.oecd_10y_us}
+    - {iso3: can, name: "Canada", yield: fred.oecd_10y_ca}
+    - {iso3: gbr, name: "United Kingdom", yield: fred.gilt_10y}
+    - {iso3: deu, name: "Germany", yield: fred.oecd_10y_de}
+    - {iso3: fra, name: "France", yield: fred.oecd_10y_fr}
+    - {iso3: ita, name: "Italy", yield: fred.oecd_10y_it}
+    - {iso3: esp, name: "Spain", yield: fred.oecd_10y_es}
+    - {iso3: nld, name: "Netherlands", yield: fred.oecd_10y_nl}
+    - {iso3: bel, name: "Belgium", yield: fred.oecd_10y_be}
+    - {iso3: jpn, name: "Japan", yield: fred.jp_10y}
+    - {iso3: aus, name: "Australia", yield: fred.oecd_10y_au}
+    - {iso3: nzl, name: "New Zealand", yield: fred.oecd_10y_nz}
+    - {iso3: che, name: "Switzerland", yield: fred.oecd_10y_ch}
+    - {iso3: swe, name: "Sweden", yield: fred.oecd_10y_se}
+
+# (3) THE TERM PREMIUM: the existing ACM series, unchanged.
+term_premium: acm.term_premium_10y
+
+# ---------------------------------------------------------------------------
+# SR-49 THE SHAPE AXIS: correlated (every DM yield rising together -- 1994) /
+# divergent (the focal sovereign rising while core falls -- 2011) / mixed.
+# The weekly panel is the daily-filled 10-years; the focal test reads the monthly
+# OECD and ECB series. And the COMPOSITION of each 10-year selloff: what moved --
+# breakevens, real yields, the term premium.
+# ---------------------------------------------------------------------------
+shape:
+  weeks: 13
+  weekly_panel:
+    - {name: "United States", key: fred.yield_10y}
+    - {name: "Germany", key: bbk.bund_10y}
+    - {name: "Japan", key: mof.jgb_10y}
+  core: {name: "Germany", key: fred.oecd_10y_de}
+  focal:
+    - {name: "France", key: fred.oecd_10y_fr}
+    - {name: "Italy", key: fred.oecd_10y_it}
+    - {name: "Spain", key: fred.oecd_10y_es}
+    - {name: "United Kingdom", key: fred.gilt_10y}
+    - {name: "Japan", key: fred.jp_10y}
+  focal_months: 3
+  correlated_min_corr: 0.5
+  divergent_focal_rise_bp: 25
+  divergent_core_max_bp: 0
+
+selloff:
+  ten_year: fred.yield_10y
+  breakeven: fred.breakeven_10y
+  real: fred.tips_10y
+  term_premium: acm.term_premium_10y
+  window_sessions: 20
+  min_rise_bp: 25
+  history_years: 5
+
+# ---------------------------------------------------------------------------
+# THE FOUR VOICES (batch-4 Appendix B, dated 2026-10-06), ADJUDICATED BY THE
+# MEASURES, NOT NARRATED. Each claim names the measure that tests it and the rule
+# that reads the measure; the verdict is code's.
+# ---------------------------------------------------------------------------
+voices:
+  - {voice: "Charles Diebel", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
+  - {voice: "Jeremy Courtial (SocGen idea)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
+  - {voice: "Maxence Visseau", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
+  - {voice: "Sarmaya Partners", claim: "the Fed blinks", test: outside_axis}
