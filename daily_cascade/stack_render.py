@@ -511,6 +511,11 @@ def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
             f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
             f"{esc(run_id or 'n/a')}")
     lines = [meta, esc(marks)]
+    # AUD-2 item 4: the model meter -- the close's one line, the Monthly's month
+    # by report. Tokens, never dollars.
+    for x in ([ed["model_line"]] if ed.get("model_line") else []) + list(
+            ed.get("model_lines") or []):
+        lines.append(esc(x) + ("" if str(x).endswith(".") else "."))
     if archive_path:
         lines.append(f"Archived to {esc(archive_path)}.")
     if pdf_note:

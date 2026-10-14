@@ -202,9 +202,11 @@ def main() -> int:
             log.info("prior session unavailable, deltas omitted: %s", exc)
 
         np_ = payload_mod.narrative_payload(p, prior)
-        narr = narrative_mod.generate(
-            np_, model=args.narrative_model,
-            unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
+        from altdata import model_meter  # noqa: PLC0415
+        with model_meter.scope(report="close_classic", run_id=run_id):
+            narr = narrative_mod.generate(
+                np_, model=args.narrative_model,
+                unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
 
         # LOGGED EITHER WAY, and the failure is logged loudly. A withheld
         # paragraph is a fact about the model's output, and the only place it can

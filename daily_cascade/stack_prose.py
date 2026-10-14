@@ -47,6 +47,7 @@ from typing import Any, Optional
 from pathlib import Path
 
 from altdata import levels as levels_mod
+from altdata import model_meter
 
 from . import direction, readability
 from . import opener as opener_mod
@@ -946,11 +947,13 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
         try:
-            r = base.generate(payload, model=model, client=client,
-                              system_prompt=system, max_chars=max_chars,
-                              one_paragraph=False, citable_ids=[],
-                              unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
-                              market_states=market_states)
+            from altdata import model_meter  # noqa: PLC0415
+            with model_meter.scope(section=sid):
+                r = base.generate(payload, model=model, client=client,
+                                  system_prompt=system, max_chars=max_chars,
+                                  one_paragraph=False, citable_ids=[],
+                                  unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
+                                  market_states=market_states)
         except Exception as exc:                                # noqa: BLE001
             return {"state": "fault", "published": False,
                     "reason": f"FAULT {type(exc).__name__}: {exc}"}

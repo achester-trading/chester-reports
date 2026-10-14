@@ -1908,6 +1908,18 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             client=None, model: Optional[str] = None, narrative: bool = True,
             db_path: Optional[str] = None, log_path: Optional[Path] = None,
             prior_dir: Optional[str] = None) -> dict:
+    """The Weekly, its model calls metered as the Weekly's (AUD-2 item 4)."""
+    from altdata import model_meter                             # noqa: PLC0415
+    with model_meter.scope(report="weekly", run_id=p.get("run_id"), db_path=db_path):
+        return _produce(p, archive_dir=archive_dir, dry_run=dry_run, client=client,
+                        model=model, narrative=narrative, db_path=db_path,
+                        log_path=log_path, prior_dir=prior_dir)
+
+
+def _produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, log_path: Optional[Path] = None,
+             prior_dir: Optional[str] = None) -> dict:
     ending = p["week_ending"]
     with bars_mod.BarStore(db_path) as bst:
         try:

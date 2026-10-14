@@ -195,7 +195,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — fifty-seven code gates (fifty-four Python,
+**`make validate` runs every gate** — fifty-eight code gates (fifty-five Python,
 three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -285,6 +285,18 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
+
+**Every model call goes through one client and is counted (AUD-2, 14 Oct 2026).**
+`altdata/model_meter.py` builds the one Anthropic client (timeout 90 s, one retry)
+for every report path, and `model_meter.create()` writes a row per call to the
+`model_calls` table in chester.db: run id, report, section, attempt, model id, input
+and output tokens, time. A call outside a report's `scope()` writes nothing. The
+close's footer prints the day's calls and tokens, the Monthly's the month's by
+report; tokens, never dollars. **A restore is drilled, not assumed:**
+`python -m tools.restore_drill` restores the newest `db/` snapshot into a temporary
+directory, integrity-checks it and counts it against the live store, read-only;
+`docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
+holds the auction sampler's stand-aside, the meter's client and the drill.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

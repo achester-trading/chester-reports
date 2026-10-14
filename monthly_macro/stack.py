@@ -1887,10 +1887,34 @@ def markdown(ed: dict) -> str:
     return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
+def meter_month(p: dict) -> str:
+    """The month the Monthly covers, YYYY-MM: the month in markets' last day,
+    else the month before the report date."""
+    end = str(((p.get("month_in_markets") or {}).get("end")) or "")
+    if len(end) >= 7 and end[4] == "-":
+        return end[:7]
+    import datetime as _dt                                      # noqa: PLC0415
+    d = _dt.date.fromisoformat(str(p.get("report_date"))[:10]).replace(day=1)
+    return (d - _dt.timedelta(days=1)).isoformat()[:7]
+
+
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
             model: Optional[str] = None, narrative: bool = True,
             db_path: Optional[str] = None, write=None,
             prior_dir: Optional[str] = None) -> dict:
+    """The Monthly, its model calls metered as the Monthly's (AUD-2 item 4)."""
+    from altdata import model_meter                             # noqa: PLC0415
+    with model_meter.scope(report="monthly", run_id=p.get("run_id"),
+                           db_path=db_path):
+        return _produce(p, archive_dir=archive_dir, client=client, model=model,
+                        narrative=narrative, db_path=db_path, write=write,
+                        prior_dir=prior_dir)
+
+
+def _produce(p: dict, *, archive_dir: Optional[str], client=None,
+             model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, write=None,
+             prior_dir: Optional[str] = None) -> dict:
     """Build, write, polish, budget and render the stacked Monthly. Archives
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
@@ -1943,6 +1967,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     enforce_budget(ed)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
+    # THE MODEL METER (AUD-2 item 4): the month's calls and tokens, by report.
+    try:
+        from altdata import model_meter                         # noqa: PLC0415
+        ed["model_lines"] = model_meter.month_lines(db_path, meter_month(p))
+    except Exception:                                           # noqa: BLE001
+        log.warning("model meter lines unavailable", exc_info=True)
     return {"edition": public(ed), "written": written, "summary_written": sw,
             "charts": charts,
             "inline_images": [(sr.cid(k), c["png"])
