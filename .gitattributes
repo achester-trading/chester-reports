@@ -14,3 +14,9 @@
 *.md            text
 *.csv           text
 *.json          text
+
+# THE INBOX FIXTURES ARE BYTES, NOT TEXT. A batch file's sha256 is its identity
+# (the ingestion checks it against the Drive manifest, and the first batch's hash
+# is pinned in the change order's step 0), so no checkout may rewrite its line
+# endings: -text keeps the committed LF bytes on a Windows checkout too.
+tests/fixtures/alpha/inbox/**   -text

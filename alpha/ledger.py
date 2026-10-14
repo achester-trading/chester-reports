@@ -15,7 +15,11 @@ THE TABLES are the change order's, each row carrying `as_of` (the instant the
 row is about, a point-in-time cutoff) and `written_at` (when the lab wrote it):
 
   engines         the roster: family, horizon, status, the validation record
-  hypotheses      X-2.5's register (created now, written from Tranche 2)
+  hypotheses      X-2.5's register: every idea, its rule and its pre-registration
+                  instant, with its status and result -- failures kept
+  hypothesis_batches  each batch file ingested (X-2.11): its Drive created and
+                  modified times, its sha256, its source and channel
+  inbox_log       every inbox file seen, ingested, refused or ignored, and why
   signals         an engine's signal at an as-of instant
   fills           a modelled fill: price, every cost component, the stored quote
   positions       a paper position, opened by a fill and closed by one
@@ -59,7 +63,7 @@ from typing import Any, Iterable, Optional
 from . import blocklist
 from . import config as acfg
 
-VERSION = "x1.0"
+VERSION = "x2.0"
 LAB = "__lab__"
 ENGINE_STATUSES = ("candidate", "live", "halved", "validation", "retired")
 
@@ -86,19 +90,79 @@ CREATE TABLE IF NOT EXISTS engines (
 
 CREATE TABLE IF NOT EXISTS hypotheses (
     id                TEXT PRIMARY KEY,
-    family            TEXT,
+    batch_id          TEXT NOT NULL,
+    local_id          TEXT NOT NULL,
+    title             TEXT NOT NULL,
+    family            TEXT NOT NULL,
+    horizon_class     TEXT,
+    horizon_sessions  INTEGER,
+    horizon           TEXT,
     mechanism         TEXT NOT NULL,
+    universe          TEXT,
+    instruments       TEXT,
+    rule_text         TEXT NOT NULL,
+    rule_dsl          TEXT,
+    rule_origin       TEXT,
+    rule_hash         TEXT NOT NULL,
+    conditioning      TEXT,
+    expected          TEXT,
     expected_sign     INTEGER,
     expected_size     REAL,
-    instruments       TEXT,
-    horizon           TEXT,
+    sample            TEXT,
     sample_needed     INTEGER,
+    data              TEXT,
+    needs_code        INTEGER NOT NULL,
     kill_rule         TEXT,
+    state_at_registration TEXT,
+    spec              TEXT NOT NULL,
+    source            TEXT NOT NULL CHECK (source IN
+                        ('model','operator','chat','sitting','systematic','tell')),
+    channel           TEXT NOT NULL,
+    proposer          TEXT,
+    model_idea_rule   INTEGER NOT NULL CHECK (model_idea_rule IN (0, 1)),
     pre_registered_at TEXT NOT NULL,
-    source            TEXT CHECK (source IN ('sitting','systematic','tell')),
     status            TEXT NOT NULL CHECK (status IN
-                        ('proposed','testing','passed','failed','retired')),
+                        ('registered','needs_code','data_gap','screened_out',
+                         'testing','passed','failed','refined','promoted','retired')),
+    status_reason     TEXT,
     result            TEXT,
+    supersedes        TEXT,
+    superseded_by     TEXT REFERENCES hypotheses(id),
+    engine_id         TEXT,
+    as_of             TEXT NOT NULL,
+    written_at        TEXT NOT NULL,
+    UNIQUE (batch_id, local_id)
+);
+
+CREATE TABLE IF NOT EXISTS hypothesis_batches (
+    batch_id          TEXT PRIMARY KEY,
+    schema            TEXT NOT NULL,
+    file_name         TEXT,
+    file_sha256       TEXT,
+    source            TEXT NOT NULL,
+    channel           TEXT NOT NULL,
+    proposer          TEXT,
+    batch_written_at  TEXT,
+    created_time      TEXT,
+    modified_time     TEXT,
+    pre_registered_at TEXT NOT NULL,
+    model_idea_rule   INTEGER NOT NULL,
+    inputs            TEXT,
+    n_hypotheses      INTEGER NOT NULL,
+    as_of             TEXT NOT NULL,
+    written_at        TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS inbox_log (
+    id                INTEGER PRIMARY KEY,
+    file_name         TEXT NOT NULL,
+    file_sha256       TEXT,
+    batch_id          TEXT,
+    local_id          TEXT,
+    verdict           TEXT NOT NULL CHECK (verdict IN ('ingested','refused','ignored')),
+    reason            TEXT,
+    created_time      TEXT,
+    modified_time     TEXT,
     as_of             TEXT NOT NULL,
     written_at        TEXT NOT NULL
 );
@@ -324,6 +388,22 @@ BEGIN SELECT RAISE(ABORT, 'loop_events: an event is reversed once'); END;
 CREATE TRIGGER IF NOT EXISTS loop_events_no_delete
 BEFORE DELETE ON loop_events
 BEGIN SELECT RAISE(ABORT, 'loop_events is append-only'); END;
+
+-- THE REGISTER KEEPS ITS FAILURES (X-2.5): a hypothesis is never deleted, and
+-- the idea it records -- its rule, its mechanism, its pre-registration instant --
+-- is never rewritten. Status, result and the links move; the idea does not.
+CREATE TRIGGER IF NOT EXISTS hypotheses_no_delete
+BEFORE DELETE ON hypotheses
+BEGIN SELECT RAISE(ABORT, 'the hypothesis register keeps its failures: no delete'); END;
+
+CREATE TRIGGER IF NOT EXISTS hypotheses_idea_fixed
+BEFORE UPDATE OF id, batch_id, local_id, title, family, mechanism, rule_text,
+                 rule_hash, spec, source, channel, pre_registered_at ON hypotheses
+BEGIN SELECT RAISE(ABORT, 'a registered hypothesis is fixed: a change is a new, counted variant'); END;
+
+CREATE TRIGGER IF NOT EXISTS hypothesis_batches_no_delete
+BEFORE DELETE ON hypothesis_batches
+BEGIN SELECT RAISE(ABORT, 'a batch, once ingested, is kept'); END;
 """
 
 
@@ -360,9 +440,25 @@ class Ledger:
         if not read_only:
             self.conn.execute("PRAGMA journal_mode = WAL")
             self.conn.execute("PRAGMA foreign_keys = ON")
+            self._migrate()
             self.conn.executescript(SCHEMA)
             self.sync_restrictions()
             self.conn.commit()
+
+    def _migrate(self) -> None:
+        """Tranche 1 created `hypotheses` on the change order's first sketch and
+        wrote nothing to it ("written from Tranche 2"). Tranche 2's register is
+        the fixture batch's schema (X-2.5), so an EMPTY old-shaped table is
+        replaced; a non-empty one is refused rather than rewritten -- the register
+        keeps what it holds."""
+        cols = {r[1] for r in self.conn.execute("PRAGMA table_info(hypotheses)")}
+        if not cols or "batch_id" in cols:
+            return
+        n = self.conn.execute("SELECT COUNT(*) FROM hypotheses").fetchone()[0]
+        if n:
+            raise RuntimeError(f"alpha.db holds {n} hypotheses in the Tranche 1 shape; "
+                               "the register is not rewritten in place")
+        self.conn.execute("DROP TABLE hypotheses")
 
     # -- plumbing -----------------------------------------------------------
     def close(self) -> None:

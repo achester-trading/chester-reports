@@ -42,6 +42,16 @@ store and a fixture ledger of its own; no network, no box, no live store.
      weekly after the Weekly; neither in DEPLOY_TIMERS; the wrappers.
   M  NO ORDERS. tools/validate_alpha_no_orders.py's scan over alpha/.
 
+Tranche 2 (X-2; change order sections 4 and 10):
+
+  N  THE REGISTER (X-2.5). The first real batch (the inbox fixture) is valid
+     v1 and its bytes are the pinned ones; a broken batch is refused field by
+     field; the weekly brief's budgets; registering counts a variant; the idea
+     is fixed and never deleted; duplicates by rule hash and by title, failures
+     included; the harness refuses a hypothesis pre-registered after the run,
+     an unregistered one and a closed one; a blocked instrument never reaches
+     the register.
+
     python tools/validate_alpha.py
 """
 
@@ -78,6 +88,7 @@ from altdata import observations  # noqa: E402
 observations.DEFAULT_DB = os.environ["CHESTER_DB"]
 
 from alpha import allocate, blocklist, book, governor, lab_line  # noqa: E402
+from alpha import hypotheses as hyp  # noqa: E402
 from alpha import config as acfg  # noqa: E402
 from alpha import engine as engine_mod  # noqa: E402
 from alpha import validate as av  # noqa: E402
@@ -279,7 +290,8 @@ def file_writes() -> list[str]:
 # ---------------------------------------------------------------------------
 def group_b() -> None:
     head("B. THE LEDGER (X-1.1)")
-    want = {"engines", "hypotheses", "signals", "fills", "positions", "marks",
+    want = {"engines", "hypotheses", "hypothesis_batches", "inbox_log",
+            "signals", "fills", "positions", "marks",
             "grades", "edge_posterior", "cost_calibration", "attribution",
             "loop_events", "variant_counts", "holdout", "allocations", "equity"}
     path = Path(_TMP) / "b.db"
@@ -893,10 +905,121 @@ def group_m() -> None:
           "no requests, urllib or socket" + (f": {bad[:3]}" if bad else ""))
 
 
+# ---------------------------------------------------------------------------
+SEED_BATCH = FIXTURES / "inbox" / "hypotheses-2026-10-14.yaml"
+SEED_SHA256 = "6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626"
+SEED_CREATED = "2026-10-14T09:26:23.000Z"
+
+
+def seed_doc() -> dict:
+    return hyp.load_batch(SEED_BATCH.read_bytes().decode("utf-8"))
+
+
+def group_n() -> None:
+    head("N. THE HYPOTHESIS REGISTER (X-2.5)")
+    raw = SEED_BATCH.read_bytes()
+    check(len(raw) == 8047 and hashlib.sha256(raw).hexdigest() == SEED_SHA256,
+          "the first batch is the pinned file: 8,047 bytes, sha256 6fdc4dc7...")
+    doc = seed_doc()
+    check(hyp.validate_batch(doc) == [] and hyp.budget_errors(doc) == [],
+          "it is valid alpha-lab-hypotheses/v1, inside the weekly brief's budgets")
+    check([h["local_id"] for h in doc["hypotheses"]] ==
+          ["H-001", "H-002", "H-003", "H-004", "H-005"]
+          and doc["source"] == "model" and doc["model_idea_rule"] is True,
+          "five hypotheses, source model, the model-idea rule declared")
+    bad = json.loads(json.dumps(doc))
+    bad["schema"] = "v0"
+    del bad["hypotheses"][0]["mechanism"]
+    bad["hypotheses"][1]["horizon_sessions"] = 0
+    bad["hypotheses"][2]["local_id"] = "H-002"
+    bad["written_at"] = "2026-10-14T05:17:00"
+    errs = hyp.validate_batch(bad)
+    check(len(errs) >= 5 and any("schema" in e for e in errs)
+          and any("missing mechanism" in e for e in errs)
+          and any("horizon_sessions" in e for e in errs)
+          and any("repeated" in e for e in errs)
+          and any("written_at" in e for e in errs),
+          f"a broken batch is refused field by field ({len(errs)} errors)")
+    over = json.loads(json.dumps(doc))
+    over["hypotheses"] = [dict(over["hypotheses"][0], local_id=f"S-{i}",
+                               family=f"f{i % 2}") for i in range(6)]
+    be = hyp.budget_errors(over)
+    check(any("5 short" in w for _, w in be) and any("family" in w for _, w in be),
+          "the weekly brief: at most 5 short-term, at most 2 of a family a batch")
+    path = Path(_TMP) / "n.db"
+    with Ledger(path) as lg:
+        reg = hyp.Register(lg)
+        reg.record_batch(doc, hyp.instant(SEED_CREATED), "t")
+        ids = [reg.register(h, doc, hyp.instant(SEED_CREATED), "t", "needs_code",
+                            "rule in text") for h in doc["hypotheses"]]
+        check(ids == [f"HYP-{i:04d}" for i in range(1, 6)]
+              and reg.by_local(doc["batch_id"], "H-004")["id"] == "HYP-0004",
+              "local ids map to register ids HYP-0001..0005")
+        check(all(lg.variant_count(h["family"]) == 1 for h in doc["hypotheses"]),
+              "registering counts one variant in each family (10.2 c)")
+        for sql, what in (("UPDATE hypotheses SET rule_text='x' WHERE id='HYP-0001'",
+                           "the rule"),
+                          ("UPDATE hypotheses SET pre_registered_at='2027' WHERE id='HYP-0001'",
+                           "the pre-registration instant"),
+                          ("DELETE FROM hypotheses WHERE id='HYP-0001'", "the row")):
+            try:
+                lg.conn.execute(sql)
+                check(False, f"{what} cannot be changed")
+            except sqlite3.DatabaseError:
+                check(True, f"{what} cannot be changed or removed")
+        reg.set_status("HYP-0002", "failed", "t", "fixture", result={"n": 3})
+        dup = reg.duplicate_of(dict(doc["hypotheses"][1]))
+        check(dup and dup[0] == "HYP-0002" and "failed" in dup[1],
+              f"a duplicate rule is caught against a FAILED idea too: {dup}")
+        near = dict(doc["hypotheses"][3], rule_text="something else entirely",
+                    title="A quality split in credit leaks into high-yield before IG")
+        d2 = reg.duplicate_of(near)
+        check(d2 and d2[0] == "HYP-0004", f"and a near title: {d2}")
+        h5 = reg.get("HYP-0005")
+        try:
+            hyp.refuse_if_unregistered(h5, "2026-10-14T09:00:00+00:00")
+            check(False, "the harness refuses a run before the pre-registration")
+        except hyp.PreRegistrationViolation:
+            check(True, "the harness refuses a run before the pre-registration "
+                  "(05:00 ET against the 05:26 ET Drive created time)")
+        try:
+            hyp.refuse_if_unregistered(h5, "2026-10-14T21:40:00+00:00")
+            check(True, "and allows one after it")
+        except hyp.PreRegistrationViolation:
+            check(False, "and allows one after it")
+        for h, what in ((None, "an unregistered rule"),
+                        (reg.get("HYP-0002"), "a failed (closed) idea")):
+            try:
+                hyp.refuse_if_unregistered(h, "2027-01-01T00:00:00+00:00")
+                check(False, f"it refuses {what}")
+            except hyp.PreRegistrationViolation:
+                check(True, f"it refuses {what}")
+        bn = dict(doc["hypotheses"][1], local_id="H-BN", universe=["BN"],
+                  title="Brookfield fixture")
+        try:
+            reg.register(bn, doc, hyp.instant(SEED_CREATED), "t", "registered")
+            check(False, "a blocked instrument never reaches the register")
+        except blocklist.BlockedInstrument:
+            check(lg.one("SELECT COUNT(*) AS n FROM hypotheses")["n"] == 5,
+                  "a blocked instrument (BN) never reaches the register")
+    old = Path(_TMP) / "n_old.db"
+    con = sqlite3.connect(old)
+    con.execute("CREATE TABLE hypotheses (id TEXT PRIMARY KEY, mechanism TEXT)")
+    con.commit()
+    con.close()
+    with Ledger(old) as lg:
+        cols = {r["name"] for r in lg.q("PRAGMA table_info(hypotheses)")}
+    check("batch_id" in cols, "an empty Tranche 1 hypotheses table is replaced by "
+          "the register's")
+
+
+GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
+          group_h, group_i, group_j, group_k, group_l, group_m, group_n]
+
+
 def main() -> int:
-    print(f"{LINE}\nLAYER X, THE ALPHA LAB -- TRANCHE 1 (SYNTHETIC STORE, FIXTURE LEDGER)\n{LINE}")
-    for g in (group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
-              group_h, group_i, group_j, group_k, group_l, group_m):
+    print(f"{LINE}\nLAYER X, THE ALPHA LAB -- TRANCHES 1 AND 2 (SYNTHETIC STORE, FIXTURES)\n{LINE}")
+    for g in GROUPS:
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
