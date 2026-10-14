@@ -68,6 +68,7 @@
       "Bash(*retire_local_register.py*--apply*)",
       "Bash(*altdata.narratives confirm*)",
       "Bash(*altdata.narratives reject*)",
+      "Bash(*alpha.promote retire*)",
 
       "Bash(sudo*)",
       "Bash(*sudo *)",

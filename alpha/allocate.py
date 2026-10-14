@@ -13,7 +13,8 @@ up), Sigma their realised covariance over the trailing window. Then:
     average return, and its weight is split equally among them.
   * NO SIZE ABOVE MINIMUM BEFORE THE SAMPLE. An engine with fewer graded signals
     than its horizon's min_signals is held at its min_size, whatever its
-    returns say (the constitution's min_size_period).
+    returns say (the constitution's min_size_period) -- and a MODEL's idea until
+    1.5 x min_signals (10.2 b; the engine's validated_metrics.paper_floor_signals).
   * A HALVED ENGINE carries half the weight the formula gives it.
   * NO SHORTING AN ENGINE. A negative Kelly weight is zero: the engine's own
     signals carry direction; the allocator only says how much.
@@ -114,6 +115,11 @@ def weights(engines: list[dict], returns: dict[str, dict[str, float]],
     sized: list[str] = []
     for e in engines:
         need = acfg.min_signals(e["horizon"], con)
+        # THE MODEL-IDEA RULE (10.2 b): a model's idea runs 1.5 x min_signals at
+        # minimum size before the allocator may raise it (alpha/promote.py
+        # records the floor on the engine at promotion).
+        need = max(need, int((e.get("validated_metrics") or {}).get(
+            "paper_floor_signals") or 0))
         if graded.get(e["id"], 0) < need:
             out[e["id"]] = {"weight": float(e["min_size"]), "cluster": e["id"],
                             "why": f"min_size until {need} graded signals "

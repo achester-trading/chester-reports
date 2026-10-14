@@ -8,7 +8,9 @@ already holds, knowable at the run's as-of instant:
     prediction-market contract record, pm.bid/pm.ask; 6b's chain history and
     venue prices when they are stored) -- a buy at the ask, a sell at the bid;
   * otherwise at the NEXT stored bar's open after the signal, plus the cost
-    model (alpha/costs.py): half the spread estimate, slippage, commission.
+    model (alpha/costs.py): half the spread estimate, slippage, commission --
+    or its CLOSE, for an instrument marked close_only (no stored open: its bars
+    are its closes) or fill_at "close" (a grammar rule's next_close entry).
 
 A signal is never filled at a price from before it, and never at the mid.
 
@@ -74,6 +76,9 @@ class Paper:
             out = [Bar(day=str(r["observed_at"]), open=r["open"], high=r["high"],
                        low=r["low"], close=r["close"], volume=r.get("volume"))
                    for r in rows if str(r["observed_at"]) > after]
+        elif inst.get("meta", {}).get("close_only"):
+            rows = self.store.daily_closes(inst["key"], as_of, last=through)
+            out = [Bar(**r) for r in rows if r["day"] > after]
         else:
             rows = self.store.daily_bars(inst["key"], as_of, last=through)
             out = [Bar(**r) for r in rows if r["day"] > after]
@@ -96,7 +101,9 @@ class Paper:
         filled by fill_pending() once a later price is stored."""
         inst = asdict(sig.instrument)
         tstop = None
-        if sig.time_stop_days:
+        if (sig.params or {}).get("time_stop_date"):
+            tstop = str(sig.params["time_stop_date"])        # a session date (X-2.6)
+        elif sig.time_stop_days:
             tstop = (dt.date.fromisoformat(decision_day(sig.as_of))
                      + dt.timedelta(days=int(sig.time_stop_days))).isoformat()
         return self.ledger.add_signal(
@@ -131,7 +138,8 @@ class Paper:
             if quote is not None:
                 ref, when = (quote["bid"] + quote["ask"]) / 2, quote["observed_at"]
             else:
-                ref, when = bars[0].open, bars[0].day
+                at_close = inst.get("meta", {}).get("fill_at") == "close"
+                ref, when = (bars[0].close if at_close else bars[0].open), bars[0].day
             capital = float(capital_for(s["engine_id"]))
             qty = abs(s["size_fraction"]) * capital / (ref * mult) if ref else 0.0
             if qty <= 0:
@@ -217,8 +225,12 @@ class Paper:
             hit = None
             fz = force.get(pos["engine_id"]) or force.get("*")
             eng: Optional[Engine] = engines.get(pos["engine_id"])
+            at_close = (inst.get("meta", {}).get("fill_at") == "close"
+                        or inst.get("meta", {}).get("close_only"))
             for b in bars:
                 first = b.day == entry_day
+                if first and at_close:
+                    continue      # filled at this bar's close: its range came before
                 if fz and not first and b.day > decision_day(fz[1]):
                     hit = (fz[0], b.open, "bar_open", b)
                     break

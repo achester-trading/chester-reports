@@ -23,7 +23,9 @@ ET), in order, each step its own try so one failure costs that step only:
   9. ATTRIBUTION of the day's P&L by regime key (the stored dials' states, the
      volatility regime, the dealer regime, event days);
  10. the DRIFT CHECK against each engine's validated metrics;
- 11. tonight's SIGNALS from the live engines, queued for tomorrow's fills.
+ 11. tonight's SIGNALS from the live engines, queued for tomorrow's fills;
+ 12. PROMOTION (X-2.6): each passed grammar hypothesis written to engines at
+     min_size, trading from the next loop.
 
 Every change is a loop_events row. This loop changes sizes and weights; it never
 changes an engine's rules. It reads the store read-only, writes alpha.db only,
@@ -86,8 +88,13 @@ class Run:
         every = int(self.con["holdout_months"]["every"])
         self.ledger.record_holdout(holdout_months(HISTORY_START, self.day, every),
                                    self.con["holdout_months"]["rule"], self.as_of)
-        for entry in engine_mod.registered(self.registry_path):
+        from .. import promote                                  # noqa: PLC0415
+        entries = list(engine_mod.registered(self.registry_path))
+        entries += promote.register_engines(self.ledger)      # promoted grammar rules
+        for entry in entries:
             eng = engine_mod.load(entry)
+            if hasattr(eng, "bind_ledger"):
+                eng.bind_ledger(self.ledger)
             self.engines[eng.engine_id] = eng
             if self.ledger.engine(eng.engine_id) is None:
                 self.ledger.upsert_engine(eng.engine_id, eng.family, eng.horizon,
@@ -96,6 +103,13 @@ class Run:
                 self.ledger.event(LOOP, "registered", self.as_of, eng.engine_id,
                                   after={"status": "candidate", "family": eng.family,
                                          "horizon": eng.horizon})
+
+    def promote_step(self) -> None:
+        """X-2.6: every passed grammar hypothesis -> live at min_size, trading from
+        the next loop; a model's idea floored at 1.5 x min_signals."""
+        from .. import promote                                  # noqa: PLC0415
+        done = promote.promote_passed(self.ledger, self.as_of)
+        self.summary["promoted"] = [d["engine"] for d in done]
 
     def inbox_step(self) -> None:
         """X-2.11: every new batch in the Drive inbox (and the proposer's), once."""
@@ -332,7 +346,8 @@ class Run:
                          ("cost_calibration", self.cost_step),
                          ("allocate", self.allocate_step),
                          ("attribution", self.attribution_step),
-                         ("drift", self.drift_step), ("signals", self.signal_step)):
+                         ("drift", self.drift_step), ("signals", self.signal_step),
+                         ("promote", self.promote_step)):
             self.step(name, fn)
         self.summary["failures"] = self.failures
         self.ledger.event(LOOP, "run", self.as_of, None,

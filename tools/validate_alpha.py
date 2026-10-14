@@ -75,6 +75,13 @@ Tranche 2 (X-2; change order sections 4 and 10):
      the weekly loop writes lab-verdicts-*.md; the sweep lists before it
      copies, copies never syncs, and leaves its exit code alone; the units may
      write inbox/lab and outbox/lab.
+  R  PROMOTION (X-2.6) with the model-idea rule (10.2 b). H-004 passes, its
+     pass record is a candidate, the loop promotes it live at min_size with its
+     1.5 x min_signals paper floor; the allocator holds it at min_size past
+     min_signals; the nightly loop's GrammarEngine trades the rule in paper
+     exactly as the backtest did -- both legs, the close-only fills, the time
+     stop, one position at a time; the operator retires it by ruling (source
+     operator), never without one.
 
     python tools/validate_alpha.py
 """
@@ -92,6 +99,7 @@ import re
 import sqlite3
 import sys
 from pathlib import Path
+from typing import Optional
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -1449,9 +1457,105 @@ def group_q() -> None:
           "the sweep may write inbox/lab and the weekly loop outbox/lab")
 
 
+def group_r() -> None:
+    head("R. PROMOTION ON THE LOOP'S AUTHORITY, WITH THE MODEL-IDEA RULE (X-2.6)")
+    from alpha import promote, rules                            # noqa: PLC0415
+    from alpha.research import workbench                         # noqa: PLC0415
+    lg, st, seeded = seeded_ledger("r.db")
+    hid = seeded["registered"]["H-004"]
+    try:
+        r = workbench.run(lg, st, hid, RUN_AT)
+        check(r["status"] == "passed", f"{hid} (H-004, a model idea) passes the "
+              f"harness and the model-idea screen on the fixture")
+        e0 = lg.engine(hid)
+        check(e0 and e0["status"] == "candidate",
+              "the pass record is a candidate engine: the harness does not promote")
+        done = promote.promote_passed(lg, RUN_AT)
+        e = lg.engine(hid)
+        h = hyp.Register(lg).get(hid)
+        ev = lg.one("SELECT * FROM loop_events WHERE kind='promotion' AND engine=?", (hid,))
+        check(done and e["status"] == "live" and e["min_size"] == 0.01
+              and h["status"] == "promoted" and ev and ev["source"] == "loop",
+              "the loop promotes it on its own authority: live at min_size 0.01, the "
+              "hypothesis promoted, one promotion event (source loop)")
+        check(e["validated_metrics"]["paper_floor_signals"] == 60
+              and e["validated_metrics"]["model_idea"] is True,
+              "a model's idea carries its paper floor: 1.5 x 40 = 60 signals")
+        w = allocate.weights([e], {hid: {}}, {hid: 50}, acfg.constitution(),
+                             acfg.settings())
+        check(abs(w["weights"][hid]["weight"] - 0.01) < 1e-12
+              and "60" in w["weights"][hid]["why"],
+              "the allocator holds it at min_size past min_signals (50 of 60 graded)")
+        ent = promote.register_engines(lg)
+        check([x["id"] for x in ent] == [hid] and ent[0]["class"] == promote.GRAMMAR_CLASS,
+              "the register names the promoted grammar engine for the nightly loop")
+    finally:
+        st.close()
+        lg.close()
+    # the nightly loop trades it in paper: the rule as the backtest read it
+    cmp = rules.compile_rule(translation("H-004")["rule_dsl"])
+    st = ReadOnlyStore(fx_store())
+    bt = rules.backtest(cmp, st, "2026-01-02", "2026-10-09")
+    st.close()
+    sig = [t for t in bt["trades"] if t["signal_day"] >= "2026-03-01"][0]
+    days = sessions(sig["signal_day"], 26)
+    path = Path(_TMP) / "r.db"
+    empty = Path(_TMP) / "r_registry.yaml"
+    empty.write_text("engines: []\n", encoding="utf-8")
+    before = sha(Path(fx_store()))
+    for d in days:
+        out = nightly.run(asof(d), fx_store(), path, empty)
+        if out["failures"]:
+            break
+    with Ledger(path) as lg:
+        sigs = lg.q("SELECT * FROM signals WHERE engine_id=? ORDER BY id", (hid,))
+        fills = lg.q("SELECT * FROM fills WHERE engine_id=? AND purpose='entry' "
+                     "ORDER BY id", (hid,))
+        pos = lg.q("SELECT * FROM positions WHERE engine_id=? ORDER BY id", (hid,))
+        legs = {(s["instrument"], s["direction"]) for s in sigs[:2]}
+        check(not out["failures"] and legs == {("IEF", 1), ("HYG", -1)}
+              and sigs[0]["as_of"][:10] == sig["signal_day"],
+              f"the nightly loop's GrammarEngine signals both legs on the trigger day "
+              f"({sig['signal_day']}): long IEF, short HYG")
+        px_ief = st_close("yfinance.mkt_ief", fills[0]["filled_at"][:10]) if fills else None
+        check(fills and fills[0]["filled_at"][:10] == sig["entry_day"]
+              and abs(fills[0]["reference_price"] - px_ief) < 1e-9,
+              f"close-only legs fill at the next session's stored close "
+              f"({sig['entry_day']}), as the backtest entered")
+        closed = [p for p in pos if p["status"] == "closed"]
+        check(closed and all(p["exit_reason"] == "time" for p in closed)
+              and closed[0]["closed_at"][:10] == sig["exit_day"],
+              f"and exit on the time stop at the session the backtest exited "
+              f"({sig['exit_day']})")
+        during = [s for s in sigs if s["as_of"][:10] <= sig["exit_day"]]
+        check(len(during) == 2, "one position at a time: no new legs while it is open")
+        promote.retire(lg, hid, asof(days[-1]), "fixture ruling: retire for the gate")
+        ev = lg.one("SELECT * FROM loop_events WHERE kind='kill' AND engine=? ORDER BY "
+                    "id DESC", (hid,))
+        check(lg.engine(hid)["status"] == "retired" and ev["source"] == "operator"
+              and "fixture ruling" in ev["after"]
+              and hyp.Register(lg).get(hid)["status"] == "retired",
+              "the operator retires it by ruling: a kill event with source operator")
+        try:
+            promote.retire(lg, hid, asof(days[-1]), "  ")
+            check(False, "a retirement without a ruling is refused")
+        except ValueError:
+            check(True, "a retirement without a ruling is refused")
+    check(sha(Path(fx_store())) == before, "the store is unchanged by the paper runs")
+
+
+def st_close(key: str, day: str) -> Optional[float]:
+    st = ReadOnlyStore(fx_store())
+    try:
+        from alpha import rules                                 # noqa: PLC0415
+        return rules.Data(st).series(key).first(day)
+    finally:
+        st.close()
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q]
+          group_p, group_q, group_r]
 
 
 def main() -> int:
