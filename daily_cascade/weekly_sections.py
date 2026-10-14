@@ -36,6 +36,7 @@ from typing import Any, Optional
 import yaml
 
 from altdata import derived, session
+from altdata.numeral_audit import ordinal as na_ordinal
 
 from .cadence import Period
 
@@ -656,7 +657,7 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             continue
         if typ == "earnings" or p.get("kind") == "earnings":
             sym = p.get("symbol") or t.split()[0]
-            rows.append({"date": d, "time": earnings_session(obs),
+            rows.append({"date": d, "time": earnings_session(p.get("release_at") or obs),
                          "event": f"{sym} earnings", "tier": 3,
                          "consensus": "no consensus stored", "symbol": sym,
                          "eps_estimate": p.get("eps_estimate"), "cls": "earnings"})
@@ -700,17 +701,23 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             "routine": rout, "routine_not_listed": len(rout)}
 
 
+# W-1.3c item 9: what a row with no release time says. "session not stated" read
+# as if the company had not said; the truth is that the source stored a date.
+RELEASE_NOT_CAPTURED = "release time not captured"
+
+
 def earnings_session(observed_at: Any) -> str:
-    """Pre- or post-market from a stored earnings timestamp. The calendar route
-    stores a bare date at 13:30Z (altdata/sources/earnings._iso), which says
-    nothing about the session: "session not stated"."""
+    """Pre- or post-market from a stored earnings timestamp: the event's
+    `release_at` where the source carried a release time, else its observed_at.
+    The calendar route stores a bare date at 13:30Z (altdata/sources/earnings._iso),
+    which says nothing about the session: "release time not captured"."""
     s = str(observed_at or "")
     if len(s) <= 10 or "T13:30:00" in s:
-        return "session not stated"
+        return RELEASE_NOT_CAPTURED
     try:
         et = session.to_eastern(dt.datetime.fromisoformat(s.replace("Z", "+00:00")))
     except (ValueError, TypeError):
-        return "session not stated"
+        return RELEASE_NOT_CAPTURED
     hm = et.hour * 60 + et.minute
     return ("pre-market" if hm < 9 * 60 + 30 else "post-market" if hm >= 16 * 60
             else "during the session")
@@ -1081,8 +1088,9 @@ def _with_pct(v: Optional[str], p: Optional[float]) -> str:
         return "—"
     if p is None:
         return v
-    from altdata.numeral_audit import ordinal_suffix              # noqa: PLC0415
-    return f"{v} ({int(p)}{ordinal_suffix(int(p))})"
+    # W-1.3c item 7: the shared helper, half up (int() truncated 88.7 to 88th).
+    from altdata.numeral_audit import ordinal                     # noqa: PLC0415
+    return f"{v} ({ordinal(p)})"
 
 
 def auction_table(recs: list[dict]) -> dict:
@@ -1332,7 +1340,7 @@ def volatility(st, now: str, wis: Optional[dict] = None,
     if vix is not None:
         pct = derived.percentile_of(vix_hist, vix) if len(vix_hist) > 20 else None
         rows.append(["VIX", f"{vix:.2f}",
-                     f"{round(pct):d}th percentile, five years" if pct is not None else "—",
+                     f"{na_ordinal(pct)} percentile, five years" if pct is not None else "—",
                      wk("yfinance.mkt_vix")])
         data["vix"] = vix
         data["vix_percentile_5y"] = None if pct is None else round(pct)

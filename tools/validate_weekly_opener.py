@@ -21,6 +21,18 @@ network, no box.
      figures of its own); the tables are said to print BELOW; the close's and
      the Monthly's frames are untouched; the paragraph guard's cap is the band's
      top, so it never cuts a Takeaway.
+  F  W-1.3c, THE POLISH FROM DRY RUN #6 (tests/fixtures/weekly_run6_2026-10-13.json):
+     (2) an opener sentence that restates the terms box is withheld -- run 6's
+     read opener fails, one that explains the week's own finding passes, and a
+     draft that re-explains is retried with the reason and publishes; (5) a
+     first sentence with its own section as subject is withheld -- run 6's eight
+     fail, in the section and in the précis's relevance sentence, and the
+     pipeline retries with the reason; (4) only "Takeaway:" is bold in an
+     opener; (8) the précis's first sentence carries at most one figure -- run
+     6's fails, the tension-first rewrite passes; (6) the précis retries up to
+     three times with the reason and the rule; (10) the précis's page: no
+     forced break before the terms box, the stance line directly under "What
+     changed in the outlook".
 
     python tools/validate_weekly_opener.py
 """
@@ -95,8 +107,24 @@ def client(calls: list):
         if f"THE SECTION: {RETRIED_SECTION}." in sysp and \
                 "WITHHELD BY THE AUDIT" not in sysp:
             return W.Resp(NO_TAKEAWAY)
+        # W-1.3c items 5 and 2: a first draft that names its own section as
+        # subject, and one that re-explains the terms box; each retry, told why
+        # and the rule, publishes the shaped paragraph.
+        if "THE SECTION: Narratives." in sysp and "WITHHELD BY THE AUDIT" not in sysp:
+            return W.Resp(R6["self_subject_openers"]["narratives"] + " "
+                          + W.OPENER_TEXT)
+        if "THE SECTION: Positioning & flows." in sysp \
+                and "WITHHELD BY THE AUDIT" not in sysp:
+            return W.Resp(W.OPENER_TEXT.replace(
+                "The week left this section where it was.",
+                "The week left this section where it was. "
+                + R6["terms_explainers"]["positioning"]))
         return W.Resp(W.OPENER_TEXT)
     return types.SimpleNamespace(messages=types.SimpleNamespace(create=create))
+
+
+R6 = __import__("json").loads((REPO / "tests" / "fixtures" /
+                               "weekly_run6_2026-10-13.json").read_text(encoding="utf-8"))
 
 
 def segments(html: str) -> dict:
@@ -270,8 +298,141 @@ def main() -> int:
           and cadence.paragraph_cap(cadence.get("daily"), "deep") == 120,
           "the paragraph guard's cap is the band's top on the Weekly only")
 
+    group_f(ed, html, calls, segs)
+
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
+
+
+def group_f(ed: dict, html: str, calls: list, segs: dict) -> None:
+    from daily_cascade import cadence, opener, precis, stack_render
+    cad = cadence.get("weekly")
+    print(f"\n{LINE}\nF. W-1.3c -- THE POLISH FROM DRY RUN #6\n{LINE}")
+
+    # --- item 2 ---------------------------------------------------------------
+    check(opener.terms_faults(R6["read_opener"])
+          and all(opener.terms_faults(s) for s in R6["terms_explainers"].values()),
+          "(2) run 6's read opener fails the terms-box check, and so do all five "
+          "of its dealer-gamma explainers")
+    check(opener.terms_faults(R6["finding_opener"]) == []
+          and opener.faults(R6["finding_opener"], cad, "deep") == []
+          and opener.finding_faults(R6["finding_opener"]) == [],
+          "(2) an opener that explains the week's own finding passes")
+    check(opener.terms_faults(opener.EXAMPLE) == []
+          and "dealer gamma" not in opener.EXAMPLE.lower()
+          and "never define any of" in opener.frame_note(cad, "deep")
+          and "dealer gamma" in opener.frame_note(cad, "deep"),
+          "(2) the worked example explains a finding, and the frame names the "
+          "terms the box defines")
+    pos = (ed.get("prose") or {}).get("positioning") or {}
+    rp = [c for c in calls if "THE SECTION: Positioning & flows." in c
+          and "WITHHELD BY THE AUDIT" in c]
+    check(pos.get("published") and pos.get("attempts") == 2 and rp
+          and "re-explains the terms box" in rp[0] and "THE TERMS RULE" in rp[0],
+          "(2) a draft that re-explains the box is withheld, retried with the "
+          "reason and the rule, and publishes")
+
+    # --- item 5 ---------------------------------------------------------------
+    bad5 = {k: opener.finding_faults(v) for k, v in R6["self_subject_openers"].items()}
+    check(all(bad5.values()) and len(bad5) == 8,
+          "(5) all eight run-6 first sentences fail (The read, the tape, "
+          "Mechanics, What doesn't fit, Positioning, What's priced, Narratives, "
+          "the book)" + (f" -- not: {[k for k, v in bad5.items() if not v]}"
+                         if not all(bad5.values()) else ""))
+    check(not opener.finding_faults("Credit and equities parted company this week.")
+          and not opener.finding_faults("The tape rallied, and the book shows it.")
+          and not opener.finding_faults("Narratives about deficits gathered support."),
+          "(5) a first sentence about markets passes, even naming a section later")
+    nr = (ed.get("prose") or {}).get("narratives") or {}
+    rn = [c for c in calls if "THE SECTION: Narratives." in c
+          and "WITHHELD BY THE AUDIT" in c]
+    check(nr.get("published") and nr.get("attempts") == 2 and rn
+          and "makes a section its subject" in rn[0] and "THE FINDING FIRST" in rn[0],
+          "(5) the pipeline withholds it and the retry hears the reason and the rule")
+    import validate_weekly_storyline as S2
+    fr = {"figures_you_may_cite": [], "commentaries": [
+        {"id": k, "section": k, "state": "published", "commentary": "x"}
+        for k in R6["self_subject_openers"]], "previous_precis": None}
+    pp = precis.parse(S2.precis_reply("\n".join(
+        f"RELEVANCE {k}: <x>" for k in R6["self_subject_openers"])))
+    pp["relevance"] = dict(R6["self_subject_openers"])
+    rel = [f for f in precis.audit(pp, fr) if "makes a section its subject" in f]
+    check(len(rel) == 8, f"(5) the précis's RELEVANCE sentence -- the opener's "
+                         f"first printed sentence -- is held to it: {len(rel)} of 8")
+    check("never with the section or" in precis.RELEVANCE_LINE,
+          "(5) the précis frame asks for the finding")
+
+    # --- item 4 ---------------------------------------------------------------
+    paras = re.findall(r'<p[^>]*class="opener"[^>]*>(.*?)</p>', html, re.S)
+    bolds = [b for para in paras for b in re.findall(r"<b[^>]*>(.*?)</b>", para, re.S)]
+    check(paras and bolds and all(b == "Takeaway:" for b in bolds)
+          and 'class="claim"' in html and '<b class="claim">' not in html,
+          f"(4) in the rendered openers the only bold run is \"Takeaway:\" "
+          f"({len(bolds)} bold runs over {len(paras)} openers)")
+    md = stack_render.markdown(ed, "weekly", "Weekly")
+    claims = [s["claim"] for s in ed["sections"] if s.get("claim")]
+    check(claims and not any(f"**{c}**" in md for c in claims),
+          "(4) and in the Markdown edition")
+
+    # --- item 8 ---------------------------------------------------------------
+    fr8 = {"figures_you_may_cite": [], "commentaries": [], "previous_precis": None}
+    def first_faults(week: str) -> list:
+        p8 = precis.parse(S2.precis_reply(""))
+        p8["week"] = week
+        return [f for f in precis.audit(p8, fr8) if "first sentence carries" in f]
+    check(first_faults(R6["precis"]["week"])
+          and not first_faults(R6["precis"]["tension_first"]),
+          "(8) run 6's précis, which led with SPY's figures, fails; the "
+          "tension-first rewrite passes")
+    check("FIRST sentence states the week's tension" in precis.WEEK_LINE,
+          "(8) the précis frame asks for the tension first")
+    w = opener.words(R6["precis"]["tension_first"])
+    check(150 <= w <= 250, f"(8) the rewrite sits in the ruled 150-250 ({w})")
+
+    # --- item 6 (the précis) ---------------------------------------------------
+    import types
+    n = {"k": 0}
+    prompts: list = []
+
+    def create(**k):
+        n["k"] += 1
+        prompts.append(k["system"])
+        reply = S2.precis_reply(k["system"])
+        if "first sentence carries" not in k["system"]:
+            reply = "\n".join(("WEEK: " + R6["precis"]["week"]) if x.startswith(
+                "WEEK:") else x for x in reply.splitlines())
+        return W.Resp(reply)
+    cl = types.SimpleNamespace(messages=types.SimpleNamespace(create=create))
+    edp = {"week_ending": "2026-10-09", "sections": [
+        {"id": "tape", "title": "The tape", "claim": "Stocks held.",
+         "paragraphs": ["Run 6's figures: " + " ".join(
+             f for f in precis._figs(R6["precis"]["week"]))]}]}
+    res = precis.write(edp, None, client=cl)
+    check(res.get("published") and res.get("attempts") == 2
+          and "THE TENSION FIRST" in prompts[1] and "attempt 1 of 3" in prompts[1],
+          f"(6) the précis retries with the reason and the rule; a model that "
+          f"obeys on attempt 2 publishes ({res.get('attempts')}; "
+          f"{str(res.get('first_reason'))[:80]})")
+    check(precis.ATTEMPTS == 3, "(6) the précis has three attempts")
+
+    # --- item 10 (structure; the PDF check is validate_readability's) ----------
+    i_p, i_t = html.find('id="precis"'), html.find('id="terms"')
+    between = html[i_p:i_t]
+    check(0 <= i_p < i_t and "page-break-before" not in between
+          and "break-before" not in html[i_t - 200:i_t + 200],
+          "(10) no page break between the précis and the terms box")
+    ped = {"precis": {"published": True, "stance_line": R6["precis"]["stance_line"],
+                      "parsed": {**{k: R6["precis"][k] for k in (
+                          "week", "tension", "for", "against", "verdicts",
+                          "confidence", "change", "outlook")}}}}
+    ph = precis.precis_html(ped)
+    m = re.search(r'id="outlook"[^>]*>What changed in the outlook</h3>\s*'
+                  r'<p[^>]*id="stance"[^>]*><b>([^<]*)</b>', ph)
+    check(m and m.group(1) == R6["precis"]["stance_line"]
+          and ph.find('id="verdicts"') < ph.find('id="change"') < ph.find('id="stance"'),
+          "(10) the stance line prints directly under \"What changed in the "
+          "outlook\", after the verdicts and what would change our mind")
+
 
 
 if __name__ == "__main__":

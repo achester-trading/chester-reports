@@ -278,7 +278,7 @@ _NOT_FIGURES = [
     re.compile(r"\b(?:Q[1-4]|H[12]|RTAT10|W\d+|C\d)\b"),
     re.compile(r"\b10[–-]90%"),
 ]
-_FIG = re.compile(r"(?<![\w.])[+\-−±]?\$?\d[\d,]*(?:\.\d+)?"
+_FIG = re.compile(r"(?<![\w.])[+\-−±]?[$€£¥]?\d[\d,]*(?:\.\d+)?"
                   r"(?:st|nd|rd|th)?(?:\s?(?:%|bp\b|bps\b|pts\b|points\b|tn\b|bn\b|"
                   r"k\b|x\b))?")
 
@@ -599,9 +599,19 @@ def short_claim(claim: Optional[str], limit: int = SUBJECT_CLAIM_CHARS) -> str:
 
 
 def subject(report: str, when: str, ed: dict, dry_run: bool = False) -> str:
-    """'Weekly — w/e 2 Oct — <The read's claim, at most 90 characters>'."""
-    read = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
-    claim = short_claim(read.get("claim"))
+    """'Weekly — w/e 2 Oct — <the précis's Takeaway, at most 90 characters>'.
+
+    W-1.3c item 3. On an edition with a précis (the Weekly) the subject is the
+    précis's Takeaway, trimmed at a word boundary; with no précis Takeaway, the
+    stance line; never an opener sentence -- dry run #6's subject was The read's
+    first sentence, a definition of dealer gamma. An edition without a précis
+    (the close) keeps The read's claim."""
+    if "precis" in ed:
+        from . import precis                                    # noqa: PLC0415
+        claim = short_claim(precis.subject_claim(ed))
+    else:
+        read = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
+        claim = short_claim(read.get("claim"))
     out = f"{report} — {when}" + (f" — {claim}" if claim else "")
     return ("[DRY RUN] " if dry_run else "") + out
 

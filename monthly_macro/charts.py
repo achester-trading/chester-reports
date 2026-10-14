@@ -62,6 +62,7 @@ import logging
 import re
 from typing import Optional
 
+from altdata.numeral_audit import ordinal
 from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
@@ -361,17 +362,17 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
         for q, v in marks.items():
             ax.axhline(v, color="#94a3b8" if q == 50 else "#d97706",
                        linestyle="--", linewidth=0.8)
-            ax.annotate(f"{q}th {v:.2f}", xy=(1.0, v), xycoords=("axes fraction",
+            ax.annotate(f"{ordinal(q)} {v:.2f}", xy=(1.0, v), xycoords=("axes fraction",
                         "data"), xytext=(3, 0), textcoords="offset points",
                         va="center", fontsize=6.5, color="#475569")
         ax.plot([len(vals) - 1], [vals[-1]], marker="o", color=ch.DOWN, markersize=4)
-        ax.annotate(f"{vals[-1]:.2f} ({pct:.0f}th)", xy=(len(vals) - 1, vals[-1]),
+        ax.annotate(f"{vals[-1]:.2f} ({ordinal(pct)})", xy=(len(vals) - 1, vals[-1]),
                     xytext=(-4, 6), textcoords="offset points", ha="right",
                     fontsize=7, color=ch.DOWN)
         spaced_ticks(ax, [d for d, _ in hy], 5)
         out = ch._finish(fig, name, out_dir)
         cap = (f"{title}; latest {vals[-1]:.2f} on {hy[-1][0]}, at the "
-               f"{pct:.0f}th percentile of the span; 10th {marks[10]:.2f}, median "
+               f"{ordinal(pct)} percentile of the span; 10th {marks[10]:.2f}, median "
                f"{marks[50]:.2f}, 90th {marks[90]:.2f}")
         return {"id": "M5", "title": title, "drawn": [], "caption": cap, **out,
                 "percentile": pct, "marks": marks,
