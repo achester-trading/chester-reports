@@ -946,7 +946,7 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
     checks_ = [
         ("aq-9a-em-scorecard", "altdata.em_scorecard", nt(em["em_scorecard"])),
         ("c1-move-screen", "altdata.move_screen", nt(em["em_episodes"])),
-        ("imf-ifs-gold", None, nt(by["china"]["structure"])),
+        ("imf-ifs-gold", "altdata.sources.imf_ifs", nt(by["china"]["structure"])),
         ("aq-5-correlation-layer", "altdata.correlation",
          " ".join(row[1] for row in em["analyses"]["table"]["rows"])),
     ]
@@ -1077,8 +1077,12 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
     # SLOOS is the lending-standards leg (the operator's ruling on part 2's
     # choice 6); the HY OAS reading is labelled a proxy until it is stored.
     crd_nt = " ".join(crd["structure"].get("not_tracked") or [])
+    # Once aq-3-series-2 has registered SLOOS the rows read the store instead
+    # (Friday stitching, 13 Oct).
+    sloos_reg = bool(qi.derived.registry_entry("fred.sloos_ci_large"))
     check("proxy until SLOOS" in ls[2]
-          and crd_nt.count("not yet: aq-3-series-2") == 3,
+          and (crd_nt.count("not yet: aq-3-series-2") == 0 and crd_nt.count("SLOOS:") == 3
+               if sloos_reg else crd_nt.count("not yet: aq-3-series-2") == 3),
           "credit: SLOOS (C&I large and small, CRE) is the lending-standards "
           "measurable, named \"not yet: aq-3-series-2\" until registered; the HY "
           "OAS reading is labelled \"proxy until SLOOS\"")
@@ -1109,8 +1113,11 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
           "tightened\", one print above zero is tightened")
     cur_ = {ss.get("item"): ss for ss in chs["currency"]["subsections"]}
     cnt = " ".join(cur_["structure"].get("not_tracked") or [])
-    check("CNH-CNY, bp: not yet: aq-3-series-1" in cnt
-          and "TFF" in cnt and cnt.count("not yet: aq-3-series-1") >= 11,
+    # Once aq-3-series-1 has registered its keys the rows read the store.
+    aq3_reg = bool(qi.derived.registry_entry("calc.cnh_cny_bp"))
+    check(("not yet: aq-3-series-1" not in cnt and "TFF" in cnt) if aq3_reg else
+          ("CNH-CNY, bp: not yet: aq-3-series-1" in cnt
+           and "TFF" in cnt and cnt.count("not yet: aq-3-series-1") >= 11),
           "the rows AQ-3 part 1's writers fill name aq-3-series-1 until it merges "
           "(CNH-CNY, the TFF positioning)")
     re_rows = {row[0]: row for row in by["real_estate"]["structure"]["table"]["rows"]}
