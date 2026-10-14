@@ -131,8 +131,13 @@ class Store:
             return n
         try:
             from . import observations as _obs
+            # AUD-1 4a: THROUGH drop_unchanged. Every FRED pull re-reads five
+            # years, and without this each unchanged value landed as a new
+            # vintage stamped today -- about 33,000 rows a session, and every
+            # series derived from them inherited the new stamps. An unchanged
+            # re-read now writes nothing; a revised value writes one vintage.
             with _obs.ObservationStore() as db:
-                db.write_many([
+                db.write_many(_obs.drop_unchanged(db, [
                     {"registry_key": f"{source}.{key}", "instrument": None,
                      "observed_at": d, "available_at": as_of,
                      "value": v, "source": source,
@@ -143,7 +148,7 @@ class Store:
                      # migrated history predates this column and is null, which is
                      # the honest reading of a migration instant.
                      "availability_kind": "ingest_instant"}
-                    for d, v in rows_written if v is not None])
+                    for d, v in rows_written if v is not None]))
         except Exception as exc:  # noqa: BLE001 -- never break the CSV path
             # THIS USED TO BE `pass`, AND THAT WAS THE WORST LINE IN THE REPO.
             #

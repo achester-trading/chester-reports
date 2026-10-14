@@ -646,7 +646,9 @@ def freshness(as_of: Optional[str] = None,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
-                rows = db.as_of(k, as_of=as_of)
+                # AUD-1 4c: one row from the index, not the whole history.
+                last = db.latest_as_of(k, as_of=as_of)
+                rows = [last] if last else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks
@@ -656,9 +658,9 @@ def freshness(as_of: Optional[str] = None,
                     insts = db.instruments(k)
                     newest_any = None
                     for inst in insts:
-                        r2 = db.as_of(k, as_of=as_of, instrument=inst)
+                        r2 = db.latest_as_of(k, as_of=as_of, instrument=inst)
                         if r2:
-                            d = str(r2[-1]["observed_at"])[:10]
+                            d = str(r2["observed_at"])[:10]
                             newest_any = max(newest_any or d, d)
                     if newest_any is None:
                         absent.append(k)
