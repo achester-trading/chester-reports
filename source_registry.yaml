@@ -1254,7 +1254,37 @@ sources:
     status: not_yet_sourced
     caveats:
       - >-
-        wgc.* registered not_yet_sourced. IMF IFS, the WGC's own source, is the candidate primary.
+        wgc.* superseded 10 Oct 2026 by imf.ifs.* (source imf_ifs): IMF IFS, the WGC's own source, was ruled the primary.
+
+  imf_ifs:
+    name: IMF International Financial Statistics -- International Liquidity (IL), gold volume
+    tier: B
+    epistemic_role: primary_fact
+    domain: [metals, reserves]
+    geography: [global]
+    latency: monthly; most countries one to two months behind, the euro members and China about three
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The SDMX-JSON response carries the dataset's own PUBLICATION_DATE and
+      UPDATE_DATE (the same instant across requests hours apart on 10 Oct 2026),
+      used as available_at, `observed`; the ingest instant where absent.
+    license: >-
+      Free reuse with attribution ("Source: International Monetary Fund,
+      International Liquidity (IL)"); commercial reuse needs permission
+      (copyright@imf.org); the terms prohibit "bulk download of information by
+      automated technology without explicit permission" -- the writer makes one
+      narrow API query a day (see docs/briefs/imf-ifs-gold-notes.md).
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/imf_ifs.py
+    status: live
+    caveats:
+      - >-
+        The legacy dataservices.imf.org service no longer answers; this is the
+        SDMX 3.0 API at api.imf.org, no key. IFS is split into thematic
+        dataflows; the gold line is IL's RGV_REVS (FTO, monthly).
+      - >-
+        China's primary stays SAFE (safe.gold_reserves_oz); IL is its
+        cross-check.
 
   imf_weo:
     name: IMF World Economic Outlook (WEO), current edition and published vintages
