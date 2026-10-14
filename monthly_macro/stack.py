@@ -2314,7 +2314,7 @@ def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
 # ---------------------------------------------------------------------------
 # T3.6 M3: the one page, de-duplicated and capped
 # ---------------------------------------------------------------------------
-ONE_PAGE_MAX = 4
+ONE_PAGE_MAX = 5
 
 
 def dedup_one_page(ed: dict) -> dict:
@@ -2499,7 +2499,8 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
             log.exception("the summary's consistency pass faulted")
     apply_summary(ed, sw, narrative)
     # T3.6 M3: the one page says each thing once -- not what the executive
-    # summary already says, not twice in itself -- in at most four paragraphs.
+    # summary already says, not twice in itself -- in at most five paragraphs
+    # (five takeaways, ruled 14 Oct 2026, decision 8).
     dedup_one_page(ed)
     # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
     # formatting pass, run after it, wrote the key back -- so nothing after

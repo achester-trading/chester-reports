@@ -143,3 +143,68 @@ This branch changes seven files:
 3. **The M6 rule for right and wrong** (p ≥ 0.5 on the outcome's side). keep / rule
 4. **The thresholds:** M3's 0.5 similarity, M4's 2 bp, M8's 70% cap. keep / change
 5. **The acceptance is the 23 Oct Monthly dry run** (yours, on the box): whether any of M1 to M10 recurs on live text.
+
+## 14 Oct evening: Friday's tip and five takeaways (session A)
+
+Session B built T3.6, and session A took it over this evening.
+
+### The tip merged
+
+`origin/w-1-3c-weekly-polish` at **`fb67bf3`** (it had not moved), merged as
+`76941f9` and pushed on its own. One conflict, as the trial merge predicted:
+
+- **`tools/validate_audit_fixes.py`**, in three places: the docstring, the end
+  of the groups, and `main()`'s loop.
+  - The tip's group H prints two parts, **H** (W-1.3c item 1) and **I** (item
+    6). T3.6's group was also lettered **I**, chosen to avoid the tip's H.
+  - **Both sides are kept** by relettering T3.6's group **J**: its docstring
+    entry, its heading, and `group_i` renamed to `group_j`. It now runs after
+    the tip's groups.
+  - No check changed. The gate passes 103/0: the tip's 73 plus T3.6's 30.
+- **CLAUDE.md** did not conflict, but the gate total was recounted from the
+  merged Makefile: **74 code gates** (71 Python, counting `smoke_test.py` as the
+  Makefile's `EXTRA` does, and 3 shell) and **six data gates**. The tip's prose
+  said five data gates; its Makefile lists six (`validate_imf_china.py`).
+
+Where the notes above say "group I", read **J** from this merge on.
+
+All of T3.6's other files auto-merged: `numeral_audit.py`, `readability.py`,
+`prose.py`, `stack.py` and `v2.py`. On the merge, the gates T3.6 ran all passed:
+
+| Gate | Result |
+|---|---|
+| validate_audit_fixes | 103/0 |
+| validate_monthly_stack | 262/0 |
+| validate_monthly | 350/0, 1 skipped |
+| validate_monthly_frames | 32/0 |
+| validate_numeral_audit | 167/0 |
+| validate_readability | 67/0 |
+| validate_stack | 66/0 |
+| validate_stack_cadence | 99/0 |
+| validate_gates | passed |
+
+### The change: five takeaways (ruled 09:27 ET, decision 8)
+
+This answers needs-you 2 above: five, not four. Three places now say five:
+
+- **The cap:** `monthly_macro/stack.py` `ONE_PAGE_MAX = 5`.
+- **The frame:** `monthly_macro/prose.py`'s one-page frame asks for "Five
+  takeaways …", with `"paragraphs": "exactly 5"`, as before T3.6. It keeps
+  T3.6's "Say each thing once: no takeaway restates another."
+- **The gate:** `validate_audit_fixes` group J.
+  - The six-paragraph fixture page is cut to five, and its note reads "Cut to 5
+    paragraphs".
+  - The frame asks for five takeaways, each said once.
+
+The M3 de-duplication is unchanged: `readability.similar_sentence`, and
+`dedup_one_page` against the summary and against itself. A page that loses a
+repeat still prints fewer than five, with its notes saying what went.
+
+### Gates (local, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_audit_fixes | 103/0 |
+| validate_monthly_frames | 32/0 |
+| validate_monthly_stack | 262/0 |
+| validate_monthly | 350/0, 1 skipped |

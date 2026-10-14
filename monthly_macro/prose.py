@@ -389,13 +389,13 @@ def plan(p: dict) -> list[dict]:
                      "reads and the month's releases add.",
             "paragraphs": "3 to 4", "slice": opening_slice(p)},
            {"key": "month_in_one_page", "title": "The month in one page",
-            "scope": "Four takeaways for a reader with no context. Each takeaway "
+            "scope": "Five takeaways for a reader with no context. Each takeaway "
                      "is ONE short paragraph whose first sentence is a plain-English "
                      "headline, followed by what is happening, why it matters, and "
                      "what it means for positioning. Build them from the facts "
                      "given; one takeaway per paragraph, in order of importance. "
                      "Say each thing once: no takeaway restates another.",
-            "paragraphs": "at most 4", "slice": takeaways_slice(p)}]
+            "paragraphs": "exactly 5", "slice": takeaways_slice(p)}]
     for t in ((p.get("looking_back") or {}).get("themes") or []):
         out.append({"key": f"theme:{t['theme']}", "title": t["name"],
                     "scope": "This theme over the month, so that a reader with no "

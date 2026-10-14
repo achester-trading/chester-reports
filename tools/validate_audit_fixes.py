@@ -50,7 +50,7 @@ no network, no model:
      2026-10-13.json). M1 the role audit: "closed at" bound to a 40-week average
      is withheld, the long frame names its columns' roles; M2 one direction per
      instrument across the executive summary; M3 the one page against the
-     summary and itself, at most four paragraphs; M4 a derived change from
+     summary and itself, at most five paragraphs; M4 a derived change from
      aligned legs, withheld with its legs when it is not theirs; M5 each gap's
      direction over the month, the summary held to it; M6 forecasts and
      decisions summarised; M7 small counts in words; M8 too long retried once
@@ -788,12 +788,13 @@ def group_j() -> None:
         "Emerging currencies weakened against a firmer yen."]}
     ed3b = {"sections": [{"id": "read", "subsections": [page2]}], "summary": []}
     ms.dedup_one_page(ed3b)
-    check(len(page2["paragraphs"]) == ms.ONE_PAGE_MAX == 4
-          and any("Cut to 4 paragraphs" in n for n in page2.get("notes") or []),
-          "M3: the one page is capped at four paragraphs, and says so")
+    check(len(page2["paragraphs"]) == ms.ONE_PAGE_MAX == 5
+          and any("Cut to 5 paragraphs" in n for n in page2.get("notes") or []),
+          "M3: the one page is capped at five paragraphs (decision 8), and says so")
     one = next(x for x in mp.plan({}) if x["key"] == "month_in_one_page")
-    check(one["paragraphs"] == "at most 4" and "Four takeaways" in one["scope"],
-          "M3: its frame asks for four takeaways, each said once")
+    check(one["paragraphs"] == "exactly 5" and "Five takeaways" in one["scope"]
+          and "Say each thing once" in one["scope"],
+          "M3: its frame asks for five takeaways, each said once")
 
     # M4 -- a derived change equals its legs' --------------------------------
     m4 = M5["m4_derived"]
