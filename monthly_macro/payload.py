@@ -71,9 +71,20 @@ ALT_FAMILIES: dict[str, dict[str, Any]] = {
                "note": "gold and silver funds; the store holds no spot metal"},
     "energy": {"metrics": ["yfinance.mkt_uso", "fred.wti"],
                "note": "the oil fund and WTI spot"},
-    "digital": {"metrics": ["yfinance.mkt_btc_usd", "zec.price",
+    # THE REGISTERED KEYS (13 Oct 2026): this block read `zec.price` and
+    # `crypto.cap_share`, which no writer has ever written, so both rows were
+    # silently "no observation" since the family was declared.
+    "digital": {"metrics": ["yfinance.mkt_btc_usd", "zec.price_usd",
                             "zec.shielded_value_share",
-                            "crypto.cap_share"],
+                            "zec.crypto_cap_share"],
+                # A metric whose source was withdrawn prints as "not sourced --
+                # <reason>" rather than as its last value read as current.
+                "not_sourced": {
+                    "zec.crypto_cap_share": (
+                        "no free source of total crypto market cap permits "
+                        "stored vintages (CoinGecko's terms discourage storage "
+                        "and bar keyless use; ruled 13 Oct 2026)"),
+                },
                 "note": "bitcoin from the price basket; the ZEC block from the "
                         "29.5 shielded-pool logger, including the shielded share "
                         "of SUPPLY (not of transactions -- see that module)"},
@@ -365,6 +376,23 @@ def top_bottom_block(store: Optional[Any] = None) -> dict:
 # ---------------------------------------------------------------------------
 # 4. ALTERNATIVE ASSETS -- a section, not a report
 # ---------------------------------------------------------------------------
+def _not_sourced_row(metric: str, why: str, as_of: Optional[str],
+                     db: Any) -> dict:
+    """A withdrawn source's metric: no level, the reason, and the date of the
+    last value stored before the source stopped -- dated, never read as current."""
+    last = None
+    try:
+        rows = db.as_of(metric, as_of)
+        if rows:
+            last = str(rows[-1]["observed_at"])[:10]
+    except Exception:                                          # noqa: BLE001
+        last = None
+    return {"metric": metric, "level": None, "observed_at": None,
+            "delta_20d": None, "delta_unit": None, "percentile": None,
+            "confidence": None, "not_sourced": why, "last_stored": last,
+            "absent_reason": f"not sourced -- {why}"}
+
+
 def alternative_assets_block(as_of: Optional[str] = None,
                              store: Optional[Any] = None) -> dict:
     """Metals, energy and digital from the store. Absent-with-reason otherwise."""
@@ -376,6 +404,10 @@ def alternative_assets_block(as_of: Optional[str] = None,
         for family, spec in ALT_FAMILIES.items():
             rows = []
             for metric in spec.get("metrics") or []:
+                why = (spec.get("not_sourced") or {}).get(metric)
+                if why:
+                    rows.append(_not_sourced_row(metric, why, as_of, db))
+                    continue
                 d = derived.derived_forms(metric, as_of, store=db)
                 rows.append({
                     "metric": metric,
@@ -698,13 +730,17 @@ def v2_sections(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
-def build(as_of: Optional[str] = None, run_id: Optional[str] = None) -> dict:
-    """Every section. Reads only; never raises on a missing one."""
+def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
+          period: str = "month") -> dict:
+    """Every section. Reads only; never raises on a missing one. `period`
+    "quarter" (AQ-1) moves v2.month_bounds' window to the previous calendar
+    quarter, for the Quarterly's front matter."""
     cutoff = as_of or session.utc_iso(timespec="microseconds")
     db = observations.ObservationStore()
     try:
         out: dict[str, Any] = {
-            "report": "monthly",
+            "report": "monthly" if period == "month" else "quarterly",
+            "period": period,
             "report_date": session.session_date(),
             "as_of": cutoff,
             "generated_at": session.utc_iso(),

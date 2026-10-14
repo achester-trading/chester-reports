@@ -54,19 +54,17 @@ WARNING rather than silently dropped or averaged in: the chain gains pools at ne
 upgrades, and that should reach a human.
 
 -----------------------------------------------------------------------------
-SHARE OF CRYPTO CAP NOW HAS A SOURCE, AND IT IS FORWARD-ONLY
+SHARE OF CRYPTO CAP: SOURCED 6 OCT, NOT SOURCED FROM 13 OCT 2026
 -----------------------------------------------------------------------------
 
-CoinGecko's public API serves both halves, keyless -- /api/v3/global for the total and
-simple/price with include_market_cap for ZEC's -- so the ruling's "stop and tell me if
-it needs a key" branch does not fire. First read: total 2.93 trillion USD, ZEC 27.50
-billion, a share of 0.938 percent.
-
-IT CANNOT BE BACKFILLED. The free tier serves the CURRENT total capitalisation and no
-history of it, so this series starts today and grows forward. That is precisely what
-a forward-only logger is, and it is the argument for starting tonight rather than
-after a data purchase: every night not logged is a night of this series that cannot
-be recovered.
+Until 13 Oct this read CoinGecko keylessly -- /api/v3/global for the total and
+simple/price for ZEC's cap. Ruled that day: CoinGecko's terms provide for no
+keyless plan and discourage storing data, which a store of vintages contradicts.
+ZEC's cap now comes from DefiLlama's coin service, as the crypto basket's caps do,
+FORWARD-ONLY (the service has no history). No free source whose terms permit stored
+vintages serves the TOTAL, so `crypto.total_market_cap_usd` and
+`zec.crypto_cap_share` stop at their last stored values, which stay in the store,
+dated; the Monthly prints the share as "not sourced -- <reason>".
 
 zec.btc_ratio KEEPS ITS OWN NAME, per the ruling. It is a relative price and the cap
 share is a share of a market; now that both exist, having built the second is no
@@ -147,12 +145,21 @@ EXCLUDED_FROM_SHARE = {
                 "headline on a guess",
 }
 
-# COINGECKO, public and keyless. Probed before use: the ruling said to stop and ask
-# if it needed a key, and it does not -- /global and simple/price both answer 200
-# anonymously.
-COINGECKO_GLOBAL = "https://api.coingecko.com/api/v3/global"
-COINGECKO_ZEC = ("https://api.coingecko.com/api/v3/simple/price"
-                 "?ids=zcash&vs_currencies=usd&include_market_cap=true")
+# THE CAPITALISATION, FROM DEFILLAMA'S COIN SERVICE (ruled 13 Oct 2026). This
+# read CoinGecko keylessly until then; CoinGecko's terms (coingecko.com/en/
+# api_terms) provide for no keyless plan and discourage storing data, and a store
+# that keeps every vintage contradicts them -- the same reading as the crypto
+# basket's (docs/briefs/crypto-basket-notes.md). ZEC's cap moves to the coin
+# service the basket already reads (altdata/sources/llama.py).
+#
+# THE TOTAL CRYPTO CAP HAS NO SOURCE. No free source whose terms permit stored
+# vintages serves it (CoinGecko, CoinPaprika, CoinLore checked; DefiLlama serves
+# no total), so `crypto.total_market_cap_usd` and `zec.crypto_cap_share` stop at
+# their last stored values, which stay in the store dated. Nothing writes them.
+ZEC_LLAMA_COIN = "coingecko:zcash"
+CAP_SHARE_NOT_SOURCED = (
+    "no free source of total crypto market cap permits stored vintages "
+    "(CoinGecko's terms discourage storage and bar keyless use; ruled 13 Oct 2026)")
 
 UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
 TIMEOUT = 25
@@ -229,62 +236,57 @@ def probe(store: Optional[observations.ObservationStore] = None) -> dict:
     return out
 
 
-def probe_cap(store: Optional[observations.ObservationStore] = None) -> dict:
-    """Total crypto capitalisation and ZEC's, from CoinGecko. Keyless.
+def probe_cap(store: Optional[observations.ObservationStore] = None,
+              fetch: Optional[Any] = None, post: Optional[Any] = None) -> dict:
+    """ZEC's capitalisation from DefiLlama's coin service. Keyless.
 
-    THE ONE THING TO KNOW ABOUT THIS SERIES: it is POINT-IN-TIME and cannot be
-    backfilled. CoinGecko's free tier serves the CURRENT total capitalisation and no
-    history of it, so `crypto.total_market_cap_usd` and the share derived from it
-    start today and grow forward. That is what a forward-only logger is, and it is the
-    reason this was worth starting tonight rather than after a data purchase.
+    FORWARD-ONLY: the coin service serves the CURRENT cap and no history, so
+    `zec.market_cap_usd` grows from the day it is read. The day is the service's
+    own timestamp's UTC day, not the read's. The total and the share are no longer
+    read at all (CAP_SHARE_NOT_SOURCED); the stored probe says so every night.
     """
+    from ..sources import llama                              # noqa: PLC0415
+    fetch = fetch or llama._get                             # noqa: SLF001
+    post = post or llama._post_json                         # noqa: SLF001
     out: dict[str, Any] = {"checked_at": session.utc_iso(), "state": "unknown",
-                           "needs_key": False}
+                           "source": "defillama",
+                           "total": {"state": "not_sourced",
+                                     "reason": CAP_SHARE_NOT_SOURCED}}
     try:
-        g = json.loads(_get(COINGECKO_GLOBAL).decode("utf-8", "replace"))
-        total = ((g.get("data") or {}).get("total_market_cap") or {}).get("usd")
-        out["total_market_cap_usd"] = total
-    except urllib.error.HTTPError as exc:
-        out["state"] = "http_error"
-        out["reason"] = f"/global returned HTTP {exc.code}"
-        # 401/403 is what a key requirement looks like, and the ruling says stop.
-        out["needs_key"] = exc.code in (401, 403)
-        total = None
+        caps = post(f"{llama.COINS}/mcaps", {"coins": [ZEC_LLAMA_COIN]})
+        prices = fetch(f"{llama.COINS}/prices/current/{ZEC_LLAMA_COIN}")
+        z = llama.parse_coins(caps, prices).get(ZEC_LLAMA_COIN)
+        if z:
+            out.update({"state": "available", "zec_market_cap_usd": z["mcap"],
+                        "zec_price_usd": z["price"], "day": z["day"]})
+        else:
+            out["state"] = "partial"
+            out["reason"] = f"{ZEC_LLAMA_COIN} not in the coin service's answer"
     except Exception as exc:                                   # noqa: BLE001
         out["state"] = "error"
         out["reason"] = f"{type(exc).__name__}: {str(exc)[:120]}"
-        total = None
-
-    zec_cap = None
-    try:
-        z = json.loads(_get(COINGECKO_ZEC).decode("utf-8", "replace"))
-        zec_cap = (z.get("zcash") or {}).get("usd_market_cap")
-        out["zec_market_cap_usd"] = zec_cap
-        out["zec_price_usd"] = (z.get("zcash") or {}).get("usd")
-    except urllib.error.HTTPError as exc:
-        out.setdefault("reason", f"simple/price returned HTTP {exc.code}")
-        out["needs_key"] = out["needs_key"] or exc.code in (401, 403)
-    except Exception as exc:                                   # noqa: BLE001
-        out.setdefault("reason", f"{type(exc).__name__}: {str(exc)[:120]}")
-
-    if total and zec_cap:
-        out["state"] = "available"
-        out["share"] = round(zec_cap / total, 10)
-    elif out["state"] == "unknown":
-        out["state"] = "partial"
-        out["reason"] = out.get("reason", "one of the two endpoints returned no "
-                                          "capitalisation")
     own = store is None
     db = store or observations.ObservationStore()
     try:
         db.write(CAP_PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
                  json.dumps(out, sort_keys=True, default=str),
-                 source="coingecko", availability_kind="ingest_instant")
+                 source="defillama", availability_kind="ingest_instant")
     finally:
         if own:
             db.close()
     return out
+
+
+def cap_rows(cap: dict, run_id: Optional[str] = None) -> list[dict]:
+    """The rows one cap read writes: ZEC's cap only, on the service's day."""
+    if cap.get("state") != "available":
+        return []
+    return [{"registry_key": ZEC_CAP_KEY, "instrument": None,
+             "observed_at": cap["day"],
+             "available_at": session.utc_iso(timespec="microseconds"),
+             "value": float(cap["zec_market_cap_usd"]), "source": "defillama",
+             "run_id": run_id, "availability_kind": "ingest_instant"}]
 
 
 def read_value_pools() -> dict:
@@ -463,32 +465,14 @@ def pull(run_id: Optional[str] = None,
                             "they are user-shielded before the share can include "
                             "them", vp["unclassified_pools"])
 
-        # THE CAP SHARE, WHICH NOW HAS A SOURCE. CoinGecko is keyless, so the
-        # ruling's "stop and tell me" branch does not fire.
+        # ZEC'S CAP, FROM DEFILLAMA (13 Oct 2026). The total and the share are
+        # not sourced and are not written; their stored history stays, dated.
         cap = probe_cap(store=db)
-        out["crypto_cap_share"] = {"state": cap["state"],
-                                   "share": cap.get("share"),
-                                   "reason": cap.get("reason")}
-        if cap["state"] == "available":
-            day = session.session_date()
-            stamp = session.utc_iso(timespec="microseconds")
-            cap_rows = [
-                {"registry_key": CRYPTO_CAP_KEY, "instrument": None,
-                 "observed_at": day, "available_at": stamp,
-                 "value": float(cap["total_market_cap_usd"]),
-                 "source": "coingecko", "run_id": run_id,
-                 "availability_kind": "ingest_instant"},
-                {"registry_key": ZEC_CAP_KEY, "instrument": None,
-                 "observed_at": day, "available_at": stamp,
-                 "value": float(cap["zec_market_cap_usd"]),
-                 "source": "coingecko", "run_id": run_id,
-                 "availability_kind": "ingest_instant"},
-                {"registry_key": CRYPTO_CAP_SHARE_KEY, "instrument": None,
-                 "observed_at": day, "available_at": stamp,
-                 "value": float(cap["share"]), "source": "calc",
-                 "run_id": run_id, "availability_kind": "ingest_instant"},
-            ]
-            written += db.write_many(observations.drop_unchanged(db, cap_rows))
+        out["market_cap"] = {"state": cap["state"], "source": "defillama",
+                             "reason": cap.get("reason")}
+        out["crypto_cap_share"] = {"state": "not_sourced",
+                                   "reason": CAP_SHARE_NOT_SOURCED}
+        written += db.write_many(observations.drop_unchanged(db, cap_rows(cap, run_id)))
         out["written"] = written
         return out
     finally:
@@ -500,9 +484,10 @@ def keys() -> list[str]:
     # The shielded share is NOT in the roster: there is no source, so a roster entry
     # would make the heartbeat red for a capability gap rather than for a fault. The
     # cap series IS watched -- it has a working keyless source, so its absence would
-    # be a fault.
-    return [PRICE_KEY, REALIZED_VOL_KEY, BTC_RATIO_KEY,
-            CRYPTO_CAP_KEY, ZEC_CAP_KEY, CRYPTO_CAP_SHARE_KEY,
+    # be a fault. The total and the cap share LEFT the roster on 13 Oct 2026:
+    # nothing writes them now, and a watched series nobody writes is a red
+    # heartbeat for a ruling rather than for a fault.
+    return [PRICE_KEY, REALIZED_VOL_KEY, BTC_RATIO_KEY, ZEC_CAP_KEY,
             POOL_VALUE_KEY, SHIELDED_VALUE_SHARE_KEY]
 
 

@@ -1,0 +1,132 @@
+{
+  "_source": "Weekly dry run #6, 13 Oct 2026 22:34 ET, run weekly-20261014T023429 (week ending 2026-10-09): text as the PDF printed it. The book's own return figures in the précis are replaced by words (no real position figures in the repo); every other line is verbatim.",
+  "plumbing": {
+    "moves": [
+      [
+        "2-year",
+        "−11 bp"
+      ],
+      [
+        "10-year",
+        "−3 bp"
+      ],
+      [
+        "30-year",
+        "−3 bp"
+      ],
+      [
+        "2s10s",
+        "+10 bp"
+      ],
+      [
+        "High-yield OAS",
+        "−9 bp"
+      ],
+      [
+        "10-year term premium (ACM)",
+        "+2 bp"
+      ],
+      [
+        "Net liquidity (Fed balance sheet less TGA and RRP)",
+        "+$82bn"
+      ],
+      [
+        "Bank reserves (H.4.1)",
+        "+$82bn"
+      ],
+      [
+        "Treasury General Account (H.4.1)",
+        "−$68bn"
+      ],
+      [
+        "Reverse repo (RRP)",
+        "−$1bn"
+      ],
+      [
+        "Investment-grade OAS",
+        "−4 bp"
+      ],
+      [
+        "CCC OAS",
+        "+37 bp"
+      ],
+      [
+        "CCC less BB (stress inside high yield)",
+        "+47 bp"
+      ],
+      [
+        "Japan 30-year (JGB)",
+        "+1 bp"
+      ],
+      [
+        "Japan 10-year (JGB)",
+        "0 bp"
+      ]
+    ],
+    "withheld": "direction audit failed on 1 clause: 'fell −$1bn the same day.': 'fell' with a rise",
+    "clause": "Reverse repo fell −$1bn the same day."
+  },
+  "self_subject_openers": {
+    "read": "The read frames the week's tension directly, noting dealer positioning calmed the tape while credit and rates sat at extremes realized volatility did not justify.",
+    "tape": "The tape shows the equity advance breaking its flip without confirmation from rates or Bitcoin, the clearest statement of the divergence.",
+    "mechanics": "Mechanics locates the amplified ranges on the single session gamma flipped negative, pinpointing where the priced-versus-realized gap actually bit.",
+    "misfit": "What doesn't fit names the credit-equity divergence and narrow leadership as the contradiction the week's price action left unresolved.",
+    "positioning": "Positioning shows the book itself leaning defensive and cautious even as headline equities rose, reinforcing the gap between the advance and underlying flows.",
+    "priced": "What's priced shows rates and event markets still actively repricing hike odds, meaning the backdrop to the equity move remains unsettled rather than confirmed.",
+    "narratives": "Narratives shows the fiscal-dominance and fragility story gaining one-sided official support, consistent with the week's unresolved rates and credit strain.",
+    "book": "The book's shortfall against SPY despite no new decisions shows existing caution being validated by a week that did not confirm the equity advance."
+  },
+  "terms_explainers": {
+    "read": "Dealer gamma is the options market's hedging effect: when dealers sit above the flip, the level where their hedging turns from damping moves to amplifying them, they buy dips and sell rallies, calming the tape, while below it their hedging chases the move instead.",
+    "tape": "Dealer gamma describes how options dealers hedge: above the flip, the level where their hedging shifts from damping moves to amplifying them, dealers sell into rallies and buy dips, which calms the tape; below it, their hedging reinforces the move.",
+    "mechanics": "Dealer gamma describes how options dealers must hedge their exposure: in positive gamma they buy into dips and sell into rallies, which dampens the index's swings, while a flip into negative gamma means their hedging chases the move instead.",
+    "positioning": "Dealer gamma describes how options dealers' hedging either damps or amplifies the week's moves, but this section's figures speak instead to where investors rotated and how they positioned across sectors and futures.",
+    "priced": "Dealer gamma is the options market's hedging effect, and the flip is the level where dealers' hedging turns from damping moves to amplifying them; this section instead tracks what rates markets and prediction markets have priced in in a week where a watched market moved −11.0 pts over five sessions, against a 10-point threshold for flagging the move as material."
+  },
+  "read_opener": "Dealer gamma is the options market's hedging effect: when dealers sit above the flip, the level where their hedging turns from damping moves to amplifying them, they buy dips and sell rallies, calming the tape, while below it their hedging chases the move instead. This week that mechanism sat beside a credit and rates picture under visible strain: CCC credit spreads reached the 100th percentile, the high tail, alongside the 30-year Treasury yield and the 10-year Treasury yield, both also at a five-year extreme. CCC OAS itself widened by 37 bp as of 8 Oct. Options priced a 0.93% daily move against 0.63% realized, a gap that argues hedging flow was doing more work than the week's actual range. Bitcoin fell 4.55% over the week, one of the sharper single moves logged. Takeaway: with credit spreads and long-end yields both pinned at extremes while realized volatility undershoots what was priced, the calming effect of dealer positioning above the flip looks more fragile than the tape's own range suggests.",
+  "finding_opener": "Credit and long-dated Treasuries sat at five-year extremes while the index moved less than options had priced. CCC credit spreads reached the 100th percentile alongside the 30-year and 10-year Treasury yields, and CCC OAS widened by 37 bp as of 8 Oct. That pairing matters because the lowest-rated borrowers and the long end of the curve are where tighter money shows first: when both are stretched at once, the cost of carrying risk has risen for exactly the borrowers least able to absorb it. Options priced a 0.93% daily move against 0.63% realized, so the index's own swings understated the strain underneath it. Bitcoin fell 4.55% over the week, a move in the same direction as the credit tail rather than the index. Takeaway: the index's quiet is not shared by the markets that usually move first, so a week in which credit keeps widening is the test of whether that quiet holds.",
+  "precis": {
+    "week": "SPY rose 1.16% this week and broke its gamma flip at 775.54 to the upside, with the 50-day average at 767.57 and the call wall at 785.00 left untested, yet that advance stood alone: the 10-year yield fell only 3 bp, Bitcoin fell 4.55%, and defensive sectors led (Utilities +3.97%, Staples +3.60%) ahead of cyclicals, while retail sentiment on SPY sank to -1.00. Underneath, CCC credit spreads and both the 10-year and 30-year yields sat at the 100th percentile, a five-year extreme, with options pricing a 0.93% daily move against only 0.63% realized — a gap that widened sharply on the one session, Thursday, when gamma flipped negative and the actual range of 6.66 outran the 6.22 implied. The equal-weight-versus-cap-weight ratio at the 1st percentile points to narrow leadership even as the SPY/high-yield divergence has held for 10 sessions at a z of +2.8, a contradiction credit has not resolved. The book itself recorded a shortfall since early September against SPY's gain over the same span, carried entirely by existing positions, with no new decisions entered. Takeaway: a market this narrow, this undefended by rates or credit, and this quiet in realized terms relative to what's priced is more likely to see the next move amplified than absorbed.",
+    "tension_first": "The index broke higher while the markets that usually confirm a rally -- long-dated Treasuries, low-rated credit and crypto -- refused to follow. SPY rose 1.16% and broke its gamma flip at 775.54, but the 10-year yield fell only 3 bp and Bitcoin fell 4.55%. Underneath, CCC credit spreads and both the 10-year and 30-year yields sat at the 100th percentile, a five-year extreme, with options pricing a 0.93% daily move against only 0.63% realized. The equal-weight-versus-cap-weight ratio at the 1st percentile points to narrow leadership even as the SPY/high-yield divergence has held for 10 sessions at a z of +2.8, a contradiction credit has not resolved. Defensive sectors led, with Utilities +3.97% and Staples +3.60% ahead of cyclicals, and retail sentiment on SPY sank to -1.00. Takeaway: a market this narrow, this undefended by rates or credit, and this quiet in realized terms relative to what's priced is more likely to see the next move amplified than absorbed.",
+    "tension": "SPY broke its gamma flip to the upside while rates, credit and crypto failed to confirm the advance.",
+    "for": "The flip broke and the index rose.",
+    "against": "Credit and long-end yields sat at five-year extremes.",
+    "verdicts": {
+      "equities": "transition",
+      "rates": "chop",
+      "credit": "up",
+      "dollar": "chop",
+      "commodities": "chop",
+      "volatility": "up"
+    },
+    "confidence": "The verdicts rest on the broken gamma flip against unconfirmed rates and crypto moves, the 100th-percentile readings in credit and long-end yields, and the sustained SPY-versus-high-yield divergence at a z of +2.8.",
+    "change": [
+      {
+        "series": "CCC OAS",
+        "window": "week of 2026-10-12",
+        "what": "whether the 37 bp widening as of 2026-10-08 extends or stabilizes"
+      },
+      {
+        "series": "SPY gamma flip (775.54)",
+        "window": "week of 2026-10-12",
+        "what": "whether SPY holds above the flip or falls back below it"
+      },
+      {
+        "series": "10-year Treasury yield",
+        "window": "week of 2026-10-12",
+        "what": "whether the five-year-extreme level eases or pushes further"
+      }
+    ],
+    "outlook": "First edition with a précis.",
+    "stance_p": 0.53,
+    "stance_line": "SPY higher at the next Weekly: p = 0.53 (n=0, unvalidated).",
+    "changed_since": [
+      "Dealer gamma moved from negative to positive.",
+      "Exceptions opened: the long bond against high-yield credit, held past its session count; the Fed's reverse repo facility at a five-year extreme.",
+      "Triggers fired: Plumbing deep on 3; What's priced deep on 3 of 5 sessions."
+    ]
+  },
+  "subject_run6": "Weekly — w/e 9 Oct — Dealer gamma is the options market's hedging effect: when dealers sit above the flip, the…",
+  "ahead_withheld": "the Takeaway restates figures (3.92%, 19%); it states the implication, with no figure",
+  "candidate_rs": "RS 92th percentile against SPY over 60 sessions"
+}

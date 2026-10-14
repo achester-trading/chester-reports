@@ -192,12 +192,14 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 81, f"81 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 106, f"106 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
           f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), HG=F, "
-          f"JPY=X and EURUSD=X (T2.3), and the 28 earnings names (Book B scanner "
-          f"follow-up 4)")
+          f"JPY=X and EURUSD=X (T2.3), RB=F and HO=F for the crack (AQ-3), VNQ VEA HEFA (AQ-3 part 2), DBC for AQ-4's returns quilt, AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
+          f"VNQI MCHI (the correlation universe), and the 28 earnings names "
+          f"(Book B scanner follow-up 4), EURCHF=X (batch 3, SR-30), and SR-46's TRY=X, IDR=X and ten EM "
+          f"country ETFs")
     check(yf_src.EARNINGS_SYMBOLS <= set(syms) and len(yf_src.EARNINGS_SYMBOLS) == 29,
           "the 29 earnings names are all in the basket (NVDA was already)")
     check("^VIX" in syms and "^VIX3M" in syms,
@@ -302,10 +304,11 @@ def group_f() -> None:
     fx = bp.reconstructed_available_at("2026-10-02", symbol="JPY=X")
     ny = bp.reconstructed_available_at("2026-10-02", symbol="HG=F")
     btc = bp.reconstructed_available_at("2026-10-02", symbol="BTC-USD")
-    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD"}
+    check(set(bp.AVAILABILITY_RULES) == {"JPY=X", "EURUSD=X", "CNY=X", "BTC-USD",
+                                         "ETH-USD", "SOL-USD", "ZEC-USD"}
           and fx.startswith("2026-10-03T00:20:00") and btc.startswith("2026-10-03T00:20:00")
           and ny.startswith("2026-10-02T20:20:00"),
-          f"the backfill stamps an FX pair or Bitcoin at the end of its UTC day plus the delay, "
+          f"the backfill stamps an FX pair or a coin at the end of its UTC day plus the delay, "
           f"a session-bound symbol at the New York close ({fx} / {ny})")
     summer = bp.reconstructed_available_at("2026-09-18")
     winter = bp.reconstructed_available_at("2026-01-15")
@@ -398,10 +401,14 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    # ZEC-USD since AUD-1 5d: the shielded logger's closes, not the basket's.
+    # ZEC-USD is also AUD-1 5d's: the shielded logger's closes.
+    # The crypto basket (12 Oct 2026) adds exactly the twelve Yahoo symbols its
+    # config resolved -- declared there, reviewed in that file's diff.
     check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
-                                             "ZEC-USD"},
-          f"the exemption is a declared set (BTC-USD, ZEC-USD and the three FX pairs), not "
+                                             "EURCHF=X", "ETH-USD", "SOL-USD", "ZEC-USD"}
+          | set(yf_src.CRYPTO_BASKET) and len(yf_src.CRYPTO_BASKET) == 12,
+          f"the exemption is a declared set (the four coins, the four FX pairs and "
+          f"the twelve crypto-basket symbols config/crypto_basket.yaml resolved), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
@@ -472,11 +479,12 @@ def group_volume() -> None:
     check(yf_src.VOLUME_UNITS.get("SPY") == "shares"
           and yf_src.VOLUME_UNITS.get("AAPL") == "shares"
           and yf_src.VOLUME_UNITS.get("GC=F") == "count"
-          and yf_src.VOLUME_UNITS.get("BTC-USD") == "usd",
+          and all(yf_src.VOLUME_UNITS.get(c) == "usd"
+                  for c in ("BTC-USD", "ETH-USD", "SOL-USD", "ZEC-USD")),
           "the unit is declared per kind: shares, contracts (count), dollars")
     check(set(yf_src.VOLUME_SHARE_KEYS) | set(yf_src.VOLUME_CONTRACT_KEYS)
           | set(yf_src.VOLUME_USD_KEYS) == set(yf_src.VOLUME_UNITS)
-          and len(yf_src.VOLUME_UNITS) == 69,
+          and len(yf_src.VOLUME_UNITS) == 91,
           f"the three registry blocks cover the {len(yf_src.VOLUME_UNITS)} symbols "
           f"with volume, each once")
     spy = dict(yf_src.companion_series("SPY", parsed, ["2026-10-02"]))

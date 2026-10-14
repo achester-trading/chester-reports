@@ -254,4 +254,18 @@ else
     log "heartbeat NOT touched (rc=$RC)"
 fi
 
+# ---- AQ-8a: the gold residual, the driver attribution, yields-up/dollar-down --
+#
+# AFTER the chains, so it costs the capture nothing, and after the feeds and the
+# surprises it reads (the driver attribution's growth and inflation factors are
+# calc.surprise_vs_naive.*). Its last few months and weeks only; the full history
+# is the one-shot `python -m altdata.attribution compute --backfill`. It never
+# changes this run's exit code or the heartbeat: a fault costs these rows, which
+# the Monthly then prints as absent with a reason.
+log "attribution: compute"
+ATT_OUT="$("$VENV_PY" -m altdata.attribution compute 2>&1 | tail -12)"
+ATT_EXIT=$?
+printf '%s\n' "$ATT_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $ATT_EXIT -ne 0 ]] && log "WARN attribution exited $ATT_EXIT -- continuing"
+
 exit $RC

@@ -84,6 +84,11 @@ REPO = Path(__file__).resolve().parent.parent
 # What a coin gets. The reference every running score is read against.
 COIN_BRIER = 0.25
 
+# A set id ending this way is one binary claim, its complement implicit: the
+# thesis register's 3-month thesis (<family>-<YYYYqN>-3m). coherence() skips it
+# while it holds exactly one row.
+BINARY_SET_SUFFIX = "-3m"
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS probabilities (
     -- Deterministic from source + claim + emitted_at, so re-seeding the same
@@ -281,12 +286,19 @@ class ProbabilityLedger:
 
         Reported, never normalised: rescaling somebody's stated weights would hide
         the error and change what they claimed.
+
+        ONE EXCEPTION, DECLARED (AQ-6): a thesis register's 3-month thesis is a
+        single binary claim under a set id ending BINARY_SET_SUFFIX -- its
+        complement is implicit, so it is coherent at any probability. Two or more
+        rows under such an id are still checked, and fail.
         """
         bad = []
         for r in self.conn.execute(
                 "SELECT scenario_set, COUNT(*) n, SUM(probability) total "
                 "  FROM probabilities WHERE scenario_set IS NOT NULL "
                 " GROUP BY scenario_set"):
+            if r["n"] == 1 and str(r["scenario_set"]).endswith(BINARY_SET_SUFFIX):
+                continue
             total = r["total"] or 0.0
             if abs(total - 1.0) > 1e-6:
                 bad.append({"scenario_set": r["scenario_set"], "n": r["n"],
@@ -424,6 +436,34 @@ def main() -> int:
     lp = sub.add_parser("score", help="running Brier per source, and the queue")
     lp.add_argument("--db", default=None)
 
+    # THE THESIS REGISTER (AQ-6). Run by the operator on the box; the code never
+    # writes a thesis of its own. altdata/thesis_register.py holds the rules.
+    ap_ = sub.add_parser("seed-alt-asset",
+                         help="load a quarter's thesis file into the ledger")
+    ap_.add_argument("--file", required=True,
+                     help="config/alt_asset_theses/<YYYY>q<N>.yaml")
+    ap_.add_argument("--db", default=None)
+    ap_.add_argument("--dry-run", action="store_true",
+                     help="validate and show; read the ledger, write nothing")
+
+    sh = sub.add_parser("show", help="the grading views for one source")
+    sh.add_argument("--db", default=None)
+    sh.add_argument("--source", required=True, help="alt_asset")
+    sh.add_argument("--family", default=None)
+
+    ra = sub.add_parser("resolve-alt-asset",
+                        help="resolve every due alt_asset thesis from the store")
+    ra.add_argument("--db", default=None)
+    ra.add_argument("--dry-run", action="store_true")
+
+    rm = sub.add_parser("resolve-manual",
+                        help="the declared manual path for an alt_asset thesis")
+    rm.add_argument("--db", default=None)
+    rm.add_argument("--id", required=True)
+    rm.add_argument("--outcome", type=int, choices=(0, 1), required=True)
+    rm.add_argument("--note", required=True,
+                    help="why the store could not resolve it, and the source")
+
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
@@ -453,6 +493,11 @@ def main() -> int:
                              emitted_by="cli")
         print(f"recorded {pid}")
         return 0
+
+    if args.cmd in ("seed-alt-asset", "show", "resolve-alt-asset",
+                    "resolve-manual"):
+        from . import thesis_register as tr  # noqa: PLC0415
+        return tr.cli(args, line)
 
     if args.cmd == "resolve":
         with ProbabilityLedger(args.db) as led:

@@ -1,0 +1,27 @@
+[Unit]
+Description=Crypto basket writers (17:25 ET) -- Yahoo closes, DefiLlama, the derived series
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_crypto_basket.sh
+
+# No key is read: Yahoo and DefiLlama's open API are keyless. Optional, as for
+# every unit, so ALTDATA_STORE and the state paths resolve as elsewhere.
+EnvironmentFile=-%h/chester-reports/.env
+
+SuccessExitStatus=0
+
+# Twelve Yahoo symbols, about forty DefiLlama calls and the derived pass: a few
+# minutes on a good day. The limit leaves room for DefiLlama's slow /protocol
+# answers and their retries.
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

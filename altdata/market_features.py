@@ -779,6 +779,217 @@ def compute_rows(db: observations.ObservationStore,
     # one whose inputs have just changed.
     rows += macro_rows(db, as_of=as_of, first_day=first_day)
     rows += rates_rows(db, as_of=as_of, first_day=first_day)
+    rows += aq3_rows(db, as_of=as_of, first_day=first_day)
+    rows += aq3b_rows(db, as_of=as_of, first_day=first_day)
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# AQ-3 PART 1 (11 Oct 2026): THE CRACK AND THE YUAN'S BAND. Computed, never
+# fetched, from closes and fixes the store already holds.
+# ---------------------------------------------------------------------------
+WTI_FRONT = "yfinance.mkt_wti_front"     # CL=F, dollars per barrel
+RBOB_FRONT = "yfinance.mkt_rb_front"     # RB=F, dollars per gallon
+ULSD_FRONT = "yfinance.mkt_ho_front"     # HO=F, dollars per gallon
+GALLONS_PER_BARREL = 42.0
+CNY_SPOT = "yfinance.mkt_usdcny"          # CNY=X, onshore
+CNH_SPOT = "cnh.usdcnh"                   # altdata/sources/cnh.py, offshore
+CNY_FIX = "cfets.cny_fix"
+
+AQ3_FEATURES = {
+    "calc.crack_321":
+        "The 3-2-1 crack, dollars per barrel: (2 x RBOB + 1 x ULSD, each x 42 "
+        "gallons, less 3 x WTI) / 3, from the same session's front-month closes",
+    "calc.cny_fix_gap_bp":
+        "Onshore USD/CNY against the day's PBoC central parity, basis points",
+    "calc.cny_band_position":
+        "Onshore USD/CNY's position in the +/-2% band: 0 at the fix, +1 at the "
+        "weak edge, -1 at the strong edge",
+    "calc.cnh_fix_gap_bp":
+        "Offshore USD/CNH against the day's central parity, basis points",
+    "calc.cnh_cny_bp":
+        "USD/CNH less USD/CNY, in basis points of USD/CNY: + is the offshore "
+        "yuan weaker than the onshore",
+}
+
+
+def crack_321(wti: float, rbob: float, ulsd: float) -> float:
+    """Dollars per barrel of crude: three barrels in, two of gasoline and one of
+    distillate out, the products converted from dollars per gallon."""
+    return (2.0 * rbob * GALLONS_PER_BARREL + ulsd * GALLONS_PER_BARREL
+            - 3.0 * wti) / 3.0
+
+
+def aq3_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
+             first_day: Optional[str] = None) -> list[dict]:
+    """The crack on every session all three legs closed, and the yuan's gap and
+    band on every day a fix and a spot share a date. Availability is the latest
+    input's, as everywhere in this module."""
+    from .sources import cfets  # noqa: PLC0415 -- the band rule lives with the fix
+    rows: list[dict] = []
+
+    def emit(key: str, day: str, value: float,
+             parts: list[tuple[str, Optional[str]]]) -> None:
+        if first_day and day < first_day:
+            return
+        if value is None or not math.isfinite(value):
+            return
+        avail, kind = _availability(parts)
+        rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                     "available_at": avail, "value": round(value, 6),
+                     "source": "calc", "availability_kind": kind})
+
+    cl, rb, ho = (_load(db, k, as_of) for k in (WTI_FRONT, RBOB_FRONT, ULSD_FRONT))
+    for day in sorted(set(cl) & set(rb) & set(ho)):
+        emit("calc.crack_321", day, crack_321(cl[day][0], rb[day][0], ho[day][0]),
+             [(cl[day][1], cl[day][2]), (rb[day][1], rb[day][2]),
+              (ho[day][1], ho[day][2])])
+
+    fix = _load(db, CNY_FIX, as_of)
+    cny, cnh = _load(db, CNY_SPOT, as_of), _load(db, CNH_SPOT, as_of)
+    for day in sorted(fix):
+        f = fix[day]
+        if not f[0]:
+            continue
+        if day in cny:
+            p = [(f[1], f[2]), (cny[day][1], cny[day][2])]
+            emit("calc.cny_fix_gap_bp", day, cfets.gap_bp(cny[day][0], f[0]), p)
+            emit("calc.cny_band_position", day,
+                 cfets.band_position(cny[day][0], f[0]), p)
+        if day in cnh:
+            emit("calc.cnh_fix_gap_bp", day, cfets.gap_bp(cnh[day][0], f[0]),
+                 [(f[1], f[2]), (cnh[day][1], cnh[day][2])])
+    for day in sorted(set(cny) & set(cnh)):
+        if cny[day][0]:
+            emit("calc.cnh_cny_bp", day, cfets.gap_bp(cnh[day][0], cny[day][0]),
+                 [(cny[day][1], cny[day][2]), (cnh[day][1], cnh[day][2])])
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# AQ-3 PART 2 (11 Oct 2026): RELATIVE PRICES, SPREADS AND THE HEDGED YIELDS.
+# Computed from stored closes, yields and policy rates; availability is the
+# latest input's.
+# ---------------------------------------------------------------------------
+RATIO_PAIRS = {
+    # key: (numerator, denominator) -- a price ratio, moved in percent of itself
+    "calc.xlre_spy": ("yfinance.mkt_xlre", "yfinance.mkt_spy"),
+    "calc.vnq_spy": ("yfinance.mkt_vnq", "yfinance.mkt_spy"),
+    "calc.efa_spy": ("yfinance.mkt_efa", "yfinance.mkt_spy"),
+    "calc.vea_spy": ("yfinance.mkt_vea", "yfinance.mkt_spy"),
+    "calc.hefa_efa": ("yfinance.mkt_hefa", "yfinance.mkt_efa"),
+}
+UST_10Y = "fred.yield_10y"
+MORTGAGE_30Y = "fred.mortgage_30y"
+JGB_10Y = "mof.jgb_10y"
+BUND_10Y = "bbk.bund_10y"
+US_POLICY = "fred.effr_daily"
+EUR_POLICY = "fred.ecb_dfr"
+JPY_POLICY = "fred.jp_call_rate"          # monthly: carried to the days it covers
+EURO_10Y = {"de": "ecb.irs_10y_de", "fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it"}
+# A monthly or weekly leg is carried forward to a daily one for at most this many
+# days; beyond it the day is skipped rather than joined to a stale print.
+CARRY_DAYS = 70
+
+AQ3B_FEATURES = {
+    **{k: f"{a.split('.')[-1][4:].upper()} / {b.split('.')[-1][4:].upper()}, "
+          f"the price ratio of the two closes" for k, (a, b) in RATIO_PAIRS.items()},
+    "calc.mortgage_spread_10y_bp":
+        "The 30-year mortgage rate (Freddie Mac PMMS, weekly) less the 10-year "
+        "Treasury on the survey date, basis points",
+    "calc.us_jgb_10y_bp": "The 10-year Treasury less the 10-year JGB (MoF), basis points",
+    "calc.oat_bund_bp": "The 10-year OAT less the 10-year Bund (ECB IRS, monthly), bp",
+    "calc.btp_bund_bp": "The 10-year BTP less the 10-year Bund (ECB IRS, monthly), bp",
+    "calc.bund_hedged_yield":
+        "APPROXIMATION. The 10-year Bund hedged into dollars for a US investor: "
+        "the Bund yield less the hedging cost, taken as the policy-rate "
+        "differential (EFFR less the ECB deposit rate) -- covered interest parity "
+        "on policy rates, not on the 3-month FX forward points or the basis",
+    "calc.bund_hedged_spread_bp":
+        "APPROXIMATION. calc.bund_hedged_yield less the 10-year Treasury, bp",
+    "calc.jgb_hedged_yield":
+        "APPROXIMATION. The 10-year JGB hedged into dollars: the JGB yield less "
+        "(EFFR less Japan's call rate, monthly, carried forward)",
+    "calc.jgb_hedged_spread_bp":
+        "APPROXIMATION. calc.jgb_hedged_yield less the 10-year Treasury, bp",
+}
+
+
+def hedged_yield(foreign_10y: float, us_policy: float, foreign_policy: float) -> float:
+    """A foreign 10-year yield hedged into dollars, percent: the yield less the
+    annualised hedging cost, approximated by the policy-rate differential (a
+    3-month forward's carry under covered interest parity, basis ignored)."""
+    return foreign_10y - (us_policy - foreign_policy)
+
+
+def spread_bp(a: float, b: float) -> float:
+    """a less b, both in percent, in basis points."""
+    return 100.0 * (a - b)
+
+
+def _carried(series: dict, day: str) -> Optional[tuple]:
+    """The latest point of a slower series on or before `day`, within CARRY_DAYS."""
+    best = None
+    for d in series:
+        if d <= day and (best is None or d > best):
+            best = d
+    if best is None or (dt.date.fromisoformat(day)
+                        - dt.date.fromisoformat(best)).days > CARRY_DAYS:
+        return None
+    return series[best]
+
+
+def aq3b_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
+              first_day: Optional[str] = None) -> list[dict]:
+    rows: list[dict] = []
+
+    def emit(key: str, day: str, value: Optional[float], parts: list) -> None:
+        if first_day and day < first_day:
+            return
+        if value is None or not math.isfinite(value):
+            return
+        avail, kind = _availability([(p[1], p[2]) for p in parts])
+        rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                     "available_at": avail, "value": round(value, 6),
+                     "source": "calc", "availability_kind": kind})
+
+    for key, (a_key, b_key) in RATIO_PAIRS.items():
+        a, b = _load(db, a_key, as_of), _load(db, b_key, as_of)
+        for day in sorted(set(a) & set(b)):
+            if b[day][0]:
+                emit(key, day, a[day][0] / b[day][0], [a[day], b[day]])
+
+    ust = _load(db, UST_10Y, as_of)
+    mort = _load(db, MORTGAGE_30Y, as_of)
+    for day in sorted(set(mort) & set(ust)):
+        emit("calc.mortgage_spread_10y_bp", day,
+             spread_bp(mort[day][0], ust[day][0]), [mort[day], ust[day]])
+    jgb = _load(db, JGB_10Y, as_of)
+    for day in sorted(set(ust) & set(jgb)):
+        emit("calc.us_jgb_10y_bp", day, spread_bp(ust[day][0], jgb[day][0]),
+             [ust[day], jgb[day]])
+
+    euro = {c: _load(db, k, as_of) for c, k in EURO_10Y.items()}
+    for c, key in (("fr", "calc.oat_bund_bp"), ("it", "calc.btp_bund_bp")):
+        for day in sorted(set(euro[c]) & set(euro["de"])):
+            emit(key, day, spread_bp(euro[c][day][0], euro["de"][day][0]),
+                 [euro[c][day], euro["de"][day]])
+
+    effr = _load(db, US_POLICY, as_of)
+    for (leg, fpol_key, h_key, s_key) in (
+            (_load(db, BUND_10Y, as_of), EUR_POLICY,
+             "calc.bund_hedged_yield", "calc.bund_hedged_spread_bp"),
+            (jgb, JPY_POLICY, "calc.jgb_hedged_yield", "calc.jgb_hedged_spread_bp")):
+        fpol = _load(db, fpol_key, as_of)
+        for day in sorted(set(leg) & set(ust)):
+            us = effr.get(day) or _carried(effr, day)
+            fp = fpol.get(day) or _carried(fpol, day)
+            if us is None or fp is None:
+                continue
+            h = hedged_yield(leg[day][0], us[0], fp[0])
+            parts = [leg[day], us, fp]
+            emit(h_key, day, h, parts)
+            emit(s_key, day, spread_bp(h, ust[day][0]), parts + [ust[day]])
     return rows
 
 
@@ -813,8 +1024,20 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         by_key: dict[str, int] = {}
         for r in rows:
             by_key[r["registry_key"]] = by_key.get(r["registry_key"], 0) + 1
+        # THE CORRELATION LAYER (AQ-5) rides the same pass, after the features it
+        # aliases (calc.corr_spy_tlt_60d) are written: its inputs are the closes
+        # this pass follows. Its own last few sessions only -- the full history
+        # is the one-shot `python -m altdata.correlation compute --backfill`.
+        # Never fatal: a fault costs the correlation rows, not the features.
+        try:
+            from . import correlation                            # noqa: PLC0415
+            corr = correlation.compute(as_of=as_of, first_day=first_day,
+                                       store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("correlation layer failed", exc_info=True)
+            corr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
-                "dry_run": dry_run}
+                "dry_run": dry_run, "correlation": corr}
     finally:
         if own:
             db.close()
@@ -847,6 +1070,11 @@ def _main(argv: list[str]) -> int:
               + ("  (dry run)" if r["dry_run"] else ""))
         for k in sorted(r["by_key"]):
             print(f"  {k:36} {r['by_key'][k]:>6}")
+        c = r.get("correlation") or {}
+        print(f"correlation layer: FAULT {c['error']}" if c.get("error") else
+              f"correlation layer: {c.get('computed', 0)} rows computed from "
+              f"{c.get('first_day') or 'the first session'}, "
+              f"{c.get('written', 0)} written")
         return 0
 
     for key in sorted({**FEATURES, **MACRO_FEATURES, **RATES_FEATURES}):
