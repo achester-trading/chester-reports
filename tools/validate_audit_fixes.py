@@ -37,7 +37,7 @@ no network, no model:
      does: a Monthly paragraph saying "the dollar softened" against DXY +0.27%
      is withheld on the Weekly's message and retried; "bullish on inflation" is
      withheld, in a stack frame and a v2 section; "fell -3 bp" prints "fell 3 bp".
-  H  THE MONTHLY POLISH FROM DRY RUN #5 (T3.6; tests/fixtures/monthly_run5_
+  I  THE MONTHLY POLISH FROM DRY RUN #5 (T3.6; tests/fixtures/monthly_run5_
      2026-10-13.json). M1 the role audit: "closed at" bound to a 40-week average
      is withheld, the long frame names its columns' roles; M2 one direction per
      instrument across the executive summary; M3 the one page against the
@@ -521,7 +521,7 @@ def group_g() -> None:
 
 
 # ---------------------------------------------------------------------------
-# H. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)
+# I. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)
 # ---------------------------------------------------------------------------
 M5 = json.loads((REPO / "tests" / "fixtures" / "monthly_run5_2026-10-13.json")
                 .read_text(encoding="utf-8"))
@@ -561,8 +561,8 @@ def run_frame(sec_def: dict, drafts: list, ed: dict, kind: str = "stack",
     return out[sec["key"]], seen
 
 
-def group_h() -> None:
-    print(f"\n{LINE}\nH. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)\n{LINE}")
+def group_i() -> None:
+    print(f"\n{LINE}\nI. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)\n{LINE}")
     from monthly_macro import prose as mp
     from monthly_macro import stack as ms
     col = mp.MONTH_COLUMN
@@ -828,7 +828,7 @@ def group_h() -> None:
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h):
+              group_i):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
