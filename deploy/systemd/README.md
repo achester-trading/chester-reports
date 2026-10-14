@@ -960,6 +960,25 @@ are oneshot units that are not running between their timers:
 - `chester-backup.service` may write `~/chester-data/inbox/lab`;
 - `chester-alpha-weekly.service` may write `~/chester-data/outbox/lab`.
 
+**The daily proposer (X-2.10b).** `chester-alpha-proposer` fires at 18:10 ET on
+weekdays, after the nightly loop's whole budget:
+- it runs `scripts/run_alpha_proposer.sh`, which runs `python -m alpha_proposer`;
+- it makes one model call over a code-built observation packet;
+- it writes at most three hypotheses as one batch file, plus a manifest line, into
+  `~/chester-data/inbox/lab/`, and the next nightly loop ingests them.
+
+It is the one lab unit that loads `.env`, because the model call needs the key.
+It may write only its logs, its status file and the inbox. It is not in
+`DEPLOY_TIMERS`, and enabling it is yours:
+
+```bash
+systemctl --user enable --now chester-alpha-proposer.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+Its decision log is `~/logs/alpha_proposer-YYYY-MM.jsonl` and its status file
+`~/.chester/alpha_proposer_status`.
+
 **Check once that the box's rclone reports the Drive creation time.** The
 ingestion refuses a batch without it. Run this inside a window, as a read only:
 

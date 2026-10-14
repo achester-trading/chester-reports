@@ -426,6 +426,8 @@ class Register:
             "pre_registered_at": pre_registered_at,
             "model_idea_rule": int(bool(doc.get("model_idea_rule"))),
             "inputs": _j(doc.get("inputs")),
+            "prompt_version": doc.get("prompt_version"), "model_id": doc.get("model_id"),
+            "packet_sha256": doc.get("packet_sha256"),
             "n_hypotheses": len(doc.get("hypotheses") or []), "as_of": as_of})
 
     def register(self, h: dict, batch: dict, pre_registered_at: str, as_of: str,

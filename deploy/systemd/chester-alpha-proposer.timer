@@ -1,0 +1,23 @@
+[Unit]
+Description=Alpha Lab daily proposer at 18:10 ET on trading days
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+[Timer]
+# 18:10 ET, AFTER THE NIGHTLY LOOP (X-2.10b; change order 10.2 a). The nightly
+# loop fires at 17:40 (+60s jitter) with a 20-minute TimeoutStartSec, so it is
+# done by 18:01 at the latest; the proposer reads the store and the register as
+# the loop left them. Its batch is ingested by the NEXT nightly loop.
+# Mon-Fri handles weekends; holidays are the wrapper's calendar guard.
+OnCalendar=Mon-Fri 18:10 America/New_York
+RandomizedDelaySec=60
+
+# Persistent=false: a missed day's proposals are not written late; the next
+# session's packet is the one that matters.
+Persistent=false
+
+# NOT IN DEPLOY_TIMERS. The deploy copies this file; enabling it is the
+# operator's (deploy/systemd/README.md section 13; the branch notes print the
+# command). Printed, never enabled, by a session.
+
+[Install]
+WantedBy=timers.target

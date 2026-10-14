@@ -148,6 +148,9 @@ CREATE TABLE IF NOT EXISTS hypothesis_batches (
     pre_registered_at TEXT NOT NULL,
     model_idea_rule   INTEGER NOT NULL,
     inputs            TEXT,
+    prompt_version    TEXT,
+    model_id          TEXT,
+    packet_sha256     TEXT,
     n_hypotheses      INTEGER NOT NULL,
     as_of             TEXT NOT NULL,
     written_at        TEXT NOT NULL

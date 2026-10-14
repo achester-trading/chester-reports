@@ -83,6 +83,7 @@ PY_VALIDATORS := \
 	tools/validate_exposure_edges.py \
 	tools/validate_alpha.py \
 	tools/validate_alpha_no_orders.py \
+	tools/validate_alpha_proposer.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 
