@@ -398,8 +398,10 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
-    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X"},
-          f"the exemption is a declared set (BTC-USD and the three FX pairs), not "
+    # ZEC-USD since AUD-1 5d: the shielded logger's closes, not the basket's.
+    check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
+                                             "ZEC-USD"},
+          f"the exemption is a declared set (BTC-USD, ZEC-USD and the three FX pairs), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")
 
@@ -636,12 +638,72 @@ def group_asof_paths() -> None:
           "the freshness check and the regime's object read use the one-row path")
 
 
+def group_aud1_retry() -> None:
+    """AUD-1 5b/5d: Yahoo calls retry; ZEC's closes take the unfinished-bar rule."""
+    print(f"\n{LINE}\nL. THE YAHOO CALLS RETRY, AND ZEC HOLDS AN UNFINISHED BAR (AUD-1 5b, 5d)\n{LINE}")
+    import types
+    import pandas as pd
+    import altdata
+    from altdata.sources import _base
+    from altdata.loggers import shielded
+    waits: list = []
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ConnectionError("reset")
+        return pd.DataFrame() if calls["n"] == 2 else pd.DataFrame({"Close": [1.0]})
+    out = _base.retry_call(flaky, empty=lambda d: d is None or d.empty, sleep=waits.append)
+    check(calls["n"] == 3 and not out.empty and len(waits) == 2 and waits[1] == 2 * waits[0],
+          "an error, then an empty frame, then a frame: three tries, the wait doubling")
+    calls["n"] = 0
+    waits.clear()
+
+    def dead():
+        calls["n"] += 1
+        raise ConnectionError("down")
+    try:
+        _base.retry_call(dead, sleep=waits.append)
+        raised = False
+    except ConnectionError:
+        raised = True
+    check(raised and calls["n"] == 3, "three failures re-raise the last error, after three tries")
+
+    idx = pd.to_datetime(["2026-10-12", "2026-10-13", "2026-10-14"])
+    frames = [pd.DataFrame(), pd.DataFrame({"Close": [10.0, 11.0, 12.0]}, index=idx)]
+    seen = {"n": 0}
+
+    class FakeTicker:
+        def __init__(self, sym):
+            self.sym = sym
+
+        def history(self, **kw):
+            seen["n"] += 1
+            return frames.pop(0)
+    fake_yf = types.SimpleNamespace(Ticker=FakeTicker)
+    orig_imp, orig_sleep = altdata.import_yfinance, _base.time.sleep
+    altdata.import_yfinance = lambda: fake_yf
+    _base.time.sleep = lambda s: None
+    try:
+        parsed = yf_src._fetch_symbol("ZEC-USD", period="2y")
+        check(seen["n"] == 2 and len(parsed["closes"]) == 3,
+              "the price fetch retries an empty frame (5b)")
+        frames[:] = [pd.DataFrame({"Close": [10.0, 11.0, 12.0]}, index=idx)]
+        closes = shielded._zec_closes(now="2026-10-14T20:00:00+00:00")
+        check([d for d, _ in closes] == ["2026-10-12", "2026-10-13"],
+              "ZEC's bar for a UTC day still trading is held back (5d)")
+    finally:
+        altdata.import_yfinance = orig_imp
+        _base.time.sleep = orig_sleep
+
+
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_d_backfill,
               group_e, group_f,
               group_g, group_h, group_ohlc, group_volume, group_unfinished,
-              group_fred_dual, group_asof_paths):
+              group_fred_dual, group_asof_paths, group_aud1_retry):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

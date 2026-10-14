@@ -44,6 +44,16 @@ from typing import Optional
 
 from .. import config
 from .. import session
+from ._base import retry_call
+
+
+def _frame_empty(df) -> bool:
+    return df is None or getattr(df, "empty", True)
+
+
+def _chain_empty(chain) -> bool:
+    return chain is None or (_frame_empty(getattr(chain, "calls", None))
+                             and _frame_empty(getattr(chain, "puts", None)))
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +84,8 @@ def _spot_for(ticker) -> Optional[float]:
     except Exception:
         pass
     try:
-        h = ticker.history(period="5d", interval="1d")
+        h = retry_call(lambda: ticker.history(period="5d", interval="1d"),
+                       empty=_frame_empty)
         if h is not None and not h.empty:
             return float(h["Close"].dropna().iloc[-1])
     except Exception:
@@ -171,7 +182,8 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
         t = yf.Ticker(symbol)
         spot = _spot_for(t)
         manifest["spot"] = spot
-        expiries = list(t.options or [])
+        # AUD-1 5b: an empty expiry list is retried, not believed.
+        expiries = retry_call(lambda: list(t.options or []), empty=lambda x: not x)
     except Exception as e:  # noqa: BLE001
         manifest["errors"].append(f"ticker init failed: {type(e).__name__}: {e}")
         log.warning("%s: ticker init failed: %s", symbol, e)
@@ -195,7 +207,8 @@ def fetch_symbol(symbol: str, max_expiries: Optional[int] = None) -> tuple[list[
         except ValueError:
             dte = -1
         try:
-            chain = t.option_chain(exp)
+            # AUD-1 5b: three tries, on an error or an empty pair of frames.
+            chain = retry_call(lambda: t.option_chain(exp), empty=_chain_empty)
             exp_rows = (_frame_to_rows(chain.calls, symbol, fetched_at, spot, exp, dte, "C")
                         + _frame_to_rows(chain.puts, symbol, fetched_at, spot, exp, dte, "P"))
             rows.extend(exp_rows)
@@ -253,6 +266,10 @@ def pull(symbols: Optional[list[str]] = None,
             "expiries_listed": manifest.get("expiries_listed", 0),
             "expiries_fetched": manifest.get("expiries_fetched", 0),
             "expiries_usable": manifest.get("expiries_usable", 0),
+            # AUD-1 5c: the expiries that came back with rows, for the
+            # completeness gate.
+            "expiries_with_rows": sum(1 for q in manifest.get("expiries", {}).values()
+                                      if (q.get("rows") or 0) > 0),
             "spot": manifest.get("spot"),
             "csv": str(csv_path) if csv_path else None,
             "quality": str(json_path),

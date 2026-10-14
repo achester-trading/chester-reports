@@ -647,8 +647,8 @@ def freshness(as_of: Optional[str] = None,
                 continue
             for k in keys:
                 # AUD-1 4c: one row from the index, not the whole history.
-                last = db.latest_as_of(k, as_of=as_of)
-                rows = [last] if last else []
+                newest_row = db.latest_as_of(k, as_of=as_of)
+                rows = [newest_row] if newest_row else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks

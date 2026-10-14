@@ -258,8 +258,10 @@ SPLIT_SUFFIX = "_split"
 # an ETF and a volatility index exist only while the exchange is open.
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
+# ZEC-USD joined with AUD-1 5d: the shielded logger writes its closes through
+# the same unfinished-bar rule, and ZEC trades every day.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
-                                                "EURUSD=X"})
+                                                "EURUSD=X", "ZEC-USD"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside
@@ -476,9 +478,12 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     from altdata import import_yfinance  # lazy import by design
     yf = import_yfinance()
 
+    from ._base import retry_call                               # noqa: PLC0415
     t = yf.Ticker(symbol)
-    df = t.history(period=period or LOOKBACK_PERIOD, interval="1d",
-                   auto_adjust=False, actions=True)
+    # AUD-1 5b: three tries, on an error or an empty frame.
+    df = retry_call(lambda: t.history(period=period or LOOKBACK_PERIOD, interval="1d",
+                                      auto_adjust=False, actions=True),
+                    empty=lambda d: d is None or d.empty)
     if df is None or df.empty:
         raise RuntimeError(f"yfinance returned no rows for {symbol}")
     rows = []

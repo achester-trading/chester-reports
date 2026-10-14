@@ -12,6 +12,11 @@ network, no box: every check seeds its own temporary store.
   B  THE INCREMENTAL RECOMPUTE (4d). market_features and surprise start from
      the newest day they have stored less their window, or from the beginning
      on an empty store, unless --from or --full says otherwise.
+  C  THE EOD CAPTURE (5b, 5c, 5e). A chain expiry that comes back empty is
+     retried; the completeness record fails below 12 of 13 symbols or 90% of
+     the listed expiries and counts the vendor symbols apart; the close prints
+     the gap and names a missing SPX; Massive without its key prints "Massive
+     key not set" and raises nothing.
 
     python tools/validate_audit_1.py
 """
@@ -31,6 +36,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from altdata import observations  # noqa: E402
+import gate_tmp                   # noqa: E402  -- removed at exit
 
 PASS = FAIL = 0
 LINE = "=" * 78
@@ -85,7 +91,7 @@ def seed_restamped(path: str) -> None:
 def group_a() -> None:
     head("A. THE FRED COMPACTION (AUD-1 4b)")
     from altdata import compact_fred as cf
-    td = tempfile.mkdtemp(prefix="validate_audit_1_")
+    td = gate_tmp.mkdtemp("validate_audit_1_")
     db = os.path.join(td, "store.db")
     seed_restamped(db)
     with observations.ObservationStore(db) as st:
@@ -144,7 +150,7 @@ def group_b() -> None:
     head("B. THE INCREMENTAL RECOMPUTE (AUD-1 4d)")
     from altdata import market_features as mf
     from altdata import surprise
-    td = tempfile.mkdtemp(prefix="validate_audit_1_b_")
+    td = gate_tmp.mkdtemp("validate_audit_1_b_")
     db = os.path.join(td, "store.db")
     with observations.ObservationStore(db) as st:
         check(mf.default_first_day(st) is None and surprise.default_first_day(st) is None,
@@ -163,9 +169,108 @@ def group_b() -> None:
               f"{mod.__name__}: --from and --full override the default start")
 
 
+def group_c() -> None:
+    print(f"\n{LINE}\nC. THE EOD CAPTURE: RETRIES, COMPLETENESS, MASSIVE (AUD-1 5b, 5c, 5e)\n{LINE}")
+    import contextlib
+    import io
+    import types
+    import pandas as pd
+    import altdata
+    from altdata import chain_completeness as cc
+    from altdata.sources import _base, massive_chain, options_chain
+
+    # 5b: one expiry empty on the first try, rows on the second.
+    good = pd.DataFrame({"strike": [100.0], "bid": [1.0], "ask": [1.2],
+                         "lastPrice": [1.1], "volume": [5], "openInterest": [10],
+                         "impliedVolatility": [0.2], "contractSymbol": ["X"]})
+    tries = {"n": 0}
+
+    class T:
+        options = ("2026-11-20",)
+        fast_info = {"last_price": 100.0}
+
+        def option_chain(self, exp):
+            tries["n"] += 1
+            if tries["n"] == 1:
+                return types.SimpleNamespace(calls=pd.DataFrame(), puts=pd.DataFrame())
+            return types.SimpleNamespace(calls=good, puts=good)
+    orig = (altdata.import_yfinance, _base.time.sleep, options_chain.time.sleep)
+    altdata.import_yfinance = lambda: types.SimpleNamespace(Ticker=lambda s: T())
+    _base.time.sleep = options_chain.time.sleep = lambda s: None
+    try:
+        rows, man = options_chain.fetch_symbol("SPY")
+    finally:
+        altdata.import_yfinance, _base.time.sleep, options_chain.time.sleep = orig
+    check(tries["n"] == 2 and len(rows) == 2,
+          f"an expiry that comes back empty is retried and captured (5b; "
+          f"{tries['n']} tries, {len(rows)} rows)")
+    src = Path(options_chain.__file__).read_text(encoding="utf-8")
+    check(src.count("retry_call(") >= 3,
+          "the spot history, the expiry list and each chain all retry (5b)")
+
+    # 5c: the completeness floors.
+    uni = [f"S{i}" for i in range(13)]
+
+    def summary(n_ok, listed=10, with_rows=10):
+        return {"symbols": {s: ({"rows": 50, "expiries_fetched": listed,
+                                 "expiries_with_rows": with_rows} if i < n_ok
+                                else {"rows": 0}) for i, s in enumerate(uni)}}
+    check(cc.completeness(summary(13), uni)["ok"], "13 of 13, every expiry: complete")
+    r12 = cc.completeness(summary(12), uni)
+    check(r12["ok"] and r12["symbols_missing"] == ["S12"],
+          "12 of 13 is the floor and passes, the missing symbol named")
+    r11 = cc.completeness(summary(11), uni)
+    check(not r11["ok"] and cc.EXIT_INCOMPLETE == 5, "11 of 13 fails, exit 5")
+    r89 = cc.completeness(summary(13, 100, 89), uni)
+    check(not r89["ok"] and cc.completeness(summary(13, 100, 90), uni)["ok"],
+          "89% of the listed expiries fails; 90% passes")
+    vs = {"symbols": {"SPCX": {"rows": 7}, "SPX": {"rows": 0}}}
+    rv = cc.completeness(summary(13), uni, vs, ["SPX", "SPCX"])
+    check(rv["ok"] and rv["vendor"]["missing"] == ["SPX"],
+          "the vendor symbols count apart: a missing SPX does not fail the capture")
+    lines = cc.gap_lines(rv) + cc.gap_lines(r11)
+    check(any("SPX" in ln for ln in lines) and any("S11" in ln for ln in lines),
+          "the gap lines name the missing SPX and the missing symbols")
+    with tempfile.TemporaryDirectory() as td:
+        cc.write_completeness(rv, "2026-10-14", base_dir=td)
+        back = cc.read_completeness("2026-10-14", base_dir=td)
+        check(back == json_roundtrip(rv)
+              and cc.read_completeness("2026-10-13", base_dir=td) is None,
+              "the record round-trips beside the day's chains; a day without one reads None")
+    psrc = (REPO / "daily_cascade" / "payload.py").read_text(encoding="utf-8")
+    check("chain_completeness.read_completeness(resolved)" in psrc
+          and "gap_lines(rec)" in psrc,
+          "the close's payload reads the day's record into its warnings")
+    esrc = (REPO / "run_eod.py").read_text(encoding="utf-8")
+    check("--capture-only" in esrc and "return EXIT_INCOMPLETE" in esrc,
+          "run_eod.py exits 5 on an incomplete capture")
+
+    # 5e: no key -> a clean skip, said plainly.
+    orig_cred = massive_chain.credentials
+    massive_chain.credentials = lambda: (None, "https://example.invalid")
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            out = massive_chain.pull(symbols=["SPX", "SPCX"])
+    except Exception as exc:                                  # noqa: BLE001
+        out = {"raised": repr(exc)}
+    finally:
+        massive_chain.credentials = orig_cred
+    check("Massive key not set" in buf.getvalue() and out.get("key_missing")
+          and out.get("success") == 0,
+          "no Massive key: prints 'Massive key not set', raises nothing (5e)")
+    msrc = Path(massive_chain.__file__).read_text(encoding="utf-8")
+    check("retry_call(" in msrc, "Massive's symbols take the same retries (5e)")
+
+
+def json_roundtrip(d: dict) -> dict:
+    import json
+    return json.loads(json.dumps(d))
+
+
 def main() -> int:
     print(f"{LINE}\nAUD-1, THE FIXES WITH NO OTHER GATE\n{LINE}")
-    for g in (group_a, group_b):
+    for g in (group_a, group_b, group_c):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001
