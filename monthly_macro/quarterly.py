@@ -44,6 +44,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from altdata.numeral_audit import ordinal
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
@@ -194,7 +195,7 @@ def correlation_rows(ch: dict, ctx: dict) -> dict:
             rows.append([n["label"], f"{t['latest']:+.2f}",
                          f"{t['mean']:+.2f} (mean)" if t.get("mean") is not None
                          else "—",
-                         (f"{t['percentile']:.0f}th percentile"
+                         (f"{ordinal(t['percentile'])} percentile"
                           if t.get("percentile") is not None else "—"), t["as_of"]])
             k = co.stored_key(n["key"]) if hasattr(co, "stored_key") else n["key"]
             keyed.append({"row": n["label"], "keys": [k]})
