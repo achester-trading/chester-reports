@@ -199,7 +199,7 @@ The cost is never at the mid. A symbol's cost class is ETF unless `config/alpha_
 - **A grammar error, or a series the store does not hold:** the hypothesis registers as `needs_code` or `data_gap`, with the reason.
 - **A rule that compiles:** it registers as `registered`.
 
-**What the harness does.** The workbench (`python -m alpha.research run <id>`) puts a registered rule through the validation harness (X-1.6), unchanged:
+**What the harness does.** The nightly loop puts each newly registered rule through the validation harness (X-1.6), unchanged, the night it is registered. The workbench (`python -m alpha.research run <id>`) does the same on demand. The harness applies:
 - point-in-time;
 - walk-forward with the embargo;
 - the hold-out months removed and kept for the final check;

@@ -315,16 +315,21 @@ silence in a fresh interpreter.
 
 **`alpha/` is a machine's book in ledger-paper beside the reports and the four
 books** (change order `docs/change-order-alpha-lab-2026-10-12.md`, ruled 12 Oct
-2026; `docs/alpha-lab.md`). It writes `alpha.db` and nothing else. Four rules
-hold it, and a gate holds each:
+2026; Tranche 2's amendments of 14 Oct in its section 10; `docs/alpha-lab.md`).
+It writes `alpha.db` and, through `alpha/files.py` and nowhere else, its own
+files: the weekly agenda (`alpha/research/agenda.md` and `.json`, gitignored), the
+workbench's verdicts (`alpha/research/reports/`) and the outbox
+(`~/chester-data/outbox/lab/`). Four rules hold it, and a gate holds each:
 
 - **The observation store is opened read-only.** `alpha/store.py` opens
   `file:...?mode=ro` through the point-in-time reader and refuses `write()`.
   `tools/validate_alpha.py` proves the store file's hash is unchanged after a
   full nightly run on its fixture. The lab never writes the register, the
-  probability ledger, the narrative ledger or a report. The Weekly reads one
-  line from `alpha.db`, read-only, through one hook in
-  `daily_cascade/weekly_stack.py`.
+  probability ledger, the narrative ledger or a report. Three reports read it,
+  read-only, each through one hook: the Weekly's line
+  (`daily_cascade/weekly_stack.py`), the Daily close's line
+  (`daily_cascade/stack_close.py`), and the Monthly's Lab report attachment
+  (`monthly_macro/run.py`, `alpha/report.py`).
 - **No order, gate, broker or network import, and no fetch.**
   `tools/validate_alpha_no_orders.py` covers:
   - the order gate and the whole `register` package;
@@ -346,11 +351,31 @@ hold it, and a gate holds each:
   `config/alpha.yaml`.
 - **The two-session rule is unchanged.** The lab is built by session A or B as
   the queue allows, never a third. Its loops run on their own timers
-  (`chester-alpha-nightly`, `chester-alpha-weekly`), never inside a report's
-  run. Enabling them is the operator's.
+  (`chester-alpha-nightly`, `chester-alpha-weekly`, `chester-alpha-proposer`),
+  never inside a report's run. Enabling them is the operator's.
 
-Engines are named only in `config/alpha_engines.yaml`, and Tranche 1 registers
-none. No gate reads the live store.
+**Every idea is pre-registered before it is tested (Tranche 2).** The register
+is `alpha.db`'s `hypotheses` table (`alpha/hypotheses.py`), on the batch schema
+alpha-lab-hypotheses v1. The first batch is the pinned fixture
+`tests/fixtures/alpha/inbox/hypotheses-2026-10-14.yaml`. Every channel enters
+through `alpha/intake.py`:
+
+- the Drive inbox (`alpha/inbox.py`, pre-registered at the file's Drive creation
+  time from the sweep's `rclone lsjson --metadata` manifest);
+- the daily proposer (`alpha_proposer/`, a package OUTSIDE `alpha/` because it
+  makes the one model call; `tools/validate_alpha_proposer.py`);
+- the workbench (`python -m alpha.research new | run | report`);
+- the research sitting (`docs/briefs/alpha-research-sitting-template.md`).
+
+The harness refuses a hypothesis registered after its run. Failures are kept,
+and duplicates of them screened out. A rule in the grammar
+(`docs/alpha-lab-rules.md`, interpreted by `alpha/rules.py`) runs the night it
+is registered and is promoted on the loop's authority if it passes. A model's
+idea must also pass the model-idea rule (`alpha/promote.py`).
+
+Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
+pm_futures, vrp_dealer, all candidates until they pass); a promoted grammar rule
+is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 
