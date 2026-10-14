@@ -1,0 +1,58 @@
+# alpha.yaml -- Layer X, the Alpha Lab: the SESSION-SET settings (Tranche 1,
+# X-1). Not the constitution: config/alpha_constitution.yaml holds the ruled
+# values and is written by no loop and no session without a quoted ruling. These
+# are the values the change order leaves to the session ("session-set"), each
+# recorded where it is used: the shrinkage strength on every edge_posterior row,
+# the correlation threshold and the heat cap on every allocator event.
+version: 1
+
+# THE LEDGER. alpha.db sits under the data root BESIDE the observation store:
+# {data_root} is the directory holding the store (altdata.observations.
+# DEFAULT_DB, i.e. $CHESTER_DB's directory, else <repo>/data). $ALPHA_DB
+# overrides the whole path. On the box: ~/chester-reports/data/alpha.db, which the
+# nightly off-box sweep snapshots beside chester.db (scripts/rclone_sync.sh).
+ledger:
+  path: "{data_root}/alpha.db"
+
+# THE LAB'S OWN NOTIONAL CAPITAL, in lab dollars. A paper book's denominator,
+# never netted with the Doctrine books' paper and not a position figure.
+notional_capital: 100000
+
+# THE POSTERIORS (X-1.9). Both shrink toward zero edge with the strength of
+# `prior_signals` pseudo-signals: the win rate's Beta prior is centred on
+# `prior_win_rate` with prior_signals pseudo-counts; the expectancy's normal
+# prior has mean 0 and the precision of prior_signals observations at the
+# engine's own observed dispersion. Twenty: a sample of twelve is held at well
+# under half its raw edge, a sample of a hundred at about five-sixths.
+shrinkage:
+  prior_signals: 20
+  prior_win_rate: 0.5
+
+# THE ALLOCATOR (X-1.7). Engines whose daily returns correlate above
+# `correlation_threshold` over the trailing `correlation_window_days` are one
+# cluster and count once. `heat_cap` bounds the sum of the absolute allocator
+# weights (fractions of the lab's notional): 1.0 is no leverage.
+allocator:
+  correlation_threshold: 0.7
+  correlation_window_days: 120
+  min_overlap_days: 20
+  heat_cap: 1.0
+
+# THE DRIFT CHECK (X-1.9): an engine's rolling realised Sharpe over its last
+# `window_signals` graded signals against the deflated Sharpe it was validated
+# with, flagged when below it by more than `band_se` standard errors. A flag,
+# never an action: the loop changes sizes and weights, never an engine's rules.
+drift:
+  window_signals: 60
+  band_se: 2.0
+
+# THE COST CALIBRATION (X-1.9): the window the nightly loop compares modelled
+# against stored costs over.
+cost_calibration:
+  window_days: 60
+
+# ANNUALISATION, for the Sharpe ratios the validation and drift checks quote.
+periods_per_year:
+  intraday: 252
+  daily: 252
+  weekly: 52

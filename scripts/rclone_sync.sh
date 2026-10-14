@@ -157,6 +157,36 @@ fi
 log "staged $(basename "$UPLOAD") ($(stat -c %s "$SNAP") bytes -> $(stat -c %s "$UPLOAD"))"
 rm -f "$SNAP"                        # the verified .gz is what goes off-box
 
+# --- the Alpha Lab's ledger, the same way (X-1.1, 13 Oct 2026) ---------------
+# alpha.db sits beside chester.db under data/ and is a live SQLite file too, so
+# it is snapshotted through its own module's online backup (python -m
+# alpha.ledger snapshot), integrity-checked, gzipped and round-tripped, staged
+# dated into db/ beside chester's, and excluded from the data/ tree below. The
+# db/ prune matches chester-YYYY-MM-DD names only, so alpha's snapshots are kept.
+# IT NEVER BLOCKS chester.db: before the lab's timers are enabled there is no
+# alpha.db (a logged skip), and a failed alpha snapshot uploads nothing for it
+# and fails the sweep as rc 3 named `alpha-db(snapshot)`, after every tree ran.
+ALPHA_DB="$REPO/data/alpha.db"
+ALPHA_SNAP="$STAGE/alpha-$(date +%Y-%m-%d).db"
+ALPHA="skipped (no $ALPHA_DB)"
+rm -f "$STAGE"/alpha-*
+if [[ -f "$ALPHA_DB" ]]; then
+    if (cd "$REPO" && "$PY" -m alpha.ledger snapshot "$ALPHA_SNAP" "$ALPHA_DB") >>"$LOG" 2>&1 \
+            && (cd "$REPO" && "$PY" -m altdata.observations integrity "$ALPHA_SNAP") >>"$LOG" 2>&1 \
+            && gzip -c "$ALPHA_SNAP" >"$ALPHA_SNAP.gz.part" \
+            && mv "$ALPHA_SNAP.gz.part" "$ALPHA_SNAP.gz" \
+            && gzip -dc "$ALPHA_SNAP.gz" | cmp -s - "$ALPHA_SNAP"; then
+        ALPHA="ok"
+        log "staged $(basename "$ALPHA_SNAP").gz"
+    else
+        ALPHA="FAILED"
+        rm -f "$ALPHA_SNAP.gz" "$ALPHA_SNAP.gz.part"
+        log "  alpha ledger: snapshot FAILED (chester.db's backup unaffected); see $LOG"
+    fi
+    rm -f "$ALPHA_SNAP"
+fi
+log "  alpha ledger: $ALPHA"
+
 # --- copy, tree by tree -----------------------------------------------------
 # Each tree is reported separately and runs under its own time cap, so a
 # partial sweep names which part failed and a stalled tree cannot starve the
@@ -230,7 +260,8 @@ if copy_tree "$STAGE" "db" 20; then
 else
     RC=3
 fi
-copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*"     || RC=3
+copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*" --exclude "/alpha.db*" || RC=3
+[[ "$ALPHA" == "FAILED" ]] && { RC=3; FAILED="${FAILED:+$FAILED }alpha-db(snapshot)"; }
 copy_tree "$BACKUP_DIR" "backups" 30                              || RC=3
 copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
