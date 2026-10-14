@@ -109,6 +109,28 @@ def _fed_or_auction(st, day: str, now: str) -> list[str]:
     return uniq
 
 
+# THE ATTRIBUTION TAKES A CLAUSE OR A QUOTATION (W-1.1 item 1.0). The 9 Oct
+# edition printed "attributed the move in oil to Oil prices rose ...": the stored
+# claim is often a whole sentence, and pasted after "to" it reads as nonsense. A
+# claim that is a noun phrase or clause ("a supply cut", "the Fed's comments")
+# follows "attributed the move in X to"; a claim that is a sentence -- it opens
+# with a capital, or names a verb of movement -- is quoted as the outlet's words.
+_SENTENCE_VERB = re.compile(r"\b(?:rose|fell|rallied|slid|dropped|climbed|jumped|"
+                            r"gained|lost|surged|sank|edged|tumbled|soared|is|are|"
+                            r"was|were|has|have|had|will|said|says)\b", re.I)
+
+
+def attribution_text(a: dict) -> str:
+    claim = str(a.get("claim") or "").strip().rstrip(".").strip()
+    claim = claim.strip("\"“”'")
+    outlet, market = a.get("outlet"), a.get("market")
+    if claim and (claim[0].isupper() and not claim.startswith(("Fed", "OPEC", "U.S.",
+                                                               "US ", "China", "ECB"))
+                  or _SENTENCE_VERB.search(claim)):
+        return f"{outlet}, on the move in {market}: “{claim}.”"
+    return f"{outlet} attributed the move in {market} to {claim}"
+
+
 def week_by_day(st, sessions: list[str], ending: str, now: str, then: str,
                 releases: list[dict], db_path: Optional[str] = None) -> dict:
     """Item 3. One row per session. Every cell is a stored figure or a sourced
@@ -154,9 +176,7 @@ def week_by_day(st, sessions: list[str], ending: str, now: str, then: str,
                      "most_cited_story": story})
         for a in attrs:
             if str(a["published_at"])[:10] == d:
-                lines.append(f"{_day(d)}: {a['outlet']} attributed the move in "
-                             f"{a['market']} to {a['claim'].rstrip('.')} "
-                             f"({a['source_url']}).")
+                lines.append(f"{_day(d)}: {attribution_text(a)} ({a['source_url']}).")
     return {"table": {"columns": ["Day", "SPY", "10-year", "Tier-1 release "
                                   "(actual, prior)", "Fed speech or auction",
                                   "Most-cited story (source)"], "rows": rows},
@@ -166,10 +186,77 @@ def week_by_day(st, sessions: list[str], ending: str, now: str, then: str,
 # ---------------------------------------------------------------------------
 # The tape: one table (item 4)
 # ---------------------------------------------------------------------------
-def tape_table(book: dict) -> dict:
+# PER-ROW AS-OF (W-1.1 item 1.2, ruling 2). The edition's "as of" is the latest
+# bar; a row whose own bar is older prints its date, and a PRICE whose last bar is
+# older than the edition's prints "stale since <date>" beside it -- the 9 Oct
+# Bitcoin row printed a bare price two days old. A series with a declared release
+# lag (config `freshness.expected_lag`: TIC, monthly) prints "lag: <period>
+# (<reference>, released <date>)" instead, because late is its normal state.
+def stale_since(as_of: Optional[str], edition_day: Optional[str]) -> Optional[str]:
+    if not as_of or not edition_day:
+        return None
+    return str(as_of)[:10] if str(as_of)[:10] < str(edition_day)[:10] else None
+
+
+def with_stale(text: str, as_of: Optional[str], edition_day: Optional[str]) -> str:
+    d = stale_since(as_of, edition_day)
+    return f"{text} (stale since {d})" if d else text
+
+
+def expected_lag(key: str, cfg: Optional[dict] = None) -> Optional[str]:
+    if cfg is None:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        cfg = bars_mod.load_config()
+    return ((cfg.get("freshness") or {}).get("expected_lag") or {}).get(key)
+
+
+def lag_label(key: str, observed_at: Optional[str], available_at: Optional[str],
+              cfg: Optional[dict] = None) -> Optional[str]:
+    """'lag: monthly (July, released 2026-09-18)' for a declared-lag series, or
+    None. The reference period is the observation's own; the release date is
+    when the store could first know it."""
+    lag = expected_lag(key, cfg)
+    if not lag or not observed_at:
+        return None
+    try:
+        ref = dt.date.fromisoformat(str(observed_at)[:10])
+    except ValueError:
+        return None
+    period = f"{ref:%B}" if lag == "monthly" else f"{ref:%d %b}"
+    rel = f", released {str(available_at)[:10]}" if available_at else ""
+    return f"lag: {lag} ({period}{rel})"
+
+
+def edition_session(now: str) -> Optional[str]:
+    """The last trading session on or before `now`'s date: the day a price's bar
+    is held to. None where the session calendar cannot say -- then nothing is
+    marked stale, rather than everything."""
+    try:
+        return session.last_trading_session(str(now)[:10]).isoformat()
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
     cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
             "52-week high (distance)", "vs 20 / 50 / 200-day", "Gamma flip"]
-    rows, gaps = [], []
+    rows, gaps, ids = [], [], []
+    # The edition's day: the latest bar among the session-traded instruments (a
+    # continuous one, Bitcoin, trades on the weekend and would set it a day late).
+    if edition_day is None:
+        days = [str((i.get("frame") or {}).get("as_of") or "")
+                for i in book.get("instruments") or [] if not i.get("continuous")]
+        edition_day = max([d for d in days if d], default=None)
+    # EVERY ROW CARRIES ITS UNIT (W-1.2 item 2.8): a price prints with the tape
+    # config's `unit` -- "$668.40", "98.10 index"; a yield with its %.
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    units = {t["id"]: t.get("unit") for t in bars_mod.tape()}
+
+    def price(v: float, iid: str) -> str:
+        u = units.get(iid)
+        if u == "$":
+            return f"${v:,.2f}"
+        return f"{v:,.2f} {u}" if u else f"{v:,.2f}"
     # THE MOBILE RULE (T2.3 item 8): no table wider than six columns -- the
     # returns table (6) and the levels table (5) are split below.
     for i in book.get("instruments") or []:
@@ -178,30 +265,45 @@ def tape_table(book: dict) -> dict:
         unit = "bp" if y else "%"
         k = "bps" if y else "pct"
         last = f.get("last")
+        lv = {x["type"]: x["value"] for x in i.get("levels") or []}
         if last is None:
+            # NO BAR FOR THE SESSION, BUT AN OLDER ONE (W-1.1 item 1.2): the row
+            # prints that close, stale since its date, and no move -- never a
+            # bare price, never a move measured from a stale close.
+            pc = next((x for x in i.get("levels") or [] if x["type"] == "prior_close"),
+                      None)
+            if pc and pc.get("as_of"):
+                fmt0 = (lambda v: f"{v:,.3f}%") if y else (lambda v, _i=i["id"]: price(v, _i))
+                rows.append([i["label"], f"{fmt0(pc['value'])} (stale since "
+                             f"{str(pc['as_of'])[:10]})", "—", "—", "—", "—",
+                             "—", "—", "—", "—"])
+                ids.append((i["id"], None))
+                continue
             gaps.append(f"{i['label']}: no daily bar for the session")
             continue
-        lv = {x["type"]: x["value"] for x in i.get("levels") or []}
 
         def dist(level: Optional[float]) -> str:
             if level is None:
                 return "—"
             v = (last - level) * 100.0 if y else 100.0 * (last / level - 1.0)
             return _signed(round(v) if y else round(v, 2), unit)
-        fmt = (lambda v: f"{v:,.3f}%") if y else (lambda v: f"{v:,.2f}")
+        fmt = (lambda v: f"{v:,.3f}%") if y else (lambda v, _i=i["id"]: price(v, _i))
         hl = (f"{fmt(lv['week_high'])} / {fmt(lv['week_low'])}"
               if lv.get("week_high") is not None else "—")
         h52 = (f"{fmt(lv['high_52w'])} ({dist(lv['high_52w'])})"
                if lv.get("high_52w") is not None else "—")
         mas = " / ".join(dist(lv.get(m)) for m in ("ma_20d", "ma_50d", "ma_200d"))
-        rows.append([i["label"], fmt(last), _signed(f.get(f"session_change_{k}"), unit),
+        rows.append([i["label"], with_stale(fmt(last), f.get("as_of"), edition_day),
+                     _signed(f.get(f"session_change_{k}"), unit),
                      _signed(f.get(f"wtd_change_{k}"), unit),
                      _signed(f.get(f"mtd_change_{k}"), unit),
                      _signed(f.get(f"ytd_change_{k}"), unit), hl, h52, mas,
                      fmt(lv["gamma_flip"]) if lv.get("gamma_flip") is not None else "—"])
+        ids.append((i["id"], f.get("as_of")))
     ret = {"columns": cols[:6], "rows": [r[:6] for r in rows]}
     lev = {"columns": [cols[0]] + cols[6:], "rows": [[r[0]] + r[6:] for r in rows]}
-    return {"table": ret, "levels_table": lev, "not_tracked": gaps}
+    # Each row's instrument and bar date, for the consistency gate (W-1.1 1.1).
+    return {"table": ret, "levels_table": lev, "not_tracked": gaps, "row_ids": ids}
 
 
 # ---------------------------------------------------------------------------
@@ -335,12 +437,87 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
 GAP_NOTE = ("How to read: z is how unusual today's distance between the two "
             "markets is against the pair's own history; 2.0 means further apart "
             "than 95% of the time. Rising means the gap is widening, falling that "
-            "it is closing; the count is the sessions it has been open.")
+            "it is closing. The dates: when the gap crossed its line (its age, in "
+            "sessions), when it opened, and when it became an exception.")
 
 
-def gap_table(opened: list[dict], history: dict[str, list]) -> dict:
+# AGE VERSUS STATUS (W-1.1 item 1.3, ruled 11 Oct 2026). The 9 Oct edition printed
+# a gap measured for eight sessions and promoted to an exception that week as one
+# number. A gap now prints three dates, read from the stored objects:
+#   gap since        the first session of the current run above its line -- the
+#                    session it went pending; "open n sessions" is this age
+#   open since       the first session the persistence rule opened it
+#   exception since  the first session it counted as an exception
+# An extreme prints the first session of its current run as an exception.
+def state_dates(objs: list[tuple[str, dict]]) -> dict[str, dict]:
+    """{contradiction id or exception id: {gap_since, open_since,
+    exception_since, sessions}} from the stored objects, oldest first. Each date
+    is the start of the CURRENT unbroken run of that state."""
+    import regime                                               # noqa: PLC0415
+    runs: dict[str, dict] = {}
+    for day, obj in objs:
+        seen_c, seen_e = set(), set()
+        for c in obj.get("contradictions") or []:
+            cid = c.get("id")
+            if not cid:
+                continue
+            r = runs.setdefault(cid, {})
+            for flag, k in ((bool(c.get("condition_met")), "gap_since"),
+                            (c.get("open_state") == "open", "open_since"),
+                            (bool(c.get("exception")), "exception_since")):
+                if flag:
+                    r[k] = r.get(k) or day
+                else:
+                    r[k] = None
+            r["sessions"] = (r.get("sessions") or 0) + 1 if c.get("condition_met") else 0
+            seen_c.add(cid)
+        for e in regime.exception_ids(obj):
+            r = runs.setdefault(e, {})
+            r["exception_since"] = r.get("exception_since") or day
+            seen_e.add(e)
+        for k, r in runs.items():
+            if ":" in k and k not in seen_e:
+                r["exception_since"] = None
+            elif ":" not in k and k not in seen_c:
+                r.update(gap_since=None, open_since=None, exception_since=None,
+                         sessions=0)
+    return runs
+
+
+def three_dates(d: Optional[dict]) -> str:
+    """'gap since 2026-09-29 (8 sessions) · open since 2026-09-30 · exception
+    since 2026-10-05', each part only where the state holds."""
+    d = d or {}
+    parts = []
+    if d.get("gap_since"):
+        n = d.get("sessions")
+        parts.append(f"gap since {d['gap_since']}"
+                     + (f" ({n} session{'s' if n != 1 else ''})" if n else ""))
+    if d.get("open_since"):
+        parts.append(f"open since {d['open_since']}")
+    if d.get("exception_since"):
+        parts.append(f"exception since {d['exception_since']}")
+    return " · ".join(parts) or "—"
+
+
+# The window the gap's z is measured over (config/market_state.yaml
+# contradictions.window_days), in words for the column head and the glossary.
+def gap_window_words() -> str:
+    try:
+        cfg = yaml.safe_load((REPO / "config" / "market_state.yaml")
+                             .read_text(encoding="utf-8")) or {}
+        days = int(((cfg.get("contradictions") or {}).get("window_days")) or 1826)
+    except Exception:                                           # noqa: BLE001
+        days = 1826
+    years = round(days / 365.25)
+    return f"{in_words(years)}-year window" if years >= 1 else f"{days}-day window"
+
+
+def gap_table(opened: list[dict], history: dict[str, list],
+              dates: Optional[dict] = None) -> dict:
     from altdata import labels                                  # noqa: PLC0415
     rows, data = [], []
+    dates = dates or {}
     for c in opened:
         cid = c.get("id")
         plain = labels.contradiction_plain(cid)
@@ -349,16 +526,25 @@ def gap_table(opened: list[dict], history: dict[str, list]) -> dict:
         if len(h) >= 2 and None not in (h[-1][1], h[-2][1]):
             trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         z = c.get("magnitude")
+        dd = dates.get(cid) or {"gap_since": c.get("since"),
+                                "sessions": c.get("persistence_days")}
         rows.append([labels.contradiction(cid).capitalize(), plain.get("legs") or "—",
                      (f"{float(z):+.1f} (line {float(c.get('threshold_z') or 2.0):.1f})"
                       if isinstance(z, (int, float)) else "—"), trend,
-                     c.get("persistence_days"), plain.get("closes") or "—"])
+                     three_dates(dd), plain.get("closes") or "—"])
         data.append({"gap": labels.contradiction(cid), "sides": plain.get("legs"),
                      "z": round(float(z), 1) if isinstance(z, (int, float)) else None,
-                     "direction": trend, "sessions_open": c.get("persistence_days"),
+                     "direction": trend,
+                     # The GAP's age, in sessions -- "open n sessions" in prose
+                     # means this and nothing else (item 1.3).
+                     "sessions_open": dd.get("sessions") or c.get("persistence_days"),
+                     "gap_since": dd.get("gap_since"), "open_since": dd.get("open_since"),
+                     "exception_since": dd.get("exception_since"),
                      "closes_when": plain.get("closes")})
-    return {"table": {"columns": ["Gap", "What each side is saying", "z (line)",
-                                  "Direction", "Sessions open", "What would close it"],
+    return {"table": {"columns": ["Gap", "What each side is saying",
+                                  f"z, {gap_window_words()} (line)", "Direction",
+                                  "Gap since · open since · exception since",
+                                  "What would close it"],
                       "rows": rows},
             "table_note": GAP_NOTE, "data": data}
 
@@ -397,16 +583,23 @@ def _et(iso: str) -> Optional[str]:
 
 
 def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
-                  cal: Optional[dict] = None) -> dict:
+                  cal: Optional[dict] = None, classes: Optional[dict] = None) -> dict:
     """The coming week, Monday to Friday after `ending`, one row per event:
-    day, time ET, event, importance, consensus or prior."""
+    day, time ET, event, importance, consensus or prior -- and (W-1.3a item 3.9)
+    each row's event class from config/weekly_ahead.yaml's `release_classes`.
+    A release no class names and every bill auction is ROUTINE: kept apart, for
+    the reference tables, and counted. Scheduled earnings rows are kept with
+    their symbol, session and consensus EPS."""
     from altdata import events                                  # noqa: PLC0415
     cal = cal or load_calendar()
+    if classes is None:
+        from . import ahead                                     # noqa: PLC0415
+        classes = ahead.load_config().get("release_classes") or {}
     end = dt.date.fromisoformat(ending[:10])
     mon = end + dt.timedelta(days=(7 - end.weekday()) % 7 or 7)
     sat = mon + dt.timedelta(days=5)
     rows: list[dict] = []
-    skipped = 0
+    routine: list[dict] = []
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT type, source, observed_at, title, payload FROM events WHERE "
@@ -424,12 +617,16 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
                          "event": (f"{p.get('speaker')}: {t.split(' -- ')[-1]}"
                                    if kind != "FOMC Meetings" else "FOMC meeting"),
                          "tier": 1 if kind == "FOMC Meetings" else (2 if chair else 3),
-                         "consensus": "—"})
+                         "consensus": "—",
+                         "cls": ("fomc_decision" if kind == "FOMC Meetings" else
+                                 "fed_chair" if chair else "fed_speaker")})
             continue
         if src == "treasury_upcoming":
             inst = canonical_auction(str(p.get("instrument") or ""))
             if inst.split(":")[0] not in ("Note", "Bond", "TIPS"):
-                skipped += 1
+                routine.append({"date": d, "time": "11:30",
+                                "event": f"{inst.split(':')[-1]} "
+                                         f"{inst.split(':')[0].lower()} auction"})
                 continue
             m = match_release(inst, cal)
             hy = st.latest_as_of("auction.high_yield", now, inst)
@@ -439,10 +636,12 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
                      + (f", bid-to-cover {bc['value_num']:.2f}" if bc else "")
                      + f" ({str(hy['observed_at'])[:10]}); tail not stored"
                      if hy else "no prior auction stored")
+            label = (m or {}).get("label") or \
+                f"{inst.split(':')[1]} {inst.split(':')[0].lower()} auction"
             rows.append({"date": d, "time": (m or {}).get("time") or "13:00",
-                         "event": (m or {}).get("label") or
-                         f"{inst.split(':')[1]} {inst.split(':')[0].lower()} auction",
-                         "tier": (m or {}).get("tier") or 3, "consensus": prior})
+                         "event": label, "tier": (m or {}).get("tier") or 3,
+                         "consensus": prior,
+                         "cls": classes.get(label) or "coupon_auction"})
             continue
         if typ == "session_event":
             if not re.search(r"OPEX|expir", t, re.I):
@@ -452,27 +651,35 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             rows.append({"date": d, "time": "16:00",
                          "event": ("Quarterly" if q else "Monthly") + " option expiry",
                          "tier": ex.get("quarterly_tier" if q else "monthly_tier", 2),
-                         "consensus": "—"})
+                         "consensus": "—",
+                         "cls": "opex_quarterly" if q else "opex_monthly"})
             continue
-        if typ == "earnings":
-            rows.append({"date": d, "time": "time not stated",
-                         "event": f"{p.get('symbol') or t.split()[0]} earnings",
-                         "tier": 3, "consensus": "no consensus stored"})
+        if typ == "earnings" or p.get("kind") == "earnings":
+            sym = p.get("symbol") or t.split()[0]
+            rows.append({"date": d, "time": earnings_session(obs),
+                         "event": f"{sym} earnings", "tier": 3,
+                         "consensus": "no consensus stored", "symbol": sym,
+                         "eps_estimate": p.get("eps_estimate"), "cls": "earnings"})
             continue
         name = p.get("release_name") or t.split(" -- ")[0]
         m = match_release(name, cal) or match_release(t, cal)
-        if not m or not m.get("label"):
-            skipped += 1
+        cls = classes.get((m or {}).get("label") or "")
+        if not m or not m.get("label") or not cls:
+            routine.append({"date": d, "time": (m or {}).get("time") or
+                            "time not stated",
+                            "event": (m or {}).get("label") or name})
             continue
         rows.append({"date": d, "time": m.get("time") or "time not stated",
                      "event": m["label"], "tier": m.get("tier") or 3,
-                     "consensus": "no consensus stored"})
+                     "consensus": "no consensus stored", "cls": cls})
     for r in (pmb or {}).get("markets") or []:
         ca = str(r.get("close_at") or "")
         if mon.isoformat() <= ca[:10] < sat.isoformat():
             rows.append({"date": ca[:10], "time": _et(ca) or "time not stated",
                          "event": f"Prediction market resolves: {r.get('question')}",
-                         "tier": 3, "consensus": f"last {round(100 * (r.get('probability') or 0))}%"})
+                         "tier": 3, "consensus": f"last {round(100 * (r.get('probability') or 0))}%",
+                         "cls": "prediction_family",
+                         "probability": r.get("probability")})
     seen, out = set(), []
     for r in sorted(rows, key=lambda r: (r["date"], r["time"], r["tier"], r["event"])):
         k = (r["date"], r["event"])
@@ -480,12 +687,33 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
             continue
         seen.add(k)
         out.append(r)
+    rseen, rout = set(), []
+    for r in sorted(routine, key=lambda r: (r["date"], r["time"], r["event"])):
+        if (r["date"], r["event"]) not in rseen:
+            rseen.add((r["date"], r["event"]))
+            rout.append(r)
     return {"table": {"columns": ["Day", "Time (ET)", "Event", "Importance",
                                   "Consensus / prior"],
                       "rows": [[_day(r["date"]), r["time"], r["event"],
                                 r["tier"], r["consensus"]] for r in out]},
             "rows": out, "window": [mon.isoformat(), (sat - dt.timedelta(days=1)).isoformat()],
-            "routine_not_listed": skipped}
+            "routine": rout, "routine_not_listed": len(rout)}
+
+
+def earnings_session(observed_at: Any) -> str:
+    """Pre- or post-market from a stored earnings timestamp. The calendar route
+    stores a bare date at 13:30Z (altdata/sources/earnings._iso), which says
+    nothing about the session: "session not stated"."""
+    s = str(observed_at or "")
+    if len(s) <= 10 or "T13:30:00" in s:
+        return "session not stated"
+    try:
+        et = session.to_eastern(dt.datetime.fromisoformat(s.replace("Z", "+00:00")))
+    except (ValueError, TypeError):
+        return "session not stated"
+    hm = et.hour * 60 + et.minute
+    return ("pre-market" if hm < 9 * 60 + 30 else "post-market" if hm >= 16 * 60
+            else "during the session")
 
 
 def transition_expiry(st, now: str, limits: Optional[dict] = None) -> Optional[dict]:
@@ -585,6 +813,116 @@ def states_legend(states: list[str]) -> Optional[str]:
 
 
 # ===========================================================================
+# W-1.1 item 1.7 -- "UNVALIDATED" TAGS (ruled 11 Oct 2026)
+# ===========================================================================
+def validated_min_n() -> int:
+    """W-1.3a item 3.7: graded at least this often, a classification or signal
+    is validated (config `validated_min_n`, 30)."""
+    try:
+        from . import stack as stack_mod                        # noqa: PLC0415
+        return int(stack_mod.config().get("validated_min_n") or 30)
+    except Exception:                                           # noqa: BLE001
+        return 30
+
+
+def unvalidated_tag(n: int) -> str:
+    """The tag a descriptive classification carries; at n >= the validated
+    minimum it is a validated signal and says so instead (W-1.3a item 3.7)."""
+    if n >= validated_min_n():
+        return f"(validated, n={n})"
+    return f"(descriptive; unvalidated, n={n})"
+
+
+def definitions_version(repo: Optional[Path] = None) -> str:
+    """W-1.3a item 3.7: the glossary's stamp -- the short hash of the last commit
+    that touched config/, at render. A run outside a git checkout says so."""
+    import subprocess                                           # noqa: PLC0415
+    root = str(repo or REPO)
+    for args in (["git", "log", "-1", "--format=%h", "--", "config"],
+                 ["git", "rev-parse", "--short", "HEAD"]):
+        try:
+            out = subprocess.run(args, cwd=root, capture_output=True, text=True,
+                                 timeout=10).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        if re.fullmatch(r"[0-9a-f]{6,40}", out or ""):
+            return out
+    return "unavailable (no git checkout)"
+
+
+def technical_appendix(cfg: dict) -> Optional[dict]:
+    """W-1.3a item 3.7: the reference tier's formulas, units and sign
+    conventions, the GEX/DEX universe and the expiry coverage."""
+    ta = cfg.get("technical_appendix") or {}
+    rows = [[r.get("quantity"), r.get("formula"), r.get("units"), r.get("sign")]
+            for r in ta.get("rows") or []]
+    dealers = [t.get("dealer") for t in cfg.get("tape") or [] if t.get("dealer")]
+    if dealers:
+        rows.append(["GEX/DEX universe", ", ".join(dealers) + " (the tape's dealer "
+                     "symbols), from their captured chains", "—", "—"])
+    if ta.get("expiry_coverage"):
+        rows.append(["Expiry coverage", ta["expiry_coverage"], "—", "—"])
+    if not rows:
+        return None
+    return {"title": "Technical appendix",
+            "table": {"columns": ["Quantity", "Formula", "Units", "Sign convention"],
+                      "rows": rows}}
+
+
+def graded_count(source: Optional[str], db_path: Optional[str] = None) -> int:
+    """Scorecard-graded instances of a classification: resolved ledger rows
+    under its `graded_source`. None -> 0, never guessed."""
+    if not source:
+        return 0
+    try:
+        from altdata import probability_ledger as pl            # noqa: PLC0415
+        with pl.ProbabilityLedger(db_path) as led:
+            return sum(1 for r in led.all_rows()
+                       if r.get("source") == source and r.get("resolved_at"))
+    except Exception:                                           # noqa: BLE001
+        return 0
+
+
+def classifications(cfg: dict, db_path: Optional[str] = None) -> list[dict]:
+    """Each declared descriptive classification with its n."""
+    return [{**c, "n": graded_count(c.get("graded_source"), db_path)}
+            for c in cfg.get("descriptive_classifications") or []]
+
+
+def unvalidated_notes(sections: list[dict], classes: list[dict]) -> None:
+    """One footnote per section that prints a descriptive classification."""
+    for s in sections:
+        mine = [c for c in classes if s.get("id") in (c.get("sections") or [])]
+        if not mine:
+            continue
+        ns = {c["n"] for c in mine}
+        if len(ns) == 1:
+            text = (_join([c["label"] for c in mine]).capitalize()
+                    + f": {unvalidated_tag(ns.pop())}.")
+        else:
+            text = "; ".join(f"{c['label']} {unvalidated_tag(c['n'])}"
+                             for c in mine).capitalize() + "."
+        s.setdefault("notes", []).append(text)
+
+
+def unvalidated_glossary(classes: list[dict]) -> list[dict]:
+    return [{"term": c["label"].removeprefix("the "),
+             "text": ((f"a validated signal: computed by a declared rule and graded "
+                       f"against what followed {unvalidated_tag(c['n'])}; n counts "
+                       f"the scorecard's graded instances.")
+                      if c["n"] >= validated_min_n() else
+                      (f"a descriptive classification, computed by a declared rule "
+                       f"and not yet graded against what followed "
+                       f"{unvalidated_tag(c['n'])}; n counts the scorecard's graded "
+                       f"instances."))}
+            for c in classes]
+
+
+def _join(xs: list[str]) -> str:
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+
+
+# ===========================================================================
 # T2.3 -- WEEKLY COMPLETENESS (ruled 4 Oct 2026)
 # ===========================================================================
 def coupon_auctions(st, now: str) -> list[dict]:
@@ -626,23 +964,32 @@ def overnight_intraday(st, sessions: list[str], ending: str, now: str) -> dict:
     by = {str(r["observed_at"])[:10]: r for r in rows if r.get("ohlc")}
     days = sorted(d for d in (sessions or []) if d in by)
     allc = [str(r["observed_at"])[:10] for r in rows]
+    # ONE CONVENTION FOR THE WEEK'S RETURN (W-1.1 item 1.1). The 9 Oct edition
+    # printed SPY +1.16% in the tape and +1.17% here: this table compounded each
+    # session's overnight and intraday returns AFTER rounding them to two
+    # decimals, and the rounding drifted a hundredth. The week is now the tape's
+    # convention -- the last close over the prior week's last close, from the same
+    # daily bars -- and the overnight and intraday legs compound unrounded.
     out, on_tot, id_tot = [], 1.0, 1.0
+    first_prior = last_close = None
     for d in days:
         i = allc.index(d)
         if i == 0:
             continue
         prior = rows[i - 1]["close"]
         o, c = by[d]["open"], by[d]["close"]
-        on, intr, cc = _ret(o, prior), _ret(c, o), _ret(c, prior)
-        if None in (on, intr):
+        if None in (o, c, prior) or not o or not prior:
             continue
-        on_tot *= 1 + on / 100.0
-        id_tot *= 1 + intr / 100.0
+        on, intr, cc = _ret(o, prior), _ret(c, o), _ret(c, prior)
+        on_tot *= o / prior
+        id_tot *= c / o
+        first_prior = prior if first_prior is None else first_prior
+        last_close = c
         out.append({"day": d, "overnight_pct": on, "intraday_pct": intr,
                     "close_to_close_pct": cc})
     totals = ({"overnight_pct": round(100 * (on_tot - 1), 2),
                "intraday_pct": round(100 * (id_tot - 1), 2),
-               "close_to_close_pct": round(100 * (on_tot * id_tot - 1), 2)}
+               "close_to_close_pct": _ret(last_close, first_prior)}
               if out else None)
     table = {"columns": ["Session", "Overnight", "Intraday", "Close to close"],
              "rows": [[_day(r["day"]), _signed(r["overnight_pct"], "%"),
@@ -686,8 +1033,112 @@ def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
     return sign + _bn(abs(x))
 
 
+# THE AUCTION'S FIELDS (W-1.1 item 1.4, ruled 11 Oct 2026). Each of the week's
+# coupon auctions with its bid-to-cover and its indirect, direct and dealer shares
+# of competitive accepted -- the writer's fields, altdata/sources/treasury_auctions
+# -- each beside its percentile among the same security's auctions over the
+# trailing two years. THE TAIL: high yield less the when-issued yield at the
+# bid deadline. TreasuryDirect does not publish the when-issued yield and no free
+# source serves it, so `auction.tail_bp` is registered and not sourced; the table
+# prints "not stored", and the prose may say "tail" only where a stored tail is
+# positive (stack_prose.tail_faults). Nothing here approximates one.
+AUCTION_FIELDS = (("auction.bid_to_cover", "bid_to_cover"),
+                  ("auction.indirect_share", "indirect"),
+                  ("auction.direct_share", "direct"),
+                  ("auction.dealer_share", "dealer"),
+                  ("auction.tail_bp", "tail_bp"))
+AUCTION_PCT_DAYS = 730
+
+
+def auction_records(st, now: str, then: str) -> list[dict]:
+    """The period's coupon auctions, each field with its two-year percentile."""
+    from altdata import derived                                 # noqa: PLC0415
+    out = []
+    for r in coupon_auctions(st, now):
+        d = str(r["observed_at"])[:10]
+        inst = str(r.get("instrument") or "")
+        if not (then[:10] < d <= now[:10]) or inst.split(":")[0] not in ("Note", "Bond", "TIPS"):
+            continue
+        rec = {"date": d, "instrument": inst, "high_yield": r["value_num"]}
+        lo = (dt.date.fromisoformat(d) - dt.timedelta(days=AUCTION_PCT_DAYS)).isoformat()
+        for key, f in AUCTION_FIELDS:
+            hist = [(str(x["observed_at"])[:10], x["value_num"])
+                    for x in st.as_of(key, now, inst) or []
+                    if x.get("value_num") is not None]
+            today = [v for day, v in hist if day == d]
+            rec[f] = today[-1] if today else None
+            past = [v for day, v in hist if lo <= day <= d]
+            rec[f"{f}_percentile_2y"] = (round(derived.percentile_of(past, rec[f]))
+                                         if rec[f] is not None and len(past) >= 5
+                                         else None)
+            rec[f"{f}_n_2y"] = len(past)
+        out.append(rec)
+    return out
+
+
+def _with_pct(v: Optional[str], p: Optional[float]) -> str:
+    if v is None:
+        return "—"
+    if p is None:
+        return v
+    from altdata.numeral_audit import ordinal_suffix              # noqa: PLC0415
+    return f"{v} ({int(p)}{ordinal_suffix(int(p))})"
+
+
+def auction_table(recs: list[dict]) -> dict:
+    """One row per auction: the security, high yield and date; bid-to-cover; the
+    three shares; the tail -- each figure with its two-year percentile."""
+    rows = []
+    for a in recs:
+        typ, term = a["instrument"].split(":", 1)
+        rows.append([f"{term} {typ.lower()} ({a['date']}), high yield "
+                     f"{a['high_yield']:.3f}%",
+                     _with_pct(None if a["bid_to_cover"] is None
+                               else f"{a['bid_to_cover']:.2f}",
+                               a["bid_to_cover_percentile_2y"]),
+                     _with_pct(None if a["indirect"] is None
+                               else f"{100 * a['indirect']:.1f}%",
+                               a["indirect_percentile_2y"]),
+                     _with_pct(None if a["direct"] is None
+                               else f"{100 * a['direct']:.1f}%",
+                               a["direct_percentile_2y"]),
+                     _with_pct(None if a["dealer"] is None
+                               else f"{100 * a['dealer']:.1f}%",
+                               a["dealer_percentile_2y"]),
+                     ("not stored" if a["tail_bp"] is None else
+                      _with_pct(f"{a['tail_bp']:+.1f} bp", a["tail_bp_percentile_2y"]))])
+    return {"columns": ["Auction", "Bid-to-cover", "Indirect", "Direct", "Dealers",
+                        "Tail vs when-issued"], "rows": rows}
+
+
+AUCTION_NOTE = ("Each figure's percentile is among the same security's auctions over "
+                "the trailing two years. Shares are of competitive accepted. The tail "
+                "needs the when-issued yield, which no free source publishes.")
+
+
+def aligned_legs(st, k1: str, k2: str, now: str, then: str
+                 ) -> tuple[tuple, tuple, Optional[str]]:
+    """((leg1, leg2) now, (leg1, leg2) at `then`, the date both share now): each
+    pair read on the latest date both legs have on or before the cutoff --
+    never one leg's Friday against the other's Wednesday."""
+    def at(cut):
+        a = {str(r["observed_at"])[:10]: r["value_num"] for r in st.as_of(k1, cut)
+             if r.get("value_num") is not None}
+        b = {str(r["observed_at"])[:10]: r["value_num"] for r in st.as_of(k2, cut)
+             if r.get("value_num") is not None}
+        common = sorted(set(a) & set(b))
+        if not common:
+            return (None, None), None
+        d = common[-1]
+        return (a[d], b[d]), d
+    cur, day = at(now)
+    prior, _ = at(then)
+    return cur, prior, day
+
+
 def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
-                  liquidity_deltas: bool = False) -> dict:
+                  liquidity_deltas: bool = False,
+                  auctions_in_table: bool = True) -> dict:
     """Item 3: net liquidity and its legs, SOFR against IORB, the credit
     spreads beside HY, the week's auctions, copper and gold/copper. Rows for
     Plumbing's table; each figure from the store with its as-of.
@@ -712,6 +1163,14 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         b = st.latest_as_of(key, then, inst)
         return (a.get("value_num") if a else None, b.get("value_num") if b else None,
                 str(a["observed_at"])[:10] if a else None)
+
+    def pair(k1, k2):
+        """BOTH LEGS AT ONE AS-OF (W-1.1a item 6): a derived series -- SOFR less
+        IORB, CCC less BB, gold over copper -- takes each leg on the latest date
+        both legs have, now and at the period's start, and prints that date. The
+        12 Oct dry run's CCC and BB, SOFR and IORB could each sit on their own
+        latest day."""
+        return aligned_legs(st, k1, k2, now, then)
     nl, nlp, nla = two("calc.net_liquidity")
     if nl is not None:
         rows.append(["Net liquidity (Fed balance sheet less TGA and RRP)", _bn(nl),
@@ -736,6 +1195,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         delta(name, v, None if pv is None else v - pv, scale, asof)
     so, sop, soa = two("fred.sofr")
     io, iop, ioa = two("fred.iorb")
+    (so2, io2), (sop2, iop2), sio_asof = pair("fred.sofr", "fred.iorb")
     if so is not None and io is not None:
         sp = round((so - io) * 100)
         spp = round((sop - iop) * 100) if None not in (sop, iop) else None
@@ -743,9 +1203,12 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                                                    round((so - sop) * 100), "bp"), soa])
         rows.append(["IORB", f"{io:.2f}%", _signed(None if iop is None else
                                                    round((io - iop) * 100), "bp"), ioa])
+        if so2 is not None and io2 is not None:
+            sp = round((so2 - io2) * 100)
+            spp = (round((sop2 - iop2) * 100) if None not in (sop2, iop2) else None)
         rows.append(["SOFR less IORB (funding pressure when above zero)",
                      f"{sp:+d} bp", _signed(None if spp is None else sp - spp, "bp"),
-                     soa])
+                     sio_asof or soa])
         data["sofr_iorb_bp"] = sp
     else:
         nt.append("SOFR and IORB (the FRED pull adds them from the next run)")
@@ -755,8 +1218,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         if v is not None:
             rows.append([name, f"{v:.2f}%", _signed(None if pv is None else
                                                     round((v - pv) * 100), "bp"), asof])
-    ccc, cccp, ccca = two("fred.ccc_oas")
-    bb, bbp, _ = two("fred.bb_oas")
+    (ccc, bb), (cccp, bbp), ccca = pair("fred.ccc_oas", "fred.bb_oas")
     if None not in (ccc, bb):
         gap = round((ccc - bb) * 100)
         gp = round((cccp - bbp) * 100) if None not in (cccp, bbp) else None
@@ -769,12 +1231,14 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
         # as a count in the audit, while the prose wrote "$6.710 per pound".
         rows.append(["Copper, front future ($/lb; a growth gauge)", f"${cu:,.3f}",
                      _signed(_ret(cu, cup), "%") if cup else "no prior", cua])
-        if au is not None:
-            r = au / cu
-            rp = (aup / cup) if None not in (aup, cup) else None
+        (au2, cu2), (aup2, cup2), gc_asof = pair("yfinance.mkt_gold_front",
+                                                 "yfinance.mkt_copper_front")
+        if au2 is not None and cu2:
+            r = au2 / cu2
+            rp = (aup2 / cup2) if None not in (aup2, cup2) and cup2 else None
             rows.append(["Gold over copper (rises when growth fears rise)",
                          f"{r:,.0f}", _signed(_ret(r, rp), "%") if rp else "no prior",
-                         cua])
+                         gc_asof])
             data["gold_copper"] = round(r, 1)
     else:
         nt.append("copper (the price feed adds HG=F from the next run)")
@@ -797,6 +1261,9 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                      f"bid-to-cover {btc['value_num']:.2f}" if btc else "—",
                      f"dealers took {100 * dl['value_num']:.0f}%" if dl else "—",
                      "tail not stored"])
+    if not auctions_in_table:
+        # The Weekly prints the auctions in their own table (W-1.1 item 1.4).
+        rows = [r for r in rows if " auction (" not in str(r[0])]
     if not auctions:
         rows.append([f"Treasury coupon auctions {Period.of(cadence).this}", "none held",
                      "—", "—"])
@@ -817,7 +1284,8 @@ def global_fx(st, now: str, then: str, cadence: str = "weekly") -> dict:
         if not a:
             nt.append(name.split(" (")[0] + " (the price feed adds it from the next run)")
             continue
-        rows.append([name, f"{a['value_num']:,.{dp}f}",
+        rows.append([name, with_stale(f"{a['value_num']:,.{dp}f}",
+                                      str(a["observed_at"])[:10], edition_session(now)),
                      _signed(_ret(a["value_num"], b["value_num"]), "%") if b
                      else "no prior", str(a["observed_at"])[:10]])
     for key, name in (("mof.jgb_10y", "Japan 10-year (JGB)"),
@@ -838,24 +1306,41 @@ def global_fx(st, now: str, then: str, cadence: str = "weekly") -> dict:
             "not_tracked": nt}
 
 
-def volatility(st, now: str, wis: Optional[dict] = None) -> dict:
-    """Item 5: the 'Volatility' sub-section of Mechanics -- six rows."""
+def volatility(st, now: str, wis: Optional[dict] = None,
+               then: Optional[str] = None) -> dict:
+    """Item 5: the 'Volatility' sub-section of Mechanics -- six rows. With `then`
+    (W-1.1 item 1.0a) a fourth column carries each level's change over the
+    period, so Mechanics' frame can rank the VIX, realized, SKEW and MOVE moves."""
     from altdata import derived                                 # noqa: PLC0415
     five = (dt.date.fromisoformat(now[:10]) - dt.timedelta(days=1826)).isoformat()
+
+    def wk(key: str, pct_scale: bool = False) -> str:
+        if not then:
+            return "—"
+        a, b = st.latest_as_of(key, now), st.latest_as_of(key, then)
+        if not a or not b or a.get("value_num") is None or b.get("value_num") is None \
+                or str(a["observed_at"]) == str(b["observed_at"]):
+            return "—"
+        d = a["value_num"] - b["value_num"]
+        if pct_scale and abs(a["value_num"]) < 3:
+            d *= 100.0                        # realized stored as a fraction
+        d = round(d, 1)
+        return f"{'+' if d > 0 else ('−' if d < 0 else '')}{abs(d):.1f} pts"
     vix_hist = [v for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
     vix = vix_hist[-1] if vix_hist else None
     rows, data = [], {}
     if vix is not None:
         pct = derived.percentile_of(vix_hist, vix) if len(vix_hist) > 20 else None
         rows.append(["VIX", f"{vix:.2f}",
-                     f"{round(pct):d}th percentile, five years" if pct is not None else "—"])
+                     f"{round(pct):d}th percentile, five years" if pct is not None else "—",
+                     wk("yfinance.mkt_vix")])
         data["vix"] = vix
         data["vix_percentile_5y"] = None if pct is None else round(pct)
     vts = (wis or {}).get("vol_term_structure") or {}
     pub = vts.get(vts.get("published_by") or "") or {}
     if pub.get("ratio") is not None:
         rows.append(["VIX3M over VIX (term structure, published)",
-                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—")])
+                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—"), "—"])
     rv = st.latest_as_of("calc.vol_spy_realized_20d", now)
     rvv = rv.get("value_num") if rv else None
     if rvv is not None and rvv < 3:
@@ -863,19 +1348,20 @@ def volatility(st, now: str, wis: Optional[dict] = None) -> dict:
     if rvv is not None and vix is not None:
         rows.append(["SPY 20-day realized against the VIX", f"{rvv:.1f} vs {vix:.1f}",
                      f"implied {'above' if vix > rvv else 'below'} realized by "
-                     f"{abs(vix - rvv):.1f} points"])
+                     f"{abs(vix - rvv):.1f} points", wk("calc.vol_spy_realized_20d", True)])
         data["implied_daily_move_pct"] = round(vix / 252 ** 0.5, 2)
         data["realized_daily_move_pct"] = round(rvv / 252 ** 0.5, 2)
         rows.append(["Daily move priced, and realized",
                      f"{data['implied_daily_move_pct']:.2f}% priced",
-                     f"{data['realized_daily_move_pct']:.2f}% realized"])
+                     f"{data['realized_daily_move_pct']:.2f}% realized", "—"])
     for key, name in (("yfinance.mkt_move", "MOVE (Treasury volatility)"),
                       ("yfinance.mkt_skew", "SKEW (tail-risk pricing)")):
         a = st.latest_as_of(key, now)
         rows.append([name, f"{a['value_num']:.1f}" if a else "—",
-                     str(a["observed_at"])[:10] if a else "not yet stored"])
+                     str(a["observed_at"])[:10] if a else "not yet stored", wk(key)])
+    cols = ["Measure", "Level", "Context"] + ([Period.of("weekly").col] if then else [])
     return {"title": "Volatility",
-            "table": {"columns": ["Measure", "Level", "Context"], "rows": rows[:6]},
+            "table": {"columns": cols, "rows": [r[:len(cols)] for r in rows[:6]]},
             "data": data}
 
 

@@ -1416,7 +1416,9 @@ def group_p() -> None:
     statics = [w for w, m in mods.items() if feeds.static_keys(w) != list(m.KEYS)]
     roster = set(feeds.official_keys()) | set(feeds.external_keys()) | set(feeds.fred_keys())
     check(not misplaced and not statics and set(keys + fred) - set(mf.AQ3B_FEATURES)
-          <= roster and len(yf_src.SYMBOLS) == 58
+          <= roster
+          # The basket's exact count is validate_prices' (other branches add to
+          # it; Friday stitching, 13 Oct): here, that the three are in it.
           and {"VNQ", "VEA", "HEFA"} <= set(yf_src.SYMBOLS),
           f"each writer in its feeds group, its KEYS read from source, on the "
           f"freshness roster; VNQ, VEA and HEFA in the price basket "
