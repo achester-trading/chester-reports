@@ -109,20 +109,28 @@ def group_a() -> None:
     print(f"\n{LINE}\nA. THE CADENCES, FROM CONFIG\n{LINE}")
     from daily_cascade import cadence
     cads = {n: cadence.get(n) for n in cadence.NAMES}
-    check([c["period"] for c in cads.values()] == ["session", "week", "month"],
-          "daily, weekly and monthly resolve to session, week and month")
+    check([c["period"] for c in cads.values()]
+          == ["session", "week", "month", "quarter"],
+          "daily, weekly, monthly and (AQ-1) quarterly resolve to session, week, "
+          "month and quarter")
     check(cads["weekly"]["budget"] == {"words": 3500, "charts": 10}
           and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
-          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES] == [5, 20, 55],
+          and cads["quarterly"]["budget"] == {"words": None, "charts": 40}
+          and [cads[n]["reading_target_minutes"] for n in cadence.NAMES]
+          == [5, 20, 55, 90],
           "each carries its budget and reading target from the ratified config")
     check(cads["monthly"]["depth_words"]["deep"] == 450
           and cads["weekly"]["depth_words"]["deep"] == 420
           and cads["daily"]["depth_words"]["deep"] == 150,
           "each reads its own depth allowances")
-    check(cadence.paragraph_cap(cads["weekly"], "deep") == 120
+    # W-1.3a item 3.0: the Weekly's kept paragraph is its opener band's top.
+    check(cadence.paragraph_cap(cads["weekly"], "deep") == 220
+          and cadence.paragraph_cap(cads["weekly"], "medium") == 150
+          and cadence.paragraph_cap(cads["daily"], "deep") == 120
           and cadence.paragraph_cap(cads["monthly"], "deep") == 450
           and cadence.paragraph_cap(cads["monthly"], "medium") == 220,
-          "the Weekly's paragraph is 120 words; the Monthly's is its depth allowance")
+          "the Weekly's paragraph is its opener band's top (220 deep, 150 medium); "
+          "the close's 120; the Monthly's is its depth allowance")
     w, m = cadence.Period.of("weekly"), cadence.Period.of("monthly")
     check((w.on, w.This, w.end, w.col, w.or_prior, w.mean, w.since_report)
           == ("on the week", "This week", "at the week's end", "Week",
@@ -135,7 +143,7 @@ def group_a() -> None:
               "the week before the month"),
           "and the monthly ones derive from the noun")
     try:
-        cadence.get("quarterly")
+        cadence.get("annual")
         check(False, "an undeclared cadence is refused")
     except KeyError:
         check(True, "an undeclared cadence is refused (KeyError, a code fault)")
@@ -236,9 +244,9 @@ def group_d() -> None:
                             subs=[{"title": "s", "paragraph": "gone"}])]}
     rd.finalize(wk, "weekly")
     s = wk["sections"][0]
-    check(len(s["paragraphs"]) == 1 and stack_mod.words(s["paragraphs"][0]) <= 120
+    check(len(s["paragraphs"]) == 1 and stack_mod.words(s["paragraphs"][0]) <= 220
           and s["trimmed"] and "paragraph" not in s["subsections"][0],
-          "the Weekly keeps one paragraph cut to 120 words at a sentence, and "
+          "the Weekly keeps one paragraph cut to its band's top at a sentence, and "
           "drops a sub-section's")
     mo = {"sections": [_sec(paragraphs=[long, "A second paragraph."],
                             subs=[{"title": "s", "paragraphs": [long, "Kept."]}])],
@@ -286,7 +294,8 @@ def group_e() -> None:
               f"section_prompt at '{cad}' names {rep}")
         check(f"says about the {per}" in p, f"and writes about the {per}")
     check("at most 450 words" in sp.section_prompt(s, "monthly")
-          and "at most 120 words" in sp.section_prompt(s, "weekly"),
+          and "120 to 220 words" in sp.section_prompt(s, "weekly")
+          and "at most 120 words" in sp.section_prompt(s, "daily"),
           "the paragraph allowance is the cadence's")
     check("Write ONLY that one sentence." in sp.section_prompt(s, "monthly",
                                                                claim_only=True),
@@ -334,7 +343,9 @@ def group_e() -> None:
         if "THE SECTION: Plumbing" in k["system"] and len(
                 [x for x in seq if "THE SECTION: Plumbing" in x]) == 1:
             return _Resp("Yields rose because of supply.")
-        return _Resp("The curve held its shape.")
+        # W-1.3a item 3.0: the Weekly's opener shape, inside every band.
+        import validate_weekly_stack as vws                     # noqa: PLC0415
+        return _Resp("The curve held its shape. " + vws.opener_text("curve"))
     ed2 = {"session": "2026-10-02", "sections": [dict(x) for x in ed["sections"]]}
     for x in ed2["sections"]:
         x.pop("withheld", None)
@@ -530,8 +541,9 @@ def group_l() -> None:
     from daily_cascade import cadence as cadence_mod
     from daily_cascade import stack_render as sr
     check([cadence_mod.get(c).get("subsection_charts") for c in cadence_mod.NAMES]
-          == [False, False, True],
-          "config: only the Monthly's sub-sections carry their own charts")
+          == [False, False, True, True],
+          "config: only the Monthly's and the Quarterly's sub-sections carry their "
+          "own charts")
     charts = {"M6": _chart("M6", "CFTC z-scores"), "M1": _chart("M1", "SPY weekly"),
               "M9": {"id": "M9", "unavailable": "no NAV stored"}}
     subs = [{"title": "Futures", "table": {"columns": ["C", "Z"], "rows": [["ES", "1.2"]]},
@@ -592,9 +604,9 @@ def group_m() -> None:
     from daily_cascade import cadence as cadence_mod
     from daily_cascade import stack as stack_mod
     check([cadence_mod.get(c).get("trim_to_budget") for c in cadence_mod.NAMES]
-          == [False, False, True],
+          == [False, False, True, False],
           "config: only the Monthly trims to its budget; the close and the Weekly "
-          "fit by construction")
+          "fit by construction, and the Quarterly's reference is unbudgeted")
     para = "word " * 100
     ed = {"sections": [
         {"id": "a", "claim": "Claim a.", "paragraphs": [para, para], "trimmed": False,

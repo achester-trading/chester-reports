@@ -529,9 +529,10 @@ def group_e() -> None:
         bad("the sweep's log is not per run")
 
     # 10 Oct 2026: the one inbound file, the AAII weekly row.
+    # 12 Oct 2026: and the GLD archive's folder, each file by name.
     pulls = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copyto\b", ln)]
     body = code[code.find("pull_aaii_weekly() {"):code.find("pull_aaii_weekly || true")]
-    if (len(pulls) == 1 and '"$src" "$dest"' in pulls[0]
+    if (len(pulls) == 2 and all('"$src" "$dest"' in x for x in pulls)
             and 'src="$rname:chester-vendor-checks/aaii/aaii-weekly.csv"' in body
             and 'dest="$DATA_DIR/inbox/aaii/aaii-weekly.csv"' in body
             and 'rname="${REMOTE%%:*}"' in body):
@@ -549,12 +550,28 @@ def group_e() -> None:
         ok("an absent remote file is a skip with a log line")
     else:
         bad("an absent AAII file is not handled as a skip")
+    eb = code[code.find("pull_etf_archive() {"):code.find("pull_etf_archive || true")]
+    if (eb and 'srcdir="$rname:chester-vendor-checks/etf"' in eb
+            and 'dir="$DATA_DIR/inbox/etf"' in eb and 'dest="$dir/$f"' in eb
+            and "--files-only --max-depth 1" in eb and "rclone sync" not in code
+            and "RC=" not in eb and "finish " not in eb and "absent" in eb
+            and code.find("pull_etf_archive || true") > code.find('log "  prune: $PRUNE"')
+            and code.find("pull_etf_archive || true") < code.find("finish ok 0")):
+        ok("the GLD archive pull copies each file of Drive chester-vendor-checks/etf/ "
+           "by name into the ETF inbox (copyto, never a sync), after the trees, "
+           "never setting the sweep's exit; an empty folder is a skip")
+    else:
+        bad("the GLD archive pull is not a per-file copyto into the ETF inbox")
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
-    if m and "-%h/chester-data/inbox/aaii" in m.group(1).split():
-        ok("the sweep's unit may write the AAII inbox and nothing else of ~/chester-data")
+    rw = m.group(1).split() if m else []
+    if "-%h/chester-data/inbox/aaii" in rw and "-%h/chester-data/inbox/etf" in rw \
+            and not any(x.rstrip("/") in ("%h/chester-data", "-%h/chester-data")
+                        for x in rw):
+        ok("the sweep's unit may write the AAII and ETF inboxes and nothing else "
+           "of ~/chester-data")
     else:
-        bad("under ProtectSystem=strict the AAII pull cannot write its inbox")
+        bad("under ProtectSystem=strict the AAII or ETF pull cannot write its inbox")
 
 
 def group_f() -> None:

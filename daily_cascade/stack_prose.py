@@ -48,8 +48,11 @@ from pathlib import Path
 
 from altdata import levels as levels_mod
 
-from . import readability
+from . import direction, readability
+from . import opener as opener_mod
 
+# The read's depth on every cadence (config `sections`): its opener band.
+READ_DEPTH = "deep"
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
                     "line": "0"}
 # Runaway guards, not style rules: a one-sentence section is cut to its first
@@ -59,6 +62,15 @@ MAX_CHARS = {"deep": 2600, "medium": 1400, "light": 1600, "short": 1600,
              "line": 1200}
 # The per-1% hedge-flow metric's own 1 (payload.NARRATIVE_UNIT_CONSTANTS).
 UNIT_CONSTANTS = [1.0]
+
+# A CEILING, NOT A QUOTA (W-1.1a item 5). The 12 Oct dry run's Plumbing strung
+# "Reverse repo balances slipped -1bn, a marginal draw against a jobless-claims
+# four-week average whose prior stood at 200,500": two unrelated figures in one
+# sentence to use the budget. Every frame carries this rule; the filler audit
+# withholds the bare one-figure sentence ("Real Estate added +1.96%.").
+CEILING_RULE = ("\nTHE FIGURE BUDGET IS A CEILING, NOT A QUOTA: cite only the "
+                "figures the story needs, and never join two unrelated figures in "
+                "one sentence to use the budget.\n")
 
 RULES = """
 
@@ -83,11 +95,17 @@ THE TAPE'S RULES:
 1. Frames in order: {frames}
 2. A level is named by its label and value exactly as the data lists it ("the
    20-day average at 652.10"); never name a level the data does not list.
-3. A move carries its sign and size, copied from its _signed form.
+3. A move carries its sign and size, copied from its _signed form -- except
+   after a directional verb, which carries the sign itself: "fell 3 bp",
+   "rose 3.36%", "widened 37 bp", never "fell -3 bp" or "rose +3.36%". The verb
+   must agree with the sign, and a sentence about the dollar, the euro or the
+   yen must agree with that currency's own move ("EUR/USD fell 0.43%, the
+   dollar firmer").
 4. Co-movement, never motive. "The long end led: 30-year +9 bp against 2-year
    +2 bp" is allowed; "because", "driven by", "on fears of" are not. A cause is
    named only when a stored event coincides, as "on the day of the CPI release".
-5. Say a level "held" or "broke" only when its status in the data says so.
+5. Say a level "held" or "broke" only when its status in the data says so --
+   "the gamma flip at 775.54 broke", never "marked broke".
 6. A probability appears only as an outlook's BASE RATE, in this form: "the base
    rate for <the outlook's claim> is 79% (n=82)". It is a frequency in the stored
    history, never our view: no "we expect", "likely", "odds", "chance", "lean".
@@ -108,7 +126,11 @@ Never write the session's date or weekday: the header carries it. Any other
 date only as given (2026-10-02).
 Name each level with its own market, one at a time; never "respectively".
 Never compute a count, a difference or a ratio: copy the one the data carries.
-"""
+Never "bullish" or "bearish" on a macro variable -- inflation, growth, rates:
+write what is expected ("expects inflation to stay above target").
+"The front" and "the front end" mean the 2-year. Join two figures in one
+sentence only where they share an as-of; where they do not, give each its date.
+""" + CEILING_RULE
 
 READ_RULES = """
 
@@ -125,26 +147,42 @@ view; no motive words; never write about the report itself.
 The word "because" is refused anywhere. Write "dealer gamma", "the volatility
 regime", "the macro regime" -- never "dial"; for one symbol write its net GEX. Never write the session's date
 or weekday. A level is named with the market it belongs to, one at a time.
-"""
+""" + CEILING_RULE
 
 
-def figures_cited(text: str) -> int:
+def figures_cited(text: str, groups: Optional[list] = None) -> int:
     """The figures the paragraph after the claim line cites -- the count the cap
-    is held to, and the N a retry is told (T3.3 item 4)."""
+    is held to, and the N a retry is told (T3.3 item 4). Each of `groups` (sets
+    of figures that are one comparison -- the Book Z line, W-1.1a item 2) counts
+    once, however many of its figures the paragraph copies."""
     sents = _sentences((text or "").split("\n\n")[0])
     rest = (text or "")[len(sents[0]):] if sents else ""
-    return readability.figure_count(rest)
+    figs = readability.figures(rest)
+    if not groups:
+        return len(figs)
+    from .figure_budget import norm_figure                      # noqa: PLC0415
+    hit, n = set(), 0
+    for f in figs:
+        g = next((i for i, grp in enumerate(groups) if norm_figure(f) in grp), None)
+        if g is None:
+            n += 1
+        elif g not in hit:
+            hit.add(g)
+            n += 1
+    return n
 
 
-def figure_faults(text: str, cap: Optional[int] = None) -> list[str]:
+def figure_faults(text: str, cap: Optional[int] = None,
+                  groups: Optional[list] = None) -> list[str]:
     """ONE FACT, ONCE (T2.5 item 1): the paragraph after the claim line cites at
     most `cap` figures -- the tables carry the rest. The cap is the cadence's
     `paragraph_figures` (six for the close and the Weekly, 8 for the Monthly,
-    T3.2 item 1); unset, six."""
+    T3.2 item 1); unset, six. A group counts as one (W-1.1a item 2)."""
     cap = readability.PARAGRAPH_FIGURES if cap is None else int(cap)
-    n = figures_cited(text)
-    return ([f"the paragraph cites {n} figures; at most "
-             f"{cap} -- the tables carry the rest"]
+    n = figures_cited(text, groups)
+    return ([f"the paragraph cites {n} figures"
+             + (" (the Book Z line counted as one)" if groups else "")
+             + f"; at most {cap} -- the tables carry the rest"]
             if n > cap else [])
 
 
@@ -152,13 +190,129 @@ def _sentences(text: str) -> list[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text or "") if s.strip()]
 
 
-def style_faults(text: str, cfg: dict) -> list[str]:
+# FILLER (W-1.1 item 1.0d): a sentence that only says other series moved.
+FILLER_MOVED = re.compile(r"\b(?:also|all)\s+mov(?:ed|ing)\b|\bmoved\s+alongside\b|"
+                          r"\bmoved\s+through\s+the\s+(?:week|month|session)\b", re.I)
+
+
+def filler_names(payload) -> list[str]:
+    """The series names a frame hands the writer -- quantified or not -- which
+    are the names a filler list strings together."""
+    from . import figure_budget                                 # noqa: PLC0415
+    out: list[str] = []
+
+    def walk(o, key=None):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == "series" and isinstance(v, str):
+                    out.append(v)
+                walk(v, k)
+        elif isinstance(o, list):
+            for v in o:
+                if key in (figure_budget.IN_TABLES, "also_moved") and isinstance(v, str):
+                    out.append(v)
+                walk(v, key)
+    walk(payload)
+    return [n for n in dict.fromkeys(out) if n and len(n) > 2]
+
+
+def _name_forms(name: str) -> list[str]:
+    """A table name and its short form: "USD/JPY (yen per dollar)" -> also
+    "USD/JPY"; "CFTC S&P 500 futures" -> also "S&P 500 futures"."""
+    forms = [name, name.split(" (")[0]]
+    if name.startswith("CFTC "):
+        forms.append(name[5:])
+    for f in list(forms):
+        if f.lower().endswith(" futures"):
+            forms.append(f[:-8])
+    return [f.strip() for f in dict.fromkeys(forms) if len(f.strip()) > 2]
+
+
+# THE BARE FIGURE (W-1.1a item 5): a sentence of six words or fewer carrying
+# exactly one figure and no comparison word says a number and nothing about it.
+COMPARISON_WORDS = ("against", "than", "while", "as", "from")
+BARE_MAX_WORDS = 6
+
+
+def bare_figure_sentence(s: str) -> bool:
+    words = s.split()
+    if not words or len(words) > BARE_MAX_WORDS:
+        return False
+    if readability.figure_count(s) != 1:
+        return False
+    return not any(re.search(rf"\b{w}\b", s, re.I) for w in COMPARISON_WORDS)
+
+
+def filler_faults(text: str, names: Optional[list] = None) -> list[str]:
+    """Withhold a paragraph with a filler sentence: "also/all moved(ing)",
+    "moved alongside", "moved through the week" -- or three or more of the
+    frame's series names joined by commas with no figure among them. The fault
+    quotes the sentence, so the retry names it."""
+    out = []
+    for s in _sentences(text):
+        if FILLER_MOVED.search(s):
+            out.append(f"filler sentence: '{s[:160]}'")
+            continue
+        if bare_figure_sentence(s):
+            out.append(f"filler: a bare figure with nothing to read it against: "
+                       f"'{s[:160]}'")
+            continue
+        if readability.figures(s):
+            continue
+        hits = [n for n in names or []
+                if any(re.search(rf"(?<![\w-]){re.escape(f)}(?![\w-])", s, re.I)
+                       for f in _name_forms(n))]
+        if len(hits) >= 3 and s.count(",") >= 1:
+            out.append(f"filler list of {len(hits)} series with no figure: '{s[:160]}'")
+    return out
+
+
+# "TAIL" ONLY WHERE A TAIL IS STORED (W-1.1 item 1.4). An auction "tailed" is a
+# claim about the when-issued yield, which no source we hold publishes; the word
+# is allowed in a sentence about an auction only when a stored tail is positive.
+_TAIL = re.compile(r"\btail(?:ed|ing|s)?\b(?!-risk)", re.I)
+
+
+def stored_tails(ed: dict) -> list[float]:
+    pl = next((s for s in ed.get("sections") or [] if s.get("id") == "plumbing"), {})
+    recs = (((pl.get("data") or {}).get("plumbing") or {}).get("auction_records") or [])
+    return [r["tail_bp"] for r in recs if isinstance(r.get("tail_bp"), (int, float))]
+
+
+def tail_faults(text: str, tails: Optional[list] = None) -> list[str]:
+    if any(t > 0 for t in tails or []):
+        return []
+    return [f"'tail' about an auction with no positive stored tail: '{s[:120]}'"
+            for s in _sentences(text)
+            if re.search(r"\bauction", s, re.I) and _TAIL.search(s)]
+
+
+# QUOTED TEXT IS ATTRIBUTION (W-1.1 item 1.6): a quoted official's "driven by" is
+# the official's word, not our inference, so the motive check reads the prose
+# with its quotations struck.
+# T3.5 (e): single quotation marks too -- curly, guillemets, and straight ones
+# that open after a space and close before one (an apostrophe in "Lane's" is
+# not a quotation).
+_QUOTED = re.compile(r"\"[^\"]*\"|“[^”]*”|‘[^’]*’|«[^»]*»"
+                     r"|(?<![\w'])'[^'\n]+'(?![\w'])")
+
+
+def unquoted(text: str) -> str:
+    return _QUOTED.sub(" ", text or "")
+
+
+def style_faults(text: str, cfg: dict, attributed: bool = False) -> list[str]:
+    """The style list. `attributed` (T3.5 (e)): the text is a sourced voice's
+    own view, printed under its name, outlet and URL -- the voices block -- so a
+    motive phrase in it is the voice's claim, not ours, quoted or paraphrased;
+    every other rule holds."""
     from monthly_macro.prose import internal_terms              # noqa: PLC0415
     st = cfg.get("style") or {}
     out = [f"internal vocabulary: {t}" for t in internal_terms(text)]
     low = (text or "").lower()
-    for ph in st.get("motive_phrases") or []:
-        if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", low):
+    own = unquoted(text).lower()
+    for ph in ([] if attributed else st.get("motive_phrases") or []):
+        if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", own):
             out.append(f"motive: '{ph}'")
     for ph in st.get("banned_phrases") or []:
         if re.search(rf"(?<![\w-]){re.escape(ph.lower())}(?![\w-])", low):
@@ -330,7 +484,10 @@ def excess_faults(text: str) -> list[str]:
     """T2 ruling 1: a book-against-benchmark comparison with a figure must say
     'excess' or 'relative to' -- the book's return and a benchmark's are two
     absolutes, and a 'vs' figure without the word reads as the book's own."""
-    return [f"a vs-figure against Book Z without 'excess' or 'relative to'"
+    # The retry names the sentence and quotes the rule (W-1.1 item 1.0e), as
+    # T3.4a's vocabulary retry does.
+    return [f"a vs-figure against Book Z without 'excess' or 'relative to' in "
+            f"'{s[:100]}'; the rule: {EXCESS_RULE}"
             for s in _sentences(text)
             if _BOOKZ.search(s) and _VS.search(s) and _FIG.search(s)
             and not re.search(r"\bexcess\b|\brelative to\b", s, re.I)]
@@ -509,7 +666,10 @@ WEEKLY_NOTES = {
         "where their rows carry a level."),
     "misfit": (
         "\n\nEach open gap is described in the plain words its row gives "
-        "(what each side is saying), never by an id."),
+        "(what each side is saying), never by an id. \"Open n sessions\" is said "
+        "only of a gap's age (gap_open_sessions); an exception's status has its "
+        "own date and is never counted in sessions open. A gap's z measures how "
+        "far apart the two markets have drifted in all, not the week's move."),
     "plumbing": (
         "\n\nRead the table: the curve, credit and the week's tier-1 releases "
         "with their actual and prior."),
@@ -578,24 +738,63 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
     # ONE PARAGRAPH (T2.5 item 2): a section that carries prose writes its
     # claim line and one paragraph over ALL its tables -- the sub-sections
     # no longer take paragraphs of their own.
-    body = (f"Then write ONE paragraph of at most "
+    # THE OPENER (W-1.3a item 3.0): on a cadence that carries one, the claim
+    # and the body are one paragraph in a word band, read before the tables.
+    opens = (not claim_only and paras != "0"
+             and opener_mod.band(cad, s["depth"]) is not None)
+    body = ("Then continue the SAME paragraph in the opener shape below."
+            if opens else
+            f"Then write ONE paragraph of at most "
             f"{cadence_mod.paragraph_cap(cad, s['depth'])} words."
             if paras != "0" else "Write ONLY that one sentence.")
     why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
     sys_prompt = stack_system_prompt(base) + RULES.format(
         title=s["title"], depth=s["depth"], why=why, body=body,
         report=cad["report"], period=cad["period"], frames=cad["frames"],
-        figure_cap=cadence_mod.figure_word(cadence_mod.figure_cap(cad)),
+        figure_cap=cadence_mod.figure_word(section_figure_cap(s.get("id"), cadence)),
         figure_tail="")
     if s["id"] not in CADENCE_REPLACES_NOTES.get(cadence, ()):
         sys_prompt += SECTION_NOTES.get(s["id"], "")
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):
-        sys_prompt += parent_frame_note(cadence)
+        sys_prompt += parent_frame_note(cadence, s.get("id"))
         if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES:
             sys_prompt += TAPE_LEVEL_NOTE
+    elif not claim_only and s.get("id") in BUDGETED_FRAMES.get(cadence, ()):
+        sys_prompt += BUDGETED_FRAME_NOTE.format(
+            cap=cadence_mod.figure_word(section_figure_cap(s.get("id"), cadence)).lower(),
+            filler=FILLER_RULE)
+        if s.get("id") == "book":
+            from .figure_budget import BOOK_CAP_NOTE             # noqa: PLC0415
+            sys_prompt += "\n\nTHE BOOK'S CAP: " + BOOK_CAP_NOTE.format(
+                cap=section_figure_cap("book", cadence))
+    # THE COMPARISON VOCABULARY IN THE FRAME (W-1.1 item 1.0e), as T3.4a carried
+    # the banned list: the book's comparisons are written as an excess.
+    if s.get("id") == "book":
+        sys_prompt += EXCESS_FRAME
+    if opens:
+        # The tables print BELOW the opener; the shared rule says above.
+        sys_prompt = sys_prompt.replace("printed ABOVE your paragraph",
+                                        "printed BELOW your paragraph")
+        sys_prompt += opener_mod.frame_note(cad, s["depth"])
     return sys_prompt
+
+
+BUDGETED_FRAME_NOTE = (
+    "\n\nYOUR FIGURES ARE IN YOUR DATA: `figures_you_may_cite` holds every figure "
+    "this paragraph may cite -- at most {cap} -- each exactly as the section's "
+    "tables print it; copy them verbatim. Anything under 'In the tables (do not "
+    "enumerate)' is printed below your paragraph: never list it or quantify it. "
+    "{filler}")
+# THE COMPARISON VOCABULARY (W-1.1 item 1.0e): the rule excess_faults enforces,
+# stated in the frame so a retry is not the first the writer hears of it.
+EXCESS_RULE = ("a comparison of the book's return with a benchmark's -- Book Z, "
+               "cash, 60/40 -- that carries a figure is written as an EXCESS: "
+               "\"an excess of +0.8 points over cash\" or \"+0.8 points relative "
+               "to cash\"; never \"the book against cash\", \"vs\", \"beat\" or "
+               "\"trailed\" with a figure")
+EXCESS_FRAME = f"\n\nCOMPARISONS: {EXCESS_RULE}."
 
 
 # THE PARENT'S FRAME OFFERS ONLY WHAT IT MAY CITE (T3.4). Three dry runs cited 9 to
@@ -606,8 +805,16 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
 PARENT_FRAME_NOTE = (
     "\n\nYOUR FIGURES ARE IN YOUR DATA: `figures_you_may_cite` holds the figures "
     "this paragraph may cite -- at most {cap} -- each exactly as its table prints "
-    "it; copy them verbatim. Every series under `also_moved` also moved: name it, "
-    "do not quantify it. The blocks beneath this section carry those numbers.")
+    "it; copy them verbatim. The series under 'In the tables (do not enumerate)' "
+    "are printed in the tables beneath: do not list them and do not quantify "
+    "them. " + "{filler}")
+# NO FILLER (W-1.1 item 1.0d). The 9 Oct dry run turned the also-moved names into
+# sentences that say nothing ("the 10-year, 30-year and 2-year all moved
+# alongside..."). The frame bans the form; filler_faults withholds it.
+FILLER_RULE = ("Never write a sentence that only says other series moved: no "
+               "\"X, Y and Z also moved\", \"all moved\", \"moved alongside\", "
+               "\"moved through the week\", and no list of three or more series "
+               "names without a figure among them.")
 # The tape's levels (T3.4b): the close and the Weekly only.
 TAPE_LEVEL_CADENCES = ("daily", "weekly")
 TAPE_LEVEL_NOTE = (
@@ -621,25 +828,52 @@ def is_parent(s: dict, cadence: str = "daily") -> bool:
     return figure_budget.is_parent(s, cadence_of(cadence).get("figure_budget_parents"))
 
 
-def parent_frame_note(cadence: str = "daily") -> str:
+def parent_frame_note(cadence: str = "daily", sid: Optional[str] = None) -> str:
     from . import cadence as cadence_mod                        # noqa: PLC0415
     return PARENT_FRAME_NOTE.format(
-        cap=cadence_mod.figure_word(cadence_mod.figure_cap(cadence_of(cadence))).lower())
+        cap=cadence_mod.figure_word(section_figure_cap(sid, cadence)).lower(),
+        filler=FILLER_RULE)
+
+
+def section_figure_cap(sid: Optional[str], cadence: str = "daily") -> int:
+    """The figures one section's paragraph may cite at `cadence`: its override
+    under `figure_budget_sections` (T3.4c), else the cadence's cap."""
+    from . import figure_budget                                 # noqa: PLC0415
+    return figure_budget.section_cap(sid, cadence_of(cadence))[0]
+
+
+# THE FOUR FRAMES THE BUDGET DID NOT COVER (W-1.1 item 1.0a): on the Weekly the
+# read, Mechanics, What doesn't fit and Ahead get a budgeted frame each. The 9 Oct
+# dry run cited 15, 12, 7 and 7 figures in them against six.
+BUDGETED_FRAMES = {"weekly": ("mechanics", "misfit", "ahead", "book")}
+
+
+def _groups(sid: str, ed: dict, cadence: str) -> Optional[list]:
+    """The figure groups a section's count treats as one (W-1.1a item 2): the
+    Book Z line, in the book, wherever the book's frame is budgeted."""
+    if sid != "book" or sid not in BUDGETED_FRAMES.get(cadence, ()):
+        return None
+    from .figure_budget import book_groups                      # noqa: PLC0415
+    return book_groups(ed) or None
 
 
 def section_slice(s: dict, ed: dict, cadence: str = "daily") -> dict:
-    """What a section's writer is handed: a parent's budgeted frame, or the
-    section's slice."""
+    """What a section's writer is handed: a parent's budgeted frame, one of the
+    four other budgeted frames, or the section's slice."""
+    from . import figure_budget                                 # noqa: PLC0415
+    cad = cadence_of(cadence)
     if is_parent(s, cadence):
         from . import cadence as cadence_mod                    # noqa: PLC0415
-        from . import figure_budget                             # noqa: PLC0415
-        cad = cadence_of(cadence)
         # T3.4b: the close's and the Weekly's tape keep their levels, counted
         # inside the cap; the Monthly's tape is unchanged.
         lv = (figure_budget.tape_levels(s, ed)
               if s.get("id") == "tape" and cadence in TAPE_LEVEL_CADENCES else None)
-        return figure_budget.parent_frame(s, ed, cadence_mod.figure_cap(cad),
-                                          cad["period"], cad.get("column"), levels=lv)
+        cap, per_block = figure_budget.section_cap(s.get("id"), cad)
+        return figure_budget.parent_frame(s, ed, cap, cad["period"], cad.get("column"),
+                                          levels=lv, per_block=per_block)
+    if s.get("id") in BUDGETED_FRAMES.get(cadence, ()):
+        cap = section_figure_cap(s.get("id"), cadence)
+        return figure_budget.FRAMES[s["id"]](s, ed, cap, cad["period"])
     return _slice(s, ed)
 
 
@@ -653,8 +887,44 @@ def read_prompt(cadence: str = "daily", base=None) -> str:
     if base is None:
         from daily_cascade import narrative as base             # noqa: PLC0415
     sp = stack_system_prompt(base) + READ_RULES.format(period=cadence_of(cadence)["period"])
-    return sp + (CADENCE_NOTES.get(cadence, {}).get("read", "")
-                 if cadence == "weekly" else "")
+    sp += (CADENCE_NOTES.get(cadence, {}).get("read", "")
+           if cadence == "weekly" else "")
+    if cadence in READ_FRAME_CADENCES:
+        sp += READ_FRAME_NOTE.format(
+            cap=read_figure_cap(cadence), filler=FILLER_RULE)
+    # W-1.1 items 1.0e and 1.6: the comparison vocabulary and the connectors, in
+    # the frame rather than first heard in a retry.
+    sp += EXCESS_FRAME + COINCIDENCE_FRAME
+    # W-1.3a item 3.0: on a cadence with an opener The read takes the shape too,
+    # at its depth's band (its claim line stays under 90 characters).
+    return sp + opener_mod.frame_note(cadence_of(cadence), READ_DEPTH)
+
+
+def read_figure_cap(cadence: str = "daily") -> int:
+    """The figures The read may cite in all: its override under
+    `figure_budget_sections`, else the cadence's cap (six)."""
+    return section_figure_cap("read", cadence)
+
+
+# THE READ'S OWN FRAME (W-1.1 item 1.0a), on the Weekly: the sections' claims with
+# their figures masked, and the figures it may cite -- the five lines' worth --
+# ranked across the edition. The 9 Oct dry run's read cited 15.
+READ_FRAME_CADENCES = ("weekly",)
+READ_FRAME_NOTE = (
+    "\n\nYOUR FIGURES ARE IN YOUR DATA: `figures_you_may_cite` holds every figure "
+    "The read may cite -- at most {cap} in all -- each exactly as its section's "
+    "table prints it, with the section it comes from. The sections' claims are "
+    "given with their figures masked, for what each section says; never copy one. "
+    "{filler}")
+# COINCIDENCE, NOT CAUSATION (W-1.1 item 1.6): the read states what happened
+# alongside what, never why.
+CONNECTORS = ("alongside", "coincided with", "the same session as")
+COINCIDENCE_FRAME = (
+    "\n\nCOINCIDENCE, NEVER CAUSE: when two things happened together, join them "
+    "only with \"alongside\", \"coincided with\" or \"the same session as\". Never "
+    "\"because\", \"on the back of\", \"in response to\", \"reacting to\", "
+    "\"driven by\" or \"due to\" in your own voice; a quoted source's words are "
+    "its own, inside quotation marks.")
 
 
 def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
@@ -674,6 +944,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     lstatus = (tape.get("data") or {}).get("level_status") or {}
     lrows = (tape.get("data") or {}).get("levels") or []
     results: dict[str, dict] = {}
+    depth_of = {s["id"]: (READ_DEPTH if s["id"] == "read" else s.get("depth"))
+                for s in ed["sections"]}
 
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
         """One audited attempt; if the audit withholds it, ONE retry with the
@@ -715,7 +987,20 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else [])
-                      + figure_faults(text, cad.get("paragraph_figures"))
+                      + figure_faults(text, read_figure_cap(cadence) if sid == "read"
+                                      else section_figure_cap(sid, cadence),
+                                      _groups(sid, ed, cadence))
+                      + filler_faults(text, filler_names(payload))
+                      + tail_faults(text, stored_tails(ed))
+                      # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
+                      # Takeaway, last, carrying no figure.
+                      + opener_mod.faults(text, cad, depth_of.get(sid))
+                      # THE DIRECTION AUDIT (W-1.1a item 3) and the stance and
+                      # level-word rules (item 4).
+                      + direction.faults(text, direction.edition_moves(
+                          ed, None if sid == "read" else sid,
+                          cad.get("column") or "Week"))
+                      + readability.stance_faults(text)
                       # NO SENTENCE TWICE (T2.5 item 4): The read is written
                       # last, over the sections' claims, so it is the one held
                       # to them; what survives the retry is withheld where it
@@ -732,8 +1017,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             return {"state": r.state, "published": False,
                     "reason": r.withheld_note() or r.reason,
                     "rejected_text": getattr(r, "rejected_text", None)}
+        # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1a item 4): "fell -3 bp"
+        # prints "fell 3 bp", after every audit, and the rewrite is counted.
+        text, n_unsigned = readability.unsign_after_verbs(text)
         return {"state": "published", "published": True, "text": text,
-                "model": r.model}
+                "model": r.model, "unsigned_rewrites": n_unsigned}
 
     for s in ed["sections"]:
         if s["id"] == "read":
@@ -771,7 +1059,13 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                        if s["id"] != "read" and not s.get("empty")],
           "levels": (tape.get("data") or {}).get("levels")}
     read_sys = read_prompt(cadence, base)
-    if cadence == "weekly":
+    if cadence in READ_FRAME_CADENCES:
+        # THE READ'S BUDGETED FRAME (W-1.1 item 1.0a): claims masked, the
+        # figures it may cite ranked across the edition, the week by day's
+        # largest sessions only, and the press's attributions as theirs.
+        from . import figure_budget                             # noqa: PLC0415
+        rp = figure_budget.read_frame(ed, read_figure_cap(cadence), cad["period"])
+    elif cadence == "weekly":
         # THE WEEK BY DAY (T2.2 item 3): the opening reads from The read's own
         # table, and a press attribution is the outlet's, never ours.
         rp["week_by_day"] = read.get("table")
@@ -787,8 +1081,10 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         read["withheld"] = res.get("reason")
     ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
                                                  "rejected_text", "attempts",
-                                                 "first_reason")}
+                                                 "first_reason", "unsigned_rewrites")}
                    for k, v in results.items()}
+    ed["unsigned_rewrites"] = sum(int(v.get("unsigned_rewrites") or 0)
+                                  for v in results.values())
     return ed
 
 
