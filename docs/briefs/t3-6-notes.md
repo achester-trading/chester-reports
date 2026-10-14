@@ -208,3 +208,8 @@ repeat still prints fewer than five, with its notes saying what went.
 | validate_monthly_frames | 32/0 |
 | validate_monthly_stack | 262/0 |
 | validate_monthly | 350/0, 1 skipped |
+
+### CI
+
+- **#403** (`76941f9`, the merge): green.
+- **#404** (`e6d42e0`, five takeaways): green.
