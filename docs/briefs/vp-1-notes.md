@@ -465,3 +465,8 @@ with the tip. The Weekly gate no longer reaches the laptop's store.
 | validate_weekly_edits | 90/0 |
 | validate_volume_profile | 86/0 |
 | check_library | 27 papers, 0 failures, 0 warnings |
+
+### CI
+
+- **#401** (`cc3d998`, the merge): green.
+- **#402** (`7676110`, the table's move and the paper's line): green.
