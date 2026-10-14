@@ -7,7 +7,12 @@ things that run showed.
 - **Branch:** `w-1-3c-weekly-polish`, cut from `main` at `cc91752`.
 - **Status:** branch-only. Pushed and not merged. Nothing was deployed, and
   nothing ran on the box.
-- **CI:** run **#@CI@**.
+- **CI:**
+  - **#376** on `11bfc0f` failed one check in `validate_stack_cadence`. It was
+    fixed in `ecd3efc`; see "Found that the paste did not name", item 8.
+  - **#377** on `ecd3efc` was still running when this file was committed; its
+    result is in the session report.
+  - Item 10's WeasyPrint page check runs only in CI.
 - **Friday:** see part 3 below.
 
 **The fixtures.** Every fixture quotes the run's own text. The text came from
@@ -342,7 +347,55 @@ The direction gate is the direction groups of `validate_audit_fixes` and
 
 ## Part 3 — where it goes on Friday
 
-@PART3@
+**Both orders merge without a conflict, and they end on the same tree.** The
+proof ran on throwaway local branches `p3-a` and `p3-b`, never pushed and
+deleted afterwards. Each step was a `git merge --no-ff` of the `origin/` tip, in
+Friday's order (aq-5-correlation-layer → … → el-2-3-rollup):
+
+- **(a) main `cc91752`, then this branch, then the 23:** all 24 merges clean.
+- **(b) main, then the 23, then this branch:** all 24 merges clean.
+- **The two final trees are identical:** `7ed861b`.
+
+**But a clean merge is not a green one.** The affected gates were then run on
+the merged tree, plus `validate_quarterly_stack` and `validate_batch3_a`.
+
+- **Every gate passed except one:** `validate_numeral_audit` failed 1 check. It
+  was item 7's sweep: no f-string writes an ordinal suffix by hand.
+- **The culprit:** AQ-1 (`aq-1-quarterly-cadence`, seventh in Friday's order)
+  brings `monthly_macro/quarterly.py:197`, written
+  `f"{t['percentile']:.0f}th percentile"`. That prints "92th", "1th" and so on in
+  the Quarterly's correlation table. It is the same defect as item 7, in code
+  this branch cannot see.
+- **The fix, proved on the merged tree** (local only): two lines in
+  `monthly_macro/quarterly.py`. With it, `validate_numeral_audit`,
+  `validate_quarterly_stack` and `validate_quarterly_gates` all pass.
+
+  ```diff
+  +from altdata.numeral_audit import ordinal
+  ...
+  -                         (f"{t['percentile']:.0f}th percentile"
+  +                         (f"{ordinal(t['percentile'])} percentile"
+  ```
+
+**What the order changes:**
+
+- **Under (a)**, the numeral gate is red on main from AQ-1's merge (the
+  seventh) until the fix lands. Either 17 merges stay red, or the fix goes in
+  mid-sequence, which the stitching notes' rule 5 forbids ("nothing else onto
+  main").
+- **Under (b)**, main stays green through all 23. Only this branch's merge goes
+  red, and the two-line fix follows in the same step.
+
+**Recommendation: (b). This branch merges last on Friday, then the two-line
+quarterly fix as its own commit.**
+
+That departs from the paste's rule, which says that if (a) is clean, this
+branch goes first. (a) is clean only textually. Sunday's Weekly gets this branch
+either way, because Friday's merges all land before Sunday. Your call: needs-you
+6.
+
+Nothing was resolved on this branch. There was no conflict, and the fix touches
+a file that exists only on AQ-1's side.
 
 ## Found that the paste did not name
 
@@ -365,6 +418,18 @@ The direction gate is the direction groups of `validate_audit_fixes` and
    "$82bn"). The value is unchanged, and no gate depended on the old text.
 7. **CRLF.** My patch scripts wrote CRLF on Windows. The files were normalised
    back to LF before the commit.
+8. **My first push failed CI, and I fixed it.** CI #376 failed one check in
+   `validate_stack_cadence`, a gate outside the local set. It reads a retry
+   prompt for the literal `WITHHELD BY THE AUDIT: withheld: motive`, and my
+   first retry note had reworded that line. The note now keeps the line
+   verbatim and gives the attempt count on the line after.
+9. **A code gate reads the laptop's real store.** `validate_weekly_stack`
+   calls `book_week` directly with `db_path=None` and no week ending, so the
+   Book B scanner opens the default database. Where one exists, as in this
+   checkout, it logs `TypeError: '<=' not supported between 'str' and
+   'NoneType'`. The error is caught and the gate passes. In a fresh worktree or
+   CI there is no store, so nothing is logged. This predates this branch;
+   CLAUDE.md says a code gate never reads the live store. It is not fixed here.
 
 ## Needs you
 
@@ -388,3 +453,8 @@ The direction gate is the direction groups of `validate_audit_fixes` and
    SPY. That is a real position figure printed in a dry-run edition. The
    fixture replaces it with words; the reports themselves were not changed for
    it.
+6. **Friday's order.** I recommend (b): this branch last, then the two-line
+   `quarterly.py` ordinal fix as its own commit. The paste's rule would put it
+   first, because (a) merges without conflict, but (a) leaves the numeral gate
+   red on main from AQ-1's merge onward. Rule (a) or (b). Either way, the fix
+   commit is needed once both this branch and AQ-1 are on main.
