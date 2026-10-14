@@ -23,14 +23,13 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # status line said which tree had stalled; the script now traps the SIGTERM
 # and writes state=killed (rc 4).
 #
-# 2h, NOT 2h30min (AUD-2 item 3, ruled 14 Oct 2026): 02:30 plus the timer's 5
-# minutes of jitter plus 2h30 could run to 05:05, into the Sunday 05:00 Weekly --
-# and the Weekly does not move, because the Alpha Lab's Sunday loop waits on it.
-# With 2h the sweep always ends by 04:35. THE COST: the per-tree caps above sum
-# to about 125 minutes in the worst case, so a night on which every tree stalls
-# to its cap is now ended by systemd at 2h (state=killed, rc 4, the tree named in
-# the log) rather than by the last cap. The caps live in scripts/rclone_sync.sh;
-# trimming them to fit is AUD-1's (docs/briefs/aud-2-notes.md, needs you).
+# 2h, NOT 2h30min (AUD-2, ruled 14 Oct 2026): 02:30 plus the timer's 5 minutes
+# of jitter plus 2h30 could run to 05:05, into the Sunday 05:00 Weekly -- and the
+# Weekly does not move, because the Alpha Lab's Sunday loop waits on it. THE
+# SWEEP'S OWN BUDGET ENDS IT: scripts/rclone_sync.sh gives the whole sweep 105
+# minutes (AUD-1), so it stops itself and names what it skipped before systemd's
+# ceiling is reached. 2h is the BACKSTOP, not the plan: if the budget ever fails,
+# systemd ends the sweep by 04:35 (state=killed, rc 4), still clear of the Weekly.
 TimeoutStartSec=2h
 
 NoNewPrivileges=true
@@ -63,3 +62,9 @@ RestrictSUIDSGID=true
 # reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
 MemoryHigh=1.2G
 MemoryMax=1.5G
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13). If the caps are
+# not enough, the kernel kills the highest score first: a report can be rendered
+# again; a day's chains cannot be fetched again; the Gateway needs Ari's supervised
+# login. So the reports 500, the EOD capture 300, the Gateway -500. Raising a score
+# needs no privilege, so this order holds on a --user unit without root.
+OOMScoreAdjust=500

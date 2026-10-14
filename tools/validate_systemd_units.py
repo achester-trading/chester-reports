@@ -344,6 +344,23 @@ MEMORY_CAPS = {
     "chester-voices.service":      ("0.8G", "1G"),
     "chester-backup.service":      ("1.2G", "1.5G"),
 }
+# THE OOM ORDER (ruled 14 Oct 2026 evening). A report can be rendered again; a
+# day's chains cannot be fetched again; the Gateway needs Ari's supervised login.
+# So the kernel, if the caps are not enough, takes a report first, the EOD capture
+# next, the Gateway last. Raising a score needs no privilege, so the order holds
+# even if a --user unit is refused the Gateway's -500.
+OOM_SCORES = {
+    "ibgateway.service":             -500,
+    "chester-eod.service":            300,
+    "chester-daily-close.service":    500,
+    "chester-weekly.service":         500,
+    "chester-monthly.service":        500,
+    "chester-voices.service":         500,
+    "chester-backup.service":         500,
+    "chester-restore-drill.service":  500,
+}
+REPORT_UNITS = [u for u, v in OOM_SCORES.items()
+                if u not in ("ibgateway.service", "chester-eod.service")]
 SANDBOX = ("NoNewPrivileges=true", "PrivateTmp=true", "ProtectSystem=strict")
 
 
@@ -399,10 +416,24 @@ def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
     rw = " ".join(auc.get("ReadWritePaths", []))
     if sorted(rw.split()) != sorted(["%h/logs", "%h/.chester", "%h/chester-reports"]):
         faults.append(f"chester-auction.service ReadWritePaths not narrow ({rw!r})")
-    gw = directives(unit_dir / "ibgateway.service")
-    if gw.get("OOMScoreAdjust") != ["-500"]:
-        faults.append(f"ibgateway.service OOMScoreAdjust {gw.get('OOMScoreAdjust')}, "
-                      f"want -500")
+    score: dict = {}
+    for name, want in OOM_SCORES.items():
+        got = directives(unit_dir / name).get("OOMScoreAdjust")
+        try:
+            score[name] = int(got[0]) if got and len(got) == 1 else None
+        except ValueError:
+            score[name] = None
+        if score[name] != want:
+            faults.append(f"{name}: OOMScoreAdjust {got}, want {want}")
+    # The order itself, so a re-tuned value cannot quietly invert it: the Gateway
+    # lowest of all, the EOD capture below every report.
+    gw, eod = score["ibgateway.service"], score["chester-eod.service"]
+    if gw is not None and any(v is not None and v <= gw for k, v in score.items()
+                              if k != "ibgateway.service"):
+        faults.append("the Gateway's OOM score is not the lowest")
+    if eod is not None and any(score[u] is not None and score[u] <= eod
+                               for u in REPORT_UNITS):
+        faults.append("the EOD capture's OOM score is not below every report's")
     bk = directives(unit_dir / "chester-backup.service")
     bt = directives(unit_dir / "chester-backup.timer")
     wk = directives(unit_dir / "chester-weekly.timer")
@@ -434,7 +465,8 @@ def aud2() -> None:
     else:
         ok(f"the six heavy units carry their caps ({', '.join(f'{k.split('.')[0]} {h}/{m}' for k, (h, m) in MEMORY_CAPS.items())}); "
            f"the auction unit neither wants nor starts the Gateway and runs "
-           f"sandboxed; ibgateway OOMScoreAdjust=-500; the backup ends by 04:35, "
+           f"sandboxed; the OOM order holds (Gateway -500 < EOD 300 < the reports "
+           f"500); the backup ends by 04:35, "
            f"before the 05:00 Weekly")
     # The rules are themselves checked: each defect, alone, is caught.
     import shutil
@@ -444,6 +476,14 @@ def aud2() -> None:
             ("the Gateway wanted again", "chester-auction.service",
              "[Unit]", "[Unit]\nWants=ibgateway.service"),
             ("no OOM order", "ibgateway.service", "OOMScoreAdjust=-500", ""),
+            ("the Gateway above the capture", "ibgateway.service",
+             "OOMScoreAdjust=-500", "OOMScoreAdjust=400"),
+            ("the capture level with the reports", "chester-eod.service",
+             "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
+            ("a report below the capture", "chester-voices.service",
+             "OOMScoreAdjust=500", "OOMScoreAdjust=200"),
+            ("a report with no score", "chester-restore-drill.service",
+             "OOMScoreAdjust=500", ""),
             ("the old 2h30 timeout", "chester-backup.service",
              "TimeoutStartSec=2h", "TimeoutStartSec=2h30min")):
         with tempfile.TemporaryDirectory() as td:

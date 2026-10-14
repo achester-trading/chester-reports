@@ -367,3 +367,102 @@ next commit:
    follows `__wrapped__`.
 
 **#392** (`c9663c5`) passed every check.
+
+## 14 Oct evening: Friday's tip, the OOM order, the backstop, the rulings
+
+**CI #393** (`c0d3b04`, the notes-only commit) finished green.
+
+### The tip merged
+
+`origin/w-1-3c-weekly-polish` at **`fb67bf3`** (it had not moved), merged as
+`aa452f3` and pushed on its own. Two conflicts, both sides kept:
+
+- **Makefile:** the tip's six new gates (`aq3_series`, `basis_proxy`,
+  `rates_anchors`, `ai_fcf`, `sr38_inbox`, `correlation_layer`), then
+  `validate_audit_2.py`.
+- **CLAUDE.md:** the gate total, recounted from the Makefile: **75 code gates**
+  (72 Python, counting `smoke_test.py` as the Makefile's `EXTRA` does, and 3
+  shell) and **six data gates**. The tip's text said five data gates, but its
+  Makefile lists six: `validate_imf_china.py` was added without the prose
+  following. Both sides' counts were stale, so neither was kept as written.
+
+**The merge commit's CI, #397, failed one gate, `validate_audit_2`,** and that
+was the expected result. The tip brought `altdata/crypto_basket.py`, whose
+restatement calls `client.messages.create` directly. AUD-2's sweep exists to
+catch exactly that. The next commit fixes it.
+
+### The changes
+
+1. **The meter, after the tip.**
+   - The tip's `crypto_basket.model_proposer` now calls `model_meter.create`
+     under section `crypto_basket`.
+   - The tip's Quarterly, `monthly_macro/quarterly.py`, wrote through the meter
+     but opened no report scope, so its calls would have gone uncounted. Its
+     `produce` is now `@model_meter.metered("quarterly")`.
+   - `validate_audit_2` gains a check that each edition's `produce()` (close,
+     Weekly, Monthly, Quarterly) is metered under its report.
+   - On the merge alone the gate fails (shown above); with the fix it passes
+     25/0.
+2. **The OOM order, as ruled.**
+   - `ibgateway` keeps `OOMScoreAdjust=-500`.
+   - `chester-eod` gets 300.
+   - `chester-daily-close`, `-weekly`, `-monthly`, `-voices`, `-backup` and
+     `-restore-drill` get 500.
+   - The reason is in each unit's comment and in README section 13: a report
+     can be rendered again; a day's chains cannot be fetched again; the Gateway
+     needs Ari's supervised login.
+   - Raising a score needs no privilege, so the 500s and the 300 keep the order
+     even if the Gateway's -500 is refused.
+   - `validate_systemd_units` holds the exact values and the order: the Gateway
+     lowest, the EOD capture below every report. On a copy of the units it
+     shows five defects caught: no score on the Gateway, the Gateway above the
+     capture, the capture level with the reports, a report below the capture,
+     and a report with no score.
+   - This closes needs-you 2.
+3. **The backup's ceiling stays 2h, and the line stays AUD-2's.**
+   - The comment above `TimeoutStartSec` now says that the sweep's own
+     105-minute budget (AUD-1, session B, tonight) ends the sweep, and that 2h
+     is the backstop keeping it clear of Sunday's 05:00 Weekly.
+   - The sentence giving the caps' trim to AUD-1 is gone. README section 13
+     says the same.
+   - `validate_backup`'s sweep-time check is left as it is. When aud-1 and
+     aud-2 meet next week (aud-1 merges first), aud-1's budget check replaces
+     it.
+   - Until then this branch's comment names a budget that lands with AUD-1, not
+     here.
+   - This closes needs-you 1.
+4. **The rulings, recorded.**
+   - **The sampler's two lines stay as written:** "Gateway stopped by operator",
+     and "Gateway not up (nothing listening on port {port}); the sampler never
+     starts it". (Needs-you 5.)
+   - **No Grep or Glob rules.** The Read denies cover both tools. (Needs-you 6.)
+   - **The meter counts the morning anchor and the classic reports**
+     (`morning_anchor`, `close_classic`, `weekly_classic`), each under its own
+     name. The Quarterly now joins them as `quarterly`.
+   - **The voices scan's attempt is the article's number** in the day's scan,
+     not a retry count. The meter's docstring now says so.
+   - **The drill's timer stays off** until a manual drill reads "restorable".
+     (Needs-you 4.)
+   - **The memory caps get measured** with `MemoryPeak` a week after the CX33
+     move. (Needs-you 3.)
+
+### Gates (local, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_systemd_units | 99/0 |
+| validate_audit_2 | 25/0 |
+| validate_backup | 65/0 |
+| validate_deploy | 153/0 |
+| validate_crypto_basket | 93/0 |
+| validate_quarterly_stack | 94/0 |
+| validate_quarterly_gates | 95/0 |
+| validate_monthly_stack | 263/0 |
+| validate_gates | passed |
+| check_library | 27 papers, 0 failures, 0 warnings |
+
+### Box commands
+
+These are unchanged; the deploy now also carries the scores. After the deploy,
+box command 2 reads back the Gateway's applied score. The eod and report units
+are oneshots, so their scores apply at their next timer run with no restart.

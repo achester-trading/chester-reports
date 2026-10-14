@@ -925,16 +925,26 @@ caps bound each report rather than sum to the box. What is left for the Gateway
 (about 1.5 GB of heap and native memory) and the OS is never borrowed by a
 runaway report.
 
-**The Gateway's OOM order.** `ibgateway.service` carries `OOMScoreAdjust=-500`,
-so if memory runs out anyway, the kernel kills a report before the Gateway. One
-caveat: these are `--user` units. Lowering a score below the user manager's own
-needs privilege, and systemd ignores a refused adjustment at debug level. After
-the restart, read the score that was applied:
+**The OOM order (ruled 14 Oct 2026).** If memory runs out anyway, the kernel kills
+the highest `oom_score_adj` first. A report can be rendered again; a day's chains
+cannot be fetched again; the Gateway needs Ari's supervised login. So:
+
+| Unit | OOMScoreAdjust |
+|---|---|
+| chester-daily-close, -weekly, -monthly, -voices, -backup, -restore-drill | 500 |
+| chester-eod (the chain capture) | 300 |
+| ibgateway | -500 |
+
+Raising a score needs no privilege, so the 500s and the 300 apply on `--user`
+units without root, and they alone keep the order. Lowering one below the user
+manager's own does need privilege, and systemd ignores a refused adjustment at
+debug level, so the Gateway's -500 may not apply; that is harmless. After the
+restart, read what applied:
 
     cat /proc/$(systemctl --user show -p MainPID --value ibgateway)/oom_score_adj
 
-It prints -500 if it took. If it prints the manager's value instead (0 or 100),
-see `docs/briefs/aud-2-notes.md`, needs-you 2.
+`tools/validate_systemd_units.py` holds the values and the order (the Gateway
+lowest, the capture below every report) and shows each defect caught on a copy.
 
 **The auction unit no longer starts the Gateway.** `Wants=ibgateway.service`
 started a stopped Gateway every weekday at 15:49, and the Gateway's
@@ -943,8 +953,10 @@ it. The sampler steps aside, exit 0, logging "Gateway stopped by operator", when
 the marker exists; it also steps aside when nothing is listening on 4002. The
 unit is sandboxed as the EOD unit is.
 
-**The backup ends by 04:35.** `TimeoutStartSec=2h`: 02:30, plus up to 5 minutes
-of jitter, plus 2 hours. It can no longer run into the Sunday 05:00 Weekly.
+**The backup ends by 04:35.** The sweep's own 105-minute budget
+(`scripts/rclone_sync.sh`, AUD-1) ends it; `TimeoutStartSec=2h` is the backstop:
+02:30, plus up to 5 minutes of jitter, plus 2 hours. It can no longer run into the
+Sunday 05:00 Weekly.
 
 **The restore drill**, `chester-restore-drill.{service,timer}`, monthly on the 3rd
 at 10:30 ET. It is not in `DEPLOY_TIMERS`, so the operator enables it. It needs

@@ -173,6 +173,20 @@ def group_b(td: str) -> None:
           f"every report path calls the model through altdata/model_meter.py "
           f"({offenders or 'none outside it'}; altdata/report/ is content, not a "
           f"pipeline)")
+    # And every edition opens its report's scope, or its calls go uncounted: the
+    # Quarterly arrived with Friday's tip writing through the meter with no scope.
+    unscoped = []
+    for rel, report in (("daily_cascade/stack_close.py", "daily_close"),
+                        ("daily_cascade/weekly_stack.py", "weekly"),
+                        ("monthly_macro/stack.py", "monthly"),
+                        ("monthly_macro/quarterly.py", "quarterly")):
+        src = (REPO / rel).read_text(encoding="utf-8")
+        if not re.search(r'@model_meter\.metered\("' + report + r'"\)\s*\ndef produce\(',
+                         src):
+            unscoped.append(rel)
+    check(not unscoped,
+          f"each edition's produce() is metered under its report "
+          f"({unscoped or 'close, Weekly, Monthly, Quarterly'})")
 
 
 def _fixture_db(path: Path, rows: int) -> None:

@@ -24,6 +24,11 @@ report's `scope()`, so a gate that calls a writer with a fake client and no scop
 writes nothing anywhere; and the row goes to the scope's database, so a gate's
 report run lands in the gate's own store. Recording never raises: a meter that
 could cost a paragraph would be worse than no meter.
+
+THE ATTEMPT is the call's number within its (report, section) in one run: a
+report's section rewritten after a withhold reads 2. The voices scan makes one
+call per new item under the one section "extract", so its attempt is the
+article's number in the day's scan, not a retry count (ruled 14 Oct 2026).
 """
 
 from __future__ import annotations

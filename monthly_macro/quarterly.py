@@ -44,6 +44,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from altdata import model_meter
 from altdata.numeral_audit import ordinal
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -653,6 +654,7 @@ def markdown(ed: dict) -> str:
                        charts=None)
 
 
+@model_meter.metered("quarterly")
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
             model: Optional[str] = None, narrative: bool = True,
             db_path: Optional[str] = None, prior_dir: Optional[str] = None,
