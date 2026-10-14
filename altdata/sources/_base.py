@@ -19,7 +19,16 @@ RETRY_BACKOFF = 2.0  # seconds; doubles each retry
 
 
 class FetchError(RuntimeError):
-    """A source fetch ultimately failed after retries."""
+    """A source fetch ultimately failed after retries.
+
+    ITS TEXT IS REDACTED AT CONSTRUCTION (AUD-1 item 2b). The text names the URL
+    and the underlying error, and requests' own exception text carries the full
+    query string -- FRED's `?api_key=` included -- so every FetchError message
+    passes through secrets.redact() before anything can log or store it."""
+
+    def __init__(self, *args) -> None:
+        from .. import secrets                                  # noqa: PLC0415
+        super().__init__(*[secrets.redact(str(a)) for a in args])
 
 
 # A DESCRIPTIVE USER-AGENT, AND NO PERSONAL DATA IN IT.
