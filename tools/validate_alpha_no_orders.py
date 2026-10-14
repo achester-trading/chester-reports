@@ -69,10 +69,13 @@ FORBIDDEN = (
     # the way round all of them
     "subprocess",
 )
-# The interpreter loads these as part of its own startup or of an allowed
-# module's machinery; they are not imports alpha/ made. `http` and `urllib` are
-# NOT here: neither is imported by the stdlib modules alpha/ uses.
-RUNTIME_ALLOWED = ()
+# The standard library loads these itself; they are not imports alpha/ made, and
+# neither opens a connection. pathlib (3.12) imports urllib.parse for as_uri() --
+# a string quoter -- and with it the `urllib` package. CI's first run of this gate
+# (#347) caught exactly that on the runner's Python. The network halves are
+# still refused at import time: urllib.request, http.client, socket and the rest
+# are not here. The static scan (A/B) still forbids alpha/ importing any of them.
+RUNTIME_ALLOWED = ("urllib", "urllib.parse")
 
 NETWORK_IDENTIFIERS = {"requests", "urllib", "socket"}
 ORDER_IDENTIFIERS = {"placeOrder", "place_order", "bracketOrder", "submit_order",
@@ -236,6 +239,11 @@ def group_c(mods: list[str]) -> None:
     bad = sorted(m for m in loaded if forbidden(m) and m not in RUNTIME_ALLOWED)
     check(not bad, f"no forbidden module is loaded by importing alpha/ "
           f"({len(loaded)} modules loaded){'' if not bad else ': ' + ', '.join(bad[:12])}")
+    net = [m for m in ("urllib.request", "http.client", "socket", "ssl", "requests")
+           if m in loaded]
+    check(not net, "and none of the network modules is loaded "
+          "(urllib.request, http.client, socket, ssl, requests)"
+          + (f": {net}" if net else ""))
     check("alpha._system_blocklist" in loaded and "register" not in loaded,
           "the system's blocklist, applied, is loaded from register/instruments.py's "
           "file, and the register package is not")

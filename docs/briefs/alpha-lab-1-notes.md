@@ -94,7 +94,7 @@ The gate checks both orderings from the unit files themselves (group L).
 | Gate | Result |
 |---|---|
 | validate_alpha (new) | 110/0 |
-| validate_alpha_no_orders (new) | 45/0 |
+| validate_alpha_no_orders (new) | 46/0 (after the CI fix below) |
 | validate_weekly_stack | 68/0 |
 | validate_config_refs | 29/0 |
 | validate_deploy | 118/0 |
@@ -105,6 +105,12 @@ The gate checks both orderings from the unit files themselves (group L).
 | validate_weekly_opener | 28/0 |
 | validate_backup | 63/0 |
 | check_library | 0 failures, 0 warnings (after the Doctrine edit, with its HTML rebuilt) |
+
+**CI.** The first push's run, **#347**, failed one gate: validate_alpha_no_orders. On the runner's Python, the standard library's own `pathlib` imports `urllib.parse`, a string quoter, so the import-time check saw `urllib` loaded. The laptop runs 3.14, so this only showed in CI.
+
+The fix: `urllib` and `urllib.parse` are allowed at import time only. A new check fails if `urllib.request`, `http.client`, `socket`, `ssl` or `requests` is loaded. The static scan still forbids `alpha/` importing any of them.
+
+The fix commit follows the Doctrine commit, rather than rewriting the pushed branch. The Doctrine change is still a docs-only commit of its own.
 
 ## Needs you
 
