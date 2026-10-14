@@ -1,0 +1,44 @@
+{
+  "_about": "W-1.1a fixtures: the facts of the Weekly dry run of 12 Oct 2026 22:21 ET (run weekly-20261013T021911), as the paste quotes them. The archived edition is on the box; these are rebuilt from the quoted figures, not copied from it. Read by tools/validate_audit_fixes.py.",
+  "unit_kinds": {
+    "mechanics_volatility_row": ["Daily move priced, and realized", "0.93% priced", "0.71% realized", "—"],
+    "mechanics_text": "SPY options priced a daily move of 0.93%, against 0.71% realized.",
+    "fomc_row": ["FOMC 2026-10-28: implied rate after", "3.92%", "19% of a 25 bp hike", "2026-10-09"],
+    "ahead_text": "Fed funds futures imply 3.92% after the October meeting, 19% of a 25 bp hike.",
+    "price_as_percent_text": "SPY closed the week at 770.66%.",
+    "price_payload": {"series": "SPY", "key": "yfinance.mkt_spy", "level": 770.66}
+  },
+  "book": {
+    "book_z": "since 2026-10-01: the book +0.42% (Portfolio Truth NAV); cash +0.09%, SPY +1.20%, 60-40 +0.70%; excess vs cash / SPY / 60-40: +0.33 / -0.78 / -0.28 pts (marked to 2026-10-09)",
+    "paragraph": "The book held its ground relative to cash on the week. Since 1 Oct the book returned +0.42%, cash +0.09%, SPY +1.20% and 60-40 +0.70%: an excess of +0.33 points over cash, -0.78 relative to SPY and -0.28 relative to 60-40, with 2 rule breaks listed.",
+    "figures_before": 9,
+    "in_book_z_line": 8
+  },
+  "direction": {
+    "moves": {"DXY": [0.27, "+0.27%", "%"],
+              "EUR/USD (dollars per euro)": [-0.43, "-0.43%", "%"],
+              "2s10s": [10, "+10 bp", "bp"],
+              "2-year": [-11, "-11 bp", "bp"]},
+    "plumbing_paragraph": "Plumbing turned on the long end, even as the dollar softened, with EUR/USD down -0.43%. The 2s10s widened +10 bp as the 2-year fell -11 bp.",
+    "expected_fault": "direction audit failed on 1 clause: 'the dollar softened' against DXY +0.27%",
+    "firmed_paragraph": "Plumbing turned on the long end, even as the dollar firmed, with EUR/USD down -0.43%. The 2s10s widened +10 bp as the 2-year fell -11 bp.",
+    "pair_text": "EUR/USD fell 0.43%, the dollar firmer."
+  },
+  "readability": {
+    "signed_after_verbs": "The 2-year fell -3 bp, Real Estate rose +3.36% and CCC OAS widened +37 bp.",
+    "unsigned": "The 2-year fell 3 bp, Real Estate rose 3.36% and CCC OAS widened 37 bp.",
+    "rewrites": 3,
+    "stance": "Narratives turned bullish on inflation as desks repriced the curve.",
+    "marked_broke": "The tape wrote the gamma flip at 775.54 marked broke."
+  },
+  "filler": {
+    "bare": "Real Estate added +1.96%.",
+    "read": "Real Estate added 1.96%, the fourth defensive sector to lead.",
+    "rrp": "Reverse repo balances slipped -1bn, a marginal draw against a jobless-claims four-week average whose prior stood at 200,500."
+  },
+  "aliases": {
+    "tape_10y": {"printed": "5.244%", "as_of": "2026-10-09"},
+    "chart_10y": {"printed": "5.28%", "value": 5.28, "as_of": "2026-10-07", "source": "FRED"},
+    "same_date_gap": {"printed": "5.284%", "value": 5.284}
+  }
+}

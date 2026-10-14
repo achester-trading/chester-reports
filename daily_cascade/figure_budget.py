@@ -32,6 +32,24 @@ percent move as printed; a basis-point, point, dollar or count change divided by
 the level it moved from. A move with no level to scale it ranks after those that
 have one, in table order. A block's rows are ranked by absolute change in the
 row's own unit, as ruled.
+
+THE SECOND PASS (W-1.1 item 1.0, T3.4c, ruled 11 Oct 2026):
+  RANKING BY z. Relative-to-level favoured low-level series (IG OAS -4 bp
+    outranked CCC OAS +37 bp). Where the section's data carries `_move_z` -- the
+    z of each row's change against its own trailing-year changes
+    (derived.period_change_z, the Weekly computes it) -- moves rank by |z|; a
+    row whose series has fewer than 60 such changes ranks after them, relative
+    to its level, and the frame names it under `ranking`.
+  ALLOCATION. A section declared under `figure_budget_sections.<cadence>` takes
+    that cap (the Weekly's Plumbing, Positioning and What's priced: 8) and, with
+    `per_block`, one figure for every sub-block that moved before the rest go to
+    the largest z.
+  NO FILLER. The names the frame does not quantify sit under the heading "In the
+    tables (do not enumerate)"; the prose rule and the filler audit
+    (filler_faults) refuse "X, Y and Z also moved".
+  THE FOUR OTHER FRAMES. The read, Mechanics, What doesn't fit and Ahead each get
+    a budgeted frame of their own (read_frame, mechanics_frame, misfit_frame,
+    ahead_frame) with a "move" defined for each.
 """
 
 from __future__ import annotations
@@ -46,9 +64,14 @@ CHANGE_HEAD = re.compile(r"\b(move|change|the month|month or prior|priced or cha
                          r"week|session)\b", re.I)
 LEVEL_HEAD = re.compile(r"\b(close|level|latest|actual|kalshi)\b", re.I)
 # Keys whose values are names or dates, never quantified figures.
+IN_TABLES = "In the tables (do not enumerate)"
 NAME_KEYS = frozenset({"section", "block", "series", "name", "title", "also_moved",
+                       IN_TABLES, "ranking", "sub_block", "family", "outcomes",
+                       "event", "date", "connector_rule", "flagged_sessions",
                        "depth", "depth_reason", "session", "month", "from", "to",
-                       "as_of", "note", "blocks_carry", "where", "period"})
+                       "series_kind", "direction", "cap_note", "groups",
+                       "as_of", "note", "blocks_carry", "where", "period",
+                       "columns"})
 _NUM = re.compile(r"(?P<sign>[+\-−±])?\s?(?P<dollar>\$)?(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
                   r"(?P<unit>%|bp\b|bps\b|pts\b|points\b|tn\b|bn\b|mn\b|m\b|k\b|x\b)?")
 _SCALE = {"tn": 1e12, "bn": 1e9, "mn": 1e6, "m": 1e6, "k": 1e3}
@@ -87,14 +110,17 @@ def _col(columns: list, rx: re.Pattern, skip: tuple = ()) -> Optional[int]:
 
 
 def table_moves(table: Optional[dict], where: str,
-                prefer: Optional[str] = None) -> list[dict]:
+                prefer: Optional[str] = None,
+                zmap: Optional[dict] = None) -> list[dict]:
     """Every row of a table as a move: its name, the change cell exactly as
     printed, the level cell, and the magnitudes the two rankings use. The
     change column is the cadence's own period column (`prefer`: "Week", "The
     month") where the table has one -- the Weekly's tape also prints the
     session's move -- else the first change-like head. A table whose rows are
-    sessions ("Session" first) carries no series and gives no moves."""
+    sessions ("Session" first) carries no series and gives no moves. `zmap`
+    ({name, lower case: {z, reason}}) attaches each row's z (T3.4c)."""
     out = []
+    zmap = zmap or {}
     t = table or {}
     cols = list(t.get("columns") or [])
     rows = list(t.get("rows") or [])
@@ -105,6 +131,10 @@ def table_moves(table: Optional[dict], where: str,
     if cols and str(cols[name_i]).strip().lower() in ("session", "date", "day"):
         return out
     lvl = _col(cols, LEVEL_HEAD, (name_i,))
+    # THE ROW'S DATE TRAVELS WITH ITS FIGURE (W-1.1a item 6): the 12 Oct dry
+    # run joined the 2s10s as of 7 Oct with the 10-year as of 9 Oct in one clause.
+    asof_i = next((i for i, c in enumerate(cols)
+                   if str(c).strip().lower() == "as of"), None)
     chg = next((i for i, c in enumerate(cols) if prefer and i != name_i
                 and str(c).strip().lower() == prefer.strip().lower()), None)
     if chg is None:
@@ -133,31 +163,48 @@ def table_moves(table: Optional[dict], where: str,
             rel = abs(c[0]) / base * 100.0
         else:
             rel = None
+        zz = zmap.get(name.strip().lower()) or {}
         out.append({"name": name, "change": str(change), "level": level, "kind": "move",
                     "where": where, "order": k, "relative": rel,
-                    "absolute": abs(c[0])})
+                    "absolute": abs(c[0]), "moved": c[0] != 0,
+                    "z": (abs(zz["z"]) if isinstance(zz.get("z"), (int, float))
+                          else None),
+                    "z_reason": zz.get("reason"),
+                    "as_of": (r[asof_i] if asof_i is not None and len(r) > asof_i
+                              and r[asof_i] not in (None, "", "—") else None)})
     return out
 
 
 def section_moves(s: dict, prefer: Optional[str] = None) -> list[dict]:
     """The section's moves, from its own table and every sub-section's, in the
-    payload's order; one entry per series name (the first table naming it)."""
+    payload's order; one entry per series name (the first table naming it).
+    Each carries its `sub_block`: the row's own (`_row_block` in the section's
+    data -- Plumbing's buckets) or else the table it sits in."""
     moves, seen = [], set()
+    data = s.get("data") or {}
+    zmap = data.get("_move_z") or {}
+    blocks = data.get("_row_block") or {}
     tables = [(s.get("title"), s.get("table"))] + \
         [(ss.get("title"), ss.get("table")) for ss in s.get("subsections") or []]
     for where, t in tables:
-        for m in table_moves(t, str(where or ""), prefer):
+        for m in table_moves(t, str(where or ""), prefer, zmap):
             key = m["name"].strip().lower()
             if not key or key in seen:
                 continue
             seen.add(key)
+            m["sub_block"] = blocks.get(key) or m["where"]
             moves.append(m)
     return moves
 
 
 def ranked(moves: list[dict], by: str = "relative") -> list[dict]:
     """Largest first by `by`; moves with no figure, or nothing to scale it by,
-    after, in the payload's order."""
+    after, in the payload's order. By "z" (T3.4c): moves with a z by |z|, then
+    those without one relative to their level, then the rest."""
+    if by == "z":
+        zs = [m for m in moves if m.get("change") is not None and m.get("z") is not None]
+        rel = ranked([m for m in moves if m not in zs], "relative")
+        return sorted(zs, key=lambda m: -m["z"]) + rel
     have = [m for m in moves if m.get("change") is not None and m.get(by) is not None]
     rest = [m for m in moves if m not in have]
     return sorted(have, key=lambda m: -m[by]) + rest
@@ -174,18 +221,36 @@ def cite(m: dict, where: bool = False) -> dict:
            ("level" if m.get("kind") == "level" else "change"): m["change"]}
     if where:
         out["where"] = m["where"]
+    if m.get("as_of"):
+        out["as_of"] = m["as_of"]
     return out
 
 
-def take(moves: list[dict], cap: int, by: str = "relative") -> tuple[list, list]:
+def take(moves: list[dict], cap: int, by: str = "relative",
+         per_block: bool = False) -> tuple[list, list]:
     """(quantified, named): the ranked moves that fit `cap` figures, and the
-    names of every other series."""
+    names of every other series. `per_block` (T3.4c): first the top move of
+    every sub-block that moved, in rank order, then the rest by rank."""
+    order = ranked(moves, by)
     got, used = [], 0
-    for m in ranked(moves, by):
+
+    def add(m) -> None:
+        nonlocal used
         n = _figs(m) if m.get("change") is not None else 0
-        if n and used + n <= cap:
+        if n and m not in got and used + n <= cap:
             got.append(m)
             used += n
+    if per_block:
+        firsts: dict = {}
+        for m in order:
+            if m.get("kind") == "move" and m.get("moved"):
+                firsts.setdefault(m.get("sub_block") or m.get("where"), m)
+        for m in order:
+            if firsts.get(m.get("sub_block") or m.get("where")) is m:
+                add(m)
+    for m in order:
+        add(m)
+    got.sort(key=order.index)
     names = [m["name"] for m in moves if m not in got and m["name"]]
     return got, names
 
@@ -202,26 +267,63 @@ def scrub_percentiles(v):
     return v
 
 
-BLOCKS_CARRY = ("The blocks beneath this section carry every other number: name a "
-                "series under also_moved, never quantify it.")
+BLOCKS_CARRY = ("The tables beneath this section print every other number. The "
+                "series under 'In the tables (do not enumerate)' are there for "
+                "reference: never list them, never quantify them, and never write "
+                "that they also moved, all moved or moved alongside.")
+
+
+def ranking_note(moves: list[dict]) -> Optional[str]:
+    """The frame's word on how its moves were ranked (T3.4c): by z, and which
+    series fell back to relative-to-level for want of history."""
+    if not any(m.get("z") is not None for m in moves):
+        return None
+    rel = [m["name"] for m in moves if m.get("z") is None and m.get("kind") == "move"
+           and m.get("change") is not None]
+    return ("Ranked by how unusual each move is against its own series' "
+            "trailing-year changes of the same length"
+            + (f"; ranked relative to its level, for want of 60 such changes: "
+               f"{', '.join(rel)}" if rel else "") + ".")
+
+
+def section_cap(sid: Optional[str], cadence_cfg: dict, cfg: Optional[dict] = None
+                ) -> tuple[int, bool]:
+    """(cap, per_block) for one section at a cadence: its override under
+    `figure_budget_sections.<cadence>` (T3.4c), else the cadence's
+    `paragraph_figures` with no per-block rule."""
+    if cfg is None:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        cfg = bars_mod.load_config()
+    over = (((cfg.get("figure_budget_sections") or {})
+             .get(cadence_cfg.get("name") or "") or {}).get(sid or "") or {})
+    base = int(cadence_cfg.get("paragraph_figures") or 6)
+    return int(over.get("cap") or base), bool(over.get("per_block"))
 
 
 def parent_frame(s: dict, ed: dict, cap: int, period: str,
                  column: Optional[str] = None,
-                 levels: Optional[list] = None) -> dict:
+                 levels: Optional[list] = None,
+                 per_block: bool = False) -> dict:
     """A parent section's frame: its top moves up to `cap` figures, each with its
-    display form, and every other series by name only. `column` is the
-    cadence's period column head. `levels` (the tape's, T3.4b) are offered
-    first and counted inside the same cap."""
+    display form, and every other series by name only, under IN_TABLES.
+    `column` is the cadence's period column head. `levels` (the tape's, T3.4b)
+    are offered first and counted inside the same cap. Moves rank by z where
+    the section carries one (T3.4c); `per_block` gives every sub-block that
+    moved one figure before the rest."""
     lv = list(levels or [])[:cap]
-    got, names = take(section_moves(s, column), cap - len(lv))
+    moves = section_moves(s, column)
+    by = "z" if any(m.get("z") is not None for m in moves) else "relative"
+    got, names = take(moves, cap - len(lv), by, per_block)
     out = {"section": s["title"], "depth": s.get("depth"),
            "depth_reason": s.get("depth_reason"),
            "session": ed.get("session"), "month": ed.get("month"),
            "period": period,
            "figures_you_may_cite": [cite(m, where=True) for m in got],
-           "also_moved": names,
+           IN_TABLES: names,
            "blocks_carry": BLOCKS_CARRY}
+    note = ranking_note(moves)
+    if note:
+        out["ranking"] = note
     if lv:
         out["levels_you_may_cite"] = lv
     return out
@@ -292,12 +394,16 @@ def block_frame(s: dict, ss: dict, month: Optional[str], cap: int,
     `_display`, `_ordinal`), never a raw number beside them."""
     t = ss.get("table") or {}
     cols = list(t.get("columns") or [])
-    moves = table_moves(t, str(ss.get("title") or ""), column)
+    moves = table_moves(t, str(ss.get("title") or ""), column,
+                        (s.get("data") or {}).get("_move_z"))
     by_name = {str(r[1] if cols and str(cols[0]).lower() == "rank" else r[0]): list(r)
                for r in t.get("rows") or [] if r}
     entries = _data_entries(ss.get("data"))
     rows, used, kept = [], 0, set()
-    for m in ranked(moves, "absolute"):
+    # T3.5: by z where the section carries one (the Weekly parents' T3.4c rule),
+    # else by absolute change as before.
+    by = "z" if any(m.get("z") is not None for m in moves) else "absolute"
+    for m in ranked(moves, by):
         if m.get("change") is None:
             continue
         row = by_name.get(m["name"]) or []
@@ -313,13 +419,30 @@ def block_frame(s: dict, ss: dict, month: Optional[str], cap: int,
         used += n
         kept.add(m["name"])
     named = [m["name"] for m in moves if m["name"] not in kept and m["name"]]
+    # THE WEEKLY PARENTS' TREATMENT, FOR THE MONTHLY'S BLOCKS (T3.5 (b); W-1.1
+    # item 1.0): the rows the paragraph may cite under `figures_you_may_cite`;
+    # the table with every other row's figures masked, so the writer sees the
+    # block as the reader does and has no other figure to copy; those rows' names
+    # under IN_TABLES. The column heads travel too -- "20-day change" is how the
+    # writer names a column, and its "20" is the table's own.
+    name_i = 1 if cols and str(cols[0]).strip().lower() == "rank" else 0
+    masked = [[c if i == name_i or str(r[name_i] if len(r) > name_i else "") in kept
+               or not readability.figures(str(c)) else MASKED
+               for i, c in enumerate(r)] for r in (t.get("rows") or []) if r]
     return {"section": s["title"], "block": ss.get("title"), "month": month,
-            "rows": rows, "also_moved": named,
-            "note": ("The table above prints every row; cite only these rows' "
-                     "figures and name the others without a number.")
-            if named else None,
+            "columns": cols,
+            "table": {"columns": cols, "rows": masked},
+            "figures_you_may_cite": rows, IN_TABLES: named,
+            "note": BLOCK_NOTE if named else None,
             "lines": [ln for ln in ss.get("lines") or []
                       if not readability.figures(str(ln))] or None}
+
+
+MASKED = "[in the table]"
+BLOCK_NOTE = ("The table above prints every row. Cite only the figures under "
+              "figures_you_may_cite, exactly as printed there; the rows marked "
+              f"'{MASKED}' are for the reader, never for this paragraph: do not "
+              "list them, quantify them, or say they also moved.")
 
 
 def _data_entries(data) -> dict:
@@ -379,6 +502,18 @@ def quantified_figures(frame) -> int:
         if key in NAME_KEYS:
             return
         if isinstance(o, dict):
+            if isinstance(o.get("rows"), list) and "columns" in o:
+                # A TABLE's name column is a name (T3.5): "CPI above 3% in
+                # October" offers no figure, as it would not under "series".
+                cols = list(o.get("columns") or [])
+                ni = 1 if cols and str(cols[0]).strip().lower() == "rank" else 0
+                for k, v in o.items():
+                    if k != "rows":
+                        walk(v, k)
+                for r in o["rows"]:
+                    walk([c for i, c in enumerate(r or []) if i != ni]
+                         if isinstance(r, (list, tuple)) else r, "rows")
+                return
             for k, v in o.items():
                 walk(v, k)
         elif isinstance(o, list):
@@ -393,3 +528,378 @@ def quantified_figures(frame) -> int:
                 found.add(f.replace("−", "-"))
     walk(frame)
     return len(found)
+
+
+# ===========================================================================
+# THE FOUR OTHER FRAMES (W-1.1 item 1.0a, ruled 11 Oct 2026)
+# ===========================================================================
+# The 9 Oct Weekly's dry run cited 15 figures in The read, 12 in Mechanics and 7
+# each in What doesn't fit and Ahead, against six: those sections' writers were
+# handed their whole data. Each now gets a frame like a parent's -- the figures it
+# may cite, up to its cap, each exactly as its table prints it, and the rest by
+# name under IN_TABLES -- with a "move" defined for each section:
+#   read       the five lines' figures: the top move of each section that has
+#              one, then the week's largest SPY session, then the rest by z
+#   mechanics  the daily move priced and realized; per-session range against
+#              implied (actual / implied, largest first); the VIX, realized, SKEW
+#              and MOVE week changes by z; the flip's move. Gamma-regime changes
+#              and the flags are named, never quantified
+#   misfit     gaps by |z|, extremes by their percentile's distance from the
+#              median (as the z it corresponds to), prediction-market
+#              disagreements by twice their gap over the threshold
+#   ahead      the next FOMC date and its pricing, the graded-calls line, the
+#              top-importance events' consensus or prior; a family of resolution
+#              contracts (the 18 Core CPI rows) is ONE figure, its modal outcome,
+#              and the rest by name
+def _cands_take(cands: list[dict], cap: int) -> tuple[list, list]:
+    """Candidates in priority order, each {"cite": {...}, "name": ...}: as many
+    as fit `cap` figures; the names of the rest."""
+    got, used, rest = [], 0, []
+    for c in cands:
+        # A GROUP COUNTS AS ONE (W-1.1a item 2): the Book Z line's figures are
+        # one comparison, printed and cited together.
+        n = (1 if quantified_figures(c["cite"]) else 0) if c.get("group") \
+            else quantified_figures(c["cite"])
+        if n and used + n <= cap:
+            got.append(c["cite"])
+            used += n
+        elif c.get("name"):
+            rest.append(c["name"])
+    return got, list(dict.fromkeys(rest))
+
+
+def _frame(s: dict, ed: dict, period: str, got: list, names: list, **extra) -> dict:
+    out = {"section": s.get("title"), "depth": s.get("depth"),
+           "session": ed.get("session"), "period": period,
+           "figures_you_may_cite": got, IN_TABLES: names}
+    out.update({k: v for k, v in extra.items() if v not in (None, [], {})})
+    return out
+
+
+def _rows(t: Optional[dict]) -> tuple[list, list]:
+    t = t or {}
+    return list(t.get("columns") or []), [list(r) for r in t.get("rows") or []]
+
+
+def _cell(cols: list, row: list, head: str) -> Optional[str]:
+    for i, c in enumerate(cols):
+        if str(c).strip().lower() == head.lower() and i < len(row):
+            v = row[i]
+            return None if v in (None, "—", "") else str(v)
+    return None
+
+
+def _plain_items(s: dict) -> list[str]:
+    """The section's shown items that carry no figure: context, never a cite."""
+    return [i["text"] for i in s.get("items") or []
+            if i.get("show", True) and not readability.figures(i["text"])]
+
+
+def mechanics_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
+    """Mechanics' frame (see above)."""
+    data = s.get("data") or {}
+    zmap = data.get("_move_z") or {}
+    cands: list[dict] = []
+    vol = next((ss for ss in s.get("subsections") or []
+                if ss.get("title") == "Volatility"), None)
+    vcols, vrows = _rows((vol or {}).get("table"))
+    for r in vrows:
+        if str(r[0]).startswith("Daily move priced"):
+            # EACH FIGURE UNDER A KEY THAT NAMES ITS UNIT (W-1.1a item 1): the
+            # key `priced` typed 0.93% as a price, and the 12 Oct dry run
+            # withheld Mechanics and The read over it.
+            cands.append({"cite": {"series": r[0], "implied_daily_move_pct": r[1],
+                                   "realized_daily_move_pct": r[2],
+                                   "series_kind": "implied_move"},
+                          "name": r[0]})
+    rng = next((ss for ss in s.get("subsections") or []
+                if ss.get("title") == "Ranges and flags"), None)
+    rcols, rrows = _rows((rng or {}).get("table"))
+    scored = []
+    for r in rrows:
+        imp = parse_figure(_cell(rcols, r, "Implied range"))
+        act = parse_figure(_cell(rcols, r, "Actual range"))
+        if imp and act and imp[0]:
+            scored.append((act[0] / imp[0], r))
+    scored.sort(key=lambda x: -x[0])
+    for _, r in scored[:2]:
+        cands.append({"cite": {"series": f"SPY range, {r[0]}",
+                               "implied_range": _cell(rcols, r, "Implied range"),
+                               "actual_range": _cell(rcols, r, "Actual range")},
+                      "name": f"SPY range, {r[0]}"})
+    vchg = []
+    for r in vrows:
+        ch = _cell(vcols, r, "Week")
+        if ch and parse_figure(ch):
+            z = (zmap.get(str(r[0]).strip().lower()) or {}).get("z")
+            vchg.append((abs(z) if isinstance(z, (int, float)) else -1.0,
+                         {"cite": {"series": r[0], "level": r[1], "change": ch},
+                          "name": r[0]}))
+    cands += [c for _, c in sorted(vchg, key=lambda x: -x[0])]
+    pcols, prows = _rows(s.get("table"))
+    flips = [(r[0], _cell(pcols, r, "Flip")) for r in prows if _cell(pcols, r, "Flip")]
+    if len(flips) >= 2:
+        cands.append({"cite": {"series": "SPY gamma flip, first and last session",
+                               "first_session": flips[0][1],
+                               "last_session": flips[-1][1]},
+                      "name": "SPY gamma flip"})
+    got, names = _cands_take(cands, cap)
+    regimes, prev = [], None
+    for r in prows:
+        g = _cell(pcols, r, "Gamma regime")
+        if g and prev and g != prev:
+            regimes.append({"session": r[0], "from": prev, "to": g})
+        prev = g or prev
+    flagged = [{"session": r[0], "flags": _cell(rcols, r, "Flags")} for r in rrows
+               if (_cell(rcols, r, "Flags") or "none") != "none"]
+    return _frame(s, ed, period, got, names, gamma_regime_changes=regimes,
+                  flagged_sessions=flagged, items=_plain_items(s))
+
+
+def _pct_z(p) -> Optional[float]:
+    """A percentile as the |z| it corresponds to under a normal: 98th -> 2.05."""
+    import statistics                                           # noqa: PLC0415
+    if not isinstance(p, (int, float)):
+        return None
+    q = min(max(float(p) / 100.0, 0.001), 0.999)
+    return abs(statistics.NormalDist().inv_cdf(q))
+
+
+def misfit_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
+    """What doesn't fit's frame (see above). A gap cites its z and its age in
+    sessions -- the gap's age, never the exception's (item 1.3); its sides and
+    what would close it are words."""
+    data = s.get("data") or {}
+    scored = []
+    for g in data.get("gaps") or []:
+        if isinstance(g.get("z"), (int, float)):
+            scored.append((abs(g["z"]), {
+                "cite": {"series": g.get("gap"), "z": f"{g['z']:+.1f}",
+                         "gap_open_sessions": g.get("sessions_open"),
+                         "sides": g.get("sides"), "closes_when": g.get("closes_when")},
+                "name": g.get("gap")}))
+    for e in data.get("extremes") or []:
+        z = _pct_z(e.get("percentile"))
+        if z is not None:
+            scored.append((z, {"cite": {"series": e.get("name"),
+                                        "percentile": e.get("percentile_ordinal"),
+                                        "side": e.get("side")},
+                               "name": e.get("name")}))
+    for d in ((data.get("venue_disagreements") or {}).get("fed_funds") or []):
+        th = float(d.get("threshold_points") or 15)
+        scored.append((2.0 * abs(d.get("gap_points") or 0) / th, {
+            "cite": {"series": f"{str(d.get('venue')).title()}, FOMC {d.get('meeting')}, "
+                               f"{d.get('side')}",
+                     "prediction_market": f"{round(d['venue_probability'] * 100):.0f}%",
+                     "fed_funds_futures": f"{round(d['fed_funds_implied'] * 100):.0f}%"},
+            "name": f"FOMC {d.get('meeting')} {d.get('side')}"}))
+    scored.sort(key=lambda x: -x[0])
+    got, names = _cands_take([c for _, c in scored], cap)
+    cited = {g.get("series") for g in got}
+    for n in data.get("exceptions_open_now") or []:
+        if n not in names and n not in cited:
+            names.append(n)
+    return _frame(s, ed, period, got, names, items=_plain_items(s))
+
+
+# A resolution contract's question with its strikes struck: the family key ("Will
+# Core CPI rise more than 0.3%?" and "... 0.2% ..." are one family).
+_STRIKE = re.compile(r"[+\-−]?\$?\d[\d,]*(?:\.\d+)?\s?(?:%|bp|bps)?")
+
+
+def contract_family(question: str) -> str:
+    return re.sub(r"\s+", " ", _STRIKE.sub("#", str(question or ""))).strip()
+
+
+# "19% of a 25 bp hike": the probability, the increment and the direction.
+_PRICED = re.compile(r"(?P<p>\d+(?:\.\d+)?)%\s+of\s+an?\s+(?P<bp>\d+)\s?bp\s+(?P<dir>\w+)")
+
+
+def fomc_cite(row: list) -> dict:
+    """The next meeting's pricing as Ahead may cite it (W-1.1a item 1): the
+    implied rate a percent, the move's probability a percent-probability, its
+    increment in bp -- each under a key that names its unit, never `level` or
+    `priced`, which the audit types as prices."""
+    out = {"series": row[0], "implied_rate_pct": row[1], "series_kind": "rate",
+           "where": "What's priced"}
+    m = _PRICED.search(str(row[2] if len(row) > 2 else ""))
+    if m:
+        out.update({"move_probability_pct": f"{m.group('p')}%",
+                    "move_increment_bp": f"{m.group('bp')} bp",
+                    "direction": m.group("dir")})
+    elif len(row) > 2:
+        out["pricing_display"] = row[2]
+    return out
+
+
+def ahead_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
+    """Ahead's frame (see above)."""
+    data = s.get("data") or {}
+    cands: list[dict] = []
+    priced = next((x for x in ed.get("sections") or [] if x.get("id") == "priced"), {})
+    for ss in [priced] + list(priced.get("subsections") or []):
+        cols, rows = _rows(ss.get("table"))
+        fomc = next((r for r in rows if str(r[0]).startswith("FOMC ")
+                     and "implied rate" in str(r[0])), None)
+        if fomc:
+            cands.append({"cite": fomc_cite(fomc), "name": fomc[0]})
+            break
+    gc = (data.get("graded_calls") or {}).get("rows") or []
+    for r in sorted(gc, key=lambda r: -(r.get("n") or 0))[:1]:
+        cands.append({"cite": {"series": f"graded calls, {r.get('source')}",
+                               "resolved": r.get("n"),
+                               "mean_brier": f"{r['mean_brier']:.3f}"},
+                      "name": f"graded calls, {r.get('source')}"})
+    fams: dict[str, list] = {}
+    plain = []
+    for r in data.get("calendar") or []:
+        ev = str(r.get("event") or "")
+        if ev.startswith("Prediction market resolves:"):
+            fams.setdefault(contract_family(ev), []).append(r)
+        else:
+            plain.append(r)
+    named_only = []
+    for r in sorted(plain, key=lambda r: (r.get("tier") or 9, r.get("date") or "")):
+        if (r.get("tier") or 9) > 1:
+            continue
+        con = r.get("consensus")
+        if con and readability.figures(str(con)):
+            cands.append({"cite": {"series": r.get("event"), "date": r.get("date"),
+                                   "consensus_or_prior": con},
+                          "name": r.get("event")})
+        else:
+            named_only.append({"event": r.get("event"), "date": r.get("date")})
+    families = []
+
+    def prob(r) -> float:
+        f = parse_figure(r.get("consensus"))
+        return f[0] if f else -1.0
+    for key, rows in fams.items():
+        modal = max(rows, key=prob)
+        cands.append({"cite": {"series": modal.get("event"),
+                               "modal_outcome": modal.get("consensus")},
+                      "name": key})
+        if len(rows) > 1:
+            families.append({"family": key, "outcomes": len(rows)})
+    got, names = _cands_take(cands, cap)
+    return _frame(s, ed, period, got, names, contract_families=families,
+                  tier1_events_without_a_figure=named_only,
+                  watching=[w for w in data.get("watching") or []
+                            if not readability.figures(str(w))])
+
+
+# THE BOOK'S FRAME (W-1.1a item 2, the Weekly dry run of 12 Oct). The book was
+# the one prose section the second pass left on its whole slice, and its
+# paragraph cited nine figures against six -- eight of them the Book Z line's.
+# The line is one comparison (the book, cash, SPY and 60-40 over one window, and
+# the excess against each), so it is offered and counted as ONE group; the
+# register's counts and the attention table follow, each a figure, inside the
+# section's cap (section_cap, never a literal). The frame states the cap.
+BOOK_GROUP = "the book against Book Z"
+BOOK_CAP_NOTE = ("Cite at most {cap} figures. The Book Z line is one group and "
+                 "counts as one, however many of its figures you copy; the "
+                 "tables carry the rest.")
+
+
+def book_frame(s: dict, ed: dict, cap: int, period: str) -> dict:
+    """The book's frame (see above)."""
+    data = s.get("data") or {}
+    cands: list[dict] = []
+    if data.get("book_z"):
+        cands.append({"cite": {"series": BOOK_GROUP, "book_z_line": data["book_z"]},
+                      "name": BOOK_GROUP, "group": True})
+    for it in s.get("items") or []:
+        if it.get("key") == "book:z" or it.get("show") is False:
+            continue
+        if readability.figures(it.get("text")):
+            cands.append({"cite": {"series": str(it.get("key", "")).split(":", 1)[-1],
+                                   "line": it["text"]},
+                          "name": it["text"]})
+    cols, rows = _rows(s.get("table"))
+    for r in rows:
+        cands.append({"cite": {"series": r[0], **{str(c).lower().replace(" ", "_"): v
+                                                  for c, v in zip(cols[1:], r[1:])}},
+                      "name": r[0]})
+    got, names = _cands_take(cands, cap)
+    return _frame(s, ed, period, got, names, cap_note=BOOK_CAP_NOTE.format(cap=cap),
+                  groups=[BOOK_GROUP] if data.get("book_z") else None)
+
+
+def book_groups(ed: dict) -> list[set]:
+    """The figure groups the book's paragraph may cite as one: the Book Z
+    line's figures, normalised as figure_faults reads them."""
+    bk = next((x for x in ed.get("sections") or [] if x.get("id") == "book"), {})
+    bz = (bk.get("data") or {}).get("book_z")
+    return [{norm_figure(f) for f in readability.figures(bz)}] if bz else []
+
+
+def norm_figure(f: str) -> str:
+    """A cited figure as a group member: no sign, no unit, no separator --
+    "+0.33 pts" and "0.33" are one figure."""
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", str(f))
+    return m.group(0).replace(",", "") if m else str(f)
+
+
+def frame_figures(frame: dict) -> int:
+    """A frame's figures with each group counted as one -- what the gate holds
+    a grouped frame to."""
+    groups = set(frame.get("groups") or [])
+    cites = frame.get("figures_you_may_cite") or []
+    rest = {k: v for k, v in frame.items() if k != "figures_you_may_cite"}
+    return (quantified_figures(rest)
+            + sum(1 if c.get("series") in groups and quantified_figures(c)
+                  else quantified_figures(c) for c in cites))
+
+
+# The sections the read draws its figures from, in the edition's order.
+READ_SOURCES = ("tape", "mechanics", "misfit", "plumbing", "positioning", "priced")
+
+
+def read_frame(ed: dict, cap: int, period: str) -> dict:
+    """The read's frame: each section's claim with its figures masked; the
+    figures it may cite -- the top move of each section in turn, the week's
+    largest SPY session, then the rest by z; the press's attributions with
+    their figures masked (they are the outlet's words, never ours)."""
+    secs = {s["id"]: s for s in ed.get("sections") or []}
+    per: list[list] = []
+    for sid in READ_SOURCES:
+        s = secs.get(sid)
+        if not s or s.get("empty"):
+            continue
+        if sid in FRAMES:
+            fr = FRAMES[sid](s, ed, cap, period)
+            per.append([{"cite": {**c, "where": s["title"]}, "name": c.get("series"),
+                         "z": None} for c in fr["figures_you_may_cite"]
+                        if quantified_figures(c)])
+            continue
+        moves = section_moves(s, "Week")
+        by = "z" if any(m.get("z") is not None for m in moves) else "relative"
+        got, _ = take(moves, cap, by)
+        per.append([{"cite": cite(m, where=True), "name": m["name"], "z": m.get("z")}
+                    for m in got])
+    read = secs.get("read") or {}
+    cols, rows = _rows(read.get("table"))
+    best = None
+    for r in rows:
+        f = parse_figure(_cell(cols, r, "SPY"))
+        if f and (best is None or abs(f[0]) > best[0]):
+            best = (abs(f[0]), r)
+    first = [lst[0] for lst in per if lst]
+    rest = sorted([c for lst in per for c in lst[1:]], key=lambda c: -(c.get("z") or 0))
+    spy = ([{"cite": {"series": f"SPY, {best[1][0]}", "change": _cell(cols, best[1], "SPY"),
+                      "where": "The week by day"}, "name": f"SPY, {best[1][0]}"}]
+           if best else [])
+    got, names = _cands_take(first + spy + rest, cap)
+    return {"session": ed.get("session"), "period": period,
+            "sections": [{"section": s["title"], "claim": mask_figures(s.get("claim"))}
+                         for s in ed.get("sections") or []
+                         if s["id"] != "read" and s.get("claim")],
+            "figures_you_may_cite": got, IN_TABLES: names,
+            "press_attributions": [mask_figures(re.sub(r"\s*\(https?://[^)]*\)", "",
+                                                       i["text"]))
+                                   for i in read.get("items") or []
+                                   if str(i.get("key", "")).startswith("read:attr")]}
+
+
+FRAMES = {"mechanics": mechanics_frame, "misfit": misfit_frame,
+          "ahead": ahead_frame, "book": book_frame}
