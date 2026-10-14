@@ -372,3 +372,96 @@ stacked by week, the week's POC line and value-area band, the legend under the
 panel, and the candles unchanged.
 
 **CI:** #388 on `c9d5193` passed every check, the full validate on Linux.
+
+## 14 Oct evening: Friday's tip, the table's move, the paper's line
+
+### The tip merged
+
+`origin/w-1-3c-weekly-polish` at **`fb67bf3`** (it had not moved), merged as
+`cc3d998` and pushed on its own. Three conflicts, all resolved by keeping both
+sides:
+
+- **metrics_registry.yaml:** both sides appended to the end of `metrics:`, and
+  git interleaved the two appends into 18 hunks. I rebuilt the file as the tip's
+  version with VP-1's block inserted unchanged after the tip's last metric,
+  before `bulk_imports:`. The block is all 223 lines, from the "THE VOLUME
+  PROFILE (VP-1" comment through the 18 entries.
+  - The diff against the tip is that one insertion.
+  - `check_registry` passes.
+- **Makefile:** the tip's six new gates, then `validate_volume_profile.py`.
+- **CLAUDE.md:** the gate total, recounted from the Makefile: **75 code gates**
+  (72 Python, counting `smoke_test.py` as the Makefile's `EXTRA` does, and 3
+  shell) and **six data gates**. The tip's prose says five data gates, but its
+  Makefile lists six (`validate_imf_china.py`).
+
+On the merge alone these gates passed locally:
+
+| Gate | Result |
+|---|---|
+| check_registry | OK |
+| validate_volume_profile | 86/0 |
+| validate_gates | passed |
+| validate_numeral_audit | passed |
+| validate_stack | 75/0 |
+| validate_weekly_stack | 78/0 |
+| validate_monthly_stack | 265/0 |
+| validate_book_b_scanner | 63/0 (needs `PYTHONIOENCODING=utf-8`; the known cp1252 console issue) |
+| check_library | 27 papers, 0 failures |
+
+"More found" item 9 (finding 9) is closed by the merge, since the fix arrived
+with the tip. The Weekly gate no longer reaches the laptop's store.
+
+### The changes
+
+1. **The Weekly's value-area table moved into the detail tables** (ruled
+   14:04 ET; "More found" item 8).
+   - `storyline.move_daily_tables` takes the tape's "Value area: the week against
+     the prior week" sub-section and prints it directly after "The tape: named
+     levels" as **"The tape: value area, the week against the prior week"**.
+   - The windows the profile could not compute still print in the tape
+     section's "Not yet tracked" line, where they printed before. Only the table
+     moves.
+   - W7's side panel stays where it is.
+   - Gates:
+     - `validate_weekly_stack` group V now pins the table in the detail tables,
+       directly after the named levels, gone from the tape, with its gaps in the
+       tape's own `not_tracked`, and printed after the named levels in the
+       archive's HTML.
+     - `validate_weekly_storyline` group G gains a fixture of the move: order,
+       removal, gaps kept.
+   - `docs/volume-profile.md` says where the table now sits.
+2. **The Daily Cascade paper.** After Chapter 24's backlog table, where row
+   15–20 lists the volume profile among the Tier 3 items gated on 150 graded
+   decisions, one dated italic line now reads:
+   > *14 Oct 2026 — the volume profile entered the reports as data only: the
+   > session and 20-session POC, VAH and VAL for SPY, QQQ and IWM, approximated
+   > where built from daily bars. The claims it invites are tested in the Alpha
+   > Lab as H-006 to H-008. The Globex overnight POC is not built, because v1
+   > carries no ES.*
+
+   - Nothing else in the paper changed.
+   - `docs/html/daily-cascade-whitepaper.html` was rebuilt from it alone with
+     `tools/build_paper_html.py <the .md>`. The diff is that paragraph and the
+     source hash.
+   - Chapter 1's "Add the Globex volume profile POC" and Chapter 3's "Add the
+     full volume profile" are v1's backlog wording and were left as written.
+3. **Looked at.**
+   - I rendered the fixture Weekly from the gate's own seed and payload, into a
+     scratch store, and saved the archive HTML.
+   - The detail tables print in this order: the crypto basket, "The tape: named
+     levels", the value-area table immediately under it, then the technical
+     appendix.
+   - The fixture's weeks are not stored whole, so its three rows read "not
+     computed", and the tape's foot names each window and why.
+   - The page was screenshotted with headless Edge. There is no PDF rasteriser
+     on the laptop.
+
+### Gates (local, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_weekly_stack | 81/0 |
+| validate_weekly_storyline | 31/0 |
+| validate_weekly_edits | 90/0 |
+| validate_volume_profile | 86/0 |
+| check_library | 27 papers, 0 failures, 0 warnings |

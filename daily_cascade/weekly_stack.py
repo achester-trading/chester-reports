@@ -1858,7 +1858,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         oi = wsec.overnight_intraday(st, sessions, ending, now)
         # THE VOLUME PROFILE (VP-1 item 7): the week's value area against the
         # prior week's, beside the levels; the close's session table is not the
-        # Weekly's.
+        # Weekly's. The storyline moves both into the detail tables, the value
+        # area directly after the named levels (storyline.move_daily_tables).
         from altdata import volume_profile as vp                # noqa: PLC0415
         vpt = vp.table(book.get("instruments") or [], "week", "prior_week",
                        {t["id"]: t.get("unit") for t in bars_mod.tape()})

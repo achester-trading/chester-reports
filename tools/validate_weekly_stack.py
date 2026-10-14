@@ -249,24 +249,33 @@ def group_v(out: dict, td: str) -> None:
     print(f"\n{LINE}\nV. THE VOLUME PROFILE ON THE WEEKLY (VP-1 item 7)\n{LINE}")
     tape = next(s for s in out["edition"]["sections"] if s["id"] == "tape")
     titles = [ss.get("title") for ss in tape.get("subsections") or []]
-    vt = next((ss for ss in tape.get("subsections") or []
-               if ss.get("title") == "Value area: the week against the prior week"),
-              {})
-    # The storyline (W-1.2) moves the Levels table to the detail tables; the
-    # value-area table stays in the tape, where the week's prices are.
-    detail = [d.get("title") for d in out["edition"].get("detail") or []]
+    # The storyline (W-1.2) moves the Levels table to the detail tables, and the
+    # value-area table follows it there, directly after it (ruled 14 Oct 2026,
+    # 14:04 ET). What the profile could not compute stays in the tape's foot.
+    detail = out["edition"].get("detail") or []
+    dtitles = [d.get("title") for d in detail]
+    VA = "The tape: value area, the week against the prior week"
+    vt = next((d for d in detail if d.get("title") == VA), {})
     check((vt.get("table") or {}).get("columns") == [
               "Market", "Value area (POC)", "Prior week", "Migration",
               "Close vs value"]
-          and [r[0] for r in vt["table"]["rows"]] == ["SPY", "QQQ", "IWM"]
-          and "The tape: named levels" in detail,
-          f"the tape carries the week against the prior week, one row per "
-          f"instrument; the named levels sit in the detail tables ({titles})")
+          and [r[0] for r in vt["table"]["rows"]] == ["SPY", "QQQ", "IWM"],
+          f"the detail tables carry the week against the prior week, one row per "
+          f"instrument ({dtitles})")
+    check("The tape: named levels" in dtitles and VA in dtitles
+          and dtitles.index(VA) == dtitles.index("The tape: named levels") + 1,
+          "beside the named levels: the value-area table directly after them")
+    check(not any(str(t or "").startswith("Value area") for t in titles),
+          f"and no longer in the tape section ({titles})")
     check(not tape.get("tables"),
           "and not the close's session table: the Weekly's is the week's")
     check(any(" week: " in x or " prior week: " in x
-              for x in vt.get("not_tracked") or []),
-          "a week the fixture does not store whole is not computed, with its reason")
+              for x in tape.get("not_tracked") or []),
+          "a week the fixture does not store whole is not computed, with its "
+          "reason, in the tape's own not-yet-tracked")
+    html = out["html_archive"]
+    i_lv, i_va = html.find("The tape: named levels"), html.find(VA)
+    check(0 <= i_lv < i_va, "and the archive's HTML prints it after the named levels")
     # W7 over ten fixture sessions, two weeks: still one chart, one figure.
     days, d = [], dt.date.fromisoformat(ENDING)
     while len(days) < 10:

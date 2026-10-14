@@ -110,8 +110,10 @@ So a wrong figure beside "the prior week's value-area high" is withheld, as the
 - **The close.** The tape section carries a table: Market | Value area (POC) |
   Prior session | Migration | Close vs value. C1 shades the prior session's value
   area, and returns its VAH and VAL in `drawn`.
-- **The Weekly.** The same table compares the week with the prior week, in the
-  tape section beside the levels table. W7 gains a volume-at-price panel on the
+- **The Weekly.** The same table compares the week with the prior week. It sits
+  in the detail tables at the end of the edition, directly after "The tape: named
+  levels" (ruled 14 Oct 2026), and what it could not compute prints in the tape
+  section's "not yet tracked". W7 gains a volume-at-price panel on the
   same price axis, covering the sessions it draws:
   - this week's sessions in a darker step of one hue, the earlier sessions in a
     lighter step;

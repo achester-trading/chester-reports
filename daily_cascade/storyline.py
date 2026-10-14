@@ -222,15 +222,25 @@ def move_daily_tables(ed: dict) -> None:
                         "daily_session_table": True, "paragraph_wanted": False})
         read["table"] = None
         read["table_note"] = None
-    keep = []
+    keep, value_area = [], None
     for ss in tape.get("subsections") or []:
         title = str(ss.get("title") or "")
         if title.startswith("SPY overnight"):
             subs.append({**ss, "daily_session_table": True})
         elif title == "Levels":
             _detail(ed, "The tape: named levels", ss.get("table") or {})
+        elif title.startswith("Value area"):
+            value_area = ss
         else:
             keep.append(ss)
+    # VP-1 (ruled 14 Oct 2026, 14:04 ET): the week's value-area table follows the
+    # named levels into the detail tables, directly after them. What it could not
+    # compute stays in the tape's own "not yet tracked", where it printed before.
+    if value_area is not None:
+        _detail(ed, "The tape: value area, the week against the prior week",
+                value_area.get("table") or {})
+        tape["not_tracked"] = list(tape.get("not_tracked") or []) + list(
+            value_area.get("not_tracked") or [])
     tape["subsections"] = keep
     mech["subsections"] = subs
 
