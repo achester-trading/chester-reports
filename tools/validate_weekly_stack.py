@@ -92,8 +92,11 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
     # Rates and breakevens: last week and this week.
     for key, a, b in (("fred.breakeven_10y", 2.30, 2.30 + breakeven_jump),
                       ("fred.breakeven_5y", 2.20, 2.21),
-                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.06),
-                      ("fred.yield_30y", 4.50, 4.53), ("fred.hy_oas", 3.00, 3.10)):
+                      # The 10- and 30-year end the week where the tape's bars
+                      # do (4.289%, 4.789%): one instrument on one date prints
+                      # one level (W-1.1a item 6, the alias check).
+                      ("fred.yield_2y", 3.90, 3.95), ("fred.yield_10y", 4.00, 4.289),
+                      ("fred.yield_30y", 4.50, 4.789), ("fred.hy_oas", 3.00, 3.10)):
         put(key, None, "2026-09-25", a)
         put(key, None, ENDING, b)
     for i, d in enumerate(days[-260:]):           # a year of rates for W3
@@ -200,7 +203,40 @@ class Resp:
         self.stop_reason = "end_turn"
 
 
-def client(calls: list, text: str = "The week left this section where it was."):
+# THE OPENER SHAPE (W-1.3a item 3.0): the scripted writer's reply is one
+# paragraph inside every Weekly band (deep 120-220, medium 80-150) ending in its
+# Takeaway, so the fixture's commentaries publish as a model's would.
+OPENER_TEXT = ("The week left this section where it was. A reader new to the system can take "
+        "the readings here as the plain record of where each market sat when the week "
+        "closed, set beside where it sat a week earlier, so that a change shows up as a "
+        "difference between two columns rather than as a judgement. Nothing in the week "
+        "went far enough to alter how the readings fit together, and the relationships "
+        "that held at the start of the week held at its end. The quiet was broad rather "
+        "than confined to one corner of the market, and no single reading stood apart "
+        "from the rest. Takeaway: with nothing pulling the readings apart, the coming "
+        "week starts from the same footing, and a change would have to come from a "
+        "scheduled event rather than from drift.")
+
+
+def opener_text(tag: str) -> str:
+    """An opener-shaped paragraph worded for one section (`tag`), so no two
+    sections -- and not The read -- share a sentence the duplicate guard would
+    withhold. Inside every Weekly band, no figure, ending in its Takeaway."""
+    return (f"A reader new to the system can take the {tag} readings as the plain "
+            f"record of where each market sat when the week closed, set beside "
+            f"where it sat a week earlier, so that a change shows up as a "
+            f"difference between two columns rather than as a judgement. Nothing "
+            f"in the {tag} readings went far enough to alter how they fit together, "
+            f"and the relationships that held at the start of the week in the {tag} "
+            f"readings held at its end. The quiet in the {tag} readings was broad "
+            f"rather than confined to one corner of the market, and no single one "
+            f"of them stood apart from the rest. Takeaway: with nothing pulling the "
+            f"{tag} readings apart, the coming week starts from the same footing, "
+            f"and a change would have to come from a scheduled event rather than "
+            f"from drift.")
+
+
+def client(calls: list, text: str = OPENER_TEXT):
     def create(**k):
         calls.append(k["system"])
         return Resp(text)
@@ -514,9 +550,12 @@ def main() -> int:
     check(sum(1 for t in vt if t.startswith("Each month's CPI print --")) == 2
           and any("Will CPI rise more than 0.3%?" in t for t in vt),
           "5: the CPI item prints each venue's market by its own title, never paired")
+    # W-1.1 item 1.5: the rule is the favourite-longshot check, a flag.
     check(all("bias zone" not in t for t in vt) and any("outside 10-90%" in t for t in vt)
-          and _st.BIAS_LEGEND.startswith("Outside 10-90%"),
-          "3: the bias zone is in plain words, with a one-line legend")
+          and any("favourite–longshot check" in t for t in vt)
+          and _st.BIAS_LEGEND.startswith("Favourite–longshot check (outside 10-90%)"),
+          "3: the bias zone is in plain words -- the favourite-longshot check -- with "
+          "a one-line legend")
     check(not _sp.policy_word_faults("The CPI market holds near 0.3%, and the low held.")
           and _sp.policy_word_faults("The Fed holds at the October meeting, says the "
                                      "CPI market."),
@@ -575,11 +614,11 @@ def main() -> int:
         rel = ws.tier1_releases(str_, AS_OF, ws.week_ago(AS_OF))
     # Rulings of 5 Oct, item 1: payrolls print as the monthly change, under the
     # declared label, never the raw series name. T3.4a: in the one change form
-    # every report shares -- +150 thousand prints "+150,000", which the audit
-    # accepts as the display form.
+    # every report shares -- +150 thousand prints "+150,000 jobs" (T3.5), which
+    # the audit accepts as the display form.
     check(rel and rel[0]["release"] == "Employment Situation"
           and rel[0]["form"] == "change" and rel[0]["actual"] == 150.0
-          and rel[0]["actual_text"] == "+150,000"
+          and rel[0]["actual_text"] == "+150,000 jobs"
           and rel[0]["label"] == "nonfarm payrolls, monthly change"
           and rel[0]["as_of"] == "2026-09-01",
           f"13: Plumbing lists the week's tier-1 release in its declared form, with "

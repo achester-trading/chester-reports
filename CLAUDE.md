@@ -123,7 +123,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    27 market symbols -> store keys prefixed mkt_
+    yfinance_source.py    59 market symbols -> store keys prefixed mkt_
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -131,6 +131,19 @@ altdata/                  Shared ingestion package — used by every report
                           every price fetch. A row's available_at is the MAXIMUM
                           across its inputs' — a feature is never knowable before
                           the data it is made of
+  correlation.py          The correlation layer (AQ-5): rolling 60/252-session
+                          return correlations across config/correlation.yaml's
+                          universe, the former report's 30-vs-120-day break, a
+                          shift flag per pair, the named rows. Rides the
+                          market_features pass (last few sessions); the full
+                          history is `compute --backfill`. Narrow flags only
+  thesis_register.py      AQ-6: the Quarterly's theses, ledgered under
+                          alt_asset:<family>. Loads the operator's
+                          config/alt_asset_theses/<YYYY>q<N>.yaml (measurables
+                          only), resolves from the store as of, grades sets by
+                          ordering and direction, writes book DRAFTS only; reached
+                          through `python -m altdata.probability_ledger
+                          seed-alt-asset | show | resolve-alt-asset`
 
 monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the ten
                           sections at Monthly depth, Slow layers eleventh, then the
@@ -144,7 +157,16 @@ monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the t
                           them (each fact printed once), enforces the 10,000-word
                           budget (T3.1), opens on the executive summary written
                           last from the finished sections, archives the edition
-                          JSON
+                          JSON. At cadence "quarterly" the same build() makes
+                          the Quarterly's front matter
+  quarterly.py            AQ-1: the Alternative Assets Quarterly, the fourth
+                          cadence (`run --cadence quarterly`). The stack's ten
+                          sections over the previous quarter as front matter,
+                          the eleven family chapters (config quarterly_chapters,
+                          the section 4.1 template) as slow layers; every section
+                          and item tiered lead or reference; the read timed apart
+                          from the whole edition; state key alt_asset. Timer
+                          chester-quarterly.timer ships disabled
   dealer.py               Mechanics' dealer retrospective: the month's stored
                           dealer.scorecard_day rows, per-session flags by the
                           Weekly's rule, counts and hit rates; "insufficient
@@ -195,8 +217,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — forty-seven code gates (forty-four Python,
-three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — seventy-five code gates (seventy-two Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -244,9 +265,10 @@ they are built (T2.6) -- `state_block.detail_tables()` reads them from the store
 object the payload carries, never recomputing, and `stack_render.details_html()`
 prints them after section 10 and before the glossary.
 
-**One stack, three cadences (T2.6).** The close, the Weekly and the Monthly share
-the section builders, the renderer, the prose and the paragraph guard, each taking
-a `cadence` ("daily", "weekly", "monthly"). What differs is config, under
+**One stack, four cadences (T2.6; AQ-1).** The close, the Weekly, the Monthly and
+the Quarterly share the section builders, the renderer, the prose and the
+paragraph guard, each taking a `cadence` ("daily", "weekly", "monthly",
+"quarterly"). What differs is config, under
 `cadences:` in `config/reporting_stack.yaml` (period noun, column head, depth
 allowances, paragraph rule, prompt frames, guards), read through
 `daily_cascade/cadence.py`, whose `Period` builds every period phrase ("on the

@@ -659,17 +659,24 @@ named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
 prune is logged and named in the status line; it does not fail the backup.
 Drive moves deleted files to its trash, where they stay 30 days.
 
-**One file comes back (10 Oct 2026).** After the trees and the prune, the sweep
-copies exactly one named file the other way:
-`<remote>:chester-vendor-checks/aaii/aaii-weekly.csv`, where `<remote>` is
-`CHESTER_RCLONE_REMOTE`'s remote name with its path replaced, into
-`~/chester-data/inbox/aaii/aaii-weekly.csv` — the AAII weekly row the chat-side
-task appends each Thursday (`docs/scheduled-tasks.md`). It is an
-`rclone copyto` of that file and nothing else, so the inbox only gains or
-overwrites it; an absent remote file is a logged skip, and neither outcome
-touches the sweep's exit code. The unit lets the sweep write
-`~/chester-data/inbox/aaii` and nothing else under `~/chester-data`; that
-directory must exist before the sweep starts (`mkdir -p` it once).
+**Two files come back (AAII 10 Oct, S&P DJI 13 Oct 2026).** After the trees and
+the prune, the sweep copies exactly two named files the other way, each through
+`pull_inbox_file <folder> <name>`: `<remote>:chester-vendor-checks/<folder>/<name>`,
+where `<remote>` is `CHESTER_RCLONE_REMOTE`'s remote name with its path replaced,
+into `~/chester-data/inbox/<folder>/<name>`.
+
+| Folder | File | What it is |
+|---|---|---|
+| `aaii` | `aaii-weekly.csv` | the AAII weekly row the chat-side task appends each Thursday (`docs/scheduled-tasks.md`) |
+| `spdji` | `sp-500-eps-est.xlsx` | S&P DJI's EPS workbook, which Ari downloads in a browser and drops monthly (`altdata/sources/spdji.py`) |
+
+Each is an `rclone copyto` of that file and nothing else, so an inbox only gains
+or overwrites it; `copyto` carries Drive's modification time over, which the S&P
+DJI reader takes as the drop time. An absent remote file is a logged skip, and
+neither outcome touches the sweep's exit code. The unit lets the sweep write
+`~/chester-data/inbox/aaii` and `~/chester-data/inbox/spdji` and nothing else
+under `~/chester-data`; both directories must exist before the sweep starts
+(`mkdir -p` each once).
 
 Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
 venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
@@ -1099,3 +1106,14 @@ is neither confirmed nor excluded.
 connection (`ssh -o BatchMode=yes vps 'bash -s' < scripts/deploy_remote.sh`),
 with the same printed sections and the same exit codes. `tools/validate_deploy.py`
 group H holds the one-connection shape.
+
+## The crypto basket writers (12 Oct 2026)
+
+`chester-crypto-basket.timer` runs `scripts/run_crypto_basket.sh` every day at
+17:25 ET: the twelve basket names' Yahoo closes and volume
+(`yfinance.crypto_<sym>`, `_volume`), DefiLlama's `llama.*` family
+(`python -m altdata.sources.llama pull`) and the derived series
+(`python -m altdata.crypto_basket derive`). No key. It is in `DEPLOY_TIMERS`, so
+the self-deploy enables it after the merge. Backfill first, once, by hand —
+the commands are in `docs/briefs/crypto-basket-notes.md`. The quarterly odds
+restatement is not a timer; it runs inside the Quarterly's own run.
