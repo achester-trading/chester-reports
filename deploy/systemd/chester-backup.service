@@ -22,7 +22,16 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # the old 2h ceiling with no per-tree cap, so systemd killed the sweep and no
 # status line said which tree had stalled; the script now traps the SIGTERM
 # and writes state=killed (rc 4).
-TimeoutStartSec=2h30min
+#
+# 2h, NOT 2h30min (AUD-2 item 3, ruled 14 Oct 2026): 02:30 plus the timer's 5
+# minutes of jitter plus 2h30 could run to 05:05, into the Sunday 05:00 Weekly --
+# and the Weekly does not move, because the Alpha Lab's Sunday loop waits on it.
+# With 2h the sweep always ends by 04:35. THE COST: the per-tree caps above sum
+# to about 125 minutes in the worst case, so a night on which every tree stalls
+# to its cap is now ended by systemd at 2h (state=killed, rc 4, the tree named in
+# the log) rather than by the last cap. The caps live in scripts/rclone_sync.sh;
+# trimming them to fit is AUD-1's (docs/briefs/aud-2-notes.md, needs you).
+TimeoutStartSec=2h
 
 NoNewPrivileges=true
 PrivateTmp=true
@@ -45,3 +54,8 @@ ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
+
+# MEMORY CAPS (AUD-2 item 3, session-set for the 8 GB box): MemoryHigh throttles and
+# reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
+MemoryHigh=1.2G
+MemoryMax=1.5G

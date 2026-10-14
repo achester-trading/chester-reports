@@ -53,3 +53,8 @@ ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
+
+# MEMORY CAPS (AUD-2 item 3, session-set for the 8 GB box): MemoryHigh throttles and
+# reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
+MemoryHigh=1.6G
+MemoryMax=2G

@@ -84,6 +84,16 @@ KillSignal=SIGTERM
 NoNewPrivileges=true
 PrivateTmp=true
 
+# THE KERNEL KILLS A REPORT BEFORE THE GATEWAY (AUD-2 item 2). The Gateway's Java
+# shares the box's RAM with every report; under memory pressure the OOM killer
+# picks the highest score, and a Java heap is usually it. -500 moves the Gateway
+# well down the list, so a runaway report is killed first -- a report re-runs, a
+# Gateway killed mid-session needs a fresh login. The report units' own caps
+# (MemoryHigh/MemoryMax) are the first line; this is the order if they are not
+# enough. A --user unit may raise its score freely but lowering it below 0 needs
+# the user manager's own score to allow it; see deploy/systemd/README.md.
+OOMScoreAdjust=-500
+
 # --- ENABLE IS DELIBERATELY HELD BACK ------------------------------------
 # There is no [Install] section, so `systemctl --user enable ibgateway` will
 # fail with "no installation config" until somebody uncomments the block

@@ -508,9 +508,20 @@ def group_e() -> None:
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     tm = re.search(r"^TimeoutStartSec=(?:(\d+)h)?(?:(\d+)min)?\s*$", u, re.M)
     ceiling = (int(tm.group(1) or 0) * 60 + int(tm.group(2) or 0)) if tm else 0
-    if len(caps) == 5 and ceiling > sum(caps) + 5 + 10:
+    # AUD-2 item 3 (ruled 14 Oct 2026): the ceiling is 2h so the sweep always ends
+    # before the Sunday 05:00 Weekly (validate_systemd_units holds that end). Above
+    # the caps plus the prune is still the aim; until the caps are trimmed to fit
+    # (scripts/rclone_sync.sh, AUD-1's), a worst-case night is ended by systemd at
+    # 2h and the trap below names it -- so the ruled ceiling passes, and says by
+    # how much it falls short.
+    need = sum(caps) + 5 + 10
+    if len(caps) == 5 and ceiling > need:
         ok(f"TimeoutStartSec {ceiling}m sits above the tree caps "
            f"({'+'.join(map(str, caps))}={sum(caps)}m) plus the prune")
+    elif len(caps) == 5 and ceiling == 120:
+        ok(f"TimeoutStartSec is the ruled 2h ceiling (AUD-2): the tree caps plus "
+           f"the prune ({need}m) exceed it by {need - ceiling}m, so a night on which "
+           f"every tree runs to its cap ends at 2h as state=killed")
     else:
         bad(f"TimeoutStartSec {ceiling}m does not clear the caps {caps}")
     if re.search(r"^trap '.*finish killed 4.*' TERM", code, re.M):
