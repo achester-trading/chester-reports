@@ -1,0 +1,163 @@
+# AQ-8a: THE GOLD RESIDUAL, THE DRIVER ATTRIBUTION, THE TWO-BID DECOMPOSITION'S
+# FIRST PARTS AND THE YIELDS-UP/DOLLAR-DOWN SERIES (change order "Alternative
+# Assets Quarterly", 10 Oct 2026, section 5 rows "Gold residual", "Driver
+# attribution", "Two-bid decomposition", "Yields-up/dollar-down"; sections 4.2 and
+# 4.4). Read by altdata/attribution.py and altdata/paper_bid.py, which compute and
+# store every series named here.
+#
+# RIGHTS: every series this file names is a NARROW FLAG at most and
+# trigger_eligible: false in metrics_registry.yaml. Nothing here enters a
+# composite; the attribution is "a lens, never a composite" (section 5).
+#
+# Readings this session set rather than the order ruled are marked SESSION-SET,
+# and each is named here so a ruling can change it in one place.
+
+# ---------------------------------------------------------------------------
+# MONTHS AND WEEKS. A month is read on its last observation, and only once that
+# observation is FINAL: it falls on the month's last calendar day, or the series
+# already holds a later observation in a later month (knowable at the cutoff).
+# A week (ending Friday) the same way. No tolerance to tune: a month ending on a
+# Sunday is read on its Friday once Monday's print proves nothing came after it.
+# The broad dollar (DTWEXBGS) posts a week late, so a month's row lands when its
+# dollar does, not before -- a month read on a dollar several days short of its
+# end would be a different number, written once and then revised.
+# ---------------------------------------------------------------------------
+
+# The daily pass recomputes the last few months and weeks; `--backfill` writes
+# every month and week the inputs support.
+recompute_months: 3
+recompute_weeks: 6
+
+# ---------------------------------------------------------------------------
+# THE COMMON FACTORS, each a monthly series built from a store key.
+#   transform  diff (a yield: the month's change, in percentage points) |
+#              log_return (a price or index) | level (a surprise, as stored)
+#   release_lag_months  the factor for month t is the observation for month
+#              t - lag: payrolls and core CPI describe a month and print in the
+#              next, so the market met September's surprise in October. Aligned
+#              by the reference month plus one rather than by available_at,
+#              because the migrated FRED rows carry the PULL time as their
+#              availability (registry, fred_macro block) and would put a decade
+#              of surprises in one month.
+# ---------------------------------------------------------------------------
+factors:
+  real_yield:   {label: "10-year real yield (DFII10), change",  key: fred.tips_10y, transform: diff}
+  dollar:       {label: "Broad dollar (DTWEXBGS), log return",  key: fred.dxy,      transform: log_return}
+  growth_surprise:    {label: "Growth surprise (payrolls, against the naive rule)",   key: calc.surprise_vs_naive.nfp,      transform: level, release_lag_months: 1}
+  inflation_surprise: {label: "Inflation surprise (core CPI, against the naive rule)", key: calc.surprise_vs_naive.core_cpi, transform: level, release_lag_months: 1}
+
+# ---------------------------------------------------------------------------
+# THE GOLD RESIDUAL (arch Session 12): gold's monthly log return regressed on the
+# real-yield change and the broad dollar's log return over a rolling 36 months;
+# the two betas, the explained share (R squared) and the residual (this month's
+# return less the window's fit, in log-return percent). Gold is the COMEX front
+# future, GLD where the front has no return for the month -- the fallback
+# config/reporting_stack.yaml already declares. A return is always taken within
+# one series, never across the two.
+# ---------------------------------------------------------------------------
+gold_residual:
+  window_months: 36
+  factors: [real_yield, dollar]
+  gold: {key: yfinance.mkt_gold_front, label: "Gold (COMEX front future)"}
+  fallback: {key: yfinance.mkt_gld, label: "GLD"}
+
+# ---------------------------------------------------------------------------
+# THE DRIVER ATTRIBUTION (section 5, 10A): the residual method generalised to
+# every family in the correlation layer's universe (config/correlation.yaml,
+# AQ-5: its members with a `key`; an absent member joins there by being given
+# one). Each family's monthly return on the four common factors over a rolling
+# 60 months, printed as explained share and residual.
+#
+# THE TWO HOOKS, named and empty in v1 -- no stub data behind either:
+#   supply_proxy   one family-specific supply proxy per family (section 5).
+#                  A store key here joins that family's regression as a fifth
+#                  factor; empty for every family in v1.
+#   quadrant       round 4 item 25's surprise quadrant replaces the two naive
+#                  surprises when it lands (attribution.quadrant_factors(),
+#                  which returns nothing until then).
+#
+# THE KILL CONDITION (section 5): "drop a factor whose five-year loading has no
+# stable sign across the regime splits; the residual stays". Computed per family
+# and factor and PRINTED; nothing here acts on it.
+# ---------------------------------------------------------------------------
+driver_attribution:
+  window_months: 60
+  factors: [real_yield, dollar, growth_surprise, inflation_surprise]
+  universe_config: config/correlation.yaml
+  supply_proxy: {}
+  # THE REGIME SPLITS (SESSION-SET; the order names "the regime splits" and does
+  # not define them). Each split cuts the five-year window in two; a factor's
+  # sign is stable when its loading has one sign in the whole window and in both
+  # halves of every split that can be tested. A half shorter than `min_months`
+  # is untestable, and a family with no testable split writes no sign row.
+  #   real_rates  the 12-month change in the 10-year real yield: rising / falling
+  #   inflation   core CPI's year-on-year rate against its own median over the
+  #               window (an own-history split, never a CPI threshold), on the
+  #               same one-month release lag as the surprise
+  regime_splits:
+    - {id: real_rates, label: "real yields rising / falling (12-month change in DFII10)", key: fred.tips_10y, rule: change_12m_positive}
+    - {id: inflation,  label: "core CPI inflation above / below its five-year median", key: fred.core_cpi, rule: yoy_above_window_median, release_lag_months: 1}
+  min_months: 18
+
+# ---------------------------------------------------------------------------
+# THE YIELDS-UP/DOLLAR-DOWN SERIES (Currencies section 19 "yields-up/dollar-
+# down"; Rates S10/S29 "credibility repricing"): ONE series. A week (ending
+# Friday) flags when the 10-year yield rose and the broad dollar fell over it,
+# each read on its week's final observation (the rule above). Recurrence:
+# flagged weeks in the trailing 13, written once 13 weeks are held; persistence:
+# consecutive flagged weeks ending this one, written once the run's start is in
+# the history (0 in an unflagged week).
+# ---------------------------------------------------------------------------
+yields_up_dollar_down:
+  yield: {key: fred.yield_10y, label: "10-year Treasury yield (DGS10)"}
+  dollar: {key: fred.dxy, label: "Broad dollar (DTWEXBGS)"}
+  recurrence_weeks: 13
+
+# ---------------------------------------------------------------------------
+# THE TWO-BID DECOMPOSITION, THE PARTS THAT CAN START NOW (arch Session 12; I 4.1,
+# 4.6; II S10). The paper bid is read from the chains captured for
+# altdata.config.PAPER_BID_SYMBOLS (GLD, SLV, IBIT, USO -- the Part 9 ruling's
+# four), computed from each session's close-nearest capture the way the SPY
+# exposure fields are: Black-Scholes delta from the chain's own IV.
+#   net_call_put_oi  call open interest less put open interest, contracts, every
+#                    expiry after the session's own (same-day contracts are
+#                    expiring at the settled capture, 5 Sep ruling)
+#   rr_25d           the 25-delta risk reversal at 30 days: the 25-delta call's
+#                    IV less the 25-delta put's, in vol points; each expiry's
+#                    25-delta IVs interpolated in delta between the strikes
+#                    either side, the 30-day figure linear in days between the
+#                    two expiries bracketing it, the nearest where none does
+# The official bid reads China's reported holdings (safe.gold_reserves_oz) now;
+# the IMF IFS series is not_yet_sourced (a ruling is pending; no writer here).
+# GLD's tonnage (ETF holdings) is a feeds-writer item for a later order.
+# ---------------------------------------------------------------------------
+two_bid:
+  rr_target_days: 30
+  rr_min_dte: 7
+  official:
+    key: safe.gold_reserves_oz
+    label: "China's official gold holdings (SAFE)"
+    not_yet_sourced:
+      - {key: imf.ifs_official_gold_oz, label: "Official gold holdings by country (IMF IFS)", why: "a ruling on the source is pending"}
+  # The states print only when both legs hold `min_history_months` of history;
+  # until then the block says which leg is waiting.
+  min_history_months: 12
+  # THE STATES (section 5, as ruled): fragile rally (paper surging, official
+  # flat) and durable base (official accumulating, paper absent). What "surging",
+  # "absent", "flat" and "accumulating" mean in numbers is SESSION-SET:
+  #   paper surging  GLD's net call-put OI AND its risk reversal each at or above
+  #                  `surging_pct` of their own history
+  #   paper absent   both at or below `absent_pct`
+  #   official       the change in holdings over `official_months` prints:
+  #                  above zero accumulating, zero flat, below zero selling
+  surging_pct: 80
+  absent_pct: 50
+  official_months: 3
+  # The paper leg's symbol for gold's two-bid state; the other three accrue their
+  # paper leg with no official leg declared (the order applies the decomposition
+  # to silver, crude and the crypto ETFs; their official leg is not defined yet).
+  gold_symbol: GLD
+  # THE KILL CONDITION on call-put OI (section 5): its percentile against forward
+  # 20-day returns, tested once twelve months have accrued.
+  kill_test_months: 12
+  kill_forward_sessions: 20

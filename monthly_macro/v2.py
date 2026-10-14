@@ -488,8 +488,11 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
               " WHERE type = 'scheduled' AND available_at <= ? GROUP BY source",
         (cutoff,))}
     scen, refused = [], []
+    # The thesis register's weights (source alt_asset:*) print in the slow
+    # layers' seed table, not here: each fact once (AQ-6).
     for r in _q(conn, "SELECT * FROM probabilities WHERE emitted_at <= ?"
                       " AND (resolved_at IS NULL OR resolved_at > ?)"
+                      " AND source NOT LIKE 'alt_asset:%'"
                       " ORDER BY probability DESC", (cutoff, cutoff)):
         sp = _signposts(r)
         row = {"claim": r.get("claim"), "probability": r.get("probability"),
@@ -699,7 +702,7 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
     # THE CHANGE BY THE SAME SCALER, SIGNED (T3.3 item 2): "+$23.15bn", not the
     # "+23,154" -- raw millions -- the second box dry run printed for bank reserves.
     if "change" in row:
-        cdisp = na.change_display(row["change"], units)
+        cdisp = na.change_display(row["change"], units, key)
         if cdisp:
             row["change_display"] = cdisp
     try:
