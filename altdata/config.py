@@ -269,6 +269,10 @@ FRED_SLOOS_SERIES: list[SeriesSpec] = [
 #                  England's own database is disallowed to robots
 #                  (/boeapps/database/_iadb-FromShowColumns.asp), so the gilt
 #                  is this monthly series and not a daily one
+#   DTWEXEMEGS     the Fed's nominal EMERGING-MARKET dollar index, index Jan
+#                  2006 = 100, daily, NSA (read off FRED 12 Oct 2026, last print
+#                  129.7052) -- the EM paper's request (AQ-14 Needs you 4, ruled
+#                  yes); the EM chapter's structure row reads fred.dxy_em
 FRED_AQ3_SERIES: list[SeriesSpec] = [
     SeriesSpec("cre_delinq", "DRCRELEXFACBS", "CRE loan delinquency rate (ex farmland), all banks", "6", "%", "quarterly"),
     SeriesSpec("case_shiller_national", "CSUSHPINSA", "S&P CoreLogic Case-Shiller US national home price index, NSA", "2", "idx", "monthly"),
@@ -276,6 +280,7 @@ FRED_AQ3_SERIES: list[SeriesSpec] = [
     SeriesSpec("ecb_dfr", "ECBDFR", "ECB deposit facility rate", "7", "%", "daily"),
     SeriesSpec("jp_call_rate", "IRSTCI01JPM156N", "Japan call money rate, monthly (OECD)", "7", "%", "monthly"),
     SeriesSpec("gilt_10y", "IRLTLT01GBM156N", "UK 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    SeriesSpec("dxy_em", "DTWEXEMEGS", "Nominal Emerging Market Economies US Dollar Index (DTWEXEMEGS, FRB; Jan 2006=100)", "7", "idx", "daily"),
 ]
 
 # SR-43 / SR-49 (signal-triage batch 4, ST4-09 and ST4-15): the OECD long-term
@@ -293,6 +298,18 @@ FRED_SR43_SERIES: list[SeriesSpec] = [
                     ("NL", "Netherlands"), ("BE", "Belgium"), ("AU", "Australia"),
                     ("NZ", "New Zealand"), ("CH", "Switzerland"), ("SE", "Sweden"))
 ]
+# THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
+# ounces between two archives are shares x the last archive's ounces per share,
+# decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
+# share's gold falls by the fee and nothing else (altdata/sources/spdr_gld.py).
+# Re-read the ratio off the fund page when the trust changes its fee.
+GLD_EXPENSE_RATIO = {
+    "ratio": 0.0040,
+    "source": ("State Street Global Advisors, the SPDR Gold Shares (GLD) fund page, "
+               "ssga.com/us/en/intermediary/etfs/spdr-gold-shares-gld: Expense "
+               "Ratio 0.40%"),
+    "read": "2026-10-12",
+}
 
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
@@ -373,9 +390,26 @@ MASSIVE_SPOT_FROM_PARITY: dict[str, bool] = {"SPX": True, "SPCX": False}
 # until an identity layer exists.
 UNDERLYING_VERIFIED_FROM: dict[str, str] = {"SPCX": "2026-06-16"}
 
+# THE PAPER BID'S FOUR (AQ-8a; change order 10 Oct 2026, section 5 "Two-bid
+# decomposition", the Part 9 ruling's GLD, SLV, IBIT and USO). Captured every
+# night with the universe so the paper-bid leg -- net call-put OI and the
+# 25-delta risk reversal (altdata/paper_bid.py) -- accrues from the merge; a
+# night not captured is gone. CAPTURE ONLY: they are not in options_universe(),
+# so they enter no exposure profile, no pin log and no dealer table -- those
+# carry the 13 and their statistics are the 13's.
+PAPER_BID_SYMBOLS: list[str] = ["GLD", "SLV", "IBIT", "USO"]
+
+
 def options_universe() -> list[str]:
-    """Symbols the yfinance chain fetcher pulls. 13 today."""
+    """Symbols the yfinance chain fetcher pulls with Greeks. 13 today."""
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+
+def chain_universe() -> list[str]:
+    """Every symbol the yfinance chain fetcher captures nightly: the 13 and the
+    paper bid's four. 17 today."""
+    return options_universe() + [s for s in PAPER_BID_SYMBOLS
+                                 if s not in options_universe()]
 
 def massive_universe() -> list[str]:
     """Symbols the Massive chain fetcher pulls. Ingestion only."""

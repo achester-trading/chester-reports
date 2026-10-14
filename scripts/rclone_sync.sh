@@ -262,6 +262,39 @@ pull_aaii_weekly() {
 }
 pull_aaii_weekly || true
 
+# --- the GLD archive: a one-time history load (12 Oct 2026) -----------------
+# The operator downloads the GLD historical archive once in a browser (its API
+# host disallows robots) and drops it in Drive under chester-vendor-checks/etf/;
+# this copies each file there into the inbox the GLD writer reads, which tells
+# the archive by its content, never its name. The AAII pull is the model:
+# `copyto` of each named file, never a sync -- the inbox only gains or
+# overwrites; nothing is deleted on either side. A file already in the inbox at
+# the same size is skipped by rclone itself. Runs after the trees and NEVER
+# touches RC.
+pull_etf_archive() {
+    local rname="${REMOTE%%:*}" dir="$DATA_DIR/inbox/etf"
+    local srcdir="$rname:chester-vendor-checks/etf" f n=0
+    local files
+    if ! files=$(timeout 2m rclone lsf "$srcdir" --files-only --max-depth 1 \
+            $RCLONE_LIMITS 2>>"$LOG") || [[ -z "$files" ]]; then
+        log "  etf archive: skip -- $srcdir is empty, absent (or unlistable)"
+        return 0
+    fi
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        local src="$srcdir/$f" dest="$dir/$f"
+        if timeout 5m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            n=$((n + 1))
+        else
+            log "  etf archive: FAILED copyto $f (not counted against the sweep)"
+        fi
+    done <<< "$files"
+    log "  etf archive: $n file(s) -> $dir"
+    return 0
+}
+pull_etf_archive || true
+
 if [[ $RC -eq 0 ]]; then
     finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi
