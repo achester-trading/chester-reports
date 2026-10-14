@@ -56,6 +56,27 @@ CGB_KEY = "cfets.cgb_10y"
 KEYS = [FIX_KEY, CGB_KEY]
 
 
+# THE BAND (AQ-3 part 1, 11 Oct 2026). Onshore USD/CNY may trade at most 2% either
+# side of the day's central parity (the PBoC's rule since March 2014). The fix
+# this writer stores is the band's centre, so the band arithmetic lives beside it
+# and every reader computes the gap one way: altdata/market_features.py writes
+# calc.cny_fix_gap_bp, calc.cny_band_position and the CNH rows from these.
+BAND_PCT = 2.0
+
+
+def gap_bp(spot: float, fix: float) -> float:
+    """Spot against the fix, in basis points of the fix: + is spot weaker (more
+    yuan per dollar) than the fix."""
+    return 1e4 * (spot / fix - 1.0)
+
+
+def band_position(spot: float, fix: float, band_pct: float = BAND_PCT) -> float:
+    """Where spot sits in the trading band: 0 at the fix, +1 at the weak edge
+    (fix x 1.02), -1 at the strong edge (fix x 0.98). Beyond +/-1 is outside the
+    band -- possible for CNH, which the band does not bind."""
+    return (spot / fix - 1.0) * 100.0 / band_pct
+
+
 def fix_available_at(day: str) -> str:
     local = dt.datetime.combine(dt.date.fromisoformat(day), FIX_TIME,
                                 tzinfo=BEIJING)

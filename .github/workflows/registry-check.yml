@@ -64,7 +64,15 @@ jobs:
   gate:
     needs: enumerate
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # STOPGAP, 12 Oct 2026: tools/validate_session_calendar.sh alone gets 20.
+    # Diagnosis: its stand-in interpreter passed every `-m` call through, so the
+    # cron's run path did two LIVE feeds pulls (plus features, events, surprise)
+    # and the gate's time grew with the writer roster -- 1,049 s on the laptop on
+    # aq-3-series-2 (37 writers, 114 FRED series; main 24 and 83), over the ten
+    # minutes in runs #286 and #295. The gate is fixed in the same branch (only
+    # `-m altdata.session` is real); this allowance can return to 10 once the
+    # fix has shown the gate well inside it.
+    timeout-minutes: ${{ matrix.gate == 'tools/validate_session_calendar.sh' && 20 || 10 }}
     strategy:
       # THE POINT OF THIS FILE. Every gate reports, whatever the others do.
       fail-fast: false

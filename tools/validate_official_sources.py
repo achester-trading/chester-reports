@@ -900,6 +900,7 @@ def group_n() -> None:
         # fetch_frames: fundamentals.py reads yfinance, not the HTTP helpers, and
         # an outage test that left it live reached the network and wrote rows.
         for attr in ("http_get_response", "http_get_json", "http_get_text",
+                     "http_post_json",
                      "fetch_frames"):
             if hasattr(mod, attr):
                 saved[(mod, attr)] = getattr(mod, attr)
@@ -911,9 +912,13 @@ def group_n() -> None:
         for name, mod in mods:
             before = count(db)
             r = mod.pull(db=db)
-            check(r["status"] == pub.STALE and r["written"] == 0
+            # An inbox writer NEVER YET DROPPED is PENDING, a clean empty run
+            # (ruled 13 Oct 2026, SR-38); with no file and an empty store, that
+            # is what spdji must say. Its STALE cases are in validate_sr38_inbox.
+            want = pub.PENDING if name == "spdji" else pub.STALE
+            check(r["status"] == want and r["written"] == 0
                   and count(db) == before,
-                  f"{name}: an outage is STALE and writes nothing")
+                  f"{name}: an outage is {want} and writes nothing")
     finally:
         for (mod, attr), fn in saved.items():
             setattr(mod, attr, fn)
@@ -925,8 +930,9 @@ def group_n() -> None:
           f"{len(ns)} not_yet_sourced keys are registered and no writer claims them")
 
 
-NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "wgc.cb_gold_holdings_t",
-                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity",
+# The two wgc.* gold names left this list on 10 Oct 2026: superseded by imf.ifs.*
+# (tools/validate_imf_ifs.py holds them to that).
+NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "sifma.corp_issuance_by_maturity",
                          # A-4 (9 Oct 2026): LBMA answers 403; off the roster
                          "lbma.gold_pm_usd"]
 

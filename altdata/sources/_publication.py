@@ -62,6 +62,12 @@ WRITE_WINDOW_DAYS = 400
 
 STALE = "STALE"
 OK = "OK"
+# A SOURCE NEVER YET DROPPED (ruled 13 Oct 2026, SR-38): an inbox writer whose
+# file has never arrived, and whose keys hold nothing, ran a clean, empty pull.
+# That is not a fault, so it is not STALE: the freshness roster lists its keys
+# under pending ("no file yet") until the first drop. A file that was dropped and
+# later went missing, or one that fails to parse, is still STALE.
+PENDING = "PENDING"
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +138,15 @@ def stale(source: str, keys: Iterable[str], reason: str,
     return {"source": source, "status": STALE, "reason": reason,
             "written": 0, "run_id": run_id, "session": session.session_date(),
             "last_observed": held}
+
+
+def pending(source: str, reason: str, run_id: Optional[str] = None) -> dict:
+    """The summary of a clean, empty run: a source never yet dropped. Writes
+    nothing, and there is nothing stored to keep."""
+    log.info("%s: PENDING -- %s (nothing written; nothing stored yet)",
+             source, reason)
+    return {"source": source, "status": PENDING, "reason": reason,
+            "written": 0, "run_id": run_id, "session": session.session_date()}
 
 
 def write_rows(source: str, rows: list[dict], keys: Iterable[str],

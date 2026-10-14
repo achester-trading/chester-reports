@@ -158,6 +158,42 @@ def http_get_response(
     raise FetchError(f"Giving up on {url} after {max_retries} retries: {last_err}")
 
 
+def http_post_json(
+    url: str,
+    body: dict,
+    timeout: float = DEFAULT_TIMEOUT,
+    max_retries: int = MAX_RETRIES,
+    headers: "Optional[dict]" = None,
+):
+    """POST a JSON body and return the parsed JSON response. Same retry policy.
+
+    For a public query endpoint that takes its filter as a POST body (TPSO's CPI
+    query, AQ-3 part 2). A read, not a write: nothing is submitted but the query.
+    """
+    last_err: "Optional[Exception]" = None
+    backoff = RETRY_BACKOFF
+    hdrs = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+    hdrs.update(headers or {})
+    for attempt in range(max_retries):
+        try:
+            resp = requests.post(url, json=body, timeout=timeout, headers=hdrs)
+            if 400 <= resp.status_code < 500:
+                raise FetchError(
+                    f"HTTP {resp.status_code} from {url}: {resp.text[:200]}")
+            resp.raise_for_status()
+            return resp.json()
+        except FetchError:
+            raise
+        except (requests.ConnectionError, requests.Timeout,
+                requests.HTTPError) as e:
+            last_err = e
+            if attempt < max_retries - 1:
+                time.sleep(backoff)
+                backoff *= 2
+            continue
+    raise FetchError(f"Giving up on {url} after {max_retries} retries: {last_err}")
+
+
 def http_get_text(
     url: str,
     params: Optional[dict] = None,
