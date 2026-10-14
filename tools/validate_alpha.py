@@ -1765,9 +1765,95 @@ def group_t() -> None:
           "nothing before they pass")
 
 
+def group_u() -> None:
+    head("U. THE NIGHTLY HARNESS, THE CLOSE'S LINE, THE LAB REPORT, THE SITTING (X-2.7, X-2.8)")
+    from alpha import report                                    # noqa: PLC0415
+    from altdata import session                                 # noqa: PLC0415
+    now = session.utc_iso(timespec="microseconds")
+    none = Path(_TMP) / "u_none.db"
+    check(lab_line.daily_line(now, none) == "Alpha Lab today: not yet live"
+          and not none.exists(), "the close's line with no ledger: 'Alpha Lab today: not "
+          "yet live', and reading it created nothing")
+    lg, st, seeded = seeded_ledger("u.db")
+    st.close()
+    lg.close()
+    path = Path(_TMP) / "u.db"
+    line0 = lab_line.daily_line(session.utc_iso(timespec="microseconds"), path)
+    check(re.fullmatch(r"Alpha Lab today: 5 proposed · 0 screened out · 0 testing · "
+                       r"0 promoted · lab equity n/a · drawdown n/a", line0) is not None,
+          f"after the first batch: {line0}")
+    reg_default = REPO / "config" / "alpha_engines.yaml"
+    saved_inbox = os.environ["ALPHA_INBOX"]
+    os.environ["ALPHA_INBOX"] = os.path.join(_TMP, "u_inbox")    # group Q's is not U's
+    try:
+        out = nightly.run(asof("2026-10-14"), fx_store(), path, reg_default)
+    finally:
+        os.environ["ALPHA_INBOX"] = saved_inbox
+    with Ledger(path) as lg2:
+        r = hyp.Register(lg2)
+        st_ = {lid: r.get(i)["status"] for lid, i in seeded["registered"].items()}
+        ev = lg2.one("SELECT after FROM loop_events WHERE kind='run' AND loop='nightly' "
+                     "ORDER BY id DESC")
+    check(not out["failures"] and st_["H-004"] == "promoted"
+          and st_["H-002"] == "failed" and st_["H-001"] == "needs_code"
+          and "H-004" and json.loads(ev["after"]).get("harness"),
+          f"the nightly loop runs each registered rule through the harness the night it "
+          f"is registered, and promotes what passes: {st_}")
+    line1 = lab_line.daily_line(session.utc_iso(timespec="microseconds"), path)
+    check(" · 1 promoted · " in line1 and line1.startswith("Alpha Lab today: 5 proposed"),
+          f"the close's line counts it: {line1}")
+    month = now[:7]
+    with Ledger(path, read_only=True) as lr:
+        body = report.render(lr, month, now)
+    check(all(s in body for s in ("## 1. Engines and their posteriors",
+                                  "## 2. The loop's events", "## 3. Promotions and retirements",
+                                  "## 4. The failures register's additions",
+                                  "## 5. The cost calibration",
+                                  "## 6. The lab's P&L and drawdown against the governor"))
+          and seeded["registered"]["H-004"] in body
+          and seeded["registered"]["H-002"] in body and "promoted to paper" in body,
+          "the monthly Lab report's six sections, naming the promotion and the failures")
+    att = report.monthly_attachment(f"{month}-04", path)
+    check(att and att[0] == f"alpha_lab_report_{month}.md" and att[2] == "markdown"
+          and att[1] == report.render(Ledger(path, read_only=True), month, now)[:0] + att[1],
+          f"the Monthly's attachment: {att[0] if att else None}")
+    bad = Path(_TMP) / "u_bad.db"
+    bad.write_bytes(b"not a database")
+    check(report.monthly_attachment("2026-10-04", bad) is None
+          and report.monthly_attachment("2026-10-04", Path(_TMP) / "missing.db") is None,
+          "it never raises: an unreadable or missing ledger costs the Monthly nothing")
+    sc = (REPO / "daily_cascade" / "stack_close.py").read_text(encoding="utf-8")
+    sr = (REPO / "daily_cascade" / "stack_render.py").read_text(encoding="utf-8")
+    mr = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
+    check(sc.count("from alpha") == 1 and sc.count("daily_line(") == 1
+          and 'ed["alpha_lab"] = daily_line(cutoff' in sc
+          and sr.count('esc(ed["alpha_lab"])') == 1,
+          "the Daily close holds one hook, as small as the Weekly's, reading alpha.db "
+          "beside the store")
+    check(mr.count("from alpha") == 1 and mr.count("monthly_attachment(stamp)") == 1,
+          "the Monthly holds one hook: the Lab report attached")
+    from daily_cascade import stack_render                      # noqa: PLC0415
+    h = stack_render.page_header("Close", "stamp", 5, [], None,
+                                 extra_html=f" &middot; {stack_render.esc(line1)}")
+    check(stack_render.esc(line1) in h, "the line prints in the close's header block")
+    t = (REPO / "docs" / "briefs" / "alpha-research-sitting-template.md").read_text(
+        encoding="utf-8")
+    check(all(w in t for w in ("at most five", "lab-agenda-", "lab-verdicts-",
+                               "chester-vendor-checks/lab-inbox", "channel: sitting",
+                               "supersedes", "never edits the constitution",
+                               "docs/alpha-lab-rules.md")),
+          "the research-sitting template: the agenda, the failures, at most five, "
+          "pre-registered to Drive's lab-inbox, never the constitution, never a promotion")
+    sit = seed_doc()
+    sit.update(channel="sitting", batch_id="sit")
+    sit["hypotheses"] = sit["hypotheses"] + [dict(sit["hypotheses"][0], local_id="H-006")]
+    check(any(lid is None and "5 a batch" in w for lid, w in hyp.budget_errors(sit)),
+          "a sitting's batch over five is refused")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q, group_r, group_s, group_t]
+          group_p, group_q, group_r, group_s, group_t, group_u]
 
 
 def main() -> int:

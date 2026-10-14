@@ -9,6 +9,8 @@ ET), in order, each step its own try so one failure costs that step only:
   1. the hold-out months recorded, the registry's engines entered as candidates;
      then the INBOX (X-2.11): each new batch file ingested into the register,
      pre-registered at its manifest's created time, or refused with the reason;
+     then THE HARNESS (X-2.9): each registered hypothesis through X-1.6, capped
+     a night, and each model idea waiting on its post-cutoff screen again;
   2. PAPER: pending signals filled at the next stored bar's open (or a stored
      quote), open positions' exits walked bar by bar, closed ones graded;
   3. MARK every open position at the latest stored close;
@@ -116,6 +118,32 @@ class Run:
         from .. import promote                                  # noqa: PLC0415
         done = promote.promote_passed(self.ledger, self.as_of)
         self.summary["promoted"] = [d["engine"] for d in done]
+
+    def harness_step(self) -> None:
+        """THE HARNESS, NIGHTLY (X-2.9, 10.2): each REGISTERED hypothesis -- a
+        rule in the grammar or a registered engine -- through X-1.6, oldest
+        first, at most `research.max_runs_per_night` a night (config/alpha.yaml);
+        and each one `testing` whose model-idea screen waits for data after the
+        cutoff, again. A needs_code or data_gap idea waits for the sitting."""
+        from .. import hypotheses as hyp                         # noqa: PLC0415
+        from ..research import workbench                         # noqa: PLC0415
+        cap = int((self.cfg.get("research") or {}).get("max_runs_per_night", 10))
+        reg = hyp.Register(self.ledger)
+        todo = [h for h in reg.all(["registered"])
+                if h.get("rule_dsl") or (h.get("spec") or {}).get("engine")]
+        todo += [h for h in reg.all(["testing"])
+                 if ((h.get("result") or {}).get("model_rule") or {}).get("pending")]
+        ran = {}
+        for h in todo[:cap]:
+            try:
+                out = workbench.run(self.ledger, self.store, h["id"], self.as_of)
+                ran[h["id"]] = out["status"]
+            except (hyp.PreRegistrationViolation, workbench.QueuedForSitting) as exc:
+                ran[h["id"]] = f"not run: {exc}"
+        self.summary["harness"] = ran
+        if len(todo) > cap:
+            self.ledger.event(LOOP, "harness_queue", self.as_of, None,
+                              after={"ran": len(ran), "waiting": len(todo) - cap})
 
     def inbox_step(self) -> None:
         """X-2.11: every new batch in the Drive inbox (and the proposer's), once."""
@@ -346,6 +374,7 @@ class Run:
 
     def run(self) -> dict:
         for name, fn in (("setup", self.setup), ("inbox", self.inbox_step),
+                         ("harness", self.harness_step),
                          ("paper", self.paper_step),
                          ("mark", self.mark_step), ("governor", self.governor_step),
                          ("posterior", self.posterior_step), ("kill", self.kill_step),

@@ -82,6 +82,7 @@ HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine")
 BUDGETS = {
     "weekly-brief": {"short": 5, "medium": 5, "per_family_per_batch": 2},
     "daily-proposer": {"per_batch": 3, "per_family_per_week": 2},
+    "sitting": {"per_batch": 5},
 }
 
 TICKER = re.compile(r"^[A-Z][A-Z0-9.\-=^]{0,11}$")
@@ -221,10 +222,10 @@ def budget_errors(doc: dict) -> list[tuple[Optional[str], str]]:
             if by_fam[f] > b["per_family_per_batch"]:
                 out.append((h.get("local_id"), f"over {b['per_family_per_batch']} "
                             f"of family {f} in one batch"))
-    elif ch == "daily-proposer":
+    elif ch in ("daily-proposer", "sitting"):
         if len(hyps) > BUDGETS[ch]["per_batch"]:
-            out.append((None, f"{len(hyps)} hypotheses: over the daily proposer's "
-                        f"{BUDGETS[ch]['per_batch']} a session day"))
+            out.append((None, f"{len(hyps)} hypotheses: over the {ch}'s "
+                        f"{BUDGETS[ch]['per_batch']} a batch"))
     return out
 
 

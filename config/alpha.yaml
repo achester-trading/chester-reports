@@ -69,3 +69,10 @@ files:
   reports_dir: "alpha/research/reports"
   inbox: "~/chester-data/inbox/lab"
   outbox: "~/chester-data/outbox/lab"
+
+# THE NIGHTLY HARNESS (Tranche 2). The nightly loop runs each newly registered
+# hypothesis -- a grammar rule or a registered engine -- through X-1.6, oldest
+# first, at most this many a night so the loop stays inside its 20-minute cap;
+# the rest wait for the next night (a `harness_queue` event says how many).
+research:
+  max_runs_per_night: 10

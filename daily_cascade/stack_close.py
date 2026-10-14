@@ -273,6 +273,9 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
+    from alpha.lab_line import daily_line                       # noqa: PLC0415
+    # 10.2 d: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = daily_line(cutoff, db_path and Path(db_path).with_name("alpha.db"))
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()
