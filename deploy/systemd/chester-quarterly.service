@@ -1,0 +1,34 @@
+[Unit]
+Description=Alternative Assets Quarterly (second Saturday after quarter-end, 06:00 ET; AQ-1)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+# AFTER THE MORNING CHAIN, as ordering only: the report reads STORED data and must
+# still run and report absences when an upstream pass did not.
+After=chester-overnight.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_quarterly.sh
+
+# The wrapper refuses to run without it: the status and heartbeat land where the
+# monitor reads them.
+Environment=CHESTER_STATE_DIR=%h/state
+
+# THE SECRETS, THROUGH THE LOADER (the narrative's key, the SMTP credentials,
+# the state Worker's token). The leading `-` keeps the unit startable on a box
+# with no .env: a missing secret costs a feature, not the run.
+EnvironmentFile=-%h/chester-reports/.env
+
+SuccessExitStatus=0
+
+# Eleven chapters' summary calls plus the front matter's: generous.
+TimeoutStartSec=30min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs -%h/state %h/chester-reports -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

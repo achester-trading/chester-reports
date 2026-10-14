@@ -176,3 +176,136 @@ rest are not.
 3. Accept the policy-rate-differential approximation for the Bund and JGB hedged yields? yes / no
 4. Accept monthly OAT, BTP and Bund (ECB) and a monthly gilt (FRED) in place of daily series? yes / no
 5. Merge order, inside windows: `aq-3-series-1`, then `aq-3-series-2` (stacked on it), then `aq-2-chapters-2`, whose hooks name both? yes / no
+
+## Follow-up, 12 Oct 2026 — GLD's daily source, and the EM paper's dollar index
+
+The operator's ruling on part 1's Needs you 1 was that GLD should need no weekly
+manual step. The archive becomes a **one-time** history load and the anchor;
+State Street's own daily workbook is the forward source. Last night's follow-up
+was reported but never pushed, and nothing of it was in this worktree, so it is
+built here from the spec.
+
+### The GLD source verdict
+
+| Source | Robots.txt read (12 Oct 2026) | Verdict |
+|---|---|---|
+| The archive, `api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en` | `User-agent: *` / `Disallow: /` (11 Oct; unchanged) | Not fetched. Read from the inbox, loaded once; the API is fetched only if the rule lifts, read each run |
+| The daily workbook, `www.ssga.com/us/en/intermediary/library-content/products/fund-data/etfs/us/navhist-us-en-gld.xlsx` | `User-agent: *` with 27 Disallow rules, **none matching the path**. The nearest is `Disallow: /fd`, a prefix the path (`/us/en/...`) does not start with. Verdict `(allowed, no deciding rule)` | **Built**, read each run through `aaii.robots_verdict` |
+
+**What the workbook carries.** One sheet, `navhist`, newest first: Date, NAV,
+Shares Outstanding and Total Net Assets. It runs from 18 Nov 2004 (5,547 days on
+12 Oct, the last on 9 Oct). It is served with `Last-Modified` (Fri 9 Oct 22:13:48
+GMT), which is its `available_at` (observed). **It carries no gold in ounces.**
+The writer reads it by its header row in any sheet, never by file name, past the
+fund-name preamble and the disclaimer.
+
+**What is stored** (`altdata/sources/spdr_gld.py`):
+- **`etf.gld_shares`:** the workbook's own Shares Outstanding wherever it has
+  the day. This is the primary series under §10A, and it is exact: GLD creates
+  and redeems in round lots, so the workbook's count is a round number, where
+  the archive's ounces ÷ ounces-per-share is off by up to about ±40 shares. The
+  archive's derived count is used only for a day the workbook lacks.
+- **`etf.gld_share_flow`:** the change in that count from the previous business
+  day.
+- **`etf.gld_oz`:**
+  - **through the archive's last date:** the archive's own figure;
+  - **after it (ruled):** an **APPROXIMATION**,
+    `shares × the archive's latest ounces per share × (1 − ratio/365)^(calendar days since)`.
+    The Sponsor's fee is paid in gold, accrued daily.
+- **`etf.gld_tonnes`:**
+  - **through the archive's last date:** the archive's own column;
+  - **after it:** the approximation ÷ 32,150.7466.
+- **The registry:** both ounces and tonnes are now `observation_type:
+  calculated`, `revision_policy: revised`, with **APPROXIMATION** in their
+  descriptions. The source registry entry names both sources.
+- **Re-anchoring.** Each run reads the newest archive in the inbox.
+  - When a newer archive appears, the days it covers carry its exact figures.
+    Where those differ from a stored approximation, they are written as a
+    revision.
+  - That revision must be the later vintage to win the as-of join, and rclone
+    keeps Drive's upload time as the file's mtime. So where the file is not later
+    than the workbook read beside it, the exact rows carry the run's own instant
+    (`ingest_instant`) rather than the mtime. This is the sweep-and-run race; the
+    gate fixtures it with a file older than the workbook.
+- **With neither source the run is STALE** with both reasons. With the workbook
+  alone it writes shares and flows, and names the ounces and tonnes as without
+  rows (they need an anchor). With the archive alone it writes the archive.
+
+**The expense ratio** is `altdata.config.GLD_EXPENSE_RATIO`, 0.40%. Its source is
+State Street Global Advisors' SPDR Gold Shares (GLD) fund page,
+`ssga.com/us/en/intermediary/etfs/spdr-gold-shares-gld`, which reads "Expense
+Ratio 0.40%" (read 12 Oct 2026). Re-read it there if the trust changes its fee.
+
+**The gate.** `tools/validate_aq3_series.py`, new group **D2** (11 checks; the
+whole gate is 84 passed, 0 failed). It covers:
+- a synthetic workbook in State Street's shape, read by its header in a sheet of
+  any name, and a workbook without Shares Outstanding refused;
+- the robots verdict both ways: fetched under a robots.txt with no rule matching,
+  and not fetched (with the deciding rule named) under one that disallows the
+  path;
+- the decay arithmetic against hand-computed values (eight days, a year at
+  0.996008, none on the anchor's day);
+- the exact-then-approximate split;
+- the workbook's shares over the archive's;
+- no ounces without an anchor;
+- the pull, and the re-anchor as a revision, including the race;
+- both sources together, with the API disallowed.
+
+Group D's inbox check now holds the workbook offline, so the gate stays without
+network.
+
+**The sweep.** `scripts/rclone_sync.sh`'s `pull_etf_archive` lists Drive
+`chester-vendor-checks/etf/` (files only, one level) and `copyto`s each file by
+name into `~/chester-data/inbox/etf/`. It is never a sync, so nothing is ever
+deleted, and it runs after the trees without touching the sweep's exit; an empty
+folder is a log line. `deploy/systemd/chester-backup.service` adds
+`-%h/chester-data/inbox/etf` to `ReadWritePaths`, as the AAII automation did.
+`tools/validate_backup.py` holds both (64 passed).
+
+### The one-time drop (the operator)
+
+1. **Open the page.** In a browser, open
+   **https://www.spdrgoldshares.com/usa/historical-data/**. Under **Historical
+   Data**, the row **"Historical Archive (XLSX)"** has a **Download** link. It
+   points at the API URL above.
+2. **Drop it in Drive.** Save the file, under any name, into Drive folder
+   **`chester-vendor-checks/etf/`**, beside `chester-vendor-checks/aaii/`.
+3. **On the box, once:** `mkdir -p ~/chester-data/inbox/etf`. The unit's
+   leading `-` skips a missing directory, so the copy cannot write until it
+   exists.
+4. **Wait for the sweep.** The nightly sweep copies the file in, and the GLD
+   writer's next run anchors on it. Repeat the drop only if the approximation
+   should be re-anchored, for instance quarterly before the Quarterly. The
+   archive is never needed weekly.
+
+**Deploy and restart, for the operator to run (not run here)**, inside a window
+after this branch merges:
+
+```
+bash scripts/deploy.sh                       # copies chester-backup.service, daemon-reload
+ssh vps 'mkdir -p ~/chester-data/inbox/etf'
+ssh vps systemctl --user restart chester-backup.service   # only if deploy.sh exits 3 naming it
+```
+
+`chester-backup.service` is a oneshot behind its timer. The new
+`ReadWritePaths` takes effect at its next start after the `daemon-reload`, so the
+restart is needed only if the deploy reports it pending.
+
+### The EM paper's request (AQ-14 Needs you 4, ruled yes)
+
+- **Registered.** FRED **DTWEXEMEGS** is registered as
+  `SeriesSpec("dxy_em", "DTWEXEMEGS", …, "7", "idx", "daily")` in
+  `FRED_AQ3_SERIES`, and so in the one FRED pull. The `fred_aq3` registry block
+  now has 7 members.
+- **Checked on FRED's page (12 Oct):** "Nominal Emerging Market Economies U.S.
+  Dollar Index", index Jan 2006 = 100, NSA, daily, last 129.7052. It moves in
+  percent, and the gate holds that.
+- **The key for the EM chapter's structure row on `aq-2-chapters-2` is
+  `fred.dxy_em`.** That line is not this branch's.
+
+### Not done from the brief
+
+**Item 5 and anything after it.** The brief arrived cut off mid-item 5 ("…keep
+the"). The countries in `config/em_scorecard.yaml` are not re-ordered here: that
+file lives on `aq-9a-em-scorecard`, not on this branch, and the rest of the
+instruction did not arrive.

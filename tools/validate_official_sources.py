@@ -926,8 +926,9 @@ def group_n() -> None:
           f"{len(ns)} not_yet_sourced keys are registered and no writer claims them")
 
 
-NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "wgc.cb_gold_holdings_t",
-                         "wgc.cb_net_purchases_t", "sifma.corp_issuance_by_maturity",
+# The two wgc.* gold names left this list on 10 Oct 2026: superseded by imf.ifs.*
+# (tools/validate_imf_ifs.py holds them to that).
+NOT_SOURCED_ST2_STEP2 = ["oil.prompt_spread", "sifma.corp_issuance_by_maturity",
                          # A-4 (9 Oct 2026): LBMA answers 403; off the roster
                          "lbma.gold_pm_usd"]
 
