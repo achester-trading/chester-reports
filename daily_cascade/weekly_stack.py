@@ -205,13 +205,67 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                      "paragraph_wanted": False})
     vol = wsec.volatility(st, cutoff, wis, week_ago(cutoff))
     subs.append({**vol, "paragraph_wanted": True})
+    # SR-38 (batch 4; placement: the revision line weekly in Mechanics),
+    # report-only and tagged.
+    rv, rv_data = ai_revisions_block(st, cutoff)
+    if rv:
+        subs.append(rv)
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
             "table_note": dw["table_note"] if dw["table"]["rows"] else None,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
                      "volatility": vol.get("data"),
-                     "dial_changes": wis.get("dial_changes") or []}}
+                     "dial_changes": wis.get("dial_changes") or [],
+                     **({"ai_revisions": rv_data} if rv_data else {})}}
+
+
+AI_REVISIONS_TITLE = "Forward-EPS revisions: the AI names"
+AI_FCF_TITLE = "The AI FCF transfer: hyperscalers and semiconductors (trailing)"
+ATTRIBUTION_TITLE = "The S&P 500's return: earnings against the multiple (trailing)"
+
+
+def ai_revisions_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's revision line, or (None, None) on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        v = ra.revisions(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the forward-EPS revision line is unavailable", exc_info=True)
+        return None, None
+    # The INDEX's line first (S&P DJI's drops, 13 Oct 2026), then the names'.
+    return ({"title": AI_REVISIONS_TITLE,
+             "lines": [ra.index_revision_line(v["index"], v["tag"]),
+                       ra.revision_line(v)],
+             "table": ra.revision_table(v), "paragraph_wanted": False},
+            {"median": v["median"], "covered": v["covered"], "tag": v["tag"],
+             "index_revision": ra.index_revision_data(v)})
+
+
+def ai_fcf_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-37's panel (the Monthly's Mechanics), or (None, None) on a fault."""
+    try:
+        from altdata import ai_fcf                              # noqa: PLC0415
+        r = ai_fcf.read(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the AI FCF panel is unavailable", exc_info=True)
+        return None, None
+    return ({"title": AI_FCF_TITLE, "lines": ai_fcf.lines(r), "table": ai_fcf.table(r),
+             "paragraph_wanted": False}, ai_fcf.data(r))
+
+
+def attribution_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's attribution and EY minus the bill (the Monthly's What's priced),
+    or (None, None) on a fault."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        a = ra.attribution(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the return attribution is unavailable", exc_info=True)
+        return None, None
+    return ({"title": ATTRIBUTION_TITLE, "lines": ra.attribution_lines(a),
+             "paragraph_wanted": False}, ra.data(a))
 
 
 def stored_objects(st, now: str) -> list[tuple[str, dict]]:
@@ -283,10 +337,15 @@ def exception_subsections(now_open: list, wis: dict, dates: Optional[dict],
 
 def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
+                screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
                 now: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
+    # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
+    # session, whose 5-day change is the week; a single-country shock prints only
+    # once it has passed to the basket or EM spreads (SR-46(d)).
+    sitems, sdata = stack_mod.screen_items(screen, cadence)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
     from altdata import labels                                   # noqa: PLC0415
     opened = [c for c in wis.get("contradictions") or []
@@ -307,6 +366,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                           f"opened {w.this}.", 1, "none"))
     data = dict(base["data"])
     now_open = wis.get("exceptions_open_now") or []
+    data.update(sdata)
     # THE EXTREMES WITH THEIR PERCENTILE (W-1.1 item 1.0a): What doesn't fit's
     # frame ranks an extreme by its percentile's distance from the median.
     from altdata.numeral_audit import ordinal                     # noqa: PLC0415
@@ -333,6 +393,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
+    items += sitems
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
                           f"no exception opened {w.this}.", 1, "none"))
@@ -369,6 +430,7 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                   cadence: str = "weekly", liquidity_deltas: bool = False,
+                  yudd_line: Optional[bool] = None,
                   auction_block: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
@@ -415,6 +477,23 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
     subs = [{**fx, "paragraph_wanted": False}]
+    nt = list(pr["not_tracked"])
+    pdata = {"series": data, "tier1_releases": rel, "plumbing": pr["data"]}
+    # YIELDS-UP/DOLLAR-DOWN (AQ-8a; Currencies section 19, Rates S10/S29): one
+    # line, the Weekly only, and only when a flagged week became known this week
+    # -- otherwise nothing, not even a "did not fire" line.
+    if (cadence == "weekly") if yudd_line is None else yudd_line:
+        try:
+            from altdata import attribution                      # noqa: PLC0415
+            yl = attribution.yudd_week_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("yields-up/dollar-down line unavailable", exc_info=True)
+            yl = None
+            nt.append(f"the yields-up/dollar-down line: FAULT {type(exc).__name__}")
+        if yl:
+            pdata["yields_up_dollar_down"] = {k: v for k, v in yl.items() if k != "text"}
+            subs.append({"title": "Yields up, dollar down", "lines": [yl["text"]],
+                         "paragraph_wanted": False})
     if auction_block:
         # THE AUCTIONS' OWN TABLE (W-1.1 item 1.4): every field with its
         # two-year percentile; the data carries the stored tail, or None.
@@ -423,14 +502,91 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
         if recs:
             subs.append({"title": "Treasury auctions", "table": wsec.auction_table(recs),
                          "table_note": wsec.AUCTION_NOTE, "paragraph_wanted": False})
+    # SR-36: the basis-unwind watch, one code-written line (report-only).
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        subs.append({"title": "Treasury basis proxy: the unwind watch",
+                     "lines": [basis_proxy.plumbing_line(bp)],
+                     "paragraph_wanted": False})
+        pdata["basis_unwind_watch"] = basis_proxy_data(bp)
+    # SR-43 and SR-49: the 10-year's anchors, the selloff's shape and what moved,
+    # and the four voices adjudicated by those measures (report-only).
+    rr = rates_read(st, now)
+    if rr:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        subs.append({"title": "The 10-year's anchors and the selloff's shape",
+                     "lines": [rates_anchors.line(rr["anchors"]),
+                               rates_shape.shape_line(rr["shape"])],
+                     "paragraph_wanted": False})
+        subs.append({"title": "The 10-year top: four voices, read against the measures",
+                     "table": rates_shape.voices_table(rr["shape"]),
+                     "lines": [f"Verdicts by declared rule, not opinion "
+                               f"{rr['anchors'].get('tag') or ''}".rstrip() + "."],
+                     "paragraph_wanted": False})
+        pdata["rates_anchors"] = rates_data(rr)
+    # SIGNAL-TRIAGE BATCH 3, TRANCHE A (13 Oct 2026): the 30y JGB line, SR-30's
+    # narrow flag, SR-33's operations, SR-34's fast tells and SR-6 by tenor.
+    from . import batch3_block                                  # noqa: PLC0415
+    subs += batch3_block.weekly_subsections(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
-            "data": {"series": data, "tier1_releases": rel, "plumbing": pr["data"]},
+            "data": pdata,
             "table": {"columns": ["Series", "Level or actual", w.or_prior,
                                   "As of"], "rows": rows},
             "subsections": subs,
-            "not_tracked": pr["not_tracked"]}
+            "not_tracked": nt}
+
+
+def basis_proxy_read(st, now: str) -> Optional[dict]:
+    """SR-36's read as of the Weekly's cutoff, or None (nothing stored, or a
+    fault -- the proxy is report-only and never costs a section)."""
+    try:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        return basis_proxy.read(st, cutoff=now)
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+def rates_read(st, now: str) -> Optional[dict]:
+    """SR-43 and SR-49 as of the cutoff, or None on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        a = rates_anchors.read(st, now)
+        return {"anchors": a, "shape": rates_shape.read(st, now, anchors=a)}
+    except Exception:                                           # noqa: BLE001
+        log.warning("the rates anchors are unavailable", exc_info=True)
+        return None
+
+
+def rates_data(rr: dict) -> dict:
+    """The printed figures, for the section's frame (each as printed)."""
+    a, s = rr["anchors"], rr["shape"]
+    inf, fis = a["inflation"], a["fiscal"]
+    lt = s["selloffs"].get("latest") or {}
+    return {"inflation_anchor_pct": inf.get("anchor_pct"),
+            "inflation_gap_bp": inf.get("gap_bp"),
+            "inflation_residual_bp": inf.get("residual_bp"),
+            "twin_deficit_fitted_pct": fis.get("us_fitted_pct"),
+            "twin_deficit_gap_bp": fis.get("gap_bp"),
+            "shape": s["shape"].get("state"), "latest_selloff": lt.get("label"),
+            "voices": [{k: v[k] for k in ("voice", "verdict")} for v in s["voices"]],
+            "tag": a.get("tag")}
+
+
+def basis_proxy_data(r: dict) -> dict:
+    """What the section's data carries of the read: the printed figures, as
+    printed, and the labels."""
+    w = r["watch"]
+    return {"as_of": r["day"], "ten_year_net_short_oi_pct": round(r["ten_year_short_oi"], 1)
+            if r.get("ten_year_short_oi") is not None else None,
+            "six_contract_net_short_oi_pct": round(r["lev_short_oi"], 1)
+            if r.get("lev_short_oi") is not None else None,
+            "ten_year_tier": r.get("ten_year_tier"), "aggregate_tier": r.get("aggregate_tier"),
+            "oi_change": r.get("oi_change"), "unwind_watch": "on" if w["on"] else "off",
+            "cosignals_on": w["cosignals_on"], "absent": w["absent"]}
 
 
 def tier1_releases(st, now: str, then: str) -> list[dict]:
@@ -632,6 +788,24 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     else:
         nt.append(f"{w.poss} sector and style-pair returns (no closes stored)")
     subs = positioning_subsections(st, now, then, data, lead, rows, cadence)
+    # THE CORRELATION LAYER'S ONE LINE (AQ-5, change order 10 Oct 2026, section
+    # 9): the Weekly only, and only in a week a 30-vs-120-day break or a shift
+    # on a NAMED ROW fired (config/correlation.yaml weekly.shift_pairs, ruled 10
+    # Oct) -- otherwise nothing, not even a "no breaks" line. All-pairs shifts
+    # are the Monthly's top five, in its slow layers.
+    if cadence == "weekly":
+        try:
+            from altdata import correlation                      # noqa: PLC0415
+            cl = correlation.weekly_line(st, now, then)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("correlation line unavailable", exc_info=True)
+            cl = None
+            nt.append(f"the correlation layer's line: FAULT {type(exc).__name__}")
+        if cl:
+            data["correlations"] = {k: cl[k] for k in
+                                    ("breaks", "shifts", "credit_sensitive_away")}
+            subs.append({"title": "Cross-asset correlations", "lines": [cl["text"]],
+                         "paragraph_wanted": False})
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
 
@@ -660,10 +834,17 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                        "—" if x.get("change_z_4w") is None
                        else f"{x['change_z_4w']:+.1f}",
                        x["observed_at"]])
+    # SR-36: the Treasury basis proxy, one code-written line under the CFTC table
+    # (report-only; "(descriptive; unvalidated, n=0)").
+    bp = basis_proxy_read(st, now)
+    if bp:
+        from altdata import basis_proxy                          # noqa: PLC0415
+        data["basis_proxy"] = basis_proxy_data(bp)
     out.append({"title": "Speculative positioning (CFTC)",
                 "table": {"columns": ["Contract", "Net speculative contracts",
                                       "Change", "Level z, two years",
                                       "Four-week change z", "As of"], "rows": cf},
+                **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",
@@ -1691,11 +1872,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             log.warning("calendar unavailable", exc_info=True)
             cal = None
         watch = wsec.watching(st, now, opened, pmb, fed)
+        from altdata import move_screen                         # noqa: PLC0415
+        screen = move_screen.result_for(st, ending, now)
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,
             "mechanics": mechanics_week(st, sessions, now, wis, cfg),
-            "misfit": misfit_week(wis, pmb, hist,
+            "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
                                   st=st, now=now),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
@@ -1711,6 +1894,23 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
+        # sections, and ONE read-path line in What doesn't fit only when
+        # something happened to a basket name -- silence otherwise.
+        try:
+            from altdata import crypto_basket                   # noqa: PLC0415
+            cb = crypto_basket.weekly_block(st, ending[:10], now)
+        except Exception:                                       # noqa: BLE001
+            log.warning("crypto basket unavailable", exc_info=True)
+            cb = None
+        if cb:
+            built["misfit"].setdefault("data", {})["crypto_basket_events"] = [
+                {k: e.get(k) for k in ("kind", "name", "date", "text", "z")}
+                for e in cb["events"]]
+            if cb["line"]:
+                built["misfit"]["items"].append(
+                    item("misfit:crypto_basket", cb["line"], 2, cb["line"]))
+        em_week(built, screen, ending)
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.
         try:
@@ -1747,15 +1947,40 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                                  (built["narratives"].get("data") or {})
                                  and {"data": (built["narratives"].get("data") or {})
                                       .get("voices") or {}})
+    detail = stack_mod.move_screen_detail(screen, "weekly")
     ed = {"report": "weekly_stack", "session": ending, "week_ending": ending,
+          "detail": detail,
           "changed_since": changed,
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("week_ending"),
           "sections": sections, "budget": (cfg.get("budget") or {}).get("weekly"),
           "glossary_extra": wsec.unvalidated_glossary(classes)}
+    if cb:
+        ed["detail"] = list(ed.get("detail") or []) + [cb["detail"]]
     return ed, extras
 
 
+def em_week(built: dict, screen: Optional[dict], ending: str) -> None:
+    """SR-46(c) and the EM calendar on the Weekly: the EM leg as a table under
+    Plumbing & rates (its items do not print), and the quarter's hand-seeded EM
+    events under Ahead."""
+    from altdata import move_screen                              # noqa: PLC0415
+    sp = [x for x in ((screen or {}).get("em") or {}).get("spreads") or []
+          if x.get("available")]
+    if sp and built.get("plumbing") is not None:
+        rows = [[x["label"], f"{x['level']:.2f}%",
+                 "—" if x.get("change5_bp") is None else _signed(round(x["change5_bp"]), "bp"),
+                 (f"{move_screen._ord(x['pct_full'])} since {x['first']}"
+                  + (f"; {move_screen._ord(x['pct_5y'])} of five years"
+                     if x.get("five_year_complete") else ""))] for x in sp]
+        built["plumbing"].setdefault("subsections", []).append(
+            {"title": "EM leg", "paragraph_wanted": False,
+             "table": {"columns": ["Series", "Level", "Week", "Percentile (window)"],
+                       "rows": rows}})
+    cal = move_screen.em_calendar(ending)
+    if cal and built.get("ahead") is not None:
+        built["ahead"].setdefault("subsections", []).append(
+            {"title": "EM calendar", "lines": [move_screen.calendar_line(e) for e in cal]})
 def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: list,
               book: Optional[dict] = None) -> None:
     """THE FACTS PRINTED TWICE (W-1.1 item 1.1), tagged for the consistency gate

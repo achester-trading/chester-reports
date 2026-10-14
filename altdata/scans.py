@@ -61,6 +61,22 @@ from . import observations, session
 REPO = Path(__file__).resolve().parent.parent
 SCANS_DIR = REPO / "docs" / "scans"
 
+# NOT SCANS (AQ-7, 12 Oct 2026). docs/scans/ also holds a task's PROMPT and the
+# files the alternative-assets ingest writes for the operator -- the calendar
+# PROPOSALS and the DRAFT intake entries. None carries a reference table, and none
+# is ingested.
+NOT_SCANS = ("PROMPT-", "proposals-", "intake-drafts-")
+# The alternative-assets quarterly scan has its own three-part shape and its own
+# ingest (altdata/alt_scan.py); its store half runs from here, so every Monthly
+# run stores its figures and voices as it does the Guide's.
+ALT_SCAN_PREFIX = "alt-assets-"
+# Its scan families: alt-assets, and the isolated alt-assets-thailand.
+ALT_FAMILY_PREFIX = "alt-assets"
+# ISOLATED FAMILIES: stored, and never returned by latest() unless asked. The
+# Bank of Thailand's and NESDC's figures inform the Thailand chapter and nothing
+# else (change order of 10 Oct 2026, section 4.10).
+ISOLATED_FAMILIES = ("alt-assets-thailand",)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS scan_figures (
     id            INTEGER PRIMARY KEY,
@@ -271,8 +287,28 @@ def ingest(paths: Optional[Iterable[Path]] = None,
            db_path: Optional[str] = None) -> dict:
     """Every scan's reference table into the store. Idempotent: a re-ingest of an
     unchanged scan adds nothing."""
-    paths = sorted(paths if paths is not None else SCANS_DIR.glob("*.md"))
+    paths = sorted(paths if paths is not None else
+                   (p for p in SCANS_DIR.glob("*.md")
+                    if not p.name.startswith(NOT_SCANS)))
     out = {"scans": [], "added": 0, "refused": []}
+    alt = [Path(p) for p in paths if Path(p).name.startswith(ALT_SCAN_PREFIX)]
+    paths = [p for p in paths if not Path(p).name.startswith(ALT_SCAN_PREFIX)]
+    for p in alt:
+        from . import alt_scan  # noqa: PLC0415
+        try:
+            got = alt_scan.ingest_store(p, db_path)
+        except alt_scan.AltScanError as exc:
+            out["refused"].append({"scan_id": p.stem, "metric": None,
+                                   "reason": f"refused whole: {exc}"})
+            continue
+        out["scans"].append({"scan_id": got["scan_id"],
+                             "figures": len(got["figures"]),
+                             "added": got["figures_added"],
+                             "voices": got["voices_added"]})
+        out["added"] += got["figures_added"]
+        out["refused"] += [{"scan_id": got["scan_id"],
+                            "metric": f"part {r['part']} {r['item']}",
+                            "reason": r["reason"]} for r in got["refused"]]
     conn = _connect(db_path, readonly=False)
     try:
         for p in paths:
@@ -289,9 +325,11 @@ def ingest(paths: Optional[Iterable[Path]] = None,
     return out
 
 
-def latest(as_of: Optional[str] = None, db_path: Optional[str] = None) -> list[dict]:
+def latest(as_of: Optional[str] = None, db_path: Optional[str] = None,
+           include_isolated: bool = False) -> list[dict]:
     """The newest edition of each scan family readable at `as_of` (a date or an
-    instant; read_on <= its date), one row per metric, in table order. Reads only."""
+    instant; read_on <= its date), one row per metric, in table order. Reads only.
+    An isolated family (ISOLATED_FAMILIES) is returned only when asked for."""
     cut = str(as_of or session.utc_iso())[:10]
     conn = _connect(db_path, readonly=True)
     try:
@@ -299,19 +337,30 @@ def latest(as_of: Optional[str] = None, db_path: Optional[str] = None) -> list[d
             "SELECT * FROM scan_figures WHERE read_on <= ? ORDER BY id", (cut,))]
     finally:
         conn.close()
+    if not include_isolated:
+        rows = [r for r in rows if r["family"] not in ISOLATED_FAMILIES]
     newest: dict[str, tuple] = {}
     for r in rows:
-        k = (r["as_of"], r["read_on"])
+        k = _edition_key(r)
         if r["family"] not in newest or k > newest[r["family"]]:
             newest[r["family"]] = k
     keep: dict[tuple, dict] = {}
     for r in rows:                       # ordered by id: the newest ingest wins
-        if (r["as_of"], r["read_on"]) == newest[r["family"]]:
+        if _edition_key(r) == newest[r["family"]]:
             keep[(r["family"], r["metric"])] = r
     out = sorted(keep.values(), key=lambda r: (r["family"], r["id"]))
     for r in out:
         r["source_ref"] = source_ref(r)
     return out
+
+
+def _edition_key(r: dict) -> tuple:
+    """Which edition a row belongs to. A Guide's figures share one data date, so
+    an edition is (as_of, read_on). The alternative-assets scan's figures each
+    carry their publisher's own date, so its edition is the read alone."""
+    if str(r["family"]).startswith(ALT_FAMILY_PREFIX):
+        return (r["read_on"],)
+    return (r["as_of"], r["read_on"])
 
 
 def source_ref(r: dict) -> str:

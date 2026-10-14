@@ -1,0 +1,79 @@
+# IMF INTERNATIONAL FINANCIAL STATISTICS -- CENTRAL-BANK GOLD (official writer
+# altdata/sources/imf_ifs.py; ruled 10 Oct 2026: IMF IFS is the primary source for
+# central-bank gold, superseding the login-gated wgc.* names).
+#
+# THE SOURCE, AS THE IMF SERVES IT TODAY. The legacy dataservices.imf.org JSON
+# service no longer answers (checked 10 Oct 2026: no response). IFS is retired as
+# one database and split into thematic dataflows on the SDMX 3.0 API at
+# api.imf.org; the gold volume line now lives in the INTERNATIONAL LIQUIDITY
+# dataflow (IMF.STA:IL), indicator RGV_REVS "Gold reserves (volume)", unit FTO
+# (fine troy ounces), frequency M. No key: the endpoint answers anonymously.
+# The response's own observation values are in OUNCES (China ~75.4 million);
+# the SCALE attribute (6) is a display hint, not a multiplier.
+#
+# TERMS. imf.org/en/About/copyright-and-terms: users "may download, extract, copy,
+# create derivative works, publish, distribute, and use Data", with attribution
+# ("Source: International Monetary Fund, International Liquidity (IL)"); commercial
+# reuse needs permission (copyright@imf.org); and "the IMF prohibits bulk download
+# of information by automated technology without explicit permission". This writer
+# makes ONE narrow query a day (one indicator, the countries below) through the
+# API the IMF publishes for programmatic import -- see the AQ notes for the open
+# question.
+api:
+  base: https://api.imf.org/external/sdmx/3.0
+  dataflow: IMF.STA/IL/+
+  indicator: RGV_REVS
+  frequency: M
+  accept: application/vnd.sdmx.data+json;version=2.0.0
+  citation: "Source: International Monetary Fund, International Liquidity (IL), https://data.imf.org/en/datasets/IMF.STA:IL"
+
+ounces_per_tonne: 32150.7466     # display only; ounces are the stored unit
+
+# THE COUNTRY SET: the twenty-five largest official holders among countries, by
+# the IL series itself as served on 10 Oct 2026 (latest month each, tonnes for
+# reading), plus the order's named additions not already among them (Czechia,
+# Hungary; China, Poland, India, Turkiye, Singapore, Uzbekistan, Kazakhstan and
+# Thailand are already in the twenty-five). Supranational holders are NOT
+# countries and are left out: the IMF (2,814 t), the ECB (EZB, 508 t) and the BIS
+# (234 t) -- the IMF's own gold is not central-bank buying, and the euro members
+# are each listed. Taiwan is served by IL ("Taiwan Province of China") and kept.
+#
+# `reporting: false` -- the country has stopped reporting the monthly series; it
+# is still pulled and stored (its history is real), but kept off the freshness
+# roster, because a country that no longer reports to the IMF is not a stale feed.
+# MIRRORED in imf_ifs.COUNTRIES / NOT_REPORTING (the feeds roster reads a writer's
+# KEYS from its source without importing it); tools/validate_imf_ifs.py fails if
+# the two differ.
+countries:
+  - {iso3: USA, name: "United States",  tonnes_oct26: 8134}
+  - {iso3: DEU, name: "Germany",        tonnes_oct26: 3349}
+  - {iso3: ITA, name: "Italy",          tonnes_oct26: 2452}
+  - {iso3: FRA, name: "France",         tonnes_oct26: 2437}
+  - {iso3: CHN, name: "China",          tonnes_oct26: 2346, cross_check: safe.gold_reserves_oz}
+  - {iso3: RUS, name: "Russia",         tonnes_oct26: 2327, reporting: false, why: "last month reported 2025-M11"}
+  - {iso3: CHE, name: "Switzerland",    tonnes_oct26: 1040}
+  - {iso3: IND, name: "India",          tonnes_oct26: 881}
+  - {iso3: JPN, name: "Japan",          tonnes_oct26: 846}
+  - {iso3: TUR, name: "Turkiye",        tonnes_oct26: 795}
+  - {iso3: POL, name: "Poland",         tonnes_oct26: 673}
+  - {iso3: NLD, name: "Netherlands",    tonnes_oct26: 612}
+  - {iso3: UZB, name: "Uzbekistan",     tonnes_oct26: 431}
+  - {iso3: TWN, name: "Taiwan Province of China", tonnes_oct26: 424}
+  - {iso3: PRT, name: "Portugal",       tonnes_oct26: 383}
+  - {iso3: KAZ, name: "Kazakhstan",     tonnes_oct26: 377}
+  - {iso3: SAU, name: "Saudi Arabia",   tonnes_oct26: 323}
+  - {iso3: GBR, name: "United Kingdom", tonnes_oct26: 310}
+  - {iso3: LBN, name: "Lebanon",        tonnes_oct26: 287, reporting: false, why: "last month reported 2025-M03"}
+  - {iso3: ESP, name: "Spain",          tonnes_oct26: 282}
+  - {iso3: AUT, name: "Austria",        tonnes_oct26: 280}
+  - {iso3: THA, name: "Thailand",       tonnes_oct26: 235}
+  - {iso3: BEL, name: "Belgium",        tonnes_oct26: 227}
+  - {iso3: SGP, name: "Singapore",      tonnes_oct26: 203}
+  - {iso3: IRQ, name: "Iraq",           tonnes_oct26: 176}
+  - {iso3: CZE, name: "Czechia",        tonnes_oct26: 86, added: "named by the order"}
+  - {iso3: HUN, name: "Hungary",        tonnes_oct26: 110, added: "named by the order"}
+
+# CHINA: SAFE (safe.gold_reserves_oz) stays the primary -- it publishes the month
+# within days, IL three months later -- and IL is the cross-check. A divergence
+# over this fraction on a month both hold is flagged.
+china_divergence_max: 0.01

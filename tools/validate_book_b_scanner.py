@@ -451,10 +451,15 @@ def main() -> int:
     spy = ref.get(("SPY", "long"))
     check(spy and spy["refused"] == "0 confirmation(s) of the 1 a long needs",
           f"SPY's breakout, with no confirmation, is refused ({spy and spy['refused']})")
+    # The correlation layer (AQ-5) read by name where it is on the branch: the
+    # break is then unmet for GLD, else not read (Friday stitching, 13 Oct).
+    import importlib.util                                       # noqa: PLC0415
+    corr_txt = ("unmet: no correlation break"
+                if importlib.util.find_spec("altdata.correlation")
+                else "not read: the correlation layer is not on this branch")
     check(gld and "unmet: no Weekly tell names it" in gld["counter_thesis"]
           and "not read: no Top & Bottom report yet" in gld["counter_thesis"]
-          and "not read: the correlation layer is not on this branch"
-          in gld["counter_thesis"],
+          and corr_txt in gld["counter_thesis"],
           f"unmet and unread confirmations are the counter-thesis "
           f"({gld and gld['counter_thesis']})")
     check(xlk and any(c["family"] == "relative strength" and c["met"]

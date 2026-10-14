@@ -171,12 +171,18 @@ def main() -> int:
     # The vendor-only symbols ride along unless --symbols narrowed the run.
     # They are captured but never computed; see Stage 1b.
     vendor_universe = [] if args.symbols else config.massive_universe()
+    # The paper bid's four (AQ-8a) are captured with the universe and computed
+    # by nothing below except stage 1c; --symbols narrows them away too.
+    paper_universe = [] if args.symbols else [
+        s for s in config.chain_universe() if s not in universe]
     started = session.utc_now()
     print(f"EOD options pass -- {started.isoformat(timespec='seconds')}")
     print(f"  run id:     {run_id}")
     print(f"  universe:   {len(universe)} symbols with Greeks"
           + (f" + {len(vendor_universe)} ingestion-only "
-             f"({', '.join(vendor_universe)})" if vendor_universe else ""))
+             f"({', '.join(vendor_universe)})" if vendor_universe else "")
+          + (f" + {len(paper_universe)} capture-only for the paper bid "
+             f"({', '.join(paper_universe)})" if paper_universe else ""))
     print(f"  convention: {config.CONVENTION_VERSION}")
     print(f"  tolerance:  {config.PIN_TOLERANCE_BPS}bps\n")
 
@@ -186,7 +192,8 @@ def main() -> int:
     else:
         log.info("Stage 1: fetching chains")
         try:
-            s = options_chain.pull(symbols=universe, max_expiries=args.max_expiries)
+            s = options_chain.pull(symbols=universe + paper_universe,
+                                   max_expiries=args.max_expiries)
             log.info("  chains: %d/%d symbols, %d rows",
                      s["success"], s["total"],
                      sum(e["rows"] for e in s["symbols"].values()))
@@ -220,6 +227,24 @@ def main() -> int:
                     log.warning("  %s not captured: %s", sym, why)
             except Exception:
                 log.exception("Stage 1b failed; the yfinance chains are safe")
+
+    # ---- Stage 1c: the paper bid (AQ-8a) ----------------------------------
+    # Net call-put OI and the 25-delta risk reversal for GLD, SLV, IBIT and USO,
+    # from the session's close-nearest capture, into the observation store.
+    # Never fatal and never counted: the 13 carry the pass.
+    if paper_universe:
+        try:
+            from altdata import paper_bid                          # noqa: PLC0415
+            pb = paper_bid.record_session(session.session_date())
+            if pb.get("error"):
+                log.warning("Stage 1c: paper bid not recorded: %s", pb["error"])
+            else:
+                log.info("Stage 1c: paper bid, %d rows written", pb.get("written", 0))
+                for sym, rec in (pb.get("symbols") or {}).items():
+                    if rec.get("reason"):
+                        log.warning("  %s: %s", sym, rec["reason"])
+        except Exception:                                          # noqa: BLE001
+            log.exception("Stage 1c failed; the chains are stored")
 
     # ---- Stage 2: compute ------------------------------------------------
     log.info("Stage 2: computing exposure (GEX/DEX/VEX/CHEX)")

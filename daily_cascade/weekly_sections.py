@@ -681,6 +681,10 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
                          "tier": 3, "consensus": f"last {round(100 * (r.get('probability') or 0))}%",
                          "cls": "prediction_family",
                          "probability": r.get("probability")})
+    # THE CALENDAR'S OWN EVENTS (batch 3, §5): dated and recurring rows the
+    # events table does not carry -- buybacks, the BoJ, JGB auctions, H.4.1.
+    from . import calendar_config                               # noqa: PLC0415
+    rows += calendar_config.rows(cal, mon, sat)
     seen, out = set(), []
     for r in sorted(rows, key=lambda r: (r["date"], r["time"], r["tier"], r["event"])):
         k = (r["date"], r["event"])

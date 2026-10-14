@@ -79,9 +79,17 @@ def id_pattern(reg: dict) -> re.Pattern:
                       % "|".join(map(re.escape, spaces)))
 
 
+# A key another branch registers is named by `hook_key` (or a rule's
+# `hook_series`) beside the `branch` that registers it; the reader prints "not
+# yet: <branch>" until the registry holds it, so it is not this build's id.
+HOOK_FIELDS = ("hook_key", "hook_series")
+
+
 def strings(o):
     if isinstance(o, dict):
         for k, v in o.items():
+            if k in HOOK_FIELDS and o.get("branch"):
+                continue
             yield from strings(k)
             yield from strings(v)
     elif isinstance(o, list):
@@ -121,6 +129,10 @@ def main() -> int:
     _, fine = unresolved({"a": "regime.py", "b": "calc.surprise_vs_naive.",
                           "c": "Base Rates, Chapter 3.1", "d": "NVDA"}, reg, pat)
     check(not fine, "while a filename, a key prefix, prose and a ticker do not")
+    _, hooked = unresolved({"rows": [{"hook_key": "fred.not_here", "branch": "b-1"},
+                                     {"hook_key": "fred.nor_here"}]}, reg, pat)
+    check(hooked == ["fred.nor_here"], "a hook naming its branch is another "
+          "branch's key; a hook with no branch is still checked")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if not FAIL else "VALIDATION FAILED")
