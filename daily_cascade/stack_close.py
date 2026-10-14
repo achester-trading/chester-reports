@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, levels as levels_mod, observations, session
+from altdata import model_meter
 
 from . import charts as charts_mod
 from . import outlooks as outlooks_mod
@@ -168,18 +169,8 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
     return row
 
 
+@model_meter.metered("daily_close")
 def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None) -> dict:
-    """The close, its model calls metered as the daily close's (AUD-2 item 4)."""
-    from altdata import model_meter                             # noqa: PLC0415
-    with model_meter.scope(report="daily_close", run_id=p.get("run_id"),
-                           db_path=db_path):
-        return _produce(p, archive_dir=archive_dir, dry_run=dry_run, client=client,
-                        model=model, narrative=narrative, db_path=db_path)
-
-
-def _produce(p: dict, *, archive_dir: str, dry_run: bool = False,
              client=None, model: Optional[str] = None, narrative: bool = True,
              db_path: Optional[str] = None) -> dict:
     sess = p["session"]

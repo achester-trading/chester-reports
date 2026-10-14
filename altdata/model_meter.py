@@ -31,6 +31,7 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import datetime as dt
+import functools
 import logging
 import sqlite3
 import threading
@@ -105,6 +106,21 @@ def scope(**kw: Any) -> Iterator[dict]:
         yield cur
     finally:
         _SCOPE.reset(token)
+
+
+def metered(report: str):
+    """Decorate a report's produce(p, ..., db_path=...): its calls are metered as
+    `report`, under the payload's run id, into its database. A decorator, so the
+    function keeps its own name and body -- gates read produce()'s source, and
+    inspect follows __wrapped__."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(p, *a, **kw):
+            rid = p.get("run_id") if isinstance(p, dict) else None
+            with scope(report=report, run_id=rid, db_path=kw.get("db_path")):
+                return fn(p, *a, **kw)
+        return wrapper
+    return deco
 
 
 def annotate(**kw: Any) -> None:

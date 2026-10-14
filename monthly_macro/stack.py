@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import labels, observations, session
+from altdata import model_meter
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -1898,20 +1899,8 @@ def meter_month(p: dict) -> str:
     return (d - _dt.timedelta(days=1)).isoformat()[:7]
 
 
+@model_meter.metered("monthly")
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
-            model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, write=None,
-            prior_dir: Optional[str] = None) -> dict:
-    """The Monthly, its model calls metered as the Monthly's (AUD-2 item 4)."""
-    from altdata import model_meter                             # noqa: PLC0415
-    with model_meter.scope(report="monthly", run_id=p.get("run_id"),
-                           db_path=db_path):
-        return _produce(p, archive_dir=archive_dir, client=client, model=model,
-                        narrative=narrative, db_path=db_path, write=write,
-                        prior_dir=prior_dir)
-
-
-def _produce(p: dict, *, archive_dir: Optional[str], client=None,
              model: Optional[str] = None, narrative: bool = True,
              db_path: Optional[str] = None, write=None,
              prior_dir: Optional[str] = None) -> dict:

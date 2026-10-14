@@ -262,7 +262,10 @@ def group_c(td: str) -> None:
     units = REPO / "deploy" / "systemd"
     svc = (units / "chester-restore-drill.service").read_text(encoding="utf-8")
     remote_sh = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
-    check("-m tools.restore_drill" in svc and (units / "chester-restore-drill.timer").exists()
+    wrapper = (REPO / "scripts" / "run_restore_drill.sh").read_text(encoding="utf-8")
+    check("scripts/run_restore_drill.sh" in svc and "-m tools.restore_drill" in wrapper
+          and "git pull" not in wrapper.split("set -uo", 1)[-1]
+          and (units / "chester-restore-drill.timer").exists()
           and "chester-restore-drill.timer" not in remote_sh,
           "the monthly unit runs the drill and is never in DEPLOY_TIMERS: printed, "
           "enabled by the operator")

@@ -13,7 +13,7 @@ Type=oneshot
 # store's. It writes nothing outside that directory and removes it. The output is
 # the journal: `journalctl --user -u chester-restore-drill`.
 WorkingDirectory=%h/chester-reports
-ExecStart=%h/chester-reports/.venv/bin/python -m tools.restore_drill
+ExecStart=%h/chester-reports/scripts/run_restore_drill.sh
 
 # CHESTER_RCLONE_REMOTE comes from a box-local drop-in, exactly as the backup's
 # does (chester-restore-drill.service.d/remote.conf, declared in box-config.allow);
@@ -30,9 +30,10 @@ ProtectSystem=strict
 ProtectHome=no
 # The temporary directory is under the unit's private /tmp. The live store is
 # opened read-only (SQLite mode=ro), but SQLite may need its -shm file beside a
-# WAL database even to read, so data/ is writable and nothing else is. rclone's
-# config is read-only, exactly as the backup unit holds it.
-ReadWritePaths=%h/chester-reports/data
+# WAL database even to read, so data/ is writable, with the log directory, and
+# nothing else is. rclone's config is read-only, exactly as the backup unit
+# holds it.
+ReadWritePaths=%h/logs %h/chester-reports/data
 ReadOnlyPaths=%h/chester-reports %h/.config/rclone
 ProtectKernelTunables=true
 ProtectControlGroups=true

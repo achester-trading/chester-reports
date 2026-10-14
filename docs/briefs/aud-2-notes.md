@@ -343,3 +343,25 @@ The likely conflicts when the new main is merged in:
    closed and no marker exists. Say if you want the paste's wording in both.
 6. **No Grep or Glob rules were written**, for the reason in item 1: Claude Code
    doesn't consult them, and the Read rules cover both tools.
+
+## CI
+
+**#391** (`a81d178`) failed six gates. All were mine, and all are fixed in the
+next commit:
+
+1. **`validate_exec_bits`:** a unit's `ExecStart` must name a tracked script,
+   and the drill's named `.venv/bin/python`. Now `scripts/run_restore_drill.sh`
+   (mode 755) runs the module. It does no `git pull`, because the drill's unit
+   holds the checkout read-only. It logs to `~/logs/restore_drill-YYYY-MM.log`
+   and the journal, and `%h/logs` joins the unit's write set.
+2. **`validate_numeral_audit`:** two checks read the prompt for
+   `"percentile_ordinal": "52nd"` with a space. The compact JSON writes
+   `"percentile_ordinal":"52nd"`, so the checks now match the compact form.
+3. **`check_library`:** CLAUDE.md named `` `db/` `` as if it were a repo path.
+   It now says "the backup's newest database snapshot".
+4. **`validate_readability`, `validate_stack_cadence`, `validate_weekly_edits`:**
+   these read `produce()`'s source with `inspect`. My first version split each
+   report's `produce` into a scoped wrapper around `_produce`, which hid the
+   body. The scope is now a decorator, `@model_meter.metered("daily_close")`
+   (and `"weekly"`, `"monthly"`), so the body keeps its name and `inspect`
+   follows `__wrapped__`.

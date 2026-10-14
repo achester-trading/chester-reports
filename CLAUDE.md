@@ -293,7 +293,7 @@ for every report path, and `model_meter.create()` writes a row per call to the
 and output tokens, time. A call outside a report's `scope()` writes nothing. The
 close's footer prints the day's calls and tokens, the Monthly's the month's by
 report; tokens, never dollars. **A restore is drilled, not assumed:**
-`python -m tools.restore_drill` restores the newest `db/` snapshot into a temporary
+`python -m tools.restore_drill` restores the backup's newest database snapshot into a temporary
 directory, integrity-checks it and counts it against the live store, read-only;
 `docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
 holds the auction sampler's stand-aside, the meter's client and the drill.
