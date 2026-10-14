@@ -19,7 +19,10 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=no
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+# -%h/chester-data/outbox/lab (X-2.11): the weekly loop writes lab-verdicts-*.md
+# there for the sweep to copy up to Drive; the leading - lets the unit start
+# before the directory exists (mkdir -p it once).
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data/outbox/lab
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

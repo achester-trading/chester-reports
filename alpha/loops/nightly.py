@@ -7,6 +7,8 @@ Weekdays after the daily close's capture (chester-alpha-nightly.timer, 17:40
 ET), in order, each step its own try so one failure costs that step only:
 
   1. the hold-out months recorded, the registry's engines entered as candidates;
+     then the INBOX (X-2.11): each new batch file ingested into the register,
+     pre-registered at its manifest's created time, or refused with the reason;
   2. PAPER: pending signals filled at the next stored bar's open (or a stored
      quote), open positions' exits walked bar by bar, closed ones graded;
   3. MARK every open position at the latest stored close;
@@ -94,6 +96,12 @@ class Run:
                 self.ledger.event(LOOP, "registered", self.as_of, eng.engine_id,
                                   after={"status": "candidate", "family": eng.family,
                                          "horizon": eng.horizon})
+
+    def inbox_step(self) -> None:
+        """X-2.11: every new batch in the Drive inbox (and the proposer's), once."""
+        from .. import inbox                                    # noqa: PLC0415
+        res = inbox.ingest(self.ledger, self.store, self.as_of)
+        self.summary["inbox"] = {k: len(v) for k, v in res.items()}
 
     def trading(self) -> list[dict]:
         return self.ledger.engines(("live", "halved"))
@@ -317,7 +325,8 @@ class Run:
         self.summary.update(queued=len(queued), refused=len(refused))
 
     def run(self) -> dict:
-        for name, fn in (("setup", self.setup), ("paper", self.paper_step),
+        for name, fn in (("setup", self.setup), ("inbox", self.inbox_step),
+                         ("paper", self.paper_step),
                          ("mark", self.mark_step), ("governor", self.governor_step),
                          ("posterior", self.posterior_step), ("kill", self.kill_step),
                          ("cost_calibration", self.cost_step),

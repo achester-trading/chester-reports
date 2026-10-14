@@ -293,6 +293,70 @@ pull_aaii_weekly() {
 }
 pull_aaii_weekly || true
 
+# --- the Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026) -----------------
+# The same pattern as the AAII file, for a folder each way, and like it NEVER
+# touching RC: a missing folder or a failed copy is a log line, not a failed
+# backup.
+#
+# IN: <remote>:chester-vendor-checks/lab-inbox -> ~/chester-data/inbox/lab/.
+# The Saturday brief writes hypothesis batches there (hypotheses-*.yaml, each
+# with a human .md copy). THE MANIFEST FIRST: `rclone lsjson --metadata --hash`
+# of the Drive folder, written beside the files as manifest-drive.json. Each
+# entry's Metadata.btime is the file's Drive creation time -- the hypothesis
+# batch's pre-registration instant -- and Metadata.mtime its last modification
+# (rclone's Drive metadata, both RFC 3339 to the millisecond); Hashes.md5 lets
+# the ingestion prove the bytes it read are the bytes listed. Listing before
+# copying means a file can only ever be copied WITH an entry, or wait a night
+# for one. Then `rclone copy` of the .yaml and .md files only -- never sync,
+# never delete: the inbox only gains, and the daily proposer's own files and
+# manifest, which are not on Drive, are never touched.
+#
+# OUT: ~/chester-data/outbox/lab/ -> <remote>:chester-vendor-checks/lab-outbox/.
+# The weekly loop writes lab-verdicts-YYYY-MM-DD.md there for the Saturday brief.
+# `rclone copy`, never sync: the remote folder only gains.
+LAB_INBOX="$DATA_DIR/inbox/lab"
+LAB_OUTBOX="$DATA_DIR/outbox/lab"
+pull_lab_inbox() {
+    local rname="${REMOTE%%:*}"
+    local src="$rname:chester-vendor-checks/lab-inbox"
+    if [[ ! -d "$LAB_INBOX" ]]; then
+        log "  lab inbox: skip -- $LAB_INBOX does not exist (mkdir -p it once)"
+        return 0
+    fi
+    if timeout 2m rclone lsjson "$src" --files-only --metadata --hash $RCLONE_LIMITS \
+            >"$LAB_INBOX/manifest-drive.json.part" 2>>"$LOG" \
+            && mv "$LAB_INBOX/manifest-drive.json.part" "$LAB_INBOX/manifest-drive.json"; then
+        log "  lab inbox: manifest ok -> $LAB_INBOX/manifest-drive.json"
+    else
+        rm -f "$LAB_INBOX/manifest-drive.json.part"
+        log "  lab inbox: skip -- $src is absent or unlistable (not counted against the sweep)"
+        return 0
+    fi
+    if timeout --kill-after=60s 5m rclone copy "$src" "$LAB_INBOX" $RCLONE_LIMITS \
+            --include "*.yaml" --include "*.md" --log-file "$LOG" --log-level INFO; then
+        log "  lab inbox: ok -> $LAB_INBOX"
+    else
+        log "  lab inbox: FAILED copy (not counted against the sweep)"
+    fi
+    return 0
+}
+push_lab_outbox() {
+    local rname="${REMOTE%%:*}"
+    if [[ ! -d "$LAB_OUTBOX" ]]; then
+        log "  lab outbox: skip -- $LAB_OUTBOX does not exist (mkdir -p it once)"
+        return 0
+    fi
+    if timeout --kill-after=60s 5m rclone copy "$LAB_OUTBOX" "$rname:chester-vendor-checks/lab-outbox" $RCLONE_LIMITS \
+            --log-file "$LOG" --log-level INFO; then
+        log "  lab outbox: ok -> $rname:chester-vendor-checks/lab-outbox"
+    else
+        log "  lab outbox: FAILED copy (not counted against the sweep)"
+    fi
+    return 0
+}
+pull_lab_inbox || true
+push_lab_outbox || true
+
 if [[ $RC -eq 0 ]]; then
     finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi

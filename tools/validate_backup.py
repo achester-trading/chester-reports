@@ -494,12 +494,17 @@ def group_e() -> None:
         ok("the stall limits are not env-overridable (tuning cannot drop them)")
     else:
         bad("the stall limits can be overridden away")
-    copies = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copy\b", ln)]
-    prev = code.splitlines()
+    # Every rclone copy that RUNS (comments aside): under a coreutils timeout with
+    # a kill-after -- copy_tree's "${mins}m", or a fixed cap on the copy's own
+    # line (the lab's inbox and outbox, X-2.11) -- and with the stall limits.
+    lines = code.splitlines()
+    copies = [i for i, ln in enumerate(lines)
+              if re.search(r"\brclone\s+copy\b", ln) and not ln.lstrip().startswith("#")]
     capped = all(
-        re.search(r'timeout --kill-after=\S+ "\$\{mins\}m"',
-                  prev[prev.index(ln) - 1] + ln) for ln in copies)
-    if copies and capped and "$RCLONE_LIMITS" in copies[0]:
+        re.search(r'timeout --kill-after=\S+ (?:"\$\{mins\}m"|\d+m)\s',
+                  lines[i - 1] + " " + lines[i]) for i in copies)
+    limited = all("$RCLONE_LIMITS" in lines[i] for i in copies)
+    if copies and capped and limited:
         ok("every rclone copy runs under its own timeout and the stall limits")
     else:
         bad("an rclone copy can run uncapped")

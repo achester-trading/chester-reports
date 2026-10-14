@@ -671,6 +671,29 @@ touches the sweep's exit code. The unit lets the sweep write
 `~/chester-data/inbox/aaii` and nothing else under `~/chester-data`; that
 directory must exist before the sweep starts (`mkdir -p` it once).
 
+**The Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026).** After the AAII file,
+two more folder copies, neither touching the exit code:
+
+| Direction | From | To |
+|---|---|---|
+| in | `<remote>:chester-vendor-checks/lab-inbox` (the Saturday brief's batches) | `~/chester-data/inbox/lab/` |
+| out | `~/chester-data/outbox/lab/` (the weekly loop's `lab-verdicts-YYYY-MM-DD.md`) | `<remote>:chester-vendor-checks/lab-outbox/` |
+
+- **The manifest is listed first.** `rclone lsjson --metadata --hash` of the Drive
+  folder is written to `inbox/lab/manifest-drive.json`. Each entry's
+  `Metadata.btime` is the file's Drive creation time, and `Metadata.mtime` its
+  last modification (rclone's Drive metadata, RFC 3339 to the millisecond);
+  `Hashes.md5` lets the ingestion check the bytes. The created time is the
+  batch's pre-registration instant.
+- **Then the copy**, of the `.yaml` and `.md` files only. It is `rclone copy`,
+  never `sync`, so the inbox only gains and the daily proposer's own files and
+  manifest are never touched.
+- The outbox goes up with `rclone copy` too, so the Drive folder only gains.
+- Each copy runs under its own 5-minute cap and the stall limits.
+- The unit may write `~/chester-data/inbox/lab`; the outbox is only read.
+
+Both directories must exist before the sweep starts (section 13).
+
 Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
 venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep
@@ -920,6 +943,31 @@ lab's line from the week's ledger before the rebalance changes it.
 systemctl --user enable --now chester-alpha-nightly.timer chester-alpha-weekly.timer
 systemctl --user list-timers 'chester-alpha-*'
 ```
+
+**The inbox and the outbox (Tranche 2, X-2.11).** The nightly loop ingests new
+batches from `~/chester-data/inbox/lab/`, and the weekly loop writes its verdicts
+to `~/chester-data/outbox/lab/`. Both directories are created once, by hand,
+before the sweep or either loop runs:
+
+```bash
+mkdir -p ~/chester-data/inbox/lab ~/chester-data/outbox/lab
+```
+
+The unit changes that let the units reach them come with the merge. The
+self-deploy copies them and reloads; no restart is needed, because all three
+are oneshot units that are not running between their timers:
+
+- `chester-backup.service` may write `~/chester-data/inbox/lab`;
+- `chester-alpha-weekly.service` may write `~/chester-data/outbox/lab`.
+
+**Check once that the box's rclone reports the Drive creation time.** The
+ingestion refuses a batch without it. Run this inside a window, as a read only:
+
+```bash
+rclone lsjson --metadata --files-only gdrive:chester-vendor-checks/lab-inbox | head -c 600
+```
+
+It should print `"btime"` inside each `"Metadata"` object.
 
 Status files: `~/.chester/alpha_nightly_status`, `~/.chester/alpha_weekly_status`.
 Logs: `~/logs/alpha_nightly-YYYY-MM.log`, `~/logs/alpha_weekly-YYYY-MM.log`. The

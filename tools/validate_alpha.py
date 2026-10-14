@@ -65,6 +65,16 @@ Tranche 2 (X-2; change order sections 4 and 10):
      first and its result complete; a re-run counts nothing; H-002 fails and is
      kept; report writes the one-page verdict; the lab's one writer refuses a
      path outside its roots; the model-idea screen.
+  Q  THE INBOX AND THE OUTBOX (X-2.11). The seed file, listed as rclone's
+     lsjson --metadata --hash lists Drive, ingests as five hypotheses
+     pre-registered at its btime, H-002/4/5 in the grammar; an edited file, a
+     file written after it existed, a duplicate batch_id and bytes off the
+     manifest's md5 are refused; an unlisted file waits; the .md is ignored; a
+     blocked instrument is refused and an unstored one is data_gap; nothing is
+     ingested twice; a proposer's file is pre-registered at its manifest line;
+     the weekly loop writes lab-verdicts-*.md; the sweep lists before it
+     copies, copies never syncs, and leaves its exit code alone; the units may
+     write inbox/lab and outbox/lab.
 
     python tools/validate_alpha.py
 """
@@ -94,6 +104,11 @@ from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 _TMP = gate_mkdtemp(prefix="validate_alpha_")
 os.environ["CHESTER_DB"] = os.path.join(_TMP, "store.sqlite")
 os.environ.pop("ALPHA_DB", None)
+# The lab's file roots, in the gate's own temp directory: no gate reads a real
+# inbox or writes a real outbox, agenda or report.
+for _k, _d in (("ALPHA_INBOX", "inbox"), ("ALPHA_OUTBOX", "outbox"),
+               ("ALPHA_RESEARCH_DIR", "research"), ("ALPHA_REPORTS_DIR", "reports")):
+    os.environ[_k] = os.path.join(_TMP, _d)
 
 import yaml  # noqa: E402
 
@@ -1184,7 +1199,6 @@ def group_p() -> None:
     head("P. THE RESEARCH WORKBENCH (X-2.9; 10.1)")
     from alpha import files, promote                             # noqa: PLC0415
     from alpha.research import workbench                         # noqa: PLC0415
-    os.environ["ALPHA_REPORTS_DIR"] = os.path.join(_TMP, "reports")
     before = sha(Path(fx_store()))
     lg, st, seeded = seeded_ledger("p.db")
     try:
@@ -1283,9 +1297,161 @@ def group_p() -> None:
     check(sha(Path(fx_store())) == before, "the fixture store is unchanged by the workbench")
 
 
+def _drive_entry(name: str, raw: bytes, created: str, modified: Optional[str] = None,
+                 md5: Optional[str] = None) -> dict:
+    """One entry as `rclone lsjson --metadata --hash` prints it for Drive."""
+    return {"Path": name, "Name": name, "Size": len(raw), "MimeType": "application/x-yaml",
+            "ModTime": modified or created, "IsDir": False, "ID": "fixture",
+            "Hashes": {"md5": md5 or hashlib.md5(raw).hexdigest()},           # noqa: S324
+            "Metadata": {"btime": created, "mtime": modified or created,
+                         "content-type": "application/x-yaml"}}
+
+
+def group_q() -> None:
+    head("Q. THE DRIVE INBOX AND THE VERDICTS OUTBOX (X-2.11)")
+    from alpha import inbox, outbox                             # noqa: PLC0415
+    from alpha.research import workbench                         # noqa: PLC0415
+    box = Path(os.environ["ALPHA_INBOX"])
+    box.mkdir(parents=True, exist_ok=True)
+    raw = SEED_BATCH.read_bytes()
+    (box / SEED_BATCH.name).write_bytes(raw)
+    (box / "hypotheses-2026-10-14.md").write_text("# the human copy\n", encoding="utf-8")
+    entries = [_drive_entry(SEED_BATCH.name, raw, SEED_CREATED)]
+    (box / "late.yaml").write_bytes(raw.replace(b"weekly-01", b"weekly-02"))
+    # the edited file: the same batch, touched 10 minutes after creation
+    ed = raw.replace(b"weekly-01", b"weekly-03")
+    (box / "edited.yaml").write_bytes(ed)
+    entries.append(_drive_entry("edited.yaml", ed, "2026-10-14T09:30:00.000Z",
+                                "2026-10-14T09:40:00.000Z"))
+    # written after it existed
+    early = raw.replace(b"weekly-01", b"weekly-04")
+    (box / "early.yaml").write_bytes(early)
+    entries.append(_drive_entry("early.yaml", early, "2026-10-14T09:00:00.000Z"))
+    # the same batch_id under another name
+    (box / "dup.yaml").write_bytes(raw)
+    entries.append(_drive_entry("dup.yaml", raw, "2026-10-14T09:50:00.000Z"))
+    # bytes that are not the bytes listed
+    (box / "tampered.yaml").write_bytes(raw.replace(b"weekly-01", b"weekly-05"))
+    entries.append(_drive_entry("tampered.yaml", raw, "2026-10-14T09:55:00.000Z"))
+    # a batch with a blocked instrument and an unstored one
+    doc = seed_doc()
+    doc["batch_id"] = "fixture-mixed"
+    doc["written_at"] = "2026-10-14T05:00:00-04:00"
+    doc["hypotheses"] = [dict(doc["hypotheses"][1], local_id="M-BN", universe=["BN"],
+                              title="Fixture: a Brookfield name", family="fx-a"),
+                         dict(doc["hypotheses"][1], local_id="M-ZZ", universe=["ZZZZ"],
+                              title="Fixture: an unstored symbol", family="fx-b",
+                              rule_text="an unstored symbol's rule, in words")]
+    mixed = yaml.safe_dump(doc, sort_keys=False).encode("utf-8")
+    (box / "mixed.yaml").write_bytes(mixed)
+    entries.append(_drive_entry("mixed.yaml", mixed, "2026-10-14T09:20:00.000Z"))
+    (box / "manifest-drive.json").write_text(json.dumps(entries), encoding="utf-8")
+    path = Path(_TMP) / "q.db"
+    st = ReadOnlyStore(fx_store())
+    try:
+        with Ledger(path) as lg:
+            res = inbox.ingest(lg, st, "2026-10-14T21:40:00+00:00")
+            reg = hyp.Register(lg)
+            seed = [r for r in res["ingested"] if r["file"] == SEED_BATCH.name]
+            ids = seed[0]["registered"] if seed else {}
+            hs = [reg.get(i) for i in ids.values()]
+            check(len(hs) == 5 and all(h["pre_registered_at"] ==
+                                       hyp.instant(SEED_CREATED) for h in hs),
+                  "the seed file ingests as five registered hypotheses, pre-registered "
+                  "at the manifest's created time (2026-10-14T09:26:23Z, Drive btime)")
+            check(seed and seed[0]["statuses"] == {
+                "H-001": "needs_code", "H-002": "registered", "H-003": "needs_code",
+                "H-004": "registered", "H-005": "registered"},
+                f"H-002, H-004 and H-005 in the grammar; H-001 and H-003 needs_code "
+                f"({seed[0]['statuses'] if seed else None})")
+            check(ids.get("H-004") and reg.by_local("2026-10-14-claude-weekly-01",
+                                                    "H-004")["id"] == ids["H-004"],
+                  "local ids map to register ids")
+            refused = {r["file"]: " ".join(r["why"]) for r in res["refused"]}
+            check("modified" in refused.get("edited.yaml", ""),
+                  "an edited file (modified 10 minutes after creation) is refused")
+            check("later than its created time" in refused.get("early.yaml", ""),
+                  "a file whose written_at is later than its creation is refused")
+            check("duplicate batch_id" in refused.get("dup.yaml", ""),
+                  "a duplicate batch_id is refused")
+            check("md5" in refused.get("tampered.yaml", ""),
+                  "bytes that do not match the manifest's md5 are refused")
+            check("late.yaml: no manifest entry yet" in res["waiting"]
+                  and "late.yaml" not in refused,
+                  "a file with no manifest entry yet waits for the next listing")
+            check("hypotheses-2026-10-14.md" in res["ignored"],
+                  "the .md human copy is ignored")
+            mx = [r for r in res["ingested"] if r["file"] == "mixed.yaml"]
+            check(mx and any(x["local_id"] == "M-BN" for x in mx[0]["refused"])
+                  and mx[0]["statuses"].get("M-ZZ") == "data_gap",
+                  "a blocked instrument (BN) is refused; an unstored one registers "
+                  "as data_gap")
+            n = lg.one("SELECT COUNT(*) AS n FROM hypotheses")["n"]
+            again = inbox.ingest(lg, st, "2026-10-15T21:40:00+00:00")
+            check(not again["ingested"] and not again["refused"]
+                  and lg.one("SELECT COUNT(*) AS n FROM hypotheses")["n"] == n,
+                  "a second night ingests nothing twice")
+            pm = {"name": "proposals-2026-10-15.yaml"}
+            pdoc = seed_doc()
+            pdoc.update(batch_id="2026-10-15-daily-proposer", channel="daily-proposer",
+                        written_at="2026-10-15T18:10:05-04:00")
+            pdoc["hypotheses"] = [dict(pdoc["hypotheses"][4], local_id="P-1",
+                                       title="Proposer fixture: TLT at an extreme",
+                                       family="fx-rates",
+                                       rule_dsl=translation("H-005")["rule_dsl"]
+                                       | {"exits": {"time": 30}})]
+            praw = yaml.safe_dump(pdoc, sort_keys=False).encode("utf-8")
+            (box / pm["name"]).write_bytes(praw)
+            (box / "manifest-proposer.jsonl").write_text(json.dumps(
+                {"name": pm["name"], "sha256": hashlib.sha256(praw).hexdigest(),
+                 "written_at": "2026-10-15T22:10:06.000000+00:00"}) + "\n",
+                encoding="utf-8")
+            r3 = inbox.ingest(lg, st, "2026-10-16T21:40:00+00:00")
+            pp = [r for r in r3["ingested"] if r["file"] == pm["name"]]
+            ph = reg.get(pp[0]["registered"]["P-1"]) if pp else None
+            check(ph and ph["pre_registered_at"] == "2026-10-15T22:10:06.000000+00:00"
+                  and ph["channel"] == "daily-proposer" and ph["status"] == "registered",
+                  "a file the proposer wrote on the box is pre-registered at its "
+                  "manifest line's write time")
+            workbench.run(lg, st, ids["H-004"], "2026-10-16T22:00:00+00:00")
+            workbench.run(lg, st, ids["H-002"], "2026-10-16T22:00:00+00:00")
+        wk = weekly.run("2026-10-18T10:00:00+00:00", path)
+        vf = Path(os.environ["ALPHA_OUTBOX"]) / "lab-verdicts-2026-10-18.md"
+        body = vf.read_text(encoding="utf-8") if vf.is_file() else ""
+        check(not wk["failures"] and vf.is_file(),
+              f"the weekly loop writes {vf.name} to the outbox")
+        want = (ids.get("H-004", "?"), ids.get("H-002", "?"), "(H-004)", "weekly-brief",
+                "daily-proposer", "| passed |", "failed: sample", "needs_code: ",
+                "data_gap: ", "## Engines live", "## The lab line", "Alpha Lab:",
+                "After 2026-07-01")
+        miss = [w for w in want if w not in body]
+        check(not miss, "it lists every hypothesis of the week with its status, metric "
+              "and the post-2026-07-01 slice, then the engines live and the lab line"
+              + (f" -- missing {miss}" if miss else ""))
+    finally:
+        st.close()
+    sweep = (REPO / "scripts" / "rclone_sync.sh").read_text(encoding="utf-8")
+    pull = sweep[sweep.index("pull_lab_inbox() {"):sweep.index("push_lab_outbox() {")]
+    push = sweep[sweep.index("push_lab_outbox() {"):sweep.index("pull_lab_inbox || true")]
+    check(pull.index("rclone lsjson") < pull.index("rclone copy")
+          and "--metadata" in pull and "--hash" in pull
+          and "chester-vendor-checks/lab-inbox" in pull and "manifest-drive.json" in pull,
+          "the sweep lists Drive's lab-inbox with --metadata --hash into the manifest "
+          "BEFORE it copies")
+    check("rclone sync" not in pull + push and "delete" not in pull + push
+          and "chester-vendor-checks/lab-outbox" in push and "rclone copy" in push,
+          "inbox down and outbox up are copies, never sync, never delete")
+    check("RC=" not in pull + push, "and neither touches the sweep's exit code")
+    bk = (REPO / "deploy" / "systemd" / "chester-backup.service").read_text(encoding="utf-8")
+    aw = (REPO / "deploy" / "systemd" / "chester-alpha-weekly.service").read_text(encoding="utf-8")
+    check(re.search(r"^ReadWritePaths=.*-%h/chester-data/inbox/lab", bk, re.M)
+          and re.search(r"^ReadWritePaths=.*-%h/chester-data/outbox/lab", aw, re.M),
+          "the sweep may write inbox/lab and the weekly loop outbox/lab")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p]
+          group_p, group_q]
 
 
 def main() -> int:

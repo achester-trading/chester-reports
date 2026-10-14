@@ -61,19 +61,31 @@ def rebalance(ledger: Ledger, as_of: str) -> dict:
     return {"day": day, "applied": applied, "proposed_on": last["d"]}
 
 
+def verdicts(ledger: Ledger, as_of: str) -> dict:
+    """X-2.11: lab-verdicts-YYYY-MM-DD.md into the outbox, for the sweep to copy
+    up to Drive's lab-outbox, where the Saturday brief reads it."""
+    from .. import outbox                                       # noqa: PLC0415
+    path = outbox.write(ledger, as_of)
+    ledger.event(LOOP, "verdicts_written", as_of, None, after={"path": path})
+    return {"verdicts": path}
+
+
 def run(as_of: Optional[str] = None, ledger_path=None) -> dict:
     as_of = as_of or session.utc_iso(timespec="microseconds")
+    out: dict = {}
+    failures: list[str] = []
     with Ledger(ledger_path) as lg:
-        try:
-            out = rebalance(lg, as_of)
-        except Exception as exc:                              # noqa: BLE001
-            log.exception("weekly: rebalance failed")
-            lg.event(LOOP, "failure", as_of, None,
-                     after={"step": "rebalance", "error": f"{type(exc).__name__}: {exc}",
-                            "trace": traceback.format_exc()[-1500:]})
-            return {"failures": ["rebalance"]}
-        lg.event(LOOP, "run", as_of, None, after=out)
-        return {**out, "failures": []}
+        for name, fn in (("rebalance", rebalance), ("verdicts", verdicts)):
+            try:
+                out.update(fn(lg, as_of))
+            except Exception as exc:                          # noqa: BLE001
+                log.exception("weekly: %s failed", name)
+                failures.append(name)
+                lg.event(LOOP, "failure", as_of, None,
+                         after={"step": name, "error": f"{type(exc).__name__}: {exc}",
+                                "trace": traceback.format_exc()[-1500:]})
+        lg.event(LOOP, "run", as_of, None, after={**out, "failures": failures})
+        return {**out, "failures": failures}
 
 
 def _main(argv: list[str]) -> int:
