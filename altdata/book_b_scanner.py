@@ -714,6 +714,59 @@ def _catalyst(sym: str, calendar: Optional[list], ending: str) -> tuple:
     return None, None
 
 
+def volume_readings(inst: dict, E: int, base: Optional[dict], entry: float,
+                    risk: float, d: int, cfg: Optional[dict] = None) -> dict:
+    """VP-1 item 9: two readings from DAILY bars, printed beside the candidate
+    and used by nothing else -- the score, the gates, the timing and the grading
+    do not read them. Whether they matter is H-006's question, not this module's.
+
+      the base's POC        from the base's own N sessions
+      the nearest HVN       between the entry and the +1R target, from the last
+                            scanner_hvn_sessions sessions; its price and distance,
+                            or "none"
+
+    Both through altdata/volume_profile.py, at its daily bin width, and both
+    "approximated from daily bars"."""
+    from . import volume_profile as vp                          # noqa: PLC0415
+    vcfg = vp.load_config()
+    vol = inst.get("volume") or {}
+
+    def rows(a: int, b: int) -> list[dict]:
+        return [{"observed_at": inst["days"][j], "high": inst["high"][j],
+                 "low": inst["low"][j], "close": inst["close"][j],
+                 "volume": vol.get(inst["days"][j])} for j in range(max(0, a), b + 1)]
+    out: dict[str, Any] = {"note": vp.DAILY_NOTE, "base_poc": None, "hvn": None}
+    if not inst.get("has_range", True):
+        why = "no daily high and low stored"
+        out.update(base_text=f"base POC not computed ({why})",
+                   hvn_text=f"not computed ({why})")
+        return out
+    if base:
+        bp = vp.daily_profile(rows(base["end"] - base["n"] + 1, base["end"]), vcfg)
+        out["base_poc"] = bp.get("poc")
+        out["base_text"] = (f"base POC {_f(bp['poc'])}" if bp.get("poc") is not None
+                            else f"base POC not computed ({bp.get('absent')})")
+    else:
+        out["base_text"] = "base POC not computed (no base)"
+    n = int(vcfg.get("scanner_hvn_sessions", 252))
+    hp = vp.daily_profile(rows(E - n + 1, E), vcfg)
+    if hp.get("poc") is None:
+        out["hvn_text"] = f"not computed ({hp.get('absent')})"
+        return out
+    target = entry + d * risk
+    lo, hi = sorted((entry, target))
+    between = [h for h in hp["hvn"] if lo < h <= hi] if d > 0 else \
+        [h for h in hp["hvn"] if lo <= h < hi]
+    if not between:
+        out["hvn_text"] = "none"
+        return out
+    h = min(between, key=lambda x: abs(x - entry))
+    out["hvn"] = float(h)
+    out["hvn_distance_pct"] = round(100.0 * abs(h - entry) / entry, 2)
+    out["hvn_text"] = f"{_f(h)} ({out['hvn_distance_pct']:.1f}% from the entry)"
+    return out
+
+
 def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     """One candidate in the register's draft shape, plus what prints beside it."""
     E = len(inst["close"]) - 1
@@ -838,7 +891,10 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         "entry_timing_state": gamma or None,
         "parameters": params, "confirmations": confs, "components": comp,
         "met": len(met), "risk": risk, "key": inst["key"], "pivot_day":
-        inst["days"][pv["t"]]}
+        inst["days"][pv["t"]],
+        # VP-1 item 9: printed as one clause on the candidate line; the score,
+        # the gates, the timing and the grading never read it.
+        "volume_profile": volume_readings(inst, E, b, entry, risk, d)}
 
 
 def gate(c: dict, ctx: dict, cfg: dict) -> Optional[str]:

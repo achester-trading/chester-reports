@@ -1232,6 +1232,28 @@ def _derived(values: Iterable[float]) -> list[float]:
 # payload stores UNDER THAT NAME, for the symbol the sentence is about, within
 # print precision. A number shared by two names passes only under a name that
 # holds it. (label pattern, the field names that hold it, the name printed.)
+_VP_NAMES = (("poc", r"(?:POC|point\s+of\s+control)", "point of control"),
+             ("vah", r"(?:VAH|value[\s-]area\s+high)", "value-area high"),
+             ("val", r"(?:VAL|value[\s-]area\s+low)", "value-area low"))
+_VP_QUALIFIERS = (
+    ("prior_session", r"(?:(?:prior|previous)\s+session's|yesterday's)",
+     "prior session's"),
+    ("prior_week", r"(?:prior|previous|last)\s+week's", "prior week's"),
+    ("prior_month", r"(?:prior|previous|last)\s+month's", "prior month's"),
+    ("session", r"(?:session's|today's)", "session's"),
+    ("week", r"(?:this\s+)?week's", "week's"),
+    ("month", r"(?:this\s+)?month's", "month's"))
+
+
+def _vp_labels() -> list[tuple[str, tuple[str, ...], str]]:
+    """The profile's label rows: each window's qualified names, then the bare."""
+    out = [(rf"\b{q}\s+{n}\b", (f"vp_{w}_{f}",), f"{qn} {name}")
+           for w, q, qn in _VP_QUALIFIERS for f, n, name in _VP_NAMES]
+    out += [(rf"\b{n}\b", tuple(f"vp_{w}_{f}" for w, _, _ in _VP_QUALIFIERS), name)
+            for f, n, name in _VP_NAMES]
+    return out
+
+
 LEVEL_LABELS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (r"\bpeak(?:\s+absolute)?\s+(?:gamma|gex)(?:\s+strike)?\b",
      ("peak_abs_gex_strike", "peak_gex_strike"), "peak gamma"),
@@ -1259,6 +1281,10 @@ LEVEL_LABELS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (r"\b20-month(?:\s+(?:moving\s+)?average)?\b", ("ma_20m",), "20-month average"),
     (r"\b(?:average|avg\.?)\s+cost\b|\bcost\s+basis\b", ("avg_cost",),
      "average cost"),
+    # THE VOLUME PROFILE (VP-1, altdata/volume_profile.py): a qualified name binds
+    # to its window only; a bare one to that field in any window. Prior windows
+    # first, so "the prior week's VAH" is never read as "the week's VAH".
+    *_vp_labels(),
     # A bare "strike" is any strike-valued field: the walls, max pain and the
     # peak-gamma strike are all strikes, and "the 761 strike" is true of any.
     (r"\bstrike\b", ("peak_abs_gex_strike", "peak_gex_strike", "put_wall",

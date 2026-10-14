@@ -185,6 +185,21 @@ else
     log "features: derived recompute done"
 fi
 
+# THE VOLUME PROFILE'S STORED SERIES (VP-1): calc.vp_<id>_session_* and _20s_*
+# for spy, qqq and iwm, from the 5-minute bars the feeds step just landed, for the
+# Alpha Lab's rule grammar. No --from: the last week's sessions are recomputed,
+# so a missed pass is caught up by the next. Never fatal, on the same argument
+# as the features above: the reports read the profile from the bars themselves.
+log "volume profile: compute"
+VP_OUT="$("$VENV_PY" -m altdata.volume_profile compute 2>&1)"
+VP_RC=$?
+printf '%s\n' "$VP_OUT" | sed 's/^/  /' >>"$LOG"
+if [[ $VP_RC -ne 0 ]]; then
+    log "WARN volume_profile exited $VP_RC -- continuing; the calc.vp_* series report their own staleness"
+else
+    log "volume profile: compute done"
+fi
+
 # ---- the events ingest, then the surprises ---------------------------------
 #
 # ORDER MATTERS AND IT IS NOT ALPHABETICAL. The ingest writes the earnings rows

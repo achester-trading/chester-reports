@@ -5857,6 +5857,229 @@ metrics:
     description: >-
       Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
 
+  # THE VOLUME PROFILE (VP-1, 14 Oct 2026; altdata/volume_profile.py,
+  # docs/volume-profile.md). Prices, written by `python -m
+  # altdata.volume_profile compute` after the derived features in the EOD
+  # pass. Each row's available_at is the max of its input bars'. For the
+  # Alpha Lab's rule grammar (H-006 to H-008); none is trigger-eligible,
+  # because what the profile predicts is the lab's question, not this repo's.
+  calc.vp_spy_session_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, point of control (the bin with the most volume, its midpoint), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_session_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area high (the upper edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_session_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area low (the lower edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_20s_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, point of control (the bin with the most volume, its midpoint), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_20s_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area high (the upper edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_20s_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area low (the lower edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_session_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, point of control (the bin with the most volume, its midpoint), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_session_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, value-area high (the upper edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_session_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, value-area low (the lower edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_20s_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, point of control (the bin with the most volume, its midpoint), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_20s_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, value-area high (the upper edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_qqq_20s_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      QQQ volume profile, value-area low (the lower edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_session_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, point of control (the bin with the most volume, its midpoint), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_session_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, value-area high (the upper edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_session_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, value-area low (the lower edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_20s_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, point of control (the bin with the most volume, its midpoint), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_20s_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, value-area high (the upper edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_iwm_20s_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      IWM volume profile, value-area low (the lower edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
+
 bulk_imports:
 
   fred_macro:
