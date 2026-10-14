@@ -110,6 +110,10 @@ rules:
   # "(legs sum to X%)" beside them: separate contracts' prices need not sum to
   # one, and the reader should see when they do not (ruled 2 Oct 2026).
   legs_sum_band: [0.95, 1.05]
+  # W-1.1 item 1.5 (ruled 11 Oct 2026): a contract whose bid-ask spread is wider
+  # than this, in probability points, is marked "illiquid" beside its price --
+  # its mid is a guess between two quotes far apart. Session-set: 10 points.
+  illiquid_spread_points: 10
   # T2 ruling 2 (3 Oct 2026): a sentence with hike, cut or hold may cite only the
   # fomc_decision item or the fed-funds path. A policy word in a sentence naming
   # any of these is withheld -- a CPI market is odds on an inflation print.

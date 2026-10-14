@@ -122,10 +122,24 @@ rm -rf "$FAKE_REPO/altdata/__pycache__" "$FAKE_REPO/altdata/sources/__pycache__"
 
 # Stand-in interpreter: real Python for calendar queries, a no-op for the run
 # itself. This is what keeps the test off the network.
+#
+# ONLY `-m altdata.session` IS REAL (12 Oct 2026). The stub used to pass EVERY
+# `-m` call through, so the run path's pre-steps -- `-m altdata.feeds pull`,
+# `-m altdata.market_features compute`, `-m altdata.events_ingest pull`,
+# `-m altdata.surprise compute` -- ran for real, live against every writer, twice
+# (the Tuesday run and the forced holiday run). The gate's time then grew with
+# the writer roster: on aq-3-series-2 (37 writers, 114 FRED series, against
+# main's 24 and 83) it took 1,049 s on the laptop and passed CI's ten-minute
+# limit. The wrapper treats each pre-step's failure as a WARN and never gates
+# the run on it, so a no-op stands in for them as it does for run_eod.py.
 cat >"$SANDBOX/bin/stub_python" <<STUB
 #!/usr/bin/env bash
-if [[ "\${1:-}" == "-m" ]]; then
+if [[ "\${1:-}" == "-m" && "\${2:-}" == "altdata.session" ]]; then
     exec "$PY" "\$@"
+fi
+if [[ "\${1:-}" == "-m" ]]; then
+    echo "STUB module skipped: \$*"
+    exit 0
 fi
 echo "STUB run_eod.py invoked: \$*"
 exit 0

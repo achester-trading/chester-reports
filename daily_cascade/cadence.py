@@ -38,12 +38,18 @@ def get(name: str, cfg: Optional[dict] = None) -> dict:
     c["reading_target_minutes"] = (cfg.get("reading_targets_minutes") or {}).get(name)
     c["depth_words"] = dict(cfg.get(c.get("depth_words") or "depth_words") or {})
     c["depth_paragraphs"] = dict(cfg.get("depth_paragraphs") or {})
+    c["figure_budget_parents"] = list(cfg.get("figure_budget_parents") or [])
     return c
 
 
 def paragraph_cap(cad: dict, depth: Optional[str]) -> int:
     """Words one kept paragraph may run to at `depth`: the cadence's number, or
-    the section's allowance when the cadence says "depth"."""
+    the section's allowance when the cadence says "depth". On a cadence with
+    an opener (W-1.3a item 3.0), the top of the depth's band: the guard must
+    never cut the Takeaway off an in-band paragraph."""
+    band = (cad.get("opener") or {}).get(depth or "")
+    if band:
+        return int(band[1])
     pw = cad.get("paragraph_words")
     if pw == "depth":
         return int(cad["depth_words"].get(depth or "") or
@@ -60,6 +66,12 @@ def figure_cap(cad: dict) -> int:
     """The most figures one paragraph after the claim line may cite at this
     cadence (`paragraph_figures`; six where a cadence declares none)."""
     return int(cad.get("paragraph_figures") or 6)
+
+
+def summary_cap(cad: dict) -> int:
+    """The figures an executive-summary paragraph is handed and may cite
+    (`summary_figures`; three where a cadence declares none, T3.1 item 20)."""
+    return int(cad.get("summary_figures") or 3)
 
 
 def figure_word(n: int) -> str:
