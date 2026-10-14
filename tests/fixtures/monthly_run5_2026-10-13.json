@@ -1,0 +1,88 @@
+{
+  "_about": "T3.6: the Monthly dry run #5 (13 Oct 2026 08:51 ET, main at 7754d0d). Text in `quoted` fields is the dry run's own, as the paste gives it; every other figure is synthetic, built to reproduce the fault. No live store, no model.",
+  "m1_roles": {
+    "long_frame": [
+      {"market": "Gold", "close": 4640.1, "ma_40w": 4554.56, "ma_10m": 4512.3, "ma_20m": 4101.2, "drawdown_52w_pct": -1.4},
+      {"market": "IWM", "close": 268.4, "ma_40w": 277.22, "ma_10m": 271.9, "ma_20m": 255.0, "drawdown_52w_pct": -6.2},
+      {"market": "DXY", "close": 101.45, "ma_40w": 99.35, "ma_10m": 99.8, "ma_20m": 102.1, "drawdown_52w_pct": -3.0},
+      {"market": "SPY", "close": 735.1, "ma_40w": 721.82, "ma_10m": 718.4, "ma_20m": 660.9, "drawdown_52w_pct": -0.4},
+      {"market": "QQQ", "close": 689.2, "ma_40w": 670.83, "ma_10m": 664.0, "ma_20m": 590.3, "drawdown_52w_pct": -0.6}
+    ],
+    "summary_quoted": "Gold closed the month at 4,554.56 as IWM slipped to 277.22 and the dollar held at 99.35.",
+    "section2_quoted": "The tape closes September with gold at 4,554.56, SPY at 721.82 and QQQ at 670.83.",
+    "correct": "Gold closed the month at 4,640.10, above its 40-week average of 4,554.56.",
+    "average_named": "SPY's 40-week average sits at 721.82."
+  },
+  "m2_consistency": {
+    "moves": {"Gold": [-1.2, "-1.20%", "%"], "DXY": [0.6, "+0.60%", "%"]},
+    "paragraph_a": "Gold was pulling back into month-end as real yields rose, and the dollar firmed.",
+    "paragraph_b": "Gold is holding its level near its long-run average while the dollar held its gains.",
+    "paragraph_b_fixed": "Gold gave back ground into month-end."
+  },
+  "m3_duplication": {
+    "summary": [
+      "The curve steepened as the long end sold off on supply.",
+      "Credit spreads held tight even as equities chopped sideways."
+    ],
+    "one_page": [
+      "The long end sold off on supply, and the curve steepened through the month.",
+      "Credit held tight while equities moved sideways in a narrow range.",
+      "The dollar firmed on the rate differential and pressed on emerging markets.",
+      "Positioning stayed crowded in duration shorts into the auctions.",
+      "The calendar ahead is heavy with payrolls, CPI and the FOMC.",
+      "Supply pushed the long end lower and the curve steepened over the month.",
+      "Equities moved sideways in a narrow range while credit stayed tight.",
+      "The rate differential firmed the dollar and pressed emerging markets."
+    ]
+  },
+  "m4_derived": {
+    "quoted": "2s10s +83 bp to 47 bp",
+    "legs": {"2-year": {"now": 4.12, "then": 3.58}, "10-year": {"now": 4.59, "then": 4.05}},
+    "stored": {"now": 0.47, "then": -0.36}
+  },
+  "m5_gaps": {
+    "gaps": [
+      {"gap": "Credit calm against equity volatility", "z": 2.6, "z_month_start": 1.9},
+      {"gap": "Breakevens against oil", "z": -2.4, "z_month_start": -1.7}
+    ],
+    "summary_quoted_shape": "Both open gaps were falling over the month: credit calm against equity volatility and breakevens against oil.",
+    "fixed": "Both open gaps widened over the month."
+  },
+  "m6_changed": {
+    "keep": [
+      {"what": "dial macro", "from": "Expansion", "to": "Slowdown"},
+      {"what": "dimension rates", "from": "rising", "to": "elevated"},
+      {"what": "exception credit_vs_vol", "from": "closed", "to": "open"}
+    ],
+    "forecasts_emitted": 11,
+    "forecasts_resolved": [[0.7, 1], [0.8, 1], [0.6, 1], [0.3, 0], [0.2, 0], [0.65, 1],
+                           [0.7, 0], [0.4, 1], [0.9, 0]],
+    "decisions": [["SPY", "long", "closed"], ["TLT", "short", "closed"], ["GLD", "long", "closed"],
+                  ["IWM", "short", "closed"], ["HYG", "short", "closed"]],
+    "expected_forecast_line": "11 forecasts emitted, 9 resolved: 6 right, 3 wrong.",
+    "expected_decision_line": "5 decisions closed."
+  },
+  "m7_counts": {
+    "bare": "The futures price a cut at 2 of the next four meetings.",
+    "words": "The futures price a cut at two of the next four meetings."
+  },
+  "m8_length": {
+    "long_draft_chars": 1600,
+    "short_draft": "The calendar's next test is payrolls on 6 November, then CPI a week later."
+  },
+  "m9_display": {
+    "table_display": "83,553.85",
+    "quoted_raw": "83553.85",
+    "second_raw": "7651.54",
+    "text": "Bitcoin ended the month near 83553.85 while the index sat at 7651.54.",
+    "fixed": "Bitcoin ended the month near 83,553.85 while the index sat at 7,651.54."
+  },
+  "m10_dollar": {
+    "series": [{"name": "DXY", "value": 101.45, "where": "the long frame"},
+               {"name": "Dollar (FRED broad index)", "value": 120.97, "where": "the tape"}],
+    "bare_a": "The dollar closed the month at 101.45.",
+    "bare_b": "The dollar ended near 120.97.",
+    "named_a": "The dollar index (DXY) closed the month at 101.45.",
+    "named_b": "The Fed's broad dollar index ended near 120.97."
+  }
+}
