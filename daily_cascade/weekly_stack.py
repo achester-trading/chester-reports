@@ -2033,6 +2033,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed, "weekly")
     ed["run_id"] = p.get("run_id")
+    from alpha.lab_line import weekly_line                      # noqa: PLC0415
+    # X-1.11: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = weekly_line(now, db_path and Path(db_path).with_name("alpha.db"))
     ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
                           if archive_dir else None)
     html_email = render(p, ed, charts, mode="email")
@@ -2100,7 +2103,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     head = stack_render.page_header(
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
-        ed.get("changed_since") or [], "Changed since last Weekly")
+        ed.get("changed_since") or [], "Changed since last Weekly",
+        extra_html=f' &middot; {stack_render.esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
     # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
     # then the ten sections; the reference tables after the last section.
     from . import precis                                        # noqa: PLC0415

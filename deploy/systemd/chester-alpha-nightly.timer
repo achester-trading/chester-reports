@@ -1,0 +1,23 @@
+[Unit]
+Description=Alpha Lab nightly loop at 17:40 ET on trading days
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+[Timer]
+# 17:40 ET, AFTER THE DAILY CLOSE'S CAPTURE (X-1.10). chester-daily-close runs at
+# 16:45 (+60s jitter) and is done within its 10-minute TimeoutStartSec; it
+# settles the prices and computes the market-state object the lab reads.
+# chester-ibkr-sync's last slot is 17:30, and the self-deploy ticks at 17:50.
+# Mon-Fri handles weekends; holidays are the wrapper's calendar guard.
+OnCalendar=Mon-Fri 17:40 America/New_York
+RandomizedDelaySec=60
+
+# Persistent=false: a catch-up run hours later would fill against a bar the
+# next session's run will fill against anyway; the loop is idempotent per day,
+# and a missed night is visible in loop_events.
+Persistent=false
+
+# NOT IN DEPLOY_TIMERS. The deploy copies this file; enabling it is the
+# operator's (docs/alpha-lab.md, and the branch's notes print the command).
+
+[Install]
+WantedBy=timers.target

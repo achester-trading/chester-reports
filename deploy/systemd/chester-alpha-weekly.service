@@ -1,0 +1,25 @@
+[Unit]
+Description=Alpha Lab weekly loop (Sunday 06:00 ET, the allocator's rebalance; X-1.7)
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+# After= the Weekly, ordering only: the Weekly prints the lab's line from alpha.db
+# read-only, and the rebalance follows it rather than racing it.
+After=chester-weekly.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_alpha_weekly.sh
+
+# NO EnvironmentFile: the lab reads no secret.
+
+SuccessExitStatus=0
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

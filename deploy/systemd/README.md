@@ -893,6 +893,40 @@ wrapper pulls first. Unit files used to wait for somebody to run
 and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
 box keeps its own unit files current.
 
+## 13. The Alpha Lab's loops (X-1.10, 13 Oct 2026)
+
+Two units, neither in `DEPLOY_TIMERS`: the deploy (or the self-deploy) copies
+them, and **enabling them is the operator's**. Neither reads a secret, so neither
+loads `.env`. Each writes `~/chester-reports/data/alpha.db` only and opens the
+observation store read-only (`docs/alpha-lab.md`).
+
+| Unit | When | What |
+|---|---|---|
+| `chester-alpha-nightly` | weekdays 17:40 ET | `scripts/run_alpha_nightly.sh` → `python -m alpha.loops.nightly`: fill, mark, grade, govern, learn |
+| `chester-alpha-weekly` | Sunday 06:00 ET | `scripts/run_alpha_weekly.sh` → `python -m alpha.loops.weekly`: the allocator's rebalance |
+
+**Why 17:40.** After the daily close's capture: `chester-daily-close` fires at
+16:45 (+60 s jitter) and finishes inside its 10-minute `TimeoutStartSec`,
+settling the prices and computing the market-state object the lab fills against
+and keys its attribution on. The Portfolio Truth sync's last slot is 17:30, and
+the self-deploy's next tick is 17:50.
+
+**Why Sunday 06:00.** After the Weekly (05:00, a 15-minute cap), which prints the
+lab's line from the week's ledger before the rebalance changes it.
+
+**Enable, once, after the merge, inside the windows:**
+
+```bash
+systemctl --user enable --now chester-alpha-nightly.timer chester-alpha-weekly.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+Status files: `~/.chester/alpha_nightly_status`, `~/.chester/alpha_weekly_status`.
+Logs: `~/logs/alpha_nightly-YYYY-MM.log`, `~/logs/alpha_weekly-YYYY-MM.log`. The
+loop's own record of every change, and of every failure, is alpha.db's
+`loop_events`. The nightly sweep snapshots alpha.db beside chester.db
+(section 10).
+
 ## Timezone note
 
 The box may run UTC — that is fine and expected. The timer names

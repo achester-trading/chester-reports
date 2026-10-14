@@ -81,6 +81,8 @@ PY_VALIDATORS := \
 	tools/validate_weekly_analytics.py \
 	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
+	tools/validate_alpha.py \
+	tools/validate_alpha_no_orders.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 
