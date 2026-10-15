@@ -12068,6 +12068,59 @@ bulk_imports:
       confirm each other, two labour series cannot.
     source: fred
     members_from: altdata.config.FRED_SERIES
+    member_families:
+      fred.ahe_yoy: release
+      fred.auto_delinq: release
+      fred.avg_wkly_hours: release
+      fred.breakeven_10y: rate
+      fred.breakeven_5y5y: rate
+      fred.brent: price
+      fred.cc_chargeoff: release
+      fred.cc_delinq_30: release
+      fred.claims_4wk: release
+      fred.core_cpi: release
+      fred.core_pce: release
+      fred.cpi: release
+      fred.current_account: release
+      fred.dxy: price
+      fred.emp_pop_ratio: release
+      fred.existing_homes: release
+      fred.fed_balance: quantity
+      fred.fed_debt_pct_gdp: ratio
+      fred.fed_outlays: quantity
+      fred.flex_cpi: release
+      fred.hires_total: release
+      fred.housing_permits: release
+      fred.housing_starts: release
+      fred.housing_starts_sf: release
+      fred.job_openings: release
+      fred.layoffs: release
+      fred.lfp_rate: release
+      fred.lt_unemp: release
+      fred.m2: quantity
+      fred.mortgage_30y: rate
+      fred.mortgage_delinq: release
+      fred.natgas: price
+      fred.new_homes: release
+      fred.nfci: conditions
+      fred.nfci_lev: conditions
+      fred.nfp: release
+      fred.pce: release
+      fred.quits_rate: release
+      fred.real_gdp: release
+      fred.sticky_core: release
+      fred.sticky_cpi: release
+      fred.total_hh_debt: quantity
+      fred.u3_rate: release
+      fred.uoM_sent: conditions
+      fred.usd_cny: price
+      fred.usd_eur: price
+      fred.usd_jpy: price
+      fred.vix: conditions
+      fred.wti: price
+      fred.yield_10y: rate
+      fred.yield_2y: rate
+      fred.yield_30y: rate
     member_key: key
     # The observation store writes these as "fred.nfp", not "nfp", so that a
     # future non-FRED series of the same name cannot collide. The registry has
@@ -12141,6 +12194,30 @@ bulk_imports:
       REVOLSL, NONREVSL and the Z.1 rows are MILLIONS; GDP is billions SAAR.
     source: fred
     members_from: altdata.config.FRED_SIGNAL_SERIES
+    member_families:
+      fred.aa_oas: spread
+      fred.bbb_oas: spread
+      fred.breakeven_5y: rate
+      fred.consumer_credit_nonrevolving: quantity
+      fred.consumer_credit_revolving: quantity
+      fred.consumer_credit_total: quantity
+      fred.em_corp_oas: spread
+      fred.em_hy_oas: spread
+      fred.fed_funds: rate
+      fred.gdp_nominal: release
+      fred.hh_debt_securities: quantity
+      fred.hh_deposits: quantity
+      fred.hh_equities: quantity
+      fred.jp_10y: rate
+      fred.jp_3m: rate
+      fred.real_dollar_broad: price
+      fred.soma_treasuries: quantity
+      fred.tbill_3m: rate
+      fred.term_premium_kw: rate
+      fred.tips_10y: rate
+      fred.tips_30y: rate
+      fred.usd_mxn: price
+      fred.yield_5y: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 27   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys)
@@ -12178,6 +12255,25 @@ bulk_imports:
       currency chapter. The baht is NOT here (fred_thailand).
     source: fred
     members_from: altdata.config.FRED_FX_SCAN_SERIES
+    member_families:
+      fred.usd_aud: price
+      fred.usd_brl: price
+      fred.usd_cad: price
+      fred.usd_chf: price
+      fred.usd_dkk: price
+      fred.usd_gbp: price
+      fred.usd_hkd: price
+      fred.usd_inr: price
+      fred.usd_krw: price
+      fred.usd_lkr: price
+      fred.usd_myr: price
+      fred.usd_nok: price
+      fred.usd_nzd: price
+      fred.usd_sek: price
+      fred.usd_sgd: price
+      fred.usd_twd: price
+      fred.usd_ves: price
+      fred.usd_zar: price
     member_key: key
     key_prefix: "fred."
     expected_members: 18
@@ -12206,6 +12302,12 @@ bulk_imports:
       would print a ten-point swing as 1,000 bp.
     source: fred
     members_from: altdata.config.FRED_SLOOS_SERIES
+    member_families:
+      fred.sloos_ci_large: conditions
+      fred.sloos_ci_small: conditions
+      fred.sloos_cre_construction: conditions
+      fred.sloos_cre_multifamily: conditions
+      fred.sloos_cre_nonres: conditions
     member_key: key
     key_prefix: "fred."
     expected_members: 5
@@ -12244,6 +12346,14 @@ bulk_imports:
       2006 = 100, daily -- the EM paper's request, 12 Oct 2026).
     source: fred
     members_from: altdata.config.FRED_AQ3_SERIES
+    member_families:
+      fred.case_shiller_national: release
+      fred.cre_delinq: release
+      fred.dxy_em: price
+      fred.ecb_dfr: rate
+      fred.effr_daily: rate
+      fred.gilt_10y: rate
+      fred.jp_call_rate: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 7
@@ -12276,6 +12386,19 @@ bulk_imports:
       Switzerland and Sweden. Ids and units read off each FRED page 12 Oct 2026.
     source: fred
     members_from: altdata.config.FRED_SR43_SERIES
+    member_families:
+      fred.oecd_10y_au: rate
+      fred.oecd_10y_be: rate
+      fred.oecd_10y_ca: rate
+      fred.oecd_10y_ch: rate
+      fred.oecd_10y_de: rate
+      fred.oecd_10y_es: rate
+      fred.oecd_10y_fr: rate
+      fred.oecd_10y_it: rate
+      fred.oecd_10y_nl: rate
+      fred.oecd_10y_nz: rate
+      fred.oecd_10y_se: rate
+      fred.oecd_10y_us: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 12
@@ -12300,6 +12423,8 @@ bulk_imports:
       isolation is declared once, on the block, and cannot be lost in a list.
     source: fred
     members_from: altdata.config.FRED_THAILAND_SERIES
+    member_families:
+      fred.usd_thb: price
     member_key: key
     key_prefix: "fred."
     expected_members: 1
@@ -12333,6 +12458,10 @@ bulk_imports:
       without un-adjusting anything.
     source: yfinance
     members_from: altdata.sources.yfinance_source.SYMBOLS
+    family: price
+    member_families:
+      yfinance.mkt_tnx: rate
+      yfinance.mkt_tyx: rate
     # SYMBOLS maps ticker -> store key, and the STORE KEY is the member name.
     # Declared rather than assumed: iterating the dict yields tickers, so a
     # resolver left to guess would register yfinance.SPY and never
@@ -12374,6 +12503,7 @@ bulk_imports:
       intraday only. Same basis as the close: split-adjusted, dividend-unadjusted.
     source: yfinance
     members_from: altdata.sources.yfinance_source.OHLC_KEYS
+    family: price
     members_are: values
     member_suffixes: ['_open', '_high', '_low']
     # The two yields' open, high and low are yields as their closes are
@@ -12406,6 +12536,7 @@ bulk_imports:
       and have no member here (yfinance_source.VOLUME_UNITS).
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 82
@@ -12426,6 +12557,7 @@ bulk_imports:
       never multiplies it by the close.
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 5
@@ -12445,6 +12577,7 @@ bulk_imports:
       it is already a dollar volume and the scanner reads it as one.
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_USD_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 4
@@ -12469,6 +12602,7 @@ bulk_imports:
       bars.<tape id> (bars.spy, bars.y10 ...). The two yield indices are yields
       in percent, as their daily closes are.
     members_from: altdata.bars.BAR_PRICE_KEYS
+    family: price
     members_are: keys
     expected_members: 10
     units: price
@@ -12489,6 +12623,7 @@ bulk_imports:
       bars.<tape id>.volume. An index, a currency pair and the dollar index carry
       no volume and have no key.
     members_from: altdata.bars.BAR_VOLUME_SHARE_KEYS
+    family: quantity
     expected_members: 3
     units: shares
     source: yfinance
@@ -12504,6 +12639,7 @@ bulk_imports:
       A bar's volume in CONTRACTS, for the futures (gold, oil, ES): front-month
       contracts traded, not a notional.
     members_from: altdata.bars.BAR_VOLUME_CONTRACT_KEYS
+    family: quantity
     expected_members: 3
     units: count
     source: yfinance
@@ -12518,6 +12654,7 @@ bulk_imports:
     description: >-
       A bar's volume in DOLLARS, for Bitcoin, as Yahoo quotes a crypto pair.
     members_from: altdata.bars.BAR_VOLUME_USD_KEYS
+    family: quantity
     expected_members: 1
     units: usd
     source: yfinance
@@ -12630,6 +12767,7 @@ bulk_imports:
       is mislabelled and mislabelled is worse than absent.
     source: derived_state
     members_from: altdata.config.FRED_SERIES
+    family: release   # ambiguous: the naive expectation of a release, in its units; alternative: the member's own family
     member_key: key
     key_prefix: "calc.naive_expectation."
     expected_members: 59
@@ -12687,6 +12825,7 @@ bulk_imports:
       values, not because a cut reads it.
     source: derived_state
     members_from: altdata.config.FRED_SERIES
+    family: conditions   # ambiguous: a surprise against the naive expectation, read as a standardised level; alternative: ratio
     member_key: key
     key_prefix: "calc.surprise_vs_naive."
     expected_members: 59
@@ -12744,6 +12883,7 @@ bulk_imports:
       lens, never a composite; 'attributing a move to any one driver is
       guesswork' (III Ch 7), so the share is printed, not asserted.
     members_from: altdata.attribution.DRIVER_EXPLAINED
+    family: ratio
     units: fraction
     source: derived_state
     members_are: keys
@@ -12771,6 +12911,7 @@ bulk_imports:
       60-month fit on the four common factors, in the return's own units x 100
       (log-return percent for a price). What the common factors do not explain.
     members_from: altdata.attribution.DRIVER_RESIDUAL
+    family: ratio   # ambiguous: a residual return; alternative: price
     units: percent_return
     delta_unit: pp
     source: derived_state
@@ -12799,6 +12940,7 @@ bulk_imports:
       60 months: the beta times the factor's standard deviation over the
       return's, so the four compare. The Monthly prints the largest.
     members_from: altdata.attribution.DRIVER_LOADINGS
+    family: ratio
     units: ratio
     source: derived_state
     members_are: keys
@@ -12860,6 +13002,7 @@ bulk_imports:
       retrievable historically.
     source: derived_state
     members_from: altdata.paper_bid.PAPER_OI_SERIES
+    family: quantity
     members_are: keys
     expected_members: 4
     mechanism_group: paper_bid
@@ -12890,6 +13033,7 @@ bulk_imports:
       condition ruled on it.
     source: derived_state
     members_from: altdata.paper_bid.PAPER_RR_SERIES
+    family: conditions   # ambiguous: a 25-delta risk reversal in vol points; alternative: spread
     members_are: keys
     expected_members: 4
     mechanism_group: paper_bid
@@ -12980,6 +13124,7 @@ bulk_imports:
       count here until this block is updated, which is the intended friction.
     source: yfinance
     members_from: altdata.sources.overnight.PRICE_KEYS
+    family: price   # ambiguous: the overnight levels block also holds changes and settles; alternative: split per member
     expected_members: 36
     mechanism_group: overnight_context
     native_horizon: intraday
@@ -13005,6 +13150,7 @@ bulk_imports:
       cannot declare two units. altdata.sources.overnight.PERCENT_KEYS.
     source: yfinance
     members_from: altdata.sources.overnight.PERCENT_KEYS
+    family: price   # ambiguous: percent changes, not levels; alternative: exclude
     expected_members: 10
     mechanism_group: overnight_context
     native_horizon: intraday
@@ -13032,6 +13178,7 @@ bulk_imports:
       a member: it is calc.corr_spy_tlt_60d, read under its alias.
     source: derived_state
     members_from: altdata.correlation.PAIR_SERIES
+    family: ratio
     members_are: keys
     expected_members: 419
     mechanism_group: cross_asset_correlation
@@ -13084,6 +13231,7 @@ bulk_imports:
       escalating no trigger.
     source: derived_state
     members_from: altdata.correlation.BREAK_SERIES
+    family: ratio
     members_are: keys
     expected_members: 36
     mechanism_group: cross_asset_correlation
@@ -13114,6 +13262,7 @@ bulk_imports:
       a bar, written once the day has ended.
     source: yfinance
     members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    family: price
     members_are: values
     expected_members: 12
     key_prefix: yfinance.
@@ -13133,6 +13282,7 @@ bulk_imports:
       in the pair's currency), for MW-7's turnover (volume over market cap).
     source: yfinance
     members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    family: quantity
     members_are: values
     member_suffixes: [_volume]
     expected_members: 12
@@ -13156,6 +13306,7 @@ bulk_imports:
       (TAO has no fee or TVL series; KAS is not listed).
     source: defillama
     members_from: altdata.sources.llama.PROTOCOL_KEYS
+    family: quantity
     members_are: values
     expected_members: 36  # 8 names x 4, ONDO x 3 (no TVL chart), PRL x 1 (a chain: fees only)
     key_prefix: llama.
@@ -13176,6 +13327,7 @@ bulk_imports:
       series starts the day the writer first runs.
     source: defillama
     members_from: altdata.sources.llama.MCAP_KEYS
+    family: quantity   # ambiguous: a market capitalisation, price times supply; alternative: price
     members_are: values
     expected_members: 12
     key_prefix: llama.
@@ -13196,6 +13348,7 @@ bulk_imports:
       Forward-only, like the cap.
     source: defillama
     members_from: altdata.sources.llama.SUPPLY_KEYS
+    family: quantity
     members_are: values
     expected_members: 12
     key_prefix: llama.
@@ -13218,6 +13371,7 @@ bulk_imports:
       are stored; otherwise the reports print "not measured -- <reason>".
     source: derived_state
     members_from: altdata.crypto_basket.DILUTION_KEYS
+    family: ratio
     members_are: values
     expected_members: 12
     key_prefix: calc.
@@ -13270,6 +13424,706 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+  # 6e (15 Oct 2026): every other individually registered level series,
+  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
+  aaii.bull_bear_spread: ratio
+  acm.fitted_yield_10y: rate
+  acm.risk_neutral_yield_10y: rate
+  acm.term_premium_10y: rate
+  acm.term_premium_2y: rate
+  acm.term_premium_5y: rate
+  apewisdom.mentions: quantity
+  apewisdom.rank: quantity
+  apewisdom.upvotes: quantity
+  auction.direct_share: ratio
+  auction.high_yield: rate
+  auction.indirect_share: ratio
+  auction.offering_amount: quantity
+  auction.tail_bp: spread
+  bbk.bund_10y: rate
+  brier.running: ratio
+  brier.score: ratio
+  brier.vs_coin: ratio
+  calc.attr_acm_tp_share_20d: ratio
+  calc.attr_acm_tp_share_60d: ratio
+  calc.attr_curve_share_20d: ratio
+  calc.attr_curve_share_5d: ratio
+  calc.attr_curve_share_60d: ratio
+  calc.attr_d10y_20d: spread
+  calc.attr_d10y_5d: spread
+  calc.attr_d10y_60d: spread
+  calc.attr_dkw_path_share_20d: ratio
+  calc.attr_dkw_path_share_60d: ratio
+  calc.attr_dkw_tp_share_20d: ratio
+  calc.attr_dkw_tp_share_60d: ratio
+  calc.attr_kw_tp_share_20d: ratio
+  calc.attr_kw_tp_share_60d: ratio
+  calc.attr_real_share_20d: ratio
+  calc.attr_real_share_5d: ratio
+  calc.attr_real_share_60d: ratio
+  calc.breadth_rsp_over_spy: ratio
+  calc.breadth_sector_above_200d: ratio
+  calc.breadth_sector_above_50d: ratio
+  calc.btp_bund_bp: spread
+  calc.bund_hedged_spread_bp: spread
+  calc.bund_hedged_yield: rate
+  calc.cnh_cny_bp: spread
+  calc.cnh_fix_gap_bp: spread
+  calc.cny_band_position: ratio
+  calc.cny_fix_gap_bp: spread
+  calc.corr_spy_tlt_60d: ratio
+  calc.crack_321: price
+  calc.cyclical_over_defensive: ratio
+  calc.earnings_surprise_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.efa_spy: ratio
+  calc.hefa_efa: ratio
+  calc.infl_vol: conditions
+  calc.jgb_hedged_spread_bp: spread
+  calc.jgb_hedged_yield: rate
+  calc.mortgage_spread_10y_bp: spread
+  calc.oat_bund_bp: spread
+  calc.r_minus_g: rate
+  calc.r_real_10y_core_pce: rate
+  calc.r_real_10y_cpi: rate
+  calc.real_wages_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.sahm_rule: ratio
+  calc.spy_vs_252d_high: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_ma20_slope: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_vs_200d: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_vs_50d: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.us_jgb_10y_bp: spread
+  calc.vea_spy: ratio
+  calc.vix3m_over_vix: ratio
+  calc.vnq_spy: ratio
+  calc.vx1_vix_basis: ratio
+  calc.vx_front_ratio: ratio
+  calc.vx_front_slope: ratio
+  calc.xlre_spy: ratio
+  calc.yield_curve_2s10s: ratio
+  calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_core_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_core_pce: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_housing_starts: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_m2: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_pce: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_real_gdp: ratio   # ambiguous: a return series, not a level; alternative: price
+  cfe.vx1: price
+  cfe.vx2: price
+  cfe.vx3: price
+  cfe.vx_settle: price
+  cfets.cgb_10y: rate
+  cfets.cny_fix: price
+  cftc.dis_managed_money_long: quantity
+  cftc.dis_managed_money_long_oi: ratio
+  cftc.dis_managed_money_net: quantity
+  cftc.dis_managed_money_net_oi: ratio
+  cftc.dis_managed_money_short: quantity
+  cftc.dis_managed_money_short_oi: ratio
+  cftc.dis_open_interest: quantity
+  cftc.dis_other_rept_long: quantity
+  cftc.dis_other_rept_long_oi: ratio
+  cftc.dis_other_rept_net: quantity
+  cftc.dis_other_rept_net_oi: ratio
+  cftc.dis_other_rept_short: quantity
+  cftc.dis_other_rept_short_oi: ratio
+  cftc.dis_prod_merc_long: quantity
+  cftc.dis_prod_merc_long_oi: ratio
+  cftc.dis_prod_merc_net: quantity
+  cftc.dis_prod_merc_net_oi: ratio
+  cftc.dis_prod_merc_short: quantity
+  cftc.dis_prod_merc_short_oi: ratio
+  cftc.dis_swap_long: quantity
+  cftc.dis_swap_long_oi: ratio
+  cftc.dis_swap_net: quantity
+  cftc.dis_swap_net_oi: ratio
+  cftc.dis_swap_short: quantity
+  cftc.dis_swap_short_oi: ratio
+  cftc.noncomm_long: quantity
+  cftc.noncomm_net: quantity
+  cftc.noncomm_short: quantity
+  cftc.open_interest: quantity
+  cftc.tff_asset_mgr_long: quantity
+  cftc.tff_asset_mgr_long_oi: ratio
+  cftc.tff_asset_mgr_net: quantity
+  cftc.tff_asset_mgr_net_oi: ratio
+  cftc.tff_asset_mgr_short: quantity
+  cftc.tff_asset_mgr_short_oi: ratio
+  cftc.tff_dealer_long: quantity
+  cftc.tff_dealer_long_oi: ratio
+  cftc.tff_dealer_net: quantity
+  cftc.tff_dealer_net_oi: ratio
+  cftc.tff_dealer_short: quantity
+  cftc.tff_dealer_short_oi: ratio
+  cftc.tff_lev_money_long: quantity
+  cftc.tff_lev_money_long_oi: ratio
+  cftc.tff_lev_money_net: quantity
+  cftc.tff_lev_money_net_oi: ratio
+  cftc.tff_lev_money_short: quantity
+  cftc.tff_lev_money_short_oi: ratio
+  cftc.tff_open_interest: quantity
+  cftc.tff_other_rept_long: quantity
+  cftc.tff_other_rept_long_oi: ratio
+  cftc.tff_other_rept_net: quantity
+  cftc.tff_other_rept_net_oi: ratio
+  cftc.tff_other_rept_short: quantity
+  cftc.tff_other_rept_short_oi: ratio
+  chain.spy_put_call_volume: ratio
+  cnh.usdcnh: price
+  contradiction.magnitude: ratio
+  contradiction.persistence_days: quantity   # ambiguous: a duration in days; alternative: ratio
+  crypto.total_market_cap_usd: quantity
+  damodaran.ev_ebitda: ratio
+  damodaran.pe_forward: ratio
+  damodaran.pe_trailing: ratio
+  dealer.scorecard_day: quantity
+  dkw.exp_real_short_rate_10y: rate
+  dkw.exp_real_short_rate_5y: rate
+  dkw.real_term_premium_10y: rate
+  dkw.real_term_premium_5y: rate
+  dkw.tips_liquidity_premium_10y: rate
+  dkw.tips_liquidity_premium_5y: rate
+  ecb.irs_10y_de: rate
+  ecb.irs_10y_fr: rate
+  ecb.irs_10y_it: rate
+  eia.crude_stocks: quantity
+  eia.product_stocks: quantity
+  eia.rigs_gas: quantity
+  eia.rigs_oil: quantity
+  eia.rigs_total: quantity
+  eia.total_stocks: quantity
+  em.bis.policy_rate.bra: rate
+  em.bis.policy_rate.chn: rate
+  em.bis.policy_rate.idn: rate
+  em.bis.policy_rate.ind: rate
+  em.bis.policy_rate.kor: rate
+  em.bis.policy_rate.mex: rate
+  em.bis.policy_rate.mys: rate
+  em.bis.policy_rate.pol: rate
+  em.bis.policy_rate.sau: rate
+  em.bis.policy_rate.tha: rate
+  em.bis.policy_rate.zaf: rate
+  em.cpi.yoy.are: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.bra: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.chn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.idn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.ind: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.kor: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.mex: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.mys: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.pol: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.sau: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.tha: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.zaf: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.ifs.reserves_usd.are: quantity
+  em.ifs.reserves_usd.bra: quantity
+  em.ifs.reserves_usd.chn: quantity
+  em.ifs.reserves_usd.idn: quantity
+  em.ifs.reserves_usd.ind: quantity
+  em.ifs.reserves_usd.kor: quantity
+  em.ifs.reserves_usd.mex: quantity
+  em.ifs.reserves_usd.mys: quantity
+  em.ifs.reserves_usd.pol: quantity
+  em.ifs.reserves_usd.sau: quantity
+  em.ifs.reserves_usd.tha: quantity
+  em.ifs.reserves_usd.twn: quantity
+  em.ifs.reserves_usd.zaf: quantity
+  em.itg.imports_usd.bra: quantity
+  em.itg.imports_usd.chn: quantity
+  em.itg.imports_usd.idn: quantity
+  em.itg.imports_usd.ind: quantity
+  em.itg.imports_usd.kor: quantity
+  em.itg.imports_usd.mex: quantity
+  em.itg.imports_usd.mys: quantity
+  em.itg.imports_usd.pol: quantity
+  em.itg.imports_usd.sau: quantity
+  em.itg.imports_usd.tha: quantity
+  em.itg.imports_usd.twn: quantity
+  em.lens.ext_debt_gdp.bra: ratio
+  em.lens.ext_debt_gdp.chn: ratio
+  em.lens.ext_debt_gdp.idn: ratio
+  em.lens.ext_debt_gdp.ind: ratio
+  em.lens.ext_debt_gdp.kor: ratio
+  em.lens.ext_debt_gdp.mex: ratio
+  em.lens.ext_debt_gdp.mys: ratio
+  em.lens.ext_debt_gdp.pol: ratio
+  em.lens.ext_debt_gdp.sau: ratio
+  em.lens.ext_debt_gdp.tha: ratio
+  em.lens.ext_debt_gdp.zaf: ratio
+  em.lens.inflation_gap.bra: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.chn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.idn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.ind: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.kor: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.mex: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.pol: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.tha: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.zaf: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.real_policy_rate.bra: rate
+  em.lens.real_policy_rate.chn: rate
+  em.lens.real_policy_rate.idn: rate
+  em.lens.real_policy_rate.ind: rate
+  em.lens.real_policy_rate.kor: rate
+  em.lens.real_policy_rate.mex: rate
+  em.lens.real_policy_rate.mys: rate
+  em.lens.real_policy_rate.pol: rate
+  em.lens.real_policy_rate.sau: rate
+  em.lens.real_policy_rate.tha: rate
+  em.lens.real_policy_rate.zaf: rate
+  em.lens.reserves_import_months.bra: ratio
+  em.lens.reserves_import_months.chn: ratio
+  em.lens.reserves_import_months.idn: ratio
+  em.lens.reserves_import_months.ind: ratio
+  em.lens.reserves_import_months.kor: ratio
+  em.lens.reserves_import_months.mex: ratio
+  em.lens.reserves_import_months.mys: ratio
+  em.lens.reserves_import_months.pol: ratio
+  em.lens.reserves_import_months.sau: ratio
+  em.lens.reserves_import_months.tha: ratio
+  em.lens.reserves_import_months.twn: ratio
+  em.lens.reserves_st_debt.bra: ratio
+  em.lens.reserves_st_debt.chn: ratio
+  em.lens.reserves_st_debt.idn: ratio
+  em.lens.reserves_st_debt.ind: ratio
+  em.lens.reserves_st_debt.kor: ratio
+  em.lens.reserves_st_debt.mex: ratio
+  em.lens.reserves_st_debt.mys: ratio
+  em.lens.reserves_st_debt.pol: ratio
+  em.lens.reserves_st_debt.sau: ratio
+  em.lens.reserves_st_debt.tha: ratio
+  em.lens.reserves_st_debt.zaf: ratio
+  em.qeds.ext_debt_usd.bra: quantity
+  em.qeds.ext_debt_usd.chn: quantity
+  em.qeds.ext_debt_usd.idn: quantity
+  em.qeds.ext_debt_usd.ind: quantity
+  em.qeds.ext_debt_usd.kor: quantity
+  em.qeds.ext_debt_usd.mex: quantity
+  em.qeds.ext_debt_usd.mys: quantity
+  em.qeds.ext_debt_usd.pol: quantity
+  em.qeds.ext_debt_usd.sau: quantity
+  em.qeds.ext_debt_usd.tha: quantity
+  em.qeds.ext_debt_usd.zaf: quantity
+  em.qeds.st_debt_usd.bra: quantity
+  em.qeds.st_debt_usd.chn: quantity
+  em.qeds.st_debt_usd.idn: quantity
+  em.qeds.st_debt_usd.ind: quantity
+  em.qeds.st_debt_usd.kor: quantity
+  em.qeds.st_debt_usd.mex: quantity
+  em.qeds.st_debt_usd.mys: quantity
+  em.qeds.st_debt_usd.pol: quantity
+  em.qeds.st_debt_usd.sau: quantity
+  em.qeds.st_debt_usd.tha: quantity
+  em.qeds.st_debt_usd.zaf: quantity
+  em.weo.ca_gdp.are: ratio
+  em.weo.ca_gdp.bra: ratio
+  em.weo.ca_gdp.chn: ratio
+  em.weo.ca_gdp.idn: ratio
+  em.weo.ca_gdp.ind: ratio
+  em.weo.ca_gdp.kor: ratio
+  em.weo.ca_gdp.mex: ratio
+  em.weo.ca_gdp.mys: ratio
+  em.weo.ca_gdp.pol: ratio
+  em.weo.ca_gdp.sau: ratio
+  em.weo.ca_gdp.tha: ratio
+  em.weo.ca_gdp.twn: ratio
+  em.weo.ca_gdp.zaf: ratio
+  em.weo.debt_gdp.are: ratio
+  em.weo.debt_gdp.bra: ratio
+  em.weo.debt_gdp.chn: ratio
+  em.weo.debt_gdp.idn: ratio
+  em.weo.debt_gdp.ind: ratio
+  em.weo.debt_gdp.kor: ratio
+  em.weo.debt_gdp.mex: ratio
+  em.weo.debt_gdp.mys: ratio
+  em.weo.debt_gdp.pol: ratio
+  em.weo.debt_gdp.sau: ratio
+  em.weo.debt_gdp.tha: ratio
+  em.weo.debt_gdp.twn: ratio
+  em.weo.debt_gdp.zaf: ratio
+  em.weo.fiscal_gdp.are: ratio
+  em.weo.fiscal_gdp.bra: ratio
+  em.weo.fiscal_gdp.chn: ratio
+  em.weo.fiscal_gdp.idn: ratio
+  em.weo.fiscal_gdp.ind: ratio
+  em.weo.fiscal_gdp.kor: ratio
+  em.weo.fiscal_gdp.mex: ratio
+  em.weo.fiscal_gdp.mys: ratio
+  em.weo.fiscal_gdp.pol: ratio
+  em.weo.fiscal_gdp.sau: ratio
+  em.weo.fiscal_gdp.tha: ratio
+  em.weo.fiscal_gdp.twn: ratio
+  em.weo.fiscal_gdp.zaf: ratio
+  em.weo.gdp_usd.are: quantity
+  em.weo.gdp_usd.bra: quantity
+  em.weo.gdp_usd.chn: quantity
+  em.weo.gdp_usd.idn: quantity
+  em.weo.gdp_usd.ind: quantity
+  em.weo.gdp_usd.kor: quantity
+  em.weo.gdp_usd.mex: quantity
+  em.weo.gdp_usd.mys: quantity
+  em.weo.gdp_usd.pol: quantity
+  em.weo.gdp_usd.sau: quantity
+  em.weo.gdp_usd.tha: quantity
+  em.weo.gdp_usd.twn: quantity
+  em.weo.gdp_usd.zaf: quantity
+  etf.gld_oz: quantity
+  etf.gld_share_flow: quantity
+  etf.gld_shares: quantity
+  etf.gld_tonnes: quantity
+  etf.iau_oz: quantity
+  etf.iau_share_flow: quantity
+  etf.iau_shares: quantity
+  etf.iau_tonnes: quantity
+  etf.ibit_share_flow: quantity
+  etf.ibit_shares: quantity
+  etf.slv_oz: quantity
+  etf.slv_share_flow: quantity
+  etf.slv_shares: quantity
+  etf.slv_tonnes: quantity
+  exposure.abs_dex_shares: quantity
+  exposure.call_wall: price
+  exposure.call_wall_otm: price
+  exposure.chex_notional_per_day: quantity
+  exposure.chex_shares_per_day: quantity
+  exposure.dex_notional: quantity
+  exposure.dex_shares: quantity
+  exposure.dollar_gamma_per_1pct: quantity
+  exposure.expiration_release.dex_shares: quantity
+  exposure.expiration_release.share_of_abs_dex: ratio
+  exposure.floored_share_of_abs_gex: ratio
+  exposure.gamma_flip: price
+  exposure.gamma_flip_cum_strikes: price
+  exposure.gross_gamma_per_1pct: quantity
+  exposure.gross_gex_abs: quantity
+  exposure.max_pain: price
+  exposure.net_gex: quantity
+  exposure.net_to_gross: ratio
+  exposure.oi_calls: quantity
+  exposure.oi_put_call_ratio: ratio
+  exposure.oi_puts: quantity
+  exposure.oi_strikes: quantity
+  exposure.oi_total: quantity
+  exposure.peak_abs_gex_strike: price
+  exposure.per_strike.call_gex: quantity
+  exposure.per_strike.chex: quantity
+  exposure.per_strike.dex: quantity
+  exposure.per_strike.gex: quantity
+  exposure.per_strike.put_gex: quantity
+  exposure.per_strike.vex: quantity
+  exposure.put_wall: price
+  exposure.put_wall_gamma: price
+  exposure.put_wall_oi: price
+  exposure.put_wall_otm: price
+  exposure.share_of_total_abs_dex: ratio
+  exposure.share_of_total_abs_gex: ratio
+  exposure.shares_per_1pct: quantity
+  exposure.spot: price
+  exposure.vex_notional_per_volpt: quantity
+  exposure.vex_shares_per_volpt: quantity
+  fedboard.cie: rate
+  fedfunds.futures_price: price
+  finra.margin_debit: quantity
+  finra.margin_free_credit_cash: quantity
+  finra.margin_free_credit_margin: quantity
+  finra.short_exempt_volume: quantity
+  finra.short_interest: quantity
+  finra.short_interest_avg_volume: quantity
+  finra.short_interest_days_to_cover: quantity   # ambiguous: a duration in days; alternative: ratio
+  finra.short_interest_prior: quantity
+  finra.short_volume: quantity
+  finra.total_volume: quantity
+  fiscaldata.mspd_bills: quantity
+  fiscaldata.mspd_bonds: quantity
+  fiscaldata.mspd_frn: quantity
+  fiscaldata.mspd_marketable_total: quantity
+  fiscaldata.mspd_net_marketable_issuance: quantity
+  fiscaldata.mspd_notes: quantity
+  fiscaldata.mspd_tips: quantity
+  french.hml: ratio   # ambiguous: a return series, not a level; alternative: price
+  french.ind49_beme: ratio
+  french.ind49_ret_vw: ratio   # ambiguous: a return series, not a level; alternative: price
+  gates.iv_dispersion: ratio
+  gates.oi_concentration: ratio
+  gates.oi_weighted_dte: quantity   # ambiguous: a duration in days; alternative: ratio
+  grade.dollars_at_risk: quantity
+  grade.mae_close_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  grade.r_multiple: ratio
+  grade.r_multiple_ruled: ratio
+  grade.return_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  grade.return_points: price
+  grade.risk_per_unit: price
+  hktma.cnh_hibor_1m: rate
+  hktma.cnh_hibor_1w: rate
+  hktma.cnh_hibor_3m: rate
+  hktma.cnh_hibor_on: rate
+  ibkr.auction_imbalance_qty: quantity
+  ibkr.auction_indicative_price: price
+  ibkr.auction_paired_qty: quantity
+  ibkr.borrow_fee_rate: rate
+  ibkr.borrow_rebate_rate: rate
+  ibkr.shortable_shares: quantity
+  imf.ifs.gold_net_purchases_count.total: quantity
+  imf.ifs.gold_net_purchases_oz.aut: quantity
+  imf.ifs.gold_net_purchases_oz.bel: quantity
+  imf.ifs.gold_net_purchases_oz.che: quantity
+  imf.ifs.gold_net_purchases_oz.chn: quantity
+  imf.ifs.gold_net_purchases_oz.cze: quantity
+  imf.ifs.gold_net_purchases_oz.deu: quantity
+  imf.ifs.gold_net_purchases_oz.esp: quantity
+  imf.ifs.gold_net_purchases_oz.fra: quantity
+  imf.ifs.gold_net_purchases_oz.gbr: quantity
+  imf.ifs.gold_net_purchases_oz.hun: quantity
+  imf.ifs.gold_net_purchases_oz.ind: quantity
+  imf.ifs.gold_net_purchases_oz.irq: quantity
+  imf.ifs.gold_net_purchases_oz.ita: quantity
+  imf.ifs.gold_net_purchases_oz.jpn: quantity
+  imf.ifs.gold_net_purchases_oz.kaz: quantity
+  imf.ifs.gold_net_purchases_oz.lbn: quantity
+  imf.ifs.gold_net_purchases_oz.nld: quantity
+  imf.ifs.gold_net_purchases_oz.pol: quantity
+  imf.ifs.gold_net_purchases_oz.prt: quantity
+  imf.ifs.gold_net_purchases_oz.rus: quantity
+  imf.ifs.gold_net_purchases_oz.sau: quantity
+  imf.ifs.gold_net_purchases_oz.sgp: quantity
+  imf.ifs.gold_net_purchases_oz.tha: quantity
+  imf.ifs.gold_net_purchases_oz.total: quantity
+  imf.ifs.gold_net_purchases_oz.tur: quantity
+  imf.ifs.gold_net_purchases_oz.twn: quantity
+  imf.ifs.gold_net_purchases_oz.usa: quantity
+  imf.ifs.gold_net_purchases_oz.uzb: quantity
+  imf.ifs.gold_reserves_oz.aut: quantity
+  imf.ifs.gold_reserves_oz.bel: quantity
+  imf.ifs.gold_reserves_oz.che: quantity
+  imf.ifs.gold_reserves_oz.chn: quantity
+  imf.ifs.gold_reserves_oz.cze: quantity
+  imf.ifs.gold_reserves_oz.deu: quantity
+  imf.ifs.gold_reserves_oz.esp: quantity
+  imf.ifs.gold_reserves_oz.fra: quantity
+  imf.ifs.gold_reserves_oz.gbr: quantity
+  imf.ifs.gold_reserves_oz.hun: quantity
+  imf.ifs.gold_reserves_oz.ind: quantity
+  imf.ifs.gold_reserves_oz.irq: quantity
+  imf.ifs.gold_reserves_oz.ita: quantity
+  imf.ifs.gold_reserves_oz.jpn: quantity
+  imf.ifs.gold_reserves_oz.kaz: quantity
+  imf.ifs.gold_reserves_oz.lbn: quantity
+  imf.ifs.gold_reserves_oz.nld: quantity
+  imf.ifs.gold_reserves_oz.pol: quantity
+  imf.ifs.gold_reserves_oz.prt: quantity
+  imf.ifs.gold_reserves_oz.rus: quantity
+  imf.ifs.gold_reserves_oz.sau: quantity
+  imf.ifs.gold_reserves_oz.sgp: quantity
+  imf.ifs.gold_reserves_oz.tha: quantity
+  imf.ifs.gold_reserves_oz.tur: quantity
+  imf.ifs.gold_reserves_oz.twn: quantity
+  imf.ifs.gold_reserves_oz.usa: quantity
+  imf.ifs.gold_reserves_oz.uzb: quantity
+  imf.ifs_official_gold_oz: quantity
+  index.forward_pe: ratio
+  lbma.gold_pm_usd: price
+  levetf.aum: quantity
+  levetf.nav: price
+  levetf.shares_outstanding: quantity
+  manual.aaii_bonds_pct: ratio
+  manual.aaii_cash_pct: ratio
+  manual.aaii_stocks_pct: ratio
+  manual.cbo_deficit_path: ratio
+  manual.cofer_usd_share: ratio
+  manual.cofer_usd_share_constant_fx: ratio
+  manual.fedwatch_next_meeting_prob: ratio
+  manual.g4_issuance_gap_gdp: ratio
+  manual.global_visible_stocks_bbl: quantity
+  manual.gold_share_total_reserves: ratio
+  manual.ig_cover_median: ratio
+  manual.ig_nic_median_bp: spread
+  manual.msci_acwi_exus_usd: price
+  manual.msci_em_local: price
+  manual.msci_em_usd: price
+  manual.msci_world_usd: price
+  manual.mu_hbm_share: ratio
+  manual.oecd_days_cover: quantity   # ambiguous: a duration in days; alternative: ratio
+  manual.panda_bond_issuance: quantity
+  manual.sep_median_12m: rate
+  manual.sep_median_next2: rate
+  mof.jgb_2y: rate
+  mof.jgb_5y: rate
+  nbs.city70_new_mm_avg: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.city70_new_mm_down: quantity
+  nbs.city70_new_mm_up: quantity
+  nbs.city70_new_yy_avg: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.city70_new_yy_down: quantity
+  nbs.re_sales_ytd: quantity
+  nbs.re_sales_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.re_sold_area_ytd: quantity
+  nbs.re_sold_area_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.re_starts_ytd: quantity
+  nbs.re_starts_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  ndl.rtat10_activity: ratio
+  ndl.rtat10_concentration: ratio
+  ndl.rtat10_new_entrants: quantity
+  ndl.rtat10_persistence: quantity   # ambiguous: a duration in days; alternative: ratio
+  ndl.rtat10_sentiment: quantity
+  nyfed.sce_3y: rate
+  nyfed.sce_5y: rate
+  oil.prompt_spread: price
+  paper.benchmark: price
+  pin.dist_bps: spread
+  pm.ask: ratio
+  pm.bid: ratio
+  pm.implied: ratio
+  pm.last: ratio
+  pm.probability: ratio
+  portfolio.available_funds: quantity
+  portfolio.buying_power: quantity
+  portfolio.cash: quantity
+  portfolio.cushion: ratio
+  portfolio.excess_liquidity: quantity
+  portfolio.gross_position_value: quantity
+  portfolio.init_margin: quantity
+  portfolio.maint_margin: quantity
+  portfolio.nav: quantity
+  portfolio.position_avg_cost: price
+  portfolio.position_con_id: quantity
+  portfolio.position_market_value: quantity
+  portfolio.position_qty: quantity
+  portfolio.position_unrealized_pnl: quantity
+  regime.dimension_percentile: ratio
+  safe.bop_capital_financial: quantity
+  safe.bop_current_account: quantity
+  safe.bop_errors_omissions: quantity
+  safe.bop_financial_ex_reserves: quantity
+  safe.bop_reserve_assets: quantity
+  safe.fx_reserves: quantity
+  safe.gold_reserves_oz: quantity
+  safe.gold_reserves_usd: quantity
+  safe.iip_assets: quantity
+  safe.iip_liabilities: quantity
+  safe.iip_net: quantity
+  safe.iip_reserve_assets: quantity
+  safe.official_reserves_total: quantity
+  sffed.expected_rate_10y: rate
+  sffed.fitted_yield_10y: rate
+  sffed.term_premium_10y: rate
+  sffed.term_premium_5y: rate
+  shfe.stocks_t: quantity
+  shfe.warrants_t: quantity
+  shiller.cape: ratio
+  shiller.cpi: price
+  shiller.gs10: rate
+  shiller.sp_dividend: price
+  shiller.sp_earnings: price
+  shiller.sp_price: price
+  sifma.corp_issuance_by_maturity: quantity
+  spdji.fwd12m_op_eps: quantity
+  spdji.op_eps_est_q: quantity
+  thai.bot_policy_rate: rate
+  thai.cpi: price
+  thai.cpi_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  thai.gdp_real_sa: quantity
+  thai.gdp_real_sa_qoq: ratio   # ambiguous: a return series, not a level; alternative: price
+  thai.set_index: price
+  thai.tourist_arrivals: quantity
+  tic.flow_banks_own_dollar_liabilities: quantity
+  tic.flow_bills_official: quantity
+  tic.flow_bills_other_custody: quantity
+  tic.flow_bills_private: quantity
+  tic.flow_bills_total: quantity
+  tic.flow_gross_us_purchases_domestic: quantity
+  tic.flow_gross_us_purchases_foreign: quantity
+  tic.flow_gross_us_sales_domestic: quantity
+  tic.flow_gross_us_sales_foreign: quantity
+  tic.flow_net_domestic: quantity
+  tic.flow_net_foreign: quantity
+  tic.flow_net_foreign_bonds: quantity
+  tic.flow_net_foreign_equity: quantity
+  tic.flow_net_lt_acquisitions: quantity
+  tic.flow_net_lt_securities: quantity
+  tic.flow_official_agency: quantity
+  tic.flow_official_corporate: quantity
+  tic.flow_official_equity: quantity
+  tic.flow_official_net_domestic: quantity
+  tic.flow_official_treasuries: quantity
+  tic.flow_other_acquisitions: quantity
+  tic.flow_other_negotiable_official: quantity
+  tic.flow_other_negotiable_private: quantity
+  tic.flow_other_negotiable_total: quantity
+  tic.flow_private_agency: quantity
+  tic.flow_private_corporate: quantity
+  tic.flow_private_equity: quantity
+  tic.flow_private_net_domestic: quantity
+  tic.flow_private_treasuries: quantity
+  tic.flow_total: quantity
+  tic.flow_total_official: quantity
+  tic.flow_total_private: quantity
+  tic.holdings_by_country: quantity
+  tic.holdings_total: quantity
+  tic.official_bills: quantity
+  tic.official_bonds_notes: quantity
+  tic.official_holdings: quantity
+  tic.private_holdings: quantity
+  umich.expect_5_10y: rate
+  wgc.cb_gold_holdings_t: quantity
+  wgc.cb_net_purchases_t: quantity
+  worldbank.cmo_energy: price
+  worldbank.cmo_metals: price
+  worldbank.cmo_nonenergy: price
+  worldbank.cmo_precious: price
+  worldbank.cmo_total: price
+  yf.analyst_count: quantity
+  yf.forward_eps: quantity
+  yf.forward_pe: ratio
+  yf.target_mean_price: quantity
+  yf.trailing_eps: quantity
+  yf.trailing_pe: ratio
+  yfinance.fund_amat_capex: quantity
+  yfinance.fund_amat_cogs: quantity
+  yfinance.fund_amat_net_debt: quantity
+  yfinance.fund_amat_operating_cash_flow: quantity
+  yfinance.fund_amzn_capex: quantity
+  yfinance.fund_amzn_cogs: quantity
+  yfinance.fund_amzn_inventory: quantity
+  yfinance.fund_amzn_net_debt: quantity
+  yfinance.fund_amzn_operating_cash_flow: quantity
+  yfinance.fund_avgo_capex: quantity
+  yfinance.fund_avgo_cogs: quantity
+  yfinance.fund_avgo_net_debt: quantity
+  yfinance.fund_avgo_operating_cash_flow: quantity
+  yfinance.fund_googl_capex: quantity
+  yfinance.fund_googl_cogs: quantity
+  yfinance.fund_googl_inventory: quantity
+  yfinance.fund_googl_net_debt: quantity
+  yfinance.fund_googl_operating_cash_flow: quantity
+  yfinance.fund_meta_capex: quantity
+  yfinance.fund_meta_cogs: quantity
+  yfinance.fund_meta_net_debt: quantity
+  yfinance.fund_meta_operating_cash_flow: quantity
+  yfinance.fund_msft_capex: quantity
+  yfinance.fund_msft_cogs: quantity
+  yfinance.fund_msft_inventory: quantity
+  yfinance.fund_msft_net_debt: quantity
+  yfinance.fund_msft_operating_cash_flow: quantity
+  yfinance.fund_mu_capex: quantity
+  yfinance.fund_mu_cogs: quantity
+  yfinance.fund_mu_inventory: quantity
+  yfinance.fund_mu_net_debt: quantity
+  yfinance.fund_mu_operating_cash_flow: quantity
+  yfinance.fund_nvda_capex: quantity
+  yfinance.fund_nvda_cogs: quantity
+  yfinance.fund_nvda_net_debt: quantity
+  yfinance.fund_nvda_operating_cash_flow: quantity
+  yfinance.fund_orcl_capex: quantity
+  yfinance.fund_orcl_cogs: quantity
+  yfinance.fund_orcl_net_debt: quantity
+  yfinance.fund_orcl_operating_cash_flow: quantity
+  zec.beta_to_btc_60d: ratio
+  zec.btc_ratio: ratio
+  zec.crypto_cap_share: ratio
+  zec.market_cap_usd: quantity
+  zec.pool_value: quantity
+  zec.price_usd: price
+  zec.realized_vol_20d: conditions
+  zec.shielded_tx_share: ratio
+  zec.shielded_value_share: ratio
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -13277,6 +14131,10 @@ families:
 # Declared for the series batch 3's Tranche A adds and reads; the gate
 # (tools/validate_batch3_a.py) holds each new key to a line here.
 long_windows:
+  # 6e (minutes 6c and 6e): valuation ratios take the full history.
+  shiller.cape: full
+  index.forward_pe: full
+  yf.forward_pe: full
   fred.tips_5y: full
   acm.risk_neutral_yield_2y: full
   acm.risk_neutral_yield_5y: full
@@ -13485,3 +14343,56 @@ reserved:
     - vendor_call_wall
     - vendor_put_wall
     - vendor_source
+
+# NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
+# names every member of the block; a key names one series.
+lens_excluded:
+  auction.cusip: "units 'label': not a level series"
+  base_rate_tables: "tables, not series"
+  baserate.review_flag: "units 'label': not a level series"
+  cfe.vx_probe: "units 'label': not a level series"
+  contradiction.open: "units 'boolean': not a level series"
+  contradiction.since: "units 'date': not a level series"
+  correlation_shift_flags: "boolean flags"
+  driver_attribution_sign_stability: "boolean flags"
+  event_columns: "the events table's columns"
+  event_types: "the events table's types"
+  events.earnings: "units 'label': not a level series"
+  events.filing: "units 'label': not a level series"
+  events.headline: "units 'label': not a level series"
+  events.release: "units 'label': not a level series"
+  events.scheduled: "units 'label': not a level series"
+  events.session_event: "units 'label': not a level series"
+  fred.usrec: "the NBER recession flag (0/1)"
+  gates.data_quality: "units 'label': not a level series"
+  gates.liquidity_floor: "units 'boolean': not a level series"
+  grade.invalidation_hit: "units 'boolean': not a level series"
+  ibkr.auction_imbalance_side: "units 'label': not a level series"
+  ibkr.auction_probe: "units 'label': not a level series"
+  ibkr.borrow_probe: "units 'label': not a level series"
+  ibkr.stock_loan_file_probe: "units 'label': not a level series"
+  manual.dram_contract_dir: "units 'label': not a level series"
+  manual.state_bank_dollar_selling: "units 'label': not a level series"
+  market_actions: "dividends and splits: corporate-action events, not level series"
+  overnight.gap_attribution: "units 'label': not a level series"
+  overnight.gap_attribution_dominant: "units 'label': not a level series"
+  pin.hit: "units 'boolean': not a level series"
+  pin_log_columns: "the pin log's columns"
+  pm.market: "units 'label': not a level series"
+  pm.open_interest: "units 'by_source': not a level series"
+  pm.price_basis: "units 'label': not a level series"
+  pm.volume: "units 'by_source': not a level series"
+  portfolio.position_currency: "units 'label': not a level series"
+  reference.file_vintage: "units 'label': not a level series"
+  regime.dial_state: "units 'label': not a level series"
+  regime.dimension_direction: "units 'label': not a level series"
+  regime.dimension_state: "units 'label': not a level series"
+  scan.crypto_basket_item: "units 'label': not a level series"
+  screen.em: "units 'label': not a level series"
+  screen.em_contagion: "units 'label': not a level series"
+  screen.move: "units 'label': not a level series"
+  screen.move_summary: "units 'label': not a level series"
+  spdji.eps_drop: "units 'label': not a level series"
+  structure_comparison: "labels"
+  zec.cap_probe: "units 'label': not a level series"
+  zec.shielded_probe: "units 'label': not a level series"

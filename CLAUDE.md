@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-five code gates (seventy-two Python,
+**`make validate` runs every gate** — seventy-six code gates (seventy-three Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -283,6 +283,17 @@ prints verbatim (escaped, never polished, audited or trimmed; in the reading tim
 never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
 words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
+
+**Each family of metrics is measured its own way (6e, the metric lenses; ruled
+1 Oct, ratified 4 Oct 2026).** Every level series in the registry carries a
+`family` -- price, rate, spread, release, quantity, conditions or ratio -- in the
+`families` map, a block's `family` or `member_families`; a series that is not a
+level is named in `lens_excluded` with its reason. `derived.lens_forms()` computes
+the family's forms (returns and drawdown flags for a price; bp changes for a rate;
+YoY, 3-month annualized and the revision line for a release; direction for a
+quantity; dual percentiles with n wherever a level is placed), point-in-time,
+and the Monthly v2 pillar tables print them. A monthly release never shows a
+20-session change. `tools/validate_lenses.py` holds it.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates

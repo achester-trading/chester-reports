@@ -621,6 +621,8 @@ def appendix_block(as_of: Optional[str] = None,
                 "extreme": d.get("extreme"),
                 "confidence": d.get("confidence"),
                 "staleness_sessions": d.get("staleness_sessions"),
+                # 6e: the family's own forms, computed in altdata/derived.py only.
+                "lens": derived.lens_forms(metric, as_of, store=db),
             })
         for num, rows in sorted(by_pillar.items()):
             try:

@@ -621,6 +621,135 @@ def register_section(p: dict) -> str:
     return "\n".join(out) + "\n---\n"
 
 
+# THE LENSES (6e). Each family prints its own forms (altdata/derived.py's
+# lens_forms; the brief of 1 Oct, ratified 4 Oct): a monthly release never shows a
+# 20-session change, a quantity shows its direction of travel, a level shows its
+# five-year AND long percentile with each one's n. A form that cannot be computed
+# prints n/a, and its reason goes in the table's footnote.
+LENS_ORDER = ("price", "rate", "spread", "release", "quantity", "conditions", "ratio")
+LENS_COLUMNS: dict[str, list[tuple[str, Any]]] = {
+    "price": [("1m", "return_1m"), ("3m", "return_3m"), ("12m", "return_12m"),
+              ("YTD", "return_ytd"), ("From 52w high", "drawdown_52w"),
+              ("Vol 20d (pctile)", "vol"), ("12m return pctile", "r12p")],
+    "rate": [("1m", "change_1m_bp"), ("3m", "change_3m_bp"), ("12m", "change_12m_bp"),
+             ("Pctile 5y", "p5"), ("Pctile long", "pl")],
+    "spread": [("1m", "change_1m_bp"), ("3m", "change_3m_bp"), ("Pctile 5y", "p5"),
+               ("Pctile long", "pl")],
+    "release": [("YoY", "yoy"), ("3m ann. / 3m chg", "m3"), ("Surprise", "surprise"),
+                ("Revision", "revision"), ("Level pctile", "p5opt")],
+    "quantity": [("YoY", "yoy_pct"), ("3m change", "change_3m_units"),
+                 ("Direction", "direction")],
+    "conditions": [("Pctile 5y", "p5"), ("Pctile long", "pl"), ("z (5y)", "z_5y"),
+                   ("vs 1y avg", "spike_vs_1y_avg_pct")],
+    "ratio": [("Pctile 5y", "p5"), ("Pctile long", "pl"), ("3m trend", "trend_3m")],
+}
+
+
+def _pct_cell(f: dict, tag: str) -> Optional[str]:
+    if f.get(tag) is None:
+        return None
+    return f"{f.get(tag + '_ordinal')} ({f.get(tag + '_window')}, n={f.get(tag + '_n')})"
+
+
+def _lens_cell(lens: dict, col: str) -> Optional[str]:
+    f = lens.get("forms") or {}
+    if col in ("p5", "p5opt"):
+        return _pct_cell(f, "pctile_5y")
+    if col == "pl":
+        return _pct_cell(f, "pctile_long")
+    if col == "vol":
+        if f.get("realized_vol_20d") is None:
+            return None
+        return (f"{_v(f['realized_vol_20d'], 1)}% "
+                f"({f.get('realized_vol_20d_pctile_ordinal') or 'n/a'})")
+    if col == "r12p":
+        return (None if f.get("return_12m_pctile") is None else
+                f"{f['return_12m_pctile_ordinal']} (n={f.get('return_12m_pctile_n')})")
+    if col == "m3":
+        if f.get("annualized_3m") is not None:
+            return f"{_signed(f['annualized_3m'], 1)}% ann."
+        if f.get("change_3m") is not None:
+            return f"{_signed(f['change_3m'], 2)} pp"
+        return None
+    v = f.get(col)
+    if v is None:
+        return None
+    if col.endswith("_bp"):
+        return f"{_signed(v, 0)} bp"
+    if col in ("return_1m", "return_3m", "return_12m", "return_ytd", "drawdown_52w",
+               "yoy_pct", "spike_vs_1y_avg_pct"):
+        return f"{_signed(v, 1)}%"
+    if col == "yoy":
+        return f"{_signed(v, 2)} pp" if f.get("yoy_unit") == "pp" else f"{_signed(v, 1)}%"
+    if col == "change_3m_units":
+        return f"{_signed(v, 1)} {f.get('change_3m_units_unit') or ''}".strip()
+    if col == "z_5y":
+        return _signed(v, 2)
+    if col == "trend_3m":
+        return f"{_signed(v, 3)} ({f.get('trend_3m_direction')})"
+    if col == "surprise":
+        return f"{_signed(v, 2)} vs {_v(f.get('consensus'))}"
+    return str(v)
+
+
+def _lens_flags(lens: dict) -> str:
+    fl = lens.get("flags") or {}
+    words = [w for w, on in (("**bear**", fl.get("bear")),
+                             ("**correction**", fl.get("correction") and not fl.get("bear")),
+                             ("**widening**", fl.get("widening")),
+                             ("5y/long disagree", fl.get("percentiles_disagree"))) if on]
+    return ", ".join(words) or "—"
+
+
+def lens_tables(rows: list[dict]) -> list[str]:
+    """One table per family present in `rows`, in LENS_ORDER; rows with no lens
+    (no family) in a short closing list with the reason."""
+    out: list[str] = []
+    by: dict[str, list[dict]] = {}
+    none: list[dict] = []
+    for r in rows:
+        fam = (r.get("lens") or {}).get("family")
+        (by.setdefault(fam, []) if fam else none).append(r)
+    for fam in LENS_ORDER:
+        group = by.get(fam) or []
+        if not group:
+            continue
+        cols = LENS_COLUMNS[fam]
+        out.append(f"**{fam}**\n")
+        out.append("| Series | Level | " + " | ".join(c for c, _ in cols) + " | Flags |")
+        out.append("|---|---|" + "---|" * len(cols) + "---|")
+        notes = []
+        for r in group:
+            lens = r["lens"]
+            cells = []
+            for title, key in cols:
+                c = _lens_cell(lens, key)
+                if c is None and key == "p5opt" and "pctile_5y" not in (lens.get("forms") or {}):
+                    cells.append("—")            # not one of this release's forms (6e: U-3)
+                    continue
+                if c is None:
+                    cells.append("n/a")
+                    why = (lens.get("reasons") or {}).get(
+                        {"p5": "pctile_5y", "p5opt": "pctile_5y", "pl": "pctile_long",
+                         "vol": "realized_vol_20d",
+                         "r12p": "return_12m_pctile", "m3": "annualized_3m"}.get(key, key))
+                    if not why and key == "m3":
+                        why = (lens.get("reasons") or {}).get("change_3m")
+                    notes.append(f"`{r['metric']}` {title}: {why or 'not computed'}")
+                else:
+                    cells.append(c)
+            out.append(f"| `{r['metric']}` | {_v(lens.get('level'))} | " + " | ".join(cells)
+                       + f" | {_lens_flags(lens)} |")
+        out.append("")
+        if notes:
+            out.append("*n/a: " + "; ".join(notes) + ".*\n")
+    if none:
+        out.append("*No lens: " + "; ".join(
+            f"`{r['metric']}` ({((r.get('lens') or {}).get('reasons') or {}).get('family', 'no family')})"
+            for r in none) + ".*\n")
+    return out
+
+
 def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("appendix") or {}
     if b.get("state") != "ok":
@@ -694,17 +823,21 @@ def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
         # it moved, what to watch -- above its table.
         if prose is not None and prose.get(f"pillar:{num}"):
             out += _prose(prose, f"pillar:{num}")
-        out.append("| Series | Level | 20d change | Pctile | Conf | Stale |")
-        out.append("|---|---|---|---|---|---|")
-        for r in v.get("series") or []:
-            out.append(
-                f"| `{r['metric']}` | {_v(r.get('level'))} | "
-                f"{_delta(r.get('delta_20d'), r.get('delta_unit'))} | "
-                f"{_v(r.get('percentile'), 1)}"
-                f"{' **!**' if r.get('extreme') else ''} | "
-                f"{r.get('confidence') or '—'} | "
-                f"{_v(r.get('staleness_sessions'), 0)} |")
-        out.append("")
+        rows = v.get("series") or []
+        if any(r.get("lens") for r in rows):
+            out += lens_tables(rows)             # 6e: each family its own forms
+        else:                                    # a payload built before the lenses
+            out.append("| Series | Level | 20d change | Pctile | Conf | Stale |")
+            out.append("|---|---|---|---|---|---|")
+            for r in rows:
+                out.append(
+                    f"| `{r['metric']}` | {_v(r.get('level'))} | "
+                    f"{_delta(r.get('delta_20d'), r.get('delta_unit'))} | "
+                    f"{_v(r.get('percentile'), 1)}"
+                    f"{' **!**' if r.get('extreme') else ''} | "
+                    f"{r.get('confidence') or '—'} | "
+                    f"{_v(r.get('staleness_sessions'), 0)} |")
+            out.append("")
     return "\n".join(out) + "\n---\n"
 
 
