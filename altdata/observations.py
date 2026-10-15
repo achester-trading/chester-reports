@@ -198,6 +198,31 @@ SELECT observed_at, value_num, value_text, source, available_at, run_id,
 """
 
 
+# AS_OF_SQL WITH A LOWER BOUND ON THE PERIOD (AUD-1 4c): the same join, over the
+# periods on or after :observed_from only -- so a caller that needs a window does
+# not load five years to keep a week.
+AS_OF_FROM_SQL = AS_OF_SQL.replace(
+    "   AND available_at <= :as_of\n   AND available_at = (",
+    "   AND available_at <= :as_of\n   AND observed_at >= :observed_from\n"
+    "   AND available_at = (", 1)
+assert AS_OF_FROM_SQL != AS_OF_SQL
+
+# THE NEWEST PERIOD KNOWABLE AT THE CUTOFF, AT ITS NEWEST VINTAGE BY THEN (AUD-1
+# 4c): one indexed row, where latest_as_of used to load every period of the
+# series and keep the last. Ordered by the period, then the vintage, both
+# descending: the first row is exactly as_of(...)[-1].
+LATEST_AS_OF_SQL = """
+SELECT observed_at, value_num, value_text, source, available_at, run_id,
+       availability_kind
+  FROM observations
+ WHERE registry_key = :key
+   AND instrument IS :instrument
+   AND available_at <= :as_of
+ ORDER BY observed_at DESC, available_at DESC
+ LIMIT 1
+"""
+
+
 def drop_unchanged(db: "ObservationStore", rows: list[dict]) -> list[dict]:
     """Rows whose value differs from the latest one already stored for that period.
 
@@ -225,13 +250,21 @@ def drop_unchanged(db: "ObservationStore", rows: list[dict]) -> list[dict]:
     if not rows:
         return []
     latest: dict[tuple, Any] = {}
+    # AUD-1 4c: each series is read from the earliest period the batch writes,
+    # not from the beginning of its history.
+    first: dict[tuple, str] = {}
+    for r in rows:
+        k = (r["registry_key"], r.get("instrument"))
+        d = str(r["observed_at"])
+        first[k] = min(first.get(k, d), d)
     for r in rows:
         key = (r["registry_key"], r.get("instrument"))
         if key in latest:
             continue
         latest[key] = {str(x["observed_at"])[:10]: x["value_num"]
                        for x in db.as_of(r["registry_key"],
-                                         instrument=r.get("instrument"))}
+                                         instrument=r.get("instrument"),
+                                         observed_from=first[key][:10])}
     out = []
     for r in rows:
         have = latest[(r["registry_key"], r.get("instrument"))].get(
@@ -405,28 +438,71 @@ class ObservationStore:
 
     # -- read -------------------------------------------------------------
     def as_of(self, registry_key: str, as_of: Optional[str] = None,
-              instrument: Optional[str] = None) -> list[dict]:
+              instrument: Optional[str] = None,
+              observed_from: Optional[str] = None) -> list[dict]:
         """Every period's latest value KNOWABLE at `as_of`.
 
         This is the canonical join. `as_of` defaults to now, which is the right
         default for a live run and the wrong one for a historical study --
         pass the cutoff explicitly whenever reproducing a past decision.
+
+        `observed_from` (AUD-1 4c) keeps only the periods on or after it: the same
+        answer for those periods, without reading the ones before.
         """
         # Microseconds, not the default seconds. Truncating "now" to the
         # second and then padding it to .000000 puts the cutoff EARLIER than
         # any row written later in that same second, which would hide a
         # just-written observation from the query that follows it.
         cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
-        cur = self.conn.execute(AS_OF_SQL, {"key": registry_key,
-                                            "instrument": instrument,
-                                            "as_of": cutoff})
+        if observed_from:
+            cur = self.conn.execute(AS_OF_FROM_SQL, {
+                "key": registry_key, "instrument": instrument, "as_of": cutoff,
+                "observed_from": str(observed_from)})
+        else:
+            cur = self.conn.execute(AS_OF_SQL, {"key": registry_key,
+                                                "instrument": instrument,
+                                                "as_of": cutoff})
         return [dict(r) for r in cur.fetchall()]
+
+    def last_observed(self, keys=(), prefixes=()) -> Optional[str]:
+        """The newest observed_at day stored under any of `keys`, or under any key
+        starting with one of `prefixes` -- where an incremental recompute picks
+        up (AUD-1 4d). None when nothing is stored."""
+        best = None
+        for k in keys:
+            r = self.conn.execute("SELECT MAX(observed_at) FROM observations WHERE "
+                                  "registry_key = ?", (k,)).fetchone()
+            if r and r[0]:
+                best = max(best or "", str(r[0])[:10])
+        for p in prefixes:
+            r = self.conn.execute("SELECT MAX(observed_at) FROM observations WHERE "
+                                  "registry_key >= ? AND registry_key < ?",
+                                  (p, p + "\uffff")).fetchone()
+            if r and r[0]:
+                best = max(best or "", str(r[0])[:10])
+        return best or None
+
+    def newest_observed_any(self, registry_key: str,
+                            as_of: Optional[str] = None) -> Optional[str]:
+        """The newest observed_at day knowable at `as_of` under ANY instrument --
+        one indexed MAX, the same answer as asking latest_as_of() per instrument
+        and taking the freshest. AUD-1 3: the loggers now store thousands of
+        instruments a key, and the freshness check asked them one at a time."""
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        r = self.conn.execute(
+            "SELECT MAX(observed_at) FROM observations WHERE registry_key = ? "
+            "AND available_at <= ?", (registry_key, cutoff)).fetchone()
+        return str(r[0])[:10] if r and r[0] else None
 
     def latest_as_of(self, registry_key: str, as_of: Optional[str] = None,
                      instrument: Optional[str] = None) -> Optional[dict]:
-        """The most recent period knowable at the cutoff, or None."""
-        rows = self.as_of(registry_key, as_of, instrument)
-        return rows[-1] if rows else None
+        """The most recent period knowable at the cutoff, or None -- one row from
+        the index (AUD-1 4c), never the whole history."""
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        r = self.conn.execute(LATEST_AS_OF_SQL, {"key": registry_key,
+                                                 "instrument": instrument,
+                                                 "as_of": cutoff}).fetchone()
+        return dict(r) if r else None
 
     def all_vintages(self, registry_key: str,
                      instrument: Optional[str] = None) -> list[dict]:
@@ -467,6 +543,15 @@ class ObservationStore:
             "  FROM observations WHERE registry_key = ? AND instrument IS ?"
             " ORDER BY available_at, observed_at", (registry_key, instrument))
         return [dict(r) for r in cur.fetchall()]
+
+    def days_present(self, registry_key: str, since: str) -> set[str]:
+        """The observed_at days on or after `since` with ANY row for the key, any
+        instrument -- from the index, no values read (AUD-1 3b: which of the last
+        ten Reg SHO sessions are already stored)."""
+        cur = self.conn.execute(
+            "SELECT DISTINCT substr(observed_at, 1, 10) FROM observations "
+            "WHERE registry_key = ? AND observed_at >= ?", (registry_key, since))
+        return {r[0] for r in cur.fetchall()}
 
     def observed_days(self, registry_key: str,
                       text_contains: Optional[str] = None) -> list[str]:

@@ -80,6 +80,14 @@
 #                       succeeded (never), or the last success is older than
 #                       30h (stale:<h>h). Ranked ABOVE feed stale: a store with
 #                       no off-box copy is worse than a late feed. INC-1.
+#  15 disk alert     -> the pipeline is healthy AND the disk holding the store
+#                       is 85% used or more, or more than 1 GiB of swap is in
+#                       use, or MemAvailable is under 10% of MemTotal (AUD-1
+#                       item 1d, the audit of 14 Oct 2026: each EOD zip carried
+#                       a full copy of the database and nothing pruned them).
+#                       70% of the disk, or more than 512 MiB of swap, is a
+#                       warning on the verdict line (disk=warn:<n>%), not a
+#                       verdict. Ranked below the backup and above a stale feed.
 #  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
 #                       delivered: prices or FRED series older than the declared
 #                       allowance, or absent entirely. This is the channel a
@@ -630,6 +638,62 @@ if [[ "$STATE" == "ok" ]] && [[ "$BACKUP_STATE" != "ok" ]] \
     HEADLINE="BACKUP $BACKUP_STATE the off-box copy is not current"
 fi
 
+# ---- the disk and the swap (AUD-1 item 1d) ---------------------------------
+#
+# The space leak the audit of 14 Oct found -- a full copy of chester.db in every
+# EOD zip, and nothing pruning them -- would have announced itself only as a
+# full disk, at which point SQLite cannot write its WAL and every pass fails at
+# once. So the verdict line carries the disk the store lives on, and the
+# memory: a box short of memory is a box whose next large pass (the backfill,
+# a VACUUM) may be killed.
+#   DISK  WARN at 70% used (the line says disk=warn:<n>%); ALERT, exit 15, at 85%.
+#   SWAP  WARN above 512 MiB in use; ALERT above 1 GiB. Not "any swap" (corrected
+#         14 Oct 2026): that day the box held 131 MiB of swap on an ordinary
+#         run with 2.7 GiB available, so "any" would alert on every run. A
+#         little swap is the kernel parking idle pages; a lot is pressure.
+#   MEM   ALERT when MemAvailable is under 10% of MemTotal -- the pressure
+#         itself, whatever the swap says.
+# Overridable for the gate: CHESTER_DISK_PATH, CHESTER_DISK_PCT,
+# CHESTER_SWAP_USED_KB, and its twins CHESTER_MEM_AVAILABLE_KB and
+# CHESTER_MEM_TOTAL_KB.
+DISK_PATH="${CHESTER_DISK_PATH:-$REPO/data}"
+[[ -d "$DISK_PATH" ]] || DISK_PATH="$HOME"
+DISK_PCT="${CHESTER_DISK_PCT:-$(df --output=pcent "$DISK_PATH" 2>/dev/null | tail -1 | tr -dc '0-9')}"
+SWAP_USED_KB="${CHESTER_SWAP_USED_KB:-$(awk '/^SwapTotal:/{t=$2} /^SwapFree:/{f=$2} END{if (t != "") print t - f}' /proc/meminfo 2>/dev/null)}"
+MEM_AVAIL_KB="${CHESTER_MEM_AVAILABLE_KB:-$(awk '/^MemAvailable:/{print $2}' /proc/meminfo 2>/dev/null)}"
+MEM_TOTAL_KB="${CHESTER_MEM_TOTAL_KB:-$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)}"
+SWAP_WARN_KB=524288     # 512 MiB
+SWAP_ALERT_KB=1048576   # 1 GiB
+MEM_ALERT_PCT=10
+DISK_STATE=unknown
+if [[ -n "$DISK_PCT" ]]; then
+    level=0                                   # 0 ok, 1 warn, 2 alert
+    (( DISK_PCT >= 70 )) && level=1
+    (( DISK_PCT >= 85 )) && level=2
+    swap_kb=${SWAP_USED_KB:-0}
+    (( swap_kb > SWAP_WARN_KB && level < 1 )) && level=1
+    (( swap_kb > SWAP_ALERT_KB )) && level=2
+    mem_low=0
+    if [[ -n "$MEM_AVAIL_KB" && -n "$MEM_TOTAL_KB" ]] && (( MEM_TOTAL_KB > 0 )) \
+            && (( MEM_AVAIL_KB * 100 < MEM_TOTAL_KB * MEM_ALERT_PCT )); then
+        mem_low=1
+        level=2
+    fi
+    case $level in
+        0) DISK_STATE=ok ;;
+        1) DISK_STATE="warn:${DISK_PCT}%" ;;
+        2) DISK_STATE="alert:${DISK_PCT}%" ;;
+    esac
+    (( swap_kb > SWAP_WARN_KB )) && DISK_STATE="${DISK_STATE}+swap:${swap_kb}kB"
+    (( mem_low )) && DISK_STATE="${DISK_STATE}+memavail:$(( MEM_AVAIL_KB * 100 / MEM_TOTAL_KB ))%"
+fi
+log "  disk: ${DISK_PCT:-?}% used of $DISK_PATH, swap ${SWAP_USED_KB:-?}kB in use, MemAvailable ${MEM_AVAIL_KB:-?} of ${MEM_TOTAL_KB:-?}kB -- $DISK_STATE"
+if [[ "$STATE" == "ok" ]] && [[ "$DISK_STATE" == alert:* ]]; then
+    STATE=disk_alert
+    RC=15
+    HEADLINE="DISK $DISK_STATE -- the store's disk is nearly full or the box is short of memory"
+fi
+
 # ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
 #
 # "Are today's bars present" can only be asked where the store is. A CI runner has
@@ -917,21 +981,50 @@ if [[ -n "${STATE_PY:-}" ]]; then
     fi
 fi
 
+# ---- the listings snapshot (AUD-3b; stitching, week of 19 Oct) --------------
+#
+# A WARNING AND NEVER A VERDICT, like the events ingest: the 06:45 listings step
+# (altdata/listings.py) writes one snapshot a session under data/reference/
+# listings/, and the meme scan's identity reads the newest. `listings age` counts
+# the SESSIONS since it by the session calendar, so a weekend or a holiday is
+# not a miss; past two (MAX_AGE_SESSIONS) it warns. A missing snapshot is
+# reference data going stale, not a lost capture -- Nasdaq Trader republishes
+# the whole directory every day -- so the verdict and exit code are untouched.
+LISTINGS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_LISTINGS_CHECK:-}" ]]; then
+    LISTINGS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    LISTINGS_STATE=no_python
+else
+    LISTINGS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.listings age \
+                     ${CHESTER_LISTINGS_TODAY:+--today "$CHESTER_LISTINGS_TODAY"} 2>/dev/null)"
+    case $? in
+        0) LISTINGS_STATE=fresh ;;
+        1) LISTINGS_STATE=stale ;;
+        2) LISTINGS_STATE=none ;;
+        *) LISTINGS_STATE=error ;;
+    esac
+    [[ -n "$LISTINGS_LINE" ]] && log "  $LISTINGS_LINE"
+    if [[ "$LISTINGS_STATE" != "fresh" ]]; then
+        log "  WARNING listings: the snapshot is $LISTINGS_STATE -- the meme scan's identity reads an old directory. Re-run: python -m altdata.listings pull. The verdict and exit code are untouched"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

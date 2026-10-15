@@ -46,6 +46,16 @@ no network, no model:
      behind each fault; three attempts on the Weekly. A fake model that obeys
      the reason on attempt 2 publishes; one that never does is withheld after
      three; a fifth fault (run 6's Ahead Takeaway) still reaches the retry.
+  J  THE MONTHLY POLISH FROM DRY RUN #5 (T3.6; tests/fixtures/monthly_run5_
+     2026-10-13.json). M1 the role audit: "closed at" bound to a 40-week average
+     is withheld, the long frame names its columns' roles; M2 one direction per
+     instrument across the executive summary; M3 the one page against the
+     summary and itself, at most five paragraphs; M4 a derived change from
+     aligned legs, withheld with its legs when it is not theirs; M5 each gap's
+     direction over the month, the summary held to it; M6 forecasts and
+     decisions summarised; M7 small counts in words; M8 too long retried once
+     tighter, the narratives' sources; M9 the display form of a large figure;
+     M10 the two dollar series by name.
 
     python tools/validate_audit_fixes.py
 """
@@ -634,9 +644,316 @@ def group_h() -> None:
           "three attempts on the Weekly (config prose_attempts); the close keeps two")
 
 
+# ---------------------------------------------------------------------------
+# J. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)
+# ---------------------------------------------------------------------------
+M5 = json.loads((REPO / "tests" / "fixtures" / "monthly_run5_2026-10-13.json")
+                .read_text(encoding="utf-8"))
+
+
+class TooLong:
+    """A reply the length guard refused, as narrative.generate returns it."""
+    def __init__(self, text):
+        self.published, self.text, self.model = False, None, "fixture"
+        self.state, self.reason = "too_long", f"ran past the cap ({len(text)} chars)"
+        self.rejected_text = text
+
+    def withheld_note(self):
+        return f"narrative withheld: {self.reason}"
+
+
+def run_frame(sec_def: dict, drafts: list, ed: dict, kind: str = "stack",
+              max_chars: int = 4000) -> tuple:
+    """monthly_macro.prose.write_all over ONE frame, the model replaced by
+    `drafts` (a str is a published reply, a TooLong a refused one)."""
+    from daily_cascade import narrative as base
+    from monthly_macro import prose as mp
+    seen: list = []
+    real, real_states = base.generate, mp._market_states
+
+    def fake(payload, **kw):
+        seen.append(kw.get("system_prompt") or "")
+        d = drafts[min(len(seen) - 1, len(drafts) - 1)]
+        return d if isinstance(d, TooLong) else Reply(d)
+    base.generate, mp._market_states = fake, (lambda p: None)
+    try:
+        sec = {"kind": kind, "system": "fixture frame", "max_chars": max_chars,
+               "scope": "", "paragraphs": "2", **sec_def}
+        out = mp.write_all({}, client=object(), ed=ed, secs=[sec])
+    finally:
+        base.generate, mp._market_states = real, real_states
+    return out[sec["key"]], seen
+
+
+def group_j() -> None:
+    print(f"\n{LINE}\nJ. THE MONTHLY POLISH FROM DRY RUN #5 (T3.6)\n{LINE}")
+    from monthly_macro import prose as mp
+    from monthly_macro import stack as ms
+    col = mp.MONTH_COLUMN
+
+    # M1 -- the role audit -------------------------------------------------
+    m1 = M5["m1_roles"]
+    pay = {"long_frame": m1["long_frame"]}
+    for k in ("summary_quoted", "section2_quoted"):
+        f = na.role_faults(m1[k], pay)
+        check(f and "40-week average, an average, not a close" in f[0]
+              and f[0].count("an average, not a close") == 3,
+              f"M1: run 5's '{m1[k][:46]}...' is withheld: three averages cited as "
+              f"closes")
+    check(not na.role_faults(m1["correct"], pay)
+          and not na.role_faults(m1["average_named"], pay),
+          "M1: the close as a close, and an average named as one, pass")
+    tbl = {"columns": ["Market", "Month-end close", "40-week (≈200-day) average"],
+           "rows": [["Gold", "4,640.10", "4,554.56"]]}
+    check(na.role_faults(m1["summary_quoted"], {"table": tbl}),
+          "M1: a table cell takes its column's role")
+    tape = {"id": "tape", "title": "The tape", "depth": "deep", "items": [],
+            "subsections": [], "data": pay, "table": None}
+    res, seen = run_frame({"key": "summary:tape", "title": "Summary: The tape",
+                           "sid": "tape", "slice": pay},
+                          [m1["summary_quoted"], m1["correct"]], {"sections": [tape]})
+    check(res.get("published") and res.get("attempts") == 2
+          and "role audit failed" in (seen[1] if len(seen) > 1 else ""),
+          "M1: the summary paragraph is withheld, the retry hears which average it "
+          "was, and the corrected draft prints")
+    lf = ms.tape_section({"month_in_markets": {"rows": [], "end": "2026-09-30"}},
+                         {"instruments": [{"label": "Gold", "frame": {"last": 4640.1},
+                                           "row": {"drawdown_52w_pct": -1.4},
+                                           "levels": [{"type": "ma_40w", "value": 4554.56,
+                                                       "label": "40-week"}]}]})
+    roles = lf["data"].get("long_frame_columns") or {}
+    check("AVERAGE" in roles.get("ma_40w", "") and "close" in roles.get("close", "")
+          and "AVERAGES" in mp.MONTHLY_NOTES.get("tape", ""),
+          "M1: the long frame names each column's role, and the tape's frame says so")
+    check(mp.ROLE_RULE in mp.T36_RULES and mp.system_prompt("x", "y").count(
+        "bind ONLY to a close") == 1,
+          "M1: every Monthly frame carries the role rule")
+
+    # M2 -- one direction per instrument across the summary ------------------
+    m2 = M5["m2_consistency"]
+    t2 = {"id": "tape", "title": "The tape", "depth": "deep", "items": [],
+          "subsections": [], "data": {},
+          "table": {"columns": ["Market", "Close", col],
+                    "rows": [["Gold", "4,640.10", m2["moves"]["Gold"][1]],
+                             ["DXY", "101.45", m2["moves"]["DXY"][1]]]}}
+    p2 = {"id": "plumbing", "title": "Plumbing & rates", "depth": "deep", "items": [],
+          "subsections": [], "data": {},
+          "table": {"columns": ["Series", "Level", col], "rows": [["10-year", "4.59%",
+                                                                    "+54 bp"]]}}
+    ed2 = {"month": "September 2026", "sections": [t2, p2]}
+    w = {"summary:tape": {"published": True, "text": m2["paragraph_a"]},
+         "summary:plumbing": {"published": True, "text": m2["paragraph_b"]}}
+    bad = mp.summary_conflicts(w, ed2)
+    check(list(bad) == ["summary:plumbing"] and "'holding' (flat)" in bad["summary:plumbing"]
+          and "Gold -1.20%" in bad["summary:plumbing"]
+          and "'held its gains' (flat)" in bad["summary:plumbing"],
+          "M2: gold 'pulling back' and 'holding its level', the dollar 'firmed' and "
+          "'held': the paragraph against the month's signs is the one rewritten")
+    from daily_cascade import narrative as base
+    real, real_st = base.generate, mp._market_states
+    try:
+        mp._market_states = lambda p: None
+        base.generate = lambda payload, **kw: Reply(m2["paragraph_b_fixed"])
+        out = mp.reconcile_summary({}, w, ed2, client=object())
+        ok_fix = (out["summary:plumbing"].get("published")
+                  and out["summary:plumbing"].get("consistency_retry"))
+        base.generate = lambda payload, **kw: Reply(m2["paragraph_b"])
+        out2 = mp.reconcile_summary({}, w, ed2, client=object())
+    finally:
+        base.generate, mp._market_states = real, real_st
+    check(ok_fix and out["summary:tape"]["text"] == m2["paragraph_a"],
+          "M2: rewritten once with the reason, the agreeing paragraph prints")
+    check(not out2["summary:plumbing"].get("published")
+          and out2["summary:plumbing"].get("state") == "inconsistent",
+          "M2: a paragraph still in conflict is withheld")
+
+    # M3 -- the one page, de-duplicated and capped ---------------------------
+    m3 = M5["m3_duplication"]
+    page = {"title": "The month in one page", "phase": "month_in_one_page",
+            "paragraphs": list(m3["one_page"])}
+    ed3 = {"sections": [{"id": "read", "title": "The read", "subsections": [page]}],
+           "summary": [{"id": "read", "text": " ".join(m3["summary"])}]}
+    ms.dedup_one_page(ed3)
+    got = page["paragraphs"]
+    check(got == m3["one_page"][2:5] and ed3["one_page_dedup"]["summary"] >= 2
+          and ed3["one_page_dedup"]["itself"] >= 1,
+          f"M3: the one page drops what the summary says and what it says twice "
+          f"({ed3['one_page_dedup']}): {len(got)} paragraphs left")
+    page2 = {"phase": "month_in_one_page", "paragraphs": [
+        "Gold rallied on central-bank buying through the month.",
+        "Payrolls disappointed and the front end repriced cuts.",
+        "Oil slid as OPEC added barrels into a soft market.",
+        "Volatility sellers returned once the auctions cleared.",
+        "Credit issuance hit a record as spreads stayed tight.",
+        "Emerging currencies weakened against a firmer yen."]}
+    ed3b = {"sections": [{"id": "read", "subsections": [page2]}], "summary": []}
+    ms.dedup_one_page(ed3b)
+    check(len(page2["paragraphs"]) == ms.ONE_PAGE_MAX == 5
+          and any("Cut to 5 paragraphs" in n for n in page2.get("notes") or []),
+          "M3: the one page is capped at five paragraphs (decision 8), and says so")
+    one = next(x for x in mp.plan({}) if x["key"] == "month_in_one_page")
+    check(one["paragraphs"] == "exactly 5" and "Five takeaways" in one["scope"]
+          and "Say each thing once" in one["scope"],
+          "M3: its frame asks for five takeaways, each said once")
+
+    # M4 -- a derived change equals its legs' --------------------------------
+    m4 = M5["m4_derived"]
+    legs = {k: round((v["now"] - v["then"]) * 100, 1) for k, v in m4["legs"].items()}
+    ok, ch, diff = ms.derived_check(m4["stored"]["now"], m4["stored"]["then"],
+                                    {"10-year": legs["10-year"], "2-year": legs["2-year"]})
+    check(not ok and round(ch) == 83 and diff == 0,
+          f"M4: run 5's 2s10s +{ch:.0f} bp against legs of +54 bp each fails the check")
+    import gate_tmp
+    from altdata import observations
+    db = str(Path(gate_tmp.mkdtemp("validate_audit_fixes_h_")) / "h.db")
+    rows = []
+    for key, v in (("fred.yield_10y", m4["legs"]["10-year"]),
+                   ("fred.yield_2y", m4["legs"]["2-year"])):
+        for d, x in (("2026-08-31", v["then"]), ("2026-09-30", v["now"])):
+            rows.append({"registry_key": key, "instrument": None, "observed_at": d,
+                         "available_at": f"{d}T22:00:00+00:00", "value": x,
+                         "source": "synthetic"})
+    with observations.ObservationStore(db) as st:
+        st.write_many(rows)
+        b = {"table": {"rows": [["2s10s", "47 bp", "+83 bp", "2026-09-30"]]},
+             "data": {"series": {"2s10s": {"change": 83}}}, "items": []}
+        ms.derived_rows(b, st, "2026-10-01T12:00:00+00:00", "2026-08-31T23:59:59+00:00")
+    r = b["table"]["rows"][0]
+    check(r[1] == "47 bp" and "+83" not in r[2] and r[3] == "2026-09-30"
+          and b["data"]["series"]["2s10s"]["change_bp"] == 0.0,
+          f"M4: built from aligned legs and a same-date prior, 2s10s reads its legs' "
+          f"change: {r}")
+    with observations.ObservationStore(db) as st:
+        st.write_many([{"registry_key": "fred.yield_2y", "instrument": None,
+                        "observed_at": "2026-09-30", "value": 4.30,
+                        "available_at": "2026-09-30T23:00:00+00:00",
+                        "source": "synthetic"}])
+    import daily_cascade.weekly_sections as wsec
+    real_al = wsec.aligned_legs
+    try:
+        wsec.aligned_legs = lambda st_, a, b_, n, t: ((4.59, 4.12), (4.05, 3.58),
+                                                      "2026-09-30")
+        with observations.ObservationStore(db) as st:
+            b2 = {"table": {"rows": [["2s10s", "47 bp", "+83 bp", "2026-09-30"]]},
+                  "data": {"series": {"2s10s": {}}}, "items": []}
+            ms.derived_rows(b2, st, "2026-10-01T12:00:00+00:00",
+                            "2026-08-31T23:59:59+00:00")
+    finally:
+        wsec.aligned_legs = real_al
+    r2 = b2["table"]["rows"][0]
+    check(r2[1] == "withheld" and "10-year +54" in r2[2] and "2-year +72" in r2[2]
+          and "2s10s" not in b2["data"]["series"],
+          f"M4: a change that is not its legs' is withheld with the legs printed: {r2[2]}")
+
+    # M5 -- each gap's direction over the month ------------------------------
+    m5 = M5["m5_gaps"]
+    for g in m5["gaps"]:
+        h = [("2026-08-29", g["z_month_start"]), ("2026-09-15", g["z_month_start"]),
+             ("2026-09-29", g["z"] + (0.1 if g["z"] > 0 else -0.1)), ("2026-09-30", g["z"])]
+        md = ms.month_direction(h, "2026-08-31T23:59:59+00:00")
+        check(md and md[0] == "rising",
+              f"M5: {g['gap']} reads 'rising' over the month (|z| {abs(g['z_month_start'])} "
+              f"-> {abs(g['z'])}), though its last session fell")
+    mis = {"id": "misfit", "title": "What doesn't fit", "depth": "deep", "items": [],
+           "subsections": [], "table": None,
+           "data": {"gaps": [{"gap": g["gap"], "z": g["z"], "direction": "rising"}
+                             for g in m5["gaps"]]}}
+    res, seen = run_frame({"key": "summary:misfit", "title": "Summary: misfit",
+                           "sid": "misfit", "slice": {}},
+                          [m5["summary_quoted_shape"], m5["fixed"]], {"sections": [mis]})
+    check(res.get("published") and res.get("attempts") == 2
+          and "direction audit failed on the gaps" in (seen[1] if len(seen) > 1 else ""),
+          "M5: 'falling' against two gaps whose z rose is withheld; the retry prints")
+
+    # M6 -- Changed since last Monthly, summarised ----------------------------
+    m6 = M5["m6_changed"]
+    rws = [dict(r, source=None) for r in m6["keep"]]
+    rws += [{"what": "forecast emitted", "to": f"p 0.6: claim {i}"}
+            for i in range(m6["forecasts_emitted"])]
+    rws += [{"what": "forecast resolved", "probability": pr, "outcome": oc,
+             "to": f"outcome {oc}"} for pr, oc in m6["forecasts_resolved"]]
+    rws += [{"what": f"decision {i} {d}", "to": st_} for i, d, st_ in m6["decisions"]]
+    lines, ids = ms.changed_since({"looking_back": {"what_changed": {"rows": rws}}})
+    check(len(lines) == 5 and m6["expected_forecast_line"] in lines
+          and m6["expected_decision_line"] in lines
+          and all(any(k["what"] in ln for ln in lines) for k in m6["keep"])
+          and len(ids) == len(rws),
+          f"M6: {len(rws)} rows print as 5 lines -- the dial, dimension and exception "
+          f"kept; '{m6['expected_forecast_line']}' '{m6['expected_decision_line']}'")
+
+    # M7 -- a small count in words --------------------------------------------
+    m7 = M5["m7_counts"]
+    payload = {"meetings": [{"meeting": "2026-10-28", "p_cut": 0.6}] * 4,
+               "watched": 4}
+    check(not na.audit(m7["bare"], payload).passed and na.audit(m7["words"], payload).passed,
+          "M7: '2 of the next four meetings' fails the numeral audit; 'two' is exempt")
+    check(mp.COUNT_RULE in mp.T36_RULES and "in words" in mp.COUNT_RULE,
+          "M7: the frames ask for small counts in words")
+
+    # M8 -- too long, retried tighter; the narratives' sources ----------------
+    m8 = M5["m8_length"]
+    res, seen = run_frame({"key": "summary:ahead", "title": "Summary: Ahead",
+                           "sid": "ahead", "slice": {}, "max_chars": 1400},
+                          [TooLong("x" * m8["long_draft_chars"]), m8["short_draft"]],
+                          {"sections": []})
+    check(res.get("published") and res.get("attempts") == 2
+          and "at most 980 characters" in (seen[1] if len(seen) > 1 else ""),
+          "M8: a 'too_long' summary is retried once, told a tighter cap (980 of 1,400)")
+    res, seen = run_frame({"key": "summary:ahead", "title": "Summary: Ahead",
+                           "sid": "ahead", "slice": {}, "max_chars": 1400},
+                          [TooLong("x" * 1600)], {"sections": []})
+    check(not res.get("published") and res.get("attempts") == 2 and len(seen) == 2,
+          "M8: and only once")
+    nar = {"id": "narratives", "title": "Narratives", "depth": "deep", "items": [],
+           "subsections": [], "data": {}, "table": None}
+    plan = {x["key"]: x for x in mp.summary_plan({"sections": [nar, t2]})}
+    check(mp.SOURCE_RULE in plan["summary:narratives"]["system"]
+          and mp.SOURCE_RULE not in plan["summary:tape"]["system"],
+          "M8: the narratives' summary frame requires the source beside every delta")
+
+    # M9 -- the display form ---------------------------------------------------
+    m9 = M5["m9_display"]
+    res, seen = run_frame({"key": "theme:crypto", "title": "Crypto", "sid": "x",
+                           "slice": {"bitcoin": {"level": 83553.85,
+                                                 "latest_level_display": "83,553.85"},
+                                     "index": {"level": 7651.54}}},
+                          [m9["text"], m9["fixed"]], None, kind="v2")
+    check(res.get("published") and res.get("attempts") == 2
+          and "'83553.85' (write '83,553.85'" in (seen[1] if len(seen) > 1 else "")
+          and "'7651.54' (write '7,651.54'" in (seen[1] if len(seen) > 1 else ""),
+          "M9: '83553.85' and '7651.54' are withheld and the retry hears the table's "
+          "form; '83,553.85' prints")
+    check(not na.separator_faults("Payrolls in 2026 rose 120,000; 2s10s at 47 bp."),
+          "M9: a year and a name with digits are not figures")
+
+    # M10 -- two dollar series, each by its name --------------------------------
+    m10 = M5["m10_dollar"]
+    lfd = {"long_frame": [{"market": "DXY", "close": 101.45, "ma_40w": 99.35}]}
+    ttd = {"table": {"columns": ["Market", "Close, 2026-09-30", "Move"],
+                     "rows": [["Dollar (FRED broad index)", "120.97", "+0.40%"]]}}
+    both = [lfd, ttd]
+    check(mp.dollar_label_faults(m10["bare_a"], both)
+          and mp.dollar_label_faults(m10["bare_b"], both),
+          "M10: 'the dollar' beside DXY's 101.45 or the broad index's 120.97 is withheld "
+          "where both print")
+    check(not mp.dollar_label_faults(m10["named_a"], both)
+          and not mp.dollar_label_faults(m10["named_b"], both)
+          and not mp.dollar_label_faults(m10["bare_a"], [lfd]),
+          "M10: each named passes, and with one dollar series 'the dollar' is its alias")
+    res, seen = run_frame({"key": "summary:read", "title": "Summary: The read",
+                           "sid": "read", "slice": {}, "audit_extra": both},
+                          [m10["bare_a"], m10["named_a"]],
+                          {"sections": [{"id": "tape", "title": "The tape",
+                                         "data": lfd, "table": ttd["table"]}]})
+    check(res.get("published") and res.get("attempts") == 2
+          and "name the series" in (seen[1] if len(seen) > 1 else ""),
+          "M10: the summary is withheld and retried until the series is named")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
+              group_j):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0

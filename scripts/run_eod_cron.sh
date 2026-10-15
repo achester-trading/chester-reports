@@ -6,8 +6,9 @@
 # before every run and the box holds no local commits. Everything it needs is
 # either in the repo or passed in through the environment.
 #
-#   git pull --ff-only  ->  calendar guard  ->  venv run_eod.py  ->  append log
-#                                                              ->  touch heartbeat
+#   git pull --ff-only -> calendar guard -> run_eod.py --capture-only (the chains)
+#     -> feeds (12-minute cap) -> features, events, surprise
+#     -> run_eod.py --skip-fetch (compute, pins, backup) -> touch heartbeat
 #
 # THE CALENDAR GUARD. The systemd timer says Mon-Fri, which handles weekends
 # and knows nothing about Labor Day. On a market holiday the old behaviour was
@@ -34,6 +35,9 @@
 # Exit codes are run_eod.py's, passed through unchanged:
 #   0 ok · 1 no chains captured · 2 compute failed · 3 pin scoring failed
 #   4 ran fine but the off-box backup failed
+#   5 the capture was INCOMPLETE (AUD-1 5c): below 12 of 13 symbols or 90% of
+#     the listed expiries. Everything downstream still runs on what was caught;
+#     the heartbeat is not touched, and the close prints the gap.
 #
 # A non-session skip also exits 0 -- it is not an error, and nothing downstream
 # should page about a closed market.
@@ -132,7 +136,23 @@ case $GUARD_RC in
         ;;
 esac
 
-# ---- the feeds, BEFORE the chains and before the 16:45 object ---------------
+# ---- THE CHAINS FIRST (AUD-1 item 5a, the audit of 14 Oct 2026) -------------
+#
+# Until AUD-1 the feeds ran first and the capture waited behind them, so a slow
+# FRED or a hung price pull spent the minutes in which yfinance still serves the
+# closing chain. The chains are the one stage with no second chance, so they run
+# first, Stage 1 and 1b only, and the compute follows the feeds below. A capture
+# with no chains at all (exit 1) still lets the feeds run -- the 16:45 object
+# needs them -- but skips the compute, which would have nothing to read.
+log "chains: capture start"
+"$VENV_PY" run_eod.py --capture-only --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
+CAP_RC=$?
+log "chains: capture end rc=$CAP_RC"
+
+# ---- the feeds, AFTER the chains and before the 16:45 object ----------------
+#
+# ITS OWN CAP (AUD-1 5a): twelve minutes. A feed pull that hangs must not reach
+# the 16:45 close; `timeout` exits 124 and the run continues on what landed.
 #
 # The market-state object computes at 16:45 from whatever is in the store, so the
 # order here is the whole point: a feed that ran after it would produce an object
@@ -153,10 +173,12 @@ log "feeds: pull start"
 # THIS COMMENT WAS FALSE from 30 Sep to 6 Oct (INC-9): the overnight pass had
 # become `--early`, which skips them too. tools/validate_feeds_scheduled.py now
 # fails the commit if no scheduled runner pulls them.
-FEED_OUT="$("$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
+FEED_OUT="$(timeout 12m "$VENV_PY" -m altdata.feeds pull --skip loggers 2>&1)"
 FEED_RC=$?
 printf '%s\n' "$FEED_OUT" | sed 's/^/  /' >>"$LOG"
-if [[ $FEED_RC -ne 0 ]]; then
+if [[ $FEED_RC -eq 124 ]]; then
+    log "WARN feeds pull hit its 12-minute cap -- continuing; the freshness check reports what is missing"
+elif [[ $FEED_RC -ne 0 ]]; then
     log "WARN feeds pull exited $FEED_RC -- continuing; the freshness check reports it"
 else
     log "feeds: pull done"
@@ -185,6 +207,21 @@ else
     log "features: derived recompute done"
 fi
 
+# THE VOLUME PROFILE'S STORED SERIES (VP-1): calc.vp_<id>_session_* and _20s_*
+# for spy, qqq and iwm, from the 5-minute bars the feeds step just landed, for the
+# Alpha Lab's rule grammar. No --from: the last week's sessions are recomputed,
+# so a missed pass is caught up by the next. Never fatal, on the same argument
+# as the features above: the reports read the profile from the bars themselves.
+log "volume profile: compute"
+VP_OUT="$("$VENV_PY" -m altdata.volume_profile compute 2>&1)"
+VP_RC=$?
+printf '%s\n' "$VP_OUT" | sed 's/^/  /' >>"$LOG"
+if [[ $VP_RC -ne 0 ]]; then
+    log "WARN volume_profile exited $VP_RC -- continuing; the calc.vp_* series report their own staleness"
+else
+    log "volume profile: compute done"
+fi
+
 # ---- the events ingest, then the surprises ---------------------------------
 #
 # ORDER MATTERS AND IT IS NOT ALPHABETICAL. The ingest writes the earnings rows
@@ -208,8 +245,15 @@ printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
 START_EPOCH=$(date +%s)
-"$VENV_PY" run_eod.py --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
-RC=$?
+if [[ $CAP_RC -eq 1 ]]; then
+    log "compute skipped -- the capture stored no chains"
+    RC=1
+else
+    "$VENV_PY" run_eod.py --skip-fetch --close-source "$CLOSE_SOURCE" >>"$LOG" 2>&1
+    RC=$?
+    # A clean compute over an incomplete capture is still an incomplete night.
+    [[ $RC -eq 0 ]] && [[ $CAP_RC -ne 0 ]] && RC=$CAP_RC
+fi
 ELAPSED=$(( $(date +%s) - START_EPOCH ))
 
 log "run end rc=$RC elapsed=${ELAPSED}s"

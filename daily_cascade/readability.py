@@ -462,6 +462,41 @@ def same_sentence(a: str, b: str) -> bool:
             and difflib.SequenceMatcher(None, na, nb).ratio() >= 0.85)
 
 
+# T3.6 M3: A REPEAT IN OTHER WORDS. same_sentence catches a sentence printed twice
+# or one inside another; the Monthly dry run of 13 Oct restated whole sentences in
+# new words ("The long end sold off on supply, and the curve steepened" against
+# "Supply pushed the long end lower and the curve steepened"). Two sentences whose
+# content words, lightly stemmed, overlap by SIMILAR_JACCARD or more are one
+# sentence said twice.
+SIMILAR_JACCARD = 0.5
+SIMILAR_MIN_WORDS = 5
+_STOP = frozenset("""a an the and or but as at by for from in into of on onto over
+through to with while even its it is was were be been this that these those than
+then there their which who what when where how so also still yet near""".split())
+
+
+def _stem(w: str) -> str:
+    for suf in ("ing", "ed", "es", "s"):
+        if w.endswith(suf) and len(w) - len(suf) >= 3:
+            return w[:-len(suf)]
+    return w
+
+
+def content_words(text: str) -> set[str]:
+    return {_stem(w) for w in re.findall(r"[a-z][a-z'-]+", _norm(text))
+            if w not in _STOP and len(w) >= 3}
+
+
+def similar_sentence(a: str, b: str) -> bool:
+    """The same sentence, or the same sentence in other words."""
+    if same_sentence(a, b):
+        return True
+    ca, cb = content_words(a), content_words(b)
+    if min(len(ca), len(cb)) < SIMILAR_MIN_WORDS:
+        return False
+    return len(ca & cb) / len(ca | cb) >= SIMILAR_JACCARD
+
+
 def read_sentences(ed: dict) -> list[str]:
     r = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
     return [x for t in [r.get("claim")] + list(r.get("paragraphs") or [])

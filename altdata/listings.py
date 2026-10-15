@@ -5,6 +5,8 @@ for the meme scan's identity -- REFERENCE DATA, not observations.
     python -m altdata.listings pull              # the 06:45 loggers step
     python -m altdata.listings diff A.csv B.csv  # the changes between two days
     python -m altdata.listings show              # the newest snapshot's counts
+    python -m altdata.listings age [--today D]   # the newest snapshot's age, in
+                                                 # sessions (the 08:30 heartbeat)
 
 THE SOURCE. Nasdaq Trader's public symbol directories, the two files the
 exchange publishes for the whole US market each day:
@@ -146,6 +148,28 @@ def snapshots(d: Optional[Path] = None) -> list[Path]:
     return sorted(p for p in d.glob("????-??-??.csv"))
 
 
+# THE HEARTBEAT'S RULE (stitching, week of 19 Oct; meeting c): the newest
+# snapshot may be at most this many SESSIONS old, counted by the session calendar
+# from the snapshot's day (exclusive) to today (inclusive) -- so a weekend or a
+# holiday is never a miss, and one failed 06:45 pull is not yet a warning.
+MAX_AGE_SESSIONS = 2
+
+
+def age(today: Optional[str] = None, d: Optional[Path] = None) -> dict:
+    """{"state": "fresh" | "stale" | "none", "newest", "sessions", "allowed"}."""
+    from . import derived, session                              # noqa: PLC0415
+    today = (today or session.session_date())[:10]
+    snaps = snapshots(d)
+    if not snaps:
+        return {"state": "none", "newest": None, "sessions": None,
+                "allowed": MAX_AGE_SESSIONS, "dir": str(d or listings_dir())}
+    newest = snaps[-1].stem
+    n, basis = derived.sessions_between(newest, today)
+    return {"state": "stale" if n > MAX_AGE_SESSIONS else "fresh", "newest": newest,
+            "sessions": n, "basis": basis, "allowed": MAX_AGE_SESSIONS,
+            "dir": str(d or listings_dir())}
+
+
 def diff(prev: list[dict], cur: list[dict], prev_day: str = "",
          day: str = "") -> list[dict]:
     a = {r["symbol"]: r for r in prev}
@@ -237,7 +261,22 @@ def _main(argv: list[str]) -> int:
     dp.add_argument("older")
     dp.add_argument("newer")
     sub.add_parser("show")
+    ag = sub.add_parser("age")
+    ag.add_argument("--today", default=None)
     a = ap.parse_args(argv)
+    if a.cmd == "age":
+        # Exit 3 on a fault, never 1: the heartbeat reads 1 as stale.
+        try:
+            r = age(a.today)
+        except Exception as exc:                                # noqa: BLE001
+            print(f"listings: age not computed ({type(exc).__name__}: {exc})")
+            return 3
+        if r["state"] == "none":
+            print(f"listings: no snapshot under {r['dir']}")
+            return 2
+        print(f"listings: newest snapshot {r['newest']}, {r['sessions']} session(s) "
+              f"old (allowed {r['allowed']}) -- {r['state']}")
+        return 0 if r["state"] == "fresh" else 1
     if a.cmd == "pull":
         r = pull()
         print(json.dumps(r, sort_keys=True))

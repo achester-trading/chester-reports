@@ -1,0 +1,58 @@
+# alpha_constitution.yaml -- Layer X, the Alpha Lab: its constitution.
+#
+# READ BY EVERY LOOP, WRITTEN BY NONE. These are exactly the values the change
+# order's section 2 rules (docs/change-order-alpha-lab-2026-10-12.md, ruled
+# 12 Oct 2026), and nothing else. A session changes a value here only on a paste
+# that quotes the ruling. The file's sha256 is recorded in docs/alpha-lab.md, and
+# tools/validate_alpha.py fails on any change without a matching ruling line
+# there.
+#
+# Where section 2 states a value as a sentence, the sentence is carried verbatim.
+# Where alpha/ needs it as a number, the number sits beside it under the same key.
+
+objective: "maximise expected log growth of the lab's notional capital net of modelled costs, subject to the governor"
+
+# raised only by ruling, on the ledger's evidence
+kelly_fraction: 0.25
+
+governor:
+  engine:
+    # from the engine's own high-water mark; stop -> status `validation`, frozen
+    halve_at: -0.10
+    stop_at: -0.20
+  portfolio:
+    # from the lab's high-water mark -> status `halted`, operator review
+    stop_at: -0.15
+
+validation:
+  embargo: "one engine horizon between fit and test windows"
+  embargo_horizons: 1
+  # independent signals, before any size above minimum
+  min_signals:
+    daily: 100
+    weekly: 40
+    intraday: 400
+  # at the engine's sample, deflated by the ledger's variant count for that
+  # engine family
+  deflated_sharpe_min: 1.0
+  min_size_period: "the first min_signals paper signals at minimum size regardless of backtest"
+
+kill:
+  rule: "after min_signals: expectancy after modelled costs <= 0, or realised Sharpe < 0.5 x the deflated Sharpe it was validated with"
+  expectancy_at_or_below: 0.0
+  realised_sharpe_below_deflated_multiple: 0.5
+
+holdout_months:
+  rule: "every fourth calendar month of history, never fitted by any loop; used only for the final check before a promotion"
+  every: 4
+
+refit:
+  # a halved or stopped engine is never re-fitted
+  frozen_in_drawdown: true
+
+orders:
+  value: none
+  rule: "alpha/ may not import any order, gate, broker or network module (static gate)"
+
+blocklist:
+  rule: "the system's, applied at signal time; a blocked instrument never reaches the ledger"

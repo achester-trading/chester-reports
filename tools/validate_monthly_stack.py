@@ -1242,6 +1242,23 @@ def t31_tape_group(ed: dict, out: dict) -> None:
           "daily equivalent")
     check("Year to date" in out["markdown"] and "Year to date" in out["html_email"],
           "the year to date prints in the HTML and the Markdown")
+    # VP-1 item 8: the month's value area against the prior month's, a
+    # sub-section of the month in markets; data, never a paragraph.
+    va = next((ss for ss in tape["subsections"]
+               if ss["title"] == "Value area: the month against the prior month"), {})
+    check((va.get("table") or {}).get("columns") == [
+              "Market", "Value area (POC)", "Prior month", "Migration",
+              "Close vs value"]
+          and [r[0] for r in va["table"]["rows"]] == ["SPY", "QQQ", "IWM"]
+          and not va.get("prose"),
+          f"VP-1: the month against the prior month, one row per configured "
+          f"instrument, as data ({(va.get('table') or {}).get('rows')})")
+    check(all(r[1] == "not computed" or r[1].startswith("$")
+              for r in va["table"]["rows"]) if va else False,
+          "a month the fixture's bars do not cover is not computed, never zero")
+    check(any(" month: " in x for x in va.get("not_tracked") or [])
+          and "Value area: the month against the prior month" in out["html_email"],
+          "its reasons are in the footnote, and it prints")
 
 
 def t31_misfit_group(ed: dict, out: dict) -> None:
@@ -2280,9 +2297,30 @@ def main() -> int:
                                  "The tape moved 998 points."],
     }
     arch = str(Path(TD) / "reports")
+    # AUD-2 item 4: the month's calls, by report -- seeded through the meter
+    # itself into the gate's own store, inside the month the Monthly covers.
+    import types as _t
+    from altdata import model_meter
+    month = ms.meter_month(p)
+    for rep, n_, (i_, o_) in (("daily_close", 3, (1000, 50)), ("weekly", 2, (4000, 300))):
+        with model_meter.scope(report=rep, db_path=DB):
+            for k in range(n_):
+                model_meter.record(_t.SimpleNamespace(
+                    model="fixture-model",
+                    usage=_t.SimpleNamespace(input_tokens=i_, output_tokens=o_)),
+                    now=f"{month}-1{k}T21:00:00+00:00")
     out = ms.produce(p, archive_dir=arch, client=client(calls, script), db_path=DB)
     ed = out["edition"]
     written = out["written"]
+    mlines = [x for x in out["html_email"].split("<p") if "Model, " in x
+              or "daily_close: " in x or "weekly: " in x]
+    check(any("5 calls, 11,000 input / 750 output tokens" in x for x in mlines)
+          and any("daily_close: 3 calls, 3,000 input / 150 output tokens" in x
+                  for x in mlines)
+          and any("weekly: 2 calls, 8,000 input / 600 output tokens" in x
+                  for x in mlines),
+          f"AUD-2: the Monthly's footer prints the month's model calls and tokens, "
+          f"by report, from the meter's rows ({month}; {len(mlines)} lines)")
     sec = {s["id"]: s for s in ed["sections"]}
     cfg = stack_mod.config()
 

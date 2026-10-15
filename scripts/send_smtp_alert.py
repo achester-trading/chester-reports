@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import os
 import smtplib
+import ssl
 import sys
 from email.message import EmailMessage
 
@@ -64,7 +65,7 @@ def main() -> int:
 
     try:
         with smtplib.SMTP(host, port, timeout=30) as s:
-            s.starttls()
+            s.starttls(context=ssl.create_default_context())  # AUD-1 2a: verify the certificate
             s.login(user, password)
             s.send_message(msg)
     except Exception as exc:                                  # noqa: BLE001

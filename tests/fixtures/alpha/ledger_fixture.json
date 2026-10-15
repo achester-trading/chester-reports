@@ -1,0 +1,26 @@
+{
+  "_note": "SYNTHETIC fixture ledger for tools/validate_alpha.py (X-1.12). Lab dollars on a 100,000 notional; no real figures. Two live engines and one candidate; the lab's equity over five days, a drawdown from its mark on the last; loop events in the week.",
+  "engines": [
+    {"id": "fx_a", "family": "fx_fam", "horizon": "daily", "status": "live", "min_size": 0.01},
+    {"id": "fx_b", "family": "fx_fam", "horizon": "weekly", "status": "halved", "min_size": 0.01},
+    {"id": "fx_c", "family": "other", "horizon": "daily", "status": "candidate", "min_size": 0.01}
+  ],
+  "allocations": [
+    {"engine_id": "fx_a", "day": "2026-10-05", "kind": "applied", "weight": 0.2},
+    {"engine_id": "fx_b", "day": "2026-10-05", "kind": "applied", "weight": 0.1}
+  ],
+  "lab_equity": [
+    ["2026-10-05", 100000.0],
+    ["2026-10-06", 101000.0],
+    ["2026-10-07", 102500.0],
+    ["2026-10-08", 102000.0],
+    ["2026-10-09", 101475.0]
+  ],
+  "events": [
+    {"loop": "nightly", "kind": "run", "written_at": "2026-10-06T21:41:00.000000+00:00"},
+    {"loop": "nightly", "kind": "run", "written_at": "2026-10-07T21:41:00.000000+00:00"},
+    {"loop": "nightly", "kind": "posterior", "written_at": "2026-10-08T21:41:00.000000+00:00"},
+    {"loop": "nightly", "kind": "run", "written_at": "2026-09-20T21:41:00.000000+00:00"}
+  ],
+  "expect_line": "Alpha Lab: +1.5% since 2026-10-05 · 2 engines live · drawdown 1.0% (1.0% since inception) · loop events this week 3"
+}

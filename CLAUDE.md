@@ -106,9 +106,11 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 20 more in FRED_SIGNAL_SERIES (ST-1/2),
-                          pulled and freshness-watched but read by no report
-                          yet; FRED_PULL_SERIES is the union the pull walks.
+                          Monthly's set; 27 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          pulled and freshness-watched; 43 in five smaller
+                          lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
+                          Thailand 1); FRED_PULL_SERIES, 129, is the union the
+                          pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
   store.py                Store — one CSV per series, columns date/value/source/
@@ -123,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    59 market symbols -> store keys prefixed mkt_
+    yfinance_source.py    106 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -217,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-five code gates (seventy-two Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-four code gates (eighty-one Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -308,6 +310,65 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
 
+**What the store holds is listed, searched and checked against the registry
+(AUD-3a, 14 Oct 2026).** `python -m altdata.catalogue` lists every resolved key
+(`list --domain/--kind/--source/--cadence`), searches ids, descriptions and
+aliases (`search TEXT`), reads one key whole (`show ID [--db PATH]`: its fields,
+units, delta rule, block and producing command) and prints the per-domain
+commands (`commands`, declared in `config/catalogue_commands.yaml`).
+`python -m tools.check_store_registry --db PATH` opens a store read-only and lists
+the stored keys the registry does not know, the registered keys with no rows, the
+stale keys by their own allowance, and the stored source strings on no list
+(`altdata/source_ids.py` reads `<id>:<variant>` as the id; the store is never
+rewritten). **`percent` is split by meaning**: `percent_rate` (a yield or rate, its
+change in bp), `percentile` (points), `percent_return` and `percent_share`
+(percentage points), `vol_pct`, `vol_index` and `index_points` (points; ^SKEW);
+`check_registry` refuses the undivided word, and a renderer formats a level
+through `derived.level_units_of()`, so a split unit prints as it did. FRED's
+shares and rates of change carry their own unit in their block (`member_units`,
+pp); its yields, rates and spreads keep bp (15 Oct 2026). The move screen pins
+the volatility indexes and SKEW to log changes in `config/move_screen.yaml`. `tools/validate_audit_3a.py`
+holds the counts this file prints against the code.
+
+**Every model call goes through one client and is counted (AUD-2, 14 Oct 2026).**
+`altdata/model_meter.py` builds the one Anthropic client (timeout 90 s, one retry)
+for every report path, and `model_meter.create()` writes a row per call to the
+`model_calls` table in chester.db: run id, report, section, attempt, model id, input
+and output tokens, time. A call outside a report's `scope()` writes nothing. The
+close's footer prints the day's calls and tokens, the Monthly's the month's by
+report; tokens, never dollars. **A restore is drilled, not assumed:**
+`python -m tools.restore_drill` restores the backup's newest database snapshot into a temporary
+directory, integrity-checks it and counts it against the live store, read-only;
+`docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
+holds the auction sampler's stand-aside, the meter's client and the drill.
+
+**A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
+`python -m altdata.quality check [--date D] [--db PATH]` opens the store
+read-only after each pull and lists three things: an outlier (a price's or a FRED
+series' new print past 6 standard deviations of its last 60 changes, measured by
+its own delta rule and the move screen's pinned basis), a revision (a FRED value
+restated for the same observation date: listed, never flagged), and a
+cross-source gap (^TNX/DGS10, ^TYX/DGS30, ^VIX/VIXCLS past the pair's measured
+tolerance). The close prints the day's flags in its Warnings table, at most five
+and a count, nothing on a clean day; a flag never blocks a report or changes a
+value. The numbers live in `config/data_quality.yaml`, each with its reason.
+
+**The volume profile is data, never a claim (VP-1, 14 Oct 2026).**
+`altdata/volume_profile.py` is the one module that bins volume by price, and every
+reader calls it: the level list (POC, VAH and VAL of six windows for spy, qqq and
+iwm, appended after the older types; statuses on the prior windows only), the
+close's, the Weekly's and the Monthly's value-area tables (migration and close
+against value by declared rule), C1's shaded prior-session value area, W7's
+volume-at-price panel, the Book B candidate line's clause (approximated from daily
+bars; the score never reads it), and the stored `calc.vp_<id>_session_*` and
+`_20s_*` series that `python -m altdata.volume_profile compute` writes after the
+derived features in the EOD pass. A window that is incomplete or mixes sources is
+absent with its reason; every read is as of. The settings are
+`config/volume_profile.yaml`, all session-set. What the profile predicts is H-006
+to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
+crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
+is `docs/volume-profile.md`.
+
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
 Pending: not yet due -- never tried, or tried by a writer that ran cleanly while
@@ -358,6 +419,72 @@ exports after the listings step; `altdata/sm_export.py` validates the file befor
 it writes it. Nothing here reads it back. A listing in Nasdaq Trader's files trades
 on a US exchange in USD (ruled 15 Oct 2026); `config/listing_exchanges.yaml` maps
 its exchange codes to MICs and to the contract's venues.
+
+### Layer X — the Alpha Lab (`alpha/`)
+
+**`alpha/` is a machine's book in ledger-paper beside the reports and the four
+books** (change order `docs/change-order-alpha-lab-2026-10-12.md`, ruled 12 Oct
+2026; Tranche 2's amendments of 14 Oct in its section 10; `docs/alpha-lab.md`).
+It writes `alpha.db` and, through `alpha/files.py` and nowhere else, its own
+files: the weekly agenda (`alpha/research/agenda.md` and `.json`, gitignored), the
+workbench's verdicts (alpha/research/reports/, written at run time) and the
+outbox (~/chester-data/outbox/lab/ on the box), both `alpha/files.py`'s. Four rules hold it, and a gate holds each:
+
+- **The observation store is opened read-only.** `alpha/store.py` opens
+  `file:...?mode=ro` through the point-in-time reader and refuses `write()`.
+  `tools/validate_alpha.py` proves the store file's hash is unchanged after a
+  full nightly run on its fixture. The lab never writes the register, the
+  probability ledger, the narrative ledger or a report. Three reports read it,
+  read-only, each through one hook: the Weekly's line
+  (`daily_cascade/weekly_stack.py`), the Daily close's line
+  (`daily_cascade/stack_close.py`), and the Monthly's Lab report attachment
+  (`monthly_macro/run.py`, `alpha/report.py`).
+- **No order, gate, broker or network import, and no fetch.**
+  `tools/validate_alpha_no_orders.py` covers:
+  - the order gate and the whole `register` package;
+  - the IBKR modules;
+  - the ledgers and the report writers;
+  - every network library and the repo's fetchers;
+  - `subprocess`.
+
+  It checks the source by AST and checks a fresh interpreter's `sys.modules`.
+  The blocklist is the system's own: `register/instruments.py`, loaded from its
+  file by `alpha/blocklist.py`. `alpha.db`'s triggers refuse a restricted
+  instrument again.
+- **The constitution is unchanged without a quoted ruling.**
+  `config/alpha_constitution.yaml` is read by every loop and written by none.
+  Its sha256 is recorded in `docs/alpha-lab.md` beside the ruling, and
+  `tools/validate_alpha.py` fails on an unrecorded change. A session edits it
+  only on a paste that quotes the ruling, and adds a hash row when it does.
+  Session-set values (shrinkage, correlation threshold, heat cap) live in
+  `config/alpha.yaml`.
+- **The two-session rule is unchanged.** The lab is built by session A or B as
+  the queue allows, never a third. Its loops run on their own timers
+  (`chester-alpha-nightly`, `chester-alpha-weekly`, `chester-alpha-proposer`),
+  never inside a report's run. Enabling them is the operator's.
+
+**Every idea is pre-registered before it is tested (Tranche 2).** The register
+is `alpha.db`'s `hypotheses` table (`alpha/hypotheses.py`), on the batch schema
+alpha-lab-hypotheses v1. The first batch is the pinned fixture
+`tests/fixtures/alpha/inbox/hypotheses-2026-10-14.yaml`. Every channel enters
+through `alpha/intake.py`:
+
+- the Drive inbox (`alpha/inbox.py`, pre-registered at the file's Drive creation
+  time from the sweep's `rclone lsjson --metadata` manifest);
+- the daily proposer (`alpha_proposer/`, a package OUTSIDE `alpha/` because it
+  makes the one model call; `tools/validate_alpha_proposer.py`);
+- the workbench (`python -m alpha.research new | run | report`);
+- the research sitting (`docs/briefs/alpha-research-sitting-template.md`).
+
+The harness refuses a hypothesis registered after its run. Failures are kept,
+and duplicates of them screened out. A rule in the grammar
+(`docs/alpha-lab-rules.md`, interpreted by `alpha/rules.py`) runs the night it
+is registered and is promoted on the loop's authority if it passes. A model's
+idea must also pass the model-idea rule (`alpha/promote.py`).
+
+Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
+pm_futures, vrp_dealer, all candidates until they pass); a promoted grammar rule
+is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 
@@ -464,11 +591,12 @@ would otherwise reach it.
 | Denied | The reason |
 |---|---|
 | `systemctl --user stop`, `disable`, `restart`, `kill`, `mask` — in any composition, local or over ssh | **Asymmetric cost.** The worst case of refusing is a printed command; the worst case of acting is the Gateway down mid-session with a position open. An unattended process should never be able to choose the second. `make deploy` therefore prints the exact `restart` command and **exits 3** so a human runs it — the one case where handing the job back is the correct outcome rather than a limitation. |
-| `rm` against `~/state`, `data/`, `chester.db`, `pin_log` | **These are the irreplaceable files.** `~/state` holds the heartbeats whose age *is* the outage clock; `data/` holds the captured chains and the pin log, which are a market at an instant and cannot be re-fetched; `chester.db` holds the register, the grades and the probability ledger. Losing any of them loses evidence, not configuration. |
-| `decide.py record`, `decide.py set-status`, `decide_remote.sh` with either, `migrate_register.py import`, `altdata.narratives confirm` / `reject` | **Register writes stay the operator's.** The register is the record against which the system is graded, and a grader that could also write the decisions it grades is a system marking its own homework. This is the same reason `derived_grade` and `derived_probability` have an empty `allowed_reports`. The narrative register (6c-2) is written by the sessions -- seeds, rule-driven transitions, model proposals -- with ONE human gate, confirming or rejecting a proposal, and that gate is denied here on the same argument. |
+| `rm` against `~/state`, `data/`, `chester.db`, `pin_log`, `~/backups`, `~/chester-data`, `~/.chester`; `git clean -fdx` | **These are the irreplaceable files.** `~/state` holds the heartbeats whose age *is* the outage clock; `data/` holds the captured chains and the pin log, which are a market at an instant and cannot be re-fetched; `chester.db` holds the register, the grades and the probability ledger. Losing any of them loses evidence, not configuration. AUD-2 (14 Oct 2026) adds `~/backups` (the EOD zips the restore runbook falls back on), `~/chester-data` (the live CSV store and the inboxes) and `~/.chester` (the wrappers' status and locks), and `git clean -fdx`, which deletes every untracked file in the checkout -- `data/` and `.env` among them -- in one command. |
+| `decide.py record`, `decide.py set-status`, `decide_remote.sh` with either, `migrate_register.py import`, `altdata.narratives confirm` / `reject`, `alpha.promote retire`, `alpha.governor resume` | **Register writes stay the operator's.** The register is the record against which the system is graded, and a grader that could also write the decisions it grades is a system marking its own homework. This is the same reason `derived_grade` and `derived_probability` have an empty `allowed_reports`. The narrative register (6c-2) is written by the sessions -- seeds, rule-driven transitions, model proposals -- with ONE human gate, confirming or rejecting a proposal, and that gate is denied here on the same argument. The Alpha Lab's retirement of an engine by ruling (X-2.6) is the operator's for the same reason: the loop retires by the kill rule alone. So is lifting the lab's -15% halt (ruling 6, 14 Oct 2026): `python -m alpha.governor resume --reason` writes the one event that lifts it. |
 | `sudo`, in any position — privilege escalation | **Nothing here needs root.** Every unit is a `--user` unit, every path is under `$HOME`, and the one documented `sudo` (`loginctl enable-linger`, `apt install xvfb`) is a one-time install step a human does once. Privilege escalation in an unattended path is a category error before it is a risk: if a deploy appears to need root, the deploy is wrong, not under-permissioned. |
 | `placeOrder`, `place_order`, `bracketOrder`, `submit_order`, `order_router`, `ibkr_orders`, `execution_framework`, `reqGlobalCancel`, `--allow-live` | **Named now so Gate 3 is already blocked when it exists.** There is no order path in this repo today — `validate_ibkr_portfolio.py` proves the source contains none, and the architecture puts live-with-approval at Gate 3 behind months of paper dwell. These patterns are pre-emptive on purpose: the moment an order entry point is written it must arrive already denied, rather than relying on somebody remembering to add a rule in the same session they gain the capability. `--allow-live` is included because it is the flag that selects the live port; an unattended process has no business reading the live account, let alone trading it. |
-| `cat`/`tail` of `.env`, `config.ini`, and any literal key name (`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `FRED_API_KEY`, `CHESTER_STATE_TOKEN`) | **`ssh vps cat *` is allowed, which would otherwise permit reading `.env`.** The standing rule is that a key reaching a transcript is a leaked key that must be rotated, so the deny closes the hole the broad read rule opens. This one was added rather than requested: an allowlist that permits an unattended secret read contradicts the repo's own invariant. |
+| `cat`/`tail` of `.env`, `config.ini`, `rclone.conf`, anything under `/.ssh/`, any `environ`, and any literal key name (`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `FRED_API_KEY`, `CHESTER_STATE_TOKEN`, `MASSIVE_API_KEY`, `FLASHALPHA_API_KEY`, `NASDAQ_DATA_LINK_API_KEY`, `OPENAI_API_KEY`) | **`ssh vps cat *` is allowed, which would otherwise permit reading `.env`.** The standing rule is that a key reaching a transcript is a leaked key that must be rotated, so the deny closes the hole the broad read rule opens. This one was added rather than requested: an allowlist that permits an unattended secret read contradicts the repo's own invariant. |
+| `Read` and `Edit` of `**/.env*` (except `.env.example`), `~/ibc/**`, `~/.config/rclone/**`, `~/.ssh/**` and `//proc/*/environ` | **A session reads files through tools the Bash rules never see** (AUD-2, 14 Oct 2026). The Read and Edit file tools, Grep and Glob would each have shown a key while every Bash rule above held. Claude Code consults `Read`/`Edit` path rules (gitignore syntax) and applies a `Read` deny to Grep and Glob; a `Grep(...)` or `Glob(...)` path rule is accepted and never consulted, so none is written. `~/` is the home directory and `//` the filesystem root (one `/` would mean this project's root). `.env.example` is carved back out by a `!` negation listed after its rule in the same deny list -- an allow cannot override a deny. `tools/validate_deploy.py` group J fails on any missing rule. |
 
 ### What a deploy does not do
 
@@ -582,6 +710,17 @@ neighbouring line in `config.py`: that is how this one was copied. And note what
 made it survivable — one report's private arithmetic, checkable against nothing.
 A figure in the registry has a percentile, a band and a gate; a figure inside a
 renderer has a reader's credulity.
+
+**FRED history comes from ALFRED, at its first publication (AUD-3d, 15 Oct
+2026).** The live pull stamps each row with the instant it was written, so a deep
+FRED pull would be invisible to every as-of query before today.
+`python -m altdata.fred_history backfill` writes each value with
+`availability_kind` observed at its vintage's first publication: the release
+time where the release calendar holds it, otherwise the end of that day ET. A
+revised value gets its own row from its own vintage, under source `fred:backfill`
+and its own run. A revisable series without vintages gets nothing, and only a
+`never`/`split_only` series may reconstruct. `tools/validate_fred_history.py`
+holds it against a fake ALFRED.
 
 **FRED deprecates series silently.** Roughly one to two of the configured series
 per year stop updating or disappear without notice, and the API returns an empty
