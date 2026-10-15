@@ -81,7 +81,7 @@ def last_two(st, key: str, as_of: Optional[str], instrument: Optional[str] = Non
     rows.sort(key=lambda r: str(r["observed_at"]))
     lv = rows[-1]["value_num"]
     pv = rows[-2]["value_num"] if len(rows) > 1 else None
-    units = str(derived.registry_entry(key).get("units") or "")
+    units = derived.level_units(derived.registry_entry(key).get("units"))
     du = derived.delta_unit_for(key)[0]
     if pv is None:
         ch = None

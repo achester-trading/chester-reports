@@ -77,13 +77,14 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .. import session
+from ..ibkr_clients import CLIENT_IDS
 
 log = logging.getLogger(__name__)
 
 # Gateway paper. The port is the mode -- see the module docstring.
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 4002
-DEFAULT_CLIENT_ID = 17          # arbitrary but fixed; a clash is a distinct error
+DEFAULT_CLIENT_ID = CLIENT_IDS["portfolio_sync"]   # 17; altdata/ibkr_clients.py
 DEFAULT_TIMEOUT = 15.0
 
 PAPER_PORTS = {4002, 7497}

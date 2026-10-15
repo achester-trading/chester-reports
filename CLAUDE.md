@@ -106,9 +106,11 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 20 more in FRED_SIGNAL_SERIES (ST-1/2),
-                          pulled and freshness-watched but read by no report
-                          yet; FRED_PULL_SERIES is the union the pull walks.
+                          Monthly's set; 27 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          pulled and freshness-watched; 43 in five smaller
+                          lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
+                          Thailand 1); FRED_PULL_SERIES, 129, is the union the
+                          pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
   store.py                Store — one CSV per series, columns date/value/source/
@@ -123,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    59 market symbols -> store keys prefixed mkt_
+    yfinance_source.py    106 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -217,7 +219,8 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-four code gates (seventy-one Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — seventy-five code gates (seventy-two Python,
+three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -307,6 +310,23 @@ for the close's Narratives line, the Weekly's section 8 and the Monthly's sectio
 
 The Google News story-query fetch is retired: its robots.txt forbids it. The scan
 now writes those `headline` rows under each story's declared query.
+
+**What the store holds is listed, searched and checked against the registry
+(AUD-3a, 14 Oct 2026).** `python -m altdata.catalogue` lists every resolved key
+(`list --domain/--kind/--source/--cadence`), searches ids, descriptions and
+aliases (`search TEXT`), reads one key whole (`show ID [--db PATH]`: its fields,
+units, delta rule, block and producing command) and prints the per-domain
+commands (`commands`, declared in `config/catalogue_commands.yaml`).
+`python -m tools.check_store_registry --db PATH` opens a store read-only and lists
+the stored keys the registry does not know, the registered keys with no rows, the
+stale keys by their own allowance, and the stored source strings on no list
+(`altdata/source_ids.py` reads `<id>:<variant>` as the id; the store is never
+rewritten). **`percent` is split by meaning**: `percent_rate` (a yield or rate, its
+change in bp), `percentile` (points), `percent_return` and `percent_share`
+(percentage points), `vol_pct` and `vol_index` (points); `check_registry` refuses
+the undivided word, and a renderer formats a level through
+`derived.level_units()`, so a split unit prints as it did. `tools/validate_audit_3a.py`
+holds the counts this file prints against the code.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

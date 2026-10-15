@@ -85,7 +85,7 @@ def _surprise_for(entities: Iterable[str], as_of: Optional[str],
             "naive_expectation": e.get("level"),
             "actual": (None if e.get("level") is None or s.get("level") is None
                        else round(e["level"] + s["level"], 6)),
-            "units": (derived.registry_entry(s_key) or {}).get("units"),
+            "units": derived.level_units((derived.registry_entry(s_key) or {}).get("units")) or None,
             "expectation_kind": "naive",
             "expectation_method": method,
             "expectation_because": why,

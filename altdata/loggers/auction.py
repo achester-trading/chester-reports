@@ -53,6 +53,7 @@ import time
 from typing import Any, Optional
 
 from .. import observations, session
+from ..ibkr_clients import CLIENT_IDS
 from . import LoggerSpec, register
 
 log = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ PROBE_KEY = "ibkr.auction_probe"
 NOT_ENTITLED_CODES = {354, 10089, 10090, 10091, 10197}
 
 
-def _connect(port: int = 4002, client_id: int = 23):
+def _connect(port: int = 4002, client_id: int = CLIENT_IDS["auction"]):
     from ..sources import ibkr_portfolio as ibkr
     return ibkr.connect(port=port, client_id=client_id)
 

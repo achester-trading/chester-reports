@@ -437,6 +437,32 @@ def group_g(store) -> None:
               "and the inner block's exit does not close the outer one")
 
 
+def group_h(store) -> None:
+    """PERCENT, SPLIT BY MEANING (AUD-3a item 3): the delta a report reads, end to
+    end through derived_forms() over a seeded store, for each new rule."""
+    print(f"\n{LINE}\nH. PERCENT SPLIT BY MEANING (AUD-3a)\n{LINE}")
+    days = weekdays_back(END, 2)
+    for key, a, b, want, unit, why in (
+            ("regime.dimension_percentile", 40.0, 55.0, 15.0, "pts",
+             "a percentile 40 -> 55 is +15 points, not +1,500 bp"),
+            ("yfinance.mkt_vix", 18.0, 20.0, 2.0, "pts",
+             "the VIX 18 -> 20 is +2 points, not +11.1%"),
+            ("yfinance.mkt_tnx", 4.25, 4.32, 7.0, "bps",
+             "^TNX 4.25 -> 4.32 is +7 bp, not +1.65%"),
+            ("calc.trend_spy_vs_50d", 1.2, 1.5, 0.3, "pp",
+             "a distance 1.2% -> 1.5% is +0.3 pp, not +30 bp"),
+            ("chain.spy_atm_iv_30d", 16.0, 18.5, 2.5, "pts",
+             "implied vol 16 -> 18.5 is +2.5 vol points, not +250 bp"),
+            ("fred.bb_oas", 2.70, 2.72, 2.0, "bps",
+             "a spread keeps basis points: 2.70 -> 2.72 is +2 bp")):
+        seed(store, key, days, [a, b])
+        d = derived.derived_forms(key, AS_OF, store=store)
+        check(d["delta_unit"] == unit and near(d["delta_1d"], want, 1e-4),
+              f"{why} ({key}: {d['delta_1d']} {d['delta_unit']})")
+    check("pts" in derived.DELTA_UNITS_ALL,
+          "`pts` is a declared delta unit, so a registry override may name it")
+
+
 def main() -> int:
     print(f"{LINE}\nStandard derived forms -- seeded cases\n{LINE}")
     with tempfile.TemporaryDirectory() as td:
@@ -444,7 +470,7 @@ def main() -> int:
         store = observations.ObservationStore(path)
         try:
             for g in (group_a, group_b, group_c, group_d, group_e, group_f,
-                      group_g):
+                      group_g, group_h):
                 try:
                     g(store)
                 except Exception as exc:          # a raising gate is a failure

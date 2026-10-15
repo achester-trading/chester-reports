@@ -657,7 +657,7 @@ def appendix_block(as_of: Optional[str] = None,
             macro.append({
                 "metric": metric,
                 "what": mf.MACRO_FEATURES[metric],
-                "units": e.get("units"),
+                "units": derived.level_units(e.get("units")) or None,
                 "level": d.get("level"),
                 "observed_at": d.get("observed_at"),
                 "delta_20d": d.get("delta_20d"),
