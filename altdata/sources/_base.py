@@ -19,7 +19,16 @@ RETRY_BACKOFF = 2.0  # seconds; doubles each retry
 
 
 class FetchError(RuntimeError):
-    """A source fetch ultimately failed after retries."""
+    """A source fetch ultimately failed after retries.
+
+    ITS TEXT IS REDACTED AT CONSTRUCTION (AUD-1 item 2b). The text names the URL
+    and the underlying error, and requests' own exception text carries the full
+    query string -- FRED's `?api_key=` included -- so every FetchError message
+    passes through secrets.redact() before anything can log or store it."""
+
+    def __init__(self, *args) -> None:
+        from .. import secrets                                  # noqa: PLC0415
+        super().__init__(*[secrets.redact(str(a)) for a in args])
 
 
 # A DESCRIPTIVE USER-AGENT, AND NO PERSONAL DATA IN IT.
@@ -235,3 +244,34 @@ def http_get_text(
                 backoff *= 2
             continue
     raise FetchError(f"Giving up on {url} after {max_retries} retries: {last_err}")
+
+
+# THE CHAIN AND PRICE CALLS RETRY (AUD-1 item 5b, the audit of 14 Oct 2026). A
+# Yahoo call that raises, or that returns an EMPTY frame -- which Yahoo does on a
+# bad night without saying why -- was a missed capture, and a chain night is
+# never served again. Three tries, the wait doubling from RETRY_BACKOFF.
+RETRY_TRIES = 3
+
+
+def retry_call(fn, *, tries: int = RETRY_TRIES, backoff: float = RETRY_BACKOFF,
+               empty=None, sleep=time.sleep, label: str = ""):
+    """fn() until it returns something `empty` does not call empty, up to
+    `tries` times; an exception counts as a failed try. Returns the last result
+    (which may be empty) or re-raises the last exception."""
+    last_exc: Optional[BaseException] = None
+    result = None
+    wait = backoff
+    for attempt in range(tries):
+        try:
+            result = fn()
+            last_exc = None
+            if empty is None or not empty(result):
+                return result
+        except Exception as exc:                              # noqa: BLE001
+            last_exc = exc
+        if attempt < tries - 1:
+            sleep(wait)
+            wait *= 2
+    if last_exc is not None:
+        raise last_exc
+    return result

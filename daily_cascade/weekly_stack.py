@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, derived, levels as levels_mod, observations, session
+from altdata import model_meter
 
 from . import charts as charts_mod
 from .cadence import Period
@@ -104,7 +105,7 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
         return None
     lv = a["value_num"]
     pv = b.get("value_num") if b else None
-    units = str(derived.registry_entry(key).get("units") or "")
+    units = derived.level_units_of(key)
     du = derived.delta_unit_for(key)[0]
     if pv is None or str(b.get("observed_at")) == str(a.get("observed_at")):
         ch = None
@@ -666,14 +667,14 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # T3.4a: one change form for every report, numeral_audit.change_display
         # -- "+29,000" for payrolls' +29 thousand, "+12,500" for a plain count,
         # each accepted by the audit as the payload's own display.
-        units = str(derived.registry_entry(key).get("units") or "")
+        units = derived.level_units_of(key)
         from altdata import numeral_audit as na                  # noqa: PLC0415
         return na.change_display(v, units, key) or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):
         return f"{v:.1f}%"
-    units = str(derived.registry_entry(key).get("units") or "")
+    units = derived.level_units_of(key)
     return f"{v:,.1f}%" if units in ("%", "percent") else f"{v:,.0f}"
 
 
@@ -1810,7 +1811,7 @@ def annotate_moves(built: dict, st, now: str, days: int = 7,
                 unit = unit if unit in ("%", "bp") else ""
                 if (key, inst) not in cache:
                     cache[(key, inst)] = series(st, key, now, inst, since)
-                lu = str(derived.registry_entry(key).get("units") or "")
+                lu = derived.level_units_of(key)
                 zmap[name.strip().lower()] = derived.period_change_z(
                     cache[(key, inst)], now[:10], unit, lu, days)
         b.setdefault("data", {})["_move_z"] = zmap
@@ -2128,10 +2129,11 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     return out
 
 
+@model_meter.metered("weekly")
 def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, log_path: Optional[Path] = None,
-            prior_dir: Optional[str] = None) -> dict:
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, log_path: Optional[Path] = None,
+             prior_dir: Optional[str] = None) -> dict:
     ending = p["week_ending"]
     with bars_mod.BarStore(db_path) as bst:
         try:

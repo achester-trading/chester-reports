@@ -225,7 +225,7 @@ are used:
 recomputed. It takes the form `macro=<state>|vol=<state>|gamma=<state>|event=<0|1>`.
 
 **Enabling the loops is the operator's.** The units are copied by the deploy
-and are not in `DEPLOY_TIMERS`: see `deploy/systemd/README.md` section 13.
+and are not in `DEPLOY_TIMERS`: see `deploy/systemd/README.md` section 14.
 
 ## 5. What prints
 

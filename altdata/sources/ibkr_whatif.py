@@ -101,13 +101,16 @@ import sys
 from typing import Any, Optional
 
 from .. import session
+from ..ibkr_clients import CLIENT_IDS
 from . import ibkr_portfolio as ibkr
 
 log = logging.getLogger(__name__)
 
-# Distinct from Portfolio Truth's 17, so the two sessions are separable in the
-# Gateway's own log and a clash between them is a distinct, named error.
-WHATIF_CLIENT_ID = 18
+# Distinct from Portfolio Truth's 17 and from the watchdog's 18, so the sessions
+# are separable in the Gateway's own log and a clash is a distinct, named error.
+# It was 18 until AUD-3a item 7 (14 Oct 2026): the watchdog's probe used the same
+# id. The ids live in one table, altdata/ibkr_clients.py.
+WHATIF_CLIENT_ID = CLIENT_IDS["whatif"]
 
 SEC_TYPES = ("STK", "OPT")
 ORDER_TYPES = ("MKT", "LMT")

@@ -98,6 +98,11 @@ PY_VALIDATORS := \
 	tools/validate_ai_fcf.py \
 	tools/validate_sr38_inbox.py \
 	tools/validate_correlation_layer.py \
+	tools/validate_audit_3a.py \
+	tools/validate_audit_2.py \
+	tools/validate_audit_1.py \
+	tools/validate_quality.py \
+	tools/validate_fred_history.py \
 	tools/validate_alpha.py \
 	tools/validate_alpha_no_orders.py \
 	tools/validate_alpha_proposer.py \

@@ -1918,7 +1918,10 @@ def group_u() -> None:
     sc = (REPO / "daily_cascade" / "stack_close.py").read_text(encoding="utf-8")
     sr = (REPO / "daily_cascade" / "stack_render.py").read_text(encoding="utf-8")
     mr = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
-    check(sc.count("from alpha") == 1 and sc.count("daily_line(") == 1
+    # The lab's own bare daily_line( -- aud-2's model_meter.daily_line( shares the
+    # name (stitching, week of 19 Oct), so the count is of the lab's call alone.
+    check(sc.count("from alpha") == 1
+          and len(re.findall(r"(?<![.\w])daily_line\(", sc)) == 1
           and 'ed["alpha_lab"] = daily_line(cutoff' in sc
           and sr.count('esc(ed["alpha_lab"])') == 1,
           "the Daily close holds one hook, as small as the Weekly's, reading alpha.db "

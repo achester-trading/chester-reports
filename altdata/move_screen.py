@@ -17,7 +17,9 @@ five-year history of such changes; past 2.5 sigma, two-sided, it is a flag.
   percentage or a probability by its simple difference. Read from the
   registry's delta unit (altdata/derived.py): "percent" is a price, "bps" and
   "pp" are rates and spreads, a fraction is a probability, and every other raw
-  unit (a count, a balance, a ratio) moves by its difference.
+  unit (a count, a balance, a ratio) moves by its difference. A key in config's
+  `basis_pins` keeps its pinned basis whatever its units: the volatility
+  indexes and SKEW move in points and are screened on log changes.
 
   THE FALSE-FLAG BASE RATE. Among the series' own past prints past 2.5 sigma
   over the five years -- of the horizon that flagged today -- the share whose
@@ -87,9 +89,15 @@ def load_config(path: Optional[Path] = None) -> dict:
 # ---------------------------------------------------------------------------
 # Units and series
 # ---------------------------------------------------------------------------
-def unit_rule(key: str) -> str:
+def unit_rule(key: str, cfg: Optional[dict] = None) -> str:
     """"log" for a price, "diff" for everything else (rates, spreads,
-    percentages, probabilities, counts) -- the registry's delta unit decides."""
+    percentages, probabilities, counts) -- the registry's delta unit decides,
+    unless config's `basis_pins` names the key: the volatility indexes and SKEW
+    print their change in points and are screened on log changes (ruled 15 Oct
+    2026), so a unit change cannot move the screen's basis."""
+    pins = (cfg if cfg is not None else load_config()).get("basis_pins") or {}
+    if key in pins:
+        return str(pins[key])
     return "log" if derived.delta_unit_for(key)[0] == "percent" else "diff"
 
 
@@ -326,7 +334,7 @@ def screen(st, day: str, cutoff: Optional[str] = None,
             # Not updated for the session (a lagging or retired series): nothing to
             # screen today, and not a skip.
             continue
-        res = screen_points(pts, unit_rule(key), cfg)
+        res = screen_points(pts, unit_rule(key, cfg), cfg)
         if res is None:
             skipped.append({"series": series_id(key, inst), "n": len(pts)})
             continue
@@ -360,7 +368,7 @@ def em_member_moves(st, day: str, cutoff: Optional[str], cfg: dict) -> list[dict
     out = []
     for m in (cfg.get("em") or {}).get("members") or []:
         pts = _points(st, m["key"], None, cutoff, day)
-        res = screen_points(pts, unit_rule(m["key"]), cfg) if pts else None
+        res = screen_points(pts, unit_rule(m["key"], cfg), cfg) if pts else None
         # FRED's H.10 currencies post weekly, a week of dailies at a time: a
         # member is read on its latest point within `member_max_lag_days`, and
         # carries that date.

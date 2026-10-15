@@ -519,9 +519,12 @@ def write_playbook(p: Optional[dict], *, client=None, model: Optional[str] = Non
             system + "\n\nYOUR PREVIOUS DRAFT WAS WITHHELD: " + reason
             + "\nWrite it again, fixing exactly that.")
         try:
-            resp = client.messages.create(
-                model=model or base.DEFAULT_MODEL, max_tokens=400, system=sp,
-                messages=[{"role": "user", "content": base.build_prompt(frame, None)}])
+            from altdata import model_meter                     # noqa: PLC0415
+            with model_meter.scope(section="playbook"):
+                resp = model_meter.create(
+                    client, model=model or base.DEFAULT_MODEL, max_tokens=400,
+                    system=sp, messages=[{"role": "user",
+                                          "content": base.build_prompt(frame, None)}])
             text = "".join(getattr(b, "text", "") for b in resp.content
                            if getattr(b, "type", "") == "text")
         except Exception as exc:                                # noqa: BLE001

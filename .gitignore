@@ -239,3 +239,19 @@ reports/dryrun/
 # The Alpha Lab's weekly agenda (X-2.4), written by the loop on the box.
 alpha/research/agenda.md
 alpha/research/agenda.json
+
+# AUD-1 item 2c (the data and architecture audit of 14 Oct 2026): secrets, the
+# databases, the archives, and the report outputs the box writes. Nothing here is
+# source; a file these match that is already committed stays committed (git keeps
+# tracking it) and is listed in docs/briefs/aud-1-notes.md for the operator.
+.env*
+!.env.example
+*.db
+*.sqlite
+*.zip
+daily_close_*.pdf
+daily_close_*_payload.json
+daily_close_*_stack.json
+morning_anchor_*
+weekly_tactical_*
+monthly_macro_*

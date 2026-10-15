@@ -16,7 +16,7 @@ RandomizedDelaySec=60
 Persistent=false
 
 # NOT IN DEPLOY_TIMERS. The deploy copies this file; enabling it is the
-# operator's (deploy/systemd/README.md section 13; the branch notes print the
+# operator's (deploy/systemd/README.md section 14; the branch notes print the
 # command). Printed, never enabled, by a session.
 
 [Install]

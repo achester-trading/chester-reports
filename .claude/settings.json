@@ -59,6 +59,18 @@
       "Bash(*rm -rf data*)",
       "Bash(*rm *chester.db*)",
       "Bash(*rm *pin_log*)",
+      "Bash(*rm *~/backups*)",
+      "Bash(*rm *$HOME/backups*)",
+      "Bash(*rm */home/ari/backups*)",
+      "Bash(*rm *~/chester-data*)",
+      "Bash(*rm *$HOME/chester-data*)",
+      "Bash(*rm */home/ari/chester-data*)",
+      "Bash(*rm *~/.chester*)",
+      "Bash(*rm *$HOME/.chester*)",
+      "Bash(*rm */home/ari/.chester*)",
+      "Bash(*git clean -fdx*)",
+      "Bash(*git clean -xdf*)",
+      "Bash(*git clean -dfx*)",
 
       "Bash(*decide.py record*)",
       "Bash(*decide.py set-status*)",
@@ -90,7 +102,27 @@
       "Bash(*ANTHROPIC_API_KEY*)",
       "Bash(*SMTP_PASSWORD*)",
       "Bash(*FRED_API_KEY*)",
-      "Bash(*CHESTER_STATE_TOKEN*)"
+      "Bash(*CHESTER_STATE_TOKEN*)",
+      "Bash(*MASSIVE_API_KEY*)",
+      "Bash(*FLASHALPHA_API_KEY*)",
+      "Bash(*NASDAQ_DATA_LINK_API_KEY*)",
+      "Bash(*OPENAI_API_KEY*)",
+      "Bash(*rclone.conf*)",
+      "Bash(*/.ssh/*)",
+      "Bash(*environ*)",
+
+      "Read(**/.env*)",
+      "Read(!.env.example)",
+      "Edit(**/.env*)",
+      "Edit(!.env.example)",
+      "Read(~/ibc/**)",
+      "Edit(~/ibc/**)",
+      "Read(~/.config/rclone/**)",
+      "Edit(~/.config/rclone/**)",
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Read(//proc/*/environ)",
+      "Edit(//proc/*/environ)"
     ]
   }
 }

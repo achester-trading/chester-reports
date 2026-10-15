@@ -29,6 +29,12 @@ network, no box:
      companion beside the 10-year, "n more past 2.5σ -- in the tables", and the
      reference tier lists every flag; the EM calendar template is empty and
      prints nothing, a seeded entry prints in its quarter.
+  I  THE BASIS IS PINNED (ruled 15 Oct 2026). ^VIX, ^VIX3M, ^VVIX, ^MOVE and
+     ^SKEW print their change in points (AUD-3a) and are screened on log changes
+     by config's basis_pins. Five series built so the two bases disagree -- a
+     spike at a low level, an ordinary day at a high one: the screen's flags
+     equal the log-basis flags the screen gave before AUD-3a, and a point basis
+     would have flagged differently.
   H  THE QUARTERLY'S HOOK. quarter_episodes(st, now): a member's shock is one
      episode (its 5-day run collapsed), idiosyncratic with contagion passed;
      the spread's widening is one contagion event; oldest first; [] before it.
@@ -420,6 +426,80 @@ def group_h() -> None:
           "episodes are oldest first")
     check(before == [], "a quarter ending before the shock has no episodes")
 
+VOL_KEYS = ("yfinance.mkt_vix", "yfinance.mkt_vix3m", "yfinance.mkt_vvix",
+            "yfinance.mkt_move", "yfinance.mkt_skew")
+
+
+def regime_path(seed, days, levels, last_jump, sd=0.04):
+    """A level that sits at levels[0] and then at levels[1] for the last 120
+    sessions, with iid log noise around it (a volatility index's moves scale
+    with its level); the last session is the prior one times exp(last_jump)."""
+    rnd = random.Random(seed)
+    out = [(levels[0] if i < len(days) - 120 else levels[1]) * math.exp(rnd.gauss(0, sd))
+           for i in range(len(days))]
+    out[-1] = out[-2] * math.exp(last_jump)
+    return [round(v, 4) for v in out]
+
+
+def group_i(td: str) -> None:
+    print(f"\n{LINE}\nI. THE BASIS IS PINNED: VOLATILITY INDEXES AND SKEW ON LOG CHANGES\n{LINE}")
+    from altdata import derived
+    cfg = ms.load_config()
+    pins = cfg.get("basis_pins") or {}
+    check({k: pins.get(k) for k in VOL_KEYS} == {k: "log" for k in VOL_KEYS}
+          and set(pins) == set(VOL_KEYS),
+          f"config pins exactly the five keys to log ({sorted(pins)})")
+    units = {k: derived.delta_unit_for(k)[0] for k in VOL_KEYS}
+    check(set(units.values()) == {"pts"},
+          f"their printed change is in points (AUD-3a; 15 Oct ruling 2): {units}")
+    check(all(ms.unit_rule(k) == "log" for k in VOL_KEYS)
+          and ms.unit_rule("yfinance.mkt_spy") == "log"
+          and ms.unit_rule("fred.yield_10y") == "diff",
+          "the screen's rule for each is log, whatever its units; the unpinned keep "
+          "the registry's rule")
+    # The fixture: a spike at a LOW level (log flags it, points do not) on the VIX
+    # and the VVIX; an ordinary day at a HIGH level (points flag it, log does not)
+    # on the VIX3M and the MOVE; SKEW quiet on both.
+    days = bdays(DAY, 6)
+    series = {
+        "yfinance.mkt_vix": regime_path(11, days, (40.0, 12.0), 0.30),
+        "yfinance.mkt_vvix": regime_path(12, days, (160.0, 80.0), 0.30),
+        "yfinance.mkt_vix3m": regime_path(13, days, (12.0, 40.0), 0.10),
+        "yfinance.mkt_move": regime_path(14, days, (70.0, 180.0), 0.10),
+        "yfinance.mkt_skew": regime_path(15, days, (140.0, 140.0), 0.01, sd=0.02),
+    }
+    path = str(Path(td) / "vol.db")
+    st = observations.ObservationStore(path)
+    try:
+        for k, vals in series.items():
+            st.write_many(rows(k, None, days, vals))
+    finally:
+        st.close()
+    pts = {k: list(zip(days, v)) for k, v in series.items()}
+    # Before AUD-3a each was a price, so the screen ran it on log changes.
+    log_flags = {k for k in VOL_KEYS if ms.screen_points(pts[k], "log", cfg)["flagged"]}
+    diff_flags = {k for k in VOL_KEYS
+                  if ms.screen_points(pts[k], "diff", cfg)["flagged"]}
+    check(log_flags == {"yfinance.mkt_vix", "yfinance.mkt_vvix"},
+          f"the log-basis flags, as before AUD-3a: the low-level spikes "
+          f"({sorted(log_flags)})")
+    check(diff_flags != log_flags,
+          f"a point basis would flag differently ({sorted(diff_flags)}), so the pin "
+          f"is what holds them")
+    with observations.ObservationStore(path) as st:
+        res = ms.screen(st, DAY, CUT, cfg)
+    got = {f["series"] for f in res["flags"]}
+    check(got == log_flags,
+          f"after the unit change the screen's flags match the log-basis flags "
+          f"({sorted(got)})")
+    unpinned = {k: v for k, v in cfg.items() if k != "basis_pins"}
+    with observations.ObservationStore(path) as st:
+        res2 = ms.screen(st, DAY, CUT, unpinned)
+    check({f["series"] for f in res2["flags"]} == diff_flags,
+          "and without the pins the same store flags on points -- the drift the pin "
+          "prevents")
+
+
 def main() -> int:
     print(f"{LINE}\nTHE STORE-WIDE MOVE SCREEN AND THE EM SCREEN\n{LINE}")
     td = gate_mkdtemp("validate_move_screen_")
@@ -433,6 +513,7 @@ def main() -> int:
     group_f()
     group_g(res)
     group_h()
+    group_i(td)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 
