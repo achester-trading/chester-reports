@@ -303,6 +303,7 @@ No named branch adds an entry with the now-refused `units: percent`; I checked e
 11. **The catalogue's `show`** names both the writer modules (`implemented_by`) and the commands that run them. A writer such as `yfinance_source` has no `python -m` of its own and is run by `altdata.feeds`.
 12. **The architecture document gets dated "as built" notes**, not a rewrite of its planning sessions.
 13. **`delta_unit_for`'s reason** now says "registered … with no units" for a known key with no units, instead of "no registry entry".
+14. **`tools/check_store_registry.py` is a declared non-gate.** The paste names the command `tools.check_store_registry`, and `validate_gates` takes every `tools/check_*` or `tools/validate_*` file for a gate. It is an operator's check of a named store, so it is not in the Makefile's list. `validate_gates` gains a `NOT_GATES` table with each tool's reason, and fails an entry that does not exist or is also listed as a gate. Making it a data gate instead would have had it read the live store.
 
 ## Needs you
 
@@ -336,10 +337,12 @@ No named branch adds an entry with the now-refused `units: percent`; I checked e
 | check_registry (extended: `aud3a_faults`) | OK |
 | validate_derived (group H added) | 52/0 |
 | validate_ibkr_whatif (pins 20) | 54/0 |
+| validate_gates (the `NOT_GATES` table, after CI #410) | 32/0 |
 | check_library | 27 papers, 0 failures, 0 warnings |
 
 Every other gate is left to CI, as the paste asked, given the laptop's memory with both sessions running. Windows raised no low-memory warning, and no local gate was killed.
 
 ## CI
 
-See the reply for the run number.
+- **#410** (`fed7ce8`) **failed one gate, `validate_gates`:** "every validator in tools/ is in the Makefile's list (['tools/check_store_registry.py'])". The tool is named like a gate and is not one. Fixed by the declared `NOT_GATES` table (item 14 above). Every other gate passed.
+- The fix's run: see the reply.
