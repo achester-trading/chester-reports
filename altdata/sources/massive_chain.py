@@ -412,6 +412,9 @@ def write_snapshot(symbol: str, rows: list[dict], manifest: dict,
     return csv_path, json_path
 
 
+from ._base import retry_call                                     # noqa: E402
+
+
 def pull(symbols: Optional[list[str]] = None,
          base_dir: Optional[str] = None,
          max_pages: int = MAX_PAGES) -> dict:
@@ -422,14 +425,26 @@ def pull(symbols: Optional[list[str]] = None,
 
     key, base = credentials()
     if not key:
+        # AUD-1 5e: a clean skip, said plainly, and nothing raises. Massive stays
+        # on (corrected 14 Oct): it banks SPX and SPCX open interest, served only
+        # live -- so a box without the key is told so every night.
         summary["failed"] = [(s, "MASSIVE_API_KEY unset or PLACEHOLDER")
                              for s in universe]
-        log.warning("MASSIVE_API_KEY unset -- vendor symbols not captured")
+        summary["key_missing"] = True
+        print("Massive key not set -- SPX and SPCX not captured")
+        log.warning("Massive key not set -- vendor symbols not captured")
         return summary
 
     for i, sym in enumerate(universe, 1):
         log.info("[%d/%d] %s (massive)", i, len(universe), sym)
-        rows, manifest = fetch_symbol(sym, key, base, max_pages)
+        # AUD-1 5e: the same retries as the yfinance chains -- three tries, on an
+        # error or an empty chain -- unless an empty chain is expected (a market
+        # holiday, a weekend), when one try is the honest answer.
+        expected_empty, _ = empty_is_expected()
+        rows, manifest = retry_call(
+            lambda: fetch_symbol(sym, key, base, max_pages),
+            empty=(None if expected_empty else (lambda rm: not rm[0])),
+            label=sym)
         csv_path, json_path = write_snapshot(sym, rows, manifest, base_dir)
         summary["symbols"][sym] = {
             "rows": len(rows),

@@ -57,13 +57,37 @@
 # The durable fix for the quota is the operator's own OAuth client ID
 # (deploy/systemd/README.md section 10), which no file in this repo carries.
 #
+# ONE BUDGET FOR THE SWEEP, NOT A SUM OF CAPS (14 Oct 2026). Until then the
+# per-tree caps were sized so that their sum, plus the prunes, sat under the
+# unit's TimeoutStartSec -- and every tree added broke the sum, so the caps were
+# trimmed or the ceiling raised. The caps fit tonight's trees; the lab's copies
+# (alpha-lab-2) and the next tree after them would break the sum again. So the
+# sweep now has ONE budget, 105 minutes from its start
+# (CHESTER_SWEEP_BUDGET_MIN), and whatever is added runs inside it:
+#   - a tree's cap is the smaller of its own cap and the minutes left, less 2;
+#   - with under 3 minutes left a tree is skipped, logged
+#     "SKIP <tree> -- sweep budget spent", and named in FAILED as
+#     <tree>(budget) -- rc 3, a sweep that did not copy everything;
+#   - the housekeeping (the db/ prune, the chain-zip prune, the inbox pulls)
+#     starts only with at least 10 minutes left, else it is logged "deferred to
+#     the next night" and is not a failure; a prune stops deleting when fewer
+#     than 2 minutes, one delete's own cap, are left.
+# The trees run db, data, chester-data, state, reports, backups: the EOD zips
+# go last because they repeat what data/ already holds. The budget, the
+# kill-after and ten minutes of slack fit inside TimeoutStartSec
+# (the validate_backup gate reads both files), so the sweep always writes its
+# own status line before systemd's ceiling does.
+#
 # Exit codes:
 #   0 everything copied (a failed db/ prune is logged and named, not fatal)
 #   1 environment problem (no repo, no venv, no rclone, no remote configured)
 #   2 the database snapshot, its integrity check or its compression failed --
 #     nothing was uploaded for it
-#   3 rclone reported a failure, or hit its time cap, on at least one tree
+#   3 rclone reported a failure, or hit its time cap, on at least one tree, or a
+#     tree was skipped with the sweep budget spent
 #   4 terminated from outside (TimeoutStartSec, or a stop) mid-sweep
+#   5 disk_low: under twice the database's size free where the snapshot is
+#     staged -- nothing staged, nothing uploaded (AUD-1 item 1d)
 #
 # Overridable:
 #   CHESTER_REPO        repo checkout        (~/chester-reports)
@@ -78,6 +102,10 @@
 #   CHESTER_RCLONE_FLAGS    parallelism (default: --transfers 4 --checkers 8).
 #                           The stall limits below are NOT overridable here, so
 #                           tuning parallelism cannot quietly drop them.
+#   CHESTER_SWEEP_BUDGET_MIN  the sweep's budget in minutes (105)
+#   CHESTER_SWEEP_CLOCK     fixtures only: a file holding the epoch seconds the
+#                           sweep reads as "now", so a gate can run a night on a
+#                           fake clock without sleeping; unset, the clock is date
 
 set -uo pipefail
 
@@ -86,8 +114,15 @@ LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"
 STATE_DIR="${CHESTER_STATE_DIR:-$HOME/.chester}"
 BACKUP_DIR="${CHESTER_BACKUP_DIR:-$HOME/backups}"
 DATA_DIR="${CHESTER_DATA_DIR:-$HOME/chester-data}"
+# THE REPORT ARCHIVE (AUD-1 item 1e): every report's HTML, PDF and payload, as
+# the reports' delivery step writes them -- CHESTER_REPORTS_DIR, else reports/ in
+# the checkout. The README said the sweep carried it; it did not, until now.
+REPORTS_DIR="${CHESTER_REPORTS_DIR:-$REPO/reports}"
 REMOTE="${CHESTER_RCLONE_REMOTE:-}"
 RCLONE_FLAGS="${CHESTER_RCLONE_FLAGS:---transfers 4 --checkers 8}"
+SWEEP_BUDGET_MIN="${CHESTER_SWEEP_BUDGET_MIN:-105}"
+SWEEP_CLOCK="${CHESTER_SWEEP_CLOCK:-}"
+HOUSEKEEP_MIN=10      # minutes left for a prune or an inbox pull to start
 
 # Fail fast, retry sanely, stay under Drive's request quota. All in rclone
 # v1.60 (the Debian package on the box). --timeout is the IO idle timeout: a
@@ -103,6 +138,20 @@ LAST_OK="$STATE_DIR/rclone_sync_last_ok"
 LOCK="$STATE_DIR/rclone_sync.lock"
 
 log() { printf '%s %s\n' "$(date --iso-8601=seconds)" "$*" >>"$LOG"; }
+
+now_s() { if [[ -n "$SWEEP_CLOCK" ]]; then cat "$SWEEP_CLOCK"; else date +%s; fi; }
+# Whole minutes left of the budget, rounded DOWN: 30 seconds gone is a minute gone.
+mins_left() { echo $(( SWEEP_BUDGET_MIN - ( $(now_s) - SWEEP_START + 59 ) / 60 )); }
+# can_housekeep <what>: a prune or a pull starts only with HOUSEKEEP_MIN left.
+can_housekeep() {
+    local left
+    left=$(mins_left)
+    if (( left < HOUSEKEEP_MIN )); then
+        log "  $1: deferred to the next night (${left}m of the sweep budget left)"
+        return 1
+    fi
+    return 0
+}
 
 finish() {   # finish <state> <rc> <detail>
     printf 'state=%s rc=%s at=%s detail=%s\n' \
@@ -133,11 +182,25 @@ command -v rclone >/dev/null 2>&1 || finish no_rclone 1 "rclone is not installed
 PY="${CHESTER_PYTHON:-$REPO/.venv/bin/python}"
 [[ -x "$PY" ]] || finish no_venv 1 "no interpreter at $PY"
 
-log "=== sweep start remote=$REMOTE"
+SWEEP_START=$(now_s)
+log "=== sweep start remote=$REMOTE budget=${SWEEP_BUDGET_MIN}m"
 
 # --- stage a consistent, verified, compressed database snapshot -------------
 STAGE="$STATE_DIR/backup_stage"
 mkdir -p "$STAGE"
+
+# NOT ON A NEARLY FULL DISK (AUD-1 item 1d). The snapshot and its gzip need up to
+# twice the database's size beside it; a stage that fills the disk takes the
+# live store's WAL with it. Under twice the database's size free: no snapshot,
+# a named exit, and the heartbeat's disk line says why.
+DB_FILE="$REPO/data/chester.db"
+if [[ -f "$DB_FILE" ]]; then
+    DB_BYTES=$(stat -c %s "$DB_FILE")
+    FREE_BYTES=$(df --output=avail -B1 "$STAGE" | tail -1 | tr -d ' ')
+    if [[ -n "$FREE_BYTES" ]] && (( FREE_BYTES < 2 * DB_BYTES )); then
+        finish disk_low 5 "only $FREE_BYTES bytes free beside $STAGE, under twice the database's $DB_BYTES; no snapshot staged"
+    fi
+fi
 SNAP="$STAGE/chester-$(date +%Y-%m-%d).db"
 UPLOAD="$SNAP.gz"
 rm -f "$STAGE"/chester-*             # only tonight's staged copy is kept locally
@@ -160,8 +223,8 @@ rm -f "$SNAP"                        # the verified .gz is what goes off-box
 # --- copy, tree by tree -----------------------------------------------------
 # Each tree is reported separately and runs under its own time cap, so a
 # partial sweep names which part failed and a stalled tree cannot starve the
-# others. The caps sum to 115 minutes, plus up to ~10 for the db/ prune;
-# TimeoutStartSec is 2h30min, so a cap always fires before systemd does.
+# others. The cap is cut to the budget's minutes left, less 2, and a tree with
+# under 3 minutes left is skipped and named (see the header).
 RC=0
 FAILED=""
 copy_tree() {    # copy_tree <local> <remote-subpath> <minutes> [rclone filter args...]
@@ -171,7 +234,15 @@ copy_tree() {    # copy_tree <local> <remote-subpath> <minutes> [rclone filter a
         log "  skip $sub -- $srcdir does not exist"
         return 0
     fi
-    log "  start $sub (cap ${mins}m)"
+    local left
+    left=$(mins_left)
+    if (( left < 3 )); then
+        log "  SKIP $sub -- sweep budget spent"
+        FAILED="${FAILED:+$FAILED }$sub(budget)"
+        return 1
+    fi
+    (( left - 2 < mins )) && mins=$(( left - 2 ))
+    log "  start $sub (cap ${mins}m, ${left}m of the budget left)"
     # `copy`, not `sync`. See the header.
     timeout --kill-after=60s "${mins}m" \
         rclone copy "$srcdir" "$REMOTE/$sub" $RCLONE_FLAGS $RCLONE_LIMITS "$@" \
@@ -206,6 +277,11 @@ prune_db() {
         return 1
     fi
     for name in $doomed; do
+        if (( $(mins_left) < 2 )); then
+            PRUNE="stopped (sweep budget spent; $n deleted)"
+            log "  prune: $PRUNE"
+            return 0
+        fi
         # The same pattern backup_retention.py matches, checked again here: the
         # shell deletes nothing it has not itself recognised as a dated snapshot.
         if [[ ! "$name" =~ ^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$ ]]; then
@@ -226,15 +302,76 @@ prune_db() {
 }
 
 if copy_tree "$STAGE" "db" 20; then
-    prune_db || log "  prune: $PRUNE"
+    if can_housekeep "prune"; then
+        prune_db || log "  prune: $PRUNE"
+    else
+        PRUNE="deferred to the next night"
+    fi
 else
     RC=3
 fi
 copy_tree "$REPO/data"  "data"    40 --exclude "/chester.db*"     || RC=3
-copy_tree "$BACKUP_DIR" "backups" 30                              || RC=3
-copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
+copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
+copy_tree "$REPORTS_DIR" "reports" 15                             || RC=3
+# The zips last: they repeat what data/ holds. The compaction's safety copy
+# (the FRED compaction's --backup, ~/backups/chester-pre-compact-*.db) is a
+# raw, unencrypted database and stays on the box.
+copy_tree "$BACKUP_DIR" "backups" 30 --exclude "/chester-pre-compact-*.db" || RC=3
 log "  prune: $PRUNE"
+
+# --- the chain zips: Drive's to 30 days, the box's to 14 (AUD-1 1b, 1c) ------
+# Neither was ever pruned. Both by exact name, one file at a time, after the
+# copy above has run; neither touches RC -- a failed prune is a log line.
+#   DRIVE: backups/chains/chains_YYYY-MM-DD.zip dated more than 30 days back,
+#     only once the newest local zip is listed there (backup_retention.py
+#     --mode zips), with `rclone deletefile` -- never delete, purge or sync.
+#   THE BOX: ~/backups/chains keeps its newest 14 session zips; an older one is
+#     deleted only when the remote listing holds THAT EXACT FILE -- the same name
+#     and the same size (--mode local-chains).
+CHAINS_DIR="$BACKUP_DIR/chains"
+ZIPS="not run"
+prune_zips() {
+    [[ -d "$CHAINS_DIR" ]] || { ZIPS="skipped (no $CHAINS_DIR)"; return 0; }
+    can_housekeep "zips" || { ZIPS="deferred to the next night"; return 0; }
+    local newest listing remote_file name n=0 m=0
+    newest="$(ls -1 "$CHAINS_DIR" 2>/dev/null | grep -E '^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$' | sort | tail -1)"
+    [[ -n "$newest" ]] || { ZIPS="skipped (no local zip)"; return 0; }
+    remote_file="$STATE_DIR/remote_chains.lsf"
+    if ! timeout 5m rclone lsf "$REMOTE/backups/chains" --files-only --format sp \
+            --separator ";" $RCLONE_LIMITS >"$remote_file" 2>>"$LOG"; then
+        ZIPS="failed (listing backups/chains)"
+        return 1
+    fi
+    listing="$(cut -d';' -f2 "$remote_file")"
+    for name in $(printf '%s\n' "$listing" \
+            | "$PY" "$REPO/scripts/backup_retention.py" --mode zips \
+                --today "$TODAY" --require "$newest" 2>>"$LOG"); do
+        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
+        if (( $(mins_left) < 2 )); then
+            ZIPS="stopped (sweep budget spent; $n deleted on Drive)"
+            return 0
+        fi
+        if timeout 2m rclone deletefile "$REMOTE/backups/chains/$name" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            n=$((n + 1))
+        fi
+    done
+    for name in $(find "$CHAINS_DIR" -maxdepth 1 -name 'chains_*.zip' -printf '%s;%f\n' \
+            | "$PY" "$REPO/scripts/backup_retention.py" --mode local-chains \
+                --remote "$remote_file" 2>>"$LOG"); do
+        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
+        if (( $(mins_left) < 2 )); then
+            ZIPS="stopped (sweep budget spent; $n deleted on Drive, $m locally)"
+            return 0
+        fi
+        rm -f -- "$CHAINS_DIR/$name" && m=$((m + 1))
+    done
+    ZIPS="ok ($n deleted on Drive, $m locally)"
+    return 0
+}
+prune_zips || true
+log "  zips: $ZIPS"
 
 # --- the inbound files: AAII's weekly row (10 Oct 2026), S&P DJI's EPS workbook
 # (13 Oct 2026) --------------------------------------------------------------
@@ -253,6 +390,7 @@ pull_inbox_file() {
     local folder="$1" name="$2" rname="${REMOTE%%:*}"
     local src="$rname:chester-vendor-checks/$folder/$name"
     local dest="$DATA_DIR/inbox/$folder/$name"
+    can_housekeep "$folder inbox" || return 0
     if ! timeout 2m rclone lsf "$rname:chester-vendor-checks/$folder" --files-only \
             --include "/$name" $RCLONE_LIMITS 2>>"$LOG" \
             | grep -qxF "$name"; then
@@ -283,6 +421,7 @@ pull_etf_archive() {
     local rname="${REMOTE%%:*}" dir="$DATA_DIR/inbox/etf"
     local srcdir="$rname:chester-vendor-checks/etf" f n=0
     local files
+    can_housekeep "etf archive" || return 0
     if ! files=$(timeout 2m rclone lsf "$srcdir" --files-only --max-depth 1 \
             $RCLONE_LIMITS 2>>"$LOG") || [[ -z "$files" ]]; then
         log "  etf archive: skip -- $srcdir is empty, absent (or unlistable)"
@@ -290,6 +429,10 @@ pull_etf_archive() {
     fi
     while IFS= read -r f; do
         [[ -z "$f" ]] && continue
+        if (( $(mins_left) < 7 )); then   # one copy's own 5m cap, plus the 2
+            log "  etf archive: sweep budget spent; the rest deferred to the next night"
+            break
+        fi
         local src="$srcdir/$f" dest="$dir/$f"
         if timeout 5m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
                 --log-file "$LOG" --log-level INFO; then
