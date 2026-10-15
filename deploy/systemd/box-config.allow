@@ -114,3 +114,7 @@ chester-monthly.service       Environment
 # a watchdog whose state lands somewhere the operator does not look is a watchdog
 # reporting into a drawer.
 ibgateway-watchdog.service    Environment
+
+# The restore drill (AUD-2 item 5) reads the backup's remote from the same
+# box-local drop-in the backup does: CHESTER_RCLONE_REMOTE, one Environment= line.
+chester-restore-drill.service Environment

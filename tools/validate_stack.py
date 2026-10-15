@@ -27,6 +27,9 @@ a real position or a real price:
   G LEDGER     outlooks are computed from stored closes, recorded before printing,
                recorded once per session, and NOT recorded on a dry run.
   H SCORECARD  the dealer-scorecard row the Monthly will read is stored.
+  I WARNINGS   the data check (AUD-3c): a clean fixture day prints no "Data
+               check:" line; a day with ^VIX and VIXCLS apart past their
+               tolerance prints it in the Warnings table, read-only.
 """
 
 from __future__ import annotations
@@ -188,6 +191,8 @@ class Resp:
         self.content = [types.SimpleNamespace(type="text", text=t)]
         self.model = "fixture-model"
         self.stop_reason = "end_turn"
+        # AUD-2 item 4: the reply's own token count, as the API returns it.
+        self.usage = types.SimpleNamespace(input_tokens=1200, output_tokens=80)
 
 
 def client(replies: dict, calls: list):
@@ -205,6 +210,36 @@ def client(replies: dict, calls: list):
 # ---------------------------------------------------------------------------
 # The groups
 # ---------------------------------------------------------------------------
+def group_m(db: str, out1: dict, n: int) -> None:
+    """AUD-2 item 4: every call counted, and the close's one footer line."""
+    import sqlite3
+    from altdata import model_meter, session
+    from daily_cascade import narrative
+    print(f"\n{LINE}\nM. THE MODEL METER (AUD-2 item 4)\n{LINE}")
+    con = sqlite3.connect(db)
+    rows = con.execute("SELECT run_id, report, section, attempt, model, input_tokens,"
+                       " output_tokens, called_at FROM model_calls ORDER BY id"
+                       ).fetchall()[:n]
+    con.close()
+    check(n > 0 and len(rows) == n
+          and all(r[1] == "daily_close" and r[4] == "fixture-model"
+                  and (r[5], r[6]) == (1200, 80) and r[7] for r in rows),
+          f"the close's {n} fake-model calls land as {len(rows)} rows in model_calls, "
+          f"each with its report, model id, tokens and time")
+    secs = {r[2] for r in rows}
+    check(bool(secs) and None not in secs and all(r[3] >= 1 for r in rows),
+          f"each row names its section and attempt ({sorted(secs)[:4]}...)")
+    want = (f"Model: {n:,} call{'' if n == 1 else 's'}, {1200 * n:,} input / "
+            f"{80 * n:,} output tokens today")
+    check(out1["edition"].get("model_line") == want and want in out1["html_email"],
+          f"the footer prints \"{out1['edition'].get('model_line')}\"")
+    check(model_meter.daily_line(db, session.to_eastern().date().isoformat()) == want,
+          "and the line is the meter's own sum over the day's rows")
+    body = narrative.build_prompt({"b": [1, 2], "a": {"x": "y"}}, None)
+    check('{"a":{"x":"y"},"b":[1,2]}' in body,
+          "the payload reaches the model compact: no indentation, no padding")
+
+
 def main() -> int:
     from altdata import bars as bars_mod, config, levels as levels_mod, session
     from altdata import probability_ledger as pl
@@ -233,6 +268,7 @@ def main() -> int:
     print(f"\n{LINE}\nA. THE STACK\n{LINE}")
     out1 = stack_close.produce(p, archive_dir=arch, dry_run=False,
                                client=clean, db_path=db)
+    n_calls1 = len(calls)
     ed1 = out1["edition"]
     ids = [s["id"] for s in ed1["sections"]]
     check(ids == list(stack_mod.SECTION_ORDER),
@@ -673,6 +709,30 @@ def main() -> int:
     with observations.ObservationStore(db3) as st:
         check(st.latest_as_of(stack_close.SCORECARD_KEY, instrument="SPY") is None,
               "and a dry run stores none")
+
+    group_m(db, out1, n_calls1)
+    # --- I. WARNINGS: THE DATA CHECK (AUD-3c) -------------------------------------
+    print(f"\n{LINE}\nI. THE DATA CHECK IN THE WARNINGS TABLE\n{LINE}")
+    check(out1["report"].get("data_check") == [] and "Data check:" not in html1,
+          "a clean fixture day: no data-check line, and the Warnings table does "
+          "not print one")
+    db5 = str(Path(td) / "flagged.db")
+    s5 = seed(db5)
+    days5 = [d.isoformat() for d in weekdays_back(dt.date.fromisoformat(SESSION), 3)]
+    with observations.ObservationStore(db5) as st:
+        st.write_many([{"registry_key": k, "instrument": None, "observed_at": d,
+                        "available_at": f"{d}T21:00:00+00:00", "value": v,
+                        "source": "synthetic"}
+                       for d in days5 for k, v in (("yfinance.mkt_vix", 21.3),
+                                                   ("fred.vix", 22.1))])
+    o5 = stack_close.produce(payload(s5["market_state"]), archive_dir=None,
+                             dry_run=True, client=clean, db_path=db5)
+    dq = o5["report"].get("data_check") or []
+    check(len(dq) == 1 and dq[0].startswith("Data check: ^VIX 21.3 vs VIXCLS 22.1 on ")
+          and dq[0].endswith("beyond its 0.01-point tolerance"),
+          f"a flagged day: the pair's line ({dq})")
+    check(stack_render.esc(dq[0]) in o5["html_email"] if dq else False,
+          "printed in the close's Warnings table")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

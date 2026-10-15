@@ -53,6 +53,15 @@ PASS = 0
 FAIL = 0
 LINE = "=" * 78
 
+# TOOLS NAMED LIKE A GATE THAT ARE NOT GATES, each with its reason. A gate's
+# verdict is about the commit; these read a store someone names and report on IT.
+NOT_GATES = {
+    # AUD-3a item 1: the store against the registry, run by the operator on the
+    # box against data/chester.db (read-only). Its gate is validate_audit_3a,
+    # which runs it on a synthetic store.
+    "tools/check_store_registry.py": "an operator's read-only store check, not a gate",
+}
+
 
 def ok(m: str) -> None:
     global PASS
@@ -123,10 +132,15 @@ def group_a() -> None:
         f"tools/{p.name}" for p in (REPO / "tools").iterdir()
         if p.is_file() and re.match(r"^(validate_|check_).*\.(py|sh)$", p.name)
     }
-    missing = sorted(on_disk - listed)
+    missing = sorted(on_disk - listed - set(NOT_GATES))
     check(not missing,
           f"every validator in tools/ is in the Makefile's list "
           f"({missing or 'none missing'})")
+    # A declared exemption must name a real file and must not ALSO be a gate --
+    # otherwise the list could quietly park a failing validator here.
+    bad = sorted(p for p in NOT_GATES if not (REPO / p).exists() or p in listed)
+    check(not bad, f"every declared non-gate exists and is not in the gate list "
+          f"({bad or sorted(NOT_GATES)})")
 
     ghosts = sorted(p for p in listed if not (REPO / p).exists())
     check(not ghosts, f"every listed gate exists on disk ({ghosts or 'none missing'})")

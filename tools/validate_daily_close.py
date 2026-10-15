@@ -146,7 +146,10 @@ def group_a() -> None:
         check("numeral_audit" in code,
               f"{name} imports the numeral audit -- prose it produces is gated "
               f"by construction, not by the caller remembering to")
-        check("import anthropic" in code and "def _client" in code,
+        # AUD-2 item 4: the lazy import now lives in altdata/model_meter.py, the
+        # one client every report path shares; _client delegates to it.
+        check(("import anthropic" in code or "model_meter" in code)
+              and "def _client" in code,
               f"{name} imports the client LAZILY, so a box without the package "
               f"runs the rest of the pipeline")
 

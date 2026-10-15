@@ -167,8 +167,9 @@ def group_a() -> None:
     wi.run("SPY", "long", 100, ib_factory=lambda: ib)
     check(ib.connect_kwargs.get("readonly") is True,
           "connect passes readonly=True")
-    check(ib.connect_kwargs.get("clientId") == wi.WHATIF_CLIENT_ID == 18,
-          "uses client id 18, distinct from Portfolio Truth's 17")
+    check(ib.connect_kwargs.get("clientId") == wi.WHATIF_CLIENT_ID == 20,
+          "uses client id 20, distinct from Portfolio Truth's 17 and the "
+          "watchdog's 18 (AUD-3a item 7; altdata/ibkr_clients.py)")
     check(ib.placed == [], "placeOrder was NEVER called (the fake would record it)")
     check(len(ib.what_ifs) == 1, "exactly one whatIfOrder call")
     check(ib.disconnected, "disconnects even on the happy path")

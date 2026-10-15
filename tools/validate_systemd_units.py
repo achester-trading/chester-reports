@@ -92,6 +92,10 @@ KNOWN: dict[str, tuple[set[str], set[str] | None]] = {
     "ProtectKernelTunables":  ({"Service"}, BOOL),
     "ProtectControlGroups":   ({"Service"}, BOOL),
     "RestrictSUIDSGID":       ({"Service"}, BOOL),
+    # AUD-2 item 3: the cgroup memory caps, and item 2: the OOM killer's order.
+    "MemoryHigh":             ({"Service"}, None),
+    "MemoryMax":              ({"Service"}, None),
+    "OOMScoreAdjust":         ({"Service"}, None),
 
     # [Timer]
     "OnCalendar":             ({"Timer"}, None),
@@ -329,11 +333,179 @@ def check_environment_file() -> None:
                         f"without .env would fail to start the unit entirely")
     print()
 
+# AUD-2 (ruled 14 Oct 2026), sized for the 8 GB box (CX33, from 17 Oct). The
+# values are SESSION-SET; deploy/systemd/README.md and docs/briefs/aud-2-notes.md
+# carry them and why. (MemoryHigh, MemoryMax) per heavy unit.
+MEMORY_CAPS = {
+    "chester-eod.service":         ("1.6G", "2G"),
+    "chester-daily-close.service": ("1.6G", "2G"),
+    "chester-weekly.service":      ("2G", "2.5G"),
+    "chester-monthly.service":     ("2G", "2.5G"),
+    "chester-voices.service":      ("0.8G", "1G"),
+    "chester-backup.service":      ("1.2G", "1.5G"),
+}
+# THE OOM ORDER (ruled 14 Oct 2026 evening). A report can be rendered again; a
+# day's chains cannot be fetched again; the Gateway needs Ari's supervised login.
+# So the kernel, if the caps are not enough, takes a report first, the EOD capture
+# next, the Gateway last. Raising a score needs no privilege, so the order holds
+# even if a --user unit is refused the Gateway's -500.
+OOM_SCORES = {
+    "ibgateway.service":             -500,
+    "chester-eod.service":            300,
+    "chester-daily-close.service":    500,
+    "chester-weekly.service":         500,
+    "chester-monthly.service":        500,
+    "chester-voices.service":         500,
+    "chester-backup.service":         500,
+    "chester-restore-drill.service":  500,
+}
+REPORT_UNITS = [u for u, v in OOM_SCORES.items()
+                if u not in ("ibgateway.service", "chester-eod.service")]
+SANDBOX = ("NoNewPrivileges=true", "PrivateTmp=true", "ProtectSystem=strict")
+
+
+def directives(path: Path) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith(("#", ";", "[")) or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out.setdefault(k.strip(), []).append(v.strip())
+    return out
+
+
+def _gib(v: str) -> float:
+    m = re.fullmatch(r"([\d.]+)([KMG]?)", v)
+    if not m:
+        return float("nan")
+    return float(m.group(1)) * {"K": 1 / 1048576, "M": 1 / 1024, "G": 1.0, "": 1 / 2**30}[m.group(2)]
+
+
+def _minutes(span: str) -> float:
+    """A systemd time span (2h, 2h30min, 5min, 780) in minutes."""
+    total = 0.0
+    for n, u in re.findall(r"([\d.]+)\s*(h|min|m|s)?", span):
+        total += float(n) * {"h": 60, "min": 1, "m": 1, "s": 1 / 60, "": 1 / 60}[u or ""]
+    return total
+
+
+def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
+    """The AUD-2 unit rules; returns the faults (empty when all hold)."""
+    faults = []
+    for name, (high, mx) in MEMORY_CAPS.items():
+        d = directives(unit_dir / name)
+        if d.get("MemoryHigh") != [high] or d.get("MemoryMax") != [mx]:
+            faults.append(f"{name}: MemoryHigh/MemoryMax {d.get('MemoryHigh')}/"
+                          f"{d.get('MemoryMax')}, want {high}/{mx}")
+        elif not _gib(high) < _gib(mx):
+            faults.append(f"{name}: MemoryHigh must sit below MemoryMax")
+    total = sum(_gib(mx) for _, mx in MEMORY_CAPS.values())
+    if total > 8 * 1.5:
+        faults.append(f"the caps sum to {total:g}G, implausible on an 8 GB box")
+    auc = directives(unit_dir / "chester-auction.service")
+    if any("ibgateway" in v for k in ("Wants", "Requires", "BindsTo")
+           for v in auc.get(k, [])):
+        faults.append("chester-auction.service still pulls in ibgateway.service")
+    for kv in SANDBOX:
+        k, v = kv.split("=")
+        if auc.get(k) != [v]:
+            faults.append(f"chester-auction.service lacks {kv}")
+    # The narrowest it can run with: its log, its status and lock (~/.chester),
+    # and the checkout (the wrapper's git pull; data/chester.db). Nothing else.
+    rw = " ".join(auc.get("ReadWritePaths", []))
+    if sorted(rw.split()) != sorted(["%h/logs", "%h/.chester", "%h/chester-reports"]):
+        faults.append(f"chester-auction.service ReadWritePaths not narrow ({rw!r})")
+    score: dict = {}
+    for name, want in OOM_SCORES.items():
+        got = directives(unit_dir / name).get("OOMScoreAdjust")
+        try:
+            score[name] = int(got[0]) if got and len(got) == 1 else None
+        except ValueError:
+            score[name] = None
+        if score[name] != want:
+            faults.append(f"{name}: OOMScoreAdjust {got}, want {want}")
+    # The order itself, so a re-tuned value cannot quietly invert it: the Gateway
+    # lowest of all, the EOD capture below every report.
+    gw, eod = score["ibgateway.service"], score["chester-eod.service"]
+    if gw is not None and any(v is not None and v <= gw for k, v in score.items()
+                              if k != "ibgateway.service"):
+        faults.append("the Gateway's OOM score is not the lowest")
+    if eod is not None and any(score[u] is not None and score[u] <= eod
+                               for u in REPORT_UNITS):
+        faults.append("the EOD capture's OOM score is not below every report's")
+    bk = directives(unit_dir / "chester-backup.service")
+    bt = directives(unit_dir / "chester-backup.timer")
+    wk = directives(unit_dir / "chester-weekly.timer")
+    if bk.get("TimeoutStartSec") != ["2h"]:
+        faults.append(f"chester-backup.service TimeoutStartSec "
+                      f"{bk.get('TimeoutStartSec')}, want 2h")
+    start = re.search(r"(\d\d):(\d\d)", (bt.get("OnCalendar") or [""])[0])
+    wstart = re.search(r"(\d\d):(\d\d)", (wk.get("OnCalendar") or [""])[0])
+    if start and wstart:
+        end = (int(start[1]) * 60 + int(start[2])
+               + _minutes((bt.get("RandomizedDelaySec") or ["0"])[0])
+               + _minutes((bk.get("TimeoutStartSec") or ["0"])[0]))
+        if end >= int(wstart[1]) * 60 + int(wstart[2]):
+            faults.append(f"the backup can run to {int(end // 60):02d}:"
+                          f"{int(end % 60):02d}, into the Weekly at "
+                          f"{wstart[1]}:{wstart[2]}")
+    else:
+        faults.append("could not read the backup's or the Weekly's OnCalendar")
+    return faults
+
+
+def aud2() -> None:
+    print(f"\n{LINE}\nAUD-2: memory caps, the auction unit, the Gateway's OOM order, "
+          f"the backup's end\n{LINE}")
+    faults = check_aud2()
+    if faults:
+        for f in faults:
+            bad(f)
+    else:
+        ok(f"the six heavy units carry their caps ({', '.join(f'{k.split('.')[0]} {h}/{m}' for k, (h, m) in MEMORY_CAPS.items())}); "
+           f"the auction unit neither wants nor starts the Gateway and runs "
+           f"sandboxed; the OOM order holds (Gateway -500 < EOD 300 < the reports "
+           f"500); the backup ends by 04:35, "
+           f"before the 05:00 Weekly")
+    # The rules are themselves checked: each defect, alone, is caught.
+    import shutil
+    import tempfile
+    for label, unit, old, new in (
+            ("a missing cap", "chester-weekly.service", "MemoryMax=2.5G", ""),
+            ("the Gateway wanted again", "chester-auction.service",
+             "[Unit]", "[Unit]\nWants=ibgateway.service"),
+            ("no OOM order", "ibgateway.service", "OOMScoreAdjust=-500", ""),
+            ("the Gateway above the capture", "ibgateway.service",
+             "OOMScoreAdjust=-500", "OOMScoreAdjust=400"),
+            ("the capture level with the reports", "chester-eod.service",
+             "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
+            ("a report below the capture", "chester-voices.service",
+             "OOMScoreAdjust=500", "OOMScoreAdjust=200"),
+            ("a report with no score", "chester-restore-drill.service",
+             "OOMScoreAdjust=500", ""),
+            ("the old 2h30 timeout", "chester-backup.service",
+             "TimeoutStartSec=2h", "TimeoutStartSec=2h30min")):
+        with tempfile.TemporaryDirectory() as td:
+            for f in UNIT_DIR.iterdir():
+                if f.is_file():
+                    shutil.copy(f, td)
+            p = Path(td) / unit
+            p.write_text(p.read_text(encoding="utf-8").replace(old, new, 1),
+                         encoding="utf-8")
+            check(bool(check_aud2(Path(td))), f"and {label} in {unit} is caught")
+
+
+def check(c: bool, m: str) -> None:
+    ok(m) if c else bad(m)
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     self_test()
     check_environment_file()
+    aud2()
     units = sorted(list(UNIT_DIR.glob("*.service")) + list(UNIT_DIR.glob("*.timer")))
     print(f"{LINE}\nsystemd units shipped in deploy/systemd/\n{LINE}")
     if not units:

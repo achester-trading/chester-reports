@@ -112,7 +112,7 @@ def level_on(pts: list[tuple[str, float]], day: str) -> Optional[tuple[str, floa
 
 
 def units(key: str) -> str:
-    return str(derived.registry_entry(key).get("units") or "")
+    return derived.level_units_of(key)
 
 
 def fmt_level(v: float, key: str, dp: Optional[int] = None) -> str:

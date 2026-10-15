@@ -96,8 +96,20 @@ DEFAULT_WINDOW_DAYS = 1826
 DELTA_UNITS: dict[str, str] = {
     # Rates and spreads: quoted in percent, moved in basis points.
     "%": "bps",
-    "percent": "bps",
+    "percent": "bps",    # the undivided unit; check_registry refuses it on an entry
     "bps": "bps",
+    # PERCENT, SPLIT BY MEANING (AUD-3a item 3, 14 Oct 2026). One word covered a
+    # yield, a percentile, a return and a share, so a percentile moving 40 -> 55
+    # read +1,500 bp. Each meaning is now its own unit, with its own delta rule:
+    "percent_rate": "bps",     # a yield, rate or spread level: 4.45 -> 4.52 is +7 bp
+    "percentile": "pts",       # an own-history rank, 0..100: 40 -> 55 is +15 pts
+    "percent_return": "pp",    # a return, growth rate or distance: 1.2 -> 1.5 is +0.3 pp
+    "percent_share": "pp",     # a share of a whole: 36% -> 45% of sectors is +9 pp
+    "vol_pct": "pts",          # an annualised volatility in percent: 18 -> 20 is +2 pts
+    "vol_index": "pts",        # a volatility index level (^VIX): 18 -> 20 is +2 pts
+    # An index level that is neither a price nor a volatility (^SKEW; ruled 15 Oct
+    # 2026): 140 -> 146 is +6 pts, where a percent change of it means nothing.
+    "index_points": "pts",
     # Prices and index levels: moved in percent of themselves.
     "$": "percent",
     "price": "percent",
@@ -141,7 +153,42 @@ DELTA_UNITS: dict[str, str] = {
 # written down per metric, and tools/validate_derived.py asserts that any value
 # here is one of the declared units rather than a typo that silently falls back.
 DELTA_UNIT_OVERRIDE = "delta_unit"
-DELTA_UNITS_ALL = ("bps", "percent", "raw", "pp")
+DELTA_UNITS_ALL = ("bps", "percent", "raw", "pp", "pts")
+
+# HOW A LEVEL PRINTS, which the split must not move (AUD-3a item 3). The
+# renderers format a level from its registry units -- "4.45%" for percent, a bare
+# number for a price -- and every one of them compares against the OLD words. So
+# each new unit names the word its level printed under before the split: the five
+# percent meanings still print as percent, and the VIX, a price until then, still
+# prints as one. A renderer reads `level_units()`, never the raw split unit.
+LEVEL_UNITS: dict[str, str] = {
+    "percent_rate": "percent",
+    "percentile": "percent",
+    "percent_return": "percent",
+    "percent_share": "percent",
+    "vol_pct": "percent",
+    "vol_index": "price",
+    "index_points": "price",
+}
+
+
+def level_units(units: Any) -> str:
+    """The units word a level is formatted under: the split units map back to the
+    word they printed as (LEVEL_UNITS); every other unit is itself."""
+    u = str(units or "")
+    return LEVEL_UNITS.get(u, u)
+
+
+def level_units_of(key_or_entry: Any) -> str:
+    """The units word one metric's level is formatted under. A block member whose
+    unit member_units overrode prints under the word it had before the override
+    (`level_as`: FRED's "%", the closes' "price"); every other entry under
+    level_units() of its units. Renderers call this, never the raw unit."""
+    e = (key_or_entry if isinstance(key_or_entry, dict)
+         else registry_entry(str(key_or_entry))) or {}
+    if e.get("level_as") is not None:
+        return str(e["level_as"])
+    return level_units(e.get("units"))
 
 # ---------------------------------------------------------------------------
 # STALENESS ALLOWANCE BY information_half_life, in SESSIONS.
@@ -198,20 +245,30 @@ def _load_registry() -> dict:
     global _REGISTRY
     if _REGISTRY is not None:
         return _REGISTRY
-    out: dict[str, dict] = {}
     try:
         import yaml  # noqa: PLC0415
         with (REPO / "metrics_registry.yaml").open(encoding="utf-8") as fp:
             reg = yaml.safe_load(fp) or {}
     except Exception:
-        _REGISTRY = out
-        return out
+        _REGISTRY = {}
+        return _REGISTRY
+    _REGISTRY = resolve_registry(reg)
+    return _REGISTRY
 
+
+def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
+    """Every key a registry dict declares, bulk members expanded, as
+    {key: entry}. Pure: tools/check_registry.py runs it over the real registry
+    and a gate over a synthetic one. `by_block`, given, collects
+    {block id: [keys it expanded to]} -- an empty list is a block that resolves
+    to nothing, the failure AUD-3a item 2 closes."""
+    import importlib  # noqa: PLC0415
+    out: dict[str, dict] = {}
     for key, m in (reg.get("metrics") or {}).items():
         if isinstance(m, dict):
             out[key] = dict(m)
 
-    for block in (reg.get("bulk_imports") or {}).values():
+    for bid, block in (reg.get("bulk_imports") or {}).items():
         if not isinstance(block, dict):
             continue
         members_from = block.get("members_from")
@@ -219,10 +276,11 @@ def _load_registry() -> dict:
         member_key = block.get("member_key")
         members_are = block.get("members_are")
         suffixes = list(block.get("member_suffixes") or [""])
-        if not members_from or not (member_key or members_are):
+        if not members_from:
             continue
+        if by_block is not None:
+            by_block.setdefault(bid, [])
         try:
-            import importlib  # noqa: PLC0415
             mod_path, attr = members_from.rsplit(".", 1)
             members = getattr(importlib.import_module(mod_path), attr)
         except Exception:
@@ -234,6 +292,12 @@ def _load_registry() -> dict:
             members = list(members.values())
         elif members_are == "keys" and isinstance(members, dict):
             members = list(members.keys())
+        # A PLAIN LIST OF NAMES (AUD-3a item 2). A block with neither member_key
+        # nor members_are names its members directly -- the overnight keys, the
+        # events table's columns, the pin log's -- and check_registry has always
+        # read it so. This resolver skipped it, so all 46 overnight.* keys and
+        # three column blocks resolved to no entry and their deltas fell to raw.
+        member_units = dict(block.get("member_units") or {})
         for mem in members or []:
             name = (getattr(mem, member_key, None) if member_key
                     else (mem if isinstance(mem, str) else None))
@@ -244,17 +308,49 @@ def _load_registry() -> dict:
                                   "expected_members", "description",
                                   "members_are", "member_suffixes",
                                   "mechanism_group_from_member",
-                                  "mechanism_group_map")}
-            # `from_member` means "the member owns this field".
+                                  "mechanism_group_map", "member_units")}
+            entry["bulk_block"] = bid
+            # `from_member` means "the member owns this field". A member named as
+            # a string has no attributes: its units are the individually
+            # registered metric's whose leaf it is (the pin log's columns), as
+            # check_registry's coverage reads it -- or none, and the delta says so.
             for field in ("units", "native_horizon"):
                 if entry.get(field) == "from_member":
-                    entry[field] = getattr(mem, field, None) or getattr(
-                        mem, "freq" if field == "native_horizon" else field, None)
+                    if isinstance(mem, str):
+                        entry[field] = _leaf_field(reg, mem, field)
+                    else:
+                        entry[field] = getattr(mem, field, None) or getattr(
+                            mem, "freq" if field == "native_horizon" else field,
+                            None)
             entry["freq"] = getattr(mem, "freq", None)
             for suffix in suffixes:
-                out.setdefault(prefix + str(name) + suffix, dict(entry))
-    _REGISTRY = out
+                key = prefix + str(name) + suffix
+                e = dict(entry)
+                # ONE MEMBER'S OWN UNITS (AUD-3a item 3): ^TNX is a yield and ^VIX
+                # a volatility index inside a block of prices. Declared per store
+                # key in the block, so the exception is visible in the registry.
+                if key in member_units:
+                    # A member that owns its units (`from_member`: FRED's "%")
+                    # keeps the word its level printed under before the override,
+                    # since "%" prints bare where a metric's "percent" prints with
+                    # its sign (15 Oct 2026). A block whose units are its own
+                    # (the closes' price) maps through LEVEL_UNITS: ^TNX with %,
+                    # as accepted on 15 Oct.
+                    if block.get("units") == "from_member":
+                        e["level_as"] = e.get("units")
+                    e["units"] = member_units[key]
+                out.setdefault(key, e)
+                if by_block is not None:
+                    by_block[bid].append(key)
     return out
+
+
+def _leaf_field(reg: dict, name: str, field: str) -> Any:
+    """`field` of the one registered metric whose dotted id ends in `name`, or
+    None when no metric, or more than one, does."""
+    hits = [m.get(field) for k, m in (reg.get("metrics") or {}).items()
+            if isinstance(m, dict) and k.rsplit(".", 1)[-1] == name]
+    return hits[0] if len(hits) == 1 else None
 
 
 def registry_entry(metric_id: str) -> dict:
@@ -271,6 +367,9 @@ def delta_unit_for(metric_id: str) -> tuple[str, str]:
                            f"{DELTA_UNITS_ALL}; treated as raw")
         return override, f"registry delta_unit {override!r}"
     units = e.get("units")
+    if units is None and e:
+        return "raw", (f"{metric_id!r} is registered (bulk block "
+                       f"{e.get('bulk_block')!r}) with no units; treated as raw")
     if units is None:
         return "raw", (f"no registry entry for {metric_id!r}; treated as raw -- "
                        f"register the metric to give its deltas a meaning")
@@ -411,8 +510,14 @@ def rate_bp_change(level_pct: Optional[float], past_pct: Optional[float]
 
 def staleness_allowance(metric_id: str) -> tuple[Optional[int], str]:
     """How many sessions this metric may go unrefreshed before it is stale."""
-    e = registry_entry(metric_id)
-    hl = e.get("information_half_life")
+    return staleness_allowance_of(registry_entry(metric_id), metric_id)
+
+
+def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int], str]:
+    """The same rule over an entry already resolved (tools/check_store_registry.py
+    resolves a registry of its own and reads it here, so the store check and the
+    reports' confidence cannot hold two staleness rules)."""
+    hl = (e or {}).get("information_half_life")
     if hl == "until_next_release":
         freq = e.get("freq") or e.get("native_horizon")
         n = FREQ_SESSIONS.get(str(freq))

@@ -1982,6 +1982,152 @@ sources:
       - >-
         Tier C mirror of A0 filings. Where EDGAR XBRL is ingested later, it wins.
 
+  # --- AUD-3a item 4 (14 Oct 2026): the string the computed rows carry -------
+  calc:
+    name: This system's own computations over the store (the calc.* rows)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [equity_prices, macro, rates, credit, fx]
+    geography: [US, global]
+    latency: one pass after each input's fetch
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Every calc.* row is written with source `calc` by altdata/market_features.py,
+      altdata/attribution.py, altdata/correlation.py and the shielded-pool and VX
+      loggers; its available_at is the maximum of its inputs'. Registered so the
+      store check can read the string as an id: a computed row inherits the tier of
+      what it read and never acquires more authority than its input.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/market_features.py
+    status: live
+
+  # INTERNAL WRITERS' SOURCE STRINGS (ruled 15 Oct 2026, AUD-3a follow-up 5).
+  # Each is the string one of this system's own passes writes today; registered
+  # as an internal source so the store check reads it as an id. The writers keep
+  # writing what they write; moving each to a single registered id comes after
+  # aud-1-data-fixes merges.
+  daily_close:
+    name: The 16:45 close pass's own records
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by daily_cascade/stack_close.py: the dealer scorecard row, dealer.scorecard_day, one per session.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: daily_cascade/stack_close.py
+    status: live
+
+  book_z:
+    name: Book Z's benchmark marks
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/benchmark.py: each paper ledger's daily mark, its units, cash and closes as JSON, instrument = the ledger.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/benchmark.py
+    status: live
+
+  narrative_register:
+    name: The narrative register's implied-outcome rows
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/narratives.py (LEDGER_SOURCE): a narrative's implied outcome as a probability-ledger row, resolved from the store.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/narratives.py
+    status: live
+
+  paper_bid_chain:
+    name: The paper bid's chain-derived series
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/paper_bid.py (SOURCE): the calc.paper_bid.* rows computed from the captured option chains.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/paper_bid.py
+    status: live
+
+  alt_asset:
+    name: The Quarterly's thesis register
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/thesis_register.py as alt_asset:<family>; the family is a suffix and the id is alt_asset, the way <id>:backfill reads as <id> (altdata/source_ids.py).
+    license: own work
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/thesis_register.py
+    status: live
+
+# STORED SOURCE STRINGS THAT ARE NOT IDS (AUD-3a item 4). A row's `source` is the
+# string its writer wrote and the store is append-only, so an old string is read
+# through altdata/source_ids.py: an id is itself, `<id>:<variant>` (kalshi:backfill,
+# fred:csv_migrated) is <id>, and a string listed here is the id beside it. Each
+# alias needs a reason; a string that is none of these is printed by
+# tools/check_store_registry.py rather than guessed at.
+#
+# An alias is either an id (the string always means it) or `by_key_family`: the
+# id depends on the row's registry key, matched by prefix (a trailing `*` marks a
+# family, so tools/validate_config_refs.py does not read it as a misspelled
+# metric id; an exact registered key needs none), first match wins, and a
+# key no line matches leaves the string off the list. Ruled 15 Oct 2026: a bare
+# `ibkr` resolves by the metric's family, to the id that family's writer writes
+# today (`ibkr_paper` or `ibkr_stock_loan`), so these lines read any row stored
+# under the bare string the way its family's current rows read. The costs and what-if paths
+# write no observation (their packets carry ibkr_<mode>, a registered id), so they
+# have no family here; the trade log's `executions.source` fallback `ibkr` is its
+# own table, which the store check does not read.
+stored_aliases:
+  ibkr:
+    by_key_family:
+      - prefix: ibkr.auction_*
+        source: ibkr_paper
+        reason: >-
+          The closing-auction rows: altdata/loggers/auction.py writes them as
+          ibkr_paper today, the Gateway session they are read through (the feed
+          behind it is the ibkr_md_nyse_imbalances subscription).
+      - prefix: ibkr.borrow_probe
+        source: ibkr_paper
+        reason: >-
+          The borrow probe tests the Gateway connection itself;
+          altdata/loggers/borrow.py writes it as ibkr_paper.
+      - prefix: ibkr.stock_loan_file_probe
+        source: ibkr_paper
+        reason: >-
+          The stock-loan file's reachability probe; altdata/loggers/borrow.py
+          writes it as ibkr_paper.
+      - prefix: ibkr.borrow_*
+        source: ibkr_stock_loan
+        reason: >-
+          The borrow fee and rebate rates come from IBKR's stock-loan file
+          (altdata/loggers/borrow.py writes them as ibkr_stock_loan).
+      - prefix: ibkr.shortable_shares
+        source: ibkr_stock_loan
+        reason: Shortable shares, from the same stock-loan file.
+
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.
 precedence:

@@ -2280,9 +2280,30 @@ def main() -> int:
                                  "The tape moved 998 points."],
     }
     arch = str(Path(TD) / "reports")
+    # AUD-2 item 4: the month's calls, by report -- seeded through the meter
+    # itself into the gate's own store, inside the month the Monthly covers.
+    import types as _t
+    from altdata import model_meter
+    month = ms.meter_month(p)
+    for rep, n_, (i_, o_) in (("daily_close", 3, (1000, 50)), ("weekly", 2, (4000, 300))):
+        with model_meter.scope(report=rep, db_path=DB):
+            for k in range(n_):
+                model_meter.record(_t.SimpleNamespace(
+                    model="fixture-model",
+                    usage=_t.SimpleNamespace(input_tokens=i_, output_tokens=o_)),
+                    now=f"{month}-1{k}T21:00:00+00:00")
     out = ms.produce(p, archive_dir=arch, client=client(calls, script), db_path=DB)
     ed = out["edition"]
     written = out["written"]
+    mlines = [x for x in out["html_email"].split("<p") if "Model, " in x
+              or "daily_close: " in x or "weekly: " in x]
+    check(any("5 calls, 11,000 input / 750 output tokens" in x for x in mlines)
+          and any("daily_close: 3 calls, 3,000 input / 150 output tokens" in x
+                  for x in mlines)
+          and any("weekly: 2 calls, 8,000 input / 600 output tokens" in x
+                  for x in mlines),
+          f"AUD-2: the Monthly's footer prints the month's model calls and tokens, "
+          f"by report, from the meter's rows ({month}; {len(mlines)} lines)")
     sec = {s["id"]: s for s in ed["sections"]}
     cfg = stack_mod.config()
 

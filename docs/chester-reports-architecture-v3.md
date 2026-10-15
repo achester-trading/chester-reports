@@ -133,6 +133,10 @@ binary blob.
 - **(c) Parquet in the repo, partitioned by series.** Diffable-ish, no server,
   good for analysis in pandas. Weakest for concurrent writes.
 
+> **As built (14 Oct 2026):** none of the three. The store is SQLite on the box,
+> written by the box's own units and never committed; see Part 2, "The store as
+> built".
+
 **Resolved: (b) D1 as system of record, plus (c) as a snapshot.**
 
 D1 beats commit-back on every axis that matters — concurrent-write safety, no
@@ -180,6 +184,20 @@ analysis should almost never require touching an engine.
                               ↓
         five reports, each a query + a template
 ```
+
+> **The store as built (AUD-3a, 14 Oct 2026).** One SQLite database,
+> `data/chester.db` on the box, append-only. The `observations` table is keyed by
+> `(registry_key, instrument, observed_at, available_at, source)` and carries
+> `availability_kind`; the as-of join reads `available_at`, and a re-read of an
+> identical value writes no new vintage (`altdata/observations.py`). The `bars`
+> table holds 5-minute and daily OHLC per tape instrument (`altdata/bars.py`).
+> The FRED history is also a CSV store outside the checkout
+> (`~/chester-data/data_store`, `altdata/store.py`). There is no D1 and no parquet
+> snapshot: the system of record is the box's database, backed up nightly to Drive
+> (`scripts/rclone_sync.sh`). The registries are `metrics_registry.yaml` (units,
+> half-lives, bulk blocks resolved to code) and `source_registry.yaml`; what the
+> store holds is listed by `python -m altdata.catalogue` and checked against the
+> registry by `python -m tools.check_store_registry`.
 
 ## The provenance chain — how hallucination is actually prevented
 
@@ -255,7 +273,8 @@ add the registry conventions below.)*
 5. **[NEW] Stand up the store backend** — D1 as system of record, parquet
    snapshot to the repo each run, local SQLite mirror for development. Decision
    is made (Finding 7); this session just creates the D1 binding and confirms the
-   Worker can read and write it.
+   Worker can read and write it. *(As built, 14 Oct 2026: no D1. The store is
+   SQLite on the box; see Part 2, "The store as built".)*
 6. **[NEW] Pin the model string** and start recording `model_id`,
    `prompt_version`, `git_sha` on every run.
 
@@ -674,6 +693,12 @@ small, and it is exactly the kind of omission that eats a session.
 
 **Done when:** the report renders with networking off, and a revised series shows
 both vintages.
+
+> **As built (14 Oct 2026):** the vintage-aware store exists as SQLite, keyed on
+> `(registry_key, instrument, observed_at, available_at, source)` rather than
+> `(series_id, as_of, vintage_date)`; a revision is a new `available_at`, and an
+> unchanged re-read writes nothing. `store.py` is the CSV store's module and
+> `observations.py` the database's. D1 and the local-mirror sync were not built.
 
 ### **[NEW] Also in this session: the `election_odds` table**
 

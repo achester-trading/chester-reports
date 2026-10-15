@@ -2,12 +2,15 @@
 Description=Closing-auction tick sampler (29.4 logging only -- absorption is 6h)
 Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 
-# THE GATEWAY MUST BE UP, and this is a Wants rather than a Requires. If the Gateway
-# is down the sampler should start, fail to connect, log it and exit -- which puts a
-# named failure in the journal. A Requires would leave the unit inactive with no
-# record, and "the sampler did not run" is exactly the state this logger exists to
-# make visible.
-Wants=ibgateway.service
+# THE SAMPLER NEVER STARTS THE GATEWAY (AUD-2 item 2, 14 Oct 2026). This said
+# Wants=ibgateway.service, and a Wants STARTS the wanted unit: every weekday at
+# 15:49 a stopped Gateway was started, and its ExecStartPre cleared the operator's
+# ~/state/gateway.stopped_by_operator -- so a Gateway stopped on purpose (an order
+# placed by hand in the GUI) came back with its watchdog re-armed, from a logger.
+# Now there is no Wants and no Requires. After= only orders the two when both are
+# starting anyway; it starts nothing. The sampler itself checks the marker and the
+# port, and with either it logs "Gateway stopped by operator" (or that the Gateway
+# is not up) and exits 0 without connecting.
 After=ibgateway.service
 
 [Service]
@@ -27,6 +30,19 @@ TimeoutStartSec=780
 # place an order. There is no order path in this repo and the permission rules deny
 # every entry point one would use.
 SuccessExitStatus=0
+
+# THE SAME SANDBOX AS chester-eod.service (AUD-2 item 2), with the narrowest write
+# set this run needs: its log, its status and lock in ~/.chester, and the checkout
+# (the wrapper's git pull, and data/chester.db where the ticks land). It reads the
+# Gateway's stop marker under ~/state and writes nothing there.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
 
 [Install]
 WantedBy=default.target

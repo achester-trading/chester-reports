@@ -914,6 +914,69 @@ wrapper pulls first. Unit files used to wait for somebody to run
 and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
 box keeps its own unit files current.
 
+## 13. Memory caps, the Gateway's OOM order, the auction unit and the restore drill (AUD-2, 14 Oct 2026)
+
+The box moves from 4 GB to 8 GB (CX33) on Saturday 17 Oct 2026. The IB Gateway's
+Java shares that RAM with every report, and until AUD-2 no unit had a memory cap.
+
+**The caps (session-set; `tools/validate_systemd_units.py` holds them):**
+
+| Unit | MemoryHigh | MemoryMax | Why this size |
+|---|---|---|---|
+| chester-eod | 1.6G | 2G | the chain fetch, GEX and the pin log for the whole universe, pandas-heavy |
+| chester-daily-close | 1.6G | 2G | the stacked close: levels, charts, the PDF |
+| chester-weekly | 2G | 2.5G | ten sections, ten charts, the PDF, the précis |
+| chester-monthly | 2G | 2.5G | the longest edition: twelve charts, the Monthly's tables |
+| chester-voices | 0.8G | 1G | fetch-and-extract, one article at a time |
+| chester-backup | 1.2G | 1.5G | the online snapshot, gzip, rclone's buffers |
+| chester-restore-drill | 0.8G | 1G | one snapshot, gunzipped |
+
+`MemoryHigh` throttles and reclaims, so a report over it slows down rather than
+dies. `MemoryMax` is the hard ceiling, where the kernel kills inside the unit's
+own cgroup and nowhere else. The big reports never run together: the close is
+16:45 weekdays, the Weekly 05:00 Sunday, the Monthly 07:30 on the 1st. So the
+caps bound each report rather than sum to the box. What is left for the Gateway
+(about 1.5 GB of heap and native memory) and the OS is never borrowed by a
+runaway report.
+
+**The OOM order (ruled 14 Oct 2026).** If memory runs out anyway, the kernel kills
+the highest `oom_score_adj` first. A report can be rendered again; a day's chains
+cannot be fetched again; the Gateway needs Ari's supervised login. So:
+
+| Unit | OOMScoreAdjust |
+|---|---|
+| chester-daily-close, -weekly, -monthly, -voices, -backup, -restore-drill | 500 |
+| chester-eod (the chain capture) | 300 |
+| ibgateway | -500 |
+
+Raising a score needs no privilege, so the 500s and the 300 apply on `--user`
+units without root, and they alone keep the order. Lowering one below the user
+manager's own does need privilege, and systemd ignores a refused adjustment at
+debug level, so the Gateway's -500 may not apply; that is harmless. After the
+restart, read what applied:
+
+    cat /proc/$(systemctl --user show -p MainPID --value ibgateway)/oom_score_adj
+
+`tools/validate_systemd_units.py` holds the values and the order (the Gateway
+lowest, the capture below every report) and shows each defect caught on a copy.
+
+**The auction unit no longer starts the Gateway.** `Wants=ibgateway.service`
+started a stopped Gateway every weekday at 15:49, and the Gateway's
+`ExecStartPre` deleted the operator's stop marker. The unit now only orders after
+it. The sampler steps aside, exit 0, logging "Gateway stopped by operator", when
+the marker exists; it also steps aside when nothing is listening on 4002. The
+unit is sandboxed as the EOD unit is.
+
+**The backup ends by 04:35.** The sweep's own 105-minute budget
+(`scripts/rclone_sync.sh`, AUD-1) ends it; `TimeoutStartSec=2h` is the backstop:
+02:30, plus up to 5 minutes of jitter, plus 2 hours. It can no longer run into the
+Sunday 05:00 Weekly.
+
+**The restore drill**, `chester-restore-drill.{service,timer}`, monthly on the 3rd
+at 10:30 ET. It is not in `DEPLOY_TIMERS`, so the operator enables it. It needs
+the backup's remote in its own drop-in. The commands are in
+`docs/briefs/aud-2-notes.md`, and the procedure in `docs/runbooks/restore.md`.
+
 ## Timezone note
 
 The box may run UTC — that is fine and expected. The timer names
