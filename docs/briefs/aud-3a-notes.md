@@ -345,4 +345,4 @@ Every other gate is left to CI, as the paste asked, given the laptop's memory wi
 ## CI
 
 - **#410** (`fed7ce8`) **failed one gate, `validate_gates`:** "every validator in tools/ is in the Makefile's list (['tools/check_store_registry.py'])". The tool is named like a gate and is not one. Fixed by the declared `NOT_GATES` table (item 14 above). Every other gate passed.
-- The fix's run: see the reply.
+- **#411** (`d0d8c1a`, the fix): **green, every check.**
