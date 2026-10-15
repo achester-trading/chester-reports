@@ -1,0 +1,55 @@
+# alpha_engines.yaml -- the Alpha Lab's engine registry (X-1.3). THE ONLY PLACE
+# AN ENGINE IS NAMED: alpha/engine.py load_all() reads it, and no loop, report or
+# allocator names an engine any other way.
+#
+# Tranche 1 registered none. Tranche 2 registers the change order's first three
+# (X-2.1 to X-2.3), the trend engine as two sleeves. Each enters the ledger as a
+# CANDIDATE and trades nothing until its hypothesis (the roster batch,
+# alpha/research/roster-2026-10-14.yaml) has run through the harness and passed;
+# then the loop promotes it at min_size (X-2.6). An entry reads:
+#
+#   - id: <engine_id>                  # unique; the ledger's engines.id
+#     class: alpha.engines.<module>:<Class>
+#     family: <family>                 # the variant count is per family
+#     horizon: daily                   # intraday | daily | weekly
+#     cost_class: etf                  # a class in config/alpha_costs.yaml
+#     min_size: 0.005                  # fraction of the lab's notional
+#     params: {}                       # inside validated_ranges, set by the harness
+#
+# An engine enters the ledger as `candidate` and trades paper capital only after
+# it passes alpha/validate.py; then at min_size until its min_signals sample.
+version: 1
+engines:
+  # X-2.2 cross-asset trend, time-series sleeve (alpha/engines/trend.py)
+  - id: trend_ts
+    class: alpha.engines.trend:TrendEngine
+    family: trend
+    horizon: weekly
+    cost_class: etf
+    min_size: 0.05
+    params: {sleeve: ts, vol_target: 0.10, vol_window: 60, max_names: 20}
+  # X-2.2 cross-asset trend, cross-sectional sleeve
+  - id: trend_xs
+    class: alpha.engines.trend:TrendEngine
+    family: trend
+    horizon: weekly
+    cost_class: etf
+    min_size: 0.05
+    params: {sleeve: xs, vol_target: 0.10, vol_window: 60, top_frac: 0.2}
+  # X-2.3 prediction markets against fed funds futures (alpha/engines/pm_futures.py)
+  - id: pm_futures
+    class: alpha.engines.pm_futures:PredictionFuturesEngine
+    family: pm-futures
+    horizon: daily
+    cost_class: prediction_market
+    min_size: 0.01
+    params: {}
+  # X-2.1 the dealer-conditioned VRP: a data gap until the option history is
+  # stored (alpha/engines/vrp.py coverage()); it trades nothing
+  - id: vrp_dealer
+    class: alpha.engines.vrp:DealerVRPEngine
+    family: vrp
+    horizon: daily
+    cost_class: index_option
+    min_size: 0.01
+    params: {}

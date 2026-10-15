@@ -1600,3 +1600,177 @@ def audit(text: str, payload: Any, *,
     return AuditResult(passed=not unmatched, figures=figures,
                        unmatched=unmatched, matched=matched,
                        payload_values=len(values), names=names)
+
+
+# ---------------------------------------------------------------------------
+# THE ROLE AUDIT (T3.6 M1, the Monthly dry run of 13 Oct 2026)
+# ---------------------------------------------------------------------------
+#
+# The executive summary wrote "Gold closed the month at 4,554.56 ... IWM at
+# 277.22 ... the dollar held at 99.35", and section 2 "closes September with gold
+# at 4,554.56, SPY at 721.82 and QQQ at 670.83". Every figure existed: each was a
+# 40-week AVERAGE in the long-frame table. The numeral audit matched them, and the
+# label audit (above) checks a figure printed beside a NAMED level, not a figure
+# bound to a close by the verb. So every figure the payload offers now carries its
+# ROLE -- close, average, percentile, change, level -- taken from its field name
+# or its table column, and a figure bound to a close-word ("closed at", "the
+# close", "ended the month at") must be one the payload holds AS A CLOSE. A figure
+# the payload holds only as an average under a close-word is withheld, and the
+# retry hears which average it was.
+ROLE_CLOSE, ROLE_AVERAGE = "close", "average"
+ROLE_PERCENTILE, ROLE_CHANGE, ROLE_LEVEL = "percentile", "change", "level"
+_CLOSE_KEYS = {"close", "last", "end_level", "month_end_close", "close_level",
+               "last_close", "level_close", "prior_close", "end"}
+_LABEL_KEYS = ("market", "name", "series", "label", "symbol", "instrument")
+FIELD_NAMES = {"ma_40w": "40-week average", "ma_10m": "10-month average",
+               "ma_20m": "20-month average", "ma_20d": "20-day average",
+               "ma_50d": "50-day average", "ma_200d": "200-day average",
+               "close": "close", "end_level": "month-end close"}
+
+
+def role_of_key(key: str) -> Optional[str]:
+    k = str(key).lower()
+    if k in _CLOSE_KEYS or k.endswith("_close"):
+        return ROLE_CLOSE
+    if k.startswith("ma_") or any(w in k for w in ("average", "avg", "mean")):
+        return ROLE_AVERAGE
+    if "percentile" in k:
+        return ROLE_PERCENTILE
+    if _is_move_key(k):
+        return ROLE_CHANGE
+    if "level" in k or k in ("value", "latest"):
+        return ROLE_LEVEL
+    return None
+
+
+def role_of_column(head: str) -> Optional[str]:
+    h = str(head).lower()
+    if "average" in h or "moving" in h:
+        return ROLE_AVERAGE
+    if "close" in h:
+        return ROLE_CLOSE
+    if "percentile" in h:
+        return ROLE_PERCENTILE
+    if any(w in h for w in ("move", "change", "the month", "week", "year to date")):
+        return ROLE_CHANGE
+    if "level" in h or "last" in h:
+        return ROLE_LEVEL
+    return None
+
+
+_CELL_NUM = re.compile(r"^[+−-]?\$?(\d[\d,]*(?:\.\d+)?)")
+
+
+def roles(payload: Any, _label: Optional[str] = None, _out: Optional[list] = None,
+          _depth: int = 0) -> list[tuple[float, str, str]]:
+    """(value, role, where) for every figure the payload offers with a role:
+    each numeric field by its name, each table cell by its column's head."""
+    out = [] if _out is None else _out
+    if _depth > 12:
+        return out
+    if isinstance(payload, dict):
+        label = next((str(payload[k]) for k in _LABEL_KEYS
+                      if isinstance(payload.get(k), str)), _label)
+        cols = payload.get("columns")
+        if isinstance(cols, list) and isinstance(payload.get("rows"), list):
+            for row in payload["rows"]:
+                if not isinstance(row, (list, tuple)) or not row:
+                    continue
+                name = str(row[0])
+                for j, cell in enumerate(row[1:], start=1):
+                    if j >= len(cols):
+                        break
+                    role = role_of_column(cols[j])
+                    m = _CELL_NUM.match(str(cell).strip()) if role else None
+                    if m:
+                        out.append((float(m.group(1).replace(",", "")), role,
+                                    f"{name}'s {cols[j]}"))
+        for k, v in payload.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                role = role_of_key(k)
+                if role:
+                    name = FIELD_NAMES.get(str(k), str(k).replace("_", " "))
+                    out.append((abs(float(v)) if role == ROLE_CHANGE else float(v),
+                                role, f"{label}'s {name}" if label else name))
+            elif isinstance(v, (dict, list, tuple)):
+                roles(v, label, out, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            roles(v, _label, out, _depth + 1)
+    return out
+
+
+_CLOSE_WORD = re.compile(
+    r"\b(?:clos(?:ed|es|ing)\b|the\s+close\b|month[- ]end\s+close|"
+    r"(?:ended|finished|settled)\b)", re.I)
+_OTHER_ROLE = re.compile(r"\b(?:average|averages|mean|percentile|high|low|from|"
+                         r"range|band|between)\b", re.I)
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _tolerance(text: str) -> float:
+    num = re.sub(r"[^\d.]", "", text)
+    dec = len(num.split(".", 1)[1]) if "." in num else 0
+    return 0.5 * 10 ** -dec + 1e-9
+
+
+def role_faults(text: Optional[str], payload: Any) -> list[str]:
+    """[] or one fault line: every figure a close-word binds to that the payload
+    holds only as an average. Within a sentence, a close-word binds the figures
+    after it -- "closes September with gold at 4,554.56, SPY at 721.82" -- unless
+    another role's word stands between ("its 40-week average of ..."). A figure
+    that is a change (a percent, bp or points) is not a close and is not read."""
+    rs = roles(payload)
+    if not rs or not text:
+        return []
+    bad = []
+    for sent in _SENTENCE.split(text):
+        m = _CLOSE_WORD.search(sent)
+        if not m:
+            continue
+        figs = [f for f in extract(sent) if f.position >= m.end()]
+        prev = m.end()
+        for f in figs:
+            gap = sent[prev:f.position]
+            prev = f.position + len(f.text)
+            if f.is_percent or _CHANGE_AFTER.match(sent, f.position + len(f.text)):
+                continue
+            if _OTHER_ROLE.search(gap):
+                continue
+            tol = _tolerance(f.text)
+            held = [(r, w) for v, r, w in rs if abs(v - abs(f.value)) <= tol]
+            if held and not any(r == ROLE_CLOSE for r, _ in held) \
+                    and any(r == ROLE_AVERAGE for r, _ in held):
+                where = next(w for r, w in held if r == ROLE_AVERAGE)
+                bad.append(f"'{m.group(0)} ... {f.text}': {f.text} is {where}, an "
+                           f"average, not a close")
+    if not bad:
+        return []
+    return [f"role audit failed on {len(bad)} figure{'' if len(bad) == 1 else 's'} -- "
+            f"'closed at' and 'the close' bind to a close, never to an average: "
+            + "; ".join(bad)]
+
+
+# ---------------------------------------------------------------------------
+# THE DISPLAY FORM OF A LARGE FIGURE (T3.6 M9)
+# ---------------------------------------------------------------------------
+# The dry run printed "83553.85" and "7651.54" where the tables print
+# "83,553.85": prose copies the payload's display string, thousands separators
+# included. A figure of four or more integer digits printed without them is
+# withheld, and the retry hears the form to copy. A year (1900-2100, no
+# decimals) and a name that carries digits are not figures.
+_RAW_LARGE = re.compile(r"(?<![\w.,/$-])(\d{4,})(\.\d+)?(?![\w,]|\.\d)")
+
+
+def separator_faults(text: Optional[str]) -> list[str]:
+    bad = []
+    for m in _RAW_LARGE.finditer(text or ""):
+        whole, frac = m.group(1), m.group(2) or ""
+        if not frac and 1900 <= int(whole) <= 2100 and len(whole) == 4:
+            continue
+        bad.append(f"'{m.group(0)}' (write '{int(whole):,}{frac}', as the tables "
+                   f"print it)")
+    if not bad:
+        return []
+    return ["a large figure printed without its thousands separators -- copy the "
+            "display string the tables print: " + "; ".join(bad)]

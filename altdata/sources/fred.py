@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import time
 import logging
+import traceback
 from typing import Optional
 
 from ._base import http_get_json, FetchError
@@ -113,11 +114,14 @@ def pull(store: Store, lookback_days: int = 1500,
             }
             success += 1
         except FetchError as e:
-            log.warning("  FAIL %s: %s", spec.key, e)
-            failed.append((spec.key, str(e)))
+            log.warning("  FAIL %s: %s", spec.key, secrets.redact(str(e)))
+            failed.append((spec.key, secrets.redact(str(e))))
         except Exception as e:
-            log.exception("  unexpected error on %s", spec.key)
-            failed.append((spec.key, f"unexpected: {e}"))
+            # AUD-1 2b: the traceback carries the exception's text, and a
+            # requests error's text carries the URL with its api_key.
+            log.error("  unexpected error on %s: %s", spec.key,
+                      secrets.redact(traceback.format_exc()))
+            failed.append((spec.key, secrets.redact(f"unexpected: {e}")))
 
         # Be polite to FRED
         time.sleep(PACING_SECONDS)

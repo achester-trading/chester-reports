@@ -1,0 +1,33 @@
+[Unit]
+Description=Alpha Lab daily proposer (18:10 ET weekdays; one model call; X-2.10b)
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+# After= the nightly loop, ordering only: the proposer reads the register the loop
+# just wrote, read-only.
+After=chester-alpha-nightly.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_alpha_proposer.sh
+
+# THE ONE ALPHA UNIT THAT READS A SECRET: the model call needs the Anthropic key,
+# loaded the way the close's narrative loads it (altdata.secrets reads .env too).
+EnvironmentFile=-%h/chester-reports/.env
+
+# 0 written, skipped, or nothing to write; 1 the call failed or the batch did not
+# pass its own checks (the reason is in its decision log).
+SuccessExitStatus=0
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The checkout for git pull; ~/.chester for the status file and the lock; ~/logs
+# for its log and its decision log; and the lab's inbox, the ONLY data path it
+# writes (its batch file and manifest-proposer.jsonl). The store and alpha.db are
+# opened read-only.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data/inbox/lab
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

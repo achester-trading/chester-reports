@@ -529,7 +529,7 @@ def group_i() -> None:
     kw = dict(system_prompt=nv.SYSTEM_PROMPT, max_chars=5000, one_paragraph=False,
               citable_ids=[])
     bad_ = nv.generate(raw, client=Client("Credit is at the 51st percentile."), **kw)
-    check('"percentile_ordinal": "52nd"' in seen.get("prompt", ""),
+    check('"percentile_ordinal":"52nd"' in seen.get("prompt", ""),
           "generate() hands the model the payload WITH the ordinal field")
     check(not bad_.published and "51st" in (bad_.reason or ""),
           f"a truncated 51st is withheld ({bad_.state})")
@@ -592,7 +592,7 @@ def group_j() -> None:
               citable_ids=[])
     good = nv.generate(raw, client=Client(f"Gold fell {M}6.75% over September."),
                        **kw)
-    check('"change_pct_signed": "' in seen.get("prompt", "")
+    check('"change_pct_signed":"' in seen.get("prompt", "")
           and f"{M}6.75%" in seen.get("prompt", ""),
           "generate() hands the model the signed form beside the move")
     check(good.published, f"gold's {M}6.75%, copied, publishes ({good.state})")

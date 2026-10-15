@@ -193,16 +193,18 @@ def _narrative_scan(p: dict, args, run_id: str):
         from daily_cascade import story_block                 # noqa: PLC0415
         block = p.get("stories") or {}
         np_ = story_block.narrative_payload(block, p.get("what_changed"))
-        narr = narrative_mod.generate(
-            np_, model=args.narrative_model or narrative_mod.MORNING_MODEL,
-            system_prompt=narrative_mod.morning_system_prompt(),
-            guide_path=narrative_mod.MORNING_TEMPLATE_PATH,
-            max_chars=narrative_mod.MORNING_MAX_CHARS, one_paragraph=False,
-            split=narrative_mod.split_proposals,
-            citable_ids=block.get("citable_event_ids") or [],
-            cite_word=story_block.CITE_WORD,
-            citable_events=block.get("citable_events") or [],
-            market_states=block.get("market_states") or {})
+        from altdata import model_meter  # noqa: PLC0415
+        with model_meter.scope(report="morning_anchor", run_id=run_id):
+            narr = narrative_mod.generate(
+                np_, model=args.narrative_model or narrative_mod.MORNING_MODEL,
+                system_prompt=narrative_mod.morning_system_prompt(),
+                guide_path=narrative_mod.MORNING_TEMPLATE_PATH,
+                max_chars=narrative_mod.MORNING_MAX_CHARS, one_paragraph=False,
+                split=narrative_mod.split_proposals,
+                citable_ids=block.get("citable_event_ids") or [],
+                cite_word=story_block.CITE_WORD,
+                citable_events=block.get("citable_events") or [],
+                market_states=block.get("market_states") or {})
     except Exception as exc:                                   # noqa: BLE001
         log.warning("narrative scan failed to run: %s: %s",
                     type(exc).__name__, exc)

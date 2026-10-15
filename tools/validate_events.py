@@ -278,9 +278,14 @@ def group_e() -> None:
           f"each series' surprise carries ITS OWN units (cpi -> "
           f"{(e or {}).get('units')})")
     e2 = derived.registry_entry(surprise.surprise_key("u3_rate"))
-    check((e2 or {}).get("units") == "%",
-          f"and a rate's is different (u3_rate -> {(e2 or {}).get('units')}) -- "
-          f"which is why this is 59 metrics and not one with an instrument")
+    # U-3's own unit: a share since the 15 Oct ruling (AUD-3a), which its
+    # surprise follows -- so the check is "different from cpi's and the same as
+    # its series'", not a literal word.
+    u3 = (derived.registry_entry("fred.u3_rate") or {}).get("units")
+    check((e2 or {}).get("units") == u3 and u3 not in (None, "idx"),
+          f"and a rate's is different (u3_rate -> {(e2 or {}).get('units')}, its "
+          f"series' own {u3}) -- which is why this is 59 metrics and not one with "
+          f"an instrument")
     ee = derived.registry_entry(surprise.EARNINGS_KEY)
     check(bool(ee) and "ANALYST MEAN" in str(ee.get("description")),
           "the earnings surprise names the analyst mean in its description")
