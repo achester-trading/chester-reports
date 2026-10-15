@@ -107,6 +107,9 @@ DELTA_UNITS: dict[str, str] = {
     "percent_share": "pp",     # a share of a whole: 36% -> 45% of sectors is +9 pp
     "vol_pct": "pts",          # an annualised volatility in percent: 18 -> 20 is +2 pts
     "vol_index": "pts",        # a volatility index level (^VIX): 18 -> 20 is +2 pts
+    # An index level that is neither a price nor a volatility (^SKEW; ruled 15 Oct
+    # 2026): 140 -> 146 is +6 pts, where a percent change of it means nothing.
+    "index_points": "pts",
     # Prices and index levels: moved in percent of themselves.
     "$": "percent",
     "price": "percent",
@@ -165,6 +168,7 @@ LEVEL_UNITS: dict[str, str] = {
     "percent_share": "percent",
     "vol_pct": "percent",
     "vol_index": "price",
+    "index_points": "price",
 }
 
 
@@ -173,6 +177,18 @@ def level_units(units: Any) -> str:
     word they printed as (LEVEL_UNITS); every other unit is itself."""
     u = str(units or "")
     return LEVEL_UNITS.get(u, u)
+
+
+def level_units_of(key_or_entry: Any) -> str:
+    """The units word one metric's level is formatted under. A block member whose
+    unit member_units overrode prints under the word it had before the override
+    (`level_as`: FRED's "%", the closes' "price"); every other entry under
+    level_units() of its units. Renderers call this, never the raw unit."""
+    e = (key_or_entry if isinstance(key_or_entry, dict)
+         else registry_entry(str(key_or_entry))) or {}
+    if e.get("level_as") is not None:
+        return str(e["level_as"])
+    return level_units(e.get("units"))
 
 # ---------------------------------------------------------------------------
 # STALENESS ALLOWANCE BY information_half_life, in SESSIONS.
@@ -314,6 +330,14 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
                 # a volatility index inside a block of prices. Declared per store
                 # key in the block, so the exception is visible in the registry.
                 if key in member_units:
+                    # A member that owns its units (`from_member`: FRED's "%")
+                    # keeps the word its level printed under before the override,
+                    # since "%" prints bare where a metric's "percent" prints with
+                    # its sign (15 Oct 2026). A block whose units are its own
+                    # (the closes' price) maps through LEVEL_UNITS: ^TNX with %,
+                    # as accepted on 15 Oct.
+                    if block.get("units") == "from_member":
+                        e["level_as"] = e.get("units")
                     e["units"] = member_units[key]
                 out.setdefault(key, e)
                 if by_block is not None:

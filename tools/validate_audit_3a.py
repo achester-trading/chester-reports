@@ -19,7 +19,9 @@ registry, and holds the rest:
   C  THE STORE CHECK (item 1). tools/check_store_registry.py on a synthetic store:
      the three lists, the off-list sources, exit 0 / 1 / 2, and nothing written.
   D  SOURCE IDS (item 4). A stored string read as an id; a stored row never
-     rewritten.
+     rewritten. The 15 Oct rulings: four internal writers' strings registered,
+     alt_asset:<family> read as alt_asset, a bare `ibkr` resolved by its key's
+     family through stored_aliases, each line with its reason.
   E  THE CATALOGUE (item 5). list, search, show, commands; every command module
      has its line; every metric has a description.
   F  THE COUNTS (item 6). Each count CLAUDE.md prints equals the code's.
@@ -82,7 +84,31 @@ CHANGED_RULES = {
     "grade.mae_close_pct": ("pp", (-1.0, -2.5, -150.0, -1.5)),
     "aaii.bull_bear_spread": ("pp", (10.0, 4.0, -600.0, -6.0)),
     "manual.cbo_deficit_path": ("pp", (5.9, 6.2, 30.0, 0.3)),
+    # Ruled 15 Oct 2026 (follow-up 1): FRED's shares and rates of change, bp -> pp.
+    "fred.u3_rate": ("pp", (4.1, 4.3, 20.0, 0.2)),
+    "fred.lfp_rate": ("pp", (62.6, 62.4, -20.0, -0.2)),
+    "fred.emp_pop_ratio": ("pp", (60.0, 59.8, -20.0, -0.2)),
+    "fred.quits_rate": ("pp", (2.0, 2.1, 10.0, 0.1)),
+    "fred.mortgage_delinq": ("pp", (1.73, 1.80, 7.0, 0.07)),
+    "fred.cc_delinq_30": ("pp", (3.05, 3.12, 7.0, 0.07)),
+    "fred.auto_delinq": ("pp", (2.62, 2.70, 8.0, 0.08)),
+    "fred.cc_chargeoff": ("pp", (4.40, 4.25, -15.0, -0.15)),
+    "fred.sticky_cpi": ("pp", (3.2, 3.5, 30.0, 0.3)),
+    "fred.sticky_core": ("pp", (3.3, 3.1, -20.0, -0.2)),
+    "fred.flex_cpi": ("pp", (1.0, 4.0, 300.0, 3.0)),
+    "fred.fed_debt_pct_gdp": ("pp", (97.0, 98.5, 150.0, 1.5)),
+    "fred.cre_delinq": ("pp", (1.40, 1.55, 15.0, 0.15)),
+    # Ruled 15 Oct 2026 (follow-up 2): the MOVE and the VVIX are volatility
+    # indexes, SKEW an index level -- percent -> points.
+    "yfinance.mkt_vvix": ("pts", (90.0, 99.0, 10.0, 9.0)),
+    "yfinance.mkt_move": ("pts", (80.0, 88.0, 10.0, 8.0)),
+    "yfinance.mkt_skew": ("pts", (140.0, 146.0, 4.2857, 6.0)),
 }
+# The SLOOS five were already pp by their block's delta_unit at fb67bf3; the 15 Oct
+# ruling gives them the unit `percent_share` and their rule does not move.
+UNCHANGED_RULED = ("fred.sloos_ci_large", "fred.sloos_ci_small",
+                   "fred.sloos_cre_construction", "fred.sloos_cre_nonres",
+                   "fred.sloos_cre_multifamily")
 # Keys the registry resolves for the first time (no rule at fb67bf3), by block:
 # what the resolver fix and the bars blocks add.
 NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_columns",
@@ -233,10 +259,23 @@ def group_b() -> None:
           and derived.delta_unit_for("yfinance.mkt_spy")[0] == "percent",
           "^TNX is a yield (bp), ^VIX a volatility index (points); SPY is still a "
           "price (percent)")
-    # FRED's own % members are rates: unchanged.
-    check(derived.delta_unit_for("fred.hy_oas")[0] == "bps"
-          and derived.delta_unit_for("fred.u3_rate")[0] == "bps",
-          "FRED's % members keep basis points (config.py's units; see the notes)")
+    # FRED's % members: yields, rates and spreads keep bp; shares and rates of
+    # change move in pp (ruled 15 Oct 2026); the SLOOS five were pp already.
+    keep_bp = ("fred.hy_oas", "fred.yield_10y", "fred.mortgage_30y", "fred.fed_funds",
+               "fred.breakeven_10y", "fred.effr_daily", "fred.gilt_10y")
+    check(all(derived.delta_unit_for(k)[0] == "bps" for k in keep_bp)
+          and derived.delta_unit_for("fred.u3_rate")[0] == "pp",
+          "FRED's yields, rates and spreads keep basis points; U-3 moves in pp")
+    sl = {k: (base[k], derived.delta_unit_for(k)[0],
+              derived.registry_entry(k).get("units")) for k in UNCHANGED_RULED}
+    check(all(v == ("pp", "pp", "percent_share") for v in sl.values()),
+          f"the SLOOS five: percent_share, rule pp before and after ({len(sl)})")
+    check(derived.delta_unit_for("yfinance.mkt_skew")[0] == "pts"
+          and derived.level_units("index_points") == "price"
+          and derived.registry_entry("yfinance.mkt_vvix").get("units") == "vol_index"
+          and derived.registry_entry("yfinance.mkt_move").get("units") == "vol_index",
+          "^VVIX and ^MOVE are vol_index, ^SKEW index_points (points; its level "
+          "prints as the price it was)")
     # A level prints under the word it printed as before.
     check(derived.level_units("percent_share") == "percent"
           and derived.level_units("percentile") == "percent"
@@ -248,6 +287,24 @@ def group_b() -> None:
     check(stack_mod._lvl({"level_units": derived.level_units("percent_share"),   # noqa: SLF001
                           "level": 45.0}) == "45.00%",
           "the close's level formatter prints a share as 45.00%, as before")
+    # A FRED member given its own unit on 15 Oct keeps FRED's word for its level
+    # ("%", which the Monthly's v2 table prints bare); the closes keep LEVEL_UNITS'
+    # (^TNX with %, accepted; the VIX, the MOVE, SKEW as prices).
+    words = {k: derived.level_units_of(k) for k in (
+        "fred.u3_rate", "fred.sticky_cpi", "fred.sloos_ci_large", "fred.cre_delinq",
+        "fred.yield_10y", "yfinance.mkt_tnx", "yfinance.mkt_vix", "yfinance.mkt_move",
+        "yfinance.mkt_skew", "yfinance.mkt_spy")}
+    check(words == {"fred.u3_rate": "%", "fred.sticky_cpi": "%",
+                    "fred.sloos_ci_large": "%", "fred.cre_delinq": "%",
+                    "fred.yield_10y": "%", "yfinance.mkt_tnx": "percent",
+                    "yfinance.mkt_vix": "price", "yfinance.mkt_move": "price",
+                    "yfinance.mkt_skew": "price", "yfinance.mkt_spy": "price"},
+          f"each level prints under the word it printed under on 14 Oct ({words})")
+    from monthly_macro.writer import render_v2
+    check(render_v2._macro_level({"units": derived.level_units_of("fred.u3_rate"),  # noqa: SLF001
+                                  "level": 4.2})
+          == render_v2._macro_level({"units": "%", "level": 4.2}),           # noqa: SLF001
+          "the Monthly's v2 table prints U-3's level exactly as it did")
     # pm.volume, per venue.
     pv = reg["metrics"]["pm.volume"]
     check(pv.get("units") == "by_source" and pv.get("units_by_source") ==
@@ -384,7 +441,20 @@ def group_c(td: str) -> None:
 # ---------------------------------------------------------------------------
 # D. SOURCE IDS
 # ---------------------------------------------------------------------------
-def group_d() -> None:
+# THE INTERNAL WRITERS' STRINGS (ruled 15 Oct 2026): id -> the file that writes it
+# today, which must still carry the literal (the writers are not moved until
+# aud-1-data-fixes merges).
+INTERNAL_WRITERS = {
+    "daily_close": ("daily_cascade/stack_close.py", '"source": "daily_close"'),
+    "book_z": ("altdata/benchmark.py", '"source": "book_z"'),
+    "narrative_register": ("altdata/narratives.py",
+                           'LEDGER_SOURCE = "narrative_register"'),
+    "paper_bid_chain": ("altdata/paper_bid.py", 'SOURCE = "paper_bid_chain"'),
+    "alt_asset": ("altdata/thesis_register.py", "alt_asset:<family>"),
+}
+
+
+def group_d(td: str) -> None:
     head("D. SOURCE IDS (item 4)")
     from altdata import source_ids
     known = source_ids.ids()
@@ -396,7 +466,65 @@ def group_d() -> None:
           "an id is itself and <id>:<variant> is the id")
     check(source_ids.canonical("ibkr") is None
           and source_ids.canonical("nosuch:backfill") is None,
-          "a string that is no id, alias or id-prefixed variant is off the list")
+          "a string that is no id, alias or id-prefixed variant is off the list "
+          "(a bare `ibkr` with no key to read its family by, too)")
+    # The 15 Oct rulings.
+    import yaml
+    sreg = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    srcs = sreg.get("sources") or {}
+    bad = [sid for sid, (f, lit) in INTERNAL_WRITERS.items()
+           if sid not in srcs or (srcs[sid] or {}).get("tier") != "derived"
+           or (srcs[sid] or {}).get("implemented_by") != f
+           or not (srcs[sid] or {}).get("timestamp_notes")
+           or lit not in (REPO / f).read_text(encoding="utf-8")]
+    check(not bad, f"the five internal strings are registered sources (tier derived), "
+          f"each naming the file that writes it, which still writes it "
+          f"({bad or sorted(INTERNAL_WRITERS)})")
+    check(source_ids.canonical("alt_asset:gold") == "alt_asset"
+          and source_ids.canonical("alt_asset:private_credit") == "alt_asset",
+          "alt_asset:<family> reads as alt_asset, the family a suffix")
+    fam = {"ibkr.auction_paired_qty": "ibkr_paper",
+           "ibkr.auction_imbalance_side": "ibkr_paper",
+           "ibkr.borrow_fee_rate": "ibkr_stock_loan",
+           "ibkr.borrow_rebate_rate": "ibkr_stock_loan",
+           "ibkr.shortable_shares": "ibkr_stock_loan",
+           "ibkr.borrow_probe": "ibkr_paper",
+           "ibkr.stock_loan_file_probe": "ibkr_paper",
+           "portfolio.position_qty": None}
+    got = {k: source_ids.canonical("ibkr", key=k) for k in fam}
+    check(got == fam, "a bare `ibkr` resolves by the key's family -- the auction and "
+          "the probes to ibkr_paper, the borrow rates and shares to ibkr_stock_loan, "
+          f"as their writers write today; a family no line names stays off ({got})")
+    lines = ((sreg.get("stored_aliases") or {}).get("ibkr") or {}).get(
+        "by_key_family") or []
+    shadow = [(a["prefix"], b["prefix"]) for i, a in enumerate(lines)
+              for b in lines[i + 1:] if str(b["prefix"]).startswith(str(a["prefix"]))]
+    check(lines and all(ln.get("prefix") and ln.get("source") in srcs
+                        and len(str(ln.get("reason") or "")) > 20 for ln in lines)
+          and not shadow,
+          f"each of the {len(lines)} ibkr lines names a prefix, a registered id and "
+          f"its reason, and no line is shadowed by an earlier one ({shadow or 'none'})")
+    import check_store_registry as csr
+    db = str(Path(td) / "sources.db")
+    seed_store(db, dirty=False)
+    conn = sqlite3.connect(db)
+    conn.executemany(
+        "INSERT INTO observations (registry_key, instrument, observed_at, "
+        "available_at, ingested_at, value_num, source) VALUES (?,?,?,?,?,1.0,?)",
+        [(k, i, "2026-10-14", "2026-10-14T21:00:00+00:00",
+          "2026-10-14T21:00:00+00:00", s) for k, i, s in (
+            ("ibkr.borrow_fee_rate", "SPY", "ibkr"),
+            ("ibkr.auction_paired_qty", "SPY", "ibkr"),
+            ("dealer.scorecard_day", "SPY", "daily_close"),
+            ("calc.trend_spy_vs_50d", None, "paper_bid_chain"),
+            ("portfolio.position_qty", "SPY", "ibkr"))])
+    conn.commit()
+    conn.close()
+    r = csr.check(db, AS_OF)
+    check(r["off_list_sources"] == ["ibkr"],
+          "the store check reads each row's source with its key: `ibkr` under the "
+          "borrow and auction families and the internal strings are on the list, "
+          f"`ibkr` under a family no line names is printed ({r['off_list_sources']})")
     check(source_ids.canonical("old text", known, {"old text": "fred"}) == "fred"
           and source_ids.canonical("old text", known, {"old text": "nosuch"}) is None,
           "a declared alias reads as its id, and only when that id exists")
@@ -713,7 +841,8 @@ def main() -> int:
     td = gate_tmp.mkdtemp(prefix="validate_audit_3a_")
     print(f"{LINE}\nAUD-3a: retrieval -- the store, the units, the sources, the "
           f"catalogue, the counts\n{LINE}")
-    for g in (group_a, group_b, lambda: group_c(td), group_d, lambda: group_e(td),
+    for g in (group_a, group_b, lambda: group_c(td), lambda: group_d(td),
+              lambda: group_e(td),
               group_f, group_g):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")

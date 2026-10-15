@@ -21,6 +21,20 @@ horizons: [1, 5]
 # `reversal_sessions` sessions. Printed "false flag k/N".
 reversal_share: 0.5
 reversal_sessions: 5
+# THE BASIS, PINNED PER KEY (ruled 15 Oct 2026, AUD-3a follow-up 3). The screen
+# reads a series' change basis from its registry delta unit (log for a price,
+# difference otherwise) -- except for a key named here, whose basis is this line's
+# whatever its units say. A volatility index's moves scale with its level, so a
+# screen on point changes over-flags when the VIX is high and misses moves when it
+# is low; the screen was calibrated on log changes. The registry moved these five
+# to points for the PRINTED change (AUD-3a item 3; 15 Oct ruling 2); the screen
+# stays on log. tools/validate_move_screen.py group I holds it.
+basis_pins:
+  yfinance.mkt_vix: log
+  yfinance.mkt_vix3m: log
+  yfinance.mkt_vvix: log
+  yfinance.mkt_move: log
+  yfinance.mkt_skew: log
 # Not price-like series: their keys or suffixes are never screened.
 exclude_prefixes: ["screen.", "events.", "dealer.", "paper.", "pm.", "market_state"]
 exclude_suffixes: ["_open", "_high", "_low", "_dividend", "_split"]

@@ -104,7 +104,7 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
         return None
     lv = a["value_num"]
     pv = b.get("value_num") if b else None
-    units = derived.level_units(derived.registry_entry(key).get("units"))
+    units = derived.level_units_of(key)
     du = derived.delta_unit_for(key)[0]
     if pv is None or str(b.get("observed_at")) == str(a.get("observed_at")):
         ch = None
@@ -666,14 +666,14 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # T3.4a: one change form for every report, numeral_audit.change_display
         # -- "+29,000" for payrolls' +29 thousand, "+12,500" for a plain count,
         # each accepted by the audit as the payload's own display.
-        units = derived.level_units(derived.registry_entry(key).get("units"))
+        units = derived.level_units_of(key)
         from altdata import numeral_audit as na                  # noqa: PLC0415
         return na.change_display(v, units, key) or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):
         return f"{v:.1f}%"
-    units = derived.level_units(derived.registry_entry(key).get("units"))
+    units = derived.level_units_of(key)
     return f"{v:,.1f}%" if units in ("%", "percent") else f"{v:,.0f}"
 
 
@@ -1810,7 +1810,7 @@ def annotate_moves(built: dict, st, now: str, days: int = 7,
                 unit = unit if unit in ("%", "bp") else ""
                 if (key, inst) not in cache:
                     cache[(key, inst)] = series(st, key, now, inst, since)
-                lu = derived.level_units(derived.registry_entry(key).get("units"))
+                lu = derived.level_units_of(key)
                 zmap[name.strip().lower()] = derived.period_change_z(
                     cache[(key, inst)], now[:10], unit, lu, days)
         b.setdefault("data", {})["_move_z"] = zmap

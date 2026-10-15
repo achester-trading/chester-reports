@@ -695,7 +695,7 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
     # THE DISPLAY FORM of a large figure, in the series' own unit ("$7.51tn",
     # "159.33 million") -- the writer copies it rather than rescaling.
     from altdata import numeral_audit as na
-    units = derived.level_units((derived.registry_entry(key) or {}).get("units")) or None
+    units = derived.level_units_of(key) or None
     disp = na.scaled_display(s1, units) if "latest_level" in row else None
     if disp:
         row["latest_level_display"] = disp

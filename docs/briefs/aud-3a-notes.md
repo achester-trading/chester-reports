@@ -346,3 +346,113 @@ Every other gate is left to CI, as the paste asked, given the laptop's memory wi
 
 - **#410** (`fed7ce8`) **failed one gate, `validate_gates`:** "every validator in tools/ is in the Makefile's list (['tools/check_store_registry.py'])". The tool is named like a gate and is not one. Fixed by the declared `NOT_GATES` table (item 14 above). Every other gate passed.
 - **#411** (`d0d8c1a`, the fix): **green, every check.**
+
+
+## 15 Oct
+
+Ari's rulings on the needs-you list above, built on this branch (session A). As before: branch-only, nothing merged, deployed or run on the box. aud-1's files and session B's branches (alpha-lab-2; no aud-3b-security-master branch on origin yet) are untouched.
+
+### The rulings, and what each changed
+
+**1. FRED's shares and rates of change move to percentage points.** Each series named in the ruling now has its own unit in its FRED block (`member_units`, the mechanism the closes already use):
+
+- `fred_macro`: U-3, participation, employment-population, quits, the mortgage, card and auto delinquency rates, card charge-offs and debt/GDP become `percent_share`; sticky, sticky core and flexible CPI (one-month annualised rates of change) become `percent_return`. Both are pp.
+- `fred_aq3`: CRE delinquency becomes `percent_share`.
+- `fred_sloos`: the five net-tightening series become `percent_share`. **Their rule does not move.** The block already declared `delta_unit: pp` at fb67bf3, so they were moving in pp already. Yesterday's needs-you item was wrong to list them as bp. The unit now says why they move in pp, and the gate holds them at pp before and after.
+- Yields, rates and spreads keep bp. The gate checks seven of them: HY OAS, the 10-year, the 30-year mortgage rate, fed funds, the 10-year breakeven, daily EFFR and the gilt.
+- **No level's print changes.** A FRED member's level printed under FRED's own word, `"%"`. The Monthly's v2 table prints that bare, where it prints `"percent"` with a sign. So mapping the new units back to `"percent"`, as yesterday's `level_units()` does, would have added a % sign to U-3's level. The resolver now records the word a `from_member` unit had before its override (`level_as`). The renderers read it through a new `derived.level_units_of(key or entry)`: the close, the Weekly (four sites), the events block, the Monthly's payload and v2, the Quarterly's items, and the catalogue. The closes' own overrides still map through `LEVEL_UNITS`, so ^TNX prints with %, as accepted in ruling 4.
+- **Not named, so left:** `calc.naive_expectation.<series>` and `calc.surprise_vs_naive.<series>` mirror the FRED macro list with `units: from_member`. U-3's surprise therefore still moves in bp. Should they follow (see below)?
+
+**2. ^VVIX and ^MOVE become `vol_index`; ^SKEW becomes an index level.** `yfinance.mkt_vvix` and `yfinance.mkt_move` are `vol_index`. `yfinance.mkt_skew` gets a new unit, `index_points`: points, and its level prints as the price it was. It is added to the units vocabulary, to `derived.DELTA_UNITS` and to `LEVEL_UNITS`.
+
+**3. The move screen stays on log changes for the five volatility and SKEW keys.** `config/move_screen.yaml` gains `basis_pins` naming `yfinance.mkt_vix`, `_vix3m`, `_vvix`, `_move` and `_skew` as `log`. `move_screen.unit_rule(key, cfg)` reads the pin before the registry's delta unit, so a later unit change cannot move the screen's basis. The printed change stays in points.
+
+**4. ^TNX and ^TYX print their level with %.** Accepted; nothing changed. The gate pins it: `level_units_of("yfinance.mkt_tnx") == "percent"`.
+
+**5. The off-list source strings.**
+
+- `daily_close`, `book_z`, `narrative_register` and `paper_bid_chain` are registered in `source_registry.yaml` as internal sources (tier `derived`). Each has a line naming what writes it and its `implemented_by` file.
+- `alt_asset` is registered the same way. `alt_asset:<family>` reads as `alt_asset` through the existing `<id>:<suffix>` rule.
+- A bare `ibkr` resolves by the row's key family: `stored_aliases.ibkr.by_key_family` has five prefix lines, each with its reason, first match wins. `source_ids.canonical(stored, key=...)` takes the row's key, and the store check passes it. A family no line names stays off the list, as does `ibkr` with no key.
+- **A correction to yesterday's notes.** They said the auction, borrow, costs and what-if paths write a bare `ibkr`. The code says otherwise:
+  - The auction logger writes `ibkr_paper`.
+  - The borrow logger writes `ibkr_stock_loan` for the rates and shares, and `ibkr_paper` for its two probes.
+  - Costs and what-if write no observation at all; their packets carry `ibkr_<mode>`, a registered id.
+  - The only bare `ibkr` left in code is `altdata/executions.py`'s fallback in the trade log's own `executions` table, which the store check does not read.
+
+  So the alias lines map each family to the id its writer writes today: `ibkr.auction_*` and the two probes to `ibkr_paper`; `ibkr.borrow_*` and `ibkr.shortable_shares` to `ibkr_stock_loan`. They read any row stored under the bare string the way that family's current rows read. Costs and what-if get no line, because they have no key family in the store.
+- **The writers are unchanged.** Moving each writer to a single registered id comes after aud-1 merges; that is listed below.
+
+**6. The merge order stays:** Friday's merges, then aud-1, then this branch through a refresh.
+
+### Every delta rule the rulings change, with one fixture delta before and after
+
+Added to the gate's `CHANGED_RULES`, which now holds exactly 41 keys: yesterday's 25 and these 16. Any other key whose rule moves from fb67bf3's still fails group B, which reads "41 moved; undeclared: none".
+
+| Metric | Unit now | Rule then → now | Fixture pair | Delta then | Delta now |
+|---|---|---|---|---|---|
+| `fred.u3_rate` | percent_share | bps → pp | 4.1 → 4.3 | +20 bp | +0.2 pp |
+| `fred.lfp_rate` | percent_share | bps → pp | 62.6 → 62.4 | −20 bp | −0.2 pp |
+| `fred.emp_pop_ratio` | percent_share | bps → pp | 60.0 → 59.8 | −20 bp | −0.2 pp |
+| `fred.quits_rate` | percent_share | bps → pp | 2.0 → 2.1 | +10 bp | +0.1 pp |
+| `fred.mortgage_delinq` | percent_share | bps → pp | 1.73 → 1.80 | +7 bp | +0.07 pp |
+| `fred.cc_delinq_30` | percent_share | bps → pp | 3.05 → 3.12 | +7 bp | +0.07 pp |
+| `fred.auto_delinq` | percent_share | bps → pp | 2.62 → 2.70 | +8 bp | +0.08 pp |
+| `fred.cc_chargeoff` | percent_share | bps → pp | 4.40 → 4.25 | −15 bp | −0.15 pp |
+| `fred.sticky_cpi` | percent_return | bps → pp | 3.2 → 3.5 | +30 bp | +0.3 pp |
+| `fred.sticky_core` | percent_return | bps → pp | 3.3 → 3.1 | −20 bp | −0.2 pp |
+| `fred.flex_cpi` | percent_return | bps → pp | 1.0 → 4.0 | +300 bp | +3.0 pp |
+| `fred.fed_debt_pct_gdp` | percent_share | bps → pp | 97.0 → 98.5 | +150 bp | +1.5 pp |
+| `fred.cre_delinq` | percent_share | bps → pp | 1.40 → 1.55 | +15 bp | +0.15 pp |
+| `yfinance.mkt_vvix` | vol_index | percent → pts | 90 → 99 | +10% | +9 pts |
+| `yfinance.mkt_move` | vol_index | percent → pts | 80 → 88 | +10% | +8 pts |
+| `yfinance.mkt_skew` | index_points | percent → pts | 140 → 146 | +4.2857% | +6 pts |
+| `fred.sloos_*` (five) | percent_share | pp → pp (unchanged) | 10 → 20 | +10 pp | +10 pp |
+
+**Printed numbers.** I re-rendered the close, Weekly and Monthly fixture editions (HTML and text, no PDF) from this tree and diffed them against yesterday's. Every changed line is a clock, a run's ledger id, the config hash or an archive path; no figure moved. None of the three fixtures prints a change for any of the 16 series: the Weekly's volatility table shows MOVE and SKEW as "not yet stored", and the Monthly lists the delinquencies under "not yet tracked". On the box, these series' printed changes will read in pp or points where they print.
+
+### The move screen's gate (group I, new)
+
+`tools/validate_move_screen.py` group I seeds five series, six years each, built so the two bases disagree. The VIX and the VVIX each have a 30% spike at a low level, which log changes flag and point changes do not. The VIX3M and the MOVE each have an ordinary day at a high level, which point changes flag and log changes do not. SKEW is quiet on both. The group checks:
+
+- config pins exactly the five;
+- each one's printed change is in points;
+- the log-basis flags (the screen's basis for them before AUD-3a, when they were prices) are the VIX and the VVIX;
+- a point basis would flag differently (VIX3M, MOVE, VVIX);
+- **the screen's flags after the unit change equal the log-basis flags**;
+- with the pins removed, the same store flags on points: the drift the pin prevents.
+
+### The gates (run locally, one at a time: only those changed today)
+
+| Gate | Result | What changed |
+|---|---|---|
+| validate_audit_3a | **81/0** (was 72) | B: the 16 rules, FRED bp/pp, SLOOS unchanged, VVIX/MOVE/SKEW, each level's print word, U-3 in v2 unchanged. D: the five internal sources and their writers, `alt_asset:<family>`, `ibkr` by family, the alias lines' reasons, the store check with keys. |
+| validate_move_screen | **52/0** (group I added, 7 checks) | the pinned basis |
+| check_registry | OK | `index_points` in the message |
+| validate_derived | 52/0 | (derived.py changed) |
+| check_library | 27 papers, 0/0 | (CLAUDE.md changed) |
+
+Every other gate is left to CI. That includes `validate_weekly_edits` and `validate_events`, which read U-3, and `validate_weekly_complete` and `validate_basis_proxy`, which seed MOVE and SKEW. Windows raised no low-memory warning.
+
+### Files touched today, and the named branches that share them
+
+- **aud-1-data-fixes:** `CLAUDE.md` and `metrics_registry.yaml` only, both allowed by yesterday's ruling. Today's registry hunks are at the vocabulary (line ~200) and the FRED and closes blocks (~12,075–12,360), far from aud-1's six entries (1,499–1,607). aud-1's tip has moved to `63ec6a8`; its file list was re-read and none of today's other files is in it. aud-1's `yfinance_source.py` changes add or remove no symbol.
+- **aud-2-ops-security:** `CLAUDE.md`, `daily_cascade/weekly_stack.py` (four one-line swaps).
+- **alpha-lab-2:** `CLAUDE.md`, `daily_cascade/weekly_stack.py`.
+- **vp-1-volume-profile:** `CLAUDE.md`, `daily_cascade/stack.py`, `daily_cascade/weekly_stack.py`, `metrics_registry.yaml`.
+- **t3-6-monthly-polish:** `CLAUDE.md`, `monthly_macro/v2.py`.
+- New to this branch today, no branch shares them: `altdata/move_screen.py`, `config/move_screen.yaml`, `tools/validate_move_screen.py`, `source_registry.yaml`, `altdata/source_ids.py`, `daily_cascade/events_block.py`, `monthly_macro/payload.py`, `monthly_macro/quarterly_items.py`.
+
+### Listed for after aud-1 merges
+
+- Move each internal writer to one registered id. Today they keep writing `daily_close`, `book_z`, `narrative_register`, `paper_bid_chain` and `alt_asset:<family>`; all of these are now on the list.
+- The as-of join reading source tiers through `source_ids` (unchanged from yesterday).
+- `altdata/loggers/borrow.py`'s client-id literal onto the table (unchanged from yesterday).
+
+### Needs you
+
+1. **The FRED mirrors.** `calc.naive_expectation.<series>` and `calc.surprise_vs_naive.<series>` take their unit from the same FRED members. So U-3's naive surprise still moves in bp while U-3 itself moves in pp. Give the mirror blocks the same `member_units`? That changes 12 more delta rules in each block (CRE delinquency is not in the Monthly's list), so 24, all bp → pp.
+2. **The store check's `ibkr` line names the string, not the key.** If the box lists `ibkr`, it will come from a family no alias line names. Want the check to print the key beside an off-list string, so the next alias line can be written from the output?
+
+### CI
+- **CI for these commits:** pending at commit; read after the push.

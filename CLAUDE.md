@@ -323,9 +323,12 @@ stale keys by their own allowance, and the stored source strings on no list
 (`altdata/source_ids.py` reads `<id>:<variant>` as the id; the store is never
 rewritten). **`percent` is split by meaning**: `percent_rate` (a yield or rate, its
 change in bp), `percentile` (points), `percent_return` and `percent_share`
-(percentage points), `vol_pct` and `vol_index` (points); `check_registry` refuses
-the undivided word, and a renderer formats a level through
-`derived.level_units()`, so a split unit prints as it did. `tools/validate_audit_3a.py`
+(percentage points), `vol_pct`, `vol_index` and `index_points` (points; ^SKEW);
+`check_registry` refuses the undivided word, and a renderer formats a level
+through `derived.level_units_of()`, so a split unit prints as it did. FRED's
+shares and rates of change carry their own unit in their block (`member_units`,
+pp); its yields, rates and spreads keep bp (15 Oct 2026). The move screen pins
+the volatility indexes and SKEW to log changes in `config/move_screen.yaml`. `tools/validate_audit_3a.py`
 holds the counts this file prints against the code.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s

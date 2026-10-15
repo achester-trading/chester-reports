@@ -200,6 +200,9 @@ vocabularies:
     - vol_index              # a volatility INDEX level (^VIX); its change is in
                              # POINTS. Its level prints as the price it was
                              # declared as before (altdata/derived.py LEVEL_UNITS)
+    - index_points           # an index LEVEL that is no price and no volatility
+                             # (^SKEW): its change is in POINTS, because a percent
+                             # change of it means nothing. Prints as a price.
     - contract_ccy           # an amount in the CONTRACT's own currency, which
                              # is not necessarily the account's. The companion
                              # portfolio.position_currency row names it. Never
@@ -12072,6 +12075,23 @@ bulk_imports:
     key_prefix: "fred." 
     expected_members: 59
     units: from_member          # SeriesSpec.units
+    # SHARES AND RATES OF CHANGE (ruled 15 Oct 2026, AUD-3a follow-up 1). FRED
+    # quotes them in "%" as it quotes a yield, and "%" moves in basis points, so
+    # "unemployment up 20 bp" misread. Only the unit of the printed CHANGE moves
+    # (percentage points); no value does. Yields, rates and spreads keep bp.
+    member_units:
+      fred.u3_rate: percent_share
+      fred.lfp_rate: percent_share
+      fred.emp_pop_ratio: percent_share
+      fred.quits_rate: percent_share
+      fred.mortgage_delinq: percent_share
+      fred.cc_delinq_30: percent_share
+      fred.auto_delinq: percent_share
+      fred.cc_chargeoff: percent_share
+      fred.sticky_cpi: percent_return
+      fred.sticky_core: percent_return
+      fred.flex_cpi: percent_return
+      fred.fed_debt_pct_gdp: percent_share
     native_horizon: from_member # SeriesSpec.freq
     # FRED INHERITS ITS RELEASE CADENCE. A monthly series is current until the
     # next monthly print; a daily one is stale in a day. One half-life across
@@ -12191,6 +12211,14 @@ bulk_imports:
     expected_members: 5
     units: from_member
     delta_unit: pp
+    # The same as a declared unit (ruled 15 Oct 2026): a net share of banks. The
+    # block's delta_unit already moved them in pp; this names why.
+    member_units:
+      fred.sloos_ci_large: percent_share
+      fred.sloos_ci_small: percent_share
+      fred.sloos_cre_construction: percent_share
+      fred.sloos_cre_nonres: percent_share
+      fred.sloos_cre_multifamily: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12220,6 +12248,10 @@ bulk_imports:
     key_prefix: "fred."
     expected_members: 7
     units: from_member
+    # CRE delinquency is a share of loans: pp (ruled 15 Oct 2026; see fred_macro).
+    # The four policy rates and the gilt keep bp.
+    member_units:
+      fred.cre_delinq: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12316,6 +12348,13 @@ bulk_imports:
       yfinance.mkt_tyx: percent_rate
       yfinance.mkt_vix: vol_index
       yfinance.mkt_vix3m: vol_index
+      # Ruled 15 Oct 2026: the MOVE and the VVIX are volatility indexes like the
+      # VIX; SKEW is an index level whose percent change means nothing. All three
+      # move in points. The move screen's basis is pinned apart, in
+      # config/move_screen.yaml, so this line cannot move it.
+      yfinance.mkt_vvix: vol_index
+      yfinance.mkt_move: vol_index
+      yfinance.mkt_skew: index_points
     expected_members: 106   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price

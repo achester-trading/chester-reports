@@ -177,7 +177,7 @@ def show(key: str, db: Optional[str] = None) -> Optional[dict]:
     out: dict[str, Any] = {
         "key": key, "fields": {k: v for k, v in sorted(e.items())},
         "description": description(key, e),
-        "units": e.get("units"), "level_prints_as": derived.level_units(e.get("units")),
+        "units": e.get("units"), "level_prints_as": derived.level_units_of(e),
         "delta_unit": du, "delta_rule": why,
         "staleness_allowance": allow, "staleness_rule": awhy,
         "bulk_block": e.get("bulk_block"), "domains": domains(e),

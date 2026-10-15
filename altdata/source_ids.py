@@ -12,7 +12,10 @@ through `canonical()`:
 
     1. an id in source_registry.yaml is itself;
     2. a string declared in source_registry.yaml's `stored_aliases` is the id it
-       names there (a declared alias, with its reason beside it);
+       names there (a declared alias, with its reason beside it) -- or, for an
+       alias declared `by_key_family`, the id its row's registry key selects by
+       prefix (a bare `ibkr`, ruled 15 Oct 2026), and off the list for a row whose
+       key no line matches or when no key is given;
     3. `<id>:<anything>` is <id> -- the venue's or the source's own variant;
     4. anything else is OFF THE LIST: canonical() returns None and
        tools/check_store_registry.py prints it, which is the prompt to register
@@ -39,7 +42,8 @@ def _load() -> tuple[frozenset, dict]:
         reg = yaml.safe_load((REPO / "source_registry.yaml").read_text(
             encoding="utf-8")) or {}
         _CACHE = (frozenset(reg.get("sources") or {}),
-                  {str(k): str(v) for k, v in (reg.get("stored_aliases") or {}).items()})
+                  {str(k): (v if isinstance(v, dict) else str(v))
+                   for k, v in (reg.get("stored_aliases") or {}).items()})
     return _CACHE
 
 
@@ -48,9 +52,22 @@ def ids() -> frozenset:
     return _load()[0]
 
 
+def _by_family(alias: dict, key: Optional[str]) -> Optional[str]:
+    """The id a `by_key_family` alias gives the row's registry key: the first line
+    whose prefix the key starts with, or None."""
+    if not key:
+        return None
+    for line in alias.get("by_key_family") or []:
+        if str(key).startswith(str(line.get("prefix") or "\0")):
+            return str(line.get("source"))
+    return None
+
+
 def canonical(stored: Optional[str], known: Optional[frozenset] = None,
-              aliases: Optional[dict] = None) -> Optional[str]:
-    """The source id a stored string means, or None when it is on no list."""
+              aliases: Optional[dict] = None,
+              key: Optional[str] = None) -> Optional[str]:
+    """The source id a stored string means, or None when it is on no list. `key`
+    is the row's registry key, which a `by_key_family` alias needs."""
     if stored is None:
         return None
     s = str(stored).strip()
@@ -58,8 +75,12 @@ def canonical(stored: Optional[str], known: Optional[frozenset] = None,
     a = aliases if aliases is not None else _load()[1]
     if s in k:
         return s
-    if s in a and a[s] in k:
-        return a[s]
+    if s in a:
+        hit = _by_family(a[s], key) if isinstance(a[s], dict) else a[s]
+        if hit in k:
+            return hit
+        if isinstance(a[s], dict):
+            return None
     head = s.split(":", 1)[0]
     if ":" in s and head in k:
         return head

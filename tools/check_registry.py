@@ -247,7 +247,7 @@ def aud3a_faults(metrics: dict, source_ids: set) -> list[tuple[str, str]]:
         if u == "percent":
             out.append(("percent is split", f"{bid}: units 'percent' -- use one of "
                         f"percent_rate, percentile, percent_return, percent_share, "
-                        f"vol_pct, vol_index"))
+                        f"vol_pct, vol_index, index_points"))
         elif u not in uvocab:
             out.append(("units vocabulary", f"bulk {bid}: {u!r}"))
         for k, mu in (block.get("member_units") or {}).items():
@@ -260,7 +260,7 @@ def aud3a_faults(metrics: dict, source_ids: set) -> list[tuple[str, str]]:
         if m.get("units") == "percent":
             out.append(("percent is split", f"{mid}: units 'percent' -- use one of "
                         f"percent_rate, percentile, percent_return, percent_share, "
-                        f"vol_pct, vol_index"))
+                        f"vol_pct, vol_index, index_points"))
         srcs = m.get("sources")
         if srcs is not None:
             bad = [s for s in srcs if s not in source_ids]

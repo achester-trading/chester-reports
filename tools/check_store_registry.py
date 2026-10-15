@@ -126,8 +126,10 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
         if n > allow:
             stale.append({"key": k, "newest": str(have[k]["newest"])[:10],
                           "sessions": n, "allowance": allow, "why": why})
-    srcs = sorted({s for v in have.values() for s in v["sources"]
-                   if source_ids.canonical(s) is None}, key=str)
+    # Read with the row's key: a `by_key_family` alias (a bare `ibkr`) names its
+    # id by the key's family.
+    srcs = sorted({s for k, v in have.items() for s in v["sources"]
+                   if source_ids.canonical(s, key=k) is None}, key=str)
     return {"db": db, "as_of": as_of, "stored": len(have),
             "unregistered": unregistered, "no_rows": no_rows, "quiet": quiet,
             "stale": stale, "off_list_sources": srcs}
