@@ -107,7 +107,7 @@ def load_all() -> dict[str, LoggerSpec]:
     """
     from importlib import import_module
     for mod in ("rtat", "consensus", "auction", "borrow", "shielded",
-                "vxcurve"):
+                "vxcurve", "listings"):
         try:
             import_module(f"{__name__}.{mod}")
         except Exception as exc:                              # noqa: BLE001

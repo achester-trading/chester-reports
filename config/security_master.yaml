@@ -1,0 +1,3700 @@
+# security_master.yaml -- the Security Master, v1 (AUD-3b). THE SOURCE OF TRUTH
+# for instrument identity: reviewed by Ari, served by altdata/security_master.py.
+#
+# Seeded once by tools/seed_security_master.py from the code's own maps; edit it
+# by hand from here, by review. Ids are SM + five digits, never reused: close an
+# instrument with active_to, never delete it, and take new ids from next_id.
+# An identifier names an instrument only inside its active window.
+#
+# A null fact is unverified, and listed in the entry's `unverified`: never type
+# one from memory. `restricted` is NOT a field: it is computed at load from
+# config/tracked_entities.yaml, and a `restricted:` line here is discarded and
+# fails the gate (tools/validate_security_master.py).
+version: 1
+schema: security-master-v1
+next_id: 195
+instruments:
+- id: SM00001
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SPY
+    store_key: yfinance.mkt_spy
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00002
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: QQQ
+    store_key: yfinance.mkt_qqq
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00003
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IWM
+    store_key: yfinance.mkt_iwm
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00004
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: DIA
+    store_key: yfinance.mkt_dia
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00005
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: RSP
+    store_key: yfinance.mkt_rsp
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00006
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLK
+    store_key: yfinance.mkt_xlk
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00007
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLF
+    store_key: yfinance.mkt_xlf
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00008
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLE
+    store_key: yfinance.mkt_xle
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00009
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLV
+    store_key: yfinance.mkt_xlv
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00010
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLI
+    store_key: yfinance.mkt_xli
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00011
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLP
+    store_key: yfinance.mkt_xlp
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00012
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLY
+    store_key: yfinance.mkt_xly
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00013
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLU
+    store_key: yfinance.mkt_xlu
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00014
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLB
+    store_key: yfinance.mkt_xlb
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00015
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLRE
+    store_key: yfinance.mkt_xlre
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00016
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XLC
+    store_key: yfinance.mkt_xlc
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00017
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: TLT
+    store_key: yfinance.mkt_tlt
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00018
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IEF
+    store_key: yfinance.mkt_ief
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00019
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SHY
+    store_key: yfinance.mkt_shy
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00020
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: HYG
+    store_key: yfinance.mkt_hyg
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00021
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: LQD
+    store_key: yfinance.mkt_lqd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00022
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: GLD
+    store_key: yfinance.mkt_gld
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00023
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SLV
+    store_key: yfinance.mkt_slv
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00024
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: USO
+    store_key: yfinance.mkt_uso
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00025
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: UUP
+    store_key: yfinance.mkt_uup
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00026
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EFA
+    store_key: yfinance.mkt_efa
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00027
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EEM
+    store_key: yfinance.mkt_eem
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00028
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: VNQ
+    store_key: yfinance.mkt_vnq
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00029
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: VEA
+    store_key: yfinance.mkt_vea
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00030
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: HEFA
+    store_key: yfinance.mkt_hefa
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00031
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IVW
+    store_key: yfinance.mkt_ivw
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00032
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IVE
+    store_key: yfinance.mkt_ive
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00033
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IWF
+    store_key: yfinance.mkt_iwf
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00034
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: IWD
+    store_key: yfinance.mkt_iwd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00035
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: VWO
+    store_key: yfinance.mkt_vwo
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00036
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ACWX
+    store_key: yfinance.mkt_acwx
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00037
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EMXC
+    store_key: yfinance.mkt_emxc
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00038
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: GUNR
+    store_key: yfinance.mkt_gunr
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00039
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: DBC
+    store_key: yfinance.mkt_dbc
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00040
+  name: null
+  asset_class: fx
+  currency: CNY
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: CNY=X
+    store_key: yfinance.mkt_usdcny
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the store key mkt_usdcny names USD/CNY, quoted in CNY
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00041
+  name: null
+  asset_class: fx
+  currency: TRY
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: TRY=X
+    store_key: yfinance.mkt_usdtry
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the store key mkt_usdtry names USD/TRY, quoted in TRY
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00042
+  name: null
+  asset_class: fx
+  currency: IDR
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: IDR=X
+    store_key: yfinance.mkt_usdidr
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the store key mkt_usdidr names USD/IDR, quoted in IDR
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00043
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EWZ
+    store_key: yfinance.mkt_ewz
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00044
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EWW
+    store_key: yfinance.mkt_eww
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00045
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EZA
+    store_key: yfinance.mkt_eza
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00046
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: INDA
+    store_key: yfinance.mkt_inda
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00047
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EWY
+    store_key: yfinance.mkt_ewy
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00048
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EWT
+    store_key: yfinance.mkt_ewt
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00049
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: THD
+    store_key: yfinance.mkt_thd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00050
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: FXI
+    store_key: yfinance.mkt_fxi
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00051
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: TUR
+    store_key: yfinance.mkt_tur
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00052
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: EIDO
+    store_key: yfinance.mkt_eido
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00053
+  name: null
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: BTC-USD
+    store_key: yfinance.mkt_btc_usd
+    overnight_slug: btcusd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+  - name
+- id: SM00054
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: DBA
+    store_key: yfinance.mkt_dba
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00055
+  name: null
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ETH-USD
+    store_key: yfinance.mkt_eth_usd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+  - name
+- id: SM00056
+  name: null
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SOL-USD
+    store_key: yfinance.mkt_sol_usd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+  - name
+- id: SM00057
+  name: null
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ZEC-USD
+    store_key: yfinance.mkt_zec_usd
+    crypto_id: coingecko:zcash
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+  - name
+- id: SM00058
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: VNQI
+    store_key: yfinance.mkt_vnqi
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00059
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: MCHI
+    store_key: yfinance.mkt_mchi
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00060
+  name: null
+  asset_class: rate
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^TNX
+    store_key: yfinance.mkt_tnx
+    overnight_slug: tnx
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00061
+  name: null
+  asset_class: rate
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^TYX
+    store_key: yfinance.mkt_tyx
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00062
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: DX-Y.NYB
+    store_key: yfinance.mkt_dxy
+    overnight_slug: dxy
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00063
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: GC=F
+    store_key: yfinance.mkt_gold_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00064
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: CL=F
+    store_key: yfinance.mkt_wti_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00065
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^VIX
+    store_key: yfinance.mkt_vix
+    overnight_slug: vix
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00066
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^VIX3M
+    store_key: yfinance.mkt_vix3m
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00067
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^MOVE
+    store_key: yfinance.mkt_move
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00068
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: HG=F
+    store_key: yfinance.mkt_copper_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00069
+  name: null
+  asset_class: fx
+  currency: JPY
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: JPY=X
+    store_key: yfinance.mkt_usdjpy
+    overnight_slug: usdjpy
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the store key mkt_usdjpy names USD/JPY, quoted in JPY
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00070
+  name: null
+  asset_class: fx
+  currency: USD
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: EURUSD=X
+    store_key: yfinance.mkt_eurusd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the pair EURUSD is quoted in its second currency
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00071
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: RB=F
+    store_key: yfinance.mkt_rb_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00072
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: HO=F
+    store_key: yfinance.mkt_ho_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00073
+  name: null
+  asset_class: fx
+  currency: CHF
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: EURCHF=X
+    store_key: yfinance.mkt_eurchf
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    currency: the pair EURCHF is quoted in its second currency
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00074
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^VVIX
+    store_key: yfinance.mkt_vvix
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00075
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^SKEW
+    store_key: yfinance.mkt_skew
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00076
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: NVDA
+    store_key: yfinance.mkt_nvda
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00077
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AGG
+    store_key: yfinance.mkt_agg
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00078
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^GSPC
+    store_key: yfinance.mkt_gspc
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00079
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AAPL
+    store_key: yfinance.mkt_aapl
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00080
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ABBV
+    store_key: yfinance.mkt_abbv
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00081
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AMZN
+    store_key: yfinance.mkt_amzn
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00082
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AVGO
+    store_key: yfinance.mkt_avgo
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00083
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: BAC
+    store_key: yfinance.mkt_bac
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00084
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: BRK-B
+    store_key: yfinance.mkt_brk_b
+  aliases:
+  - BRK.B
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00085
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: C
+    store_key: yfinance.mkt_c
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00086
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: COST
+    store_key: yfinance.mkt_cost
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00087
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: GOOG
+    store_key: yfinance.mkt_goog
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00088
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: GOOGL
+    store_key: yfinance.mkt_googl
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00089
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: GS
+    store_key: yfinance.mkt_gs
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00090
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: HD
+    store_key: yfinance.mkt_hd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00091
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: JNJ
+    store_key: yfinance.mkt_jnj
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00092
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: JPM
+    store_key: yfinance.mkt_jpm
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00093
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: LLY
+    store_key: yfinance.mkt_lly
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00094
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: MA
+    store_key: yfinance.mkt_ma
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00095
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: META
+    store_key: yfinance.mkt_meta
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00096
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: MS
+    store_key: yfinance.mkt_ms
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00097
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: MSFT
+    store_key: yfinance.mkt_msft
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00098
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: NFLX
+    store_key: yfinance.mkt_nflx
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00099
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ORCL
+    store_key: yfinance.mkt_orcl
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00100
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: PG
+    store_key: yfinance.mkt_pg
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00101
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: TSLA
+    store_key: yfinance.mkt_tsla
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00102
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: UNH
+    store_key: yfinance.mkt_unh
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00103
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: V
+    store_key: yfinance.mkt_v
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00104
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: WFC
+    store_key: yfinance.mkt_wfc
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00105
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: WMT
+    store_key: yfinance.mkt_wmt
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00106
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: XOM
+    store_key: yfinance.mkt_xom
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00107
+  name: Sky
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SKY33038-USD
+    store_key: yfinance.crypto_sky
+    crypto_id: coingecko:sky
+  aliases:
+  - SKY
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00108
+  name: Lido
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: LDO-USD
+    store_key: yfinance.crypto_ldo
+    crypto_id: coingecko:lido-dao
+  aliases:
+  - LDO
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00109
+  name: Maple
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: SYRUP-USD
+    store_key: yfinance.crypto_syrup
+    crypto_id: coingecko:syrup
+  aliases:
+  - SYRUP
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00110
+  name: Aave
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AAVE-USD
+    store_key: yfinance.crypto_aave
+    crypto_id: coingecko:aave
+  aliases:
+  - AAVE
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00111
+  name: Aerodrome
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: AERO29270-USD
+    store_key: yfinance.crypto_aero
+    crypto_id: coingecko:aerodrome-finance
+  aliases:
+  - AERO
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00112
+  name: Bittensor
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: TAO22974-USD
+    store_key: yfinance.crypto_tao
+    crypto_id: coingecko:bittensor
+  aliases:
+  - TAO
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00113
+  name: Morpho
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: MORPHO34104-USD
+    store_key: yfinance.crypto_morpho
+    crypto_id: coingecko:morpho
+  aliases:
+  - MORPHO
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00114
+  name: Uniswap
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: UNI7083-USD
+    store_key: yfinance.crypto_uni
+    crypto_id: coingecko:uniswap
+  aliases:
+  - UNI
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00115
+  name: Ondo
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: ONDO-USD
+    store_key: yfinance.crypto_ondo
+    crypto_id: coingecko:ondo-finance
+  aliases:
+  - ONDO
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00116
+  name: Kaspa
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: KAS-USD
+    store_key: yfinance.crypto_kas
+    crypto_id: coingecko:kaspa
+  aliases:
+  - KAS
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00117
+  name: Venice
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: VVV35509-USD
+    store_key: yfinance.crypto_vvv
+    crypto_id: coingecko:venice-token
+  aliases:
+  - VVV
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00118
+  name: Pearl
+  asset_class: crypto
+  currency: USD
+  multiplier: 1
+  exchange: null
+  identifiers:
+    yahoo: PRL41876-USD
+    store_key: yfinance.crypto_prl
+    crypto_id: coingecko:pearl-2
+  aliases:
+  - PRL
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/crypto_basket.yaml
+    currency: the -USD suffix of its Yahoo id
+  unverified:
+  - exchange
+- id: SM00119
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ES=F
+    overnight_slug: es
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/overnight.py SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00120
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: NQ=F
+    overnight_slug: nq
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/overnight.py SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00121
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^N225
+    overnight_slug: n225
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/overnight.py SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00122
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^STOXX50E
+    overnight_slug: sx5e
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/overnight.py SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00123
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^FTSE
+    overnight_slug: ftse
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/overnight.py SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00124
+  name: null
+  asset_class: fx
+  currency: CNH
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: CNH=X
+    store_key: cnh.usdcnh
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/cnh.py
+    currency: the store key cnh.usdcnh names USD/CNH, quoted in CNH
+  unverified:
+  - exchange
+  - multiplier
+  - name
+- id: SM00125
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: MSTR
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py SINGLE_NAMES
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00126
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: COIN
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py SINGLE_NAMES
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00127
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: ASTS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py SINGLE_NAMES
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00128
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: MU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/fundamentals.py TICKERS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00129
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: AMAT
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/fundamentals.py TICKERS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00130
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: IAU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/ishares_trusts.py TRUSTS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00131
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: IBIT
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/ishares_trusts.py TRUSTS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00132
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: TQQQ
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00133
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SQQQ
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00134
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: QLD
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00135
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: UPRO
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00136
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SPXU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00137
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SSO
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00138
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SDS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+  unverified:
+  - currency
+  - exchange
+  - name
+- id: SM00139
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: SPX
+  aliases:
+  - I:SPX
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py MASSIVE_SYMBOLS; tools/probe_massive.py SPX_ROOTS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00140
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: SPCX
+  aliases: []
+  active_from: null
+  active_to: '2026-06-11'
+  sources:
+    identifiers: altdata/config.py UNDERLYING_VERIFIED_FROM's note
+    active_to: the day before the current issuer listed (2026-06-12); its own delisting date is not stored
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+  - active_to
+  - asset_class
+- id: SM00141
+  name: Space Exploration Technologies Corp Class A
+  asset_class: equity
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SPCX
+  aliases: []
+  active_from: '2026-06-12'
+  active_to: null
+  sources:
+    identifiers: altdata/config.py UNDERLYING_VERIFIED_FROM's note
+    active_from: listed 2026-06-12, per the note
+  unverified:
+  - currency
+  - exchange
+- id: SM00142
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SPY
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00001
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00143
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: QQQ
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00002
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00144
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: IWM
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00003
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00145
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: NVDA
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00076
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00146
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: AAPL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00079
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00147
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: MSFT
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00097
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00148
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: AMZN
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00081
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00149
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: META
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00095
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00150
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: GOOGL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00088
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00151
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: TSLA
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00101
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00152
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: MSTR
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00125
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00153
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: COIN
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00126
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00154
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: ASTS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00127
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00155
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: GLD
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00022
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00156
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SLV
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00023
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00157
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: IBIT
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00131
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00158
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: USO
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/config.py chain_universe()
+  underlying: SM00024
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00159
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SPX
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: tools/probe_massive.py SPX_ROOTS
+  underlying: SM00139
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00160
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SPXW
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: tools/probe_massive.py SPX_ROOTS
+  underlying: SM00139
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00161
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SPCX
+  aliases: []
+  active_from: null
+  active_to: '2026-06-15'
+  sources:
+    active_to: contracts before the fence date belong to the former issuer
+  underlying: SM00140
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+  - active_to
+- id: SM00162
+  name: null
+  asset_class: option_root
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    occ_root: SPCX
+  aliases: []
+  active_from: '2026-06-16'
+  active_to: null
+  sources:
+    active_from: altdata/config.py UNDERLYING_VERIFIED_FROM
+  underlying: SM00141
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00163
+  name: Brookfield Corporation
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BN
+  aliases: []
+  active_from: '2022-12-09'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00164
+  name: Brookfield Asset Management Ltd.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BAM
+  aliases: []
+  active_from: '2022-12-09'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00165
+  name: Brookfield Asset Management Inc. (the issuer now called BN)
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BAM
+  aliases: []
+  active_from: null
+  active_to: '2022-12-08'
+  sources:
+    identifiers: config/tracked_entities.yaml's BAM and BN notes
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+- id: SM00166
+  name: Brookfield Wealth Solutions Ltd.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BNT
+  aliases: []
+  active_from: '2024-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00167
+  name: Brookfield Reinsurance Ltd.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BNRE
+  aliases: []
+  active_from: '2021-06-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00168
+  name: Brookfield Asset Management Reinsurance
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BAMR
+  aliases: []
+  active_from: '2021-06-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00169
+  name: Brookfield Renewable Partners L.P.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BEP
+  aliases: []
+  active_from: '2011-11-28'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00170
+  name: Brookfield Renewable Corporation
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BEPC
+  aliases: []
+  active_from: '2020-07-30'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00171
+  name: Brookfield Infrastructure Partners L.P.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIP
+  aliases: []
+  active_from: '2008-01-31'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00172
+  name: Brookfield Infrastructure Corporation
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIPC
+  aliases: []
+  active_from: '2020-03-31'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00173
+  name: Brookfield Business Partners L.P.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BBU
+  aliases: []
+  active_from: '2016-06-20'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00174
+  name: Brookfield Business Corporation
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BBUC
+  aliases: []
+  active_from: '2022-03-15'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00175
+  name: Brookfield Property Partners L.P.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPY
+  aliases: []
+  active_from: '2013-04-15'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00176
+  name: Brookfield Property REIT Inc.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPYU
+  aliases: []
+  active_from: '2018-08-28'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00177
+  name: Brookfield Property Partners 6.50% Pref Series 1
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPYPP
+  aliases: []
+  active_from: '2019-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00178
+  name: Brookfield Property Partners 6.375% Pref Series 2
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPYPO
+  aliases: []
+  active_from: '2019-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00179
+  name: Brookfield Property Partners 5.75% Pref Series 3
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPYPN
+  aliases: []
+  active_from: '2020-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00180
+  name: Brookfield Property Partners Pref Series
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BPYPM
+  aliases: []
+  active_from: '2020-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00181
+  name: Brookfield DTLA Fund Office Trust Investor Inc.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: DTLAP
+  aliases: []
+  active_from: '2013-10-15'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00182
+  name: Brookfield Finance Inc. notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BNH
+  aliases: []
+  active_from: '2017-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00183
+  name: Brookfield Finance Inc. notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BNJ
+  aliases: []
+  active_from: '2017-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00184
+  name: Brookfield Renewable perpetual subordinated notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BEPH
+  aliases: []
+  active_from: '2021-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00185
+  name: Brookfield Renewable perpetual subordinated notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BEPI
+  aliases: []
+  active_from: '2021-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00186
+  name: Brookfield Renewable perpetual subordinated notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BEPJ
+  aliases: []
+  active_from: '2021-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00187
+  name: Brookfield Infrastructure Finance ULC notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIPH
+  aliases: []
+  active_from: '2020-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00188
+  name: Brookfield Infrastructure perpetual subordinated notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIPI
+  aliases: []
+  active_from: '2021-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00189
+  name: Brookfield Infrastructure perpetual subordinated notes
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIPJ
+  aliases: []
+  active_from: '2021-01-01'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00190
+  name: Oaktree Capital Group LLC
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: OAK
+  aliases: []
+  active_from: '2019-09-30'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00191
+  name: Oaktree Specialty Lending Corp.
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: OCSL
+  aliases: []
+  active_from: '2019-09-30'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00192
+  name: Brookfield India Real Estate Trust
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: BIRET
+  aliases: []
+  active_from: '2021-02-16'
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml
+    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00193
+  name: Brookfield Real Assets Income Fund
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: RA
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml name_only
+    asset_class: a listed fund
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class
+- id: SM00194
+  name: Brookfield Global Listed Infrastructure Income Fund
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    ticker: INF
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/tracked_entities.yaml name_only
+    asset_class: a listed fund
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - asset_class

@@ -217,7 +217,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-four code gates (seventy-one Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — seventy-five code gates (seventy-two Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -332,6 +332,25 @@ discontinued.
 filter list, overriding ours, so the helper re-asserts the filter after the import.
 Gate L in `tools/validate_weekly_complete.py` refuses a bare import and proves the
 silence in a fresh interpreter.
+
+**Instrument identity is the Security Master's (AUD-3b, 15 Oct 2026).**
+`config/security_master.yaml` is the source of truth, reviewed by the operator and
+served by `altdata/security_master.py`: a stable `SM` + five-digit id that is never
+reused, the asset class, currency, multiplier, exchange, identifiers by scheme
+(yahoo, store_key, ticker, occ_root, ibkr_conid, pm_id, crypto_id, overnight_slug),
+aliases, and an active window. An identifier names an instrument only inside its
+window, so a reused ticker (BAM before 9 Dec 2022, SPCX before 12 Jun 2026)
+resolves to the right issuer on each date; `resolve()` returns one or raises. A
+fact not in the repo or a stored source is null and listed as unverified.
+`restricted` is computed at load from `config/tracked_entities.yaml` through
+`register/instruments.py`, never read from the YAML. It was seeded once by
+`tools/seed_security_master.py`; the call sites keep their own maps until they
+move one at a time, and `tools/validate_security_master.py` holds every
+identifier in those maps to exactly one entry today. The listings layer
+(`altdata/listings.py`, a logger in the 06:45 step) keeps Nasdaq Trader's daily
+symbol directories as reference data under data/reference/listings/ with a
+change file per day; `python -m altdata.security_master export` writes the
+one-way export chester-meme reads. Nothing here reads it back.
 
 ### Known cleanup
 
