@@ -15,11 +15,11 @@ schema: security-master-v1
 next_id: 195
 instruments:
 - id: SM00001
-  name: null
+  name: State Street SPDR S&P 500 ETF Trust
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: SPY
     store_key: yfinance.mkt_spy
@@ -29,16 +29,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00002
-  name: null
+  name: Invesco QQQ Trust, Series 1
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: QQQ
     store_key: yfinance.mkt_qqq
@@ -48,16 +50,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00003
-  name: null
+  name: iShares Russell 2000 Index Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: IWM
     store_key: yfinance.mkt_iwm
@@ -67,16 +71,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00004
-  name: null
+  name: State Street SPDR Dow Jones Industrial Average ETF Trust
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: DIA
     store_key: yfinance.mkt_dia
@@ -86,16 +92,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00005
-  name: null
+  name: Invesco S&P 500 Equal Weight ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: RSP
     store_key: yfinance.mkt_rsp
@@ -105,16 +113,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00006
-  name: null
+  name: State Street Technology Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLK
     store_key: yfinance.mkt_xlk
@@ -124,16 +134,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00007
-  name: null
+  name: State Street Financial Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLF
     store_key: yfinance.mkt_xlf
@@ -143,16 +155,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00008
-  name: null
+  name: State Street Energy Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLE
     store_key: yfinance.mkt_xle
@@ -162,16 +176,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00009
-  name: null
+  name: State Street Health Care Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLV
     store_key: yfinance.mkt_xlv
@@ -181,16 +197,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00010
-  name: null
+  name: State Street Industrial Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLI
     store_key: yfinance.mkt_xli
@@ -200,16 +218,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00011
-  name: null
+  name: State Street Consumer Staples Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLP
     store_key: yfinance.mkt_xlp
@@ -219,16 +239,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00012
-  name: null
+  name: State Street Consumer Discretionary Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLY
     store_key: yfinance.mkt_xly
@@ -238,16 +260,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00013
-  name: null
+  name: State Street Utilities Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLU
     store_key: yfinance.mkt_xlu
@@ -257,16 +281,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00014
-  name: null
+  name: State Street Materials Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLB
     store_key: yfinance.mkt_xlb
@@ -276,16 +302,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00015
-  name: null
+  name: State Street Real Estate Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLRE
     store_key: yfinance.mkt_xlre
@@ -295,16 +323,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00016
-  name: null
+  name: State Street Communication Services Select Sector SPDR ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: XLC
     store_key: yfinance.mkt_xlc
@@ -314,16 +344,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00017
-  name: null
+  name: iShares 20+ Year Treasury Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: TLT
     store_key: yfinance.mkt_tlt
@@ -333,16 +365,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00018
-  name: null
+  name: iShares 7-10 Year Treasury Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: IEF
     store_key: yfinance.mkt_ief
@@ -352,16 +386,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00019
-  name: null
+  name: iShares 1-3 Year Treasury Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: SHY
     store_key: yfinance.mkt_shy
@@ -371,16 +407,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00020
-  name: null
+  name: iShares iBoxx $ High Yield Corporate Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: HYG
     store_key: yfinance.mkt_hyg
@@ -390,16 +428,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00021
-  name: null
+  name: iShares iBoxx $ Investment Grade Corporate Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: LQD
     store_key: yfinance.mkt_lqd
@@ -409,16 +449,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00022
-  name: null
+  name: SPDR Gold Shares
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: GLD
     store_key: yfinance.mkt_gld
@@ -428,16 +470,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00023
-  name: null
+  name: iShares Silver Trust
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: SLV
     store_key: yfinance.mkt_slv
@@ -447,16 +491,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00024
-  name: null
+  name: United States Oil Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: USO
     store_key: yfinance.mkt_uso
@@ -466,16 +512,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00025
-  name: null
+  name: Invesco DB USD Index Bullish Fund ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: UUP
     store_key: yfinance.mkt_uup
@@ -485,16 +533,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00026
-  name: null
+  name: iShares MSCI EAFE ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EFA
     store_key: yfinance.mkt_efa
@@ -504,16 +554,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00027
-  name: null
+  name: iShares MSCI Emerging Index Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EEM
     store_key: yfinance.mkt_eem
@@ -523,16 +575,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00028
-  name: null
+  name: Vanguard Real Estate ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: VNQ
     store_key: yfinance.mkt_vnq
@@ -542,16 +596,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00029
-  name: null
+  name: Vanguard FTSE Developed Markets ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: VEA
     store_key: yfinance.mkt_vea
@@ -561,16 +617,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00030
-  name: null
+  name: iShares Currency Hedged MSCI EAFE ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: BATS
   identifiers:
     yahoo: HEFA
     store_key: yfinance.mkt_hefa
@@ -580,16 +638,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00031
-  name: null
+  name: iShares S&P 500 Growth ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: IVW
     store_key: yfinance.mkt_ivw
@@ -599,16 +659,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00032
-  name: null
+  name: iShares S&P 500 Value ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: IVE
     store_key: yfinance.mkt_ive
@@ -618,16 +680,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00033
-  name: null
+  name: iShares Russell 1000 Growth Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: IWF
     store_key: yfinance.mkt_iwf
@@ -637,16 +701,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00034
-  name: null
+  name: iShares Russell 1000 Value ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: IWD
     store_key: yfinance.mkt_iwd
@@ -656,16 +722,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00035
-  name: null
+  name: Vanguard FTSE Emerging Markets ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: VWO
     store_key: yfinance.mkt_vwo
@@ -675,16 +743,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00036
-  name: null
+  name: iShares MSCI ACWI ex U.S. ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: ACWX
     store_key: yfinance.mkt_acwx
@@ -694,16 +764,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00037
-  name: null
+  name: iShares MSCI Emerging Markets ex China ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: EMXC
     store_key: yfinance.mkt_emxc
@@ -713,16 +785,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00038
-  name: null
+  name: Northern Trust Morningstar Global Upstream Natural Resources ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: GUNR
     store_key: yfinance.mkt_gunr
@@ -732,16 +806,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00039
-  name: null
+  name: Invesco DB Commodity Index Tracking Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: DBC
     store_key: yfinance.mkt_dbc
@@ -751,10 +827,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00040
   name: null
   asset_class: fx
@@ -816,11 +894,11 @@ instruments:
   - multiplier
   - name
 - id: SM00043
-  name: null
+  name: iShares MSCI Brazil ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EWZ
     store_key: yfinance.mkt_ewz
@@ -830,16 +908,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00044
-  name: null
+  name: iShares MSCI Mexico ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EWW
     store_key: yfinance.mkt_eww
@@ -849,16 +929,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00045
-  name: null
+  name: iShares MSCI South Africa Index Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EZA
     store_key: yfinance.mkt_eza
@@ -868,16 +950,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00046
-  name: null
+  name: iShares MSCI India ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: BATS
   identifiers:
     yahoo: INDA
     store_key: yfinance.mkt_inda
@@ -887,16 +971,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00047
-  name: null
+  name: iShares MSCI South Korea ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EWY
     store_key: yfinance.mkt_ewy
@@ -906,16 +992,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00048
-  name: null
+  name: iShares MSCI Taiwan ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EWT
     store_key: yfinance.mkt_ewt
@@ -925,16 +1013,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00049
-  name: null
+  name: iShares MSCI Thailand ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: THD
     store_key: yfinance.mkt_thd
@@ -944,16 +1034,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00050
-  name: null
+  name: iShares China Large-Cap ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: FXI
     store_key: yfinance.mkt_fxi
@@ -963,16 +1055,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00051
-  name: null
+  name: iShares MSCI Turkey ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: TUR
     store_key: yfinance.mkt_tur
@@ -982,16 +1076,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00052
-  name: null
+  name: iShares MSCI Indonesia ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: EIDO
     store_key: yfinance.mkt_eido
@@ -1001,10 +1097,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00053
   name: null
   asset_class: crypto
@@ -1026,11 +1124,11 @@ instruments:
   - exchange
   - name
 - id: SM00054
-  name: null
+  name: Invesco DB Agriculture Fund
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: DBA
     store_key: yfinance.mkt_dba
@@ -1040,10 +1138,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00055
   name: null
   asset_class: crypto
@@ -1103,11 +1203,11 @@ instruments:
   - exchange
   - name
 - id: SM00058
-  name: null
+  name: Vanguard Global ex-U.S. Real Estate ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: VNQI
     store_key: yfinance.mkt_vnqi
@@ -1117,16 +1217,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00059
-  name: null
+  name: iShares MSCI China ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     yahoo: MCHI
     store_key: yfinance.mkt_mchi
@@ -1136,10 +1238,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00060
   name: null
   asset_class: rate
@@ -1465,11 +1569,11 @@ instruments:
   - multiplier
   - name
 - id: SM00076
-  name: null
+  name: NVIDIA Corporation - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: NVDA
     store_key: yfinance.mkt_nvda
@@ -1479,16 +1583,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00077
-  name: null
+  name: iShares Core U.S. Aggregate Bond ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     yahoo: AGG
     store_key: yfinance.mkt_agg
@@ -1498,10 +1604,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00078
   name: null
   asset_class: index
@@ -1523,11 +1631,11 @@ instruments:
   - multiplier
   - name
 - id: SM00079
-  name: null
+  name: Apple Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: AAPL
     store_key: yfinance.mkt_aapl
@@ -1537,16 +1645,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00080
-  name: null
+  name: AbbVie Inc. Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: ABBV
     store_key: yfinance.mkt_abbv
@@ -1556,16 +1666,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00081
-  name: null
+  name: Amazon.com, Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: AMZN
     store_key: yfinance.mkt_amzn
@@ -1575,16 +1687,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00082
-  name: null
+  name: Broadcom Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: AVGO
     store_key: yfinance.mkt_avgo
@@ -1594,16 +1708,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00083
-  name: null
+  name: Bank of America Corporation Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: BAC
     store_key: yfinance.mkt_bac
@@ -1613,16 +1729,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00084
-  name: null
+  name: Berkshire Hathaway Inc. New Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: BRK-B
     store_key: yfinance.mkt_brk_b
@@ -1633,16 +1751,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00085
-  name: null
+  name: Citigroup, Inc. Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: C
     store_key: yfinance.mkt_c
@@ -1652,16 +1772,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00086
-  name: null
+  name: Costco Wholesale Corporation - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: COST
     store_key: yfinance.mkt_cost
@@ -1671,16 +1793,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00087
-  name: null
+  name: Alphabet Inc. - Class C Capital Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: GOOG
     store_key: yfinance.mkt_goog
@@ -1690,16 +1814,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00088
-  name: null
+  name: Alphabet Inc. - Class A Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: GOOGL
     store_key: yfinance.mkt_googl
@@ -1709,16 +1835,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00089
-  name: null
+  name: Goldman Sachs Group, Inc. (The) Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: GS
     store_key: yfinance.mkt_gs
@@ -1728,16 +1856,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00090
-  name: null
+  name: Home Depot, Inc. (The) Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: HD
     store_key: yfinance.mkt_hd
@@ -1747,16 +1877,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00091
-  name: null
+  name: Johnson & Johnson Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: JNJ
     store_key: yfinance.mkt_jnj
@@ -1766,16 +1898,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00092
-  name: null
+  name: JP Morgan Chase & Co. Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: JPM
     store_key: yfinance.mkt_jpm
@@ -1785,16 +1919,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00093
-  name: null
+  name: Eli Lilly and Company Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: LLY
     store_key: yfinance.mkt_lly
@@ -1804,16 +1940,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00094
-  name: null
+  name: Mastercard Incorporated Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: MA
     store_key: yfinance.mkt_ma
@@ -1823,16 +1961,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00095
-  name: null
+  name: Meta Platforms, Inc. - Class A Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: META
     store_key: yfinance.mkt_meta
@@ -1842,16 +1982,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00096
-  name: null
+  name: Morgan Stanley Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: MS
     store_key: yfinance.mkt_ms
@@ -1861,16 +2003,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00097
-  name: null
+  name: Microsoft Corporation - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: MSFT
     store_key: yfinance.mkt_msft
@@ -1880,16 +2024,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00098
-  name: null
+  name: Netflix, Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: NFLX
     store_key: yfinance.mkt_nflx
@@ -1899,16 +2045,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00099
-  name: null
+  name: Oracle Corporation Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: ORCL
     store_key: yfinance.mkt_orcl
@@ -1918,16 +2066,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00100
-  name: null
+  name: Procter & Gamble Company (The) Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: PG
     store_key: yfinance.mkt_pg
@@ -1937,16 +2087,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00101
-  name: null
+  name: Tesla, Inc.  - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: TSLA
     store_key: yfinance.mkt_tsla
@@ -1956,16 +2108,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00102
-  name: null
+  name: UnitedHealth Group Incorporated Common Stock (DE)
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: UNH
     store_key: yfinance.mkt_unh
@@ -1975,16 +2129,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00103
-  name: null
+  name: Visa Inc.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: V
     store_key: yfinance.mkt_v
@@ -1994,16 +2150,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00104
-  name: null
+  name: Wells Fargo & Company Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: WFC
     store_key: yfinance.mkt_wfc
@@ -2013,16 +2171,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00105
-  name: null
+  name: Walmart Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     yahoo: WMT
     store_key: yfinance.mkt_wmt
@@ -2032,16 +2192,18 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00106
-  name: null
+  name: ExxonMobil Holdings Corporation Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNYS
   identifiers:
     yahoo: XOM
     store_key: yfinance.mkt_xom
@@ -2051,10 +2213,12 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00107
   name: Sky
   asset_class: crypto
@@ -2398,11 +2562,11 @@ instruments:
   - multiplier
   - name
 - id: SM00125
-  name: null
+  name: Strategy Inc - Class A Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: MSTR
   aliases: []
@@ -2410,16 +2574,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/config.py SINGLE_NAMES
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00126
-  name: null
+  name: Coinbase Global, Inc. - Class A Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: COIN
   aliases: []
@@ -2427,16 +2593,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/config.py SINGLE_NAMES
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00127
-  name: null
+  name: AST SpaceMobile, Inc. - Class A Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: ASTS
   aliases: []
@@ -2444,16 +2612,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/config.py SINGLE_NAMES
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00128
-  name: null
+  name: Micron Technology, Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: MU
   aliases: []
@@ -2461,16 +2631,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/fundamentals.py TICKERS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00129
-  name: null
+  name: Applied Materials, Inc. - Common Stock
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: AMAT
   aliases: []
@@ -2478,16 +2650,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/fundamentals.py TICKERS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00130
-  name: null
+  name: iShares Gold Trust Shares
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: IAU
   aliases: []
@@ -2495,16 +2669,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/ishares_trusts.py TRUSTS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00131
-  name: null
+  name: iShares Bitcoin Trust ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     ticker: IBIT
   aliases: []
@@ -2512,16 +2688,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/ishares_trusts.py TRUSTS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00132
-  name: null
+  name: ProShares UltraPro QQQ
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     ticker: TQQQ
   aliases: []
@@ -2529,16 +2707,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00133
-  name: null
+  name: ProShares UltraPro Short QQQ
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNMS
   identifiers:
     ticker: SQQQ
   aliases: []
@@ -2546,16 +2726,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00134
-  name: null
+  name: ProShares Ultra QQQ
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: QLD
   aliases: []
@@ -2563,16 +2745,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00135
-  name: null
+  name: ProShares UltraPro S&P 500
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: UPRO
   aliases: []
@@ -2580,16 +2764,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00136
-  name: null
+  name: ProShares UltraPro Short S&P500
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: SPXU
   aliases: []
@@ -2597,16 +2783,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00137
-  name: null
+  name: ProShares Ultra S&P500
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: SSO
   aliases: []
@@ -2614,16 +2802,18 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00138
-  name: null
+  name: ProShares UltraShort S&P500
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: ARCX
   identifiers:
     ticker: SDS
   aliases: []
@@ -2631,10 +2821,12 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/sources/proshares.py FUNDS
-  unverified:
-  - currency
-  - exchange
-  - name
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15)
+  unverified: []
 - id: SM00139
   name: null
   asset_class: index
@@ -2649,38 +2841,49 @@ instruments:
   active_to: null
   sources:
     identifiers: altdata/config.py MASSIVE_SYMBOLS; tools/probe_massive.py SPX_ROOTS
+    not_merged_with: '^GSPC: no issuer or exchange page found naming both; https://www.cboe.com/tradable_products/sp_500/
+      names SPX only'
   unverified:
   - currency
   - exchange
   - multiplier
   - name
 - id: SM00140
-  name: null
+  name: The SPAC and New Issue ETF
   asset_class: etf
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNMS
   identifiers:
     ticker: SPCX
   aliases: []
   active_from: null
-  active_to: '2026-06-11'
+  active_to: null
   sources:
     identifiers: altdata/config.py UNDERLYING_VERIFIED_FROM's note
-    active_to: the day before the current issuer listed (2026-06-12); its own delisting date is not stored
+    asset_class: 'https://www.sec.gov/Archives/edgar/data/1719812/000138713122010113/spcx-497k_092722.htm
+      -- "Ticker Symbol: SPCX"; "The Fund is an actively managed exchange traded fund."'
+    ticker_history: https://www.newsfilecorp.com/release/291300 -- "from "SPCX" to "SPCK"", "effective
+      at the start of trading on April 7, 2026"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/G
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - name
-  - active_to
-  - asset_class
+  ticker_history:
+  - ticker: SPCX
+    from: null
+    to: '2026-04-06'
+  - ticker: SPCK
+    from: '2026-04-07'
+    to: null
 - id: SM00141
   name: Space Exploration Technologies Corp Class A
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: 1
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: SPCX
   aliases: []
@@ -2689,9 +2892,11 @@ instruments:
   sources:
     identifiers: altdata/config.py UNDERLYING_VERIFIED_FROM's note
     active_from: listed 2026-06-12, per the note
-  unverified:
-  - currency
-  - exchange
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
+  unverified: []
 - id: SM00142
   name: null
   asset_class: option_root
@@ -3095,28 +3300,39 @@ instruments:
 - id: SM00163
   name: Brookfield Corporation
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BN
   aliases: []
-  active_from: '2022-12-09'
+  active_from: null
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1001085/000100108526000006/R1.htm -- "Class A
+      Limited Voting Shares"
+    ticker_history: 'config/tracked_entities.yaml (BN: "Was Brookfield Asset Management Inc. before the
+      2022 spin-off"; BAM: "BAM meant the entity now called BN before 2022-12-09")'
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
+  ticker_history:
+  - ticker: BAM
+    from: null
+    to: '2022-12-08'
+  - ticker: BN
+    from: '2022-12-09'
+    to: null
 - id: SM00164
   name: Brookfield Asset Management Ltd.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BAM
   aliases: []
@@ -3124,12 +3340,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1937926/000162828026013098/R1.htm -- "Class A
+      Limited Voting Shares"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00165
   name: Brookfield Asset Management Inc. (the issuer now called BN)
   asset_class: equity
@@ -3143,16 +3361,18 @@ instruments:
   active_to: '2022-12-08'
   sources:
     identifiers: config/tracked_entities.yaml's BAM and BN notes
+    merged_into: the same security as BN under its former ticker (15 Oct)
   unverified:
   - currency
   - exchange
   - multiplier
+  merged_into: SM00163
 - id: SM00166
   name: Brookfield Wealth Solutions Ltd.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BNT
   aliases: []
@@ -3160,12 +3380,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1837429/000183742926000008/R1.htm -- "Class A
+      Exchangeable Limited Voting Shares"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00167
   name: Brookfield Reinsurance Ltd.
   asset_class: equity
@@ -3179,12 +3401,12 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1837429/000183742924000006/R1.htm -- "Class A
+      Exchangeable Limited Voting Shares"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00168
   name: Brookfield Asset Management Reinsurance
   asset_class: equity
@@ -3198,18 +3420,18 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1837429/000183742922000004/R1.htm -- "Class A
+      Exchangeable Limited Voting Shares"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00169
   name: Brookfield Renewable Partners L.P.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BEP
   aliases: []
@@ -3217,18 +3439,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1533232/000153323226000011/R1.htm -- "Limited
+      Partnership Units"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00170
   name: Brookfield Renewable Corporation
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BEPC
   aliases: []
@@ -3236,18 +3460,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1791863/000179186326000004/R1.htm -- "Class A
+      Exchangeable Subordinate Voting Shares"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00171
   name: Brookfield Infrastructure Partners L.P.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BIP
   aliases: []
@@ -3255,18 +3481,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1406234/000140623426000002/R1.htm -- "Limited
+      Partnership Units"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00172
   name: Brookfield Infrastructure Corporation
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BIPC
   aliases: []
@@ -3274,12 +3502,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1788348/000178834826000001/R1.htm -- "Class A
+      Exchangeable Subordinate Voting Shares"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00173
   name: Brookfield Business Partners L.P.
   asset_class: equity
@@ -3290,21 +3520,25 @@ instruments:
     ticker: BBU
   aliases: []
   active_from: '2016-06-20'
-  active_to: null
+  active_to: '2026-03-26'
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1654795/000162828025017216/R1.htm -- "Limited
+      Partnership Units"
+    active_to: https://www.torys.com/work/2026/03/f43888f0-ce35-4f86-97b9-ac8e3fcebcd1 -- "On March 27,
+      2026, Brookfield Business Partners L.P. ("BBU") and Brookfield Business Corporation ("BBUC") completed";
+      its last trading day is not stated
   unverified:
+  - active_to
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00174
   name: Brookfield Business Corporation
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BBUC
   aliases: []
@@ -3312,12 +3546,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1654795/000162828026022148/R1.htm -- "Class A
+      Subordinate Voting Shares"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00175
   name: Brookfield Property Partners L.P.
   asset_class: equity
@@ -3331,12 +3567,12 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1545772/000154577221000004/R1.htm -- "Limited
+      Partnership Units"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00176
   name: Brookfield Property REIT Inc.
   asset_class: equity
@@ -3350,18 +3586,18 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1496048/000149604821000006/R1.htm -- "Class A
+      Stock, $.01 par value"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00177
   name: Brookfield Property Partners 6.50% Pref Series 1
-  asset_class: equity
-  currency: null
+  asset_class: preferred
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: BPYPP
   aliases: []
@@ -3369,18 +3605,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1545772/000154577226000006/R1.htm -- "6.50% Class
+      A Cumulative Redeemable Perpetual Units, Series 1"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00178
   name: Brookfield Property Partners 6.375% Pref Series 2
-  asset_class: equity
-  currency: null
+  asset_class: preferred
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: BPYPO
   aliases: []
@@ -3388,18 +3626,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1545772/000154577226000006/R1.htm -- "6.375%
+      Class A Cumulative Redeemable Perpetual Units, Series 2"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00179
   name: Brookfield Property Partners 5.75% Pref Series 3
-  asset_class: equity
-  currency: null
+  asset_class: preferred
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: BPYPN
   aliases: []
@@ -3407,18 +3647,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1545772/000154577226000006/R1.htm -- "5.750%
+      Class A Cumulative Redeemable Perpetual Units, Series 3"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00180
   name: Brookfield Property Partners Pref Series
-  asset_class: equity
-  currency: null
+  asset_class: preferred
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: BPYPM
   aliases: []
@@ -3426,15 +3668,17 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1545772/000154577226000006/R1.htm -- "6.25% Class
+      A Cumulative Redeemable Units, Series 1"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00181
   name: Brookfield DTLA Fund Office Trust Investor Inc.
-  asset_class: equity
+  asset_class: preferred
   currency: null
   multiplier: null
   exchange: null
@@ -3445,18 +3689,18 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1575311/000157531123000009/R1.htm -- "7.625%
+      Series A Cumulative Redeemable Preferred Stock"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00182
   name: Brookfield Finance Inc. notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BNH
   aliases: []
@@ -3464,18 +3708,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1001085/000100108526000006/R1.htm -- "4.625%
+      Subordinated Notes due October 16, 2080"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00183
   name: Brookfield Finance Inc. notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BNJ
   aliases: []
@@ -3483,18 +3729,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1001085/000100108526000006/R1.htm -- "4.50% Perpetual
+      Subordinated Notes"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00184
   name: Brookfield Renewable perpetual subordinated notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BEPH
   aliases: []
@@ -3502,18 +3750,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1533232/000153323226000011/R1.htm -- "4.625%
+      Perpetual Subordinated Notes"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00185
   name: Brookfield Renewable perpetual subordinated notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BEPI
   aliases: []
@@ -3521,18 +3771,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1533232/000153323226000011/R1.htm -- "4.875%
+      Perpetual Subordinated Notes"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00186
   name: Brookfield Renewable perpetual subordinated notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BEPJ
   aliases: []
@@ -3540,18 +3792,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1533232/000153323226000011/R1.htm -- "7.250%
+      Perpetual Subordinated Notes"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00187
   name: Brookfield Infrastructure Finance ULC notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BIPH
   aliases: []
@@ -3559,18 +3813,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1406234/000140623426000002/R1.htm -- "5.000%
+      Subordinated Notes due 2081"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00188
   name: Brookfield Infrastructure perpetual subordinated notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BIPI
   aliases: []
@@ -3578,18 +3834,20 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1406234/000140623426000002/R1.htm -- "5.125%
+      Perpetual Subordinated Notes"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00189
   name: Brookfield Infrastructure perpetual subordinated notes
-  asset_class: equity
-  currency: null
+  asset_class: note
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: BIPJ
   aliases: []
@@ -3597,12 +3855,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1406234/000140623426000002/R1.htm -- "7.250%
+      Subordinated Notes due 2084"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00190
   name: Oaktree Capital Group LLC
   asset_class: equity
@@ -3616,18 +3876,18 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1403528/000140352819000007/R1.htm -- "Class A
+      Units"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class
 - id: SM00191
   name: Oaktree Specialty Lending Corp.
   asset_class: equity
-  currency: null
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNGS
   identifiers:
     ticker: OCSL
   aliases: []
@@ -3635,12 +3895,14 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
-    asset_class: listed security of the complex (common, unit, preferred or note); not split further
+    asset_class: https://www.sec.gov/Archives/edgar/data/1414932/000141493225000022/R1.htm -- "Common
+      Stock, par value $0.01 per share"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code Q/Q
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00192
   name: Brookfield India Real Estate Trust
   asset_class: equity
@@ -3662,10 +3924,10 @@ instruments:
   - asset_class
 - id: SM00193
   name: Brookfield Real Assets Income Fund
-  asset_class: etf
-  currency: null
+  asset_class: closed_end_fund
+  currency: USD
   multiplier: null
-  exchange: null
+  exchange: XNYS
   identifiers:
     ticker: RA
   aliases: []
@@ -3673,15 +3935,17 @@ instruments:
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml name_only
-    asset_class: a listed fund
+    asset_class: https://www.sec.gov/Archives/edgar/data/1655099/000110465924046226/tm249913d5_n2a.htm
+      -- "is a diversified, closed-end management investment company"
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1015202607:00
+      (2026-10-15)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
+      -> config/listing_exchanges.yaml
   unverified:
-  - currency
-  - exchange
   - multiplier
-  - asset_class
 - id: SM00194
   name: Brookfield Global Listed Infrastructure Income Fund
-  asset_class: etf
+  asset_class: closed_end_fund
   currency: null
   multiplier: null
   exchange: null
@@ -3689,12 +3953,15 @@ instruments:
     ticker: INF
   aliases: []
   active_from: null
-  active_to: null
+  active_to: '2020-03-08'
   sources:
     identifiers: config/tracked_entities.yaml name_only
-    asset_class: a listed fund
+    asset_class: https://www.sec.gov/Archives/edgar/data/1522807/000119312520070380/d861787dncsr.htm --
+      "The Fund is a diversified, closed-end management investment company."
+    active_to: https://privatewealth.brookfield.com/fund-news/brookfield-public-securities-group-llc-announces-closing-reorganization-brookfield-global
+      -- the reorganization into RA "was completed prior to the open of the New York Stock Exchange on
+      March 9, 2020"
   unverified:
   - currency
   - exchange
   - multiplier
-  - asset_class

@@ -4,7 +4,8 @@ architecture Part 26.2 #6).
 
     python -m altdata.security_master check            # the consistency check
     python -m altdata.security_master resolve SPY --scheme yahoo [--on DATE]
-    python -m altdata.security_master export [--out PATH]
+    python -m altdata.security_master export [--out PATH]   # chester-meme's contract
+    python -m altdata.security_master draft-box [--store PATH]  # box: print YAML
 
 config/security_master.yaml IS THE SOURCE OF TRUTH: in git, reviewed by Ari.
 This module loads it and serves it. It was seeded once by
@@ -20,7 +21,15 @@ index, future, option_root, fx, crypto, rate, prediction_contract); `currency`;
 store_key, ticker, occ_root, ibkr_conid, pm_id, crypto_id, overnight_slug);
 `aliases`; `active_from` and `active_to`; for an option root, its `underlying`.
 A fact found in neither the repo nor a stored source is null and named in the
-entry's `unverified` list, never typed from memory.
+entry's `unverified` list, never typed from memory. An entry may carry its own
+`ticker_history` ([{ticker, from, to}], inclusive dates) when one security has
+traded under more than one ticker (BN was BAM before 9 Dec 2022); an entry
+folded into another carries `merged_into` and resolves to nothing, its id kept.
+
+THE CURRENCY RULE (ruled 15 Oct 2026): a listing in Nasdaq Trader's symbol
+directories trades on a US exchange in USD. An entry found in those files
+carries currency USD and the MIC of its listing exchange
+(config/listing_exchanges.yaml), with the snapshot it was read from.
 
 TICKER REUSE. An identifier maps to an instrument only inside that instrument's
 active window, so a reused ticker resolves to the right company on each date:
@@ -35,20 +44,16 @@ set it: a `restricted` key in the file is discarded and counted, and the gate
 fails the committed file if it carries one. The register's own check and its
 SQLite trigger are untouched; this is one more reader of the same rule.
 
-THE EXPORT is one-way, for chester-meme (ruled 11 Oct): one JSON file -- a
-schema version, generated_at, a content hash, the master's instruments and the
-newest listings snapshot (altdata/listings.py), each with its identifiers,
-asset class, currency, exchange, active window and restricted flag, so the
-other repository can enforce the blocklist on its own side. Nothing in this
-repository reads it back.
+THE EXPORT is one-way, to chester-meme's contract (its spec section 3;
+docs/interface/security_master.schema.json, copied byte for byte): one security
+per composite FIGI, with its ticker history. altdata/sm_export.py builds and
+validates it. Nothing in this repository reads it back.
 """
 
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -56,10 +61,10 @@ from typing import Any, Optional, Union
 REPO = Path(__file__).resolve().parent.parent
 MASTER_PATH = REPO / "config" / "security_master.yaml"
 EXPORT_DEFAULT = "~/chester-data/export/security_master.json"
-EXPORT_SCHEMA = "security-master-export-v1"
+EXPORT_VAR = "CHESTER_SM_EXPORT"
 
 ASSET_CLASSES = ("equity", "etf", "index", "future", "option_root", "fx", "crypto",
-                 "rate", "prediction_contract")
+                 "rate", "prediction_contract", "preferred", "note", "closed_end_fund")
 SCHEMES = ("yahoo", "store_key", "ticker", "occ_root", "ibkr_conid", "pm_id",
            "crypto_id", "overnight_slug")
 FIELDS = ("id", "name", "asset_class", "currency", "multiplier", "exchange",
@@ -111,6 +116,9 @@ class Master:
             e["aliases"] = [str(a) for a in e.get("aliases") or []]
             e["active_from"] = _iso(e.get("active_from"))
             e["active_to"] = _iso(e.get("active_to"))
+            e["ticker_history"] = [{"ticker": str(r["ticker"]), "from": _iso(r.get("from")),
+                                    "to": _iso(r.get("to"))}
+                                   for r in e.get("ticker_history") or []]
             hit = self._restriction(e)
             e["restricted"] = hit is not None
             e["restricted_by"] = hit
@@ -118,7 +126,8 @@ class Master:
         self._by_id = {e["id"]: e for e in self.instruments}
 
     def _restriction(self, e: dict) -> Optional[dict]:
-        probes = list(e["identifiers"].values()) + e["aliases"]
+        probes = (list(e["identifiers"].values()) + e["aliases"]
+                  + [r["ticker"] for r in e["ticker_history"]])
         if e.get("name"):
             probes.append(str(e["name"]))
         for p in probes:
@@ -151,12 +160,30 @@ class Master:
         day, ident = _day(on), str(identifier)
         out = []
         for e in self.instruments:
+            if e.get("merged_into"):
+                continue
+            if scheme == "ticker" and e["ticker_history"]:
+                if any(r["ticker"] == ident and (r["from"] is None or r["from"] <= day)
+                       and (r["to"] is None or day <= r["to"])
+                       for r in e["ticker_history"]):
+                    out.append(e)
+                continue
             if scheme == "alias":
                 hit = ident in e["aliases"]
             else:
                 hit = e["identifiers"].get(scheme) == ident
             if hit and self.active(e, day):
                 out.append(e)
+        return out
+
+    def windows(self, e: dict) -> list[tuple[str, str, Optional[str], Optional[str]]]:
+        """(scheme, value, from, to) for every identifier, by its own window."""
+        out = []
+        for sc, v in e["identifiers"].items():
+            if sc == "ticker" and e["ticker_history"]:
+                continue
+            out.append((sc, v, e["active_from"], e["active_to"]))
+        out += [("ticker", r["ticker"], r["from"], r["to"]) for r in e["ticker_history"]]
         return out
 
     def resolve(self, identifier: str, scheme: str, on: Day = None) -> dict:
@@ -187,18 +214,19 @@ class Master:
     def overlaps(self) -> list[str]:
         """Two entries active on the same identifier at once."""
         out = []
-        seen: dict[tuple[str, str], list[dict]] = {}
+        seen: dict[tuple[str, str], list[tuple[dict, Optional[str], Optional[str]]]] = {}
         for e in self.instruments:
-            for s, v in e["identifiers"].items():
-                seen.setdefault((s, v), []).append(e)
+            if e.get("merged_into"):
+                continue
+            for sc, v, f, t in self.windows(e):
+                seen.setdefault((sc, v), []).append((e, f, t))
         lo, hi = "0000-01-01", "9999-12-31"
-        for (s, v), es in sorted(seen.items()):
+        for (sc, v), es in sorted(seen.items(), key=lambda kv: kv[0]):
             for i in range(len(es)):
                 for j in range(i + 1, len(es)):
-                    a, b = es[i], es[j]
-                    if (max(a["active_from"] or lo, b["active_from"] or lo)
-                            <= min(a["active_to"] or hi, b["active_to"] or hi)):
-                        out.append(f"{s}:{v} is active on {a['id']} and {b['id']} at once")
+                    (a, af, at), (b, bf, bt) = es[i], es[j]
+                    if max(af or lo, bf or lo) <= min(at or hi, bt or hi):
+                        out.append(f"{sc}:{v} is active on {a['id']} and {b['id']} at once")
         return out
 
     def structural(self) -> list[str]:
@@ -218,8 +246,10 @@ class Master:
             bad = [s for s in e["identifiers"] if s not in SCHEMES]
             if bad:
                 out.append(f"{sid}: unknown identifier scheme(s) {bad}")
-            if not e["identifiers"]:
+            if not e["identifiers"] and not e["ticker_history"]:
                 out.append(f"{sid}: no identifier")
+            if e.get("merged_into") and e["merged_into"] not in self._by_id:
+                out.append(f"{sid}: merged into an unknown id")
             if e["active_from"] and e["active_to"] and e["active_from"] > e["active_to"]:
                 out.append(f"{sid}: active_from after active_to")
             if e.get("asset_class") == "option_root" and e.get("underlying") not in self._by_id:
@@ -233,64 +263,6 @@ class Master:
                 out.append(f"{sid}: null {nulls} not all listed as unverified")
         return out
 
-    # -- the export --------------------------------------------------------------
-    def export_doc(self, listings: Optional[list[dict]] = None,
-                   listings_day: Optional[str] = None,
-                   generated_at: Optional[str] = None) -> dict:
-        inst = [{k: e.get(k) for k in FIELDS + ("underlying",)}
-                | {"restricted": e["restricted"],
-                   "restricted_by": (e["restricted_by"] or {}).get("entity_id")}
-                for e in self.instruments]
-        lst = []
-        for r in listings or []:
-            hit = self.rules.check(r["symbol"]) or self.rules.check(r.get("name") or "")
-            lst.append({"symbol": r["symbol"], "name": r.get("name"),
-                        "asset_class": "etf" if r.get("etf") == "Y" else "equity",
-                        "currency": None, "exchange": r.get("exchange"),
-                        "identifiers": {"ticker": r["symbol"]},
-                        "active_from": None, "active_to": None,
-                        "seen_on": listings_day,
-                        "restricted": hit is not None,
-                        "restricted_by": (hit or {}).get("entity_id")})
-        body = {"instruments": inst, "listings": lst}
-        return {"schema_version": EXPORT_SCHEMA,
-                "generated_at": generated_at or dt.datetime.now(dt.timezone.utc)
-                .isoformat(timespec="seconds"),
-                "content_hash": content_hash(body),
-                "master": {"path": "config/security_master.yaml",
-                           "version": self.raw.get("version"),
-                           "instruments": len(inst)},
-                "listings_snapshot": listings_day,
-                **body}
-
-
-def content_hash(body: dict) -> str:
-    """sha256 over the canonical JSON of {instruments, listings}: sorted keys,
-    no whitespace. generated_at is outside it, so two exports of the same
-    content carry the same hash."""
-    canon = json.dumps({"instruments": body["instruments"], "listings": body["listings"]},
-                       sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return "sha256:" + hashlib.sha256(canon.encode("utf-8")).hexdigest()
-
-
-def export(out: Optional[Union[str, Path]] = None, master: Optional[Master] = None,
-           listings_dir: Optional[Path] = None) -> dict:
-    """Write the export, atomically. Returns {path, hash, instruments, listings}."""
-    from . import listings as lst_mod                           # noqa: PLC0415
-    m = master or Master()
-    snaps = lst_mod.snapshots(listings_dir)
-    rows = lst_mod.read_snapshot(snaps[-1]) if snaps else []
-    doc = m.export_doc(rows, snaps[-1].stem if snaps else None)
-    path = Path(os.path.expanduser(str(out or EXPORT_DEFAULT)))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".part")
-    tmp.write_text(json.dumps(doc, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
-                   encoding="utf-8")
-    tmp.replace(path)
-    return {"path": str(path), "hash": doc["content_hash"],
-            "instruments": len(doc["instruments"]), "listings": len(doc["listings"]),
-            "listings_snapshot": doc["listings_snapshot"]}
-
 
 def _main(argv: list[str]) -> int:
     import argparse                                             # noqa: PLC0415
@@ -302,8 +274,14 @@ def _main(argv: list[str]) -> int:
     r.add_argument("--scheme", default="yahoo")
     r.add_argument("--on")
     e = sub.add_parser("export")
-    e.add_argument("--out", default=EXPORT_DEFAULT)
+    e.add_argument("--out", default=None, help="else $CHESTER_SM_EXPORT, else "
+                   + EXPORT_DEFAULT)
+    b = sub.add_parser("draft-box", help="read the store read-only; print master YAML")
+    b.add_argument("--store")
     a = ap.parse_args(argv)
+    if a.cmd == "draft-box":
+        from . import sm_draft  # noqa: PLC0415
+        return sm_draft._main(a.store)
     m = Master()
     if a.cmd == "check":
         probs = m.structural() + m.overlaps()
@@ -318,8 +296,10 @@ def _main(argv: list[str]) -> int:
             print(f"{type(exc).__name__}: {exc}")
             return 1
         return 0
-    print(json.dumps(export(a.out, m), sort_keys=True))
-    return 0
+    from . import sm_export  # noqa: PLC0415
+    r = sm_export.export(a.out, m)
+    print(json.dumps(r, sort_keys=True))
+    return 0 if r.get("written") else 1
 
 
 if __name__ == "__main__":

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chester-meme/interface/security_master.schema.json",
+  "title": "Security Master export (chester-reports -> chester-meme)",
+  "description": "Contract for exports/security_master.json, written nightly by chester-reports and imported read-only by chester-meme (spec v1 section 3). chester-meme never modifies this file; names it meets that the export lacks are written to drop/sm-proposals.jsonl.",
+  "type": "object",
+  "required": ["schema_version", "exported_at", "securities"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "exported_at": {"type": "string", "format": "date-time", "description": "UTC, ISO-8601 with Z. Used as available_at for the import."},
+    "source": {"type": "string", "examples": ["chester-reports"]},
+    "securities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["figi", "type", "ticker_history"],
+        "properties": {
+          "figi": {"type": "string", "pattern": "^BBG[0-9A-Z]{9}$", "description": "Composite FIGI (US). Primary key."},
+          "share_class_figi": {"type": ["string", "null"], "pattern": "^BBG[0-9A-Z]{9}$"},
+          "cik": {"type": ["integer", "null"], "description": "SEC CIK without leading zeros."},
+          "name": {"type": ["string", "null"]},
+          "type": {"enum": ["CS", "ADRC", "ETF", "ETN", "PFD", "WARRANT", "UNIT", "RIGHT", "FUND", "NOTE", "GDR", "NYRS", "OTHER"]},
+          "venue": {"enum": ["NYSE", "Nasdaq", "NYSE American", "Cboe BZX", "NYSE Arca", "IEX", "TXSE", "NYSE Texas", "OTC", "OTHER", null], "description": "Primary listing venue."},
+          "active": {"type": "boolean", "description": "Defaults to true when any ticker_history row is open."},
+          "ticker_history": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["ticker", "effective_from"],
+              "properties": {
+                "ticker": {"type": "string", "description": "ACT/CQS form, share class with a dot: BRK.B"},
+                "effective_from": {"type": "string", "format": "date"},
+                "effective_to": {"type": ["string", "null"], "format": "date", "description": "null = current"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "exported_at": "2026-10-11T02:00:00Z",
+    "source": "chester-reports",
+    "securities": [{
+      "figi": "BBG000B9XRY4", "share_class_figi": "BBG001S5N8V8", "cik": 320193, "name": "Apple Inc.",
+      "type": "CS", "venue": "Nasdaq", "active": true,
+      "ticker_history": [{"ticker": "AAPL", "effective_from": "1980-12-12", "effective_to": null}]
+    }]
+  }]
+}

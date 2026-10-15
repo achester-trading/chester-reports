@@ -349,8 +349,15 @@ move one at a time, and `tools/validate_security_master.py` holds every
 identifier in those maps to exactly one entry today. The listings layer
 (`altdata/listings.py`, a logger in the 06:45 step) keeps Nasdaq Trader's daily
 symbol directories as reference data under data/reference/listings/ with a
-change file per day; `python -m altdata.security_master export` writes the
-one-way export chester-meme reads. Nothing here reads it back.
+change file per day. The export is chester-meme's contract,
+`docs/interface/security_master.schema.json` (copied byte for byte, pinned by
+SHA-256, kept LF): one security per composite FIGI from OpenFIGI
+(`altdata/figi.py`), with the ticker history `altdata/ticker_history.py` rebuilds
+each morning (unknown starts 1900-01-01, from_known false). The 06:45 job maps and
+exports after the listings step; `altdata/sm_export.py` validates the file before
+it writes it. Nothing here reads it back. A listing in Nasdaq Trader's files trades
+on a US exchange in USD (ruled 15 Oct 2026); `config/listing_exchanges.yaml` maps
+its exchange codes to MICs and to the contract's venues.
 
 ### Known cleanup
 

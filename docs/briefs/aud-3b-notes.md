@@ -361,3 +361,231 @@ shared with none.
    or keep `equity`?
 9. **The move of the call sites** onto the master, one at a time: which first?
    (The yfinance basket is the natural first.)
+
+
+## 15 Oct
+
+Two parts on this branch, from the paste that replaced the one of 07:26: Part 1,
+Ari's answers to the needs-you list; Part 2, the export rebuilt to chester-meme's
+contract.
+
+### Part 1: the answers, as built
+
+1. **The export's format:** rebuilt to the contract (Part 2).
+2. **Scheduled** as the step after the listings step in the 06:45 job
+   (`scripts/fetch_overnight.sh`):
+   - first the loggers, which write the day's snapshot;
+   - then `python -m altdata.figi map`, the morning FIGI mapping;
+   - then `python -m altdata.security_master export`.
+
+   Each step's failure is logged and skipped, never the job's. A morning write is
+   well ahead of chester-meme's 19:30 read.
+3. **The currency rule.** A listing in Nasdaq Trader's files trades on a US
+   exchange in USD.
+   - It is stated in `altdata/security_master.py`, `config/listing_exchanges.yaml`
+     and CLAUDE.md.
+   - It is filled in the master: **120 entries** found in the 15 Oct directories
+     carry `currency: USD` and their MIC. The source line names the files'
+     creation time (`1015202607:00`).
+   - The two files were downloaded once, into a scratch directory, to read them.
+     They are not committed.
+   - The contract carries no currency.
+4. **The MIC map** is `config/listing_exchanges.yaml`. Each code cites the Nasdaq
+   Trader definitions page (https://www.nasdaqtrader.com/trader.aspx?id=symboldirdefs),
+   and each MIC quotes its line in ISO 10383's CSV
+   (https://www.iso20022.org/sites/default/files/ISO10383_MIC/ISO10383_MIC.csv).
+
+   | Code | Nasdaq Trader | MIC | Venue |
+   |---|---|---|---|
+   | Q | a Nasdaq listing; category Q/G/S | XNAS (XNGS, XNMS, XNCM) | Nasdaq |
+   | N | New York Stock Exchange (NYSE) | XNYS | NYSE |
+   | A | NYSE MKT | XASE | NYSE American |
+   | P | NYSE ARCA | ARCX | NYSE Arca |
+   | Z | BATS Global Markets (BATS) | BATS | Cboe BZX |
+   | V | Investors' Exchange, LLC (IEXG) | IEXG | IEX |
+
+   **Code F** is on 17 of the 15 Oct listings and is not on the definitions page.
+   It gets no MIC and venue OTHER (needs-you 3).
+5. **SPX and ^GSPC are kept apart.** No issuer or exchange page names both:
+   - Cboe's S&P 500 page names SPX only.
+   - S&P DJI's page could not be read.
+
+   The SPX entry says so in `sources.not_merged_with`. Inventory item 12 named no
+   other pair.
+6. **Prediction contracts and IBKR contract ids:**
+   `python -m altdata.security_master draft-box` (`altdata/sm_draft.py`).
+   - It opens the store mode=ro with query_only on and prints master YAML to the
+     screen, with ids proposed from next_id. It writes nothing.
+   - It reads the conId key alone, never a size, price or value.
+   - Both schemes stay empty until Ari's paste is committed.
+7. **The heartbeat watching the listings snapshot's date** is for the refresh
+   after aud-1 merges, because the heartbeat is aud-1's file. Not built here.
+8. **The new classes** `preferred`, `note` and `closed_end_fund` are added.
+   - **30 of the 32** entries are set from a filing, each with its URL and quote
+     in `sources.asset_class`:
+     - note: BNH, BNJ, BEPH, BEPI, BEPJ, BIPH, BIPI, BIPJ;
+     - preferred: BPYPP, BPYPO, BPYPN, BPYPM, DTLAP;
+     - closed_end_fund: RA, INF;
+     - equity: BN, BAM, BNT, BNRE, BAMR, BEP, BEPC, BIP, BIPC, BBU, BBUC, BPY,
+       BPYU, OAK, OCSL.
+   - **BIRET stays unverified.** No issuer or exchange page could be read; it is
+     an NSE listing in INR.
+   - **The former SPCX** is "The SPAC and New Issue ETF", an etf (SEC 497K).
+     - Its ticker became **SPCK on 7 Apr 2026** (newsfilecorp release 291300).
+     - Its entry carries `ticker_history`: SPCX to 2026-04-06, SPCK from
+       2026-04-07.
+     - Nobody held SPCX from 7 Apr to 11 Jun 2026.
+   - **Also from the filings:**
+     - INF merged into RA before the open on 9 Mar 2020, so `active_to` is
+       2020-03-08.
+     - BBU was exchanged into BBUC on 27 Mar 2026, so `active_to` is 2026-03-26.
+       Its last trading day is not stated, so that date is unverified.
+     - BN and the pre-2022 BAM are one security. BN's entry carries
+       `ticker_history`: BAM to 2022-12-08, BN from 2022-12-09.
+     - `SM00165` keeps its id with `merged_into: SM00163`.
+9. **The call sites move onto the master** after aud-1 and this branch merge, the
+   yfinance basket first. Listed; not started.
+
+### Part 2: the export to chester-meme's contract
+
+- **The contract files.**
+  - `docs/interface/security_master.schema.json`, `decision_packet.schema.json`
+    and `README-interface.md` are copied from the chester-meme checkout, which was
+    read only.
+  - They are LF, and `.gitattributes` keeps them LF (`docs/interface/* text
+    eol=lf`).
+  - Their SHA-256 over LF is as the paste gives it: `5288446f…78fb2`,
+    `e3e97e0e…569522`, `bfe8ec7c…87a421`. Gate group G pins all three.
+- **The FIGI mapper:** `altdata/figi.py`, `python -m altdata.figi map [--all]`.
+  - Each US listing goes to OpenFIGI's `/v3/mapping` with exchange code US, the
+    ticker in OpenFIGI's form (BRK.B → BRK/B, ABR$D → ABR/PD, AAC.W → AAC/WS).
+  - It keeps, under `data/reference/figi/`:
+    - `cache.json`: the composite FIGI, the share-class FIGI, the security type
+      and the name, plus a FIGI-keyed record that is never pruned, so a holder
+      that lost its ticker still exports;
+    - `assignments.csv`: an append-only log of which FIGI a symbol was mapped to,
+      from which day.
+  - **The limits:**
+    - keyless: 25 requests a minute, 10 jobs a request;
+    - with OPENFIGI_API_KEY (optional, from `.env` through altdata.secrets, never
+      printed): 25 requests per 6 seconds, 100 jobs a request;
+    - a 429 waits the server's reset.
+  - **Each morning** it maps only symbols that are new, renamed or not yet mapped,
+    capped at 50 requests (500 symbols, about 2 minutes keyless) to fit the 06:45
+    job.
+  - A symbol OpenFIGI cannot map is listed with the reason, retried after 7 days,
+    and never exported.
+  - The fixtures are saved responses in the API's shape, with fixture FIGIs. The
+    gate never fetches.
+- **The ticker history:** `altdata/ticker_history.py`, rebuilt each morning from
+  the snapshots (streamed a day at a time), the assignment log and the master's
+  known windows.
+
+  | Event | Result |
+  |---|---|
+  | rename, same FIGI | nothing changes |
+  | ticker change, same FIGI | the old row closes and a new one opens on the snapshot date |
+  | reuse, a new FIGI on a known ticker | the old holder closes with an exact, exclusive `effective_to` on the snapshot date; the new holder opens from it |
+  | the master's known reuses | real dates: BN held BAM to 2022-12-09 and the new BAM from then; the ETF held SPCX to 2026-04-07, then SPCK; SpaceX holds SPCX from 2026-06-12 |
+  | unknown start | `effective_from: 1900-01-01`, `from_known: false` |
+  | delisting | the row closes |
+  | a later new listing | a row from its snapshot date |
+
+  The master's active_to is inclusive, so a window ending on D exports
+  `effective_to` D+1.
+- **The export:** `altdata/sm_export.py`, in the contract's shape.
+  - Top level: `schema_version` "1.0", `exported_at` UTC with a Z, `source`
+    "chester-reports".
+  - Each security: figi, share_class_figi, cik (null), name, type, venue, active
+    and ticker_history, with tickers in ACT form.
+  - The two allowed extras: `restricted`, by register.instruments' rule over every
+    ticker held and the name; and `from_known` on each row.
+  - `type` comes from OpenFIGI's securityType, then securityType2, then the ETF
+    flag. Anything else is OTHER, and the summary counts each OTHER's OpenFIGI
+    type.
+  - `venue` comes from the exchange code. An inactive holder's venue is null.
+  - Only US listings with a FIGI are exported.
+  - The file is validated against the committed schema before it is written, and
+    written atomically (`.tmp`, then rename). An invalid file is never written,
+    and the run exits 1 with the errors.
+  - **jsonschema** is in requirements.txt (the laptop has 4.26.0). With no
+    validator, nothing is written. **The self-deploy installs no packages**
+    (`deploy_remote.sh` has no pip step), so its install is a box command below.
+  - The path: `$CHESTER_SM_EXPORT`, else `~/chester-data/export/security_master.json`.
+    The overnight unit already grants `-%h/chester-data`.
+
+A sample of the fixture export (two hand-written days, saved responses):
+
+```
+{"figi": "BBG000FXRU01", "name": "REUS HOLDINGS", "type": "CS", "venue": null, "active": false,
+ "ticker_history": [{"ticker": "REUS", "effective_from": "1900-01-01", "effective_to": "2026-10-14", "from_known": false}], "restricted": false}
+{"figi": "BBG000FXRV02", "name": "REUS ACQUISITION CORP-A", "type": "CS", "venue": "NYSE American", "active": true,
+ "ticker_history": [{"ticker": "REUS", "effective_from": "2026-10-14", "effective_to": null, "from_known": true}], "restricted": false}
+{"figi": "BBG000FXBN01", "name": "BROOKFIELD CORP", "type": "CS", "venue": "NYSE", "active": true,
+ "ticker_history": [{"ticker": "BAM", "effective_from": "1900-01-01", "effective_to": "2022-12-09", "from_known": false},
+                    {"ticker": "BN", "effective_from": "2022-12-09", "effective_to": null, "from_known": true}], "restricted": true}
+```
+
+### Gates (locally, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_security_master | **80/0**. Groups A–K: the master, the restriction, reuse, the API, consistency, listings, the contract files, the mapper, the history and the export, the box draft, the 06:45 order |
+| check_library | 0 failures |
+
+Other gates that read `fetch_overnight.sh` are CI's. CI: in the report.
+
+### Box commands, printed for Ari, run by no session
+
+All after this branch is on main, inside a window (weekdays 09:05–15:40 or
+17:20–23:30 ET).
+
+```bash
+# 1. the validator (the self-deploy installs no packages)
+cd ~/chester-reports && .venv/bin/pip install 'jsonschema>=4.18'
+
+# 2. the export's directory, and a first listings pull
+mkdir -p ~/chester-data/export
+.venv/bin/python -m altdata.listings pull && .venv/bin/python -m altdata.listings show
+
+# 3. the first full FIGI mapping: ~13,250 listings, ~55 minutes keyless, ~2 with a key
+nohup .venv/bin/python -m altdata.figi map --all > ~/logs/figi_first_map.log 2>&1 &
+.venv/bin/python -m altdata.figi show | head -60        # when it has finished
+
+# 4. the first export, and its counts
+.venv/bin/python -m altdata.security_master export
+.venv/bin/python -c "import json, os; d = json.load(open(os.path.expanduser('~/chester-data/export/security_master.json'))); print(d['schema_version'], d['exported_at'], len(d['securities']), sum(s.get('restricted', False) for s in d['securities']))"
+
+# 5. the store-only schemes, drafted read-only: paste the output into chat
+.venv/bin/python -m altdata.security_master draft-box
+```
+
+**The MEME_SM_EXPORT line** goes wherever chester-meme takes its environment,
+its `.env` or its unit's `Environment=`. This session read only the three
+contract files, so it cannot say which:
+
+```
+MEME_SM_EXPORT=/home/ari/chester-data/export/security_master.json
+```
+
+### Needs you
+
+1. **The sentinel, on chester-meme's side.** Confirm that the guard (R-T1a-3)
+   reads `effective_from: 1900-01-01` with `from_known: false` as "keep the
+   present assumption", so an unknown start repairs nothing and wipes nothing.
+2. **The first full mapping's unmapped list** (box command 3) tests the ACT →
+   OpenFIGI ticker conversion, above all for preferreds (`$`), warrants and units.
+   Paste `figi show`.
+3. **Exchange code F** (17 listings on 15 Oct) is not on Nasdaq Trader's page.
+   Name a source, or keep it OTHER.
+4. **OTHER types:** the first export's summary counts the OpenFIGI types that map
+   to OTHER. Rule any that belong elsewhere.
+5. **BNT, BNRE and BAMR** share one SEC registrant (CIK 1837429): one security
+   under three tickers. The change dates are not in the filings read. Supply them,
+   and they become one entry with a ticker history.
+6. **Still unverified:** BBU's last trading day and BIRET's class.
+7. **The draft-box output** (box command 5), to commit the prediction contracts
+   and IBKR contract ids.
+8. **For the refresh:**
+   - the heartbeat watches the listings snapshot's date (answer 7);
+   - the call sites move onto the master, the yfinance basket first (answer 9).

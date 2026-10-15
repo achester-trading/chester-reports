@@ -14,3 +14,7 @@
 *.md            text
 *.csv           text
 *.json          text
+
+# chester-meme's interface contract (docs/interface/), copied byte for byte and
+# pinned by SHA-256 over LF endings: keep them LF on every machine.
+docs/interface/*  text eol=lf

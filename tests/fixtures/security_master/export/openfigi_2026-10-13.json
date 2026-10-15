@@ -1,0 +1,288 @@
+{
+ "_note": "SYNTHETIC OpenFIGI v3 /mapping results, keyed by the job's idValue, in the API's published shape (a list of {data: [...]} or {warning}). FIGIs are fixture values (BBG000FX...), not real ones.",
+ "results": {
+  "AAPL": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "APPLE INC",
+     "ticker": "AAPL",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXAA01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXAA01",
+     "securityType2": "Common Stock",
+     "securityDescription": "AAPL"
+    },
+    {
+     "figi": "BBG000FXAA01",
+     "name": "APPLE INC",
+     "ticker": "AAPL",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXAA01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXAA01",
+     "securityType2": "Common Stock",
+     "securityDescription": "AAPL"
+    }
+   ]
+  },
+  "BAM": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "BROOKFIELD ASSET MGMT-A",
+     "ticker": "BAM",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXBM01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBM01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BAM"
+    },
+    {
+     "figi": "BBG000FXBM01",
+     "name": "BROOKFIELD ASSET MGMT-A",
+     "ticker": "BAM",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXBM01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBM01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BAM"
+    }
+   ]
+  },
+  "BN": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "BROOKFIELD CORP",
+     "ticker": "BN",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXBN01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBN01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BN"
+    },
+    {
+     "figi": "BBG000FXBN01",
+     "name": "BROOKFIELD CORP",
+     "ticker": "BN",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXBN01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBN01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BN"
+    }
+   ]
+  },
+  "BRK/B": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "BERKSHIRE HATHAWAY INC-CL B",
+     "ticker": "BRK/B",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXBK01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBK01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BRK/B"
+    },
+    {
+     "figi": "BBG000FXBK01",
+     "name": "BERKSHIRE HATHAWAY INC-CL B",
+     "ticker": "BRK/B",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXBK01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXBK01",
+     "securityType2": "Common Stock",
+     "securityDescription": "BRK/B"
+    }
+   ]
+  },
+  "MEMEA": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "MEME ALPHA HOLDINGS-A",
+     "ticker": "MEMEA",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXME01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXME01",
+     "securityType2": "Common Stock",
+     "securityDescription": "MEMEA"
+    },
+    {
+     "figi": "BBG000FXME01",
+     "name": "MEME ALPHA HOLDINGS-A",
+     "ticker": "MEMEA",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXME01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXME01",
+     "securityType2": "Common Stock",
+     "securityDescription": "MEMEA"
+    }
+   ]
+  },
+  "OLDT": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "OLDT INDUSTRIES",
+     "ticker": "OLDT",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXOT01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXOT01",
+     "securityType2": "Common Stock",
+     "securityDescription": "OLDT"
+    },
+    {
+     "figi": "BBG000FXOT01",
+     "name": "OLDT INDUSTRIES",
+     "ticker": "OLDT",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXOT01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXOT01",
+     "securityType2": "Common Stock",
+     "securityDescription": "OLDT"
+    }
+   ]
+  },
+  "REUS": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "REUS HOLDINGS",
+     "ticker": "REUS",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXRU01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXRU01",
+     "securityType2": "Common Stock",
+     "securityDescription": "REUS"
+    },
+    {
+     "figi": "BBG000FXRU01",
+     "name": "REUS HOLDINGS",
+     "ticker": "REUS",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXRU01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXRU01",
+     "securityType2": "Common Stock",
+     "securityDescription": "REUS"
+    }
+   ]
+  },
+  "SPCK": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "SPAC AND NEW ISSUE ETF",
+     "ticker": "SPCK",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXSK01",
+     "securityType": "ETP",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSK01",
+     "securityType2": "Mutual Fund",
+     "securityDescription": "SPCK"
+    },
+    {
+     "figi": "BBG000FXSK01",
+     "name": "SPAC AND NEW ISSUE ETF",
+     "ticker": "SPCK",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXSK01",
+     "securityType": "ETP",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSK01",
+     "securityType2": "Mutual Fund",
+     "securityDescription": "SPCK"
+    }
+   ]
+  },
+  "SPCX": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "SPACE EXPLORATION TECH-A",
+     "ticker": "SPCX",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXSX01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSX01",
+     "securityType2": "Common Stock",
+     "securityDescription": "SPCX"
+    },
+    {
+     "figi": "BBG000FXSX01",
+     "name": "SPACE EXPLORATION TECH-A",
+     "ticker": "SPCX",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXSX01",
+     "securityType": "Common Stock",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSX01",
+     "securityType2": "Common Stock",
+     "securityDescription": "SPCX"
+    }
+   ]
+  },
+  "SPY": {
+   "data": [
+    {
+     "figi": "BBG00LOCAL01",
+     "name": "SPDR S&P 500 ETF TRUST",
+     "ticker": "SPY",
+     "exchCode": "UN",
+     "compositeFIGI": "BBG000FXSP01",
+     "securityType": "ETP",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSP01",
+     "securityType2": "Mutual Fund",
+     "securityDescription": "SPY"
+    },
+    {
+     "figi": "BBG000FXSP01",
+     "name": "SPDR S&P 500 ETF TRUST",
+     "ticker": "SPY",
+     "exchCode": "US",
+     "compositeFIGI": "BBG000FXSP01",
+     "securityType": "ETP",
+     "marketSector": "Equity",
+     "shareClassFIGI": "BBG001FXSP01",
+     "securityType2": "Mutual Fund",
+     "securityDescription": "SPY"
+    }
+   ]
+  },
+  "ZZZZ": {
+   "warning": "No identifier found."
+  }
+ }
+}

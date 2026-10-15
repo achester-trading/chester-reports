@@ -1,0 +1,65 @@
+# listing_exchanges.yaml -- Nasdaq Trader's listing-exchange codes, their ISO 10383
+# MICs and chester-meme's venue names (AUD-3b, ruled 15 Oct 2026, answer 4).
+#
+# The CODE and its meaning come from Nasdaq Trader's symbol-directory
+# definitions; the MIC from ISO 10383's published list; the VENUE is the name
+# chester-meme's contract uses (docs/interface/security_master.schema.json,
+# `venue`). A code read in a directory file that is not here maps to venue OTHER
+# and no MIC, and the listings pull counts it.
+#
+# Nasdaq listings (nasdaqlisted.txt) carry no Exchange field: every row is a
+# Nasdaq listing, written here as code Q, and its Market Category picks the
+# segment MIC.
+#
+# THE CURRENCY RULE (answer 3): a listing in Nasdaq Trader's files trades on a US
+# exchange in USD. The definitions page does not say so in words; the rule is
+# Ari's, stated here and in altdata/security_master.py.
+version: 1
+sources:
+  codes: https://www.nasdaqtrader.com/trader.aspx?id=symboldirdefs
+  mics: https://www.iso20022.org/sites/default/files/ISO10383_MIC/ISO10383_MIC.csv
+  read: 2026-10-15
+currency: USD
+
+codes:
+  Q:
+    meaning: "Nasdaq (nasdaqlisted.txt)"
+    venue: Nasdaq
+    mic: XNAS
+    mic_line: '"XNAS","XNAS","OPRT","NASDAQ - ALL MARKETS"'
+    segments:
+      Q: {meaning: "Nasdaq Global Select Market", mic: XNGS,
+          mic_line: '"XNGS","XNAS","SGMT","NASDAQ GLOBAL SELECT MARKET"'}
+      G: {meaning: "Nasdaq Global Market", mic: XNMS,
+          mic_line: '"XNMS","XNAS","SGMT","NASDAQ GLOBAL MARKET"'}
+      S: {meaning: "Nasdaq Capital Market", mic: XNCM,
+          mic_line: '"XNCM","XNAS","SGMT","NASDAQ CAPITAL MARKET"'}
+  N:
+    meaning: "N = New York Stock Exchange (NYSE)"
+    venue: NYSE
+    mic: XNYS
+    mic_line: '"XNYS","XNYS","OPRT","NEW YORK STOCK EXCHANGE, INC."'
+  A:
+    meaning: "A = NYSE MKT"
+    venue: NYSE American
+    mic: XASE
+    mic_line: '"XASE","XNYS","SGMT","NYSE AMERICAN LLC"'
+  P:
+    meaning: "P = NYSE ARCA"
+    venue: NYSE Arca
+    mic: ARCX
+    mic_line: '"ARCX","XNYS","SGMT","NYSE ARCA"'
+  Z:
+    meaning: "Z = BATS Global Markets (BATS)"
+    venue: Cboe BZX
+    mic: BATS
+    mic_line: '"BATS","XCBO","SGMT","CBOE BZX U.S. EQUITIES EXCHANGE"'
+  V:
+    meaning: "V = Investors' Exchange, LLC (IEXG)"
+    venue: IEX
+    mic: IEXG
+    mic_line: '"IEXG","IEXG","OPRT","INVESTORS EXCHANGE"'
+
+# Seen in otherlisted.txt on 2026-10-15 (17 listings) but NOT defined on the
+# definitions page: no MIC and venue OTHER until a source names it.
+unverified_codes: [F]

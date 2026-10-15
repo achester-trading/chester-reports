@@ -189,6 +189,8 @@ def write_changes(d: Path, day: str) -> dict:
 def _get(url: str) -> str:
     import requests  # noqa: PLC0415
     r = requests.get(url, timeout=30, headers={"User-Agent": USER_AGENT})
+    if url == ROBOTS_URL and 400 <= r.status_code < 500:
+        return ""                    # no robots.txt: no rules (RFC 9309, 2.3.1.3)
     r.raise_for_status()
     return r.text
 

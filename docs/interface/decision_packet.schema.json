@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chester-meme/interface/decision_packet.schema.json",
+  "title": "Candidate packet (chester-meme -> chester-reports), Decision Packet shape, Book D draft",
+  "description": "One file per alerted phase transition into Ignition (long) or Climax (short), written to drop/packets/YYYY-MM-DD/<packet_id>.json by scan-evening and scan-morning (spec v1 section 8.2). Every packet is validated against this schema before it is written. A packet is a draft: it carries evidence and flags, never a size, a stop, a target or a probability. packet_id is stable (sha256 of security_id|transition|as_of|rule_version), so a re-run never writes a second file; a written file is never changed afterwards. Contract notes: docs/interface/README-interface.md.",
+  "type": "object",
+  "required": ["schema_version", "packet_id", "as_of", "session", "generated_at", "book", "security_id", "ticker",
+               "direction", "phase", "transition", "rule_version", "feature_version", "thesis", "evidence", "fuel",
+               "spark", "flags", "quality", "quality_detail", "expires", "status"],
+  "additionalProperties": false,
+  "propertyNames": {"$ref": "#/$defs/no_sizing"},
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "packet_id": {"type": "string", "pattern": "^pk-[0-9a-f]{20}$"},
+    "as_of": {"type": "string", "format": "date", "description": "The scan's ET calendar date (also the folder name)."},
+    "session": {"enum": ["am", "pm"], "description": "06:30 morning scan or 19:30 evening scan, ET."},
+    "market_day": {"type": "string", "format": "date", "description": "The latest trading day whose bars the scan read."},
+    "generated_at": {"type": "string", "format": "date-time", "description": "UTC, when the file was built."},
+    "book": {"const": "D"},
+    "security_id": {"type": "string", "pattern": "^BBG[0-9A-Z]{9}$", "description": "Composite FIGI."},
+    "ticker": {"type": "string", "minLength": 1, "description": "Current ticker (ACT form) at the scan."},
+    "name": {"type": ["string", "null"]},
+    "venue": {"type": ["string", "null"]},
+    "cik": {"type": ["integer", "null"]},
+    "direction": {"enum": ["long", "short"], "description": "long for Ignition, short for Climax (spec 7.4 trade mapping)."},
+    "phase": {"enum": ["ignition", "climax"]},
+    "transition": {"type": "string", "pattern": "^(dormant|ignition|acceleration|climax|decay)->(ignition|climax)$"},
+    "rule_version": {"type": "string", "minLength": 1, "description": "Phase rules (ledger/rule-log.md)."},
+    "feature_version": {"type": "string", "minLength": 1},
+    "price": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "close": {"type": ["number", "null"]},
+        "close_date": {"type": ["string", "null"], "format": "date"},
+        "note": {"type": "string"}
+      }
+    },
+    "thesis": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1},
+               "description": "Plain sentences built from the rule that fired; no forecast."},
+    "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+    "fuel": {"$ref": "#/$defs/fuel"},
+    "spark": {"$ref": "#/$defs/spark"},
+    "flags": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9_]+:[^\\s].*$"},
+              "description": "supply_risk:*, listing:*, tradability:* (sub-dollar, spread, halted, suspended), and for shorts borrow:* and rule201:*."},
+    "quality": {"enum": ["ok", "incomplete"], "description": "incomplete when the scan that made it was incomplete (a critical feed or a stage failed)."},
+    "quality_detail": {
+      "type": "object", "required": ["scan_status", "stale_inputs", "missing_inputs"], "additionalProperties": false,
+      "properties": {
+        "scan_status": {"type": "string"},
+        "stale_inputs": {"type": "array", "items": {"type": "string"}},
+        "missing_inputs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "expires": {"type": "string", "format": "date", "description": "as_of + 5 NYSE trading days."},
+    "status": {"const": "draft"}
+  },
+  "$defs": {
+    "no_sizing": {"not": {"enum": ["size", "sizing", "position_size", "quantity", "notional", "probability",
+                                   "p_win", "win_probability", "expected_return", "kelly", "stop", "stop_loss",
+                                   "target", "target_price", "price_target", "order", "orders"]}},
+    "evidence": {
+      "type": "object",
+      "required": ["source", "kind", "label", "event_date", "available_at", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string", "minLength": 1, "description": "Provider, e.g. polygon.grouped, cboe.chains, apewisdom, finra.cnms, ibkr, edgar, nasdaqtrader."},
+        "kind": {"enum": ["rule_arm", "condition", "filing", "insider_sale", "headline", "borrow", "rule201"]},
+        "label": {"type": "string", "minLength": 1},
+        "value": {},
+        "fired": {"type": "boolean"},
+        "event_date": {"type": "string", "format": "date", "description": "What the value is about (ET date)."},
+        "available_at": {"type": "string", "format": "date-time", "description": "When the scan could first have seen it (UTC); never after the scan's cutoff."},
+        "url": {"type": "string", "format": "uri"},
+        "quality": {"enum": ["ok", "missing", "zero", "stale", "ambiguous"]}
+      }
+    },
+    "fuel": {
+      "type": "object",
+      "required": ["quality"],
+      "additionalProperties": false,
+      "propertyNames": {"$ref": "#/$defs/no_sizing"},
+      "properties": {
+        "as_of": {"type": ["string", "null"], "format": "date"},
+        "rule_version": {"type": ["string", "null"]},
+        "susceptibility": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "weight_coverage": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "components": {"type": "object"},
+        "supply_risk": {"enum": ["high", "medium", "none", null]},
+        "supply_matched": {"type": "array"},
+        "listing_flags": {"type": "array"},
+        "available_at": {"type": ["string", "null"], "format": "date-time"},
+        "quality": {"enum": ["ok", "missing", "zero", "stale", "ambiguous"]},
+        "note": {"type": "string"}
+      }
+    },
+    "arm": {
+      "type": "object",
+      "required": ["arm", "fired", "rule"],
+      "additionalProperties": false,
+      "properties": {
+        "arm": {"type": "string"},
+        "fired": {"type": "boolean"},
+        "value": {},
+        "rule": {"type": "string"},
+        "waived": {"type": "boolean"},
+        "source": {"type": "object"}
+      }
+    },
+    "spark": {
+      "type": "object",
+      "required": ["feature_version", "why", "arms", "conditions", "features"],
+      "additionalProperties": false,
+      "propertyNames": {"$ref": "#/$defs/no_sizing"},
+      "properties": {
+        "feature_version": {"type": "string"},
+        "why": {"type": "string"},
+        "arms": {"type": "array", "items": {"$ref": "#/$defs/arm"}},
+        "conditions": {"type": "array", "items": {"$ref": "#/$defs/arm"}},
+        "score": {
+          "type": ["object", "null"], "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["novelty", "exhaustion"]},
+            "value": {"type": ["number", "null"]},
+            "rank": {"type": ["integer", "null"]},
+            "coverage": {"type": ["number", "null"]},
+            "components": {"type": "object"},
+            "note": {"type": "string"}
+          }
+        },
+        "features": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object", "required": ["value", "quality"], "additionalProperties": false,
+            "properties": {
+              "value": {"type": ["number", "null"]},
+              "quality": {"enum": ["ok", "missing", "zero", "stale", "ambiguous"]},
+              "source_date": {"type": ["string", "null"]},
+              "available_at": {"type": ["string", "null"]},
+              "own": {"type": ["number", "null"]},
+              "xs_pct": {"type": ["number", "null"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -14,7 +14,11 @@ never calls a model.
   E. Consistency: every identifier in the code's maps resolves to exactly one
      master entry today; every restricted root is flagged
   F. The listings layer: parse, test issues dropped, snapshots, the change file
-  G. The export: one-way, round-trips, its hash matches, restricted exports so
+  G. The contract: chester-meme's three files, byte for byte (SHA-256 over LF)
+  H. The FIGI mapper: OpenFIGI's ticker form, the limits, unmapped never guessed
+  I. The ticker history and the export, to the contract, from two fixture days
+  J. The box draft: prediction contracts and IBKR conids printed, nothing written
+  K. The 06:45 job: the FIGI mapping and the export after the loggers
 """
 
 from __future__ import annotations
@@ -156,18 +160,33 @@ def group_b(m: Master) -> None:
 def group_c(m: Master) -> None:
     head("C. TICKER REUSE: AN IDENTIFIER NAMES AN INSTRUMENT ONLY INSIDE ITS WINDOW")
     old, new = m.resolve("BAM", "ticker", "2021-06-01"), m.resolve("BAM", "ticker", TODAY)
-    check(old["id"] != new["id"] and "now called BN" in old["name"]
+    bn = m.resolve("BN", "ticker", TODAY)
+    check(old["id"] == bn["id"] and old["id"] != new["id"]
           and new["name"] == "Brookfield Asset Management Ltd.",
-          f"BAM on 2021-06-01 is {old['id']} ({old['name']}); today {new['id']} "
-          f"({new['name']})")
+          f"BAM on 2021-06-01 is {old['id']} ({old['name']}, the same security as BN "
+          f"today); BAM today is {new['id']} ({new['name']})")
+    merged = [e for e in m.instruments if e.get("merged_into")]
+    check(merged and all(not m.candidates(v, sc, "2021-06-01") or
+                         all(c["id"] != e["id"] for c in m.candidates(v, sc, "2021-06-01"))
+                         for e in merged for sc, v in e["identifiers"].items()),
+          f"a merged entry ({', '.join(e['id'] for e in merged)}) keeps its id and "
+          f"resolves to nothing")
     try:
         m.resolve("BN", "ticker", "2021-06-01")
         bad("BN resolves before its 2022-12-09 window")
     except NotFound:
         ok("BN before 2022-12-09 resolves to nothing: the ticker was not Brookfield's")
     a, b = m.resolve("SPCX", "ticker", "2025-01-01"), m.resolve("SPCX", "ticker", TODAY)
-    check(a["id"] != b["id"] and b["name"] == "Space Exploration Technologies Corp Class A",
-          f"SPCX: {a['id']} before 2026-06-12, {b['id']} ({b['name']}) after")
+    check(a["id"] != b["id"] and b["name"] == "Space Exploration Technologies Corp Class A"
+          and a["name"] == "The SPAC and New Issue ETF"
+          and m.resolve("SPCK", "ticker", TODAY)["id"] == a["id"],
+          f"SPCX: {a['id']} ({a['name']}, SPCK from 2026-04-07) before; {b['id']} "
+          f"({b['name']}) from 2026-06-12")
+    try:
+        m.resolve("SPCX", "ticker", "2026-05-01")
+        bad("SPCX resolved between the ETF's change and the listing")
+    except NotFound:
+        ok("SPCX between 7 Apr and 12 Jun 2026 resolves to nothing: nobody held it")
     oa, ob = m.resolve("SPCX", "occ_root", "2026-06-15"), m.resolve("SPCX", "occ_root",
                                                                      "2026-06-16")
     check(oa["underlying"] == a["id"] and ob["underlying"] == b["id"],
@@ -176,8 +195,9 @@ def group_c(m: Master) -> None:
 
     def overlap(r):
         for e in r["instruments"]:
-            if e["identifiers"].get("ticker") == "SPCX" and e.get("active_to"):
-                e["active_to"] = "2026-07-01"
+            for r in e.get("ticker_history") or []:
+                if r["ticker"] == "SPCX":
+                    r["to"] = "2026-07-01"
     v = Master(variant(overlap))
     check(any("ticker:SPCX" in x for x in v.overlaps()),
           "two entries active on one identifier at once are caught")
@@ -235,7 +255,12 @@ def group_e(m: Master) -> None:
     maps += [("crypto_basket.yaml llama_coin", c["llama_coin"], "crypto_id")
              for c in basket["names"].values() if c.get("llama_coin")]
     rules = Restrictions()
-    maps += [("tracked_entities.yaml", r, "ticker") for r in rules.all_roots()]
+    closed = [r for r in rules.all_roots() if not m.candidates(r, "ticker", TODAY)
+              and any(e["restricted"] for e in m.instruments
+                      if any(v == r for sc, v, f, t in m.windows(e) if sc == "ticker"))]
+    maps += [("tracked_entities.yaml", r, "ticker") for r in rules.all_roots()
+             if r not in closed]
+    print(f"        restricted roots with a closed window today (still restricted): {closed}")
     miss, many = [], []
     for src, ident, scheme in maps:
         n = len(m.candidates(ident, scheme, TODAY))
@@ -247,8 +272,30 @@ def group_e(m: Master) -> None:
           f"all {len(maps)} identifiers in the code's maps resolve to exactly one entry "
           f"today" + (f" -- missing {miss[:4]}, ambiguous {many[:4]}" if miss or many else ""))
     unflagged = [r for r in rules.all_roots()
-                 if not m.resolve(r, "ticker", TODAY)["restricted"]]
-    check(not unflagged, f"every restricted root ({len(rules.all_roots())}) is flagged")
+                 if not m.is_restricted(r)
+                 or not any(e["restricted"] for e in m.instruments
+                            if any(v == r for sc, v, f, t in m.windows(e) if sc == "ticker"))]
+    check(not unflagged, f"every restricted root ({len(rules.all_roots())}) is flagged, "
+                         f"a closed one (INF, BBU) on its own window"
+          + (f" -- {unflagged}" if unflagged else ""))
+    for t, cls in (("BNH", "note"), ("BPYPP", "preferred"), ("RA", "closed_end_fund"),
+                   ("BN", "equity")):
+        e = m.resolve(t, "ticker", TODAY)
+        if e["asset_class"] != cls or "sec.gov" not in str(e.get("sources", {})
+                                                             .get("asset_class")):
+            bad(f"{t}: class {e['asset_class']} without its filing")
+            break
+    else:
+        ok("the classes are set from filings, each with its URL (BNH note, BPYPP "
+           "preferred, RA closed_end_fund, BN equity)")
+    left = [e["identifiers"].get("ticker") for e in m.instruments
+            if "asset_class" in (e.get("unverified") or [])]
+    print(f"        still unverified in class: {left}")
+    usd = [e for e in m.instruments if e.get("currency") == "USD"
+           and "listing rule" in str((e.get("sources") or {}).get("currency"))]
+    check(usd and all(e.get("exchange") for e in usd if e["asset_class"] != "option_root"),
+          f"the listing rule: {len(usd)} entries in Nasdaq Trader's files carry USD and "
+          f"their MIC")
     stray = [e["id"] for e in m.instruments
              if e["restricted"] and e["restricted_by"]["entity_id"] != "brookfield"]
     check(not stray, f"{sum(e['restricted'] for e in m.instruments)} restricted entries, "
@@ -329,6 +376,12 @@ def group_f() -> Path:
     r = listings.pull(TMP / "listings_small", get=fixture_get, day="2026-10-13")
     check(r["written"] == 0 and "refused" in r["error"],
           f"a day under {listings.MIN_ROWS} listings is refused, not written")
+
+    def no_robots(u: str) -> str:
+        return "" if u == listings.ROBOTS_URL else fixture_get(u)
+    r = listings.pull(TMP / "listings_norobots", get=no_robots, day="2026-10-13", min_rows=1)
+    check(r["written"] == 9, "a site with no robots.txt (Nasdaq Trader's answers 404) has "
+                             "no rules: the pull proceeds")
     src = (REPO / "altdata/listings.py").read_text(encoding="utf-8").split('"""', 2)[2]
     reg = (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")
     check("observations" not in src and "write_many" not in src
@@ -342,48 +395,270 @@ def group_f() -> Path:
     return d
 
 
-def group_g(m: Master, d: Path) -> None:
-    head("G. THE EXPORT, FOR CHESTER-MEME (one-way)")
-    out = TMP / "export" / "security_master.json"
-    r = smod.export(out, m, listings_dir=d)
-    doc = json.loads(out.read_text(encoding="utf-8"))
-    check(doc["schema_version"] == smod.EXPORT_SCHEMA and doc["generated_at"]
-          and doc["listings_snapshot"] == "2026-10-14"
-          and len(doc["instruments"]) == len(m.instruments) and len(doc["listings"]) == 9,
-          f"one JSON file: schema {doc['schema_version']}, generated_at, "
-          f"{r['instruments']} instruments and the newest snapshot's {r['listings']} "
-          f"listings")
-    check(smod.content_hash(doc) == doc["content_hash"] == r["hash"],
-          f"it round-trips and its hash matches ({doc['content_hash'][:19]}...)")
-    doc2 = json.loads(json.dumps(doc))
-    doc2["instruments"][0]["name"] = "tampered"
-    check(smod.content_hash(doc2) != doc["content_hash"], "an edited export fails its hash")
-    bn = [i for i in doc["instruments"] if i["identifiers"].get("ticker") == "BN"]
-    bl = [x for x in doc["listings"] if x["symbol"] == "BN"]
-    gme = [x for x in doc["listings"] if x["symbol"] == "GME"]
-    check(bn and bn[0]["restricted"] and bn[0]["restricted_by"] == "brookfield"
-          and bl and bl[0]["restricted"] and gme and not gme[0]["restricted"],
-          "a restricted name exports as restricted, in the master and in the listings "
-          "(BN yes, GME no)")
-    need = {"identifiers", "asset_class", "currency", "exchange", "active_from",
-            "active_to", "restricted"}
-    check(all(need <= set(x) for x in doc["instruments"] + doc["listings"]),
-          "every exported row carries identifiers, asset class, currency, exchange, its "
-          "active window and the restricted flag")
+PINNED = {
+    "security_master.schema.json": "5288446f9dd164b91fea6e28d3c2919de975d65fd938f5e8a4aa3484a5e78fb2",
+    "decision_packet.schema.json": "e3e97e0e1fdb0439610e86ecea0d878a402a15bf1ed3b3b65420e32b0d569522",
+    "README-interface.md": "bfe8ec7c1f86dd06735295afc139f91bafad380428d9993682189bdf1b87a421",
+}
+EXF = FIX / "export"
+
+
+def group_g() -> None:
+    head("G. THE CONTRACT: CHESTER-MEME'S FILES, BYTE FOR BYTE")
+    for name, want in PINNED.items():
+        b = (REPO / "docs" / "interface" / name).read_bytes()
+        got = hashlib.sha256(b.replace(b"\r\n", b"\n")).hexdigest()
+        check(got == want and b"\r\n" not in b,
+              f"docs/interface/{name}: sha256 {got[:16]}... as pinned, LF endings")
+    attrs = (REPO / ".gitattributes").read_text(encoding="utf-8")
+    check(re.search(r"^docs/interface/\*\s+text eol=lf", attrs, re.M) is not None,
+          ".gitattributes keeps docs/interface/ LF")
+
+
+class FakeFigi:
+    """OpenFIGI's /v3/mapping, answered from saved responses; counts the calls."""
+
+    def __init__(self, day: str) -> None:
+        self.res = json.loads((EXF / f"openfigi_{day}.json").read_text(encoding="utf-8"))["results"]
+        self.calls: list[list[dict]] = []
+        self.refuse = 0
+
+    def __call__(self, jobs: list[dict], key):
+        self.calls.append(jobs)
+        if self.refuse:
+            self.refuse -= 1
+            return 429, None, 7.0
+        return 200, [self.res.get(j["idValue"], {"warning": "No identifier found."})
+                     for j in jobs], 0.0
+
+
+def stage_listings(d: Path, days: list[str]) -> None:
+    d.mkdir(parents=True, exist_ok=True)
+    for day in days:
+        shutil.copyfile(EXF / f"{day}.csv", d / f"{day}.csv")
+        listings.write_changes(d, day)
+
+
+def group_h() -> tuple[Path, Path]:
+    head("H. THE FIGI MAPPER (OpenFIGI, from saved responses; nothing fetches)")
+    from altdata import figi  # noqa: PLC0415
+    check([figi.to_openfigi(x) for x in ("BRK.B", "ABR$D", "AAC.W", "AAC.U", "AAPL")]
+          == ["BRK/B", "ABR/PD", "AAC/WS", "AAC/U", "AAPL"],
+          "ACT -> OpenFIGI's ticker form: BRK.B -> BRK/B, ABR$D -> ABR/PD, AAC.W -> AAC/WS")
+    hit, why = figi.pick({"warning": "No identifier found."})
+    amb, why2 = figi.pick({"data": [
+        {"exchCode": "US", "compositeFIGI": "BBG000FXAA01"},
+        {"exchCode": "US", "compositeFIGI": "BBG000FXAA02"}]})
+    check(hit is None and "No identifier" in why and amb is None and "2 composite" in why2,
+          "no data, or two composite FIGIs for one ticker, is unmapped with its reason -- "
+          "never a guess")
+    ld, fd = TMP / "fx_listings", TMP / "fx_figi"
+    stage_listings(ld, ["2026-10-13"])
+    sleeps: list[float] = []
+    clock = [0.0]
+
+    def tick() -> float:
+        clock[0] += 0.1
+        return clock[0]
+    post = FakeFigi("2026-10-13")
+    post.refuse = 1
+    r = figi.run(full=True, d=fd, listings_dir=ld, post=post, key=None,
+                 sleep=sleeps.append, clock=tick)
+    c = figi.load_cache(fd)
+    check(r["mapped"] == 10 and r["unmapped"] == 1 and "ZZZZ" in c["unmapped"]
+          and "ZZZZ" not in c["symbols"],
+          f"the first full mapping: {r['mapped']} mapped, ZZZZ listed unmapped "
+          f"({c['unmapped']['ZZZZ']['why']})")
+    check(all(len(j) <= figi.KEYLESS["jobs"] for j in post.calls)
+          and any(abs(x - 7.0) < 1e-9 for x in sleeps)
+          and any(x > 2.0 for x in sleeps),
+          f"keyless: at most 10 jobs a request, {len(post.calls)} requests, paced "
+          f"{figi.KEYLESS['window_s'] / figi.KEYLESS['per_window']:.1f}s apart; a 429 waits "
+          f"the server's reset and retries")
+    check(c["symbols"]["BRK.B"]["composite_figi"] == "BBG000FXBK01"
+          and c["symbols"]["BN"]["share_class_figi"] == "BBG001FXBN01",
+          "the cache keeps the composite and share-class FIGIs, the type and the name, by "
+          "ACT symbol")
+    keyed = FakeFigi("2026-10-13")
+    figi.map_rows(listings.read_snapshot(ld / "2026-10-13.csv"), "2026-10-13",
+                  TMP / "fx_figi_keyed", post=keyed, key="fixture-key",
+                  sleep=lambda x: None, clock=tick)
+    check(len(keyed.calls) == 1, "with a key: 100 jobs a request (one request here)")
+    stage_listings(ld, ["2026-10-14"])
+    post2 = FakeFigi("2026-10-14")
+    r2 = figi.run(d=fd, listings_dir=ld, post=post2, key=None, sleep=lambda x: None,
+                  clock=tick)
+    asked = sorted(j["idValue"] for b in post2.calls for j in b)
+    check(asked == ["MEMEA", "NEWT", "REUS"],
+          f"the morning maps only what is new, renamed or not yet mapped: {asked} (ZZZZ "
+          f"waits {figi.RETRY_DAYS} days)")
+    a = figi.assignments(fd)
+    check(any(x["symbol"] == "REUS" and x["figi"] == "BBG000FXRV02" and x["date"] ==
+              "2026-10-14" for x in a)
+          and not any(x["symbol"] == "MEMEA" and x["date"] == "2026-10-14" for x in a),
+          "the assignment log records REUS's new holder on 14 Oct, and nothing for MEMEA's "
+          "rename")
+    src = (REPO / "altdata" / "figi.py").read_text(encoding="utf-8")
+    check("secrets.get(KEY_NAME)" in src and "print(key" not in src
+          and "keyed" in r2, "the key comes from altdata.secrets and is never printed "
+                             "(the summary says only whether one was used)")
+    return ld, fd
+
+
+def hist_of(doc: dict, figi_: str) -> list[tuple]:
+    sec = next(x for x in doc["securities"] if x["figi"] == figi_)
+    return [(r["ticker"], r["effective_from"], r["effective_to"], r["from_known"])
+            for r in sec["ticker_history"]]
+
+
+def group_i(m: Master, ld: Path, fd: Path) -> None:
+    head("I. THE TICKER HISTORY AND THE EXPORT, TO THE CONTRACT")
+    from altdata import sm_export  # noqa: PLC0415
+    doc, summ = sm_export.build(m, ld, fd, exported_at="2026-10-14T11:00:00Z")
+    errs = sm_export.validate(doc)
+    check(not errs, f"the fixture export validates against docs/interface/"
+                    f"security_master.schema.json ({summ['securities']} securities)"
+          + (f" -- {errs[:2]}" if errs else ""))
+    check(hist_of(doc, "BBG000FXME01") == [("MEMEA", "1900-01-01", None, False)],
+          "a rename (same FIGI, new name) changes nothing")
+    check(hist_of(doc, "BBG000FXOT01") == [("OLDT", "1900-01-01", "2026-10-14", False),
+                                           ("NEWT", "2026-10-14", None, True)],
+          "a ticker change (same FIGI, new ticker) closes OLDT and opens NEWT on the "
+          "snapshot date")
+    check(hist_of(doc, "BBG000FXRU01") == [("REUS", "1900-01-01", "2026-10-14", False)]
+          and hist_of(doc, "BBG000FXRV02") == [("REUS", "2026-10-14", None, True)],
+          "a reuse (a new FIGI on REUS) closes the old holder with an exclusive "
+          "effective_to of 2026-10-14 and opens the new one from it")
+    check(hist_of(doc, "BBG000FXBN01") == [("BAM", "1900-01-01", "2022-12-09", False),
+                                           ("BN", "2022-12-09", None, True)]
+          and hist_of(doc, "BBG000FXBM01") == [("BAM", "2022-12-09", None, True)],
+          "the master's known reuse carries its real date: BN held BAM to 2022-12-09 "
+          "(exclusive); the new BAM from it")
+    check(hist_of(doc, "BBG000FXSK01") == [("SPCX", "1900-01-01", "2026-04-07", False),
+                                           ("SPCK", "2026-04-07", None, True)]
+          and hist_of(doc, "BBG000FXSX01") == [("SPCX", "2026-06-12", None, True)],
+          "and SPCX's: the ETF to 2026-04-07 (then SPCK), the new issuer from 2026-06-12")
+    check(all(r[1] == "1900-01-01" for f in ("BBG000FXAA01", "BBG000FXSP01")
+              for r in hist_of(doc, f)) and summ["unknown_starts"] >= 6,
+          f"an unknown start is 1900-01-01 with from_known false "
+          f"({summ['unknown_starts']} rows)")
+    sec = {x["figi"]: x for x in doc["securities"]}
+    check(sec["BBG000FXBN01"]["restricted"] and sec["BBG000FXBM01"]["restricted"]
+          and not sec["BBG000FXAA01"]["restricted"],
+          "a restricted name exports with restricted: true (BN, BAM), AAPL false")
+    check(sec["BBG000FXSP01"]["type"] == "ETF" and sec["BBG000FXAA01"]["type"] == "CS"
+          and sec["BBG000FXBN01"]["venue"] == "NYSE" and sec["BBG000FXAA01"]["venue"] == "Nasdaq"
+          and sec["BBG000FXSP01"]["venue"] == "NYSE Arca" and sec["BBG000FXBK01"]["cik"] is None,
+          "type from OpenFIGI's type and the ETF flag (SPY ETF, AAPL CS); venue from the "
+          "exchange code (NYSE, Nasdaq, NYSE Arca); cik null in v1")
+    check(any(r["ticker"] == "BRK.B" for r in sec["BBG000FXBK01"]["ticker_history"])
+          and not any(x["name"] and "Unmappable" in x["name"] for x in doc["securities"]),
+          "tickers in ACT form (BRK.B); a listing with no FIGI is not exported")
+    check(doc["schema_version"] == "1.0" and doc["source"] == "chester-reports"
+          and doc["exported_at"].endswith("Z") and set(doc) == {
+              "schema_version", "exported_at", "source", "securities"},
+          "schema_version 1.0, exported_at in UTC with a Z, source chester-reports")
+    out = TMP / "sm_out" / "security_master.json"
+    import os  # noqa: PLC0415
+    os.environ[sm_export.VAR] = str(out)
+    try:
+        w = sm_export.write(doc)
+    finally:
+        os.environ.pop(sm_export.VAR, None)
+    back = json.loads(out.read_text(encoding="utf-8"))
+    check(w["written"] and w["path"] == str(out) and back == doc
+          and not out.with_name(out.name + ".tmp").exists(),
+          "$CHESTER_SM_EXPORT sets the path; written atomically and read back equal")
+    bad_doc = json.loads(json.dumps(doc))
+    bad_doc["securities"][0]["figi"] = "NOT-A-FIGI"
+    out2 = TMP / "sm_bad" / "security_master.json"
+    w2 = sm_export.write(bad_doc, out2)
+    check(not w2["written"] and w2["errors"] and not out2.exists(),
+          f"an invalid export is refused and never written ({w2['errors'][0][:60]})")
+    saved = sys.modules.get("jsonschema")
+    sys.modules["jsonschema"] = None
+    try:
+        e3 = sm_export.validate(doc)
+    finally:
+        if saved is not None:
+            sys.modules["jsonschema"] = saved
+        else:
+            sys.modules.pop("jsonschema", None)
+    check(e3 and "not installed" in e3[0], "with no validator installed, nothing is written")
+    print("        sample (the reuse and BN):")
+    for f in ("BBG000FXRU01", "BBG000FXRV02", "BBG000FXBN01"):
+        print("          " + json.dumps(sec[f], ensure_ascii=False))
     readers = []
-    for p in list(REPO.glob("**/*.py")) + list(REPO.glob("scripts/*.sh")):
-        if any(part in (".venv", "node_modules", ".git") for part in p.parts):
+    for pth in list(REPO.glob("**/*.py")) + list(REPO.glob("scripts/*.sh")):
+        if any(part in (".venv", ".git") for part in pth.parts):
             continue
-        if p.name in ("security_master.py", "validate_security_master.py"):
+        if pth.name in ("security_master.py", "sm_export.py", "validate_security_master.py"):
             continue
-        t = p.read_text(encoding="utf-8", errors="replace")
-        if "security_master.json" in t:
-            readers.append(str(p.relative_to(REPO)))
+        if "security_master.json" in pth.read_text(encoding="utf-8", errors="replace"):
+            readers.append(str(pth.relative_to(REPO)))
     check(not readers, "one-way: nothing else in this repository names the export"
           + (f" -- {readers}" if readers else ""))
-    check(smod.EXPORT_DEFAULT == "~/chester-data/export/security_master.json",
-          "its default path is ~/chester-data/export/security_master.json")
-    shutil.rmtree(TMP / "export", ignore_errors=True)
+
+
+def group_j(m: Master) -> None:
+    head("J. THE BOX DRAFT (prediction contracts, IBKR conids): printed, never written")
+    import contextlib  # noqa: PLC0415
+    import io  # noqa: PLC0415
+    from altdata import observations, sm_draft  # noqa: PLC0415
+    sp = TMP / "draft_store.sqlite"
+    st = observations.ObservationStore(str(sp))
+    st.write_many([
+        {"registry_key": "pm.market", "instrument": "kalshi:KXFEDDECISION-26DEC-H0",
+         "observed_at": "2026-10-14T13:00:00+00:00", "available_at": "2026-10-14T13:00:00+00:00",
+         "source": "kalshi", "value": json.dumps({"question": "Fed decision in Dec 2026?",
+                                                  "outcome": "Hold",
+                                                  "close_at": "2026-12-09T19:00:00Z"})},
+        {"registry_key": "portfolio.position_con_id", "instrument": "SPY@ARCA.USD",
+         "observed_at": "2026-10-14T21:00:00+00:00", "available_at": "2026-10-14T21:00:00+00:00",
+         "source": "ibkr", "value": 1234567},
+    ])
+    st.close()
+    before = hashlib.sha256(sp.read_bytes()).hexdigest()
+    ro = sm_draft._ro(str(sp))
+    try:
+        entries = sm_draft.draft(ro, int(m.raw["next_id"]))
+    finally:
+        ro.conn.close()
+    text = sm_draft.render(entries, int(m.raw["next_id"]))
+    back = yaml.safe_load(text)["instruments"]
+    pm = next(e for e in back if e["identifiers"].get("pm_id"))
+    ib = next(e for e in back if e["identifiers"].get("ibkr_conid"))
+    check(pm["asset_class"] == "prediction_contract" and pm["active_to"] == "2026-12-09"
+          and ib["identifiers"]["ibkr_conid"] == "1234567" and ib["currency"] == "USD"
+          and ib["aliases"] == ["SPY@ARCA.USD"],
+          "it drafts a prediction contract (pm_id, closing 2026-12-09) and an IBKR conid "
+          "(the key as alias, USD from its suffix)")
+    check(back[0]["id"] == f"SM{int(m.raw['next_id']):05d}" and "restricted" not in text,
+          f"ids proposed from next_id ({back[0]['id']}); no restricted line printed")
+    check(hashlib.sha256(sp.read_bytes()).hexdigest() == before,
+          "the store is byte-identical after the draft (mode=ro, query_only)")
+    src = (REPO / "altdata" / "sm_draft.py").read_text(encoding="utf-8").split('"""', 2)[2]
+    check("write_text" not in src and "open(" not in src and "write_many" not in src,
+          "the draft writes nothing: it prints to the screen")
+    raw = yaml.safe_load(smod.MASTER_PATH.read_text(encoding="utf-8"))
+    check(not any(e.get("identifiers", {}).get(k) for e in raw["instruments"]
+                  for k in ("pm_id", "ibkr_conid")),
+          "until Ari's paste is committed, both schemes stay empty in the master")
+    _ = contextlib, io
+
+
+def group_k() -> None:
+    head("K. THE 06:45 JOB")
+    sh = (REPO / "scripts" / "fetch_overnight.sh").read_text(encoding="utf-8")
+    i_log = sh.find('"$PY" -m altdata.feeds pull --only loggers')
+    i_map = sh.find('"$PY" -m altdata.figi map')
+    i_exp = sh.find('"$PY" -m altdata.security_master export')
+    check(0 <= i_log < i_map < i_exp,
+          "fetch_overnight.sh: the loggers (the listings snapshot), then the FIGI morning "
+          "mapping, then the export")
+    blk = sh[i_map:sh.find('log "security master: figi + export done"')]
+    check(not re.search(r"\bexit\b", blk) and "WARN" in blk,
+          "each step's failure is logged and skipped, never the job's")
 
 
 def main() -> int:
@@ -393,8 +668,12 @@ def main() -> int:
     group_c(m)
     group_d(m)
     group_e(m)
-    d = group_f()
-    group_g(m, d)
+    group_f()
+    group_g()
+    ld, fd = group_h()
+    group_i(m, ld, fd)
+    group_j(m)
+    group_k()
     print(f"\n{PASSED} passed, {FAILED} failed")
     print(LINE)
     print("VALIDATION PASSED" if not FAILED else "VALIDATION FAILED")
