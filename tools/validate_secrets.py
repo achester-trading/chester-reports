@@ -238,9 +238,131 @@ def group_f() -> None:
           f"{secrets.describe((FRED_NAME, 'ANTHROPIC_API_KEY', 'SMTP_USER', 'NASDAQ_DATA_LINK_API_KEY'))}")
 
 
+
+def group_g() -> None:
+    """AUD-1 2b: a fetch error and a logged exception carry no key."""
+    print(f"\n{LINE}\nG. A FETCH ERROR AND A LOGGED EXCEPTION CARRY NO KEY (AUD-1 2b)\n{LINE}")
+    import io
+    import logging
+    from unittest import mock
+    from altdata import secrets
+    from altdata.sources import _base, fred
+    key = "fixturekey0123456789abcdef"
+    url = ("https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&"
+           f"api_key={key}&file_type=json")
+    import requests
+
+    def boom(*a, **k):
+        raise requests.ConnectionError(f"HTTPSConnectionPool: Max retries exceeded "
+                                       f"with url: {url}")
+    with mock.patch.object(_base.requests, "get", boom), \
+            mock.patch.object(_base.time, "sleep", lambda s: None):
+        try:
+            _base.http_get_json(url, max_retries=2)
+            err = ""
+        except _base.FetchError as e:
+            err = str(e)
+    check(err and key not in err and secrets.REDACTED in err,
+          "a connection error whose text carries api_key=... raises a FetchError "
+          "without it")
+    buf = io.StringIO()
+    h = logging.StreamHandler(buf)
+    lg = logging.getLogger(fred.__name__)
+    lg.addHandler(h)
+    lg.setLevel(logging.INFO)
+    store = mock.MagicMock()
+
+    def fetch(*a, **k):
+        raise RuntimeError(f"socket said: {url}")
+    try:
+        with mock.patch.object(fred, "_fetch_series", fetch), \
+                mock.patch.object(fred, "_get_key", lambda: key), \
+                mock.patch.object(fred.time, "sleep", lambda s: None):
+            out = fred.pull(store=store, series=[fred.config.FRED_SERIES[0]])
+    finally:
+        lg.removeHandler(h)
+    logged = buf.getvalue()
+    check(logged and key not in logged and "socket said" in logged,
+          "fred.pull logs an unexpected error's traceback without the key")
+    check(all(key not in why for _, why in out.get("failed") or []),
+          "and records the failure without it")
+    for rel in ("altdata/sources/_base.py", "altdata/sources/fred.py",
+                "altdata/sources/fred_releases.py", "altdata/feeds.py"):
+        src = (REPO / rel).read_text(encoding="utf-8")
+        check("log.exception(" not in src,
+              f"{rel} logs no raw traceback (each passes secrets.redact)")
+
+
+def group_h() -> None:
+    """AUD-1 2a: both SMTP senders verify the server's certificate."""
+    print(f"\n{LINE}\nH. EMAIL VERIFIES THE SERVER'S CERTIFICATE (AUD-1 2a)\n{LINE}")
+    import ssl
+    from unittest import mock
+    seen: list = []
+
+    class FakeSMTP:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self, context=None):
+            seen.append(context)
+
+        def login(self, *a):
+            pass
+
+        def send_message(self, *a, **k):
+            pass
+
+        def sendmail(self, *a, **k):
+            pass
+    from daily_cascade import deliver
+    cfg = {"host": "smtp.example.invalid", "port": 587, "user": "u",
+           "password": "p", "rcpt": "b@example.invalid"}
+    with mock.patch.object(deliver.smtplib, "SMTP", FakeSMTP), \
+            mock.patch.object(deliver, "smtp_config", lambda: (cfg, [])), \
+            mock.patch.object(deliver, "build_message", lambda *a, **k: object()):
+        state, _ = deliver.send_html("fixture", "<p>x</p>")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "send_smtp_alert", REPO / "scripts" / "send_smtp_alert.py")
+    alert_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(alert_mod)
+    env = {"SMTP_USER": "u", "SMTP_PASSWORD": "p", "SMTP_RCPT": "b@example.invalid"}
+    with mock.patch.object(alert_mod.smtplib, "SMTP", FakeSMTP), \
+            mock.patch.dict(os.environ, env):
+        try:
+            alert_mod.main()
+        except SystemExit:
+            pass
+    src = (REPO / "daily_cascade" / "deliver.py").read_text(encoding="utf-8")
+    alert = (REPO / "scripts" / "send_smtp_alert.py").read_text(encoding="utf-8")
+    ctxs = [c for c in seen if c is not None]
+    check(("starttls(context=ssl.create_default_context())" in src
+           and "starttls(context=ssl.create_default_context())" in alert),
+          "both senders call starttls with ssl.create_default_context()")
+    check(state == "sent" and len(ctxs) == 2
+          and all(isinstance(c, ssl.SSLContext) and c.verify_mode == ssl.CERT_REQUIRED
+                  and c.check_hostname for c in ctxs),
+          f"the context each sender's call receives verifies the certificate and "
+          f"the host name ({len(ctxs)} of 2 calls)")
+    ign = (REPO / ".gitignore").read_text(encoding="utf-8")
+    check(all(p in ign.split() for p in (".env*", "!.env.example", "*.db", "*.sqlite",
+                                         "*.zip", "monthly_macro_*", "morning_anchor_*",
+                                         "weekly_tactical_*", "daily_close_*.pdf")),
+          "AUD-1 2c: .gitignore keeps secrets, databases, zips and the box's report "
+          "outputs out")
+
+
 def main() -> int:
     print(f"{LINE}\nThe one secrets loader\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
+              group_h):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

@@ -540,9 +540,14 @@ day costs the delivery and never the report.
 
 **The archives are gitignored.** 32.3 puts them in the checkout; committing one
 HTML file per session forever, from a box whose standing rule is that it runs
-code and never edits it, is a separate decision. They live on the box and are
-swept up by the off-box backup (D1a). Revisit if the archive belongs in git
-history.
+code and never edits it, is a separate decision. They live on the box, in
+`CHESTER_REPORTS_DIR` (default `reports/` in the checkout).
+
+**Until AUD-1 they were NOT swept.** This paragraph said the off-box backup
+(D1a) swept them; it did not. The sweep copied `data/`, `backups/`, `state/` and
+`~/chester-data`, and `reports/` is none of them. Since AUD-1 (item 1e) the
+archive is the sweep's own copy tree, `reports/` on the remote (section 10).
+Revisit if the archive belongs in git history.
 
 ### Exit codes, and why 2 is a success
 
@@ -698,7 +703,16 @@ killed script wrote no status line. Two more faults were found on the way: the
 - **Stalls fail, they do not hang.** rclone runs with `--timeout 2m
   --contimeout 60s --low-level-retries 10 --retries 2 --retries-sleep 30s
   --tpslimit 8`, and every tree runs under its own `timeout` (db 20m, data 40m,
-  backups 30m, state 10m). `TimeoutStartSec=2h30min` sits above them all.
+  backups 30m, state 10m, chester-data 15m, reports 15m since AUD-1).
+  Since 14 Oct 2026 the sweep also has ONE budget, 105 minutes from its start:
+  each cap is cut to the minutes left less 2, a tree with under 3 left is
+  skipped and named `<tree>(budget)` (rc 3), and the prunes and inbox pulls
+  start only with 10 left, else they wait for the next night. The budget, the
+  kill-after and 10 minutes fit inside `TimeoutStartSec`, so the sweep writes
+  its own status line before systemd's ceiling. The trees run db, data,
+  chester-data, state, reports, then backups (the zips repeat data/), and
+  backups/ never uploads `chester-pre-compact-*.db`, the compaction's raw
+  safety copy.
 - **One log per run** at `~/logs/rclone_sync-YYYY-MM-DD.log`, with a one-line
   transfer stats entry every minute, so a stall shows as a flat line.
 - **The durable quota fix is your own OAuth client** (next subsection). The
