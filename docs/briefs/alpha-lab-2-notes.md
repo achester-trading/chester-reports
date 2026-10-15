@@ -405,7 +405,7 @@ No gate read the live store, fetched or called a model. CI is the validate.
 ### CI
 
 - **#409** (`26e86d3`, the merge): failed, as above; fixed in the changes commit.
-- The changes commit: its CI number is in the line below.
+- `cc4cf79` (the changes and the three fixes): **CI #413 green.**
 
 ### Box commands, printed for Ari and run by no session
 
