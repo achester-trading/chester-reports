@@ -217,7 +217,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-five code gates (seventy-two Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — seventy-six code gates (seventy-three Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -556,6 +556,17 @@ neighbouring line in `config.py`: that is how this one was copied. And note what
 made it survivable — one report's private arithmetic, checkable against nothing.
 A figure in the registry has a percentile, a band and a gate; a figure inside a
 renderer has a reader's credulity.
+
+**FRED history comes from ALFRED, at its first publication (AUD-3d, 15 Oct
+2026).** The live pull stamps each row with the instant it was written, so a deep
+FRED pull would be invisible to every as-of query before today.
+`python -m altdata.fred_history backfill` writes each value with
+`availability_kind` observed at its vintage's first publication: the release
+time where the release calendar holds it, otherwise the end of that day ET. A
+revised value gets its own row from its own vintage, under source `fred:backfill`
+and its own run. A revisable series without vintages gets nothing, and only a
+`never`/`split_only` series may reconstruct. `tools/validate_fred_history.py`
+holds it against a fake ALFRED.
 
 **FRED deprecates series silently.** Roughly one to two of the configured series
 per year stop updating or disappear without notice, and the API returns an empty
