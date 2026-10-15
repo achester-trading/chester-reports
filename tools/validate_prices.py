@@ -401,6 +401,7 @@ def group_h() -> None:
     # EXACTLY THE DECLARED SET, NOT A PATTERN. Bitcoin, and since ST-2 the
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
+    # ZEC-USD is also AUD-1 5d's: the shielded logger's closes.
     # The crypto basket (12 Oct 2026) adds exactly the twelve Yahoo symbols its
     # config resolved -- declared there, reviewed in that file's diff.
     check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
@@ -560,11 +561,173 @@ def group_unfinished() -> None:
           "and other sessions stay")
 
 
+
+def group_fred_dual() -> None:
+    """AUD-1 4a: the CSV store's dual write runs through drop_unchanged."""
+    print(f"\n{LINE}\nAUD-1 4a. A FRED RE-READ WRITES NOTHING; A REVISION WRITES ONE ROW\n{LINE}")
+    import tempfile
+    from altdata import store as store_mod
+    with tempfile.TemporaryDirectory() as td:
+        saved = observations.DEFAULT_DB
+        observations.DEFAULT_DB = str(Path(td) / "fred.db")
+        try:
+            st = store_mod.Store(str(Path(td) / "csv"))
+            hist = [(f"2021-{m:02d}-01", 1.0 + m / 10) for m in range(1, 13)]
+            st.write_observations("yield_10y", hist, source="fred")
+            with observations.ObservationStore() as db:
+                n1 = db.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+            import time as _t
+            _t.sleep(1.1)              # a later pull, a later second-resolution stamp
+            st.write_observations("yield_10y", hist, source="fred")
+            with observations.ObservationStore() as db:
+                n2 = db.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+            check(n1 == 12 and n2 == 12,
+                  f"two identical pulls write once: {n1} rows after the first, {n2} "
+                  f"after the second -- the re-read no longer re-stamps the history")
+            _t.sleep(1.1)
+            revised = hist[:-1] + [(hist[-1][0], 2.35)]
+            st.write_observations("yield_10y", revised, source="fred")
+            with observations.ObservationStore() as db:
+                n3 = db.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+                vs = db.vintages("fred.yield_10y", "2021-12-01")
+            check(n3 == 13 and [v["value_num"] for v in vs] == [2.2, 2.35],
+                  f"a revised value writes one new vintage ({n3} rows; "
+                  f"{[v['value_num'] for v in vs]})")
+        finally:
+            observations.DEFAULT_DB = saved
+
+
+def group_asof_paths() -> None:
+    """AUD-1 4c: as_of's lower bound and latest_as_of's one-row path give the
+    answers the full join gives."""
+    print(f"\n{LINE}\nAUD-1 4c. THE NARROW READS ANSWER AS THE FULL JOIN DOES\n{LINE}")
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        db = observations.ObservationStore(str(Path(td) / "a.db"))
+        try:
+            rows = []
+            for i in range(40):
+                d = f"2026-08-{(i % 28) + 1:02d}" if i < 28 else f"2026-09-{i - 27:02d}"
+                rows.append({"registry_key": "fred.x", "instrument": None,
+                             "observed_at": d, "available_at": f"{d}T22:00:00+00:00",
+                             "value": float(i), "source": "fred"})
+            # a revision of 2026-09-05, published later, and an instrument series
+            rows.append({**rows[32], "available_at": "2026-09-20T22:00:00+00:00",
+                         "value": 99.0})
+            rows += [{"registry_key": "pm.x", "instrument": "K1", "observed_at": d,
+                      "available_at": f"{d}T21:00:00+00:00", "value": float(j),
+                      "source": "pm"} for j, d in enumerate(("2026-09-01", "2026-09-02"))]
+            db.write_many(rows)
+            same = True
+            for cut in ("2026-08-10T23:00:00+00:00", "2026-09-06T00:00:00+00:00",
+                        "2026-09-21T00:00:00+00:00", None):
+                full = db.as_of("fred.x", as_of=cut)
+                last = db.latest_as_of("fred.x", as_of=cut)
+                same &= (full[-1] if full else None) == last
+                part = db.as_of("fred.x", as_of=cut, observed_from="2026-09-01")
+                same &= part == [r for r in full if r["observed_at"] >= "2026-09-01"]
+            check(same, "at four cutoffs, latest_as_of is as_of()[-1] and the bounded "
+                        "as_of is the full one's tail -- revision included")
+            check(db.latest_as_of("pm.x", instrument="K1")["value_num"] == 1.0
+                  and db.latest_as_of("pm.x") is None
+                  and db.latest_as_of("fred.x", as_of="2020-01-01T00:00:00+00:00") is None,
+                  "an instrument series by its instrument; nothing before the first row")
+            # AUD-1 3: across thousands of instruments, one MAX, the same answer.
+            db.write_many([{"registry_key": "pm.x", "instrument": "K2",
+                            "observed_at": "2026-09-04",
+                            "available_at": "2026-09-04T21:00:00+00:00",
+                            "value": 5.0, "source": "pm"}])
+            same_any = True
+            for cut in ("2026-09-01T22:00:00+00:00", "2026-09-03T00:00:00+00:00",
+                        "2026-09-05T00:00:00+00:00", "2020-01-01T00:00:00+00:00", None):
+                per = [db.latest_as_of("pm.x", as_of=cut, instrument=i)
+                       for i in db.instruments("pm.x")]
+                want = max((str(r["observed_at"])[:10] for r in per if r), default=None)
+                same_any &= db.newest_observed_any("pm.x", as_of=cut) == want
+            check(same_any and "db.newest_observed_any(k, as_of=as_of)" in
+                  (REPO / "altdata/feeds.py").read_text(encoding="utf-8"),
+                  "newest_observed_any is the per-instrument loop's answer at five "
+                  "cutoffs, and the freshness check uses it")
+            plan =" ".join(str(r[-1]) for r in db.conn.execute(
+                "EXPLAIN QUERY PLAN " + observations.LATEST_AS_OF_SQL,
+                {"key": "fred.x", "instrument": None, "as_of": "9999"}))
+            check("INDEX" in plan.upper(),
+                  f"latest_as_of reads through an index ({plan[:70]})")
+        finally:
+            db.close()
+    src = {p: (REPO / p).read_text(encoding="utf-8")
+           for p in ("altdata/feeds.py", "regime.py")}
+    check("db.latest_as_of(k, as_of=as_of)" in src["altdata/feeds.py"]
+          and "st.latest_as_of(STORE_KEY, as_of=as_of)" in src["regime.py"],
+          "the freshness check and the regime's object read use the one-row path")
+
+
+def group_aud1_retry() -> None:
+    """AUD-1 5b/5d: Yahoo calls retry; ZEC's closes take the unfinished-bar rule."""
+    print(f"\n{LINE}\nL. THE YAHOO CALLS RETRY, AND ZEC HOLDS AN UNFINISHED BAR (AUD-1 5b, 5d)\n{LINE}")
+    import types
+    import pandas as pd
+    import altdata
+    from altdata.sources import _base
+    from altdata.loggers import shielded
+    waits: list = []
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ConnectionError("reset")
+        return pd.DataFrame() if calls["n"] == 2 else pd.DataFrame({"Close": [1.0]})
+    out = _base.retry_call(flaky, empty=lambda d: d is None or d.empty, sleep=waits.append)
+    check(calls["n"] == 3 and not out.empty and len(waits) == 2 and waits[1] == 2 * waits[0],
+          "an error, then an empty frame, then a frame: three tries, the wait doubling")
+    calls["n"] = 0
+    waits.clear()
+
+    def dead():
+        calls["n"] += 1
+        raise ConnectionError("down")
+    try:
+        _base.retry_call(dead, sleep=waits.append)
+        raised = False
+    except ConnectionError:
+        raised = True
+    check(raised and calls["n"] == 3, "three failures re-raise the last error, after three tries")
+
+    idx = pd.to_datetime(["2026-10-12", "2026-10-13", "2026-10-14"])
+    frames = [pd.DataFrame(), pd.DataFrame({"Close": [10.0, 11.0, 12.0]}, index=idx)]
+    seen = {"n": 0}
+
+    class FakeTicker:
+        def __init__(self, sym):
+            self.sym = sym
+
+        def history(self, **kw):
+            seen["n"] += 1
+            return frames.pop(0)
+    fake_yf = types.SimpleNamespace(Ticker=FakeTicker)
+    orig_imp, orig_sleep = altdata.import_yfinance, _base.time.sleep
+    altdata.import_yfinance = lambda: fake_yf
+    _base.time.sleep = lambda s: None
+    try:
+        parsed = yf_src._fetch_symbol("ZEC-USD", period="2y")
+        check(seen["n"] == 2 and len(parsed["closes"]) == 3,
+              "the price fetch retries an empty frame (5b)")
+        frames[:] = [pd.DataFrame({"Close": [10.0, 11.0, 12.0]}, index=idx)]
+        closes = shielded._zec_closes(now="2026-10-14T20:00:00+00:00")
+        check([d for d, _ in closes] == ["2026-10-12", "2026-10-13"],
+              "ZEC's bar for a UTC day still trading is held back (5d)")
+    finally:
+        altdata.import_yfinance = orig_imp
+        _base.time.sleep = orig_sleep
+
+
 def main() -> int:
     print(f"{LINE}\nThe price feed -- parser on a fixture, and the availability rule\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_d_backfill,
               group_e, group_f,
-              group_g, group_h, group_ohlc, group_volume, group_unfinished):
+              group_g, group_h, group_ohlc, group_volume, group_unfinished,
+              group_fred_dual, group_asof_paths, group_aud1_retry):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

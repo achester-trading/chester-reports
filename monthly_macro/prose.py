@@ -1213,6 +1213,12 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
         secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
     def attempt(sec: dict, system: str) -> dict:
+        """One call, metered under the section's key (AUD-2 item 4)."""
+        from altdata import model_meter                         # noqa: PLC0415
+        with model_meter.scope(section=sec.get("key")):
+            return _attempt(sec, system)
+
+    def _attempt(sec: dict, system: str) -> dict:
         stack = sec.get("kind") == "stack"
         try:
             if stack:

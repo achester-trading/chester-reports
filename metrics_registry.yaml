@@ -177,9 +177,32 @@ vocabularies:
     - count
     - days
     - label                  # closed-vocabulary string
-    - percent                # a percentage change, 1.0 == one per cent (NOT
-                             # a fraction; `fraction` is the 0..1 form and
-                             # confusing the two is a 100x error)
+    - percent                # RETIRED from entries (AUD-3a item 3, 14 Oct
+                             # 2026): it meant a yield, a percentile, a return
+                             # and a share at once, so a percentile moving 40 ->
+                             # 55 read +1,500 bp. Kept in the vocabulary so a
+                             # stored reference resolves; tools/check_registry.py
+                             # refuses it on a metric or a bulk block. Use one of
+                             # the six below. 1.0 == one per cent in every one of
+                             # them (NOT a fraction; `fraction` is the 0..1 form
+                             # and confusing the two is a 100x error).
+    - percent_rate           # a yield, rate or spread LEVEL in percent; its
+                             # change is in BASIS POINTS (4.45 -> 4.52 is +7 bp)
+    - percentile             # an own-history rank, 0..100; its change is in
+                             # POINTS (40 -> 55 is +15 pts)
+    - percent_return         # a return, growth rate, change or distance in
+                             # percent; its change is in PERCENTAGE POINTS
+    - percent_share          # a share of a whole in percent (of sectors, of
+                             # GDP, of open interest); its change is in PERCENTAGE
+                             # POINTS (36% -> 45% is +9 pp, not +900 bp)
+    - vol_pct                # an annualised volatility in percent; its change
+                             # is in vol POINTS (18 -> 20 is +2 pts)
+    - vol_index              # a volatility INDEX level (^VIX); its change is in
+                             # POINTS. Its level prints as the price it was
+                             # declared as before (altdata/derived.py LEVEL_UNITS)
+    - index_points           # an index LEVEL that is no price and no volatility
+                             # (^SKEW): its change is in POINTS, because a percent
+                             # change of it means nothing. Prints as a price.
     - contract_ccy           # an amount in the CONTRACT's own currency, which
                              # is not necessarily the account's. The companion
                              # portfolio.position_currency row names it. Never
@@ -187,6 +210,9 @@ vocabularies:
     - boolean
     - date
     - from_member            # bulk blocks only: the member's own declared units
+    - by_source              # one key written by several sources in different
+                             # units; the entry's `units_by_source` maps each
+                             # source id to its unit (pm.volume, AUD-3a)
   # 26.4: every signal carries a native horizon AND an information half-life.
   # Outside them a metric may DISPLAY as context but may not affect a decision.
   # They are different questions and a metric can be short on one and long on
@@ -260,6 +286,9 @@ vocabularies:
     - percent
     - raw
     - pp
+    - pts     # POINTS: a percentile or a volatility (AUD-3a item 3). A plain
+              # difference, like pp, under its own name: "+15 pts" of rank is not
+              # fifteen percentage points of anything.
   revision_policy:
     - never
     - recomputed
@@ -646,6 +675,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: price
+    description: >-
+      The strike with the largest POSITIVE signed GEX across every strike
+      (tools/exposure_compute.py _profile). All strikes, not only out-of-the-money;
+      exposure.call_wall_otm is the OTM-only definition.
   exposure.put_wall:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -678,6 +711,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: price
+    description: >-
+      The strike ABOVE spot with the largest positive signed GEX: the call wall
+      restricted to out-of-the-money strikes, the definition FlashAlpha's put_wall
+      reproduces on the put side (exposure_compute.py, verified 5 Sep 2026).
   exposure.put_wall_gamma:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -687,6 +724,11 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: price
+    description: >-
+      The strike carrying the most PUT gamma notional, which sits near the money
+      because gamma peaks there. One of three put-wall definitions printed side by
+      side (with put_wall_oi and put_wall_otm), because they answer different
+      questions.
   exposure.put_wall_oi:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -734,6 +776,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: usd
+    description: >-
+      Dealer option-book delta in dollars: exposure.dex_shares x spot. Derived from
+      the shares so the two cannot drift. The sign is what the book is long; the
+      hedge is the opposite sign.
     derived_from: exposure.dex_shares
   exposure.abs_dex_shares:
     source: yfinance
@@ -766,6 +812,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: fraction
+    description: >-
+      One expiry's share of the absolute dealer delta across all expiries,
+      |dex_shares| over the sum of |dex_shares|, 0..1 -- how much of the book's
+      delta that expiry releases when it expires.
 
   # --- VEX / CHEX -----------------------------------------------------------
   exposure.vex_shares_per_volpt:
@@ -789,6 +839,9 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: usd_per_volpt
+    description: >-
+      Vanna exposure in dollars per one implied-vol point:
+      exposure.vex_shares_per_volpt x spot, derived so the two cannot drift.
     derived_from: exposure.vex_shares_per_volpt
   exposure.chex_shares_per_day:
     source: yfinance
@@ -812,6 +865,9 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: usd_per_day
+    description: >-
+      Charm exposure in dollars per calendar day of time passing:
+      exposure.chex_shares_per_day x spot, derived so the two cannot drift.
     derived_from: exposure.chex_shares_per_day
 
   # --- per-strike profile ---------------------------------------------------
@@ -837,6 +893,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: usd
+    description: >-
+      At one strike, the call rows' gamma notional (sign x gamma x OI x 100 x spot),
+      in the same terms as exposure.net_gex. With put_gex it splits the strike's
+      signed GEX by side.
   exposure.per_strike.put_gex:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -846,6 +906,10 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: usd
+    description: >-
+      At one strike, the put rows' gamma notional, stored NEGATIVE (minus the put
+      gamma mass), in the same terms as exposure.net_gex. call_gex plus put_gex is
+      the strike's signed GEX.
   exposure.per_strike.dex:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -855,6 +919,9 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: shares
+    description: >-
+      At one strike, the dealer option book's delta in shares (dealer sign x delta x
+      OI x 100), summed over the strike's rows.
   exposure.per_strike.vex:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -864,6 +931,9 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: shares_per_volpt
+    description: >-
+      At one strike, the dealer book's vanna in shares of delta per one implied-vol
+      point.
   exposure.per_strike.chex:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -873,6 +943,8 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: shares_per_day
+    description: >-
+      At one strike, the dealer book's charm in shares of delta per calendar day.
 
   # --- bucket shares --------------------------------------------------------
   exposure.share_of_total_abs_gex:
@@ -884,6 +956,11 @@ metrics:
     observation_type: inferred
     revision_policy: recomputed
     units: fraction
+    description: >-
+      An expiry bucket's share of the absolute GEX across every bucket, 0..1. Null
+      for a settled 0DTE bucket, which reports open interest and refuses greeks.
+      Gamma share and delta share differ: 0DTE dominates gamma while carrying little
+      delta.
   exposure.share_of_total_abs_dex:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -931,6 +1008,10 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: count
+    description: >-
+      Open interest summed over the rows, calls plus puts, in contracts
+      (exposure_compute.py _oi_structure). An observed fact about what was
+      outstanding, reported even where greeks are refused.
   exposure.oi_calls:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -940,6 +1021,8 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: count
+    description: >-
+      Call open interest summed over the rows, in contracts.
   exposure.oi_puts:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -949,6 +1032,8 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: count
+    description: >-
+      Put open interest summed over the rows, in contracts.
   exposure.oi_put_call_ratio:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -958,6 +1043,9 @@ metrics:
     observation_type: calculated
     revision_policy: recomputed
     units: ratio
+    description: >-
+      Put open interest over call open interest, rounded to four places; null when
+      there is no call OI.
   exposure.oi_strikes:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -967,6 +1055,8 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: count
+    description: >-
+      The number of distinct strikes among the rows.
   exposure.spot:
     source: yfinance
     mechanism_group: dealer_chain_oi
@@ -1000,6 +1090,11 @@ metrics:
     observation_type: calculated
     revision_policy: recomputed
     units: boolean
+    description: >-
+      The liquidity hard rule (tools/quality_gates.py): total OI and total volume
+      must each clear their declared thresholds (config.LIQUIDITY_MIN_TOTAL_OI,
+      LIQUIDITY_MIN_TOTAL_VOLUME). False excludes the symbol from skew and OI-
+      percentile work; it is not downgraded.
   gates.iv_dispersion:
     source: yfinance
     mechanism_group: chain_quality
@@ -1029,6 +1124,10 @@ metrics:
     observation_type: calculated
     revision_policy: recomputed
     units: days
+    description: >-
+      Open-interest-weighted days to expiry over the chain's rows
+      (tools/quality_gates.py): one number for whether positioning is short or long
+      dated. Informational, not a pass or fail.
 
   # --- pin outcomes ---------------------------------------------------------
   # A different mechanism from the levels themselves: these measure whether a
@@ -1080,6 +1179,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary TotalCashValue, in the account's base currency (USD): the
+      paper account's cash (altdata/sources/ibkr_portfolio.py ACCOUNT_TAGS).
   portfolio.buying_power:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1089,6 +1191,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary BuyingPower, USD: what the paper account may buy on
+      margin.
   portfolio.gross_position_value:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1098,6 +1203,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary GrossPositionValue, USD: the sum of the absolute values
+      of every position.
   portfolio.init_margin:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1107,6 +1215,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary FullInitMarginReq, USD: the initial margin the account's
+      positions require.
   portfolio.maint_margin:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1116,6 +1227,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary FullMaintMarginReq, USD: the maintenance margin the
+      positions require.
   portfolio.excess_liquidity:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1125,6 +1239,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary ExcessLiquidity, USD: equity with loan value less
+      maintenance margin -- the cushion before liquidation.
   portfolio.available_funds:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1134,6 +1251,9 @@ metrics:
     observation_type: observed
     revision_policy: never
     units: usd
+    description: >-
+      IBKR account summary AvailableFunds, USD: equity with loan value less initial
+      margin.
   portfolio.cushion:
     source: ibkr_paper
     mechanism_group: portfolio_truth
@@ -1248,7 +1368,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     sample: sector_etf_proxy
     delta_unit: pp
     trigger_eligible: false
@@ -1270,7 +1390,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     sample: sector_etf_proxy
     delta_unit: pp
     trigger_eligible: false
@@ -1499,7 +1619,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Shares SOLD SHORT during one session, from FINRA's Reg SHO daily file. THIS IS NOT SHORT INTEREST. It is a FLOW and it includes a market maker shorting to fill a buy order and covering nine seconds later -- a stock can print 45 percent short volume every day for a year with no net short position at all. Short interest is the STOCK of shares still held short and is finra.short_interest. The ratio of one to the other is not a meaningful number.
+      Shares SOLD SHORT during one session, from FINRA's Reg SHO daily file, for every symbol with at least 1,000,000 shares of FINRA-reported total volume that session plus the tracked universe (AUD-1, 14 Oct 2026; until then the tracked universe only, so a name's history before it was tracked is absent). THIS IS NOT SHORT INTEREST. It is a FLOW and it includes a market maker shorting to fill a buy order and covering nine seconds later -- a stock can print 45 percent short volume every day for a year with no net short position at all. Short interest is the STOCK of shares still held short and is finra.short_interest. The ratio of one to the other is not a meaningful number.
   finra.total_volume:
     source: finra
     mechanism_group: short_flow
@@ -1511,7 +1631,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Total consolidated volume from the same file, stored so the short-volume SHARE can be computed without joining a second source whose volume definition differs.
+      Total volume from the same file -- FINRA-reported venues, not the consolidated tape -- stored so the short-volume SHARE can be computed without joining a second source whose volume definition differs. The same instrument set as finra.short_volume: this series is the floor's test.
   finra.short_exempt_volume:
     source: finra
     mechanism_group: short_flow
@@ -1523,7 +1643,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Short-exempt volume from the same file. Small, and separate because an exempt short is a different act from a regular one.
+      Short-exempt volume from the same file, for the same instrument set as finra.short_volume. Small, and separate because an exempt short is a different act from a regular one.
   finra.short_interest:
     source: finra
     mechanism_group: short_stock
@@ -1583,7 +1703,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Mention count for one ticker on one venue in the trailing day. The instrument carries the FEED (TICKER@all-stocks, TICKER@wallstreetbets) because a count on one venue and a count across all of them are measurements of different populations and must never be summed.
+      Mention count for one ticker on one venue in the trailing day. TICKER@all-stocks is every ticker on every page ApeWisdom serves for the all-stocks filter (AUD-1, 14 Oct 2026; until then the tracked universe only); TICKER@wallstreetbets is the tracked universe. The instrument carries the FEED because a count on one venue and a count across all of them are measurements of different populations and must never be summed.
   apewisdom.rank:
     source: apewisdom
     mechanism_group: social_attention
@@ -1595,7 +1715,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      The ticker's rank by mentions on that venue. Rank moves when OTHER tickers move, which is why the raw count is stored beside it.
+      The ticker's rank by mentions on that venue, for the same instrument set as apewisdom.mentions. Rank moves when OTHER tickers move, which is why the raw count is stored beside it.
   apewisdom.upvotes:
     source: apewisdom
     mechanism_group: social_attention
@@ -1607,7 +1727,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Upvotes on the counted mentions -- an intensity measure beside the volume one.
+      Upvotes on the counted mentions, for the same instrument set as apewisdom.mentions -- an intensity measure beside the volume one.
   ibkr.shortable_shares:
     source: ibkr_paper
     mechanism_group: borrow_terms
@@ -1628,7 +1748,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Indicative annualised borrow fee. Dormant for the same reason.
@@ -1640,7 +1760,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Annualised rebate rate from IB's public stock-loan file. A NEGATIVE rebate is
@@ -1694,7 +1814,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: vol_pct
     trigger_eligible: false
     description: >-
       Annualised realized volatility of ZEC's 20-day log returns, on a 365-DAY year rather than 252 -- annualising a seven-day-a-week series on a trading-day count would overstate it by about 20 percent.
@@ -1947,7 +2067,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2126,7 +2246,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       SPY's close against its own 50-day average, in percent. Split-adjusted,
@@ -2140,7 +2260,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: SPY's close against its own 200-day average, in percent.
   calc.trend_spy_ma20_slope:
@@ -2151,7 +2271,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       Percent change in SPY's 20-day average over 20 sessions -- direction rather
@@ -2165,7 +2285,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: vol_pct
     trigger_eligible: false
     description: >-
       Annualised realized volatility of SPY's 20-session log returns, in percent.
@@ -2286,7 +2406,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2328,7 +2448,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2345,7 +2465,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2364,7 +2484,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2380,7 +2500,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2692,7 +2812,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: vol_pct
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2719,6 +2839,10 @@ metrics:
       for any confidence-modifying use, behind the calibration-archive gate.
   pm.probability:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2735,9 +2859,13 @@ metrics:
       names the venue. A market-implied belief, never a fact. Rights:
       discovery, attention shock, disagreement -- never a trigger
       (config/prediction_markets.yaml). A backfilled row carries
-      availability_kind reconstructed and source `<venue>_backfill`.
+      availability_kind reconstructed and source `<venue>:backfill`.
   pm.price_basis:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2754,6 +2882,10 @@ metrics:
       probability; backfilled history is last trades by construction.
   pm.volume:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2761,7 +2893,12 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: count
+    # CONTRACTS ON KALSHI, DOLLARS ON POLYMARKET (AUD-3a item 3): one key,
+    # two units, told apart by the instrument's venue prefix. Never summed
+    # or compared across venues; its change is the raw difference.
+    units: by_source
+    units_by_source: {kalshi: count, polymarket: usd}
+    delta_unit: raw
     trigger_eligible: false
     description: >-
       6d: a venue market's cumulative traded volume (contracts on Kalshi, USD on
@@ -2769,6 +2906,10 @@ metrics:
       thin market can be told from one on a deep market (Part 27's quarantine).
   pm.bid:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2785,6 +2926,10 @@ metrics:
       Live pulls only; the backfill has no book.
   pm.ask:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2798,6 +2943,10 @@ metrics:
       W-1.1 item 1.5: the venue's best YES ask (0..1) at the fetch instant.
   pm.last:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2813,6 +2962,10 @@ metrics:
       probability is (pm.price_basis) and how far apart they were.
   pm.open_interest:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: daily
     freq: daily
@@ -2820,13 +2973,22 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: count
+    # CONTRACTS ON KALSHI, DOLLARS ON POLYMARKET (AUD-3a item 3): one key,
+    # two units, told apart by the instrument's venue prefix. Never summed
+    # or compared across venues; its change is the raw difference.
+    units: by_source
+    units_by_source: {kalshi: count, polymarket: usd}
+    delta_unit: raw
     trigger_eligible: false
     description: >-
       W-1.1 item 1.5: the market's liquidity at the fetch instant -- Kalshi's open
       interest in contracts, Polymarket's posted liquidity in USD.
   pm.market:
     source: kalshi
+    # BOTH VENUES WRITE IT (AUD-3a item 4): `source` stays the registry's one
+    # id; `sources` lists every id the rows really carry. A backfilled row's
+    # stored source is `<venue>:backfill`, read as the venue's id.
+    sources: [kalshi, polymarket]
     mechanism_group: prediction_market
     native_horizon: structural
     freq: daily
@@ -2902,7 +3064,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2918,7 +3080,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: Core CPI, ex food and energy, year-over-year in percent.
@@ -2931,7 +3093,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: The PCE price index, year-over-year in percent.
@@ -2944,7 +3106,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2959,7 +3121,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: M2 money stock, year-over-year in percent.
@@ -2972,7 +3134,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -2987,7 +3149,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: Housing starts, year-over-year in percent.
@@ -3000,7 +3162,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -3036,7 +3198,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -3236,7 +3398,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percentile
     trigger_eligible: false
     description: >-
       The primary member's own-history percentile ON THE DIMENSION'S SCALE, after
@@ -3335,7 +3497,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       Return from the decision-time reference close to the horizon close, in the
@@ -3360,7 +3522,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       Maximum adverse excursion measured ON SETTLED CLOSES between entry and
@@ -3510,7 +3672,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 2-year term premium, percent.
@@ -3523,7 +3685,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 5-year term premium, percent.
@@ -3536,7 +3698,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 10-year term premium, percent. One of the three decompositions the rates attribution block (ST-3) prints side by side; their disagreement is surfaced, never averaged.
@@ -3549,7 +3711,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 10-year risk-neutral yield (the expected short-rate path), percent. Fitted yield = risk-neutral yield + term premium.
@@ -3569,7 +3731,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 2-year risk-neutral yield (the expected short-rate path), percent; SR-6 by tenor (ST-B3-02). available_at: the write instant (the file sends no Last-Modified).
@@ -3582,7 +3744,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 5-year risk-neutral yield, percent; SR-6 by tenor (ST-B3-02). available_at: the write instant.
@@ -3686,7 +3848,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       ACM 10-year fitted zero-coupon yield, percent. The model's yield, not DGS10.
@@ -3699,7 +3861,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SF Fed model 5-year term premium (fitted), percent; stored from the file's fraction x100.
@@ -3712,7 +3874,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SF Fed model 10-year term premium (fitted), percent; stored from the file's fraction x100.
@@ -3725,7 +3887,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SF Fed model average expected short rate over 10 years (fitted), percent.
@@ -3738,7 +3900,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SF Fed model 10-year fitted yield, percent.
@@ -3751,7 +3913,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW expected real short rate, 5-year average, percentage points.
@@ -3764,7 +3926,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW real term premium, 5-year, percentage points.
@@ -3777,7 +3939,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW TIPS liquidity premium, 5-year, percentage points.
@@ -3790,7 +3952,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW expected real short rate, 10-year average, percentage points. SR-17 reads it against the real term premium to say whether a real-yield selloff is path or premium.
@@ -3803,7 +3965,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW real term premium, 10-year, percentage points.
@@ -3816,7 +3978,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       DKW TIPS liquidity premium, 10-year, percentage points. A rising one makes DFII10 overstate the real-rate move.
@@ -3889,7 +4051,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       The auction's stop-out (high) yield, coupons only -- Note, Bond, TIPS. A TIPS high yield is a REAL yield. Stored so the tail can be computed the day a when-issued source exists.
@@ -4045,7 +4207,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SEP median federal funds projection for the CURRENT year-end, midpoint, percent -- the Fed's signalled level over the next two meetings, the comparison for calc.fed_mkt_gap_m1/_m2 (ST-4). Entered on SEP day; the note names the SEP and the dot.
@@ -4058,7 +4220,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       SEP median federal funds projection for the year-end NEAREST TWELVE MONTHS AHEAD, midpoint, percent -- the comparison for calc.fed_mkt_gap_12m (ST-4). The note names which year-end dot was used.
@@ -4083,7 +4245,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       CBO baseline federal deficit for the NEXT fiscal year, percent of GDP, observed_at = the baseline's publication date -- SR-23's projection input. The note names the report and the fiscal year.
@@ -4678,7 +4840,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     family: ratio
     long_window: until_the_lenses
@@ -4817,7 +4979,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     family: ratio
     long_window: until_the_lenses
@@ -5041,7 +5203,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       JGB 2y constant-maturity yield, Ministry of Finance, percent.
@@ -5054,7 +5216,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       JGB 5y constant-maturity yield, Ministry of Finance, percent.
@@ -5067,7 +5229,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       JGB 10y constant-maturity yield, Ministry of Finance, percent.
@@ -5080,7 +5242,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       JGB 30y constant-maturity yield, Ministry of Finance, percent.
@@ -5106,7 +5268,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       China government bond 10-year closing yield (CFETS curve CYCC000), percent. FORWARD-ONLY from the first run: the endpoint serves the latest curve only.
@@ -5120,7 +5282,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NOT AVAILABLE. CNH HIBOR on: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
@@ -5134,7 +5296,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NOT AVAILABLE. CNH HIBOR 1w: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
@@ -5148,7 +5310,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NOT AVAILABLE. CNH HIBOR 1m: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
@@ -5162,7 +5324,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NOT AVAILABLE. CNH HIBOR 3m: the TMA offers no data API, its site shows T-1 fixings 'for view only ... non-commercial purposes', and commercial use has been licensed since June 2024. Declared, never written.
@@ -5297,7 +5459,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Index of Common Inflation Expectations (Board of Governors), instrument spf | mich; re-estimated over the full sample at each quarterly update.
@@ -5310,7 +5472,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       University of Michigan median expected inflation over the next 5-10 years (Table 32, PX5_MD). The preliminary reading is superseded by the final as a later vintage.
@@ -5325,7 +5487,7 @@ metrics:
     invalidated_by: none
     observation_type: inferred
     revision_policy: never
-    units: percent
+    units: vol_pct
     trigger_eligible: false
     description: >-
       SPY at-the-money implied volatility at 30 days, solved from mid prices by tools/iv_solver.py and interpolated in total variance between the bracketing expiries, in percent.
@@ -5352,7 +5514,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       AAII Sentiment Survey: the share of individual investors bullish minus the share bearish on the next six months, in percentage points.
@@ -5365,7 +5527,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NY Fed Survey of Consumer Expectations, median three-year-ahead expected inflation.
@@ -5378,7 +5540,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       NY Fed Survey of Consumer Expectations, median five-year-ahead expected inflation (from 2022).
@@ -6234,7 +6396,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6249,7 +6411,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6264,7 +6426,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6279,7 +6441,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6294,7 +6456,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6309,7 +6471,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6324,7 +6486,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6339,7 +6501,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6354,7 +6516,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6369,7 +6531,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6384,7 +6546,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6399,7 +6561,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6414,7 +6576,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6429,7 +6591,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6444,7 +6606,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6459,7 +6621,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6474,7 +6636,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6489,7 +6651,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6504,7 +6666,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6519,7 +6681,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6534,7 +6696,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6549,7 +6711,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6564,7 +6726,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6579,7 +6741,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6594,7 +6756,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6609,7 +6771,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6624,7 +6786,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6639,7 +6801,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6654,7 +6816,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6669,7 +6831,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6684,7 +6846,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6699,7 +6861,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6714,7 +6876,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6729,7 +6891,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6744,7 +6906,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6759,7 +6921,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6774,7 +6936,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6789,7 +6951,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -6804,7 +6966,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7337,7 +7499,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7352,7 +7514,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7367,7 +7529,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7382,7 +7544,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7397,7 +7559,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7412,7 +7574,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7427,7 +7589,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7442,7 +7604,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7457,7 +7619,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7472,7 +7634,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7487,7 +7649,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7502,7 +7664,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7517,7 +7679,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7532,7 +7694,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7547,7 +7709,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7562,7 +7724,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7577,7 +7739,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7592,7 +7754,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7607,7 +7769,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7622,7 +7784,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7637,7 +7799,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7652,7 +7814,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -7667,7 +7829,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8298,7 +8460,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8313,7 +8475,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8328,7 +8490,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8343,7 +8505,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8358,7 +8520,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8373,7 +8535,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8388,7 +8550,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8403,7 +8565,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8418,7 +8580,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8433,7 +8595,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8448,7 +8610,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8463,7 +8625,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8478,7 +8640,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8493,7 +8655,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8508,7 +8670,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8523,7 +8685,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8538,7 +8700,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8553,7 +8715,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8568,7 +8730,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8583,7 +8745,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8598,7 +8760,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8613,7 +8775,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8628,7 +8790,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8643,7 +8805,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8658,7 +8820,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8673,7 +8835,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8688,7 +8850,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8703,7 +8865,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8718,7 +8880,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8733,7 +8895,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8748,7 +8910,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     added_date: "2026-10-11"
@@ -8780,7 +8942,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       Fama-French HML (high minus low book-to-market), monthly, percent.
@@ -8793,7 +8955,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     description: >-
       49 industry portfolios, value-weighted monthly return, percent, instrument = the industry.
@@ -8910,7 +9072,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Long interest rate GS10, percent.
@@ -9648,7 +9810,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       AAII Asset Allocation Survey: stocks and stock funds, percent of portfolio (SR-12).
@@ -9662,7 +9824,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       AAII Asset Allocation Survey: bonds and bond funds, percent of portfolio (SR-12).
@@ -9676,7 +9838,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       AAII Asset Allocation Survey: cash, percent of portfolio (SR-12).
@@ -9768,7 +9930,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       IMF COFER: US dollar share of allocated reserves, at market exchange rates (SR-20).
@@ -9782,7 +9944,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       US dollar share of reserves at CONSTANT exchange rates (ECB or IMF calculation, SR-20).
@@ -9796,7 +9958,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       Gold's share of total official reserves at market prices (SR-20 scorecard).
@@ -9810,7 +9972,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       Micron's share of the HBM market, as published by the source the note names (SR-25).
@@ -9838,7 +10000,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: never
-    units: percent
+    units: percent_share
     trigger_eligible: false
     description: >-
       G4 net government bond supply to private hands, percent of combined GDP, annual, as published by Lustig (SR-23; cited, by hand).
@@ -9960,7 +10122,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     family: ratio
     long_window: full
@@ -9975,7 +10137,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     trigger_eligible: false
     family: ratio
     long_window: full
@@ -10027,7 +10189,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10054,7 +10216,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10081,7 +10243,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10108,7 +10270,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10135,7 +10297,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10162,7 +10324,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10189,7 +10351,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10216,7 +10378,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10243,7 +10405,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10270,7 +10432,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10297,7 +10459,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10324,7 +10486,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10364,7 +10526,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10391,7 +10553,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10418,7 +10580,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10445,7 +10607,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10472,7 +10634,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10499,7 +10661,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10526,7 +10688,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10553,7 +10715,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10580,7 +10742,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10607,7 +10769,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10634,7 +10796,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -10661,7 +10823,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_share
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11021,7 +11183,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       The 10-year Bund yield, PERCENT, daily: the Bundesbank's term-structure estimate (Svensson method) for listed Federal securities at 10.0 years' residual maturity (BBSIS.D.I.ZST.ZI.EUR.S1311.B.A604.R10XX.R.A.A._Z._Z.A). A fitted zero-coupon yield, a few bp from the on-the-run benchmark's quote. available_at the next weekday 12:00 Frankfurt (reconstructed).
@@ -11034,7 +11196,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Germany (Bund) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.DE.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
@@ -11047,7 +11209,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       France (OAT) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.FR.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
@@ -11060,7 +11222,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       Italy (BTP) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.IT.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
@@ -11112,7 +11274,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11126,7 +11288,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11153,7 +11315,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11180,7 +11342,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11207,7 +11369,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     delta_unit: pp
     trigger_eligible: false
     description: >-
@@ -11343,7 +11505,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       APPROXIMATION. The 10-year Bund hedged into dollars for a US investor: the Bund yield less the hedging cost, taken as the policy-rate differential (EFFR less the ECB deposit rate) -- covered interest parity on policy rates, not on the 3-month FX forward points or the basis. Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
@@ -11369,7 +11531,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_rate
     trigger_eligible: false
     description: >-
       APPROXIMATION. The 10-year JGB hedged into dollars: the JGB yield less (EFFR less Japan's call rate, monthly, carried forward). Method: market_features.hedged_yield / spread_bp; the yen leg's monthly call rate carried at most 70 days. Computed from stored series; available_at the latest input's.
@@ -11402,7 +11564,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_rate
     namespace: thailand
     trigger_eligible: false
     description: >-
@@ -11431,7 +11593,7 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: revised
-    units: percent
+    units: percent_return
     namespace: thailand
     delta_unit: pp
     trigger_eligible: false
@@ -11474,7 +11636,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: percent
+    units: percent_return
     namespace: thailand
     delta_unit: pp
     trigger_eligible: false
@@ -11913,6 +12075,23 @@ bulk_imports:
     key_prefix: "fred." 
     expected_members: 59
     units: from_member          # SeriesSpec.units
+    # SHARES AND RATES OF CHANGE (ruled 15 Oct 2026, AUD-3a follow-up 1). FRED
+    # quotes them in "%" as it quotes a yield, and "%" moves in basis points, so
+    # "unemployment up 20 bp" misread. Only the unit of the printed CHANGE moves
+    # (percentage points); no value does. Yields, rates and spreads keep bp.
+    member_units:
+      fred.u3_rate: percent_share
+      fred.lfp_rate: percent_share
+      fred.emp_pop_ratio: percent_share
+      fred.quits_rate: percent_share
+      fred.mortgage_delinq: percent_share
+      fred.cc_delinq_30: percent_share
+      fred.auto_delinq: percent_share
+      fred.cc_chargeoff: percent_share
+      fred.sticky_cpi: percent_return
+      fred.sticky_core: percent_return
+      fred.flex_cpi: percent_return
+      fred.fed_debt_pct_gdp: percent_share
     native_horizon: from_member # SeriesSpec.freq
     # FRED INHERITS ITS RELEASE CADENCE. A monthly series is current until the
     # next monthly print; a daily one is stale in a day. One half-life across
@@ -12032,6 +12211,14 @@ bulk_imports:
     expected_members: 5
     units: from_member
     delta_unit: pp
+    # The same as a declared unit (ruled 15 Oct 2026): a net share of banks. The
+    # block's delta_unit already moved them in pp; this names why.
+    member_units:
+      fred.sloos_ci_large: percent_share
+      fred.sloos_ci_small: percent_share
+      fred.sloos_cre_construction: percent_share
+      fred.sloos_cre_nonres: percent_share
+      fred.sloos_cre_multifamily: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12061,6 +12248,10 @@ bulk_imports:
     key_prefix: "fred."
     expected_members: 7
     units: from_member
+    # CRE delinquency is a share of loans: pp (ruled 15 Oct 2026; see fred_macro).
+    # The four policy rates and the gilt keep bp.
+    member_units:
+      fred.cre_delinq: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12147,6 +12338,23 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
+    # ONE MEMBER'S OWN UNITS (AUD-3a item 3, 14 Oct 2026). The block's units are
+    # price, which moves in percent of itself. Two yields and two volatility
+    # indexes are not prices: ^TNX going 4.25 -> 4.32 is +7 bp, not +1.65%, and
+    # the VIX going 18 -> 20 is +2 points, not +11.1%. Declared per store key,
+    # read by altdata/derived.py; check_registry fails a key that is no member.
+    member_units:
+      yfinance.mkt_tnx: percent_rate
+      yfinance.mkt_tyx: percent_rate
+      yfinance.mkt_vix: vol_index
+      yfinance.mkt_vix3m: vol_index
+      # Ruled 15 Oct 2026: the MOVE and the VVIX are volatility indexes like the
+      # VIX; SKEW is an index level whose percent change means nothing. All three
+      # move in points. The move screen's basis is pinned apart, in
+      # config/move_screen.yaml, so this line cannot move it.
+      yfinance.mkt_vvix: vol_index
+      yfinance.mkt_move: vol_index
+      yfinance.mkt_skew: index_points
     expected_members: 106   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
@@ -12168,6 +12376,15 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.OHLC_KEYS
     members_are: values
     member_suffixes: ['_open', '_high', '_low']
+    # The two yields' open, high and low are yields as their closes are
+    # (AUD-3a item 3; see market_closes).
+    member_units:
+      yfinance.mkt_tnx_open: percent_rate
+      yfinance.mkt_tnx_high: percent_rate
+      yfinance.mkt_tnx_low: percent_rate
+      yfinance.mkt_tyx_open: percent_rate
+      yfinance.mkt_tyx_high: percent_rate
+      yfinance.mkt_tyx_low: percent_rate
     expected_members: 9
     key_prefix: yfinance.
     units: price
@@ -12240,6 +12457,78 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: market_close
+  # THE BARS TABLE (AUD-3a items 1 and 3, 14 Oct 2026). altdata/bars.py's table is
+  # not keyed by registry_key: a row is (instrument, interval, observed_at) with
+  # OHLC and a volume. Registered here so the store check can resolve every bar
+  # instrument, and so its VOLUME has a declared unit, as the daily
+  # market_volume_* blocks give the closes'. The keys are built from the tape in
+  # config/reporting_stack.yaml (altdata.bars.BAR_PRICE_KEYS / BAR_VOLUME_*).
+  bars_prices:
+    description: >-
+      Each bar instrument's 5-minute and daily open, high, low and close, keyed
+      bars.<tape id> (bars.spy, bars.y10 ...). The two yield indices are yields
+      in percent, as their daily closes are.
+    members_from: altdata.bars.BAR_PRICE_KEYS
+    members_are: keys
+    expected_members: 10
+    units: price
+    member_units:
+      bars.y10: percent_rate
+      bars.y30: percent_rate
+    source: yfinance
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  bars_volume_shares:
+    description: >-
+      A bar's volume in SHARES, for the ETFs (SPY, QQQ, IWM), keyed
+      bars.<tape id>.volume. An index, a currency pair and the dollar index carry
+      no volume and have no key.
+    members_from: altdata.bars.BAR_VOLUME_SHARE_KEYS
+    expected_members: 3
+    units: shares
+    source: yfinance
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  bars_volume_contracts:
+    description: >-
+      A bar's volume in CONTRACTS, for the futures (gold, oil, ES): front-month
+      contracts traded, not a notional.
+    members_from: altdata.bars.BAR_VOLUME_CONTRACT_KEYS
+    expected_members: 3
+    units: count
+    source: yfinance
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+  bars_volume_usd:
+    description: >-
+      A bar's volume in DOLLARS, for Bitcoin, as Yahoo quotes a crypto pair.
+    members_from: altdata.bars.BAR_VOLUME_USD_KEYS
+    expected_members: 1
+    units: usd
+    source: yfinance
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+
   market_actions:
     description: >-
       Dividend and split events for the same basket, keyed
@@ -12345,6 +12634,22 @@ bulk_imports:
     key_prefix: "calc.naive_expectation."
     expected_members: 59
     units: from_member
+    # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): an expectation of a share is a share,
+    # so the twelve FRED shares and rates of change carry the unit
+    # fred_macro gives them (pp). The rest keep FRED's own.
+    member_units:
+      calc.naive_expectation.u3_rate: percent_share
+      calc.naive_expectation.lfp_rate: percent_share
+      calc.naive_expectation.emp_pop_ratio: percent_share
+      calc.naive_expectation.quits_rate: percent_share
+      calc.naive_expectation.mortgage_delinq: percent_share
+      calc.naive_expectation.cc_delinq_30: percent_share
+      calc.naive_expectation.auto_delinq: percent_share
+      calc.naive_expectation.cc_chargeoff: percent_share
+      calc.naive_expectation.sticky_cpi: percent_return
+      calc.naive_expectation.sticky_core: percent_return
+      calc.naive_expectation.flex_cpi: percent_return
+      calc.naive_expectation.fed_debt_pct_gdp: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12386,6 +12691,22 @@ bulk_imports:
     key_prefix: "calc.surprise_vs_naive."
     expected_members: 59
     units: from_member
+    # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): a surprise in a share is a change in it,
+    # so the twelve FRED shares and rates of change carry the unit
+    # fred_macro gives them (pp). The rest keep FRED's own.
+    member_units:
+      calc.surprise_vs_naive.u3_rate: percent_share
+      calc.surprise_vs_naive.lfp_rate: percent_share
+      calc.surprise_vs_naive.emp_pop_ratio: percent_share
+      calc.surprise_vs_naive.quits_rate: percent_share
+      calc.surprise_vs_naive.mortgage_delinq: percent_share
+      calc.surprise_vs_naive.cc_delinq_30: percent_share
+      calc.surprise_vs_naive.auto_delinq: percent_share
+      calc.surprise_vs_naive.cc_chargeoff: percent_share
+      calc.surprise_vs_naive.sticky_cpi: percent_return
+      calc.surprise_vs_naive.sticky_core: percent_return
+      calc.surprise_vs_naive.flex_cpi: percent_return
+      calc.surprise_vs_naive.fed_debt_pct_gdp: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12450,7 +12771,7 @@ bulk_imports:
       60-month fit on the four common factors, in the return's own units x 100
       (log-return percent for a price). What the common factors do not explain.
     members_from: altdata.attribution.DRIVER_RESIDUAL
-    units: percent
+    units: percent_return
     delta_unit: pp
     source: derived_state
     members_are: keys
@@ -12574,7 +12895,7 @@ bulk_imports:
     mechanism_group: paper_bid
     native_horizon: daily
     freq: daily
-    units: percent
+    units: vol_pct
     delta_unit: pp
     family: ratio
     information_half_life: session
@@ -12687,7 +13008,7 @@ bulk_imports:
     expected_members: 10
     mechanism_group: overnight_context
     native_horizon: intraday
-    units: percent
+    units: percent_return
     information_half_life: intraday
     invalidated_by: none
     observation_type: observed

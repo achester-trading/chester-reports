@@ -750,6 +750,13 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         warnings.append(f"no pin-log rows for {resolved}")
     if loaded and sess and loaded != sess:
         warnings.append(f"requested session {sess} but loaded {loaded}")
+    # AUD-1 5c: the capture's gap, printed where the reader of the close sees it.
+    # A missing vendor chain (SPX) is named here even though it does not fail
+    # the capture.
+    from altdata import chain_completeness                   # noqa: PLC0415
+    rec = chain_completeness.read_completeness(resolved)
+    for line in (chain_completeness.gap_lines(rec) if rec else []):
+        warnings.append(f"EOD capture: {line}")
 
     return {
         "report": "daily_close",

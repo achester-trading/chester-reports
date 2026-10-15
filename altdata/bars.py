@@ -79,6 +79,45 @@ def intraday_instruments(cfg: Optional[dict] = None) -> list[dict]:
     return list(cfg.get("tape") or []) + list(cfg.get("intraday_extra") or [])
 
 
+def volume_unit(symbol: str) -> Optional[str]:
+    """THE BAR'S VOLUME UNIT (AUD-3a item 3), by the rule the daily
+    market_volume_* blocks already follow (yfinance_source.VOLUME_UNITS): a
+    future's volume is contracts, a crypto pair's is dollars, an ETF's or a
+    stock's is shares, and an index, a currency pair or the dollar index has
+    none. ES=F is a future outside the daily basket, so the rule is read, not the
+    basket's set."""
+    from .sources import yfinance_source as y                   # noqa: PLC0415
+    if not y._has_volume(symbol):                               # noqa: SLF001
+        return None
+    if symbol.endswith("=F") or symbol in y.VOLUME_FUTURES:
+        return "count"
+    if symbol.endswith("-USD") or symbol in y.VOLUME_USD:
+        return "usd"
+    return "shares"
+
+
+def _bar_keys() -> tuple[dict, dict]:
+    """({bars.<id>: symbol}, {bars.<id>.volume: unit}) over every bar instrument."""
+    prices, volumes = {}, {}
+    for t in intraday_instruments():
+        sym = str(t.get("bars") or t.get("symbol") or "")
+        prices[f"bars.{t['id']}"] = sym
+        u = volume_unit(sym) if sym else None
+        if u:
+            volumes[f"bars.{t['id']}.volume"] = u
+    return prices, volumes
+
+
+# THE BARS TABLE'S KEYS, for the registry and the store check (AUD-3a items 1
+# and 3): a bar instrument's OHLC is `bars.<id>`, its volume `bars.<id>.volume`,
+# one registry block per volume unit. Built from config/reporting_stack.yaml's
+# tape, so a new instrument is registered by the block counts changing.
+BAR_PRICE_KEYS, BAR_VOLUME_UNITS = _bar_keys()
+BAR_VOLUME_SHARE_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "shares")
+BAR_VOLUME_CONTRACT_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "count")
+BAR_VOLUME_USD_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "usd")
+
+
 def full_session(instrument: str) -> bool:
     """An instrument whose counted session is the futures day, 18:00 ET the
     evening before to 17:00 ET (T2.3)."""
