@@ -1,7 +1,8 @@
 """
 The Weekly's lab line (X-1.11) -- the one line a report prints from the lab.
 
-    Alpha Lab: +x.x% since <date> · n engines live · drawdown y% · loop events this week k
+    Alpha Lab: +x.x% since <date> · n engines live · drawdown y% (z% since inception)
+               · loop events this week k
 
 and "Alpha Lab: not yet live" until the first engine passes into paper (status
 live or halved). Read from alpha.db READ-ONLY (`mode=ro`): a missing ledger is
@@ -12,6 +13,9 @@ calls weekly_line() once, from its one hook in daily_cascade/weekly_stack.py.
                        day an engine held an applied allocation
   n engines live       live or halved (a halved engine still trades)
   drawdown y%          the lab's, from its high-water mark (0.0% at the mark)
+  (z% since inception) from the ALL-TIME high (the notional, or the highest equity
+                       ever recorded), which no operator resume re-bases -- so a
+                       resume never hides a loss (15 Oct 2026)
   loop events this week k   rows in loop_events written in the seven days to
                        the cutoff -- the loop's activity, not its success
 """
@@ -65,7 +69,15 @@ def _line(cutoff: str, path: Optional[str | Path] = None) -> str:
             perf = "no equity recorded yet"
         else:
             perf = f"{(float(eq['equity']) / notional - 1) * 100:+.1f}% since {since}"
-        dd = f"drawdown {abs(float(eq['drawdown'])) * 100:.1f}%" if eq else "drawdown n/a"
+        if eq:
+            peak = lg.one("SELECT MAX(equity) AS m FROM equity WHERE engine_id=? AND "
+                          "day<=?", (LAB, day))["m"]
+            peak = max(float(peak or 0), notional)
+            inc = max(0.0, 1 - float(eq["equity"]) / peak) if peak else 0.0
+            dd = (f"drawdown {abs(float(eq['drawdown'])) * 100:.1f}% "
+                  f"({inc * 100:.1f}% since inception)")
+        else:
+            dd = "drawdown n/a"
         n = len(live)
         return (f"Alpha Lab: {perf} · {n} engine{'s' if n != 1 else ''} live · "
                 f"{dd} · loop events this week {k}")

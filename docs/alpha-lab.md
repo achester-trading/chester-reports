@@ -231,7 +231,7 @@ and are not in `DEPLOY_TIMERS`: see `deploy/systemd/README.md` section 13.
 
 | Where | What |
 |---|---|
-| The Weekly's header | `Alpha Lab: +x.x% since <date> · n engines live · drawdown y% · loop events this week k` |
+| The Weekly's header | `Alpha Lab: +x.x% since <date> · n engines live · drawdown y% (z% since inception) · loop events this week k` |
 | Before the first engine | the same header reads `Alpha Lab: not yet live` |
 | The Daily close's header | `Alpha Lab today: n proposed · k screened out · j testing · m promoted · lab equity x% · drawdown y%` |
 | Monthly | the Lab report, X-2.8, attached to the Monthly's mail |

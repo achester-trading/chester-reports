@@ -809,6 +809,22 @@ def group_i() -> None:
               "the resume re-bases the lab's high-water mark: no re-halt the next night")
         out = governor.step(lg, "t5", "2026-10-07", {"g": -20000.0}, {"g": 50000.0})
         check(out["lab_halt"], "a fresh -15% from the re-based mark halts it again")
+    # 15 Oct: a resume never hides a loss.
+    led3 = Path(_TMP) / "i3.db"
+    with Ledger(led3) as lg:
+        lg.upsert_engine("g", "fam", "daily", "live", 0.5, "x")
+        governor.step(lg, "t0", "2026-10-01", {"g": 0.0}, {"g": 100000.0})
+        governor.step(lg, "t1", "2026-10-02", {"g": -16000.0}, {"g": 100000.0})
+        governor.resume(lg, "t2", "reviewed")
+        ev = json.loads(lg.one("SELECT after FROM loop_events WHERE kind='lab_resume'")["after"])
+        check(ev["hwm_replaced"] == 100000.0 and abs(ev["drawdown_replaced"] + 0.16) < 1e-9,
+              "the lab_resume event records the high-water mark (100,000) and the "
+              "drawdown (-16%) it replaced")
+        governor.step(lg, "t3", "2026-10-05", {"g": 0.0}, {"g": 100000.0})
+    line = lab_line.weekly_line("2026-10-05T22:00:00+00:00", led3)
+    check("drawdown 0.0% (16.0% since inception)" in line,
+          f"after the resume the Weekly's line prints the loss since inception beside the "
+          f"re-based drawdown: {line}")
     deny = json.loads((REPO / ".claude" / "settings.json").read_text(
         encoding="utf-8"))["permissions"]["deny"]
     cmd = "python -m alpha.governor resume --reason 'x'"
@@ -894,7 +910,8 @@ def group_j() -> None:
                   "the weekly loop applies the proposed weights, one rebalance event")
         line = lab_line.weekly_line(asof(DAYS[39]), ledger)
         check(re.fullmatch(r"Alpha Lab: [+-]\d+\.\d% since \d{4}-\d{2}-\d{2} · 2 engines "
-                           r"live · drawdown \d+\.\d% · loop events this week \d+", line)
+                           r"live · drawdown \d+\.\d% \(\d+\.\d% since inception\) · "
+                           r"loop events this week \d+", line)
               is not None, f"the lab line once engines are live: {line}")
         broken = nightly.run(asof(DAYS[40]), Path(_TMP) / "no_store.sqlite", ledger, reg)
         with Ledger(ledger) as lg:

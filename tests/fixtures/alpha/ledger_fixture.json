@@ -22,5 +22,5 @@
     {"loop": "nightly", "kind": "posterior", "written_at": "2026-10-08T21:41:00.000000+00:00"},
     {"loop": "nightly", "kind": "run", "written_at": "2026-09-20T21:41:00.000000+00:00"}
   ],
-  "expect_line": "Alpha Lab: +1.5% since 2026-10-05 · 2 engines live · drawdown 1.0% · loop events this week 3"
+  "expect_line": "Alpha Lab: +1.5% since 2026-10-05 · 2 engines live · drawdown 1.0% (1.0% since inception) · loop events this week 3"
 }

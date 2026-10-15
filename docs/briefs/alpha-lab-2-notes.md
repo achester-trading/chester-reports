@@ -477,3 +477,25 @@ cd ~/chester-reports && .venv/bin/python -m alpha.governor resume --reason "<why
    under the sweep budget, as item b says.
 7. Tranche 2's needs-you 8 (trend's costs) and 13 (the contract map) are now
    answered by these rulings. 14 (lab_resume) is built.
+
+## 15 Oct
+
+Ari's answers to the 14 Oct evening needs-you list.
+
+- **The resume re-bases the high-water mark: kept** (needs-you 2). A resume now
+  never hides a loss:
+  - The `lab_resume` event records the high-water mark and the drawdown it
+    replaced: `before.hwm`, `after.hwm_replaced`, `after.drawdown_replaced`, beside
+    `hwm_rebased_to`.
+  - The Weekly's lab line prints the drawdown since inception beside the current
+    one: `drawdown y% (z% since inception)`. Since inception is measured from the
+    all-time high, the notional or the highest equity ever recorded, which no
+    resume moves.
+  - `docs/alpha-lab.md`'s header table and the fixture ledger's expected line
+    are updated.
+  - Fixture, validate_alpha group I: a lab halted at -16% and resumed records
+    100,000 and -16% as replaced. The next night's Weekly line reads
+    `drawdown 0.0% (16.0% since inception)`.
+- **Trend at 20,000 holding 13 names: accepted, no change** (needs-you 3).
+
+Gates, locally: validate_alpha **257/0**. CI: in the report.

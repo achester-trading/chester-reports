@@ -19,6 +19,10 @@ loop writes. The command is denied to sessions (.claude/settings.json, CLAUDE.md
 as the register writes are. On the resume the lab's high-water mark is re-based
 to its equity at that moment, so the next night does not re-halt on the same
 drawdown the operator has just reviewed; a fresh -15% from there halts again.
+A resume never hides a loss (15 Oct): the event records the high-water mark and
+the drawdown it replaced, and the Weekly's lab line prints the drawdown since
+inception -- from the all-time high, which no resume moves -- beside the current
+one (alpha/lab_line.py).
 
 FROZEN MEANS FROZEN. A halved or stopped engine carries frozen=1 and no loop
 re-fits it (alpha/validate.refit_allowed; the constitution's
@@ -66,8 +70,11 @@ def resume(ledger, as_of: str, reason: str) -> int:
                     "ORDER BY day DESC LIMIT 1", (LAB,))
     return ledger.event("operator", "lab_resume", as_of, None,
                         before={"status": "halted",
+                                "hwm": eq["hwm"] if eq else None,
                                 "drawdown": eq["drawdown"] if eq else None},
                         after={"status": "running", "reason": reason.strip(),
+                               "hwm_replaced": eq["hwm"] if eq else None,
+                               "drawdown_replaced": eq["drawdown"] if eq else None,
                                "hwm_rebased_to": eq["equity"] if eq else None},
                         counterfactual={"status": "halted"}, source="operator")
 
