@@ -22,6 +22,10 @@ network, no box, no model:
   F  THE CLOSE. On a flagged day the Warnings lines read "Data check: ..." -- at
      most five and a count; on a clean day nothing; produce() adds them read-only
      before it renders, and the Warnings table prints them.
+  G  THE 15 OCT RULINGS. The VIX floor is a ruling; ^TNX and ^TYX wait for the
+     box; a fred:backfill row is labelled backfill, never a revision, and never
+     a new print; a policy rate's 25 bp step after sixty flat prints is an
+     informational step line, never a flag, and never reaches the close.
 
     python tools/validate_quality.py
 """
@@ -326,6 +330,83 @@ def group_f(td: str, db: str) -> None:
     check(0 < i_q < i_r, "produce() adds the lines before it renders the close")
 
 
+def group_g(td: str) -> None:
+    head("G. THE 15 OCT RULINGS")
+    from altdata import observations, quality
+    cfg = quality.load_config()
+    p = cfg["pairs"]
+    check("RULED 15 Oct 2026" in p["floor_reason"]
+          and next(x for x in p["list"] if x["id"] == "vix_vixcls")["tolerance"] == 0.01,
+          "the VIX pair keeps its 0.01 floor, and the config says it is a ruling")
+    check(all("week of 19 Oct" in x["unmeasured_reason"] or "As ^TNX" in
+              x["unmeasured_reason"] for x in p["list"] if x["tolerance"] is None)
+          and [x["id"] for x in p["list"] if x["tolerance"] is None]
+          == ["tnx_dgs10", "tyx_dgs30"],
+          "^TNX and ^TYX wait for the box, after the backfills (not measured)")
+    sk = quality.step_keys(cfg)
+    check({"fred.iorb", "fred.ecb_dfr", "fred.jp_call_rate"} <= sk
+          and all(len(str(s.get("why") or "")) > 10 for s in cfg["steps"]["series"]),
+          f"the ruled policy rates are declared step series, each with why ({sorted(sk)})")
+    check(cfg.get("backfill_sources") == ["fred:backfill"],
+          "fred:backfill is the declared backfill string")
+    db = str(Path(td) / "rulings.db")
+    days = bdays(DAY, 80)
+    iorb = [4.65] * 79 + [4.40]                         # sixty-plus flat, then -25 bp
+    ff = [4.33] * 40 + [4.58] * 39 + [4.33]             # one earlier step in the window
+    y30 = walk(7, 80, 0.04, 4.8, log=False)
+    st = observations.ObservationStore(db)
+    try:
+        st.write_many(rows("fred.iorb", days, iorb))
+        st.write_many(rows("fred.effr_daily", days, ff))
+        # The 30-year: its history, then on DAY the backfill restates one day and
+        # writes an older day for the first time; no revision, no new print.
+        st.write_many(rows("fred.yield_30y", days[:-1], y30[:-1]))
+        st.write_many([{"registry_key": "fred.yield_30y", "instrument": None,
+                        "observed_at": days[-10], "available_at": f"{DAY}T14:00:00+00:00",
+                        "value": round(y30[-10] + 0.5, 6), "source": "fred:backfill"},
+                       {"registry_key": "fred.yield_30y", "instrument": None,
+                        "observed_at": days[-1], "available_at": f"{DAY}T14:00:00+00:00",
+                        "value": round(y30[-2] + 3.0, 6), "source": "fred:backfill"},
+                       # U-3: one ordinary revision on the same day, for contrast.
+                       {"registry_key": "fred.u3_rate", "instrument": None,
+                        "observed_at": "2026-08-01", "available_at": "2026-09-05T13:00:00+00:00",
+                        "value": 4.2, "source": "fred"},
+                       {"registry_key": "fred.u3_rate", "instrument": None,
+                        "observed_at": "2026-08-01", "available_at": f"{DAY}T13:00:00+00:00",
+                        "value": 4.3, "source": "fred"}])
+    finally:
+        st.close()
+    r = quality.check(db, DAY)
+    bf = [x for x in r["backfill"] if x.get("key") == "fred.yield_30y"]
+    check(any(x.get("old") is not None and abs(x["new"] - x["old"] - 0.5) < 1e-6
+              for x in bf)
+          and not any(x["key"] == "fred.yield_30y" for x in r["revisions"]),
+          "a fred:backfill restatement is labelled backfill, never a revision")
+    check(any(x.get("first_written") == 1 for x in bf)
+          and not any(f.get("key") == "fred.yield_30y" for f in r["flags"]),
+          "and the backfill's first-written day, 3 points off, is not judged as a "
+          "new print")
+    check([x["key"] for x in r["revisions"]] == ["fred.u3_rate"],
+          "while the pull's own restatement of U-3 is still a revision")
+    steps = {s["key"]: s for s in r["steps"]}
+    s = steps.get("fred.iorb") or {}
+    check(s.get("change") == -25.0 and s.get("unit") == "bp"
+          and not any(f.get("key") == "fred.iorb" for f in r["flags"]),
+          f"IORB's -25 bp after sixty flat prints is a step, not a flag ({s})")
+    check("fred.effr_daily" in steps
+          and not any(f.get("key") == "fred.effr_daily" for f in r["flags"]),
+          "the daily effective rate's step back down likewise")
+    line = quality.step_line(s) if s else ""
+    check(line.startswith("Data check (step): ") and "a step of −25 bp" in line
+          and line.endswith("informational, never a flag"),
+          f"the step line: '{line}'")
+    check("steps (policy rates; informational, never flags): 2" in quality.report(r)
+          and "backfill (the history writer's rows; never revisions)" in quality.report(r),
+          "the table prints both sections")
+    check(not any("(step)" in x for x in quality.close_warnings(DAY, db)),
+          "a step never reaches the close's Warnings table")
+
+
 def main() -> int:
     print(f"{LINE}\nAUD-3c: the data-quality check, on a synthetic store\n{LINE}")
     td = gate_mkdtemp("validate_quality_")
@@ -337,6 +418,7 @@ def main() -> int:
     group_d(db)
     group_e(td, db)
     group_f(td, db)
+    group_g(td)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

@@ -26,6 +26,14 @@ does both, and only reads.
      VIXCLS, on the latest date both hold: a gap beyond the pair's measured
      tolerance flags. A pair with no measured tolerance prints "not measured".
 
+RULED 15 OCT 2026:
+  BACKFILL. A row whose source is a declared backfill string (fred:backfill,
+     the FRED-history writer's) is labelled "backfill": never a revision, and
+     never a new print the outlier rule judges.
+  STEP SERIES. A policy rate (config `steps`) moves in steps, so it does not take
+     the standard-deviation rule: a change on the date prints as an
+     informational "step" line and never flags.
+
 "NEW ON THE DATE" is an observation whose first vintage became available on that
 date in Eastern time (a row with no available_at: its observed_at). A later
 vintage of an observation already stored is a revision, never a new print.
@@ -93,12 +101,12 @@ def et_date(ts: Any) -> Optional[str]:
 
 
 def vintages(conn: sqlite3.Connection, key: str, day: str, limit: int = 2000
-             ) -> dict[str, list[tuple[str, float]]]:
-    """{observed date: [(available Eastern date, value), ...] oldest vintage
-    first}, every vintage available on or before `day`."""
-    out: dict[str, list[tuple[str, float]]] = {}
-    for obs, avail, v in conn.execute(
-            "SELECT observed_at, available_at, value_num FROM observations "
+             ) -> dict[str, list[tuple[str, float, str]]]:
+    """{observed date: [(available Eastern date, value, source), ...] oldest
+    vintage first}, every vintage available on or before `day`."""
+    out: dict[str, list[tuple[str, float, str]]] = {}
+    for obs, avail, v, src in conn.execute(
+            "SELECT observed_at, available_at, value_num, source FROM observations "
             "WHERE registry_key = ? AND instrument IS NULL AND value_num IS NOT NULL "
             "AND observed_at <= ? ORDER BY observed_at DESC, available_at DESC "
             "LIMIT ?", (key, day + "T99", limit)):
@@ -107,7 +115,7 @@ def vintages(conn: sqlite3.Connection, key: str, day: str, limit: int = 2000
         ad = et_date(avail) or str(obs)[:10]
         if ad > day:
             continue
-        out.setdefault(str(obs)[:10], []).append((ad, float(v)))
+        out.setdefault(str(obs)[:10], []).append((ad, float(v), str(src or "")))
     for d in out:
         out[d].sort()
     return out
@@ -140,8 +148,17 @@ def checked_keys(cfg: dict) -> list[str]:
     return keys
 
 
+def backfill_sources(cfg: dict) -> set:
+    return set(cfg.get("backfill_sources") or [])
+
+
+def step_keys(cfg: dict) -> set:
+    return {str(s["key"]) for s in ((cfg.get("steps") or {}).get("series") or [])}
+
+
 def outlier_of(key: str, v: dict, day: str, cfg: dict) -> dict:
-    """{"state": "flag" | "clean" | "skipped" | "not new", ...} for one key."""
+    """{"state": "flag" | "clean" | "skipped" | "not new" | "backfill", ...} for
+    one key."""
     o = cfg.get("outliers") or {}
     sigma, window = float(o.get("sigma") or 6), int(o.get("window") or 60)
     if not v:
@@ -150,6 +167,9 @@ def outlier_of(key: str, v: dict, day: str, cfg: dict) -> dict:
     first_avail = v[newest][0][0]
     if first_avail != day:
         return {"state": "not new"}
+    if v[newest][0][2] in backfill_sources(cfg):
+        # The history writer's row, not a new print from the day's pull.
+        return {"state": "backfill"}
     dates = sorted(v)
     # Each observation at its first vintage: what the series printed, in order.
     vals = [v[d][0][1] for d in dates]
@@ -169,16 +189,53 @@ def outlier_of(key: str, v: dict, day: str, cfg: dict) -> dict:
             "sigma": sigma, "window": window}
 
 
-def revisions_of(key: str, v: dict, day: str) -> list[dict]:
-    """Every vintage written on `day` whose value differs from the vintage before
-    it for the same observation date."""
-    out = []
+def revisions_of(key: str, v: dict, day: str,
+                 backfill: frozenset = frozenset()) -> tuple[list[dict], list[dict]]:
+    """(revisions, backfill): every vintage written on `day` whose value differs
+    from the vintage before it for the same observation date. One whose source is
+    a backfill string is labelled backfill (ruled 15 Oct 2026), never a
+    revision."""
+    revs, bf = [], []
     for d, vs in sorted(v.items()):
-        for (a0, x0), (a1, x1) in zip(vs[:-1], vs[1:]):
+        for (a0, x0, _s0), (a1, x1, s1) in zip(vs[:-1], vs[1:]):
             if a1 == day and abs(x1 - x0) > 1e-12:
-                out.append({"key": key, "observed_at": d, "old": x0, "new": x1,
-                            "old_available": a0, "new_available": a1})
-    return out
+                row = {"key": key, "observed_at": d, "old": x0, "new": x1,
+                       "old_available": a0, "new_available": a1, "source": s1}
+                (bf if s1 in backfill else revs).append(row)
+    return revs, bf
+
+
+def backfill_firsts(key: str, v: dict, day: str, backfill: frozenset) -> int:
+    """How many observations the backfill wrote for the first time on `day`."""
+    return sum(1 for vs in v.values() if vs[0][0] == day and vs[0][2] in backfill)
+
+
+def step_of(key: str, v: dict, day: str) -> Optional[dict]:
+    """A step series' change on the date: informational, never a flag."""
+    if not v:
+        return None
+    newest = max(v)
+    if v[newest][0][0] != day:
+        return None
+    dates = sorted(v)
+    if len(dates) < 2:
+        return None
+    a, b = v[dates[-2]][0][1], v[newest][0][1]
+    if abs(b - a) < 1e-12:
+        return None
+    from . import derived                                       # noqa: PLC0415
+    du = derived.delta_unit_for(key)[0]
+    return {"key": key, "observed_at": newest, "prior_at": dates[-2], "prior": a,
+            "level": b, "change": round((b - a) * (100.0 if du == "bps" else 1.0), 4),
+            "unit": "bp" if du == "bps" else du}
+
+
+def step_line(s: dict) -> str:
+    sign = "+" if s["change"] > 0 else "−"
+    return (f"Data check (step): {_label(s['key'])} ({s['key']}) {_num(s['level'])} "
+            f"from {_num(s['prior'])} on {_short(s['observed_at'])}, a step of "
+            f"{sign}{_num(abs(s['change']))} {s['unit']} -- informational, never a "
+            f"flag")
 
 
 def measure_gaps(gaps: list[float], percentile: float, floor: float) -> dict:
@@ -254,14 +311,26 @@ def check(db: str, day: Optional[str] = None, cfg: Optional[dict] = None) -> dic
     conn = open_ro(db)
     try:
         outliers, skipped, revisions, n = [], [], [], 0
+        backfill, steps = [], []
+        bfs, sks = frozenset(backfill_sources(cfg)), step_keys(cfg)
         for key in checked_keys(cfg):
             v = vintages(conn, key, day)
             if not v:
                 continue
             if key.startswith("fred."):
-                revisions += revisions_of(key, v, day)
+                revs, bf = revisions_of(key, v, day, bfs)
+                revisions += revs
+                backfill += bf
+                firsts = backfill_firsts(key, v, day, bfs)
+                if firsts:
+                    backfill.append({"key": key, "first_written": firsts})
+            if key in sks:
+                st = step_of(key, v, day)
+                if st and v[st["observed_at"]][0][2] not in bfs:
+                    steps.append(st)
+                continue
             res = outlier_of(key, v, day, cfg)
-            if res["state"] == "not new":
+            if res["state"] in ("not new", "backfill"):
                 continue
             if res["state"] == "skipped":
                 skipped.append({"key": key, "why": res["why"]})
@@ -283,7 +352,8 @@ def check(db: str, day: Optional[str] = None, cfg: Optional[dict] = None) -> dic
              + [dict(p, kind="pair") for p in pairs if p["flagged"]])
     return {"db": db, "day": day, "config_version": cfg.get("version"),
             "checked": n, "outliers": outliers, "skipped": skipped,
-            "revisions": revisions, "pairs": pairs, "flags": flags}
+            "revisions": revisions, "backfill": backfill, "steps": steps,
+            "pairs": pairs, "flags": flags}
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +401,20 @@ def report(r: dict) -> str:
     for x in r["revisions"]:
         out.append(f"       {x['key']} {x['observed_at']}: {x['old']:g} "
                    f"(stored {x['old_available']}) -> {x['new']:g}")
+    bf_rows = [x for x in r.get("backfill") or [] if "old" in x]
+    bf_new = [x for x in r.get("backfill") or [] if "first_written" in x]
+    out.append(f"  backfill (the history writer's rows; never revisions): "
+               f"{len(bf_rows)} restated, {sum(x['first_written'] for x in bf_new)} "
+               f"written first, across "
+               f"{len({x['key'] for x in r.get('backfill') or []})} key(s)")
+    for x in bf_rows[:8]:
+        out.append(f"       {x['key']} {x['observed_at']}: {x['old']:g} -> "
+                   f"{x['new']:g} ({x['source']})")
+    if len(bf_rows) > 8:
+        out.append(f"       ... and {len(bf_rows) - 8} more")
+    out.append(f"  steps (policy rates; informational, never flags): "
+               f"{len(r.get('steps') or [])}")
+    out += [f"       {step_line(s)}" for s in r.get("steps") or []]
     out.append(f"  3. cross-source pairs: {sum(1 for p in r['pairs'] if p['flagged'])}"
                f" flagged of {len(r['pairs'])}")
     for p in r["pairs"]:

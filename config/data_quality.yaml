@@ -48,7 +48,8 @@ pairs:
     disagreements -- a close taken at a different minute, a vendor's rounding --
     inside, and flags a gap the pair has shown on fewer than one day in a hundred.
   floor_reason: >-
-    Session-set. ^VIX and VIXCLS agree to the float on 1,028 of 1,029 shared
+    RULED 15 Oct 2026 (Ari, AUD-3c answer 1): the floor is the quote's
+    precision. ^VIX and VIXCLS agree to the float on 1,028 of 1,029 shared
     days, so their 99th percentile is 0.0000012 points; flagging any gap above
     that would flag a one-cent rounding difference. The floor is the quote's own
     precision: 0.01 points for the VIX, 0.01 (one basis point) for a yield.
@@ -65,10 +66,11 @@ pairs:
       measured_on: null
       measured_window: null
       unmeasured_reason: >-
-        The laptop's copy of the store (to 25 Sep 2026) holds no ^TNX close:
-        the tape's yields joined the closes on 4 Oct (T2.1). Measure on the box
-        after the merge (the notes' box command) and record it here. Until then
-        the pair is printed "not measured" and never flags.
+        Ruled 15 Oct 2026: measured on the box after the price backfill and the
+        FRED history have run (week of 19 Oct), when the pair shares hundreds of
+        days, not on the two weeks it shares now (the tape's yields joined the
+        closes on 4 Oct). The command is in docs/briefs/aud-3c-notes.md. Until
+        then the pair prints "not measured" and never flags.
     - id: tyx_dgs30
       a: yfinance.mkt_tyx
       a_label: "^TYX"
@@ -81,8 +83,8 @@ pairs:
       measured_on: null
       measured_window: null
       unmeasured_reason: >-
-        As ^TNX: no ^TYX close on the laptop's copy of the store. Measure on the
-        box after the merge.
+        As ^TNX (ruled 15 Oct 2026): measured on the box after the price backfill
+        and the FRED history have run. Until then "not measured", never a flag.
     - id: vix_vixcls
       a: yfinance.mkt_vix
       a_label: "^VIX"
@@ -98,6 +100,30 @@ pairs:
       measured_p99: 0.0000012
       measured_on: "2026-10-15"
       measured_window: "2022-04-21 to 2026-05-28 (1,029 shared days)"
+
+# BACKFILL (ruled 15 Oct 2026, AUD-3c answer 3). Rows written under these
+# source strings are the FRED-history writer's (aud-3d-fred-history, session B):
+# a restated value is labelled "backfill", never a revision, and an observation
+# it writes first is never a new print for the outlier rule.
+backfill_sources: ["fred:backfill"]
+
+# STEP SERIES (ruled 15 Oct 2026, AUD-3c answer 4). A policy rate moves in steps:
+# flat for months, then 25 bp. Its last 60 changes are mostly zero, so the
+# standard-deviation rule would flag every decision. A step series' change
+# prints as an informational "step" line in the check's table and never flags
+# (the close's Warnings table prints flags only).
+steps:
+  reason: >-
+    Ruled: IORB, the ECB deposit rate and Japan's call rate, "and any other
+    policy rate". The session added the effective fed funds rate, daily (DFF)
+    and as a monthly average (FEDFUNDS): each moves with the target range, a
+    step a decision at a time.
+  series:
+    - {key: fred.iorb,         why: "interest on reserve balances, set by the Fed"}
+    - {key: fred.ecb_dfr,      why: "the ECB deposit facility rate, set by the ECB"}
+    - {key: fred.jp_call_rate, why: "Japan's call rate, held at the BoJ's target"}
+    - {key: fred.effr_daily,   why: "effective fed funds, daily: moves with the target range"}
+    - {key: fred.fed_funds,    why: "effective fed funds, monthly average: steps with the target"}
 
 # THE CLOSE. The day's flags print in the close's Warnings table, one line each,
 # at most `close_lines` of them and then a count; nothing on a clean day.

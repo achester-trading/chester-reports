@@ -166,3 +166,36 @@ Compared against each branch's own changes since its base:
 
 - aud-3a-catalogue: #420 (`6d90f20`, part 1) failed `validate_events` on a literal unit; fixed in `3c85b21` (see `docs/briefs/aud-3a-notes.md`).
 - This branch: see the line below.
+- **#423** (`7824207`): **green, every check.** aud-3a's fix, #422 (`3c85b21`), is green too.
+
+## 15 Oct
+
+Ari's answers to the four needs-you items, built on this branch.
+
+1. **The VIX pair keeps the 0.01 floor**, the quote's precision. `config/data_quality.yaml`'s `floor_reason` now opens "RULED 15 Oct 2026".
+2. **^TNX and ^TYX are measured on the box after next week's price backfill and FRED history have run**, when the pairs share hundreds of days. Until then they print "not measured" and never flag, and both pairs' `unmeasured_reason` says so. The command for that day, inside a window, read-only:
+
+   ```
+   cd ~/chester-reports && .venv/bin/python -m altdata.quality measure --db data/chester.db
+   ```
+
+   Its `tnx_dgs10` and `tyx_dgs30` lines give the shared days, the window, p99, the max gap and the tolerance with the 0.01 floor. Record each as `tolerance`, `measured_on` and `measured_window` on its pair: a one-line change each.
+3. **Rows whose source is `fred:backfill`** (session B's FRED-history writer) are labelled "backfill", never revisions.
+   - `backfill_sources: ["fred:backfill"]` is declared in the config.
+   - A restated value under that string goes to the table's backfill section.
+   - An observation the backfill writes for the first time is counted there too, and is never judged as the day's new print by the outlier rule.
+   - The pull's own restatements are still revisions.
+4. **Step series don't take the standard-deviation rule.** The config's `steps` declares IORB, the ECB deposit rate and Japan's call rate (ruled), plus two the session added as "any other policy rate": the effective fed funds rate daily (DFF) and as a monthly average (FEDFUNDS), each with its reason. A change in one prints as an informational line in the check's table, for example `Data check (step): iorb (fred.iorb) 4.4 from 4.65 on 14 Oct, a step of −25 bp -- informational, never a flag`. It never flags. **It doesn't print in the close:** the Warnings table carries flags only. Say if you want steps there too.
+
+**Gates, locally:** validate_quality **48/0**. Group G (12 checks) is new:
+- the floor ruling;
+- the two pairs waiting for the box;
+- the declared steps and the backfill string;
+- a `fred:backfill` restatement labelled backfill, not a revision, while U-3's own restatement on the same day is still a revision;
+- the backfill's first-written day, 3 points off, not judged;
+- IORB's −25 bp after sixty flat prints is a step and not a flag, and the daily effective rate's step likewise;
+- the step line's text;
+- both table sections;
+- no step in the close's Warnings.
+
+**CI for this commit:** see the line below.
