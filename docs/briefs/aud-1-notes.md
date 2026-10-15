@@ -505,8 +505,9 @@ The heartbeat gate's fixtures:
   call into `--capture-only` and `--skip-fetch` passes. The order was still
   right (the attribution follows the compute pass). The check now reads "after
   the last run_eod.py pass"; locally 82/0.
-- `e660f80` (the changes): **CI #399 failed**, and `2420fba` (the attribution
-  fix): **CI #400 failed**, both on one check in validate_systemd_units (84/1):
+- `e660f80` (the changes): **CI #399 failed** on the attribution check above
+  and on one check in validate_systemd_units; `2420fba` (the attribution fix):
+  **CI #400 failed** on the units check alone (84/1):
   "chester-backup.service reaches a secret but has no EnvironmentFile=". The
   sweep reaches no secret. The gate follows any `tools/<name>.py` path a wrapper
   names, and the new header comment named `tools/validate_backup.py`, whose
@@ -514,7 +515,7 @@ The heartbeat gate's fixtures:
   and the other new comment names the FRED compaction without its module path.
   No behaviour changed. Every other gate passed in #399 and #400, the
   heartbeat gate and validate_attribution among them.
-- The comment fix: CI number in the report below.
+- `ead3a53` (the comment fix): **CI #408 green.**
 
 ### Needs you
 
