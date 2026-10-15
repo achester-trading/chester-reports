@@ -60,6 +60,12 @@ codes:
     mic: IEXG
     mic_line: '"IEXG","IEXG","OPRT","INVESTORS EXCHANGE"'
 
-# Seen in otherlisted.txt on 2026-10-15 (17 listings) but NOT defined on the
-# definitions page: no MIC and venue OTHER until a source names it.
-unverified_codes: [F]
+  F:
+    meaning: "the Texas Stock Exchange (TXSE): \"SIP participant ID F\""
+    meaning_sources:
+      - "https://www.txse.com/regulations/id-codes -- \"SIP participant ID F\"; \"MIC code (exchange) TXSE\""
+      - "https://www.txse.com/alerts/texas-stock-exchange-to-operate-as-a-primary-listing-market (17 Jun 2026) -- \"TXSE-listed securities will be identified by Securities Information Processor (SIP) listing market code \"F\"\""
+    venue: TXSE
+    mic: TXSE
+    mic_line: "MIC code (exchange) TXSE -- TXSE's own page above; not yet read in ISO 10383's CSV"
+    note: "Seen in otherlisted.txt on 2026-10-15 (17 listings); not on Nasdaq Trader's definitions page (ruled 15 Oct, answer 1)"

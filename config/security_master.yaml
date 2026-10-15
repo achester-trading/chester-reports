@@ -3376,7 +3376,7 @@ instruments:
   identifiers:
     ticker: BNT
   aliases: []
-  active_from: '2024-01-01'
+  active_from: null
   active_to: null
   sources:
     identifiers: config/tracked_entities.yaml
@@ -3386,8 +3386,22 @@ instruments:
       (2026-10-15)'
     exchange: Nasdaq Trader symbol directories, File Creation Time 1015202607:00 (2026-10-15), code N
       -> config/listing_exchanges.yaml
+    ticker_history: 'BAMR -> BNRE: SEC 6-K, CIK 1837429, accession 0001193125-22-304958 (exhibit 99.2,
+      14 Dec 2022) -- "began trading under the name Brookfield Reinsurance Ltd. and the trading symbol
+      "BNRE" at market open on December 14, 2022"; BNRE -> BNT: SEC 6-K, accession 0001193125-24-215174
+      (exhibit 99.1, 6 Sep 2024) -- "the trading symbol "BNT" at market open on September 6, 2024"'
   unverified:
   - multiplier
+  ticker_history:
+  - ticker: BAMR
+    from: null
+    to: '2022-12-13'
+  - ticker: BNRE
+    from: '2022-12-14'
+    to: '2024-09-05'
+  - ticker: BNT
+    from: '2024-09-06'
+    to: null
 - id: SM00167
   name: Brookfield Reinsurance Ltd.
   asset_class: equity
@@ -3403,10 +3417,13 @@ instruments:
     identifiers: config/tracked_entities.yaml
     asset_class: https://www.sec.gov/Archives/edgar/data/1837429/000183742924000006/R1.htm -- "Class A
       Exchangeable Limited Voting Shares"
+    merged_into: the same security as BNT under its former ticker (one SEC registrant, CIK 1837429); 15
+      Oct, answer 2
   unverified:
   - currency
   - exchange
   - multiplier
+  merged_into: SM00166
 - id: SM00168
   name: Brookfield Asset Management Reinsurance
   asset_class: equity
@@ -3422,10 +3439,13 @@ instruments:
     identifiers: config/tracked_entities.yaml
     asset_class: https://www.sec.gov/Archives/edgar/data/1837429/000183742922000004/R1.htm -- "Class A
       Exchangeable Limited Voting Shares"
+    merged_into: the same security as BNT under its former ticker (one SEC registrant, CIK 1837429); 15
+      Oct, answer 2
   unverified:
   - currency
   - exchange
   - multiplier
+  merged_into: SM00166
 - id: SM00169
   name: Brookfield Renewable Partners L.P.
   asset_class: equity

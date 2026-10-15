@@ -589,3 +589,113 @@ MEME_SM_EXPORT=/home/ari/chester-data/export/security_master.json
 8. **For the refresh:**
    - the heartbeat watches the listings snapshot's date (answer 7);
    - the call sites move onto the master, the yfinance basket first (answer 9).
+
+### 15 Oct, later: Ari's answers to the needs-you list above
+
+1. **Exchange code F is the Texas Stock Exchange.** `config/listing_exchanges.yaml`
+   maps F to MIC TXSE and venue TXSE. It cites TXSE's two pages, both read
+   today:
+   - https://www.txse.com/regulations/id-codes: "SIP participant ID F", "MIC code
+     (exchange) TXSE";
+   - https://www.txse.com/alerts/texas-stock-exchange-to-operate-as-a-primary-listing-market
+     (17 Jun 2026): "TXSE-listed securities will be identified by Securities
+     Information Processor (SIP) listing market code "F"".
+
+   chester-meme's contract already lists the TXSE venue. TXSE's MIC was not
+   cross-read in ISO 10383's CSV; the entry says so.
+2. **BAMR, BNRE and BNT are one entry**, SM00166, with a ticker history. Each
+   change is confirmed in the registrant's EDGAR filings (CIK 1837429):
+
+   | Ticker | Window | Filing |
+   |---|---|---|
+   | BAMR | to 2022-12-13 | |
+   | BNRE | 2022-12-14 to 2024-09-05 | 6-K, accession 0001193125-22-304958, exhibit 99.2: "began trading under the name Brookfield Reinsurance Ltd. and the trading symbol "BNRE" at market open on December 14, 2022" |
+   | BNT | from 2024-09-06 | 6-K, accession 0001193125-24-215174, exhibit 99.1: "the trading symbol "BNT" at market open on September 6, 2024" |
+
+   - The release of 9 Dec 2022 (filed as 0001171843-22-007961) said only
+     "expected… on or around"; the 6-K above confirms the date. GlobeNewswire
+     refused the fetch.
+   - The 20-F for 2024's first half names no change date; the 6-K of 6 Sep 2024
+     does.
+   - BNRE (SM00167) and BAMR (SM00168) keep their ids, `merged_into: SM00166`.
+   - All three are restricted on every date. A bare BNRE or BAMR today is caught
+     by the blocklist fallback.
+3. **BBU's last trading day and BIRET's class stay unverified.** The OTHER types
+   and the unmapped list wait for the box's first mapping.
+
+Gate: validate_security_master **82/0**. It now checks that the three tickers
+resolve to one restricted entry by date, and F → TXSE.
+
+#### chester-meme, read only (C:\Users\arich\projects\chester-meme at a4bf7a1)
+
+**a. The guard (R-T1a-3) and a `1900-01-01` row carrying `from_known`.**
+- `src/meme/sm.py:59-61` requires only `ticker` and `effective_from` on a row.
+- The import, `sm.py:111-114`, stores `security_id, ticker, effective_from,
+  effective_to` and nothing else, so **`from_known` is ignored and harmless**.
+- The guard reads the export through `src/meme/sm_guard.py:55-62`
+  (`export_intervals`: ticker → figi, from, to, type).
+- A ticker is examined only when `_reassigned`, `sm_guard.py:65-68`: more than
+  one holder, any closed row, or a first start AFTER the stored history begins.
+  - A single holder from `1900-01-01` with no end is never examined
+    (`:85-86`).
+  - Where a ticker is examined, a row whose date falls in its own security's
+    interval is "one holder, the row's security" and is **left exactly as it
+    is** (`:91-97`).
+- So yes: the sentinel keeps the present assumption, and a backfilled row is
+  untouched when the export's only holder is the row's own security.
+- **One consequence to know:**
+  - A holder whose KNOWN start is later than the stored history makes its ticker
+    examined.
+  - Rows on that ticker before the start that sit on an export security are set
+    NULL / `ambiguous` (`:108-116`).
+  - That is why a start stated too late wipes history. The export's starts are
+    real dates where known, and the snapshot date for a listing first seen after
+    the first snapshot.
+  - The snapshot date is exact when the mornings are consecutive trading days. It
+    would be late by any morning the 06:45 job missed, so for those days a guard
+    run would null the new listing's rows. Needs-you 9.
+
+**b. How chester-meme reads MEME_SM_EXPORT.**
+- From the process environment: `src/meme/config.py:35-37`,
+  `os.environ["MEME_SM_EXPORT"]` overriding `config/meme.toml:12`
+  (`sm_export = "exports/security_master.json"`, relative to the checkout).
+- On the box, in user mode, its units fill the environment from an env file:
+  `deploy/systemd-user/meme-scan-evening.service:8` (and `meme-scan-morning.service:8`),
+  `EnvironmentFile=%h/.config/chester-meme/meme.env`.
+- That file is not in git and is edited by hand (`deploy/install-user.sh:16,
+  51-52`).
+- The units carry no sandboxing that would hide `~/chester-data`.
+- **The line and the place, for Ari.** Add this one line to
+  `~/.config/chester-meme/meme.env` on the box:
+
+```
+MEME_SM_EXPORT=/home/ari/chester-data/export/security_master.json
+```
+
+  Then check it with chester-meme's own command (install-user.sh:52):
+  `~/chester-meme/.venv/bin/python -m meme env-check --env-file ~/.config/chester-meme/meme.env`.
+  The next `meme-scan-evening` run reads it, because the env file is read at each
+  start.
+
+**c. Does chester-meme hold its own copy of the Brookfield restriction? No.**
+- A search of `src/` and `config/` for "brookfield", "restricted" and "blocklist"
+  finds nothing but a comment in `config/phrases.toml:2` ("restricted to
+  `forms`").
+- The import (`sm.py:99-114`) does not store the export's `restricted` field, and
+  the contract does not define it.
+- Nothing in chester-meme stops it from writing a packet for BN or any name of the
+  complex. **Needs-you 10.**
+
+#### Needs you, added
+
+9. **The new-listing start date.** If a morning's snapshot is missed, the start is
+   late by those days, and chester-meme's guard would null them. keep the
+   snapshot date / use the day after the previous snapshot
+10. **chester-meme has no Brookfield restriction.**
+    - It needs one on its own side: a copy of the rule, or reading the export's
+      `restricted` field into its packet path.
+    - Alternatively, the contract adds `restricted`.
+    - Until then a packet for a restricted name is possible there. chester-reports'
+      register still blocks any recommendation written through it.
+
+CI: in the report. **This branch now passes to session A for the stitch.**

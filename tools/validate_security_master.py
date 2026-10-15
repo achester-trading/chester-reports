@@ -182,6 +182,17 @@ def group_c(m: Master) -> None:
           and m.resolve("SPCK", "ticker", TODAY)["id"] == a["id"],
           f"SPCX: {a['id']} ({a['name']}, SPCK from 2026-04-07) before; {b['id']} "
           f"({b['name']}) from 2026-06-12")
+    w = [m.resolve(t, "ticker", d)["id"] for t, d in
+         (("BAMR", "2022-06-01"), ("BNRE", "2023-06-01"), ("BNT", TODAY))]
+    check(len(set(w)) == 1 and m.by_id(w[0])["restricted"]
+          and "0001193125-22-304958" in m.by_id(w[0])["sources"]["ticker_history"]
+          and m.is_restricted("BNRE") and m.is_restricted("BAMR"),
+          f"BAMR (to 13 Dec 2022), BNRE (to 5 Sep 2024) and BNT are one entry ({w[0]}), "
+          f"each change cited to the registrant's 6-K; all three restricted")
+    from altdata import sm_export  # noqa: PLC0415
+    check(sm_export.venue_of("F", sm_export.exchanges()) == "TXSE"
+          and sm_export.exchanges()["codes"]["F"]["mic"] == "TXSE",
+          "exchange code F is the Texas Stock Exchange: MIC TXSE, venue TXSE")
     try:
         m.resolve("SPCX", "ticker", "2026-05-01")
         bad("SPCX resolved between the ETF's change and the listing")
