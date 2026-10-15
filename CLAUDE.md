@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-five code gates (seventy-two Python,
+**`make validate` runs every gate** — seventy-six code gates (seventy-three Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -330,6 +330,17 @@ shares and rates of change carry their own unit in their block (`member_units`,
 pp); its yields, rates and spreads keep bp (15 Oct 2026). The move screen pins
 the volatility indexes and SKEW to log changes in `config/move_screen.yaml`. `tools/validate_audit_3a.py`
 holds the counts this file prints against the code.
+
+**A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
+`python -m altdata.quality check [--date D] [--db PATH]` opens the store
+read-only after each pull and lists three things: an outlier (a price's or a FRED
+series' new print past 6 standard deviations of its last 60 changes, measured by
+its own delta rule and the move screen's pinned basis), a revision (a FRED value
+restated for the same observation date: listed, never flagged), and a
+cross-source gap (^TNX/DGS10, ^TYX/DGS30, ^VIX/VIXCLS past the pair's measured
+tolerance). The close prints the day's flags in its Warnings table, at most five
+and a count, nothing on a clean day; a flag never blocks a report or changes a
+value. The numbers live in `config/data_quality.yaml`, each with its reason.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

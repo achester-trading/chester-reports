@@ -278,6 +278,15 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
+    # THE DATA CHECK (AUD-3c, 15 Oct 2026): the day's outlier and cross-source
+    # flags, read-only, after the EOD capture, as Warnings lines -- at most five
+    # and a count, nothing on a clean day. A prompt to look: it never blocks the
+    # close or withholds a number, and a check that cannot run prints nothing.
+    from altdata import quality                                 # noqa: PLC0415
+    dq = quality.close_warnings(sess, db_path)
+    report["data_check"] = dq
+    if dq:
+        p = dict(p, warnings=list(p.get("warnings") or []) + dq)
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()

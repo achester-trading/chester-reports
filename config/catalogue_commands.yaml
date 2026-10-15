@@ -90,6 +90,9 @@ commands:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
     sources: [derived_probability]
+  altdata.quality:
+    domain: reference
+    line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'
   altdata.rates_anchors:
     domain: rates
     line: THE 10-YEAR ANCHORS LENS and the adjudication of the four voices on the 10-year top

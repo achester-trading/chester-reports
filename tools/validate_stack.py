@@ -27,6 +27,9 @@ a real position or a real price:
   G LEDGER     outlooks are computed from stored closes, recorded before printing,
                recorded once per session, and NOT recorded on a dry run.
   H SCORECARD  the dealer-scorecard row the Monthly will read is stored.
+  I WARNINGS   the data check (AUD-3c): a clean fixture day prints no "Data
+               check:" line; a day with ^VIX and VIXCLS apart past their
+               tolerance prints it in the Warnings table, read-only.
 """
 
 from __future__ import annotations
@@ -673,6 +676,29 @@ def main() -> int:
     with observations.ObservationStore(db3) as st:
         check(st.latest_as_of(stack_close.SCORECARD_KEY, instrument="SPY") is None,
               "and a dry run stores none")
+
+    # --- I. WARNINGS: THE DATA CHECK (AUD-3c) -------------------------------------
+    print(f"\n{LINE}\nI. THE DATA CHECK IN THE WARNINGS TABLE\n{LINE}")
+    check(out1["report"].get("data_check") == [] and "Data check:" not in html1,
+          "a clean fixture day: no data-check line, and the Warnings table does "
+          "not print one")
+    db5 = str(Path(td) / "flagged.db")
+    s5 = seed(db5)
+    days5 = [d.isoformat() for d in weekdays_back(dt.date.fromisoformat(SESSION), 3)]
+    with observations.ObservationStore(db5) as st:
+        st.write_many([{"registry_key": k, "instrument": None, "observed_at": d,
+                        "available_at": f"{d}T21:00:00+00:00", "value": v,
+                        "source": "synthetic"}
+                       for d in days5 for k, v in (("yfinance.mkt_vix", 21.3),
+                                                   ("fred.vix", 22.1))])
+    o5 = stack_close.produce(payload(s5["market_state"]), archive_dir=None,
+                             dry_run=True, client=clean, db_path=db5)
+    dq = o5["report"].get("data_check") or []
+    check(len(dq) == 1 and dq[0].startswith("Data check: ^VIX 21.3 vs VIXCLS 22.1 on ")
+          and dq[0].endswith("beyond its 0.01-point tolerance"),
+          f"a flagged day: the pair's line ({dq})")
+    check(stack_render.esc(dq[0]) in o5["html_email"] if dq else False,
+          "printed in the close's Warnings table")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

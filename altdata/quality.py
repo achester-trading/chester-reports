@@ -1,0 +1,406 @@
+"""
+THE DATA-QUALITY CHECK, READ-ONLY, AFTER EACH PULL. (AUD-3c, 15 Oct 2026; the
+data and architecture audit of 14 Oct, recommendation 14.)
+
+    python -m altdata.quality check   [--date D] [--db PATH]   # the day's table
+    python -m altdata.quality measure [--to D]   [--db PATH]   # the pairs' tolerances
+
+Config: config/data_quality.yaml (every number session-set, each with its reason).
+
+A bad print -- a decimal slip, a stale close, a vendor's unit change -- entered the
+store and the reports as if it were real: nothing between the pull and the page
+compared a print with the key's own history or with a second source. This module
+does both, and only reads.
+
+  1. OUTLIERS. Every price (the closes block) and every FRED series with a new
+     observation on the date: its change against the standard deviation of its
+     own last 60 changes, flagged past 6 of them. A change is measured by the
+     key's own delta rule through the move screen's unit_rule -- log for a price,
+     a difference for a yield, a rate or a spread, and the move screen's pinned
+     log basis for the volatility indexes and SKEW (config/move_screen.yaml). A
+     key with fewer than 60 changes, or none of any size, is skipped and named.
+  2. REVISIONS. A FRED value that differs from the value stored earlier for the
+     same observation date, written on the date, is a revision: listed with its
+     old and new values, never flagged as an outlier.
+  3. CROSS-SOURCE PAIRS. ^TNX against DGS10, ^TYX against DGS30, ^VIX against
+     VIXCLS, on the latest date both hold: a gap beyond the pair's measured
+     tolerance flags. A pair with no measured tolerance prints "not measured".
+
+"NEW ON THE DATE" is an observation whose first vintage became available on that
+date in Eastern time (a row with no available_at: its observed_at). A later
+vintage of an observation already stored is a revision, never a new print.
+
+READ-ONLY. The store is opened with SQLite's mode=ro; nothing here writes, and
+no value is ever changed. A flag is a prompt to look: the close prints the day's
+flags in its Warnings table (close_warnings) and never blocks, withholds or
+alters a number. Exit codes: 0 clean, 1 flags, 2 the store cannot be opened.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import math
+import sqlite3
+import statistics
+import sys
+from pathlib import Path
+from typing import Any, Optional
+from zoneinfo import ZoneInfo
+
+import yaml
+
+REPO = Path(__file__).resolve().parent.parent
+CONFIG_PATH = REPO / "config" / "data_quality.yaml"
+ET = ZoneInfo("America/New_York")
+
+
+def load_config(path: Optional[Path] = None) -> dict:
+    with open(path or CONFIG_PATH, encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
+# ---------------------------------------------------------------------------
+# The store, read-only
+# ---------------------------------------------------------------------------
+def default_db() -> str:
+    from . import observations                                  # noqa: PLC0415
+    return observations.DEFAULT_DB
+
+
+def open_ro(db: str) -> sqlite3.Connection:
+    """The store, read-only. Raises when it does not exist or is no database; a
+    missing file is never created."""
+    p = Path(db)
+    if not p.is_file():
+        raise FileNotFoundError(f"no store at {db}")
+    conn = sqlite3.connect(p.resolve().as_uri() + "?mode=ro", uri=True)
+    conn.execute("SELECT name FROM sqlite_master LIMIT 1").fetchall()
+    return conn
+
+
+def et_date(ts: Any) -> Optional[str]:
+    """The Eastern date of an ISO instant, or None."""
+    if not ts:
+        return None
+    try:
+        t = dt.datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except ValueError:
+        return str(ts)[:10]
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=dt.timezone.utc)
+    return t.astimezone(ET).date().isoformat()
+
+
+def vintages(conn: sqlite3.Connection, key: str, day: str, limit: int = 2000
+             ) -> dict[str, list[tuple[str, float]]]:
+    """{observed date: [(available Eastern date, value), ...] oldest vintage
+    first}, every vintage available on or before `day`."""
+    out: dict[str, list[tuple[str, float]]] = {}
+    for obs, avail, v in conn.execute(
+            "SELECT observed_at, available_at, value_num FROM observations "
+            "WHERE registry_key = ? AND instrument IS NULL AND value_num IS NOT NULL "
+            "AND observed_at <= ? ORDER BY observed_at DESC, available_at DESC "
+            "LIMIT ?", (key, day + "T99", limit)):
+        if v is None or (isinstance(v, float) and not math.isfinite(v)):
+            continue
+        ad = et_date(avail) or str(obs)[:10]
+        if ad > day:
+            continue
+        out.setdefault(str(obs)[:10], []).append((ad, float(v)))
+    for d in out:
+        out[d].sort()
+    return out
+
+
+# ---------------------------------------------------------------------------
+# The rules
+# ---------------------------------------------------------------------------
+def change(a: float, b: float, basis: str) -> Optional[float]:
+    """b against a, by the move screen's own arithmetic."""
+    from . import move_screen                                   # noqa: PLC0415
+    return move_screen.change(a, b, basis)
+
+
+def basis_of(key: str) -> str:
+    """"log" or "diff": the key's delta rule, with the move screen's pins."""
+    from . import move_screen                                   # noqa: PLC0415
+    return move_screen.unit_rule(key)
+
+
+def checked_keys(cfg: dict) -> list[str]:
+    """Every key in the configured blocks: the closes and every FRED block."""
+    from . import derived                                       # noqa: PLC0415
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    by: dict = {}
+    derived.resolve_registry(reg, by)
+    keys: list[str] = []
+    for b in (cfg.get("outliers") or {}).get("blocks") or []:
+        keys += [k for k in by.get(b) or [] if k not in keys]
+    return keys
+
+
+def outlier_of(key: str, v: dict, day: str, cfg: dict) -> dict:
+    """{"state": "flag" | "clean" | "skipped" | "not new", ...} for one key."""
+    o = cfg.get("outliers") or {}
+    sigma, window = float(o.get("sigma") or 6), int(o.get("window") or 60)
+    if not v:
+        return {"state": "not new"}
+    newest = max(v)
+    first_avail = v[newest][0][0]
+    if first_avail != day:
+        return {"state": "not new"}
+    dates = sorted(v)
+    # Each observation at its first vintage: what the series printed, in order.
+    vals = [v[d][0][1] for d in dates]
+    basis = basis_of(key)
+    ch = [change(a, b, basis) for a, b in zip(vals[:-1], vals[1:])]
+    if len(ch) < window + 1 or any(c is None for c in ch[-(window + 1):]):
+        return {"state": "skipped", "why": f"{len(vals)} observations; "
+                f"{window + 1} needed for {window} changes and the day's"}
+    hist, last = ch[-(window + 1):-1], ch[-1]
+    sd = statistics.stdev(hist)
+    if sd == 0 or not math.isfinite(sd):
+        return {"state": "skipped", "why": f"no variation in its last {window} changes"}
+    k = abs(last) / sd
+    return {"state": "flag" if k > sigma else "clean", "key": key, "basis": basis,
+            "observed_at": newest, "level": vals[-1], "prior": vals[-2],
+            "prior_at": dates[-2], "change": last, "sd": sd, "sigmas": round(k, 2),
+            "sigma": sigma, "window": window}
+
+
+def revisions_of(key: str, v: dict, day: str) -> list[dict]:
+    """Every vintage written on `day` whose value differs from the vintage before
+    it for the same observation date."""
+    out = []
+    for d, vs in sorted(v.items()):
+        for (a0, x0), (a1, x1) in zip(vs[:-1], vs[1:]):
+            if a1 == day and abs(x1 - x0) > 1e-12:
+                out.append({"key": key, "observed_at": d, "old": x0, "new": x1,
+                            "old_available": a0, "new_available": a1})
+    return out
+
+
+def measure_gaps(gaps: list[float], percentile: float, floor: float) -> dict:
+    """The tolerance: the `percentile`th percentile of the absolute gaps (linear
+    interpolation between order statistics), floored at the quote's precision."""
+    g = sorted(abs(x) for x in gaps)
+    if not g:
+        return {"n": 0, "p99": None, "tolerance": None, "floored": False}
+    i = (len(g) - 1) * float(percentile) / 100.0
+    lo = int(math.floor(i))
+    hi = min(lo + 1, len(g) - 1)
+    p = g[lo] + (g[hi] - g[lo]) * (i - lo)
+    return {"n": len(g), "p99": p, "tolerance": max(p, float(floor)),
+            "floored": p < float(floor), "max": g[-1]}
+
+
+def _short(day: str) -> str:
+    d = dt.date.fromisoformat(day[:10])
+    return f"{d.day} {d:%b}"
+
+
+def _num(x: float) -> str:
+    return f"{x:,.2f}".rstrip("0").rstrip(".") if abs(x) < 1000 else f"{x:,.0f}"
+
+
+def pair_verdict(pc: dict, a: Optional[float], b: Optional[float], on: Optional[str]
+                 ) -> dict:
+    """One pair on one date: the gap against the tolerance."""
+    base = {"id": pc["id"], "a_label": pc.get("a_label"), "b_label": pc.get("b_label"),
+            "unit": pc.get("unit"), "scale": pc.get("scale") or 1, "on": on,
+            "a": a, "b": b, "tolerance": pc.get("tolerance"), "flagged": False}
+    if a is None or b is None or on is None:
+        return dict(base, state="absent", why="no date both hold")
+    gap = abs(a - b)
+    base["gap"] = gap
+    if pc.get("tolerance") is None:
+        return dict(base, state="not measured",
+                    why=" ".join(str(pc.get("unmeasured_reason") or "").split()))
+    flagged = gap > float(pc["tolerance"]) + 1e-12
+    return dict(base, state="flag" if flagged else "clean", flagged=flagged)
+
+
+def pair_line(p: dict) -> str:
+    tol = float(p["tolerance"]) * float(p.get("scale") or 1)
+    unit = (f"{_num(tol)} bp" if p.get("unit") == "bp"
+            else f"{_num(tol)}-{p.get('unit') or 'point'}")
+    return (f"Data check: {p['a_label']} {_num(p['a'])} vs {p['b_label']} "
+            f"{_num(p['b'])} on {_short(p['on'])}, beyond its {unit} tolerance")
+
+
+def _label(key: str) -> str:
+    from . import move_screen                                   # noqa: PLC0415
+    return move_screen.label_of(key)
+
+
+def flag_line(f: dict) -> str:
+    if f.get("kind") == "pair":
+        return pair_line(f)
+    how = "log change" if f["basis"] == "log" else "change"
+    # The key beside the label: two sources of one fact share a label (the VIX
+    # is both yfinance.mkt_vix and fred.vix), and the key is what to look up.
+    return (f"Data check: {_label(f['key'])} ({f['key']}) {_num(f['level'])} from "
+            f"{_num(f['prior'])} on {_short(f['observed_at'])}, a {how} "
+            f"{f['sigmas']:.1f} times the standard deviation of its last "
+            f"{f['window']} changes")
+
+
+def check(db: str, day: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
+    """The day's three checks, as data. Raises when the store cannot be opened."""
+    from . import session                                       # noqa: PLC0415
+    cfg = cfg if cfg is not None else load_config()
+    day = (day or session.session_date())[:10]
+    conn = open_ro(db)
+    try:
+        outliers, skipped, revisions, n = [], [], [], 0
+        for key in checked_keys(cfg):
+            v = vintages(conn, key, day)
+            if not v:
+                continue
+            if key.startswith("fred."):
+                revisions += revisions_of(key, v, day)
+            res = outlier_of(key, v, day, cfg)
+            if res["state"] == "not new":
+                continue
+            if res["state"] == "skipped":
+                skipped.append({"key": key, "why": res["why"]})
+                continue
+            n += 1
+            if res["state"] == "flag":
+                outliers.append(res)
+        pairs = []
+        for pc in (cfg.get("pairs") or {}).get("list") or []:
+            va, vb = vintages(conn, pc["a"], day), vintages(conn, pc["b"], day)
+            both = sorted(set(va) & set(vb))
+            on = both[-1] if both else None
+            pairs.append(pair_verdict(pc, va[on][-1][1] if on else None,
+                                      vb[on][-1][1] if on else None, on))
+    finally:
+        conn.close()
+    flags = ([dict(f, kind="outlier") for f in
+              sorted(outliers, key=lambda f: -f["sigmas"])]
+             + [dict(p, kind="pair") for p in pairs if p["flagged"]])
+    return {"db": db, "day": day, "config_version": cfg.get("version"),
+            "checked": n, "outliers": outliers, "skipped": skipped,
+            "revisions": revisions, "pairs": pairs, "flags": flags}
+
+
+# ---------------------------------------------------------------------------
+# The close
+# ---------------------------------------------------------------------------
+def close_lines(r: dict, cap: int) -> list[str]:
+    """At most `cap` flag lines, then a count; nothing on a clean day."""
+    fl = r.get("flags") or []
+    out = [flag_line(f) for f in fl[:cap]]
+    if len(fl) > cap:
+        more = len(fl) - cap
+        out.append(f"and {more} more data-check flag{'s' if more != 1 else ''} -- "
+                   f"python -m altdata.quality check --date {r['day']}")
+    return out
+
+
+def close_warnings(day: str, db: Optional[str] = None,
+                   cfg: Optional[dict] = None) -> list[str]:
+    """The close's Warnings lines for the day. Read-only, and never raises: a store
+    it cannot open, or a check that fails, prints nothing -- the check is a prompt
+    to look and must never cost the close its edition."""
+    try:
+        cfg = cfg if cfg is not None else load_config()
+        r = check(db or default_db(), day, cfg)
+        return close_lines(r, int(cfg.get("close_lines") or 5))
+    except Exception:                                           # noqa: BLE001
+        return []
+
+
+# ---------------------------------------------------------------------------
+# The table
+# ---------------------------------------------------------------------------
+def report(r: dict) -> str:
+    line = "=" * 74
+    out = [line, f"The data-quality check -- {r['db']} (read-only), {r['day']}", line,
+           f"  keys with a new print checked : {r['checked']}",
+           f"  1. outliers (past {int(load_config()['outliers']['sigma'])} sigma of "
+           f"the last {int(load_config()['outliers']['window'])} changes): "
+           f"{len(r['outliers'])}"]
+    for f in r["outliers"]:
+        out.append(f"       {f['key']}: {_num(f['prior'])} ({f['prior_at']}) -> "
+                   f"{_num(f['level'])} ({f['observed_at']}), {f['basis']} change "
+                   f"{f['change']:+.6g} = {f['sigmas']:.1f} sd")
+    out.append(f"  2. revisions (listed, never flagged): {len(r['revisions'])}")
+    for x in r["revisions"]:
+        out.append(f"       {x['key']} {x['observed_at']}: {x['old']:g} "
+                   f"(stored {x['old_available']}) -> {x['new']:g}")
+    out.append(f"  3. cross-source pairs: {sum(1 for p in r['pairs'] if p['flagged'])}"
+               f" flagged of {len(r['pairs'])}")
+    for p in r["pairs"]:
+        if p["state"] in ("flag", "clean"):
+            out.append(f"       {p['a_label']} vs {p['b_label']} on {p['on']}: "
+                       f"{_num(p['a'])} vs {_num(p['b'])}, gap {p['gap']:.4g} "
+                       f"against {p['tolerance']:g} -- {p['state'].upper()}")
+        else:
+            out.append(f"       {p['a_label']} vs {p['b_label']}: {p['state']}"
+                       + (f" ({p['why'][:90]})" if p.get("why") else ""))
+    out.append(f"  skipped (too short or flat): {len(r['skipped'])}")
+    for s in r["skipped"][:12]:
+        out.append(f"       {s['key']}: {s['why']}")
+    if len(r["skipped"]) > 12:
+        out.append(f"       ... and {len(r['skipped']) - 12} more")
+    out += ["", "  CLEAN" if not r["flags"] else
+            f"  FLAGS: {len(r['flags'])} -- a prompt to look, never a block", line]
+    return "\n".join(out)
+
+
+def measure(db: str, to: Optional[str] = None, cfg: Optional[dict] = None) -> list[dict]:
+    """Each pair's tolerance over its own shared history to `to`: read-only,
+    printed for the operator to record in config. Writes nothing."""
+    cfg = cfg if cfg is not None else load_config()
+    pcfg = cfg.get("pairs") or {}
+    to = (to or "9999-12-31")[:10]
+    conn = open_ro(db)
+    try:
+        out = []
+        for pc in pcfg.get("list") or []:
+            va, vb = vintages(conn, pc["a"], to, 10 ** 7), vintages(conn, pc["b"], to,
+                                                                   10 ** 7)
+            both = sorted(set(va) & set(vb))
+            m = measure_gaps([va[d][-1][1] - vb[d][-1][1] for d in both],
+                             float(pcfg.get("percentile") or 99),
+                             float(pc.get("floor") or 0))
+            out.append(dict(m, id=pc["id"], first=both[0] if both else None,
+                            last=both[-1] if both else None))
+    finally:
+        conn.close()
+    return out
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    ap = argparse.ArgumentParser(description="The data-quality check (read-only)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("check")
+    c.add_argument("--date", default=None)
+    c.add_argument("--db", default=None)
+    m = sub.add_parser("measure")
+    m.add_argument("--to", default=None)
+    m.add_argument("--db", default=None)
+    a = ap.parse_args(argv)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    db = a.db or default_db()
+    try:
+        if a.cmd == "measure":
+            for x in measure(db, a.to):
+                print(f"{x['id']}: n={x['n']} {x['first']}..{x['last']} "
+                      f"p99={x['p99']} max={x.get('max')} tolerance={x['tolerance']}"
+                      f"{' (floored)' if x['floored'] else ''}")
+            return 0
+        r = check(db, a.date)
+    except (sqlite3.Error, OSError) as exc:
+        print(f"cannot open the store: {type(exc).__name__}: {exc}")
+        return 2
+    print(report(r))
+    return 1 if r["flags"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
