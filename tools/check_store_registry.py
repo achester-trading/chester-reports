@@ -19,7 +19,9 @@ store disagree about. It writes nothing, anywhere.
      allowance, by derived.staleness_allowance() and derived.sessions_between():
      the same rule every report's confidence derives from.
   4. OFF-LIST SOURCES. Stored `source` strings that altdata/source_ids.py reads as
-     no id in source_registry.yaml (AUD-3a item 4).
+     no id in source_registry.yaml (AUD-3a item 4), each with its row count and up
+     to three example keys, so the next stored_aliases line can be written from
+     the output (15 Oct 2026).
 
 Exit 0 when lists 1, 3 and 4 are empty; 1 when any holds a finding; 2 when the
 store cannot be opened. The gate runs it on a synthetic store; the box command is
@@ -59,27 +61,34 @@ def _tables(conn: sqlite3.Connection) -> set[str]:
         "SELECT name FROM sqlite_master WHERE type='table'")}
 
 
+EXAMPLE_KEYS = 3
+
+
 def stored(conn: sqlite3.Connection) -> dict[str, dict]:
-    """{key: {"newest": observed_at, "sources": set}} over both tables."""
+    """{key: {"newest": observed_at, "sources": {source: rows}}} over both
+    tables."""
     out: dict[str, dict] = {}
     t = _tables(conn)
     if "observations" in t:
         for key, newest in conn.execute(
                 "SELECT registry_key, MAX(observed_at) FROM observations "
                 "GROUP BY registry_key"):
-            out[key] = {"newest": newest, "sources": set()}
-        for key, src in conn.execute(
-                "SELECT DISTINCT registry_key, source FROM observations"):
-            out[key]["sources"].add(src)
+            out[key] = {"newest": newest, "sources": {}}
+        for key, src, n in conn.execute(
+                "SELECT registry_key, source, COUNT(*) FROM observations "
+                "GROUP BY registry_key, source"):
+            out[key]["sources"][src] = n
     if "bars" in t:
         for inst, newest, vol in conn.execute(
                 "SELECT instrument, MAX(observed_at), MAX(COALESCE(volume, 0)) "
                 "FROM bars GROUP BY instrument"):
-            out[f"bars.{inst}"] = {"newest": newest, "sources": set()}
+            out[f"bars.{inst}"] = {"newest": newest, "sources": {}}
             if vol and vol > 0:
-                out[f"bars.{inst}.volume"] = {"newest": newest, "sources": set()}
-        for inst, src in conn.execute("SELECT DISTINCT instrument, source FROM bars"):
-            out[f"bars.{inst}"]["sources"].add(src)
+                out[f"bars.{inst}.volume"] = {"newest": newest, "sources": {}}
+        for inst, src, n in conn.execute(
+                "SELECT instrument, source, COUNT(*) FROM bars "
+                "GROUP BY instrument, source"):
+            out[f"bars.{inst}"]["sources"][src] = n
     return out
 
 
@@ -128,11 +137,21 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
                           "sessions": n, "allowance": allow, "why": why})
     # Read with the row's key: a `by_key_family` alias (a bare `ibkr`) names its
     # id by the key's family.
-    srcs = sorted({s for k, v in have.items() for s in v["sources"]
-                   if source_ids.canonical(s, key=k) is None}, key=str)
+    detail: dict = {}
+    for k, v in sorted(have.items()):
+        for s, n in v["sources"].items():
+            if source_ids.canonical(s, key=k) is None:
+                d = detail.setdefault(s, {"rows": 0, "keys": []})
+                d["rows"] += n
+                d["keys"].append(k)
+    srcs = sorted(detail, key=str)
     return {"db": db, "as_of": as_of, "stored": len(have),
             "unregistered": unregistered, "no_rows": no_rows, "quiet": quiet,
-            "stale": stale, "off_list_sources": srcs}
+            "stale": stale, "off_list_sources": srcs,
+            "off_list_detail": {s: {"rows": detail[s]["rows"],
+                                    "keys": len(detail[s]["keys"]),
+                                    "examples": detail[s]["keys"][:EXAMPLE_KEYS]}
+                                for s in srcs}}
 
 
 def report(r: dict, verbose: bool = False) -> str:
@@ -157,7 +176,12 @@ def report(r: dict, verbose: bool = False) -> str:
     out += [f"       {s['key']}: newest {s['newest']}, {s['sessions']} sessions, "
             f"allowed {s['allowance']} ({s['why']})" for s in r["stale"]]
     out.append(f"  4. sources on no list        : {len(r['off_list_sources'])}")
-    out += [f"       {s!r}" for s in r["off_list_sources"]]
+    for s in r["off_list_sources"]:
+        d = (r.get("off_list_detail") or {}).get(s) or {}
+        ex = ", ".join(d.get("examples") or [])
+        more = d.get("keys", 0) - len(d.get("examples") or [])
+        out.append(f"       {s!r}: {d.get('rows', 0):,} rows under {d.get('keys', 0)} "
+                   f"key(s) -- e.g. {ex}" + (f" (+{more} more)" if more > 0 else ""))
     clean = not (r["unregistered"] or r["stale"] or r["off_list_sources"])
     out += ["", "  CLEAN" if clean else "  FINDINGS -- lists 1, 3 and 4 set the exit "
             "code", line]

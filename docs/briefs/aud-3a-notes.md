@@ -457,3 +457,48 @@ Every other gate is left to CI. That includes `validate_weekly_edits` and `valid
 
 ### CI
 - **#415** (`af92a2c`) **failed one gate, `validate_config_refs`:** "source_registry.yaml: 5 metric id(s), all registered -- UNRESOLVED: ['ibkr.auction_', 'ibkr.borrow_']". That gate reads any registry-shaped string in a config file as a metric id, and the two family prefixes looked like misspelled ones. Fixed in the next commit: a family is written with a trailing `*` (`ibkr.auction_*`, `ibkr.borrow_*`), a shape that gate already skips, and `source_ids` strips it. Locally after the fix: validate_config_refs 50/0, validate_audit_3a 81/0. Every other gate in #415 passed, including validate_move_screen, validate_derived, check_registry, validate_weekly_edits, validate_events, validate_weekly_complete and validate_basis_proxy.
+- **#417** (`ad10a3e`, the fix): **green, every check.**
+
+### 15 Oct, second paste: Part 1 (Ari's answers to the two questions)
+
+**1. The naive expectation and the surprise follow their FRED series.** `naive_expectations` and `naive_surprises` (`calc.naive_expectation.*`, `calc.surprise_vs_naive.*`) get the same `member_units` as `fred_macro` for the twelve FRED shares and rates of change. U-3's surprise now moves in pp, as U-3 does. CRE delinquency is not in the Monthly's list, so neither block has it: 12 + 12 = 24. Their levels keep FRED's `"%"` word (`level_as`), so no level's print moves. The gate's `CHANGED_RULES` is now exactly 65 (25 + 16 + 24), and a new check holds the count. Group B reads "65 moved; undeclared: none".
+
+| Metric | Unit now | Rule then → now | Fixture pair | Delta then | Delta now |
+|---|---|---|---|---|---|
+| `calc.naive_expectation.u3_rate` | percent_share | bps → pp | 4.1 → 4.3 | +20 bp | +0.2 pp |
+| `calc.naive_expectation.lfp_rate` | percent_share | bps → pp | 62.6 → 62.4 | −20 bp | −0.2 pp |
+| `calc.naive_expectation.emp_pop_ratio` | percent_share | bps → pp | 60 → 59.8 | −20 bp | −0.2 pp |
+| `calc.naive_expectation.quits_rate` | percent_share | bps → pp | 2 → 2.1 | +10 bp | +0.1 pp |
+| `calc.naive_expectation.mortgage_delinq` | percent_share | bps → pp | 1.73 → 1.8 | +7 bp | +0.07 pp |
+| `calc.naive_expectation.cc_delinq_30` | percent_share | bps → pp | 3.05 → 3.12 | +7 bp | +0.07 pp |
+| `calc.naive_expectation.auto_delinq` | percent_share | bps → pp | 2.62 → 2.7 | +8 bp | +0.08 pp |
+| `calc.naive_expectation.cc_chargeoff` | percent_share | bps → pp | 4.4 → 4.25 | −15 bp | −0.15 pp |
+| `calc.naive_expectation.sticky_cpi` | percent_return | bps → pp | 3.2 → 3.5 | +30 bp | +0.3 pp |
+| `calc.naive_expectation.sticky_core` | percent_return | bps → pp | 3.3 → 3.1 | −20 bp | −0.2 pp |
+| `calc.naive_expectation.flex_cpi` | percent_return | bps → pp | 1 → 4 | +300 bp | +3 pp |
+| `calc.naive_expectation.fed_debt_pct_gdp` | percent_share | bps → pp | 97 → 98.5 | +150 bp | +1.5 pp |
+| `calc.surprise_vs_naive.u3_rate` | percent_share | bps → pp | 0.1 → -0.1 | −20 bp | −0.2 pp |
+| `calc.surprise_vs_naive.lfp_rate` | percent_share | bps → pp | -0.1 → 0.1 | +20 bp | +0.2 pp |
+| `calc.surprise_vs_naive.emp_pop_ratio` | percent_share | bps → pp | 0 → -0.2 | −20 bp | −0.2 pp |
+| `calc.surprise_vs_naive.quits_rate` | percent_share | bps → pp | 0.1 → 0 | −10 bp | −0.1 pp |
+| `calc.surprise_vs_naive.mortgage_delinq` | percent_share | bps → pp | 0.02 → 0.05 | +3 bp | +0.03 pp |
+| `calc.surprise_vs_naive.cc_delinq_30` | percent_share | bps → pp | 0.05 → 0.12 | +7 bp | +0.07 pp |
+| `calc.surprise_vs_naive.auto_delinq` | percent_share | bps → pp | -0.03 → 0.05 | +8 bp | +0.08 pp |
+| `calc.surprise_vs_naive.cc_chargeoff` | percent_share | bps → pp | 0.1 → -0.05 | −15 bp | −0.15 pp |
+| `calc.surprise_vs_naive.sticky_cpi` | percent_return | bps → pp | 0.2 → 0.5 | +30 bp | +0.3 pp |
+| `calc.surprise_vs_naive.sticky_core` | percent_return | bps → pp | 0.3 → 0.1 | −20 bp | −0.2 pp |
+| `calc.surprise_vs_naive.flex_cpi` | percent_return | bps → pp | -1 → 2 | +300 bp | +3 pp |
+| `calc.surprise_vs_naive.fed_debt_pct_gdp` | percent_share | bps → pp | 0.5 → 1 | +50 bp | +0.5 pp |
+
+**2. The store check names its off-list strings' rows.** For each source string on no list, list 4 now prints its row count, how many keys hold it, and up to three example keys. For example, on a fixture store with seven `ibkr` rows under four portfolio keys, which no alias line names:
+
+```
+  4. sources on no list        : 1
+       'ibkr': 7 rows under 4 key(s) -- e.g. portfolio.cash, portfolio.net_liquidation, portfolio.position_qty (+1 more)
+```
+
+`check()` returns the same data as `off_list_detail`. Group D checks the printed line.
+
+**Gates, locally, one at a time:** validate_audit_3a **83/0** (two checks added: the count of 65, the detail line). No other gate was changed.
+
+**CI for this commit:** see the line below.

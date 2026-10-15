@@ -12634,6 +12634,22 @@ bulk_imports:
     key_prefix: "calc.naive_expectation."
     expected_members: 59
     units: from_member
+    # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): an expectation of a share is a share,
+    # so the twelve FRED shares and rates of change carry the unit
+    # fred_macro gives them (pp). The rest keep FRED's own.
+    member_units:
+      calc.naive_expectation.u3_rate: percent_share
+      calc.naive_expectation.lfp_rate: percent_share
+      calc.naive_expectation.emp_pop_ratio: percent_share
+      calc.naive_expectation.quits_rate: percent_share
+      calc.naive_expectation.mortgage_delinq: percent_share
+      calc.naive_expectation.cc_delinq_30: percent_share
+      calc.naive_expectation.auto_delinq: percent_share
+      calc.naive_expectation.cc_chargeoff: percent_share
+      calc.naive_expectation.sticky_cpi: percent_return
+      calc.naive_expectation.sticky_core: percent_return
+      calc.naive_expectation.flex_cpi: percent_return
+      calc.naive_expectation.fed_debt_pct_gdp: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none
@@ -12675,6 +12691,22 @@ bulk_imports:
     key_prefix: "calc.surprise_vs_naive."
     expected_members: 59
     units: from_member
+    # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): a surprise in a share is a change in it,
+    # so the twelve FRED shares and rates of change carry the unit
+    # fred_macro gives them (pp). The rest keep FRED's own.
+    member_units:
+      calc.surprise_vs_naive.u3_rate: percent_share
+      calc.surprise_vs_naive.lfp_rate: percent_share
+      calc.surprise_vs_naive.emp_pop_ratio: percent_share
+      calc.surprise_vs_naive.quits_rate: percent_share
+      calc.surprise_vs_naive.mortgage_delinq: percent_share
+      calc.surprise_vs_naive.cc_delinq_30: percent_share
+      calc.surprise_vs_naive.auto_delinq: percent_share
+      calc.surprise_vs_naive.cc_chargeoff: percent_share
+      calc.surprise_vs_naive.sticky_cpi: percent_return
+      calc.surprise_vs_naive.sticky_core: percent_return
+      calc.surprise_vs_naive.flex_cpi: percent_return
+      calc.surprise_vs_naive.fed_debt_pct_gdp: percent_share
     native_horizon: from_member
     information_half_life: until_next_release
     invalidated_by: none

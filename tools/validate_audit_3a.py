@@ -103,6 +103,32 @@ CHANGED_RULES = {
     "yfinance.mkt_vvix": ("pts", (90.0, 99.0, 10.0, 9.0)),
     "yfinance.mkt_move": ("pts", (80.0, 88.0, 10.0, 8.0)),
     "yfinance.mkt_skew": ("pts", (140.0, 146.0, 4.2857, 6.0)),
+    # Ruled 15 Oct 2026 (AUD-3a part 1): the naive expectation and the surprise
+    # follow their FRED series, bp -> pp.
+    "calc.naive_expectation.u3_rate": ("pp", (4.1, 4.3, 20.0, 0.2)),
+    "calc.naive_expectation.lfp_rate": ("pp", (62.6, 62.4, -20.0, -0.2)),
+    "calc.naive_expectation.emp_pop_ratio": ("pp", (60.0, 59.8, -20.0, -0.2)),
+    "calc.naive_expectation.quits_rate": ("pp", (2.0, 2.1, 10.0, 0.1)),
+    "calc.naive_expectation.mortgage_delinq": ("pp", (1.73, 1.8, 7.0, 0.07)),
+    "calc.naive_expectation.cc_delinq_30": ("pp", (3.05, 3.12, 7.0, 0.07)),
+    "calc.naive_expectation.auto_delinq": ("pp", (2.62, 2.7, 8.0, 0.08)),
+    "calc.naive_expectation.cc_chargeoff": ("pp", (4.4, 4.25, -15.0, -0.15)),
+    "calc.naive_expectation.sticky_cpi": ("pp", (3.2, 3.5, 30.0, 0.3)),
+    "calc.naive_expectation.sticky_core": ("pp", (3.3, 3.1, -20.0, -0.2)),
+    "calc.naive_expectation.flex_cpi": ("pp", (1.0, 4.0, 300.0, 3.0)),
+    "calc.naive_expectation.fed_debt_pct_gdp": ("pp", (97.0, 98.5, 150.0, 1.5)),
+    "calc.surprise_vs_naive.u3_rate": ("pp", (0.1, -0.1, -20.0, -0.2)),
+    "calc.surprise_vs_naive.lfp_rate": ("pp", (-0.1, 0.1, 20.0, 0.2)),
+    "calc.surprise_vs_naive.emp_pop_ratio": ("pp", (0.0, -0.2, -20.0, -0.2)),
+    "calc.surprise_vs_naive.quits_rate": ("pp", (0.1, 0.0, -10.0, -0.1)),
+    "calc.surprise_vs_naive.mortgage_delinq": ("pp", (0.02, 0.05, 3.0, 0.03)),
+    "calc.surprise_vs_naive.cc_delinq_30": ("pp", (0.05, 0.12, 7.0, 0.07)),
+    "calc.surprise_vs_naive.auto_delinq": ("pp", (-0.03, 0.05, 8.0, 0.08)),
+    "calc.surprise_vs_naive.cc_chargeoff": ("pp", (0.1, -0.05, -15.0, -0.15)),
+    "calc.surprise_vs_naive.sticky_cpi": ("pp", (0.2, 0.5, 30.0, 0.3)),
+    "calc.surprise_vs_naive.sticky_core": ("pp", (0.3, 0.1, -20.0, -0.2)),
+    "calc.surprise_vs_naive.flex_cpi": ("pp", (-1.0, 2.0, 300.0, 3.0)),
+    "calc.surprise_vs_naive.fed_debt_pct_gdp": ("pp", (0.5, 1.0, 50.0, 0.5)),
 }
 # The SLOOS five were already pp by their block's delta_unit at fb67bf3; the 15 Oct
 # ruling gives them the unit `percent_share` and their rule does not move.
@@ -218,6 +244,10 @@ def group_b() -> None:
     moved = {k: (base[k], derived.delta_unit_for(k)[0]) for k in base
              if k in resolved and derived.delta_unit_for(k)[0] != base[k]}
     undeclared = sorted(set(moved) - set(CHANGED_RULES))
+    check(len(CHANGED_RULES) == 65,
+          f"the allowed-changes list is exactly 65: 25 (14 Oct), 16 (15 Oct "
+          f"rulings 1-2), 24 (the naive expectation and surprise mirrors) "
+          f"({len(CHANGED_RULES)})")
     check(not undeclared,
           f"no delta rule moved from fb67bf3's but the {len(CHANGED_RULES)} declared "
           f"({len(moved)} moved; undeclared: {undeclared[:6] or 'none'})")
@@ -522,6 +552,12 @@ def group_d(td: str) -> None:
     conn.commit()
     conn.close()
     r = csr.check(db, AS_OF)
+    d = r["off_list_detail"].get("ibkr") or {}
+    rep = csr.report(r)
+    check(d == {"rows": 1, "keys": 1, "examples": ["portfolio.position_qty"]}
+          and "'ibkr': 1 rows under 1 key(s) -- e.g. portfolio.position_qty" in rep,
+          f"each off-list string prints its row count and up to three example keys "
+          f"({d})")
     check(r["off_list_sources"] == ["ibkr"],
           "the store check reads each row's source with its key: `ibkr` under the "
           "borrow and auction families and the internal strings are on the list, "
