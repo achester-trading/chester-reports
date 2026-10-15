@@ -255,3 +255,225 @@ These docs are a further push.
     Update the task's instructions? yes / no
 13. **Engine 3's contract map** (`config/alpha_pm_map.yaml`) is empty. Who maps contracts: a session from the stored resolution rules, or you?
 14. **Tranche 1's seven items** are still open, including item 5, the missing `lab_resume` command.
+
+
+## 14 Oct evening
+
+The follow-ups ruled at 08:40 ET (rulings 6, 8, 10, 13, 18), with Ari's answers
+of the evening folded in. Branch only: nothing merged to main, nothing deployed,
+nothing run on the box.
+
+### The merge
+
+`origin/w-1-3c-weekly-polish` at **fb67bf3** (it had not moved) is merged as
+**`26e86d3`**, pushed on its own before the changes.
+
+| Conflict | Resolution |
+|---|---|
+| `CLAUDE.md`, the gate count | w-1-3c's text, recounted from the Makefile's list: **seventy-seven code gates (seventy-four Python, three shell) and six data gates**. w-1-3c said 74 and five. This branch adds three gates (validate_alpha, validate_alpha_no_orders, validate_alpha_proposer), and the sixth data gate is validate_imf_china. |
+| `Makefile` | both gate lists: w-1-3c's six gates, then this branch's three. |
+| `deploy/systemd/chester-backup.service` | ReadWritePaths is the union: `-%h/chester-data/inbox/aaii`, `inbox/spdji`, `inbox/etf` (w-1-3c) and `inbox/lab` (this branch). Both sides' comments are kept. |
+
+CI on the merge, **#409, failed** on three gates. Two failures came from the merge
+and one predates it. Each is fixed in the changes commit:
+
+- **validate_backup**: w-1-3c's check allows exactly its three inboxes under
+  `~/chester-data`, and the union adds the lab's. The check now names all four,
+  the same union.
+- **validate_alpha**: the weekly hook check counted `weekly_line(` once, and w-1-3c
+  added `correlation.weekly_line(`, which is a different function. The check now
+  counts only the bare call. The lab's hook itself is unchanged.
+- **check_library**: CLAUDE.md marked `alpha/research/reports/` and
+  `~/chester-data/outbox/lab/` as repo paths, which they are not. This had
+  failed since #385, Tranche 2's own push. Both are runtime paths, one written
+  at run time and one on the box, so CLAUDE.md now gives them as plain text and
+  names `alpha/files.py`.
+
+### The changes
+
+**a. lab_resume (ruling 6).**
+- `python -m alpha.governor resume --reason "..."` writes the `lab_resume` event,
+  with source `operator` and the reason quoted.
+  - It refuses an empty reason, and refuses a lab that is not halted.
+  - `status` prints `halted` or `running`.
+- `governor.lab_status` now counts only an **operator** lab_resume. A lab_resume
+  row a loop writes lifts nothing, and neither does a recovery of the equity.
+- **Not named, chosen here:** on the resume, the lab's high-water mark is re-based
+  to its equity at that moment. Otherwise the next night would re-halt on the
+  same drawdown Ari had just reviewed. A fresh -15% from the re-based mark halts
+  the lab again.
+- The command is denied to sessions as the register writes are:
+  `Bash(*alpha.governor resume*)` in `.claude/settings.json`, the CLAUDE.md
+  denied-table row, and two shapes in validate_deploy's "register writes"
+  list. `docs/alpha-lab.md` says so.
+- In validate_alpha group I:
+  - the deny matches the command, and the same check fails once the line is
+    removed from a copy of the list;
+  - CLAUDE.md names it;
+  - the halt holds through a new high-water mark and through a loop's lab_resume;
+  - the CLI's event lifts it;
+  - there is no re-halt the next night, and a fresh -15% halts it again.
+
+**b. The alpha-\* snapshot prune (ruling 8).**
+- `scripts/backup_retention.py --prefix alpha` applies the db/ rule to
+  `alpha-YYYY-MM-DD.db[.gz]`: 14 daily, 8 weekly, monthly forever, and the
+  newest always.
+  - It matches by exact name and judges each family apart, so a run for one
+    prefix never plans a name of the other.
+  - `--require` must name a file of that family.
+- `rclone_sync.sh` runs the alpha pass after chester's, only on a night tonight's
+  alpha snapshot was staged.
+  - The shell re-matches each name against its own family's pattern before the
+    one `rclone deletefile "$REMOTE/db/$name"`.
+  - The status line reads `db/ prune: ok (n deleted); alpha: ok (m deleted)`.
+- **Under the budget next week.** This branch's `rclone_sync.sh` has no sweep
+  budget. When it meets aud-1-data-fixes, the lab's copies (the alpha snapshot,
+  the inbox and the outbox) and this prune go under aud-1's 105-minute budget,
+  the prune behind its 10-minutes-left rule like the db/ prune.
+
+**c. Trend at its minimum size (ruling 13).**
+- The $1 commission minimum stays.
+- `trend.weights()` takes the sleeve's capital and holds no position under
+  `MIN_POSITION` ($1,000):
+  - The breadth is at most capital / $1,000 names, never above `max_names` (20).
+    trend_xs takes at most half that a side.
+  - A name whose vol-targeted weight would still sit under $1,000 is dropped, the
+    next candidate takes its place, and the book is re-weighted.
+  - `signal()` and the harness's `_returns()` both pass `capital()`, which is
+    notional × min_size.
+- The fixture's results:
+
+  | Capital | trend_ts | trend_xs |
+  |---|---|---|
+  | 5,000 (min_size 0.05) | 5 names, the smallest $1,000 | 4 names, balanced, each ≥ $1,000 |
+  | 20,000 | 13 names (up to twenty), each ≥ $1,000 | |
+  | 100,000 | 20 names, never more | |
+
+  Vol targeting is why 20,000 holds 13 rather than 20: twenty names at 20,000
+  average exactly $1,000, so the quieter names push the busier ones under the
+  floor. It reaches 20 as the capital grows.
+- **This answers needs-you 8 of Tranche 2.**
+
+**d. The history backfill (ruling 10, as answered).** The price command is below
+under "Box commands". **The FRED backfill is held.** The FRED pull stamps every
+row available at the moment it is pulled. A deep backfill would therefore be
+invisible to every as-of query before the backfill date, and the lab's long
+windows would stay empty. A later paste builds a FRED history writer that
+stamps each value with its ALFRED first-publication vintage (the next business
+day after the observation where a series has no vintage record), each row marked
+as a backfill under its own run.
+
+**e. The prediction-market contract map (ruling 18, as answered).**
+- `python -m alpha.pm_map draft [--store PATH]` opens the store through
+  `ReadOnlyStore` and prints draft `contracts:` entries to the screen. It writes
+  nothing: it builds the YAML as text, and the lab's no-file-write gate holds
+  that. It drafts a contract only if:
+  - it is on the FOMC-decision watch;
+  - its pm.market row stores a resolution rule (`criteria`);
+  - it resolves on a stored FOMC decision day;
+  - its outcome label reads as a 25 bp cut, a 25 bp hike or a hold.
+- Every entry is `confirmed: false` and carries `resolution` and `drafted_from`:
+  the stored rule quoted in full, the outcome label, the question, the rules
+  page and the row's observed_at.
+- Each contract it does not draft is listed after the entries with the reason
+  (no rule stored, a date off the calendar, a move beyond 25 bp).
+- Engine 3's `contracts()` now reads only `confirmed: true` entries.
+  `config/alpha_pm_map.yaml` stays `contracts: []`, so engine 3 holds no
+  contracts until Ari confirms lines and a later paste commits them.
+- validate_alpha **group V** drafts from a synthetic six-contract store:
+  - two entries, a cut and a hold, each quoting its rule;
+  - nothing for the contract with no stored rule;
+  - the >25 bp contract and the off-calendar date skipped with their reasons;
+  - another watch ignored;
+  - the CLI's output parses and the store is byte-identical;
+  - a pasted draft maps nothing in the engine, and a confirmed line maps one;
+  - the committed map confirms nothing.
+
+### Gates (only the touched ones, locally, one at a time)
+
+| Gate | Result |
+|---|---|
+| validate_alpha | 255/0 |
+| validate_backup | 70/0 |
+| validate_deploy | 118/0 |
+| validate_alpha_no_orders | 63/0 |
+| validate_systemd_units | 98/0 |
+| check_library | 0 failures |
+
+No gate read the live store, fetched or called a model. CI is the validate.
+
+### CI
+
+- **#409** (`26e86d3`, the merge): failed, as above; fixed in the changes commit.
+- The changes commit: its CI number is in the line below.
+
+### Box commands, printed for Ari and run by no session
+
+**The deep price backfill.** Run it after aud-1-data-fixes is on main and after
+the FRED compaction, on a weekday evening inside the window (17:20-23:30 ET),
+clear of the 02:30 sweep. Not Friday night.
+
+```bash
+cd ~/chester-reports && git log -1 --oneline       # the merged tree
+df -h ~/chester-reports/data                       # want at least 3 GB free
+ls -lh ~/chester-reports/data/chester.db
+free -m
+.venv/bin/python tools/backfill_prices.py --period max --dry-run 2>&1 | tee ~/logs/backfill_prices_max_dryrun.log
+.venv/bin/python tools/backfill_prices.py --period max 2>&1 | tee ~/logs/backfill_prices_max.log
+ls -lh ~/chester-reports/data/chester.db
+```
+
+- **What it writes.** It covers every symbol in `yfinance_source.SYMBOLS`, 106 on
+  the merged tree, from yfinance's first bar. Availability is reconstructed as
+  the close plus the declared latency, flagged `reconstructed`. A series that is
+  not `never` or `split_only` is refused. Rows already stored (the last five
+  years) are ignored as duplicate vintages.
+- **The estimate.** It is a reckoning from listing dates, not a fetch; the dry
+  run prints the exact first date and count per symbol.
+  - Closes: about 700k in total, about 570k of them new. These are 29 single
+    names averaging about 35 years, 55 ETFs about 18, 9 indices about 45
+    (^GSPC from 1927), 7 futures and 7 FX pairs about 23, and 4 coins about 9.
+  - Rows in all: about **1.2 to 1.6 million new rows**, adding the volume
+    companions, the tape set's open/high/low, dividends and splits.
+  - Disk: about **0.3 to 0.6 GB** more in chester.db.
+  - Run time: about **15 to 30 minutes**, mostly one yfinance call per symbol.
+    The dry run fetches as well, so allow the same again for it.
+- **Why the df check wants 3 GB.** The nightly sweep refuses to stage a snapshot
+  with less than twice the database's size free (`disk_low`, exit 5). A larger
+  chester.db raises that bar the same night.
+- **Then:** the next close pass recomputes the features over the deeper history,
+  and `compute --backfill` for the correlation layer is a separate step if wanted.
+
+**The FRED backfill: held**, for the reason under item d. No command until the
+history writer exists.
+
+**The contract-map draft**, once alpha-lab-2 is on the box (the module is on this
+branch only). It is read-only, prints to the screen, and writes nothing:
+
+```bash
+cd ~/chester-reports && .venv/bin/python -m alpha.pm_map draft
+```
+
+Paste its output into chat. A later paste commits the lines Ari confirms.
+
+**lab_resume**, for when the lab ever halts. It is Ari's, and denied to sessions:
+
+```bash
+cd ~/chester-reports && .venv/bin/python -m alpha.governor status
+cd ~/chester-reports && .venv/bin/python -m alpha.governor resume --reason "<why>"
+```
+
+### Needs you
+
+1. **The contract map:** run the draft command after the merge and paste the
+   output; confirm or strike each line. Until then engine 3 trades nothing.
+2. **The re-based high-water mark on a resume** (item a, chosen here). keep / rule
+   otherwise
+3. **trend at 20,000 holds 13, not 20** (item c). This is the floor working
+   against vol targeting, and it reaches 20 as capital grows. keep / rule
+4. **The price backfill:** the commands above, on the ruled schedule.
+5. **The FRED history writer:** the later paste, as ruled.
+6. **Next week's meeting with aud-1:** the lab's copies and the alpha prune go
+   under the sweep budget, as item b says.
+7. Tranche 2's needs-you 8 (trend's costs) and 13 (the contract map) are now
+   answered by these rulings. 14 (lab_resume) is built.

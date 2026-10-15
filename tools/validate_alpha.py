@@ -778,6 +778,51 @@ def group_i() -> None:
               "the lab at -16% from its high-water mark halts for the operator's review")
         ev = lg.one("SELECT after FROM loop_events WHERE kind='lab_halt'")
         check(json.loads(ev["after"])["threshold"] == -0.15, "at the constitution's -15%")
+        # Ruling 6: ONLY the operator's lab_resume lifts the halt.
+        governor.step(lg, "t2", "2026-10-05", {"g": 40000.0}, {"g": 50000.0})
+        check(governor.lab_status(lg) == "halted",
+              "a recovery to a new high-water mark does not lift the halt")
+        lg.event("nightly", "lab_resume", "t3", None, after={"status": "running"})
+        check(governor.lab_status(lg) == "halted",
+              "a lab_resume written by a loop (source loop) does not lift it")
+        try:
+            governor.resume(lg, "t3", "  ")
+            check(False, "a resume without a reason is refused")
+        except ValueError:
+            check(True, "a resume without a reason is refused")
+    led = str(Path(_TMP) / "i2.db")
+    rc = governor._main(["--ledger", led, "resume", "--reason", "reviewed the drawdown"])
+    with Ledger(Path(led)) as lg:
+        ev = lg.one("SELECT source, after FROM loop_events WHERE kind='lab_resume' "
+                    "ORDER BY id DESC LIMIT 1")
+        check(rc == 0 and governor.lab_status(lg) == "running" and ev["source"] == "operator"
+              and json.loads(ev["after"])["reason"] == "reviewed the drawdown",
+              "python -m alpha.governor resume --reason: the operator's event, with "
+              "its reason, lifts the halt")
+        try:
+            governor.resume(lg, "t4", "again")
+            check(False, "a second resume on a running lab is refused")
+        except RuntimeError:
+            check(True, "a second resume on a running lab is refused")
+        out = governor.step(lg, "t4", "2026-10-06", {"g": 0.0}, {"g": 50000.0})
+        check(not out["lab_halt"] and out["equity"][LAB]["drawdown"] == 0.0,
+              "the resume re-bases the lab's high-water mark: no re-halt the next night")
+        out = governor.step(lg, "t5", "2026-10-07", {"g": -20000.0}, {"g": 50000.0})
+        check(out["lab_halt"], "a fresh -15% from the re-based mark halts it again")
+    deny = json.loads((REPO / ".claude" / "settings.json").read_text(
+        encoding="utf-8"))["permissions"]["deny"]
+    cmd = "python -m alpha.governor resume --reason 'x'"
+    check(_denied(cmd, deny), "the resume is denied to sessions in .claude/settings.json")
+    check(not _denied(cmd, [d for d in deny if "alpha.governor" not in d]),
+          "and this check fails when that deny line is removed")
+    check("`alpha.governor resume`" in (REPO / "CLAUDE.md").read_text(encoding="utf-8"),
+          "CLAUDE.md's denied table names it")
+
+
+def _denied(cmd: str, deny: list[str]) -> bool:
+    import fnmatch                                              # noqa: PLC0415
+    return any(fnmatch.fnmatchcase(cmd, d[len("Bash("):-1])
+               for d in deny if d.startswith("Bash(") and d.endswith(")"))
 
 
 # ---------------------------------------------------------------------------
@@ -902,7 +947,8 @@ def group_k() -> None:
     src = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
     check(src.count("from alpha") == 1 and src.count("import alpha") == 0
           and src.count("from alpha.lab_line import weekly_line") == 1
-          and src.count("weekly_line(") == 1
+          # a bare call: w-1-3c's correlation.weekly_line( is another function
+          and len(re.findall(r"(?<![.\w])weekly_line\(", src)) == 1
           and 'ed["alpha_lab"] = weekly_line(now' in src
           and "stack_render.esc(ed[\"alpha_lab\"])" in src,
           "weekly_stack.py holds one hook, reading alpha.db beside the store")
@@ -1711,6 +1757,7 @@ def group_t() -> None:
                   and lg.engine("trend_xs") is not None or rx["status"] == "failed",
                   f"trend_xs runs too ({rx['status']})")
         e = trend.TrendEngine({"sleeve": "ts"})
+        e.min_size = 1.0                 # 100,000 lab dollars: the breadth cap not binding
         check(not trend.tradable("^VIX") and not trend.tradable("DX-Y.NYB")
               and not trend.tradable("BN") and trend.tradable("SPY"),
               "the trend basket leaves out index levels and the Brookfield complex")
@@ -1728,6 +1775,35 @@ def group_t() -> None:
         w = trend.weights(quiet, "ts", {})
         check(abs(w["A"]) <= 0.25 + 1e-12, "a quiet series is floored, never leverage "
               f"(A {w['A']:.3f})")
+        # Ruling 13: no position under $1,000; breadth grows with capital to 20.
+        wide = {f"N{i:02d}": {"score": 1.0 if i % 2 else -1.0, "mom": (i - 15) / 100.0,
+                              "vols": {60: 0.6 if i < 6 else 0.08 + i / 500.0},
+                              "close": 50.0} for i in range(30)}
+        small_e = trend.TrendEngine({"sleeve": "ts", "max_names": 20})
+        small_e.min_size = 0.05
+        cap5 = small_e.capital()
+        w5 = trend.weights(wide, "ts", {"capital": cap5, "max_names": 20})
+        check(cap5 == 5000.0 and 0 < len(w5) <= 5
+              and all(abs(v) * cap5 >= 1000.0 - 1e-6 for v in w5.values()),
+              f"at min_size 0.05 (5,000 lab dollars) trend_ts holds {len(w5)} names, at "
+              f"most five, the smallest ${min(abs(v) for v in w5.values()) * cap5:,.0f}")
+        w20 = trend.weights(wide, "ts", {"capital": 4 * cap5, "max_names": 20})
+        check(5 < len(w20) <= 20
+              and all(abs(v) * 4 * cap5 >= 1000.0 - 1e-6 for v in w20.values()),
+              f"at four times that capital it holds {len(w20)} names (up to twenty), "
+              f"each at least $1,000")
+        w100 = trend.weights(wide, "ts", {"capital": 100000.0, "max_names": 20})
+        check(len(w100) == 20, f"and never above its own 20 names ({len(w100)} at "
+              f"100,000)")
+        x5 = trend.weights(wide, "xs", {"capital": cap5, "top_frac": 0.2})
+        check(0 < len(x5) <= 5 and sum(v > 0 for v in x5.values())
+              == sum(v < 0 for v in x5.values())
+              and all(abs(v) * cap5 >= 1000.0 - 1e-6 for v in x5.values()),
+              f"trend_xs at 5,000: {len(x5)} names, long and short balanced, each at "
+              f"least $1,000")
+        from alpha.costs import CostModel as _CM                # noqa: PLC0415
+        check(_CM().commission("etf", 1, 50.0) >= 1.0,
+              "the $1 commission minimum stays in the cost model")
         prices = {"2026-10": 95.875, "2026-11": 96.10, "2026-12": 96.12,
                   "2027-01": 96.36, "2027-02": 96.37, "2027-03": 96.38}
         from altdata import fed_funds                           # noqa: PLC0415
@@ -1851,9 +1927,102 @@ def group_u() -> None:
           "a sitting's batch over five is refused")
 
 
+
+def group_v() -> None:
+    head("V. ENGINE 3'S CONTRACT MAP: DRAFTED, NEVER SELF-CONFIRMED (ruling 18)")
+    import contextlib                                           # noqa: PLC0415
+    import io                                                   # noqa: PLC0415
+    from alpha import pm_map                                    # noqa: PLC0415
+    from alpha.engines import pm_futures                        # noqa: PLC0415
+    sp = Path(_TMP) / "pm_rules.sqlite"
+    meet = "2026-12-09"
+    rule_c = ("If the Federal Reserve cuts the upper bound of the federal funds "
+              "target range by 25 bps at its December 2026 meeting, the market "
+              "resolves to Yes.")
+    rule_h = "If the target range is unchanged after the December 2026 meeting, Yes."
+
+    def mk(inst, **meta):
+        return {"registry_key": "pm.market", "instrument": inst,
+                "observed_at": "2026-10-14T13:00:00+00:00",
+                "available_at": "2026-10-14T13:00:00+00:00", "source": "kalshi",
+                "availability_kind": "ingest_instant",
+                "value": json.dumps(meta, sort_keys=True)}
+    rows = [
+        mk("kalshi:KXFEDDECISION-26DEC-C25", watch_id="fomc_decision", venue="kalshi",
+           outcome="Cut 25bps", decision_date=meet, criteria=rule_c,
+           question="Fed decision in Dec 2026?", rules_url="https://example.test/c"),
+        mk("kalshi:KXFEDDECISION-26DEC-H0", watch_id="fomc_decision", venue="kalshi",
+           outcome="Hold", decision_date=meet, criteria=rule_h),
+        mk("kalshi:KXFEDDECISION-26DEC-C26", watch_id="fomc_decision", venue="kalshi",
+           outcome="Cut >25bps", decision_date=meet, criteria="Cut by more than 25 bps."),
+        mk("polymarket:fed-decision-in-december-no-change", watch_id="fomc_decision",
+           venue="polymarket", outcome="No change", decision_date=meet),
+        mk("kalshi:KXFEDDECISION-26NOV-H0", watch_id="fomc_decision", venue="kalshi",
+           outcome="Hold", decision_date="2026-11-20", criteria=rule_h),
+        mk("kalshi:KXRECSSNBER-26", watch_id="us_recession", venue="kalshi",
+           outcome="Yes", decision_date=meet, criteria="NBER declares a recession."),
+    ]
+    st = observations.ObservationStore(str(sp))
+    st.write_many(rows)
+    st.close()
+    before = sha(sp)
+    ro = ReadOnlyStore(sp)
+    try:
+        entries, skipped = pm_map.draft(ro, meetings=[meet])
+    finally:
+        ro.close()
+    by = {e["contract"]: e for e in entries}
+    check(sorted(by) == ["kalshi:KXFEDDECISION-26DEC-C25", "kalshi:KXFEDDECISION-26DEC-H0"]
+          and by["kalshi:KXFEDDECISION-26DEC-C25"]["outcome"] == "cut"
+          and by["kalshi:KXFEDDECISION-26DEC-H0"]["outcome"] == "hold",
+          f"drafts the FOMC contracts with a stored rule, a decision day and a 25 bp "
+          f"outcome ({len(entries)}): a cut and a hold")
+    check(all(e["confirmed"] is False for e in entries)
+          and by["kalshi:KXFEDDECISION-26DEC-C25"]["drafted_from"]["stored_rule"] == rule_c
+          and by["kalshi:KXFEDDECISION-26DEC-C25"]["resolution"] == rule_c,
+          "every drafted entry is confirmed: false and quotes the stored rule it was "
+          "drafted from")
+    why = {x["contract"]: x["why"] for x in skipped}
+    check("polymarket:fed-decision-in-december-no-change" not in by
+          and "no resolution rule stored" in why.get(
+              "polymarket:fed-decision-in-december-no-change", ""),
+          "no entry for a contract whose resolution rule is not stored")
+    check("kalshi:KXFEDDECISION-26DEC-C26" in why and "kalshi:KXFEDDECISION-26NOV-H0" in why
+          and "kalshi:KXRECSSNBER-26" not in by and "kalshi:KXRECSSNBER-26" not in why,
+          "a move beyond 25 bp and a date off the FOMC calendar are not drafted, with "
+          "the reason; another watch's market is not considered")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = pm_map._main(["draft", "--store", str(sp)])
+    printed = yaml.safe_load(out.getvalue())
+    ro = ReadOnlyStore(sp)
+    try:
+        n_cal = len(pm_map.draft(ro)[0])            # on the stored FOMC calendar
+    finally:
+        ro.close()
+    check(rc == 0 and sha(sp) == before and isinstance(printed, dict)
+          and len(printed.get("contracts") or []) == n_cal
+          and "# NOT DRAFTED:" in out.getvalue(),
+          f"python -m alpha.pm_map draft prints the YAML ({n_cal} entries) and the "
+          f"reasons to the screen, and leaves the store byte-identical")
+    mp = Path(_TMP) / "pm_map_draft.yaml"
+    mp.write_text(yaml.safe_dump({"version": 1, "contracts": entries}), encoding="utf-8")
+    eng = pm_futures.PredictionFuturesEngine({"map_path": str(mp)})
+    check(eng.contracts() == [] and eng.universe() == [],
+          "engine 3 reads none of a pasted, unconfirmed draft: it holds no contracts")
+    entries[0]["confirmed"] = True
+    mp.write_text(yaml.safe_dump({"version": 1, "contracts": entries}), encoding="utf-8")
+    check([c["contract"] for c in eng.contracts()] == [entries[0]["contract"]],
+          "only a line committed with confirmed: true reaches the engine")
+    committed = pm_futures.mapping().get("contracts") or []
+    check(not [c for c in committed if c.get("confirmed") is True],
+          f"the committed map confirms nothing ({len(committed)} entries): engine 3 "
+          f"holds no contracts until Ari confirms")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q, group_r, group_s, group_t, group_u]
+          group_p, group_q, group_r, group_s, group_t, group_u, group_v]
 
 
 def main() -> int:

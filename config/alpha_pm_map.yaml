@@ -5,11 +5,20 @@
 # writes it. Empty until a contract's resolution rule has been read (W-1.1 item
 # 1.5 stores the page that carries it) and mapped by a session or the operator.
 #
+# RULING 18 (14 Oct 2026): entries are DRAFTED from the stored resolution rules
+# by `python -m alpha.pm_map draft`, which reads the box's store read-only and
+# prints them; it writes nothing. Each draft is confirmed: false and quotes the
+# stored rule it came from. The operator confirms lines in chat; a later session
+# commits them with confirmed: true. Engine 3 reads ONLY confirmed: true entries.
+# No entry for a contract whose resolution rule is not stored.
+#
 #   - contract: <the store's pm.* instrument id>
 #     venue: kalshi | polymarket
 #     meeting: YYYY-MM-DD          # the FOMC decision day
 #     outcome: cut | hike | hold   # what YES pays on (a 25 bp move)
+#     confirmed: true              # the operator's; drafts say false
 #     resolution: "<the rule, quoted from the venue>"
+#     drafted_from: {stored_rule: ..., outcome_label: ..., rules_url: ...}
 version: 1
 contracts: []
 

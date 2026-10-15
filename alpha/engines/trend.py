@@ -24,6 +24,16 @@ the book rolls close to close. Costs: the lab's cost model, per name, at the
 engine's own capital (its min_size of the lab's notional) -- honest about what
 a small paper book pays.
 
+NO POSITION UNDER $1,000 (ruling 13, 14 Oct 2026). The cost model keeps its $1
+commission minimum, so a sleeve at its minimum size spread over twenty names
+would pay a minimum on positions of a few hundred dollars. Instead the sleeve's
+breadth follows its capital: at most capital / MIN_POSITION names (5 at the
+5,000 lab dollars of min_size 0.05, 20 from 20,000 up, never above the sleeve's
+own `max_names`), and a name whose vol-targeted weight would still put it under
+MIN_POSITION is dropped, the next candidate takes its place, and the book is
+re-weighted. weights() reads the capital
+from p["capital"]; with none given it applies no floor.
+
 THE RE-FIT HOOKS (X-2.4): strategy() fits `vol_window` and the sleeve's
 breadth (`max_names` or `top_frac`) on a small declared grid; refit_rows() is
 one row per rebalance week, point-in-time, carrying every grid value's
@@ -50,6 +60,8 @@ GRID_VOL = (40, 60, 120)
 GRID_NAMES = (10, 20, 30)
 GRID_FRAC = (0.1, 0.2, 0.3)
 NOT_TRADABLE = ("DX-Y.NYB",)
+MIN_POSITION = 1000.0                   # lab dollars; ruling 13
+_EPS = 1e-9
 
 
 def tradable(sym: str) -> bool:
@@ -118,42 +130,72 @@ def features(data: rules.Data, sym: str, day: str, t: str) -> Optional[dict]:
             "avail": max(x[2] for x in xs)}
 
 
-def weights(feats: dict[str, dict], sleeve: str, p: dict) -> dict[str, float]:
-    """The sleeve's target weights (fractions of its capital, signed)."""
-    vw = int(p.get("vol_window", 60))
-    target = float(p.get("vol_target", 0.10))
-    floor = float(p.get("vol_floor", 0.02))       # a quiet series is not leverage
-    cap = float(p.get("name_cap", 0.25))          # no one name above a quarter
-    live = {k: {**f, "vols": {**f["vols"], vw: max(floor, f["vols"][vw])}}
-            for k, f in feats.items() if f and f["vols"].get(vw) is not None}
-    if not live:
-        return {}
-    w: dict[str, float] = {}
-    if sleeve == "ts":
-        n = int(p.get("max_names", 20))
-        keep = sorted(live, key=lambda k: -abs(live[k]["score"]))[:n]
-        keep = [k for k in keep if live[k]["score"] != 0]
-        if not keep:
-            return {}
-        per = target / math.sqrt(len(keep))
-        for k in keep:
-            w[k] = live[k]["score"] * per / live[k]["vols"][vw]
-    else:
-        frac = float(p.get("top_frac", 0.2))
-        ranked = sorted(live, key=lambda k: live[k]["mom"])
-        m = max(1, int(len(ranked) * frac))
-        if len(ranked) < 2 * m:
-            return {}
-        per = target / math.sqrt(2 * m)
-        for k in ranked[-m:]:
-            w[k] = per / live[k]["vols"][vw]
-        for k in ranked[:m]:
-            w[k] = -per / live[k]["vols"][vw]
+def breadth_cap(capital: Optional[float], min_position: float = MIN_POSITION) -> Optional[int]:
+    """The most names a sleeve of this capital may hold (ruling 13)."""
+    if not capital or capital <= 0 or min_position <= 0:
+        return None
+    return int(math.floor(capital / min_position + _EPS))
+
+
+def _finish(w: dict[str, float], cap: float) -> dict[str, float]:
     w = {k: max(-cap, min(cap, v)) for k, v in w.items()}
     gross = sum(abs(v) for v in w.values())
     if gross > 1.0:
         w = {k: v / gross for k, v in w.items()}
     return w
+
+
+def weights(feats: dict[str, dict], sleeve: str, p: dict) -> dict[str, float]:
+    """The sleeve's target weights (fractions of its capital, signed). With
+    p["capital"], no name is held under p.get("min_position", MIN_POSITION)."""
+    vw = int(p.get("vol_window", 60))
+    target = float(p.get("vol_target", 0.10))
+    floor = float(p.get("vol_floor", 0.02))       # a quiet series is not leverage
+    cap = float(p.get("name_cap", 0.25))          # no one name above a quarter
+    capital = float(p.get("capital") or 0.0)
+    min_pos = float(p.get("min_position", MIN_POSITION))
+    n_cap = breadth_cap(capital, min_pos)
+    live = {k: {**f, "vols": {**f["vols"], vw: max(floor, f["vols"][vw])}}
+            for k, f in feats.items() if f and f["vols"].get(vw) is not None}
+    if not live:
+        return {}
+
+    def small(w: dict[str, float]) -> list[str]:
+        if not capital:
+            return []
+        return [k for k, v in w.items() if abs(v) * capital < min_pos - 1e-6]
+
+    if sleeve == "ts":
+        n = int(p.get("max_names", 20))
+        if n_cap is not None:
+            n = min(n, n_cap)
+        pool = [k for k in sorted(live, key=lambda k: -abs(live[k]["score"]))
+                if live[k]["score"] != 0]
+        while pool and n >= 1:
+            keep = pool[:n]
+            per = target / math.sqrt(len(keep))
+            w = _finish({k: live[k]["score"] * per / live[k]["vols"][vw]
+                         for k in keep}, cap)
+            drop = small(w)
+            if not drop:
+                return w
+            pool = [k for k in pool if k not in drop]   # the next name takes its place
+        return {}
+    frac = float(p.get("top_frac", 0.2))
+    pool = sorted(live, key=lambda k: live[k]["mom"])
+    m = max(1, int(len(pool) * frac))
+    if n_cap is not None:
+        m = min(m, n_cap // 2)
+    while m >= 1 and len(pool) >= 2 * m:
+        per = target / math.sqrt(2 * m)
+        w = {k: per / live[k]["vols"][vw] for k in pool[-m:]}
+        w.update({k: -per / live[k]["vols"][vw] for k in pool[:m]})
+        w = _finish(w, cap)
+        drop = small(w)
+        if not drop:
+            return w
+        pool = [k for k in pool if k not in drop]
+    return {}
 
 
 class TrendEngine(Engine):
@@ -196,7 +238,8 @@ class TrendEngine(Engine):
         day = session.session_date(as_of)
         if day not in rebalance_days(day, day):
             return []
-        w = weights(self._feats(store, day, as_of), self.sleeve, self.params)
+        w = weights(self._feats(store, day, as_of), self.sleeve,
+                    {"capital": self.capital(), **self.params})
         nxt = rebalance_days(next_session(day), next_session(day, 10))
         hold_to = next_session(nxt[0]) if nxt else next_session(day, 6)
         return [Signal(instrument=self._instrument(s), direction=1 if v > 0 else -1,
@@ -255,7 +298,7 @@ class TrendEngine(Engine):
         cap = self.capital()
         out, prev = [], {}
         for r in rows:
-            w = weights(r["feats"], self.sleeve, {**self.params, **p})
+            w = weights(r["feats"], self.sleeve, {"capital": cap, **self.params, **p})
             gross = sum(v * r["next"].get(k, 0.0) for k, v in w.items())
             cost = 0.0
             for k in set(w) | set(prev):

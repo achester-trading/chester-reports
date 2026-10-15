@@ -27,6 +27,11 @@ WHAT IT REFUSES TO DO:
     listing -- tonight's upload must be on the remote before an old copy goes,
     so a sweep that failed to upload can never also prune.
 
+THE ALPHA LAB'S SNAPSHOTS (ruling 8, 14 Oct 2026). The same rule applies to
+`alpha-YYYY-MM-DD.db[.gz]`, the lab ledger's nightly snapshots, under
+`--prefix alpha`: by exact name, each family judged on its own, the newest of
+each never pruned. A run with one prefix never plans a name of the other.
+
 Exit codes: 0 plan printed (possibly empty) · 2 usage · 3 --require is not in
 the listing (nothing printed, nothing deleted).
 """
@@ -38,16 +43,24 @@ import re
 import sys
 from datetime import date, timedelta
 
+PREFIXES = ("chester", "alpha")
 PATTERN = re.compile(r"^chester-(\d{4})-(\d{2})-(\d{2})\.db(\.gz)?$")
+
+
+def pattern(prefix: str = "chester") -> re.Pattern:
+    if prefix not in PREFIXES:
+        raise ValueError(f"no retention rule for {prefix!r}")
+    return re.compile(rf"^{prefix}-(\d{{4}})-(\d{{2}})-(\d{{2}})\.db(\.gz)?$")
 
 DAILY_DAYS = 14
 WEEKLY_WEEKS = 8
 
 
-def _dated(names: list[str]) -> list[tuple[date, str]]:
+def _dated(names: list[str], prefix: str = "chester") -> list[tuple[date, str]]:
     out = []
+    pat = pattern(prefix)
     for n in names:
-        m = PATTERN.match(n)
+        m = pat.match(n)
         if not m:
             continue
         try:
@@ -57,9 +70,11 @@ def _dated(names: list[str]) -> list[tuple[date, str]]:
     return sorted(out)
 
 
-def plan(names: list[str], today: date) -> tuple[list[str], list[str]]:
-    """(keep, delete) over the names that match the pattern; others are ignored."""
-    dated = _dated(names)
+def plan(names: list[str], today: date,
+         prefix: str = "chester") -> tuple[list[str], list[str]]:
+    """(keep, delete) over the names that match the prefix's pattern; others
+    are ignored."""
+    dated = _dated(names, prefix)
     if not dated:
         return [], []
     keep: set[str] = set()
@@ -96,17 +111,18 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--today", required=True, help="YYYY-MM-DD")
     ap.add_argument("--require", required=True,
                     help="tonight's upload; nothing is deleted unless it is listed")
+    ap.add_argument("--prefix", default="chester", choices=PREFIXES)
     try:
         a = ap.parse_args(argv)
         today = date.fromisoformat(a.today)
     except (SystemExit, ValueError):
         return 2
     names = [ln.strip() for ln in sys.stdin.read().splitlines() if ln.strip()]
-    if a.require not in names:
+    if a.require not in names or not pattern(a.prefix).match(a.require):
         print(f"refusing to prune: {a.require} is not on the remote",
               file=sys.stderr)
         return 3
-    _, delete = plan(names, today)
+    _, delete = plan(names, today, a.prefix)
     for n in delete:
         print(n)
     return 0

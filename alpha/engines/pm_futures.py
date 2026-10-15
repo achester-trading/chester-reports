@@ -3,7 +3,9 @@ Engine 3 -- prediction markets against fed funds futures (X-2.3; the brief's
 roster item 3). Depends on the W-1.1 contract record (pm.bid, pm.ask, pm.volume,
 pm.market), which is merged.
 
-For each contract config/alpha_pm_map.yaml maps to an FOMC meeting and outcome:
+For each contract config/alpha_pm_map.yaml maps to an FOMC meeting and outcome,
+and the operator has CONFIRMED (`confirmed: true`, ruling 18 -- a drafted entry
+from alpha/pm_map.py is confirmed: false and is ignored):
 
   futures   the outcome's probability implied by the stored fed funds futures
             (altdata.fed_funds.implied_path: the move to each meeting, as the
@@ -73,7 +75,10 @@ class PredictionFuturesEngine(Engine):
         return mapping(Path(self.map_path) if self.map_path else None)
 
     def contracts(self) -> list[dict]:
-        return list(self.cfg().get("contracts") or [])
+        """Only the entries the operator confirmed (ruling 18): a drafted line
+        (alpha/pm_map.py, confirmed: false) maps nothing and trades nothing."""
+        return [c for c in (self.cfg().get("contracts") or [])
+                if c.get("confirmed") is True]
 
     def universe(self) -> list[Instrument]:
         return [self._instrument(c) for c in self.contracts()]

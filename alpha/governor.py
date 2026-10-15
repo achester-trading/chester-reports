@@ -11,6 +11,15 @@ constitution's.
              exited at the next stored bar's open, no new signals from any
              engine, until an operator event (`lab_resume`, source operator).
 
+THE RESUME IS THE OPERATOR'S (ruling 6, 14 Oct 2026). Only
+`python -m alpha.governor resume --reason "..."` lifts a halt: it writes the
+lab_resume event with source=operator and the reason, and nothing else does --
+not a recovery of the equity, not a new high-water mark, not a lab_resume row a
+loop writes. The command is denied to sessions (.claude/settings.json, CLAUDE.md)
+as the register writes are. On the resume the lab's high-water mark is re-based
+to its equity at that moment, so the next night does not re-halt on the same
+drawdown the operator has just reviewed; a fresh -15% from there halts again.
+
 FROZEN MEANS FROZEN. A halved or stopped engine carries frozen=1 and no loop
 re-fits it (alpha/validate.refit_allowed; the constitution's
 refit.frozen_in_drawdown). A halved engine is restored to `live` -- and unfrozen
@@ -33,10 +42,34 @@ from .ledger import LAB
 
 
 def lab_status(ledger) -> str:
-    """`halted` from a lab_halt event until a later operator lab_resume."""
-    rows = ledger.q("SELECT kind FROM loop_events WHERE kind IN ('lab_halt','lab_resume')"
-                    " ORDER BY id DESC LIMIT 1")
+    """`halted` from a lab_halt event until a later OPERATOR lab_resume. A
+    lab_resume with any other source does not count."""
+    rows = ledger.q("SELECT kind FROM loop_events WHERE kind='lab_halt' OR "
+                    "(kind='lab_resume' AND source='operator') ORDER BY id DESC LIMIT 1")
     return "halted" if rows and rows[0]["kind"] == "lab_halt" else "running"
+
+
+def _last_resume(ledger) -> Optional[dict]:
+    return ledger.one("SELECT * FROM loop_events WHERE kind='lab_resume' AND "
+                      "source='operator' ORDER BY id DESC LIMIT 1")
+
+
+def resume(ledger, as_of: str, reason: str) -> int:
+    """The operator lifts the lab's halt (ruling 6): one lab_resume event,
+    source operator, quoting the reason. Refuses an empty reason, and a lab
+    that is not halted."""
+    if not (reason or "").strip():
+        raise ValueError("a resume quotes the operator's reason")
+    if lab_status(ledger) != "halted":
+        raise RuntimeError("the lab is not halted: nothing to resume")
+    eq = ledger.one("SELECT equity, hwm, drawdown FROM equity WHERE engine_id=? "
+                    "ORDER BY day DESC LIMIT 1", (LAB,))
+    return ledger.event("operator", "lab_resume", as_of, None,
+                        before={"status": "halted",
+                                "drawdown": eq["drawdown"] if eq else None},
+                        after={"status": "running", "reason": reason.strip(),
+                               "hwm_rebased_to": eq["equity"] if eq else None},
+                        counterfactual={"status": "halted"}, source="operator")
 
 
 def _last(ledger, engine_id: str, before_day: str) -> Optional[dict]:
@@ -95,6 +128,11 @@ def step(ledger, as_of: str, day: str, pnl: dict[str, float],
     notional = float(cfg.get("notional_capital") or 0)
     prev = _last(ledger, LAB, day)
     eq0, hwm0 = (float(prev["equity"]), float(prev["hwm"])) if prev else (notional, notional)
+    res = _last_resume(ledger)
+    if prev and res and not ledger.one(
+            "SELECT 1 FROM equity WHERE engine_id=? AND written_at > ?",
+            (LAB, res["written_at"])):
+        hwm0 = eq0                       # the first night after the resume re-bases
     eq = eq0 + sum(pnl.values())
     hwm = max(hwm0, eq)
     dd = eq / hwm - 1.0 if hwm > 0 else 0.0
@@ -110,3 +148,29 @@ def step(ledger, as_of: str, day: str, pnl: dict[str, float],
         out["transitions"].append((LAB, "lab_halt"))
     out["lab_halt"] = lab_status(ledger) == "halted"
     return out
+
+
+def _main(argv: list[str]) -> int:
+    import argparse                                             # noqa: PLC0415
+    from altdata import session                                 # noqa: PLC0415
+    from .ledger import Ledger                                  # noqa: PLC0415
+    ap = argparse.ArgumentParser(prog="python -m alpha.governor",
+                                 description="The operator's resume of a halted lab")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    r = sub.add_parser("resume", help="lift the -15% halt (operator only)")
+    r.add_argument("--reason", required=True)
+    sub.add_parser("status")
+    ap.add_argument("--ledger")
+    a = ap.parse_args(argv)
+    with Ledger(a.ledger) as lg:
+        if a.cmd == "status":
+            print(lab_status(lg))
+            return 0
+        resume(lg, session.utc_iso(timespec="microseconds"), a.reason)
+    print("the lab: resumed by the operator")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    raise SystemExit(_main(_sys.argv[1:]))

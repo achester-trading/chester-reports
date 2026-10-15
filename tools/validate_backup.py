@@ -410,6 +410,14 @@ def group_e() -> None:
         ok("prune runs only after the db/ upload succeeded, and names tonight's file")
     else:
         bad("a failed upload could still prune")
+    guard_a = code.find(r'^alpha-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$')
+    blk = code[code.find('if copy_tree "$STAGE" "db"'):]
+    if (0 <= guard_a < code.find("rclone deletefile")
+            and re.search(r'if \[\[ "\$ALPHA" == "ok" \]\]; then\s+prune_db alpha', blk)):
+        ok("ruling 8: the alpha-* snapshots prune by their own exact-name pattern, "
+           "and only on a night tonight's alpha snapshot was staged")
+    else:
+        bad("the alpha-* prune is missing, unguarded, or matches loosely")
 
     # -- the retention rule itself -------------------------------------------
     import importlib.util  # noqa: PLC0415
@@ -464,6 +472,35 @@ def group_e() -> None:
         ok(f"everything else goes: {len(keep)} kept of {len(names) - 2} snapshots")
     else:
         bad(f"kept {len(keep_d)} (wanted {expected_keep}), deleting {len(delete)}")
+
+    # -- ruling 8: the lab ledger's alpha-* snapshots, the same rule apart ------
+    a_names = [f"alpha-{d.isoformat()}.db.gz" for d in days]
+    mixed = names + a_names + ["alpha-latest.db", "alpha-2026-09-30.db.bak"]
+    a_keep, a_del = br.plan(mixed, today, "alpha")
+    c_keep, c_del = br.plan(mixed, today)
+    if (sorted(n.replace("alpha-", "chester-") for n in a_keep if n.endswith(".gz"))
+            == sorted(keep_d - {"chester-2026-10-05.db.gz"})
+            and all(n.startswith("alpha-") for n in a_keep + a_del)):
+        ok(f"alpha-* snapshots keep by the same rule ({len(a_keep)} kept of "
+           f"{len(a_names)}), and an alpha plan names no chester file")
+    else:
+        bad("the alpha-* plan differs from chester's rule or crosses families")
+    if (not any(n.startswith("alpha-") for n in c_keep + c_del)
+            and set(c_del) == set(delete)):
+        ok("chester's plan is unchanged by alpha names beside it")
+    else:
+        bad("alpha names leak into chester's plan")
+    if not any(n in a_del for n in ("alpha-latest.db", "alpha-2026-09-30.db.bak")):
+        ok("alpha names outside the exact pattern are never planned")
+    else:
+        bad("the alpha plan would delete an unrecognised name")
+    lone = [f"alpha-{(today - timedelta(days=500)).isoformat()}.db.gz",
+            f"alpha-{(today - timedelta(days=499)).isoformat()}.db.gz"]
+    lk, _ld = br.plan(lone, today, "alpha")
+    if lone[1] in lk:
+        ok("the newest alpha snapshot is never pruned, however old")
+    else:
+        bad("the newest alpha snapshot would be pruned")
 
     import contextlib  # noqa: PLC0415
     import io  # noqa: PLC0415
@@ -577,12 +614,13 @@ def group_e() -> None:
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
     rw = m.group(1).split() if m else []
+    # The Alpha Lab's inbox (X-2.11) joins w-1-3c's three at the merge of 14 Oct.
     inboxes = ("-%h/chester-data/inbox/aaii", "-%h/chester-data/inbox/spdji",
-               "-%h/chester-data/inbox/etf")
+               "-%h/chester-data/inbox/etf", "-%h/chester-data/inbox/lab")
     if all(x in rw for x in inboxes) and not [x for x in rw if "chester-data" in x
                                               and x not in inboxes]:
-        ok("the sweep's unit may write the three inboxes (AAII, S&P DJI, ETF) and "
-           "nothing else of ~/chester-data")
+        ok("the sweep's unit may write the four inboxes (AAII, S&P DJI, ETF, the "
+           "lab's) and nothing else of ~/chester-data")
     else:
         bad("under ProtectSystem=strict an inbox pull cannot write its inbox")
 

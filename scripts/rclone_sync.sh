@@ -33,6 +33,9 @@
 # name matching `chester-YYYY-MM-DD.db[.gz]`, only inside db/, and only after
 # tonight's snapshot is confirmed on the remote. Never `delete`, `purge` or
 # `sync`, which act on whatever a filter or a listing happens to match.
+# The lab ledger's `alpha-YYYY-MM-DD.db.gz` snapshots in db/ keep by the same
+# rule (ruling 8, 14 Oct 2026): by exact name, judged apart from chester's, the
+# newest never pruned, and only on a night tonight's alpha snapshot uploaded.
 #
 # THE DATABASE IS SNAPSHOTTED, NOT COPIED. A live SQLite file read mid-write
 # produces a file that opens cleanly and is missing rows -- a backup that looks
@@ -162,12 +165,12 @@ rm -f "$SNAP"                        # the verified .gz is what goes off-box
 # it is snapshotted through its own module's online backup (python -m
 # alpha.ledger snapshot), integrity-checked, gzipped and round-tripped, staged
 # dated into db/ beside chester's, and excluded from the data/ tree below. The
-# db/ prune matches chester-YYYY-MM-DD names only, so alpha's snapshots are kept.
+# db/ prune keeps them by the same rule, as their own family (ruling 8).
 # IT NEVER BLOCKS chester.db: before the lab's timers are enabled there is no
 # alpha.db (a logged skip), and a failed alpha snapshot uploads nothing for it
 # and fails the sweep as rc 3 named `alpha-db(snapshot)`, after every tree ran.
 ALPHA_DB="$REPO/data/alpha.db"
-ALPHA_SNAP="$STAGE/alpha-$(date +%Y-%m-%d).db"
+ALPHA_SNAP="$STAGE/alpha-$TODAY.db"
 ALPHA="skipped (no $ALPHA_DB)"
 rm -f "$STAGE"/alpha-*
 if [[ -f "$ALPHA_DB" ]]; then
@@ -223,22 +226,30 @@ copy_tree() {    # copy_tree <local> <remote-subpath> <minutes> [rclone filter a
 
 # --- db/ retention: 14 daily + 8 weekly + monthly, by name, inside db/ only --
 PRUNE="not run"
+ALPHA_PRUNE="not run"
+# prune_db <prefix> <tonight's file>: sets PRUNE_OUT. chester and alpha are
+# judged apart; each name is re-matched against its own family's pattern.
 prune_db() {
-    local listing doomed name n=0
+    local prefix="$1" require="$2" listing doomed name re n=0
+    case "$prefix" in
+        chester) re='^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$' ;;
+        alpha)   re='^alpha-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$' ;;
+        *) PRUNE_OUT="refused (no rule for $prefix)"; return 1 ;;
+    esac
     if ! listing="$(timeout 5m rclone lsf "$REMOTE/db" --files-only $RCLONE_LIMITS 2>>"$LOG")"; then
-        PRUNE="failed (listing db/)"
+        PRUNE_OUT="failed (listing db/)"
         return 1
     fi
     if ! doomed="$(printf '%s\n' "$listing" \
-            | "$PY" "$REPO/scripts/backup_retention.py" \
-                --today "$TODAY" --require "$(basename "$UPLOAD")" 2>>"$LOG")"; then
-        PRUNE="refused (tonight's snapshot not listed on the remote)"
+            | "$PY" "$REPO/scripts/backup_retention.py" --prefix "$prefix" \
+                --today "$TODAY" --require "$require" 2>>"$LOG")"; then
+        PRUNE_OUT="refused (tonight's snapshot not listed on the remote)"
         return 1
     fi
     for name in $doomed; do
         # The same pattern backup_retention.py matches, checked again here: the
         # shell deletes nothing it has not itself recognised as a dated snapshot.
-        if [[ ! "$name" =~ ^chester-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$ ]]; then
+        if [[ ! "$name" =~ $re ]]; then
             log "  prune: refusing unexpected name '$name'"
             continue
         fi
@@ -247,16 +258,24 @@ prune_db() {
             log "  prune: deleted db/$name"
             n=$((n + 1))
         else
-            PRUNE="failed (deleting db/$name)"
+            PRUNE_OUT="failed (deleting db/$name)"
             return 1
         fi
     done
-    PRUNE="ok ($n deleted)"
+    PRUNE_OUT="ok ($n deleted)"
     return 0
 }
 
 if copy_tree "$STAGE" "db" 20; then
-    prune_db || log "  prune: $PRUNE"
+    prune_db chester "$(basename "$UPLOAD")"; PRUNE="$PRUNE_OUT"
+    [[ "$PRUNE" == ok* ]] || log "  prune: $PRUNE"
+    if [[ "$ALPHA" == "ok" ]]; then
+        prune_db alpha "$(basename "$ALPHA_SNAP").gz"; ALPHA_PRUNE="$PRUNE_OUT"
+    else
+        ALPHA_PRUNE="not run (no alpha snapshot tonight)"
+    fi
+    log "  alpha prune: $ALPHA_PRUNE"
+    PRUNE="$PRUNE; alpha: $ALPHA_PRUNE"
 else
     RC=3
 fi

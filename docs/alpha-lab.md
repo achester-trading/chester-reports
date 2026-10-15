@@ -293,7 +293,10 @@ also pass the model-idea rule:
 **Promotion is the loop's own.** A passed grammar rule trades through
 `alpha/engines/grammar.py`, exactly as its backtest read it. A coded engine
 trades through its own class. The operator retires either by ruling
-(`python -m alpha.promote retire`, denied to sessions).
+(`python -m alpha.promote retire`, denied to sessions). A lab halted at -15%
+stays halted until the operator runs `python -m alpha.governor resume --reason
+"..."` (ruling 6), also denied to sessions; the resume re-bases the lab's
+high-water mark.
 
 **The weekly loop closes the circle.** It writes the agenda of misses and the
 verdicts back to Drive for the next brief and the next sitting.
