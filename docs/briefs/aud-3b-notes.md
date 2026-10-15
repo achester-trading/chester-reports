@@ -283,7 +283,7 @@ so validate_events' heartbeat roster group is CI's to confirm. The gate count is
 recounted from the Makefile: seventy-five code gates (seventy-two Python, three
 shell) and six data gates.
 
-CI: the push's number is in the line below.
+CI: **#416 green** (`d6e5512`, every gate, validate_events included).
 
 ## Box commands, printed for Ari, run by no session
 
