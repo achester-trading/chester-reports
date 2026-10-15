@@ -467,9 +467,9 @@ check_library 0 failures.
 
 | Gate | Result |
 |---|---|
-| validate_backup | 79/0 |
-| validate_heartbeat_caller.sh | the new swap block passed in full (131 MiB clean, 600 MiB warns, 1.1 GiB alerts, 8% alerts, stale outranks both); the full run was stopped by the laptop's low-memory guard before its total, so CI is its count |
-| validate_systemd_units | 85/0 (on the merge) |
+| validate_backup | 79/0 (again after the comment fix) |
+| validate_heartbeat_caller.sh | 101/0 (the run finished after all; CI #399 and #400 passed it too) |
+| validate_systemd_units | 85/0 (on the merge; again after the comment fix below) |
 | validate_deploy | not rerun locally (memory); CI |
 | validate_audit_1 | 38/0 (on the merge) |
 
@@ -505,8 +505,16 @@ The heartbeat gate's fixtures:
   call into `--capture-only` and `--skip-fetch` passes. The order was still
   right (the attribution follows the compute pass). The check now reads "after
   the last run_eod.py pass"; locally 82/0.
-- `e660f80` (the changes): CI #399, superseded by the fix push below.
-- The attribution fix: see the report.
+- `e660f80` (the changes): **CI #399 failed**, and `2420fba` (the attribution
+  fix): **CI #400 failed**, both on one check in validate_systemd_units (84/1):
+  "chester-backup.service reaches a secret but has no EnvironmentFile=". The
+  sweep reaches no secret. The gate follows any `tools/<name>.py` path a wrapper
+  names, and the new header comment named `tools/validate_backup.py`, whose
+  fixtures carry a key name. The comment now says "the validate_backup gate",
+  and the other new comment names the FRED compaction without its module path.
+  No behaviour changed. Every other gate passed in #399 and #400, the
+  heartbeat gate and validate_attribution among them.
+- The comment fix: CI number in the report below.
 
 ### Needs you
 

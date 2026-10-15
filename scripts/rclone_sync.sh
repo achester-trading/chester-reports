@@ -75,7 +75,7 @@
 # The trees run db, data, chester-data, state, reports, backups: the EOD zips
 # go last because they repeat what data/ already holds. The budget, the
 # kill-after and ten minutes of slack fit inside TimeoutStartSec
-# (tools/validate_backup.py reads both files), so the sweep always writes its
+# (the validate_backup gate reads both files), so the sweep always writes its
 # own status line before systemd's ceiling does.
 #
 # Exit codes:
@@ -315,8 +315,8 @@ copy_tree "$DATA_DIR"   "chester-data" 15                         || RC=3
 copy_tree "$STATE_DIR"  "state"   10 --exclude "/backup_stage/**" || RC=3
 copy_tree "$REPORTS_DIR" "reports" 15                             || RC=3
 # The zips last: they repeat what data/ holds. The compaction's safety copy
-# (altdata.compact_fred --backup ~/backups/chester-pre-compact-*.db) is a raw,
-# unencrypted database and stays on the box.
+# (the FRED compaction's --backup, ~/backups/chester-pre-compact-*.db) is a
+# raw, unencrypted database and stays on the box.
 copy_tree "$BACKUP_DIR" "backups" 30 --exclude "/chester-pre-compact-*.db" || RC=3
 log "  prune: $PRUNE"
 
