@@ -2090,7 +2090,9 @@ sources:
 # tools/check_store_registry.py rather than guessed at.
 #
 # An alias is either an id (the string always means it) or `by_key_family`: the
-# id depends on the row's registry key, matched by prefix, first match wins, and a
+# id depends on the row's registry key, matched by prefix (a trailing `*` marks a
+# family, so tools/validate_config_refs.py does not read it as a misspelled
+# metric id; an exact registered key needs none), first match wins, and a
 # key no line matches leaves the string off the list. Ruled 15 Oct 2026: a bare
 # `ibkr` resolves by the metric's family, to the id that family's writer writes
 # today (`ibkr_paper` or `ibkr_stock_loan`), so these lines read any row stored
@@ -2101,7 +2103,7 @@ sources:
 stored_aliases:
   ibkr:
     by_key_family:
-      - prefix: ibkr.auction_
+      - prefix: ibkr.auction_*
         source: ibkr_paper
         reason: >-
           The closing-auction rows: altdata/loggers/auction.py writes them as
@@ -2117,7 +2119,7 @@ stored_aliases:
         reason: >-
           The stock-loan file's reachability probe; altdata/loggers/borrow.py
           writes it as ibkr_paper.
-      - prefix: ibkr.borrow_
+      - prefix: ibkr.borrow_*
         source: ibkr_stock_loan
         reason: >-
           The borrow fee and rebate rates come from IBKR's stock-loan file

@@ -431,6 +431,7 @@ Added to the gate's `CHANGED_RULES`, which now holds exactly 41 keys: yesterday'
 | check_registry | OK | `index_points` in the message |
 | validate_derived | 52/0 | (derived.py changed) |
 | check_library | 27 papers, 0/0 | (CLAUDE.md changed) |
+| validate_config_refs | 50/0 | (after CI #415: the family prefixes) |
 
 Every other gate is left to CI. That includes `validate_weekly_edits` and `validate_events`, which read U-3, and `validate_weekly_complete` and `validate_basis_proxy`, which seed MOVE and SKEW. Windows raised no low-memory warning.
 
@@ -455,4 +456,4 @@ Every other gate is left to CI. That includes `validate_weekly_edits` and `valid
 2. **The store check's `ibkr` line names the string, not the key.** If the box lists `ibkr`, it will come from a family no alias line names. Want the check to print the key beside an off-list string, so the next alias line can be written from the output?
 
 ### CI
-- **CI for these commits:** pending at commit; read after the push.
+- **#415** (`af92a2c`) **failed one gate, `validate_config_refs`:** "source_registry.yaml: 5 metric id(s), all registered -- UNRESOLVED: ['ibkr.auction_', 'ibkr.borrow_']". That gate reads any registry-shaped string in a config file as a metric id, and the two family prefixes looked like misspelled ones. Fixed in the next commit: a family is written with a trailing `*` (`ibkr.auction_*`, `ibkr.borrow_*`), a shape that gate already skips, and `source_ids` strips it. Locally after the fix: validate_config_refs 50/0, validate_audit_3a 81/0. Every other gate in #415 passed, including validate_move_screen, validate_derived, check_registry, validate_weekly_edits, validate_events, validate_weekly_complete and validate_basis_proxy.

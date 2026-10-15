@@ -58,7 +58,8 @@ def _by_family(alias: dict, key: Optional[str]) -> Optional[str]:
     if not key:
         return None
     for line in alias.get("by_key_family") or []:
-        if str(key).startswith(str(line.get("prefix") or "\0")):
+        # A trailing `*` marks a family (source_registry.yaml's comment).
+        if str(key).startswith(str(line.get("prefix") or "\0").rstrip("*")):
             return str(line.get("source"))
     return None
 

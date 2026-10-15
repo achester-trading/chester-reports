@@ -498,7 +498,8 @@ def group_d(td: str) -> None:
     lines = ((sreg.get("stored_aliases") or {}).get("ibkr") or {}).get(
         "by_key_family") or []
     shadow = [(a["prefix"], b["prefix"]) for i, a in enumerate(lines)
-              for b in lines[i + 1:] if str(b["prefix"]).startswith(str(a["prefix"]))]
+              for b in lines[i + 1:]
+              if str(b["prefix"]).rstrip("*").startswith(str(a["prefix"]).rstrip("*"))]
     check(lines and all(ln.get("prefix") and ln.get("source") in srcs
                         and len(str(ln.get("reason") or "")) > 20 for ln in lines)
           and not shadow,
