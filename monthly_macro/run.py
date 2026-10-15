@@ -3,6 +3,8 @@ Monthly Macro Report — main entry point.
 
 Usage:
     python -m monthly_macro.run                 # pull + write to ./reports/
+    python -m monthly_macro.run --cadence quarterly --dry-run
+                                                # the Alternative Assets Quarterly
     python -m monthly_macro.run --skip-fetch    # use existing store, only render
     python -m monthly_macro.run --out-dir custom-dir
 
@@ -51,10 +53,12 @@ def setup_logging(verbose: bool = False):
 
 
 SUBJECT = "Monthly Regime & Allocation — {date}"
+QUARTERLY_SUBJECT = "Alternative Assets Quarterly — {date}"
 
 
 def deliver_edition(stamp: str, out_dir: str = "reports",
-                    dry_run: bool = False) -> dict:
+                    dry_run: bool = False, prefix: str = "monthly_macro",
+                    subject: str = SUBJECT) -> dict:
     """Email one ARCHIVED edition: the HTML in the body, the Markdown and the
     HTML attached.
 
@@ -73,7 +77,7 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
         delivery=smtp failed   anything else, with the named state and detail
     """
     d = Path(out_dir)
-    md_name, html_name = f"monthly_macro_{stamp}.md", f"monthly_macro_{stamp}.html"
+    md_name, html_name = f"{prefix}_{stamp}.md", f"{prefix}_{stamp}.html"
     try:
         md = (d / md_name).read_text(encoding="utf-8")
         html = (d / html_name).read_text(encoding="utf-8")
@@ -83,13 +87,13 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
         # THE CHARTS TRAVEL BY CONTENT-ID, read back from the archive like the
         # HTML: every `cid:` the record references, from its archived PNG.
         from . import charts as charts_mod
-        images, missing = charts_mod.inline_images(html, stamp, out_dir)
+        images, missing = charts_mod.inline_images(html, stamp, out_dir, prefix)
         if missing:
             print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
         from alpha.report import monthly_attachment             # noqa: PLC0415
         lab = monthly_attachment(stamp)       # X-2.8: the Lab report; never raises
         state, detail = delivery.send_html(
-            ("[DRY RUN] " if dry_run else "") + SUBJECT.format(date=stamp), html,
+            ("[DRY RUN] " if dry_run else "") + subject.format(date=stamp), html,
             text_fallback=md,
             attachments=[(md_name, md, "markdown"),
                          (html_name, charts_mod.self_contained(html, images),
@@ -145,6 +149,71 @@ def build_stack(p: dict, args, log, out_dir, prior_dir=None) -> dict:
     except Exception:                                          # noqa: BLE001
         log.exception("the stacked Monthly faulted; rendering the v2 layout")
         return None
+
+
+def run_quarterly(args, log) -> int:
+    """THE QUARTERLY (AQ-1): the same runner at the fourth cadence. The payload
+    is the Monthly's, built over the previous calendar quarter; the edition is
+    monthly_macro.quarterly's -- the stack's front matter and the eleven
+    chapters. Archived as alt_asset_<date>.*; recorded under the state key
+    `alt_asset`; a dry run writes only to <out-dir>/dryrun/ and records nothing,
+    as the Monthly's. It never fetches: the box's passes own the store."""
+    from . import quarterly as q_mod
+    arch = str(Path(args.out_dir) / "dryrun") if args.dry_run else args.out_dir
+    run_id = session.new_run_id("quarterly")
+    p = payload_mod.build(args.as_of, run_id=run_id, period="quarter")
+    for w in p.get("warnings") or []:
+        log.warning("payload absence -- %s", w)
+    try:
+        out = q_mod.produce(p, archive_dir=arch, prior_dir=args.out_dir,
+                            narrative=not args.skip_narrative,
+                            model=args.narrative_model)
+    except Exception:                                          # noqa: BLE001
+        log.exception("the Quarterly faulted; nothing archived")
+        return 1
+    ed = out["edition"]
+    stamp = p.get("report_date")
+    md_path = delivery.archive(out["markdown"], f"{q_mod.PREFIX}_{stamp}.md", arch)
+    html_path = delivery.archive(out["html_email"], f"{q_mod.PREFIX}_{stamp}.html",
+                                 arch)
+    delivery.archive(json.dumps(p, indent=2, default=str, sort_keys=True),
+                     f"{q_mod.PREFIX}_{stamp}_payload.json", arch)
+    q_mod.save_edition(ed, arch)
+    from . import charts as charts_mod
+    pngs = charts_mod.archive_pngs(out.get("charts") or {}, stamp, arch,
+                                   prefix=q_mod.PREFIX)
+    log.info("archived %d chart PNG(s)", len(pngs))
+    log.info("quarterly %s: %d chapters; the read %s min, the whole edition %s min "
+             "(target %s for the read)%s", ed.get("month"),
+             len(q_mod.chapters(ed)), ed.get("read_minutes"),
+             ed.get("reading_minutes"), ed.get("reading_target_minutes"),
+             f"; WARNING {ed['read_warning']}" if ed.get("read_warning") else "")
+    # A dry run records nothing: the dashboard shows the Quarterly that was sent.
+    if args.dry_run:
+        log.info("--dry-run: no state record")
+    else:
+        try:
+            emit(report_key=q_mod.STATE_KEY, status="published",
+                 headline=f"Alternative Assets Quarterly {ed.get('month')}",
+                 detail={"chapters": len(q_mod.chapters(ed)),
+                         "read_minutes": ed.get("read_minutes"),
+                         "edition_minutes": ed.get("reading_minutes"),
+                         "read_warning": ed.get("read_warning"),
+                         "narrative": not args.skip_narrative},
+                 as_of=session.session_date_obj())
+        except Exception:
+            log.exception("State emission raised unexpectedly; report is unaffected")
+    print(f"\n✅ Quarterly generated:\n   {md_path}\n   {html_path}")
+    if args.dry_run and not args.email:
+        print("dry run -- NOT delivered")
+        print("delivery=skipped (--dry-run)")
+        return 0
+    if args.no_deliver:
+        print("delivery=skipped (--no-deliver)")
+        return 0
+    res = deliver_edition(stamp, arch, dry_run=args.dry_run, prefix=q_mod.PREFIX,
+                          subject=QUARTERLY_SUBJECT)
+    return 0 if res["delivery"] == "sent" else 2
 
 
 def rerender(args, log) -> int:
@@ -263,6 +332,10 @@ def main():
     ap.add_argument("--email", action="store_true",
                     help="With --dry-run: also SEND the dry-run render, once, "
                          "subject prefixed \"[DRY RUN]\"; nothing else changes")
+    ap.add_argument("--cadence", choices=("monthly", "quarterly"),
+                    default="monthly",
+                    help="monthly (default), or quarterly: the Alternative Assets "
+                         "Quarterly over the previous calendar quarter (AQ-1)")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -277,11 +350,21 @@ def main():
         print("refused: --email sends a DRY-RUN render and needs --dry-run on a "
               "live build (not --from-payload or --deliver-only)", file=sys.stderr)
         return 1
-    if args.deliver_only:
+    if args.cadence == "quarterly" and args.from_payload:
+        print("refused: --from-payload re-renders a Monthly; the Quarterly has no "
+              "re-render yet", file=sys.stderr)
+        return 1
+    if args.deliver_only and args.cadence == "monthly":
         out = deliver_edition(args.deliver_only, args.out_dir)
         return 0 if out["delivery"] == "sent" else 2
     if args.from_payload:
         return rerender(args, log)
+    if args.cadence == "quarterly":
+        if args.deliver_only:
+            out = deliver_edition(args.deliver_only, args.out_dir, prefix="alt_asset",
+                                  subject=QUARTERLY_SUBJECT)
+            return 0 if out["delivery"] == "sent" else 2
+        return run_quarterly(args, log)
 
     # THE DRY RUN (PB-1's shape, the Weekly's): the real build, model and all,
     # whose every write lands in <out-dir>/dryrun/. It reads the real archive --

@@ -1,0 +1,17 @@
+[Unit]
+Description=Crypto basket writers at 17:25 ET, every day
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# 17:25 ET, every day (crypto trades every day): after the 16:45 close capture,
+# inside the 17:20-23:30 window, clear of the 16:00-17:20 EOD and close passes
+# and of Sunday 05:00's Weekly.
+OnCalendar=*-*-* 17:25 America/New_York
+RandomizedDelaySec=120
+
+# A missed evening is caught up: every writer re-reads history, so the catch-up
+# writes only what changed.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

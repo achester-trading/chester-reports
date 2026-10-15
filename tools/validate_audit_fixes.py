@@ -37,6 +37,15 @@ no network, no model:
      does: a Monthly paragraph saying "the dollar softened" against DXY +0.27%
      is withheld on the Weekly's message and retried; "bullish on inflation" is
      withheld, in a stack frame and a v2 section; "fell -3 bp" prints "fell 3 bp".
+  H  W-1.3c ITEM 1, from dry run #6 (tests/fixtures/weekly_run6_2026-10-13.json):
+     a sign before a currency symbol is the figure's. Run 6's "fell −$1bn" passes
+     against its own Plumbing rows (it was withheld as "'fell' with a rise"), with
+     a hyphen too; "rose −$1bn" fails; "+$82bn" reads as a rise; the euro, pound
+     and yen signs read alike.
+  I  W-1.3c ITEM 6: a retry carries the whole withhold message and the rule
+     behind each fault; three attempts on the Weekly. A fake model that obeys
+     the reason on attempt 2 publishes; one that never does is withheld after
+     three; a fifth fault (run 6's Ahead Takeaway) still reaches the retry.
 
     python tools/validate_audit_fixes.py
 """
@@ -509,9 +518,125 @@ def group_g() -> None:
           "a block frame reads its parent section's moves; no edition, no audit")
 
 
+RUN6 = json.loads((REPO / "tests" / "fixtures" / "weekly_run6_2026-10-13.json")
+                  .read_text(encoding="utf-8"))
+
+
+def run6_moves() -> dict:
+    return {n: (direction._parse(c)[0], c, direction._parse(c)[1])
+            for n, c in RUN6["plumbing"]["moves"]}
+
+
+def run6_plumbing() -> dict:
+    rows = [[n, "—", c, DAY] for n, c in RUN6["plumbing"]["moves"]]
+    return {"id": "plumbing", "title": "Plumbing & rates", "depth": "deep", "items": [],
+            "table": {"columns": ["Series", "Level", "Week", "As of"], "rows": rows},
+            "subsections": [], "data": {}}
+
+
+def group_h() -> None:
+    print(f"\n{LINE}\nH. W-1.3c ITEM 1: A SIGN BEFORE A CURRENCY SYMBOL (dry run #6)\n{LINE}")
+    mv = run6_moves()
+    check(mv["Reverse repo (RRP)"][:1] == (-1e9,) and mv["Reverse repo (RRP)"][2] == "$",
+          "the run-6 table's '−$1bn' reads as -1e9 in dollars")
+    cl = RUN6["plumbing"]["clause"]
+    check(direction.faults(cl, mv) == [],
+          f"'{cl}' passes (run 6 withheld it: {RUN6['plumbing']['withheld']})")
+    check(direction.faults(cl.replace("−", "-"), mv) == [],
+          "and with a hyphen for the minus")
+    check(direction.faults(cl.replace("fell", "rose"), mv),
+          "'rose −$1bn' fails: a rise word with a fall")
+    check(direction.faults("Bank reserves rose +$82bn.", mv) == []
+          and direction.faults("Bank reserves fell +$82bn.", mv),
+          "'+$82bn' reads as a rise: 'rose' passes, 'fell' fails")
+    eu = {"ECB deposits (euro)": (-2e9, "−€2bn", "€"), "BoE reserves": (5e9, "+£5bn", "£"),
+          "BoJ current accounts": (-3e12, "−¥3tn", "¥")}
+    check(direction.faults("ECB deposits fell −€2bn.", eu) == []
+          and direction.faults("ECB deposits rose −€2bn.", eu)
+          and direction.faults("BoE reserves rose +£5bn.", eu) == []
+          and direction.faults("BoE reserves fell +£5bn.", eu)
+          and direction.faults("BoJ current accounts fell -¥3tn.", eu) == []
+          and direction.faults("BoJ current accounts rose −¥3tn.", eu),
+          "the euro, pound and yen signs read the same way")
+    check(fb.parse_figure("−€1bn") == (-1e9, "€") and fb.parse_figure("+£2m") == (2e6, "£")
+          and fb.parse_figure("−$68bn") == (-68e9, "$"),
+          "figure_budget.parse_figure keeps each currency as its unit")
+    check(readability.figures("fell −€1bn and +$82bn") == ["-€1bn", "+$82bn"],
+          "the figure counter reads a sign before any of the four symbols")
+    ed, seen = run_write([run6_plumbing()], [shaped(cl, "deep")])
+    pr = ed["prose"]["plumbing"]
+    check(pr.get("published") and pr.get("attempts") == 1,
+          f"through the pipeline the run-6 clause publishes first time "
+          f"({pr.get('reason')})")
+
+    print(f"\n{LINE}\nI. W-1.3c ITEM 6: A RETRY CARRIES THE REASON AND THE RULE\n{LINE}")
+    bad = shaped("Reverse repo fell −$1bn the same day.", "deep").replace(
+        "the coming auctions are its test.", "the coming auctions are its 2.5% test.")
+    good = shaped("Reverse repo fell −$1bn the same day.", "deep")
+
+    def obeying(after: int):
+        """A fake model that writes the faulty draft until a prompt carries the
+        Takeaway fault AND its rule, from attempt `after` on."""
+        from daily_cascade import narrative as base
+        seen2: list = []
+        real = base.generate
+
+        def fake(payload, **kw):
+            sysp = kw.get("system_prompt") or ""
+            if "THE SECTION: Plumbing" not in sysp:
+                return Reply(good)                  # The read's own call
+            seen2.append(sysp)
+            heard = ("restates figures" in sysp and "THE TAKEAWAY RULE" in sysp)
+            return Reply(good if heard and len(seen2) >= after else bad)
+        return real, fake, seen2
+
+    from daily_cascade import narrative as base
+    for after, want in ((2, (True, 2)), (99, (False, 3))):
+        real, fake, seen2 = obeying(after)
+        base.generate = fake
+        try:
+            ed = {"session": DAY, "sections": [
+                {"id": "read", "title": "The read", "depth": "deep", "items": [],
+                 "table": None, "subsections": [], "data": {}, "empty": True},
+                {"id": "tape", "title": "The tape", "depth": "deep", "items": [],
+                 "table": None, "subsections": [], "data": {}, "empty": True},
+                run6_plumbing()]}
+            sp.write(ed, client=object(), cadence="weekly")
+        finally:
+            base.generate = real
+        pr = ed["prose"]["plumbing"]
+        if want[0]:
+            check(pr.get("published") and pr.get("attempts") == 2 and len(seen2) == 2
+                  and "restates figures" in seen2[1] and "THE TAKEAWAY RULE" in seen2[1],
+                  f"a model that obeys the reason on attempt 2 publishes "
+                  f"({pr.get('attempts')} attempts)")
+        else:
+            check(not pr.get("published") and pr.get("attempts") == 3
+                  and len(seen2) == 3 and "attempt 2 of 3" in seen2[2]
+                  and ed["sections"][2].get("withheld"),
+                  f"one that never does is withheld after three attempts "
+                  f"({pr.get('attempts')})")
+    late = ("withheld: filler sentence: 'a'; filler sentence: 'b'; the paragraph "
+            "cites 9 figures; at most 6 -- the tables carry the rest; direction "
+            "audit failed on 1 clause: 'x'; " + RUN6["ahead_withheld"])
+    rp = sp.retry_prompt("SYS", late, 2, 3)
+    check(RUN6["ahead_withheld"] in rp and "THE TAKEAWAY RULE" in rp
+          and "THE FILLER RULE" in rp and "THE FIGURE BUDGET" in rp
+          and "THE DIRECTION RULE" in rp and "WITHHELD BY THE AUDIT" in rp,
+          "a fifth fault (run 6's Ahead Takeaway) reaches the retry whole, with "
+          "the rule behind each kind of fault")
+    check(any(k in sp.retry_prompt("S", "narrative withheld: numeral audit failed "
+                                   "on 1 figure (9.9%)") for k in ("THE NUMERAL RULE",)),
+          "a numeral-audit withhold carries the numeral rule")
+    from daily_cascade import cadence as cad_mod
+    check(sp.attempts_of(cad_mod.get("weekly")) == 3
+          and sp.attempts_of(cad_mod.get("daily")) == 2,
+          "three attempts on the Weekly (config prose_attempts); the close keeps two")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0

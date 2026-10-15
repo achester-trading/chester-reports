@@ -42,6 +42,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from altdata import session       # noqa: E402
+from altdata.numeral_audit import ordinal  # noqa: E402
 
 # Rough horizon lengths in calendar days, used only to compare a horizon
 # against an option's remaining life. Approximate by nature; the check they
@@ -315,7 +316,7 @@ def _options_paper_rules(flag, sec: str, expression_family: Optional[str],
             and fam in VOL_BUYING_FAMILIES):
         flag("long_vol_at_high_iv",
              f"buying {fam} with implied volatility at the "
-             f"{iv_percentile:.0f}th percentile",
+             f"{ordinal(iv_percentile)} percentile",
              "Implied volatility is HIGHEST AT THE TROUGH -- above eighty at the "
              "2008 and 2020 lows, mid-thirties to high forties at 2011, 2018 and "
              "2022. A two-year at-the-money call costing 11% of spot at sixteen-vol "

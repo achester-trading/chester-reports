@@ -78,6 +78,79 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
     return pub.run(SOURCE, KEYS, _produce, run_id=run_id, db=db)
 
 
+# ---------------------------------------------------------------------------
+# H.4.1: the FIMA repo line (signal-triage batch 3, ST-B3-05; SR-34)
+# ---------------------------------------------------------------------------
+# The Board's Data Download Program serves the H.4.1 tables as fixed CSV
+# packages; the package below (the factors-supplying and -absorbing reserve
+# balances table) carries "Assets: Other: Repurchase agreements - Foreign
+# official", the FIMA repo facility's usage. federalreserve.gov answers
+# robots.txt with 404 (no rules; checked 13 Oct 2026). No key.
+#
+# THE PACKAGE: six header rows -- Series Description, Unit, Multiplier,
+# Currency, Unique Identifier, Time Period -- then one row per week (the
+# Wednesday). A column is found by its UNIQUE IDENTIFIER, never by position:
+#   H41/H41/RESPPALGTRF_N.WW       Wednesday level
+#   H41/H41/RESPPALGTRF_XAW_N.WW   week average
+# MILLIONS of dollars (the Multiplier row says 1000000 and is checked), stored
+# in DOLLARS. Published Thursdays at 16:30 ET; available_at is Last-Modified
+# where sent, else the write instant.
+#
+#   tic.fima_repo          Wednesday level     (placed in tic.* by ruling,
+#   tic.fima_repo_weekavg  week average         decision 4, 6 Oct 2026)
+SOURCE_H41 = "frb_h41"
+URL_H41 = ("https://www.federalreserve.gov/datadownload/Output.aspx?rel=H41&"
+           "series=f52e72511be65e16f71d4f5858951312&lastobs=&from=&to=&"
+           "filetype=csv&label=include&layout=seriescolumn&type=package")
+H41_COLUMNS = {"H41/H41/RESPPALGTRF_N.WW": "tic.fima_repo",
+               "H41/H41/RESPPALGTRF_XAW_N.WW": "tic.fima_repo_weekavg"}
+KEYS_H41 = ["tic.fima_repo", "tic.fima_repo_weekavg"]
+
+
+def h41_rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
+    """Rows from the H.4.1 package. Raises when a FIMA column or its
+    multiplier is not what this reader expects."""
+    rows = list(csv.reader(io.StringIO(text.lstrip("﻿"))))
+    meta = {(r[0] or "").strip().rstrip(":"): r for r in rows[:8] if r}
+    ids = meta.get("Unique Identifier") or []
+    mult = meta.get("Multiplier") or []
+    cols = {}
+    for i, ident in enumerate(ids):
+        key = H41_COLUMNS.get(ident.strip())
+        if key:
+            if (mult[i] if i < len(mult) else "").strip() != "1000000":
+                raise ValueError(f"H.4.1 {ident}: multiplier {mult[i]!r}, expected 1000000")
+            cols[key] = i
+    if set(cols) != set(KEYS_H41):
+        raise ValueError(f"H.4.1 package lacks {sorted(set(KEYS_H41) - set(cols))}")
+    out = []
+    for r in rows:
+        day = (r[0] if r else "").strip()
+        if len(day) != 10 or day[4] != "-":
+            continue
+        for key, i in cols.items():
+            try:
+                v = float(r[i])
+            except (ValueError, IndexError):
+                continue                        # "ND": no data that week
+            out.append({"registry_key": key, "instrument": None, "observed_at": day,
+                        "available_at": available_at, "value": v * 1_000_000.0,
+                        "availability_kind": kind})
+    if not out:
+        raise ValueError("no week parsed from the H.4.1 package")
+    return out
+
+
+def _produce_h41() -> list[dict]:
+    data, headers = http_get_response(URL_H41, timeout=90)
+    return h41_rows_from_csv(data.decode("utf-8", errors="replace"),
+                             *pub.availability(headers))
+
+
+def pull_h41(run_id: Optional[str] = None, db=None) -> dict:
+    return pub.run(SOURCE_H41, KEYS_H41, _produce_h41, run_id=run_id, db=db)
+
+
 if __name__ == "__main__":
     import json
     logging.basicConfig(level=logging.INFO,

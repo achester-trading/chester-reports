@@ -67,6 +67,7 @@ from typing import Any, Optional
 import yaml
 
 from . import derived, observations, session
+from .numeral_audit import ordinal
 
 log = logging.getLogger(__name__)
 
@@ -579,7 +580,8 @@ def confirm(c: dict, ctx: dict, cfg: dict) -> list[dict]:
         met = rs >= float(r.get("long_min_pct") or 80) if d > 0 \
             else rs <= float(r.get("short_max_pct") or 20)
         out.append({"family": "relative strength", "met": met,
-                    "text": f"RS {rs:.0f}th percentile against SPY over "
+                    # W-1.3c item 7: the shared helper, never a fixed "th".
+                    "text": f"RS {ordinal(rs)} percentile against SPY over "
                             f"{int(r.get('sessions') or 60)} sessions"})
     pz = ctx["positioning"].get(sym)
     thr = float((cc.get("positioning") or {}).get("crowded_z") or 1.5)

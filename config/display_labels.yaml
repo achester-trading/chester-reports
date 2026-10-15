@@ -67,6 +67,8 @@ metrics:
   yfinance.mkt_uso: "the oil fund (USO)"
   yfinance.mkt_btc_usd: "bitcoin (BTC-USD)"
   zec.shielded_value_share: "Zcash's shielded share of supply"
+  zec.price_usd: "Zcash (ZEC-USD)"
+  zec.crypto_cap_share: "Zcash's share of crypto market cap"
 
 # -----------------------------------------------------------------------------
 # PLAIN LANGUAGE (T2.2, ruled 4 Oct 2026, item 2). The prose may describe these

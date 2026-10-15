@@ -1,0 +1,23 @@
+# THE THAILAND POLITICAL CALENDAR -- a hand-seeded TEMPLATE (change order of 10
+# Oct 2026, section 4.10; decision 11). namespace: thailand.
+#
+# The country chapter's political calendar: budget passage and disbursement,
+# coalition and cabinet events, Election Commission and Parliament dates, BoT
+# Monetary Policy Committee meetings, maintained BY HAND. The Quarterly's
+# Thailand chapter prints the entries dated in the 120 days after the quarter's
+# end and writes nothing about them.
+#
+# ISOLATION. Nothing here is a series, nothing is trigger_eligible, and nothing
+# reads this file but the Thailand chapter (tools/validate_quarterly_stack.py
+# group G holds that). The operator's personal-finance core -- the conversion
+# table, the project budget, the payment dates -- is NOT here and is not in the
+# repo; it stays in the operator's private store.
+#
+#   - date:   YYYY-MM-DD
+#     body:   "Bank of Thailand MPC"
+#     event:  "policy meeting"
+#     source: "https://..."        # BoT, MoF, NESDC, the Election Commission,
+#                                  # Parliament, the Royal Thai Government, MFA
+version: template
+namespace: thailand
+entries: []

@@ -279,8 +279,10 @@ def group_c() -> None:
 
 def group_d() -> None:
     print(f"\n{LINE}\nD. NO STORE KEY AS A NAME\n{LINE}")
-    keys = ["yfinance.mkt_gld", "yfinance.mkt_slv", "yfinance.mkt_uso",
-            "yfinance.mkt_btc_usd", "zec.shielded_value_share"]
+    # Every series the families declare, read from payload.ALT_FAMILIES rather
+    # than copied, so a key added there needs its label here.
+    from monthly_macro import payload as pl
+    keys = [m for f in pl.ALT_FAMILIES.values() for m in f.get("metrics") or []]
     labs = {k: labels.metric(k) for k in keys}
     check(all(v and "." not in v and "mkt_" not in v and v != labels.plain(k)
               for k, v in labs.items()),
