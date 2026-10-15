@@ -501,4 +501,6 @@ Every other gate is left to CI. That includes `validate_weekly_edits` and `valid
 
 **Gates, locally, one at a time:** validate_audit_3a **83/0** (two checks added: the count of 65, the detail line). No other gate was changed.
 
-**CI for this commit:** see the line below.
+**CI:**
+
+- **#420** (`6d90f20`) **failed one gate, `validate_events`:** "and a rate's is different (u3_rate -> percent_share)". The check pinned U-3's surprise unit to the literal `"%"`, and part 1 moved it to U-3's own `percent_share`, as ruled. The check's point is that a rate's surprise has its own series' unit, not cpi's. It now compares the surprise's unit with `fred.u3_rate`'s and requires it to differ from `idx`. Fixed in the next commit; validate_events 91/0 locally. Every other gate in #420 passed.
