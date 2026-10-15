@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, derived, levels as levels_mod, observations, session
+from altdata import model_meter
 
 from . import charts as charts_mod
 from .cadence import Period
@@ -2128,10 +2129,11 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     return out
 
 
+@model_meter.metered("weekly")
 def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, log_path: Optional[Path] = None,
-            prior_dir: Optional[str] = None) -> dict:
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, log_path: Optional[Path] = None,
+             prior_dir: Optional[str] = None) -> dict:
     ending = p["week_ending"]
     with bars_mod.BarStore(db_path) as bst:
         try:

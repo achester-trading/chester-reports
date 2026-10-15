@@ -114,7 +114,8 @@ def release_map(refresh: bool = False) -> dict[str, dict]:
         try:
             j = _get("series/release", series_id=spec.fred_id)
         except Exception as exc:                               # noqa: BLE001
-            log.warning("no release for %s: %s", spec.fred_id, exc)
+            log.warning("no release for %s: %s", spec.fred_id,
+                        secrets.redact(str(exc)))
             continue
         rel = (j.get("releases") or [{}])[0]
         if rel.get("id"):
@@ -166,7 +167,8 @@ def calendar_events() -> tuple[list[ev_mod.Event], dict]:
         rmap = release_map()
     except Exception as exc:                                   # noqa: BLE001
         return [], {"state": "failed",
-                    "reason": f"release map: {type(exc).__name__}: {exc}"[:200]}
+                    "reason": secrets.redact(
+                        f"release map: {type(exc).__name__}: {exc}")[:200]}
     report["series_mapped"] = len(rmap)
 
     # One request per RELEASE, not per series: a dozen releases cover 59 series,
@@ -195,8 +197,8 @@ def calendar_events() -> tuple[list[ev_mod.Event], dict]:
             j = _get("release/dates", release_id=rid, realtime_start=start,
                      realtime_end=end, include_release_dates_with_no_data="true")
         except Exception as exc:                               # noqa: BLE001
-            report.setdefault("failed", {})[str(rid)] = (
-                f"{type(exc).__name__}: {exc}"[:120])
+            report.setdefault("failed", {})[str(rid)] = secrets.redact(
+                f"{type(exc).__name__}: {exc}")[:120]
             continue
         for row in j.get("release_dates") or []:
             day = str(row.get("date") or "")[:10]

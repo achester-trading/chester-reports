@@ -53,3 +53,14 @@ ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
+
+# MEMORY CAPS (AUD-2 item 3, session-set for the 8 GB box): MemoryHigh throttles and
+# reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
+MemoryHigh=1.6G
+MemoryMax=2G
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13). If the caps are
+# not enough, the kernel kills the highest score first: a report can be rendered
+# again; a day's chains cannot be fetched again; the Gateway needs Ari's supervised
+# login. So the reports 500, the EOD capture 300, the Gateway -500. Raising a score
+# needs no privilege, so this order holds on a --user unit without root.
+OOMScoreAdjust=500

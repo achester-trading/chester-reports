@@ -1619,7 +1619,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Shares SOLD SHORT during one session, from FINRA's Reg SHO daily file. THIS IS NOT SHORT INTEREST. It is a FLOW and it includes a market maker shorting to fill a buy order and covering nine seconds later -- a stock can print 45 percent short volume every day for a year with no net short position at all. Short interest is the STOCK of shares still held short and is finra.short_interest. The ratio of one to the other is not a meaningful number.
+      Shares SOLD SHORT during one session, from FINRA's Reg SHO daily file, for every symbol with at least 1,000,000 shares of FINRA-reported total volume that session plus the tracked universe (AUD-1, 14 Oct 2026; until then the tracked universe only, so a name's history before it was tracked is absent). THIS IS NOT SHORT INTEREST. It is a FLOW and it includes a market maker shorting to fill a buy order and covering nine seconds later -- a stock can print 45 percent short volume every day for a year with no net short position at all. Short interest is the STOCK of shares still held short and is finra.short_interest. The ratio of one to the other is not a meaningful number.
   finra.total_volume:
     source: finra
     mechanism_group: short_flow
@@ -1631,7 +1631,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Total consolidated volume from the same file, stored so the short-volume SHARE can be computed without joining a second source whose volume definition differs.
+      Total volume from the same file -- FINRA-reported venues, not the consolidated tape -- stored so the short-volume SHARE can be computed without joining a second source whose volume definition differs. The same instrument set as finra.short_volume: this series is the floor's test.
   finra.short_exempt_volume:
     source: finra
     mechanism_group: short_flow
@@ -1643,7 +1643,7 @@ metrics:
     units: shares
     trigger_eligible: false
     description: >-
-      Short-exempt volume from the same file. Small, and separate because an exempt short is a different act from a regular one.
+      Short-exempt volume from the same file, for the same instrument set as finra.short_volume. Small, and separate because an exempt short is a different act from a regular one.
   finra.short_interest:
     source: finra
     mechanism_group: short_stock
@@ -1703,7 +1703,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Mention count for one ticker on one venue in the trailing day. The instrument carries the FEED (TICKER@all-stocks, TICKER@wallstreetbets) because a count on one venue and a count across all of them are measurements of different populations and must never be summed.
+      Mention count for one ticker on one venue in the trailing day. TICKER@all-stocks is every ticker on every page ApeWisdom serves for the all-stocks filter (AUD-1, 14 Oct 2026; until then the tracked universe only); TICKER@wallstreetbets is the tracked universe. The instrument carries the FEED because a count on one venue and a count across all of them are measurements of different populations and must never be summed.
   apewisdom.rank:
     source: apewisdom
     mechanism_group: social_attention
@@ -1715,7 +1715,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      The ticker's rank by mentions on that venue. Rank moves when OTHER tickers move, which is why the raw count is stored beside it.
+      The ticker's rank by mentions on that venue, for the same instrument set as apewisdom.mentions. Rank moves when OTHER tickers move, which is why the raw count is stored beside it.
   apewisdom.upvotes:
     source: apewisdom
     mechanism_group: social_attention
@@ -1727,7 +1727,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Upvotes on the counted mentions -- an intensity measure beside the volume one.
+      Upvotes on the counted mentions, for the same instrument set as apewisdom.mentions -- an intensity measure beside the volume one.
   ibkr.shortable_shares:
     source: ibkr_paper
     mechanism_group: borrow_terms

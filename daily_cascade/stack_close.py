@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, levels as levels_mod, observations, session
+from altdata import model_meter
 
 from . import charts as charts_mod
 from . import outlooks as outlooks_mod
@@ -168,9 +169,10 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
     return row
 
 
+@model_meter.metered("daily_close")
 def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None) -> dict:
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None) -> dict:
     sess = p["session"]
     cutoff = p.get("as_of") or session.utc_iso()
     cfg = bars_mod.load_config()
@@ -278,6 +280,13 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
+    # THE MODEL METER'S LINE (AUD-2 item 4): every report's calls today, ET.
+    from altdata import model_meter                             # noqa: PLC0415
+    try:
+        ed["model_line"] = model_meter.daily_line(
+            db_path, session.to_eastern().date().isoformat())
+    except Exception:                                           # noqa: BLE001
+        log.warning("model meter line unavailable", exc_info=True)
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()

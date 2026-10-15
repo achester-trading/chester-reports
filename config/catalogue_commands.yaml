@@ -37,6 +37,10 @@ commands:
   altdata.claims:
     domain: reference
     line: 'The claims registry: cited figures the system may print and cannot compute'
+  altdata.compact_fred:
+    domain: macro
+    line: 'Compact the FRED re-stamps (AUD-1 item 4b): drop the identical re-stored vintages, dry run first, with a backup'
+    sources: [fred]
   altdata.correlation:
     domain: computed
     line: 'The correlation layer: rolling return correlations across the alternative-asset universe, a shift flag per pair, and the breaks'

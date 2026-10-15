@@ -68,6 +68,8 @@ run() {
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         "$@" \
@@ -515,6 +517,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -535,6 +538,7 @@ env CHECKER_RC=1 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -571,6 +575,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -600,6 +605,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -638,6 +644,7 @@ env CHECKER_RC=2 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -697,6 +704,8 @@ run_exc() {                      # run_exc <checker_rc>
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -775,6 +784,7 @@ run_backup() {                   # run_backup <checker_rc> [extra env...]
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -843,6 +853,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty-feeds-b.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -1063,6 +1074,60 @@ else
 fi
 rm -f "$STATE_DIR/monthly_heartbeat" "$STATE_DIR/weekly_heartbeat"
 rm -f "$UNITS"/*.service "$UNITS"/*.timer
+
+printf '\n%s\nThe disk and the swap (AUD-1 item 1d)\n%s\n' "$LINE" "$LINE"
+GATE_DISK_PCT=72 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=warn:72%' $LOG_GLOB; then
+    ok "72% used -> healthy, and the verdict line warns (disk=warn:72%)"
+else
+    bad "72% used -> state=$(state_of) rc=$RC (wanted ok/0 with disk=warn:72%)"
+fi
+GATE_DISK_PCT=86 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]]; then
+    ok "86% used -> state=disk_alert exit=15"
+else
+    bad "86% used -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+# The swap rule, corrected 14 Oct 2026: that day's box -- 131 MiB of swap,
+# 2.7 GiB available of 3.7 GiB -- is clean, not an alert.
+rm -f $LOG_GLOB
+GATE_SWAP_KB=134144 GATE_MEMAVAIL_KB=2831155 GATE_MEMTOTAL_KB=3879731 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=ok ' $LOG_GLOB; then
+    ok "131 MiB of swap with 2.7 GiB available -> clean (disk=ok), not an alert"
+else
+    bad "131 MiB swap -> state=$(state_of) rc=$RC (wanted ok/0, disk=ok)"
+fi
+rm -f $LOG_GLOB
+GATE_SWAP_KB=614400 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=warn:10%+swap:614400kB' $LOG_GLOB; then
+    ok "600 MiB of swap -> healthy, and the verdict line warns (disk=warn:10%+swap:614400kB)"
+else
+    bad "600 MiB swap -> state=$(state_of) rc=$RC (wanted ok/0 with a swap warning)"
+fi
+GATE_SWAP_KB=1153434 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]] && grep -q 'swap:1153434kB' $LOG_GLOB; then
+    ok "1.1 GiB of swap -> disk_alert exit=15, the swap named"
+else
+    bad "1.1 GiB swap -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+GATE_MEMAVAIL_KB=320000 GATE_MEMTOTAL_KB=4000000 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]] && grep -q 'memavail:8%' $LOG_GLOB; then
+    ok "8% of memory available -> disk_alert exit=15 (memavail:8%), no swap needed"
+else
+    bad "8% available -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+GATE_DISK_PCT=95 run 1
+if [[ "$RC" == "1" ]]; then
+    ok "a stale pipeline still wins the verdict over a full disk"
+else
+    bad "stale + full disk -> rc=$RC (wanted 1)"
+fi
+GATE_SWAP_KB=1153434 GATE_MEMAVAIL_KB=320000 run 1
+if [[ "$RC" == "1" ]]; then
+    ok "a stale pipeline still wins the verdict over swap and low memory"
+else
+    bad "stale + swap + low memory -> rc=$RC (wanted 1)"
+fi
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then
