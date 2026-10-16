@@ -1,0 +1,133 @@
+# st_r5_rates.yaml -- signal-triage Batch 6, the rates-transmission cluster
+# (docs/change-order-signal-triage-batch-6-2026-10-15.md, items 34, 36, 37 and
+# 41; section 4, cross-item ruling 1: "one mechanism -- the long end doing the
+# tightening -- measured through policy pricing (34), housing (36, 37) and the
+# credit tail (41). Printed together in plumbing & rates under one header").
+# Tranche 1 only: ST-R5.34a, ST-R5.34b, ST-R5.36a, ST-R5.37a, ST-R5.41a. The
+# ledgers (ST-R5.36b and the rest) are Tranche 2.
+#
+# Read by altdata/st_r5_rates.py; printed by daily_cascade/rates_transmission_block.py.
+# Flags and lines only: nothing here enters the market-state object, a
+# composite, a trigger or a decision (R28; the order's Rights: "flag only",
+# "co-signal to an existing overlay"). Every threshold below is SESSION-SET --
+# the order rules a direction ("10y up while 12-month policy pricing is down",
+# "CCC widening faster than BB"), not a size -- and each carries its reason, for
+# the operator to overrule.
+version: st-r5-rates-v1
+updated: 2026-10-16
+header: "Rates transmission"
+unvalidated: "(descriptive; unvalidated, n=0)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.34a -- "the market does the tightening" (item 34)
+# ---------------------------------------------------------------------------
+tightening:
+  window_days: 28               # "over 4 weeks": the latest stored close against
+                                # the close on or before 28 calendar days earlier
+  ten_year_key: fred.yield_10y
+  # 12-month policy pricing, US: 100 less the fed funds future twelve months
+  # ahead of each close's month (a constant horizon, rolled monthly).
+  futures_key: fedfunds.futures_price
+  horizon_months: 12
+  # SESSION-SET. A move under 10 bp in either leg over four weeks is inside
+  # the ordinary weekly noise of both series; the flag asks for a real move in
+  # each direction, not a sign on a rounding error.
+  ten_year_up_bp: 10
+  policy_down_bp: 10
+  # The confirming conditions measure (the order: "NFCI as the confirming
+  # conditions measure"). NFCI rises as conditions tighten; it confirms when its
+  # change over the same window is above zero. Weekly, so the window holds four
+  # prints.
+  nfci_key: fred.nfci
+  nfci_confirm_above: 0.0
+
+# ---------------------------------------------------------------------------
+# ST-R5.34b -- the G8 2-year panel, in place of swaps pricing (item 34)
+# ---------------------------------------------------------------------------
+# In the order's (Bloomberg's) order. A country with no free daily source is a
+# listed gap with its reason, never a guess (the paste; filing note 7).
+panel:
+  - id: au
+    label: Australia
+    gap: "no writer: the RBA's F2 table is free and daily, but a new writer waits for D1c's write lock"
+  - id: ea
+    label: Euro area (German 2-year)
+    two_year_key: bbk.bund_2y
+    ten_year_key: bbk.bund_10y
+    source: "Bundesbank, Svensson curve"
+  - id: kr
+    label: Korea
+    gap: "no writer: the Bank of Korea's ECOS API needs a free key in the box's .env (the operator's), and a new writer waits for D1c"
+  - id: ca
+    label: Canada
+    gap: "no writer: the Bank of Canada's Valet API is free and daily, but a new writer waits for D1c's write lock"
+  - id: us
+    label: United States
+    two_year_key: fred.yield_2y
+    ten_year_key: fred.yield_10y
+    source: "FRED (DGS2, DGS10)"
+  - id: jp
+    label: Japan
+    two_year_key: mof.jgb_2y
+    ten_year_key: mof.jgb_10y
+    source: "Ministry of Finance"
+  - id: uk
+    label: United Kingdom
+    gap: "no free source the box may read: the Bank of England's database disallows robots (altdata/config.py)"
+  - id: cn
+    label: China
+    two_year_key: cfets.cgb_2y
+    ten_year_key: cfets.cgb_10y
+    source: "CFETS closing curve (forward-only from the first pull)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.36a -- the housing-transmission block, monthly (item 36)
+# ---------------------------------------------------------------------------
+housing:
+  pending_key: redfin.pending_sales           # national, seasonally adjusted
+  active_key: redfin.active_listings
+  inventory_key: redfin.inventory
+  months_supply_key: redfin.months_of_supply
+  metro_key: redfin.metro_pending_sales       # instrument = Redfin region id
+  metro_universe: 50                          # Redfin's top-50 metros file
+  mortgage_key: fred.mortgage_30y
+  nar_key: manual.nar_phsi                    # by hand (no free series)
+  held_reason: "the Redfin writer is held until D1c's write lock lands (altdata/sources/redfin.py)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.37a -- the MBA purchase index, the block's weekly line (item 37)
+# ---------------------------------------------------------------------------
+mba:
+  wow_key: mba.purchase_sa_wow                # SA, percent change on the week
+  yoy_key: mba.purchase_nsa_yoy               # NSA, percent change on the year
+  level_key: manual.mba_purchase_index        # BY HAND: the press release never
+                                              # prints the level (verify item 3)
+  # The reference floor (the order: "2023 low as the reference floor"): the
+  # entry's read of the re:venture chart, "2023 lows printed lower (~127)". By
+  # hand, approximate, and printed as such.
+  floor_2023: 127
+  floor_source: "Batch 6 item 37's read of the re:venture chart (~127, 2023)"
+  windows_years: [5]                          # with the full stored history
+  release_weekday: 2                          # Wednesday: the close prints it then
+  held_reason: "the MBA headline writer is held until D1c's write lock lands (altdata/sources/mba.py)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.41a -- the quality-tail spread (item 41)
+# ---------------------------------------------------------------------------
+quality_tail:
+  ccc_key: fred.ccc_oas
+  bb_key: fred.bb_oas
+  aaa_key: fred.aaa_oas
+  hy_key: fred.hy_oas
+  euro_hy_key: fred.euro_hy_oas               # the daily European proxy
+  euro_ccc_key: manual.euro_ccc_oas           # by hand, when reported
+  window_days: 28                             # "over 4 weeks"
+  # SESSION-SET. The co-signal: CCC widening, and widening at least 25 bp more
+  # than BB over the window. Under 25 bp the gap is inside the daily scatter of
+  # the CCC index's own OAS.
+  ccc_excess_bp: 25
+  windows_years: [5]                          # with the full stored history
+  overlay: "HY Spread Acceleration"
+  overlay_built: false                        # the Top & Bottom overlay is not on
+                                              # this build: the co-signal is recorded
+                                              # and printed, attached to nothing

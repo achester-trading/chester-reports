@@ -211,6 +211,14 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # YEARS of observations, so a five-year percentile is not computable from it.
     SeriesSpec("em_corp_oas",      "BAMLEMCBPIOAS","ICE BofA EM Corporate Plus OAS",  "6", "%",    "daily"),
     SeriesSpec("em_hy_oas",        "BAMLEMHBHYCRPIOAS","ICE BofA High Yield EM Corporate Plus OAS","6","%","daily"),
+    # ST-R5.41a (Batch 6 item 41, 16 Oct 2026): the quality tail's comparison leg
+    # (CCC less AAA, beside CCC less BB) and the daily European proxy (euro HY;
+    # euro CCC stays by hand). Both "Percent, Not Seasonally Adjusted", "Daily,
+    # Close", read off their FRED pages 16 Oct 2026; like the EM pair, FRED serves
+    # each from 16 Oct 2023 only (filing note 3), so every percentile prints its
+    # real window and n.
+    SeriesSpec("aaa_oas",          "BAMLC0A1CAAA","ICE BofA AAA US corporate OAS",   "6", "%",    "daily"),
+    SeriesSpec("euro_hy_oas",      "BAMLHE00EHYIOAS","ICE BofA Euro High Yield OAS", "6", "%",    "daily"),
 ]
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,11 @@ the month's AVERAGE daily effective fed funds rate. yfinance serves each month a
 `ZQ<code><yy>.CBT` (code F G H J K M N Q U V X Z for Jan..Dec); probed 2 Oct 2026,
 it served ZQV26 (Oct 2026) through ZQM27 (Jun 2027), ten contracts, plus the
 front continuous ZQ=F. The pull asks for the next CONTRACT_MONTHS and stores what
-answers, keyed by instrument `YYYY-MM`.
+answers, keyed by instrument `YYYY-MM`. ST-R5.34a (16 Oct 2026; Batch 6 item 34)
+raised CONTRACT_MONTHS from 10 to 14 so the contract twelve months ahead is held:
+probed 16 Oct 2026, yfinance served ZQX26 through ZQX27 (Nov 2027). The item's
+12-month policy-pricing read (altdata/st_r5_rates.py) is 100 minus that
+contract; a month that does not answer is simply not stored, as before.
 
 THE ARITHMETIC (the standard meeting-day weighting, the one CME's FedWatch uses).
 For a meeting whose decision lands on day d of a month with N days, the old rate
@@ -54,7 +58,7 @@ log = logging.getLogger(__name__)
 
 KEY = "fedfunds.futures_price"
 MONTH_CODES = "FGHJKMNQUVXZ"
-CONTRACT_MONTHS = 10
+CONTRACT_MONTHS = 14
 MIN_MEETINGS = 4
 
 

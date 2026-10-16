@@ -131,6 +131,9 @@ commands:
   altdata.session:
     domain: infrastructure
     line: One source of truth for "what time is it" and "what day is this"
+  altdata.st_r5_rates:
+    domain: rates
+    line: 'The rates-transmission cluster (Batch 6 items 34, 36, 37, 41): the tightening flag, the G8 2-year panel, housing, the MBA line, the quality tail'
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
@@ -159,11 +162,11 @@ commands:
     sources: [bot]
   altdata.sources.bundesbank:
     domain: rates
-    line: Bundesbank -- the 10-year Bund yield, daily, from the Bundesbank's open data API
+    line: Bundesbank -- the 10-year and 2-year Bund yields, daily, from the Bundesbank's open data API
     sources: [bundesbank]
   altdata.sources.cfets:
     domain: china
-    line: CFETS / China Money -- the USD/CNY central parity and the CGB 10-year yield
+    line: CFETS / China Money -- the USD/CNY central parity and the CGB 10-year and 2-year yields
     sources: [cfets]
   altdata.sources.cftc:
     domain: positioning
@@ -267,6 +270,10 @@ commands:
     domain: crypto
     line: DefiLlama -- the `llama.*` family
     sources: [defillama]
+  altdata.sources.mba:
+    domain: housing
+    line: MBA Weekly Mortgage Applications Survey -- the purchase index's headline changes (HELD for D1c)
+    sources: [mba]
   altdata.sources.massive_chain:
     domain: options
     line: Option chain fetcher (Massive, ex-Polygon) -- the symbols yfinance cannot serve
@@ -314,6 +321,10 @@ commands:
     domain: positioning
     line: Leveraged-ETF assets -- ProShares' daily NAV history files
     sources: [proshares]
+  altdata.sources.redfin:
+    domain: housing
+    line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly (HELD for D1c)
+    sources: [redfin]
   altdata.sources.safe:
     domain: china
     line: China State Administration of Foreign Exchange (SAFE) -- reserves, BOP, IIP

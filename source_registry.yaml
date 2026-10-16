@@ -1277,7 +1277,7 @@ sources:
     timestamp_notes: >-
       No Last-Modified; available_at is the next weekday 12:00 Frankfurt by rule (reconstructed), never after the write instant.
     license: public, no key
-    allowed_reports: [monthly_macro, alt_asset]
+    allowed_reports: [monthly_macro, alt_asset, daily_cascade]
     implemented_by: altdata/sources/bundesbank.py
     status: live
     caveats:
@@ -1566,6 +1566,51 @@ sources:
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/aaii.py
     status: live
+
+  redfin:
+    name: Redfin data center -- monthly housing market data (national and top-50 metros)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [housing]
+    geography: [US]
+    latency: monthly, about the second week after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per month, dated by PERIOD BEGIN.
+    license: >-
+      public CSV in Redfin's public S3 bucket, no key; the data center's
+      downloads page is allowed by robots.txt's wildcard group and the bucket
+      answers robots.txt with 403 (no rules, RFC 9309), checked 16 Oct 2026
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/redfin.py
+    status: held
+    caveats:
+      - >-
+        HELD for D1c: a new store writer waits for the repo-wide write lock;
+        pull() writes nothing and the module is on no feeds roster. Months of
+        supply is Redfin's definition, not NAR's.
+
+  mba:
+    name: Mortgage Bankers Association -- Weekly Mortgage Applications Survey, press-release headline
+    tier: B
+    epistemic_role: primary_fact
+    domain: [housing]
+    geography: [US]
+    latency: weekly, Wednesday 07:00 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified where sent (observed), else the write instant (ingest_instant); dated by the survey's week-ending date.
+    license: >-
+      public press release; robots.txt's wildcard group allows the newsroom
+      (read 16 Oct 2026 with the wildcard-aware reader); the site answers the
+      repo's own agent and refuses python-requests. Headline changes only: the
+      index level and its history are member-only
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/mba.py
+    status: held
+    caveats:
+      - >-
+        HELD for D1c, as redfin. Forward-only: the newsroom pages no archive.
 
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations

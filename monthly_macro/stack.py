@@ -827,6 +827,11 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     # the month, and the Rate and Liquidity Machine's lever table (SR-33).
     from daily_cascade import batch3_block                      # noqa: PLC0415
     b["subsections"] = subs + keep + batch3_block.monthly_subsections(st, now, then)
+    # SIGNAL-TRIAGE BATCH 6: the rates-transmission cluster, one header, last.
+    from daily_cascade import rates_transmission_block          # noqa: PLC0415
+    rt_sub = rates_transmission_block.subsection(st, now, "monthly")
+    if rt_sub:
+        b["subsections"].append(rt_sub)
     b["claim_only"] = True
     return b
 
