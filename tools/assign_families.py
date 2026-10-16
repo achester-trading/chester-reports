@@ -91,6 +91,17 @@ FRED_FAMILIES: dict[str, tuple[str, str | None]] = {
     "dxy": ("price", "FRED's broad dollar index (DTWEXBGS), not ICE's DXY; the minutes "
                      "rule DXY a price and this follows"),
     "real_dollar_broad": ("price", "a monthly real dollar index; alternative: release"),
+    # 6e, the rest (16 Oct 2026): FRED_6E_SERIES by hand, as declared in its block.
+    **{k: ("rate", None) for k in (
+        "fed_target_upper", "fed_target_lower", "effr", "estr", "sonia")},
+    **{k: ("quantity", "a flow or stock released on a schedule; alternative: release")
+       for k in ("mts_receipts", "mts_outlays", "fed_interest_payments",
+                 "fed_current_receipts", "fed_debt_total", "nonfin_corp_debt")},
+    **{k: ("release", None) for k in (
+        "korea_exports", "cpi_shelter", "cpi_rent", "cpi_oer", "cpi_services",
+        "cpi_core_goods", "cpi_used_cars", "ppi_final_demand", "ppi_intermediate",
+        "ppi_unprocessed", "import_prices", "import_prices_ex_fuel",
+        "atl_wage_tracker")},
 }
 FX_PREFIX = "usd_"                        # every FRED FX pair: a price
 

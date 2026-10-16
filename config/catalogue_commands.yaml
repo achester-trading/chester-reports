@@ -70,6 +70,10 @@ commands:
     domain: register
     line: The grader -- Phase 3's closing link, and the reason the register exists
     sources: [derived_grade]
+  altdata.macro_6e:
+    domain: computed
+    line: '6e macro completeness: Session 3a-3c calc series, the core CPI-PCE gap and the CPI lead composite (stated lags, unvalidated)'
+    sources: [calc]
   altdata.market_features:
     domain: computed
     line: 'Calculated features: breadth, trend, realized volatility -- and the macro transforms the Monthly used to compute privately'

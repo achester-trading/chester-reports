@@ -1094,9 +1094,26 @@ FAMILIES = ("price", "rate", "spread", "release", "quantity", "conditions", "rat
 # RATIFIED 4 Oct 2026 (docs/briefs/doctrine-monthly-2026-10-minutes.md item 6).
 CORRECTION_PCT = -10.0                     # 6a: from the 52-week high
 BEAR_PCT = -20.0                           # 6a
-WIDENING_BP_3M = {                         # 6b: per series, bp in three months
-    "fred.hy_oas": 100.0, "fred.bb_oas": 100.0, "fred.ccc_oas": 100.0,
-    "fred.ig_oas": 40.0}
+# 6b: per series, bp in three months -- config/metric_lenses.yaml, each with its
+# basis (ratified, or session-set under the 16 Oct ruling (d)4).
+LENS_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "metric_lenses.yaml"
+_LENS_CFG: Optional[dict] = None
+
+
+def lens_config() -> dict:
+    global _LENS_CFG
+    if _LENS_CFG is None:
+        import yaml  # noqa: PLC0415
+        with open(LENS_CONFIG_PATH, encoding="utf-8") as fh:
+            _LENS_CFG = yaml.safe_load(fh) or {}
+    return _LENS_CFG
+
+
+def widening_threshold(metric_id: str) -> tuple[Optional[float], Optional[str]]:
+    w = (lens_config().get("widening_bp_3m") or {}).get(metric_id)
+    return (float(w["bp"]), w.get("basis")) if w else (None, None)
+
+
 DISAGREEMENT_POINTS = 30.0                 # 6d: pctile_5y against pctile_long
 # 6c: the long window by family, in years or "full"; quantities carry none; the
 # registry's long_windows map overrides per series, with its reason.
@@ -1316,15 +1333,16 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
             put(f"change_{m}m_bp", _change(level, back(m), "bp", bp_scale), need)
         percentiles(lw, lw_why)
         if fam == "spread":
-            th = WIDENING_BP_3M.get(metric_id)
+            th, basis = widening_threshold(metric_id)
             ch = F.get("change_3m_bp")
             if th is None:
-                R["widening"] = "no ratified widening threshold for this series (6b names HY, BB, CCC and IG)"
+                R["widening"] = "no widening threshold for this series in config/metric_lenses.yaml"
             elif ch is None:
                 R["widening"] = need
             else:
                 out["flags"]["widening"] = ch >= th
                 F["widening_threshold_bp"] = th
+                F["widening_threshold_basis"] = basis
     elif fam == "release":
         pct_like = str(e.get("units")) in PCT_LEVEL_UNITS or units in PCT_LEVEL_UNITS
         kind = "pp" if pct_like else "pct"
@@ -1341,8 +1359,11 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         if UNEMPLOYMENT.search(metric_id):
             percentiles(lw, lw_why)            # 6e: a level percentile added
         cons = (consensus or {}).get(level_day)
+        sc = lens_config().get("surprise") or {}
         if cons is None and consensus is None:
-            R["surprise"] = "the events table holds no consensus for this series"
+            # Ruling (d)6, 16 Oct 2026: no free consensus source; nothing guessed.
+            F["surprise_state"] = sc.get("state", "no consensus")
+            R["surprise"] = sc.get("reason", "no consensus")
         elif cons is None:
             R["surprise"] = f"no consensus held for {level_day}"
         else:
@@ -1380,9 +1401,63 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         if F.get("trend_3m") is not None:
             F["trend_3m_direction"] = ("up" if F["trend_3m"] > 0 else
                                        "down" if F["trend_3m"] < 0 else "flat")
+    # THE LENSES OTHER ORDERS BIND TO 6e (16 Oct 2026). A gap whose sign is the
+    # finding (the core CPI less core PCE gap) flags the flip and dates it.
+    if metric_id in (lens_config().get("sign_flip") or []):
+        out["flags"]["sign_flipped"] = level < 0
+        since = None
+        for d, v in reversed(series):
+            if (v < 0) != (level < 0):
+                break
+            since = d
+        F["sign_since"] = since
+    # The 10-year's anchors and fair value (Batch 4 section 4.1, SR-43): read
+    # from altdata/rates_anchors.py, which owns the fits; printed as forms here.
+    if metric_id in (lens_config().get("anchored_rates") or []):
+        _anchor_forms(out, cutoff, store)
     out["forms_shown"] = [k for k in F if not k.endswith(("_n", "_window", "_ordinal",
                                                           "_basis", "_unit", "_rule"))]
     return out
+
+
+def _anchor_forms(out: dict, cutoff: str,
+                  store: Optional[observations.ObservationStore]) -> None:
+    """The SR-43 inflation anchor and the 10-year's fair value as rate-family
+    forms: the gap to the trailing ten-year CPI average, the inflation fit's and
+    the twin-deficit fit's fitted yields and their gaps, the term premium. Each
+    absent part carries its reason; the tag says what the fits are."""
+    from . import rates_anchors  # noqa: PLC0415
+    F, R = out["forms"], out["reasons"]
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        r = rates_anchors.read(st, cutoff)
+    finally:
+        if own:
+            st.close()
+    F["anchors_tag"] = r.get("tag")
+    ia, fa, tp = r.get("inflation") or {}, r.get("fiscal") or {}, r.get("term_premium")
+    if ia.get("state") == "ok":
+        F["inflation_anchor_pct"] = round(ia["anchor_pct"], 4)
+        F["inflation_anchor_gap_bp"] = round(ia["gap_bp"], 1)
+        if ia.get("fitted_pct") is not None:
+            F["fair_value_inflation_pct"] = round(ia["fitted_pct"], 4)
+            F["fair_value_inflation_gap_bp"] = round(ia["residual_bp"], 1)
+        else:
+            R["fair_value_inflation_pct"] = ia.get("fit_note") or "no fit"
+    else:
+        R["inflation_anchor_gap_bp"] = ia.get("reason") or "absent"
+        R["fair_value_inflation_pct"] = ia.get("reason") or "absent"
+    if fa.get("state") == "ok" and fa.get("us_fitted_pct") is not None:
+        F["fair_value_fiscal_pct"] = round(fa["us_fitted_pct"], 4)
+        F["fair_value_fiscal_gap_bp"] = round(fa["gap_bp"], 1)
+        F["fair_value_fiscal_n"] = fa.get("n")
+    else:
+        R["fair_value_fiscal_pct"] = fa.get("reason") or "the US is not in the fit"
+    if tp:
+        F["term_premium_pct"] = tp["pct"]
+    else:
+        R["term_premium_pct"] = "the ACM term premium is not stored"
 
 
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")

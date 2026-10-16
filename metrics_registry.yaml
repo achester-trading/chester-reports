@@ -12057,6 +12057,330 @@ metrics:
       gold/silver ratio widening -- in risk-off is 'one of the most dependable stress
       behaviours'.
 
+  # 6e, THE REST (16 Oct 2026): S3a-S3c, the CPI-PCE gap and the CPI lead.
+  calc.path_divergence_usdjpy:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: conditions
+    trigger_eligible: false
+    description: >-
+      S3a, path-aware sampling: Yahoo's USD/JPY close (JPY=X) less FRED's H.10 noon buying rate (DEXJPUS) on the same day, PERCENT of the noon print. The same rate sampled at two points of the day's path; altdata/macro_6e.py path_divergence_flag() flags a day at or beyond 3 standard deviations of its trailing year (config/macro_6e.yaml). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_2y_minus_effr_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b: the 2-year Treasury yield (DGS2) less the effective fed funds rate (EFFR), bp -- the architecture's compact easing-priced proxy. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.sofr_iorb_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b funding stress: SOFR less interest on reserve balances, bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.sofr_effr_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b funding stress: SOFR less the effective fed funds rate (EFFR), bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.ccc_bb_oas_bp:
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The CCC & lower OAS less the BB OAS (BAMLH0A3HYC less BAMLH0A1HYBB), bp: the architecture's Session 2 CCC-BB differential, the tail of high yield against its best credits. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.real_policy_rate:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3b: the effective fed funds rate known at the month's first day less that month's core PCE year over year, percent. The real policy rate of the four-bank frame's US leg. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_diff_us_ea_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b policy differential: EFFR less the euro short-term rate (EURSTR), bp, the overnight legs of the Fed and the ECB. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_diff_us_uk_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b policy differential: EFFR less SONIA, bp, the overnight legs of the Fed and the Bank of England (Bank Rate's FRED series stopped in 2017). Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.deficit_ttm_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c deficit ratio: the Monthly Treasury Statement's surplus or deficit (MTSDS133FMS, millions) summed over twelve consecutive months, against nominal GDP (GDP, billions SAAR, the latest quarter at or before) converted to millions, percent. NEGATIVE is a deficit. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.interest_to_receipts:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c interest burden: federal interest payments (A091RC1Q027SBEA) against federal current receipts (FGRECPT), both billions SAAR, percent. The coverage stress test waits for the 12-month maturity share (see 6e-rest notes). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.federal_effective_rate:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c: the federal government's average effective interest rate -- interest payments (A091RC1Q027SBEA, billions SAAR, x1000) over total public debt (GFDEBTN, millions), percent. R's average basis. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.r_minus_g_marginal:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c R-vs-G, the MARGINAL basis: the 10-year yield at or before the quarter's date less nominal GDP year over year, percentage points. Beside calc.r_minus_g (real basis) and calc.r_minus_g_average. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.r_minus_g_average:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c R-vs-G, the AVERAGE basis: the federal effective rate (calc.federal_effective_rate) less nominal GDP year over year, percentage points. The architecture's 'R on both bases', the gap between them the refinancing to come. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.tga_range_13w:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      S3c: the Treasury General Account's range (maximum less minimum) over the last 13 weekly prints, DOLLARS (WTREGEN is millions, converted). 'The TGA range, not just the level.' 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.tga_vol_13w:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      S3c: the standard deviation of the TGA's 12 weekly changes inside the last 13 prints, DOLLARS. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.fed_debt_total_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, government: total public debt (GFDEBTN, millions) against nominal GDP (billions SAAR, converted), percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.nonfin_corp_debt_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, nonfinancial corporate: debt securities and loans (BCNSDODNS, Z.1, millions) against nominal GDP, percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.household_debt_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, households: debt securities and loans (CMDEBT, Z.1, MILLIONS -- read off FRED 16 Oct 2026) against nominal GDP, percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.core_cpi_pce_gap:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      The core CPI less core PCE gap: core CPI year over year less core PCE year over year, same month, percentage points (JPM GTM change order, 3 Oct 2026: 'as a derived series with a lens'). Core PCE normally runs below core CPI; a NEGATIVE gap is the sign flip the lens flags. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.realized_10y_vs_expected_10y:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite's conditioner (architecture lines 3426-3452): trailing ten-year annualized CPI (CPIAUCSL against the same month ten years before) less the 10-year breakeven (T10YIE) at or before the month's end, percentage points. Graded against its roll-off calendar (altdata/cpi_lead.py rolloff()), not against zero. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_3m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 3 months ahead: the implied CPI year over year from each component's lead with its stated lag, weighted by basket share over the covered share (altdata/cpi_lead.py; config/macro_6e.yaml). STATED LAGS, UNVALIDATED: Session 6's lag fit has not run, and the kill test withholds it when it fails. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_6m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 6 months ahead; as calc.cpi_lead_3m. The horizon the kill test reads. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_9m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 9 months ahead; as calc.cpi_lead_3m. Written only when a component's stated lag reaches nine months (none does today). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+
 bulk_imports:
 
   fred_macro:
@@ -12331,6 +12655,68 @@ bulk_imports:
     mechanism_group_from_member: pillar
     mechanism_group_map:
       "6": macro_valuation_credit
+
+  fred_6e:
+    description: >-
+      6e, the rest (macro completeness; 16 Oct 2026, session B): the FRED legs of
+      the architecture's Session 3b (the target range, EFFR, EURSTR, SONIA), 3c
+      (the Monthly Treasury Statement's deficit, receipts and outlays; federal
+      interest payments and current receipts; total public debt; nonfinancial
+      corporate debt; Korea's exports) and the CPI lead composite's free
+      components (CPI shelter, rent, OER, services, core goods, used cars; PPI
+      final demand, intermediate, unprocessed; import prices all and ex fuels;
+      the Atlanta Fed wage tracker). Ids and units read off FRED 16 Oct 2026; see
+      altdata/config.py FRED_6E_SERIES. MTS, GFDEBTN and BCNSDODNS are MILLIONS;
+      A091RC1Q027SBEA and FGRECPT BILLIONS SAAR.
+    source: fred
+    members_from: altdata.config.FRED_6E_SERIES
+    member_families:
+      fred.atl_wage_tracker: release
+      fred.cpi_core_goods: release
+      fred.cpi_oer: release
+      fred.cpi_rent: release
+      fred.cpi_services: release
+      fred.cpi_shelter: release
+      fred.cpi_used_cars: release
+      fred.effr: rate
+      fred.estr: rate
+      fred.fed_current_receipts: quantity
+      fred.fed_debt_total: quantity
+      fred.fed_interest_payments: quantity
+      fred.fed_target_lower: rate
+      fred.fed_target_upper: rate
+      fred.import_prices: release
+      fred.import_prices_ex_fuel: release
+      fred.korea_exports: release
+      fred.mts_outlays: quantity
+      fred.mts_receipts: quantity
+      fred.nonfin_corp_debt: quantity
+      fred.ppi_final_demand: release
+      fred.ppi_intermediate: release
+      fred.ppi_unprocessed: release
+      fred.sonia: rate
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 25
+    units: from_member
+    # The wage tracker is a growth rate: pp (AUD-3a). The five policy rates keep bp.
+    member_units:
+      fred.atl_wage_tracker: percent_return
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "3": macro_liquidity
+      "4": macro_inflation
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "8": macro_sovereign
 
   fred_aq3:
     description: >-
@@ -14347,6 +14733,7 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  fred.mts_deficit: "a monthly flow of either sign: read through calc.deficit_ttm_pct_gdp (6e, the rest)"
   auction.cusip: "units 'label': not a level series"
   base_rate_tables: "tables, not series"
   baserate.review_flag: "units 'label': not a level series"

@@ -37,6 +37,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import sqlite3
 import sys
 from contextlib import redirect_stdout
@@ -139,7 +140,8 @@ UNCHANGED_RULED = ("fred.sloos_ci_large", "fred.sloos_ci_small",
 # what the resolver fix and the bars blocks add.
 NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_columns",
                   "event_types", "pin_log_columns", "bars_prices",
-                  "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd"}
+                  "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd",
+                  "fred_6e"}   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
 
 
 def check(c, m: str) -> None:
@@ -256,7 +258,9 @@ def group_b() -> None:
           "and each declared one now reads its new rule")
     lost = sorted(k for k in base if k not in resolved)
     check(not lost, f"no key fb67bf3 resolved is lost ({lost[:5] or 'none'})")
-    new = [k for k in resolved if k not in base]
+    # 6e, the rest (16 Oct 2026) registers its calc series one by one.
+    from altdata import macro_6e
+    new = [k for k in resolved if k not in base and k not in macro_6e.KEYS]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new}
     check(blocks <= NEW_KEY_BLOCKS,
           f"the {len(new)} newly resolved keys all come from the resolver fix and "
@@ -771,9 +775,12 @@ def group_f() -> None:
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")
-    worded = text.replace("seventy-five code gates", "seventy-four code gates")
+    # The worded count CLAUDE.md prints today, replaced by a wrong one.
+    said = re.search(r"([a-z]+(?:-[a-z]+)?) code gates", text).group(1)
+    wrong = "seventy-four" if said != "seventy-four" else "seventy-three"
+    worded = text.replace(f"{said} code gates", f"{wrong} code gates")
     check(any("code gates" in f for f in printed_count_faults(worded, counts)),
-          "a count in words is read and caught too ('seventy-four code gates')")
+          f"a count in words is read and caught too ('{wrong} code gates')")
     gone = text.replace("market symbols", "symbols in the basket")
     check(any("sentence is gone" in f for f in printed_count_faults(gone, counts)),
           "and a sentence reworded so its count cannot be found fails rather than "

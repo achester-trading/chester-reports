@@ -249,9 +249,12 @@ def group_d(L: dict) -> None:
     hy, ig, aa = (L[k] for k in ("fred.hy_oas", "fred.ig_oas", "fred.aa_oas"))
     check(hy["flags"].get("widening") and hy["forms"]["widening_threshold_bp"] == 100.0
           and ig["flags"].get("widening") is False and ig["forms"]["widening_threshold_bp"] == 40.0
-          and "widening" not in aa["flags"] and "6b" in aa["reasons"]["widening"],
+          and aa["flags"].get("widening") is False and aa["forms"]["widening_threshold_bp"] == 25.0
+          and "session-set" in aa["forms"]["widening_threshold_basis"],
           f"6b, per series: HY +{hy['forms']['change_3m_bp']:.0f} bp widens at 100; IG "
-          f"+{ig['forms']['change_3m_bp']:.0f} bp does not at 40; AA has no ratified threshold")
+          f"+{ig['forms']['change_3m_bp']:.0f} bp does not at 40; AA "
+          f"+{aa['forms']['change_3m_bp']:.0f} bp does not at its session-set 25 "
+          f"(config/metric_lenses.yaml, ruling (d)4)")
     r = L["fred.yield_10y"]
     check(r["flags"]["percentiles_disagree"] and derived.DISAGREEMENT_POINTS == 30.0,
           f"6d: the 10-year at the {r['forms']['pctile_5y_ordinal']} of five years and the "
@@ -270,8 +273,11 @@ def group_e(st) -> None:
           "half an hour before that print: August at its first value, and no revision")
     s = derived.lens_forms("fred.cpi", "2026-10-15T13:00:00+00:00", store=st,
                            consensus={"2026-09-01": 321.6})
-    check(abs(s["forms"]["surprise"] - 0.4) < 1e-9 and "events table" in after["reasons"]["surprise"],
-          "the surprise against consensus where one is held (+0.4); otherwise its reason")
+    check(abs(s["forms"]["surprise"] - 0.4) < 1e-9
+          and after["forms"].get("surprise_state") == "no consensus"
+          and "no free consensus source" in after["reasons"]["surprise"],
+          "the surprise against consensus where one is held (+0.4); otherwise "
+          "'no consensus' with its reason (ruling (d)6)")
 
 
 def group_f(L: dict) -> None:
@@ -322,6 +328,151 @@ def group_g(L: dict, st) -> None:
         print("          " + ln)
 
 
+# ---------------------------------------------------------------------------
+# 6e, THE REST (16 Oct 2026)
+# ---------------------------------------------------------------------------
+OAS8 = ("fred.hy_oas", "fred.bb_oas", "fred.ccc_oas", "fred.ig_oas", "fred.aa_oas",
+        "fred.bbb_oas", "fred.em_corp_oas", "fred.em_hy_oas")
+
+
+def _oas_store(name: str, short_bp: float) -> observations.ObservationStore:
+    """Each OAS flat at 2.00% for a year, its last print up its threshold less
+    `short_bp` basis points."""
+    st = observations.ObservationStore(str(TMP / f"oas_{name}.sqlite"))
+    days = bdays(dt.date(2025, 9, 1), END)
+    rows = []
+    for k in OAS8:
+        th, _ = derived.widening_threshold(k)
+        for d in days:
+            rows.append(row(k, d, 2.0 + ((th - short_bp) / 100.0 if d == days[-1] else 0.0)))
+    st.write_many(rows)
+    return st
+
+
+def group_h() -> None:
+    head("H. THE WIDENING THRESHOLDS, CONFIG AND RULING (d)4: AT THEIR VALUE, NOT BELOW")
+    cfg = derived.lens_config().get("widening_bp_3m") or {}
+    want = {"fred.hy_oas": 100, "fred.bb_oas": 100, "fred.ccc_oas": 100, "fred.ig_oas": 40,
+            "fred.aa_oas": 25, "fred.bbb_oas": 50, "fred.em_corp_oas": 75,
+            "fred.em_hy_oas": 150}
+    got = {k: v["bp"] for k, v in cfg.items()}
+    check(got == want and all(cfg[k]["basis"].startswith("ratified") for k in OAS8[:4])
+          and all(cfg[k]["basis"].startswith("session-set") for k in OAS8[4:]),
+          f"eight series in config/metric_lenses.yaml, each with its basis: the four "
+          f"ratified unchanged, AA 25, BBB 50, EM corporate 75, EM high yield 150 "
+          f"session-set ({got})")
+    with _oas_store("at", 0.0) as at, _oas_store("below", 1.0) as below:
+        fire = {k: derived.lens_forms(k, AS_OF, store=at)["flags"].get("widening") for k in OAS8}
+        quiet = {k: derived.lens_forms(k, AS_OF, store=below)["flags"].get("widening") for k in OAS8}
+    check(all(fire.values()), f"each fires at exactly its threshold ({fire})")
+    check(not any(quiet.values()), f"and none fires a basis point below it ({quiet})")
+    reg = derived._load_registry()
+    lwr = sorted(k for k, e in reg.items() if str(e.get("long_window")) == "ratio")
+    fallback = [k for k in lwr
+                if "not a window" in derived.long_window_of(k, derived.family_of(k)[0])[1]
+                and derived.long_window_of(k, derived.family_of(k)[0])[0]
+                == derived.LONG_WINDOW.get(derived.family_of(k)[0] or "")]
+    check(len(lwr) == 19 and fallback == lwr,
+          f"ruling (d)2: the {len(lwr)} `long_window: ratio` values read as their "
+          f"family's default, with the reason")
+    for k in lwr:
+        print(f"          long_window ratio -> family default: {k} "
+              f"({derived.family_of(k)[0]}, {derived.long_window_of(k, derived.family_of(k)[0])[0]})")
+
+
+def group_i(L: dict) -> None:
+    head("I. THE SURPRISE PRINTS 'NO CONSENSUS', RULING (d)6")
+    from daily_cascade import lens_cells  # noqa: PLC0415
+    from monthly_macro.writer import render_v2  # noqa: PLC0415
+    cpi = L["fred.cpi"]
+    t = "\n".join(render_v2.lens_tables([{"metric": "fred.cpi", "lens": cpi}]))
+    line = next(ln for ln in t.splitlines() if ln.startswith("| `fred.cpi`"))
+    check(lens_cells.cell(cpi, "surprise") == "no consensus" and "| no consensus |" in line
+          and "Surprise: " not in t,
+          "the release table's Surprise cell reads 'no consensus', never a guess, a "
+          "blank or a zero")
+
+
+def group_j() -> None:
+    head("J. THE CORE CPI LESS CORE PCE GAP: A LENS, AND ITS SIGN FLIP")
+    st = observations.ObservationStore(str(TMP / "gap.sqlite"))
+    ms = months(dt.date(2015, 1, 1), 141)                 # to 2026-09-01
+    st.write_many([row("calc.core_cpi_pce_gap", m, 0.4 + (i % 5) * 0.02 if i < 138 else -0.3 - i * 0.001)
+                   for i, m in enumerate(ms)])
+    g = derived.lens_forms("calc.core_cpi_pce_gap", AS_OF, store=st)
+    st2 = observations.ObservationStore(str(TMP / "gap_pos.sqlite"))
+    st2.write_many([row("calc.core_cpi_pce_gap", m, 0.4 + (i % 5) * 0.02) for i, m in enumerate(ms)])
+    pos = derived.lens_forms("calc.core_cpi_pce_gap", AS_OF, store=st2)
+    st.close()
+    st2.close()
+    check(g["family"] == "ratio" and g["flags"].get("sign_flipped") is True
+          and g["forms"].get("sign_since") == "2026-07-01"
+          and pos["flags"].get("sign_flipped") is False,
+          f"a ratio-family lens; three negative months flag the flip, dated from "
+          f"{g['forms'].get('sign_since')}; a positive gap does not")
+    from monthly_macro.writer import render_v2  # noqa: PLC0415
+    t = "\n".join(render_v2.lens_tables([{"metric": "calc.core_cpi_pce_gap", "lens": g}]))
+    check("**sign flipped**" in t and "Pctile 5y" in t,
+          "the Monthly table prints its percentiles, its trend and the flag")
+
+
+def group_k() -> None:
+    head("K. THE 10-YEAR'S ANCHORS AND FAIR VALUE (SR-43; BATCH 4 SECTION 4.1)")
+    from altdata import rates_anchors  # noqa: PLC0415
+    from daily_cascade import lens_cells  # noqa: PLC0415
+    st = observations.ObservationStore(str(TMP / "anchors.sqlite"))
+    rows = []
+    cpi = 100.0
+    for i, m in enumerate(months(dt.date(1990, 1, 1), 441)):   # to 2026-09-01
+        cpi *= 1.0 + (0.0015 + 0.0015 * ((i // 24) % 3)) # inflation regimes
+        rows.append(row("fred.cpi", m, cpi))
+        rows.append(row("fred.yield_10y", m + dt.timedelta(days=14),
+                        2.0 + 0.6 * ((i // 24) % 3) + (i % 3) * 0.05))
+    rows.append(row("fred.yield_10y", dt.date(2026, 10, 14), 4.80))
+    st.write_many(rows)
+    lens = derived.lens_forms("fred.yield_10y", AS_OF, store=st)
+    ia = rates_anchors.inflation_anchor(st, AS_OF)
+    st.close()
+    f, r = lens["forms"], lens["reasons"]
+    check(lens["family"] == "rate"
+          and abs(f["inflation_anchor_gap_bp"] - round(100 * (4.80 - ia["anchor_pct"]), 1)) < 1e-6
+          and abs(f["fair_value_inflation_pct"] - round(ia["fitted_pct"], 4)) < 1e-9
+          and abs(f["fair_value_inflation_gap_bp"] - round(ia["residual_bp"], 1)) < 1e-9,
+          f"rates family: the SR-43 inflation anchor ({f['inflation_anchor_pct']:.2f}%, "
+          f"gap {f['inflation_anchor_gap_bp']:+.0f} bp) and the inflation fit's fair value "
+          f"({f['fair_value_inflation_pct']:.2f}%), as rates_anchors computes them")
+    check("fair_value_fiscal_pct" not in f and "twin-deficit fit needs" in r["fair_value_fiscal_pct"]
+          and "term_premium_pct" in r,
+          "the twin-deficit fit and the term premium absent with their reasons")
+    al = lens_cells.anchor_line(lens) or ""
+    check("inflation anchor" in al and "(descriptive; unvalidated, n=0)" in al
+          and "twin-deficit fit n/a" in al,
+          "one printed line, tagged descriptive and unvalidated")
+
+
+def group_l(L: dict, st) -> None:
+    head("L. THE WEEKLY AND THE CLOSE PRINT THE MONTHLY'S FORMS (A SHARED FIXTURE)")
+    from daily_cascade import lens_cells  # noqa: PLC0415
+    keys = [("fred.yield_10y", "10-year"), ("fred.hy_oas", "High-yield OAS"),
+            ("fred.cpi", "CPI"), ("yfinance.mkt_spy", "SPY")]
+    sub = lens_cells.lens_table(st, AS_OF, keys)
+    data = sub["data"]["lenses"]
+    same = all(data[label]["forms"] == L[k]["forms"] for k, label in keys)
+    check(same, "the lens table reads lens_forms() at the same cutoff: every form equal "
+                "to the Monthly's on the same fixture")
+    rows = {r[0]: r for r in sub["table"]["rows"]}
+    y = L["fred.yield_10y"]["forms"]
+    check(y["pctile_5y_ordinal"] in rows["10-year"][2] and y["pctile_long_ordinal"] in rows["10-year"][2]
+          and lens_cells.cell(L["fred.hy_oas"], "change_3m_bp") in rows["High-yield OAS"][2]
+          and lens_cells.cell(L["fred.cpi"], "yoy") in rows["CPI"][2]
+          and "widening" in rows["High-yield OAS"][3] and "correction" in rows["SPY"][3],
+          f"each compact cell is the Monthly's cells, flags beside them "
+          f"({rows['10-year'][2]}; {rows['High-yield OAS'][2]})")
+    check(sub["table"]["columns"] == ["Series", "Family", "Lens", "Flags"]
+          and not sub.get("paragraph") and sub.get("paragraph_wanted") is False,
+          "a table, no paragraph: no prose word for either budget")
+
+
 def main() -> int:
     st = build_store()
     try:
@@ -332,6 +483,11 @@ def main() -> int:
         group_e(st)
         group_f(L)
         group_g(L, st)
+        group_h()
+        group_i(L)
+        group_j()
+        group_k()
+        group_l(L, st)
     finally:
         st.close()
     print(f"\n{PASSED} passed, {FAILED} failed")

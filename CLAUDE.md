@@ -109,7 +109,9 @@ altdata/                  Shared ingestion package — used by every report
                           Monthly's set; 27 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 129, is the union the
+                          Thailand 1); 25 in FRED_6E_SERIES (6e, the rest:
+                          Session 3b-3c and the CPI lead's components);
+                          FRED_PULL_SERIES, 154, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -219,7 +221,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-six code gates (seventy-three Python,
+**`make validate` runs every gate** — seventy-seven code gates (seventy-four Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -294,6 +296,21 @@ YoY, 3-month annualized and the revision line for a release; direction for a
 quantity; dual percentiles with n wherever a level is placed), point-in-time,
 and the Monthly v2 pillar tables print them. A monthly release never shows a
 20-session change. `tools/validate_lenses.py` holds it.
+
+**6e, the rest (16 Oct 2026): macro completeness and the bound lenses.**
+`altdata/macro_6e.py` writes, in the market_features pass, the architecture's
+Session 3 series the free sources carry: path divergence (S3a, the close against
+the noon fixing), the policy spreads, differentials and real policy rate (S3b),
+the twelve-month deficit, interest burden, effective rate, R less G on both bases,
+the TGA's range and debt against GDP by sector (S3c), the core CPI less core PCE
+gap, and `altdata/cpi_lead.py`'s CPI lead composite (stated lags, unvalidated,
+with its kill test). The lens thresholds and the surprise's "no consensus" are
+`config/metric_lenses.yaml`'s; the 10-year's lens carries the SR-43 anchors and
+fair value. `daily_cascade/lens_cells.py` formats the cells once, so the Weekly's
+and the close's lens tables print the Monthly's forms; `daily_cascade/
+inflation_block.py` holds Plumbing's inflation panels, with slots for Batch 7
+items 46 and 48. `tools/validate_6e_rest.py` and `tools/validate_lenses.py` hold
+it.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates

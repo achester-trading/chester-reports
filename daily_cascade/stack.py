@@ -392,9 +392,17 @@ def plumbing_section(p: dict, st, cutoff: str, cfg: dict) -> dict:
             if x and x.get("change") is not None and abs(x["change"]) >= th:
                 reason = f"{k.split('.')[-1]} moved {_change(x)} (threshold {th} bp)"
                 break
+    # 6E, THE REST (16 Oct 2026): the close adopts the lens columns as one table
+    # of the same six series -- data, so no prose word and no chart. What it
+    # gains: each series' own forms (percentiles with their windows, the
+    # spread's three-month change, the 10-year's anchors) beside the items'
+    # one-session change. It displaces nothing.
+    from . import lens_cells                                     # noqa: PLC0415
+    lt = lens_cells.lens_table(st, cutoff, list(keys))
     return {"items": items, "deep_reason": reason,
             "charts": ["C3"] if reason else [],
             "not_tracked": ["repo-market stress (SOFR, general collateral)"],
+            "subsections": [lt] if lt else [],
             "data": {"series": data}}
 
 

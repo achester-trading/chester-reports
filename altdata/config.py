@@ -313,6 +313,72 @@ FRED_SR43_SERIES: list[SeriesSpec] = [
                     ("NL", "Netherlands"), ("BE", "Belgium"), ("AU", "Australia"),
                     ("NZ", "New Zealand"), ("CH", "Switzerland"), ("SE", "Sweden"))
 ]
+# 6e, THE REST (macro completeness; 16 Oct 2026, session B, branch 6e-rest): the
+# FRED legs of the architecture's Session 3b (rates and policy), 3c (fiscal and
+# demand) and the CPI lead composite's free components (Part 17). Every id was
+# read off fredgraph on 16 Oct 2026 with its latest print (Gotcha 2: units from
+# the series page, not a neighbouring line):
+#   DFEDTARU / DFEDTARL   the target range, percent, daily (4.00 / 3.75)
+#   EFFR                  effective fed funds, percent, daily (3.88); DFF above
+#                         is the 7-day-a-week series, EFFR the business-day one
+#   ECBESTRVOLWGTTRMDMNRT euro short-term rate (EURSTR), percent, daily (2.440)
+#   IUDSOIA               SONIA, percent, daily (3.7324) -- the UK's overnight
+#                         leg; Bank Rate on FRED (BOERUKM) stopped in 2017
+#   MTSDS133FMS / MTSR133FMS / MTSO133FMS  the Monthly Treasury Statement's
+#                         deficit, receipts and outlays, MILLIONS of dollars,
+#                         monthly, not annualised (Sep 2026: -26,900 / 557,875 /
+#                         584,775)
+#   A091RC1Q027SBEA       federal government interest payments, BILLIONS, SAAR,
+#                         quarterly (1,279.7)
+#   FGRECPT               federal government current receipts, BILLIONS, SAAR,
+#                         quarterly (6,056.0)
+#   GFDEBTN               federal debt, total public debt, MILLIONS, quarterly
+#                         (39,462,398)
+#   BCNSDODNS             nonfinancial corporate business, debt securities and
+#                         loans, MILLIONS, quarterly (Z.1; 15,698,562)
+#   XTEXVA01KRM667S       Korea's exports of goods, US DOLLARS, monthly, SA
+#                         (OECD; $100.4bn Aug 2026) -- the monthly series, not
+#                         the 20-day print, which FRED does not carry
+#   CUSR0000SAH1 / SEHA / SEHC  CPI shelter, rent of primary residence, owners'
+#                         equivalent rent, index, monthly, SA
+#   CUSR0000SAS / SACL1E / SETA02  CPI services, core goods (commodities less
+#                         food and energy), used cars and trucks, index, SA
+#   PPIFIS / WPSID61 / WPSID62  PPI final demand; processed goods for
+#                         intermediate demand; unprocessed goods, index
+#   IR / IREXFUELS        import prices, all and ex fuels, index
+#   FRBATLWGT3MMAUMHWGO   the Atlanta Fed wage growth tracker, 3-month moving
+#                         average of median wage growth, PERCENT (3.9), monthly
+FRED_6E_SERIES: list[SeriesSpec] = [
+    # Session 3b: rates and policy
+    SeriesSpec("fed_target_upper", "DFEDTARU", "Federal funds target range, upper limit", "3", "%", "daily"),
+    SeriesSpec("fed_target_lower", "DFEDTARL", "Federal funds target range, lower limit", "3", "%", "daily"),
+    SeriesSpec("effr", "EFFR", "Effective federal funds rate, business days", "3", "%", "daily"),
+    SeriesSpec("estr", "ECBESTRVOLWGTTRMDMNRT", "Euro short-term rate (EURSTR), volume-weighted trimmed mean", "7", "%", "daily"),
+    SeriesSpec("sonia", "IUDSOIA", "Sterling overnight index average (SONIA)", "7", "%", "daily"),
+    # Session 3c: fiscal and demand
+    SeriesSpec("mts_deficit", "MTSDS133FMS", "Monthly Treasury Statement: federal surplus or deficit (-), millions, monthly", "8", "M", "monthly"),
+    SeriesSpec("mts_receipts", "MTSR133FMS", "Monthly Treasury Statement: total receipts, millions, monthly", "8", "M", "monthly"),
+    SeriesSpec("mts_outlays", "MTSO133FMS", "Monthly Treasury Statement: total outlays, millions, monthly", "8", "M", "monthly"),
+    SeriesSpec("fed_interest_payments", "A091RC1Q027SBEA", "Federal government interest payments, billions SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fed_current_receipts", "FGRECPT", "Federal government current receipts, billions SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fed_debt_total", "GFDEBTN", "Federal debt: total public debt, millions", "8", "M", "quarterly"),
+    SeriesSpec("nonfin_corp_debt", "BCNSDODNS", "Nonfinancial corporate business: debt securities and loans, millions (Z.1)", "6", "M", "quarterly"),
+    SeriesSpec("korea_exports", "XTEXVA01KRM667S", "Korea exports of goods, US dollars, monthly, SA (OECD)", "7", "$", "monthly"),
+    # The CPI lead composite's free components (architecture Part 17)
+    SeriesSpec("cpi_shelter", "CUSR0000SAH1", "CPI: shelter, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_rent", "CUSR0000SEHA", "CPI: rent of primary residence, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_oer", "CUSR0000SEHC", "CPI: owners' equivalent rent of residences, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_services", "CUSR0000SAS", "CPI: services, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_core_goods", "CUSR0000SACL1E", "CPI: commodities less food and energy commodities, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_used_cars", "CUSR0000SETA02", "CPI: used cars and trucks, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_final_demand", "PPIFIS", "PPI: final demand, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_intermediate", "WPSID61", "PPI: processed goods for intermediate demand, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_unprocessed", "WPSID62", "PPI: unprocessed goods for intermediate demand, SA", "4", "idx", "monthly"),
+    SeriesSpec("import_prices", "IR", "Import price index, all commodities", "4", "idx", "monthly"),
+    SeriesSpec("import_prices_ex_fuel", "IREXFUELS", "Import price index, all imports excluding fuels", "4", "idx", "monthly"),
+    SeriesSpec("atl_wage_tracker", "FRBATLWGT3MMAUMHWGO", "Atlanta Fed wage growth tracker, 3-month moving average of median wage growth, percent", "1", "%", "monthly"),
+]
+
 # THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
 # ounces between two archives are shares x the last archive's ounces per share,
 # decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
@@ -330,7 +396,7 @@ GLD_EXPENSE_RATIO = {
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
-                                      + FRED_SR43_SERIES)
+                                      + FRED_SR43_SERIES + FRED_6E_SERIES)
 
 
 # Quick lookup by key

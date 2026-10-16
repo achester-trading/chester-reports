@@ -674,6 +674,17 @@ def appendix_block(as_of: Optional[str] = None,
                                   f"this cutoff"),
             })
         out["derived_macro"] = macro
+        # 6E, THE REST (16 Oct 2026): the macro-completeness series -- Session 3's
+        # FRED legs and calc series, the CPI-PCE gap and the CPI lead composite --
+        # each by its family's lens, computed in altdata/derived.py only.
+        from altdata import macro_6e
+        out["completeness"] = [
+            {"metric": m, "lens": derived.lens_forms(m, as_of, store=db)}
+            for m in [f"fred.{x.key}" for x in config.FRED_6E_SERIES] + macro_6e.KEYS]
+        out["completeness_note"] = (
+            "Session 3's rates-and-policy and fiscal-and-demand series, the core "
+            "CPI less core PCE gap and the CPI lead composite (stated lags, "
+            "unvalidated), each measured its own way")
         out["derived_macro_read_from"] = reads_from
         out["derived_macro_note"] = (
             "Sahm, the year-over-year transforms, 2s10s, r-vs-g and net "
