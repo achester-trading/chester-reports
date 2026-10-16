@@ -426,8 +426,9 @@ def group_d() -> None:
           "the table prints a gap as 'gap' with its reason and no figure")
     with open_store(store(panel_rows_fixture(drop="jp"))) as st:
         jp = next(r for r in rt.panel(st, NOW, CFG) if r["id"] == "jp")
-    check(jp["state"] == "absent" and "mof.jgb_2y is not stored" in jp["reason"],
-          "a country whose series is not stored says so")
+    check(jp["state"] == "absent" and jp["reason"] == "its 2-year is not stored yet"
+          and not re.search(r"\b(?:fred|mof|bbk|cfets)\.", jp["reason"]),
+          "a country whose series is not stored says so, by name, never by store id")
 
 
 def group_e() -> None:

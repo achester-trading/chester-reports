@@ -218,8 +218,8 @@ def tightening(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                            "window_days": days, "ten": ten, "policy": pol, "nfci": nf,
                            "unvalidated": cfg.get("unvalidated")}
     if ten is None:
-        return dict(out, state="absent", reason=f"the 10-year (fred.yield_10y) does "
-                    f"not hold {days} days")
+        return dict(out, state="absent", reason=f"the 10-year does not hold "
+                    f"{days} days")
     if pol.get("absent"):
         return dict(out, state="absent", reason=pol["reason"])
     fired = ten["change"] >= up and pol["change_bp"] <= -down
@@ -271,7 +271,7 @@ def panel(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]:
         ten_pts = _pts(st, p["ten_year_key"], cutoff)
         if not two_pts:
             rows.append(dict(r, state="absent", source=p.get("source"),
-                             reason=f"{p['two_year_key']} is not stored yet"))
+                             reason="its 2-year is not stored yet"))
             continue
         two, ten = change(two_pts, days, 100.0), change(ten_pts, days, 100.0)
         r.update(source=p.get("source"), yield_pct=two_pts[-1][1], as_of=two_pts[-1][0],
@@ -498,7 +498,7 @@ def quality_tail_lines(q: dict) -> list[str]:
                      f"{lens_text(eu['lens'])}; US HY {us['oas_bp']:,.0f} bp at the "
                      f"{lens_text(us['lens'])} ({eu['as_of']}).")
     elif not eu:
-        lines.append("Euro HY OAS (fred.euro_hy_oas): not stored yet.")
+        lines.append("Euro HY OAS: not stored yet.")
     ec = q.get("euro_ccc")
     lines.append(f"Euro CCC {ec['oas_bp']:,.0f} bp ({ec['as_of']}, entered by hand)." if ec
                  else "Euro CCC: by hand when reported, none entered.")
