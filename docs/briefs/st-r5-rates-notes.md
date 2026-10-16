@@ -101,9 +101,35 @@ the box.
 | `validate_audit_3a` (count literal and one declaration changed) | 83/0 |
 | `check_registry` | OK (819 metrics, 90 sources) |
 
-Every other gate, and anything that renders a PDF, is left to CI. CI's numbers
-are in the session's closing report; `gh run list --branch st-r5-rates
---limit 3` reads them.
+Every other gate, and anything that renders a PDF, is left to CI.
+
+**CI (read 16 Oct 2026):**
+
+| Run | Commit | Result |
+|---|---|---|
+| 38855238074 | `10f36c9`, the build | **failure**: 90 jobs passed, 2 gates failed, plus the summary job |
+| 38855389316 | `6d6b9e1`, the notes | **failure**: the same two gates |
+| 38900846972 | `6c22103`, the fix | **success**: 93 of 93 jobs |
+| 38902876739 | `39414dc`, store ids out of printed reasons | **success**: 93 of 93 jobs |
+
+**Verdict: green.** Both failures were this branch's, and both are fixed in
+`6c22103`:
+
+- **`validate_regime` group L.** This branch's own gate spelled the two retired
+  words while checking for them, so group L's search of tracked `.py` found
+  them in it. They are now spelled apart (`RETIRED_WORDS`).
+- **`validate_weekly_complete` J.** The sub-section's data carried untyped
+  figures (`ccc_bb`), so the numeral audit accepted "520%" for the 520 bp
+  CCC-less-BB spread.
+  - **The fix:** every figure now names its unit: `ccc_bb_bp`, `ccc_aaa_bp`,
+    `oas_bp`, `yield_pct`, `rate_pct`, and `percentile_*` for the lens.
+  - **The guard:** this branch's gate now refuses the wrong unit itself (69
+    checks).
+
+`39414dc` came from building `st-r5-index`. Three absence reasons printed a
+store id (`fred.yield_10y`, a panel row's 2-year key, `fred.euro_hy_oas`), which
+`validate_weekly_edits` refuses in a rendered edition. Each now names the series
+instead. It was latent here because this branch's CI fixture held the data.
 
 **What the new gate covers** (`tools/validate_st_r5_rates.py`, fixtures in
 `tests/fixtures/st_r5_rates.json`, synthetic figures in the publishers' shapes;
