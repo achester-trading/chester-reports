@@ -313,7 +313,8 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
     # THE MODEL METER'S LINE (AUD-2 item 4): every report's calls today, ET.
-    from altdata import model_meter                             # noqa: PLC0415
+    # (model_meter is the module-level import: a local import here made the
+    # name local to produce(), and the ES read's scope above failed on it.)
     try:
         ed["model_line"] = model_meter.daily_line(
             db_path, session.to_eastern().date().isoformat())

@@ -282,9 +282,19 @@ Locally, only the gates this branch writes or changes were run, one at a time:
 `tools/validate_audit_3a.py` (CLAUDE.md's counts and the catalogue) 83 passed,
 0 failed; `tools/check_library.py` 0 failures, 0 warnings. Every other gate is
 left to CI. The base, `aud-3b-security-master` at `2fb1048`, is green in CI
-(run 38795223151). This branch's run was still in progress when the session
-handed off, so its verdict is not recorded here. Read it with
-`gh run list --branch st-r6-es-block --limit 3`.
+(run 38795223151).
+
+**Run 38856776755 (`7254de9`): failed. 89 jobs passed; 3 code gates and the
+`gates-passed` summary failed:** `validate_stack.py`, `validate_weekly_complete.py`
+and `validate_readability.py`, all with the same `UnboundLocalError` on
+`model_meter` in `stack_close.produce()`. The cause was this branch's. `produce()`
+carried a local `from altdata import model_meter` near its end, which makes the
+name local to the whole function, so the ES read's `model_meter.scope(...)`,
+earlier in the function, found it unbound. The fix removes the redundant local
+import; the module-level import stands. It was fixed on this branch in the
+commit after `7254de9`. The two runs before it were cancelled as superseded.
+The fixed tip's run is recorded in `docs/briefs/st-r4-tranche-1-notes.md`
+(branch `st-r4-tranche-1`, cut from that tip).
 
 ## Needs you
 
