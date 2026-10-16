@@ -29,8 +29,8 @@ TITLE_ATTR = "The 10-year attribution: the term premium and the fiscal-bark flag
 TITLE_NL = "Net liquidity: Fed assets less the TGA less the reverse repo, attributed"
 TITLE_SB = "The stock-bond correlation (SR-9, amended): 60 days beside two years"
 TITLE_CON = "Factor I, the real economy: construction spending, real"
-HELD = ("not read — the Census writer is held until D1c's write lock lands "
-        "(altdata/sources/census_vip.py)")
+HELD = ("not read — the Census writer is held "
+        "(altdata/sources/census_vip.py HELD_FOR_D1C)")
 
 
 def _prose(sub: Optional[dict], now: str) -> Optional[dict]:

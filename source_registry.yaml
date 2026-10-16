@@ -1318,12 +1318,37 @@ sources:
       2026); the time-series API now requires a key and is not used
     allowed_reports: [monthly_macro]
     implemented_by: altdata/sources/census_vip.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c: a new store writer waits for the repo-wide write lock;
-        pull() writes nothing and the module is on no feeds roster. Data center
+        Live from the D1c ruling of 16 Oct 2026 (WAL and the busy timeout satisfy
+        D1c for an append-only writer); on feeds.EXTERNAL_WRITERS. Data center
         from January 2014 only; detailed types in the total workbook from 2002.
+
+  cboe_indices:
+    name: Cboe Global Markets -- daily index history files (COR1M, COR3M, DSPX)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [equity_prices, volatility]
+    geography: [US]
+    latency: daily, after the close (Last-Modified 21:31 GMT on 16 Oct 2026)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per session, dated the session.
+    license: >-
+      public CSVs, no key (cdn.cboe.com/api/global/us_indices/daily_prices/<SYM>_History.csv,
+      linked from the index dashboards on www.cboe.com, checked 16 Oct 2026);
+      robots.txt on cdn.cboe.com and cdn-api.cboe.com answers 403 (no rules,
+      RFC 9309), checked on every pull
+    allowed_reports: [weekly_tactical, monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/cboe_indices.py
+    status: live
+    caveats:
+      - >-
+        The CLOSE only for COR1M and COR3M; DSPX's file carries one value column.
+        History from 2006 (COR1M, COR3M) and June 2014 (DSPX), stored with the
+        first pull's Last-Modified, so invisible to an as-of read before it. Live
+        under the D1c ruling of 16 Oct 2026; on feeds.EXTERNAL_WRITERS.
 
   nbs:
     name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)

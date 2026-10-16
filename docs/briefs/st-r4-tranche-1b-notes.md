@@ -60,9 +60,8 @@ threshold, with its reason), `config/nber_expansions.yaml` (the NBER fixture),
   - `^COR1M` and `^COR3M`: Yahoo serves **today's quote only**; `period="max"` is
     refused ("must be one of: 1d, 5d"), and a dated start still returns one row.
     So their history is whatever the daily pull accumulates from its first run,
-    and the panel prints the real n. Nothing is guessed. A Cboe history file
-    would fill them sooner, but it would be a new writer, held for D1c (see
-    needs-you).
+    and the panel prints the real n. Nothing is guessed. *(Superseded in Part 0:
+    Cboe's history files are now read, from 2006, by a new unheld writer.)*
   - All three joined the basket (110 symbols). DSPX is registered as
     `vol_index` (vol points); COR1M and COR3M as `index_points`.
 - **The panel:** each index with its 1- and 5-year percentiles, each printing its
@@ -159,9 +158,8 @@ threshold, with its reason), `config/nber_expansions.yaml` (the NBER fixture),
   - Both are "Percentage Points at Annual Rate, Seasonally Adjusted Annual
     Rate", quarterly, read off each FRED page on 16 Oct 2026. Latest, Q2 2026:
     0.19 and 0.33.
-- **No held reader:** since FRED serves both, there is no BEA writer for D1c to
-  hold. The gate's "held reader" check therefore asserts that this branch adds no
-  writer at all.
+- **No BEA writer:** FRED serves both, so 22b needs no writer of its own. (Part 0
+  adds one writer to this branch, the Cboe history reader, for item 18.)
 - **Units:** `percent_return` through the block's `member_units`, so a change
   prints in pp.
 - **The combined series** (`A679RY2Q224SBEA`) ended in Q1 2013, so the line sums
@@ -292,6 +290,17 @@ the history has to be backfilled once. These steps fetch, so they are yours:
    `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.fred_history backfill --series contrib_info_equipment,contrib_software --dry-run | tail -20'`
 3. What the blocks would print today (reads only):
    `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.batch5b show | head -150'`
+4. Part 0: the first Cboe history pull (writes COR1M and COR3M from 2006, DSPX
+   from 2014; it then runs inside the scheduled external pull):
+   `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.sources.cboe_indices | tail -30'`
+5. Part 0: the first Census pull, now unheld (it also runs inside the scheduled
+   external pull from the merge on):
+   `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.sources.census_vip | tail -30'`
+6. Part 0: seed the three committed narrative proposals into the register (they
+   enter as proposed; the close pass's seed does the same at its next run):
+   `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.narratives seed'`
+   then confirm or reject each, which is yours alone:
+   `python -m altdata.narratives confirm <id>` or `reject <id>`.
 
 ## Files shared with the open branches
 
@@ -343,22 +352,120 @@ this branch's doing:
   `validate_st_r4_t1b` is 50 of 50.
 The run on the fix commit is read once, after the push; see the session report.
 
+## Part 0 (second paste, 16 Oct 2026): today's rulings applied
+
+### The CI read
+
+Run 38970818174, on `bd5cd2a`: **failed, 111 jobs passed and 13 failed**: three
+gates, each this branch's doing, plus the summary job and the exit lines. The two
+gates fixed on `bd5cd2a`, `validate_numeral_audit` and `validate_weekly_edits`,
+passed.
+- `validate_security_master`, 81 of 82: the four new Yahoo symbols (^DSPX,
+  ^COR1M, ^COR3M, ZN=F) were in no Security Master entry. Added as SM00195 to
+  SM00198 (index, index, index, future, every unknown fact null and listed as
+  unverified, the form of their neighbours), and `next_id` moved from 195 to 199.
+  Session A's branches end at SM00194, so the ids do not collide today; a
+  branch that adds an entry before this merges takes 199.
+- `validate_alpha`, 256 of 257: the gate's broken rule used TLT as the
+  closes-only instrument for "next_open needs a stored open", and 27a gives TLT
+  stored opens. The fixture now uses IEF, which has none.
+- `validate_monthly_stack`, 265 of 266: the Monthly's Positioning pins its five
+  read blocks (T3.1 item 10), and the 27a sub-section reached it through the
+  Weekly's builder. 27a is now the Weekly's only, like the 10A blocks.
+Locally after the fix: `validate_security_master` 82 of 82, `validate_alpha` 257
+of 257. The run on this push is read once, after it; see the session report.
+
+### The Census hold lifted (ruling (a))
+
+`altdata/sources/census_vip.py`: `HELD_FOR_D1C = False`, the docstring quoting
+the ruling; its `KEYS` made a literal list, so `feeds.static_keys()` reads it
+from source (the roster's own guard against an import failure). On
+`altdata/feeds.py` `EXTERNAL_WRITERS`, so `pull_external()` runs it.
+`source_registry.yaml` held → live; the four registry descriptions, the
+catalogue line and CLAUDE.md say live. The gate's group F now holds the unheld
+form: not held, two workbooks fetched into a temporary store, on the external
+roster. Group G's held line became the plain-name absence. `validate_st_r4_t1`
+49 of 49.
+
+### The COR1M and COR3M history (ruling (e))
+
+`altdata/sources/cboe_indices.py`, a new writer and not held. It reads Cboe's
+daily history files (`cdn.cboe.com/api/global/us_indices/daily_prices/<SYM>_History.csv`,
+which redirects to `cdn-api.cboe.com`). COR1M's and COR3M's CLOSE run from 3 Jan
+2006; DSPX's one column runs from 19 Jun 2014, so it rides the same reader, a
+decade more than Yahoo's 2024 start.
+- **Robots:** both CDN hosts answer `robots.txt` with 403, which RFC 9309 reads
+  as no rules (the reading `altdata/listings.py` takes). Both are checked on
+  every pull through the wildcard-aware reader, and a refusal fetches no file.
+  `www.cboe.com`'s robots.txt disallows `/book/` and the volume reports only.
+- **Timing:** each row carries the file's Last-Modified (21:31 GMT on 16 Oct for
+  that day's close).
+- **Keys and wiring:** `cboe.cor1m`, `cboe.cor3m` (index_points) and `cboe.dspx`
+  (vol_index) are registered, with a source_registry entry (live) and a
+  catalogue line. The panel reads the Cboe key first and Yahoo's as the fallback,
+  never spliced, and says when it is on the fallback. The Yahoo symbols stay in
+  the basket.
+- **Gate:** new group G in `validate_st_r4_t1b`, 61 of 61.
+
+### Drafts committed, for Ari's accept-all
+
+Ruling (c). Every one is committed as drafted, with its file and line:
+
+| Draft | Where | Line |
+|---|---|---|
+| Narrative register, "end of the bond bull / active era" (18) | `config/narratives.yaml`, `proposals:` → `bond_bull_end_active_era`, pending confirm | 340 |
+| Narrative register, "Treasury manipulation / Asian selling" (27) | `config/narratives.yaml` → `treasury_asian_hours_selling`, pending confirm | 366 |
+| Narrative register, side B of "what's driving 5.3%" (26) | `config/narratives.yaml` → `capital_competition`, pending confirm | 395 |
+| The pair "what's driving 5.3%" itself (26) | `docs/dated-appendix-queue.md`, for session A's `docs/narrative-register-pairs.md` at the stitch | 98 |
+| XXVII dated-appendix base-rate note (18) | `docs/dated-appendix-queue.md` | 13 |
+| Appendix line for item 24, after verify item 5 | `docs/dated-appendix-queue.md` | 22 |
+| Book A rule-table edit (24), as A-6 | `docs/dated-appendix-queue.md`, for session A's Base Rates Appendix C at the stitch | 72 |
+| XII disagreement note and the manufacturing base-rate note (23) | `docs/dated-appendix-queue.md` | 36 |
+| Sovereign scorecard layout (21) | `docs/dated-appendix-queue.md`, marked not live under ruling (b) | 55 |
+
+How each landed:
+- **Narrative proposals.** The register confirms model proposals but seeded every
+  config story as active, so committing a story there would have skipped your
+  confirm. So `altdata/narratives.py`'s `seed()` gains a `proposals:` block,
+  written once as `proposed` (origin `config_proposal`, emerging, never
+  evaluated), and the Weekly prints each beside its confirm and reject commands.
+  - A proposal without `proposed_by` is refused.
+  - Once in the register, it is never re-synced.
+  - The pair has no register kind, so its side B is the proposal, and side A is
+    the seeded `fiscal_dominance`.
+  - None of the three declares a story_query, so each starts with its
+    series-move evidence alone.
+  - Gate: `validate_narratives` group M, 103 of 103.
+- **Verify item 5,** answered from FRED's DGS10, which corrected the item 24 line:
+  - DGS10 first closed at or above 5.25% on 29 Sep 2026 (5.26).
+  - In the week of 5 Oct: 5.31 on the 5th, 5.27 on the 6th and 5.28 on the 7th.
+  - The last such close before that was 5.26 on 12 Jun 2007, not 2002 as the
+    draft said. The committed line carries the verified dates, and says so.
+- **The dated-appendix homes.** XXVII is reserved and not written, the order
+  names no paper for item 24's line, and its "XII" for the power note is not the
+  library's XII (the Daily Cascade paper). So these wait in one queue file, each
+  marked with its intended home.
+- **Session A's homes.** Session A told this session (16 Oct) where its ruling
+  (c) drafts go on `st-r5-fixes`: Base Rates Appendix C for the Book A table
+  (its A-4 and A-5, this branch from A-6), and `docs/narrative-register-pairs.md`
+  for the pairs. This branch creates neither file, to avoid an add/add conflict;
+  its two entries wait in the queue file for the stitch.
+
+Not committed, and why: the capex-guidance revisions table and the scorecard's
+data are recurring by-hand data lines, which need your explicit yes under ruling
+(b). The reading-shelf addition goes through the shelf's own change-order
+mechanism. The Wednesday FlashAlpha entries (18b) stay Claude's chat-side task.
+
 ## Needs you
 
 1. **The session-set thresholds above**, the dispersion quintiles and the
-   overnight co-signal's 2 sigma above all.
-2. **The realized-dispersion fallback** reads session A's `sp500.member_close`,
-   already set. It prints "awaiting constituent prices" until D1c lifts the
-   item 44 writer.
-3. **The overnight leg counts in SR-36's unwind watch.** I read the order's "a
-   co-signal in ... SR-36's unwind-watch co-signals" literally, so the watch now
-   has five co-signals and still needs two. If you meant it to print beside the
-   watch without counting, it is one config line.
-4. **COR1M and COR3M have no history from Yahoo.** Cboe publishes daily history
-   files. Reading them would be a new writer, held for D1c; say if you want it
-   once D1c lands. Until then the percentiles fill from the first pull.
-5. **The by-hand drafts:** the XXVII appendix note and the two narrative-register
-   entries above. Also the Wednesday FlashAlpha entries (18b).
-6. **Run box commands 1 and 2** after the merge, inside a window.
-7. **D1c** (carried from part 1): one ruling lifts the Census, Redfin and MBA
-   holds, and item 44's writer too.
+   overnight co-signal's 2 sigma above all. (Ruling (e): they stand.)
+2. **The realized-dispersion fallback** reads session A's `sp500.member_close`.
+   It prints "awaiting constituent prices" until item 44's writer has rows.
+3. **Accept-all on the drafts** listed under Part 0, and confirm or reject each
+   of the three narrative proposals (box command 6).
+4. **The two homes the orders leave open:** which paper takes item 24's dated
+   line, and what the order's "XII" in item 23 names.
+5. **Run box commands 1, 2, 4 and 5** after the merge, inside a window.
+6. **A yes or no on the by-hand data lines** (capex-guidance revisions, the
+   sovereign scorecard's figures), under ruling (b).

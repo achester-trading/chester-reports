@@ -27,7 +27,13 @@ model. No figure here is real.
   F  THE PRINT AND THE REGISTRY: the hooks in the Weekly and the Monthly; every
      new key registered with its units; the catalogue line; the basket and the
      OHLC set; no internal id and no ISO date outside a table; neither module can
-     fetch, and this branch adds no writer (22b is a FRED extension).
+     fetch (22b is a FRED extension).
+  G  THE CBOE HISTORY READER (ruling (e), 16 Oct 2026): the CLOSE column and
+     DSPX's one column read by name, a blank row skipped; robots.txt checked on
+     both hosts, a 403 read as no rules, a refusal fetching no file and writing
+     nothing; not held, on the external roster, its KEYS read from source; the
+     panel reads Cboe's key first and Yahoo's as the fallback, never spliced,
+     and says which.
 
     python tools/validate_st_r4_t1b.py
 """
@@ -443,7 +449,7 @@ def group_f() -> None:
                 + [blk.positioning_subsection(st, CUT)])
     body = json.dumps([{k: v for k, v in x.items() if k != "data"} for x in subs if x],
                       ensure_ascii=False)
-    ids = re.findall(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance|manual|fixture)"
+    ids = re.findall(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance|manual|fixture|cboe)"
                      r"\.[a-z0-9_]+\b", body)
     check(len(subs) == 5 and not ids and all(no_iso(x) for x in subs if x),
           f"on an empty store all five print, no internal id and no ISO date outside "
@@ -452,8 +458,107 @@ def group_f() -> None:
            + (REPO / "daily_cascade" / "batch5b_block.py").read_text(encoding="utf-8"))
     check("http" not in src.replace("https://", "") and "import_yfinance" not in src
           and "altdata.sources" not in src and "urllib" not in src,
-          "neither module can fetch, and this branch adds no writer: there is no held "
-          "reader to hold (22b is FRED's)")
+          "neither module can fetch: the reads are the store's (22b is FRED's, the "
+          "Cboe history altdata/sources/cboe_indices.py's)")
+
+
+COR_CSV = ("DATE,OPEN,HIGH,LOW,CLOSE\n01/03/2006,23.5,23.5,23.5,23.5\n"
+           "10/08/2026,6.81,13.51,6.81,10.07\n10/09/2026,,,,\n")
+DSPX_CSV = "﻿DATE,DSPX\n06/19/2014,17.81\n10/09/2026,37.04\n"
+LM = {"last-modified": "Fri, 09 Oct 2026 21:31:02 GMT"}
+
+
+def group_g() -> None:
+    head("G. THE CBOE HISTORY READER (COR1M, COR3M, DSPX)")
+    from altdata import feeds
+    from altdata.sources import cboe_indices as cb
+    r = cb.rows_from_csv(COR_CSV, "COR1M", "2026-10-09T21:31:02+00:00", "observed")
+    check([(x["observed_at"], x["value"]) for x in r]
+          == [("2006-01-03", 23.5), ("2026-10-08", 10.07)]
+          and {x["registry_key"] for x in r} == {"cboe.cor1m"},
+          "COR1M: the CLOSE by name (10.07, not the open's 6.81), the blank row "
+          "skipped, never zero")
+    d = cb.rows_from_csv(DSPX_CSV, "DSPX", "2026-10-09T21:31:02+00:00", "observed")
+    check([x["value"] for x in d] == [17.81, 37.04] and d[0]["observed_at"] == "2014-06-19",
+          "DSPX: its one value column, a byte-order mark tolerated")
+    try:
+        cb.rows_from_csv("DATE,OPEN\n01/03/2006,1\n", "COR3M", "x", "observed")
+        check(False, "a file without its CLOSE column is refused")
+    except ValueError:
+        check(True, "a file without its CLOSE column is refused: a changed shape is "
+                    "a failure, not a quiet day")
+    fetched, robots = [], []
+
+    def http(url, **kw):
+        fetched.append(url)
+        return (DSPX_CSV if "DSPX" in url else COR_CSV).encode("utf-8"), LM
+
+    def robots_refuse(u):
+        robots.append(u)
+        return "User-agent: *\nDisallow: /api/\n"
+
+    def robots_403(u):
+        robots.append(u)
+        return ""
+
+    saved = (cb.http_get_response, cb._robots_text)
+    db = observations.ObservationStore(str(Path(gate_tmp.mkdtemp("st_r4b_cb_")) / "o.db"))
+    try:
+        cb.http_get_response = http
+        cb._robots_text = robots_refuse
+        r0 = cb.pull(db=db)
+        check(r0.get("status") != "OK" and not fetched and "robots" in str(r0.get("reason"))
+              and len(robots) == 1,
+              f"a robots.txt refusal fetches no file and writes nothing "
+              f"({str(r0.get('reason'))[:70]})")
+        robots.clear()
+        cb._robots_text = robots_403
+        r1 = cb.pull(db=db)
+        got = {(k, str(x["observed_at"])[:10]): x["value_num"]
+               for k in cb.KEYS for x in db.as_of(k, "2026-10-10T00:00:00+00:00")}
+        check(r1.get("written", 0) == 6 and len(fetched) == 3 and len(robots) == 2
+              and got.get(("cboe.cor3m", "2006-01-03")) == 23.5
+              and got.get(("cboe.dspx", "2026-10-09")) == 37.04,
+              f"robots.txt on both hosts, unavailable read as no rules: three files "
+              f"fetched, six rows written ({r1.get('written')}, {len(fetched)}, "
+              f"{len(robots)})")
+        early = [x for k in cb.KEYS for x in db.as_of(k, "2026-10-09T21:00:00+00:00")]
+        check(not early, "the whole history carries the file's Last-Modified: an as-of "
+                         "read before it sees nothing")
+    finally:
+        cb.http_get_response, cb._robots_text = saved
+        db.close()
+    check("cboe_indices" in feeds.EXTERNAL_WRITERS
+          and feeds.static_keys("cboe_indices") == cb.KEYS
+          and not hasattr(cb, "HELD_FOR_D1C"),
+          "not held (the D1c ruling); on the external roster, its KEYS read from source")
+    got = {k: derived.registry_entry(k).get("units") for k in cb.KEYS}
+    check(got == {"cboe.cor1m": "index_points", "cboe.cor3m": "index_points",
+                  "cboe.dspx": "vol_index"},
+          f"the three keys registered with their units ({got})")
+    reg = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    ent = reg["sources"].get("cboe_indices") or {}
+    check(ent.get("status") == "live"
+          and ent.get("implemented_by") == "altdata/sources/cboe_indices.py",
+          "source_registry: live, implemented_by the module")
+    from daily_cascade import batch5b_block as blk
+    days = weekdays_back("2026-10-09", 300)
+    yrows = [("yfinance.mkt_dspx", x, 1.0 + i) for i, x in enumerate(days[-20:])]
+    crows = [("cboe.dspx", x, 1.0 + i) for i, x in enumerate(days)]
+    with observations.ObservationStore(store(yrows + crows)) as st:
+        both = batch5b.dispersion(st, CUT, CFG)
+        sub_b = blk.dispersion_subsection(st, CUT, CFG)
+    with observations.ObservationStore(store(yrows)) as st:
+        fb = batch5b.dispersion(st, CUT, CFG)
+        sub_f = blk.dispersion_subsection(st, CUT, CFG)
+    b, f = both["rows"]["dspx"], fb["rows"]["dspx"]
+    check(b["source"] == "Cboe" and b["n_total"] == 300 and f["source"] == "Yahoo"
+          and f["n_total"] == 20,
+          "Cboe's key first (300 sessions), Yahoo's the fallback (20), never spliced")
+    check(not any("From Yahoo" in x for x in sub_b["lines"])
+          and any("From Yahoo's pull" in x and "Dispersion Index" in x
+                  for x in sub_f["lines"]),
+          "the panel says when it reads Yahoo's fallback, and only then")
 
 
 def main() -> int:
@@ -463,6 +568,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

@@ -878,11 +878,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                                 if f"cftc:{i}" not in data]})
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
-    # slow-money set and of SR-36's unwind watch, never a flag of its own.
-    from . import batch5b_block                                 # noqa: PLC0415
-    on = batch5b_block.positioning_subsection(st, now)
-    if on:
-        out.append(on)
+    # slow-money set and of SR-36's unwind watch, never a flag of its own. The
+    # Weekly's only, like the 10A blocks: the Monthly's Positioning keeps its
+    # five read blocks (T3.1 item 10).
+    if cadence == "weekly":
+        from . import batch5b_block                             # noqa: PLC0415
+        on = batch5b_block.positioning_subsection(st, now)
+        if on:
+            out.append(on)
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",
            _change(data[f"finra:{sym}"]), data[f"finra:{sym}"]["observed_at"]]
           for sym in ("SPY", "QQQ", "IWM") if data.get(f"finra:{sym}")]

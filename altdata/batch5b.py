@@ -50,6 +50,9 @@ _NAMES = {
     "yfinance.mkt_dspx": "the Cboe S&P 500 Dispersion Index (DSPX)",
     "yfinance.mkt_cor1m": "the Cboe 1-month implied correlation (COR1M)",
     "yfinance.mkt_cor3m": "the Cboe 3-month implied correlation (COR3M)",
+    "cboe.dspx": "the Cboe S&P 500 Dispersion Index (DSPX)",
+    "cboe.cor1m": "the Cboe 1-month implied correlation (COR1M)",
+    "cboe.cor3m": "the Cboe 3-month implied correlation (COR3M)",
     "yfinance.mkt_move": "the MOVE",
     "yfinance.mkt_vix": "the VIX",
     "yfinance.mkt_tlt": "TLT",
@@ -130,14 +133,21 @@ def dispersion(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     years = c.get("windows_years") or [1, 5]
     rows = {}
     for name in ("dspx", "cor1m", "cor3m"):
-        key = c.get(name)
-        ser = _pts(st, key, cutoff)
+        keys = c.get(name)
+        keys = [keys] if isinstance(keys, str) or keys is None else list(keys)
+        key, ser = keys[0], []
+        for k in keys:                     # the first key with rows; never spliced
+            ser = _pts(st, k, cutoff)
+            if ser:
+                key = k
+                break
         if not ser:
-            rows[name] = {"absent": True, "reason": f"{_name(key)}: not stored at "
+            rows[name] = {"absent": True, "reason": f"{_name(keys[0])}: not stored at "
                                                     f"{cutoff[:10]}"}
             continue
         rows[name] = {"level": ser[-1][1], "as_of": ser[-1][0], "n_total": len(ser),
-                      "first": ser[0][0], "percentiles": _dual(ser, years)}
+                      "first": ser[0][0], "percentiles": _dual(ser, years),
+                      "source": "Cboe" if str(key).startswith("cboe.") else "Yahoo"}
     flag = {"state": None, "why": "DSPX not stored"}
     d = rows["dspx"]
     if not d.get("absent"):

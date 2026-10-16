@@ -121,9 +121,13 @@ def dispersion_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
                      "single names and long-short carry the edge over index expression, "
                      f"and index volatility looks cheap against its constituents {TAG}.")
     if gaps:
-        lines.append("Not stored: " + "; ".join(gaps) + ". Yahoo serves the two "
-                     "implied-correlation indices as a daily quote without history, so "
-                     "their history starts at the first pull.")
+        lines.append("Not stored: " + "; ".join(gaps) + ".")
+    yahoo = [LABELS[k] for k in LABELS if d["rows"][k].get("source") == "Yahoo"]
+    if yahoo:
+        lines.append("From Yahoo's pull, Cboe's history file not yet stored: "
+                     + "; ".join(yahoo) + ". Yahoo serves the two implied-correlation "
+                     "indices without history and DSPX from May 2024, so the long "
+                     "window holds less than its span.")
     if rz.get("absent"):
         lines.append(f"Realized dispersion: {rz['reason']}.")
     return {"title": TITLE_DISP,
@@ -132,7 +136,8 @@ def dispersion_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
             "lines": lines, "paragraph_wanted": False,
             "table_note": ("Each percentile prints its n and the first date of the "
                            "window; a window the history does not fill says how many "
-                           "years it holds. DSPX's history on Yahoo starts 22 May 2024."),
+                           "years it holds. Cboe's daily history files: COR1M and "
+                           "COR3M from January 2006, DSPX from June 2014."),
             "data": {"dispersion": d}}
 
 

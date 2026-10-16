@@ -11277,7 +11277,7 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Census construction spending (VIP, value put in place), private "Data center" (under Office), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2014 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Blank before 2014, skipped, never zero. August 2026: 84,950 (preliminary). ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+      Census construction spending (VIP, value put in place), private "Data center" (under Office), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2014 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Blank before 2014, skipped, never zero. August 2026: 84,950 (preliminary). ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
   census.vip_private_nonresidential:
     source: census_vip
     mechanism_group: macro_momentum
@@ -11290,7 +11290,7 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Census construction spending (VIP, value put in place), private "Nonresidential", MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. The denominator of the data-center share. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+      Census construction spending (VIP, value put in place), private "Nonresidential", MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. The denominator of the data-center share. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
   census.vip_total:
     source: census_vip
     mechanism_group: macro_momentum
@@ -11303,7 +11303,7 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Census construction spending (VIP, value put in place), "Total Construction" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Less census.vip_data_center, the ex-data-center line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+      Census construction spending (VIP, value put in place), "Total Construction" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Less census.vip_data_center, the ex-data-center line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
   census.vip_power:
     source: census_vip
     mechanism_group: macro_momentum
@@ -11316,7 +11316,46 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Census construction spending (VIP, value put in place), "Total Power" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2002 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Read from 2002: the workbook's footnote says detailed types are not available before, and those cells print 0. The XII power-buildout disagreement note's line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+      Census construction spending (VIP, value put in place), "Total Power" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2002 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Read from 2002: the workbook's footnote says detailed types are not available before, and those cells print 0. The XII power-buildout disagreement note's line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
+  cboe.cor1m:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 1-Month Implied Correlation Index (COR1M), POINTS, the daily CLOSE from Cboe's history file (cdn.cboe.com/api/global/us_indices/daily_prices/COR1M_History.csv, checked 16 Oct 2026), from 3 Jan 2006. 10.07 on 16 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
+  cboe.cor3m:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 3-Month Implied Correlation Index (COR3M), POINTS, the daily CLOSE from Cboe's history file (COR3M_History.csv), from 3 Jan 2006. 13.98 on 16 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
+  cboe.dspx:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 Dispersion Index (DSPX), POINTS (an implied-volatility measure, so vol_index), daily, from Cboe's history file (DSPX_History.csv), from 19 Jun 2014. 37.04 on 15 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
   nbs.city70_new_mm_down:
     source: nbs
     mechanism_group: macro_momentum

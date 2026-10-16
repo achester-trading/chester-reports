@@ -396,7 +396,8 @@ conditioned on the attribution (24); net liquidity's 4- and 13-week changes spli
 by leg in dollars (17a); and construction spending, real (23a). Greece-Bund rides
 SR-30's table, untiered (`ecb.irs_10y_gr`). `daily_cascade/batch5_block.py` prints
 them in Plumbing, Mechanics and the Monthly's slow layers, tables and lines only.
-The Census writer `altdata/sources/census_vip.py` is HELD for D1c, like Redfin.
+The Census writer `altdata/sources/census_vip.py` is live from the D1c ruling of
+16 Oct 2026 (WAL and the busy timeout suffice for an append-only writer).
 The thresholds are `config/batch5_tranche_1.yaml`'s, all session-set.
 `tools/validate_st_r4_t1.py` holds it on fixtures.
 
@@ -404,9 +405,10 @@ The thresholds are `config/batch5_tranche_1.yaml`'s, all session-set.
 (ST-R4, Tranche 1 part 2, 16 Oct 2026).** `altdata/batch5b.py` reads the store as
 of the cutoff and decides nothing: the dispersion panel, Cboe's DSPX, COR1M and
 COR3M with dual percentiles and a "dispersion regime: high or low" flag (18a;
-Yahoo serves the two COR indices as a quote without history, so theirs starts at
-the first pull, and the constituent fallback prints "awaiting constituent prices"
-until Batch 6 item 44's writer runs); the MOVE-VIX divergence flag on one-year z,
+the history is Cboe's daily files, read by `altdata/sources/cboe_indices.py` from
+2006 for the COR indices and 2014 for DSPX, with Yahoo's pull the fallback, and
+the constituent fallback prints "awaiting constituent prices" until Batch 6 item
+44's writer runs); the MOVE-VIX divergence flag on one-year z,
 watch and strong tiers, with the T&B conditioner's path in place and inactive
 (19a); the expansion's age with the post-war hazard from the committed NBER
 fixture `config/nber_expansions.yaml` (22a); BEA's information-processing

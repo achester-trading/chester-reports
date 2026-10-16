@@ -163,7 +163,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # weekly metal stocks, and USD/CNH's New York close
                     "spdr_gld", "ishares_trusts", "shfe", "cnh",
                     # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
-                    "thai_set")
+                    "thai_set",
+                    # ST-R4.23a: Census construction spending, live from the D1c
+                    # ruling of 16 Oct 2026 (WAL and the busy timeout suffice
+                    # for an append-only writer)
+                    "census_vip",
+                    # ST-R4.18a: Cboe's COR1M, COR3M and DSPX daily history
+                    "cboe_indices")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

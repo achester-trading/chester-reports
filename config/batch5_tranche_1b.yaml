@@ -13,12 +13,16 @@ version: 1
 # ST-R4.18a -- THE DISPERSION PANEL (Mechanics)
 # ---------------------------------------------------------------------------
 dispersion:
-  dspx: yfinance.mkt_dspx            # Cboe S&P 500 Dispersion Index
-  cor1m: yfinance.mkt_cor1m          # Cboe 1-month implied correlation
-  cor3m: yfinance.mkt_cor3m          # Cboe 3-month implied correlation
-  # "Dual percentiles" (the order): SESSION-SET at 1 and 5 years. DSPX's Yahoo
-  # history starts 22 May 2024 and COR1M/COR3M's at the first pull, so the long
-  # window prints its real span and n until it fills.
+  # Each index reads the FIRST key holding rows as of the cutoff: Cboe's own
+  # history file (altdata/sources/cboe_indices.py; ruling (e), 16 Oct 2026, "the
+  # COR1M and COR3M history is wanted"), then Yahoo's pull. One series is never
+  # spliced from two sources.
+  dspx: [cboe.dspx, yfinance.mkt_dspx]     # Cboe S&P 500 Dispersion Index
+  cor1m: [cboe.cor1m, yfinance.mkt_cor1m]  # Cboe 1-month implied correlation
+  cor3m: [cboe.cor3m, yfinance.mkt_cor3m]  # Cboe 3-month implied correlation
+  # "Dual percentiles" (the order): SESSION-SET at 1 and 5 years. Cboe's files
+  # start 2006 (COR1M, COR3M) and June 2014 (DSPX), so both windows are full from
+  # the first pull; on Yahoo's fallback the long window prints its real span and n.
   windows_years: [1, 5]
   # THE FLAG, "dispersion regime: high or low" (the order's words; threshold
   # session-set): DSPX at or above its 80th percentile of the longest window it

@@ -2,20 +2,19 @@
 Census Bureau construction spending (VIP, value put in place) -- data centers,
 private nonresidential, power and total construction, monthly, SAAR.
 
-    python -m altdata.sources.census_vip      # one pull (HELD: writes nothing)
+    python -m altdata.sources.census_vip      # one pull
 
 ST-R4.23a (16 Oct 2026; Batch 5 item 23, Factor I's real-economy twin). Read by
 altdata/batch5.py's construction(), deflated by FRED's PPIDCS
 (fred.ppi_construction), printed in the Monthly's slow layers under Factor I.
 No rights until the Disruptive Themes refresh rules on it.
 
-HELD FOR D1c. This is a NEW store writer, and the 25 Sep order's Track D
-precondition is "D1c before any new writer"; the repo-wide write lock has not
-landed (TODO.md D1c). So, on the pattern of altdata/sources/redfin.py (branch
-st-r5-rates): the module is built and gated on fixtures, `HELD_FOR_D1C` is True,
-pull() fetches nothing, writes nothing and says why, and the module is on no
-feeds roster. Lifting the hold is the operator's ruling plus two edits:
-HELD_FOR_D1C = False and the module name in altdata/feeds.py EXTERNAL_WRITERS.
+LIVE FROM THE D1c RULING OF 16 OCT 2026: "WAL and the busy timeout satisfy D1c
+for an append-only writer in the scheduled pulls; the write-lock helper is a
+separate item later." The module was built HELD (on the pattern of
+altdata/sources/redfin.py); the ruling lifted it: HELD_FOR_D1C is False and the
+module is on altdata/feeds.py EXTERNAL_WRITERS, so pull_external() runs it. The
+flag and its branch stay, so a later hold is one edit.
 
 SOURCE (verify item 8, checked 16 Oct 2026). The Census time-series API
 (api.census.gov/data/timeseries/eits/vip) now refuses a request without a key,
@@ -63,13 +62,17 @@ PRIVATE = {"Data center": "census.vip_data_center",
            "Nonresidential": "census.vip_private_nonresidential"}
 TOTAL = {"Total Construction": "census.vip_total",
          "Total Power": "census.vip_power"}
-KEYS = list(PRIVATE.values()) + list(TOTAL.values())
+# A literal list: feeds.static_keys() reads it from source, so an import failure
+# cannot take the writer off the roster.
+KEYS = ["census.vip_data_center", "census.vip_private_nonresidential",
+        "census.vip_total", "census.vip_power"]
+assert KEYS == list(PRIVATE.values()) + list(TOTAL.values())
 # THE TOTAL WORKBOOK'S FOOTNOTE 1: "Detailed types of construction not available
 # prior to 2002" -- and the cells before then print 0. A 0 there is ABSENT, not
 # zero spending, so a detailed type is read from 2002 only.
 FIRST_MONTH = {"census.vip_power": "2002-01-01"}
 
-HELD_FOR_D1C = True
+HELD_FOR_D1C = False
 HOLD_REASON = ("held for D1c: a new store writer waits for the repo-wide write "
                "lock (Track D precondition; TODO.md D1c)")
 

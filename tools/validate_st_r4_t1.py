@@ -22,12 +22,13 @@ reader is poisoned), no model, no live store.
      meaning; verify item 2 answered on a fixture September (TGA-led).
   E  ST-R4.21a  GREECE: the ECB writer stores GR beside DE, FR and IT; a
      response without GR still writes the three legs; GR alone is refused.
-  F  ST-R4.23a  THE HELD CENSUS WRITER fetches and writes nothing while held,
-     and writes into a temporary store when unheld; the workbook read by column
-     name, a blank month skipped, a detailed type's pre-2002 zero skipped.
+  F  ST-R4.23a  THE CENSUS WRITER, live from the D1c ruling of 16 Oct: not
+     held, on the external roster, it writes into a temporary store; the
+     workbook read by column name, a blank month skipped, a detailed type's
+     pre-2002 zero skipped.
   G  ST-R4.23a  CONSTRUCTION, REAL: the data-center and ex-data-center lines'
      real year over year and level against 2019 by hand; the share of private
-     nonresidential; held, the block says why.
+     nonresidential; with no rows, the block names its series in plain words.
   H  THE PRINT AND THE REGISTRY: each subsection's table and lines; the hooks in
      the Weekly and the Monthly; every new key registered with its units; the
      catalogue lines; neither module can fetch.
@@ -375,13 +376,9 @@ TOT = _xlsx(["Date", "Total\n_x000D_Construction1", "Total\n_x000D_Power"],
 
 
 def group_f(td: str) -> None:
-    head("F. ST-R4.23a  THE HELD CENSUS WRITER")
+    head("F. ST-R4.23a  THE CENSUS WRITER (live, D1c ruled 16 Oct)")
     from altdata.sources import census_vip as cv
     calls = []
-
-    def poisoned(url, **kw):
-        calls.append(url)
-        raise AssertionError("a held writer fetched")
 
     def served(url, **kw):
         calls.append(url)
@@ -389,23 +386,16 @@ def group_f(td: str) -> None:
                                                         "Thu, 01 Oct 2026 14:04:30 GMT"}
     saved = cv.http_get_response
     db = observations.ObservationStore(str(Path(td) / "census.db"))
+    check(cv.HELD_FOR_D1C is False, "the hold is lifted (D1c ruling, 16 Oct 2026)")
     try:
-        cv.http_get_response = poisoned
-        r = cv.pull(db=db)
-        n0 = db.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0] \
-            if db.conn.execute("SELECT 1 FROM sqlite_master WHERE name='observations'"
-                               ).fetchone() else 0
-        check(cv.HELD_FOR_D1C and r["status"] == "HELD" and r["written"] == 0
-              and not calls and n0 == 0 and "D1c" in r["reason"],
-              f"held: it fetches nothing, writes nothing, and says why ({r['reason']})")
-        cv.HELD_FOR_D1C = False
         cv.http_get_response = served
         r2 = cv.pull(db=db)
         got = {(k, str(x["observed_at"])[:10]): x["value_num"]
                for k in cv.KEYS for x in db.as_of(k, "2026-10-16T00:00:00+00:00")}
-        check(r2.get("status") in ("OK", "ok") or r2.get("written", 0) > 0,
-              f"unheld, in a temporary store, it writes ({r2.get('status')}, "
-              f"{r2.get('written')})")
+        check((r2.get("status") in ("OK", "ok") or r2.get("written", 0) > 0)
+              and len(calls) == 2,
+              f"in a temporary store it fetches the two workbooks and writes "
+              f"({r2.get('status')}, {r2.get('written')}, {len(calls)} fetches)")
         check(got.get(("census.vip_data_center", "2026-08-01")) == 84950.0
               and ("census.vip_data_center", "2013-12-01") not in got
               and got.get(("census.vip_total", "2026-08-01")) == 2203129.0
@@ -414,11 +404,11 @@ def group_f(td: str) -> None:
               "read by column name; a blank data-center month and a pre-2002 detailed-"
               "type zero are skipped, never stored as zero")
     finally:
-        cv.HELD_FOR_D1C = True
         cv.http_get_response = saved
         db.close()
-    src = (REPO / "altdata" / "feeds.py").read_text(encoding="utf-8")
-    check("census_vip" not in src, "the held writer is on no feeds roster")
+    from altdata import feeds
+    check("census_vip" in feeds.EXTERNAL_WRITERS,
+          "the writer is on the external roster, so pull_external() runs it")
 
 
 def group_g() -> None:
@@ -457,9 +447,11 @@ def group_g() -> None:
           "printed under Factor I in the slow layers, with no rights")
     check(no_iso(sub), "no ISO date outside its table")
     with observations.ObservationStore(store([])) as st:
-        held = blk.slow_subsection(st, CUT)
-    check("held until D1c" in held["lines"][0],
-          f"held, the block says why ({held['lines'][0][:80]}...)")
+        none = blk.slow_subsection(st, CUT)
+    check("Census data-center construction" in none["lines"][0]
+          and "census." not in none["lines"][0] and "held" not in none["lines"][0],
+          f"with no rows, the block names its series in plain words "
+          f"({none['lines'][0][:80]}...)")
 
 
 def group_h() -> None:
