@@ -172,7 +172,7 @@ anything that renders a PDF.
 | Run | Commit | Result |
 |---|---|---|
 | 38943816188 | aef5fdb | failure, 90/95. Two faults, both this branch's own. (1) The diffusion sub-section and three others carried no `not_tracked` list, and the Monthly's slow layers append the sourced-figures absence to the last sub-section's list: `KeyError: 'not_tracked'` in `validate_monthly_stack`, `validate_crypto_basket` and `validate_correlation_layer`. (2) The oil-shock line wrote "20th"/"80th" by hand, which `validate_numeral_audit` refuses; it now goes through `ordinal()`. The fifth failure is `gates-passed`, the roll-up. |
-| (next push) | — | recorded at the next read |
+| 38970297889 | d2506d1 | **success**, every gate green. The branch is green. |
 
 ## What was built, item by item
 
