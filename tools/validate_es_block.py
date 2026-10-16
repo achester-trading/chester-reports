@@ -527,6 +527,16 @@ def group_h(es, td: str) -> None:
     sec = {"claim": None, "paragraphs": [], "subsections": [ss]}
     check(stack_mod.section_words(sec) == stack_mod.words(read["text"]),
           "the read counts in the prose budget")
+    ab = es_read.subsection({"state": "absent", "session": "2026-10-02",
+                             "reason": "session: bars incomplete (n=0 of 276); below "
+                                       "the share: 2026-09-28 (0 of 276)"}, None)
+    roll = es_read.subsection({**blk, "contract": {**blk["contract"],
+                                                   "roll_date": "2026-12-10"}}, read)
+    check("2026-" not in ab["lead"] and "28 Sep" in ab["lead"]
+          and not any("2026-" in x for x in roll["lines"])
+          and any("on 10 Dec" in x for x in roll["lines"]),
+          "no ISO date outside a table: the notes and lines print '28 Sep' "
+          "(validate_readability's rule)")
     check(not ss.get("charts_rendered") and "<img" not in html,
           "no chart: the close's chart budget is unchanged")
     wd = es_read.subsection(blk, {"published": False, "state": "audit_failed",

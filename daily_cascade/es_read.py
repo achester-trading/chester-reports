@@ -60,6 +60,8 @@ Say where the windows agree and where they do not: price against VWAP and the
 value areas, the MACD histogram's sign and turn, money flow, the trend lines'
 slopes. Every figure from the data, exactly as given.
 
+Write a date as "28 Sep", never as 2026-09-28.
+
 NEVER FORECAST. Do not say a level will hold, break, reject or attract price,
 and do not predict the session: state where price sits against the levels and
 what each window shows. Whether levels hold is what the ledger measures.
@@ -281,14 +283,31 @@ def lines(block: dict) -> list[str]:
     return out
 
 
+# An ISO date never prints outside a table (validate_readability): the
+# code-written lines and notes print it as "28 Sep" (readability.prose_date).
+ISO_DATE = re.compile(r"(?<![\w/.:=-])(\d{4}-\d{2}-\d{2})(?![\w/:])")
+
+
+def prose_dates(text: Optional[str], year: Optional[int] = None) -> Optional[str]:
+    if not text:
+        return text
+    from .readability import prose_date                         # noqa: PLC0415
+    return ISO_DATE.sub(lambda m: prose_date(m.group(1), year), text)
+
+
 def subsection(block: dict, read: Optional[dict]) -> dict:
     """The close's Mechanics sub-section: the read first, then the tables."""
     r = read or {}
+    try:
+        year = int(str(block.get("session"))[:4])
+    except ValueError:
+        year = None
     lead = (r.get("text") if r.get("published") else
-            f"The read was withheld: {r.get('reason')}" if r else None)
+            prose_dates(f"The read was withheld: {r.get('reason')}", year) if r else None)
     data = {"es_block": payload(block), "lean": r.get("lean")}
     if block.get("state") == "absent":
-        return {"title": TITLE, "lead": f"ES block absent: {block.get('reason')}",
+        return {"title": TITLE,
+                "lead": prose_dates(f"ES block absent: {block.get('reason')}", year),
                 "lines": [block.get("dealer") or es_block.DEALER_PENDING],
                 "paragraph_wanted": False, "data": data}
     tables = [windows_table(block)]
@@ -299,7 +318,7 @@ def subsection(block: dict, read: Optional[dict]) -> dict:
                                 for x in sm["levels"]]})
     return {"title": TITLE, "lead": lead, "lead_prose": bool(r.get("published")),
             "table": levels_table(block),
-            "tables": tables, "lines": lines(block),
+            "tables": tables, "lines": [prose_dates(x, year) for x in lines(block)],
             "paragraph_wanted": False, "data": data}
 
 

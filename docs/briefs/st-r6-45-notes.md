@@ -293,8 +293,17 @@ name local to the whole function, so the ES read's `model_meter.scope(...)`,
 earlier in the function, found it unbound. The fix removes the redundant local
 import; the module-level import stands. It was fixed on this branch in the
 commit after `7254de9`. The two runs before it were cancelled as superseded.
-The fixed tip's run is recorded in `docs/briefs/st-r4-tranche-1-notes.md`
-(branch `st-r4-tranche-1`, cut from that tip).
+**Run 38900890862 (`44ab334`, the model_meter fix): failed. 91 jobs passed;
+`validate_readability.py` and the `gates-passed` summary failed.** The model_meter
+fault was gone; the readability gate's rule "no ISO date outside a table" caught
+the ES block, whose absent note and lines printed dates as `2026-09-28` (the
+close fixtures store no ES bars, so the block printed its absent reason, naming
+each short session). The cause was this branch's. The fix prints every date in
+the block's code-written notes and lines as "28 Sep" (readability.prose_date),
+tells the read to write dates the same way, and adds the check to
+`tools/validate_es_block.py` (69 checks). The fixed tip's run is recorded in
+`docs/briefs/st-r4-tranche-1-notes.md` (branch `st-r4-tranche-1`, rebased onto
+that tip).
 
 ## Needs you
 
