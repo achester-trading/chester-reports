@@ -149,7 +149,7 @@ def concentration(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         b = (cfg.get("breadth") or {}).get("awaiting", "awaiting constituent prices")
         return dict(out, state="absent",
                     reason=b.replace("prices", "holdings") + " (SPY's holdings file, "
-                    "from the constituent writer held for D1c)")
+                    "from the constituent writer)")
     age = (dt.date.fromisoformat(_day(cutoff)) - dt.date.fromisoformat(h["day"])).days
     if age > int(c.get("max_age_days", 7)):
         return dict(out, state="absent",
@@ -504,9 +504,10 @@ def real_yields(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         if nom:
             r["month"], r["nominal_pct"] = nom[-1][0], round(nom[-1][1], 2)
         for leg, key, is_yoy in (("core", ctry.get("core"), False),
+                                 ("core", ctry.get("core_yoy"), True),
                                  ("headline", ctry.get("headline"), False),
                                  ("headline", ctry.get("headline_yoy"), True)):
-            if not key or f"{leg}_pct" in r:
+            if not key or f"{leg}_cpi_pct" in r:
                 continue
             s = _cpi(st, cutoff, key, is_yoy)
             if not s:
@@ -523,7 +524,7 @@ def real_yields(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
             r[f"real_{leg}_pct"] = round(r["nominal_pct"] - cm[1], 2)
         if ctry.get("gap_cpi"):
             r["gaps"].append(ctry["gap_cpi"])
-        if not ctry.get("core") and ctry.get("headline_yoy"):
+        if not ctry.get("core") and not ctry.get("core_yoy") and ctry.get("headline_yoy"):
             r["em_core_gap"] = True
         if ctry.get("linker") and nom:
             lk = monthly(_pts(st, ctry["linker"], cutoff), "mean")
@@ -603,11 +604,16 @@ def gold_equity(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     c = cfg.get("gold_equity") or {}
     stock = _pts(st, c.get("stock_key", "wgc.above_ground_t"), cutoff)
     gold = _pts(st, c.get("gold_key", "yfinance.mkt_gold_front"), cutoff)
-    cap = _pts(st, c.get("acwi_cap_key", "manual.msci_acwi_mcap_usd_bn"), cutoff)
-    out = {"wfe_gap": c.get("wfe_gap"), "definition_note": c.get("definition_note")}
-    miss = [lab for lab, p in (("the WGC above-ground stock (writer held for D1c)", stock),
+    out = {"wfe_gap": c.get("wfe_gap")}
+    cap_key = c.get("cap_key")
+    if not cap_key:
+        return dict(out, state="not_tracked",
+                    reason=c.get("no_cap_reason", "not tracked: no free source for "
+                                                  "world equity capitalisation"))
+    cap = _pts(st, cap_key, cutoff)
+    miss = [lab for lab, p in (("the WGC above-ground stock", stock),
                                ("the gold price", gold),
-                               ("ACWI's capitalisation (by hand)", cap)) if not p]
+                               ("world equity capitalisation", cap)) if not p]
     if miss:
         return dict(out, state="absent", reason="; ".join(miss) + " not stored yet")
     oz = float(c.get("oz_per_tonne", 32150.7466))
@@ -631,10 +637,12 @@ def gold_equity(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
 
 
 def gold_equity_line(g: dict) -> str:
+    if g["state"] == "not_tracked":
+        return f"Gold against world equities — {g['reason']}."
     if g["state"] != "read":
         return f"Gold against world equities: {g['reason']}."
     return (f"Gold's above-ground stock at ${g['gold_price']:,.0f}/oz is {g['ratio_pct']:.1f}% "
-            f"of ACWI's capitalisation on {g['day']} (stock as of {g['stock_as_of']}); "
+            f"of world equity capitalisation on {g['day']} (stock as of {g['stock_as_of']}); "
             f"{lens_text(g['lens'])}.")
 
 

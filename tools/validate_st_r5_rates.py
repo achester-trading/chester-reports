@@ -11,11 +11,12 @@ temporary store of its own -- no live store, no network, no model:
      series failing does not stop the other; CFETS's curve stores the 2.0 and
      10.0 points; the fed funds pull reaches thirteen months; AAA and euro HY
      OAS join the FRED pull, percent and daily.
-  B  THE HELD WRITERS. Redfin's files and the MBA release parse by column and by
-     phrase ("NA" skipped; a changed template refused); the MBA robots check
-     stops on a disallow; while HELD_FOR_D1C each pull fetches nothing and
-     writes nothing, and neither is on a feeds roster; with the hold lifted (in
-     a temporary store) each writes its rows.
+  B  THE WRITERS, LIFTED (16 Oct 2026). Redfin's files and the MBA release parse
+     by column and by phrase ("NA" skipped; a changed template refused); the MBA
+     robots check stops on a disallow; neither is held and both are on
+     feeds.EXTERNAL_WRITERS with their keys on the external roster; each pull
+     fetches its fixtures and writes its rows in a temporary store, and a second
+     pull of the same files writes nothing.
   C  ST-R5.34a THE FLAG. +15/-15 bp fires with NFCI confirming; +10/-10 fires
      (at threshold); +9.9 or -9.9 does not (below); NFCI falling reads "not
      confirming"; the 12-month contract absent falls back to the longest
@@ -26,14 +27,18 @@ temporary store of its own -- no live store, no network, no model:
      whose series is not stored says so; China, forward-only, is "short".
   E  ST-R5.36a HOUSING. Pending sales and their change on the year, active
      listings, months of supply ("NA" absent, never zero), metro breadth k of n,
-     the mortgage rate, NAR by hand; with no Redfin rows, the hold's reason.
+     the mortgage rate; Redfin alone, labelled single-source (NAR dropped); with
+     no Redfin rows, the reason.
   F  ST-R5.37a MBA. The year-on-year change with its percentile, window and n;
-     the level by hand against the 2023 floor; the close prints it on the
-     release Wednesday only.
+     the level CHAINED from the weekly changes since the first pull agrees with
+     the hand-computed fixture (a gap of more than ten days restarts it), with
+     its own percentile, window and n; no by-hand level and no 2023 floor; the
+     close prints it on the release Wednesday only.
   G  ST-R5.41a THE QUALITY TAIL. CCC less BB and CCC less AAA; the co-signal at
      25 bp of excess fires, 24.9 does not, a narrowing CCC does not; each
      percentile prints its real window and n (three years on FRED's ICE
-     series); the overlay is named as not built.
+     series); the overlay is named as not built; euro high yield prints as the
+     euro CCC leg's proxy, labelled so, and nothing is entered by hand.
   H  THE DISPLAY. One "Rates transmission" sub-section in the Weekly's and the
      Monthly's Plumbing & rates; the close's items, the MBA line on Wednesday
      only; no week phrase at "monthly"; the filler, coincidence, readability and
@@ -41,7 +46,9 @@ temporary store of its own -- no live store, no network, no model:
      touch each other.
   I  THE REGISTRY. Every key the cluster reads is registered with its units;
      the new keys carry a family and a long window; redfin and mba are
-     registered sources, held; the catalogue names the three new commands.
+     registered sources, live; the catalogue names the three new commands; the
+     three dropped by-hand keys (ruled 16 Oct 2026) are gone from the registry,
+     the catalogue and tools/manual_input.py, and nothing reads them.
 
     python tools/validate_st_r5_rates.py
 """
@@ -109,7 +116,7 @@ def count(st) -> int:
 
 
 def boom(*a, **k):
-    raise AssertionError("a held writer fetched")
+    raise AssertionError("a stopped writer fetched")
 
 
 def weekdays(start: str, end: str) -> list[str]:
@@ -190,7 +197,12 @@ def mba_rows(n_weeks: int = 110, last_yoy: float = -12.0) -> list[tuple]:
         d = (end - dt.timedelta(days=7 * (n_weeks - 1 - i))).isoformat()
         rows.append(("mba.purchase_nsa_yoy", None, d,
                      last_yoy if i == n_weeks - 1 else float((i * 5) % 21 - 10)))
-    rows.append(("mba.purchase_sa_wow", None, NOW_DAY, -3.0))
+    # The weekly SA changes: an old week three weeks before the next (a gap of
+    # 21 days, so the chain restarts after it), then four consecutive weeks.
+    end = dt.date.fromisoformat(NOW_DAY)
+    for back, v in ((42, 5.0), (21, 2.0), (14, 1.5), (7, -1.0), (0, -3.0)):
+        rows.append(("mba.purchase_sa_wow", None,
+                     (end - dt.timedelta(days=back)).isoformat(), v))
     return rows
 
 
@@ -263,7 +275,7 @@ def group_a() -> None:
 
 
 def group_b() -> None:
-    print(f"\n{LINE}\nB. THE HELD WRITERS\n{LINE}")
+    print(f"\n{LINE}\nB. THE WRITERS, LIFTED\n{LINE}")
     from altdata import feeds                                   # noqa: PLC0415
     from altdata.sources import mba, redfin                     # noqa: PLC0415
     c = redfin.country_rows(FIX["redfin_country_csv"], "2026-10-12T11:46:15+00:00",
@@ -314,20 +326,14 @@ def group_b() -> None:
         check(stopped, "a disallow stops the MBA fetch before the newsroom is read")
     finally:
         mba.http_get_text, mba.http_get_response = saved_t, saved_r
-    rosters = [v for k, v in vars(feeds).items() if k.isupper()
-               and isinstance(v, (tuple, list)) and all(isinstance(x, str) for x in v)]
-    on = [w for w in ("redfin", "mba") if any(w in r for r in rosters)]
-    check(redfin.HELD_FOR_D1C and mba.HELD_FOR_D1C and not on,
-          f"both are HELD for D1c and on no feeds roster ({on or 'none'})")
+    ext = feeds.external_keys()
+    check(not redfin.HELD_FOR_D1C and not mba.HELD_FOR_D1C
+          and {"redfin", "mba"} <= set(feeds.EXTERNAL_WRITERS)
+          and set(redfin.KEYS + mba.KEYS) <= set(ext),
+          "lifted (D1c ruled met for an append-only writer, 16 Oct 2026): both on "
+          "feeds.EXTERNAL_WRITERS, their keys on the external freshness roster")
     saved = (redfin.http_get_response, mba.http_get_text, mba.http_get_response)
     try:
-        redfin.http_get_response = mba.http_get_text = mba.http_get_response = boom
-        with open_store(store([])) as st:
-            r1, r2 = redfin.pull(db=st), mba.pull(db=st)
-            n = count(st)
-        check(r1["status"] == r2["status"] == "HELD" and r1["written"] == r2["written"] == 0
-              and n == 0 and "D1c" in r1["reason"],
-              "while held, each pull fetches nothing and writes nothing, and says why")
 
         def rf(url, timeout=None, **k):
             text = (FIX["redfin_country_csv"] if url == redfin.COUNTRY_URL
@@ -340,15 +346,17 @@ def group_b() -> None:
             return body.encode("utf-8"), {}
         redfin.http_get_response, mba.http_get_response = rf, mr
         mba.http_get_text = lambda *a, **k: FIX["mba_robots_allow"]
-        redfin.HELD_FOR_D1C = mba.HELD_FOR_D1C = False
         with open_store(store([])) as st:
             r1, r2 = redfin.pull(db=st), mba.pull(db=st)
+            r3, r4 = redfin.pull(db=st), mba.pull(db=st)
+            n = count(st)
         check(r1["status"] == "OK" and r1["written"] == 17
               and r2["status"] == "OK" and r2["written"] == 2,
-              f"with the hold lifted (a temporary store), each writes its rows "
-              f"({r1['written']}, {r2['written']})")
+              f"each pull fetches its fixtures and writes its rows in a temporary "
+              f"store ({r1['written']}, {r2['written']})")
+        check(r3["written"] == r4["written"] == 0 and n == 19,
+              f"a second pull of the same files writes nothing ({n} rows in all)")
     finally:
-        redfin.HELD_FOR_D1C = mba.HELD_FOR_D1C = True
         redfin.http_get_response, mba.http_get_text, mba.http_get_response = saved
 
 
@@ -448,17 +456,15 @@ def group_e() -> None:
     lines = rt.housing_lines(h)
     txt = " ".join(lines)
     check("2 of 3 top metros" in txt and "7.42%" in txt and "+32 bp over 28 days" in txt
-          and "months of supply" not in txt
-          and "NAR pending home sales index: by hand, not entered" in txt,
-          "the lines: breadth, the mortgage rate and its change, NAR not entered")
-    with open_store(store(rows + [("manual.nar_phsi", None, "2026-09-01", 71.4)])) as st:
-        h2 = rt.housing(st, NOW, CFG)
-    check("NAR pending home sales index 71.4 (2026-09-01, entered by hand)"
-          in " ".join(rt.housing_lines(h2)), "NAR's index by hand, as the cross-check")
+          and "months of supply" not in txt,
+          "the lines: breadth, the mortgage rate and its change")
+    check(h["single_source"] and "(Redfin, single-source," in txt and "NAR" not in txt
+          and "by hand" not in txt,
+          "Redfin alone, labelled single-source; NAR's by-hand index is dropped")
     with open_store(store([])) as st:
         e = rt.housing(st, NOW, CFG)
-    check(e["absent"] and "held until D1c" in rt.housing_lines(e)[0],
-          "no Redfin rows: the hold's reason prints, not a blank")
+    check(e["absent"] and "has not been pulled yet" in rt.housing_lines(e)[0],
+          "no Redfin rows: the reason prints, not a blank")
 
 
 def group_f() -> None:
@@ -472,20 +478,38 @@ def group_f() -> None:
     check("n=110" in ln and "shorter than 5 years" in ln and "since" in ln
           and "weekly survey" in ln,
           f"the percentile prints its real window and n: {ln[60:170]}")
-    check("by hand, not entered" in ln and "~127" in ln,
-          "no level entered: says so, with the 2023 floor")
-    with open_store(store(mba_rows() + [("manual.mba_purchase_index", None,
-                                         NOW_DAY, 139.0)])) as st:
-        lv = rt.mba_line(rt.mba(st, NOW, CFG))
-    check("Level 139.0" in lv and "+12.0 against the 2023 floor of ~127" in lv,
-          "the level by hand against the 2023 floor")
+    # By hand: 100 at the first week after the gap, then x 1.015 = 101.5,
+    # x 0.99 = 100.485, x 0.97 = 97.47045.
+    end = dt.date.fromisoformat(NOW_DAY)
+    want = [((end - dt.timedelta(days=21)).isoformat(), 100.0),
+            ((end - dt.timedelta(days=14)).isoformat(), 101.5),
+            ((end - dt.timedelta(days=7)).isoformat(), 100.485),
+            (NOW_DAY, 97.47045)]
+    wow = sorted((d, v) for k, _, d, v in mba_rows() if k == "mba.purchase_sa_wow")
+    got = rt.chained_index(wow)
+    check([d for d, _ in got] == [d for d, _ in want]
+          and all(abs(a - b) < 1e-9 for (_, a), (_, b) in zip(got, want)),
+          f"the chained index agrees with the hand computation, restarting after the "
+          f"21-day gap ({[(d, round(v, 5)) for d, v in got]})")
+    ch = m["chain"]
+    check(abs(ch["level"] - 97.47045) < 1e-4 and ch["base_week"] == want[0][0] and ch["weeks_n"] == 4
+          and ch["lens"]["n_full"] == 4,
+          "the line's chain: its level, its base week and its own n")
+    tail_ = ln[ln.find("Chained"):]
+    check(f"since {want[0][0]} (100 = that week): 97.5" in ln and "n=4" in tail_
+          and "by hand" not in ln and "floor" not in ln and "127" not in ln,
+          f"the chain prints with its percentile's real window and n; no by-hand "
+          f"level and no 2023 floor: {tail_[:150]}")
+    check(rt.chained_index([("2026-10-01", 1.0)]) == [("2026-10-01", 100.0)]
+          and rt.chained_index([]) == [],
+          "one week is the base alone; none is no chain")
     check(rt.mba_prints_on("2026-10-14", m, CFG) and not rt.mba_prints_on("2026-10-13", m, CFG)
           and not rt.mba_prints_on("2026-10-21", m, CFG),
           "the close prints it on the release Wednesday only, and not a stale week")
     with open_store(store([])) as st:
         a = rt.mba(st, NOW, CFG)
-    check(a["absent"] and "held until D1c" in rt.mba_line(a),
-          "no MBA rows: the hold's reason")
+    check(a["absent"] and "has not been pulled yet" in rt.mba_line(a),
+          "no MBA rows: the reason")
 
 
 def tail(rows) -> dict:
@@ -511,8 +535,11 @@ def group_g() -> None:
     check("which is not built" in txt and "HY Spread Acceleration" in txt
           and "(descriptive; unvalidated, n=0)" in txt,
           "the co-signal is named against an overlay not built")
-    check("Europe against the US" in txt and "Euro CCC: by hand when reported" in txt,
-          "the US-Europe line and the euro CCC by hand")
+    check("Europe against the US" in txt
+          and "(the proxy for euro CCC, which has no free series)" in txt
+          and "by hand" not in txt and "Euro CCC" not in txt,
+          "euro high yield prints as the euro CCC leg's proxy, labelled so; nothing "
+          "by hand")
     long = tail(spread_rows(40, 15, start="2019-01-02"))
     lt = " ".join(rt.quality_tail_lines(long))
     check(not long["ccc_bb_lens"]["same"] and "of 5 years (n=" in lt and "since 2019-01-02" in lt,
@@ -632,7 +659,7 @@ def group_i() -> None:
     for p in CFG.get("panel") or []:
         keys |= {p[k] for k in ("two_year_key", "ten_year_key") if p.get(k)}
     unreg = sorted(k for k in keys if not (derived.registry_entry(k) or {}).get("units"))
-    check(len(keys) >= 25 and not unreg,
+    check(len(keys) >= 23 and not unreg,
           f"every key the cluster reads is registered with its units "
           f"({len(keys)} keys; unregistered {unreg or 'none'})")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
@@ -641,14 +668,38 @@ def group_i() -> None:
     check(all(k in reg["families"] and k in reg["long_windows"] for k in new),
           "the new series carry a family and a long window (the metric-lens rule)")
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
-    check(all(src.get(s, {}).get("status") == "held"
+    check(all(src.get(s, {}).get("status") == "live"
               and src[s].get("implemented_by") == f"altdata/sources/{s}.py"
               for s in ("redfin", "mba")),
-          "redfin and mba are registered sources, status held")
+          "redfin and mba are registered sources, status live")
+    check_dropped(("manual.mba_purchase_index", "manual.nar_phsi", "manual.euro_ccc_oas"),
+                  reg)
     cmds = catalogue.commands()
     check(all(m in cmds for m in ("altdata.st_r5_rates", "altdata.sources.redfin",
                                   "altdata.sources.mba")),
           "the catalogue names the three new commands")
+
+
+def check_dropped(dropped: tuple[str, ...], reg: dict) -> None:
+    """The by-hand keys dropped on 16 Oct 2026: gone from the registry, the
+    catalogue and manual_input, and named by no code or config."""
+    from altdata import catalogue                               # noqa: PLC0415
+    import manual_input                                         # noqa: PLC0415
+    in_reg = [k for k in dropped if k in (reg.get("metrics") or {})
+              or k in (reg.get("families") or {}) or k in (reg.get("long_windows") or {})]
+    in_cat = [k for k in dropped if k in catalogue.resolved()]
+    in_mi = [k for k in dropped if k in manual_input.manual_keys()]
+    readers = []
+    for p in list(REPO.glob("**/*.py")) + list(REPO.glob("**/*.yaml")):
+        if (any(x in p.parts for x in (".venv", ".git", "docs"))
+                or p.name.startswith("validate_st_r5")):
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        readers += [f"{p.relative_to(REPO)}:{k}" for k in dropped if k in t]
+    check(not in_reg and not in_cat and not in_mi and not readers,
+          f"dropped (ruled 16 Oct 2026): {', '.join(dropped)} -- not in the registry, "
+          f"the catalogue or manual_input, and nothing reads them "
+          f"{(in_reg + in_cat + in_mi + readers) or ''}")
 
 
 def main() -> int:

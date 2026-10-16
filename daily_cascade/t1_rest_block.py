@@ -145,9 +145,9 @@ def slow_subsections(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
                 "paragraph_wanted": False,
                 "not_tracked": [g["wfe_gap"]] if g.get("wfe_gap") else [],
                 "table_note": ("The World Gold Council's above-ground stock at the "
-                               "gold front-month close, over MSCI ACWI's "
-                               "capitalisation (by hand, monthly). "
-                               + (g.get("definition_note") or "") + "."),
+                               "gold front-month close, over world equity "
+                               "capitalisation, which has no free source; the "
+                               "by-hand audit, queued, looks for one."),
                 "data": {"gold_equity": tr.public(g)}}
         diff = {"title": DIFF_TITLE, "not_tracked": [], "lines": tr.diffusion_lines(d),
                 "paragraph_wanted": False,

@@ -12282,8 +12282,8 @@ metrics:
 
   # SIGNAL-TRIAGE BATCH 6, the rates-transmission cluster (ST-R5.34b, 36a, 37a,
   # 41a; 16 Oct 2026; docs/briefs/st-r5-rates-notes.md). Read by
-  # altdata/st_r5_rates.py. The redfin.* and mba.* writers are HELD for D1c:
-  # registered now so the block names its absence by key.
+  # altdata/st_r5_rates.py. The redfin.* and mba.* writers were held for D1c
+  # and are lifted (16 Oct 2026, docs/briefs/st-r5-fixes-notes.md).
   bbk.bund_2y:
     source: bundesbank
     mechanism_group: foreign_rates
@@ -12322,7 +12322,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Redfin national pending home sales, monthly (data center, housing_market/monthly/country.csv, PENDING SALES), homes. September 2026: 316,652. Redfin restates recent months. ST-R5.36a; the writer is held for D1c.
+      Redfin national pending home sales, monthly (data center, housing_market/monthly/country.csv, PENDING SALES), homes. September 2026: 316,652. Redfin restates recent months. ST-R5.36a.
   redfin.active_listings:
     source: redfin
     mechanism_group: macro_momentum
@@ -12335,7 +12335,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Redfin national active listings, monthly (country.csv, ACTIVE LISTINGS), homes. ST-R5.36a; held for D1c.
+      Redfin national active listings, monthly (country.csv, ACTIVE LISTINGS), homes. ST-R5.36a.
   redfin.inventory:
     source: redfin
     mechanism_group: macro_momentum
@@ -12348,7 +12348,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Redfin national inventory, monthly (country.csv, INVENTORY), homes. ST-R5.36a; held for D1c.
+      Redfin national inventory, monthly (country.csv, INVENTORY), homes. ST-R5.36a.
   redfin.months_of_supply:
     source: redfin
     mechanism_group: macro_momentum
@@ -12361,7 +12361,7 @@ metrics:
     units: ratio
     trigger_eligible: false
     description: >-
-      Redfin national months of supply, monthly (country.csv, MONTHS OF SUPPLY): inventory over the month's sales, in months, Redfin's own definition (not NAR's existing-home measure, whose balanced line is ~6). History from January 2012 (verify item 5). ST-R5.36a; held for D1c.
+      Redfin national months of supply, monthly (country.csv, MONTHS OF SUPPLY): inventory over the month's sales, in months, Redfin's own definition (not NAR's existing-home measure, whose balanced line is ~6). History from January 2012 (verify item 5). ST-R5.36a.
   redfin.metro_pending_sales:
     source: redfin
     mechanism_group: macro_momentum
@@ -12374,7 +12374,7 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      Redfin pending home sales per metro, monthly, the top 50 metros (housing_market/monthly/top_50_metros.csv), instrument = Redfin REGION ID, homes. Metro breadth is the share below the same month a year earlier, computed at read. ST-R5.36a; held for D1c.
+      Redfin pending home sales per metro, monthly, the top 50 metros (housing_market/monthly/top_50_metros.csv), instrument = Redfin REGION ID, homes. Metro breadth is the share below the same month a year earlier, computed at read. ST-R5.36a.
   mba.purchase_sa_wow:
     source: mba
     mechanism_group: macro_momentum
@@ -12387,7 +12387,7 @@ metrics:
     units: percent_return
     trigger_eligible: false
     description: >-
-      MBA purchase index, seasonally adjusted, percent change on the prior survey, whole percent, from the weekly press release's headline; observed_at = the survey's week-ending date. ST-R5.37a; the writer is held for D1c. Forward-only: the newsroom pages no archive.
+      MBA purchase index, seasonally adjusted, percent change on the prior survey, whole percent, from the weekly press release's headline; observed_at = the survey's week-ending date. ST-R5.37a. Forward-only: the newsroom pages no archive.
   mba.purchase_nsa_yoy:
     source: mba
     mechanism_group: macro_momentum
@@ -12400,46 +12400,7 @@ metrics:
     units: percent_return
     trigger_eligible: false
     description: >-
-      MBA purchase index, unadjusted, percent change on the same survey a year earlier, whole percent, from the weekly press release's headline. ST-R5.37a; held for D1c. Forward-only.
-  manual.mba_purchase_index:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: weekly
-    freq: weekly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: index_points
-    trigger_eligible: false
-    description: >-
-      MBA purchase index LEVEL (seasonally adjusted, March 1990 = 100), entered by hand: the press release prints changes only, the level is member-only (verify item 3). observed_at = the survey's week-ending date; the note names where the figure was read. ST-R5.37a's level against the 2023 floor (~127).
-  manual.nar_phsi:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: index_points
-    trigger_eligible: false
-    description: >-
-      NAR Pending Home Sales Index (2001 = 100), entered by hand from NAR's monthly release: no free series serves it. The housing block's cross-check on Redfin (ST-R5.36a). observed_at = the reference month's first day.
-  manual.euro_ccc_oas:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: bps
-    trigger_eligible: false
-    description: >-
-      Euro CCC spread, entered by hand IN BASIS POINTS when public reporting carries one (Batch 6 item 41: no free daily euro CCC series; FRED serves only the euro HY aggregate). The note names the measure (OAS, or CCC less AAA) and the source. ST-R5.41a's by-hand line.
+      MBA purchase index, unadjusted, percent change on the same survey a year earlier, whole percent, from the weekly press release's headline. ST-R5.37a. Forward-only.
 
   sp500.member_weight:
     source: sp500_members
@@ -12454,7 +12415,7 @@ metrics:
     delta_unit: pp
     trigger_eligible: false
     description: >-
-      An S&P 500 member's weight in SPY's daily holdings file (SSGA), % of net assets, instrument = the member's ticker in Yahoo's form (BRK-B). The float-adjusted capitalisation share. ST-R5.31a's top-10 share and ST-R5.44a's membership; the writer is held for D1c.
+      An S&P 500 member's weight in SPY's daily holdings file (SSGA), % of net assets, instrument = the member's ticker in Yahoo's form (BRK-B). The float-adjusted capitalisation share. ST-R5.31a's top-10 share and ST-R5.44a's membership.
   sp500.member_close:
     source: sp500_members
     mechanism_group: equity_tape
@@ -12467,7 +12428,7 @@ metrics:
     units: price
     trigger_eligible: false
     description: >-
-      An S&P 500 member's daily close from Yahoo, USD, split-adjusted and dividend-unadjusted (yfinance_source's close), instrument = the ticker in Yahoo's form. ST-R5.44a's drawdown histogram and gap; Batch 5 item 18's dispersion fallback reads it. The writer is held for D1c.
+      An S&P 500 member's daily close from Yahoo, USD, split-adjusted and dividend-unadjusted (yfinance_source's close), instrument = the ticker in Yahoo's form. ST-R5.44a's drawdown histogram and gap; Batch 5 item 18's dispersion fallback reads it.
   wgc.above_ground_t:
     source: wgc_stock
     mechanism_group: commodity_holdings
@@ -12480,7 +12441,52 @@ metrics:
     units: count
     trigger_eligible: false
     description: >-
-      The World Gold Council's above-ground stock of gold, TONNES, at the quarter-end its page names (222,600 t at end-Q2 2026). ST-R5.38a's numerator; the writer is held for D1c.
+      The World Gold Council's above-ground stock of gold, TONNES, at the quarter-end its page names (222,600 t at end-Q2 2026). ST-R5.38a's numerator.
+  jp.cpi_yoy:
+    source: stat_jp_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Japan's national CPI, all items (code 0001), PERCENT change on the same month a year earlier, computed from the Statistics Bureau's published index within one base file (2025 base from 2026, 2020 base before). observed_at = the month's first day. ST-R5 fixes: the real-yield panel's Japan headline leg.
+  jp.cpi_core_yoy:
+    source: stat_jp_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Japan's national CPI, all items less fresh food and energy (code 0178), PERCENT change on a year earlier, computed as jp.cpi_yoy is. The aggregate closest to the US core (less food and energy): the real-yield panel's Japan core leg and the US-JP real differential's.
+  jp.cpi_less_fresh_yoy:
+    source: stat_jp_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Japan's national CPI, all items less fresh food (code 0161), the Bank of Japan's "core", PERCENT change on a year earlier, computed as jp.cpi_yoy is. Stored beside the core leg; read by nothing yet.
   bis.policy_rate:
     source: bis_cbpol
     mechanism_group: foreign_rates
@@ -12496,19 +12502,6 @@ metrics:
     added_date: "2026-10-16"
     description: >-
       Every BIS reference area's central-bank policy rate, percent, month-end (WS_CBPOL; instrument = the BIS area code, XM the euro area). 49 areas on 16 Oct 2026, 38 current. ST-R5.43a's global policy diffusion index.
-  manual.msci_acwi_mcap_usd_bn:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: usd
-    trigger_eligible: false
-    description: >-
-      MSCI ACWI's total market capitalisation (float-adjusted), IN BILLIONS OF US DOLLARS, entered by hand from MSCI's ACWI factsheet ("Mkt Cap (USD Millions)", divided by 1,000); observed_at = the factsheet's date. ST-R5.38a's monthly proxy for world equity capitalisation: no PDF reader in the repo, and WFE's portal needs a login.
   manual.global_pmi:
     source: manual_input
     mechanism_group: manual_entry
@@ -13707,9 +13700,11 @@ families:
   sp500.member_close: price
   wgc.above_ground_t: quantity
   bis.policy_rate: rate
-  manual.msci_acwi_mcap_usd_bn: quantity
   manual.global_pmi: release
   fred.expinf_10y: rate
+  jp.cpi_yoy: release
+  jp.cpi_core_yoy: release
+  jp.cpi_less_fresh_yoy: release
   fred.oecd_cli_g7: release
   fred.hicp_de: release
   fred.hicp_fr: release
@@ -13794,9 +13789,11 @@ long_windows:
   sp500.member_close: full
   wgc.above_ground_t: full
   bis.policy_rate: full
-  manual.msci_acwi_mcap_usd_bn: full
   manual.global_pmi: full
   fred.expinf_10y: full
+  jp.cpi_yoy: full
+  jp.cpi_core_yoy: full
+  jp.cpi_less_fresh_yoy: full
   fred.oecd_cli_g7: full
   fred.hicp_de: full
   fred.hicp_fr: full

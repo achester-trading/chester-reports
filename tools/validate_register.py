@@ -166,6 +166,15 @@ def group_b(db_path: str) -> None:
             ("BN", "the parent, plain ticker"),
             ("bn.to", "lower case, exchange suffix"),
             ("BN.PR.A", "a preferred series"),
+            # THE ACT PREFERRED FORM (16 Oct 2026): the dollar sign and the
+            # series letters, as Nasdaq Trader and the export write them.
+            ("BPY$A", "a preferred series, ACT dollar form"),
+            ("BN$A", "the parent's preferred, ACT dollar form"),
+            ("bn$a", "the dollar form, lower case"),
+            ("BN$A@NYSE.USD", "the dollar form, qualified"),
+            ("BPY.PR.A", "the same preferred, dotted form"),
+            ("O:BPY260918P00020000", "an option on BPY, Polygon form"),
+            ("BPY    260918C00020000", "an option on BPY, OCC with padding"),
             ("BEP.UN", "a unit class"),
             ("O:BN260918C00050000", "a Polygon option symbol"),
             ("BN260918C00050000", "an OCC contract symbol"),
@@ -200,9 +209,17 @@ def group_b(db_path: str) -> None:
 
     check(instruments.normalise("BEPC@NYSE.USD") == "BEPC",
           "BEPC does not collapse to BEP once the qualifier is stripped")
+    forms = {s: instruments.normalise(s) for s in
+             ("BPY$A", "BN$A", "BN.PR.A", "BPY.PR.A", "BEPC$A", "ABR$D", "O:BPY260918P00020000")}
+    check(forms == {"BPY$A": "BPY", "BN$A": "BN", "BN.PR.A": "BN", "BPY.PR.A": "BPY",
+                    "BEPC$A": "BEPC", "ABR$D": "ABR", "O:BPY260918P00020000": "BPY"},
+          f"the dollar form resolves to the root as the dotted form does; BEPC$A stays "
+          f"BEPC; an unrestricted ABR$D is ABR ({forms})")
+    check(not instruments.restrictions(reload=True).is_restricted("ABR$D"),
+          "strengthened only: an unrelated preferred in the dollar form stays clear")
 
     n_blocked = len(reg.blocked_attempts())
-    check(n_blocked == 14, f"every refusal is logged ({n_blocked} attempts recorded)")
+    check(n_blocked == 21, f"every refusal is logged ({n_blocked} attempts recorded)")
 
     # THE BACKSTOP. A raw connection that never imports the register.
     raw = sqlite3.connect(db_path)

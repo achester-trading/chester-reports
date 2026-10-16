@@ -1584,13 +1584,35 @@ sources:
       sanctioned exception, never passing for a browser
     allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
     implemented_by: altdata/sources/sp500_members.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c: a new store writer waits for the repo-wide write lock;
-        pull() fetches and writes nothing and the module is on no feeds roster.
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS.
         SPY's weights are the S&P 500's float-adjusted shares, not total US
         market capitalisation.
+
+  stat_jp_cpi:
+    name: Statistics Bureau of Japan -- national CPI, the published index files (zmi<BASE>aa.csv)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [JP]
+    latency: monthly; the national CPI at 08:30 JST on the release Friday, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per month, dated by its first day.
+    license: >-
+      public CSV at www.stat.go.jp, no key; robots.txt disallows only /library/opac/
+      (read each run with the wildcard-aware reader; checked 16 Oct 2026). Not the
+      e-Stat API, which needs an application id
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/stat_jp_cpi.py
+    status: live
+    caveats:
+      - >-
+        The change on the year is computed from the published index within one
+        base file, never chained across bases; it can differ from the release's
+        own rate by rounding.
 
   wgc_stock:
     name: World Gold Council -- above-ground stock of gold (the "how much gold" page)
@@ -1608,10 +1630,10 @@ sources:
       checked 16 Oct 2026)
     allowed_reports: [monthly_macro, alt_asset]
     implemented_by: altdata/sources/wgc_stock.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c: a new store writer waits for the repo-wide write lock. One
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. One
         sentence of the page body, read by phrase; a changed sentence is refused.
 
   redfin:
@@ -1630,11 +1652,10 @@ sources:
       answers robots.txt with 403 (no rules, RFC 9309), checked 16 Oct 2026
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/redfin.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c: a new store writer waits for the repo-wide write lock;
-        pull() writes nothing and the module is on no feeds roster. Months of
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Months of
         supply is Redfin's definition, not NAR's.
 
   mba:
@@ -1654,10 +1675,10 @@ sources:
       index level and its history are member-only
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/mba.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c, as redfin. Forward-only: the newsroom pages no archive.
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Forward-only: the newsroom pages no archive.
 
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations

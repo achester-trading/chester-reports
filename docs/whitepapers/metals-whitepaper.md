@@ -979,6 +979,12 @@ For a brief periodic review, these cover most of what matters.
 9. Is Chilean production stabilising?
 10. Which scenario in Part VII did this quarter's evidence support?
 
+## Appendix E: Dated base-rate notes
+
+*Dated. Entries are added with their date and never rewritten.*
+
+**Gold against world equities (16 October 2026; Batch 6 item 38).** Gold's above-ground stock against world equity capitalisation has peaked three times since 1901, at roughly 80–90%: the First World War, the Second, and the end of the 1970s inflation decade. Each peak came in a regime of war finance or monetary disorder. It troughed near 5% around 2000 and stood near 20% in 2025 (Costa, Azuria Capital, a gold-fund manager). Three peaks in 125 years make it a secular frame, not a timing tool. The stack does not track the ratio: there is no free source for world equity capitalisation, so the line reads "not tracked" until one is found.
+
 ---
 
 ## Closing Note

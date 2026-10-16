@@ -2,7 +2,7 @@
 S&P 500 constituents -- membership and weights from SPY's daily holdings file,
 and each member's daily close from Yahoo.
 
-    python -m altdata.sources.sp500_members          # one pull (HELD: writes nothing)
+    python -m altdata.sources.sp500_members          # one pull
 
 ST-R5.44a and ST-R5.31a (16 Oct 2026; Batch 6 items 44 and 31, filing note 4:
 "the box stores no constituent prices"). Read by altdata/st_r5_t1_rest.py's
@@ -18,13 +18,12 @@ the ticker as instrument:
                         stores, for the same reasons (instrument = ticker in
                         Yahoo's form: BRK-B, BF-B)
 
-HELD FOR D1c. A NEW store writer, and the 25 Sep order's Track D precondition is
-"D1c before any new writer": WAL and a busy timeout landed on 6 Sep (f98fec4),
-the repo-wide write lock has not (TODO.md, D1c). So the module is built and gated
-on fixtures, `HELD_FOR_D1C` is True, pull() fetches nothing, writes nothing and
-says why, and the module is on no feeds roster. Lifting the hold is the
-operator's ruling plus two edits: HELD_FOR_D1C = False here, and the module name
-in altdata/feeds.py EXTERNAL_WRITERS (docs/briefs/st-r5-t1-rest-notes.md).
+LIFTED 16 Oct 2026. The ruling: WAL and the busy timeout (f98fec4) satisfy D1c
+for an append-only writer in the scheduled pulls; the repo-wide write-lock helper
+is a separate item, later. HELD_FOR_D1C is False and the module is on
+altdata/feeds.py EXTERNAL_WRITERS, so the external pull runs it
+(docs/briefs/st-r5-fixes-notes.md). The flag stays, so the hold can be put back
+by one edit.
 
 SOURCES (checked 16 Oct 2026).
   * Membership: https://www.ssga.com/us/en/intermediary/library-content/products/
@@ -40,7 +39,8 @@ SOURCES (checked 16 Oct 2026).
   * Closes: Yahoo through yfinance, under the operator-sanctioned yfinance
     exception, imported through altdata.import_yfinance() as every yfinance
     reader is (Gate L). It never passes for a browser. The first pull reads two
-    years so each member holds a 52-week high; later pulls read ten days.
+    years for any member whose closes are not yet stored (so each holds a 52-week
+    high, a member added to the index included); later pulls read ten days.
 
 AVAILABILITY. The holdings rows carry the file's Last-Modified where SSGA sends
 one (`observed`), else the write instant. Closes carry the write instant
@@ -70,7 +70,7 @@ WEIGHT_KEY = "sp500.member_weight"
 CLOSE_KEY = "sp500.member_close"
 KEYS = [WEIGHT_KEY, CLOSE_KEY]
 
-HELD_FOR_D1C = True
+HELD_FOR_D1C = False
 HOLD_REASON = ("held for D1c: a new store writer waits for the repo-wide write "
                "lock (Track D precondition; TODO.md D1c)")
 
@@ -164,14 +164,33 @@ def close_rows(closes: dict[str, list[tuple[str, float]]], now: str) -> list[dic
     return rows
 
 
+def held_members(db=None) -> set[str]:
+    """The members whose closes are already stored. The feeds pull passes no
+    store, so the default one is opened to ask."""
+    from .. import observations                                 # noqa: PLC0415
+    st = db or observations.ObservationStore()
+    try:
+        return set(st.instruments(CLOSE_KEY))
+    finally:
+        if db is None:
+            st.close()
+
+
 def produce(db=None, closes_fn: Optional[Callable] = None) -> list[dict]:
+    """The holdings, then closes: two years for a member not yet held (the first
+    pull, and every member added to the index since), ten days for the rest."""
     closes_fn = closes_fn or yahoo_closes
     data, headers = fetch_holdings()
     available, kind = pub.availability(headers)
     rows = holdings_rows(data, available, kind)
     tickers = sorted({r["instrument"] for r in rows})
-    first = db is None or not db.newest_observed_any(CLOSE_KEY)
-    closes = closes_fn(tickers, FIRST_PERIOD if first else LATER_PERIOD)
+    have = held_members(db)
+    new = [t for t in tickers if t not in have]
+    old = [t for t in tickers if t in have]
+    closes: dict = {}
+    for group, period in ((new, FIRST_PERIOD), (old, LATER_PERIOD)):
+        if group:
+            closes.update(closes_fn(group, period))
     missing = sorted(set(tickers) - set(closes))
     if missing:
         log.warning("sp500_members: no closes for %d member(s): %s", len(missing),

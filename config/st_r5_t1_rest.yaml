@@ -116,11 +116,16 @@ real_yields:
   # The G10 (the eleven countries of the Group of Ten) and SR-46's EM shock
   # screen (config/move_screen.yaml `em:`). nominal: the OECD 10-year on FRED
   # (monthly average) or an existing writer's daily yield; core/headline: a CPI
-  # index (YoY computed) or a stored YoY. A missing leg is a listed gap.
+  # index (YoY computed), or core_yoy/headline_yoy: a stored YoY. A missing leg
+  # is a listed gap. The UK and Canada stay gaps for the by-hand audit (free
+  # sources: ONS's CPI time series and Statistics Canada's table 18-10-0004).
   countries:
     - {id: US, name: United States, nominal: fred.oecd_10y_us, core: fred.core_cpi, headline: fred.cpi, linker: fred.tips_10y}
     - {id: GB, name: United Kingdom, nominal: fred.gilt_10y, gap_cpi: "FRED's OECD CPI for the UK stopped at Mar 2025, and Eurostat's HICP at Nov 2020", gap_linker: "no free index-linked gilt yield on FRED"}
-    - {id: JP, name: Japan, nominal: fred.jp_10y, gap_cpi: "FRED's OECD CPI for Japan stopped at Jun 2021", gap_linker: "no JGBi real yield on FRED"}
+    # Japan's CPI from the Statistics Bureau's own CSV (altdata/sources/stat_jp_cpi.py,
+    # 16 Oct 2026): core is all items less fresh food and energy, the aggregate
+    # closest to the US core; FRED's OECD CPI for Japan stopped at Jun 2021.
+    - {id: JP, name: Japan, nominal: fred.jp_10y, core_yoy: jp.cpi_core_yoy, headline_yoy: jp.cpi_yoy, gap_linker: "no JGBi real yield on FRED"}
     - {id: DE, name: Germany, nominal: fred.oecd_10y_de, core: fred.hicp_core_de, headline: fred.hicp_de, gap_linker: "no Bund linker yield on FRED"}
     - {id: FR, name: France, nominal: fred.oecd_10y_fr, core: fred.hicp_core_fr, headline: fred.hicp_fr, gap_linker: "no OATi yield on FRED"}
     - {id: IT, name: Italy, nominal: fred.oecd_10y_it, core: fred.hicp_core_it, headline: fred.hicp_it, gap_linker: "no BTP Italia/BTP€i yield on FRED"}
@@ -148,16 +153,21 @@ real_yields:
 # ST-R5.38a -- the gold/equity market-cap ratio (Factor V)
 # ---------------------------------------------------------------------------
 gold_equity:
-  stock_key: wgc.above_ground_t       # WGC, tonnes, quarterly (HELD writer)
+  stock_key: wgc.above_ground_t       # WGC, tonnes, quarterly
   gold_key: yfinance.mkt_gold_front   # GC=F, $/oz
-  acwi_cap_key: manual.msci_acwi_mcap_usd_bn   # by hand, monthly, from MSCI's factsheet
+  # NO DENOMINATOR. World equity capitalisation has no free source: WFE's portal
+  # needs a login and MSCI's ACWI figure is in a PDF factsheet. The by-hand ACWI
+  # key is dropped (ruled 16 Oct 2026: no recurring by-hand line without Ari's
+  # yes), so the ratio is not tracked; the by-hand audit, queued, looks for a
+  # free source. Set cap_key to a stored key (USD bn) and the ratio reads again.
+  cap_key: null
+  no_cap_reason: "not tracked: no free source for world equity capitalisation"
   oz_per_tonne: 32150.7466
   # SESSION-SET: the gold close used is the last on or before the cap's date,
   # no more than 5 days earlier.
   max_gold_lag_days: 5
   windows_years: [10]
   wfe_gap: "WFE's world equity capitalisation: its statistics portal needs a login, so the quarterly WFE line is a listed gap"
-  definition_note: "ACWI's capitalisation is float-adjusted and covers about 85% of each market, so this ratio reads higher than one over WFE's full listed capitalisation"
 
 # ---------------------------------------------------------------------------
 # ST-R5.43a -- the global policy diffusion index

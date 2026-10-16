@@ -2,16 +2,18 @@
 MBA Weekly Mortgage Applications Survey -- the purchase index's headline
 changes, weekly, from the MBA's press release.
 
-    python -m altdata.sources.mba            # one pull (HELD: writes nothing)
+    python -m altdata.sources.mba            # one pull
 
 ST-R5.37a (16 Oct 2026; Batch 6 item 37, an amendment to item 36): the housing
 block's weekly line, printed in the Wednesday close and the Weekly. Read by
 altdata/st_r5_rates.py's mba().
 
-HELD FOR D1c, as altdata/sources/redfin.py is and for the same reason: a new
-store writer waits for D1c's repo-wide write lock. Built and gated on fixtures;
-pull() writes nothing while HELD_FOR_D1C is True, and the module is on no feeds
-roster.
+LIFTED 16 Oct 2026. The ruling: WAL and the busy timeout (f98fec4) satisfy D1c
+for an append-only writer in the scheduled pulls; the repo-wide write-lock helper
+is a separate item, later. HELD_FOR_D1C is False and the module is on
+altdata/feeds.py EXTERNAL_WRITERS, so the external pull runs it
+(docs/briefs/st-r5-fixes-notes.md). The flag stays, so the hold can be put back
+by one edit.
 
 VERIFY ITEM 3, ANSWERED 16 Oct 2026 FROM THE LAPTOP (the box is the operator's
 to check: docs/briefs/st-r5-rates-notes.md prints the command).
@@ -30,8 +32,9 @@ to check: docs/briefs/st-r5-rates-notes.md prints the command).
   - THE RELEASE NEVER PRINTS THE INDEX LEVEL. It prints the seasonally
     adjusted purchase index's change on the week and the unadjusted index's
     change on the year, both in whole percent. The level (the order's ~139, the
-    2023 floor ~127) is member-only: it is a by-hand line,
-    manual.mba_purchase_index through tools/manual_input.py.
+    2023 floor ~127) is member-only. No by-hand level is kept (ruled 16 Oct
+    2026): altdata/st_r5_rates.py chains a level from the weekly changes since
+    the first pull instead.
 
   mba.purchase_sa_wow   percent change on the week, seasonally adjusted
   mba.purchase_nsa_yoy  percent change on the year, unadjusted
@@ -64,7 +67,7 @@ WOW_KEY = "mba.purchase_sa_wow"
 YOY_KEY = "mba.purchase_nsa_yoy"
 KEYS = [WOW_KEY, YOY_KEY]
 
-HELD_FOR_D1C = True
+HELD_FOR_D1C = False
 HOLD_REASON = ("held for D1c: a new store writer waits for the repo-wide write "
                "lock (Track D precondition; TODO.md D1c)")
 

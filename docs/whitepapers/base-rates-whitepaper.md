@@ -545,3 +545,15 @@ And the Doctrine's ruling stands unchanged and is, if anything, strengthened by 
 ## Appendix B — Recomputation and provenance
 
 Each table names its window and source class. Figures computed from data the system holds are recomputed annually by a scheduled job and stored as observations with `available_at`, so that a base rate cited in a decision packet can be replayed as of the date it was cited. Figures cited from the literature carry their citation in the claims registry and are re-verified when the paper is revised. Any figure that moves by more than a stated tolerance on recomputation is flagged for review, on the principle that a base rate that changes is itself information.
+
+## Appendix C — The Book A rule table (dated; candidates)
+
+*Dated appendix. The Signal Triage change order (25 September 2026, §2.4) makes Book A's rules one table, owned by Portfolio Construction Across Regimes and held in this paper meanwhile. Every row is a candidate until its gate passes, and none changes a Book state before then. Rows are added with their date and never renumbered; a later ruling that changes a row is a new row.*
+
+| Rule | Condition | Action | Source items | Gate | Added |
+|---|---|---|---|---|---|
+| A-1 Hedge substitution | `rates.driver` ∈ {fed_path, term_premium}, or the correlation member positive and persistent (SR-9 level prior) | Book A's hedge mix shifts from duration to T-bills, gold, commodities, trend-following and option structures | SR-6, SR-9 | SR-9 regression (backlog) or driver calibration (ST-3) | 26 Sep 2026 |
+| A-2 Bear-regime re-entry | The Tops and Bottoms top side fired and price below a falling 200-day | The bottom threshold rises; two of the confirmation set are required before Book A re-enters; rallies in that state are Book C material | SR-8 | SR-8 audit (ST-9); wired when Tops and Bottoms is built in full | 26 Sep 2026 |
+| A-3 Duration tilt | Bond allocation in its bottom decile (SR-12) ∧ Treasuries z ≤ −0.5 (SR-15) ∧ `ABS_STRESS` active (SR-22) ∧ `rates.driver` = term_premium | A tilt sized by \|z\|; exit when the driver flips to fed_path, or `ABS_STRESS` clears with yields higher, or the supply projection rises with no absorber change | SR-12, 15, 22, 23 | SR-12 and SR-22 gates (ST-7) | 26 Sep 2026 |
+| A-4 Long-horizon expected return | The aggregate investor allocation to equities (the Federal Reserve's Z.1, the ST-R5.30b construct) in its top decile of history | Book A's long-horizon expected-return line reads at the floor of its range, and no new equity risk is added on valuation grounds; a cash-share spike to its top decile is recorded as a bottom-side confirm only | SR-12 as amended by Batch 6 item 30 | ST-R5.30b's ledger | 16 Oct 2026 |
+| A-5 Oil-shock hedge sleeve | The oil-shock signature ON: the Brent–S&P 500 six-month correlation of daily changes at or below its 20-year 20th percentile, and the Brent–10-year correlation at or above its 80th | Oil and broad commodities sit in the hedge sleeve, not the risk sleeve; they return at the first weekly close with either leg outside its band | Batch 6 item 32 | ST-R5.32b's ledger; descriptive until then | 16 Oct 2026 |

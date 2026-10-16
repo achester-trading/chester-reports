@@ -9,12 +9,16 @@ no model. Every expected figure is computed here, independently of the module:
   A  THE WRITERS EXTENDED. Nineteen FRED series join the pull (ids, units,
      cadence; 52 signal series, 154 pulled); the BIS writer reads every area into
      bis.policy_rate, and a failure of that request costs only its key.
-  B  THE HELD WRITERS. SPY's holdings parse by column name (a class share to
-     Yahoo's form, the cash and CVR lines skipped; a file without its columns or
-     its date refused); a robots disallow stops the fetch; the WGC sentence parses
-     and a changed one is refused; while HELD_FOR_D1C each pull fetches and writes
-     nothing and neither is on a feeds roster; unheld, in a temporary store, each
-     writes its rows.
+  B  THE WRITERS, LIFTED (16 Oct 2026). SPY's holdings parse by column name (a
+     class share to Yahoo's form, the cash and CVR lines skipped; a file without
+     its columns or its date refused); a robots disallow stops the fetch; the WGC
+     sentence parses and a changed one is refused; neither is held and both are
+     on feeds.EXTERNAL_WRITERS with their keys on the external roster; each pull
+     fetches its fixtures and writes in a temporary store; a member whose closes
+     are not stored is asked for two years, one already held for ten days. Japan's
+     CPI reader (item 39's gap) reads its fixture files by item code, computes the
+     change on the year within one base, lets the newer base decide, refuses a
+     file without its codes, stops on a robots disallow, and writes.
   C  ST-R5.31a THE PEAK-BAND FLAG. The ten largest ISSUERS (GOOGL with GOOG) at
      exactly 40.0% fire, 39.99% does not, 44.01% reads above the band; BofA's
      basket mapped against the same file; no holdings, or stale ones, is absent
@@ -30,11 +34,14 @@ no model. Every expected figure is computed here, independently of the module:
      120 months; four inputs, three (one stale), and two (refused, "fewer than
      3"); the flag at its threshold and not below; DEANCHOR's first leg printed.
   G  ST-R5.39a REAL YIELDS. Real on core and on headline, the linker's monthly
-     mean, the US-DE differential in bp; Japan's gap carries into US-JP; a stale
-     CPI is a gap, not a number; the EM rows on headline with the core gap named.
-  H  ST-R5.38a GOLD AGAINST WORLD EQUITIES. The ratio by hand; a gold close more
-     than five days off is not used; the percentile prints its real window and n;
-     the held writer's absence is said; WFE is a listed gap.
+     mean, the US-DE and US-JP differentials in bp (Japan on the Statistics
+     Bureau's core); without Japan's CPI the gap carries into US-JP; a stale CPI
+     is a gap, not a number; the EM rows on headline with the core gap named.
+  H  ST-R5.38a GOLD AGAINST WORLD EQUITIES. Not tracked: no free source for world
+     equity capitalisation (the by-hand ACWI key dropped, 16 Oct 2026), printed
+     so; with a capitalisation key configured, the ratio by hand, a gold close
+     more than five days off not used, the percentile's real window and n; WFE
+     is a listed gap.
   I  ST-R5.43a DIFFUSION. Net share of 24 central banks by hand, a stale area
      dropped, the lead month, the CLI and the PMI; fewer than 20 is absent; the
      ahead line names the month the lead reaches.
@@ -44,9 +51,9 @@ no model. Every expected figure is computed here, independently of the module:
      no filler, no causal claim; report-only (regime.py reads none of it, and the
      inflation dimension declares no driver).
   K  THE REGISTRY AND THE PURITY. Every key read is registered with its units;
-     the new keys carry a family and a long window; the two sources are held;
-     the catalogue names the commands; the reads import no fetcher, store writer
-     or model.
+     the new keys carry a family and a long window; the three sources are live;
+     the catalogue names the commands; the dropped ACWI key is gone everywhere;
+     the reads import no fetcher, store writer or model.
 
     python tools/validate_st_r5_t1_rest.py
 """
@@ -57,6 +64,7 @@ import ast
 import copy
 import datetime as dt
 import inspect
+import csv
 import io
 import math
 import random
@@ -270,7 +278,7 @@ def group_a() -> None:
 
 # ---------------------------------------------------------------------------
 def group_b() -> None:
-    print(f"\n{LINE}\nB. THE HELD WRITERS\n{LINE}")
+    print(f"\n{LINE}\nB. THE WRITERS, LIFTED\n{LINE}")
     from altdata import feeds                                   # noqa: PLC0415
     from altdata.sources import sp500_members as sm             # noqa: PLC0415
     from altdata.sources import wgc_stock as wg                 # noqa: PLC0415
@@ -309,41 +317,114 @@ def group_b() -> None:
     except ValueError:
         refused = True
     check(refused, "a WGC page whose sentence changed is refused")
-    rosters = [v for k, v in vars(feeds).items() if k.isupper()
-               and isinstance(v, (tuple, list)) and all(isinstance(x, str) for x in v)]
-    on = [w for w in ("sp500_members", "wgc_stock") if any(w in r for r in rosters)]
-    check(sm.HELD_FOR_D1C and wg.HELD_FOR_D1C and not on,
-          f"both are HELD for D1c and on no feeds roster ({on or 'none'})")
+    check(not sm.HELD_FOR_D1C and not wg.HELD_FOR_D1C
+          and {"sp500_members", "wgc_stock"} <= set(feeds.EXTERNAL_WRITERS)
+          and set(sm.KEYS + wg.KEYS) <= set(feeds.external_keys()),
+          "lifted (D1c ruled met for an append-only writer, 16 Oct 2026): both on "
+          "feeds.EXTERNAL_WRITERS, their keys on the external freshness roster")
     saved = (sm.http_get_text, sm.http_get_response, sm.yahoo_closes,
              wg.http_get_text, wg.http_get_response)
     try:
-        sm.http_get_text = sm.http_get_response = sm.yahoo_closes = boom
-        wg.http_get_text = wg.http_get_response = boom
-        with open_store(store([])) as st:
-            r1, r2 = sm.pull(db=st), wg.pull(db=st)
-            n = count(st)
-        check(r1["status"] == r2["status"] == "HELD" and r1["written"] == r2["written"] == 0
-              and n == 0 and "D1c" in r1["reason"] and "D1c" in r2["reason"],
-              "while held, each pull fetches nothing and writes nothing, and says why")
         days = [d for d in weekdays("2026-09-28", "2026-10-08")]
         sm.http_get_text = wg.http_get_text = lambda *a, **k: "User-agent: *\nDisallow:\n"
         sm.http_get_response = lambda *a, **k: (spy_workbook(), {})
-        sm.yahoo_closes = lambda tickers, period: {t: [(d, 50.0 + i) for i, d in
-                                                       enumerate(days)]
-                                                   for t in tickers[:5]}
+        asked: list[tuple[int, str]] = []
+
+        def closes_fn(tickers, period):
+            asked.append((len(tickers), period))
+            return {t: [(d, 50.0 + i) for i, d in enumerate(days)]
+                    for t in tickers if t in served}
+        served = {"NVDA", "BRK-B", _ticker(0), _ticker(1), _ticker(2)}
+        sm.yahoo_closes = closes_fn
         wg.http_get_response = lambda *a, **k: (WGC_HTML.encode(), {})
-        sm.HELD_FOR_D1C = wg.HELD_FOR_D1C = False
-        with open_store(store([])) as st:
+        with open_store(store([("sp500.member_close", "NVDA", "2026-09-25", 40.0),
+                               ("sp500.member_close", "BRK-B", "2026-09-25", 40.0)])) as st:
             r1, r2 = sm.pull(db=st), wg.pull(db=st)
             closes = st.instruments(sm.CLOSE_KEY)
         check(r1["status"] == "OK" and r1["written"] == 412 + 5 * len(days)
               and r2["status"] == "OK" and r2["written"] == 1 and len(closes) == 5,
-              f"with the hold lifted (a temporary store), each writes its rows "
+              f"each pull fetches its fixtures and writes in a temporary store "
               f"({r1['written']} weights and closes, {r2['written']} stock row)")
+        check(sorted(asked) == [(2, sm.LATER_PERIOD), (410, sm.FIRST_PERIOD)],
+              f"two years for the 410 members whose closes are not stored, ten days for "
+              f"the 2 already held ({sorted(asked)})")
     finally:
-        sm.HELD_FOR_D1C = wg.HELD_FOR_D1C = True
         (sm.http_get_text, sm.http_get_response, sm.yahoo_closes,
          wg.http_get_text, wg.http_get_response) = saved
+
+
+    jp_cpi_reader()
+
+
+def jp_csv(base: int, months_: list[str], codes=("0001", "0178", "0161"),
+           level=lambda i, j: 100.0 + i * (j + 1) * 0.1) -> bytes:
+    """A Statistics Bureau zmi<BASE>aa.csv in miniature: Shift-JIS, the six
+    header rows (names, English names, codes, serials, weights), months down."""
+    cols = ["0002", *codes, "0201"]
+    head = [["\u985e\u30fb\u54c1\u76ee", *("x" for _ in cols)],
+            ["Group/Item", *("x" for _ in cols)],
+            ["\u985e\u30fb\u54c1\u76ee\u7b26\u53f7(Group/Item code)", *cols],
+            ["Serial number", *("001" for _ in cols)],
+            ["Weight", *("1" for _ in cols)],
+            ["Weight per 10000", *("1" for _ in cols)]]
+    body = [[m.replace("-", ""), *(f"{level(i, j):.3f}" for j, _ in enumerate(cols))]
+            for i, m in enumerate(months_)]
+    out = io.StringIO()
+    csv.writer(out, lineterminator="\r\n").writerows(head + body)
+    return out.getvalue().encode("cp932")
+
+
+def jp_cpi_reader() -> None:
+    from altdata import feeds                                   # noqa: PLC0415
+    from altdata.sources import stat_jp_cpi as jc               # noqa: PLC0415
+    m20 = months("2024-01", "2026-08")
+    m25 = months("2025-01", "2026-08")
+    f20 = jp_csv(2020, m20, level=lambda i, j: 100.0 + i * 0.2)
+    f25 = jp_csv(2025, m25, level=lambda i, j: 99.0 + i * 0.3 + j)
+    p = jc.parse(f25)
+    check(set(p) == set(jc.KEYS) and len(p["jp.cpi_core_yoy"]) == len(m25),
+          "Japan's CPI file read by item code (0001, 0178, 0161), months down")
+    rows = jc.rows_from([(f25, "2026-09-18T00:00:00+00:00", "observed"),
+                         (f20, "2026-09-17T00:00:00+00:00", "observed")])
+    by = {(r["registry_key"], r["observed_at"]): r for r in rows}
+    # 2026-08 from the 2025 base: index 99 + 19 x 0.3 + j over 99 + 7 x 0.3 + j.
+    want_aug = round(((99.0 + 19 * 0.3 + 2) / (99.0 + 7 * 0.3 + 2) - 1) * 100, 2)
+    # 2025-08 only in the 2020 base: 100 + 19 x 0.2 over 100 + 7 x 0.2.
+    want_25 = round(((100.0 + 19 * 0.2) / (100.0 + 7 * 0.2) - 1) * 100, 2)
+    got_aug = by[("jp.cpi_core_yoy", "2026-08-01")]
+    check(got_aug["value"] == want_aug and got_aug["available_at"].startswith("2026-09-18")
+          and by[("jp.cpi_core_yoy", "2025-08-01")]["value"] == want_25,
+          f"the change on the year within one base, by hand: Aug 2026 {want_aug}% from the "
+          f"2025 base (the newer decides), Aug 2025 {want_25}% from the 2020 base")
+    check(min(d for k, d in by if k == "jp.cpi_yoy") == "2025-01-01",
+          "no month without its year-earlier month in the same file (2025-01 first)")
+    try:
+        jc.parse(jp_csv(2025, m25, codes=("0001", "0161", "0999")))
+        refused = False
+    except ValueError:
+        refused = True
+    check(refused, "a file without one of the item codes is refused, not half-read")
+    check("stat_jp_cpi" in feeds.EXTERNAL_WRITERS and set(jc.KEYS) <= set(feeds.external_keys()),
+          "on feeds.EXTERNAL_WRITERS, its three keys on the external roster")
+    saved = (jc.http_get_text, jc.http_get_response)
+    try:
+        jc.http_get_text = lambda *a, **k: "User-agent: *\nDisallow: /data/cpi/\n"
+        jc.http_get_response = boom
+        with open_store(store([])) as st:
+            r0 = jc.pull(db=st)
+        check(r0["status"] != "OK" and "robots" in str(r0.get("reason", "")),
+              "a robots disallow stops the fetch before any file is read")
+        jc.http_get_text = lambda *a, **k: "User-agent: *\nDisallow: /library/opac/\n"
+        files = {jc.url_of("2025"): f25, jc.url_of("2020"): f20}
+        jc.http_get_response = lambda url, **k: (
+            files[url], {"Last-Modified": "Thu, 17 Sep 2026 23:31:21 GMT"})
+        with open_store(store([])) as st:
+            r = jc.pull(db=st)
+            n = count(st)
+        check(r["status"] == "OK" and r["written"] == n == 3 * (len(m20) - 12),
+              f"on its fixture files it writes {n} rows in a temporary store")
+    finally:
+        jc.http_get_text, jc.http_get_response = saved
 
 
 # ---------------------------------------------------------------------------
@@ -587,6 +668,7 @@ def ry_rows() -> list[tuple]:
          ("fred.hicp_core_de", None, "2025-09-01", 100.0), ("fred.hicp_core_de", None, "2026-09-01", 102.2),
          ("fred.hicp_de", None, "2025-09-01", 100.0), ("fred.hicp_de", None, "2026-09-01", 102.0),
          ("fred.jp_10y", None, "2026-09-01", 3.0),
+         ("jp.cpi_core_yoy", None, "2026-08-01", 1.9), ("jp.cpi_yoy", None, "2026-08-01", 1.6),
          ("fred.oecd_10y_fr", None, "2026-09-01", 4.4),
          ("fred.hicp_core_fr", None, "2025-04-01", 100.0), ("fred.hicp_core_fr", None, "2026-04-01", 101.5),
          ("fred.oecd_10y_mx", None, "2026-09-01", 9.35),
@@ -607,14 +689,24 @@ def group_g() -> None:
     check(de["real_core_pct"] == round(3.4 - 2.2, 2) and de["real_headline_pct"] == round(3.4 - 2.0, 2)
           and "linker" in de.get("linker_gap", ""),
           "Germany on Eurostat's HICP, core and headline; its linker a named gap")
+    jp = by["JP"]
+    check(jp["real_core_pct"] == round(3.0 - 1.9, 2) and jp["real_headline_pct"] == round(3.0 - 1.6, 2)
+          and jp["core_cpi_month"] == "2026-08" and not jp.get("em_core_gap"),
+          "Japan on the Statistics Bureau's CPI: real on core (less fresh food and "
+          "energy) and on headline, August's CPI against September's yield")
     d = {x["pair"]: x for x in ry["differentials"]}
     check(d["US-DE"]["spread_bp"] == round((1.9 - 1.2) * 100) == 70
-          and d["US-JP"]["spread_bp"] is None and "Japan" in d["US-JP"]["reason"],
-          "US less DE, real on core: +70 bp by hand; US less JP is a gap, Japan's CPI named")
+          and d["US-JP"]["spread_bp"] == round((1.9 - 1.1) * 100) == 80,
+          "US less DE, real on core: +70 bp by hand; US less JP +80 bp by hand")
     lines = tr.differential_lines(ry)
     check(lines == ["Real 10-year differential, US less DE, on core CPI: +70 bp (Sep 2026).",
-                    "Real 10-year differential, US less JP: a gap (Japan's real yield on "
-                    "core CPI is a gap)."], f"the Currencies lines ({lines})")
+                    "Real 10-year differential, US less JP, on core CPI: +80 bp (Sep 2026)."],
+          f"the Currencies lines ({lines})")
+    with open_store(store([r for r in ry_rows() if not r[0].startswith("jp.")])) as st:
+        ry0 = tr.real_yields(st, NOW, CFG)
+    d0 = {x["pair"]: x for x in ry0["differentials"]}
+    check(d0["US-JP"]["spread_bp"] is None and "Japan" in d0["US-JP"]["reason"],
+          "without Japan's CPI stored, US less JP is a gap, Japan named")
     fr = by["FR"]
     check("real_core_pct" not in fr and "its core CPI is stale against the yield" in fr["gaps"],
           "France's HICP five months behind its yield: a gap, not a stale real yield")
@@ -625,7 +717,6 @@ def group_g() -> None:
     ab = tr.real_yield_absent(ry)
     check(any(x.startswith("Brazil: no OECD 10-year") for x in ab)
           and any(x.startswith("Canada: its 10-year is not stored yet") for x in ab)
-          and any(x.startswith("Japan (partly)") for x in ab)
           and any(x.startswith("Linker real yields: the US's only; none on FRED for "
                                "United Kingdom, Japan, Germany, France, Italy") for x in ab)
           and any(x.startswith("Core CPI for Brazil, Mexico") and "headline" in x
@@ -644,29 +735,40 @@ def group_h() -> None:
     rows = [("wgc.above_ground_t", None, "2026-06-30", 222600.0),
             ("yfinance.mkt_gold_front", None, "2026-08-31", 3900.0),
             ("yfinance.mkt_gold_front", None, "2026-09-30", 4000.0),
-            ("manual.msci_acwi_mcap_usd_bn", None, "2026-07-31", 105000.0),
-            ("manual.msci_acwi_mcap_usd_bn", None, "2026-08-31", 108000.0),
-            ("manual.msci_acwi_mcap_usd_bn", None, "2026-09-30", 110000.0)]
+            ("fixture.world_cap_usd_bn", None, "2026-07-31", 105000.0),
+            ("fixture.world_cap_usd_bn", None, "2026-08-31", 108000.0),
+            ("fixture.world_cap_usd_bn", None, "2026-09-30", 110000.0)]
     with open_store(store(rows)) as st:
-        g = tr.gold_equity(st, NOW, CFG)
+        nt = tr.gold_equity(st, NOW, CFG)
+    check(CFG["gold_equity"].get("cap_key") is None and nt["state"] == "not_tracked"
+          and tr.gold_equity_line(nt) == ("Gold against world equities — not tracked: no "
+                                          "free source for world equity capitalisation."),
+          "no free denominator: the line prints 'not tracked: no free source for world "
+          "equity capitalisation' (the by-hand ACWI key dropped, 16 Oct 2026)")
+    cfg2 = copy.deepcopy(CFG)
+    cfg2["gold_equity"]["cap_key"] = "fixture.world_cap_usd_bn"
+    with open_store(store(rows)) as st:
+        g = tr.gold_equity(st, NOW, cfg2)
     want = round(100.0 * 222600 * 32150.7466 * 4000 / (110000 * 1e9), 3)
     check(g["state"] == "read" and g["ratio_pct"] == want and g["day"] == "2026-09-30",
           f"the ratio by hand: {want}% (222,600 t x 32,150.7466 oz/t x $4,000 over "
-          f"$110,000bn)")
+          f"$110,000bn), once a capitalisation key is configured")
     check(g["lens"]["n"] == 2 and g["lens"]["same"],
           "July's cap has no gold close within five days and is not used: n=2")
     line = tr.gold_equity_line(g)
     check("(n=2; shorter than 10 years)" in line,
           f"the percentile prints its real window and n ({line[-70:]})")
     with open_store(store(rows[1:])) as st:
-        a = tr.gold_equity(st, NOW, CFG)
-    check(a["state"] == "absent" and "held for D1c" in a["reason"],
-          f"no WGC stock stored: absent, the held writer named ({a['reason'][:70]})")
+        a = tr.gold_equity(st, NOW, cfg2)
+    check(a["state"] == "absent" and "WGC above-ground stock" in a["reason"],
+          f"no WGC stock stored: absent, named ({a['reason'][:70]})")
     with open_store(store(rows)) as st:
         subs = blk.slow_subsections(st, NOW)
     gs = next(s for s in subs if s["title"] == blk.GOLD_TITLE)
-    check(any("WFE" in x and "login" in x for x in gs["not_tracked"]),
-          "the quarterly WFE line is a listed gap")
+    check(any("WFE" in x and "login" in x for x in gs["not_tracked"])
+          and gs["lines"] == [tr.gold_equity_line(nt)],
+          "the quarterly WFE line is a listed gap; the sub-section prints the not-tracked "
+          "line")
 
 
 # ---------------------------------------------------------------------------
@@ -753,7 +855,8 @@ def all_rows() -> list[tuple]:
             + diffusion_rows()
             + [("wgc.above_ground_t", None, "2026-06-30", 222600.0),
                ("yfinance.mkt_gold_front", None, "2026-09-30", 4000.0),
-               ("manual.msci_acwi_mcap_usd_bn", None, "2026-09-30", 110000.0)])
+               ("jp.cpi_core_yoy", None, "2026-08-01", 1.9),
+               ("jp.cpi_yoy", None, "2026-08-01", 1.6)])
 
 
 def group_j() -> None:
@@ -795,8 +898,11 @@ def group_j() -> None:
           "rates and FX, the Monthly's global bucket)")
     alloc = next((s for s in pos_w["subsections"]
                   if s["title"].startswith("Investor allocation")), {})
-    check(any(x.startswith("Gold's above-ground stock") for x in alloc.get("lines") or []),
-          "item 38 prints beside item 30's allocation block")
+    check(any(x.startswith("Gold against world equities — not tracked") for x in
+              alloc.get("lines") or []),
+          "item 38 prints beside item 30's allocation block (not tracked, said so)")
+    check(any("US less JP, on core CPI" in x for x in fx.get("lines") or []),
+          "the US-JP real differential prints in the Currencies read")
     check([s["title"] for s in slow] == [blk.GOLD_TITLE, blk.DIFF_TITLE]
           and "blk.slow_subsections" not in inspect.getsource(mstack.slow_layers)
           and "t1_rest_block.slow_subsections" in inspect.getsource(mstack.slow_layers),
@@ -854,7 +960,7 @@ def group_k() -> None:
           f"unregistered {unreg or 'none'})")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     new = ["sp500.member_weight", "sp500.member_close", "wgc.above_ground_t",
-           "bis.policy_rate", "manual.msci_acwi_mcap_usd_bn", "manual.global_pmi",
+           "bis.policy_rate", "jp.cpi_core_yoy", "manual.global_pmi",
            "fred.expinf_10y", "fred.oecd_cli_g7", "fred.hicp_core_de", "fred.oecd_10y_kr"]
     check(all(k in reg["families"] and k in reg["long_windows"] for k in new),
           "the new series carry a family and a long window (the metric-lens rule)")
@@ -863,14 +969,27 @@ def group_k() -> None:
           and derived.registry_entry("manual.global_pmi").get("units") == "index_points",
           "units by meaning: a weight a share, a policy rate a rate, the PMI points")
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
-    check(all(src.get(s, {}).get("status") == "held"
+    check(all(src.get(s, {}).get("status") == "live"
               and src[s].get("implemented_by") == f"altdata/sources/{s}.py"
-              for s in ("sp500_members", "wgc_stock")),
-          "sp500_members and wgc_stock are registered sources, status held")
+              for s in ("sp500_members", "wgc_stock", "stat_jp_cpi")),
+          "sp500_members, wgc_stock and stat_jp_cpi are registered sources, status live")
     cmds = catalogue.commands()
     check(all(m in cmds for m in ("altdata.st_r5_t1_rest", "altdata.sources.sp500_members",
-                                  "altdata.sources.wgc_stock")),
-          "the catalogue names the three new commands")
+                                  "altdata.sources.wgc_stock",
+                                  "altdata.sources.stat_jp_cpi")),
+          "the catalogue names the four commands")
+    import manual_input                                         # noqa: PLC0415
+    gone = "manual.msci_acwi_mcap_usd_bn"
+    readers = [str(p.relative_to(REPO)) for p in
+               list(REPO.glob("**/*.py")) + list(REPO.glob("**/*.yaml"))
+               if not any(x in p.parts for x in (".venv", ".git", "docs"))
+               and not p.name.startswith("validate_st_r5")
+               and gone in p.read_text(encoding="utf-8", errors="replace")]
+    check(gone not in reg["metrics"] and gone not in reg["families"]
+          and gone not in reg["long_windows"] and gone not in catalogue.resolved()
+          and gone not in manual_input.manual_keys() and not readers,
+          f"dropped (ruled 16 Oct 2026): {gone} -- not in the registry, the catalogue or "
+          f"manual_input, and nothing reads it {readers or ''}")
     banned = {"anthropic", "requests", "urllib", "httpx", "yfinance"}
     bad = []
     for rel in ("altdata/st_r5_t1_rest.py", "daily_cascade/t1_rest_block.py"):

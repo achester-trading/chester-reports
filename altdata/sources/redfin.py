@@ -2,18 +2,17 @@
 Redfin data center -- national pending sales, active listings, inventory and
 months of supply, and the top-50 metros' pending sales, monthly.
 
-    python -m altdata.sources.redfin         # one pull (HELD: writes nothing)
+    python -m altdata.sources.redfin         # one pull
 
 ST-R5.36a (16 Oct 2026; Batch 6 item 36, the housing-transmission block). Read
 by altdata/st_r5_rates.py's housing(); printed under "Rates transmission".
 
-HELD FOR D1c. This is a NEW store writer, and the 25 Sep order's Track D
-precondition is "D1c before any new writer": WAL and a busy timeout landed on
-6 Sep (f98fec4), the repo-wide write lock has not (TODO.md, D1c). So the module
-is built and gated on fixtures, `HELD_FOR_D1C` is True, pull() writes nothing and
-says why, and the module is on no feeds roster. Lifting the hold is the
-operator's ruling plus two edits: HELD_FOR_D1C = False and the module name in
-altdata/feeds.py EXTERNAL_WRITERS (docs/briefs/st-r5-rates-notes.md).
+LIFTED 16 Oct 2026. The ruling: WAL and the busy timeout (f98fec4) satisfy D1c
+for an append-only writer in the scheduled pulls; the repo-wide write-lock helper
+is a separate item, later. HELD_FOR_D1C is False and the module is on
+altdata/feeds.py EXTERNAL_WRITERS, so the external pull runs it
+(docs/briefs/st-r5-fixes-notes.md). The flag stays, so the hold can be put back
+by one edit.
 
 SOURCE (verify item 5, checked 16 Oct 2026). The data center's downloads page
 (www.redfin.com/news/data-center/downloads/, allowed by robots.txt's `*` group)
@@ -67,7 +66,7 @@ NATIONAL = {"PENDING SALES": "redfin.pending_sales",
 METRO_KEY = "redfin.metro_pending_sales"
 KEYS = list(NATIONAL.values()) + [METRO_KEY]
 
-HELD_FOR_D1C = True
+HELD_FOR_D1C = False
 HOLD_REASON = ("held for D1c: a new store writer waits for the repo-wide write "
                "lock (Track D precondition; TODO.md D1c)")
 

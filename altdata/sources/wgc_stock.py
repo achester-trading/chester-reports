@@ -2,7 +2,7 @@
 World Gold Council -- the above-ground stock of gold, in tonnes, as the WGC
 publishes it on its "how much gold" page.
 
-    python -m altdata.sources.wgc_stock          # one pull (HELD: writes nothing)
+    python -m altdata.sources.wgc_stock          # one pull
 
 ST-R5.38a (16 Oct 2026; Batch 6 item 38): the numerator of the gold/equity
 market-cap ratio, under Factor V. Read by altdata/st_r5_t1_rest.py's
@@ -11,13 +11,12 @@ gold_equity().
   wgc.above_ground_t   tonnes, observed_at = the quarter-end the page names
                        ("Total above-ground stock (end-Q2 2026): 222,600 tonnes")
 
-HELD FOR D1c. A NEW store writer, and the 25 Sep order's Track D precondition is
-"D1c before any new writer": the repo-wide write lock has not landed (TODO.md,
-D1c). So the module is built and gated on fixtures, `HELD_FOR_D1C` is True, pull()
-fetches nothing, writes nothing and says why, and the module is on no feeds
-roster. Lifting the hold is the operator's ruling plus two edits: HELD_FOR_D1C =
-False here, and the module name in altdata/feeds.py EXTERNAL_WRITERS
-(docs/briefs/st-r5-t1-rest-notes.md).
+LIFTED 16 Oct 2026. The ruling: WAL and the busy timeout (f98fec4) satisfy D1c
+for an append-only writer in the scheduled pulls; the repo-wide write-lock helper
+is a separate item, later. HELD_FOR_D1C is False and the module is on
+altdata/feeds.py EXTERNAL_WRITERS, so the external pull runs it
+(docs/briefs/st-r5-fixes-notes.md). The flag stays, so the hold can be put back
+by one edit.
 
 SOURCE (checked 16 Oct 2026). https://www.gold.org/goldhub/data/how-much-gold;
 www.gold.org's robots.txt (read each run, wildcard-aware) allows it. The figure
@@ -47,7 +46,7 @@ ROBOTS_URL = "https://www.gold.org/robots.txt"
 KEY = "wgc.above_ground_t"
 KEYS = [KEY]
 
-HELD_FOR_D1C = True
+HELD_FOR_D1C = False
 HOLD_REASON = ("held for D1c: a new store writer waits for the repo-wide write "
                "lock (Track D precondition; TODO.md D1c)")
 
