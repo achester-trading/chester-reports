@@ -49,6 +49,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 import regime  # noqa: E402
+from altdata import bars as bars_mod, es_block     # noqa: E402
 from altdata import observations, session          # noqa: E402
 from altdata.sources import overnight as on        # noqa: E402
 from . import events_block                         # noqa: E402
@@ -253,7 +254,16 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     stories = story_block.build(prior, cutoff, market_state=state_obj,
                                 what_changed=changed, db_path=db_path)
 
+    # THE ES BLOCK (ST-R6.45): the overnight session so far, the prior full
+    # session's value area and POC as reference, the day's levels -- from the
+    # bars the 06:45 job stored, read as of the cutoff. Never a fetch (30.4).
+    with bars_mod.BarStore(db_path) as bst:
+        es = es_block.compute(bst, this_session, cutoff, slot="morning")
+
     warnings: list[str] = []
+    if es.get("state") != "ok":
+        warnings.append(f"ES block {es.get('state')}: "
+                        + (es.get("reason") or "; ".join(es.get("reasons") or [])))
     if state_obj is None:
         warnings.append(
             f"no market_state object for the prior session {prior} -- the close "
@@ -298,6 +308,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "generated_at": session.utc_iso(),
         "run_id": run_id,
         "overnight": overnight,
+        "es_block": es,
         "events": events,
         "stories": stories,
         "exposure": exposure,

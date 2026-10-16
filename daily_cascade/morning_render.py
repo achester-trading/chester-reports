@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from . import events_block, state_block
+from . import es_read, events_block, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -300,8 +300,16 @@ def stories_block(payload: dict) -> str:
             f'never on the prose above.</p></div>')
 
 
+def es_section(payload: dict, read: Optional[dict] = None) -> str:
+    """THE ES BLOCK (ST-R6.45d): the read first, then the levels and windows."""
+    blk = payload.get("es_block")
+    if not blk:
+        return f'<p style="{NOTE}">ES block not built.</p>'
+    return es_read.html(blk, read)
+
+
 def render(payload: dict, delivery: Optional[dict] = None,
-           narrative: Optional[Any] = None) -> str:
+           narrative: Optional[Any] = None, es: Optional[dict] = None) -> str:
     warn = ""
     if payload.get("warnings"):
         items = "".join(f"<li>{esc(w)}</li>" for w in payload["warnings"])
@@ -344,6 +352,9 @@ def render(payload: dict, delivery: Optional[dict] = None,
 {dominant_line(payload)}
 {attribution_block(payload)}
 
+<h2 style="{H2}">{esc(es_read.TITLE)}</h2>
+{es_section(payload, es)}
+
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>
 {exposure_block(payload)}
 
@@ -367,7 +378,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 </div>"""
 
 
-def text_fallback(payload: dict) -> str:
+def text_fallback(payload: dict, es: Optional[dict] = None) -> str:
     """Plain text for a client that will not render HTML. Deliberately terse."""
     block = payload.get("overnight") or {}
     lines = [f"Morning anchor -- {payload.get('session')}",
@@ -396,6 +407,8 @@ def text_fallback(payload: dict) -> str:
         lines.append(f"{r.get('symbol'):<10} tokyo {r.get('tokyo')}  "
                      f"europe {r.get('europe')}  other {r.get('other')}")
     lines.append("")
+    if payload.get("es_block"):
+        lines += es_read.text_lines(payload["es_block"], es)
     for w in payload.get("warnings") or []:
         lines.append(f"WARNING: {w}")
     return "\n".join(lines)

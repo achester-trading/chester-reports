@@ -54,6 +54,9 @@ commands:
   altdata.em_scorecard:
     domain: em
     line: 'The EM vulnerability scorecard: a table of lenses, never a composite'
+  altdata.es_block:
+    domain: equity
+    line: 'The three-timeframe ES block and its level and lean ledger (ST-R6.45)'
   altdata.events:
     domain: events
     line: 'The events table: what happened, what is scheduled, and when we could know it'

@@ -28,9 +28,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, levels as levels_mod, observations, session
-from altdata import model_meter
+from altdata import es_block, model_meter
 
 from . import charts as charts_mod
+from . import es_read
 from . import outlooks as outlooks_mod
 from . import stack as stack_mod
 from . import stack_prose, stack_render
@@ -189,6 +190,19 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 report["outlooks_resolved"] = {"error": f"{type(exc).__name__}: {exc}"}
         prior = load_prior(sess, archive_dir)
         ed = stack_mod.build(p, book, outs, prior, db_path)
+        # THE ES BLOCK (ST-R6.45, Batch 6 item 45): the three timeframes from the
+        # bars table as of the cutoff -- the full session, what changed, the
+        # levels for tomorrow -- in Mechanics. Its read is written in the prose
+        # step below, through the same narrative.generate().
+        es_blk = es_block.compute(bst, sess, cutoff, slot="close")
+        # WHAT CHANGED SINCE 07:00: the morning's print, scored in memory on the
+        # bars since -- the ledger's own outcome is resolve_due's, below.
+        try:
+            es_blk["since_morning"] = es_block.since_morning(bst, sess, cutoff,
+                                                             es_blk.get("last"))
+        except Exception:                                       # noqa: BLE001
+            log.warning("ES since-morning review unavailable", exc_info=True)
+        es_rd = None
         if narrative:
             ms = None
             try:
@@ -198,6 +212,24 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 pass
             stack_prose.write(ed, market_states=ms, client=client, model=model,
                               outlooks=outs)
+            with model_meter.scope(section="es_block"):
+                es_rd = es_read.write(es_blk, slot="close", client=client, model=model)
+        mech = next(s for s in ed["sections"] if s["id"] == "mechanics")
+        mech["subsections"].append(es_read.subsection(es_blk, es_rd))
+        mech["data"]["es_block"] = {"state": es_blk.get("state"),
+                                    "lean": (es_rd or {}).get("lean"),
+                                    "read_state": (es_rd or {}).get("state")}
+        report["es_block"] = mech["data"]["es_block"]
+        # THE ES LEDGER (45e): the due rows scored first (this session's 07:00
+        # prints among them), then tonight's levels and lean logged unscored.
+        if not dry_run:
+            try:
+                report["es_ledger"] = {
+                    "resolved": es_block.resolve_due(cutoff, db_path, store=bst),
+                    "recorded": es_block.record(es_blk, (es_rd or {}).get("lean"),
+                                                p.get("run_id"), db_path)}
+            except Exception as exc:                            # noqa: BLE001
+                report["es_ledger"] = {"error": f"{type(exc).__name__}: {exc}"}
         # THE CHARTS, from the same level list the prose was audited against.
         plan = stack_mod.chart_plan(ed, {})
         charts: dict[str, dict] = {}

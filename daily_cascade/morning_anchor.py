@@ -46,6 +46,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -116,12 +117,17 @@ def main() -> int:
         return 1
 
     narr, proposals = _narrative_scan(p, args, run_id)
+    es_rd = _es_read(p, args, run_id)
+    es_blk = p.get("es_block") or {}
+    print(f"  ES block   : {es_blk.get('state')}; read "
+          f"{(es_rd or {}).get('state', 'not_attempted')}, lean "
+          f"{(es_rd or {}).get('lean')}")
 
     name = f"morning_anchor_{sess}.html"
     subject = f"[chester] Morning anchor {sess}"
     html = render_mod.render(p, {"archive_path":
                                  delivery.archive_path(name, args.archive_dir)},
-                             narrative=narr)
+                             narrative=narr, es=es_rd)
 
     if args.dry_run:
         path = delivery.archive(html, name, args.archive_dir)
@@ -130,8 +136,18 @@ def main() -> int:
                "delivery_detail": "--dry-run", "delivered_at": session.utc_iso()}
     else:
         out = delivery.deliver(subject, html, name,
-                               text_fallback=render_mod.text_fallback(p),
+                               text_fallback=render_mod.text_fallback(p, es_rd),
                                archive_dir=args.archive_dir)
+
+    # THE ES LEDGER (ST-R6.45e): the levels printed and the read's lean, logged
+    # unscored; the 16:45 close scores them against this session's bars.
+    if not args.dry_run:
+        try:
+            from altdata import es_block                        # noqa: PLC0415
+            n = es_block.record(es_blk, (es_rd or {}).get("lean"), run_id, args.db)
+            print(f"  ES ledger  : {n} row(s) logged")
+        except Exception as exc:                               # noqa: BLE001
+            log.warning("ES ledger not written: %s: %s", type(exc).__name__, exc)
 
     print(f"\n  archive    : {out['archive_path'] or 'FAILED'}")
     print(f"  delivery   : {out['delivery']} ({out['delivery_detail']})")
@@ -165,6 +181,9 @@ def main() -> int:
                      "narrative_verdicts": (narr.verdicts() if narr is not None
                                             else None),
                      "narrative_proposals": proposals,
+                     "es_block": es_blk.get("state"),
+                     "es_read": (es_rd or {}).get("state"),
+                     "es_lean": (es_rd or {}).get("lean"),
                      "delivery": out["delivery"],
                      "archive": out["archive_path"],
                      "warnings": p["warnings"]},
@@ -243,6 +262,28 @@ def _narrative_scan(p: dict, args, run_id: str):
         except Exception as exc:                               # noqa: BLE001
             log.warning("proposal %r refused: %s", nid, exc)
     return narr, written
+
+
+def _es_read(p: dict, args, run_id: str) -> Optional[dict]:
+    """THE ES BLOCK'S READ (ST-R6.45d): the anchor's second audited call, through
+    the same narrative.generate() as the scan above -- print precision, the
+    numeral audit, the stack's style rules, the block's forecast rule -- with its
+    lean split off before the audit. Imported here, never at the top, for the
+    same reason as the scan. `--no-narrative` skips it; the tables print alone.
+    Never raises."""
+    if args.no_narrative or not p.get("es_block"):
+        return None
+    try:
+        from daily_cascade import es_read                       # noqa: PLC0415
+        from daily_cascade import narrative as narrative_mod  # noqa: PLC0415
+        from altdata import model_meter                         # noqa: PLC0415
+        with model_meter.scope(report="morning_anchor", run_id=run_id,
+                               section="es_block"):
+            return es_read.write(p["es_block"], slot="morning",
+                                 model=args.narrative_model or narrative_mod.MORNING_MODEL)
+    except Exception as exc:                                   # noqa: BLE001
+        log.warning("ES read failed to run: %s: %s", type(exc).__name__, exc)
+        return None
 
 
 def _as_date(s: str):

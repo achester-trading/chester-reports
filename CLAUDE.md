@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-four code gates (eighty-one Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-five code gates (eighty-two Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -368,6 +368,23 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**ES is read on three timeframes at 07:00 and 16:45 (ST-R6.45, Batch 6 item 45,
+16 Oct 2026).** `altdata/es_block.py` computes the block from the bars table, as
+of the cutoff: session (5-minute), swing (five sessions on 2-hour bars) and
+position (63 sessions on daily bars), each with VWAP or a least-squares trend
+line, VP-1's profile, MACD (12,26,9) and money flow (14), and the nearest levels
+above and below. It records the contract in force (CME's roll rule, or Yahoo's
+report from the pull) and shifts a window across a roll by the gap. The 06:45 job
+pulls the overnight bars (`python -m altdata.bars overnight`), so the anchor
+never fetches. `daily_cascade/es_read.py` writes the read through
+`narrative.generate()` with a `LEAN:` line split off before the audit, and
+prints it first in the anchor, in the close's Mechanics and, as the position
+panel and the week's ledger, in the Weekly. Each printed level and lean goes to
+the `es_ledger` table and is scored on the next session by
+`config/es_block.yaml`'s session-set rules. Report only. The dealer levels in ES
+(ST-R6.45c) wait for the 6b engine. `tools/validate_es_block.py` holds it on
+fixtures.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

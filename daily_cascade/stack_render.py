@@ -347,7 +347,11 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
                 + (f'<p style="{FOOT}">{esc(ss["divider_note"])}</p>'
                    if ss.get("divider_note") else ""))
     wrap = bool(cad.get("mobile_tables"))
-    body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
+    # A LEAD (ST-R6.45d, the ES block): a paragraph printed BEFORE the tables --
+    # the block's read comes first on a phone, then its levels.
+    lead = (f'<p style="{PARA}" class="lead">{esc(ss["lead"])}</p>'
+            if ss.get("lead") else "")
+    body = (lead + tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
             + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
     figs = charts_html(ss, charts, mode) if cad.get("subsection_charts") else ""
     paras = foot = ""
@@ -777,7 +781,7 @@ def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
     if ss.get("divider"):
         return [f"{level} {ss['divider']}\n"] + (
             [f"<sub>{ss['divider_note']}</sub>\n"] if ss.get("divider_note") else [])
-    body = md_block(ss)
+    body = ([f"{ss['lead']}\n"] if ss.get("lead") else []) + md_block(ss)
     figs = (md_charts(list(ss.get("charts_rendered") or []), charts)
             if with_charts and cad.get("subsection_charts") else [])
     paras, foot = [], []
