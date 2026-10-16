@@ -813,6 +813,12 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
                                     ("breaks", "shifts", "credit_sensitive_away")}
             subs.append({"title": "Cross-asset correlations", "lines": [cl["text"]],
                          "paragraph_wanted": False})
+    # SIGNAL-TRIAGE BATCH 6 item 30 (amends SR-12; section 4 ruling 3): the
+    # three-panel investor-allocation block.
+    from . import index_carry_block as icb                      # noqa: PLC0415
+    alloc = icb.positioning_subsection(st, now)
+    if alloc:
+        subs.append(alloc)
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
 
@@ -1104,6 +1110,19 @@ def priced_week(st, now: str, then: str, cfg: dict, pmb, fed, fed_then,
     b["_pmb"] = pmb
     b["subsections"] = priced_subsections(b, series, fed, earn)
     b.pop("_pmb", None)
+    # SIGNAL-TRIAGE BATCH 6 (16 Oct 2026), section 4 ruling 2: items 40, 29 and
+    # 35 under one "What's carrying the index" header. Item 35's margin-source
+    # line belongs in the earnings block; outside the season it rides here.
+    from . import index_carry_block as icb                      # noqa: PLC0415
+    eb = next((ss for ss in b["subsections"]
+               if str(ss.get("title", "")).startswith("Earnings")), None)
+    if eb is not None:
+        ml = icb.margin_line(st, now)
+        if ml:
+            eb["lines"] = list(eb.get("lines") or []) + [ml]
+    carry = icb.priced_subsection(st, now, cadence, margin=eb is None)
+    if carry:
+        b["subsections"].append(carry)
     return b
 
 
@@ -2037,13 +2056,15 @@ def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: lis
 
 
 def chart_plan(ed: dict) -> list[str]:
-    """W1-W10 within the cap (10, ruled 4 Oct 2026); a fired trigger lifts it by
-    one. W6 only with an open contradiction."""
+    """W1-W11 within the cap (10, ruled 4 Oct 2026); a fired trigger lifts it by
+    one. W6 only with an open contradiction. W11, the standing decomposition
+    (Batch 6 item 40, 16 Oct 2026), sits before W10: with W6 open and no
+    trigger, W10 is the one set aside."""
     cap = int((ed.get("budget") or {}).get("charts") or 10)
     if any(s.get("depth_reason") for s in ed["sections"]):
         cap += 1
     misfit = next(s for s in ed["sections"] if s["id"] == "misfit")
-    want = ["W1", "W2", "W8", "W7", "W3", "W5", "W4", "W9", "W10"]
+    want = ["W1", "W2", "W8", "W7", "W3", "W5", "W4", "W9", "W11", "W10"]
     if (misfit.get("data") or {}).get("open_contradictions"):
         want.insert(4, "W6")
     return want[:cap]
@@ -2054,7 +2075,7 @@ PLACE = {"W1": ("tape", None), "W2": ("tape", None), "W8": ("tape", None),
          "W7": ("mechanics", None), "W3": ("plumbing", None),
          "W6": ("misfit", None), "W5": ("positioning", 0),
          "W4": ("positioning", 1), "W9": ("positioning", 3),
-         "W10": ("priced", 1)}
+         "W10": ("priced", 1), "W11": ("priced", None)}
 
 # W8's six panels: (tape id, panel title).
 W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY"),
@@ -2136,6 +2157,12 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     except Exception:                                           # noqa: BLE001
         log.warning("W10 odds unavailable", exc_info=True)
     out["odds"] = odds
+    try:
+        from altdata import st_r5_index                          # noqa: PLC0415
+        out["carry"] = st_r5_index.chart_series(st, now, "twelve_months")
+    except Exception:                                           # noqa: BLE001
+        log.warning("W11 series unavailable", exc_info=True)
+        out["carry"] = {"absent": True, "reason": "the decomposition faulted"}
     try:
         from altdata import fed_funds                           # noqa: PLC0415
         out["paths"] = [fed_funds.path_as_of(t, st) for t in
@@ -2245,6 +2272,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W10" in plan:
         charts["W10"] = charts_mod.w10(cd["odds"], *cd["paths"], f"{base}_w10",
                                        out_dir)
+    if "W11" in plan:
+        charts["W11"] = charts_mod.index_carry("W11", cd.get("carry"), "twelve months",
+                                               f"{base}_w11", out_dir)
     if "W6" in plan:
         c6 = [v for v in extras["contradictions"].values() if v]
         n6 = max((len(v) for v in c6), default=0)

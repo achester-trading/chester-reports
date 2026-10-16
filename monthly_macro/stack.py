@@ -890,6 +890,8 @@ POSITIONING_READS = {
     "Short interest": ("short", None),
     "Retail sentiment": ("retail", None),
     "Foreign flows (TIC)": ("tic", None),
+    # Batch 6 item 30 (amends SR-12): the allocation block's read, the same scope.
+    "Investor allocation: equities, bonds and cash": ("alloc", None),
 }
 READ_SCOPE = ("the level, its change against the prior month, and where the level "
               "sits in the series' own history -- the z over two years where the "
@@ -1007,6 +1009,15 @@ def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> di
                                             "for its market channel",
                                    "note": PM_CHANNEL_NOTE + PM_CHANGE_NOTE}
                                   if rest else None)})
+        elif ss.get("title") == "What's carrying the index":
+            # Batch 6 item 40: the Monthly prints all three anchors.
+            from daily_cascade import index_carry_block as icb   # noqa: PLC0415
+            carry = icb.priced_subsection(
+                st, now, "monthly",
+                margin=not any(str(x.get("title", "")).startswith("Earnings")
+                               for x in subs))
+            if carry:
+                out.append({**carry, "bucket": "carry"})
         else:
             out.append(ss)
     # SR-38 (batch 4; placement: What's priced, Monthly): the 12-month return

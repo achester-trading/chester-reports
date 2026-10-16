@@ -34,6 +34,8 @@ prose is held to.
     M7  breakevens at the month's start against its end          What's priced
     M10 the fed-funds futures' implied path, month start
         against month end (T3.1 item 12: each beside its block)   What's priced
+    M11 what's carrying the index: the S&P 500, EPS and the P/E
+        indexed to 100 since the 12 Oct 2022 low (Batch 6 item 40) What's priced
     M8  the scenario weights by edition, and their Brier           Ahead
     M9  Book Z (cash, SPY, 60/40) against the paper account's NAV,
         indexed to 100 since the start date                        The book
@@ -46,7 +48,7 @@ monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5); M6 is
 one ranked z chart (item 11); M7's two panels are two charts, M7 and M10, each
 beside its block in What's priced (item 12).
 
-THE CAP HOLDS ON WHAT PRINTS. Eleven charts are planned; the Monthly's cap is 12
+THE CAP HOLDS ON WHAT PRINTS. Twelve charts are planned (M11, 16 Oct 2026); the Monthly's cap is 12
 from 9 Oct 2026 (T3.1 ruling; it was 10). M8 counts once scenario set #1 exists:
 while the ledger holds no monthly_macro weight it prints "not yet: scenario set
 #1" and is not drawn. Should more than the cap ever render, the ones first in
@@ -67,8 +69,9 @@ from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
 
-ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M8", "M9")
-DROP_ORDER = ("M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M7", "M1", "M0")
+ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M11", "M8", "M9")
+DROP_ORDER = ("M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M11", "M7", "M1",
+              "M0")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
@@ -78,6 +81,8 @@ PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M6": ("positioning", None),
          # Beside their blocks in What's priced (T3.1 item 12), by `bucket`.
          "M7": ("priced", "breakevens"), "M10": ("priced", "fomc"),
+         # Batch 6 item 40: beside its block, by `bucket`.
+         "M11": ("priced", "carry"),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
          "M9": ("book", None)}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
@@ -730,6 +735,12 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
             return m10(fed_funds.path_as_of(then, st), fed_funds.path_as_of(now, st),
                        then, now, f"{base}_m10", out_dir)
         run("M10", _m10)
+
+        def _m11():
+            from altdata import st_r5_index                       # noqa: PLC0415
+            return ch.index_carry("M11", st_r5_index.chart_series(st, now, "cycle_low"),
+                                  "since the 12 Oct 2022 low", f"{base}_m11", out_dir)
+        run("M11", _m11)
 
         def _m9():
             start = benchmark.start_date().isoformat()

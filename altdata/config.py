@@ -219,6 +219,20 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # real window and n.
     SeriesSpec("aaa_oas",          "BAMLC0A1CAAA","ICE BofA AAA US corporate OAS",   "6", "%",    "daily"),
     SeriesSpec("euro_hy_oas",      "BAMLHE00EHYIOAS","ICE BofA Euro High Yield OAS", "6", "%",    "daily"),
+    # ST-R5.30a (Batch 6 item 30, 16 Oct 2026): the allocation block's equities
+    # panel and the denominator of its bonds and cash panels. BOGZ1FL153064486Q is
+    # "Percent, Not Seasonally Adjusted", quarterly from 1945 (a SHARE: its change
+    # is in pp, member_units below); TFAABSHNO is "Millions of U.S. Dollars", like
+    # the three HH legs above. Both read off their FRED pages 16 Oct 2026.
+    SeriesSpec("hh_equity_share",  "BOGZ1FL153064486Q","Households & nonprofits: directly and indirectly held corporate equities, % of financial assets (Z.1)","HH","%","quarterly"),
+    SeriesSpec("hh_fin_assets",    "TFAABSHNO",  "Households & nonprofits: total financial assets, level (Z.1)","HH","M","quarterly"),
+    # ST-R5.35a (Batch 6 item 35): the corporate-price/ULC gap's two legs. PPI
+    # final demand less foods, energy and trade services is WPSFD49116, "Index Aug
+    # 2013=100, Seasonally Adjusted", monthly from Aug 2013; unit labor costs,
+    # nonfarm business, is ULCNFB, "Index 2017=100, Seasonally Adjusted",
+    # quarterly from 1947. Read off their FRED pages 16 Oct 2026.
+    SeriesSpec("ppi_fd_core_ts",   "WPSFD49116", "PPI final demand less foods, energy and trade services","4","idx", "monthly"),
+    SeriesSpec("ulc_nfb",          "ULCNFB",     "Unit labor costs, nonfarm business",             "4", "idx",  "quarterly"),
 ]
 
 # ---------------------------------------------------------------------------

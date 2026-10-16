@@ -210,8 +210,9 @@ def main() -> int:
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
-           "Foreign flows (TIC)"],
-          "Positioning in seven sub-sections, each with its table")
+           "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash"],
+          "Positioning in eight sub-sections, each with its table (the eighth, "
+          "Batch 6 item 30's allocation block)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the
@@ -228,7 +229,8 @@ def main() -> int:
     check(titles[:3] == ["Rates priced: the fed-funds path and breakevens",
                          "Prediction markets", "Surveyed expectations and consensus"]
           and ("Earnings this week" in titles) == season["in_season"]
-          and len(titles) == 3 + season["in_season"],
+          and titles[-1] == "What's carrying the index"
+          and len(titles) == 4 + season["in_season"],
           f"What's priced in three sub-chapters, and the earnings block present "
           f"when in season, absent otherwise ({titles})")
     check(html.count(">Glossary</h2>") == 1 and html.rfind(">Glossary</h2>") >
@@ -428,8 +430,9 @@ def main() -> int:
           "W1-W10 carry the count, span and dates, in the title or the caption")
     check(ws.chart_plan({"budget": {"charts": 10}, "sections": [
         {"id": "misfit", "data": {"open_contradictions": [1]}}]}) ==
-        ["W1", "W2", "W8", "W7", "W6", "W3", "W5", "W4", "W9", "W10"],
-        "the plan carries ten charts at the cap of 10")
+        ["W1", "W2", "W8", "W7", "W6", "W3", "W5", "W4", "W9", "W11"],
+        "the plan carries ten charts at the cap of 10; with W6 open, W10 is the one "
+        "set aside (W11, Batch 6 item 40, sits before it)")
     b65 = charts_mod.bars_65([{"observed_at": "2026-10-01T13:30:00+00:00", "open": 1,
                                "high": 2, "low": 0.5, "close": 1.5, "volume": 10},
                               {"observed_at": "2026-10-01T14:35:00+00:00", "open": 1.5,
