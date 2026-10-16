@@ -25,6 +25,7 @@ import logging
 from typing import Optional
 
 from altdata import batch5b
+from altdata.numeral_audit import ordinal
 
 log = logging.getLogger(__name__)
 
@@ -51,9 +52,7 @@ def _prose(sub: Optional[dict], now: str) -> Optional[dict]:
 def _ord(p: Optional[float]) -> str:
     if p is None:
         return "—"
-    n = int(round(p))
-    suf = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    return f"{n}{suf}"
+    return ordinal(p)
 
 
 def _pct_cell(p: dict) -> str:
@@ -109,12 +108,12 @@ def dispersion_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
     if f.get("state") in ("high", "low"):
         lines.append(f"DISPERSION REGIME: {f['state'].upper()} -- DSPX at the "
                      f"{_ord(f['pct'])} percentile (n={f['n']}); the flag is high at or "
-                     f"above the {t['high_pct']}th and low at or below the "
-                     f"{t['low_pct']}th. A flag only {TAG}.")
+                     f"above the {ordinal(t['high_pct'])} and low at or below the "
+                     f"{ordinal(t['low_pct'])}. A flag only {TAG}.")
     elif f.get("state") == "none":
         lines.append(f"Dispersion regime: no flag -- DSPX at the {_ord(f['pct'])} "
-                     f"percentile (n={f['n']}), between the {t['low_pct']}th and the "
-                     f"{t['high_pct']}th.")
+                     f"percentile (n={f['n']}), between the {ordinal(t['low_pct'])} and the "
+                     f"{ordinal(t['high_pct'])}.")
     else:
         lines.append(f"Dispersion regime flag {f['why']}.")
     if d["single_name_edge"]:

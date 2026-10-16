@@ -328,8 +328,20 @@ Locally, only the gates this branch writes or changes were run, one at a time:
 - `tools/check_registry.py`: OK; `tools/check_library.py`: 0 failures, 0 warnings.
 
 Every other gate is left to CI, the Weekly and Monthly render gates above all,
-since this branch adds sub-sections to both. This branch's run is read once,
-after the push; see the session report.
+since this branch adds sub-sections to both.
+
+Runs 38941754491 (`6f61c5c`) and 38944014826 (`053889b`) failed on two gates, both
+this branch's doing:
+- `validate_numeral_audit`, 171 of 172: the dispersion block wrote the threshold
+  ordinals ("80th", "20th") by hand in f-strings, and `_ord` carried its own
+  suffix rule. Both now go through `numeral_audit.ordinal()`, the one helper
+  (rounded half up, where `_ord` used Python's round-half-even).
+- `validate_weekly_edits`, 89 of 90: the gate pins the Positioning sub-section
+  titles, and 27a adds one under the CFTC table. The pinned list now carries
+  "Treasury moves by session: overnight against the US session" in that place
+  (eight sub-sections, not seven). Locally after the fix it is 90 of 90, and
+  `validate_st_r4_t1b` is 50 of 50.
+The run on the fix commit is read once, after the push; see the session report.
 
 ## Needs you
 
