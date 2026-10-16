@@ -99,7 +99,8 @@ def realized_dispersion(st, cutoff: str, c: dict) -> dict:
                 "44's writer, held for D1c)"}
     names = st.instruments(key)
     if not names:
-        return {"absent": True, "reason": "awaiting constituent prices (none stored)"}
+        return {"absent": True, "reason": "awaiting constituent prices (Batch 6 item "
+                "44's writer, held for D1c, has stored none)"}
     closes = {n: dict(_pts(st, key, cutoff, n)) for n in names}
     rets: dict[str, list[float]] = {}
     for n, ser in closes.items():

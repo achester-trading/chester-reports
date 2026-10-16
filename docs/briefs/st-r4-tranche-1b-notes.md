@@ -50,7 +50,7 @@ branch.
 **New files:** `altdata/batch5b.py` (computes; `python -m altdata.batch5b show`),
 `daily_cascade/batch5b_block.py` (prints), `config/batch5_tranche_1b.yaml` (every
 threshold, with its reason), `config/nber_expansions.yaml` (the NBER fixture),
-`tools/validate_st_r4_t1b.py` (49 checks).
+`tools/validate_st_r4_t1b.py` (50 checks).
 
 ### ST-R4.18a, the dispersion panel (Mechanics)
 
@@ -76,13 +76,12 @@ threshold, with its reason), `config/nber_expansions.yaml` (the NBER fixture),
   edge over index expression".
 - **The free fallback:** realized cross-sectional dispersion, the 21-session mean
   of the daily cross-sectional standard deviation of constituent log returns.
-  - Session A's Batch 6 item 44 writer is held for D1c, and its branch
-    `st-r5-t1-rest` was not on the remote, so the series name is unknown here.
-  - The config key `dispersion.realized.key` is null. Until it is set at merge,
-    and until the writer runs, the panel prints **"awaiting constituent prices"**.
-  - It reads one registry key with one instrument per constituent. If A's writer
-    stores it differently, the reader needs adjusting: one function,
-    `batch5b.realized_dispersion`.
+  - It reads `sp500.member_close`, the series session A named on 16 Oct
+    (message to this session; `altdata/sources/sp500_members.py` on
+    `st-r5-t1-rest`): one registry key, instrument = the member's ticker in
+    Yahoo's form, the daily close in USD, split-adjusted and dividend-unadjusted.
+  - That writer is held for D1c, so until it stores rows the panel prints
+    **"awaiting constituent prices"**. No edit is needed at merge.
 - **ST-R4.18b, not built:** two by-hand keys, `manual.flashalpha_implied_corr`
   and `manual.flashalpha_realized_corr` (fractions, 0..1). They enter through
   `tools/manual_input.py`, and the panel prints them as a row when entered.
@@ -301,7 +300,7 @@ the history has to be backfilled once. These steps fetch, so they are yours:
 | `st-r5-rates` | CLAUDE.md, Makefile, `altdata/config.py`, `config/catalogue_commands.yaml`, `daily_cascade/weekly_stack.py`, `metrics_registry.yaml`, `monthly_macro/stack.py`, `tools/validate_audit_3a.py` | take both sides |
 | `st-r5-index` | the same eight | take both sides |
 | `6e-metric-lenses` | CLAUDE.md, Makefile, `metrics_registry.yaml` | take both sides |
-| `st-r5-t1-rest` | not on the remote at 16 Oct; not compared | Item 44's writer is where `dispersion.realized.key` comes from |
+| `st-r5-t1-rest` | pushed after this branch's first commit; the fallback reads its `sp500.member_close` by name and shares no file | merges after the chain, `st-r5-rates` and `st-r5-index` (session A) |
 | `docs-batch-6` | none | — |
 
 How to take both sides:
@@ -321,7 +320,7 @@ touched by no other open branch.
 ## CI
 
 Locally, only the gates this branch writes or changes were run, one at a time:
-- `tools/validate_st_r4_t1b.py`: 49 passed, 0 failed (new);
+- `tools/validate_st_r4_t1b.py`: 50 passed, 0 failed (new);
 - `tools/validate_st_r4_t1.py`: 49 passed, 0 failed (the colon fix);
 - `tools/validate_basis_proxy.py`: 31 passed, 0 failed (the fifth co-signal);
 - `tools/validate_prices.py`: 101 passed, 0 failed (110 symbols, 92 with volume);
@@ -336,9 +335,9 @@ after the push; see the session report.
 
 1. **The session-set thresholds above**, the dispersion quintiles and the
    overnight co-signal's 2 sigma above all.
-2. **The constituent series name** for the realized-dispersion fallback, from
-   session A's item 44 notes, set in `config/batch5_tranche_1b.yaml` at merge
-   (one line). Until then the panel prints "awaiting constituent prices".
+2. **The realized-dispersion fallback** reads session A's `sp500.member_close`,
+   already set. It prints "awaiting constituent prices" until D1c lifts the
+   item 44 writer.
 3. **The overnight leg counts in SR-36's unwind watch.** I read the order's "a
    co-signal in ... SR-36's unwind-watch co-signals" literally, so the watch now
    has five co-signals and still needs two. If you meant it to print beside the

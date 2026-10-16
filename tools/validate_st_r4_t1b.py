@@ -166,7 +166,9 @@ def group_a() -> None:
     check(any(r[1] == "awaiting constituent prices" for r in sub["table"]["rows"])
           and any("awaiting constituent prices" in x for x in sub["lines"]),
           "the realized fallback prints 'awaiting constituent prices' while its series "
-          "is unnamed")
+          "has no rows")
+    check(CFG["dispersion"]["realized"]["key"] == "sp500.member_close",
+          "the fallback reads session A's item 44 series, sp500.member_close")
     # The fallback, once named: 120 names, each with a constant daily log return
     # r_i = (i - 59.5) * 0.001, so the cross-sectional sd is the same every day:
     # 0.001 * sqrt((120^2 - 1) / 12) = 3.4637% a day.
