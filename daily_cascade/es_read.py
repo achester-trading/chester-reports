@@ -297,7 +297,8 @@ def subsection(block: dict, read: Optional[dict]) -> dict:
         tables.append({"columns": ["The 07:00 levels", "ES", "So far"],
                        "rows": [[x["label"], _f(x["level"]), x["so_far"]]
                                 for x in sm["levels"]]})
-    return {"title": TITLE, "lead": lead, "table": levels_table(block),
+    return {"title": TITLE, "lead": lead, "lead_prose": bool(r.get("published")),
+            "table": levels_table(block),
             "tables": tables, "lines": lines(block),
             "paragraph_wanted": False, "data": data}
 

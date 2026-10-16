@@ -531,7 +531,9 @@ def group_h(es, td: str) -> None:
           "no chart: the close's chart budget is unchanged")
     wd = es_read.subsection(blk, {"published": False, "state": "audit_failed",
                                   "reason": "withheld: 1 figure", "lean": None})
-    check(wd["lead"].startswith("The read was withheld"), "a withheld read says so")
+    check(wd["lead"].startswith("The read was withheld")
+          and stack_mod.section_words({"subsections": [wd]}) == 0,
+          "a withheld read says so, and its note is not counted as prose")
     md = stack_render._md_sub(ss, stack_render._cadence("daily"), None)
     check(any("ES at 7769" in x for x in md), "the Markdown edition carries the read")
     from daily_cascade import morning_render

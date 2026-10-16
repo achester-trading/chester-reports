@@ -959,8 +959,10 @@ def section_words(s: dict) -> int:
     n = words(s.get("claim")) + sum(words(x) for x in s.get("paragraphs") or [])
     for ss in s.get("subsections") or []:
         n += words(ss.get("paragraph")) + sum(words(x) for x in ss.get("paragraphs") or [])
-        # A sub-section's LEAD (ST-R6.45d: the ES block's read) is model prose.
-        n += words(ss.get("lead"))
+        # A sub-section's LEAD (ST-R6.45d: the ES block's read) counts when it
+        # is model prose; a withheld or absent note in its place is not.
+        if ss.get("lead_prose"):
+            n += words(ss.get("lead"))
     return n
 
 
