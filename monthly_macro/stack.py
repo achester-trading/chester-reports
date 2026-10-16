@@ -650,7 +650,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     table and a written takeaway; the charts print under their bucket's
     paragraph. The one table stays in the section's data."""
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
-    b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True))
+    # yudd_line=False: the yields-up/dollar-down line is the Weekly's (AQ-8a);
+    # the Monthly carries the series in the fiscal_dollar theme.
+    b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True,
+                                      yudd_line=False))
     names = {name: k for k, name in ws.PLUMB}
     rows = (b.get("table") or {}).get("rows") or []
     moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
@@ -1426,6 +1429,15 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                                 "long-run average and percentile, naming the "
                                 "window as the table does -- and the takeaway"}
                       if frows else None)})
+    # THE GOLD RESIDUAL AND THE TWO-BID STATE in the metals block (AQ-8a).
+    metals = next((s for s in fam_subs if s.get("family") == "metals"), None)
+    if metals is not None and st and now:
+        try:
+            gold_two_bid(metals, st, now)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("gold residual block unavailable", exc_info=True)
+            metals["not_tracked"] = list(metals.get("not_tracked") or []) + [
+                f"the gold residual and the two-bid state: FAULT {exc}"]
     subs = [{"title": "Valuation",
              "table": {"columns": ["Series", *TRIPLE_COLUMNS], "rows": vrows},
              "notes": ([f"Long-run average over the store's full history and "
@@ -1456,6 +1468,11 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                           "not_tracked": alt_nt + ["Disruptive Themes (quarterly; "
                                                    "folded into the Quarterly "
                                                    "Structural)"]}]
+    if st and now:
+        # Before the families it reads across (AQ-8a): one table, every family.
+        at = next((i for i, s in enumerate(subs)
+                   if str(s.get("title") or "").startswith("Themes")), len(subs))
+        subs.insert(at, driver_attribution_block(st, now))
     try:
         src_subs, src_items, src_data = sourced_figures(now, db_path)
     except Exception as exc:                                    # noqa: BLE001
@@ -1598,6 +1615,85 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                    [f"the appendix: {ap.get('reason')}"]),
                 "phase_a": [f"appendix:pillar:{n}" for n, _ in pnames]})
     return out
+
+
+# ---------------------------------------------------------------------------
+# AQ-8a in the slow layers: the gold residual and the two-bid state in the
+# metals block; the driver attribution as one table
+# ---------------------------------------------------------------------------
+def gold_two_bid(metals: dict, st, now: str) -> dict:
+    """THE METALS BLOCK GAINS (AQ-8a; change order 10 Oct 2026, section 5): the
+    gold residual and the two-bid legs in the triple form -- latest, long-run
+    average, percentile over the store's own history, each with its data-as-of;
+    the five-year column "until the lenses" -- and the two-bid state, or which
+    leg is waiting for its twelve months. Each series' kill state is in the
+    notes. No chart (the cap of 12 stands). Mutates and returns the block."""
+    from altdata import attribution as att, paper_bid as pb      # noqa: PLC0415
+    g = att.gold_block(st, now)
+    rows = list(g["rows"])
+    c = pb.cfg()
+    sym = str(c.get("gold_symbol") or "GLD")
+    legs = [(pb.oi_key(sym), f"{sym} net call-put open interest (contracts)", 0),
+            (pb.rr_key(sym), f"{sym} 25-delta risk reversal, 30 days (vol points)", 2),
+            ((c.get("official") or {}).get("key") or "safe.gold_reserves_oz",
+             "China's reported gold holdings (troy ounces)", 0)]
+    leg_data = {}
+    for key, lab, dp in legs:
+        t = att.triple(st, key, now)
+        if t is not None:
+            rows.append(att.triple_row(t, lab, dp))
+            leg_data[key] = t
+    state = pb.two_bid_state(st, now, c)
+    nt = list(metals.get("not_tracked") or []) + g["not_tracked"]
+    nt += [f"{x['label']} ({x['why']})" for x in
+           (c.get("official") or {}).get("not_yet_sourced") or []]
+    nt.append(f"{sym} holdings in tonnes (a feeds writer for a later order)")
+    if rows:
+        metals.setdefault("tables", []).append(
+            {"columns": att.TRIPLE_COLUMNS, "rows": rows})
+    metals["lines"] = list(metals.get("lines") or []) + pb.two_bid_lines(state)
+    metals["notes"] = list(metals.get("notes") or []) + [
+        "The gold residual: gold's monthly log return less the fit of a rolling "
+        "36-month regression on the 10-year real yield's change and the broad "
+        "dollar's log return. Kill states: the residual, "
+        f"{att.gold_kill_state()}; {sym} call-put OI, "
+        f"{pb.oi_kill_state(st, sym, now, c)}; the risk reversal, "
+        f"{pb.rr_kill_state()}."]
+    metals["not_tracked"] = nt
+    data = metals.setdefault("data", {})
+    data["gold_residual"] = g["data"]
+    data["two_bid"] = {**state, "legs": leg_data}
+    if metals.get("prose"):
+        metals["prose"]["scope"] = (str(metals["prose"].get("scope") or "")
+                                    + "; the gold residual -- what real yields and "
+                                      "the dollar do not explain -- and the two-bid "
+                                      "state as the table and its line give them")
+    return metals
+
+
+def driver_attribution_block(st, now: str) -> dict:
+    """THE DRIVER ATTRIBUTION (AQ-8a; section 5, 10A): one table -- family,
+    explained share, the largest standardised loading, the residual's sign this
+    month, and the sign-stability state behind the kill condition (printed,
+    never acted on). A lens, never a composite."""
+    from altdata import attribution as att                     # noqa: PLC0415
+    try:
+        d = att.driver_table(st, now)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("driver attribution unavailable", exc_info=True)
+        return {"title": "Driver attribution",
+                "not_tracked": [f"the driver attribution: FAULT {exc}"]}
+    return {"title": "Driver attribution",
+            "table": {"columns": att.DRIVER_COLUMNS, "rows": d["rows"]},
+            "notes": (["Each family's monthly return on the 10-year real yield's "
+                       "change, the broad dollar, and the growth and inflation "
+                       "surprises (payrolls and core CPI against the naive rule), "
+                       "over a rolling 60 months. The share is printed, not "
+                       "asserted: no factor is named as the cause."]
+                      if d["rows"] else []),
+            "lines": [] if d["rows"] or d.get("universe_absent") else
+                     ["No family holds 60 months of complete history at this cutoff."],
+            "not_tracked": d["not_tracked"], "data": {"families": d["data"]}}
 
 
 # ---------------------------------------------------------------------------

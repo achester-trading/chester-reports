@@ -2074,8 +2074,11 @@ def t33_group(ed: dict, out: dict) -> None:
     check(not bad, "no Monthly table prints a series it labels in $ or % as a bare "
                    "count" + (f" ({bad[:3]})" if bad else ""))
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
-    priceish = re.compile(r"\bprices?\b|\byields?\b|\$|per pound|\bratio\b|\bspread\b",
-                          re.I)
+    # "yields-up/dollar-down" is AQ-8a's week signature, and its recurrence and
+    # persistence are counts of weeks: the compound is not a yield (Friday
+    # stitching, 13 Oct).
+    priceish = re.compile(r"\bprices?\b|\byields?\b(?!-)|\$|per pound|\bratio\b|"
+                          r"\bspread\b", re.I)
     typed_count = [k for k, e in (reg.get("metrics") or {}).items()
                    if str(e.get("units")) in ("count", "K", "N")
                    and priceish.search(str(e.get("description") or ""))]
