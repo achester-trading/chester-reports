@@ -51,7 +51,7 @@ def panel_rows(rows: list[dict]) -> list[list[str]]:
         else:
             read = {"tightening": "10-year up, 2-year down: the market tightening",
                     "not": "—", "short": r.get("reason", "—")}[r["state"]]
-            out.append([r["label"], f"{r['level']:.2f}%", _bp(r.get("two_bp")),
+            out.append([r["label"], f"{r['yield_pct']:.2f}%", _bp(r.get("two_bp")),
                         _bp(r.get("ten_bp")), read, f"{r['source']}, {r['as_of']}"])
     return out
 
@@ -109,7 +109,7 @@ def close_items(st, cutoff: str, session_day: str,
     ql = rt.quality_tail_lines(q)
     out.append(_item("plumb:rt_quality_tail", " ".join(ql[:2]),
                      1 if q.get("cosignal") == "on" else 2,
-                     (q.get("ccc_bb"), q.get("cosignal"))))
+                     (q.get("ccc_bb_bp"), q.get("cosignal"))))
     if rt.mba_prints_on(session_day, m, cfg):
         out.append(_item("plumb:rt_mba", rt.mba_line(m), 2,
                          (m.get("week"), m.get("yoy_pct"))))

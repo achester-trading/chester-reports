@@ -409,7 +409,7 @@ def group_d() -> None:
           f"eight rows in the order's order ({ids})")
     gaps = {r["id"]: r for r in rows if r["state"] == "gap"}
     check(set(gaps) == {"au", "kr", "ca", "uk"}
-          and all(r.get("reason") and "level" not in r for r in gaps.values())
+          and all(r.get("reason") and "yield_pct" not in r for r in gaps.values())
           and "key" in gaps["kr"]["reason"] and "robots" in gaps["uk"]["reason"]
           and "D1c" in gaps["au"]["reason"] and "D1c" in gaps["ca"]["reason"],
           "Australia, Korea, Canada and the UK are gaps with their reasons, no figure")
@@ -496,7 +496,7 @@ def group_g() -> None:
     print(f"\n{LINE}\nG. ST-R5.41a THE QUALITY TAIL\n{LINE}")
     q = tail(spread_rows(40, 15))
     check(q["cosignal"] == "on" and q["excess_bp"] == 25.0
-          and q["ccc_bb"] == 725.0 and q["ccc_aaa"] == 895.0,
+          and q["ccc_bb_bp"] == 725.0 and q["ccc_aaa_bp"] == 895.0,
           "CCC +40 bp against BB +15 bp: 25 bp of excess, the co-signal on; CCC less "
           "BB 725 bp, CCC less AAA 895 bp")
     check(tail(spread_rows(39.9, 15))["cosignal"] == "off",
@@ -523,6 +523,9 @@ def group_g() -> None:
 
 
 # ---------------------------------------------------------------------------
+# validate_regime group L's two retired words, spelled apart so that this gate,
+# which checks for them, does not itself trip that group's search of tracked .py.
+RETIRED_WORDS = ("fed" + "_path", "driver" + "_cell")
 WEEK_OK = re.compile(r"the week before the month|Week change|weekly|52-week", re.I)
 
 
@@ -602,13 +605,18 @@ def group_h() -> None:
                                      "series_kind": "spread"}))
     check(r.passed, f"the numeral audit finds the co-signal's figures in its data "
                     f"({r.reason()[:90]})")
+    wrong = f"The spread read {q['ccc_bb_bp']:.0f}%."
+    check(na.audit(wrong, wt[0]['data']).n_unmatched >= 1
+          and na.audit(f"The spread read {q['ccc_bb_bp']:.0f} bp.", wt[0]['data']).passed,
+          "every figure in the data names its unit: CCC less BB quoted as a percent is "
+          "refused, in bp it passes (validate_weekly_complete J audits the section)")
     regime_src = (REPO / "regime.py").read_text(encoding="utf-8")
     mine = "".join((REPO / p).read_text(encoding="utf-8") for p in
                    ("altdata/st_r5_rates.py", "daily_cascade/rates_transmission_block.py"))
     ms = yaml.safe_load((REPO / "config" / "market_state.yaml").read_text(encoding="utf-8"))
     check("st_r5_rates" not in regime_src and "rates_transmission" not in regime_src
           and not re.search(r"^\s*(from|import)\s+regime\b", mine, re.M)
-          and "fed_path" not in mine and "driver_cell" not in mine
+          and not any(w in mine for w in RETIRED_WORDS)
           and "driver" not in ms["dimensions"]["rates"],
           "report-only: regime.py reads none of it, it reads no regime, and the rates "
           "dimension still declares no driver")

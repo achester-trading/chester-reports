@@ -114,16 +114,16 @@ def lens(series: list[tuple[str, float]], years: int = 5) -> dict:
     observations and `same` is True: one percentile prints, with the window it
     really covers."""
     if not series:
-        return {"pct": None, "n": 0, "same": True, "from": None}
+        return {"percentile": None, "n": 0, "same": True, "from": None}
     last_day, last = series[-1]
     first = series[0][0]
     start = _years_back(last_day, years)
     window = [v for d, v in series if d > start]
     full = [v for _, v in series]
     return {"years": years,
-            "pct_window": derived.percentile_of(window, last), "n_window": len(window),
-            "pct_full": derived.percentile_of(full, last), "n_full": len(full),
-            "pct": derived.percentile_of(full, last), "n": len(full),
+            "percentile_window": derived.percentile_of(window, last), "n_window": len(window),
+            "percentile_full": derived.percentile_of(full, last), "n_full": len(full),
+            "percentile": derived.percentile_of(full, last), "n": len(full),
             "from": first, "same": first > start}
 
 
@@ -141,10 +141,10 @@ def lens_text(lz: dict) -> str:
     if not lz.get("n"):
         return "no percentile (nothing stored)"
     if lz["same"]:
-        return (f"{ordinal(lz['pct_full'])} percentile of its stored history since "
+        return (f"{ordinal(lz['percentile_full'])} percentile of its stored history since "
                 f"{lz['from']} (n={lz['n_full']:,}; shorter than {lz['years']} years)")
-    return (f"{ordinal(lz['pct_window'])} percentile of {lz['years']} years "
-            f"(n={lz['n_window']:,}), {ordinal(lz['pct_full'])} since {lz['from']} "
+    return (f"{ordinal(lz['percentile_window'])} percentile of {lz['years']} years "
+            f"(n={lz['n_window']:,}), {ordinal(lz['percentile_full'])} since {lz['from']} "
             f"(n={lz['n_full']:,})")
 
 
@@ -196,8 +196,8 @@ def policy_12m(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         a, b = at(now_day, h), at(base_day, h)
         if a and b:
             return {"absent": False, "horizon_months": h, "full_horizon": h == want,
-                    "contract": a[0], "rate": a[1], "day": now_day,
-                    "base_contract": b[0], "base_rate": b[1], "base_day": base_day,
+                    "contract": a[0], "rate_pct": a[1], "day": now_day,
+                    "base_contract": b[0], "base_rate_pct": b[1], "base_day": base_day,
                     "change_bp": _bp(a[1], b[1])}
     return {"absent": True, "reason": f"no fed funds contract six to {want} months "
             f"ahead is stored on both {base_day} and {now_day}"}
@@ -274,7 +274,7 @@ def panel(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]:
                              reason=f"{p['two_year_key']} is not stored yet"))
             continue
         two, ten = change(two_pts, days, 100.0), change(ten_pts, days, 100.0)
-        r.update(source=p.get("source"), level=two_pts[-1][1], as_of=two_pts[-1][0],
+        r.update(source=p.get("source"), yield_pct=two_pts[-1][1], as_of=two_pts[-1][0],
                  two_bp=None if two is None else two["change"],
                  ten_bp=None if ten is None else ten["change"])
         if two is None or ten is None:
@@ -444,7 +444,7 @@ def quality_tail(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                            "ccc_excess_bp": float(c.get("ccc_excess_bp", 25)),
                            "window_days": days, "unvalidated": cfg.get("unvalidated"),
                            "euro_ccc": None if not euccc or euccc.get("value_num") is None
-                           else {"bp": float(euccc["value_num"]),
+                           else {"oas_bp": float(euccc["value_num"]),
                                  "as_of": str(euccc["observed_at"])[:10]}}
     if not ccc or not bb:
         return dict(out, absent=True, reason="CCC or BB OAS is not stored (FRED)")
@@ -452,14 +452,14 @@ def quality_tail(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     ca = spread_bp(ccc, aaa)
     dccc, dbb = change(ccc, days, 100.0), change(bb, days, 100.0)
     out.update(absent=False, as_of=cb[-1][0] if cb else None,
-               ccc_bb=cb[-1][1] if cb else None, ccc_bb_lens=lens(cb, years),
-               ccc_aaa=ca[-1][1] if ca else None,
+               ccc_bb_bp=cb[-1][1] if cb else None, ccc_bb_lens=lens(cb, years),
+               ccc_aaa_bp=ca[-1][1] if ca else None,
                ccc_aaa_lens=lens(ca, years) if ca else None,
                ccc_change_bp=None if dccc is None else dccc["change"],
                bb_change_bp=None if dbb is None else dbb["change"],
-               euro_hy=None if not eu else {"bp": round(eu[-1][1] * 100, 1),
+               euro_hy=None if not eu else {"oas_bp": round(eu[-1][1] * 100, 1),
                                             "as_of": eu[-1][0], "lens": lens(eu, years)},
-               us_hy=None if not hy else {"bp": round(hy[-1][1] * 100, 1),
+               us_hy=None if not hy else {"oas_bp": round(hy[-1][1] * 100, 1),
                                           "as_of": hy[-1][0], "lens": lens(hy, years)})
     if dccc is None or dbb is None:
         out.update(cosignal="absent", cosignal_reason=f"{days} days of CCC and BB not yet held")
@@ -475,9 +475,9 @@ def quality_tail_lines(q: dict) -> list[str]:
     if q.get("absent"):
         return [f"Quality tail: not read — {q['reason']}."]
     lines = [f"Quality tail (ICE BofA via FRED, {q['as_of']}): CCC less BB "
-             f"{q['ccc_bb']:,.0f} bp, the {lens_text(q['ccc_bb_lens'])}"
-             + ("" if q.get("ccc_aaa") is None else
-                f"; CCC less AAA {q['ccc_aaa']:,.0f} bp, the "
+             f"{q['ccc_bb_bp']:,.0f} bp, the {lens_text(q['ccc_bb_lens'])}"
+             + ("" if q.get("ccc_aaa_bp") is None else
+                f"; CCC less AAA {q['ccc_aaa_bp']:,.0f} bp, the "
                 f"{lens_text(q['ccc_aaa_lens'])}") + "."]
     over = (f"a co-signal to {q['overlay']}" if q["overlay_built"] else
             f"recorded as a co-signal to {q['overlay']}, which is not built on this "
@@ -494,13 +494,13 @@ def quality_tail_lines(q: dict) -> list[str]:
                      f"widens at least {q['ccc_excess_bp']:.0f} bp more than BB).")
     eu, us = q.get("euro_hy"), q.get("us_hy")
     if eu and us:
-        lines.append(f"Europe against the US: euro HY OAS {eu['bp']:,.0f} bp at the "
-                     f"{lens_text(eu['lens'])}; US HY {us['bp']:,.0f} bp at the "
+        lines.append(f"Europe against the US: euro HY OAS {eu['oas_bp']:,.0f} bp at the "
+                     f"{lens_text(eu['lens'])}; US HY {us['oas_bp']:,.0f} bp at the "
                      f"{lens_text(us['lens'])} ({eu['as_of']}).")
     elif not eu:
         lines.append("Euro HY OAS (fred.euro_hy_oas): not stored yet.")
     ec = q.get("euro_ccc")
-    lines.append(f"Euro CCC {ec['bp']:,.0f} bp ({ec['as_of']}, entered by hand)." if ec
+    lines.append(f"Euro CCC {ec['oas_bp']:,.0f} bp ({ec['as_of']}, entered by hand)." if ec
                  else "Euro CCC: by hand when reported, none entered.")
     return lines
 
