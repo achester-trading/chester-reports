@@ -211,6 +211,12 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     rv, rv_data = ai_revisions_block(st, cutoff)
     if rv:
         subs.append(rv)
+    # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24): the stock-bond correlation,
+    # 60 days beside two years, its flag conditioned on the attribution.
+    from . import batch5_block                                  # noqa: PLC0415
+    sb = batch5_block.mechanics_subsection(st, cutoff)
+    if sb:
+        subs.append(sb)
     # THE ES BLOCK'S WEEKLY PANEL (ST-R6.45d, Batch 6 item 45): the position
     # window (three months on daily bars) and the week's ES ledger -- levels
     # held, broke or untested, leans resolved or not. Tables only.
@@ -542,6 +548,10 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # narrow flag, SR-33's operations, SR-34's fast tells and SR-6 by tenor.
     from . import batch3_block                                  # noqa: PLC0415
     subs += batch3_block.weekly_subsections(st, now, then, cadence)
+    # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
+    # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
+    from . import batch5_block                                  # noqa: PLC0415
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,

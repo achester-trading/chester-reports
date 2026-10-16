@@ -1289,7 +1289,7 @@ sources:
     tier: A0
     epistemic_role: primary_fact
     domain: [rates]
-    geography: [DE, FR, IT]
+    geography: [DE, FR, IT, GR]
     latency: monthly, about six weeks after the month
     timestamp_reliability: medium
     timestamp_notes: >-
@@ -1301,6 +1301,29 @@ sources:
     caveats:
       - >-
         Monthly averages. A daily OAT or BTP is not published keyless (Banque de France's Webstat API needs a registered key).
+
+  census_vip:
+    name: US Census Bureau -- Construction Spending (VIP, value put in place), monthly workbooks
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [US]
+    latency: monthly, on the first business day, about a month after the reference month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each workbook (observed); one row per month, dated the month's first day.
+    license: >-
+      public workbooks, no key (census.gov/construction/c30/xlsx/privsatime.xlsx
+      and totsatime.xlsx, linked from the historical-data page, checked 16 Oct
+      2026); the time-series API now requires a key and is not used
+    allowed_reports: [monthly_macro]
+    implemented_by: altdata/sources/census_vip.py
+    status: held
+    caveats:
+      - >-
+        HELD for D1c: a new store writer waits for the repo-wide write lock;
+        pull() writes nothing and the module is on no feeds roster. Data center
+        from January 2014 only; detailed types in the total workbook from 2002.
 
   nbs:
     name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)

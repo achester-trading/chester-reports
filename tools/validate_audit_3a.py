@@ -140,6 +140,11 @@ UNCHANGED_RULED = ("fred.sloos_ci_large", "fred.sloos_ci_small",
 NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_columns",
                   "event_types", "pin_log_columns", "bars_prices",
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd"}
+# Members a later branch added to an EXISTING block, declared by name: new by
+# their spec line, not by the resolver fix (signal-triage Batch 5, ST-R4.23a:
+# PPIDCS joins FRED_SIGNAL_SERIES, 16 Oct 2026; st-r5-rates declares its own two
+# the same way -- the merge takes the union).
+NEW_BLOCK_MEMBERS = {"fred.ppi_construction"}
 
 
 def check(c, m: str) -> None:
@@ -260,7 +265,8 @@ def group_b() -> None:
     # A metric registered one by one since fb67bf3 (another branch's new series:
     # VP-1's calc.vp_*, stitched 15 Oct) is new by its own entry. A BLOCK key
     # first resolved must come from the resolver fix and the bars blocks.
-    one_by_one = [k for k in new if k in (reg.get("metrics") or {})]
+    one_by_one = [k for k in new if k in (reg.get("metrics") or {})
+                  or k in NEW_BLOCK_MEMBERS]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new
               if k not in one_by_one}
     check(blocks <= NEW_KEY_BLOCKS and None not in blocks,
@@ -773,7 +779,11 @@ def group_f() -> None:
     faults = printed_count_faults(text, counts)
     check(not faults, f"each of the {len(PRINTED_COUNTS)} counts CLAUDE.md prints "
           f"equals the code's ({faults or counts})")
-    stale = text.replace("27 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
+    # Plant 20 over whatever count the file prints (a hard-coded "27" stopped
+    # planting anything the day a branch added a signal series).
+    import re as _re
+    stale = _re.sub(r"\b\d+ more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES",
+                    text, count=1)
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")

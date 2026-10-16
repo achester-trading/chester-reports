@@ -11226,6 +11226,71 @@ metrics:
     trigger_eligible: false
     description: >-
       Italy (BTP) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.IT.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
+  ecb.irs_10y_gr:
+    source: ecb
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Greece 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.GR.L.L40.CI.0000.EUR.N.Z), from October 1992. observed_at = the month's first day. The leg of the Greece-Bund watch spread beside OAT-Bund (ST-R4.21a, Batch 5 item 21): same method as the three, untiered. Optional in the pull: its absence never stops the three SR-30 legs.
+  census.vip_data_center:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), private "Data center" (under Office), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2014 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Blank before 2014, skipped, never zero. August 2026: 84,950 (preliminary). ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+  census.vip_private_nonresidential:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), private "Nonresidential", MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. The denominator of the data-center share. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+  census.vip_total:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), "Total Construction" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Less census.vip_data_center, the ex-data-center line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
+  census.vip_power:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), "Total Power" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2002 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Read from 2002: the workbook's footnote says detailed types are not available before, and those cells print 0. The XII power-buildout disagreement note's line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer (altdata/sources/census_vip.py) is HELD for D1c: registered now so the block names its absence by key.
   nbs.city70_new_mm_down:
     source: nbs
     mechanism_group: macro_momentum
@@ -12366,7 +12431,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 27   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys)
+    expected_members: 28   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + PPIDCS (ST-R4.23a, Batch 5 item 23: index, Nov 2009=100, SA)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release

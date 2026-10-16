@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 27 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 28 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 129, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 130, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-five code gates (eighty-two Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-six code gates (eighty-three Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -385,6 +385,20 @@ the `es_ledger` table and is scored on the next session by
 `config/es_block.yaml`'s session-set rules. Report only. The dealer levels in ES
 (ST-R6.45c) wait for the 6b engine. `tools/validate_es_block.py` holds it on
 fixtures.
+
+**The 10-year attribution is the arbiter, and Batch 5 builds on it first (ST-R4,
+Tranche 1 part 1, 16 Oct 2026).** `altdata/batch5.py` reads the store as of the
+cutoff and decides nothing: ACM's term premium with dual percentiles that print
+their n and real window (21b); the fiscal-bark flag, the term premium's share of
+the six-month move with its divergence from the expected short rate (26a); SR-9's
+60-day stock-bond correlation beside a two-year weekly window, its flag's strength
+conditioned on the attribution (24); net liquidity's 4- and 13-week changes split
+by leg in dollars (17a); and construction spending, real (23a). Greece-Bund rides
+SR-30's table, untiered (`ecb.irs_10y_gr`). `daily_cascade/batch5_block.py` prints
+them in Plumbing, Mechanics and the Monthly's slow layers, tables and lines only.
+The Census writer `altdata/sources/census_vip.py` is HELD for D1c, like Redfin.
+The thresholds are `config/batch5_tranche_1.yaml`'s, all session-set.
+`tools/validate_st_r4_t1.py` holds it on fixtures.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

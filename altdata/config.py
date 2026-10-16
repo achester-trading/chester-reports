@@ -166,6 +166,12 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("consumer_credit_revolving",   "REVOLSL",  "Consumer credit, revolving (G.19)",          "2F","M","monthly"),
     SeriesSpec("consumer_credit_nonrevolving","NONREVSL", "Consumer credit, nonrevolving (G.19)",       "2F","M","monthly"),
 
+    # ST-R4.23a (Batch 5 item 23, 16 Oct 2026): the deflator of Census VIP
+    # construction spending. "Index Nov 2009=100, Seasonally Adjusted, Monthly",
+    # read off its FRED page 16 Oct 2026 (latest Sep 2026, 188.186). Seasonally
+    # adjusted, to match the Census SAAR it deflates.
+    SeriesSpec("ppi_construction", "PPIDCS",     "PPI final demand: construction (Nov 2009=100)","2","idx","monthly"),
+
     # Dollar -- SR-14 / G-12. The nominal broad index is FRED_SERIES' `dxy`.
     SeriesSpec("real_dollar_broad","RTWEXBGS",   "Real Broad Dollar Index (Jan 2006=100)","7","idx","monthly"),
 

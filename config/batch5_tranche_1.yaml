@@ -1,0 +1,103 @@
+# config/batch5_tranche_1.yaml -- Batch 5 (signal-triage round 4, part 2),
+# Tranche 1, part 1: items 17, 21, 23, 24 and 26. Read by altdata/batch5.py and
+# printed by daily_cascade/batch5_block.py. Report only: nothing here is a state,
+# a modifier or a rule-table entry.
+#
+# Every value marked SESSION-SET was chosen by the session that built this
+# tranche (16 Oct 2026), not given by the change order; the notes
+# (docs/briefs/st-r4-tranche-1-notes.md) list each one for the operator.
+
+version: 1
+
+# ST-R4.21b -- THE TERM PREMIUM, PRINTED (cross-item ruling 1). ACM's 10-year,
+# the model the store already holds daily, with dual percentiles that print their
+# real window and n (the store's own history, never assumed).
+term_premium:
+  key: acm.term_premium_10y
+  label: "10-year term premium (ACM)"
+  windows_years: [5, 20]               # session-set: batch 3's eu_stress pair
+
+# ST-R4.26a -- THE FISCAL-BARK FLAG (item 26), on ACM's own split: the term
+# premium's share of the trailing six-month move in ACM's fitted 10-year, and the
+# divergence of term premium up with the expected short rate (ACM's risk-neutral
+# 10-year yield) down. Flag only.
+fiscal_bark:
+  months: 6                            # the order's window
+  tp: acm.term_premium_10y
+  fitted: acm.fitted_yield_10y
+  path: acm.risk_neutral_yield_10y
+  quoted: fred.yield_10y               # printed beside, never divided
+  # The flag fires when the fitted 10-year ROSE at least move_min_bp over the six
+  # months AND the term premium carried at least share_min of it. A share of a
+  # small move is noise with a large number on it (the attribution's own 5bp rule,
+  # scaled to six months); a rally is not a fiscal bark.
+  move_min_bp: 25                      # session-set
+  share_min: 0.5                       # session-set: "the larger leg", the attribution's own definition
+  # The divergence fires when the term premium rose at least divergence_bp while
+  # the expected short rate fell at least divergence_bp.
+  divergence_bp: 10                    # session-set
+
+# ST-R4.24a/b -- SR-9 AMENDED (item 24): the 60-day stock-bond correlation (SR-9's
+# calc.corr_spy_tlt_60d, already stored) beside a 2-year window of weekly changes,
+# the flag conditioned on the 10-year attribution.
+stock_bond:
+  corr_60d: calc.corr_spy_tlt_60d
+  spy: yfinance.mkt_spy
+  tlt: yfinance.mkt_tlt
+  weeks: 104                           # two years of weekly changes (the parent's scatter)
+  min_weeks: 78                        # session-set: three quarters of the window, else absent
+  # LIVE when the 60-day correlation is above this: stocks and Treasuries moving
+  # together, so duration is not hedging. Above zero by a margin so a reading
+  # wandering around zero does not flicker the flag.
+  live_above: 0.20                     # session-set
+  ten_year: fred.yield_10y
+  level_prior_pct: 5.25                # SR-9's yield-level prior: persistent, not transient
+  # THE CONDITIONING (24b), on the 10-year attribution's 60-session window:
+  real_share: calc.attr_real_share_60d # real yield's share of the nominal move; breakeven is the rest
+  tp_share: calc.attr_acm_tp_share_60d # ACM term premium's share of its fitted move
+  breakeven: fred.breakeven_10y
+  breakeven_sessions: 60
+  led_cut: 0.5                         # the attribution's own "larger leg" definition
+  # Inflation is ANCHORED when the 10-year breakeven moved less than this over
+  # the 60 sessions.
+  anchored_bp: 15                      # session-set
+  # strongest when breakeven-led; weaker when real-yield- or term-premium-led
+  # with inflation anchored; moderate otherwise.
+  companions: >-
+    Read with the quadrant sub-state (item 25, the leading read; built later)
+    and r−g (item 29, the equity-side consequence; on session A's st-r5-index
+    branch).
+
+# ST-R4.17a -- NET LIQUIDITY (item 17): calc.net_liquidity, already stored, with
+# its 4- and 13-week changes and the component attribution. Report only; the
+# modifier waits for the 17b calibration ledger.
+net_liquidity:
+  key: calc.net_liquidity
+  # leg -> (registry key, multiplier to dollars): the units trap (CLAUDE.md 2).
+  legs:
+    fed_assets: [fred.fed_balance, 1000000]
+    tga: [fred.tga, 1000000]
+    rrp: [fred.rrp, 1000000000]
+  weeks: [4, 13]
+  # What each leading leg means (the item's thought process): a TGA-led rise is
+  # transient, an RRP-led one has little left to run, a balance-sheet one is the
+  # durable kind. Descriptive labels, not states.
+  meaning:
+    fed_assets: "the Fed's balance sheet: the durable kind"
+    tga: "the Treasury's cash balance: transient, reverses at tax dates and issuance"
+    rrp: "the reverse repo facility draining: little left to run"
+
+# ST-R4.21a -- GREECE-BUND, a watch spread beside OAT-Bund (SR-30), untiered,
+# from the ECB convergence series (altdata/sources/ecb_irs.py, GR added). The
+# row rides batch 3's EU table; nothing to set here.
+
+# ST-R4.23a -- CONSTRUCTION SPENDING, real (item 23), under Factor I in the slow
+# layers. Census VIP value put in place, seasonally adjusted annual rate, deflated
+# by FRED's PPI final demand construction (PPIDCS, seasonally adjusted).
+construction:
+  data_center: census.vip_data_center
+  private_nonresidential: census.vip_private_nonresidential
+  total: census.vip_total
+  power: census.vip_power
+  deflator: fred.ppi_construction
+  base_year: 2019                      # the order's "level against 2019"
