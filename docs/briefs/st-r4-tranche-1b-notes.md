@@ -373,7 +373,16 @@ passed.
   read blocks (T3.1 item 10), and the 27a sub-section reached it through the
   Weekly's builder. 27a is now the Weekly's only, like the 10A blocks.
 Locally after the fix: `validate_security_master` 82 of 82, `validate_alpha` 257
-of 257. The run on this push is read once, after it; see the session report.
+of 257.
+
+Run 38974666074, on `036c393` (Part 0): **failed, 101 jobs passed and 7 failed**:
+one gate, `validate_official_sources`, plus the summary job and the exit lines.
+Its guard "no report, renderer or regime module imports a writer" caught
+`daily_cascade/batch5_block.py`, which still imported `census_vip` to read the
+hold; with the writer on the roster the import is a renderer reaching a writer.
+The hold check is gone from the block (the hold is lifted, so there is nothing to
+read), and no renderer imports either writer. `validate_st_r4_t1` 49 of 49
+locally. The run on the fix is read once, after the push.
 
 ### The Census hold lifted (ruling (a))
 

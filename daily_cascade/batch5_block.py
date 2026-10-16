@@ -29,8 +29,6 @@ TITLE_ATTR = "The 10-year attribution: the term premium and the fiscal-bark flag
 TITLE_NL = "Net liquidity: Fed assets less the TGA less the reverse repo, attributed"
 TITLE_SB = "The stock-bond correlation (SR-9, amended): 60 days beside two years"
 TITLE_CON = "Factor I, the real economy: construction spending, real"
-HELD = ("not read — the Census writer is held "
-        "(altdata/sources/census_vip.py HELD_FOR_D1C)")
 
 
 def _prose(sub: Optional[dict], now: str) -> Optional[dict]:
@@ -241,9 +239,9 @@ def _slow(st, now: str, cfg: Optional[dict] = None) -> Optional[dict]:
     """ST-R4.23a, the Monthly's slow layers under Factor I. No rights until the
     Disruptive Themes refresh rules."""
     try:
-        from altdata.sources import census_vip                  # noqa: PLC0415
-        held = HELD if census_vip.HELD_FOR_D1C else None
-        con = batch5.construction(st, now, cfg, held_reason=held)
+        # No renderer imports a writer (validate_official_sources): the Census
+        # writer is live since the D1c ruling, so there is no hold to read here.
+        con = batch5.construction(st, now, cfg)
     except Exception:                                           # noqa: BLE001
         log.warning("batch 5 construction block faulted", exc_info=True)
         return None
